@@ -32,6 +32,8 @@ import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { detectStack } from "./target.ts";
 import { statusView, type StatusView } from "./views.ts";
+import { buildSnapshot, readChanges, readContent, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
+import type { Finding } from "../contracts/v1/evidence.ts";
 
 export interface HarnessDeps {
 	ledger: LedgerPort;
@@ -627,6 +629,24 @@ export class Harness {
 		const next = this.commit(unit, { type: "decision.request", at: this.now(), actor: KERNEL_ACTOR, request }, cor);
 		this.deps.onDecisionRequested?.(request);
 		return next;
+	}
+
+	/** Opens a read-only review of the frozen candidate (or of the reference alone). Identical data in every Pi entry (RM-066). */
+	async openReview(changeId: string, candidateId?: string): Promise<{ snapshot: ReviewSnapshot; changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>; content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage> }> {
+		const { state } = this.load(changeId);
+		const reference = await this.referenceOf(state);
+		const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
+		const manifest = wanted ? await this.readArtifact<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null) : null;
+		const workspacePath = manifest ? this.deps.workspace.workspacePath(manifest.workspace_id) : null;
+		const findings: (Finding & { evidence_id: string })[] = [];
+		for (const e of state.evidence.filter((x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest)) {
+			const ev = this.deps.ledger.getEvidence(e.evidence_id);
+			if (ev) for (const f of ev.findings) findings.push({ ...f, evidence_id: ev.evidence_id });
+		}
+		const newer = manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id ? state.candidate.candidate_id : null;
+		const snapshot = buildSnapshot({ change_id: changeId, reference, manifest, findings, newer_candidate: newer, now: this.now() });
+		const sources = { referencePath: reference.project_path, workspacePath, reference, manifest, maxBytes: 2 * 1024 * 1024 };
+		return { snapshot, changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath), content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }) };
 	}
 
 	pendingDecisions(changeId: string): DecisionRequest[] {
