@@ -32,6 +32,11 @@ livré avec ses tests, sa matrice de traçabilité (`docs/TRACEABILITY.md`) et s
 | IT-4 | Modèle de revue (union des arbres, ANCIEN/NOUVEAU, pages), composant TUI deux panneaux + mode étroit, intégration Git G6, destination avancée, réconciliation | Parcours complet |
 | IT-5 | Programme : DAG, jalons, phase `preparing`, dépôt vide/sans HEAD, adaptateur TS et Java par le runner générique, export expurgé | Capacité P0 dans la limite déclarée dans STATUS |
 
+## État
+
+Tous les incréments sont livrés avec leurs tests ; les limites de qualification sont consignées
+dans `STATUS.md` et `QUALIFICATION.md`.
+
 ## Ce qui est hors de portée de cette machine
 
 - Linux x86-64 : non exécutable ici ; le backend `bwrap` est implémenté mais non qualifié (annoncé `capability_missing`).

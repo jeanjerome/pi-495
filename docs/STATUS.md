@@ -1,14 +1,58 @@
 # Statut d'implémentation P0
 
-Mis à jour à chaque incrément. « Livré » signifie code + tests passants ; « qualifié » signifie
-que la preuve prévue par la conception de vérification a été exécutée sur cette machine
-(macOS arm64, Node 24.21, Pi 0.85.1).
+Machine de référence : macOS 27 arm64, Node 24.21, Pi 0.85.1, Git 2.55, JDK 25 + Maven 3.9.9,
+modèle local `omlx/qwen3.8-27b-oq8e`. Date : 16 septembre 2026.
 
-| Incrément | État |
-| --- | --- |
-| IT-0 | en cours |
-| IT-1 | à faire |
-| IT-2 | à faire |
-| IT-3 | à faire |
-| IT-4 | à faire |
-| IT-5 | à faire |
+« Livré » = code + tests passants. « Qualifié ici » = la preuve prévue par la conception de
+vérification a été exécutée sur cette machine.
+
+## Incréments
+
+| Incrément | État | Preuves exécutées |
+| --- | --- | --- |
+| IT-0 contrats, noyau, stockage | livré, qualifié ici | V0 (58 tests dont propriétés générées), V2 stockage avec pannes injectées |
+| IT-1 package Pi, commandes, modes | livré, qualifié ici pour TUI (composant), print, JSON ; RPC non exercé | V3 (2 parcours réels `pi -p` / `pi --mode json`), chargement par manifeste |
+| IT-2 worker, sandbox, candidat | livré, qualifié ici sur macOS | V1 sandbox/runner/superviseur, intervention réelle avec le modèle local |
+| IT-3 vérification et décision | livré, qualifié ici | V1 parsers/runner/qualification, V2 cycles complets |
+| IT-4 revue et intégration | livré ; TUI qualifié par rendu simulé, pas par observation humaine | V0 modèle de revue et composant, V2 intégration Git |
+| IT-5 programme, préparation, stacks | partiel : préparation livrée ; programme multi-incréments au niveau noyau ; F-JAVA qualifiée | V2 préparation, V4 Java (exécutée une fois, hors suite par défaut) |
+
+## Ce qui est démontré
+
+- Cycle complet réel depuis Pi : `pi -p "/495 start …"` sur F-TS avec le modèle local, sous Seatbelt,
+  a produit `accepted` avec G0…G5 PASS et deux contrôles PASS (durée ≈ 8 min, dont ≈ 75 s de
+  spécification et ≈ 2 min d'implémentation).
+- Un producteur qui altère un test protégé échoue à G4 ; un candidat qui fait échouer la suite est
+  refusé à G5 puis corrigé avec un feedback borné ; trois échecs épuisent les tentatives et
+  demandent IH-07 ; deux candidats identiques déclenchent `stagnation`.
+- Une approbation portée par une sortie de modèle ou un appel d'outil est refusée ; une décision
+  reste attachée au candidat présenté ; l'absence de réponse ne vaut jamais approbation.
+- Une preuve sur un autre candidat, une autre révision de protocole ou un autre environnement est
+  rejetée à l'enregistrement ; FAIL et INDETERMINATE restent distingués ; timeout, binaire absent ou
+  rapport illisible donnent INDETERMINATE.
+- Journal chaîné SQLite + CAS : crash avant commit ou avant projection sans état incohérent ;
+  altération détectée ; projection reconstruite ; export vérifiable hors ligne, expurgation déclarée.
+- Workspace isolé : le projet n'est jamais écrit ; dépôts vide, sans HEAD, propre, sale et non git
+  capturés ; manifeste complet (ajouts, suppressions, modes, liens, non suivis).
+- Intégration Git en deux temps avec reçu ; destination avancée détectée et bloquée ; aucun push.
+- Préparation de tests absents : suite proposée par un agent, qualifiée par le noyau
+  (périmètre, chargeable, discriminante), protégée ensuite.
+- Seconde stack : F-JAVA (Maven + Surefire) qualifiée positif/négatif/incident sous Seatbelt.
+
+## Ce qui n'est pas qualifié, ou hors de cette machine
+
+- Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
+- Mode RPC : chemins de code présents ; aucun client RPC qualifié n'a été exercé.
+- Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit) ;
+  la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire.
+- Revues obligatoires (fonctionnelle, architecture, sécurité, licences, exploitation) : non
+  réalisées ; les constats automatiques existent, pas les revues humaines.
+- Programme multi-incréments piloté depuis Pi (PRG-03..05, F-PROGRAM de bout en bout) : noyau
+  et stockage seulement.
+- Reviewers agentiques obligatoires : mécanisme livré (rôle `review`, mandat lecture seule,
+  arbitrage) et testé avec l'agent scripté ; non exercé avec un modèle réel.
+- Performance (NFR-04) : aucune mesure p95 ; les bornes de flux et de taille existent.
+- Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
+- Documentation/RAG (RAG-*), architecture et qualité (ARC-*, QLT-*), expertise (EXP-*) : non
+  livrés ; ils ne bloquent aucun scénario P0 de changement simple mais restent P0 dans l'expression
+  de besoins et sont donc annoncés absents.

@@ -92,3 +92,78 @@ décision reste `decision_required`. JSON et print ne produisent jamais de déci
 ## D-10 — Licence
 
 **Décision.** Apache-2.0 (option proposée dans ADR-08 amont), fichiers LICENSE et NOTICE fournis.
+
+## D-11 — Modèle de confinement du worker Pi
+
+**Décision.** Le processus worker n'est pas lui-même confiné pour le réseau : il doit joindre le
+fournisseur de modèle configuré dans Pi et lire `models.json`/`auth.json` de Pi (les credentials
+restent gérés par Pi, §10.3). Le confinement porte sur toutes ses **voies d'action** : les outils
+`read`/`write`/`edit`/`ls`/`grep` sont recréés avec des opérations qui refusent tout chemin dont le
+`realpath` sort du workspace ; l'outil `bash` exécute chaque commande sous le backend d'isolation
+(Seatbelt sur macOS) avec écriture limitée au workspace et réseau refusé ; aucun skill, `AGENTS.md`,
+extension ou package du projet n'est chargé (`ResourceLoader` explicite vide) ; le chemin du
+stockage normatif n'est jamais transmis et la base, le CAS, les exports et `auth.json` sont refusés
+en lecture par le profil.
+**Motif.** ADR-004 et §6.4 ; une extension Pi ne peut pas confiner l'appel modèle sans priver le
+worker du fournisseur.
+**Conséquence.** SEC-02 est revendiquée pour les voies d'action des outils, pas pour le canal modèle.
+
+## D-12 — Provenance humaine en RPC
+
+**Décision.** En mode RPC, une réponse de décision n'est acceptée que si l'hôte a déclaré l'identité
+humaine dans la variable d'environnement nommée par `human_origin.rpc_actor_env`
+(`HARNESS495_RPC_HUMAN_ACTOR` par défaut). Sans elle, la décision reste `decision_required` et
+l'extension l'indique.
+**Motif.** Pi ne transmet aucune identité de client aux extensions ; ADR-014 interdit de déduire une
+provenance humaine du seul contenu.
+
+## D-13 — Campagnes de qualification avec agent scripté
+
+**Décision.** `HARNESS495_SCRIPTED_AGENT=<fichier.json>` remplace le worker Pi par l'agent
+déterministe `ScriptedAgent` dans le runtime de l'extension. Le diagnostic de session l'annonce.
+**Motif.** V3 exige des parcours reproductibles par les entrées Pi sans fournisseur réel (C-PI,
+F-PIHOST, F-AGENTS).
+**Conséquence.** Ce mode n'est jamais activé sans la variable ; il est visible dans `Limites`.
+
+## D-14 — Qualification d'une préparation de tests
+
+**Décision.** Quand la référence ne contient aucun test dans les répertoires attendus de la stack,
+G2 ouvre `preparing`. Le producteur de préparation ne peut écrire que sous ces répertoires. Le
+noyau qualifie la suite proposée par trois faits : périmètre respecté, suite chargeable (elle
+exécute au moins un test), et **discriminante** (elle échoue sur la référence, donc détecte la
+fonctionnalité absente). Le mécanisme runner/parser est qualifié séparément avec un témoin positif
+trivial et un témoin négatif injecté. Une suite qui passe déjà sur la référence est conservée comme
+fait mais pas adoptée comme oracle discriminant. Deux préparations infructueuses bloquent en
+`capability_missing`. Les fichiers adoptés deviennent des chemins protégés dont le contenu exact
+est autorisé dans le candidat.
+**Motif.** PRE-03 et SA-009/SA-010 : distinguer capteur opérationnel, test discriminant et produit
+conforme.
+**Limite.** La discriminance sémantique (le test couvre bien l'exigence) reste une affaire de
+revue humaine ; P0 ne l'automatise pas.
+
+## D-15 — Sortie de l'extension en mode print
+
+**Décision.** En mode `pi -p`, l'extension écrit son texte sur la sortie standard du processus ;
+Pi réserve la sortie standard réelle à la réponse du modèle et route les écritures des extensions
+vers la sortie d'erreur. Le contenu est identique à celui des autres modes ; les scripts doivent
+lire les deux flux. En JSON, la vue canonique est portée par `details.view` d'un message
+`customType: "495"`.
+
+## D-16 — Trajectoire à un incrément par défaut
+
+**Décision.** `/495 start` crée un programme avec un incrément unique. L'agrégat Programme
+(DAG, jalons, éligibilité, verdict global) est implémenté et testé, mais la décomposition d'un
+besoin complet en plusieurs incréments par intervention n'est pas automatisée en P0 ; elle se fait
+par une trajectoire adoptée explicitement (`trajectory.adopt`).
+**Conséquence.** PRG-03/PRG-04/PRG-05 sont livrés au niveau du noyau et du stockage ; le parcours
+multi-incréments piloté par Pi reste à qualifier (voir STATUS).
+
+## D-17 — Redéfinition tolérante des sorties structurées
+
+**Décision.** Avant validation contre le schéma de sortie, la sortie d'une intervention est
+extraite du dernier bloc ```json chargeable, puis normalisée : propriétés inconnues retirées,
+tableaux manquants remplacés par `[]`, booléens manquants par `false`. Un champ obligatoire
+absent reste invalide.
+**Motif.** Les modèles locaux ajoutent souvent un commentaire ou un champ ; refuser ces sorties
+transformait chaque cycle en `configuration_error`. La normalisation n'invente aucun contenu
+métier.
