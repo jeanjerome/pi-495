@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "control_id",
+    "version",
+    "title",
+    "command",
+    "cwd",
+    "env_allowlist",
+    "env",
+    "timeout_ms",
+    "parser",
+    "report_path",
+    "network",
+    "writable_paths",
+    "requirement_refs",
+    "protected",
+    "protected_paths"
+  ],
+  "properties": {
+    "control_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "command": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "cwd": {
+      "type": "string",
+      "description": "relative to the workspace root"
+    },
+    "env_allowlist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "env": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "type": "string"
+        }
+      }
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parser": {
+      "type": "string",
+      "enum": [
+        "exit-code",
+        "node-test",
+        "junit-xml"
+      ]
+    },
+    "report_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "network": {
+      "type": "string",
+      "enum": [
+        "denied",
+        "allowed"
+      ]
+    },
+    "writable_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requirement_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "revision"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "protected": {
+      "type": "boolean",
+      "description": "the control definition files may not be modified by a producer"
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$id": "urn:495:contract:control-definition:1",
+  "additionalProperties": false
+}

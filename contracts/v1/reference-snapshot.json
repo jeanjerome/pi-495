@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "reference_id",
+    "kind",
+    "project_path",
+    "head_commit",
+    "branch",
+    "tree_digest",
+    "entries",
+    "exclusions",
+    "captured_at",
+    "limits"
+  ],
+  "properties": {
+    "reference_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "git_clean_head",
+        "git_dirty_head",
+        "git_no_head",
+        "empty_directory",
+        "non_git_directory"
+      ]
+    },
+    "project_path": {
+      "type": "string"
+    },
+    "head_commit": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "branch": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tree_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "kind",
+          "content_digest",
+          "size",
+          "mode",
+          "symlink_target",
+          "baseline_state",
+          "origin",
+          "limits"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "file",
+              "symlink",
+              "directory",
+              "submodule",
+              "special"
+            ]
+          },
+          "content_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "description": "SHA-256 digest, hex, prefixed"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mode": {
+            "type": "string",
+            "pattern": "^[0-7]{6}$"
+          },
+          "symlink_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseline_state": {
+            "type": "string",
+            "enum": [
+              "unchanged",
+              "added",
+              "modified",
+              "deleted",
+              "mode_changed",
+              "type_changed"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "user",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "limits": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "truncated",
+                  "bytes_read",
+                  "bytes_total",
+                  "exclusions",
+                  "unstable",
+                  "notes"
+                ],
+                "properties": {
+                  "truncated": {
+                    "type": "boolean"
+                  },
+                  "bytes_read": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bytes_total": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "exclusions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "unstable": {
+                    "type": "boolean"
+                  },
+                  "notes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "truncated",
+        "bytes_read",
+        "bytes_total",
+        "exclusions",
+        "unstable",
+        "notes"
+      ],
+      "properties": {
+        "truncated": {
+          "type": "boolean"
+        },
+        "bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_total": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unstable": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$id": "urn:495:contract:reference-snapshot:1",
+  "additionalProperties": false
+}

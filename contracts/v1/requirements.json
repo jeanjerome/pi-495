@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "change_id",
+    "requirements",
+    "assumptions",
+    "contract_families"
+  ],
+  "properties": {
+    "change_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "statement",
+          "category",
+          "mandatory",
+          "criterion",
+          "source",
+          "contract_family"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string"
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "criterion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string"
+          },
+          "contract_family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract_families": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "type": "string",
+          "enum": [
+            "covered",
+            "not_applicable",
+            "to_instruct"
+          ]
+        }
+      }
+    }
+  },
+  "$id": "urn:495:contract:requirements:1",
+  "additionalProperties": false
+}

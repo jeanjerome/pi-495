@@ -1,0 +1,558 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "requirement_refs",
+    "control_id",
+    "control_version",
+    "subject",
+    "protocol_revision",
+    "environment_digest",
+    "inputs_digest",
+    "started_at",
+    "ended_at",
+    "verdict",
+    "facts",
+    "findings",
+    "artifacts",
+    "limits",
+    "producer",
+    "integrity"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "requirement_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "revision"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "control_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "control_version": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "revision",
+        "digest"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "program",
+            "increment",
+            "change",
+            "attempt",
+            "candidate",
+            "artifact",
+            "protocol",
+            "control",
+            "component",
+            "fixture",
+            "build",
+            "environment",
+            "integration"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "SHA-256 digest, hex, prefixed"
+        }
+      },
+      "$id": "urn:495:contract:subject-ref:1",
+      "additionalProperties": false
+    },
+    "protocol_revision": {
+      "type": "object",
+      "required": [
+        "protocol_id",
+        "revision",
+        "content_digest"
+      ],
+      "properties": {
+        "protocol_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "SHA-256 digest, hex, prefixed"
+        }
+      },
+      "$id": "urn:495:contract:protocol-ref:1",
+      "additionalProperties": false
+    },
+    "environment_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "inputs_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INDETERMINATE",
+        "NOT_RUN",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "facts": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "category",
+          "severity",
+          "message",
+          "path",
+          "region",
+          "symbol",
+          "requirement_refs",
+          "baseline_state",
+          "fingerprint",
+          "tool",
+          "tool_version",
+          "confidence",
+          "raw_evidence_ref"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "assertion",
+              "structure",
+              "quality",
+              "security",
+              "performance",
+              "scope",
+              "protocol",
+              "review",
+              "incident"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "major",
+              "minor",
+              "info"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "start_line",
+                  "end_line",
+                  "start_col",
+                  "end_col"
+                ],
+                "properties": {
+                  "start_line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "end_line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "start_col": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "end_col": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "requirement_id",
+                "revision"
+              ],
+              "properties": {
+                "requirement_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "baseline_state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "preexisting",
+              "removed",
+              "unknown"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "SHA-256 digest, hex, prefixed"
+          },
+          "tool": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "raw_evidence_ref": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "algorithm",
+                  "digest",
+                  "size_bytes",
+                  "media_type"
+                ],
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "const": "sha256"
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "description": "SHA-256 digest, hex, prefixed"
+                  },
+                  "size_bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "media_type": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "$id": "urn:495:contract:object-ref:1",
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "$id": "urn:495:contract:finding:1",
+        "additionalProperties": false
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "ref"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "object",
+            "required": [
+              "algorithm",
+              "digest",
+              "size_bytes",
+              "media_type"
+            ],
+            "properties": {
+              "algorithm": {
+                "type": "string",
+                "const": "sha256"
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "description": "SHA-256 digest, hex, prefixed"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "$id": "urn:495:contract:object-ref:1",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "truncated",
+        "bytes_read",
+        "bytes_total",
+        "exclusions",
+        "unstable",
+        "notes"
+      ],
+      "properties": {
+        "truncated": {
+          "type": "boolean"
+        },
+        "bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_total": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unstable": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "producer": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "actor_type",
+        "role",
+        "origin",
+        "authentication_level"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "kernel",
+            "agent",
+            "executor",
+            "integrator",
+            "extension",
+            "system"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "tui_session",
+            "rpc_qualified",
+            "sdk_qualified",
+            "json",
+            "print",
+            "model_output",
+            "tool_call",
+            "kernel",
+            "executor",
+            "system"
+          ]
+        },
+        "authentication_level": {
+          "type": "string",
+          "enum": [
+            "none",
+            "session",
+            "host_qualified"
+          ]
+        }
+      },
+      "$id": "urn:495:contract:actor-ref:1",
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "content_digest",
+        "chained_to"
+      ],
+      "properties": {
+        "content_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "SHA-256 digest, hex, prefixed"
+        },
+        "chained_to": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$id": "urn:495:contract:evidence:1",
+  "additionalProperties": false
+}

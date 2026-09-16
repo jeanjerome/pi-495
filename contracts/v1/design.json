@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "change_id",
+    "summary",
+    "components",
+    "interfaces",
+    "alternatives",
+    "risks",
+    "requirement_ids",
+    "compatible_with_mandate",
+    "executable"
+  ],
+  "properties": {
+    "change_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requirement_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      }
+    },
+    "compatible_with_mandate": {
+      "type": "boolean"
+    },
+    "executable": {
+      "type": "boolean"
+    }
+  },
+  "$id": "urn:495:contract:design:1",
+  "additionalProperties": false
+}

@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "code",
+    "category",
+    "summary",
+    "subject",
+    "phase",
+    "retryable",
+    "effect_state",
+    "next_actions",
+    "details_ref"
+  ],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]+$"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "request",
+        "configuration",
+        "capability",
+        "provider",
+        "execution",
+        "verification",
+        "candidate",
+        "policy",
+        "evidence",
+        "git",
+        "storage",
+        "interface"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "subject": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "id",
+            "revision",
+            "digest"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "program",
+                "increment",
+                "change",
+                "attempt",
+                "candidate",
+                "artifact",
+                "protocol",
+                "control",
+                "component",
+                "fixture",
+                "build",
+                "environment",
+                "integration"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "SHA-256 digest, hex, prefixed"
+            }
+          },
+          "$id": "urn:495:contract:subject-ref:1",
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "phase": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "intake",
+            "clarifying",
+            "specifying",
+            "verification_design",
+            "preparing",
+            "designing",
+            "implementing",
+            "verifying",
+            "reviewing",
+            "deciding",
+            "integrating",
+            "closed"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "effect_state": {
+      "type": "string",
+      "enum": [
+        "none",
+        "prepared",
+        "started",
+        "confirmed",
+        "failed",
+        "uncertain",
+        "reconciled"
+      ]
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "details_ref": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest",
+            "size_bytes",
+            "media_type"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "const": "sha256"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "SHA-256 digest, hex, prefixed"
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "media_type": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "$id": "urn:495:contract:object-ref:1",
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$id": "urn:495:contract:canonical-error:1",
+  "additionalProperties": false
+}

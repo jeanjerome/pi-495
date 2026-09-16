@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "candidate_id",
+    "workspace_id",
+    "base_reference_id",
+    "base_digest",
+    "selected_paths",
+    "exclusions",
+    "entries",
+    "metadata_policy",
+    "manifest_digest",
+    "frozen_at",
+    "limits"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "workspace_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "base_reference_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "base_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "selected_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "kind",
+          "content_digest",
+          "size",
+          "mode",
+          "symlink_target",
+          "baseline_state",
+          "origin",
+          "limits"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "file",
+              "symlink",
+              "directory",
+              "submodule",
+              "special"
+            ]
+          },
+          "content_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "description": "SHA-256 digest, hex, prefixed"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mode": {
+            "type": "string",
+            "pattern": "^[0-7]{6}$"
+          },
+          "symlink_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseline_state": {
+            "type": "string",
+            "enum": [
+              "unchanged",
+              "added",
+              "modified",
+              "deleted",
+              "mode_changed",
+              "type_changed"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "user",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "limits": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "truncated",
+                  "bytes_read",
+                  "bytes_total",
+                  "exclusions",
+                  "unstable",
+                  "notes"
+                ],
+                "properties": {
+                  "truncated": {
+                    "type": "boolean"
+                  },
+                  "bytes_read": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bytes_total": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "exclusions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "unstable": {
+                    "type": "boolean"
+                  },
+                  "notes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata_policy": {
+      "type": "string",
+      "enum": [
+        "content_and_mode",
+        "content_only"
+      ]
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "frozen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "truncated",
+        "bytes_read",
+        "bytes_total",
+        "exclusions",
+        "unstable",
+        "notes"
+      ],
+      "properties": {
+        "truncated": {
+          "type": "boolean"
+        },
+        "bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_total": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unstable": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$id": "urn:495:contract:candidate-manifest:1",
+  "additionalProperties": false
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "algorithm",
+    "digest",
+    "size_bytes",
+    "media_type"
+  ],
+  "properties": {
+    "algorithm": {
+      "type": "string",
+      "const": "sha256"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "media_type": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$id": "urn:495:contract:object-ref:1",
+  "additionalProperties": false
+}

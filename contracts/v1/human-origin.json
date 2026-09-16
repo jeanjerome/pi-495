@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "actor",
+    "host",
+    "session_id",
+    "asserted_at"
+  ],
+  "properties": {
+    "actor": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "actor_type",
+        "role",
+        "origin",
+        "authentication_level"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "kernel",
+            "agent",
+            "executor",
+            "integrator",
+            "extension",
+            "system"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "tui_session",
+            "rpc_qualified",
+            "sdk_qualified",
+            "json",
+            "print",
+            "model_output",
+            "tool_call",
+            "kernel",
+            "executor",
+            "system"
+          ]
+        },
+        "authentication_level": {
+          "type": "string",
+          "enum": [
+            "none",
+            "session",
+            "host_qualified"
+          ]
+        }
+      },
+      "$id": "urn:495:contract:actor-ref:1",
+      "additionalProperties": false
+    },
+    "host": {
+      "type": "string",
+      "enum": [
+        "tui",
+        "rpc",
+        "sdk"
+      ]
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "asserted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$id": "urn:495:contract:human-origin:1",
+  "additionalProperties": false
+}

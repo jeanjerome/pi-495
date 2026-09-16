@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "human_decision_id",
+    "request",
+    "response",
+    "origin",
+    "recorded_at",
+    "revoked"
+  ],
+  "properties": {
+    "human_decision_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "change_id",
+        "interaction",
+        "subject",
+        "question",
+        "facts",
+        "recommendation",
+        "options",
+        "required_authority",
+        "allow_free_text",
+        "requested_at",
+        "expires_at",
+        "language"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "change_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "interaction": {
+          "type": "string",
+          "enum": [
+            "IH-01",
+            "IH-02",
+            "IH-03",
+            "IH-04",
+            "IH-05",
+            "IH-06",
+            "IH-07",
+            "IH-08",
+            "IH-09",
+            "IH-10",
+            "IH-11",
+            "IH-12"
+          ]
+        },
+        "subject": {
+          "type": "object",
+          "required": [
+            "kind",
+            "id",
+            "revision",
+            "digest"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "program",
+                "increment",
+                "change",
+                "attempt",
+                "candidate",
+                "artifact",
+                "protocol",
+                "control",
+                "component",
+                "fixture",
+                "build",
+                "environment",
+                "integration"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "SHA-256 digest, hex, prefixed"
+            }
+          },
+          "$id": "urn:495:contract:subject-ref:1",
+          "additionalProperties": false
+        },
+        "question": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "effect",
+              "risky"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "label": {
+                "type": "string"
+              },
+              "effect": {
+                "type": "string"
+              },
+              "risky": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "required_authority": {
+          "type": "string",
+          "enum": [
+            "requester",
+            "change_owner",
+            "program_owner",
+            "maintainer",
+            "discipline_referent",
+            "producer_agent",
+            "reviewer_agent",
+            "kernel",
+            "executor",
+            "integrator"
+          ]
+        },
+        "allow_free_text": {
+          "type": "boolean"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "fr",
+            "en"
+          ]
+        }
+      },
+      "$id": "urn:495:contract:decision-request:1",
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "option_id",
+        "free_text",
+        "reason",
+        "subject_revision",
+        "scope",
+        "expires_at"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "option_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "free_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "$id": "urn:495:contract:decision-response:1",
+      "additionalProperties": false
+    },
+    "origin": {
+      "type": "object",
+      "required": [
+        "actor",
+        "host",
+        "session_id",
+        "asserted_at"
+      ],
+      "properties": {
+        "actor": {
+          "type": "object",
+          "required": [
+            "actor_id",
+            "actor_type",
+            "role",
+            "origin",
+            "authentication_level"
+          ],
+          "properties": {
+            "actor_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "actor_type": {
+              "type": "string",
+              "enum": [
+                "human",
+                "kernel",
+                "agent",
+                "executor",
+                "integrator",
+                "extension",
+                "system"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "origin": {
+              "type": "string",
+              "enum": [
+                "tui_session",
+                "rpc_qualified",
+                "sdk_qualified",
+                "json",
+                "print",
+                "model_output",
+                "tool_call",
+                "kernel",
+                "executor",
+                "system"
+              ]
+            },
+            "authentication_level": {
+              "type": "string",
+              "enum": [
+                "none",
+                "session",
+                "host_qualified"
+              ]
+            }
+          },
+          "$id": "urn:495:contract:actor-ref:1",
+          "additionalProperties": false
+        },
+        "host": {
+          "type": "string",
+          "enum": [
+            "tui",
+            "rpc",
+            "sdk"
+          ]
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "asserted_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "$id": "urn:495:contract:human-origin:1",
+      "additionalProperties": false
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked": {
+      "type": "boolean"
+    }
+  },
+  "$id": "urn:495:contract:human-decision:1",
+  "additionalProperties": false
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "revision",
+    "digest"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "program",
+        "increment",
+        "change",
+        "attempt",
+        "candidate",
+        "artifact",
+        "protocol",
+        "control",
+        "component",
+        "fixture",
+        "build",
+        "environment",
+        "integration"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    }
+  },
+  "$id": "urn:495:contract:subject-ref:1",
+  "additionalProperties": false
+}
