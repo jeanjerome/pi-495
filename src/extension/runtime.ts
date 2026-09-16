@@ -46,15 +46,16 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 	const layout = dataLayout(dataDir);
 	for (const d of [layout.root, layout.objects, layout.workspaces, layout.exports, layout.locks, layout.logs]) mkdirSync(d, { recursive: true });
 	const { config, diagnostics } = loadConfig(dataDir, env);
-	const sandbox = selectSandbox({ allow_unconfined: config.isolation.allow_unconfined, denied_read_paths: [dataDir, join(inputs.pi_agent_dir, "auth.json")] });
+	const normative = [layout.database, `${layout.database}-wal`, `${layout.database}-shm`, layout.objects, layout.exports, layout.logs, layout.locks, join(dataDir, "config.json")];
+	const sandbox = selectSandbox({ allow_unconfined: config.isolation.allow_unconfined, denied_read_paths: [...normative, join(inputs.pi_agent_dir, "auth.json")] });
 	if (!sandbox.qualification.qualified) diagnostics.push(`sandbox ${sandbox.backend.backend} not qualified: ${sandbox.qualification.reasons.join("; ")}`);
 	const ledger = new SqliteLedger(layout.database);
 	const objects = new CasObjectStore(layout.objects);
 	const workspace = new GitWorkspace(layout.workspaces);
 	const controls = new GenericControlRunner(sandbox.backend, objects);
 	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
-	const agent = new PiWorkerAgent({ config: { pi_package_dir: inputs.pi_package_dir, pi_agent_dir: inputs.pi_agent_dir, sandbox_backend: sandbox.backend.backend as "seatbelt" | "bubblewrap" | "unconfined", denied_read_paths: [dataDir], heartbeat_ms: 5000 }, silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4) });
-	const harness = new Harness({ ledger, objects, workspace, controls, agent, sandbox, clock: systemClock, ids: randomIds, policy: config.policy, workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 }, environment: environment.ref, model: inputs.model, instance_id: randomIds.next("ins"), denied_read_paths: [dataDir] });
+	const agent = new PiWorkerAgent({ config: { pi_package_dir: inputs.pi_package_dir, pi_agent_dir: inputs.pi_agent_dir, sandbox_backend: sandbox.backend.backend as "seatbelt" | "bubblewrap" | "unconfined", denied_read_paths: normative, heartbeat_ms: 5000 }, silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4) });
+	const harness = new Harness({ ledger, objects, workspace, controls, agent, sandbox, clock: systemClock, ids: randomIds, policy: config.policy, workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 }, environment: environment.ref, model: inputs.model, instance_id: randomIds.next("ins"), denied_read_paths: normative });
 	harness.integrator = new GitIntegrator(harness, objects).step;
 	return { harness, ledger, objects, config, dataDir, diagnostics, sandbox_backend: sandbox.backend.backend, sandbox_qualified: sandbox.qualification.qualified, environment_digest: environment.ref.digest, close: () => ledger.close() };
 }

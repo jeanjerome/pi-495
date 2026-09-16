@@ -60,7 +60,13 @@ export async function exportChange(ledger: LedgerPort, objects: ObjectStorePort,
 	const objectDigests = new Set<string>();
 	const artifacts = ledger.listArtifacts(state.change_id);
 	add(`changes/${state.change_id}/artifacts/index.json`, json(artifacts));
-	for (const a of artifacts) objectDigests.add(a.object.digest);
+	for (const a of artifacts) {
+		objectDigests.add(a.object.digest);
+		if (a.kind === "candidate" && a.ref.artifact_id.startsWith("files_")) {
+			const bytes = await objects.get(a.object);
+			if (bytes) for (const f of Object.values(JSON.parse(new TextDecoder().decode(bytes)) as Record<string, { digest: string }>)) objectDigests.add(f.digest);
+		}
+	}
 	const evidence = ledger.listEvidence(state.change_id);
 	for (const ev of evidence) {
 		add(`changes/${state.change_id}/evidence/${ev.evidence_id}.json`, json(ev));

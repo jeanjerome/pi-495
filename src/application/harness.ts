@@ -437,7 +437,7 @@ export class Harness {
 			if (unit.state.gates.G2?.verdict !== "PASS") {
 				const g2 = unit.state.gates.G2!;
 				const unqualified = Object.entries(qualifications).filter(([, q]) => !q.qualified).map(([id, q]) => `${id}: ${q.notes.join(", ")}`);
-				throw new DomainError("CAPABILITY_MISSING", `protocol not frozen: ${[...g2.reasons, ...unqualified].join("; ")}`, { nextActions: ["prepare_capabilities", "fix_reference_tests"] });
+				throw new DomainError("CAPABILITY_MISSING", `protocol not frozen: ${[...new Set([...g2.reasons, ...unqualified])].join("; ")}`, { nextActions: ["prepare_capabilities", "fix_reference_tests"] });
 			}
 			return unit;
 		} finally {
@@ -489,6 +489,20 @@ export class Harness {
 		const wsHandle = { workspace_id: workspaceId, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() };
 		const manifest = await this.deps.workspace.snapshotCandidate(wsHandle, reference, this.deps.workspacePolicy);
 		const manifestRef = await this.storeArtifact("candidate", unit.state.change_id, manifest.candidate_id, manifest, KERNEL_ACTOR.actor_id);
+		// keep the bytes of every changed file so that the dossier stays self-contained (EVD-01)
+		const files: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
+		for (const e of manifest.entries) {
+			if (e.baseline_state === "unchanged" || e.baseline_state === "deleted" || e.kind !== "file" || e.content_digest === null) continue;
+			try {
+				const { readFile } = await import("node:fs/promises");
+				const bytes = new Uint8Array(await readFile(join(workspacePath, e.path)));
+				const ref = await this.deps.objects.put(bytes, "application/octet-stream");
+				files[e.path] = { digest: ref.digest, size_bytes: ref.size_bytes, media_type: ref.media_type };
+			} catch {
+				/* unreadable file: the manifest already carries the limit */
+			}
+		}
+		await this.storeArtifact("candidate", unit.state.change_id, `files_${manifest.candidate_id}`, files, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
 		const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 		const protectedPaths = unit.state.protocol?.protected_paths ?? [];

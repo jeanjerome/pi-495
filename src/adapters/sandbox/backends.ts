@@ -51,9 +51,13 @@ export class SeatbeltSandbox implements SandboxPort {
 		lines.push(profile.network === "allowed" ? "(allow network*)" : "(deny network*)");
 		return `${lines.join("\n")}\n`;
 	}
-	run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
+	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
 		const env = buildEnv(profile.env_allowlist, profile.env);
-		return runProcess({ command: ["/usr/bin/sandbox-exec", "-p", this.profileText(profile), ...request.command], cwd: request.cwd, env }, request, signal);
+		const obs = await runProcess({ command: ["/usr/bin/sandbox-exec", "-p", this.profileText(profile), ...request.command], cwd: request.cwd, env }, request, signal);
+		// sandbox-exec exits 71 (EX_OSERR) when the confined command cannot be executed: an incident, not a verdict.
+		const stderr = new TextDecoder().decode(obs.stderr.subarray(0, 400));
+		if (obs.exit_code === 71 && stderr.startsWith("sandbox-exec:")) return { ...obs, exit_code: null, spawn_error: stderr.split("\n")[0] ?? "sandbox-exec could not execute the command" };
+		return obs;
 	}
 }
 

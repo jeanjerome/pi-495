@@ -68,5 +68,5 @@ export function evaluateG2(state: ChangeState, protocol: Protocol, policy: Activ
 	for (const review of policy.required_reviews) if (!protocol.required_reviews.includes(review)) reasons.push(`policy requires review ${review} which the protocol does not schedule`);
 	if (reasons.length === 0) return { verdict: "PASS", reasons: [], uncovered_requirements: [], missing_capabilities: [], next_action: "design_change" };
 	const next = missing.length > 0 || uncovered.length > 0 ? "prepare_capabilities_or_assign_human_decision" : "revise_protocol";
-	return { verdict: "FAIL", reasons, uncovered_requirements: [...new Set(uncovered)], missing_capabilities: [...new Set(missing)], next_action: next };
+	return { verdict: "FAIL", reasons: [...new Set(reasons)], uncovered_requirements: [...new Set(uncovered)], missing_capabilities: [...new Set(missing)], next_action: next };
 }
