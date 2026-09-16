@@ -7,6 +7,7 @@ import { userInfo } from "node:os";
 import { join } from "node:path";
 import { VERSION, getAgentDir, getPackageDir, type ExtensionAPI, type ExtensionCommandContext, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { Text } from "@earendil-works/pi-tui";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest, HumanOrigin } from "../contracts/v1/decision.ts";
@@ -164,10 +165,7 @@ export default function harness495(pi: ExtensionAPI): void {
 	pi.on("session_before_switch", async () => (busy ? { cancel: true } : undefined));
 	pi.on("session_before_fork", async () => (busy ? { cancel: true } : undefined));
 
-	pi.registerMessageRenderer("495", (message, _options, theme) => {
-		const { Text } = require495Tui();
-		return new Text(theme.fg("accent", "495 ") + theme.fg("text", String(message.content)), 0, 0);
-	});
+	pi.registerMessageRenderer("495", (message, _options, theme) => new Text(theme.fg("accent", "495 ") + theme.fg("text", String(message.content)), 0, 0));
 
 	pi.registerCommand("495", {
 		description: "495 harness: start|status|resume|review|verify|decide|integrate|export|pause|cancel|bind|unbind",
@@ -353,9 +351,3 @@ function safeUser(): string {
 function kernelUser(): ActorRef {
 	return { actor_id: "495-kernel", actor_type: "kernel", role: "kernel", origin: "kernel", authentication_level: "host_qualified" };
 }
-
-function require495Tui(): typeof import("@earendil-works/pi-tui") {
-	// synchronous access for renderers: pi-tui is a peer dependency provided by the host
-	return piTui;
-}
-import * as piTui from "@earendil-works/pi-tui";

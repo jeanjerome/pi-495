@@ -53,3 +53,40 @@ export function fixtureSpecial(root: string): void {
 }
 
 export { ESC };
+
+/** F-JAVA: minimal Maven project with JUnit 5 (Surefire XML reports under target/surefire-reports). */
+export function fixtureJava(root: string): void {
+	writeFiles(root, {
+		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.h495</groupId>
+  <artifactId>f-java</artifactId>
+  <version>1.0.0</version>
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+`,
+		"src/main/java/io/h495/Greeter.java": "package io.h495;\n\npublic final class Greeter {\n    private Greeter() {}\n\n    public static String greet(String name) {\n        return \"Hello, \" + name;\n    }\n}\n",
+		"src/test/java/io/h495/GreeterTest.java": "package io.h495;\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\nclass GreeterTest {\n    @Test\n    void greets() {\n        assertEquals(\"Hello, x\", Greeter.greet(\"x\"));\n    }\n}\n",
+	});
+}

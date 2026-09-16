@@ -7,6 +7,9 @@ import { join } from "node:path";
 import { GenericControlRunner } from "../adapters/execution/runner.ts";
 import { CasObjectStore } from "../adapters/object-store/cas.ts";
 import { PiWorkerAgent } from "../adapters/pi-worker/supervisor.ts";
+import { ScriptedAgent, type AgentScript } from "../adapters/pi-worker/scripted-agent.ts";
+import { readFileSync } from "node:fs";
+import type { AgentPort } from "../ports/execution.ts";
 import { dataLayout, resolveDataDir } from "../adapters/platform/paths.ts";
 import { selectSandbox } from "../adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../adapters/storage-sqlite/ledger.ts";
@@ -54,7 +57,13 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 	const workspace = new GitWorkspace(layout.workspaces);
 	const controls = new GenericControlRunner(sandbox.backend, objects);
 	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
-	const agent = new PiWorkerAgent({ config: { pi_package_dir: inputs.pi_package_dir, pi_agent_dir: inputs.pi_agent_dir, sandbox_backend: sandbox.backend.backend as "seatbelt" | "bubblewrap" | "unconfined", denied_read_paths: normative, heartbeat_ms: 5000 }, silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4) });
+	let agent: AgentPort = new PiWorkerAgent({ config: { pi_package_dir: inputs.pi_package_dir, pi_agent_dir: inputs.pi_agent_dir, sandbox_backend: sandbox.backend.backend as "seatbelt" | "bubblewrap" | "unconfined", denied_read_paths: normative, heartbeat_ms: 5000 }, silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4) });
+	if (env.HARNESS495_SCRIPTED_AGENT) {
+		// Qualification campaigns (F-PIHOST, F-AGENTS): a deterministic agent replaces the Pi worker.
+		const scripts = JSON.parse(readFileSync(env.HARNESS495_SCRIPTED_AGENT, "utf8")) as { default: AgentScript; roles?: Record<string, AgentScript> };
+		agent = new ScriptedAgent(scripts.default, scripts.roles ?? {});
+		diagnostics.push(`HARNESS495_SCRIPTED_AGENT: interventions are simulated from ${env.HARNESS495_SCRIPTED_AGENT}; no model is called`);
+	}
 	const harness = new Harness({ ledger, objects, workspace, controls, agent, sandbox, clock: systemClock, ids: randomIds, policy: config.policy, workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 }, environment: environment.ref, model: inputs.model, instance_id: randomIds.next("ins"), denied_read_paths: normative });
 	harness.integrator = new GitIntegrator(harness, objects).step;
 	return { harness, ledger, objects, config, dataDir, diagnostics, sandbox_backend: sandbox.backend.backend, sandbox_qualified: sandbox.qualification.qualified, environment_digest: environment.ref.digest, close: () => ledger.close() };

@@ -1,0 +1,8 @@
+495 — development harness for Pi
+Copyright 2026 the 495 authors
+
+Runtime peer dependencies provided by the Pi host (not redistributed):
+- @earendil-works/pi-coding-agent, @earendil-works/pi-tui, @earendil-works/pi-ai (MIT)
+- typebox (MIT)
+
+This package has no bundled third-party runtime dependency.
