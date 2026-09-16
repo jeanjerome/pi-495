@@ -55,6 +55,7 @@ export type ChangeCommand =
 	| (Base & { type: "verification.start"; operation_id: string; idempotency_key: string })
 	| (Base & { type: "verification.record"; evidence: EvidenceFact[] })
 	| (Base & { type: "verification.complete"; operation_id: string })
+	| (Base & { type: "verification.rerun"; reason: string })
 	| (Base & { type: "review.record"; review_id: string; reviewer_role: string; subject_digest: string; conclusion: "approve" | "reject" | "consultative"; blocking_findings: number })
 	| (Base & { type: "review.complete" })
 	| (Base & { type: "correction.authorize"; attempt_id: string; feedback: { digest: string; bytes: number; truncated: boolean } | null })

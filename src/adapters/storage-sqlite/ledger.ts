@@ -5,7 +5,7 @@ import { canonicalize } from "../../contracts/canonical.ts";
 import { digestBytes, sha256Hex } from "../../contracts/digest.ts";
 import type { ArtifactRef, ObjectRef } from "../../contracts/v1/common.ts";
 import type { DecisionRequest, HumanDecision } from "../../contracts/v1/decision.ts";
-import type { Evidence } from "../../contracts/v1/evidence.ts";
+import { evidenceDigest, type Evidence } from "../../contracts/v1/evidence.ts";
 import { apply, replay } from "../../domain/change/apply.ts";
 import type { ChangeEvent } from "../../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../../domain/change/state.ts";
@@ -347,11 +347,7 @@ export class SqliteLedger implements LedgerPort {
 	}
 }
 
-/** Digest of an evidence document without its integrity block. */
-export function evidenceDigest(evidence: Evidence): string {
-	const { integrity: _i, ...rest } = evidence;
-	return digestBytes(canonicalize(rest));
-}
+export { evidenceDigest };
 
 function rowToArtifact(r: Record<string, unknown>): StoredArtifact {
 	return { ref: { artifact_id: r.artifact_id as string, revision: r.revision as number, content_digest: r.content_digest as string, schema_version: 1 }, kind: r.kind as ArtifactKind, change_id: r.change_id as string, object: { algorithm: "sha256", digest: r.content_digest as string, size_bytes: r.size_bytes as number, media_type: r.media_type as string }, producer_id: r.producer_id as string, created_at: r.created_at as string };

@@ -48,6 +48,11 @@ export interface ProcessObservation {
 	duration_ms: number;
 }
 
+export interface SandboxSelection {
+	backend: SandboxPort;
+	qualification: QualificationResult;
+}
+
 export interface SandboxPort {
 	qualify(profile: SandboxProfile): QualificationResult;
 	/** Runs one command under the profile. Never uses a shell. Rejects only on programming errors. */

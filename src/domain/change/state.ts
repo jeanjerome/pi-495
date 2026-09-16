@@ -1,7 +1,7 @@
 import type { ActorRef, ArtifactRef, CandidateRef, GateId, Phase, ExecStatus, Outcome, StopReason, ProtocolRef, SubjectRef, Verdict, HumanInteraction, InterventionRole } from "../../contracts/v1/common.ts";
 import type { Obligation } from "../../contracts/v1/protocol.ts";
 
-export type ArtifactKind = "request" | "diagnostic" | "mandate" | "requirements" | "protocol" | "design" | "trajectory" | "preparation" | "feedback" | "review" | "milestone";
+export type ArtifactKind = "request" | "diagnostic" | "mandate" | "requirements" | "protocol" | "design" | "trajectory" | "preparation" | "feedback" | "review" | "milestone" | "reference" | "candidate" | "context" | "output" | "integration";
 
 export interface AdoptedArtifact {
 	kind: ArtifactKind;

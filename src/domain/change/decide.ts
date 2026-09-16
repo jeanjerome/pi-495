@@ -141,6 +141,8 @@ class Ctx {
 				return this.verificationRecord(c);
 			case "verification.complete":
 				return this.verificationComplete(c);
+			case "verification.rerun":
+				return this.verificationRerun(c);
 			case "review.record":
 				return this.reviewRecord(c);
 			case "review.complete":
@@ -525,6 +527,18 @@ class Ctx {
 		if (this.state.operation && this.state.operation.operation_id === c.operation_id) this.emit({ type: "operation.closed", ...this.base(), operation_id: c.operation_id });
 		const needsReview = (this.state.protocol?.required_reviews.length ?? 0) > 0;
 		this.enter(needsReview ? "reviewing" : "deciding", "controls terminated");
+		return ok(this.events);
+	}
+
+	/** Explicit re-verification of the frozen candidate (`/495 verify`): G5 is invalidated, evidence stays historised. */
+	verificationRerun(c: CommandOf<"verification.rerun">): Decision {
+		this.requirePhase("deciding", "reviewing", "verifying");
+		this.requireKernelAuthority();
+		if (this.state.status === "paused") this.requireNotBlocked();
+		if (this.state.operation && this.state.operation.kind === "verification") this.emit({ type: "operation.closed", ...this.base(), operation_id: this.state.operation.operation_id });
+		if (this.state.gates.G5) this.emit({ type: "gate.invalidated", ...this.base(), gate: "G5", reason: c.reason });
+		if (this.state.status === "blocked") this.emit({ type: "status.changed", ...this.base(), status: "ready", stop_reason: null, detail: null });
+		if (this.state.phase !== "verifying") this.enter("verifying", `re-verification: ${c.reason}`);
 		return ok(this.events);
 	}
 

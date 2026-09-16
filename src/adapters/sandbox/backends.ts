@@ -1,7 +1,7 @@
 import { existsSync, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExecutableRequest, ProcessObservation, QualificationResult, SandboxPort, SandboxProfile } from "../../ports/execution.ts";
+import type { ExecutableRequest, ProcessObservation, QualificationResult, SandboxPort, SandboxProfile, SandboxSelection } from "../../ports/execution.ts";
 import { buildEnv, runProcess } from "./process.ts";
 
 export interface BackendOptions {
@@ -94,11 +94,6 @@ export class UnconfinedSandbox implements SandboxPort {
 	run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
 		return runProcess({ command: request.command, cwd: request.cwd, env: buildEnv(profile.env_allowlist, profile.env) }, request, signal);
 	}
-}
-
-export interface SandboxSelection {
-	backend: SandboxPort;
-	qualification: QualificationResult;
 }
 
 /**

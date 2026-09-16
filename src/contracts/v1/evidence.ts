@@ -1,4 +1,6 @@
 import { Type, type Static } from "typebox";
+import { canonicalize } from "../canonical.ts";
+import { digestBytes } from "../digest.ts";
 import { ActorRef, Closed, Digest, EnvironmentRef, Identifier, IsoDateTime, NonNegativeInt, ObjectRef, ProtocolRef, SubjectRef, Verdict, contractId } from "./common.ts";
 
 export const RequirementRef = Type.Object(
@@ -103,3 +105,9 @@ export const EvidenceCandidate = Type.Object(
 	{ $id: contractId("evidence-candidate"), additionalProperties: false },
 );
 export type EvidenceCandidate = Static<typeof EvidenceCandidate>;
+
+/** Digest of an evidence document without its integrity block. */
+export function evidenceDigest(evidence: Evidence): string {
+	const { integrity: _i, ...rest } = evidence;
+	return digestBytes(canonicalize(rest));
+}

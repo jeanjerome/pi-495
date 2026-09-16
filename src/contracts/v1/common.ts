@@ -24,7 +24,7 @@ export const IsoDateTime = Type.String({ format: "date-time" });
 export const Revision = Type.Integer({ minimum: 1 });
 export const NonNegativeInt = Type.Integer({ minimum: 0 });
 
-export const ARTIFACT_KINDS = ["request", "diagnostic", "mandate", "requirements", "protocol", "design", "trajectory", "preparation", "feedback", "review", "milestone"] as const;
+export const ARTIFACT_KINDS = ["request", "diagnostic", "mandate", "requirements", "protocol", "design", "trajectory", "preparation", "feedback", "review", "milestone", "reference", "candidate", "context", "output", "integration"] as const;
 export const ArtifactKind = Closed(ARTIFACT_KINDS);
 
 export const ArtifactRef = Type.Object(
