@@ -92,10 +92,10 @@ export class Harness {
 
 	// --- helpers -----------------------------------------------------------------------------------
 
-	private now(): string {
+	now(): string {
 		return this.deps.clock.now();
 	}
-	private id(prefix: string): string {
+	id(prefix: string): string {
 		return this.deps.ids.next(prefix);
 	}
 	private progress(message: string): void {
@@ -109,7 +109,7 @@ export class Harness {
 	}
 
 	/** Applies one command through the reducer and commits its events atomically. */
-	private commit(unit: Unit, command: ChangeCommand, correlation: string): Unit {
+	commit(unit: Unit, command: ChangeCommand, correlation: string): Unit {
 		const d = decide(unit.state, command, this.deps.policy);
 		if (!d.ok) throw d.error;
 		if (d.events.length === 0) return unit;
@@ -136,12 +136,12 @@ export class Harness {
 		return this.deps.ledger.loadProgram(programId)!.state;
 	}
 
-	private async storeArtifact(kind: ArtifactKind, changeId: string, artifactId: string, content: unknown, producerId: string): Promise<ArtifactRef> {
+	async storeArtifact(kind: ArtifactKind, changeId: string, artifactId: string, content: unknown, producerId: string): Promise<ArtifactRef> {
 		const obj = await this.deps.objects.put(new TextEncoder().encode(typeof content === "string" ? content : canonicalize(content)), typeof content === "string" ? "text/plain; charset=utf-8" : "application/json");
 		return this.deps.ledger.putArtifact(kind, changeId, artifactId, obj, producerId, this.now());
 	}
 
-	private async readArtifact<T>(ref: Pick<ArtifactRef, "artifact_id" | "revision">): Promise<T> {
+	async readArtifact<T>(ref: Pick<ArtifactRef, "artifact_id" | "revision">): Promise<T> {
 		const stored = this.deps.ledger.getArtifact(ref);
 		if (!stored) throw new DomainError("EVIDENCE_MISSING", `artifact ${ref.artifact_id} r${ref.revision} is missing from the ledger`);
 		const bytes = await this.deps.objects.get(stored.object);
@@ -151,7 +151,7 @@ export class Harness {
 		return (stored.object.media_type.startsWith("application/json") ? JSON.parse(text) : text) as T;
 	}
 
-	private async latestArtifact<T>(state: ChangeState, kind: ArtifactKind): Promise<{ ref: ArtifactRef; content: T } | null> {
+	async latestArtifact<T>(state: ChangeState, kind: ArtifactKind): Promise<{ ref: ArtifactRef; content: T } | null> {
 		const adopted = state.adopted[kind];
 		const ref = adopted?.ref ?? state.proposals[kind]?.at(-1);
 		if (!ref) return null;
