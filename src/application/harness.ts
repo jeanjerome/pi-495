@@ -78,8 +78,16 @@ interface Unit {
 
 export class Harness {
 	readonly deps: HarnessDeps;
+	private activeHandle: { abort(reason: string): Promise<void> } | null = null;
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
+	}
+
+	/** Cancels the intervention currently supervised, if any (§12.3). */
+	async abortCurrent(reason: string): Promise<boolean> {
+		if (!this.activeHandle) return false;
+		await this.activeHandle.abort(reason);
+		return true;
 	}
 
 	// --- helpers -----------------------------------------------------------------------------------
@@ -283,6 +291,7 @@ export class Harness {
 		const mandate: InterventionMandate = { intervention_id: interventionId, change_id: unit.state.change_id, role, objective, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest, tools: TOOLS_FOR_ROLE[role], profile: this.profileFor(role, workspacePath), workspace_path: workspacePath, model: this.deps.model, budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention }, output_schema: outputSchemaFor(role) };
 		this.progress(`intervention ${role} started (${this.deps.model.provider_id}/${this.deps.model.model_id})`);
 		const handle = await this.deps.agent.startIntervention(mandate);
+		this.activeHandle = handle;
 		let terminal: InterventionEvent | null = null;
 		let toolCalls = 0;
 		const events: InterventionEvent[] = [];
@@ -301,6 +310,7 @@ export class Harness {
 				break;
 			}
 		}
+		this.activeHandle = null;
 		const t = terminal ?? { type: "failed" as const, at: this.now(), error: "no terminal event", counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 } };
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
 		const outputRef = await this.storeArtifact("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: t, events: events.filter((e) => e.type !== "model_event").slice(0, 500) }, interventionId);
@@ -327,20 +337,6 @@ export class Harness {
 		const a = await this.latestArtifact<ReferenceSnapshot>(state, "reference");
 		if (!a) throw new DomainError("EVIDENCE_MISSING", "reference snapshot missing");
 		return a.content;
-	}
-
-	private async workspaceFor(state: ChangeState, reference: ReferenceSnapshot): Promise<string> {
-		const current = state.candidate?.workspace_id ?? state.attempts.at(-1)?.candidate?.workspace_id;
-		const open = state.attempts.find((a) => a.result === "open");
-		const wsArtifact = open ? this.deps.ledger.listArtifacts(state.change_id, "candidate").find((a) => a.ref.artifact_id === `ws_${open.attempt_id}`) : null;
-		if (wsArtifact) {
-			const rec = await this.readArtifact<{ workspace_id: string; path: string }>(wsArtifact.ref);
-			return rec.path;
-		}
-		if (current && !open) return this.deps.workspace.workspacePath(current);
-		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
-		if (open) await this.storeArtifact("candidate", state.change_id, `ws_${open.attempt_id}`, { workspace_id: handle.workspace_id, path: handle.path }, KERNEL_ACTOR.actor_id);
-		return handle.path;
 	}
 
 	// --- phase steps -----------------------------------------------------------------------------
@@ -463,24 +459,24 @@ export class Harness {
 		const reference = await this.referenceOf(unit.state);
 		const open = unit.state.attempts.find((a) => a.result === "open");
 		const attemptId = open?.attempt_id ?? this.id("att");
-		const handle = open ? null : await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+		const existing = this.deps.ledger.listArtifacts(unit.state.change_id, "candidate").find((a) => a.ref.artifact_id === `ws_${attemptId}`);
+		let workspaceId: string;
 		let workspacePath: string;
-		if (handle) {
-			workspacePath = handle.path;
+		if (existing) {
+			const rec = await this.readArtifact<{ workspace_id: string; path: string }>(existing.ref);
+			workspaceId = rec.workspace_id;
+			workspacePath = rec.path;
 		} else {
-			const rec = this.deps.ledger.listArtifacts(unit.state.change_id, "candidate").find((a) => a.ref.artifact_id === `ws_${attemptId}`);
-			if (!rec) {
-				const h = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
-				workspacePath = h.path;
-				await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
-			} else workspacePath = (await this.readArtifact<{ path: string }>(rec.ref)).path;
+			const h = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+			workspaceId = h.workspace_id;
+			workspacePath = h.path;
+			await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
 		}
 		const lastFeedback = unit.state.feedback.at(-1);
 		const feedback = lastFeedback ? await this.readArtifact<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
 		const mandate = await this.latestArtifact<Mandate>(unit.state, "mandate");
 		const r = await this.runIntervention(unit, cor, "implement", mandate?.content.objective ?? "implement the adopted design", workspacePath, { adopted: ["mandate", "requirements", "design"], feedback, attempt_id: attemptId, untrusted: await this.projectExcerpts(reference, workspacePath, 6) });
 		unit = r.unit;
-		if (handle) await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: handle.workspace_id, path: handle.path }, KERNEL_ACTOR.actor_id);
 		if (unit.state.status === "blocked") return unit;
 		if (r.result === "cancelled") return this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "execution_error", detail: "producer intervention cancelled" }, cor);
 		if (r.result === "failed") {
@@ -488,7 +484,7 @@ export class Harness {
 			return failed;
 		}
 		this.progress("freezing the candidate");
-		const wsHandle = { workspace_id: handle?.workspace_id ?? unit.state.candidate?.workspace_id ?? attemptId, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() };
+		const wsHandle = { workspace_id: workspaceId, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() };
 		const manifest = await this.deps.workspace.snapshotCandidate(wsHandle, reference, this.deps.workspacePolicy);
 		const manifestRef = await this.storeArtifact("candidate", unit.state.change_id, manifest.candidate_id, manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
@@ -576,7 +572,7 @@ export class Harness {
 		const feedback = await this.buildFeedback(state, why);
 		const attemptId = this.id("att");
 		const current = state.attempts.at(-1);
-		if (current) await this.storeArtifact("feedback", state.change_id, `fb_${attemptId}`, feedback.text, KERNEL_ACTOR.actor_id);
+		if (current) await this.storeArtifact("feedback", state.change_id, `fb_${current.attempt_id}`, feedback.text, KERNEL_ACTOR.actor_id);
 		const next = this.commit(unit, { type: "correction.authorize", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, feedback: { digest: digestBytes(feedback.text), bytes: feedback.bytes, truncated: feedback.truncated } }, cor);
 		if (next.state.status === "blocked" && next.state.stop_reason === "attempts_exhausted") {
 			return this.requestDecision(next, cor, "IH-07", subjectOfChange(next.state), [why], "stop", `${next.state.budgets.attempts_used}/${next.state.budgets.max_attempts}`, undefined, this.language(next.state));
