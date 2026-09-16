@@ -26,7 +26,7 @@ describe("SQLite ledger: append-only chain and projections (EVD-02, EVD-03, NFR-
 		const events = sampleEvents();
 		const first = ledger.appendChange("chg_1", 0, events.slice(0, 5), { correlation_id: "cor_1" });
 		assert.equal(first.revision, 5);
-		const second = ledger.appendChange("chg_1", 5, events.slice(5), { correlation_id: "cor_2", causation_id: first.event_ids[4] });
+		const second = ledger.appendChange("chg_1", 5, events.slice(5), { correlation_id: "cor_2", causation_id: first.event_ids[4] ?? null });
 		assert.equal(second.revision, events.length);
 		const loaded = ledger.loadChange("chg_1");
 		assert.ok(loaded);
