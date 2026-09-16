@@ -137,7 +137,7 @@ export class Runner {
 	}
 	freeze(c: CandidateRef, over: Partial<Extract<ChangeCommand, { type: "candidate.freeze" }>["facts"]> = {}): this {
 		const attempt = this.s.attempts[this.s.attempts.length - 1]!;
-		this.run({ type: "candidate.freeze", at: tick(), actor: KERNEL, attempt_id: attempt.attempt_id, facts: { candidate: c, entry_count: 3, changed_paths: ["src/greet.ts"], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [], ...over } });
+		this.run({ type: "candidate.freeze", at: tick(), actor: KERNEL, attempt_id: attempt.attempt_id, facts: { candidate: c, entry_count: 3, changed_paths: ["src/greet.ts"], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [], allowed_protected_paths: [], ...over } });
 		return this;
 	}
 	verify(facts: EvidenceFact[]): this {

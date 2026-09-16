@@ -43,7 +43,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 		case "g3": return { type: "gate.evaluate", gate: "G3", at, actor: KERNEL, design_ref: ref("d", design()), design: design() };
 		case "start": return { type: "intervention.start", at, actor: KERNEL, intervention_id: `int_${n}`, role: s.phase === "preparing" ? "prepare" : "implement", attempt_id: `att_${n}`, model: { provider_id: "p", model_id: "m", thinking_level: "off" }, profile_id: "implement", profile_qualified: true };
 		case "finish": return { type: "intervention.finish", at, actor: KERNEL, intervention_id: running?.intervention_id ?? "none", result: "completed", counters: { tool_calls: 1, duration_ms: 5, tokens_known: 1, delegations: 0 }, detail: null };
-		case "freeze": return { type: "candidate.freeze", at, actor: KERNEL, attempt_id: attempt?.attempt_id ?? "none", facts: { candidate: candidate(`c${n}`), entry_count: 1, changed_paths: ["src/a.ts"], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [] } };
+		case "freeze": return { type: "candidate.freeze", at, actor: KERNEL, attempt_id: attempt?.attempt_id ?? "none", facts: { candidate: candidate(`c${n}`), entry_count: 1, changed_paths: ["src/a.ts"], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [], allowed_protected_paths: [] } };
 		case "verify_pass":
 		case "verify_fail":
 		case "verify_indet":
@@ -68,7 +68,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 		case "question": return { type: "question.open", at, actor: KERNEL, id: `q${n}`, question: "?", material: false, decision_id: null };
 		case "propose_agent": return { type: "artifact.propose", at, actor: AGENT, kind: n % 2 ? "protocol" : "design", ref: ref("x", n) };
 		case "prep_open": return { type: "preparation.open", at, actor: KERNEL, mandate_ref: ref("prep", n) };
-		case "prep_close": return { type: "preparation.close", at, actor: KERNEL, qualified: n % 3 !== 0, capability_ids: ["unit"] };
+		case "prep_close": return { type: "preparation.close", at, actor: KERNEL, qualified: n % 3 !== 0, capability_ids: ["unit"], adopted_ref: null };
 		case "block": return { type: "change.block", at, actor: KERNEL, reason: "execution_error", detail: "x" };
 		case "unblock": return { type: "change.unblock", at, actor: KERNEL };
 	}

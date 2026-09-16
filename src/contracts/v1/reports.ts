@@ -56,26 +56,63 @@ export type SpecificationReport = Static<typeof SpecificationReport>;
 
 export const OUTPUT_SCHEMAS = { "producer-report": ProducerReport, "review-report": ReviewReport, "observation-report": ObservationReport, "specification-report": SpecificationReport } as const;
 
-/** Extracts the last fenced JSON block (```json ... ```) or a trailing bare JSON object from a model text. */
+/**
+ * Extracts the structured output of a model text: the last fenced block whose language is `json`
+ * (or unlabelled) that parses, else a trailing bare JSON object. Fenced blocks of other languages
+ * are skipped so that an earlier ```js example cannot swallow the report.
+ */
 export function extractJsonOutput(text: string): unknown | undefined {
-	const fences = [...text.matchAll(/```(?:json)?\s*\n([\s\S]*?)\n```/g)];
-	for (let i = fences.length - 1; i >= 0; i--) {
+	const lines = text.split(/\r?\n/);
+	const blocks: { lang: string; body: string[] }[] = [];
+	let open: { lang: string; body: string[] } | null = null;
+	for (const line of lines) {
+		const fence = /^\s*```(\w*)\s*$/.exec(line);
+		if (fence) {
+			if (open) { blocks.push(open); open = null; }
+			else open = { lang: (fence[1] ?? "").toLowerCase(), body: [] };
+			continue;
+		}
+		if (open) open.body.push(line);
+	}
+	if (open) blocks.push(open);
+	for (let i = blocks.length - 1; i >= 0; i--) {
+		const b = blocks[i]!;
+		if (b.lang !== "" && b.lang !== "json" && b.lang !== "jsonc") continue;
 		try {
-			return JSON.parse(fences[i]![1]!);
+			return JSON.parse(b.body.join("\n"));
 		} catch {
-			/* try earlier block */
+			/* try an earlier block */
 		}
 	}
 	const start = text.lastIndexOf("{");
 	if (start >= 0) {
-		const candidate = text.slice(start);
 		try {
-			return JSON.parse(candidate);
+			return JSON.parse(text.slice(start));
 		} catch {
 			/* no bare json */
 		}
 	}
 	return undefined;
+}
+
+/** Drops unknown properties and fills missing arrays with [] before validation (tolerant to small models). */
+export function normalizeOutput(schema: import("typebox").TSchema, value: unknown): unknown {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+	const props = (schema as { properties?: Record<string, { type?: string; properties?: unknown }> }).properties ?? {};
+	const out: Record<string, unknown> = {};
+	const v = value as Record<string, unknown>;
+	for (const [key, sub] of Object.entries(props)) {
+		let x = v[key];
+		if (x === undefined || x === null) {
+			if (sub.type === "array") x = [];
+			else if (sub.type === "object") x = normalizeOutput(sub as import("typebox").TSchema, {});
+			else if (sub.type === "string") x = x === null ? null : undefined;
+			else if (sub.type === "boolean") x = false;
+		} else if (sub.type === "object" && typeof x === "object" && !Array.isArray(x)) x = normalizeOutput(sub as import("typebox").TSchema, x);
+		else if (sub.type === "array" && Array.isArray(x) && (sub as { items?: { type?: string } }).items?.type === "object") x = x.map((item) => normalizeOutput((sub as { items: import("typebox").TSchema }).items, item));
+		if (x !== undefined) out[key] = x;
+	}
+	return out;
 }
 
 export const TOOLS_FOR_ROLE: Record<InterventionRole, string[]> = {

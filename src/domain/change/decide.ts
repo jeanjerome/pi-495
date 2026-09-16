@@ -417,8 +417,8 @@ class Ctx {
 		this.requireKernelAuthority();
 		if (runningIntervention(this.state)) this.fail("PRECONDITION_FAILED", "a preparation producer is still running");
 		this.emit({ type: "preparation.closed", ...this.base(), qualified: c.qualified, capability_ids: c.capability_ids });
-		if (c.qualified) this.enter("verification_design", "capability qualified");
-		else this.block("capability_missing", `preparation did not qualify: ${c.capability_ids.join(", ") || "no capability"}`);
+		if (c.qualified && c.adopted_ref) this.emit({ type: "artifact.adopted", ...this.base(), kind: "preparation", ref: c.adopted_ref, gate: null });
+		this.enter("verification_design", c.qualified ? "capability qualified" : `preparation not qualified: ${c.capability_ids.join(", ") || "no capability"}`);
 		return ok(this.events);
 	}
 
@@ -434,8 +434,8 @@ class Ctx {
 		if (!c.model.provider_id || !c.model.model_id) this.fail("CONFIGURATION_ERROR", "provider and model must be explicit (RM-022)");
 		if (this.state.budgets.increment_ms_used >= this.policy.budgets.increment_ms) this.fail("BUDGET_EXHAUSTED", "increment duration budget exhausted", ["request_decision:IH-07"]);
 		let attemptId: string | null = c.attempt_id;
-		if (c.role === "implement" || c.role === "prepare") {
-			if (!this.state.protocol && c.role === "implement") this.fail("PROTOCOL_NOT_FROZEN", "the protocol must be frozen before implementation (RM-012)");
+		if (c.role === "implement") {
+			if (!this.state.protocol) this.fail("PROTOCOL_NOT_FROZEN", "the protocol must be frozen before implementation (RM-012)");
 			const open = openAttempt(this.state);
 			if (open) attemptId = open.attempt_id;
 			else {

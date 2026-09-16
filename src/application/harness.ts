@@ -30,7 +30,8 @@ import { qualifyControl } from "./qualification.ts";
 import { buildContext, outputSchemaFor } from "./context.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
-import { detectStack } from "./target.ts";
+import { detectStack, type StackDetection } from "./target.ts";
+import { PREPARATION_PATHS, isProtectedPrepared, preparedFilesFrom, referenceHasTests, type PreparationRecord } from "./preparation.ts";
 import { statusView, type StatusView } from "./views.ts";
 import { buildSnapshot, readChanges, readContent, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
 import type { Finding } from "../contracts/v1/evidence.ts";
@@ -225,7 +226,7 @@ export class Harness {
 						unit = await this.stepVerificationDesign(unit, cor);
 						break;
 					case "preparing":
-						unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "capability_missing", detail: "preparation interventions are not automated in P0; qualify the capability then resume" }, cor);
+						unit = await this.stepPrepare(unit, cor);
 						break;
 					case "designing":
 						unit = await this.stepDesign(unit, cor);
@@ -404,33 +405,65 @@ export class Harness {
 		return unit;
 	}
 
+	private async materializePrepared(prepared: PreparationRecord | null, workspacePath: string): Promise<void> {
+		if (!prepared) return;
+		for (const f of prepared.files) {
+			const bytes = await this.deps.objects.get(f.digest);
+			if (!bytes) throw new DomainError("EVIDENCE_MISSING", `prepared file ${f.path} (${f.digest}) is missing from the store`);
+			const target = join(workspacePath, f.path);
+			await mkdir(dirname(target), { recursive: true });
+			await writeFile(target, bytes);
+		}
+	}
+
+	private async adoptedPreparation(state: ChangeState): Promise<PreparationRecord | null> {
+		const a = state.adopted.preparation ? await this.latestArtifact<PreparationRecord>(state, "preparation") : null;
+		return a && a.content.qualified ? a.content : null;
+	}
+
 	private async stepVerificationDesign(unit: Unit, cor: string): Promise<Unit> {
 		const reference = await this.referenceOf(unit.state);
 		const requirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements");
 		if (!requirements) throw new DomainError("EVIDENCE_MISSING", "requirements missing");
 		const refs = requirements.content.requirements.map((r) => ({ requirement_id: r.requirement_id, revision: requirements.ref.revision }));
+		const prepared = await this.adoptedPreparation(unit.state);
 		const positive = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 		const negative = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 		try {
 			const detection = detectStack(positive.path, refs);
 			if (detection.controls.length === 0) throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", { nextActions: ["prepare_capabilities"] });
-			for (const [rel, content] of Object.entries(detection.negative_witness)) {
-				const target = join(negative.path, rel);
-				await mkdir(dirname(target), { recursive: true });
-				await writeFile(target, content);
+			const hasTests = referenceHasTests(reference, detection.stack) || (prepared?.files.length ?? 0) > 0;
+			if (!hasTests && PREPARATION_PATHS[detection.stack].length > 0) {
+				const alreadyTried = (unit.state.proposals.preparation ?? []).filter((a) => a.artifact_id.startsWith("prep_")).length;
+				if (alreadyTried >= 2) throw new DomainError("CAPABILITY_MISSING", "no discriminant test could be prepared after two preparation interventions", { nextActions: ["prepare_capabilities", "assign_human_decision"] });
+				const mandate = { objective: `Write automated tests for the adopted requirements in the target technology (${detection.stack}); only files under ${PREPARATION_PATHS[detection.stack].join(", ")} may be created or modified.`, allowed_paths: PREPARATION_PATHS[detection.stack], requirement_ids: refs.map((r) => r.requirement_id), stack: detection.stack };
+				const ref = await this.storeArtifact("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate" }, KERNEL_ACTOR.actor_id);
+				unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
+				return this.commit(unit, { type: "preparation.open", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: ref }, cor);
+			}
+			// The witnesses qualify the sensor mechanism on the reference (PRE-03); the prepared discriminant
+			// suite is judged separately (`on_reference`) and joins the protocol as a protected oracle.
+			for (const [ws, files] of [[positive.path, detection.positive_witness], [negative.path, { ...detection.positive_witness, ...detection.negative_witness }]] as const) {
+				for (const [rel, content] of Object.entries(files)) {
+					const target = join(ws, rel);
+					await mkdir(dirname(target), { recursive: true });
+					await writeFile(target, content);
+				}
 			}
 			const qualifications: Protocol["qualifications"] = {};
 			const base = { protocol: { protocol_id: "qualification", revision: 0, content_digest: digestValue("qualification") } as const, candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, environment: this.deps.environment, requirement_refs: refs, producer: EXECUTOR_ACTOR };
 			for (const control of detection.controls) {
 				this.progress(`qualifying control ${control.control_id}`);
 				qualifications[control.control_id] = await qualifyControl(this.deps.controls, control, { positive_path: positive.path, negative_path: negative.path }, base);
+				if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
 			}
+			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
 			const obligations: Obligation[] = requirements.content.requirements.map((r) => {
-				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? detection.controls.filter((c) => c.control_id === "lint") : detection.controls.filter((c) => c.control_id !== "lint");
-				const chosen = (preferred.length > 0 ? preferred : detection.controls).map((c) => c.control_id);
+				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
+				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
 				return { requirement: { requirement_id: r.requirement_id, revision: requirements.ref.revision }, mandatory: r.mandatory, control_ids: chosen, combination: "all_pass", human_interaction: null, not_applicable_reason: null };
 			});
-			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls: detection.controls, qualifications, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", environment_digest: this.deps.environment.digest };
+			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls, qualifications, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", environment_digest: this.deps.environment.digest };
 			const ref = await this.storeArtifact("protocol", unit.state.change_id, protocol.protocol_id, protocol, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "protocol", ref }, cor);
 			unit = this.commit(unit, { type: "gate.evaluate", gate: "G2", at: this.now(), actor: KERNEL_ACTOR, protocol_ref: ref, protocol }, cor);
@@ -443,6 +476,55 @@ export class Harness {
 		} finally {
 			await this.deps.workspace.closeWorkspace(positive.workspace_id, "delete");
 			await this.deps.workspace.closeWorkspace(negative.workspace_id, "delete");
+		}
+	}
+
+	/** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
+	private async stepPrepare(unit: Unit, cor: string): Promise<Unit> {
+		const reference = await this.referenceOf(unit.state);
+		const mandateArt = await this.latestArtifact<{ objective: string; allowed_paths: string[]; requirement_ids: string[]; stack: StackDetection["stack"] }>(unit.state, "preparation");
+		if (!mandateArt) throw new DomainError("EVIDENCE_MISSING", "preparation mandate missing");
+		const mandate = mandateArt.content;
+		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+		try {
+			const r = await this.runIntervention(unit, cor, "prepare", `${mandate.objective}\nRequirements to cover: ${mandate.requirement_ids.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`, handle.path, { adopted: ["mandate", "requirements"], untrusted: await this.projectExcerpts(reference, handle.path, 6) });
+			unit = r.unit;
+			if (unit.state.status === "blocked") return unit;
+			const notes: string[] = [];
+			if (r.result !== "completed") notes.push(`preparation intervention ${r.result}`);
+			const manifest = await this.deps.workspace.snapshotCandidate(handle, reference, this.deps.workspacePolicy);
+			const { files, out_of_scope } = preparedFilesFrom(manifest, mandate.allowed_paths);
+			for (const p of out_of_scope) notes.push(`change outside the preparation mandate refused: ${p}`);
+			if (files.length === 0) notes.push("no test file was produced");
+			// loadability and discriminance against the bare reference
+			const detection = detectStack(handle.path, mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })));
+			let onReference: PreparationRecord["on_reference"] = "NOT_RUN";
+			let loadable = false;
+			if (files.length > 0 && detection.controls[0]) {
+				const control = detection.controls[0];
+				const base = { control, protocol: { protocol_id: "preparation", revision: 0, content_digest: digestValue("preparation") }, candidate: { candidate_id: "preparation", manifest_digest: manifest.manifest_digest, base_digest: reference.tree_digest, workspace_id: handle.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, workspace_path: handle.path, environment: this.deps.environment, requirement_refs: [], producer: EXECUTOR_ACTOR };
+				const run = await this.deps.controls.runControl(base);
+				onReference = run.evidence.verdict;
+				const tests = Number(run.evidence.facts.tests ?? 0);
+				loadable = onReference === "PASS" || (onReference === "FAIL" && tests > 0);
+				if (onReference === "INDETERMINATE") notes.push(`prepared suite is not loadable or produced no test: ${run.evidence.limits.notes.join("; ")}`);
+			}
+			for (const f of files) {
+				const bytes = await this.deps.objects.get(f.digest);
+				if (!bytes) {
+					const { readFile } = await import("node:fs/promises");
+					await this.deps.objects.put(new Uint8Array(await readFile(join(handle.path, f.path))), "text/plain; charset=utf-8");
+				}
+			}
+			const discriminant = onReference === "FAIL";
+			if (!discriminant && onReference === "PASS") notes.push("prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)");
+			const qualified = out_of_scope.length === 0 && files.length > 0 && loadable && discriminant;
+			const record: PreparationRecord = { preparation_id: this.id("prep"), objective: mandate.objective, allowed_paths: mandate.allowed_paths, files, on_reference: onReference, discriminant, loadable, qualified, notes };
+			const ref = await this.storeArtifact("preparation", unit.state.change_id, record.preparation_id, record, KERNEL_ACTOR.actor_id);
+			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
+			return this.commit(unit, { type: "preparation.close", at: this.now(), actor: KERNEL_ACTOR, qualified, capability_ids: files.map((f) => f.path), adopted_ref: qualified ? ref : null }, cor);
+		} finally {
+			await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
 		}
 	}
 
@@ -472,6 +554,7 @@ export class Harness {
 			const h = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			workspaceId = h.workspace_id;
 			workspacePath = h.path;
+			await this.materializePrepared(await this.adoptedPreparation(unit.state), h.path);
 			await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
 		}
 		const lastFeedback = unit.state.feedback.at(-1);
@@ -506,9 +589,11 @@ export class Harness {
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
 		const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 		const protectedPaths = unit.state.protocol?.protected_paths ?? [];
-		const altered = changed.filter((p) => protectedPaths.some((pp) => (pp.endsWith("/") ? p.startsWith(pp) : p === pp)));
+		const prepared = await this.adoptedPreparation(unit.state);
+		const allowedProtected = changed.filter((p) => isProtectedPrepared(p, prepared, manifest.entries.find((e) => e.path === p)?.content_digest ?? null));
+		const altered = changed.filter((p) => protectedPaths.some((pp) => (pp.endsWith("/") ? p.startsWith(pp) : p === pp)) && !allowedProtected.includes(p));
 		const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
-		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changed, out_of_scope_paths: [], altered_protected_paths: altered, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
+		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changed, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
 		return unit;
 	}
 

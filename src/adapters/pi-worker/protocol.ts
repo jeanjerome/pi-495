@@ -22,5 +22,5 @@ export type WorkerMessage =
 	| { type: "event"; event: import("../../ports/execution.ts").InterventionEvent }
 	| { type: "log"; level: "info" | "warn" | "error"; message: string };
 
-export { ProducerReport, ReviewReport, ObservationReport, SpecificationReport, OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput } from "../../contracts/v1/reports.ts";
+export { ProducerReport, ReviewReport, ObservationReport, SpecificationReport, OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, normalizeOutput } from "../../contracts/v1/reports.ts";
 export type { ProducerReport as ProducerReportType, ReviewReport as ReviewReportType, ObservationReport as ObservationReportType, SpecificationReport as SpecificationReportType } from "../../contracts/v1/reports.ts";

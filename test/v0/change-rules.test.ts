@@ -84,9 +84,9 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 		r.run({ type: "preparation.open", at: tick(), actor: KERNEL, mandate_ref: ref("prep", { files: ["test/"] }) });
 		assert.equal(r.s.phase, "preparing");
 		r.run({ type: "intervention.start", at: tick(), actor: KERNEL, intervention_id: "int_p", role: "prepare", attempt_id: "att_p", model: { provider_id: "omlx", model_id: "m", thinking_level: "off" }, profile_id: "prepare", profile_qualified: true });
-		r.expectError({ type: "preparation.close", at: tick(), actor: KERNEL, qualified: true, capability_ids: ["unit"] }, "PRECONDITION_FAILED");
+		r.expectError({ type: "preparation.close", at: tick(), actor: KERNEL, qualified: true, capability_ids: ["unit"], adopted_ref: null }, "PRECONDITION_FAILED");
 		r.run({ type: "intervention.finish", at: tick(), actor: KERNEL, intervention_id: "int_p", result: "completed", counters: { tool_calls: 1, duration_ms: 10, tokens_known: 0, delegations: 0 }, detail: null });
-		r.run({ type: "preparation.close", at: tick(), actor: KERNEL, qualified: true, capability_ids: ["unit"] });
+		r.run({ type: "preparation.close", at: tick(), actor: KERNEL, qualified: true, capability_ids: ["unit"], adopted_ref: null });
 		assert.equal(r.s.phase, "verification_design");
 		// preparation attempts are counted separately from implementation attempts? They share the increment budget of attempts_used
 		r.g2();
@@ -118,7 +118,7 @@ describe("candidate G4 (SA-011, BES-03, SEC-03)", () => {
 	it("cannot freeze while a producer is running (VER-03)", () => {
 		const r = new Runner().toImplementing();
 		r.run({ type: "intervention.start", at: tick(), actor: KERNEL, intervention_id: "i", role: "implement", attempt_id: "a", model: { provider_id: "p", model_id: "m", thinking_level: "off" }, profile_id: "implement", profile_qualified: true });
-		r.expectError({ type: "candidate.freeze", at: tick(), actor: KERNEL, attempt_id: "a", facts: { candidate: candidate("c"), entry_count: 1, changed_paths: [], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [] } }, "PRECONDITION_FAILED");
+		r.expectError({ type: "candidate.freeze", at: tick(), actor: KERNEL, attempt_id: "a", facts: { candidate: candidate("c"), entry_count: 1, changed_paths: [], out_of_scope_paths: [], altered_protected_paths: [], complete: true, limits_notes: [], allowed_protected_paths: [] } }, "PRECONDITION_FAILED");
 	});
 });
 

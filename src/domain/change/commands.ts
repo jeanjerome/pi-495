@@ -31,6 +31,8 @@ export interface CandidateFacts {
 	changed_paths: string[];
 	out_of_scope_paths: string[];
 	altered_protected_paths: string[];
+	/** Protected paths whose content equals an adopted preparation: not an alteration. */
+	allowed_protected_paths: string[];
 	complete: boolean;
 	limits_notes: string[];
 }
@@ -47,7 +49,7 @@ export type ChangeCommand =
 	| (Base & { type: "gate.evaluate"; gate: "G5"; decision_id: string | null })
 	| (Base & { type: "gate.evaluate"; gate: "G6"; destination_after: string; applied_digest: string; receipt_digest: string })
 	| (Base & { type: "preparation.open"; mandate_ref: ArtifactRef })
-	| (Base & { type: "preparation.close"; qualified: boolean; capability_ids: string[] })
+	| (Base & { type: "preparation.close"; qualified: boolean; capability_ids: string[]; adopted_ref: ArtifactRef | null })
 	| (Base & { type: "intervention.start"; intervention_id: string; role: InterventionRole; attempt_id: string | null; model: { provider_id: string; model_id: string; thinking_level: string }; profile_id: string; profile_qualified: boolean })
 	| (Base & { type: "intervention.finish"; intervention_id: string; result: "completed" | "failed" | "cancelled"; counters: AttemptCounters; detail: string | null })
 	| (Base & { type: "budget.consume"; intervention_id: string; counters: AttemptCounters })

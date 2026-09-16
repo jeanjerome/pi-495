@@ -15,7 +15,7 @@ import { Value } from "typebox/value";
 import type { InterventionEvent, InterventionMandate, SandboxPort } from "../../ports/execution.ts";
 import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { digestValue } from "../../contracts/digest.ts";
-import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, type SupervisorMessage, type WorkerConfig, type WorkerMessage } from "./protocol.ts";
+import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, normalizeOutput, type SupervisorMessage, type WorkerConfig, type WorkerMessage } from "./protocol.ts";
 
 const send = (m: WorkerMessage) => process.stdout.write(`${JSON.stringify(m)}\n`);
 const now = () => new Date().toISOString();
@@ -201,8 +201,9 @@ async function main(): Promise<void> {
 			} finally {
 				clearTimeout(deadline);
 			}
-			const output = extractJsonOutput(finalText);
 			const schema = OUTPUT_SCHEMAS[m.output_schema];
+			const extracted = extractJsonOutput(finalText);
+			const output = extracted === undefined ? undefined : normalizeOutput(schema, extracted);
 			const outputValid = output !== undefined && Value.Check(schema, output);
 			session.dispose();
 			if (abortRequested) finish({ type: "cancelled", at: now(), counters });
