@@ -41,7 +41,7 @@ import type { Clock, IdSource } from "./ids.ts";
 import { detectStack, type StackDetection } from "./target.ts";
 import { diagnoseControlCapability, isProtectedPrepared, preparedFilesFrom, referenceTestFiles, samePreparationPaths, type PreparationRecord, type ReferenceSuiteObservation } from "./preparation.ts";
 import { statusView, type StatusView } from "./views.ts";
-import { buildSnapshot, readChanges, readContent, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
+import { buildSnapshot, readChanges, readContent, FILE_READ_BUDGET_BYTES, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
 import type { Finding, RequirementRef } from "../contracts/v1/evidence.ts";
 
 export interface HarnessDeps {
@@ -1045,7 +1045,7 @@ export class Harness {
 		}
 		const newer = manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id ? state.candidate.candidate_id : null;
 		const snapshot = buildSnapshot({ change_id: changeId, reference, manifest, findings, newer_candidate: newer, now: this.now() });
-		const sources = { referencePath: reference.project_path, workspacePath, reference, manifest, maxBytes: 2 * 1024 * 1024 };
+		const sources = { referencePath: reference.project_path, workspacePath, reference, manifest, maxBytes: FILE_READ_BUDGET_BYTES };
 		return { snapshot, changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath), content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }) };
 	}
 

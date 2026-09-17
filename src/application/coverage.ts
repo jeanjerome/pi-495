@@ -14,9 +14,13 @@
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { IntroducedLines } from "../ports/execution.ts";
 import { diffLines, splitLines } from "./diff.ts";
+import { FILE_READ_BUDGET_BYTES } from "./review.ts";
 
-/** Bytes above this are not diffed: a line map of a multi-megabyte file is not worth its cost. */
-export const MAX_DIFFED_BYTES = 2 * 1024 * 1024;
+/**
+ * Bytes above which a file is not diffed. It is the same budget the review reads under: a line map
+ * of a file 495 refuses to display would measure what no one can look at.
+ */
+export const MAX_DIFFED_BYTES = FILE_READ_BUDGET_BYTES;
 
 export interface IntroducedLinesResult {
 	lines: IntroducedLines;

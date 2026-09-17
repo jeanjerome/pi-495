@@ -68,7 +68,30 @@ export interface ReviewSources {
 	maxBytes: number;
 }
 
-const TEXT_MAX = 2 * 1024 * 1024;
+/**
+ * Bytes of one file 495 will hold in memory to compare or display it (`specification-fonctionnelle.md`
+ * §16, "Pagination et budgets des grands fichiers").
+ *
+ * Criterion: a file above the budget is never read, and never disappears either — it keeps its
+ * path, its status and its size and is typed `too_large`, in the TUI as in every structured entry.
+ * The value is set against the workspace budget it sits under: the manifest walks files up to 8 MiB
+ * and records, without digesting, anything above. Reading is stricter on purpose, because a
+ * comparison holds both sides plus their line maps; at 2 MiB that is about 6 MiB of live data for
+ * one path. Between the two budgets a file is inventoried but not read, which is what the review
+ * must be able to say.
+ */
+export const FILE_READ_BUDGET_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Lines of one page of progressive loading (§10.5).
+ *
+ * Criterion: every limit stays visible and the reader can reach past it. A page must outrun one
+ * screen by enough that scrolling never waits on a load — ten screens of the tallest terminal we
+ * render — and stay a bounded read: at the 95th-percentile line of the corpus in
+ * `test/fixtures/review-corpus.ts`, one page is about 330 KB, so seven pages cover the largest file
+ * the read budget allows.
+ */
+export const CONTENT_PAGE_LINES = 2000;
 
 function isBinary(bytes: Uint8Array): boolean {
 	const n = Math.min(bytes.byteLength, 8000);
@@ -153,7 +176,7 @@ async function readSide(sources: ReviewSources, path: string, side: "old" | "new
 	const meta = { kind: entry.kind, size: entry.size, mode: entry.mode, digest: entry.content_digest, origin: entry.origin, baseline_state: entry.baseline_state, symlink_target: entry.symlink_target };
 	if (entry.kind === "symlink") return { kind: "symlink", text: entry.symlink_target ?? "", bytes: entry.size, metadata: meta };
 	if (entry.kind !== "file") return { kind: "special", text: "", bytes: entry.size, metadata: meta };
-	if (entry.size > sources.maxBytes || entry.size > TEXT_MAX) return { kind: "too_large", text: "", bytes: entry.size, metadata: meta };
+	if (entry.size > Math.min(sources.maxBytes, FILE_READ_BUDGET_BYTES)) return { kind: "too_large", text: "", bytes: entry.size, metadata: meta };
 	const base = side === "old" ? sources.referencePath : (sources.workspacePath ?? sources.referencePath);
 	if (side === "new" && !sources.workspacePath && sources.manifest) return { kind: "missing", text: "", bytes: 0, metadata: { ...meta, note: "workspace no longer available" } };
 	try {

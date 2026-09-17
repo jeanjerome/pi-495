@@ -3,7 +3,7 @@
  * zone and key help. Receives an immutable ReviewSnapshot and a read-only query; never touches the
  * workspace directly. Below `narrowThreshold` columns the same selection drives two alternating views.
  */
-import { flatten, neutralize, type ChangePage, type ContentPage, type PathStatus, type ReviewNode, type ReviewSnapshot } from "../../application/review.ts";
+import { CONTENT_PAGE_LINES, flatten, neutralize, type ChangePage, type ContentPage, type PathStatus, type ReviewNode, type ReviewSnapshot } from "../../application/review.ts";
 
 export interface ReviewQuery {
 	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
@@ -32,6 +32,24 @@ const MODES: ReaderMode[] = ["changes", "new", "old", "metadata", "findings"];
 
 const SYMBOL: Record<PathStatus, string> = { intact: "=", added: "A", modified: "M", deleted: "D", renamed: "R", "renamed?": "R?", special: "S", unknown: "?" };
 const LABEL: Record<PathStatus, string> = { intact: "intact", added: "ajouté", modified: "modifié", deleted: "supprimé", renamed: "renommé", "renamed?": "renommé?", special: "spécial", unknown: "inconnu" };
+
+/**
+ * Width below which the two panes become two alternating views (SA-025).
+ *
+ * Criterion: the two-pane layout is kept only while the tree column can show the name of a changed
+ * path, at its depth, without the layout cutting it — a cut name makes two files indistinguishable,
+ * and navigating the tree is the one thing the reader pane cannot do. On the corpus of
+ * `test/fixtures/review-corpus.ts`, the deepest changed path sits at depth 3 and the 95th
+ * percentile name is 26 characters, so the tree needs `2*3 + 4 + 26 = 36` columns; with the 0.4
+ * split that takes 93. Rounded up to the next ten, 100 columns, which leaves the reader 60 — above
+ * the median line of the same corpus.
+ */
+export const NARROW_THRESHOLD = 100;
+
+/** Columns a tree row spends before the name: two per level, then the marker, the symbol and a space. */
+export function treeRowOverhead(depth: number): number {
+	return 2 * depth + 4;
+}
 
 export function fit(s: string, width: number): string {
 	const chars = [...s];
@@ -98,7 +116,7 @@ export class ReviewSurface {
 		if (idx >= 0) { this.selected = idx; this.readerScroll = 0; }
 	}
 	isNarrow(width: number): boolean {
-		return width < (this.opts.narrowThreshold ?? 100);
+		return width < (this.opts.narrowThreshold ?? NARROW_THRESHOLD);
 	}
 	invalidate(): void {
 		this.cachedLines = null;
@@ -205,13 +223,38 @@ export class ReviewSurface {
 		this.opts.requestRender();
 	}
 
-	private ensureLoaded(node: ReviewNode): void {
+	/**
+	 * Loads what the reader is about to show. A file longer than one page arrives page by page
+	 * (§10.5): the next one is asked for when the reader comes within a screen of the end of what is
+	 * loaded, and the pages already read are kept, so scrolling back costs nothing. Loading never
+	 * blocks the surface — the reader stays navigable while a page is on its way.
+	 */
+	private ensureLoaded(node: ReviewNode, rows: number): void {
 		if (node.kind === "directory") return;
-		const key = this.mode === "changes" ? `changes:${node.path}` : this.mode === "new" || this.mode === "old" ? `${this.mode}:${node.path}` : null;
-		if (!key || this.cache.has(key) || this.loading === key) return;
+		if (this.mode === "changes") {
+			const key = `changes:${node.path}`;
+			if (this.cache.has(key) || this.loading === key) return;
+			this.loading = key;
+			this.settle(key, this.query.changes(node.path, node.status, node.old_path));
+			return;
+		}
+		if (this.mode !== "new" && this.mode !== "old") return;
+		const key = `${this.mode}:${node.path}`;
+		if (this.loading === key) return;
+		const loaded = this.cache.get(key);
+		if (loaded === undefined) {
+			this.loading = key;
+			this.settle(key, this.query.content(node.path, this.mode, 1, CONTENT_PAGE_LINES));
+			return;
+		}
+		if ("error" in loaded || !("lines" in loaded) || !loaded.truncated) return;
+		if (this.readerScroll + rows < loaded.lines.length) return;
 		this.loading = key;
-		const p = this.mode === "changes" ? this.query.changes(node.path, node.status, node.old_path) : this.query.content(node.path, this.mode as "old" | "new", 1, 5000);
-		p.then((page) => { this.cache.set(key, page); }, (error: Error) => { this.cache.set(key, { error: error.message }); }).finally(() => { this.loading = null; this.invalidate(); this.opts.requestRender(); });
+		this.settle(key, this.query.content(node.path, this.mode, loaded.start_line + loaded.lines.length, CONTENT_PAGE_LINES).then((next) => ({ ...loaded, lines: [...loaded.lines, ...next.lines], truncated: next.truncated })));
+	}
+
+	private settle(key: string, page: Promise<ChangePage | ContentPage>): void {
+		page.then((p) => { this.cache.set(key, p); }, (error: Error) => { this.cache.set(key, { error: error.message }); }).finally(() => { this.loading = null; this.invalidate(); this.opts.requestRender(); });
 	}
 
 	render(width: number): string[] {
@@ -227,7 +270,7 @@ export class ReviewSurface {
 		out.push(this.st.dim(fit(counts, width)));
 		const bodyRows = rows - 4;
 		const node = this.current();
-		if (node) this.ensureLoaded(node);
+		if (node) this.ensureLoaded(node, bodyRows);
 		const treeLines = this.renderTree(narrow ? width : Math.max(20, Math.floor(width * this.split)) - 1, bodyRows);
 		const readerWidth = narrow ? width : width - treeLines.width - 1;
 		const readerLines = this.renderReader(node, readerWidth, bodyRows, L);
@@ -237,8 +280,14 @@ export class ReviewSurface {
 		}
 		const ctx = node ? `${LABEL[node.status]} · ${node.path}${node.old_path ? ` (${L.from} ${node.old_path})` : ""}${node.limits.length ? ` · ${this.st.warn(node.limits.join("; "))}` : ""}` : L.noSelection;
 		out.push(this.st.dim(fit(neutralize(ctx), width)));
-		const help = narrow ? `${L.helpNarrow} [${this.narrowPane === "tree" ? L.tree : L.reader}]` : L.help;
-		out.push(this.st.dim(fit(`${this.searching ? `/${this.search}▏ ` : ""}${help}`, width)));
+		// No review operation may vanish (`specification-fonctionnelle.md` §16). The labelled help is
+		// 123 columns wide, so any terminal narrower than that would have actions cut off its end.
+		// The compact form names the same keys without their labels: it is used whenever the labelled
+		// one does not fit, rather than letting the display drop the last actions.
+		const prefix = this.searching ? `/${this.search}▏ ` : "";
+		const pane = narrow ? ` [${this.narrowPane === "tree" ? L.tree : L.reader}]` : "";
+		const labelled = `${prefix}${L.help}${pane}`;
+		out.push(this.st.dim(fit([...labelled].length <= width ? labelled : `${prefix}${L.helpKeys}${pane}`, width)));
 		this.cachedLines = out.slice(0, rows);
 		this.cachedWidth = width;
 		return this.cachedLines;
@@ -362,5 +411,5 @@ export function decodeKey(data: string): string {
 	return map[data] ?? data;
 }
 
-const FR = { review: "Revue", ref: "référence", cand: "candidat", none: "aucun", fresh: "à jour", newer: "candidat plus récent :", incomplete: "comparaison incomplète", counts: "Statuts", changedOnly: "changements uniquement", allPaths: "arbre complet", from: "depuis", noSelection: "aucune sélection", tree: "arbre", reader: "lecteur", help: "↑↓ naviguer  ⏎ ouvrir  tab focus  c filtre  m mode  n/p fichier  ]/[ modif  x contexte  +/- largeur  / rechercher  q retour", helpNarrow: "↑↓ ⏎ tab(vue) c m n/p ]/[ x / q", modes: { changes: "Modifications", new: "Contenu (nouveau)", old: "Contenu (ancien)", metadata: "Métadonnées", findings: "Constats" }, directory: "Répertoire", status: "État", kind: "Type", path: "Chemin", noFindings: "aucun constat sur ce chemin", loading: "chargement…", error: "erreur", lines: "lignes" };
-const EN = { ...FR, review: "Review", ref: "reference", cand: "candidate", none: "none", fresh: "up to date", newer: "newer candidate:", incomplete: "incomplete comparison", counts: "Statuses", changedOnly: "changes only", allPaths: "full tree", from: "from", noSelection: "no selection", tree: "tree", reader: "reader", help: "↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back", helpNarrow: "↑↓ ⏎ tab(view) c m n/p ]/[ x / q", modes: { changes: "Changes", new: "Content (new)", old: "Content (old)", metadata: "Metadata", findings: "Findings" }, directory: "Directory", status: "Status", kind: "Kind", path: "Path", noFindings: "no finding on this path", loading: "loading…", error: "error", lines: "lines" };
+const FR = { review: "Revue", ref: "référence", cand: "candidat", none: "aucun", fresh: "à jour", newer: "candidat plus récent :", incomplete: "comparaison incomplète", counts: "Statuts", changedOnly: "changements uniquement", allPaths: "arbre complet", from: "depuis", noSelection: "aucune sélection", tree: "arbre", reader: "lecteur", help: "↑↓ naviguer  ⏎ ouvrir  tab focus  c filtre  m mode  n/p fichier  ]/[ modif  x contexte  +/- largeur  / rechercher  q retour", helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q", modes: { changes: "Modifications", new: "Contenu (nouveau)", old: "Contenu (ancien)", metadata: "Métadonnées", findings: "Constats" }, directory: "Répertoire", status: "État", kind: "Type", path: "Chemin", noFindings: "aucun constat sur ce chemin", loading: "chargement…", error: "erreur", lines: "lignes" };
+const EN = { ...FR, review: "Review", ref: "reference", cand: "candidate", none: "none", fresh: "up to date", newer: "newer candidate:", incomplete: "incomplete comparison", counts: "Statuses", changedOnly: "changes only", allPaths: "full tree", from: "from", noSelection: "no selection", tree: "tree", reader: "reader", help: "↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back", helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q", modes: { changes: "Changes", new: "Content (new)", old: "Content (old)", metadata: "Metadata", findings: "Findings" }, directory: "Directory", status: "Status", kind: "Kind", path: "Path", noFindings: "no finding on this path", loading: "loading…", error: "error", lines: "lines" };
