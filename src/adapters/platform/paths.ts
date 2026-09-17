@@ -1,14 +1,27 @@
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-/** Data directory outside the target project (conception §7.1, decision D-03). */
-export function resolveDataDir(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string {
+/**
+ * Data directory outside the target project (conception §7.1, decision D-03). A single
+ * whitespace-free home directory on every platform: Pi exposes no storage location for an
+ * extension's own state — `~/.pi/agent/` is its own configuration, which it backs up and migrates —
+ * and a path without whitespace lets workspaces stay colocated instead of being displaced.
+ */
+export function resolveDataDir(env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string {
 	const override = env.HARNESS495_DATA_DIR;
 	if (override && override.trim()) return override;
-	if (platform === "darwin") return join(homedir(), "Library", "Application Support", "495");
-	if (platform === "win32") return join(env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "495");
-	const xdg = env.XDG_DATA_HOME && env.XDG_DATA_HOME.trim() ? env.XDG_DATA_HOME : join(homedir(), ".local", "share");
-	return join(xdg, "495");
+	return join(home, ".495");
+}
+
+/**
+ * Former default locations, still resolved when reading so that a change started before the move
+ * remains readable. Nothing is ever written there.
+ */
+export function legacyDataDirs(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform, home: string = homedir()): string[] {
+	if (platform === "darwin") return [join(home, "Library", "Application Support", "495")];
+	if (platform === "win32") return [join(env.LOCALAPPDATA ?? join(home, "AppData", "Local"), "495")];
+	const xdg = env.XDG_DATA_HOME && env.XDG_DATA_HOME.trim() ? env.XDG_DATA_HOME : join(home, ".local", "share");
+	return [join(xdg, "495")];
 }
 
 /**

@@ -1,15 +1,29 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { resolveWorkspacesDir } from "../../src/adapters/platform/paths.ts";
+import { legacyDataDirs, resolveDataDir, resolveWorkspacesDir } from "../../src/adapters/platform/paths.ts";
 import { describeEnvironment } from "../../src/application/environment.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 
 describe("platform storage paths", () => {
+	it("stores data in one whitespace-free home directory, never in a platform application folder", () => {
+		assert.equal(resolveDataDir({}, "/Users/demo"), "/Users/demo/.495");
+		assert.equal(resolveDataDir({}, "/home/demo"), "/home/demo/.495");
+		assert.equal(resolveDataDir({ HARNESS495_DATA_DIR: "/srv/495" }, "/Users/demo"), "/srv/495");
+		// Being whitespace-free is what keeps the workspaces colocated rather than displaced.
+		assert.equal(resolveWorkspacesDir(resolveDataDir({}, "/Users/demo"), {}, "darwin", "/Users/demo", "/private/tmp"), "/Users/demo/.495/workspaces");
+	});
+
+	it("still resolves the former default locations, for reading only", () => {
+		assert.deepEqual(legacyDataDirs({}, "darwin", "/Users/demo"), ["/Users/demo/Library/Application Support/495"]);
+		assert.deepEqual(legacyDataDirs({}, "linux", "/home/demo"), ["/home/demo/.local/share/495"]);
+		assert.deepEqual(legacyDataDirs({ XDG_DATA_HOME: "/xdg" }, "linux", "/home/demo"), ["/xdg/495"]);
+	});
+
 	it("keeps workspaces beside a whitespace-free data directory", () => {
 		assert.equal(resolveWorkspacesDir("/tmp/495-data", {}, "darwin", "/Users/demo", "/private/tmp"), "/tmp/495-data/workspaces");
 	});
 
-	it("keeps macOS workspaces out of Application Support", () => {
+	it("keeps workspaces out of a former data directory whose path carries whitespace", () => {
 		const path = resolveWorkspacesDir("/Users/demo/Library/Application Support/495", {}, "darwin", "/Users/demo", "/private/tmp");
 		assert.equal(path, "/Users/demo/Library/Caches/495/workspaces");
 		assert.equal(/\s/.test(path), false);

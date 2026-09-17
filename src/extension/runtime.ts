@@ -10,7 +10,7 @@ import { PiWorkerAgent } from "../adapters/pi-worker/supervisor.ts";
 import { ScriptedAgent, type AgentScript } from "../adapters/pi-worker/scripted-agent.ts";
 import { readFileSync } from "node:fs";
 import type { AgentPort } from "../ports/execution.ts";
-import { dataLayout, resolveDataDir, resolveWorkspacesDir } from "../adapters/platform/paths.ts";
+import { dataLayout, legacyDataDirs, resolveDataDir, resolveWorkspacesDir } from "../adapters/platform/paths.ts";
 import { selectSandbox } from "../adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace } from "../adapters/workspace/git-workspace.ts";
@@ -57,7 +57,10 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 	if (!sandbox.qualification.qualified) diagnostics.push(`sandbox ${sandbox.backend.backend} not qualified: ${sandbox.qualification.reasons.join("; ")}`);
 	const ledger = new SqliteLedger(layout.database);
 	const objects = new CasObjectStore(layout.objects);
-	const workspace = new GitWorkspace(workspacesDir, [layout.workspaces]);
+	// Former workspace roots stay resolvable so a change started before the move can be resumed;
+	// only `workspacesDir` is ever written to.
+	const formerRoots = [layout.workspaces, ...legacyDataDirs(env).flatMap((d) => [join(d, "workspaces"), resolveWorkspacesDir(d, {})])];
+	const workspace = new GitWorkspace(workspacesDir, formerRoots);
 	const controls = new GenericControlRunner(sandbox.backend, objects);
 	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
 	let agent: AgentPort = new PiWorkerAgent({ config: { pi_package_dir: inputs.pi_package_dir, pi_agent_dir: inputs.pi_agent_dir, sandbox_backend: sandbox.backend.backend as "seatbelt" | "bubblewrap" | "unconfined", denied_read_paths: normative, heartbeat_ms: 5000 }, silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4) });
