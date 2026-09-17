@@ -7,6 +7,7 @@ import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/bac
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { Harness, type HarnessDeps } from "../../src/application/harness.ts";
+import type { ControlExecutionPort } from "../../src/ports/execution.ts";
 import { fixedSources } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -41,14 +42,16 @@ export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${nam
 
 type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & { budgets?: Partial<ActivePolicy["budgets"]>; adoption?: Partial<ActivePolicy["adoption"]> };
 
-export function makeHarness(options: { policy?: PolicyOverride; scripts?: Record<string, AgentScript>; defaultScript?: AgentScript; sandbox?: "unconfined" | "platform" } = {}): TestHarness {
+/** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
+export function makeHarness(options: { policy?: PolicyOverride; scripts?: Record<string, AgentScript>; defaultScript?: AgentScript; sandbox?: "unconfined" | "platform"; controls?: (real: ControlExecutionPort) => ControlExecutionPort } = {}): TestHarness {
 	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
 	const root = mkdtempSync(join(process.cwd(), "test-output", "harness-"));
 	const ledger = new SqliteLedger(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
 	const workspace = new GitWorkspace(join(root, "workspaces"));
 	const sandbox = options.sandbox === "platform" ? selectSandbox({ allow_unconfined: false }) : { backend: new UnconfinedSandbox(), qualification: { ...new UnconfinedSandbox().qualify({ profile_id: "observe", read_paths: [], write_paths: [], network: "denied", env_allowlist: [], env: {} }), qualified: true, reasons: ["test-only: unconfined backend declared qualified for V2"] } };
-	const controls = new GenericControlRunner(sandbox.backend, objects);
+	const real = new GenericControlRunner(sandbox.backend, objects);
+	const controls = options.controls ? options.controls(real) : real;
 	const agent = new ScriptedAgent(options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] }, options.scripts ?? {});
 	const sources = fixedSources();
 	const requested: DecisionRequest[] = [];

@@ -32,11 +32,18 @@ export const Integrity = Type.Object(
 export const FINDING_CATEGORIES = ["assertion", "structure", "quality", "security", "performance", "scope", "protocol", "review", "incident"] as const;
 export const SEVERITIES = ["blocker", "major", "minor", "info"] as const;
 export const BASELINE_STATES = ["new", "preexisting", "removed", "unknown"] as const;
+/** What a finding the reference already carries is worth (VER-08, QLT-04). */
+export const BASELINE_TOLERANCES = ["no_aggravation", "block_any"] as const;
+export type BaselineTolerance = (typeof BASELINE_TOLERANCES)[number];
+/** What a control whose two passes diverge without a candidate cause is worth (VER-08). */
+export const INSTABILITY_RULES = ["confirm_then_indeterminate", "none"] as const;
+export type InstabilityRule = (typeof INSTABILITY_RULES)[number];
 
 export const Region = Type.Object(
 	{ start_line: Type.Integer({ minimum: 1 }), end_line: Type.Integer({ minimum: 1 }), start_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]), end_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]) },
 	{ additionalProperties: false },
 );
+export type Region = Static<typeof Region>;
 
 export const Finding = Type.Object(
 	{
@@ -59,6 +66,35 @@ export const Finding = Type.Object(
 );
 export type Finding = Static<typeof Finding>;
 
+/**
+ * How the same control answered on the reference (VER-08). `verdict` is what the control concludes
+ * about the candidate under the frozen tolerance; `raw_verdict` is what it observed before that
+ * tolerance applied, and the findings keep every preexisting defect visible with its own state.
+ */
+export const BaselineComparison = Type.Object(
+	{
+		reference_id: Identifier,
+		reference_digest: Digest,
+		reference_verdict: Verdict,
+		reference_evidence_id: Type.Union([Identifier, Type.Null()]),
+		/** The reference pass was read back from the ledger instead of being run again. */
+		reused: Type.Boolean(),
+		tolerance: Closed(BASELINE_TOLERANCES),
+		raw_verdict: Verdict,
+		new_findings: NonNegativeInt,
+		preexisting_findings: NonNegativeInt,
+		removed_findings: NonNegativeInt,
+		/** Findings that block after the tolerance applied. */
+		blocking_findings: NonNegativeInt,
+		unstable: Type.Boolean(),
+		/** Confirmation passes the divergence cost, bounded by the frozen rule. */
+		confirmations: NonNegativeInt,
+		notes: Type.Array(Type.String()),
+	},
+	{ $id: contractId("baseline-comparison"), additionalProperties: false },
+);
+export type BaselineComparison = Static<typeof BaselineComparison>;
+
 export const Evidence = Type.Object(
 	{
 		evidence_id: Identifier,
@@ -76,6 +112,7 @@ export const Evidence = Type.Object(
 		findings: Type.Array(Finding),
 		artifacts: Type.Array(Type.Object({ name: Type.String(), ref: ObjectRef }, { additionalProperties: false })),
 		limits: Limits,
+		baseline: Type.Union([BaselineComparison, Type.Null()]),
 		producer: ActorRef,
 		integrity: Integrity,
 	},
@@ -100,6 +137,7 @@ export const EvidenceCandidate = Type.Object(
 		findings: Type.Array(Finding),
 		artifacts: Type.Array(Type.Object({ name: Type.String(), ref: ObjectRef }, { additionalProperties: false })),
 		limits: Limits,
+		baseline: Type.Union([BaselineComparison, Type.Null()]),
 		producer: ActorRef,
 	},
 	{ $id: contractId("evidence-candidate"), additionalProperties: false },

@@ -10,6 +10,7 @@
     "obligations",
     "required_reviews",
     "arbitration",
+    "baseline",
     "environment_digest"
   ],
   "properties": {
@@ -408,6 +409,40 @@
         "human_decision",
         "reject"
       ]
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "compare_to_reference",
+        "tolerance",
+        "instability",
+        "max_confirmations"
+      ],
+      "properties": {
+        "compare_to_reference": {
+          "type": "boolean"
+        },
+        "tolerance": {
+          "type": "string",
+          "enum": [
+            "no_aggravation",
+            "block_any"
+          ]
+        },
+        "instability": {
+          "type": "string",
+          "enum": [
+            "confirm_then_indeterminate",
+            "none"
+          ]
+        },
+        "max_confirmations": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "$id": "urn:495:contract:baseline-policy:1",
+      "additionalProperties": false
     },
     "environment_digest": {
       "type": "string",

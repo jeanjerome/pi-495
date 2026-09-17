@@ -1,6 +1,6 @@
 # Étage 1 — VER-08 : exécuter les contrôles sur la référence
 
-**État :** à faire
+**État :** livré
 **Exigence :** VER-08 [P0], avec QLT-02 et VER-02 en dépendance amont
 **Dépend de :** étage 0
 **Porte :** le mécanisme commun aux étages 2, 3 et 4
@@ -12,15 +12,15 @@ initiale **et** sur le candidat dans des environnements comparables ; garder un 
 visible sous une tolérance explicite qui interdit l'aggravation ; identifier un contrôle instable
 et le traiter selon une règle préenregistrée, sans relances jusqu'au premier vert.
 
-Aucune des trois n'existe. `runner.ts` n'exécute que le candidat et écrit
+Aucune des trois n'existait. `runner.ts` n'exécutait que le candidat et écrivait
 `baseline_state: "new"` en dur pour chaque constat ; les valeurs `preexisting`, `removed` et
-`unknown` du contrat v1 ne sont jamais produites. Aucune notion d'instabilité n'apparaît dans les
-sources : un contrôle qui alterne réussite et échec rend son dernier verdict.
+`unknown` du contrat v1 n'étaient jamais produites. Aucune notion d'instabilité n'apparaissait dans
+les sources : un contrôle qui alternait réussite et échec rendait son dernier verdict.
 
 C'est la conséquence qui compte pour la suite : **tous les étages au-dessus supposent ce
 mécanisme**. Le contrôle de couverture différentielle, les constats structurels et les mutants
 survivants se jugent sur le delta entre la référence et le candidat. Tant que les contrôles ne
-tournent que d'un côté, chaque étage doit réinventer sa propre comparaison, ou se contenter de
+tournaient que d'un côté, chaque étage devait réinventer sa propre comparaison, ou se contenter de
 déclarer tout constat comme introduit.
 
 ## Prompt
@@ -84,4 +84,47 @@ Critères d'acceptation :
 
 ## Journal
 
-_À compléter._
+**Exécution sur la référence.** `harness.referencePasses` reconstruit un workspace depuis
+l'instantané de référence avant la première exécution sur le candidat, y exécute chaque contrôle du
+protocole gelé, écrit le résultat au journal comme preuve à part entière — `subject.kind =
+"reference"`, `facts.run = "reference"`, constats marqués `preexisting` — puis supprime le
+workspace. Le passage est relu au lieu d'être refait tant que le contrôle, la référence, l'empreinte
+d'environnement et la révision du protocole sont les mêmes : la clé est portée par `inputs_digest`,
+qui digère déjà commande, répertoire, environnement du contrôle et arbre observé. Une référence ne
+changeant pas pendant un changement, les tentatives qui suivent un refus ne paient rien de ce
+côté-là. Le passage de référence n'entre pas dans `state.evidence` : le reducer refuse à juste titre
+une preuve dont le sujet n'est pas le candidat gelé, et cette garde reste intacte.
+
+**Classement des constats.** `Finding.fingerprint` ne suffisait pas : le message d'un outil porte le
+chemin absolu du workspace exécuté et la ligne du défaut, si bien que le même défaut observé des deux
+côtés donnait deux empreintes. Le runner retire désormais le chemin du workspace, extrait `path` et
+`region` du message et empreinte l'outil, la règle, le symbole, le chemin relatif et le texte privé
+de sa localisation. L'appariement se fait en trois passes — identité exacte, renommage prouvé par le
+manifeste, déplacement sans ambiguïté vers un fichier que le candidat ne porte plus — et un
+appariement ambigu n'est jamais deviné. `baseline_state` prend ses quatre valeurs : `new`,
+`preexisting`, `removed` pour un défaut que le candidat a supprimé, `unknown` quand aucun passage de
+référence n'est disponible. Un constat de référence non apparié devient `removed` plutôt que de
+disparaître, de sorte qu'un renommage ne peut ni créer une dette ni en effacer une (QLT-04).
+
+**Politique d'instabilité.** `Protocol.baseline` gèle la tolérance et la règle avant toute
+exécution. Un contrôle qui échoue sur le candidat là où la référence passe paye une confirmation sur
+le même candidat, bornée par `max_confirmations` ; si les deux réponses divergent, le verdict est
+`INDETERMINATE` conservé, `limits.unstable` est vrai, les constats cessent de bloquer et
+`retryCanDiffer` refuse la relance technique. La frontière de `incidentOf` n'a pas bougé : lancement,
+timeout et signal restent la seule source d'`INDETERMINATE` du côté du parseur, et l'instabilité est
+décidée au-dessus, par comparaison de deux passages.
+
+**Portée actuelle.** G2 exige qu'un contrôle qualifié passe sur la référence — son témoin positif
+doit rendre `PASS`. Il en découle qu'aucun contrôle qualifié ne porte aujourd'hui de constat sur la
+référence, donc qu'aucun constat n'est classé `preexisting` dans un cycle complet : le classement y
+fonctionne, mais toujours avec une référence vierge. La tolérance se déclenchera avec les analyseurs
+des étages 2 et 3, qui rapportent des constats sans faire échouer leur contrôle. Lever cette
+frontière pour un contrôle qui échoue déjà sur la référence relèverait de la règle de qualification
+(VER-05, PRE-03) : il faudrait que la discrimination soit établie par un constat que le témoin
+négatif ajoute, et non plus par un témoin positif vert. Ce n'est pas fait ici.
+
+**Coût.** La première vérification d'un changement matérialise un workspace de plus et exécute
+chaque contrôle une fois de plus ; les tentatives suivantes relisent. Un contrôle qui échoue là où la
+référence passe coûte une exécution supplémentaire avant qu'une tentative de correction ne soit
+dépensée sur lui. `max_confirmations: 0` retire cette dépense et, avec elle, la détection de
+l'alternance.

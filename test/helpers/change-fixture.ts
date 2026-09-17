@@ -57,6 +57,7 @@ export function protocol(over: Partial<Protocol> = {}): Protocol {
 			lint: { positive: "PASS", negative: "FAIL", incident: "INDETERMINATE", qualified: true, environment_digest: ENV, notes: [] },
 		},
 		capability_diagnosis: { stack: "node", level: "discriminating", test_files: 1, discovered: 1, executed: 1, undiscriminated_requirements: [], unobserved_requirements: [], notes: [] },
+		baseline: { compare_to_reference: true, tolerance: "no_aggravation", instability: "confirm_then_indeterminate", max_confirmations: 1 },
 		obligations: [
 			{ requirement: { requirement_id: "R1", revision: 1 }, mandatory: true, control_ids: ["unit"], combination: "all_pass", human_interaction: null, not_applicable_reason: null },
 			{ requirement: { requirement_id: "R2", revision: 1 }, mandatory: true, control_ids: ["lint"], combination: "all_pass", human_interaction: null, not_applicable_reason: null },

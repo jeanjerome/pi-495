@@ -1,6 +1,6 @@
 import { Type, type Static } from "typebox";
 import { Closed, Digest, Identifier, NonNegativeInt, Verdict, contractId } from "./common.ts";
-import { RequirementRef } from "./evidence.ts";
+import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./evidence.ts";
 
 export const PARSER_IDS = ["exit-code", "node-test", "junit-xml"] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
@@ -88,6 +88,24 @@ export const ControlCapabilityDiagnosis = Type.Object(
 );
 export type ControlCapabilityDiagnosis = Static<typeof ControlCapabilityDiagnosis>;
 
+/**
+ * Pre-registered comparison to the reference (VER-08). What a preexisting defect is worth, and what
+ * a control whose two passes diverge is worth, are frozen with the protocol: both are decided before
+ * any control runs, never once a verdict is known and found inconvenient.
+ */
+export const BaselinePolicy = Type.Object(
+	{
+		/** Each control is run on the reference as well as on the candidate, in the same environment. */
+		compare_to_reference: Type.Boolean(),
+		tolerance: Closed(BASELINE_TOLERANCES),
+		instability: Closed(INSTABILITY_RULES),
+		/** Confirmation passes a divergence may cost. A bound, never a licence to run until green. */
+		max_confirmations: NonNegativeInt,
+	},
+	{ $id: contractId("baseline-policy"), additionalProperties: false },
+);
+export type BaselinePolicy = Static<typeof BaselinePolicy>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
@@ -98,6 +116,7 @@ export const Protocol = Type.Object(
 		obligations: Type.Array(Obligation),
 		required_reviews: Type.Array(Type.String()),
 		arbitration: Closed(["human_decision", "reject"] as const),
+		baseline: BaselinePolicy,
 		environment_digest: Digest,
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },

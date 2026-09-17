@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "reference_id",
+    "reference_digest",
+    "reference_verdict",
+    "reference_evidence_id",
+    "reused",
+    "tolerance",
+    "raw_verdict",
+    "new_findings",
+    "preexisting_findings",
+    "removed_findings",
+    "blocking_findings",
+    "unstable",
+    "confirmations",
+    "notes"
+  ],
+  "properties": {
+    "reference_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "reference_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest, hex, prefixed"
+    },
+    "reference_verdict": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INDETERMINATE",
+        "NOT_RUN",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "reference_evidence_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reused": {
+      "type": "boolean"
+    },
+    "tolerance": {
+      "type": "string",
+      "enum": [
+        "no_aggravation",
+        "block_any"
+      ]
+    },
+    "raw_verdict": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INDETERMINATE",
+        "NOT_RUN",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "new_findings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preexisting_findings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "removed_findings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocking_findings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unstable": {
+      "type": "boolean"
+    },
+    "confirmations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$id": "urn:495:contract:baseline-comparison:1",
+  "additionalProperties": false
+}

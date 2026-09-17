@@ -2,9 +2,9 @@ import type { TSchema } from "typebox";
 import { ActorRef, ArtifactRef, CandidateRef, CanonicalError, Envelope, EnvironmentRef, ObjectRef, ProtocolRef, SubjectRef } from "./v1/common.ts";
 import { CandidateManifest, ReferenceSnapshot } from "./v1/candidate.ts";
 import { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "./v1/decision.ts";
-import { Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
+import { BaselineComparison, Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
 import { OperationRequest, OperationResult } from "./v1/operation.ts";
-import { ControlDefinition, Design, Mandate, Protocol, RequirementsDocument } from "./v1/protocol.ts";
+import { BaselinePolicy, ControlDefinition, Design, Mandate, Protocol, RequirementsDocument } from "./v1/protocol.ts";
 
 /** Every published contract, keyed by its short name. Used to emit `contracts/v1/*.json`. */
 export const CONTRACTS: Record<string, TSchema> = {
@@ -18,6 +18,7 @@ export const CONTRACTS: Record<string, TSchema> = {
 	"canonical-error": CanonicalError,
 	envelope: Envelope,
 	finding: Finding,
+	"baseline-comparison": BaselineComparison,
 	evidence: Evidence,
 	"evidence-candidate": EvidenceCandidate,
 	"operation-request": OperationRequest,
@@ -29,6 +30,7 @@ export const CONTRACTS: Record<string, TSchema> = {
 	"reference-snapshot": ReferenceSnapshot,
 	"candidate-manifest": CandidateManifest,
 	"control-definition": ControlDefinition,
+	"baseline-policy": BaselinePolicy,
 	protocol: Protocol,
 	requirements: RequirementsDocument,
 	mandate: Mandate,

@@ -1,9 +1,10 @@
 import type { Dirent } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
-import { digestValue } from "../../contracts/digest.ts";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
+import { controlInputsDigest } from "../../domain/baseline.ts";
+import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
 import type { ControlExecutionPort, ControlInvocation, ProcessObservation, SandboxPort, SandboxProfile } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { PARSER_VERSIONS, parseExitCode, parseJUnit, parseNodeTestTap, type ParsedReport } from "./parsers.ts";
@@ -69,7 +70,16 @@ export class GenericControlRunner implements ControlExecutionPort {
 			report = { verdict: "INDETERMINATE", facts: { error: (error as Error).message }, notes: [`runner error: ${(error as Error).message}`], failures: [] };
 		}
 		const ended = new Date().toISOString();
-		const findings: Finding[] = report.failures.map((f) => ({ rule_id: `${control.control_id}:failure`, category: "assertion", severity: "blocker", message: f, path: null, region: null, symbol: null, requirement_refs: invocation.requirement_refs, baseline_state: "new", fingerprint: digestValue([control.control_id, f]), tool: control.control_id, tool_version: control.version, confidence: 1, raw_evidence_ref: artifacts[0]?.ref ?? null }));
+		// The workspace the run happened to use is stripped from every message: the reference and the
+		// candidate are two directories holding the same project, and a finding that keeps the path of
+		// its run can never be paired with the same finding observed on the other side (VER-08).
+		const roots = [invocation.workspace_path, await realpath(invocation.workspace_path).catch(() => invocation.workspace_path)];
+		const findings: Finding[] = report.failures.map((raw) => {
+			const message = relativize(raw, ...roots);
+			const located = locate(message);
+			// The runner observes one tree; which of the two carries the finding is not its to decide.
+			return { rule_id: `${control.control_id}:failure`, category: "assertion" as const, severity: "blocker" as const, message, path: located.path, region: located.region, symbol: null, requirement_refs: invocation.requirement_refs, baseline_state: "unknown" as const, fingerprint: fingerprintOf({ tool: control.control_id, rule_id: `${control.control_id}:failure`, symbol: null, path: located.path, text: located.text }), tool: control.control_id, tool_version: control.version, confidence: 1, raw_evidence_ref: artifacts[0]?.ref ?? null };
+		});
 		const evidence: EvidenceCandidate = {
 			control_id: control.control_id,
 			control_version: `${control.version}+${control.parser}@${PARSER_VERSIONS[control.parser]}`,
@@ -77,7 +87,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 			subject: invocation.subject,
 			protocol_revision: invocation.protocol,
 			environment: invocation.environment,
-			inputs_digest: digestValue({ command: control.command, cwd: control.cwd, env: control.env, candidate: invocation.candidate.manifest_digest }),
+			inputs_digest: controlInputsDigest(control, invocation.candidate.manifest_digest),
 			started_at: started,
 			ended_at: ended,
 			verdict: report.verdict,
@@ -85,6 +95,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 			findings,
 			artifacts,
 			limits: { truncated: observation?.stdout_truncated || observation?.stderr_truncated || false, bytes_read: (observation?.stdout.byteLength ?? 0) + (observation?.stderr.byteLength ?? 0), bytes_total: null, exclusions: [], unstable: false, notes: report.notes },
+			baseline: null,
 			producer: invocation.producer,
 		};
 		return { evidence, observation };

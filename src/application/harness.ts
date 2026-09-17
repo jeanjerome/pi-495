@@ -9,12 +9,13 @@ import { Value } from "typebox/value";
 import { canonicalize } from "../contracts/canonical.ts";
 import { digestBytes, digestValue } from "../contracts/digest.ts";
 import { validate } from "../contracts/validate.ts";
-import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
+import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, ProtocolRef, SubjectRef } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest } from "../contracts/v1/evidence.ts";
 import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, type ProducerReport, type ReviewReport, type SpecificationReport } from "../contracts/v1/reports.ts";
+import { applyInstability, blockingCount, candidateShape, compareToReference, divergesFromReference, reusableReferencePass, type ReferencePass } from "../domain/baseline.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
@@ -147,7 +148,7 @@ export class Harness {
 
 	private storeEvidence(changeId: string, candidate: EvidenceCandidate, evidenceId: string): Evidence {
 		validate(EvidenceCandidate, candidate, "evidence-candidate");
-		const evidence: Evidence = { evidence_id: evidenceId, requirement_refs: candidate.requirement_refs, control_id: candidate.control_id, control_version: candidate.control_version, subject: candidate.subject, protocol_revision: candidate.protocol_revision, environment_digest: candidate.environment.digest, inputs_digest: candidate.inputs_digest, started_at: candidate.started_at, ended_at: candidate.ended_at, verdict: candidate.verdict, facts: candidate.facts, findings: candidate.findings, artifacts: candidate.artifacts, limits: candidate.limits, producer: candidate.producer, integrity: { content_digest: "", chained_to: null } };
+		const evidence: Evidence = { evidence_id: evidenceId, requirement_refs: candidate.requirement_refs, control_id: candidate.control_id, control_version: candidate.control_version, subject: candidate.subject, protocol_revision: candidate.protocol_revision, environment_digest: candidate.environment.digest, inputs_digest: candidate.inputs_digest, started_at: candidate.started_at, ended_at: candidate.ended_at, verdict: candidate.verdict, facts: candidate.facts, findings: candidate.findings, artifacts: candidate.artifacts, limits: candidate.limits, baseline: candidate.baseline, producer: candidate.producer, integrity: { content_digest: "", chained_to: null } };
 		evidence.integrity.content_digest = evidenceDigest(evidence);
 		validate(Evidence, evidence, "evidence");
 		this.deps.ledger.putEvidence(evidence, changeId);
@@ -541,7 +542,10 @@ export class Harness {
 				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
 				return { requirement: { requirement_id: r.requirement_id, revision: requirements.ref.revision }, mandatory: r.mandatory, control_ids: chosen, combination: "all_pass", human_interaction: null, not_applicable_reason: null };
 			});
-			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls, qualifications, capability_diagnosis: diagnosis, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", environment_digest: this.deps.environment.digest };
+			// The rules for reading the two passes are frozen here, before any control has run: what a
+			// preexisting defect is worth and what an unstable control is worth are never decided once a
+			// verdict is known (VER-08).
+			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls, qualifications, capability_diagnosis: diagnosis, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", baseline: { ...this.deps.policy.baseline }, environment_digest: this.deps.environment.digest };
 			const ref = await this.storeArtifact("protocol", unit.state.change_id, protocol.protocol_id, protocol, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "protocol", ref }, cor);
 			unit = this.commit(unit, { type: "gate.evaluate", gate: "G2", at: this.now(), actor: KERNEL_ACTOR, protocol_ref: ref, protocol }, cor);
@@ -744,12 +748,34 @@ export class Harness {
 		unit = this.commit(unit, { type: "verification.start", at: this.now(), actor: KERNEL_ACTOR, operation_id: opId, idempotency_key: `verify:${state.candidate.manifest_digest}:${state.evidence.length}` }, cor);
 		const facts: EvidenceFact[] = [];
 		const reference = await this.referenceOf(state);
+		const baseline = protocol.content.baseline;
+		const shape = candidateShape(manifest);
+		const passes = await this.referencePasses(state, protocol.content, state.protocol.ref, reference);
 		for (const control of protocol.content.controls) {
 			this.progress(`running control ${control.control_id}`);
-			const { evidence: candidate } = await this.deps.controls.runControl({ control, protocol: state.protocol.ref, candidate: state.candidate, subject: { kind: "candidate", id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest }, workspace_path: workspacePath, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR });
+			const invocation = { control, protocol: state.protocol.ref, candidate: state.candidate, subject: { kind: "candidate" as const, id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest }, workspace_path: workspacePath, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR };
+			const observed = (await this.deps.controls.runControl(invocation)).evidence;
+			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" } };
+			const pass = passes.get(control.control_id);
+			if (pass) {
+				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
+				if (baseline.instability === "confirm_then_indeterminate" && baseline.max_confirmations > 0 && divergesFromReference(observed.verdict, pass.verdict)) {
+					// The two passes diverge and no preexisting finding explains it. The frozen rule pays
+					// for one confirmation on the same candidate before the change is corrected for it.
+					this.progress(`confirming control ${control.control_id}: it fails on the candidate and passes on the reference`);
+					const confirmation = (await this.deps.controls.runControl(invocation)).evidence;
+					const confirmationId = this.id("evc");
+					this.storeEvidence(state.change_id, { ...confirmation, facts: { ...confirmation.facts, run: "confirmation" } }, confirmationId);
+					outcome = applyInstability(outcome, confirmation.verdict, confirmationId);
+				}
+				candidate = { ...candidate, verdict: outcome.verdict, findings: outcome.findings, baseline: outcome.comparison, limits: { ...candidate.limits, unstable: outcome.comparison.unstable, notes: [...candidate.limits.notes, ...outcome.comparison.notes] } };
+			}
 			const evidenceId = this.id("evd");
 			const evidence = this.storeEvidence(state.change_id, candidate, evidenceId);
-			facts.push({ evidence_id: evidenceId, control_id: evidence.control_id, control_version: evidence.control_version, requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id), subject_digest: evidence.subject.digest, protocol_revision: evidence.protocol_revision.revision, environment_digest: evidence.environment_digest, verdict: evidence.verdict, findings_blocking: evidence.findings.filter((f) => f.severity === "blocker").length });
+			// What blocks is what the frozen tolerance leaves blocking: without a reference pass, every
+			// blocking finding counts, because an unknown baseline is not a tolerance (VER-08).
+			const blocking = evidence.baseline ? evidence.baseline.blocking_findings : blockingCount(evidence.findings, "block_any");
+			facts.push({ evidence_id: evidenceId, control_id: evidence.control_id, control_version: evidence.control_version, requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id), subject_digest: evidence.subject.digest, protocol_revision: evidence.protocol_revision.revision, environment_digest: evidence.environment_digest, verdict: evidence.verdict, findings_blocking: blocking });
 		}
 		const after = await this.deps.workspace.snapshotCandidate({ workspace_id: state.candidate.workspace_id, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() }, reference, { ...this.deps.workspacePolicy, exclusions: [...this.deps.workspacePolicy.exclusions, ...protocol.content.controls.flatMap((c) => c.writable_paths.map((p) => (p.endsWith("/") ? p : `${p}/`)))] });
 		const mutated = after.manifest_digest !== manifest.manifest_digest && canonicalize(after.entries.map((e) => [e.path, e.content_digest])) !== canonicalize(manifest.entries.filter((e) => !protocol.content.controls.some((c) => c.writable_paths.some((w) => e.path.startsWith(w.replace(/\/?$/, "/"))))).map((e) => [e.path, e.content_digest]));
@@ -759,6 +785,40 @@ export class Harness {
 		}
 		unit = this.commit(unit, { type: "verification.record", at: this.now(), actor: EXECUTOR_ACTOR, evidence: facts }, cor);
 		return this.commit(unit, { type: "verification.complete", at: this.now(), actor: KERNEL_ACTOR, operation_id: opId }, cor);
+	}
+
+	/**
+	 * The reference pass of every control (VER-08): the same control, on the initial tree, in the same
+	 * environment — the comparability `environment_digest` expresses is the condition for the two
+	 * passes to be about the same thing. A pass already established for this control, this reference
+	 * and this environment is read back from the ledger: a reference does not change during a change,
+	 * so the attempts that follow a refusal cost nothing on the reference side.
+	 */
+	private async referencePasses(state: ChangeState, protocol: Protocol, protocolRef: ProtocolRef, reference: ReferenceSnapshot): Promise<Map<string, ReferencePass>> {
+		const passes = new Map<string, ReferencePass>();
+		if (!protocol.baseline.compare_to_reference) return passes;
+		const established = this.deps.ledger.listEvidence(state.change_id);
+		const pending: ControlDefinition[] = [];
+		for (const control of protocol.controls) {
+			const reused = reusableReferencePass(established, control, reference.tree_digest, this.deps.environment.digest, protocolRef);
+			if (reused) passes.set(control.control_id, { reference_id: reference.reference_id, reference_digest: reference.tree_digest, verdict: reused.verdict, findings: reused.findings, evidence_id: reused.evidence_id, reused: true });
+			else pending.push(control);
+		}
+		if (pending.length === 0) return passes;
+		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+		try {
+			for (const control of pending) {
+				this.progress(`running control ${control.control_id} on the reference`);
+				const { evidence } = await this.deps.controls.runControl({ control, protocol: protocolRef, candidate: { candidate_id: reference.reference_id, manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: handle.workspace_id }, subject: { kind: "reference", id: reference.reference_id, revision: 1, digest: reference.tree_digest }, workspace_path: handle.path, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR });
+				const evidenceId = this.id("evr");
+				// Observed on the initial tree: every finding of this pass is a defect the change inherited.
+				const stored = this.storeEvidence(state.change_id, { ...evidence, facts: { ...evidence.facts, run: "reference" }, findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })) }, evidenceId);
+				passes.set(control.control_id, { reference_id: reference.reference_id, reference_digest: reference.tree_digest, verdict: stored.verdict, findings: stored.findings, evidence_id: evidenceId, reused: false });
+			}
+		} finally {
+			await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
+		}
+		return passes;
 	}
 
 	private async stepReview(unit: Unit, cor: string): Promise<Unit> {
@@ -818,6 +878,9 @@ export class Harness {
 			.map((e) => this.deps.ledger.getEvidence(e.evidence_id))
 			.filter((e): e is Evidence => e !== null);
 		const last = observations.at(-1);
+		// A control the frozen rule has already declared unstable is never run again: its indetermination
+		// is the answer, and running it until it comes out green is exactly what VER-08 forbids.
+		if (last?.limits.unstable) return false;
 		if (!last || typeof last.facts.incident !== "string") return false;
 		const signature = (e: Evidence) => `${e.inputs_digest}|${String(e.facts.incident ?? "")}`;
 		return observations.filter((e) => signature(e) === signature(last)).length < 2;
@@ -844,7 +907,10 @@ export class Harness {
 			const ev = this.deps.ledger.getEvidence(entry.evidence_id);
 			if (!ev) continue;
 			lines.push(`\nControl ${ev.control_id} -> ${ev.verdict} (evidence ${ev.evidence_id})`);
-			for (const f of ev.findings.slice(0, 20)) lines.push(`  * ${f.severity} ${f.message}${f.path ? ` at ${f.path}${f.region ? `:${f.region.start_line}` : ""}` : ""}`);
+			if (ev.baseline) lines.push(`  baseline ${ev.baseline.reference_verdict} on the reference: ${ev.baseline.new_findings} introduced, ${ev.baseline.preexisting_findings} preexisting, ${ev.baseline.removed_findings} removed`);
+			// A preexisting finding is named as such: the producer is asked for what this change owes,
+			// not for the debt it inherited (QLT-04).
+			for (const f of ev.findings.filter((finding) => finding.baseline_state !== "removed").slice(0, 20)) lines.push(`  * ${f.severity} [${f.baseline_state}] ${f.message}${f.path ? ` at ${f.path}${f.region ? `:${f.region.start_line}` : ""}` : ""}`);
 			for (const n of ev.limits.notes) lines.push(`  ! ${n}`);
 			const stderr = ev.artifacts.find((a) => a.name === "stderr") ?? ev.artifacts.find((a) => a.name === "stdout");
 			if (stderr) {

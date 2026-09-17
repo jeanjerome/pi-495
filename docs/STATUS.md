@@ -114,11 +114,13 @@ La correction relève de VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés
   préparation sont livrés et exercés par `v2/preparation` ; la cartographie des assertions et des
   dépendances des contrôles n'est pas écrite, et IH-04 reste absente, si bien qu'une exigence non
   discriminable après deux préparations arrête le changement sans voie de sortie.
-- Comparaison à la référence (VER-08) : non livrée, et c'est le mécanisme dont les précédents
-  dépendent. Les contrôles ne sont exécutés que sur le candidat ; `runner.ts` écrit
-  `baseline_state: "new"` en dur, de sorte qu'un défaut hérité et une régression produisent le même
-  constat. Aucune politique d'instabilité n'est préenregistrée : un contrôle qui alterne réussite et
-  échec rend son dernier verdict.
+- Comparaison à la référence (VER-08) : livrée. Chaque contrôle s'exécute sur la référence puis sur
+  le candidat dans le même environnement, le passage de référence est mémorisé par contrôle et par
+  empreinte d'environnement, les constats sont classés `new` / `preexisting` / `removed`, et la
+  tolérance comme la règle d'instabilité sont gelées dans le protocole à G2. Portée actuelle : G2
+  exige qu'un contrôle qualifié passe sur la référence, donc aucun contrôle qualifié ne porte
+  aujourd'hui de constat préexistant — la tolérance est exercée par ses contrôles et attend les
+  analyseurs des étages 2 et 3 pour se déclencher dans un cycle complet.
 - Portabilité (NFR-05) et observabilité (NFR-06) : la première est annoncée sans être qualifiée, la
   seconde n'est établie par aucun contrôle bien qu'aucun point de télémétrie n'existe dans les
   sources.

@@ -38,7 +38,8 @@ export const ArtifactRef = Type.Object(
 );
 export type ArtifactRef = Static<typeof ArtifactRef>;
 
-export const SUBJECT_KINDS = ["program", "increment", "change", "attempt", "candidate", "artifact", "protocol", "control", "component", "fixture", "build", "environment", "integration"] as const;
+/** `fixture` is a tree fabricated for a witness; `reference` is the initial tree the change starts from. */
+export const SUBJECT_KINDS = ["program", "increment", "change", "attempt", "candidate", "artifact", "protocol", "control", "component", "fixture", "reference", "build", "environment", "integration"] as const;
 export const SubjectRef = Type.Object(
 	{
 		kind: Closed(SUBJECT_KINDS),

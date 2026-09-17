@@ -1,4 +1,7 @@
 /** Active policy: configured before execution, versioned, never modified by a producer. */
+import type { BaselinePolicy } from "../contracts/v1/protocol.ts";
+
+/** Bounds applied by the controller, never by a producer (DEC-03). */
 export interface Budgets {
 	max_attempts: number;
 	max_technical_retries: number;
@@ -28,6 +31,8 @@ export interface ActivePolicy {
 	};
 	g5_human_acceptance: boolean;
 	integration_enabled: boolean;
+	/** Frozen with the protocol at G2: how the candidate is compared to the reference (VER-08). */
+	baseline: BaselinePolicy;
 	stagnation_identical_candidates: number;
 	required_reviews: string[];
 }
@@ -47,6 +52,7 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	adoption: { mandate: "kernel", requirements: "kernel", protocol: "kernel", design: "kernel" },
 	g5_human_acceptance: false,
 	integration_enabled: false,
+	baseline: { compare_to_reference: true, tolerance: "no_aggravation", instability: "confirm_then_indeterminate", max_confirmations: 1 },
 	stagnation_identical_candidates: 2,
 	required_reviews: [],
 };

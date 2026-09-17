@@ -156,6 +156,7 @@
                         "control",
                         "component",
                         "fixture",
+                        "reference",
                         "build",
                         "environment",
                         "integration"

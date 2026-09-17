@@ -29,10 +29,10 @@ DOIT pouvoir exécuter les contrôles pertinents sur la référence initiale et 
 des environnements comparables. » Les autres exigences nomment chacune un analyseur ; VER-08 nomme
 la comparaison sans laquelle aucun d'eux ne peut conclure sur un delta.
 
-L'enveloppe est déjà dans le contrat v1 : `Finding` porte `baseline_state` avec les valeurs
-`new`, `preexisting`, `removed`, `unknown`. Le runner écrit `new` en dur et n'exécute que le
-candidat. Il ne manque donc pas un sous-système, il manque la comparaison à la référence — un
-mécanisme, N analyseurs.
+L'enveloppe est dans le contrat v1 : `Finding` porte `baseline_state` avec les valeurs `new`,
+`preexisting`, `removed`, `unknown`. Le mécanisme qui les renseigne est livré : chaque contrôle du
+protocole gelé s'exécute sur la référence puis sur le candidat, et ses constats sont classés sur le
+delta. Ce qui reste est la liste des analyseurs qui l'alimentent — un mécanisme, N analyseurs.
 
 Ce principe a une conséquence directe sur les seuils : un ratio global mesure l'hygiène d'un dépôt,
 pas un changement. Il bloque un composant historiquement sous le seuil quel que soit le candidat, et
@@ -47,7 +47,6 @@ non-aggravation comme critère.
 | PRE-01, reste | cartographie des contrôles existants : assertions, dépendances, instabilité | l'échelle à quatre niveaux et l'ouverture de la préparation sont livrées ; l'instabilité relève de VER-08 |
 | PRE-04 | tests de caractérisation d'un existant sans consacrer ses défauts | absent |
 | PRE-05 | compléter et requalifier la capacité de vérification à chaque incrément | absent |
-| VER-08 | contrôles exécutés sur la référence, défaut préexistant distingué d'une régression, instabilité traitée par une règle préenregistrée | absent |
 | CON-03 | règle architecturale opposable sur la cible, avec vérification exécutable | absent ; la seule règle exécutable porte sur le dépôt 495 lui-même (NFR-07) |
 | ARC-01..04 | architecture réalisée, cible, migration progressive, contrainte sur la génération | absents |
 | QLT-01..05 | référentiel, baseline, réduction de dette, non-dégradation, conformité démontrée | absents |
@@ -56,6 +55,12 @@ non-aggravation comme critère.
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
 | NFR-06 | observabilité sans surveillance imposée | aucun point de télémétrie n'existe, mais aucun contrôle ne l'établit |
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
+
+VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
+classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. La
+conséquence rappelée ci-dessous en fixe la portée actuelle : tout contrôle qualifié étant vert sur
+la référence, aucun ne porte encore de constat préexistant, et la tolérance attend les analyseurs
+des étages 2 et 3 pour se déclencher dans un cycle complet.
 
 ### Le défaut que cette absence produit
 
@@ -138,7 +143,7 @@ verdicts, pas sur un moteur unique imposé à tous les langages.
 | Étage | Exigence | Objet | Appui existant |
 | --- | --- | --- | --- |
 | 0 | PRE-01 | échelle de capacité à quatre niveaux ; la préparation s'ouvre sur l'absence de discrimination, non sur l'absence de fichiers de test | livré : `diagnoseControlCapability`, `Protocol.capability_diagnosis` |
-| 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | `Finding.baseline_state` et `fingerprint` existent ; `environment_digest` exprime déjà la comparabilité |
+| 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | livré : `domain/baseline.ts`, `domain/findings.ts`, `harness.referencePasses`, `Protocol.baseline` |
 | 2 | QLT-04 | contrôle de couverture sur les lignes introduites | rapport de couverture déjà produit par le contrôle gelé ; `diff.ts` fournit les lignes modifiées |
 | 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | `Finding`, `runner.ts`, profils d'exécution, précédent `check-layers.ts` |
 | 4 | VER-04 | mutation sur les classes modifiées | runner générique, budget de contrôle dédié |
@@ -150,8 +155,9 @@ héritée d'une lacune créée. Les étages 3 et 4 réutilisent le même classem
 Les étages 0 à 3 portent des exigences `[P0]` et relèvent donc du socle ; seul l'étage 4 porte une
 exigence `[P1]`. Le coût, lui, ne suit pas cette frontière. Les étages 0 et 2 se branchent sur du
 code existant sans exécution supplémentaire côté candidat : le rapport de couverture est déjà écrit
-par le contrôle de test. L'étage 1 ajoute un passage sur la référence, que le protocole peut
-mémoriser par référence et par empreinte d'environnement. Les étages 3 et 4 ajoutent des analyseurs
+par le contrôle de test. L'étage 1 ajoute un passage sur la référence, mémorisé par
+contrôle, par référence et par empreinte d'environnement : il n'est payé qu'à la première
+vérification d'un changement. Les étages 3 et 4 ajoutent des analyseurs
 natifs, et l'étage 4 un budget de contrôle propre.
 
 Trois travaux n'appartiennent pas à cette échelle et peuvent avancer en parallèle : la complétude de

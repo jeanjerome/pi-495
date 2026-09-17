@@ -164,7 +164,7 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 	});
 	it("an established qualification is reused for the same sensor, never across a changed sensor or environment", () => {
 		const qualified: Qualification = { positive: "PASS", negative: "FAIL", incident: "INDETERMINATE", qualified: true, environment_digest: ENV, notes: [] };
-		const protocolWith = (c: ControlDefinition, q: Qualification): Protocol => ({ protocol_id: "prt", change_id: "chg", controls: [c], qualifications: { [c.control_id]: q }, capability_diagnosis: { stack: "node", level: "executed", test_files: 1, discovered: 1, executed: 1, undiscriminated_requirements: [], unobserved_requirements: [], notes: [] }, obligations: [], required_reviews: [], arbitration: "human_decision", environment_digest: ENV });
+		const protocolWith = (c: ControlDefinition, q: Qualification): Protocol => ({ protocol_id: "prt", change_id: "chg", controls: [c], qualifications: { [c.control_id]: q }, capability_diagnosis: { stack: "node", level: "executed", test_files: 1, discovered: 1, executed: 1, undiscriminated_requirements: [], unobserved_requirements: [], notes: [] }, obligations: [], required_reviews: [], arbitration: "human_decision", baseline: { compare_to_reference: true, tolerance: "no_aggravation", instability: "confirm_then_indeterminate", max_confirmations: 1 }, environment_digest: ENV });
 		const unit = control();
 		const priors = [protocolWith(unit, qualified)];
 		assert.deepEqual(reusableQualification(priors, unit, ENV), qualified, "the same sensor in the same environment is not requalified");

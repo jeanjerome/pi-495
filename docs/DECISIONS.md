@@ -261,3 +261,55 @@ Seul l'acteur qui lit la référence et rédige l'exigence peut trancher.
 la vérifie ensuite par l'exécution, puisqu'une suite préparée pour une exigence déclarée nouvelle et
 qui passe sur la référence n'est pas adoptée comme discriminante. Le défaut conservateur va vers le
 travail supplémentaire, pas vers l'acceptation silencieuse.
+
+## D-22 — Un passage sur la référence par contrôle, mémorisé par capteur et par environnement
+
+**Décision.** À la vérification, chaque contrôle du protocole gelé s'exécute d'abord sur un
+workspace reconstruit depuis l'instantané de référence, puis sur le candidat. Le passage de
+référence est écrit au journal comme preuve à part entière (`subject.kind = "reference"`,
+`facts.run = "reference"`) et relu au lieu d'être refait tant que le contrôle, la référence,
+l'empreinte d'environnement et la révision du protocole sont les mêmes.
+**Motif.** Comparer deux passages suppose qu'ils portent sur la même chose : `environment_digest`
+est la condition de comparabilité, donc elle appartient à la clé. Une référence ne change pas
+pendant un changement, et une tentative qui suit un refus ne doit rien coûter du côté qui n'a pas
+bougé. Le journal porte déjà l'identité du capteur — commande, répertoire, environnement, arbre
+observé — dans `inputs_digest` : la mémorisation n'a besoin d'aucun index de plus.
+**Conséquence.** La première vérification d'un changement matérialise un workspace de plus et
+exécute chaque contrôle une fois de plus ; les tentatives suivantes ne paient rien. Une révision du
+protocole ou un changement d'environnement rétablit les passages, ce que l'invalidation exige déjà
+pour les preuves du candidat.
+
+## D-23 — L'identité d'un constat exclut le workspace exécuté et la ligne
+
+**Décision.** `Finding.fingerprint` digère l'outil, la règle, le symbole, le chemin relatif et le
+texte du message privé de sa localisation ; le runner retire du message le chemin absolu du
+workspace et en extrait `path` et `region`. L'appariement des constats se fait ensuite en trois
+passes : identité exacte, puis renommage prouvé par le manifeste (mêmes octets sous un autre nom),
+puis déplacement non prouvé mais sans ambiguïté — un seul constat non apparié de chaque côté, dans
+un fichier que le candidat ne porte plus.
+**Motif.** Les deux passages s'exécutent dans deux répertoires : un message qui porte son chemin
+absolu ne s'apparie jamais avec le même message observé de l'autre côté. Une ligne bouge dès qu'on
+édite au-dessus d'elle. QLT-04 demande explicitement que déplacements et renommages ne masquent pas
+une dette, ce qu'une empreinte qui contient la ligne et le répertoire ne peut pas tenir.
+**Conséquence.** Un appariement ambigu n'est pas deviné : le constat du candidat reste introduit et
+celui de la référence devient `removed`. Le défaut conservateur va vers le blocage, jamais vers la
+disparition silencieuse d'une dette.
+
+## D-24 — Tolérance et règle d'instabilité gelées avec le protocole
+
+**Décision.** `Protocol.baseline` porte quatre champs gelés à G2 : l'exécution sur la référence, la
+tolérance (`no_aggravation` ou `block_any`), la règle d'instabilité et le nombre de confirmations
+qu'une divergence peut coûter. Sous `no_aggravation`, un contrôle qui échoue des deux côtés sans
+ajouter un seul constat rend `PASS`, et `baseline.raw_verdict` conserve ce qu'il a observé ; un
+constat hérité reste dans la preuve avec `baseline_state: "preexisting"` et ne compte pas parmi les
+constats bloquants. Un contrôle qui échoue sur le candidat là où la référence passe paye une
+confirmation sur le même candidat : si les deux réponses divergent, le verdict est `INDETERMINATE`
+conservé, `limits.unstable` est vrai, et la relance technique lui est refusée.
+**Motif.** Une tolérance décidée après coup n'en est pas une : c'est un verdict trouvé gênant. La
+geler avec le protocole la rend opposable, et la rend lisible dans le dossier. Symétriquement, la
+seule manière d'observer qu'un contrôle alterne est de l'exécuter deux fois ; ce que VER-08 interdit
+n'est pas la seconde exécution mais d'adopter la plus verte des deux réponses.
+**Conséquence.** Un contrôle qui échoue là où la référence passe coûte une exécution de plus avant
+qu'une tentative de correction ne soit dépensée sur lui — bien moins qu'une intervention complète
+suivie d'une vérification complète. `max_confirmations: 0` retire la détection sans toucher au
+classement des constats.

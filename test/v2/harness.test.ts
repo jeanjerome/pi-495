@@ -5,6 +5,7 @@ import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
+import { digestValue } from "../../src/contracts/digest.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 
 const cleanups: string[] = [];
@@ -48,8 +49,13 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const evidence = t.ledger.listEvidence(change.change_id);
 		const candidateEvidence = evidence.filter((e) => e.subject.kind === "candidate");
 		const qualificationEvidence = evidence.filter((e) => e.subject.kind === "fixture");
+		const referenceEvidence = evidence.filter((e) => e.subject.kind === "reference");
 		assert.equal(candidateEvidence.length, 2);
 		assert.equal(qualificationEvidence.length, 6, "three qualification witnesses are retained for each control");
+		assert.equal(referenceEvidence.length, 2, "each control is also run on the reference (VER-08)");
+		const baseDigest = t.ledger.loadChange(change.change_id)!.state.candidate!.base_digest;
+		assert.ok(referenceEvidence.every((e) => e.subject.digest === baseDigest && e.facts.run === "reference"));
+		assert.ok(candidateEvidence.every((e) => e.baseline?.reference_verdict === "PASS" && e.baseline.new_findings === 0));
 		assert.ok(candidateEvidence.every((e) => e.subject.digest === view.candidate!.manifest_digest));
 		const protocol = await t.harness.latestArtifact<{ qualifications: Record<string, { evidence_ids?: Record<string, string> }> }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
 		assert.ok(Object.values(protocol!.content.qualifications).every((q) => Object.keys(q.evidence_ids ?? {}).length === 3));
@@ -83,6 +89,46 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.ok(state.evidence.some((e) => e.verdict === "FAIL" && !e.valid) || state.evidence.some((e) => e.verdict === "FAIL"), "first attempt evidence historised");
 		const g5s = t.ledger.readChangeEvents(change.change_id).filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G5");
 		assert.equal(g5s.length, 2);
+		// A reference does not change while the change is under way: its pass is established once per
+		// control and read back at the second attempt (VER-08).
+		const referencePasses = t.ledger.listEvidence(change.change_id).filter((e) => e.facts.run === "reference");
+		assert.equal(referencePasses.length, 2, "one reference pass per control, for two attempts");
+		const candidatePasses = t.ledger.listEvidence(change.change_id).filter((e) => e.facts.run === "candidate");
+		assert.equal(candidatePasses.length, 4, "two controls, two attempts");
+		assert.deepEqual(candidatePasses.map((e) => e.baseline?.reused), [false, false, true, true], "the second attempt reads the reference passes back instead of running them again");
+	});
+
+	it("a control that answers differently on two passes of the same candidate keeps INDETERMINATE and is not run again (VER-08, REC-25)", async () => {
+		const p = project();
+		let candidatePasses = 0;
+		const t = track(makeHarness({
+			scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } },
+			// The unit control fails once on the first candidate and answers what the tree really is
+			// afterwards: the two passes of the same candidate disagree without any cause in it.
+			controls: (real) => ({
+				runControl: async (invocation, signal) => {
+					const run = await real.runControl(invocation, signal);
+					if (invocation.subject.kind !== "candidate" || invocation.control.control_id !== "unit" || candidatePasses++ > 0) return run;
+					const finding = { ...run.evidence.findings[0] ?? { rule_id: "unit:failure", category: "assertion" as const, severity: "blocker" as const, message: "greet returns", path: null, region: null, symbol: null, requirement_refs: invocation.requirement_refs, baseline_state: "unknown" as const, fingerprint: digestValue("flaky"), tool: "unit", tool_version: "1", confidence: 1, raw_evidence_ref: null } };
+					return { ...run, evidence: { ...run.evidence, verdict: "FAIL" as const, findings: [finding] } };
+				},
+			}),
+		}));
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet must keep returning Hello, <name>", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		const evidence = t.ledger.listEvidence(change.change_id);
+		const unstable = evidence.find((e) => e.limits.unstable);
+		assert.ok(unstable, `an unstable control is recorded: ${result.steps.join(" | ")}`);
+		assert.equal(unstable.verdict, "INDETERMINATE", "the green pass is not the one adopted");
+		assert.equal(unstable.baseline?.raw_verdict, "FAIL");
+		assert.equal(unstable.baseline?.reference_verdict, "PASS");
+		assert.equal(unstable.baseline?.unstable, true);
+		assert.equal(unstable.baseline?.blocking_findings, 0);
+		assert.equal(evidence.filter((e) => e.facts.run === "confirmation").length, 1, "the frozen rule pays for one confirmation, never more");
+		// Never relaunched until green: the technical retry is refused and the change is corrected instead.
+		const retries = t.ledger.readChangeEvents(change.change_id).filter((e) => JSON.stringify(e.event).includes("technical retry"));
+		assert.deepEqual(retries, [], "an unstable control is not run again");
+		assert.deepEqual(t.ledger.loadChange(change.change_id)!.state.budgets.retries, {}, "no technical retry was spent on it");
 	});
 
 	it("allows new tests while keeping frozen test content protected", async () => {
