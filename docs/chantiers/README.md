@@ -11,7 +11,7 @@ l'introduit, et pourquoi aucun contrôle qualifié ne peut seul prouver un compo
 
 | Étage | Exigence | Objet | État | Fiche |
 | --- | --- | --- | --- | --- |
-| 0 | PRE-01 | diagnostic de capacité de contrôle ; la préparation s'ouvre sur l'absence de discrimination | à faire | [00-pre-01-capacite-de-controle.md](00-pre-01-capacite-de-controle.md) |
+| 0 | PRE-01 | diagnostic de capacité de contrôle ; la préparation s'ouvre sur l'absence de discrimination | livré non qualifié ; restent IH-04, la cartographie complète et la condition de discrimination à G2 | [00-pre-01-capacite-de-controle.md](00-pre-01-capacite-de-controle.md) |
 | 1 | VER-08 | exécution des contrôles sur la référence, classement préexistant / introduit, politique d'instabilité | à faire | [01-ver-08-comparaison-a-la-reference.md](01-ver-08-comparaison-a-la-reference.md) |
 | 2 | QLT-04 | couverture sur le code introduit, non-aggravation | à faire | [02-qlt-04-couverture-introduite.md](02-qlt-04-couverture-introduite.md) |
 | 3 | ARC-04, CON-03 | constats structurels, architecture opposable | à faire | [03-arc-04-architecture-active.md](03-arc-04-architecture-active.md) |

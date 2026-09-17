@@ -47,7 +47,7 @@ export const SpecificationReport = Type.Object(
 		questions: Type.Array(Type.Object({ id: Type.String(), question: Type.String(), material: Type.Boolean() }, { additionalProperties: false })),
 		out_of_scope: Type.Array(Type.String()),
 		risks: Type.Array(Type.String()),
-		requirements: Type.Array(Type.Object({ requirement_id: Type.String(), statement: Type.String(), mandatory: Type.Boolean(), criterion: Type.String(), category: Type.String() }, { additionalProperties: false })),
+		requirements: Type.Array(Type.Object({ requirement_id: Type.String(), statement: Type.String(), mandatory: Type.Boolean(), criterion: Type.String(), category: Type.String(), satisfied_by_reference: Type.Boolean({ description: "the project as it stands already behaves this way; false when the requirement asks for something it does not do yet" }) }, { additionalProperties: false })),
 		design: Type.Object({ summary: Type.String(), components: Type.Array(Type.String()), interfaces: Type.Array(Type.String()), risks: Type.Array(Type.String()) }, { additionalProperties: false }),
 	},
 	{ $id: "urn:495:contract:specification-report:1", additionalProperties: false },

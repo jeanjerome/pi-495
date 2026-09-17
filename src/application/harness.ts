@@ -13,7 +13,7 @@ import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, SubjectRe
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest } from "../contracts/v1/evidence.ts";
-import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
+import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, type ProducerReport, type ReviewReport, type SpecificationReport } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
@@ -32,10 +32,10 @@ import { buildContext, outputSchemaFor } from "./context.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { detectStack, type StackDetection } from "./target.ts";
-import { isProtectedPrepared, preparedFilesFrom, referenceHasTests, samePreparationPaths, type PreparationRecord } from "./preparation.ts";
+import { diagnoseControlCapability, isProtectedPrepared, preparedFilesFrom, referenceTestFiles, samePreparationPaths, type PreparationRecord, type ReferenceSuiteObservation } from "./preparation.ts";
 import { statusView, type StatusView } from "./views.ts";
 import { buildSnapshot, readChanges, readContent, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
-import type { Finding } from "../contracts/v1/evidence.ts";
+import type { Finding, RequirementRef } from "../contracts/v1/evidence.ts";
 
 export interface HarnessDeps {
 	ledger: LedgerPort;
@@ -437,7 +437,7 @@ export class Harness {
 	private async stepSpecify(unit: Unit, cor: string): Promise<Unit> {
 		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
 		if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
-		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null })), assumptions: spec.content.assumptions, contract_families: {} };
+		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), assumptions: spec.content.assumptions, contract_families: {} };
 		const issues: string[] = [];
 		try {
 			validate(RequirementsDocumentSchema, doc, "requirements");
@@ -487,15 +487,13 @@ export class Harness {
 		try {
 			const detection = detectStack(positive.path, refs);
 			if (detection.controls.length === 0) throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", { nextActions: ["prepare_capabilities"] });
-			const hasTests = referenceHasTests(reference, detection.preparation_paths) || (prepared?.files.length ?? 0) > 0;
-			if (!hasTests && detection.preparation_paths.length > 0) {
-				const alreadyTried = (unit.state.proposals.preparation ?? []).filter((a) => a.artifact_id.startsWith("prep_")).length;
-				if (alreadyTried >= 2) throw new DomainError("CAPABILITY_MISSING", "no discriminant test could be prepared after two preparation interventions", { nextActions: ["prepare_capabilities", "assign_human_decision"] });
-				const mandate = { objective: `Write automated tests for the adopted requirements in the target technology (${detection.stack}); only files under ${detection.preparation_paths.join(", ")} may be created or modified.`, allowed_paths: detection.preparation_paths, requirement_ids: refs.map((r) => r.requirement_id), stack: detection.stack };
-				const ref = await this.storeArtifact("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate" }, KERNEL_ACTOR.actor_id);
-				unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
-				return this.commit(unit, { type: "preparation.open", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: ref }, cor);
-			}
+			const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis => diagnoseControlCapability({ stack: detection.stack, test_files: referenceTestFiles(reference, detection.preparation_paths), requirements: requirements.content.requirements, suite, prepared });
+			// What no existing control can decide is settled before any of them runs: the controls the
+			// protocol may freeze are green on the reference, so none of them changes verdict when a
+			// behaviour the reference does not have appears. Opening the preparation here spares the
+			// qualification of sensors that would have to be qualified again after it.
+			let diagnosis = diagnose(null);
+			if (diagnosis.undiscriminated_requirements.length > 0 && detection.preparation_paths.length > 0) return await this.openPreparation(unit, cor, detection, refs, diagnosis);
 			// The witnesses qualify the sensor mechanism on the reference (PRE-03); the prepared discriminant
 			// suite is judged separately (`on_reference`) and joins the protocol as a protected oracle.
 			for (const [ws, files] of [[positive.path, detection.positive_witness], [negative.path, { ...detection.positive_witness, ...detection.negative_witness }]] as const) {
@@ -506,12 +504,14 @@ export class Harness {
 				}
 			}
 			const qualifications: Protocol["qualifications"] = {};
+			const observed = { reported: 0, skipped: 0, witnesses: 0, any: false };
 			const base = { protocol: { protocol_id: "qualification", revision: 1, content_digest: digestValue("qualification") } as const, candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, environment: this.deps.environment, requirement_refs: refs, producer: EXECUTOR_ACTOR };
 			for (const control of detection.controls) {
 				const reusable = await this.qualificationAlreadyEstablished(unit.state, control);
 				if (reusable) {
 					this.progress(`control ${control.control_id} keeps its qualification`);
 					qualifications[control.control_id] = reusable;
+					this.countReferenceCases(observed, control, detection.witness_tests, reusable.evidence_ids ? this.deps.ledger.getEvidence(reusable.evidence_ids.positive)?.facts ?? null : null);
 					if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
 					continue;
 				}
@@ -526,16 +526,22 @@ export class Harness {
 				this.storeEvidence(unit.state.change_id, detailed.evidence.negative, evidenceIds.negative);
 				this.storeEvidence(unit.state.change_id, detailed.evidence.incident, evidenceIds.incident);
 				qualifications[control.control_id] = { ...detailed.qualification, evidence_ids: evidenceIds };
+				this.countReferenceCases(observed, control, detection.witness_tests, detailed.evidence.positive.facts);
 				if (!detailed.qualification.qualified) qualifications[control.control_id]!.notes.push(`qualification evidence: positive=${evidenceIds.positive}, negative=${evidenceIds.negative}, incident=${evidenceIds.incident}`);
 				if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
 			}
+			// Levels 2 and 3 of the scale are read off a run G2 pays for anyway: the positive witness
+			// runs the reference suite next to its own case, so what the reference itself discovers and
+			// executes needs no run of its own.
+			diagnosis = diagnose(observed.any ? { reported: observed.reported, skipped: observed.skipped, witnesses: observed.witnesses } : null);
+			if (diagnosis.undiscriminated_requirements.length > 0 && detection.preparation_paths.length > 0) return await this.openPreparation(unit, cor, detection, refs, diagnosis);
 			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
 			const obligations: Obligation[] = requirements.content.requirements.map((r) => {
 				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
 				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
 				return { requirement: { requirement_id: r.requirement_id, revision: requirements.ref.revision }, mandatory: r.mandatory, control_ids: chosen, combination: "all_pass", human_interaction: null, not_applicable_reason: null };
 			});
-			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls, qualifications, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", environment_digest: this.deps.environment.digest };
+			const protocol: Protocol = { protocol_id: this.id("prt"), change_id: unit.state.change_id, controls, qualifications, capability_diagnosis: diagnosis, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", environment_digest: this.deps.environment.digest };
 			const ref = await this.storeArtifact("protocol", unit.state.change_id, protocol.protocol_id, protocol, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "protocol", ref }, cor);
 			unit = this.commit(unit, { type: "gate.evaluate", gate: "G2", at: this.now(), actor: KERNEL_ACTOR, protocol_ref: ref, protocol }, cor);
@@ -549,6 +555,33 @@ export class Harness {
 			await this.deps.workspace.closeWorkspace(positive.workspace_id, "delete");
 			await this.deps.workspace.closeWorkspace(negative.workspace_id, "delete");
 		}
+	}
+
+	/**
+	 * Adds what one qualification run saw on the reference to the suite observation. Only a parser
+	 * that reports cases can contribute: an exit code alone tells nothing apart.
+	 */
+	private countReferenceCases(into: { reported: number; skipped: number; witnesses: number; any: boolean }, control: ControlDefinition, witnessTests: number, facts: Record<string, unknown> | null): void {
+		if (control.parser === "exit-code" || !facts || typeof facts.tests !== "number") return;
+		into.reported += facts.tests;
+		into.skipped += (typeof facts.skipped === "number" ? facts.skipped : 0) + (typeof facts.todo === "number" ? facts.todo : 0);
+		into.witnesses += witnessTests;
+		into.any = true;
+	}
+
+	/**
+	 * Opens the bounded preparation mandate the diagnosis calls for (SA-008). Two refused rounds are
+	 * enough: a third spends the same budget on the same gap, and the change stops on a missing
+	 * capability instead.
+	 */
+	private async openPreparation(unit: Unit, cor: string, detection: StackDetection, refs: RequirementRef[], diagnosis: ControlCapabilityDiagnosis): Promise<Unit> {
+		const alreadyTried = (unit.state.proposals.preparation ?? []).filter((a) => a.artifact_id.startsWith("prep_")).length;
+		if (alreadyTried >= 2) throw new DomainError("CAPABILITY_MISSING", `no discriminant test could be prepared after two preparation interventions: ${diagnosis.notes.join("; ")}`, { nextActions: ["prepare_capabilities", "assign_human_decision"] });
+		const objective = `Write automated tests for the adopted requirements in the target technology (${detection.stack}); only files under ${detection.preparation_paths.join(", ")} may be created or modified. The controls already on this target cannot decide ${diagnosis.undiscriminated_requirements.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
+		const mandate = { objective, allowed_paths: detection.preparation_paths, requirement_ids: refs.map((r) => r.requirement_id), stack: detection.stack };
+		const ref = await this.storeArtifact("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate", diagnosis }, KERNEL_ACTOR.actor_id);
+		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
+		return this.commit(unit, { type: "preparation.open", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: ref }, cor);
 	}
 
 	/** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */

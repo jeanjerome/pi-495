@@ -3,10 +3,10 @@ import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { initRepo, tempDir, writeFiles, fixtureMavenMultiModule } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, writeFiles, fixtureMavenMultiModule } from "../helpers/fixtures.ts";
 import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { preparedFilesFrom, referenceHasTests, samePreparationPaths } from "../../src/application/preparation.ts";
+import { diagnoseControlCapability, preparedFilesFrom, referenceTestFiles, samePreparationPaths, type PreparationRecord } from "../../src/application/preparation.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 
 const cleanups: string[] = [];
@@ -28,7 +28,7 @@ function projectWithoutTests(): string {
 
 const SHOUT_TEST = 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet, shout } from "../src/greet.js";\n\ntest("shout upper-cases the greeting", () => {\n  assert.equal(shout("x"), "HELLO, X");\n});\ntest("greet unchanged", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n';
 const SHOUT_IMPL = "export function greet(name) {\n  return `Hello, ${name}`;\n}\nexport function shout(name) {\n  return greet(name).toUpperCase();\n}\n";
-const spec = specReport({ objective: "add shout(name) returning the greeting in upper case", requirements: [{ requirement_id: "R1", statement: "shout(name) returns greet(name) upper-cased", mandatory: true, criterion: "unit test on shout passes", category: "functional" }, { requirement_id: "R2", statement: "greet unchanged", mandatory: true, criterion: "unit test on greet passes", category: "functional" }], design: { summary: "add shout next to greet", components: ["greet"], interfaces: ["shout(name)"], risks: [] } });
+const spec = specReport({ objective: "add shout(name) returning the greeting in upper case", requirements: [{ requirement_id: "R1", statement: "shout(name) returns greet(name) upper-cased", mandatory: true, criterion: "unit test on shout passes", category: "functional", satisfied_by_reference: false }, { requirement_id: "R2", statement: "greet unchanged", mandatory: true, criterion: "unit test on greet passes", category: "functional", satisfied_by_reference: true }], design: { summary: "add shout next to greet", components: ["greet"], interfaces: ["shout(name)"], risks: [] } });
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: false, notes: [] });
 
 describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)", () => {
@@ -89,7 +89,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 
 		const workspace = new GitWorkspace(workspaces);
 		const reference = await workspace.captureReference(p, DEFAULT_WORKSPACE_POLICY);
-		assert.equal(referenceHasTests(reference, detection.preparation_paths), false);
+		assert.deepEqual(referenceTestFiles(reference, detection.preparation_paths), []);
 		const handle = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
 		writeFiles(handle.path, {
 			"domain/src/test/java/io/h495/AddressTest.java": "package io.h495; public final class AddressTest {}\n",
@@ -125,6 +125,61 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.ok(migration, "the stale scope is recorded before it is closed");
 		const record = JSON.parse(new TextDecoder().decode((await t.objects.get(migration.object))!)) as { notes: string[] };
 		assert.match(record.notes[0] ?? "", /scope is stale/);
+	});
+	it("distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)", () => {
+		const addition = { requirement_id: "R1", mandatory: true, satisfied_by_reference: false };
+		const preservation = { requirement_id: "R2", mandatory: true, satisfied_by_reference: true };
+		const base = { stack: "node", test_files: ["test/greet.test.js"], prepared: null };
+		// A suite the target's own command never reaches is a file, nothing more: PRE-01 asks for that
+		// insufficiency to be reported rather than counted as coverage.
+		const ignored = diagnoseControlCapability({ ...base, requirements: [preservation], suite: { reported: 1, skipped: 0, witnesses: 1 } });
+		assert.equal(ignored.level, "file_present");
+		assert.deepEqual([ignored.discovered, ignored.executed], [0, 0]);
+		assert.deepEqual(ignored.undiscriminated_requirements, ["R2"]);
+		assert.ok(ignored.notes.some((n) => n.includes("reports no case of its own")), ignored.notes.join(" | "));
+		// A skipped case is discovered and never executed: it asserts nothing (RM-017).
+		const skipped = diagnoseControlCapability({ ...base, requirements: [preservation], suite: { reported: 3, skipped: 2, witnesses: 1 } });
+		assert.equal(skipped.level, "discoverable");
+		assert.deepEqual([skipped.discovered, skipped.executed], [2, 0]);
+		assert.deepEqual(skipped.undiscriminated_requirements, ["R2"]);
+		// An executed suite proves what the reference already does, which is exactly what a refactoring
+		// requirement needs and never what a new behaviour needs.
+		const executed = diagnoseControlCapability({ ...base, requirements: [preservation, addition], suite: { reported: 2, skipped: 0, witnesses: 1 } });
+		assert.equal(executed.level, "executed");
+		assert.deepEqual(executed.undiscriminated_requirements, ["R1"]);
+		assert.ok(executed.notes.some((n) => n.includes("no control that passes on the reference can detect its absence")), executed.notes.join(" | "));
+		// Before any run, what no control could ever decide is already known; the rest waits.
+		const unobserved = diagnoseControlCapability({ ...base, requirements: [preservation, addition], suite: null });
+		assert.deepEqual([unobserved.discovered, unobserved.executed], [null, null]);
+		assert.deepEqual(unobserved.undiscriminated_requirements, ["R1"]);
+		assert.deepEqual(unobserved.unobserved_requirements, ["R2"]);
+		// A suite that fails on the reference detects the absent behaviour: the last level of the scale.
+		const prepared: PreparationRecord = { preparation_id: "prep_1", objective: "o", allowed_paths: ["test/"], files: [{ path: "test/shout.test.js", digest: "sha256:x", size_bytes: 1 }], on_reference: "FAIL", discriminant: true, loadable: true, qualified: true, notes: [] };
+		const discriminating = diagnoseControlCapability({ ...base, requirements: [preservation, addition], suite: { reported: 2, skipped: 0, witnesses: 1 }, prepared });
+		assert.equal(discriminating.level, "discriminating");
+		assert.deepEqual(discriminating.undiscriminated_requirements, []);
+		// An optional requirement is not a reason to open a preparation.
+		const optional = diagnoseControlCapability({ ...base, requirements: [{ ...addition, mandatory: false }], suite: null });
+		assert.deepEqual(optional.undiscriminated_requirements, []);
+	});
+	it("opens a preparation on a target that already has tests when the request adds behaviour", async () => {
+		const p = tempDir("495-withtests-");
+		cleanups.push(p);
+		fixtureTs(p);
+		initRepo(p);
+		const t = track(makeHarness({ defaultScript: { steps: [{ kind: "complete", output: spec }] }, scripts: { prepare: { steps: [{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST }, { kind: "complete", output: report(["test/shout.test.js"]) }] }, implement: { steps: [{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		assert.ok(result.steps.some((s) => s.startsWith("verification_design -> preparing")), `a green suite proves nothing about shout: ${result.steps.join(" | ")}`);
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.outcome, "accepted");
+		assert.ok(state.protocol?.protected_paths.includes("test/shout.test.js"));
+		const mandateArt = t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prp_"))!;
+		const opened = JSON.parse(new TextDecoder().decode((await t.objects.get(mandateArt.object))!)) as { diagnosis: { level: string; test_files: number; undiscriminated_requirements: string[] } };
+		assert.deepEqual([opened.diagnosis.level, opened.diagnosis.test_files, opened.diagnosis.undiscriminated_requirements], ["file_present", 1, ["R1"]], "the existing test file is seen, and seen as insufficient");
+		const protocolArt = await t.harness.latestArtifact<{ capability_diagnosis: { level: string } }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
+		assert.equal(protocolArt?.content.capability_diagnosis.level, "discriminating", "the frozen protocol carries the diagnosis that let it freeze");
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {
 		const p = projectWithoutTests();

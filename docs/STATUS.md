@@ -64,21 +64,30 @@ test, une écriture de production refusée et deux rapports Surefire agrégés. 
 multi-module sous Seatbelt reste à ajouter à la campagne V4 ; la campagne Java qualifiée existante
 porte sur le fixture mono-module.
 
-## Limite connue : une exigence peut être déclarée satisfaite sans être discriminée
+## La préparation s'ouvre sur l'absence de discrimination
 
 G2 exige qu'un contrôle qualifié passe sur la référence, sans quoi il signalerait un défaut sur du
 code sain. Il en résulte que tout contrôle qualifié est vert sur la référence, donc qu'il rend le
 même verdict selon que l'exigence est satisfaite ou absente. La seule source de discrimination est
 la suite préparée, dont l'adoption exige `on_reference: FAIL`.
 
-Or la préparation n'est ouverte que si la cible ne contient aucun fichier de test. Une cible qui en
-contient sautera la préparation et verra ses exigences déclarées satisfaites par une suite qui ne
-les couvre pas. Observé sur la cible Java : un candidat ajoutant 276 lignes instrumentées dont 93
-ne sont exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`, y compris
-pour des exigences portant explicitement sur l'existence de scénarios de test.
+Le déclencheur de la préparation est un diagnostic de capacité de contrôle sur l'échelle à quatre
+niveaux de PRE-01 : fichier de test présent, cas découvert par la commande de test de la cible, cas
+exécuté, contrôle capable de détecter le défaut visé. Une exigence qui affirme un comportement que
+la référence n'a pas ouvre une préparation quel que soit le nombre de tests déjà présents ; une
+exigence de comportement conservé garde la suite verte pour oracle, à condition que celle-ci exécute
+réellement des cas. Le diagnostic est figé dans le protocole (`capability_diagnosis`) et dans le
+mandat de préparation qu'il ouvre.
 
-La correction relève de PRE-01, VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés par
-`chantiers/`.
+## Limite connue : la suite discriminante n'est pas mesurée sur le code introduit
+
+Une exigence obtient désormais un oracle discriminant ou une préparation, mais rien ne mesure ce que
+cet oracle atteint. Observé sur la cible Java : un candidat ajoutant 276 lignes instrumentées dont
+93 ne sont exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`. G2
+n'exige pas non plus la discrimination : elle accepte une obligation couverte par un contrôle
+qualifié sans consulter le diagnostic.
+
+La correction relève de VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés par `chantiers/`.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -97,10 +106,14 @@ La correction relève de PRE-01, VER-08 et QLT-04, décrits dans `ROADMAP.md` et
 - Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
 - Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
   changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
-- Architecture et qualité (ARC-01..04, QLT-01..05, CON-03), diagnostic de capacité de contrôle
-  (PRE-01 au-delà du premier niveau), caractérisation (PRE-04) et évolution de la capacité par cycle
-  (PRE-05) : non livrés. Contrairement aux précédents, leur absence a un effet observable sur
-  l'acceptation d'un changement — voir la limite connue ci-dessus et `ROADMAP.md`.
+- Architecture et qualité (ARC-01..04, QLT-01..05, CON-03), caractérisation de l'existant (PRE-04)
+  et évolution de la capacité par cycle (PRE-05) : non livrés. Contrairement aux précédents, leur
+  absence a un effet observable sur l'acceptation d'un changement — voir la limite connue ci-dessus
+  et `ROADMAP.md`.
+- Diagnostic de capacité de contrôle (PRE-01) : l'échelle à quatre niveaux et le déclencheur de
+  préparation sont livrés et exercés par `v2/preparation` ; la cartographie des assertions et des
+  dépendances des contrôles n'est pas écrite, et IH-04 reste absente, si bien qu'une exigence non
+  discriminable après deux préparations arrête le changement sans voie de sortie.
 - Comparaison à la référence (VER-08) : non livrée, et c'est le mécanisme dont les précédents
   dépendent. Les contrôles ne sont exécutés que sur le candidat ; `runner.ts` écrit
   `baseline_state: "new"` en dur, de sorte qu'un défaut hérité et une régression produisent le même

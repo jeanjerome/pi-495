@@ -25,13 +25,13 @@ export interface TestHarness {
 
 export function specReport(over: Partial<SpecificationReport> = {}): SpecificationReport {
 	return {
-		objective: "greet(name) must return 'Hello, <name>!'",
+		objective: "greet(name) must keep returning 'Hello, <name>'",
 		facts: ["greet exists in src/greet.js"],
 		assumptions: [],
 		questions: [],
 		out_of_scope: ["documentation"],
 		risks: [],
-		requirements: [{ requirement_id: "R1", statement: "greet returns Hello, <name>!", mandatory: true, criterion: "the unit test suite passes", category: "functional" }],
+		requirements: [{ requirement_id: "R1", statement: "greet returns Hello, <name>", mandatory: true, criterion: "the unit test suite passes", category: "functional", satisfied_by_reference: true }],
 		design: { summary: "change the template literal in src/greet.js", components: ["greet"], interfaces: ["greet(name)"], risks: [] },
 		...over,
 	};

@@ -6,6 +6,7 @@
     "change_id",
     "controls",
     "qualifications",
+    "capability_diagnosis",
     "obligations",
     "required_reviews",
     "arbitration",
@@ -241,6 +242,83 @@
           "additionalProperties": false
         }
       }
+    },
+    "capability_diagnosis": {
+      "type": "object",
+      "required": [
+        "stack",
+        "level",
+        "test_files",
+        "discovered",
+        "executed",
+        "undiscriminated_requirements",
+        "unobserved_requirements",
+        "notes"
+      ],
+      "properties": {
+        "stack": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "none",
+            "file_present",
+            "discoverable",
+            "executed",
+            "discriminating"
+          ]
+        },
+        "test_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discovered": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executed": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "undiscriminated_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "unobserved_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "obligations": {
       "type": "array",

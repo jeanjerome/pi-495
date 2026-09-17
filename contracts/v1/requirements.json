@@ -24,7 +24,8 @@
           "mandatory",
           "criterion",
           "source",
-          "contract_family"
+          "contract_family",
+          "satisfied_by_reference"
         ],
         "properties": {
           "requirement_id": {
@@ -58,6 +59,10 @@
                 "type": "null"
               }
             ]
+          },
+          "satisfied_by_reference": {
+            "type": "boolean",
+            "description": "the reference already exhibits this behaviour, so a suite that stays green proves it; false means the requirement needs a control that fails on the reference"
           }
         },
         "additionalProperties": false

@@ -37,6 +37,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		const view = result.view.change!;
 		assert.equal(view.outcome, "accepted");
+		// The requirement is that greet keeps behaving as it does: the suite already on the target
+		// fails if it stops, so nothing has to be prepared first.
+		assert.equal(result.steps.some((s) => s.includes("preparing")), false, result.steps.join(" | "));
 		assert.deepEqual(view.gates.map((g) => `${g.gate}:${g.verdict}`), ["G0:PASS", "G1:PASS", "G2:PASS", "G3:PASS", "G4:PASS", "G5:PASS"]);
 		assert.equal(view.evidence.length, 2);
 		assert.ok(view.evidence.every((e) => e.verdict === "PASS" && e.valid));

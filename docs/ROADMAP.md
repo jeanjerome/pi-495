@@ -44,7 +44,7 @@ non-aggravation comme critère.
 
 | Exigence | Objet | État |
 | --- | --- | --- |
-| PRE-01 | distinguer fichier de test présent, test découvrable, test exécuté, contrôle capable de détecter le défaut visé | échelle implémentée au premier niveau seulement |
+| PRE-01, reste | cartographie des contrôles existants : assertions, dépendances, instabilité | l'échelle à quatre niveaux et l'ouverture de la préparation sont livrées ; l'instabilité relève de VER-08 |
 | PRE-04 | tests de caractérisation d'un existant sans consacrer ses défauts | absent |
 | PRE-05 | compléter et requalifier la capacité de vérification à chaque incrément | absent |
 | VER-08 | contrôles exécutés sur la référence, défaut préexistant distingué d'une régression, instabilité traitée par une règle préenregistrée | absent |
@@ -69,17 +69,16 @@ opérationnelle, **tests discriminants qualifiés ou décision humaine assignée
 discrimination y est une condition de la gate, pas un raffinement.
 
 La seule source de discrimination du protocole est la suite préparée, dont l'adoption exige
-`on_reference: FAIL`. Or la préparation n'est ouverte que si la cible ne contient aucun fichier de
-test. Tout projet qui en contient un seul saute la préparation, n'obtient aucune discrimination, et
-voit ses exigences déclarées satisfaites par une suite qui les ignore.
+`on_reference: FAIL`. La préparation s'ouvre sur l'absence de discrimination : une exigence qui
+affirme un comportement que la référence n'a pas obtient une suite qui échoue sur cette référence,
+quel que soit le nombre de fichiers de test déjà présents. Un refactoring, dont l'exigence est le
+comportement inchangé, garde la suite verte pour oracle et n'ouvre rien — à condition que cette
+suite exécute quelque chose, ce que les niveaux 2 et 3 de l'échelle vérifient.
 
-La conséquence est observable : un candidat ajoutant 276 lignes instrumentées dont 93 ne sont
-exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`, y compris pour des
-exigences portant explicitement sur l'existence de scénarios de test.
-
-C'est précisément la recette de PRE-01 : sur un dépôt dont les tests n'atteignent pas le
-comportement visé, le diagnostic doit signaler l'insuffisance « sans la convertir en couverture
-satisfaisante ».
+Ce qui subsiste est la mesure de ce que la suite atteint. La conséquence observée sur la cible Java
+— un candidat ajoutant 276 lignes instrumentées dont 93 ne sont exercées par aucun test, et 44
+branches non couvertes, accepté à G5 — relève de la couverture du code introduit (QLT-04) et du
+classement des constats par rapport à la référence (VER-08), non du déclencheur.
 
 **Un verdict n'est donc pas une preuve.** Toute formulation qui se contente d'exiger qu'une
 exigence « possède un verdict » est satisfaite par un contrôle vert qui n'a rien discriminé. La
@@ -138,7 +137,7 @@ verdicts, pas sur un moteur unique imposé à tous les langages.
 
 | Étage | Exigence | Objet | Appui existant |
 | --- | --- | --- | --- |
-| 0 | PRE-01 | échelle de capacité à quatre niveaux ; la préparation s'ouvre sur l'absence de discrimination, non sur l'absence de fichiers de test | `preparation.ts` calcule déjà `on_reference` et `discriminant` |
+| 0 | PRE-01 | échelle de capacité à quatre niveaux ; la préparation s'ouvre sur l'absence de discrimination, non sur l'absence de fichiers de test | livré : `diagnoseControlCapability`, `Protocol.capability_diagnosis` |
 | 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | `Finding.baseline_state` et `fingerprint` existent ; `environment_digest` exprime déjà la comparabilité |
 | 2 | QLT-04 | contrôle de couverture sur les lignes introduites | rapport de couverture déjà produit par le contrôle gelé ; `diff.ts` fournit les lignes modifiées |
 | 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | `Finding`, `runner.ts`, profils d'exécution, précédent `check-layers.ts` |
@@ -167,4 +166,6 @@ IH-04, arbitrage de vérifiabilité, est prévue pour l'oracle insuffisant : obl
 options et risque, avec pour issues préparer, assigner une revue humaine ou réviser l'exigence.
 Elle n'est pas implémentée — `buildDecisionRequest` et `requestDecision` l'excluent de leur domaine.
 C'est l'issue attendue lorsqu'une exigence reste non discriminable après préparation, et le pendant
-humain de la condition de G2 rappelée en section 2.
+humain de la condition de G2 rappelée en section 2. En son absence, deux préparations refusées
+arrêtent le changement sur `capability_missing` : le constat est juste, mais il n'offre aucune voie
+de sortie et le diagnostic qui le motive n'est présenté à personne.

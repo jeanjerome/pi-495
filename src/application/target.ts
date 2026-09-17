@@ -14,6 +14,8 @@ export interface StackDetection {
 	controls: ControlDefinition[];
 	/** Files written into a copy of the reference to build the positive witness (a passing test exercising the runner). */
 	positive_witness: Record<string, string>;
+	/** Test cases the positive witness adds to the suite; they say nothing about what the reference itself covers. */
+	witness_tests: number;
 	/** Files written into a copy of the positive workspace to build the negative witness. */
 	negative_witness: Record<string, string>;
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
@@ -38,7 +40,7 @@ export function detectStack(projectPath: string, requirementRefs: RequirementRef
 			{ control_id: "unit", version: "1", title: "node:test suite", command: [nodeBinary, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 10 * 60_000, parser: "node-test", report_path: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["test/", "tests/", "package.json"] },
 		];
 		if (scripts.lint) controls.push({ control_id: "lint", version: "1", title: `npm run lint (${scripts.lint})`, command: [nodeBinary, join(projectPath, "node_modules", ".bin", "___unused___")].slice(0, 0).concat(commandFromScript(scripts.lint, nodeBinary)), cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 5 * 60_000, parser: "exit-code", report_path: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"] });
-		return { stack: "node", facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) }, controls, positive_witness: { "test/495-positive-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 positive witness: the runner reports a passing test", () => { assert.equal(1, 1); });\n' }, negative_witness: { "test/495-negative-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 negative witness: an injected defect must be detected", () => { assert.equal(1, 2); });\n', "src/495-negative-witness.js": "var forbidden = 1;\n" }, preparation_paths: ["test/", "tests/"], capability_missing: [] };
+		return { stack: "node", facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) }, controls, positive_witness: { "test/495-positive-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 positive witness: the runner reports a passing test", () => { assert.equal(1, 1); });\n' }, witness_tests: 1, negative_witness: { "test/495-negative-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 negative witness: an injected defect must be detected", () => { assert.equal(1, 2); });\n', "src/495-negative-witness.js": "var forbidden = 1;\n" }, preparation_paths: ["test/", "tests/"], capability_missing: [] };
 	}
 	if (existsSync(pomPath)) {
 		const reactor = discoverMavenReactor(projectPath);
@@ -46,9 +48,9 @@ export function detectStack(projectPath: string, requirementRefs: RequirementRef
 		const controls: ControlDefinition[] = [
 			{ control_id: "maven-test", version: "1", title: "mvn test (Surefire)", command: ["mvn", "-B", "-q", "-o", "test"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 20 * 60_000, parser: "junit-xml", report_path: "**/target/surefire-reports", network: "denied", writable_paths: reactor.target_paths, requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.preparation_paths, ...reactor.pom_paths] },
 		];
-		return { stack: "maven", facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules }, controls, positive_witness: { [`${witnessPrefix}src/test/java/PositiveWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n" }, negative_witness: { [`${witnessPrefix}src/test/java/NegativeWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n" }, preparation_paths: reactor.preparation_paths, capability_missing: [] };
+		return { stack: "maven", facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules }, controls, positive_witness: { [`${witnessPrefix}src/test/java/PositiveWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n" }, witness_tests: 1, negative_witness: { [`${witnessPrefix}src/test/java/NegativeWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n" }, preparation_paths: reactor.preparation_paths, capability_missing: [] };
 	}
-	return { stack: "unknown", facts: {}, controls: [], positive_witness: {}, negative_witness: {}, preparation_paths: [], capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"] };
+	return { stack: "unknown", facts: {}, controls: [], positive_witness: {}, witness_tests: 0, negative_witness: {}, preparation_paths: [], capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"] };
 }
 
 interface MavenReactor {

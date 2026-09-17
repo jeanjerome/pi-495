@@ -1,5 +1,5 @@
 import { Type, type Static } from "typebox";
-import { Closed, Digest, Identifier, Verdict, contractId } from "./common.ts";
+import { Closed, Digest, Identifier, NonNegativeInt, Verdict, contractId } from "./common.ts";
 import { RequirementRef } from "./evidence.ts";
 
 export const PARSER_IDS = ["exit-code", "node-test", "junit-xml"] as const;
@@ -59,12 +59,42 @@ export const Obligation = Type.Object(
 );
 export type Obligation = Static<typeof Obligation>;
 
+/**
+ * Ordered scale of what the controls already present on a target can decide (PRE-01): a file named
+ * like a test, a case the target's own command discovers, a case it actually executes, and a control
+ * able to detect the defect a requirement targets. Only the last level proves anything about a
+ * requirement; the three below it are insufficiencies to report, not coverage.
+ */
+export const CAPABILITY_LEVELS = ["none", "file_present", "discoverable", "executed", "discriminating"] as const;
+export type CapabilityLevel = (typeof CAPABILITY_LEVELS)[number];
+
+export const ControlCapabilityDiagnosis = Type.Object(
+	{
+		stack: Type.String(),
+		level: Closed(CAPABILITY_LEVELS),
+		/** Files named like a test under the declared test roots of the reference. */
+		test_files: NonNegativeInt,
+		/** Cases the target's own command reports for the reference, qualification witnesses excluded; null while unobserved. */
+		discovered: Type.Union([NonNegativeInt, Type.Null()]),
+		/** Of those, the ones that ran instead of being skipped or left todo. */
+		executed: Type.Union([NonNegativeInt, Type.Null()]),
+		/** Mandatory requirements whose targeted defect no existing control detects. */
+		undiscriminated_requirements: Type.Array(Identifier),
+		/** Mandatory requirements whose oracle has not been observed yet. */
+		unobserved_requirements: Type.Array(Identifier),
+		notes: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+export type ControlCapabilityDiagnosis = Static<typeof ControlCapabilityDiagnosis>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
 		change_id: Identifier,
 		controls: Type.Array(ControlDefinition),
 		qualifications: Type.Record(Type.String(), Qualification),
+		capability_diagnosis: ControlCapabilityDiagnosis,
 		obligations: Type.Array(Obligation),
 		required_reviews: Type.Array(Type.String()),
 		arbitration: Closed(["human_decision", "reject"] as const),
@@ -83,6 +113,7 @@ export const Requirement = Type.Object(
 		criterion: Type.String({ minLength: 1 }),
 		source: Type.String(),
 		contract_family: Type.Union([Type.String(), Type.Null()]),
+		satisfied_by_reference: Type.Boolean({ description: "the reference already exhibits this behaviour, so a suite that stays green proves it; false means the requirement needs a control that fails on the reference" }),
 	},
 	{ additionalProperties: false },
 );

@@ -26,6 +26,7 @@ satisfaite, c'est une exigence dont l'état est inconnu.
 | VER-01, VER-02, SA-013, SA-014, RM-016, RM-017 | `parsers.ts`, `runner.ts` | `v1/control-runner`, `v2/harness` (/verify) |
 | VER-03, AT-05 | `verification.record` | `v0/change-rules` (preuve étrangère rejetée) |
 | VER-05, SA-009, PRE-03 | `qualification.ts` | `v1/control-runner`, `v2/preparation`, V4 Java |
+| PRE-01 | `preparation.ts` (`referenceTestFiles` pour le fichier présent, `diagnoseControlCapability` pour les trois niveaux suivants), `harness.stepVerificationDesign` qui ouvre la préparation sur l'absence de discrimination, `Protocol.capability_diagnosis` qui fige le diagnostic dans le protocole | `v2/preparation` (les quatre niveaux distingués ; une cible pourvue de tests ouvre une préparation pour un ajout de comportement), `v2/harness` (un refactoring reste prouvé par la suite verte, sans préparation), campagne `scripts/diagnose-capability.ts` sur la cible Java multi-module ; **partiel** : la cartographie demandée par l'exigence ne porte ni les assertions, ni l'instabilité, ni les dépendances des contrôles — l'instabilité relève de VER-08 |
 | VER-06, RM-038, SA-035 | G5 arbitrage | `v0/change-rules` |
 | DEC-01, RM-031 | reducer | `v0/properties` (jamais d'événement normatif par un agent) |
 | DEC-02 | `buildFeedback` | `v2/harness` (feedback ≤ 64 Kio) |
@@ -60,7 +61,6 @@ satisfaite, c'est une exigence dont l'état est inconnu.
 
 | Exigence | État | Renvoi |
 | --- | --- | --- |
-| PRE-01 | `referenceHasTests` couvre le premier niveau de l'échelle (un fichier de test est présent) ; test découvrable, test exécuté et contrôle capable de détecter le défaut visé ne sont pas distingués | `ROADMAP.md`, `chantiers/00` |
 | PRE-04, PRE-05 | caractérisation de l'existant et évolution de la capacité de vérification par cycle : absentes | `ROADMAP.md` |
 | VER-08 | les contrôles ne sont exécutés que sur le candidat, jamais sur la référence ; `runner.ts` écrit `baseline_state: "new"` en dur et les valeurs `preexisting` / `removed` ne sont jamais produites ; aucune politique d'instabilité préenregistrée | `ROADMAP.md`, `chantiers/01` |
 | CON-03 | la règle de frontières exécutable n'existe que pour le dépôt 495 lui-même (`check-layers.ts`, qui relève de NFR-07) ; aucune règle architecturale opposable n'est portée sur une cible | `ROADMAP.md`, `chantiers/03` |
@@ -69,4 +69,4 @@ satisfaite, c'est une exigence dont l'état est inconnu.
 | RAG-01, RAG-02, RAG-04 | identification d'un besoin de connaissance, corpus officiel versionné et vérification de l'utilisation de la documentation : absentes | `STATUS.md` |
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, mobilisation des expertises et évaluation de la démarche : absentes | `STATUS.md` |
 | NFR-05 | backend `bwrap` implémenté, Linux x86-64 jamais exécuté ; la portabilité est annoncée, pas qualifiée | `STATUS.md`, `chantiers/C` |
-| IH-04 | l'arbitrage de vérifiabilité est déclaré dans les contrats mais exclu de `buildDecisionRequest` et de `requestDecision` | `ROADMAP.md`, `chantiers/00` |
+| IH-04 | l'arbitrage de vérifiabilité est déclaré dans les contrats mais exclu de `buildDecisionRequest` et de `requestDecision` ; une exigence qui reste non discriminable après deux préparations arrête le changement sur `capability_missing` au lieu d'être portée à l'arbitrage humain | `ROADMAP.md`, `chantiers/00` |
