@@ -31,7 +31,7 @@ machine à états d'un changement (`intake → … → closed`), gelée dans les
 | Jalon | Finalité | État | Ce qui bloque |
 | --- | --- | --- | --- |
 | `L0` | Lever les inconnues techniques, sans promesse produit | livré non qualifié | Linux x86-64, mode RPC, risques instruits, paramètres différés |
-| `L1` | Premier produit conduisant un changement et un programme séquentiel sous contrôle | en cours | la moitié de P0 non commencée, les revues obligatoires |
+| `L1` | Premier produit conduisant un changement et un programme séquentiel sous contrôle | en cours | la moitié de P0 non commencée, les trois revues obligatoires en attente d'autorité |
 | `L2` | Cible produit complète | non commencé | dépend de la qualification de L1 |
 | `L3` | Extensions optionnelles | non commencé | une seule exigence `[P2]` formalisée |
 
@@ -143,13 +143,16 @@ maintien expérimental et abandon.
 ## 7. Campagnes et revues
 
 Les campagnes `V0` à `V5` et les six revues obligatoires sont définies par
-`amont/conception-verification.md` §7 et §11 ; elles ne sont pas redéfinies ici. Deux règles
+`amont/conception-verification.md` §7 et §11 ; elles ne sont pas redéfinies ici. Le dossier de
+chaque revue, et les constats de celles qui sont conduites, sont dans `revues/`. Trois règles
 d'application méritent d'être rappelées parce qu'elles sont faciles à contourner sans le vouloir :
 
 - `V4` est obligatoire **pour chaque combinaison revendiquée** de stack et de plateforme. Une
   campagne exécutée une fois, hors suite par défaut, qualifie cette exécution, pas la combinaison.
 - Une indisponibilité externe ne transforme pas une propriété déterministe en propriété
   invérifiable. `V0` à `V3` restent exécutables localement sans modèle réel.
+- Une revue ne remplace pas un contrôle mécanique disponible. Un constat qu'un programme sait rendre
+  devient un contrôle branché sur `npm run check` ; un avis daté se périme au commit suivant.
 
 ## 8. Règles de dépendance
 

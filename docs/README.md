@@ -27,6 +27,7 @@ Ce qui a été construit, dans quel état, et prouvé par quoi. Vivant : actuali
 | [TRACEABILITY.md](TRACEABILITY.md) | Matrice exigence → composants → preuves, y compris les exigences non couvertes. |
 | [QUALIFICATION.md](QUALIFICATION.md) | Rapport d'exécution sur la machine de référence. |
 | [DECISIONS.md](DECISIONS.md) | Décisions prises pendant l'implémentation, avec motif et conséquence. |
+| [revues/](revues/README.md) | Les six revues obligatoires de qualification : le dossier de chacune, et les constats de celles qui sont conduites. |
 
 `TRACEABILITY.md` est le pont entre les deux natures : elle relie chaque exigence amont au code et
 aux preuves, et nomme celles qui ne sont pas couvertes.
@@ -48,4 +49,5 @@ porte l'état d'avancement et le critère de sortie.
 | Un arbitrage d'implémentation | `DECISIONS.md` |
 | Un travail à engager | `chantiers/`, et une ligne dans `ROADMAP.md` s'il change l'ordre |
 | Une exécution de campagne | `QUALIFICATION.md` |
+| Un constat de revue obligatoire, ou ce qui manque pour la conduire | `revues/`, dans le dossier de la revue concernée |
 | Un critère de franchissement de jalon, ou ce qui l'empêche | `MILESTONES.md` |

@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -45,6 +46,29 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 		assert.equal((await verifyExport(red.path)).ok, true);
 		writeFileSync(join(full.path, "program.json"), "{}");
 		assert.equal((await verifyExport(full.path)).ok, false);
+	});
+
+	it("carries its own verifier, which a third party runs with nothing but Node (RM-072)", async () => {
+		const p = project();
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await acceptedChange(t, p);
+		const full = await exportChange(t.ledger, t.objects, { change_id: change.change_id, destination: join(t.root, "export-verifier"), redact: false, now: "t", producer: "test" });
+		const run = (dossier: string) => spawnSync(process.execPath, [join(dossier, "verify.mjs"), dossier], { encoding: "utf8" });
+		const intact = run(full.path);
+		assert.equal(intact.status, 0, intact.stderr);
+		assert.match(intact.stdout, /verified/);
+		// A redacted dossier verifies too: its altered objects are declared, not corrupted.
+		const red = await exportChange(t.ledger, t.objects, { change_id: change.change_id, destination: join(t.root, "export-verifier-red"), redact: true, now: "t", producer: "test" });
+		const redacted = run(red.path);
+		assert.equal(redacted.status, 0, redacted.stderr);
+		assert.match(redacted.stdout, /redacted profile/);
+		// An object altered without being declared is caught by its own address, not only by the manifest.
+		const objects = (JSON.parse(readFileSync(join(full.path, "manifest.json"), "utf8")) as { files: { path: string }[] }).files.filter((f) => f.path.startsWith("objects/"));
+		writeFileSync(join(full.path, objects[0]!.path), "tampered");
+		const tampered = run(full.path);
+		assert.equal(tampered.status, 1);
+		assert.match(tampered.stderr, /NOT VERIFIED/);
+		assert.match(tampered.stderr, /content changed since export/);
 	});
 });
 

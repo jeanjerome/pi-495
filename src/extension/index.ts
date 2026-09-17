@@ -61,6 +61,23 @@ export default function harness495(pi: ExtensionAPI): void {
 		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.notify(text.split("\n")[0] ?? "495", "info");
 	}
 
+	/**
+	 * Diagnostics waiting to be told: what the runtime could not honour, such as an ignored
+	 * configuration or a sandbox backend that is not qualified. A screen receives them as soon as
+	 * the session starts; print, JSON and RPC receive them on the first `/495` that follows, because
+	 * a structured entry opens its stream after `session_start`. Each one is said once per channel.
+	 */
+	let pending: string[] = [];
+
+	function announce(ctx: ExtensionContext, severity: "warning" | "error" = "warning"): void {
+		if (ctx.hasUI) for (const text of pending) ctx.ui.notify(text, severity);
+	}
+
+	/** Said on the first operation of the session, whatever the entry, then forgotten. */
+	function flushDiagnostics(ctx: ExtensionContext): void {
+		for (const text of pending.splice(0)) emit(ctx, text, { diagnostic: text });
+	}
+
 	function updateFooter(ctx: ExtensionContext, view: StatusView | null): void {
 		if (!ctx.hasUI) return;
 		const c = view?.change;
@@ -148,9 +165,16 @@ export default function harness495(pi: ExtensionAPI): void {
 				if (candidates.length === 1 && candidates[0]!.change_id) binding = { program_id: candidates[0]!.program_id, change_id: candidates[0]!.change_id };
 			}
 			updateFooter(ctx, currentView(ctx));
-			for (const d of rt.diagnostics) if (ctx.hasUI) ctx.ui.notify(`495: ${d}`, "warning");
+			// A diagnostic states what the runtime could not honour — an ignored configuration, a
+			// sandbox backend that is not qualified. Announcing it only where there is a UI would
+			// leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
+			// Held until the first command as well: a structured entry does not carry a message
+			// emitted before its stream is open.
+			pending = rt.diagnostics.map((d) => `495: ${d}`);
+			announce(ctx);
 		} catch (error) {
-			if (ctx.hasUI) ctx.ui.notify(`495: ${(error as Error).message}`, "error");
+			pending = [`495: ${(error as Error).message}`];
+			announce(ctx, "error");
 		}
 	});
 
@@ -176,6 +200,7 @@ export default function harness495(pi: ExtensionAPI): void {
 		handler: async (args, ctx) => {
 			const [sub, ...rest] = (args ?? "").trim().split(/\s+/);
 			const text = rest.join(" ").trim();
+			flushDiagnostics(ctx);
 			try {
 				const rt = ensureRuntime(ctx);
 				switch (sub) {
@@ -305,6 +330,7 @@ export default function harness495(pi: ExtensionAPI): void {
 			path: Type.Optional(Type.String({ description: "for review_summary: a path to read" })),
 		}),
 		async execute(_id, params, _signal, _onUpdate, ctx) {
+			flushDiagnostics(ctx);
 			const rt = ensureRuntime(ctx);
 			const say = (text: string, details: unknown = {}) => ({ content: [{ type: "text" as const, text }], details });
 			switch (params.operation) {

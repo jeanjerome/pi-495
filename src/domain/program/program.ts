@@ -1,5 +1,6 @@
 /**
- * Program aggregate: objective, increments as a DAG, milestones and hierarchical budgets.
+ * Program scheduler (CMP-PRG) — the aggregate: objective, increments as a DAG, milestones and
+ * hierarchical budgets.
  * Pure functions; eligibility is recomputed from dependencies and increment results (RM-005 to RM-009).
  */
 import type { ActorRef, ArtifactRef, Verdict } from "../../contracts/v1/common.ts";

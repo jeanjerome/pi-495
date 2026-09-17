@@ -34,9 +34,11 @@
     "test:v2": "node --test --test-concurrency=1 'test/v2/**/*.test.ts'",
     "test:v3": "node --test --test-concurrency=1 'test/v3/**/*.test.ts'",
     "contracts": "node scripts/emit-contracts.ts",
-    "check": "npm run typecheck && npm run test && npm run lint:layers && npm run lint:traceability",
+    "check": "npm run typecheck && npm run test && npm run lint:layers && npm run lint:architecture && npm run lint:traceability && npm run lint:distribution",
     "lint:layers": "node scripts/check-layers.ts",
-    "lint:traceability": "node scripts/check-traceability.ts"
+    "lint:traceability": "node scripts/check-traceability.ts",
+    "lint:architecture": "node scripts/check-architecture.ts",
+    "lint:distribution": "node scripts/check-distribution.ts"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

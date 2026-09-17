@@ -46,7 +46,7 @@ satisfaite, c'est une exigence dont l'état est inconnu. `scripts/check-traceabi
 | GIT-03, GIT-05, SA-020, SA-021, RM-053..055 | `git/integrator.ts`, reducer | `v0/change-rules`, `v2/export-integration` |
 | EVD-01, EVD-02, EVD-03, NFR-03, NFR-08 | `ledger.ts`, `cas.ts`, `export-service.ts` | `v2/ledger`, `v2/export-integration`, `v0/contracts` |
 | UX-01 | extension | e2e `pi -p "/495 start …"` avec modèle réel |
-| UX-02, UX-04, SA-029 | extension, `views.ts` | `v3/pi-entries` |
+| UX-02, UX-04, SA-029, AT-12 | extension, `views.ts` ; les diagnostics de démarrage sont retenus puis dits une fois par canal, immédiatement là où il y a un écran et sur la première opération pour les entrées structurées, dont le flux n'est pas ouvert à `session_start` | `v3/pi-entries` (un diagnostic de configuration ignorée atteint print et JSON) |
 | UX-03 | `views.ts`, `text.ts` | `v3/pi-entries` |
 | UX-05 | `extension/index.ts` (`bind`, `unbind`, résolution par session puis par `cwd`), liaison conservée dans le journal et non dans la session Pi, opérations projetées dans la table `operations` par `ledger.appendChange` sous une clé `idempotency_key` unique en base | `v2/ledger` (liaison, déliaison ; extension rechargée et conversation bifurquée : la seconde session retrouve la liaison par `cwd` et l'opération active, et l'ouverture d'un second contrôle ou d'une seconde intégration sous la même clé est refusée sans laisser d'événement ; une clé déjà prise le reste après clôture), `v0/change-rules` (`OPERATION_ACTIVE`), `v3/pi-entries` |
 | UX-06..UX-10, SA-022..SA-028, RM-057..RM-066 | `review.ts`, `diff.ts`, `review-surface.ts` | `v0/review-model`, `v0/review-surface` |

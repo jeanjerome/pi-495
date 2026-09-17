@@ -1,3 +1,7 @@
+/**
+ * Human decision adapter (CMP-HUM): the question, its options and the effect of each one, built for
+ * the interaction the kernel opened. It presents a decision; it never takes one.
+ */
 import type { HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest } from "../contracts/v1/decision.ts";
 

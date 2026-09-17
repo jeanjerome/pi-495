@@ -78,4 +78,17 @@ describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
 		assert.match(again, /"status":"decision_required"/);
 		assert.match(again, /"outcome":"pending"/);
 	});
+	it("a startup diagnostic reaches every entry, not only the one that has a screen (AT-12, UX-02)", () => {
+		const proj = join(root, "proj-diag");
+		fixtureTs(proj);
+		initRepo(proj);
+		for (const mode of ["print", "json"] as const) {
+			const data = join(root, `data-diag-${mode}`);
+			mkdirSync(data, { recursive: true });
+			// An unreadable configuration is honoured by falling back to the defaults, and saying so.
+			writeFileSync(join(data, "config.json"), "{ not json");
+			const out = runPi(mode, proj, data, "/495 status", {});
+			assert.match(out, /config\.json ignored/, `${mode} mode announces the diagnostic`);
+		}
+	});
 });

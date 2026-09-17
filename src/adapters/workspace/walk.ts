@@ -1,3 +1,7 @@
+/**
+ * Candidate observer (CMP-CAN, §9.3): the complete manifest of a tree — additions, deletions, modes,
+ * links and untracked files — and the identity derived from it.
+ */
 import { createHash } from "node:crypto";
 import { lstat, readdir, readFile, readlink } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";

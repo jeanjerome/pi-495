@@ -1,7 +1,8 @@
 # Transverse B — revues obligatoires de qualification
 
-**État :** à faire
-**Objet :** les six revues exigées par la conception de vérification, non réalisées
+**État :** partiel — les six dossiers existent, trois revues sont conduites, trois attendent une
+autorité ou un environnement absents
+**Objet :** les six revues exigées par la conception de vérification
 **Ne dépend d'aucun étage**
 
 ## Motif
@@ -68,7 +69,44 @@ Critères d'acceptation :
 | Mandat de revue en lecture seule | rôle `review` de `context.ts`, profil d'exécution associé |
 | Arbitrage de constats incompatibles | IH-08, G5 |
 | Dossier remis au reviewer | `src/export/`, `export-service.ts` |
+| Les six dossiers | `docs/revues/` |
 
 ## Journal
 
-_À compléter._
+**17 septembre 2026 — les six dossiers, trois revues conduites.**
+
+`docs/revues/` porte un dossier par revue : périmètre exact, critères rattachés à une exigence
+amont, preuves disponibles avec ce que chacune établit, format de constat, et ce que le reviewer ne
+peut pas conclure faute de preuve. Le format de constat est l'enveloppe canonique `Finding`,
+catégorie `review`, avec trois verdicts par critère : conforme, constat, indéterminé — `indéterminé`
+n'étant jamais `conforme`.
+
+L'export existant ne produit pas ces dossiers. `exportChange` produit le dossier autonome **d'un
+changement conduit par 495** ; celui qu'attend §13 pour qualifier **une livraison de 495** est un
+autre objet, dont sept des douze pièces sont absentes. L'inventaire est dans
+`revues/R6-exploitation.md`, critère R6-C06. De même, le rôle `review` et son mandat en lecture
+seule servent un reviewer *d'un changement* ; les six revues de §11 portent sur une livraison, et le
+code n'a aucune représentation de ce sujet.
+
+Conduites sur le dépôt : architecture, licences et distribution, exploitation. Quatre constats
+bloquants, tous clos, chacun par un contrôle mécanique plutôt que par un avis :
+
+| Constat bloquant | Contrôle qui le tient désormais |
+| --- | --- |
+| `dist/` ne reproduisait plus les sources (18 fichiers absents, 69 différents) alors que le package y désigne son point d'entrée | `scripts/check-distribution.ts`, reconstruction et comparaison octet par octet |
+| Huit des seize composants déclarés n'étaient revendiqués par aucun module | `scripts/check-architecture.ts` |
+| `LICENSE` renvoyait à une adresse au lieu de porter les termes | `scripts/check-distribution.ts` |
+| Les diagnostics de démarrage n'étaient dits qu'à l'entrée disposant d'un écran | `test/v3/pi-entries` |
+
+Constats non bloquants ouverts comme travail identifié, tous rattachés à `chantiers/C` : aucune
+empreinte d'archive publiée ni provenance de livraison ; aucun SBOM lisible par machine ; aucune
+trace d'exécution et aucun outil de lecture de l'état hors de Pi ; workspaces orphelins et
+temporaires du CAS jamais repris ; aucune politique de rétention ; la fusion `CMP-APP`/`CMP-VER`
+dans `harness.ts` ; la première migration de schéma sera écrite sans témoin préalable.
+
+En attente, avec ce qui manque nommé : sécurité (reviewer indépendant du producteur, machine Linux
+pour `bwrap`, campagne adverse, et un document de modèle de menace qui n'existe pas et dont la
+rédaction est une sortie de la revue), UX et accessibilité (utilisateur représentatif, terminal
+réel, lecteur d'écran, et une norme d'accessibilité à nommer à l'amont ; le protocole de conduite en
+cinq tâches est écrit), fonctionnelle (responsable produit ; la matrice prouve qu'aucune exigence
+n'est absente, pas qu'une preuve établit ce que son exigence demande).

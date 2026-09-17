@@ -1,3 +1,7 @@
+/**
+ * Domain kernel (CMP-DOM): the surface of the pure core — transitions, gates, invalidation,
+ * budgets, authority and evidence combination. No I/O, no clock, no model.
+ */
 export * from "./errors.ts";
 export * from "./policy.ts";
 export * from "./invalidation.ts";

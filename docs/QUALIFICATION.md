@@ -11,9 +11,19 @@ Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible s
 | V0 | `test/v0/*` | contrats, noyau du changement, programme, propriétés générées (fast-check, seeds 495/496), modèle et composant de revue, extraction des sorties, lignes introduites par un candidat | passent |
 | V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap dont le profil `loopback` qui se joint lui-même et aucun autre hôte, runner et parsers dont agrégation Surefire multi-module, couverture différentielle JaCoCo (constat localisé, dette antérieure nommée, mesure absente indéterminée, trois témoins), constats structurels (règles dérivées des POM et de la disposition des paquets, import interdit introduit refusé avec sa localisation, cycle préexistant classé `preexisting`, trois témoins, frontières transmises au producteur) et mutation des classes modifiées (mutant survivant sur une ligne écrite refusé avec opérateur et méthode, survivant sur une classe non touchée sans effet, dette de la classe comptée sans bloquer, budget dépassé indéterminé puis incident à G5, seuil de la cible nommé et non opposé, portée dérivée des déclarations et non lancée sur la référence, trois témoins), superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
 | V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation dont échelle de capacité de contrôle et périmètre Maven multi-module, export, intégration Git | passent |
-| V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation | passent |
+| V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation, diagnostic de démarrage dit à chaque entrée | passent |
 
-Total : 219 tests, 0 échec (V0 85, V1 85, V2 47, V3 2).
+Total : 237 tests, 0 échec (V0 91, V1 88, V2 55, V3 3). Le compte fait ici est une transcription :
+l'autorité est la sortie de `npm test`.
+
+## Contrôles de dépôt (`npm run check`)
+
+| Contrôle | Ce qu'il tient | Résultat |
+| --- | --- | --- |
+| `check-layers.ts` | sens des dépendances entre couches | `layer rules satisfied` |
+| `check-architecture.ts` | chaque composant déclaré au catalogue est revendiqué par un module, aucun cycle d'import, fusions nommées | `16 declared components, all claimed; 67 modules, no import cycle` ; `divergence: src/application/harness.ts carries CMP-APP, CMP-VER` |
+| `check-traceability.ts` | chaque exigence `[P0]` de l'amont possède une ligne de matrice | `85 functional + 8 non-functional [P0] requirements, all present in the matrix` |
+| `check-distribution.ts` | `dist/` reproduit les sources, schémas JSON identiques aux contrats, attribution des dépendances redistribuées, licences de l'arbre installé | `0 dependencies redistributed, 4 provided by the host (MIT), 263 packages installed under 0BSD, Apache-2.0, BSD-3-Clause, BlueOak-1.0.0, ISC, MIT, Unlicense` |
 
 ## Campagnes manuelles
 
@@ -32,7 +42,15 @@ répertoire de données interdit en lecture (contrôles `INDETERMINATE`) ; `sand
 quand la commande n'existe pas (désormais un incident, pas un `FAIL`) ; un bloc ```js précédant le
 bloc ```json faisait échouer l'extraction de la sortie structurée.
 
+## Revues obligatoires
+
+Trois des six revues de `amont/conception-verification.md` §11 ont été conduites le 17 septembre
+2026 sur la révision `bd7c5be5` : architecture, licences et distribution, exploitation. Leurs
+constats sont dans `revues/`. Les trois autres — sécurité, UX et accessibilité, fonctionnelle —
+possèdent leur dossier et attendent une autorité ou un environnement absents de cette machine.
+
 ## Non couvert sur cette machine
 
-Linux x86-64, mode RPC avec client qualifié, observation humaine du TUI, revues obligatoires,
-mesures de performance, programme multi-incréments de bout en bout. Voir `STATUS.md`.
+Linux x86-64, mode RPC avec client qualifié, observation humaine du TUI, revue de sécurité
+indépendante, revue fonctionnelle par le responsable produit, mesures de performance, programme
+multi-incréments de bout en bout. Voir `STATUS.md`.

@@ -1,3 +1,7 @@
+/**
+ * Generic control runner (CMP-VER): runs a frozen control definition under its sandbox profile and
+ * normalizes what it observed into the canonical evidence candidate. It judges nothing.
+ */
 import type { Dirent } from "node:fs";
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";

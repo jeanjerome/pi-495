@@ -164,21 +164,68 @@ se limite aux sources `.java`, la stack Node n'a pas de capteur de mutation, et 
 bloque comme un autre : il est nommé assez précisément pour être reconnu, mais aucune liste
 d'exclusion justifiée n'est gelée avec le protocole. Voir `chantiers/04`.
 
+## Une revue qui constate ce qu'un programme sait constater n'est pas une revue
+
+Les six revues obligatoires de `amont/conception-verification.md` §11 ont un dossier
+(`revues/README.md`). Trois portent sur un sujet observable sans autorité extérieure — le dépôt
+lui-même — et ont été conduites. Ce qu'elles ont trouvé et que le code pouvait vérifier est devenu
+un contrôle, pas un avis.
+
+`dist/` ne reproduisait plus les sources : dix-huit fichiers absents, soixante-neuf différents, dont
+les adaptateurs de mutation et de frontières. Or `package.json#pi.extensions` désigne `dist/` : une
+installation aurait chargé un package dépourvu des contrôles livrés depuis quatre commits, et une
+revue de code portant sur `src/` n'en aurait rien dit. `check-distribution.ts` reconstruit désormais
+les sources dans un répertoire temporaire de même profondeur et compare octet par octet ; le build
+est déterministe. Le même contrôle tient l'inventaire : aucune dépendance redistribuée, quatre pairs
+fournis par l'hôte et sous licence lisible, 263 packages installés tous sous licence permissive, les
+schémas JSON expédiés identiques aux contrats sources, et les termes de la licence portés par le
+dépôt plutôt que par une adresse.
+
+Le catalogue de composants de la conception technique n'était rattaché à rien : huit des seize
+composants déclarés n'étaient revendiqués par aucun module. `check-architecture.ts` refuse un
+composant déclaré que plus aucun module ne revendique, un identifiant revendiqué que le catalogue ne
+déclare pas, et tout cycle d'import ; il nomme sans les refuser les fusions de composants — une
+seule aujourd'hui, `CMP-APP` et `CMP-VER` dans `harness.ts`.
+
+Le dossier d'export affirmait être vérifiable hors ligne et décrivait en prose comment le vérifier.
+Il embarque maintenant `verify.mjs` : Node et rien d'autre, aucune dépendance, aucun réseau ; il
+vérifie l'empreinte du manifeste, celle de chaque fichier, l'adresse de chaque objet du CAS — un
+objet qui ne hache pas vers son propre chemin sans qu'une expurgation le déclare est signalé — et
+rejoue la chaîne d'événements. Enfin, les diagnostics de démarrage n'étaient annoncés que là où il y
+a un écran : en print, en JSON et en RPC, une installation tournant sous un backend non qualifié ne
+le disait à personne. Ils sont désormais dits une fois par canal.
+
+Les trois autres revues demandent une autorité ou un environnement qui n'existent pas ici : un
+reviewer de sécurité indépendant du producteur, un utilisateur représentatif devant un vrai
+terminal, un responsable produit. Leur dossier est complet, leur conduite ne l'est pas, et ce qui
+manque est nommé dans chacun.
+
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
 - Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
 - Mode RPC : chemins de code présents ; aucun client RPC qualifié n'a été exercé.
 - Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit) ;
-  la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire.
-- Revues obligatoires (fonctionnelle, architecture, sécurité, UX et accessibilité, licences et
-  distribution, exploitation) : non réalisées ; les constats automatiques existent, pas les revues
-  humaines. Elles conditionnent la qualification d'une livraison — voir `chantiers/B`.
+  la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire. Le
+  protocole de conduite est écrit — `revues/R4-ux-accessibilite.md` — et attend un utilisateur
+  représentatif, un terminal réel et une norme d'accessibilité nommée à l'amont.
+- Revues obligatoires : les six dossiers existent (`revues/`), avec leur périmètre, leurs critères,
+  leurs preuves, leur format de constat et ce qu'un reviewer ne peut pas y conclure. Trois sont
+  conduites sur le dépôt lui-même — architecture, licences et distribution, exploitation — et leurs
+  constats sont enregistrés. Trois restent en attente d'une autorité ou d'un environnement absents :
+  sécurité (reviewer indépendant du producteur, machine Linux, campagne adverse), UX et
+  accessibilité (utilisateur représentatif, terminal réel, lecteur d'écran), fonctionnelle
+  (responsable produit). Les bloquants des trois conduites sont clos ; leurs constats non bloquants
+  restent ouverts comme travail identifié.
 - Programme multi-incréments piloté depuis Pi (PRG-03..05, F-PROGRAM de bout en bout) : noyau
   et stockage seulement.
 - Reviewers agentiques obligatoires : mécanisme livré (rôle `review`, mandat lecture seule,
   arbitrage) et testé avec l'agent scripté ; non exercé avec un modèle réel.
 - Performance (NFR-04) : aucune mesure p95 ; les bornes de flux et de taille existent.
-- Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
+- Ressources : tout chemin nominal supprime le workspace à sa fermeture, mais une interruption avant
+  la fermeture laisse un orphelin que rien ne reprend, `cleanupTemporaries` du CAS n'est appelé que
+  par un test, et la base, les objets et les exports croissent sans politique de purge ni
+  comptabilité. `~/.495/logs/` est créé et reste vide : aucune trace d'exécution n'existe, et l'état
+  n'est lisible par aucun outil en dehors de Pi — voir `revues/R6-exploitation.md`.
 - Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
   changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
 - Architecture et qualité (ARC-01..03, QLT-01..03, QLT-05), caractérisation de l'existant (PRE-04)

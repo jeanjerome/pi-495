@@ -2,6 +2,10 @@
  * Application controller (CMP-APP): coordinates the use cases, opens units of work, calls the
  * ports and commits results. It never computes a verdict itself (AT-01): every normative change
  * goes through the domain reducer and is appended atomically to the ledger.
+ *
+ * It also holds the verification coordinator (CMP-VER) — resolving the frozen protocol, scheduling
+ * the controls, attaching their normalized observations as evidence — which the catalogue declares
+ * as a component of its own.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";

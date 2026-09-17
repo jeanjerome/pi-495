@@ -1,3 +1,7 @@
+/**
+ * Sandbox runner (CMP-SBX): materializes a permission profile as a spawn plan, starts the process
+ * under it, bounds its output and reports what it observed. `backends.ts` chooses the backend.
+ */
 import { spawn } from "node:child_process";
 import type { ExecutableRequest, ProcessObservation } from "../../ports/execution.ts";
 

@@ -1,3 +1,7 @@
+/**
+ * Evidence ledger (CMP-EVD, §7): the chained event log, its projections, the artifacts, evidence,
+ * decisions, operations and leases. Writes are atomic and never overwrite a revision.
+ */
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";

@@ -1,3 +1,7 @@
+/**
+ * Workspace repository (CMP-WSP, §9.1, §9.2): captures the reference, creates the isolated copy the
+ * producer writes in, freezes a candidate from it and closes the space. The project is never written.
+ */
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, realpathSync } from "node:fs";
 import { chmod, cp, mkdir, readdir, rm, symlink, writeFile } from "node:fs/promises";
