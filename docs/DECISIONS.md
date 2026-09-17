@@ -313,3 +313,42 @@ n'est pas la seconde exécution mais d'adopter la plus verte des deux réponses.
 qu'une tentative de correction ne soit dépensée sur lui — bien moins qu'une intervention complète
 suivie d'une vérification complète. `max_confirmations: 0` retire la détection sans toucher au
 classement des constats.
+
+## D-25 — Les règles d'architecture vivent dans le protocole, jamais dans l'arbre analysé
+
+**Décision.** `ControlDefinition.structure_rules` porte les règles qu'un capteur structurel
+applique : leur portée, ce qu'elles interdisent et l'énoncé qui les justifie. Elles sont gelées avec
+le protocole à G2. Le producteur en reçoit les énoncés dans son contexte
+(`ContextInput.boundaries`) et n'a aucun moyen de les atteindre en écriture. Elles sont dérivées de
+ce que la cible déclare déjà — direction de dépendance des POM, racine de paquet disposée par chaque
+module, absence de cycle — et non d'un fichier de configuration à ajouter au dépôt.
+**Motif.** ARC-04 demande qu'une architecture adoptée ne reste pas une consigne dans le contexte. Un
+fichier de règles dans l'arbre est un fichier que le producteur peut éditer, et une frontière que
+son auteur peut déplacer n'est pas opposable ; le mettre sous `protected_paths` reviendrait à
+protéger l'arbre contre lui-même, alors que le protocole est déjà l'endroit où sont gelés la
+tolérance de baseline et la règle d'instabilité. Dériver les règles des déclarations de la cible
+évite par ailleurs de lui imposer un format de plus pour énoncer ce que ses POM disent déjà.
+**Conséquence.** Déplacer une frontière volontairement suppose une autre révision du protocole,
+c'est-à-dire l'adoption que la recette d'ARC-04 exige. Un réacteur qui ne déclare aucune direction
+opposable n'obtient aucune règle de frontière, et l'insuffisance rejoint `capability_missing` plutôt
+qu'une convention inventée à sa place.
+
+## D-26 — Un capteur différentiel rapporte partout et n'échoue que sur les lignes écrites
+
+**Décision.** Le contrôle structurel émet un constat `blocker` pour chaque violation, où qu'elle se
+trouve, et son verdict est `FAIL` seulement si l'une d'elles porte sur une ligne introduite.
+`verdictUnderTolerance` est étendue en conséquence : sous `no_aggravation`, un contrôle qui échoue
+sans nommer un seul constat que la référence ne porte pas déjà rend `PASS`, que son passage de
+référence ait échoué ou non.
+**Motif.** Les deux moitiés sont nécessaires et ne font pas double emploi. Les constats doivent être
+émis des deux côtés, sinon la comparaison n'a rien à apparier et un cycle préexistant disparaîtrait
+du dossier au lieu d'y figurer en `preexisting`. Le verdict, lui, doit porter sur ce que le candidat
+a écrit : le témoin positif d'un capteur s'exécute sur la référence et G2 exige qu'il passe, donc un
+capteur qui échoue sur la dette antérieure serait inqualifiable sur toute cible qui en porte. La
+tolérance ne pouvait plus dépendre d'un passage de référence en échec, puisqu'un tel capteur passe
+sur la référence tout en y nommant ce qu'il trouve.
+**Conséquence.** Une violation héritée mais réécrite par le candidat — un import interdit déplacé
+lors d'un reformatage — reste tolérée : elle s'apparie par empreinte, ne compte pas parmi les
+constats bloquants, et le contrôle ne bloque pas. Un échec qui ne nomme aucun constat reste un
+échec, et un passage de référence `INDETERMINATE` n'est toujours pas une tolérance. La divergence
+qui paye une confirmation est celle que la tolérance a laissée debout, et non plus le verdict brut.

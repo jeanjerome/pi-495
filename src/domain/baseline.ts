@@ -196,16 +196,23 @@ export function blockingCount(findings: readonly Finding[], tolerance: BaselineT
 }
 
 /**
- * The verdict the control carries on the delta. A control that fails on both passes without a single
- * added finding reports a defect the change inherited: under `no_aggravation` it does not block, and
- * the findings keep it visible. Any other case keeps what the control observed — an unusable
- * observation is never tolerated, and a failure the reference does not share is the candidate's.
+ * The verdict the control carries on the delta. A control that fails while every defect it names is
+ * one the reference already carried reports inherited debt: under `no_aggravation` it does not
+ * block, and the findings keep that debt visible. This covers the control that fails on both passes,
+ * and equally the one whose reference pass reported the same defects without failing — a sensor that
+ * judges the introduced lines passes on a tree it introduces nothing in, while still naming what it
+ * finds there.
+ *
+ * Any other case keeps what the control observed: a reference pass that concluded nothing is not a
+ * tolerance, and a failure the reference does not share is the candidate's.
  */
 export function verdictUnderTolerance(raw: Verdict, referencePass: Verdict, findings: readonly Finding[], tolerance: BaselineTolerance): { verdict: Verdict; notes: string[] } {
-	if (tolerance !== "no_aggravation" || raw !== "FAIL" || referencePass !== "FAIL") return { verdict: raw, notes: [] };
+	if (tolerance !== "no_aggravation" || raw !== "FAIL") return { verdict: raw, notes: [] };
+	if (referencePass !== "FAIL" && referencePass !== "PASS") return { verdict: raw, notes: [] };
 	if (blockingCount(findings, tolerance) > 0) return { verdict: raw, notes: [] };
 	const preexisting = findings.filter((finding) => finding.baseline_state === "preexisting").length;
-	return { verdict: "PASS", notes: [`the reference already fails this control and the candidate adds no finding: ${preexisting} preexisting finding(s) tolerated, none aggravated (VER-08)`] };
+	if (preexisting === 0) return { verdict: raw, notes: [] };
+	return { verdict: "PASS", notes: [`this control fails on nothing the reference does not already carry: ${preexisting} preexisting finding(s) tolerated, none aggravated (VER-08)`] };
 }
 
 /** The candidate pass is worse than the reference pass, and no preexisting defect explains it. */

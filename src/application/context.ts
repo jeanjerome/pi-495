@@ -18,6 +18,8 @@ export interface ContextInput {
 	budget_bytes: number;
 	/** Frozen controls the kernel will run on the candidate, so the producer can run them first. */
 	controls?: { control_id: string; command: string[]; cwd: string }[];
+	/** Frozen architecture boundaries the candidate will be judged against (ARC-04). */
+	boundaries?: string[];
 }
 
 const OUTPUT_SCHEMA_TEXT: Record<string, string> = {
@@ -55,6 +57,11 @@ export function buildContext(input: ContextInput): { manifest: ContextManifest; 
 	if ((input.role === "implement" || input.role === "prepare") && (input.controls?.length ?? 0) > 0) {
 		const commands = input.controls!.map((c) => `\`${c.command.join(" ")}\` in ${c.cwd === "." ? "the workspace root" : c.cwd} (${c.control_id})`).join("; ");
 		trusted.push(`The kernel will judge your work by running, without you: ${commands}. Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.`);
+	}
+	// The architecture the producer is judged against is told to it before it writes, and checked on
+	// what it wrote afterwards. Only the first half would leave it a suggestion (ARC-04).
+	if ((input.role === "implement" || input.role === "prepare") && (input.boundaries?.length ?? 0) > 0) {
+		trusted.push(`The architecture frozen for this change holds these boundaries, which a control of the protocol reads in your code: ${input.boundaries!.map((b) => `${b}`).join("; ")}. Moving one of them is not yours to decide: place the responsibility where the boundary allows it, or report the conflict instead of crossing it.`);
 	}
 	trusted.push("If you are running out of room, leave the workspace in a state that builds rather than half-way through a wide edit; you may be resumed on this same workspace.");
 	const truncations: string[] = [];

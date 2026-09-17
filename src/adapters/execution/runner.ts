@@ -8,6 +8,7 @@ import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
 import type { ControlExecutionPort, ControlInvocation, ProcessObservation, SandboxPort, SandboxProfile } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { PARSER_VERSIONS, parseExitCode, parseJacoco, parseJUnit, parseNodeTestTap, type ParsedReport } from "./parsers.ts";
+import { analyzeJavaStructure, readJavaSources } from "./structure.ts";
 
 export interface RunnerOptions {
 	max_output_bytes: number;
@@ -72,6 +73,14 @@ export class GenericControlRunner implements ControlExecutionPort {
 					const docs = introduced !== null && Object.keys(introduced).length === 0 ? [] : await readReports(invocation.workspace_path, control.report_path);
 					for (const d of docs) artifacts.push({ name: `report:${d.name}`, ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml") });
 					report = parseJacoco(observation, docs, introduced);
+					break;
+				}
+				case "java-imports": {
+					// The architecture rules are the ones the protocol froze, never a file of the tree the
+					// producer could edit. The sensor runs no analysis of its own beyond reading the package
+					// and import declarations of the sources those rules scope (ARC-04, CON-03).
+					const read = await readJavaSources(invocation.workspace_path, control.structure_rules.flatMap((rule) => rule.scope));
+					report = analyzeJavaStructure(observation, read.sources, control.structure_rules, invocation.introduced_lines ?? null, read.notes);
 					break;
 				}
 				default:

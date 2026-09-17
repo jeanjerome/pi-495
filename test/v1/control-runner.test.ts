@@ -20,7 +20,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const NODE = process.execPath;
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "unit", version: "1", title: "unit tests", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "node-test", report_path: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"], ...over };
+	return { control_id: "unit", version: "1", title: "unit tests", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "node-test", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"], ...over };
 }
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {
 	return { protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") }, candidate: { candidate_id: "c", manifest_digest: digestValue("c"), base_digest: digestValue("b"), workspace_id: "w" }, subject: { kind: "candidate", id: "c", revision: 1, digest: digestValue("c") }, environment: { environment_id: "env", digest: ENV, profile_id: "verify" }, requirement_refs: [{ requirement_id: "R1", revision: 1 }], producer: EXECUTOR };

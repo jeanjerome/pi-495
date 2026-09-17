@@ -5,10 +5,36 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
 /**
  * Sensors the generic runner knows how to read. `jacoco-xml` reads the coverage report the test
  * control already wrote and judges only the lines the candidate introduced (QLT-04); it executes
- * no measurement of its own.
+ * no measurement of its own. `java-imports` reads the package and import declarations of the Java
+ * sources and judges them against the frozen architecture rules (ARC-04, CON-03); it compiles
+ * nothing. Each is native to its ecosystem, behind the one finding envelope.
  */
-export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml"] as const;
+export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml", "java-imports"] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
+
+export const STRUCTURE_RULE_KINDS = ["forbidden_dependency", "no_cycle"] as const;
+export type StructureRuleKind = (typeof STRUCTURE_RULE_KINDS)[number];
+
+/**
+ * An architecture rule a structural sensor applies (ARC-04, CON-03): what it forbids, where it
+ * applies, and the explanation it is opposable by. It is frozen with the protocol rather than kept
+ * in the tree or in the producer's context: a boundary the producer can edit is not a boundary, and
+ * moving one deliberately means adopting another protocol revision.
+ */
+export const StructureRule = Type.Object(
+	{
+		rule_id: Identifier,
+		kind: Closed(STRUCTURE_RULE_KINDS),
+		/** Why this boundary holds, stated from the target's own declarations. */
+		statement: Type.String({ minLength: 1 }),
+		/** Workspace-relative source roots the rule applies to. */
+		scope: Type.Array(Type.String()),
+		/** Package prefixes a source in scope must not import; a trailing `.` names a family. */
+		forbidden: Type.Array(Type.String()),
+	},
+	{ $id: contractId("structure-rule"), additionalProperties: false },
+);
+export type StructureRule = Static<typeof StructureRule>;
 
 export const ControlDefinition = Type.Object(
 	{
@@ -22,6 +48,8 @@ export const ControlDefinition = Type.Object(
 		timeout_ms: Type.Integer({ minimum: 1 }),
 		parser: Closed(PARSER_IDS),
 		report_path: Type.Union([Type.String(), Type.Null()]),
+		/** Architecture rules a structural sensor applies; empty for every other sensor. */
+		structure_rules: Type.Array(StructureRule),
 		network: Closed(["denied", "allowed"] as const),
 		writable_paths: Type.Array(Type.String()),
 		requirement_refs: Type.Array(RequirementRef),

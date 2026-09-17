@@ -4,7 +4,7 @@ import { CandidateManifest, ReferenceSnapshot } from "./v1/candidate.ts";
 import { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "./v1/decision.ts";
 import { BaselineComparison, Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
 import { OperationRequest, OperationResult } from "./v1/operation.ts";
-import { BaselinePolicy, ControlDefinition, Design, Mandate, Protocol, RequirementsDocument } from "./v1/protocol.ts";
+import { BaselinePolicy, ControlDefinition, Design, Mandate, Protocol, RequirementsDocument, StructureRule } from "./v1/protocol.ts";
 
 /** Every published contract, keyed by its short name. Used to emit `contracts/v1/*.json`. */
 export const CONTRACTS: Record<string, TSchema> = {
@@ -29,6 +29,7 @@ export const CONTRACTS: Record<string, TSchema> = {
 	"human-decision": HumanDecision,
 	"reference-snapshot": ReferenceSnapshot,
 	"candidate-manifest": CandidateManifest,
+	"structure-rule": StructureRule,
 	"control-definition": ControlDefinition,
 	"baseline-policy": BaselinePolicy,
 	protocol: Protocol,

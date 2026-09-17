@@ -337,7 +337,7 @@ export class Harness {
 			if (a) adopted.push({ kind, artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest, text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2) });
 		}
 		const protocol = await this.latestArtifact<Protocol>(unit.state, "protocol");
-		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })) });
+		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
 		const contextRef = await this.storeArtifact("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
 		const mandate: InterventionMandate = { intervention_id: interventionId, change_id: unit.state.change_id, role, objective, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest, tools: TOOLS_FOR_ROLE[role], profile: this.profileFor(role, workspacePath), workspace_path: workspacePath, model: this.deps.model, budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention }, output_schema: outputSchemaFor(role) };
@@ -590,8 +590,9 @@ export class Harness {
 			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
 			// A differential control answers a question every requirement asks, whatever its category: a
 			// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
-			// and an improvement elsewhere never compensates for it (QLT-04).
-			const differential = controls.filter((c) => c.parser === "jacoco-xml").map((c) => c.control_id);
+			// and a responsibility placed in a forbidden module is not demonstrated either (QLT-04,
+			// ARC-04). An improvement elsewhere never compensates for either one.
+			const differential = controls.filter((c) => c.parser === "jacoco-xml" || c.parser === "java-imports").map((c) => c.control_id);
 			const obligations: Obligation[] = requirements.content.requirements.map((r) => {
 				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
 				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
@@ -816,7 +817,9 @@ export class Harness {
 			const pass = passes.get(control.control_id);
 			if (pass) {
 				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
-				if (baseline.instability === "confirm_then_indeterminate" && baseline.max_confirmations > 0 && divergesFromReference(observed.verdict, pass.verdict)) {
+				// The divergence to pay a confirmation for is the one the tolerance left standing: a control
+				// whose every finding the reference already carried has nothing to confirm.
+				if (baseline.instability === "confirm_then_indeterminate" && baseline.max_confirmations > 0 && divergesFromReference(outcome.verdict, pass.verdict)) {
 					// The two passes diverge and no preexisting finding explains it. The frozen rule pays
 					// for one confirmation on the same candidate before the change is corrected for it.
 					this.progress(`confirming control ${control.control_id}: it fails on the candidate and passes on the reference`);

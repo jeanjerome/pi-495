@@ -49,8 +49,8 @@ export function protocol(over: Partial<Protocol> = {}): Protocol {
 		protocol_id: "prt_1",
 		change_id: "chg_1",
 		controls: [
-			{ control_id: "unit", version: "1", title: "unit tests", command: ["node", "--test"], cwd: ".", env_allowlist: ["PATH"], env: {}, timeout_ms: 60000, parser: "node-test", report_path: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"] },
-			{ control_id: "lint", version: "1", title: "lint", command: ["npm", "run", "lint"], cwd: ".", env_allowlist: ["PATH"], env: {}, timeout_ms: 60000, parser: "exit-code", report_path: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R2", revision: 1 }], protected: true, protected_paths: ["eslint.config.js"] },
+			{ control_id: "unit", version: "1", title: "unit tests", command: ["node", "--test"], cwd: ".", env_allowlist: ["PATH"], env: {}, timeout_ms: 60000, parser: "node-test", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"] },
+			{ control_id: "lint", version: "1", title: "lint", command: ["npm", "run", "lint"], cwd: ".", env_allowlist: ["PATH"], env: {}, timeout_ms: 60000, parser: "exit-code", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R2", revision: 1 }], protected: true, protected_paths: ["eslint.config.js"] },
 		],
 		qualifications: {
 			unit: { positive: "PASS", negative: "FAIL", incident: "INDETERMINATE", qualified: true, environment_digest: ENV, notes: [] },

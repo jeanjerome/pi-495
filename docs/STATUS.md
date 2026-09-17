@@ -99,6 +99,34 @@ Reste ouvert : la stack Node n'a pas de mesure de couverture, et G2 n'exige touj
 discrimination — elle accepte une obligation couverte par un contrôle qualifié sans consulter le
 diagnostic. Voir `chantiers/00` et `chantiers/02`.
 
+## L'architecture adoptée est opposable, pas seulement transmise
+
+Une conception remise au producteur dans son contexte est une instruction, soumise à la même
+inférence que le code qu'elle est censée contraindre. Les frontières d'une cible Maven multi-module
+sont désormais gelées dans le protocole à G2, sous forme de règles que le producteur reçoit en
+énoncé et ne peut pas atteindre en écriture, puis vérifiées sur son candidat par un contrôle
+`structure` du protocole gelé.
+
+Aucune de ces règles n'est une convention de style : chacune reprend une déclaration de la cible.
+Un module dont le POM ne déclare pas de dépendance sur un autre ne doit pas importer la racine de
+paquet que cet autre dispose. Le module dont dépendent les autres et qui ne dépend d'aucun ne doit
+pas importer un framework, qu'il ferait porter à tous. Deux paquets qui s'importent l'un l'autre
+sont un seul paquet. L'adaptateur lit les déclarations `package` et `import` des sources — il ne
+compile rien, ne résout aucun type et n'exécute aucun build — et rend ses constats dans l'enveloppe
+`Finding` commune, catégorie `structure`, localisés au fichier, à la ligne et au paquet.
+
+Le verdict porte sur ce que le candidat a écrit : un import interdit introduit échoue, une violation
+qui était déjà là laisse le contrôle vert et apparaît au dossier en `preexisting`. C'est ce qui rend
+le contrôle qualifiable sur une cible portant de la dette, puisque son témoin positif s'exécute sur
+la référence. Son contre-exemple lui est propre — une source du module qui importe exactement ce que
+ce module déclare ne pas dépendre —, le témoin négatif partagé, un test qui échoue, ne disant rien
+d'une frontière.
+
+Reste ouvert : la stack Node n'a pas d'adaptateur structurel, la liste des familles de framework est
+gelée dans l'adaptateur de cible plutôt qu'adoptée par la cible, `src/test/java` n'est dans aucune
+portée, et une frontière franchie par réflexion ou par configuration n'est pas vue. ARC-02, ARC-03
+et ARC-05 restent absentes. Voir `chantiers/03`.
+
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
 - Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
@@ -116,10 +144,12 @@ diagnostic. Voir `chantiers/00` et `chantiers/02`.
 - Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
 - Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
   changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
-- Architecture et qualité (ARC-01..04, QLT-01..03, QLT-05, CON-03), caractérisation de l'existant (PRE-04)
+- Architecture et qualité (ARC-01..03, QLT-01..03, QLT-05), caractérisation de l'existant (PRE-04)
   et évolution de la capacité par cycle (PRE-05) : non livrés. Contrairement aux précédents, leur
-  absence a un effet observable sur l'acceptation d'un changement — voir la section ci-dessus
-  et `ROADMAP.md`.
+  absence a un effet observable sur l'acceptation d'un changement — voir les sections ci-dessus
+  et `ROADMAP.md`. Ce qui est livré d'ARC-01 est la partie observable de son diagnostic : modules,
+  dépendances, cycles et frontières localisés dans le code ; la comparaison entre architecture
+  déclarée et architecture réalisée et le marquage des liens dynamiques n'y sont pas.
 - Diagnostic de capacité de contrôle (PRE-01) : l'échelle à quatre niveaux et le déclencheur de
   préparation sont livrés et exercés par `v2/preparation` ; la cartographie des assertions et des
   dépendances des contrôles n'est pas écrite, et IH-04 reste absente, si bien qu'une exigence non
@@ -129,8 +159,8 @@ diagnostic. Voir `chantiers/00` et `chantiers/02`.
   empreinte d'environnement, les constats sont classés `new` / `preexisting` / `removed`, et la
   tolérance comme la règle d'instabilité sont gelées dans le protocole à G2. Portée actuelle : G2
   exige qu'un contrôle qualifié passe sur la référence, donc aucun contrôle qualifié ne porte
-  aujourd'hui de constat préexistant — la tolérance est exercée par ses contrôles et attend les
-  analyseurs des étages 2 et 3 pour se déclencher dans un cycle complet.
+  aujourd'hui de constat préexistant sur un défaut de test — la tolérance est désormais exercée par
+  le contrôle structurel, qui passe sur la référence tout en nommant les violations qu'il y trouve.
 - Portabilité (NFR-05) et observabilité (NFR-06) : la première est annoncée sans être qualifiée, la
   seconde n'est établie par aucun contrôle bien qu'aucun point de télémétrie n'existe dans les
   sources.

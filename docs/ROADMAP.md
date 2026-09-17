@@ -47,8 +47,7 @@ non-aggravation comme critère.
 | PRE-01, reste | cartographie des contrôles existants : assertions, dépendances, instabilité | l'échelle à quatre niveaux et l'ouverture de la préparation sont livrées ; l'instabilité relève de VER-08 |
 | PRE-04 | tests de caractérisation d'un existant sans consacrer ses défauts | absent |
 | PRE-05 | compléter et requalifier la capacité de vérification à chaque incrément | absent |
-| CON-03 | règle architecturale opposable sur la cible, avec vérification exécutable | absent ; la seule règle exécutable porte sur le dépôt 495 lui-même (NFR-07) |
-| ARC-01..04 | architecture réalisée, cible, migration progressive, contrainte sur la génération | absents |
+| ARC-01..03 | architecture réalisée, cible argumentée, migration progressive | absents ; la partie observable du diagnostic — modules, dépendances, cycles, frontières localisées — est produite par le contrôle structurel d'ARC-04 |
 | QLT-01..03, QLT-05 | référentiel, baseline, réduction de dette, conformité démontrée | absents |
 | RAG-01, RAG-02, RAG-04 | besoin de connaissance identifié, corpus officiel versionné, utilisation de la documentation vérifiée | absents |
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, expertises mobilisées, démarche évaluée | absents |
@@ -57,12 +56,15 @@ non-aggravation comme critère.
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
 
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
-classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. QLT-04 en
-est sorti pour sa clause de non-aggravation : un contrôle de couverture différentielle juge les
-lignes que le candidat a écrites et laisse la dette antérieure visible sans l'opposer au candidat,
-sur une cible Maven dont JaCoCo lie son goal `report` hors profil. Ce qu'il reste de QLT-04 — les
-exclusions, annotations de silence et modifications de seuils sous justification adoptée — n'est
-tenu que par la protection des fichiers de configuration du contrôle.
+classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. ARC-04 et
+CON-03 en sont sortis : les frontières qu'une cible Maven déclare — direction de dépendance de ses
+POM, racine de paquet de chaque module, absence de cycle — sont gelées dans le protocole, transmises
+au producteur et vérifiées sur son candidat par un contrôle qui lit les déclarations `package` et
+`import`. QLT-04 en est sorti pour sa clause de non-aggravation : un contrôle de couverture
+différentielle juge les lignes que le candidat a écrites et laisse la dette antérieure visible sans
+l'opposer au candidat, sur une cible Maven dont JaCoCo lie son goal `report` hors profil. Ce qu'il
+reste de QLT-04 — les exclusions, annotations de silence et modifications de seuils sous
+justification adoptée — n'est tenu que par la protection des fichiers de configuration du contrôle.
 
 ### Le défaut que cette absence produit
 
@@ -148,7 +150,7 @@ verdicts, pas sur un moteur unique imposé à tous les langages.
 | 0 | PRE-01 | échelle de capacité à quatre niveaux ; la préparation s'ouvre sur l'absence de discrimination, non sur l'absence de fichiers de test | livré : `diagnoseControlCapability`, `Protocol.capability_diagnosis` |
 | 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | livré : `domain/baseline.ts`, `domain/findings.ts`, `harness.referencePasses`, `Protocol.baseline` |
 | 2 | QLT-04 | contrôle de couverture sur les lignes introduites | livré : contrôle `coverage`, parseur `jacoco-xml`, `application/coverage.ts` |
-| 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | `Finding`, `runner.ts`, profils d'exécution, précédent `check-layers.ts` |
+| 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | livré : contrôle `structure`, parseur `java-imports`, `ControlDefinition.structure_rules`, `adapters/execution/structure.ts` |
 | 4 | VER-04 | mutation sur les classes modifiées | runner générique, budget de contrôle dédié |
 
 L'ordre n'est pas une préférence. L'étage 2 mesure la couverture du code introduit : sans l'étage 0
@@ -160,8 +162,8 @@ exigence `[P1]`. Le coût, lui, ne suit pas cette frontière. Les étages 0 et 2
 code existant sans exécution supplémentaire côté candidat : le rapport de couverture est déjà écrit
 par le contrôle de test. L'étage 1 ajoute un passage sur la référence, mémorisé par
 contrôle, par référence et par empreinte d'environnement : il n'est payé qu'à la première
-vérification d'un changement. Les étages 3 et 4 ajoutent des analyseurs
-natifs, et l'étage 4 un budget de contrôle propre.
+vérification d'un changement. L'étage 3 lit les déclarations de l'arbre sans rien exécuter ni
+compiler, de part et d'autre. L'étage 4 ajoute un analyseur natif et un budget de contrôle propre.
 
 Trois travaux n'appartiennent pas à cette échelle et peuvent avancer en parallèle : la complétude de
 la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon L0.

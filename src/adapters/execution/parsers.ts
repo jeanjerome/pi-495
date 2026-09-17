@@ -25,7 +25,7 @@ export interface ParsedReport {
 	findings?: ParsedFinding[];
 }
 
-export const PARSER_VERSIONS = { "exit-code": "1.0.0", "node-test": "1.0.0", "junit-xml": "1.0.0", "jacoco-xml": "1.0.0" } as const;
+export const PARSER_VERSIONS = { "exit-code": "1.0.0", "node-test": "1.0.0", "junit-xml": "1.0.0", "jacoco-xml": "1.0.0", "java-imports": "1.0.0" } as const;
 
 const MAX_FAILURES = 50;
 

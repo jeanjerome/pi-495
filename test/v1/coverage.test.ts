@@ -53,7 +53,7 @@ function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
+	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
 }
 
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {
@@ -205,7 +205,7 @@ describe("the target adapter proposes the sensor only where a measurement exists
 		assert.ok("src/main/java/Witness495Covered.java" in detection.positive_witness);
 		assert.deepEqual(Object.keys(detection.own_negative_witness.coverage ?? {}), ["src/main/java/Witness495Uncovered.java"]);
 		assert.equal(detection.witness_tests, 2);
-		assert.deepEqual(detection.capability_missing, []);
+		assert.ok(!detection.capability_missing.some((note) => note.includes("JaCoCo")), "the measurement this sensor reads is the one mvn test writes");
 	});
 
 	it("names the missing measurement instead of proposing a sensor that would read nothing", () => {
@@ -213,8 +213,8 @@ describe("the target adapter proposes the sensor only where a measurement exists
 		fixtureJava(project);
 		const detection = detectStack(project, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.jacoco_report_bound, false);
-		assert.deepEqual(detection.controls.map((c) => c.control_id), ["maven-test"]);
-		assert.deepEqual(detection.own_negative_witness, {});
+		assert.deepEqual(detection.controls.map((c) => c.control_id), ["maven-test", "structure"]);
+		assert.deepEqual(Object.keys(detection.own_negative_witness), ["structure"], "no coverage witness where no coverage sensor is proposed");
 		assert.ok(detection.capability_missing[0]?.includes("JaCoCo"));
 	});
 

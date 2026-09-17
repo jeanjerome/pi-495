@@ -135,3 +135,33 @@ export function fixtureMavenMultiModule(root: string, withTests = false): void {
 	}
 	writeFiles(root, files);
 }
+
+/**
+ * F-HEXA: Maven reactor whose `domain` module declares no dependency on `infrastructure`, and whose
+ * two modules lay out distinct package roots. The dependency direction is the one its POMs state.
+ */
+export function fixtureMavenHexagonal(root: string): void {
+	const modulePom = (artifactId: string, dependencies = "") => `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>io.demo</groupId><artifactId>demo-reactor</artifactId><version>1.0.0</version></parent>
+  <artifactId>${artifactId}</artifactId>
+${dependencies}</project>
+`;
+	writeFiles(root, {
+		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.demo</groupId><artifactId>demo-reactor</artifactId><version>1.0.0</version>
+  <packaging>pom</packaging>
+  <modules><module>domain</module><module>infrastructure</module></modules>
+</project>
+`,
+		"domain/pom.xml": modulePom("demo-domain"),
+		"infrastructure/pom.xml": modulePom("demo-infrastructure", "  <dependencies><dependency><groupId>io.demo</groupId><artifactId>demo-domain</artifactId><version>1.0.0</version></dependency></dependencies>\n"),
+		"domain/src/main/java/io/demo/domain/user/User.java": "package io.demo.domain.user;\n\npublic final class User {\n    public String name() { return \"x\"; }\n}\n",
+		"domain/src/main/java/io/demo/domain/service/UserService.java": "package io.demo.domain.service;\n\nimport io.demo.domain.user.User;\n\npublic final class UserService {\n    public User keep(User user) { return user; }\n}\n",
+		"domain/src/main/java/io/demo/domain/port/UserPort.java": "package io.demo.domain.port;\n\npublic interface UserPort {\n    String read();\n}\n",
+		"infrastructure/src/main/java/io/demo/infra/UserRepository.java": "package io.demo.infra;\n\nimport io.demo.domain.port.UserPort;\n\npublic final class UserRepository implements UserPort {\n    public String read() { return \"x\"; }\n}\n",
+	});
+}
