@@ -37,6 +37,11 @@ livré avec ses tests, sa matrice de traçabilité (`docs/TRACEABILITY.md`) et s
 Tous les incréments sont livrés avec leurs tests ; les limites de qualification sont consignées
 dans `STATUS.md` et `QUALIFICATION.md`.
 
+## Ce qui vient ensuite
+
+`ROADMAP.md` couvre la moitié de P0 non commencée (ARC-*, QLT-*, PRE-01 au-delà du premier niveau,
+PRE-04, PRE-05), les exigences au-delà de P0, et l'ordre proposé.
+
 ## Ce qui est hors de portée de cette machine
 
 - Linux x86-64 : non exécutable ici ; le backend `bwrap` est implémenté mais non qualifié (annoncé `capability_missing`).

@@ -13,7 +13,7 @@ Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible s
 | V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation dont périmètre Maven multi-module, export, intégration Git | passent |
 | V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation | passent |
 
-Total au 17 septembre 2026 : 136 tests, 0 échec.
+Total : 145 tests, 0 échec.
 
 ## Campagnes manuelles
 

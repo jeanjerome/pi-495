@@ -61,6 +61,21 @@ test, une écriture de production refusée et deux rapports Surefire agrégés. 
 multi-module sous Seatbelt reste à ajouter à la campagne V4 ; la campagne Java qualifiée existante
 porte sur le fixture mono-module.
 
+## Limite connue : une exigence peut être déclarée satisfaite sans être discriminée
+
+G2 exige qu'un contrôle qualifié passe sur la référence, sans quoi il signalerait un défaut sur du
+code sain. Il en résulte que tout contrôle qualifié est vert sur la référence, donc qu'il rend le
+même verdict selon que l'exigence est satisfaite ou absente. La seule source de discrimination est
+la suite préparée, dont l'adoption exige `on_reference: FAIL`.
+
+Or la préparation n'est ouverte que si la cible ne contient aucun fichier de test. Une cible qui en
+contient sautera la préparation et verra ses exigences déclarées satisfaites par une suite qui ne
+les couvre pas. Observé sur la cible Java : un candidat ajoutant 276 lignes instrumentées dont 93
+ne sont exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`, y compris
+pour des exigences portant explicitement sur l'existence de scénarios de test.
+
+La correction relève de PRE-01 et QLT-04, décrits dans `ROADMAP.md`.
+
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
 - Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
@@ -75,6 +90,11 @@ porte sur le fixture mono-module.
   arbitrage) et testé avec l'agent scripté ; non exercé avec un modèle réel.
 - Performance (NFR-04) : aucune mesure p95 ; les bornes de flux et de taille existent.
 - Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
-- Documentation/RAG (RAG-*), architecture et qualité (ARC-*, QLT-*), expertise (EXP-*) : non
-  livrés ; ils ne bloquent aucun scénario P0 de changement simple mais restent P0 dans l'expression
-  de besoins et sont donc annoncés absents.
+- Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
+  changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
+- Architecture et qualité (ARC-*, QLT-*), diagnostic de capacité de contrôle (PRE-01 au-delà du
+  premier niveau), caractérisation (PRE-04) et évolution de la capacité par cycle (PRE-05) : non
+  livrés. Contrairement aux précédents, leur absence a un effet observable sur l'acceptation d'un
+  changement — voir la limite connue ci-dessus et `ROADMAP.md`.
+- Arbitrage de vérifiabilité (IH-04) : l'interaction est déclarée dans les contrats mais exclue du
+  constructeur de demandes de décision ; une exigence non discriminable n'a donc pas d'issue humaine.

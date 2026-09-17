@@ -41,4 +41,7 @@ des campagnes exécutées manuellement (voir `QUALIFICATION.md`).
 | NFR-04 | bornes de flux | `v1/sandbox` (timeout, troncature) ; pas de mesure p95 |
 | PRG-01, PRG-02 | capture vide / sans HEAD | `v2/workspace` ; socle non conduit de bout en bout |
 | PRG-03..05 | `program.ts` | `v0/program` (noyau seulement) |
-| PRE-01, SA-008 | `referenceHasTests`, `preparation.open` | `v2/preparation` |
+| SA-008 | `preparation.open`, `preparation.close` | `v2/preparation` |
+| PRE-01 | `referenceHasTests` couvre le premier niveau de l'échelle (un fichier de test est présent) | **non couvert** : test découvrable, test exécuté et contrôle capable de détecter le défaut visé ne sont pas distingués ; voir `ROADMAP.md` |
+| PRE-04, PRE-05 | — | **non couverts** |
+| ARC-01..04, QLT-01..05 | — | **non couverts** ; voir `ROADMAP.md` |
