@@ -209,3 +209,39 @@ absent reste invalide.
 **Motif.** Les modèles locaux ajoutent souvent un commentaire ou un champ ; refuser ces sorties
 transformait chaque cycle en `configuration_error`. La normalisation n'invente aucun contenu
 métier.
+
+## D-18 — Jalon de livraison distinct de la priorité d'exigence
+
+**Décision.** Les marqueurs `P0`/`P1`/`P2` qualifient une exigence ; `L0`/`L1`/`L2`/`L3` qualifient
+un jalon de livraison. Un jalon possède des critères que ses incréments ne portent pas
+individuellement — deux plateformes, cinq entrées Pi, revues obligatoires, dossier de preuves
+intègre — et son verdict est recalculé sur ces critères, jamais déduit de la somme de ses enfants.
+Les critères de franchissement sont tenus dans `MILESTONES.md`.
+**Motif.** Les incréments `IT-0` à `IT-4` ont pour sortie amont « parcours L0 complet » et `IT-5`
+ouvre L1 ; les déclarer livrés revenait implicitement à annoncer un socle P0 dont le jalon technique
+qui le précède n'est pas franchi.
+**Conséquence.** « Livré » et « qualifié ici » restent des propriétés d'incrément dans `STATUS.md` ;
+« franchi » devient une propriété de jalon, avec sa liste de conditions ouvertes.
+
+## D-19 — Vocabulaire d'états de suivi sans effet sur la machine à états
+
+**Décision.** Le suivi d'un jalon ou d'une sous-livraison emploie quatre états — non commencé, en
+cours, livré non qualifié, qualifié. Ce vocabulaire est documentaire. La machine à états d'un
+changement (`intake → … → closed`) et les verdicts de contrôle
+(`PASS`/`FAIL`/`INDETERMINATE`/`NOT_RUN`/`NOT_APPLICABLE`) restent seuls normatifs et gelés dans les
+contrats v1.
+**Motif.** Deux vocabulaires d'états coexistant sans hiérarchie déclarée finissent par être
+confondus dans le code ou dans les rapports.
+
+## D-20 — La matrice de traçabilité porte une ligne par exigence P0
+
+**Décision.** Toute exigence `[P0]`, aux deux niveaux de titre de l'expression de besoins — `####`
+pour les 85 exigences fonctionnelles, `###` pour `NFR-01` à `NFR-08` — possède une ligne dans
+`TRACEABILITY.md`, soit parmi les couvertes avec ses composants et ses preuves, soit parmi les non
+couvertes avec l'état constaté. Une exigence couverte dont une partie de la recette n'est exercée
+par aucun test porte la mention « non qualifié » et ce qui manque.
+**Motif.** Dix-huit exigences `[P0]` n'apparaissaient nulle part dans la matrice. Une exigence
+absente n'y est pas neutre : elle est indistinguable d'une exigence satisfaite, alors que le rôle
+de la matrice est précisément de nommer ce qui n'est pas couvert.
+**Conséquence.** Un contrôle exécutable doit garantir cette propriété plutôt qu'une relecture ; il
+fait l'objet d'un travail ouvert dans `chantiers/`.

@@ -1,4 +1,7 @@
-# Statut d'implémentation P0
+# Statut d'implémentation
+
+Les incréments `IT-0` à `IT-4` servent le jalon L0, `IT-5` ouvre L1 ; les critères de franchissement
+et ce qui reste pour chacun sont dans `MILESTONES.md`.
 
 Machine de référence : macOS 27 arm64, Node 24.21, Pi 0.85.1, Git 2.55, JDK 25 + Maven 3.9.9,
 modèle local `omlx/qwen3.8-27b-oq8e`. Date : 17 septembre 2026.
@@ -74,7 +77,8 @@ les couvre pas. Observé sur la cible Java : un candidat ajoutant 276 lignes ins
 ne sont exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`, y compris
 pour des exigences portant explicitement sur l'existence de scénarios de test.
 
-La correction relève de PRE-01 et QLT-04, décrits dans `ROADMAP.md`.
+La correction relève de PRE-01, VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés par
+`chantiers/`.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -82,8 +86,9 @@ La correction relève de PRE-01 et QLT-04, décrits dans `ROADMAP.md`.
 - Mode RPC : chemins de code présents ; aucun client RPC qualifié n'a été exercé.
 - Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit) ;
   la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire.
-- Revues obligatoires (fonctionnelle, architecture, sécurité, licences, exploitation) : non
-  réalisées ; les constats automatiques existent, pas les revues humaines.
+- Revues obligatoires (fonctionnelle, architecture, sécurité, UX et accessibilité, licences et
+  distribution, exploitation) : non réalisées ; les constats automatiques existent, pas les revues
+  humaines. Elles conditionnent la qualification d'une livraison — voir `chantiers/B`.
 - Programme multi-incréments piloté depuis Pi (PRG-03..05, F-PROGRAM de bout en bout) : noyau
   et stockage seulement.
 - Reviewers agentiques obligatoires : mécanisme livré (rôle `review`, mandat lecture seule,
@@ -92,9 +97,22 @@ La correction relève de PRE-01 et QLT-04, décrits dans `ROADMAP.md`.
 - Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
 - Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
   changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
-- Architecture et qualité (ARC-*, QLT-*), diagnostic de capacité de contrôle (PRE-01 au-delà du
-  premier niveau), caractérisation (PRE-04) et évolution de la capacité par cycle (PRE-05) : non
-  livrés. Contrairement aux précédents, leur absence a un effet observable sur l'acceptation d'un
-  changement — voir la limite connue ci-dessus et `ROADMAP.md`.
+- Architecture et qualité (ARC-01..04, QLT-01..05, CON-03), diagnostic de capacité de contrôle
+  (PRE-01 au-delà du premier niveau), caractérisation (PRE-04) et évolution de la capacité par cycle
+  (PRE-05) : non livrés. Contrairement aux précédents, leur absence a un effet observable sur
+  l'acceptation d'un changement — voir la limite connue ci-dessus et `ROADMAP.md`.
+- Comparaison à la référence (VER-08) : non livrée, et c'est le mécanisme dont les précédents
+  dépendent. Les contrôles ne sont exécutés que sur le candidat ; `runner.ts` écrit
+  `baseline_state: "new"` en dur, de sorte qu'un défaut hérité et une régression produisent le même
+  constat. Aucune politique d'instabilité n'est préenregistrée : un contrôle qui alterne réussite et
+  échec rend son dernier verdict.
+- Portabilité (NFR-05) et observabilité (NFR-06) : la première est annoncée sans être qualifiée, la
+  seconde n'est établie par aucun contrôle bien qu'aucun point de télémétrie n'existe dans les
+  sources.
+- Recettes non exercées sur des exigences par ailleurs couvertes : compaction forcée et reprise de
+  session (CTX-04), rechargement de l'extension et bifurcation de conversation (UX-05),
+  requalification déclenchée par un changement de version (EXT-02), séparation observations /
+  jugements / risques résiduels dans le rapport (IMP-05). Chacune est marquée dans
+  `TRACEABILITY.md`.
 - Arbitrage de vérifiabilité (IH-04) : l'interaction est déclarée dans les contrats mais exclue du
   constructeur de demandes de décision ; une exigence non discriminable n'a donc pas d'issue humaine.

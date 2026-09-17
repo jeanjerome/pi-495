@@ -1,7 +1,8 @@
-# Étage 2 — ARC-04 : contraindre par l'architecture active
+# Étage 3 — ARC-04 : contraindre par l'architecture active
 
 **État :** à faire
-**Exigence :** ARC-04 [P0], avec ARC-01 en dépendance amont et ARC-05 [P1] en aval
+**Exigence :** ARC-04 [P0], avec ARC-01 et CON-03 en dépendance amont et ARC-05 [P1] en aval
+**Dépend de :** étage 1
 
 ## Motif
 
@@ -34,8 +35,9 @@ lui-même. La cible ~/Projets/495-workspace/cibles/simple-demo-hexagonal-archite
 hexagonale : `domain` ne doit dépendre ni de `infrastructure` ni d'un framework — une première
 règle naturelle et vérifiable.
 
-Comme à l'étage 1, les constats se jugent sur le delta : une violation préexistante est tolérée
-et nommée, une violation introduite est refusée.
+Comme à l'étage 2, les constats se jugent sur le delta ; le classement préexistant / introduit
+vient de l'étage 1 : une violation préexistante est tolérée et nommée, une violation introduite
+est refusée.
 
 Critères d'acceptation :
 - un candidat introduisant un import de `infrastructure` dans `domain` échoue avec la

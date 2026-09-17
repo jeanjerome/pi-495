@@ -1,8 +1,8 @@
-# Étage 3 — VER-04 : mutation sur les classes modifiées
+# Étage 4 — VER-04 : mutation sur les classes modifiées
 
 **État :** à faire
 **Exigence :** VER-04 [P1], accessible au socle par le runner générique
-**Dépend de :** étage 1
+**Dépend de :** étages 1 et 2
 
 ## Motif
 

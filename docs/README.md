@@ -22,6 +22,7 @@ Ce qui a été construit, dans quel état, et prouvé par quoi. Vivant : actuali
 | Document | Objet |
 | --- | --- |
 | [PLAN.md](PLAN.md) | Découpage en incréments du socle et organisation des répertoires. |
+| [MILESTONES.md](MILESTONES.md) | Jalons L0 à L3, leurs critères de sortie et ce qui reste pour les franchir. |
 | [STATUS.md](STATUS.md) | État par incrément, ce qui est démontré, limites connues, ce qui n'est pas qualifié. |
 | [TRACEABILITY.md](TRACEABILITY.md) | Matrice exigence → composants → preuves, y compris les exigences non couvertes. |
 | [QUALIFICATION.md](QUALIFICATION.md) | Rapport d'exécution sur la machine de référence. |
@@ -32,9 +33,10 @@ aux preuves, et nomme celles qui ne sont pas couvertes.
 
 ## `chantiers/` — travaux ouverts
 
-Ce qui reste à faire, un fichier par étage, avec un prompt autonome et un journal.
-[ROADMAP.md](ROADMAP.md) porte la démonstration qui les justifie et l'ordre proposé ;
-[chantiers/README.md](chantiers/README.md) porte l'état d'avancement.
+Ce qui reste à faire : un fichier par étage du contrôle de l'introduit, un fichier par travail
+transverse, chacun avec un prompt autonome et un journal. [ROADMAP.md](ROADMAP.md) porte la
+démonstration qui les justifie et l'ordre proposé ; [chantiers/README.md](chantiers/README.md)
+porte l'état d'avancement et le critère de sortie.
 
 ## Où écrire quoi
 
@@ -46,3 +48,4 @@ Ce qui reste à faire, un fichier par étage, avec un prompt autonome et un jour
 | Un arbitrage d'implémentation | `DECISIONS.md` |
 | Un travail à engager | `chantiers/`, et une ligne dans `ROADMAP.md` s'il change l'ordre |
 | Une exécution de campagne | `QUALIFICATION.md` |
+| Un critère de franchissement de jalon, ou ce qui l'empêche | `MILESTONES.md` |

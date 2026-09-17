@@ -1,8 +1,12 @@
-# Plan d'implémentation P0 — 495
+# Plan d'implémentation — 495
 
 Ce plan suit l'ordre recommandé par la conception technique (§18). Chaque incrément est
 livré avec ses tests, sa matrice de traçabilité (`docs/TRACEABILITY.md`) et son statut
 (`docs/STATUS.md`). Les décisions prises seul pendant l'implémentation sont dans `DECISIONS.md`.
+
+Les incréments `IT-0` à `IT-4` servent le jalon L0 — la conception technique leur donne pour sortie
+« parcours L0 complet et base du parcours L1 ». `IT-5` ouvre L1. Livrer un incrément n'est pas
+franchir le jalon qu'il sert : les critères de sortie sont dans `MILESTONES.md`.
 
 ## Organisation
 
@@ -35,12 +39,14 @@ livré avec ses tests, sa matrice de traçabilité (`docs/TRACEABILITY.md`) et s
 ## État
 
 Tous les incréments sont livrés avec leurs tests ; les limites de qualification sont consignées
-dans `STATUS.md` et `QUALIFICATION.md`.
+dans `STATUS.md` et `QUALIFICATION.md`, et ce qui reste pour franchir L0 puis L1 dans
+`MILESTONES.md`.
 
 ## Ce qui vient ensuite
 
-`ROADMAP.md` couvre la moitié de P0 non commencée (ARC-*, QLT-*, PRE-01 au-delà du premier niveau,
-PRE-04, PRE-05), les exigences au-delà de P0, et l'ordre proposé.
+`ROADMAP.md` couvre la moitié de P0 non commencée (VER-08, CON-03, ARC-*, QLT-*, RAG-01/02/04,
+EXP-*, PRE-01 au-delà du premier niveau, PRE-04, PRE-05), les exigences au-delà de P0, et l'ordre
+proposé. `chantiers/` porte les travaux correspondants.
 
 ## Ce qui est hors de portée de cette machine
 

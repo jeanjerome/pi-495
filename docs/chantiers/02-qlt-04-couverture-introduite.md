@@ -1,8 +1,8 @@
-# Étage 1 — QLT-04 : couverture sur le code introduit
+# Étage 2 — QLT-04 : couverture sur le code introduit
 
 **État :** à faire
 **Exigence :** QLT-04 [P0], avec QLT-02 en dépendance amont
-**Dépend de :** étage 0
+**Dépend de :** étages 0 et 1
 
 ## Motif
 
@@ -35,8 +35,8 @@ Ajoute un contrôle de couverture différentielle, en t'appuyant sur ce qui exis
   les lignes introduites côté candidat ;
 - le texte de référence et celui du candidat sont dans le CAS (artefact `files_<candidate_id>`),
   donc le calcul est hors ligne et vérifiable dans un dossier exporté ;
-- `Finding.baseline_state` existe dans le contrat v1 avec new/preexisting/removed/unknown ;
-  src/adapters/execution/runner.ts l'écrit en dur à "new" — c'est ce qu'il faut renseigner.
+- `Finding.baseline_state` est renseigné par l'étage 1 : appuie-toi sur le classement
+  préexistant / introduit plutôt que d'en refaire un propre à la couverture.
 
 `PARSER_IDS` est un enum fermé dans src/contracts/v1/protocol.ts : après modification, lance
 `npm run contracts`.
@@ -57,7 +57,7 @@ Critères d'acceptation :
 | --- | --- |
 | Lignes introduites | `diffLines`, segments `kind:"new"` avec `new_start` |
 | Octets de référence et de candidat | CAS, artefact `files_<candidate_id>` et instantané de référence |
-| État de constat à renseigner | `Finding.baseline_state`, écrit en dur à `"new"` dans `runner.ts` |
+| État de constat | `Finding.baseline_state`, renseigné par l'étage 1 |
 | Enum fermé des parsers | `PARSER_IDS` ; régénérer avec `npm run contracts` |
 | Rapport de couverture | produit par le contrôle de test existant, sous `target/site/jacoco/` |
 

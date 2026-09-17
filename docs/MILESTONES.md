@@ -1,0 +1,164 @@
+# Jalons de livraison L0 à L3
+
+`PLAN.md` décrit les incréments d'implémentation et l'organisation des répertoires. `STATUS.md` dit
+ce que chacun a réellement livré. Ce document dit autre chose : **quels jalons ces incréments
+servent, et à quelles conditions un jalon est franchi.** Le découpage L0 à L3 vient de
+`amont/expression-besoins.md` §15 ; les critères de sortie viennent de
+`amont/conception-verification.md` §12 et de `amont/conception-technique.md` §16.
+
+Ce document est un document de suivi. En cas de contradiction avec l'amont, c'est l'amont qui fait
+foi ; en cas de contradiction avec `STATUS.md` sur l'état réel, c'est `STATUS.md`.
+
+## 1. Priorité et jalon ne sont pas la même chose
+
+| Notion | Sens |
+| --- | --- |
+| `P0` `P1` `P2` | La priorité d'une **exigence**, portée par l'expression de besoins. Elle ne bouge que par révision de l'amont. |
+| `L0` `L1` `L2` `L3` | Un **jalon de livraison**. Il agrège des incréments, mais son verdict est recalculé sur ses propres critères. |
+
+La confusion des deux produit une erreur précise : croire qu'avoir livré les incréments d'un jalon
+revient à l'avoir franchi. Un jalon a des critères que les incréments pris un à un ne portent pas —
+deux plateformes, cinq entrées, des revues, un dossier de preuves intègre. Le verdict d'un jalon
+n'est donc jamais la somme automatique des verdicts de ses enfants.
+
+Quatre états suffisent à décrire un jalon ou une sous-livraison : **non commencé**, **en cours**,
+**livré non qualifié** (le code et ses tests existent, les critères du jalon ne sont pas tous
+établis), **qualifié**. Ce vocabulaire est un vocabulaire de suivi ; il n'a aucun effet sur la
+machine à états d'un changement (`intake → … → closed`), gelée dans les contrats v1.
+
+## 2. Vue d'ensemble
+
+| Jalon | Finalité | État | Ce qui bloque |
+| --- | --- | --- | --- |
+| `L0` | Lever les inconnues techniques, sans promesse produit | livré non qualifié | Linux x86-64, mode RPC, risques instruits, paramètres différés |
+| `L1` | Premier produit conduisant un changement et un programme séquentiel sous contrôle | en cours | la moitié de P0 non commencée, les revues obligatoires |
+| `L2` | Cible produit complète | non commencé | dépend de la qualification de L1 |
+| `L3` | Extensions optionnelles | non commencé | une seule exigence `[P2]` formalisée |
+
+## 3. L0 — qualification technique
+
+L0 démontre les propriétés structurantes et produit une décision argumentée pour chaque risque. Il
+ne promet aucune capacité produit. La conception technique §18 lui rattache les incréments `IT-0`
+à `IT-4`, dont la sortie déclarée est « parcours L0 complet et base du parcours L1 ».
+
+| Incrément | Objet | État |
+| --- | --- | --- |
+| `IT-0` | contrats v1, noyau, stockage SQLite et CAS, pannes injectées | livré, qualifié ici |
+| `IT-1` | package Pi, commandes, liaison de session, modes | livré ; RPC non exercé |
+| `IT-2` | worker, sandbox, workspace, manifeste de candidat | livré, qualifié sur macOS seulement |
+| `IT-3` | runner, parsers, qualification, G2 à G5, décision | livré, qualifié ici |
+| `IT-4` | modèle de revue, composant TUI, intégration Git | livré ; revue humaine non réalisée |
+
+### Ce qui reste pour franchir L0
+
+- **Linux x86-64.** Le backend `bwrap` est implémenté, jamais exécuté. La frontière d'exécution doit
+  être qualifiée sur les deux plateformes, et le confinement doit refuser l'exécution lorsqu'une
+  restriction requise ne peut être garantie. `NFR-05` en dépend.
+- **Mode RPC.** Le critère est « mêmes faits et mêmes verdicts dans les cinq entrées ». Quatre sont
+  exercées ; `UX-11` attend le même passage pour la concordance des données de revue.
+- **Les dix lignes de risque** de `amont/conception-technique.md` §16 : chacune doit posséder une
+  décision argumentée et sa preuve, y compris lorsque le code livré contient déjà la réponse.
+- **Les trois paramètres différés** : seuil du mode terminal étroit, pagination et budgets des
+  grands fichiers, chacun avec son protocole, sa fixture et son critère de décision.
+
+Ces quatre points sont regroupés dans [chantiers/C](chantiers/C-cloture-jalon-l0.md).
+
+Un échec L0 ne réduit pas le besoin : il conduit à réviser la solution, l'architecture ou une
+dépendance, puis à requalifier.
+
+## 4. L1 — socle produit P0
+
+L'amont découpe L1 en quatre sous-livraisons. Elles ne sont pas des lots indivisibles, et aucune
+n'autorise à annoncer une capacité P0 avant sa recette.
+
+| Sous-livraison | Familles dominantes | Porté par | État |
+| --- | --- | --- | --- |
+| Noyau et changement unitaire | `BES`, `REQ-01..04`, `CON-01`, `CON-02`, `CTX-01`, `CTX-02`, `CTX-04`, `CTX-05`, `AGT-01..04`, `AGT-06`, `VER-01..03`, `VER-06`, `DEC-01..03`, `DEC-05`, `DEC-06`, `SEC`, `GIT-01..03`, `GIT-05`, `EVD`, `UX`, `IMP-05` | `IT-0` à `IT-4` | livré non qualifié |
+| Préparation et dépôt vierge | `PRE`, `EXT-01..03`, `RAG-01`, `RAG-02`, `RAG-04`, `PRG-01`, `PRG-02` | `IT-5` | partiel : préparation livrée, `PRE-01` au premier niveau, `RAG` absent |
+| Programme séquentiel | `PRG-03..05`, `BES-04` | `IT-5` | noyau et stockage seulement |
+| Diagnostic et remise à niveau | `ARC-01..04`, `QLT-01..05`, `CON-03`, `VER-08`, `EXP-01..04` | — | non commencé |
+
+La quatrième sous-livraison est celle que `ROADMAP.md` détaille et que `chantiers/` porte. Elle
+n'est pas un complément : sans elle, un changement est accepté sans que rien n'ait discriminé
+l'exigence qu'il prétend satisfaire — voir `ROADMAP.md` §2.
+
+### Critères de sortie de L1
+
+Aux dix conditions de la règle de décision de livraison s'ajoutent les critères propres au jalon :
+
+1. les 93 exigences `[P0]` possèdent un verdict **discriminant** sur leur périmètre applicable, ou
+   l'arbitrage humain qui en tient lieu ; un contrôle vert sur la référence n'est pas un verdict ;
+2. TypeScript et Java couvrent les parcours de référence ;
+3. macOS arm64 et Linux x86-64 sont qualifiés ;
+4. le même package est exercé dans les cinq entrées Pi ;
+5. dépôt vierge, existant contrôlé, existant mal contrôlé et remise à niveau sont démontrés ;
+6. les six revues obligatoires sont réalisées et leurs constats bloquants clos, refusés
+   explicitement ou couverts par une dérogation ;
+7. aucun défaut ouvert ne remet en cause les invariants de décision, de preuve, de sécurité ou
+   d'intégration ;
+8. les capacités `[P1]` et `[P2]` absentes sont annoncées, jamais simulées par une affirmation P0.
+
+Le point 1 mérite sa formulation exacte. « Posséder un verdict » est satisfait par un contrôle qui
+aurait rendu le même verdict en l'absence de l'exigence. C'est la démonstration de `ROADMAP.md` §2,
+et c'est la raison d'être des étages 0 et 1.
+
+## 5. L2 — généralisation P1
+
+L2 ne commence qu'après qualification de L1. Chaque travail L2 réutilise les contrats communs et les
+entrées Pi, maintient les garanties P0, qualifie tout package ajouté seul puis dans le profil
+composé, et fournit une migration des données, profils et preuves persistés.
+
+| Domaine | Exigences | Dépend de |
+| --- | --- | --- |
+| Ressources, connaissance et profils versionnés | `CON-04`, `CON-05`, `CTX-03`, `EXT-05` | L1 qualifié |
+| Angles de vérification et exploitation | `VER-04`, `VER-07`, `REQ-05` | les ressources versionnées ; précède la concurrence et l'amélioration |
+| Recherche documentaire et architecture longitudinales | `RAG-03`, `RAG-05`, `ARC-05` | les ressources versionnées |
+| Coordination multi-agents et multi-modèles | `AGT-05`, `AGT-07`, `GIT-04` | les angles de vérification |
+| Boucle d'amélioration | `IMP-01`, `IMP-02`, `IMP-03` | les angles de vérification, puis les deux domaines précédents |
+
+Les valeurs initiales de délégation sont fixées par la spécification fonctionnelle : deux
+interventions simultanées, profondeur un, huit enfants au maximum par changement.
+
+`VER-04` est l'étage 4 de `chantiers/` : la mutation par le runner générique relève du socle, un
+intégrateur dédié à un outil de mutation relève de L2. Les deux ne se confondent pas.
+
+## 6. L3 — extensions optionnelles
+
+L3 est un portefeuille, pas un lot. L'absence d'une extension L3 n'empêche pas la qualification de
+L2, et il n'existe pas de statut « P2 complet » tant que le périmètre optionnel n'est pas défini.
+
+Une seule exigence `[P2]` est formalisée : `IMP-04`, optimiser une métrique sous contraintes. Les
+autres thèmes évoqués par l'amont — autres hôtes ou interfaces passant par Pi, autres systèmes
+d'exploitation, attestations renforcées, adaptateurs distants — ne sont pas des engagements.
+
+Avant d'ouvrir un travail L3, une décision d'opportunité doit fournir le cas d'usage réel et son
+bénéficiaire, l'écart que L2 ne couvre pas, les exigences identifiées avec leurs critères de
+recette, l'impact sur les frontières de confiance et les coûts, les alternatives y compris ne rien
+faire, un protocole d'expérience borné avec sa règle d'arrêt, et une décision entre intégration,
+maintien expérimental et abandon.
+
+## 7. Campagnes et revues
+
+Les campagnes `V0` à `V5` et les six revues obligatoires sont définies par
+`amont/conception-verification.md` §7 et §11 ; elles ne sont pas redéfinies ici. Deux règles
+d'application méritent d'être rappelées parce qu'elles sont faciles à contourner sans le vouloir :
+
+- `V4` est obligatoire **pour chaque combinaison revendiquée** de stack et de plateforme. Une
+  campagne exécutée une fois, hors suite par défaut, qualifie cette exécution, pas la combinaison.
+- Une indisponibilité externe ne transforme pas une propriété déterministe en propriété
+  invérifiable. `V0` à `V3` restent exécutables localement sans modèle réel.
+
+## 8. Règles de dépendance
+
+1. Un jalon ne se franchit pas parce que ses incréments sont livrés : ses critères propres
+   s'appliquent, et son verdict est recalculé.
+2. Une capacité différée qui devient nécessaire à un changement bloque ce changement. Sa priorité
+   produit ne réduit jamais l'obligation de la cible.
+3. Une exigence différée reste dans la matrice avec son contrôle prévu ; elle ne peut pas être
+   déclarée satisfaite avant exécution de ce contrôle.
+4. Une capacité requise par un incrément P0 ne peut être écartée au motif qu'une intégration avancée
+   est prévue ensuite.
+5. Toute fusion de travaux parallèles constitue un nouveau candidat et repasse ses contrôles de
+   combinaison.
+6. Un jalon déjà qualifié ne change pas rétroactivement de verdict : une connaissance nouvelle ouvre
+   une analyse, une restriction annoncée ou un changement séparé.
