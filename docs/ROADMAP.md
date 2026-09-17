@@ -52,7 +52,6 @@ non-aggravation comme critère.
 | RAG-01, RAG-02, RAG-04 | besoin de connaissance identifié, corpus officiel versionné, utilisation de la documentation vérifiée | absents |
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, expertises mobilisées, démarche évaluée | absents |
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
-| NFR-06 | observabilité sans surveillance imposée | aucun point de télémétrie n'existe, mais aucun contrôle ne l'établit |
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
 
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
@@ -65,6 +64,9 @@ différentielle juge les lignes que le candidat a écrites et laisse la dette an
 l'opposer au candidat, sur une cible Maven dont JaCoCo lie son goal `report` hors profil. Ce qu'il
 reste de QLT-04 — les exclusions, annotations de silence et modifications de seuils sous
 justification adoptée — n'est tenu que par la protection des fichiers de configuration du contrôle.
+NFR-06 en est sorti : un changement conduit sous instrumentation des sockets, du DNS, de `http` /
+`https` et de `fetch` n'ouvre aucune connexion, et une lecture des sources refuse tout client réseau
+comme toute URL d'endpoint.
 
 ### Le défaut que cette absence produit
 

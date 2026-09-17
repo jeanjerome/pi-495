@@ -8,7 +8,7 @@ import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { Harness, type HarnessDeps } from "../../src/application/harness.ts";
 import type { ControlExecutionPort } from "../../src/ports/execution.ts";
-import { fixedSources } from "../../src/application/ids.ts";
+import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
@@ -42,10 +42,22 @@ export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${nam
 
 type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & { budgets?: Partial<ActivePolicy["budgets"]>; adoption?: Partial<ActivePolicy["adoption"]> };
 
+export interface HarnessOptions {
+	policy?: PolicyOverride;
+	scripts?: Record<string, AgentScript>;
+	defaultScript?: AgentScript;
+	sandbox?: "unconfined" | "platform";
+	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
+	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
+	root?: string;
+	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
+	ids?: IdSource;
+}
+
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
-export function makeHarness(options: { policy?: PolicyOverride; scripts?: Record<string, AgentScript>; defaultScript?: AgentScript; sandbox?: "unconfined" | "platform"; controls?: (real: ControlExecutionPort) => ControlExecutionPort } = {}): TestHarness {
+export function makeHarness(options: HarnessOptions = {}): TestHarness {
 	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	const root = mkdtempSync(join(process.cwd(), "test-output", "harness-"));
+	const root = options.root ?? mkdtempSync(join(process.cwd(), "test-output", "harness-"));
 	const ledger = new SqliteLedger(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
 	const workspace = new GitWorkspace(join(root, "workspaces"));
@@ -54,9 +66,20 @@ export function makeHarness(options: { policy?: PolicyOverride; scripts?: Record
 	const controls = options.controls ? options.controls(real) : real;
 	const agent = new ScriptedAgent(options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] }, options.scripts ?? {});
 	const sources = fixedSources();
+	const ids = options.ids ?? sources.ids;
 	const requested: DecisionRequest[] = [];
 	const progress: string[] = [];
 	const policy: ActivePolicy = { ...DEFAULT_POLICY, ...(options.policy ?? {}), budgets: { ...DEFAULT_POLICY.budgets, ...(options.policy?.budgets ?? {}) }, adoption: { ...DEFAULT_POLICY.adoption, ...(options.policy?.adoption ?? {}) } };
-	const deps: HarnessDeps = { ledger, objects, workspace, controls, agent, sandbox, clock: sources.clock, ids: sources.ids, policy, workspacePolicy: DEFAULT_WORKSPACE_POLICY, environment: { environment_id: "env_test", digest: digestValue({ test: true }), profile_id: sandbox.backend.backend }, model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off" }, instance_id: "test", denied_read_paths: [root], onDecisionRequested: (r) => requested.push(r), onProgress: (m) => progress.push(m) };
+	const deps: HarnessDeps = { ledger, objects, workspace, controls, agent, sandbox, clock: sources.clock, ids, policy, workspacePolicy: DEFAULT_WORKSPACE_POLICY, environment: { environment_id: "env_test", digest: digestValue({ test: true }), profile_id: sandbox.backend.backend }, model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off" }, instance_id: "test", denied_read_paths: [root], onDecisionRequested: (r) => requested.push(r), onProgress: (m) => progress.push(m) };
 	return { harness: new Harness(deps), ledger, objects, agent, root, requested, progress };
+}
+
+/**
+ * Closes a session and opens another one on the same data directory: a Pi session ended and
+ * reopened, or the extension reloaded. Nothing is carried over in memory — the agent is new and
+ * remembers nothing — so whatever the new session knows, it read back from the ledger.
+ */
+export function reopenHarness(previous: TestHarness, options: Omit<HarnessOptions, "root" | "ids"> = {}): TestHarness {
+	previous.ledger.close();
+	return makeHarness({ ...options, root: previous.root, ids: randomIds });
 }

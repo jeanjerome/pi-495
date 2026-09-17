@@ -6,7 +6,9 @@ des campagnes exécutées manuellement (voir `QUALIFICATION.md`).
 L'expression de besoins porte 85 exigences fonctionnelles `[P0]` en `####` et 8 exigences non
 fonctionnelles `NFR-01` à `NFR-08` `[P0]` en `###`, soit 93. Chacune doit posséder une ligne ici,
 couverte ou explicitement non couverte : une exigence absente de cette table n'est pas une exigence
-satisfaite, c'est une exigence dont l'état est inconnu.
+satisfaite, c'est une exigence dont l'état est inconnu. `scripts/check-traceability.ts`, branché sur
+`npm run check`, développe les notations de plage de la première colonne et refuse un identifiant
+`[P0]` de l'amont qui n'apparaît dans aucune des deux tables.
 
 | Exigence / règle | Composants | Preuves |
 | --- | --- | --- |
@@ -20,7 +22,7 @@ satisfaite, c'est une exigence dont l'état est inconnu.
 | CON-01 | rôle `observe` de `context.ts` (interdiction d'exécuter build et scripts d'installation), profil sandbox `observe` en lecture seule | `v1/sandbox` (profil), `v0/change-rules` (observation possible à toute phase) ; l'instruction de rôle elle-même est vérifiée par revue de code |
 | CON-02 | G3, artefact de conception versionné | `v0/change-rules`, `v0/change-nominal` |
 | CTX-01, CTX-02, CTX-05 | `context.ts` | `v2/harness` (manifestes), prompts étiquetés non fiables (revue de code) |
-| CTX-04 | `context.ts` reconstruit le manifeste à chaque intervention ; compaction Pi activée dans `worker-main.ts` | `v2/harness` (manifestes) ; **non qualifié** : aucune compaction forcée ni reprise de session après compaction n'est exercée |
+| CTX-04 | `context.ts` reconstruit le manifeste à chaque intervention ; compaction Pi activée dans `worker-main.ts` ; les révisions adoptées, les budgets et le feedback borné sont tenus par le journal, jamais par un résumé de modèle | `v2/harness` (manifestes ; une session rouverte sur le même journal, avec un agent neuf, retrouve les mêmes révisions de mandat, exigences, protocole et conception, les mêmes budgets consommés et le feedback dû à la tentative suivante, puis rebâtit des instructions complètes portant les contrôles gelés avant la coupure) |
 | AGT-01, AGT-02, RM-022 | `worker-main`, `intervention.start` | `v0/change-rules`, `v1/agent-port` |
 | AGT-03, AGT-04, AGT-06, SA-018 | `worker-main` (garde de chemins), `scripted-agent`, `reports.ts` | `v1/agent-port`, `v0/reports` |
 | VER-01, VER-02, SA-013, SA-014, RM-016, RM-017 | `parsers.ts`, `runner.ts` | `v1/control-runner`, `v2/harness` (/verify) |
@@ -46,17 +48,17 @@ satisfaite, c'est une exigence dont l'état est inconnu.
 | UX-01 | extension | e2e `pi -p "/495 start …"` avec modèle réel |
 | UX-02, UX-04, SA-029 | extension, `views.ts` | `v3/pi-entries` |
 | UX-03 | `views.ts`, `text.ts` | `v3/pi-entries` |
-| UX-05 | `extension/index.ts` (`bind`, `unbind`, résolution par session puis par `cwd`), liaison conservée dans le journal et non dans la session Pi, `operations.idempotency_key` unique | `v2/ledger` (liaison, déliaison), `v3/pi-entries` ; **non qualifié** : le rechargement de l'extension et la bifurcation de conversation ne sont pas exercés |
+| UX-05 | `extension/index.ts` (`bind`, `unbind`, résolution par session puis par `cwd`), liaison conservée dans le journal et non dans la session Pi, opérations projetées dans la table `operations` par `ledger.appendChange` sous une clé `idempotency_key` unique en base | `v2/ledger` (liaison, déliaison ; extension rechargée et conversation bifurquée : la seconde session retrouve la liaison par `cwd` et l'opération active, et l'ouverture d'un second contrôle ou d'une seconde intégration sous la même clé est refusée sans laisser d'événement ; une clé déjà prise le reste après clôture), `v0/change-rules` (`OPERATION_ACTIVE`), `v3/pi-entries` |
 | UX-06..UX-10, SA-022..SA-028, RM-057..RM-066 | `review.ts`, `diff.ts`, `review-surface.ts` | `v0/review-model`, `v0/review-surface` |
 | UX-11 | `review-text.ts` | `v0/review-model` (données) ; concordance multicanale non exercée en RPC |
 | EXT-01 | `target.ts` (`capability_missing`), `backends.ts` (sandbox non qualifiée refusée), motif d'arrêt `capability_missing` | `v1/sandbox`, `v1/control-runner`, `v2/harness` |
-| EXT-02 | `runtime.ts` (`environment_digest` couvrant l'arbre exécuté), `ResourceLoader` explicite de `worker-main.ts` : aucun skill, `AGENTS.md`, extension ou package du projet n'est chargé | `v1/agent-port` ; **non qualifié** : la requalification déclenchée par un changement de version n'est pas exercée |
+| EXT-02 | `runtime.ts` (`environment_digest` couvrant l'arbre exécuté), `describeEnvironment` qui empreinte les versions des composants sondés, `reusableQualification` conditionnée à l'environnement, gate G2 et invalidation `environment_changed` | `v1/agent-port` (aucun skill, `AGENTS.md`, extension ou package du projet n'est chargé), `v1/platform-paths` (une version de composant qui bouge donne une autre empreinte, toutes choses égales par ailleurs ; la qualification établie sous l'ancienne n'est pas réutilisée, le protocole qui la porte échoue à G2, les preuves mesurées avant sont invalidées et le changement revient à la conception de la vérification ; une mise à jour pendant une intervention est refusée) |
 | EXT-03, PRE-02, REC-28 | `target.ts`, F-JAVA | `v1/control-runner`, V4 Java |
 | EXT-04, NFR-07 | règle d'imports | `scripts/check-layers.ts` |
-| IMP-05 | pause et annulation, dossier exportable hors modèle, constats de revue séparés du verdict | `v0/change-rules`, `v2/export-integration`, `v0/review-model` ; **non qualifié** : la séparation observations mécaniques / jugements / risques résiduels dans le rapport n'est portée par aucun contrôle |
+| IMP-05 | pause et annulation, dossier exportable hors modèle, constats de revue séparés du verdict, `application/report.ts` (trois natures : ce que les contrôles ont mesuré, ce qui en a été conclu et par quelle autorité, ce qui reste non établi), `formatReport` et `/495 report` | `v0/change-rules`, `v2/export-integration`, `v0/review-model`, `v0/engineering-report` (une revue de modèle est classée en jugement et jamais en observation, aucun identifiant n'appartient à deux natures, une exécution dont tous les contrôles passent nomme encore ce qu'elle n'établit pas, et les limites — indécis, instable, tronqué, exclu, toléré, non qualifié, exigence sans contrôle — deviennent des risques nommés), `v2/harness` (le rapport d'un changement conduit est une projection du journal, identique à la relecture et sans exécuter quoi que ce soit) |
 | NFR-01, NFR-02 | package, données locales | chargement par manifeste, aucun service distant |
 | NFR-04 | bornes de flux | `v1/sandbox` (timeout, troncature) ; pas de mesure p95 |
-| NFR-06 | `runtime.ts` (diagnostics locaux), export expurgé ; aucun point de télémétrie n'existe dans les sources | `v2/export-integration`, revue de code (absence d'endpoint) |
+| NFR-06 | `runtime.ts` (diagnostics locaux), export expurgé ; aucun point de télémétrie n'existe dans les sources | `v2/export-integration`, `v2/telemetry` (un changement conduit de la demande à l'export expurgé, sockets, DNS, `http`/`https` et `fetch` instrumentés, n'ouvre aucune connexion et ne résout aucun hôte, et tout ce qui s'exécute hors du processus le fait sous un profil `denied` ; aucune source ne porte de client réseau ni d'URL d'endpoint) |
 | PRG-01, PRG-02 | capture vide / sans HEAD | `v2/workspace` ; socle non conduit de bout en bout |
 | PRG-03..05 | `program.ts` | `v0/program` (noyau seulement) |
 | SA-008 | `preparation.open`, `preparation.close` | `v2/preparation` |

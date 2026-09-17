@@ -2,7 +2,8 @@ import { strict as assert } from "node:assert";
 import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import { makeHarness, reopenHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import type { ContextManifest } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -373,5 +374,102 @@ describe("what a change introduces, recomputed from the store (QLT-04)", () => {
 		const referenceBytes = await t.objects.get(sides[1]!["src/greet.js"]!.digest);
 		assert.equal(new TextDecoder().decode(referenceBytes!), readFileSync(join(p, "src", "greet.js"), "utf8"));
 		assert.ok(t.ledger.listArtifacts(state.change_id, "candidate").some((a) => a.ref.artifact_id === `base_files_${candidateId}`));
+	});
+});
+
+describe("obligations and budgets across a session change (CTX-04, REC-06)", () => {
+	/** The context manifests recorded so far, in the order the interventions were run. */
+	async function manifests(t: TestHarness, changeId: string): Promise<ContextManifest[]> {
+		const refs = t.ledger.listArtifacts(changeId, "context");
+		return Promise.all(refs.map(async (a) => t.harness.readArtifact<ContextManifest>(a.ref)));
+	}
+	function normative(state: { adopted: Record<string, { ref: { artifact_id: string; revision: number; content_digest: string } } | undefined> }): Record<string, unknown> {
+		const out: Record<string, unknown> = {};
+		for (const kind of ["mandate", "requirements", "protocol", "design"]) {
+			const a = state.adopted[kind];
+			out[kind] = a ? { artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest } : null;
+		}
+		return out;
+	}
+
+	it("a session opened on the same ledger restores the same normative revisions, the same remaining budgets and the bounded feedback, with no model memory", async () => {
+		const p = project();
+		// The first session spends an attempt on a candidate the controls refuse and opens the
+		// correction; the second session is a different process with a different agent.
+		const first = track(makeHarness({ policy: { budgets: { max_attempts: 3 } }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: WRONG }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await first.harness.start({ project_path: p, request_text: "greet must keep returning Hello, <name>", actor: HUMAN });
+		// The session ends one step after the refusal: the correction is open and nothing has produced it.
+		let cut = await first.harness.advance(change.change_id, { max_steps: 1 });
+		for (let i = 0; i < 40 && cut.stopped_because === "max_steps" && first.ledger.loadChange(change.change_id)!.state.feedback.length === 0; i++) {
+			cut = await first.harness.advance(change.change_id, { max_steps: 1 });
+		}
+		const before = first.ledger.loadChange(change.change_id)!.state;
+		assert.equal(before.phase, "implementing", "the first session stopped with a correction open");
+		assert.equal(before.attempts[0]?.result, "superseded", "the refused attempt is historised");
+		assert.equal(before.budgets.attempts_used, 2, "the refused attempt is spent and a correction is open");
+		assert.equal(before.feedback.length, 1, "the feedback owed to the next attempt is in the ledger");
+		const normativeBefore = normative(before);
+		const budgetsBefore = structuredClone(before.budgets);
+		const manifestsBefore = await manifests(first, change.change_id);
+
+		// Session shutdown, then a new session on the same data: new ledger handle, new identities,
+		// a new scripted agent that was never told what the first one did.
+		const second = reopenHarness(first, { policy: { budgets: { max_attempts: 3 } }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } });
+		const restored = second.ledger.loadChange(change.change_id)!.state;
+		assert.deepEqual(normative(restored), normativeBefore, "the adopted mandate, requirements, protocol and design are the same revisions");
+		assert.deepEqual(restored.budgets, budgetsBefore, "the budgets are read back, not restarted");
+		assert.deepEqual(restored.feedback, before.feedback);
+		assert.equal(second.harness.status(change.change_id).change?.attempts.used, 2, "the second session inherits the attempts already spent, it does not start over");
+		const protocolAfter = await second.harness.latestArtifact<{ controls: { control_id: string }[] }>(restored, "protocol");
+		assert.deepEqual(protocolAfter!.content.controls.map((c) => c.control_id).sort(), ["lint", "unit"], "the frozen controls are read back from the store");
+
+		const finished = await second.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(finished.stopped_because, "closed", `${finished.steps.join(" | ")} :: ${JSON.stringify(finished.view.change?.stop_detail)}`);
+		assert.equal(finished.view.change?.outcome, "accepted");
+		assert.equal(finished.view.change?.attempts.used, 2, "the correction opened before the cut is the one produced, on the same budget");
+
+		// Every intervention of the second session rebuilds its manifest from the ledger: the same
+		// adopted revisions, the full instructions, and the obligations of the protocol frozen before
+		// the session ended — none of which a model summary carried across.
+		const produced = (await manifests(second, change.change_id)).slice(manifestsBefore.length);
+		assert.ok(produced.length > 0, "the second session ran at least one intervention");
+		for (const manifest of produced) {
+			assert.equal(manifest.trusted_instructions[0], manifestsBefore[0]!.trusted_instructions[0], "the invariant instructions are restated in full");
+			for (const ref of manifest.adopted_refs) {
+				assert.deepEqual({ artifact_id: ref.artifact_id, revision: ref.revision, digest: ref.digest }, normativeBefore[ref.kind]);
+			}
+		}
+		const implement = produced.find((m) => m.role === "implement");
+		assert.ok(implement, "the correction was produced in the second session");
+		assert.ok(implement.trusted_instructions.some((i) => i.includes("The kernel will judge your work by running")), "the frozen controls are restated to the producer");
+		second.ledger.close();
+	});
+});
+
+describe("the report an engineer reads, on a conducted change (IMP-05)", () => {
+	it("separates what the controls measured, what was concluded from it and what stays unestablished, from the ledger alone", async () => {
+		const p = project();
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour, tidy the implementation", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		assert.equal(result.view.change?.outcome, "accepted");
+
+		const engineering = await t.harness.report(change.change_id);
+		// Measured: every control run the ledger holds, on the candidate, on the reference and on the
+		// qualification witnesses, each with the subject it was pointed at.
+		assert.deepEqual(engineering.observations.map((o) => o.evidence_id).sort(), t.ledger.listEvidence(change.change_id).map((e) => e.evidence_id).sort());
+		assert.deepEqual([...new Set(engineering.observations.map((o) => o.subject_kind))].sort(), ["candidate", "fixture", "reference"]);
+		// Concluded: the gates, by the kernel. Nothing here was written by a model.
+		assert.deepEqual(engineering.judgments.map((j) => j.id), ["G0", "G1", "G2", "G3", "G4", "G5"]);
+		assert.ok(engineering.judgments.every((j) => j.authority === "kernel"));
+		// Unestablished: an accepted change still says what its green controls do not prove.
+		assert.ok(engineering.residual_risks.some((risk) => risk.code === "controls_are_not_a_proof"), JSON.stringify(engineering.residual_risks));
+		// The whole thing is a projection of the ledger: a second session builds the same report, and
+		// no intervention is run to produce it.
+		const before = t.progress.length;
+		const again = await t.harness.report(change.change_id);
+		assert.deepEqual(again, engineering);
+		assert.equal(t.progress.length, before, "reading the report runs nothing");
 	});
 });

@@ -31,6 +31,7 @@ import type { AgentPort, ControlExecutionPort, InterventionEvent, InterventionMa
 import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
 import { qualifyControlDetailed, reusableQualification, type DetailedQualification } from "./qualification.ts";
 import { buildContext, outputSchemaFor } from "./context.ts";
+import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { detectStack, type StackDetection } from "./target.ts";
@@ -241,6 +242,17 @@ export class Harness {
 		if (!loaded) return statusView(null, null, [`change ${changeId} not found`]);
 		const program = this.deps.ledger.loadProgram(loaded.state.program_id)?.state ?? null;
 		return statusView(program, loaded.state, [`sandbox:${this.deps.sandbox.backend.backend}:${this.deps.sandbox.qualification.qualified ? "qualified" : "not-qualified"}`]);
+	}
+
+	/**
+	 * The engineer's report on a change (IMP-05): measured, concluded and unestablished, kept apart.
+	 * Built from the ledger only, so interrupting the change does not cost the reader its content.
+	 */
+	async report(changeId: string): Promise<EngineeringReport> {
+		const loaded = this.deps.ledger.loadChange(changeId);
+		if (!loaded) throw new DomainError("UNKNOWN_REFERENCE", `change ${changeId} not found`);
+		const protocol = await this.latestArtifact<Protocol>(loaded.state, "protocol").catch(() => null);
+		return engineeringReport(loaded.state, this.deps.ledger.listEvidence(changeId), protocol?.content ?? null);
 	}
 
 	// --- conduct loop ----------------------------------------------------------------------------

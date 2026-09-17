@@ -12,7 +12,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest, HumanOrigin } from "../contracts/v1/decision.ts";
 import { DomainError } from "../domain/errors.ts";
-import { formatDecision, formatStatus } from "../presentation/structured/text.ts";
+import { formatDecision, formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
 import { openReviewTui } from "./review-command.ts";
@@ -23,7 +23,7 @@ interface Binding {
 	change_id: string;
 }
 
-const SUBCOMMANDS = ["start", "status", "resume", "review", "verify", "decide", "integrate", "export", "pause", "cancel", "bind", "unbind", "help"] as const;
+const SUBCOMMANDS = ["start", "status", "resume", "review", "report", "verify", "decide", "integrate", "export", "pause", "cancel", "bind", "unbind", "help"] as const;
 
 export default function harness495(pi: ExtensionAPI): void {
 	let runtime: HarnessRuntime | null = null;
@@ -168,7 +168,7 @@ export default function harness495(pi: ExtensionAPI): void {
 	pi.registerMessageRenderer("495", (message, _options, theme) => new Text(theme.fg("accent", "495 ") + theme.fg("text", String(message.content)), 0, 0));
 
 	pi.registerCommand("495", {
-		description: "495 harness: start|status|resume|review|verify|decide|integrate|export|pause|cancel|bind|unbind",
+		description: "495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|cancel|bind|unbind",
 		getArgumentCompletions: (prefix) => {
 			const items = SUBCOMMANDS.filter((s) => s.startsWith(prefix.trim())).map((s) => ({ value: s, label: s }));
 			return items.length ? items : null;
@@ -227,6 +227,12 @@ export default function harness495(pi: ExtensionAPI): void {
 						}
 						return;
 					}
+					case "report": {
+						if (!binding) { emit(ctx, "no binding"); return; }
+						const report = await rt.harness.report(binding.change_id);
+						emit(ctx, formatReport(report, lang()), { report });
+						return;
+					}
 					case "integrate": {
 						if (!binding) { emit(ctx, "no binding"); return; }
 						if (!rt.config.policy.integration_enabled) { emit(ctx, lang() === "fr" ? "L'intégration est désactivée par la politique (HARNESS495_INTEGRATION=1 ou config.json)." : "Integration is disabled by policy."); return; }
@@ -277,7 +283,7 @@ export default function harness495(pi: ExtensionAPI): void {
 						emit(ctx, "unbound");
 						return;
 					default:
-						emit(ctx, `495 ${VERSION_495}\n/495 start <demande> · status · resume · review [path|cand_id] · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`);
+						emit(ctx, `495 ${VERSION_495}\n/495 start <demande> · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`);
 				}
 			} catch (error) {
 				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : (error as Error).message;
@@ -294,7 +300,7 @@ export default function harness495(pi: ExtensionAPI): void {
 		promptSnippet: "Query the 495 harness (status, pending decisions, review summary) or start a change from a request",
 		promptGuidelines: ["Use harness495 to read the harness state; deterministic /495 commands remain the way humans decide."],
 		parameters: Type.Object({
-			operation: StringEnum(["status", "start", "verify", "list_pending_decisions", "review_summary", "export"] as const),
+			operation: StringEnum(["status", "start", "verify", "list_pending_decisions", "review_summary", "report", "export"] as const),
 			request_text: Type.Optional(Type.String({ description: "for start: the request" })),
 			path: Type.Optional(Type.String({ description: "for review_summary: a path to read" })),
 		}),
@@ -325,6 +331,11 @@ export default function harness495(pi: ExtensionAPI): void {
 					const review = await rt.harness.openReview(binding.change_id);
 					const { summarizeReview } = await import("../presentation/structured/review-text.ts");
 					return say(await summarizeReview(review, params.path ?? null, lang()));
+				}
+				case "report": {
+					if (!binding) return say("no program bound");
+					const report = await rt.harness.report(binding.change_id);
+					return say(formatReport(report, lang()), { report });
 				}
 				case "export": {
 					if (!binding) return say("no program bound");

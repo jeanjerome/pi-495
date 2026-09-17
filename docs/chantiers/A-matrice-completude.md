@@ -1,6 +1,6 @@
 # Transverse A — complétude de la matrice de traçabilité
 
-**État :** à faire
+**État :** livré
 **Objet :** `docs/TRACEABILITY.md` doit porter une ligne par exigence `[P0]`, couverte ou non
 **Ne dépend d'aucun étage**
 
@@ -71,4 +71,28 @@ Critères d'acceptation :
 
 ## Journal
 
-_À compléter._
+`scripts/check-traceability.ts` extrait les identifiants `[P0]` des titres `####` et `###` de
+l'amont, développe les notations de plage de la première colonne des deux tables de la matrice
+(`ARC-01..03`, `UX-06..UX-10`, `RM-006..009`) et refuse un identifiant absent des deux. Il relit
+aussi le décompte annoncé en tête de la matrice, pour qu'une exigence promue en `[P0]` ne laisse pas
+la phrase mentir. Branché sur `npm run check` par `lint:traceability`.
+
+Les cinq recettes :
+
+- `CTX-04` — une session rouverte sur le même journal, avec un agent neuf, retrouve les révisions
+  adoptées, les budgets consommés et le feedback borné, puis rebâtit des instructions complètes
+  portant les contrôles gelés avant la coupure (`v2/harness`).
+- `UX-05` — les opérations sont projetées dans la table `operations` par `appendChange`, dans la
+  même transaction que les événements qui les ouvrent ; deux sessions qui dérivent la même clé pour
+  le même contrôle ou la même intégration n'en exécutent qu'un, la seconde ouverture étant refusée
+  sans laisser d'événement (`v2/ledger`).
+- `EXT-02` — une version de composant qui bouge donne une autre empreinte d'environnement, la
+  qualification établie sous l'ancienne n'est plus réutilisée, le protocole qui la porte échoue à
+  G2, et le changement en cours revient à la conception de la vérification (`v1/platform-paths`).
+- `IMP-05` — `application/report.ts` sépare observations mécaniques, jugements et risques
+  résiduels, avec `formatReport` et `/495 report` comme surfaces ; une revue de modèle est un
+  jugement d'autorité `model`, et une exécution dont tous les contrôles passent nomme encore ce
+  qu'elle n'établit pas (`v0/engineering-report`, `v2/harness`).
+- `NFR-06` — un changement conduit de la demande à l'export expurgé, sockets, DNS, `http`/`https`
+  et `fetch` instrumentés, n'ouvre aucune connexion et ne résout aucun hôte ; aucune source ne
+  porte de client réseau ni d'URL d'endpoint (`v2/telemetry`).

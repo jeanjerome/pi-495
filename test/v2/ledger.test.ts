@@ -7,7 +7,8 @@ import { SqliteLedger, evidenceDigest } from "../../src/adapters/storage-sqlite/
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { Evidence } from "../../src/contracts/v1/evidence.ts";
-import { Runner, candidate, HUMAN, KERNEL, ENV } from "../helpers/change-fixture.ts";
+import { Runner, candidate, tick, HUMAN, KERNEL, ENV } from "../helpers/change-fixture.ts";
+import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { replay } from "../../src/domain/change/apply.ts";
 
 let dir: string;
@@ -175,5 +176,75 @@ describe("CAS object store (§7.3)", () => {
 		crash = false;
 		const ref = await cas.putText("data");
 		assert.equal(await cas.verify(ref.digest), true);
+	});
+});
+
+describe("Pi session lifecycle: reload, fork, and operations that must not run twice (UX-05, REC-40)", () => {
+	/** The change frozen on a candidate, ready to be verified, as a session would leave it. */
+	function frozen(ledger: SqliteLedger): { revision: number; digest: string } {
+		const r = new Runner();
+		r.toImplementing().implement().freeze(candidate("c1"));
+		const receipt = ledger.appendChange("chg_1", 0, r.events, { correlation_id: "cor_s1" });
+		return { revision: receipt.revision, digest: r.s.candidate!.manifest_digest };
+	}
+	const opened = (operationId: string, key: string, kind: string): ChangeEvent => ({ type: "operation.opened", at: tick(), actor: KERNEL, operation_id: operationId, kind, idempotency_key: key });
+
+	it("a reloaded extension and a forked conversation resolve the same change, and the control opened by the first session cannot be opened again by the second", () => {
+		const path = join(dir, "state.sqlite");
+		const first = new SqliteLedger(path);
+		const { revision, digest } = frozen(first);
+		first.bindSession({ session_id: "s1", cwd: "/p", program_id: "prg_1", change_id: "chg_1", bound_at: "t" });
+		// The key names the work, not the session: the same candidate and the same evidence count give
+		// the same key in whichever session recomputes it.
+		const key = `verify:${digest}:0`;
+		const afterOpen = first.appendChange("chg_1", revision, [opened("op_v1", key, "verification")], { correlation_id: "cor_s1" });
+		assert.equal(first.getOperationByKey(key)?.operation_id, "op_v1");
+		assert.equal(first.getOperationByKey(key)?.status, "running");
+		first.close();
+
+		// Extension reloaded: another handle on the same file, nothing carried in memory.
+		const reloaded = new SqliteLedger(path);
+		assert.equal(reloaded.getSessionBinding("s1")?.change_id, "chg_1", "the binding lives in the ledger, not in the Pi session");
+		assert.equal(reloaded.loadChange("chg_1")?.state.operation?.operation_id, "op_v1", "the active operation is restored");
+		// Conversation forked: a new session id, the same working directory, the same change.
+		assert.equal(reloaded.getSessionBinding("s2"), null, "a forked session inherits no binding of its own");
+		assert.deepEqual(reloaded.findBindingsByCwd("/p").map((b) => b.change_id), ["chg_1"], "it finds the change by its working directory");
+		reloaded.bindSession({ session_id: "s2", cwd: "/p", program_id: "prg_1", change_id: "chg_1", bound_at: "t" });
+
+		const forked = reloaded.loadChange("chg_1")!;
+		assert.throws(
+			() => reloaded.appendChange("chg_1", forked.revision, [opened("op_v2", key, "verification")], { correlation_id: "cor_s2" }),
+			(e: Error) => /already holds the idempotency key/.test(e.message),
+			"the second session would have run the same control a second time",
+		);
+		assert.equal(reloaded.loadChange("chg_1")?.revision, afterOpen.revision, "the refused append left no event behind");
+		assert.equal(reloaded.getOperationByKey(key)?.operation_id, "op_v1", "one control run, one operation");
+		reloaded.close();
+	});
+
+	it("an integration replayed under the same key runs once; a different key on an active operation is refused", () => {
+		const ledger = new SqliteLedger(join(dir, "state.sqlite"));
+		const { revision } = frozen(ledger);
+		const key = "integrate:sha256:abc:HEAD";
+		let at = revision;
+		at = ledger.appendChange("chg_1", at, [opened("op_i1", key, "integration")], { correlation_id: "a" }).revision;
+		// The same session retrying, or a forked one recomputing the same key for the same
+		// operation, updates the row it already owns instead of opening a second effect.
+		at = ledger.appendChange("chg_1", at, [{ type: "operation.effect", at: tick(), actor: KERNEL, operation_id: "op_i1", effect_state: "prepared", detail: null }], { correlation_id: "b" }).revision;
+		assert.equal(ledger.getOperationByKey(key)?.effect_state, "prepared");
+		assert.throws(() => ledger.appendChange("chg_1", at, [opened("op_i2", key, "integration")], { correlation_id: "c" }), /already holds the idempotency key/);
+		// Closing the operation records how it ended; the key stays taken, so the effect is never redone.
+		at = ledger.appendChange("chg_1", at, [{ type: "operation.effect", at: tick(), actor: KERNEL, operation_id: "op_i1", effect_state: "confirmed", detail: null }, { type: "operation.closed", at: tick(), actor: KERNEL, operation_id: "op_i1" }], { correlation_id: "d" }).revision;
+		assert.equal(ledger.getOperationByKey(key)?.status, "succeeded");
+		assert.throws(() => ledger.appendChange("chg_1", at, [opened("op_i3", key, "integration")], { correlation_id: "e" }), /already holds the idempotency key/);
+		assert.equal((ledger.db.prepare("SELECT COUNT(*) AS n FROM operations").get() as { n: number }).n, 1);
+		ledger.close();
+	});
+
+	it("the domain refuses a second operation on the same change before the ledger ever sees it (RM-067)", () => {
+		const r = new Runner();
+		r.toImplementing().implement().freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k1" });
+		r.expectError({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v2", idempotency_key: "k2" }, "OPERATION_ACTIVE");
 	});
 });

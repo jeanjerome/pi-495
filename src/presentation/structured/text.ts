@@ -1,4 +1,5 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
+import type { EngineeringReport } from "../../application/report.ts";
 import type { StatusView } from "../../application/views.ts";
 
 const L = {
@@ -43,5 +44,30 @@ export function formatDecision(req: DecisionRequest): string {
 	if (req.recommendation) lines.push(`  (${req.language === "fr" ? "recommandation" : "recommendation"}: ${req.recommendation})`);
 	for (const o of req.options) lines.push(`  - ${o.id}: ${o.label}${o.risky ? " ⚠" : ""} — ${o.effect}`);
 	lines.push(req.language === "fr" ? `  autorité requise: ${req.required_authority}` : `  required authority: ${req.required_authority}`);
+	return lines.join("\n");
+}
+
+const R = {
+	fr: { title: "Rapport", observations: "Observations mécaniques", judgments: "Jugements", risks: "Risques résiduels", none: "aucun", outcome: "Résultat", candidate: "Candidat", authority: { kernel: "noyau", model: "modèle", human: "humain" } },
+	en: { title: "Report", observations: "Mechanical observations", judgments: "Judgments", risks: "Residual risks", none: "none", outcome: "Outcome", candidate: "Candidate", authority: { kernel: "kernel", model: "model", human: "human" } },
+};
+
+/**
+ * The three natures in three sections, in this order and never merged: what was measured, what was
+ * concluded from it, and what remains unestablished (IMP-05).
+ */
+export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"): string {
+	const t = R[lang];
+	const lines = [`${t.title} ${report.change_id} — ${t.outcome}: ${report.outcome}`];
+	if (report.candidate) lines.push(`${t.candidate}: ${report.candidate.candidate_id} ${report.candidate.manifest_digest.slice(0, 23)}`);
+	lines.push("", `## ${t.observations}`);
+	if (report.observations.length === 0) lines.push(`  ${t.none}`);
+	for (const o of report.observations) lines.push(`  ${o.control_id} v${o.control_version} ${o.subject_kind} ${o.subject_digest.slice(0, 19)} → ${o.verdict}${o.blocking_findings ? ` (${o.blocking_findings})` : ""}${o.valid ? "" : " (invalid)"}`);
+	lines.push("", `## ${t.judgments}`);
+	if (report.judgments.length === 0) lines.push(`  ${t.none}`);
+	for (const j of report.judgments) lines.push(`  [${t.authority[j.authority]}] ${j.by}: ${j.statement}${j.binding ? "" : " (—)"}`);
+	lines.push("", `## ${t.risks}`);
+	if (report.residual_risks.length === 0) lines.push(`  ${t.none}`);
+	for (const r of report.residual_risks) lines.push(`  ${r.code}: ${r.statement}`);
 	return lines.join("\n");
 }

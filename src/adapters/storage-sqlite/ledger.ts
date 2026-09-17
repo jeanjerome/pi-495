@@ -124,8 +124,35 @@ export class SqliteLedger implements LedgerPort {
 			let state: ChangeState | null = loaded?.state ?? null;
 			for (const e of events) state = apply(state, e);
 			if (!state) return;
+			for (const e of events) this.projectOperation(changeId, e);
 			this.db.prepare("INSERT INTO changes (change_id, program_id, increment_id, revision, phase, status, outcome, state, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (change_id) DO UPDATE SET revision = excluded.revision, phase = excluded.phase, status = excluded.status, outcome = excluded.outcome, state = excluded.state, updated_at = excluded.updated_at").run(changeId, state.program_id, state.increment_id, state.revision, state.phase, state.status, state.outcome, JSON.stringify(state), state.updated_at);
 		});
+	}
+
+	/**
+	 * Effectful operations are recorded in the same transaction as the events that open them, under
+	 * a key unique across the whole database. Two sessions reading the same change — a reloaded
+	 * extension, a forked conversation — derive the same key for the same control run or the same
+	 * integration, and the second one is refused here rather than executing the effect twice.
+	 */
+	private projectOperation(changeId: string, event: ChangeEvent): void {
+		if (event.type === "operation.opened") {
+			const existing = this.getOperationByKey(event.idempotency_key);
+			if (existing && existing.operation_id !== event.operation_id) {
+				throw new DomainError("OPERATION_ACTIVE", `operation ${existing.operation_id} already holds the idempotency key ${event.idempotency_key}; ${event.operation_id} would run the same ${event.kind} a second time`);
+			}
+			this.upsertOperation({ operation_id: event.operation_id, idempotency_key: event.idempotency_key, operation_type: event.kind, aggregate_id: changeId, inputs_digest: digestBytes(event.idempotency_key), status: "running", effect_state: "none", result: null, created_at: event.at, updated_at: event.at });
+			return;
+		}
+		if (event.type === "operation.effect") {
+			const current = this.getOperation(event.operation_id);
+			if (current) this.upsertOperation({ ...current, effect_state: event.effect_state, status: event.effect_state === "failed" ? "failed" : event.effect_state === "uncertain" ? "indeterminate" : current.status, result: event.detail, updated_at: event.at });
+			return;
+		}
+		if (event.type === "operation.closed") {
+			const current = this.getOperation(event.operation_id);
+			if (current) this.upsertOperation({ ...current, status: current.status === "running" ? "succeeded" : current.status, updated_at: event.at });
+		}
 	}
 
 	loadChange(changeId: string): { state: ChangeState; revision: number } | null {

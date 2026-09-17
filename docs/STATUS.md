@@ -201,13 +201,21 @@ d'exclusion justifiée n'est gelée avec le protocole. Voir `chantiers/04`.
   exige qu'un contrôle qualifié passe sur la référence, donc aucun contrôle qualifié ne porte
   aujourd'hui de constat préexistant sur un défaut de test — la tolérance est désormais exercée par
   le contrôle structurel, qui passe sur la référence tout en nommant les violations qu'il y trouve.
-- Portabilité (NFR-05) et observabilité (NFR-06) : la première est annoncée sans être qualifiée, la
-  seconde n'est établie par aucun contrôle bien qu'aucun point de télémétrie n'existe dans les
-  sources.
-- Recettes non exercées sur des exigences par ailleurs couvertes : compaction forcée et reprise de
-  session (CTX-04), rechargement de l'extension et bifurcation de conversation (UX-05),
+- Portabilité (NFR-05) : annoncée sans être qualifiée, le backend `bwrap` n'ayant jamais été exécuté.
+- Observabilité sans surveillance imposée (NFR-06) : établie. Un changement conduit de la demande à
+  l'export expurgé, sockets, DNS, `http`/`https` et `fetch` instrumentés, n'ouvre aucune connexion
+  et ne résout aucun hôte, et tout ce qui s'exécute hors du processus le fait sous un profil
+  `denied` ; aucune source ne porte de client réseau ni d'URL d'endpoint.
+- Recettes précédemment non exercées sur des exigences par ailleurs couvertes : compaction forcée et
+  reprise de session (CTX-04), rechargement de l'extension et bifurcation de conversation (UX-05),
   requalification déclenchée par un changement de version (EXT-02), séparation observations /
-  jugements / risques résiduels dans le rapport (IMP-05). Chacune est marquée dans
-  `TRACEABILITY.md`.
+  jugements / risques résiduels dans le rapport (IMP-05). Les quatre sont désormais exercées ;
+  `TRACEABILITY.md` nomme le contrôle qui porte chacune. La complétude de la matrice elle-même est
+  tenue par `scripts/check-traceability.ts`, branché sur `npm run check` : un identifiant `[P0]` de
+  l'amont absent des deux tables fait échouer la vérification.
+- Rapport d'ingénierie (IMP-05) : `application/report.ts` sépare ce que les contrôles ont mesuré, ce
+  qui en a été conclu et par quelle autorité, et ce qui reste non établi ; `/495 report` l'expose
+  sans passer par un modèle. Portée actuelle : le rapport projette le journal d'un changement, il ne
+  couvre pas encore un programme entier.
 - Arbitrage de vérifiabilité (IH-04) : l'interaction est déclarée dans les contrats mais exclue du
   constructeur de demandes de décision ; une exigence non discriminable n'a donc pas d'issue humaine.
