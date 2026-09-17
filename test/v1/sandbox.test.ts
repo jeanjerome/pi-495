@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { SeatbeltSandbox, UnconfinedSandbox, BubblewrapSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
+import { SeatbeltSandbox, UnconfinedSandbox, BubblewrapSandbox, selectSandbox, startupIncident } from "../../src/adapters/sandbox/backends.ts";
+import { incidentOf, parseExitCode } from "../../src/adapters/execution/parsers.ts";
 import type { SandboxProfile } from "../../src/ports/execution.ts";
 import { mkdtempSync } from "node:fs";
 
@@ -78,12 +79,26 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		assert.equal(sel.backend.backend, "unconfined");
 		assert.equal(sel.qualification.qualified, false);
 	});
-	it("bubblewrap is not qualified on the reference machine and says why", () => {
+	it("bubblewrap never qualifies, whatever the machine offers, because Linux is not claimed", () => {
 		const q = new BubblewrapSandbox().qualify(profile());
 		assert.equal(q.qualified, false);
-		assert.ok(q.reasons.length > 0);
+		assert.ok(q.reasons.includes(BubblewrapSandbox.NOT_CLAIMED), q.reasons.join("; "));
 		const sel = selectSandbox({ allow_unconfined: false }, "linux");
 		assert.equal(sel.backend.backend, "bubblewrap");
+		assert.equal(sel.qualification.qualified, false);
+	});
+	it("a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)", () => {
+		const base = { signal: null, timed_out: false, spawn_error: null, stdout: new Uint8Array(), stdout_truncated: false, stderr_truncated: false, started_at: "t", ended_at: "t", duration_ms: 0 };
+		const text = (s: string) => new TextEncoder().encode(s);
+		// bwrap refuses before the command runs: nothing about the target was measured.
+		const refused = startupIncident({ ...base, exit_code: 1, stderr: text("bwrap: Creating new namespace failed: Operation not permitted\n") }, "bwrap: ", 1, "fallback");
+		assert.equal(refused?.exit_code, null, "no exit code is attributed to a command that never ran");
+		assert.equal(refused?.spawn_error, "bwrap: Creating new namespace failed: Operation not permitted");
+		assert.equal(incidentOf(refused!), "spawn error: bwrap: Creating new namespace failed: Operation not permitted");
+		assert.equal(parseExitCode(refused!).verdict, "INDETERMINATE");
+		// A control of the target that genuinely failed keeps its verdict.
+		assert.equal(startupIncident({ ...base, exit_code: 1, stderr: text("1 test failed\n") }, "bwrap: ", 1, "fallback"), null);
+		assert.equal(startupIncident({ ...base, exit_code: 0, stderr: text("bwrap: noise\n") }, "bwrap: ", 1, "fallback"), null);
 	});
 	it("the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)", async () => {
 		const sbx = new UnconfinedSandbox();

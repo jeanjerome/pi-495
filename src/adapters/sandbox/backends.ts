@@ -28,6 +28,20 @@ function sbplString(s: string): string {
 	return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
+/**
+ * A confinement tool that cannot start the command writes its own diagnostic and exits before the
+ * command runs; its stderr is therefore the only thing on that stream. Read as a verdict, "the
+ * namespace could not be created" is attributed to the control of the target and reported as a
+ * failing test. It is an incident: the restriction could not be guaranteed, so nothing was
+ * measured (RM-016, ADR-013).
+ */
+export function startupIncident(obs: ProcessObservation, prefix: string, exitCode: number, fallback: string): ProcessObservation | null {
+	if (obs.exit_code !== exitCode) return null;
+	const stderr = new TextDecoder().decode(obs.stderr.subarray(0, 400));
+	if (!stderr.startsWith(prefix)) return null;
+	return { ...obs, exit_code: null, spawn_error: stderr.split("\n")[0] ?? fallback };
+}
+
 /** macOS Seatbelt backend: `/usr/bin/sandbox-exec` with a profile generated from the mandate (D-04). */
 export class SeatbeltSandbox implements SandboxPort {
 	readonly backend = "seatbelt";
@@ -59,16 +73,20 @@ export class SeatbeltSandbox implements SandboxPort {
 	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
 		const env = buildEnv(profile.env_allowlist, profile.env);
 		const obs = await runProcess({ command: ["/usr/bin/sandbox-exec", "-p", this.profileText(profile), ...request.command], cwd: request.cwd, env }, request, signal);
-		// sandbox-exec exits 71 (EX_OSERR) when the confined command cannot be executed: an incident, not a verdict.
-		const stderr = new TextDecoder().decode(obs.stderr.subarray(0, 400));
-		if (obs.exit_code === 71 && stderr.startsWith("sandbox-exec:")) return { ...obs, exit_code: null, spawn_error: stderr.split("\n")[0] ?? "sandbox-exec could not execute the command" };
-		return obs;
+		// sandbox-exec exits 71 (EX_OSERR) when the confined command cannot be executed.
+		return startupIncident(obs, "sandbox-exec:", 71, "sandbox-exec could not execute the command") ?? obs;
 	}
 }
 
-/** Linux bubblewrap backend. Implemented, not qualified on the reference machine (see STATUS). */
+/**
+ * Linux bubblewrap backend. Written, never qualified: Linux is not a platform this package claims,
+ * and `qualify` says so whatever the machine offers. Selecting it therefore refuses every confined
+ * role with `capability_missing` (ADR-013, NFR-05, `MILESTONES.md` §3).
+ */
 export class BubblewrapSandbox implements SandboxPort {
 	readonly backend = "bubblewrap";
+	/** Said by `qualify` on every machine: the refusal is a decision about the platform, not a probe. */
+	static readonly NOT_CLAIMED = "Linux is not a claimed platform of this package: no V1 sandbox campaign and no V4 campaign qualifies this backend";
 	private readonly options: BackendOptions;
 	constructor(options: Partial<BackendOptions> = {}) {
 		this.options = { denied_read_paths: [...defaultDenied(), ...(options.denied_read_paths ?? [])], temp_paths: options.temp_paths ?? ["/tmp"] };
@@ -78,10 +96,10 @@ export class BubblewrapSandbox implements SandboxPort {
 		if (process.platform !== "linux") reasons.push("bubblewrap requires Linux");
 		const found = (process.env.PATH ?? "").split(":").some((d) => existsSync(join(d, "bwrap")));
 		if (!found) reasons.push("bwrap not found in PATH");
-		reasons.push("backend not qualified on the reference machine (Linux x86-64 campaign pending)");
+		reasons.push(BubblewrapSandbox.NOT_CLAIMED);
 		return { backend: this.backend, platform: `${process.platform}-${process.arch}`, qualified: false, capabilities: { filesystem_confinement: true, network_confinement: true, process_group_termination: true }, reasons };
 	}
-	run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
+	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
 		const args = ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp", "--die-with-parent", "--new-session"];
 		for (const p of this.options.denied_read_paths) if (existsSync(p)) args.push("--tmpfs", p);
 		for (const p of profile.write_paths) args.push("--bind", p, p);
@@ -89,7 +107,10 @@ export class BubblewrapSandbox implements SandboxPort {
 		// what both `denied` and `loopback` ask for on this platform.
 		if (profile.network !== "allowed") args.push("--unshare-net");
 		const env = buildEnv(profile.env_allowlist, profile.env);
-		return runProcess({ command: ["bwrap", ...args, "--chdir", request.cwd, "--", ...request.command], cwd: request.cwd, env }, request, signal);
+		const obs = await runProcess({ command: ["bwrap", ...args, "--chdir", request.cwd, "--", ...request.command], cwd: request.cwd, env }, request, signal);
+		// bwrap exits 1 after writing `bwrap: <reason>` when it cannot set up the namespaces it was
+		// asked for — a container that forbids user namespaces, a kernel without them.
+		return startupIncident(obs, "bwrap: ", 1, "bwrap could not confine the command") ?? obs;
 	}
 }
 
