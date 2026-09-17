@@ -76,6 +76,6 @@ HARNESS495_RUN_JAVA=1 node --test test/v4/java-stack.test.ts   # F-JAVA (JDK + M
 node scripts/e2e-local-model.ts                                   # intervention réelle avec le modèle Pi
 ```
 
-Documents : `docs/PLAN.md`, `docs/ROADMAP.md`, `docs/STATUS.md`, `docs/TRACEABILITY.md`,
-`docs/QUALIFICATION.md`, `DECISIONS.md`. Les documents amont (expression de besoins, spécification fonctionnelle,
+Documents : `docs/PLAN.md`, `docs/ROADMAP.md`, `docs/chantiers/`, `docs/STATUS.md`,
+`docs/TRACEABILITY.md`, `docs/QUALIFICATION.md`, `DECISIONS.md`. Les documents amont (expression de besoins, spécification fonctionnelle,
 conception de la vérification, conception technique) sont à la racine.

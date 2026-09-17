@@ -112,6 +112,9 @@ Les étages 0 et 1 relèvent du socle, se branchent sur du code existant et n'ex
 supplémentaire : le rapport de couverture est déjà écrit par le contrôle de test. Les étages 2 et 3
 ajoutent des analyseurs et un budget.
 
+Chaque étage a sa fiche dans `chantiers/`, avec ses points d'ancrage dans le code, ses critères
+d'acceptation et son journal.
+
 ## 6. Interactions humaines concernées
 
 IH-04, arbitrage de vérifiabilité, est prévue pour l'oracle insuffisant : obligation, lacune,
