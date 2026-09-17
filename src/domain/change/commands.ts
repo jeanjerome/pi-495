@@ -31,7 +31,7 @@ export interface CandidateFacts {
 	changed_paths: string[];
 	out_of_scope_paths: string[];
 	altered_protected_paths: string[];
-	/** Protected paths whose content equals an adopted preparation: not an alteration. */
+	/** Protected paths permitted by the frozen protocol: exact prepared files, new files under protected roots and identical mirrored support resources. */
 	allowed_protected_paths: string[];
 	complete: boolean;
 	limits_notes: string[];

@@ -89,15 +89,21 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 			"domain/target/classes/Address.class": "stale bytecode",
 			"infrastructure/target/test-classes/features/User.feature": "stale test resource",
 		});
+		writeFileSync(join(project, "infrastructure", "target", "application.jar"), "x".repeat(DEFAULT_WORKSPACE_POLICY.max_file_bytes + 1));
 		const retained = await ws.captureReference(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: [] });
 		assert.ok(retained.entries.some((entry) => entry.path.includes("/target/")), "the retained snapshot reproduces the former inventory");
+		assert.equal(retained.limits.truncated, true);
+		retained.entries.push({ ...retained.entries[0]!, path: ".DS_Store" });
 
 		const handle = await ws.createWorkspace(retained, DEFAULT_WORKSPACE_POLICY);
 		assert.equal(existsSync(join(handle.path, "domain", "target")), false);
 		assert.equal(existsSync(join(handle.path, "infrastructure", "target")), false);
 		const manifest = await ws.snapshotCandidate(handle, retained, DEFAULT_WORKSPACE_POLICY);
 		assert.equal(manifest.entries.some((entry) => entry.path.includes("/target/")), false);
+		assert.equal(manifest.entries.some((entry) => entry.path.endsWith(".DS_Store")), false);
 		assert.deepEqual(manifest.selected_paths, []);
+		assert.equal(manifest.limits.truncated, false);
+		assert.deepEqual(manifest.limits.notes, []);
 	});
 
 	it("resolves retained workspaces from the former colocated root", () => {

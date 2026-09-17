@@ -3,7 +3,7 @@ import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 
@@ -80,6 +80,27 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.ok(state.evidence.some((e) => e.verdict === "FAIL" && !e.valid) || state.evidence.some((e) => e.verdict === "FAIL"), "first attempt evidence historised");
 		const g5s = t.ledger.readChangeEvents(change.change_id).filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G5");
 		assert.equal(g5s.length, 2);
+	});
+
+	it("allows new tests while keeping frozen test content protected", async () => {
+		const p = project();
+		writeFiles(p, { "src/main/resources/schema.sql": "CREATE TABLE ITEM (id INT);\n", "src/test/resources/schema.sql": "CREATE TABLE ITEM (id INT);\n" });
+		const addedTest = 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("additional coverage", () => assert.equal(2 + 2, 4));\n';
+		const updatedSchema = "CREATE TABLE ITEM (id INT, label VARCHAR(255));\n";
+		const changedPaths = ["src/greet.js", "test/additional.test.js", "src/main/resources/schema.sql", "src/test/resources/schema.sql"];
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "write", path: "test/additional.test.js", content: addedTest }, { kind: "write", path: "src/main/resources/schema.sql", content: updatedSchema }, { kind: "write", path: "src/test/resources/schema.sql", content: updatedSchema }, { kind: "complete", output: report(changedPaths) }] } } }));
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (mandate) => {
+			if (mandate.role === "implement") {
+				assert.ok(mandate.prompt.includes("# Adopted protocol"));
+				assert.ok(mandate.prompt.includes('"protected_paths"'));
+			}
+			return original(mandate);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "keep greet covered", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		assert.equal(result.view.change?.gates.find((gate) => gate.gate === "G4")?.verdict, "PASS");
 	});
 
 	it("a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)", async () => {

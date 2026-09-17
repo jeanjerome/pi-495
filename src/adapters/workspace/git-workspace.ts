@@ -8,7 +8,7 @@ import { digestBytes, digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { DomainError } from "../../domain/errors.ts";
 import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
-import { diffEntries, includedEntries, isExcluded, walkTree } from "./walk.ts";
+import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } from "./walk.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -111,10 +111,12 @@ export class GitWorkspace implements WorkspacePort {
 
 	async snapshotCandidate(handle: WorkspaceHandle, reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<CandidateManifest> {
 		const walked = await walkTree(handle.path, policy);
-		const entries = diffEntries(includedEntries(reference.entries, policy.exclusions), walked.entries);
+		const referenceEntries = includedEntries(reference.entries, policy.exclusions);
+		const referenceLimits = includedLimits(reference.entries, reference.limits, policy.exclusions);
+		const entries = diffEntries(referenceEntries, walked.entries);
 		const selected = entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 		const digest = digestBytes(canonicalize({ base_ref: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries: entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]), metadata_policy: "content_and_mode" }));
-		return { candidate_id: `cand_${digest.slice(7, 19)}`, workspace_id: handle.workspace_id, base_reference_id: reference.reference_id, base_digest: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries, metadata_policy: "content_and_mode", manifest_digest: digest, frozen_at: new Date().toISOString(), limits: mergeLimits(reference.limits, walked.limits) };
+		return { candidate_id: `cand_${digest.slice(7, 19)}`, workspace_id: handle.workspace_id, base_reference_id: reference.reference_id, base_digest: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries, metadata_policy: "content_and_mode", manifest_digest: digest, frozen_at: new Date().toISOString(), limits: mergeLimits(referenceLimits, walked.limits) };
 	}
 
 	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {

@@ -21,6 +21,7 @@ export function toPosix(p: string): string {
 }
 
 export function isExcluded(path: string, exclusions: string[]): boolean {
+	if (path.split("/").some((segment) => segment === ".DS_Store" || segment.startsWith("._"))) return true;
 	return exclusions.some((pattern) => {
 		if (matchesScope(path, pattern)) return true;
 		const normalized = pattern.replace(/^\.\//, "");
@@ -34,6 +35,18 @@ export function isExcluded(path: string, exclusions: string[]): boolean {
 /** Filters persisted snapshot entries with the active exclusion semantics. */
 export function includedEntries(entries: readonly ManifestEntry[], exclusions: string[]): ManifestEntry[] {
 	return entries.filter((entry) => !isExcluded(entry.path, exclusions));
+}
+
+/** Removes obsolete limit diagnostics that refer exclusively to excluded paths. */
+export function includedLimits(entries: readonly ManifestEntry[], limits: Limits, exclusions: string[]): Limits {
+	const limitPath = (note: string): string | null => note.match(/^(.+) exceeds \d+ bytes$/)?.[1] ?? note.match(/^unreadable directory (.+?): /)?.[1] ?? null;
+	const notes = limits.notes.filter((note) => {
+		const path = limitPath(note);
+		return path === null || !isExcluded(path, exclusions);
+	});
+	const retainedEntryLimit = includedEntries(entries, exclusions).some((entry) => entry.limits?.truncated);
+	const retainedGlobalLimit = limits.truncated && (limits.notes.length === 0 || notes.length > 0);
+	return { ...limits, truncated: Boolean(retainedEntryLimit || retainedGlobalLimit), notes };
 }
 
 /**
@@ -56,8 +69,6 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 			continue;
 		}
 		for (const name of names.sort()) {
-			// Finder metadata is host noise: it is neither reference content nor an agent change.
-			if (name === ".DS_Store" || name.startsWith("._")) continue;
 			const abs = join(dir, name);
 			const rel = toPosix(relative(root, abs));
 			if (rel === ".git" || rel.startsWith(".git/")) continue;
