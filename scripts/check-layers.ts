@@ -1,7 +1,8 @@
 /**
  * Dependency direction (conception §2.2): domain -> contracts only; application -> domain, ports,
  * contracts; adapters -> ports, contracts, domain types; extension/presentation -> application.
- * Nothing under domain/, contracts/, ports/, application/ may import Pi packages.
+ * Nothing under domain/, contracts/, ports/, application/, presentation/ or export/ may import Pi
+ * packages: the Pi API enters the sources through extension/ and adapters/pi-worker/ only.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -13,7 +14,9 @@ const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
 	{ layer: "ports", forbidden: [/\.\.\/(application|adapters|extension|presentation|export)\//, /@earendil-works/] },
 	{ layer: "application", forbidden: [/\.\.\/(adapters|extension|presentation)\//, /@earendil-works/] },
 	{ layer: "adapters", forbidden: [/\.\.\/(extension|presentation)\//, /\.\.\/\.\.\/(extension|presentation)\//] },
-	{ layer: "presentation", forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//] },
+	// A view that imported Pi would tie the review to a component; what keeps the same review data
+	// readable from RPC, JSON, print and an SDK host is that no view depends on one (ADR-010, UX-11).
+	{ layer: "presentation", forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//, /@earendil-works/] },
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
 ];
 
