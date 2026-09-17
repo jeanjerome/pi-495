@@ -79,15 +79,25 @@ exigence de comportement conservé garde la suite verte pour oracle, à conditio
 réellement des cas. Le diagnostic est figé dans le protocole (`capability_diagnosis`) et dans le
 mandat de préparation qu'il ouvre.
 
-## Limite connue : la suite discriminante n'est pas mesurée sur le code introduit
+## Ce que la suite atteint sur le code introduit est mesuré
 
-Une exigence obtient désormais un oracle discriminant ou une préparation, mais rien ne mesure ce que
-cet oracle atteint. Observé sur la cible Java : un candidat ajoutant 276 lignes instrumentées dont
-93 ne sont exercées par aucun test, et 44 branches non couvertes, passe G5 en `accepted`. G2
-n'exige pas non plus la discrimination : elle accepte une obligation couverte par un contrôle
-qualifié sans consulter le diagnostic.
+Le cas observé sur la cible Java — un candidat ajoutant 276 lignes instrumentées dont 93 ne sont
+exercées par aucun test, et 44 branches non couvertes, accepté à G5 — est traité pour une cible
+Maven dont JaCoCo lie son goal `report` à la phase `test` hors profil. Un contrôle `coverage` du
+protocole gelé lit ce rapport, qu'aucune exécution supplémentaire ne produit, et ne juge que les
+lignes que le candidat a écrites : une ligne introduite jamais exercée est un constat bloquant
+localisé au fichier, à la ligne et au symbole ; une ligne exercée sur une partie de ses branches est
+rapportée sans bloquer ; une ligne que le candidat n'a pas écrite est comptée comme dette antérieure
+et nommée, jamais opposée au candidat. Un ratio de dépôt aurait répondu l'inverse dans les deux sens.
 
-La correction relève de VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés par `chantiers/`.
+Il est qualifié comme les autres, avec des témoins qui lui sont propres : du code introduit et
+exercé pour le témoin positif, du code introduit que rien n'appelle pour le contre-exemple, un
+capteur cassé pour l'incident. Le témoin négatif partagé, un test qui échoue, ne pouvait pas servir :
+une suite rouge arrête la construction avant l'écriture de la mesure.
+
+Reste ouvert : la stack Node n'a pas de mesure de couverture, et G2 n'exige toujours pas la
+discrimination — elle accepte une obligation couverte par un contrôle qualifié sans consulter le
+diagnostic. Voir `chantiers/00` et `chantiers/02`.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -106,9 +116,9 @@ La correction relève de VER-08 et QLT-04, décrits dans `ROADMAP.md` et portés
 - Rétention et nettoyage des workspaces : conservés localement (P0), pas de politique de purge.
 - Documentation/RAG (RAG-*), expertise (EXP-*) : non livrés ; ils ne bloquent aucun scénario P0 de
   changement simple mais restent P0 dans l'expression de besoins et sont donc annoncés absents.
-- Architecture et qualité (ARC-01..04, QLT-01..05, CON-03), caractérisation de l'existant (PRE-04)
+- Architecture et qualité (ARC-01..04, QLT-01..03, QLT-05, CON-03), caractérisation de l'existant (PRE-04)
   et évolution de la capacité par cycle (PRE-05) : non livrés. Contrairement aux précédents, leur
-  absence a un effet observable sur l'acceptation d'un changement — voir la limite connue ci-dessus
+  absence a un effet observable sur l'acceptation d'un changement — voir la section ci-dessus
   et `ROADMAP.md`.
 - Diagnostic de capacité de contrôle (PRE-01) : l'échelle à quatre niveaux et le déclencheur de
   préparation sont livrés et exercés par `v2/preparation` ; la cartographie des assertions et des

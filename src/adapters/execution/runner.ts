@@ -7,7 +7,7 @@ import { controlInputsDigest } from "../../domain/baseline.ts";
 import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
 import type { ControlExecutionPort, ControlInvocation, ProcessObservation, SandboxPort, SandboxProfile } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
-import { PARSER_VERSIONS, parseExitCode, parseJUnit, parseNodeTestTap, type ParsedReport } from "./parsers.ts";
+import { PARSER_VERSIONS, parseExitCode, parseJacoco, parseJUnit, parseNodeTestTap, type ParsedReport } from "./parsers.ts";
 
 export interface RunnerOptions {
 	max_output_bytes: number;
@@ -63,6 +63,17 @@ export class GenericControlRunner implements ControlExecutionPort {
 					report = parseJUnit(observation, docs.map((d) => d.text), `${stdoutText}\n${stderrText}`);
 					break;
 				}
+				case "jacoco-xml": {
+					// The sensor measures nothing of its own: the report is the one the test control of the
+					// same protocol wrote in this workspace, and only the introduced lines are judged. A
+					// subject that introduces nothing — the reference pass — is decided without looking for
+					// a report the control would not read, and keeps none as evidence.
+					const introduced = invocation.introduced_lines ?? null;
+					const docs = introduced !== null && Object.keys(introduced).length === 0 ? [] : await readReports(invocation.workspace_path, control.report_path);
+					for (const d of docs) artifacts.push({ name: `report:${d.name}`, ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml") });
+					report = parseJacoco(observation, docs, introduced);
+					break;
+				}
 				default:
 					report = { verdict: "INDETERMINATE", facts: {}, notes: [`parser ${String(control.parser)} is not qualified`], failures: [] };
 			}
@@ -74,12 +85,15 @@ export class GenericControlRunner implements ControlExecutionPort {
 		// candidate are two directories holding the same project, and a finding that keeps the path of
 		// its run can never be paired with the same finding observed on the other side (VER-08).
 		const roots = [invocation.workspace_path, await realpath(invocation.workspace_path).catch(() => invocation.workspace_path)];
-		const findings: Finding[] = report.failures.map((raw) => {
+		const finding = (raw: string, ruleId: string, category: Finding["category"], severity: Finding["severity"], symbol: string | null): Finding => {
 			const message = relativize(raw, ...roots);
 			const located = locate(message);
 			// The runner observes one tree; which of the two carries the finding is not its to decide.
-			return { rule_id: `${control.control_id}:failure`, category: "assertion" as const, severity: "blocker" as const, message, path: located.path, region: located.region, symbol: null, requirement_refs: invocation.requirement_refs, baseline_state: "unknown" as const, fingerprint: fingerprintOf({ tool: control.control_id, rule_id: `${control.control_id}:failure`, symbol: null, path: located.path, text: located.text }), tool: control.control_id, tool_version: control.version, confidence: 1, raw_evidence_ref: artifacts[0]?.ref ?? null };
-		});
+			return { rule_id: ruleId, category, severity, message, path: located.path, region: located.region, symbol, requirement_refs: invocation.requirement_refs, baseline_state: "unknown" as const, fingerprint: fingerprintOf({ tool: control.control_id, rule_id: ruleId, symbol, path: located.path, text: located.text }), tool: control.control_id, tool_version: control.version, confidence: 1, raw_evidence_ref: artifacts[0]?.ref ?? null };
+		};
+		const findings: Finding[] = report.findings
+			? report.findings.map((f) => finding(f.message, f.rule_id, f.category, f.severity, f.symbol))
+			: report.failures.map((raw) => finding(raw, `${control.control_id}:failure`, "assertion", "blocker", null));
 		const evidence: EvidenceCandidate = {
 			control_id: control.control_id,
 			control_version: `${control.version}+${control.parser}@${PARSER_VERSIONS[control.parser]}`,

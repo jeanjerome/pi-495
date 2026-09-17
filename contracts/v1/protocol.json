@@ -92,7 +92,8 @@
             "enum": [
               "exit-code",
               "node-test",
-              "junit-xml"
+              "junit-xml",
+              "jacoco-xml"
             ]
           },
           "report_path": {

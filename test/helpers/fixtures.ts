@@ -54,8 +54,23 @@ export function fixtureSpecial(root: string): void {
 
 export { ESC };
 
-/** F-JAVA: minimal Maven project with JUnit 5 (Surefire XML reports under target/surefire-reports). */
-export function fixtureJava(root: string): void {
+/** JaCoCo with its `report` goal bound to the test phase, outside any profile. */
+export const JACOCO_PLUGIN = `      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.13</version>
+        <executions>
+          <execution><id>prepare-agent</id><goals><goal>prepare-agent</goal></goals></execution>
+          <execution><id>report</id><phase>test</phase><goals><goal>report</goal></goals></execution>
+        </executions>
+      </plugin>
+`;
+
+/**
+ * F-JAVA: minimal Maven project with JUnit 5 (Surefire XML reports under target/surefire-reports).
+ * With `withCoverage`, `mvn test` also writes target/site/jacoco/jacoco.xml.
+ */
+export function fixtureJava(root: string, withCoverage = false): void {
 	writeFiles(root, {
 		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -82,7 +97,7 @@ export function fixtureJava(root: string): void {
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
       </plugin>
-    </plugins>
+${withCoverage ? JACOCO_PLUGIN : ""}    </plugins>
   </build>
 </project>
 `,

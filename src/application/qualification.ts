@@ -6,12 +6,20 @@ import { digestValue } from "../contracts/digest.ts";
 import type { ControlDefinition, Protocol, Qualification } from "../contracts/v1/protocol.ts";
 import type { EvidenceCandidate } from "../contracts/v1/evidence.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../ports/execution.ts";
+import { introducedByAddedFiles } from "./coverage.ts";
 
 export interface QualificationFixtures {
 	/** Workspace where the property holds. */
 	positive_path: string;
 	/** Workspace where the targeted defect is present. */
 	negative_path: string;
+	/**
+	 * Files each witness workspace writes on top of the reference. A differential control judges what
+	 * a subject introduces, so its witnesses are read the same way: the witness files are the
+	 * introduced ones, and the reference around them is not the control's business.
+	 */
+	positive_files?: Record<string, string>;
+	negative_files?: Record<string, string>;
 }
 
 export interface DetailedQualification {
@@ -27,10 +35,10 @@ function technicalDetail(evidence: EvidenceCandidate): string {
 }
 
 export async function qualifyControlDetailed(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">): Promise<DetailedQualification> {
-	const run = async (path: string, c: ControlDefinition) => (await runner.runControl({ ...base, control: c, workspace_path: path })).evidence;
-	const positiveEvidence = await run(fixtures.positive_path, control);
-	const negativeEvidence = await run(fixtures.negative_path, control);
-	const incidentEvidence = await run(fixtures.positive_path, { ...control, command: ["/nonexistent/495-broken-runner", ...control.command.slice(1)] });
+	const run = async (path: string, c: ControlDefinition, files: Record<string, string>) => (await runner.runControl({ ...base, control: c, workspace_path: path, introduced_lines: introducedByAddedFiles(files) })).evidence;
+	const positiveEvidence = await run(fixtures.positive_path, control, fixtures.positive_files ?? {});
+	const negativeEvidence = await run(fixtures.negative_path, control, fixtures.negative_files ?? {});
+	const incidentEvidence = await run(fixtures.positive_path, { ...control, command: ["/nonexistent/495-broken-runner", ...control.command.slice(1)] }, fixtures.positive_files ?? {});
 	const positive = positiveEvidence.verdict;
 	const negative = negativeEvidence.verdict;
 	const incident = incidentEvidence.verdict;

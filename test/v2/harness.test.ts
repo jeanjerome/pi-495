@@ -342,3 +342,36 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(existsSync(join(p, "src", "greet.js")), true);
 	});
 });
+
+describe("what a change introduces, recomputed from the store (QLT-04)", () => {
+	it("hands every control the lines the candidate wrote, an empty set on the reference, and keeps both texts in the dossier", async () => {
+		const p = project();
+		const seen: { run: string; control: string; introduced: Record<string, number[]> | null | undefined }[] = [];
+		const t = track(makeHarness({
+			scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: "export function greet(name) {\n  return `Hello, ${name}`; // conforming\n}\n" }, { kind: "complete", output: report(["src/greet.js"]) }] } },
+			controls: (real) => ({
+				runControl: async (invocation, signal) => {
+					seen.push({ run: invocation.subject.kind, control: invocation.control.control_id, introduced: invocation.introduced_lines });
+					return real.runControl(invocation, signal);
+				},
+			}),
+		}));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour, tidy the implementation", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		// Only the second line was rewritten; the two the candidate kept are not its to answer for.
+		const onCandidate = seen.filter((s) => s.run === "candidate");
+		assert.ok(onCandidate.length > 0);
+		for (const run of onCandidate) assert.deepEqual(run.introduced, { "src/greet.js": [2] }, `control ${run.control}`);
+		for (const run of seen.filter((s) => s.run === "reference")) assert.deepEqual(run.introduced, {}, "the reference introduces nothing");
+		// Both sides of the changed file are in the store, so the diff can be redone from the dossier.
+		const candidateId = result.view.change!.candidate!.candidate_id;
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const sides = await Promise.all([`files_${candidateId}`, `base_files_${candidateId}`].map(async (id) => await t.harness.readArtifact<Record<string, { digest: string }>>({ artifact_id: id, revision: 1 })));
+		assert.deepEqual(sides.map((side) => Object.keys(side)), [["src/greet.js"], ["src/greet.js"]]);
+		assert.notEqual(sides[0]!["src/greet.js"]!.digest, sides[1]!["src/greet.js"]!.digest);
+		const referenceBytes = await t.objects.get(sides[1]!["src/greet.js"]!.digest);
+		assert.equal(new TextDecoder().decode(referenceBytes!), readFileSync(join(p, "src", "greet.js"), "utf8"));
+		assert.ok(t.ledger.listArtifacts(state.change_id, "candidate").some((a) => a.ref.artifact_id === `base_files_${candidateId}`));
+	});
+});

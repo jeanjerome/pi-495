@@ -49,7 +49,7 @@ non-aggravation comme critère.
 | PRE-05 | compléter et requalifier la capacité de vérification à chaque incrément | absent |
 | CON-03 | règle architecturale opposable sur la cible, avec vérification exécutable | absent ; la seule règle exécutable porte sur le dépôt 495 lui-même (NFR-07) |
 | ARC-01..04 | architecture réalisée, cible, migration progressive, contrainte sur la génération | absents |
-| QLT-01..05 | référentiel, baseline, réduction de dette, non-dégradation, conformité démontrée | absents |
+| QLT-01..03, QLT-05 | référentiel, baseline, réduction de dette, conformité démontrée | absents |
 | RAG-01, RAG-02, RAG-04 | besoin de connaissance identifié, corpus officiel versionné, utilisation de la documentation vérifiée | absents |
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, expertises mobilisées, démarche évaluée | absents |
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
@@ -57,10 +57,12 @@ non-aggravation comme critère.
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
 
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
-classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. La
-conséquence rappelée ci-dessous en fixe la portée actuelle : tout contrôle qualifié étant vert sur
-la référence, aucun ne porte encore de constat préexistant, et la tolérance attend les analyseurs
-des étages 2 et 3 pour se déclencher dans un cycle complet.
+classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. QLT-04 en
+est sorti pour sa clause de non-aggravation : un contrôle de couverture différentielle juge les
+lignes que le candidat a écrites et laisse la dette antérieure visible sans l'opposer au candidat,
+sur une cible Maven dont JaCoCo lie son goal `report` hors profil. Ce qu'il reste de QLT-04 — les
+exclusions, annotations de silence et modifications de seuils sous justification adoptée — n'est
+tenu que par la protection des fichiers de configuration du contrôle.
 
 ### Le défaut que cette absence produit
 
@@ -80,10 +82,11 @@ quel que soit le nombre de fichiers de test déjà présents. Un refactoring, do
 comportement inchangé, garde la suite verte pour oracle et n'ouvre rien — à condition que cette
 suite exécute quelque chose, ce que les niveaux 2 et 3 de l'échelle vérifient.
 
-Ce qui subsiste est la mesure de ce que la suite atteint. La conséquence observée sur la cible Java
-— un candidat ajoutant 276 lignes instrumentées dont 93 ne sont exercées par aucun test, et 44
-branches non couvertes, accepté à G5 — relève de la couverture du code introduit (QLT-04) et du
-classement des constats par rapport à la référence (VER-08), non du déclencheur.
+Ce qui subsistait est la mesure de ce que la suite atteint. La conséquence observée sur la cible
+Java — un candidat ajoutant 276 lignes instrumentées dont 93 ne sont exercées par aucun test, et 44
+branches non couvertes, accepté à G5 — relevait de la couverture du code introduit (QLT-04) et du
+classement des constats par rapport à la référence (VER-08), non du déclencheur ; les deux sont
+livrés, pour une cible dont la couverture est mesurée.
 
 **Un verdict n'est donc pas une preuve.** Toute formulation qui se contente d'exiger qu'une
 exigence « possède un verdict » est satisfaite par un contrôle vert qui n'a rien discriminé. La
@@ -144,7 +147,7 @@ verdicts, pas sur un moteur unique imposé à tous les langages.
 | --- | --- | --- | --- |
 | 0 | PRE-01 | échelle de capacité à quatre niveaux ; la préparation s'ouvre sur l'absence de discrimination, non sur l'absence de fichiers de test | livré : `diagnoseControlCapability`, `Protocol.capability_diagnosis` |
 | 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | livré : `domain/baseline.ts`, `domain/findings.ts`, `harness.referencePasses`, `Protocol.baseline` |
-| 2 | QLT-04 | contrôle de couverture sur les lignes introduites | rapport de couverture déjà produit par le contrôle gelé ; `diff.ts` fournit les lignes modifiées |
+| 2 | QLT-04 | contrôle de couverture sur les lignes introduites | livré : contrôle `coverage`, parseur `jacoco-xml`, `application/coverage.ts` |
 | 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | `Finding`, `runner.ts`, profils d'exécution, précédent `check-layers.ts` |
 | 4 | VER-04 | mutation sur les classes modifiées | runner générique, budget de contrôle dédié |
 

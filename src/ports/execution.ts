@@ -85,6 +85,14 @@ export interface WorkspacePort {
 
 // --- control execution (§8.7) ---------------------------------------------------------------------
 
+/**
+ * Lines the tree under `workspace_path` introduces relative to the reference, per workspace-relative
+ * path, ascending. A differential control judges these and nothing else (QLT-04). An empty map says
+ * the subject introduces nothing — what the reference pass carries; `null` says nobody computed it,
+ * which is not the same thing and never reads as coverage.
+ */
+export type IntroducedLines = Record<string, number[]>;
+
 export interface ControlInvocation {
 	control: ControlDefinition;
 	protocol: ProtocolRef;
@@ -94,6 +102,7 @@ export interface ControlInvocation {
 	environment: EnvironmentRef;
 	requirement_refs: RequirementRef[];
 	producer: ActorRef;
+	introduced_lines?: IntroducedLines | null;
 }
 
 export interface ControlExecutionPort {

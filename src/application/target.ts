@@ -18,6 +18,13 @@ export interface StackDetection {
 	witness_tests: number;
 	/** Files written into a copy of the positive workspace to build the negative witness. */
 	negative_witness: Record<string, string>;
+	/**
+	 * Negative witness of one control when the shared one does not exhibit the defect it claims to
+	 * detect. A test control is proved by a failing test; a coverage control cannot be — a failing
+	 * suite stops the build before the measurement is written, and an unexercised line is not a
+	 * failure. Such a control gets its own witness workspace, built on the positive one.
+	 */
+	own_negative_witness: Record<string, Record<string, string>>;
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
 	preparation_paths: string[];
 	capability_missing: string[];
@@ -40,17 +47,56 @@ export function detectStack(projectPath: string, requirementRefs: RequirementRef
 			{ control_id: "unit", version: "1", title: "node:test suite", command: [nodeBinary, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 10 * 60_000, parser: "node-test", report_path: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["test/", "tests/", "package.json"] },
 		];
 		if (scripts.lint) controls.push({ control_id: "lint", version: "1", title: `npm run lint (${scripts.lint})`, command: [nodeBinary, join(projectPath, "node_modules", ".bin", "___unused___")].slice(0, 0).concat(commandFromScript(scripts.lint, nodeBinary)), cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 5 * 60_000, parser: "exit-code", report_path: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"] });
-		return { stack: "node", facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) }, controls, positive_witness: { "test/495-positive-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 positive witness: the runner reports a passing test", () => { assert.equal(1, 1); });\n' }, witness_tests: 1, negative_witness: { "test/495-negative-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 negative witness: an injected defect must be detected", () => { assert.equal(1, 2); });\n', "src/495-negative-witness.js": "var forbidden = 1;\n" }, preparation_paths: ["test/", "tests/"], capability_missing: [] };
+		return { stack: "node", facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) }, controls, positive_witness: { "test/495-positive-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 positive witness: the runner reports a passing test", () => { assert.equal(1, 1); });\n' }, witness_tests: 1, own_negative_witness: {}, negative_witness: { "test/495-negative-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 negative witness: an injected defect must be detected", () => { assert.equal(1, 2); });\n', "src/495-negative-witness.js": "var forbidden = 1;\n" }, preparation_paths: ["test/", "tests/"], capability_missing: [] };
 	}
 	if (existsSync(pomPath)) {
 		const reactor = discoverMavenReactor(projectPath);
 		const witnessPrefix = reactor.witness_module ? `${reactor.witness_module}/` : "";
+		const jacoco = bindsJacocoReport(projectPath, reactor.pom_paths);
 		const controls: ControlDefinition[] = [
 			{ control_id: "maven-test", version: "1", title: "mvn test (Surefire)", command: ["mvn", "-B", "-q", "-o", "test"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 20 * 60_000, parser: "junit-xml", report_path: "**/target/surefire-reports", network: "denied", writable_paths: reactor.target_paths, requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.preparation_paths, ...reactor.pom_paths] },
 		];
-		return { stack: "maven", facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules }, controls, positive_witness: { [`${witnessPrefix}src/test/java/PositiveWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n" }, witness_tests: 1, negative_witness: { [`${witnessPrefix}src/test/java/NegativeWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n" }, preparation_paths: reactor.preparation_paths, capability_missing: [] };
+		// The measurement is the one `mvn test` already writes: JaCoCo binds `report` to that phase, so
+		// this sensor runs no command of its own and reads the report left in the workspace. It is
+		// declared after the control that produces it, and the verification runs them in that order.
+		if (jacoco) controls.push({ control_id: "coverage", version: "1", title: "introduced-line coverage, read from the JaCoCo report of mvn test", command: [nodeBinary, "-e", ""], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 60_000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
+		const positive: Record<string, string> = {
+			[`${witnessPrefix}src/test/java/PositiveWitness495Test.java`]: jacoco
+				? "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test {\n    @Test void runnerReportsAPassingTest() { assertEquals(1, 1); }\n    @Test void introducedCodeIsExercised() { assertEquals(4, new Witness495Covered().twice(2)); }\n}\n"
+				: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n",
+		};
+		// The coverage witnesses are introduced production code, not tests: one class the suite calls,
+		// one it never calls. The defect this control claims to detect is the second, and a failing test
+		// would not exhibit it — it would stop the build before the measurement is written.
+		if (jacoco) positive[`${witnessPrefix}src/main/java/Witness495Covered.java`] = "public final class Witness495Covered {\n    public int twice(int n) {\n        return n * 2;\n    }\n}\n";
+		return {
+			stack: "maven",
+			facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules, jacoco_report_bound: jacoco },
+			controls,
+			positive_witness: positive,
+			witness_tests: jacoco ? 2 : 1,
+			negative_witness: { [`${witnessPrefix}src/test/java/NegativeWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n" },
+			own_negative_witness: jacoco ? { coverage: { [`${witnessPrefix}src/main/java/Witness495Uncovered.java`]: "public final class Witness495Uncovered {\n    public int half(int n) {\n        return n / 2;\n    }\n}\n" } } : {},
+			preparation_paths: reactor.preparation_paths,
+			capability_missing: jacoco ? [] : ["no JaCoCo report bound outside a profile: the coverage of the introduced lines is not measured on this target (QLT-04)"],
+		};
 	}
-	return { stack: "unknown", facts: {}, controls: [], positive_witness: {}, witness_tests: 0, negative_witness: {}, preparation_paths: [], capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"] };
+	return { stack: "unknown", facts: {}, controls: [], positive_witness: {}, witness_tests: 0, negative_witness: {}, own_negative_witness: {}, preparation_paths: [], capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"] };
+}
+
+/**
+ * Whether `mvn test` leaves a coverage report behind: the JaCoCo plugin with its `report` goal bound
+ * outside any profile. Inside a profile, the report exists only when that profile is activated, which
+ * the control cannot assume — and a sensor that silently finds no measurement is worth nothing.
+ */
+export function bindsJacocoReport(projectPath: string, pomPaths: readonly string[]): boolean {
+	for (const rel of pomPaths) {
+		let xml = "";
+		try { xml = readFileSync(join(projectPath, rel), "utf8"); } catch { continue; }
+		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
+		if (/jacoco-maven-plugin/.test(outsideProfiles) && /<goal>\s*report\s*<\/goal>/.test(outsideProfiles)) return true;
+	}
+	return false;
 }
 
 interface MavenReactor {

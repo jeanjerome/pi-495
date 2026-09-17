@@ -62,7 +62,8 @@ export async function exportChange(ledger: LedgerPort, objects: ObjectStorePort,
 	add(`changes/${state.change_id}/artifacts/index.json`, json(artifacts));
 	for (const a of artifacts) {
 		objectDigests.add(a.object.digest);
-		if (a.kind === "candidate" && a.ref.artifact_id.startsWith("files_")) {
+		// Both sides of every changed file: the dossier must let the introduced lines be recomputed.
+		if (a.kind === "candidate" && (a.ref.artifact_id.startsWith("files_") || a.ref.artifact_id.startsWith("base_files_"))) {
 			const bytes = await objects.get(a.object);
 			if (bytes) for (const f of Object.values(JSON.parse(new TextDecoder().decode(bytes)) as Record<string, { digest: string }>)) objectDigests.add(f.digest);
 		}

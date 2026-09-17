@@ -12,8 +12,8 @@ l'introduit, et pourquoi aucun contrôle qualifié ne peut seul prouver un compo
 | Étage | Exigence | Objet | État | Fiche |
 | --- | --- | --- | --- | --- |
 | 0 | PRE-01 | diagnostic de capacité de contrôle ; la préparation s'ouvre sur l'absence de discrimination | livré non qualifié ; restent IH-04, la cartographie complète et la condition de discrimination à G2 | [00-pre-01-capacite-de-controle.md](00-pre-01-capacite-de-controle.md) |
-| 1 | VER-08 | exécution des contrôles sur la référence, classement préexistant / introduit, politique d'instabilité | livré ; la tolérance attend un analyseur qui reste vert sur la référence pour se déclencher dans un cycle complet | [01-ver-08-comparaison-a-la-reference.md](01-ver-08-comparaison-a-la-reference.md) |
-| 2 | QLT-04 | couverture sur le code introduit, non-aggravation | à faire | [02-qlt-04-couverture-introduite.md](02-qlt-04-couverture-introduite.md) |
+| 1 | VER-08 | exécution des contrôles sur la référence, classement préexistant / introduit, politique d'instabilité | livré ; le contrôle de couverture de l'étage 2 l'alimente, en classant `new` tout constat que son passage de référence ne porte pas | [01-ver-08-comparaison-a-la-reference.md](01-ver-08-comparaison-a-la-reference.md) |
+| 2 | QLT-04 | couverture sur le code introduit, non-aggravation | livré pour une cible Maven dont JaCoCo lie `report` hors profil ; la stack Node et les autres clauses de QLT-04 restent absentes | [02-qlt-04-couverture-introduite.md](02-qlt-04-couverture-introduite.md) |
 | 3 | ARC-04, CON-03 | constats structurels, architecture opposable | à faire | [03-arc-04-architecture-active.md](03-arc-04-architecture-active.md) |
 | 4 | VER-04 | mutation sur les classes modifiées | à faire | [04-ver-04-mutation-code-modifie.md](04-ver-04-mutation-code-modifie.md) |
 

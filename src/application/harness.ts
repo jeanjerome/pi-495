@@ -15,7 +15,7 @@ import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } fr
 import { Evidence, EvidenceCandidate, evidenceDigest } from "../contracts/v1/evidence.ts";
 import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, type ProducerReport, type ReviewReport, type SpecificationReport } from "../contracts/v1/reports.ts";
-import { applyInstability, blockingCount, candidateShape, compareToReference, divergesFromReference, reusableReferencePass, type ReferencePass } from "../domain/baseline.ts";
+import { applyInstability, blockingCount, candidateShape, compareToReference, divergesFromReference, reusableReferencePass, type CandidateShape, type ReferencePass } from "../domain/baseline.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
@@ -28,7 +28,8 @@ import { decideProgram, type ProgramCommand, type ProgramState } from "../domain
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type { AgentPort, ControlExecutionPort, InterventionEvent, InterventionMandate, ModelSelection, SandboxProfile, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
-import { qualifyControlDetailed, reusableQualification } from "./qualification.ts";
+import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
+import { qualifyControlDetailed, reusableQualification, type DetailedQualification } from "./qualification.ts";
 import { buildContext, outputSchemaFor } from "./context.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -153,6 +154,37 @@ export class Harness {
 		validate(Evidence, evidence, "evidence");
 		this.deps.ledger.putEvidence(evidence, changeId);
 		return evidence;
+	}
+
+	/** Puts the bytes of each path under `root` in the store, keyed by path. Unreadable paths are skipped. */
+	private async storeBytesOf(root: string, paths: string[]): Promise<Record<string, { digest: string; size_bytes: number; media_type: string }>> {
+		const out: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
+		const { readFile } = await import("node:fs/promises");
+		for (const path of paths) {
+			try {
+				const ref = await this.deps.objects.put(new Uint8Array(await readFile(join(root, path))), "application/octet-stream");
+				out[path] = { digest: ref.digest, size_bytes: ref.size_bytes, media_type: ref.media_type };
+			} catch {
+				/* unreadable file: the manifest already carries the limit */
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * The lines the frozen candidate introduces, recomputed from the store and not from a tree: the
+	 * candidate bytes of `files_` and the reference bytes of `base_files_` are both in the dossier, so
+	 * the calculation an auditor would redo is the one the controls were given (QLT-04).
+	 */
+	private async introducedLines(manifest: CandidateManifest, shape: CandidateShape): Promise<IntroducedLinesResult> {
+		const index = async (artifactId: string) => await this.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 }).catch(() => ({}));
+		const candidateFiles = await index(`files_${manifest.candidate_id}`);
+		const referenceFiles = await index(`base_files_${manifest.candidate_id}`);
+		const bytesOf = (files: Record<string, { digest: string }>) => async (path: string) => {
+			const entry = files[path];
+			return entry ? await this.deps.objects.get(entry.digest) : null;
+		};
+		return introducedLinesOf(manifest, shape.renames, bytesOf(referenceFiles), bytesOf(candidateFiles));
 	}
 
 	async readArtifact<T>(ref: Pick<ArtifactRef, "artifact_id" | "revision">): Promise<T> {
@@ -497,13 +529,16 @@ export class Harness {
 			if (diagnosis.undiscriminated_requirements.length > 0 && detection.preparation_paths.length > 0) return await this.openPreparation(unit, cor, detection, refs, diagnosis);
 			// The witnesses qualify the sensor mechanism on the reference (PRE-03); the prepared discriminant
 			// suite is judged separately (`on_reference`) and joins the protocol as a protected oracle.
-			for (const [ws, files] of [[positive.path, detection.positive_witness], [negative.path, { ...detection.positive_witness, ...detection.negative_witness }]] as const) {
+			const writeWitness = async (ws: string, files: Record<string, string>) => {
 				for (const [rel, content] of Object.entries(files)) {
 					const target = join(ws, rel);
 					await mkdir(dirname(target), { recursive: true });
 					await writeFile(target, content);
 				}
-			}
+			};
+			const sharedNegativeFiles = { ...detection.positive_witness, ...detection.negative_witness };
+			await writeWitness(positive.path, detection.positive_witness);
+			await writeWitness(negative.path, sharedNegativeFiles);
 			const qualifications: Protocol["qualifications"] = {};
 			const observed = { reported: 0, skipped: 0, witnesses: 0, any: false };
 			const base = { protocol: { protocol_id: "qualification", revision: 1, content_digest: digestValue("qualification") } as const, candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, environment: this.deps.environment, requirement_refs: refs, producer: EXECUTOR_ACTOR };
@@ -517,7 +552,20 @@ export class Harness {
 					continue;
 				}
 				this.progress(`qualifying control ${control.control_id}`);
-				const detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: negative.path }, base);
+				// What proves a sensor is a tree carrying the defect it claims to detect, and the shared
+				// failing test is not that tree for every sensor: a coverage control is proved by code the
+				// suite never exercises, on a build that completes. Such a control gets its own witness
+				// workspace, built on the positive one (VER-05).
+				const ownNegative = detection.own_negative_witness[control.control_id];
+				const negativeFiles = ownNegative ? { ...detection.positive_witness, ...ownNegative } : sharedNegativeFiles;
+				const ownHandle = ownNegative ? await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy) : null;
+				let detailed: DetailedQualification;
+				try {
+					if (ownHandle) await writeWitness(ownHandle.path, negativeFiles);
+					detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: ownHandle?.path ?? negative.path, positive_files: detection.positive_witness, negative_files: negativeFiles }, base);
+				} finally {
+					if (ownHandle) await this.deps.workspace.closeWorkspace(ownHandle.workspace_id, "delete");
+				}
 				const evidenceIds = {
 					positive: this.id("evq"),
 					negative: this.id("evq"),
@@ -536,11 +584,18 @@ export class Harness {
 			// executes needs no run of its own.
 			diagnosis = diagnose(observed.any ? { reported: observed.reported, skipped: observed.skipped, witnesses: observed.witnesses } : null);
 			if (diagnosis.undiscriminated_requirements.length > 0 && detection.preparation_paths.length > 0) return await this.openPreparation(unit, cor, detection, refs, diagnosis);
+			// An analyser the target does not provide is an insufficiency the protocol records, not a
+			// silence: a coverage measurement nobody produces never reads as covered code (QLT-02).
+			if (detection.capability_missing.length > 0) diagnosis = { ...diagnosis, notes: [...diagnosis.notes, ...detection.capability_missing] };
 			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
+			// A differential control answers a question every requirement asks, whatever its category: a
+			// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
+			// and an improvement elsewhere never compensates for it (QLT-04).
+			const differential = controls.filter((c) => c.parser === "jacoco-xml").map((c) => c.control_id);
 			const obligations: Obligation[] = requirements.content.requirements.map((r) => {
 				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
 				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
-				return { requirement: { requirement_id: r.requirement_id, revision: requirements.ref.revision }, mandatory: r.mandatory, control_ids: chosen, combination: "all_pass", human_interaction: null, not_applicable_reason: null };
+				return { requirement: { requirement_id: r.requirement_id, revision: requirements.ref.revision }, mandatory: r.mandatory, control_ids: [...new Set([...chosen, ...differential])], combination: "all_pass", human_interaction: null, not_applicable_reason: null };
 			});
 			// The rules for reading the two passes are frozen here, before any control has run: what a
 			// preexisting defect is worth and what an unstable control is worth are never decided once a
@@ -701,26 +756,23 @@ export class Harness {
 		const wsHandle = { workspace_id: workspaceId, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() };
 		const manifest = await this.deps.workspace.snapshotCandidate(wsHandle, reference, this.deps.workspacePolicy);
 		const manifestRef = await this.storeArtifact("candidate", unit.state.change_id, manifest.candidate_id, manifest, KERNEL_ACTOR.actor_id);
-		// keep the bytes of every changed file so that the dossier stays self-contained (EVD-01)
-		const files: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
-		for (const e of manifest.entries) {
-			if (e.baseline_state === "unchanged" || e.baseline_state === "deleted" || e.kind !== "file" || e.content_digest === null) continue;
-			try {
-				const { readFile } = await import("node:fs/promises");
-				const bytes = new Uint8Array(await readFile(join(workspacePath, e.path)));
-				const ref = await this.deps.objects.put(bytes, "application/octet-stream");
-				files[e.path] = { digest: ref.digest, size_bytes: ref.size_bytes, media_type: ref.media_type };
-			} catch {
-				/* unreadable file: the manifest already carries the limit */
-			}
-		}
+		// Keep the bytes of every changed file so that the dossier stays self-contained (EVD-01), and
+		// keep them on both sides: without the reference text of a file the candidate modified, the
+		// lines this change introduced could not be recomputed from the dossier alone (QLT-04).
+		const changed = manifest.entries.filter((e) => e.kind === "file" && e.content_digest !== null && e.baseline_state !== "unchanged");
+		// The reference side is read from the project the snapshot was taken from, and only for the paths
+		// that snapshot holds as files: a path that became a symlink has no reference text to diff.
+		const referenceFiles = new Set(reference.entries.filter((e) => e.kind === "file" && e.content_digest !== null).map((e) => e.path));
+		const files = await this.storeBytesOf(workspacePath, changed.filter((e) => e.baseline_state !== "deleted").map((e) => e.path));
+		const baseFiles = await this.storeBytesOf(reference.project_path, changed.filter((e) => e.baseline_state !== "added" && referenceFiles.has(e.path)).map((e) => e.path));
 		await this.storeArtifact("candidate", unit.state.change_id, `files_${manifest.candidate_id}`, files, KERNEL_ACTOR.actor_id);
+		await this.storeArtifact("candidate", unit.state.change_id, `base_files_${manifest.candidate_id}`, baseFiles, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
-		const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
-		const changedSet = new Set(changed);
+		const changedPaths = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
+		const changedSet = new Set(changedPaths);
 		const protectedPaths = unit.state.protocol?.protected_paths ?? [];
 		const prepared = await this.adoptedPreparation(unit.state);
-		const allowedProtected = changed.filter((p) => {
+		const allowedProtected = changedPaths.filter((p) => {
 			const entry = manifest.entries.find((candidateEntry) => candidateEntry.path === p);
 			if (isProtectedPrepared(p, prepared, entry?.content_digest ?? null)) return true;
 			if (entry?.baseline_state === "added" && protectedPaths.some((pattern) => pattern.endsWith("/") && matchesScope(p, pattern))) return true;
@@ -730,10 +782,10 @@ export class Harness {
 			const productionEntry = manifest.entries.find((candidateEntry) => candidateEntry.path === productionPath);
 			return changedSet.has(productionPath) && productionEntry?.baseline_state !== "deleted" && entry.content_digest !== null && entry.content_digest === productionEntry?.content_digest;
 		});
-		const altered = changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || manifest.entries.find((entry) => entry.path === p)?.baseline_state !== "added")) && !allowedProtected.includes(p));
+		const altered = changedPaths.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || manifest.entries.find((entry) => entry.path === p)?.baseline_state !== "added")) && !allowedProtected.includes(p));
 		const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
 		const truncatedNote = r.result === "truncated" ? [`the producer was stopped by the duration budget ${truncatedBefore + 1} time(s) and never reported itself finished`] : [];
-		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changed, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...truncatedNote, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
+		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changedPaths, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...truncatedNote, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
 		return unit;
 	}
 
@@ -750,12 +802,17 @@ export class Harness {
 		const reference = await this.referenceOf(state);
 		const baseline = protocol.content.baseline;
 		const shape = candidateShape(manifest);
+		// What this change wrote, line by line: a differential control is given the introduced lines and
+		// judges those, instead of a ratio that would answer for the whole tree (QLT-04).
+		const introduced = await this.introducedLines(manifest, shape);
 		const passes = await this.referencePasses(state, protocol.content, state.protocol.ref, reference);
 		for (const control of protocol.content.controls) {
 			this.progress(`running control ${control.control_id}`);
-			const invocation = { control, protocol: state.protocol.ref, candidate: state.candidate, subject: { kind: "candidate" as const, id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest }, workspace_path: workspacePath, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR };
+			const invocation = { control, protocol: state.protocol.ref, candidate: state.candidate, subject: { kind: "candidate" as const, id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest }, workspace_path: workspacePath, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR, introduced_lines: introduced.lines };
 			const observed = (await this.deps.controls.runControl(invocation)).evidence;
-			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" } };
+			// A path the diff could not read is a limit of the control that judged it, not a silent zero.
+			const limits = introduced.notes.length > 0 && control.parser === "jacoco-xml" ? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] } : observed.limits;
+			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" }, limits };
 			const pass = passes.get(control.control_id);
 			if (pass) {
 				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
@@ -809,7 +866,9 @@ export class Harness {
 		try {
 			for (const control of pending) {
 				this.progress(`running control ${control.control_id} on the reference`);
-				const { evidence } = await this.deps.controls.runControl({ control, protocol: protocolRef, candidate: { candidate_id: reference.reference_id, manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: handle.workspace_id }, subject: { kind: "reference", id: reference.reference_id, revision: 1, digest: reference.tree_digest }, workspace_path: handle.path, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR });
+				// The reference introduces nothing: that is the whole content of this pass for a differential
+				// control, and it is why such a control carries no preexisting finding of its own (QLT-04).
+				const { evidence } = await this.deps.controls.runControl({ control, protocol: protocolRef, candidate: { candidate_id: reference.reference_id, manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: handle.workspace_id }, subject: { kind: "reference", id: reference.reference_id, revision: 1, digest: reference.tree_digest }, workspace_path: handle.path, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR, introduced_lines: {} });
 				const evidenceId = this.id("evr");
 				// Observed on the initial tree: every finding of this pass is a defect the change inherited.
 				const stored = this.storeEvidence(state.change_id, { ...evidence, facts: { ...evidence.facts, run: "reference" }, findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })) }, evidenceId);

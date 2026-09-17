@@ -2,7 +2,12 @@ import { Type, type Static } from "typebox";
 import { Closed, Digest, Identifier, NonNegativeInt, Verdict, contractId } from "./common.ts";
 import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./evidence.ts";
 
-export const PARSER_IDS = ["exit-code", "node-test", "junit-xml"] as const;
+/**
+ * Sensors the generic runner knows how to read. `jacoco-xml` reads the coverage report the test
+ * control already wrote and judges only the lines the candidate introduced (QLT-04); it executes
+ * no measurement of its own.
+ */
+export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml"] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
 
 export const ControlDefinition = Type.Object(
