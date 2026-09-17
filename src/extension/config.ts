@@ -18,7 +18,7 @@ export const DEFAULT_CONFIG: HarnessConfig = {
 	policy: DEFAULT_POLICY,
 	isolation: { allow_unconfined: false },
 	human_origin: { rpc_actor_env: "HARNESS495_RPC_HUMAN_ACTOR" },
-	workspace_exclusions: ["node_modules/", "target/", "dist/", ".pi/", "__pycache__/", ".venv/", "build/", ".m2/", ".mvn/", ".gradle/", "vendor/"],
+	workspace_exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
 	language: "fr",
 };
 

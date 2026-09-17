@@ -57,8 +57,10 @@ résolus en lecture lors d'une reprise ; plus rien n'y est écrit.
 `max_continuations` dit combien de fois un producteur interrompu par cette borne reprend sur son
 propre workspace, sans consommer de tentative ni perdre ce qu'il a écrit ; `increment_ms` borne
 l'ensemble du changement. Un modèle local lent demande une durée plus large ou davantage de
-continuations. `workspace_exclusions` retire des workspaces et des manifestes les arbres qui ne
-sont pas du contenu applicatif (`node_modules/`, `target/`, `.m2/`, `.mvn/`, `.gradle/`, `vendor/`…).
+continuations. `workspace_exclusions` ne retire que des **sorties** de build, régénérables (`target/`, `build/`,
+`dist/`…). Un arbre de dépendances est une **entrée** : `node_modules/`, `.m2/`, `vendor/` ne sont
+jamais exclus par défaut, car les retirer change ce que le build résout — `.mvn/maven.config` peut
+même épingler le dépôt Maven dans l'arbre.
 
 Variables d'environnement : `HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1`,
 `HARNESS495_LANGUAGE=en`, `HARNESS495_ALLOW_UNCONFINED=1` (tests uniquement ; refuse ensuite toute

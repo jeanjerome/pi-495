@@ -12,7 +12,7 @@ import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } fr
 
 const execFileAsync = promisify(execFile);
 
-export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = { exclusions: ["node_modules/", "target/", "dist/", ".pi/", "__pycache__/", ".venv/", "build/", ".m2/", ".mvn/", ".gradle/", "vendor/"], max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 };
+export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = { exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"], max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 };
 
 export interface GitInfo {
 	is_repo: boolean;
