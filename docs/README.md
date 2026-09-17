@@ -27,6 +27,7 @@ Ce qui a été construit, dans quel état, et prouvé par quoi. Vivant : actuali
 | [TRACEABILITY.md](TRACEABILITY.md) | Matrice exigence → composants → preuves, y compris les exigences non couvertes. |
 | [QUALIFICATION.md](QUALIFICATION.md) | Rapport d'exécution sur la machine de référence. |
 | [DECISIONS.md](DECISIONS.md) | Décisions prises pendant l'implémentation, avec motif et conséquence. |
+| [RISQUES-L0.md](RISQUES-L0.md) | Les dix risques de la conception technique §16 : pour chacun, la décision de traitement retenue et la preuve qui la soutient, ou le travail qui manque. |
 | [revues/](revues/README.md) | Les six revues obligatoires de qualification : le dossier de chacune, et les constats de celles qui sont conduites. |
 
 `TRACEABILITY.md` est le pont entre les deux natures : elle relie chaque exigence amont au code et
@@ -51,3 +52,4 @@ porte l'état d'avancement et le critère de sortie.
 | Une exécution de campagne | `QUALIFICATION.md` |
 | Un constat de revue obligatoire, ou ce qui manque pour la conduire | `revues/`, dans le dossier de la revue concernée |
 | Un critère de franchissement de jalon, ou ce qui l'empêche | `MILESTONES.md` |
+| Le traitement d'un risque de la conception technique §16 | `RISQUES-L0.md` |

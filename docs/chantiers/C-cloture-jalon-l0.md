@@ -1,6 +1,6 @@
 # Transverse C — clôture du jalon L0
 
-**État :** à faire
+**État :** clos le 17 septembre 2026
 **Objet :** les critères de sortie L0 restés ouverts alors que les incréments IT-0 à IT-4 sont livrés
 **Ne dépend d'aucun étage**
 
@@ -72,4 +72,38 @@ Critères d'acceptation :
 
 ## Journal
 
-_À compléter._
+**17 septembre 2026.** Les quatre travaux sont conduits ; le jalon est franchi avec une plateforme
+et non deux.
+
+**Linux x86-64 — non revendiqué.** La seule machine Linux disponible est un conteneur, où `bwrap`
+ne crée d'espace de noms qu'en `--privileged`, c'est-à-dire dans un environnement qui a retiré la
+frontière que la mesure devait constater ; et `MILESTONES.md` §7 rappelle qu'une campagne exécutée
+une fois qualifie cette exécution, pas la combinaison. La plateforme n'est donc pas revendiquée
+(`D-31`), sans état intermédiaire : `BubblewrapSandbox.qualify()` refuse sur toute machine et la
+frontière refuse alors tout rôle confiné.
+
+Le refus a été éprouvé par exécution avant d'être écrit, et l'exécution a trouvé un défaut : le
+refus avait bien lieu, mais pour le mauvais motif. L'échec de `bwrap` était compté comme un verdict
+du contrôle de la cible — « the runner exited with 1 without emitting a TAP summary » — là où rien
+n'avait été mesuré. Un outil de confinement qui n'a pas démarré rend désormais un incident, par la
+même fonction pour les deux backends (`D-32`).
+
+**Mode RPC — et l'entrée SDK, qui ne l'était pas non plus.** `v3/pi-rpc-sdk` pilote un vrai
+`pi --mode rpc` par un client JSONL conforme au cadrage du protocole, et un hôte SDK qui charge le
+package par `createAgentSession`. Les quatre canaux structurés rendent la même empreinte de
+candidat, les mêmes gates, les mêmes verdicts de preuve et le même instantané de revue, ce qui clôt
+`UX-11`. Le dialogue de décision traverse le sous-protocole UI et reste refusé à un client qui ne
+déclare pas d'identité. L'instruction a montré que Pi n'a que quatre modes d'extension : la
+cinquième entrée est un chemin de chargement, pas un mode (`D-34`).
+
+**Les dix risques.** [RISQUES-L0.md](../RISQUES-L0.md) porte, pour chaque ligne de la conception
+technique §16, la décision retenue et la preuve qui la soutient. Cinq lignes sont traitées avec un
+résiduel nommé, trois traitées, deux ouvertes : la provenance des extensions tierces de la session
+hôte, dont l'inventaire n'existe pas, et l'ancien code Python, pour lequel la matrice de migration
+est rendue mais laisse deux domaines abandonnés sans décision d'exigence.
+
+**Les trois paramètres différés.** Fixés sur un corpus mesuré et figé (`D-33`,
+`test/fixtures/review-corpus.ts`), chacun avec son critère vérifié par `v0/review-parameters`. Deux
+constats en sont sortis : l'aide clavier de la revue perdait ses dernières actions dès qu'un
+terminal était plus étroit que 123 colonnes, et un fichier plus long qu'une page n'était pas
+atteignable au-delà de la première.

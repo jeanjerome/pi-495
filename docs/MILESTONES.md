@@ -30,7 +30,7 @@ machine à états d'un changement (`intake → … → closed`), gelée dans les
 
 | Jalon | Finalité | État | Ce qui bloque |
 | --- | --- | --- | --- |
-| `L0` | Lever les inconnues techniques, sans promesse produit | livré non qualifié | Linux x86-64, mode RPC, risques instruits, paramètres différés |
+| `L0` | Lever les inconnues techniques, sans promesse produit | qualifié sur macOS arm64, Linux non revendiqué | rien ; deux lignes de risque portent un travail identifié, pas une décision manquante |
 | `L1` | Premier produit conduisant un changement et un programme séquentiel sous contrôle | en cours | la moitié de P0 non commencée, les trois revues obligatoires en attente d'autorité |
 | `L2` | Cible produit complète | non commencé | dépend de la qualification de L1 |
 | `L3` | Extensions optionnelles | non commencé | une seule exigence `[P2]` formalisée |
@@ -44,27 +44,39 @@ ne promet aucune capacité produit. La conception technique §18 lui rattache le
 | Incrément | Objet | État |
 | --- | --- | --- |
 | `IT-0` | contrats v1, noyau, stockage SQLite et CAS, pannes injectées | livré, qualifié ici |
-| `IT-1` | package Pi, commandes, liaison de session, modes | livré ; RPC non exercé |
-| `IT-2` | worker, sandbox, workspace, manifeste de candidat | livré, qualifié sur macOS seulement |
+| `IT-1` | package Pi, commandes, liaison de session, modes | livré, qualifié dans les cinq entrées |
+| `IT-2` | worker, sandbox, workspace, manifeste de candidat | livré, qualifié sur macOS arm64 |
 | `IT-3` | runner, parsers, qualification, G2 à G5, décision | livré, qualifié ici |
 | `IT-4` | modèle de revue, composant TUI, intégration Git | livré ; revue humaine non réalisée |
 
-### Ce qui reste pour franchir L0
+### Ce que la qualification L0 a établi
 
-- **Linux x86-64.** Le backend `bwrap` est implémenté, jamais exécuté. La frontière d'exécution doit
-  être qualifiée sur les deux plateformes, et le confinement doit refuser l'exécution lorsqu'une
-  restriction requise ne peut être garantie. `NFR-05` en dépend.
-- **Mode RPC.** Le critère est « mêmes faits et mêmes verdicts dans les cinq entrées ». Quatre sont
-  exercées ; `UX-11` attend le même passage pour la concordance des données de revue.
-- **Les dix lignes de risque** de `amont/conception-technique.md` §16 : chacune doit posséder une
-  décision argumentée et sa preuve, y compris lorsque le code livré contient déjà la réponse.
-- **Les trois paramètres différés** : seuil du mode terminal étroit, pagination et budgets des
-  grands fichiers, chacun avec son protocole, sa fixture et son critère de décision.
+- **Plateformes.** macOS arm64 est qualifiée : la matrice d'attaque Seatbelt est exécutée par
+  `v1/sandbox`. **Linux x86-64 n'est pas revendiquée** — voir ci-dessous.
+- **Les cinq entrées.** `v3/pi-entries` couvre print et JSON, `v3/pi-rpc-sdk` couvre un client RPC
+  réel et un hôte SDK, `v0/review-surface` couvre le composant TUI. Les quatre entrées structurées
+  rendent la même empreinte de candidat, les mêmes gates et le même instantané de revue, ce qui
+  clôt `UX-11` pour la concordance des données de revue.
+- **Les dix lignes de risque** de `amont/conception-technique.md` §16 possèdent chacune leur
+  décision écrite et sa preuve, ou le travail qui manque : [RISQUES-L0.md](RISQUES-L0.md).
+- **Les trois paramètres différés** sont fixés avec leur protocole, leur fixture et leur critère de
+  décision (`DECISIONS.md` D-33, `v0/review-parameters`).
 
-Ces quatre points sont regroupés dans [chantiers/C](chantiers/C-cloture-jalon-l0.md).
+### Linux x86-64 n'est pas revendiquée
+
+L0 demande une décision argumentée, pas une promesse. La décision est de **ne pas revendiquer
+Linux** (`DECISIONS.md` D-31). Il n'existe pas d'état intermédiaire : le backend `bubblewrap` échoue
+sa qualification sur toute machine, et la frontière d'exécution refuse alors tout rôle confiné avec
+`capability_missing`. Ce refus est éprouvé par exécution sur Linux, pas seulement écrit —
+`QUALIFICATION.md`, campagne du 17 septembre 2026.
+
+`NFR-05` est donc **non satisfaite**, et annoncée telle. Ce qui la satisferait est nommé : une
+machine Linux x86-64 réelle, la campagne V1 sandbox et une campagne V4 par combinaison de pile
+revendiquée.
 
 Un échec L0 ne réduit pas le besoin : il conduit à réviser la solution, l'architecture ou une
-dépendance, puis à requalifier.
+dépendance, puis à requalifier. Une plateforme non revendiquée n'est pas un échec du jalon ; c'en
+est une sortie, qui borne ce que la suite peut annoncer.
 
 ## 4. L1 — socle produit P0
 
@@ -90,8 +102,10 @@ Aux dix conditions de la règle de décision de livraison s'ajoutent les critèr
 1. les 93 exigences `[P0]` possèdent un verdict **discriminant** sur leur périmètre applicable, ou
    l'arbitrage humain qui en tient lieu ; un contrôle vert sur la référence n'est pas un verdict ;
 2. TypeScript et Java couvrent les parcours de référence ;
-3. macOS arm64 et Linux x86-64 sont qualifiés ;
-4. le même package est exercé dans les cinq entrées Pi ;
+3. macOS arm64 et Linux x86-64 sont qualifiés ; L0 a décidé de ne pas revendiquer Linux, donc ce
+   critère est aujourd'hui **non satisfait** et le restera tant qu'une machine Linux ne conduira pas
+   les campagnes — à moins qu'une révision de l'amont ne retire cette plateforme de la cible ;
+4. le même package est exercé dans les cinq entrées Pi — satisfait depuis L0 ;
 5. dépôt vierge, existant contrôlé, existant mal contrôlé et remise à niveau sont démontrés ;
 6. les six revues obligatoires sont réalisées et leurs constats bloquants clos, refusés
    explicitement ou couverts par une dérogation ;

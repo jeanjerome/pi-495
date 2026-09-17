@@ -416,3 +416,68 @@ témoin positif ressortent alors `NO_COVERAGE`, le capteur échoue sur le tronc 
 passer, et sa qualification échoue pour une raison qui n'a rien à voir avec ce qu'il détecte.
 **Conséquence.** Les constats des campagnes portent désormais le paquet dans leur chemin et dans
 leur symbole. Le témoin structurel utilisait déjà ce paquet sous la racine de sources de son module.
+
+## D-31 — Linux x86-64 n'est pas une plateforme revendiquée
+
+**Décision.** Le backend `bubblewrap` reste dans les sources, et sa qualification échoue sur toute
+machine, y compris une machine Linux munie de `bwrap`. La raison en est nommée dans le résultat :
+`Linux is not a claimed platform of this package`. Il n'y a pas d'état intermédiaire entre
+« qualifié » et « non revendiqué » ; la sélection d'un backend non qualifié refuse tout rôle confiné
+avec `capability_missing`.
+**Motif.** `MILESTONES.md` §7 pose qu'une campagne exécutée une fois qualifie cette exécution, pas
+la combinaison de pile et de plateforme. La seule machine Linux disponible est un conteneur, où
+`bwrap` ne crée d'espace de noms qu'en `--privileged` — c'est-à-dire dans un environnement qui a
+retiré la frontière que la mesure devait constater. Qualifier là serait mesurer le confinement dans
+un contexte qui n'en a plus.
+**Conséquence.** Les sorties annoncées ne mentionnent plus Linux comme plateforme supportée.
+`NFR-05` est non satisfaite et déclarée telle. Le code du backend est conservé parce qu'il est le
+point de départ de la campagne qui le qualifierait, et il reste exercé par `v1/sandbox` sur ce
+qu'un test peut établir sans Linux : son refus.
+
+## D-32 — Un outil de confinement qui n'a pas démarré est un incident, pas un verdict
+
+**Décision.** Quand `sandbox-exec` ou `bwrap` échoue avant d'exécuter la commande, l'observation
+devient un `spawn_error` avec `exit_code: null`, donc un incident rendant `INDETERMINATE`, au lieu
+du code de sortie de l'outil. Les deux backends passent par la même fonction, `startupIncident`.
+**Motif.** Sur Linux, l'échec de `bwrap` ressortait en « le runner a quitté avec 1 sans émettre de
+résumé TAP » : le refus fail closed avait bien lieu, mais il accusait le harnais de test de la
+cible d'un défaut qui était celui de la machine. Un lecteur y aurait cherché un bug qui n'existait
+pas.
+**Conséquence.** `RM-016` est respectée dans les deux sens : une restriction qui ne peut être
+garantie ne produit pas de mesure, et une mesure absente n'est pas comptée comme un échec. Le
+discriminant est la sortie standard d'erreur, que l'outil de confinement est seul à avoir écrite
+quand la commande n'a pas démarré.
+
+## D-33 — Les trois paramètres de revue sont décidés sur un corpus mesuré
+
+**Décision.** Le seuil du mode terminal étroit, la taille d'une page de chargement progressif et le
+budget de lecture d'un fichier deviennent trois constantes exportées, chacune avec son critère de
+décision écrit à côté d'elle et vérifié par un test : `NARROW_THRESHOLD` (100 colonnes),
+`CONTENT_PAGE_LINES` (2 000 lignes) et `FILE_READ_BUDGET_BYTES` (2 Mio). Le corpus sur lequel elles
+sont mesurées est figé dans `test/fixtures/review-corpus.ts`.
+**Motif.** `specification-fonctionnelle.md` §16 renvoie ces trois valeurs à la qualification L0 avec
+une contrainte chacune, pas avec un nombre. Trois littéraux dispersés dans le code satisfaisaient la
+contrainte par hasard : le seuil de 100 était un `?? 100` jamais justifié, la page était un `5000`
+écrit à l'appel, et le budget de lecture existait en trois exemplaires dont l'un divergeait du
+journal des sources.
+**Conséquence.** Re-mesurer un autre corpus est une révision de décision, pas une correction de
+test. Deux constats sont sortis de cette instruction : l'aide clavier de la revue, large de 123
+colonnes, perdait ses dernières actions dès qu'un terminal était plus étroit — elle bascule
+désormais sur une forme compacte qui nomme les mêmes touches ; et un fichier plus long qu'une page
+n'était pas atteignable au-delà de la première — le lecteur charge la page suivante quand la
+lecture approche de la fin de ce qui est chargé.
+
+## D-34 — L'entrée SDK est un chargement, pas un cinquième mode
+
+**Décision.** Le critère « le même package exercé dans les cinq entrées Pi » compte l'hôte SDK comme
+une manière de **charger** le package, non comme un mode de présentation. Pi n'expose que quatre
+modes d'extension — `tui`, `rpc`, `json`, `print` — et un hôte SDK choisit celui qu'il lie.
+`test/helpers/sdk-host.ts` est cet hôte : il charge l'extension par un `DefaultResourceLoader`
+plutôt que par la découverte du binaire `pi`, et lie le mode `json`.
+**Motif.** Chercher un mode `sdk` dans `ExtensionMode` ne donne rien, et la question restait de
+savoir ce que la cinquième entrée devait démontrer. Ce qui la distingue est le chemin de
+chargement : un hôte tiers qui embarque Pi ne passe ni par le CLI ni par les réglages de
+l'utilisateur.
+**Conséquence.** `v3/pi-rpc-sdk` compare quatre canaux sur les mêmes faits, et l'empreinte du
+candidat — dérivée de son seul contenu — est la même dans les quatre. La concordance n'est donc pas
+une ressemblance de texte mais une égalité d'identités.

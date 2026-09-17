@@ -12,9 +12,10 @@ Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible s
 | V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap dont le profil `loopback` qui se joint lui-même et aucun autre hôte, runner et parsers dont agrégation Surefire multi-module, couverture différentielle JaCoCo (constat localisé, dette antérieure nommée, mesure absente indéterminée, trois témoins), constats structurels (règles dérivées des POM et de la disposition des paquets, import interdit introduit refusé avec sa localisation, cycle préexistant classé `preexisting`, trois témoins, frontières transmises au producteur) et mutation des classes modifiées (mutant survivant sur une ligne écrite refusé avec opérateur et méthode, survivant sur une classe non touchée sans effet, dette de la classe comptée sans bloquer, budget dépassé indéterminé puis incident à G5, seuil de la cible nommé et non opposé, portée dérivée des déclarations et non lancée sur la référence, trois témoins), superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
 | V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation dont échelle de capacité de contrôle et périmètre Maven multi-module, export, intégration Git | passent |
 | V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation, diagnostic de démarrage dit à chaque entrée | passent |
+| V3 | `test/v3/pi-rpc-sdk` | `pi --mode rpc` réel piloté par un client JSONL, et un hôte SDK chargeant le package par `createAgentSession` : mêmes faits et mêmes verdicts que print et JSON, même empreinte de candidat, même instantané de revue, dialogue de décision par le sous-protocole UI refusé à un client non déclaré, aucun échappement terminal | passent |
 
-Total : 237 tests, 0 échec (V0 91, V1 88, V2 55, V3 3). Le compte fait ici est une transcription :
-l'autorité est la sortie de `npm test`.
+Total : 252 tests, 0 échec (V0 101, V1 89, V2 55, V3 7 — et V4 hors suite par défaut). Le compte
+fait ici est une transcription : l'autorité est la sortie de `npm test`.
 
 ## Contrôles de dépôt (`npm run check`)
 
@@ -36,6 +37,7 @@ l'autorité est la sortie de `npm test`.
 | Chargement par manifeste | `pi -e <package> -p "/495 status"` après `npm run build` | extension chargée depuis `dist/`, réponse attendue |
 | Architecture opposable sur une cible réelle | contrôle `structure` du protocole gelé, exécuté sur `~/Projets/495-workspace/cibles/simple-demo-hexagonal-architecture` et sur des copies modifiées | trois règles dérivées des POM et de la disposition des paquets ; référence `PASS`, 19 sources, 12 paquets, aucune violation ; un import de `io.scalastic.demo.infrastructure` ajouté dans `domain` rend `FAIL` avec le fichier et la ligne, classé `new`, bloquant ; un cycle préexistant entre quatre paquets de `domain` laisse le contrôle `PASS` et apparaît en `preexisting`, non bloquant |
 | Capacité de contrôle d'une cible réelle | `node scripts/diagnose-capability.ts ~/Projets/495-workspace/cibles/simple-demo-hexagonal-architecture` | Maven multi-module, 5 classes de test reconnues, niveau `file_present` ; préparation ouverte pour un ajout de comportement, non ouverte pour un comportement conservé |
+| Refus fail closed sur Linux | conteneur `node:24-bookworm-slim` `linux/amd64`, noyau linuxkit 7.0.12, `bubblewrap 0.8.0` : `test/v1/sandbox.test.ts` puis `pi --mode json -p "/495 start …"` sans `HARNESS495_ALLOW_UNCONFINED` | `bwrap` ne crée pas d'espace de noms sous le profil de conteneur par défaut (`Operation not permitted`) et n'y parvient qu'en `--privileged` ; la qualification du backend échoue, la vue porte `sandbox:bubblewrap:not-qualified`, et le changement s'arrête en `capability_missing`. Avant correction, l'échec de `bwrap` ressortait en `FAIL` du contrôle de la cible (« the runner exited with 1 without emitting a TAP summary ») ; il est désormais `INDETERMINATE` avec `spawn error: bwrap: Creating new namespace failed` |
 
 Incidents rencontrés et corrigés pendant la qualification : le workspace était placé sous le
 répertoire de données interdit en lecture (contrôles `INDETERMINATE`) ; `sandbox-exec` renvoie 71
@@ -51,6 +53,10 @@ possèdent leur dossier et attendent une autorité ou un environnement absents d
 
 ## Non couvert sur cette machine
 
-Linux x86-64, mode RPC avec client qualifié, observation humaine du TUI, revue de sécurité
-indépendante, revue fonctionnelle par le responsable produit, mesures de performance, programme
-multi-incréments de bout en bout. Voir `STATUS.md`.
+Observation humaine du TUI, revue de sécurité indépendante et campagne adverse V5, revue
+fonctionnelle par le responsable produit, mesures de performance (`C-PERF`), programme
+multi-incréments de bout en bout, inventaire des extensions de la session hôte (`F-EXTENSIONS`).
+Voir `STATUS.md` et `RISQUES-L0.md`.
+
+Linux x86-64 n'y figure plus : la plateforme n'est pas revendiquée (`D-31`), ce qui est une décision
+et non une couverture manquante. Ce qui la revendiquerait est nommé dans `MILESTONES.md` §3.

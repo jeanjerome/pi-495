@@ -25,7 +25,7 @@ Ils ne s'insèrent pas dans l'échelle des étages et peuvent avancer en parall�
 | --- | --- | --- | --- |
 | A | complétude de la matrice de traçabilité, et le contrôle qui l'empêche de se rouvrir | livré : `scripts/check-traceability.ts` sur `npm run check`, et les cinq recettes `CTX-04`, `UX-05`, `EXT-02`, `IMP-05`, `NFR-06` exercées | [A-matrice-completude.md](A-matrice-completude.md) |
 | B | les six revues obligatoires de qualification | partiel : les six dossiers existent (`../revues/`), trois revues conduites et leurs bloquants clos par des contrôles, trois en attente d'une autorité ou d'un environnement absents | [B-revues-obligatoires.md](B-revues-obligatoires.md) |
-| C | clôture du jalon L0 : Linux, RPC, risques instruits, paramètres différés | à faire | [C-cloture-jalon-l0.md](C-cloture-jalon-l0.md) |
+| C | clôture du jalon L0 : Linux, RPC, risques instruits, paramètres différés | clos : Linux non revendiqué avec son refus éprouvé sur Linux, RPC et hôte SDK exercés, les dix risques instruits dans `../RISQUES-L0.md`, les trois paramètres fixés sur un corpus mesuré | [C-cloture-jalon-l0.md](C-cloture-jalon-l0.md) |
 
 ## Contraintes communes
 

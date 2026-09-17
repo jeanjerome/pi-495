@@ -9,8 +9,10 @@ Le produit est un **pi-package**. Il n'expose ni CLI propre, ni service, ni job 
 
 ## Installation
 
-Pré-requis : Pi 0.85.1 exécuté par Node ≥ 24 (`node:sqlite`), Git, macOS arm64 (Seatbelt) ; Linux
-x86-64 avec `bwrap` est implémenté mais non qualifié.
+Pré-requis : Pi 0.85.1 exécuté par Node ≥ 24 (`node:sqlite`), Git, **macOS arm64** — la seule
+plateforme revendiquée, son confinement reposant sur Seatbelt. Linux n'est pas revendiqué : le
+backend `bubblewrap` est écrit, aucune campagne ne le qualifie, et 495 y refuse toute intervention
+productrice avec `capability_missing` plutôt que de s'exécuter sans la frontière qu'il annonce.
 
 ```bash
 npm run build
@@ -39,7 +41,9 @@ ni adopter, ni intégrer.
 
 Modes Pi : TUI (dialogues et vue de revue), RPC (dialogues via le sous-protocole UI ; une décision
 humaine exige `HARNESS495_RPC_HUMAN_ACTOR`), JSON (messages `customType: "495"` avec la vue
-canonique dans `details.view`), print (texte ; Pi route les écritures d'extension vers stderr).
+canonique dans `details.view`), print (texte ; Pi route les écritures d'extension vers stderr). Un
+hôte qui embarque Pi par le SDK charge le package par son `ResourceLoader` et lie le mode qu'il
+veut ; les quatre canaux structurés rendent les mêmes faits et les mêmes verdicts.
 
 ## Données et configuration
 

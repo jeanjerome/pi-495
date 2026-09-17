@@ -14,8 +14,8 @@ vérification a été exécutée sur cette machine.
 | Incrément | État | Preuves exécutées |
 | --- | --- | --- |
 | IT-0 contrats, noyau, stockage | livré, qualifié ici | V0 (58 tests dont propriétés générées), V2 stockage avec pannes injectées |
-| IT-1 package Pi, commandes, modes | livré, qualifié ici pour TUI (composant), print, JSON ; RPC non exercé | V3 (2 parcours réels `pi -p` / `pi --mode json`), chargement par manifeste |
-| IT-2 worker, sandbox, candidat | livré, qualifié ici sur macOS | V1 sandbox/runner/superviseur, intervention réelle avec le modèle local |
+| IT-1 package Pi, commandes, modes | livré, qualifié ici dans les cinq entrées : TUI (composant), print, JSON, RPC, hôte SDK | V3 (`pi -p`, `pi --mode json`, `pi --mode rpc` avec client réel, hôte SDK par `createAgentSession`), chargement par manifeste |
+| IT-2 worker, sandbox, candidat | livré, qualifié ici sur macOS arm64 ; Linux non revendiqué | V1 sandbox/runner/superviseur, intervention réelle avec le modèle local, refus fail closed exécuté sur Linux |
 | IT-3 vérification et décision | livré, qualifié ici | V1 parsers/runner/qualification, V2 cycles complets |
 | IT-4 revue et intégration | livré ; TUI qualifié par rendu simulé, pas par observation humaine | V0 modèle de revue et composant, V2 intégration Git |
 | IT-5 programme, préparation, stacks | partiel : préparation livrée ; programme multi-incréments au niveau noyau ; F-JAVA qualifiée | V2 préparation, V4 Java (exécutée une fois, hors suite par défaut) |
@@ -48,6 +48,24 @@ vérification a été exécutée sur cette machine.
 - Préparation de tests absents : suite proposée par un agent, qualifiée par le noyau
   (périmètre, chargeable, discriminante), protégée ensuite.
 - Seconde stack : F-JAVA (Maven + Surefire) qualifiée positif/négatif/incident sous Seatbelt.
+- Les cinq entrées Pi rendent les mêmes faits : un client RPC réel et un hôte SDK chargeant le
+  package par `createAgentSession` conduisent le parcours de référence et s'accordent avec print et
+  JSON sur l'issue, les six gates, les verdicts de preuve et l'empreinte du candidat — la même,
+  parce qu'elle ne dépend que du contenu produit. La revue lit le même instantané dans les quatre
+  canaux structurés : même `snapshot_id`, mêmes comptes, même texte sous l'en-tête. En RPC, aucun
+  échappement terminal n'atteint le client et aucun composant `custom()` n'est demandé.
+- Une décision humaine en RPC suit le mécanisme de `D-12` des deux côtés : un client qui ne déclare
+  pas d'identité n'ouvre aucun dialogue et laisse le changement en `decision_required` ; un client
+  qui en déclare une reçoit un `extension_ui_request`, sa réponse est enregistrée, et `/495 report`
+  nomme l'autorité qui a tranché.
+- La frontière d'exécution refuse fail closed sur une plateforme non revendiquée : sur Linux, la
+  sélection du backend `bubblewrap` rend une qualification négative, la vue porte la limite
+  `sandbox:bubblewrap:not-qualified`, et le changement s'arrête en `capability_missing`.
+- Les trois paramètres de revue que l'amont avait différés sont fixés sur un corpus mesuré et
+  vérifiés par leur critère : aucune action de revue ne disparaît de l'aide quelle que soit la
+  largeur, un fichier plus long qu'une page se lit page après page avec ce qui reste annoncé, et un
+  fichier au-dessus du budget de lecture garde son chemin, son statut et sa taille au lieu de
+  disparaître.
 
 ## Préparation Maven multi-module
 
@@ -202,8 +220,13 @@ manque est nommé dans chacun.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
-- Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
-- Mode RPC : chemins de code présents ; aucun client RPC qualifié n'a été exercé.
+- Linux x86-64 : **plateforme non revendiquée**, sans état intermédiaire. Le backend bubblewrap est
+  écrit, sa qualification échoue sur toute machine, et la frontière d'exécution refuse alors tout
+  rôle confiné avec `capability_missing`. Ce refus est exécuté sur Linux, pas seulement écrit : la
+  campagne du 17 septembre 2026 établit que `bwrap` n'y crée d'espace de noms qu'en `--privileged`,
+  que le changement s'arrête bien en `capability_missing`, et que l'échec du confinement est
+  désormais rendu comme incident plutôt que comme verdict du contrôle de la cible. Voir `D-31`,
+  `D-32` et `QUALIFICATION.md`.
 - Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit) ;
   la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire. Le
   protocole de conduite est écrit — `revues/R4-ux-accessibilite.md` — et attend un utilisateur
@@ -220,6 +243,12 @@ manque est nommé dans chacun.
   et stockage seulement.
 - Reviewers agentiques obligatoires : mécanisme livré (rôle `review`, mandat lecture seule,
   arbitrage) et testé avec l'agent scripté ; non exercé avec un modèle réel.
+- Provenance des extensions tierces de la session hôte : une extension Pi chargée dans la même
+  session que `/495` n'est ni inventoriée ni annoncée. L'identité d'environnement relève la
+  plateforme, Node, Pi, le backend d'isolation et les outils de build, pas les extensions ni les
+  outils que l'hôte expose ; la fixture `F-EXTENSIONS` n'existe pas. Ce qui borne la portée :
+  l'état normatif vit hors de la session Pi, seul le noyau écrit une gate, et l'outil
+  conversationnel est en lecture seule — voir `RISQUES-L0.md` §3.
 - Performance (NFR-04) : aucune mesure p95 ; les bornes de flux et de taille existent.
 - Ressources : tout chemin nominal supprime le workspace à sa fermeture, mais une interruption avant
   la fermeture laisse un orphelin que rien ne reprend, `cleanupTemporaries` du CAS n'est appelé que
@@ -248,7 +277,8 @@ manque est nommé dans chacun.
   exige qu'un contrôle qualifié passe sur la référence, donc aucun contrôle qualifié ne porte
   aujourd'hui de constat préexistant sur un défaut de test — la tolérance est désormais exercée par
   le contrôle structurel, qui passe sur la référence tout en nommant les violations qu'il y trouve.
-- Portabilité (NFR-05) : annoncée sans être qualifiée, le backend `bwrap` n'ayant jamais été exécuté.
+- Portabilité (NFR-05) : **non satisfaite**. Une seule plateforme est revendiquée, macOS arm64. Ce
+  qui la satisferait est nommé dans `MILESTONES.md` §3 ; rien n'en est annoncé d'ici là.
 - Observabilité sans surveillance imposée (NFR-06) : établie. Un changement conduit de la demande à
   l'export expurgé, sockets, DNS, `http`/`https` et `fetch` instrumentés, n'ouvre aucune connexion
   et ne résout aucun hôte, et tout ce qui s'exécute hors du processus le fait sous un profil
