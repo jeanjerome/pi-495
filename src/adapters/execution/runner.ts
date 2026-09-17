@@ -1,3 +1,4 @@
+import type { Dirent } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
@@ -90,6 +91,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 
 async function readReports(workspace: string, reportPath: string | null): Promise<{ name: string; text: string }[]> {
 	if (!reportPath) return [];
+	if (reportPath.startsWith("**/")) return readRecursiveReports(workspace, reportPath.slice(3));
 	const abs = resolve(workspace, reportPath);
 	if (!abs.startsWith(resolve(workspace))) return [];
 	try {
@@ -101,6 +103,40 @@ async function readReports(workspace: string, reportPath: string | null): Promis
 	} catch {
 		return [];
 	}
+}
+
+async function readRecursiveReports(workspace: string, directorySuffix: string): Promise<{ name: string; text: string }[]> {
+	const root = resolve(workspace);
+	const out: { name: string; text: string }[] = [];
+	const stack: { absolute: string; relative: string }[] = [{ absolute: root, relative: "" }];
+	let visited = 0;
+	while (stack.length > 0) {
+		const current = stack.pop()!;
+		visited++;
+		if (visited > 10_000) throw new Error("JUnit report scan exceeded 10000 directories");
+		let entries: Dirent[];
+		try { entries = await readdir(current.absolute, { withFileTypes: true }); } catch { continue; }
+		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+			if (!entry.isDirectory() || entry.name === ".git" || entry.name === "node_modules") continue;
+			const rel = current.relative ? `${current.relative}/${entry.name}` : entry.name;
+			const abs = join(current.absolute, entry.name);
+			if (rel === directorySuffix || rel.endsWith(`/${directorySuffix}`)) {
+				try {
+					for (const file of (await readdir(abs)).sort()) {
+						if (!file.endsWith(".xml")) continue;
+						if (out.length >= 500) throw new Error("JUnit report scan exceeded 500 XML files");
+						out.push({ name: `${rel}/${file}`, text: await readFile(join(abs, file), "utf8") });
+					}
+				} catch (error) {
+					if ((error as Error).message.startsWith("JUnit report scan exceeded")) throw error;
+					/* a missing or unreadable report directory produces no report */
+				}
+				continue;
+			}
+			stack.push({ absolute: abs, relative: rel });
+		}
+	}
+	return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export { qualifyControl, type QualificationFixtures } from "../../application/qualification.ts";

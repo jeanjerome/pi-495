@@ -8,7 +8,7 @@ import { digestBytes, digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { DomainError } from "../../domain/errors.ts";
 import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
-import { diffEntries, isExcluded, walkTree } from "./walk.ts";
+import { diffEntries, includedEntries, isExcluded, walkTree } from "./walk.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -52,13 +52,21 @@ let wsCounter = 0;
  */
 export class GitWorkspace implements WorkspacePort {
 	readonly root: string;
-	constructor(root: string) {
+	private readonly legacyRoots: string[];
+	constructor(root: string, legacyRoots: string[] = []) {
 		this.root = root;
+		this.legacyRoots = [...new Set(legacyRoots.filter((legacy) => resolve(legacy) !== resolve(root)))];
 		mkdirSync(root, { recursive: true });
 	}
 
 	workspacePath(workspaceId: string): string {
-		return join(this.root, workspaceId);
+		const current = join(this.root, workspaceId);
+		if (existsSync(current)) return current;
+		for (const legacy of this.legacyRoots) {
+			const previous = join(legacy, workspaceId);
+			if (existsSync(previous)) return previous;
+		}
+		return current;
 	}
 
 	async captureReference(projectPath: string, policy: WorkspacePolicy): Promise<ReferenceSnapshot> {
@@ -103,7 +111,7 @@ export class GitWorkspace implements WorkspacePort {
 
 	async snapshotCandidate(handle: WorkspaceHandle, reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<CandidateManifest> {
 		const walked = await walkTree(handle.path, policy);
-		const entries = diffEntries(reference.entries, walked.entries);
+		const entries = diffEntries(includedEntries(reference.entries, policy.exclusions), walked.entries);
 		const selected = entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 		const digest = digestBytes(canonicalize({ base_ref: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries: entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]), metadata_policy: "content_and_mode" }));
 		return { candidate_id: `cand_${digest.slice(7, 19)}`, workspace_id: handle.workspace_id, base_reference_id: reference.reference_id, base_digest: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries, metadata_policy: "content_and_mode", manifest_digest: digest, frozen_at: new Date().toISOString(), limits: mergeLimits(reference.limits, walked.limits) };

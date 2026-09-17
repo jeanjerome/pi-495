@@ -210,6 +210,32 @@
               "items": {
                 "type": "string"
               }
+            },
+            "evidence_ids": {
+              "type": "object",
+              "required": [
+                "positive",
+                "negative",
+                "incident"
+              ],
+              "properties": {
+                "positive": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "negative": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "incident": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

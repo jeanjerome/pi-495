@@ -1,7 +1,7 @@
 # Statut d'implémentation P0
 
 Machine de référence : macOS 27 arm64, Node 24.21, Pi 0.85.1, Git 2.55, JDK 25 + Maven 3.9.9,
-modèle local `omlx/qwen3.8-27b-oq8e`. Date : 16 septembre 2026.
+modèle local `omlx/qwen3.8-27b-oq8e`. Date : 17 septembre 2026.
 
 « Livré » = code + tests passants. « Qualifié ici » = la preuve prévue par la conception de
 vérification a été exécutée sur cette machine.
@@ -38,6 +38,21 @@ vérification a été exécutée sur cette machine.
 - Préparation de tests absents : suite proposée par un agent, qualifiée par le noyau
   (périmètre, chargeable, discriminante), protégée ensuite.
 - Seconde stack : F-JAVA (Maven + Surefire) qualifiée positif/négatif/incident sous Seatbelt.
+
+## Préparation Maven multi-module
+
+La détection parcourt le réacteur Maven depuis le `pom.xml` racine sans exécuter Maven. Les racines
+`src/test/`, les `pom.xml` protégés et les répertoires `target` inscriptibles sont calculés pour
+chaque module, et les rapports Surefire de tous les modules sont agrégés. Les ressources sous
+`src/test/resources/` appartiennent au mandat de préparation tandis que les écritures sous
+`src/main/` restent refusées. Une seconde intervention reçoit les motifs structurés du premier
+refus. À la reprise, un mandat enregistré avec une ancienne topologie est clôt sans intervention,
+puis recalculé. Les fichiers `.DS_Store` et `._*` sont exclus de tout inventaire normatif.
+
+La régression déterministe couvre un parent sans `src/test/` racine, deux modules, une ressource de
+test, une écriture de production refusée et deux rapports Surefire agrégés. L'exécution Maven réelle
+multi-module sous Seatbelt reste à ajouter à la campagne V4 ; la campagne Java qualifiée existante
+porte sur le fixture mono-module.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 

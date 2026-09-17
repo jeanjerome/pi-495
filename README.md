@@ -44,7 +44,11 @@ canonique dans `details.view`), print (texte ; Pi route les écritures d'extensi
 ## Données et configuration
 
 Stockage hors du projet : `$HARNESS495_DATA_DIR`, sinon `~/Library/Application Support/495`
-(macOS) ou `${XDG_DATA_HOME:-~/.local/share}/495` (Linux). `config.json` y accepte `policy`
+(macOS) ou `${XDG_DATA_HOME:-~/.local/share}/495` (Linux).
+Les workspaces utilisent `$HARNESS495_WORKSPACES_DIR`; sur macOS, le défaut est
+`~/Library/Caches/495/workspaces` afin que les outils de build ne reçoivent pas un chemin contenant
+`Application Support`. Les anciens workspaces colocalisés restent résolus lors d'une reprise.
+`config.json` accepte `policy`
 (budgets, `g5_human_acceptance`, `integration_enabled`, `required_reviews`), `isolation.allow_unconfined`,
 `human_origin.rpc_actor_env`, `workspace_exclusions`, `language`.
 

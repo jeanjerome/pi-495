@@ -90,3 +90,33 @@ export function fixtureJava(root: string): void {
 		"src/test/java/io/h495/GreeterTest.java": "package io.h495;\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\nclass GreeterTest {\n    @Test\n    void greets() {\n        assertEquals(\"Hello, x\", Greeter.greet(\"x\"));\n    }\n}\n",
 	});
 }
+
+/** Maven reactor with an aggregator root and two leaf modules. */
+export function fixtureMavenMultiModule(root: string, withTests = false): void {
+	const modulePom = (artifactId: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>io.h495</groupId><artifactId>reactor</artifactId><version>1.0.0</version></parent>
+  <artifactId>${artifactId}</artifactId>
+</project>
+`;
+	const files: Record<string, string> = {
+		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.h495</groupId><artifactId>reactor</artifactId><version>1.0.0</version>
+  <packaging>pom</packaging>
+  <modules><module>domain</module><module>infrastructure</module><module>../outside</module></modules>
+</project>
+`,
+		"domain/pom.xml": modulePom("domain"),
+		"infrastructure/pom.xml": modulePom("infrastructure"),
+		"domain/src/main/java/io/h495/Address.java": "package io.h495; public final class Address {}\n",
+		"infrastructure/src/main/java/io/h495/Adapter.java": "package io.h495; public final class Adapter {}\n",
+	};
+	if (withTests) {
+		files["domain/src/test/java/io/h495/AddressTest.java"] = "package io.h495; public final class AddressTest {}\n";
+		files["infrastructure/src/test/java/io/h495/AdapterTest.java"] = "package io.h495; public final class AdapterTest {}\n";
+	}
+	writeFiles(root, files);
+}

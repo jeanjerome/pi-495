@@ -11,7 +11,7 @@ import { DomainError } from "../../domain/errors.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { git, inspectGit } from "../workspace/git-workspace.ts";
-import { walkTree, diffEntries } from "../workspace/walk.ts";
+import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
 import { KERNEL_ACTOR, type Harness } from "../../application/harness.ts";
 
 type Unit = { state: ChangeState; revision: number };
@@ -42,18 +42,19 @@ export class GitIntegrator {
 		const reference = (await h.latestArtifact<ReferenceSnapshot>(state, "reference"))!.content;
 		const manifest = await h.readArtifact<CandidateManifest>({ artifact_id: state.candidate!.candidate_id, revision: 1 });
 		const project = reference.project_path;
+		const referenceEntries = includedEntries(reference.entries, reference.exclusions);
 		const info = await inspectGit(project);
 		const destination = info.branch ?? "HEAD";
 		const before = info.head ?? "0".repeat(40);
 		// destination advanced?
 		if (state.integration && state.integration.destination_before !== before) {
 			const current = await walkTree(project, { exclusions: reference.exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 });
-			const changed = digestValue(current.entries.map((e) => [e.path, e.content_digest])) !== digestValue(reference.entries.map((e) => [e.path, e.content_digest]));
+			const changed = digestValue(current.entries.map((e) => [e.path, e.content_digest])) !== digestValue(referenceEntries.map((e) => [e.path, e.content_digest]));
 			return h.commit(unit, { type: "integration.destination_advanced", at: h.now(), actor: KERNEL_ACTOR, destination_before: before, combined_changed: changed }, cor);
 		}
 		if (!state.operation) {
 			const workingTree = await walkTree(project, { exclusions: reference.exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 });
-			if (diffEntries(reference.entries, workingTree.entries).some((e) => e.baseline_state !== "unchanged")) {
+			if (diffEntries(referenceEntries, workingTree.entries).some((e) => e.baseline_state !== "unchanged")) {
 				return h.commit(unit, { type: "change.block", at: h.now(), actor: KERNEL_ACTOR, reason: "integration_conflict", detail: "the project tree differs from the reference captured at intake; re-verify or resolve before integrating (RM-054)" }, cor);
 			}
 			const plan = { destination, before, candidate: manifest.manifest_digest, paths: manifest.selected_paths };
@@ -80,7 +81,7 @@ export class GitIntegrator {
 				}
 				const after = (await inspectGit(project)).head ?? before;
 				const applied = await walkTree(project, { exclusions: reference.exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 });
-				const appliedEntries = diffEntries(reference.entries, applied.entries);
+				const appliedEntries = diffEntries(referenceEntries, applied.entries);
 				const appliedDigest = digestValue({ base_ref: reference.tree_digest, selected_paths: appliedEntries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path), exclusions: manifest.exclusions, entries: appliedEntries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]), metadata_policy: "content_and_mode" });
 				const receipt: IntegrationReceipt = { destination, before, after, candidate_digest: manifest.manifest_digest, applied_digest: appliedDigest, commit: after, files: manifest.selected_paths, at: h.now() };
 				await h.storeArtifact("integration", state.change_id, h.id("rcp"), receipt, KERNEL_ACTOR.actor_id);
@@ -101,4 +102,3 @@ export class GitIntegrator {
 		throw new DomainError("PRECONDITION_FAILED", `unexpected integration state ${state.operation.effect_state}`);
 	};
 }
-

@@ -35,6 +35,10 @@ export const Qualification = Type.Object(
 		qualified: Type.Boolean(),
 		environment_digest: Digest,
 		notes: Type.Array(Type.String()),
+		evidence_ids: Type.Optional(Type.Object(
+			{ positive: Identifier, negative: Identifier, incident: Identifier },
+			{ additionalProperties: false },
+		)),
 	},
 	{ additionalProperties: false },
 );

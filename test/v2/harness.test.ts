@@ -43,8 +43,13 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(readFileSync(join(p, "src", "greet.js"), "utf8").includes("conforming"), false, "the project is never written by the producer");
 		assert.equal((await t.ledger.verifyIntegrity((d) => t.objects.verify(d))).ok, true);
 		const evidence = t.ledger.listEvidence(change.change_id);
-		assert.equal(evidence.length, 2);
-		assert.ok(evidence.every((e) => e.subject.digest === view.candidate!.manifest_digest));
+		const candidateEvidence = evidence.filter((e) => e.subject.kind === "candidate");
+		const qualificationEvidence = evidence.filter((e) => e.subject.kind === "fixture");
+		assert.equal(candidateEvidence.length, 2);
+		assert.equal(qualificationEvidence.length, 6, "three qualification witnesses are retained for each control");
+		assert.ok(candidateEvidence.every((e) => e.subject.digest === view.candidate!.manifest_digest));
+		const protocol = await t.harness.latestArtifact<{ qualifications: Record<string, { evidence_ids?: Record<string, string> }> }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
+		assert.ok(Object.values(protocol!.content.qualifications).every((q) => Object.keys(q.evidence_ids ?? {}).length === 3));
 		assert.ok(t.ledger.listArtifacts(change.change_id, "context").length >= 2, "context manifests are recorded per intervention (CTX-01)");
 	});
 

@@ -3,8 +3,8 @@ import { readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync, chmodSync
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY, inspectGit } from "../../src/adapters/workspace/git-workspace.ts";
-import { walkTree, diffEntries } from "../../src/adapters/workspace/walk.ts";
-import { fixtureTs, gitCmd, initRepo, tempDir, writeFiles, fixtureSpecial, ESC } from "../helpers/fixtures.ts";
+import { walkTree, diffEntries, isExcluded } from "../../src/adapters/workspace/walk.ts";
+import { fixtureTs, gitCmd, initRepo, tempDir, writeFiles, fixtureSpecial, fixtureMavenMultiModule, ESC } from "../helpers/fixtures.ts";
 
 let root: string;
 let ws: GitWorkspace;
@@ -77,6 +77,39 @@ describe("reference capture: the five entry situations (§9.1, SA-002, SA-003, G
 });
 
 describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, ADR-011)", () => {
+	it("excludes generated directories at every depth and sanitizes retained references", async () => {
+		assert.equal(isExcluded("target/classes/App.class", ["target/"]), true);
+		assert.equal(isExcluded("infrastructure/target/test-classes/Feature.class", ["target/"]), true);
+		assert.equal(isExcluded("infrastructure/src/target/Feature.java", ["target/"]), true);
+		assert.equal(isExcluded("infrastructure/src/targeted/Feature.java", ["target/"]), false);
+
+		const project = join(root, "reactor-with-generated-output");
+		fixtureMavenMultiModule(project, true);
+		writeFiles(project, {
+			"domain/target/classes/Address.class": "stale bytecode",
+			"infrastructure/target/test-classes/features/User.feature": "stale test resource",
+		});
+		const retained = await ws.captureReference(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: [] });
+		assert.ok(retained.entries.some((entry) => entry.path.includes("/target/")), "the retained snapshot reproduces the former inventory");
+
+		const handle = await ws.createWorkspace(retained, DEFAULT_WORKSPACE_POLICY);
+		assert.equal(existsSync(join(handle.path, "domain", "target")), false);
+		assert.equal(existsSync(join(handle.path, "infrastructure", "target")), false);
+		const manifest = await ws.snapshotCandidate(handle, retained, DEFAULT_WORKSPACE_POLICY);
+		assert.equal(manifest.entries.some((entry) => entry.path.includes("/target/")), false);
+		assert.deepEqual(manifest.selected_paths, []);
+	});
+
+	it("resolves retained workspaces from the former colocated root", () => {
+		const current = join(root, "current-workspaces");
+		const legacy = join(root, "legacy-workspaces");
+		const retained = join(legacy, "ws_retained");
+		writeFiles(retained, { "marker.txt": "retained" });
+		const compatible = new GitWorkspace(current, [legacy]);
+		assert.equal(compatible.workspacePath("ws_retained"), retained);
+		assert.equal(compatible.workspacePath("ws_new"), join(current, "ws_new"));
+	});
+
 	it("the worker writes in the workspace, never in the project; the manifest lists added, modified, deleted, mode and symlink changes", async () => {
 		const p = join(root, "proj");
 		fixtureTs(p);
@@ -129,6 +162,8 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 	it("special files are inventoried honestly: binary digested, escaping symlink kept as a link, executable mode kept (F-SPECIAL)", async () => {
 		const p = join(root, "special");
 		fixtureSpecial(p);
+		writeFileSync(join(p, ".DS_Store"), "host metadata");
+		writeFileSync(join(p, "src", "._exec.sh"), "host metadata");
 		const walked = await walkTree(p, DEFAULT_WORKSPACE_POLICY);
 		const link = walked.entries.find((e) => e.path === "escape-link");
 		assert.equal(link?.kind, "symlink");
@@ -136,6 +171,7 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.equal(walked.entries.find((e) => e.path === "src/exec.sh")?.mode, "000755");
 		assert.ok(walked.entries.some((e) => e.path.includes(`${ESC}[31m`)), "hostile name preserved as bytes");
 		assert.equal(walked.entries.find((e) => e.path === "bin/data.bin")?.size, 5);
+		assert.equal(walked.entries.some((e) => e.path === ".DS_Store" || e.path.includes("/._")), false, "host metadata is not normative content");
 	});
 	it("a file above the size limit is reported as a limit, not silently skipped (AT-12)", async () => {
 		const p = join(root, "big");

@@ -23,7 +23,8 @@ const skip = !piAvailable() && "pi binary not available";
 
 /** Runs pi; print mode text is read from stdout and stderr together (Pi keeps stdout for the model answer). */
 function runPi(mode: "print" | "json", cwd: string, dataDir: string, prompt: string, extraEnv: Record<string, string> = {}): string {
-	const args = mode === "print" ? ["-p", "--no-session", "-e", EXT, prompt] : ["--mode", "json", "--no-session", "-e", EXT, prompt];
+	// Explicitly load the source extension while ignoring packages installed in the user's Pi config.
+	const args = mode === "print" ? ["-ne", "-p", "--no-session", "-e", EXT, prompt] : ["-ne", "--mode", "json", "--no-session", "-e", EXT, prompt];
 	const env: Record<string, string | undefined> = { ...process.env, HARNESS495_DATA_DIR: dataDir, ...extraEnv };
 	if (process.platform !== "darwin") env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const r = spawnSync(PI, args, { cwd, encoding: "utf8", timeout: 300_000, env, maxBuffer: 64 * 1024 * 1024 });

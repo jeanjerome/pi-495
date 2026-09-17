@@ -21,7 +21,19 @@ export function toPosix(p: string): string {
 }
 
 export function isExcluded(path: string, exclusions: string[]): boolean {
-	return exclusions.some((x) => matchesScope(path, x));
+	return exclusions.some((pattern) => {
+		if (matchesScope(path, pattern)) return true;
+		const normalized = pattern.replace(/^\.\//, "");
+		if (!normalized.endsWith("/")) return false;
+		const directory = normalized.slice(0, -1);
+		if (!directory || directory.includes("/") || directory.includes("*")) return false;
+		return path.split("/").includes(directory);
+	});
+}
+
+/** Filters persisted snapshot entries with the active exclusion semantics. */
+export function includedEntries(entries: readonly ManifestEntry[], exclusions: string[]): ManifestEntry[] {
+	return entries.filter((entry) => !isExcluded(entry.path, exclusions));
 }
 
 /**
@@ -44,6 +56,8 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 			continue;
 		}
 		for (const name of names.sort()) {
+			// Finder metadata is host noise: it is neither reference content nor an agent change.
+			if (name === ".DS_Store" || name.startsWith("._")) continue;
 			const abs = join(dir, name);
 			const rel = toPosix(relative(root, abs));
 			if (rel === ".git" || rel.startsWith(".git/")) continue;

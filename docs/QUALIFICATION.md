@@ -9,11 +9,11 @@ Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible s
 | Niveau | Fichiers | Contenu | Résultat |
 | --- | --- | --- | --- |
 | V0 | `test/v0/*` | contrats, noyau du changement, programme, propriétés générées (fast-check, seeds 495/496), modèle et composant de revue, extraction des sorties | passent |
-| V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap, runner et parsers, superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
-| V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation, export, intégration Git | passent |
+| V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap, runner et parsers dont agrégation Surefire multi-module, superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
+| V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation dont périmètre Maven multi-module, export, intégration Git | passent |
 | V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation | passent |
 
-Total au 16 septembre 2026 : 127 tests, 0 échec.
+Total au 17 septembre 2026 : 135 tests, 0 échec.
 
 ## Campagnes manuelles
 

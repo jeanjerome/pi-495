@@ -100,6 +100,20 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 		writeFileSync(join(ws, "src", "greet.js"), "export function greet(name) { var x = name; return `Hello, ${x}`; }\n");
 		assert.equal((await runner.runControl({ ...base(), control: lint, workspace_path: ws })).evidence.verdict, "FAIL");
 	});
+	it("aggregates Surefire reports from every module in a Maven reactor", async () => {
+		const ws = join(root, "reactor");
+		const green = (name: string) => `<testsuite name="${name}" tests="1" failures="0" errors="0" skipped="0"><testcase name="works" classname="${name}"/></testsuite>`;
+		mkdirSync(join(ws, "domain", "target", "surefire-reports"), { recursive: true });
+		mkdirSync(join(ws, "infrastructure", "target", "surefire-reports"), { recursive: true });
+		writeFileSync(join(ws, "domain", "target", "surefire-reports", "TEST-domain.xml"), green("Domain"));
+		writeFileSync(join(ws, "infrastructure", "target", "surefire-reports", "TEST-infrastructure.xml"), green("Infrastructure"));
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const junit = control({ command: [NODE, "-e", "process.exit(0)"], parser: "junit-xml", report_path: "**/target/surefire-reports" });
+		const { evidence } = await runner.runControl({ ...base(), control: junit, workspace_path: ws });
+		assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+		assert.equal(evidence.facts.tests, 2);
+		assert.deepEqual(evidence.artifacts.map((a) => a.name), ["report:domain/target/surefire-reports/TEST-domain.xml", "report:infrastructure/target/surefire-reports/TEST-infrastructure.xml"]);
+	});
 	it("qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)", async () => {
 		const pos = join(root, "pos");
 		const neg = join(root, "neg");
@@ -113,6 +127,10 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 		const qb = await qualifyControl(runner, blind, { positive_path: pos, negative_path: neg }, base());
 		assert.equal(qb.qualified, false);
 		assert.ok(qb.notes.some((n) => n.includes("does not detect")));
+		assert.ok(qb.notes.some((n) => n.includes("tests=1")), "the persisted qualification explains the observed verdict");
+		const missingReports = control({ control_id: "junit", command: [NODE, "-e", "process.exit(1)"], parser: "junit-xml", report_path: "target/surefire-reports" });
+		const qi = await qualifyControl(runner, missingReports, { positive_path: pos, negative_path: neg }, base());
+		assert.match(qi.notes[0] ?? "", /no JUnit report found/);
 	});
 	(process.platform === "darwin" ? it : it.skip)("runs the same control under seatbelt with the candidate read-only", async () => {
 		const ws = join(root, "ws");

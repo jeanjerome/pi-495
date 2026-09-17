@@ -1,10 +1,13 @@
 import { strict as assert } from "node:assert";
-import { rmSync, existsSync, readFileSync } from "node:fs";
+import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
-import { HUMAN } from "../helpers/change-fixture.ts";
+import { initRepo, tempDir, writeFiles, fixtureMavenMultiModule } from "../helpers/fixtures.ts";
+import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
+import { detectStack } from "../../src/application/target.ts";
+import { preparedFilesFrom, referenceHasTests, samePreparationPaths } from "../../src/application/preparation.ts";
+import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 
 const cleanups: string[] = [];
 afterEach(() => { for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true }); });
@@ -63,6 +66,65 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
 		assert.equal(state.interventions.filter((i) => i.role === "prepare").length, 2, "two bounded preparation tries, then stop");
 		assert.equal(state.stop_reason, "capability_missing");
+		const preparations = t.agent.started.filter((m) => m.role === "prepare");
+		assert.match(preparations[1]?.prompt ?? "", /Feedback from the previous attempt/);
+		assert.match(preparations[1]?.prompt ?? "", /outside the preparation mandate refused: src\/greet\.js/);
+	});
+	it("derives explicit test roots from a Maven reactor and refuses production writes", async () => {
+		const p = tempDir("495-maven-reactor-");
+		const workspaces = tempDir("495-maven-workspaces-");
+		cleanups.push(p, workspaces);
+		fixtureMavenMultiModule(p);
+		initRepo(p);
+		const detection = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
+		assert.equal(detection.stack, "maven");
+		assert.deepEqual(detection.preparation_paths, ["src/test/", "domain/src/test/", "infrastructure/src/test/"]);
+		assert.equal(samePreparationPaths(["src/test/"], detection.preparation_paths), false, "a persisted single-module mandate is stale");
+		assert.equal(samePreparationPaths([...detection.preparation_paths].reverse(), detection.preparation_paths), true, "path order is not semantic");
+		assert.deepEqual(detection.controls[0]?.writable_paths, ["target", "domain/target", "infrastructure/target"]);
+		assert.ok(detection.controls[0]?.protected_paths.includes("domain/pom.xml"));
+		assert.ok(detection.controls[0]?.protected_paths.includes("infrastructure/src/test/"));
+		assert.deepEqual(detection.facts.ignored_modules, ["../outside"]);
+		assert.ok(Object.keys(detection.positive_witness)[0]?.startsWith("domain/src/test/"));
+
+		const workspace = new GitWorkspace(workspaces);
+		const reference = await workspace.captureReference(p, DEFAULT_WORKSPACE_POLICY);
+		assert.equal(referenceHasTests(reference, detection.preparation_paths), false);
+		const handle = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
+		writeFiles(handle.path, {
+			"domain/src/test/java/io/h495/AddressTest.java": "package io.h495; public final class AddressTest {}\n",
+			"infrastructure/src/test/resources/schema.sql": "alter table users add address varchar(255);\n",
+			"infrastructure/src/main/java/io/h495/Forbidden.java": "package io.h495; public final class Forbidden {}\n",
+		});
+		writeFileSync(join(handle.path, ".DS_Store"), "host metadata");
+		const manifest = await workspace.snapshotCandidate(handle, reference, DEFAULT_WORKSPACE_POLICY);
+		const prepared = preparedFilesFrom(manifest, detection.preparation_paths);
+		assert.deepEqual(prepared.files.map((f) => f.path), ["domain/src/test/java/io/h495/AddressTest.java", "infrastructure/src/test/resources/schema.sql"]);
+		assert.deepEqual(prepared.out_of_scope, ["infrastructure/src/main/java/io/h495/Forbidden.java"]);
+	});
+	it("closes a persisted single-module mandate before resuming on a Maven reactor", async () => {
+		const p = tempDir("495-maven-stale-mandate-");
+		cleanups.push(p);
+		fixtureMavenMultiModule(p);
+		initRepo(p);
+		const t = track(makeHarness({ defaultScript: { steps: [{ kind: "complete", output: spec }] } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "add address", actor: HUMAN });
+		const reached = await t.harness.advance(change.change_id, { max_steps: 3 });
+		assert.equal(reached.view.change?.phase, "preparing", reached.steps.join(" | "));
+		const stale = { kind: "preparation-mandate", objective: "write Maven tests under src/test/", allowed_paths: ["src/test/"], requirement_ids: ["R1", "R2"], stack: "maven" };
+		const staleRef = await t.harness.storeArtifact("preparation", change.change_id, "prp_stale", stale, KERNEL.actor_id);
+		const loaded = t.ledger.loadChange(change.change_id)!;
+		t.ledger.appendChange(change.change_id, loaded.revision, [
+			{ type: "artifact.proposed", at: loaded.state.updated_at, actor: KERNEL, kind: "preparation", ref: staleRef },
+			{ type: "artifact.adopted", at: loaded.state.updated_at, actor: KERNEL, kind: "preparation", ref: staleRef, gate: null },
+		], { correlation_id: "stale-mandate" });
+		const resumed = await t.harness.advance(change.change_id, { max_steps: 1 });
+		assert.equal(resumed.view.change?.phase, "verification_design", resumed.steps.join(" | "));
+		assert.equal(t.agent.started.some((m) => m.role === "prepare"), false, "an obsolete mandate consumes no model intervention");
+		const migration = t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prc_"));
+		assert.ok(migration, "the stale scope is recorded before it is closed");
+		const record = JSON.parse(new TextDecoder().decode((await t.objects.get(migration.object))!)) as { notes: string[] };
+		assert.match(record.notes[0] ?? "", /scope is stale/);
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {
 		const p = projectWithoutTests();

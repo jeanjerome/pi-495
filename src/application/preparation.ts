@@ -25,8 +25,6 @@ export interface PreparationRecord {
 	notes: string[];
 }
 
-export const PREPARATION_PATHS: Record<"node" | "maven" | "unknown", string[]> = { node: ["test/", "tests/"], maven: ["src/test/"], unknown: [] };
-
 export function preparedFilesFrom(manifest: CandidateManifest, allowed: string[]): { files: PreparedFile[]; out_of_scope: string[] } {
 	const files: PreparedFile[] = [];
 	const out: string[] = [];
@@ -46,7 +44,11 @@ export function isProtectedPrepared(path: string, prepared: PreparationRecord | 
 	return Boolean(f && f.digest === digest);
 }
 
-export function referenceHasTests(reference: ReferenceSnapshot, stack: "node" | "maven" | "unknown"): boolean {
-	const dirs = PREPARATION_PATHS[stack];
-	return reference.entries.some((e) => e.kind === "file" && dirs.some((d) => e.path.startsWith(d)) && /\.(test|spec)\.[cm]?[jt]s$|Test\.java$|_test\.[jt]s$/.test(e.path));
+export function referenceHasTests(reference: ReferenceSnapshot, testPaths: string[]): boolean {
+	return reference.entries.some((e) => e.kind === "file" && testPaths.some((d) => e.path.startsWith(d)) && /\.(test|spec)\.[cm]?[jt]s$|Test\.java$|_test\.[jt]s$/.test(e.path));
+}
+
+export function samePreparationPaths(left: string[], right: string[]): boolean {
+	const normal = (paths: string[]) => [...new Set(paths)].sort();
+	return JSON.stringify(normal(left)) === JSON.stringify(normal(right));
 }
