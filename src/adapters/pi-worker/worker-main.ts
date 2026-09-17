@@ -45,6 +45,7 @@ async function main(): Promise<void> {
 	let mandate: InterventionMandate | null = null;
 	let config: WorkerConfig | null = null;
 	let abortRequested: string | null = null;
+	let truncated = false;
 	let sessionRef: { abort: () => Promise<void> } | null = null;
 	rl.on("line", (line) => {
 		if (!line.trim()) return;
@@ -99,8 +100,8 @@ async function main(): Promise<void> {
 			const allowed = new Set(m.tools.length > 0 ? m.tools : TOOLS_FOR_ROLE[m.role]);
 			const budgetCheck = () => {
 				counters.tool_calls++;
-				if (counters.tool_calls > m.budgets.tool_calls) throw new Error(`tool call budget exhausted (${m.budgets.tool_calls}); the intervention stops`);
-				if (Date.now() - started > m.budgets.duration_ms) throw new Error("intervention duration budget exhausted");
+				if (counters.tool_calls > m.budgets.tool_calls) { truncated = true; throw new Error(`tool call budget exhausted (${m.budgets.tool_calls}); the intervention stops`); }
+				if (Date.now() - started > m.budgets.duration_ms) { truncated = true; throw new Error("intervention duration budget exhausted"); }
 			};
 			// Tool definitions are generic over their parameter schema; the wrapper only touches `execute`.
 			// biome-ignore lint/suspicious/noExplicitAny: heterogeneous Pi tool definitions
@@ -195,7 +196,9 @@ async function main(): Promise<void> {
 				}
 			});
 			send({ type: "event", event: { type: "started", at: now() } });
-			const deadline = setTimeout(() => { void session.abort(); }, m.budgets.duration_ms).unref();
+			// The duration budget suspends the work; it does not condemn it. The partial tree stays in
+			// the workspace and the kernel is told the session was cut short (never "completed").
+			const deadline = setTimeout(() => { truncated = true; void session.abort(); }, m.budgets.duration_ms).unref();
 			try {
 				await session.prompt(m.prompt);
 			} finally {
@@ -208,7 +211,7 @@ async function main(): Promise<void> {
 			session.dispose();
 			if (abortRequested) finish({ type: "cancelled", at: now(), counters });
 			else if (lastError && !finalText) finish({ type: "failed", at: now(), error: lastError, counters });
-			else finish({ type: "completed", at: now(), output: outputValid ? output : { raw: finalText.slice(0, 20_000) }, output_valid: outputValid, counters });
+			else finish({ type: "completed", at: now(), output: outputValid ? output : { raw: finalText.slice(0, 20_000) }, output_valid: outputValid, truncated, counters });
 		} catch (error) {
 			finish({ type: "failed", at: now(), error: (error as Error).message, counters });
 		}

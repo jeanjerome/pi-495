@@ -145,7 +145,8 @@ export type InterventionEvent =
 	| { type: "tool_started"; at: string; tool: string; call_id: string; args_digest: string }
 	| { type: "tool_finished"; at: string; tool: string; call_id: string; is_error: boolean; blocked: boolean }
 	| { type: "checkpointed"; at: string }
-	| { type: "completed"; at: string; output: unknown; output_valid: boolean; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } }
+	/** `truncated` means the duration budget ended the session: the workspace holds unfinished work. */
+	| { type: "completed"; at: string; output: unknown; output_valid: boolean; truncated?: boolean; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } }
 	| { type: "failed"; at: string; error: string; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } }
 	| { type: "cancelled"; at: string; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } };
 

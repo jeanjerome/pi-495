@@ -190,6 +190,88 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal((await t.ledger.verifyIntegrity()).ok, true);
 	});
 
+	it("hands an intervention the sources it must change, at any depth and ranked by the request", async () => {
+		const p = project();
+		// A Maven or Gradle module keeps its code under `<module>/src/main/java/...`: a selection that
+		// only matches the top level hands the model its build manifests and nothing to work from.
+		writeFiles(p, {
+			"modules/core/src/main/java/io/demo/user/UserRepository.java": "class UserRepository {}\n",
+			"modules/core/src/main/java/io/demo/billing/InvoiceFormatter.java": "class InvoiceFormatter {}\n",
+		});
+		const t = track(makeHarness());
+		const { change } = await t.harness.start({ project_path: p, request_text: "Add a postal address to the user repository", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 2 });
+		const specify = t.agent.started.find((m) => m.role === "specify");
+		assert.ok(specify, "the specification intervention ran");
+		const sources = specify.context.untrusted_excerpts.map((e) => e.source);
+		assert.ok(sources.includes("modules/core/src/main/java/io/demo/user/UserRepository.java"), `nested sources must be reachable: ${sources.join(", ")}`);
+		assert.ok(sources.some((x) => x.endsWith("package.json")), "build manifests are still there");
+		assert.ok(
+			sources.indexOf("modules/core/src/main/java/io/demo/user/UserRepository.java") < sources.indexOf("modules/core/src/main/java/io/demo/billing/InvoiceFormatter.java"),
+			`the file the request names comes first: ${sources.join(", ")}`,
+		);
+	});
+
+	it("a step that fails after writing still records the block, so the change cannot silently restart", async () => {
+		const p = project();
+		// G1 refuses a specification with no requirement. The step has already appended two events by
+		// then, so the block must be written against the revision those events produced, not against
+		// the one the step started from — otherwise it loses the race and is dropped in silence.
+		const t = track(makeHarness({ defaultScript: { steps: [{ kind: "complete", output: specReport({ requirements: [] }) }] } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Something with nothing to verify", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 10 });
+		assert.equal(result.stopped_because, "blocked", result.steps.join(" | "));
+		const persisted = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(persisted.status, "blocked", "the block reached the ledger, not only the returned view");
+		assert.ok(persisted.stop_reason, "a blocked change always says why");
+		assert.ok(!result.steps.some((x) => x.includes("could not be blocked")), result.steps.join(" | "));
+		// A second command must not find the change ready and redo the work that just failed.
+		const again = await t.harness.advance(change.change_id, { max_steps: 10 });
+		assert.equal(again.stopped_because, "blocked");
+		assert.deepEqual(again.steps, [], "a blocked change does nothing until a human unblocks it");
+	});
+
+	it("a producer stopped by the duration budget resumes on its own workspace instead of starting over", async () => {
+		const p = project();
+		// Two interrupted sessions, each leaving a piece behind, then a finished one: nothing may be
+		// rebuilt from the reference in between, or the first two pieces would be gone.
+		const t = track(makeHarness({
+			policy: { budgets: { max_continuations: 3 } },
+			scripts: {
+				implement: { steps: [{ kind: "write", path: "src/half.js", content: "// first session\n" }, { kind: "truncate" }] },
+			},
+		}));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour, tidy the implementation", actor: HUMAN });
+		t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/half.js", content: "// first session\n" }, { kind: "truncate" }] });
+		await t.harness.advance(change.change_id, { max_steps: 6 });
+		const interventions = t.ledger.loadChange(change.change_id)!.state.interventions.filter((i) => i.role === "implement");
+		assert.ok(interventions.length >= 2, `the producer must be resumed, got ${interventions.length} intervention(s)`);
+		assert.equal(interventions[0]!.result, "truncated", "a session cut by the budget is never recorded as completed");
+		assert.equal(interventions[0]!.attempt_id, interventions[1]!.attempt_id, "a continuation stays inside the same attempt");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.attempts.length, 1, "a continuation consumes no attempt budget");
+		const workspaces = t.ledger.listArtifacts(change.change_id, "candidate").filter((a) => a.ref.artifact_id.startsWith("ws_"));
+		assert.equal(workspaces.length, 1, "the producer keeps one workspace across its continuations");
+		assert.ok(t.progress.some((m) => m.includes("resumes on workspace")), t.progress.join(" | "));
+	});
+
+	it("a candidate that cannot build is corrected, never re-verified: an identical re-run proves nothing", async () => {
+		const p = project();
+		// The producer leaves a source the runner cannot load. Re-running a frozen tree through a
+		// frozen protocol is a pure function, so the failure must reach the producer as feedback and
+		// leave the technical retry budget untouched.
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: "export function greet(name) { return `Hello, ${name}`;\n" }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour, tidy the implementation", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.deepEqual(state.budgets.retries, {}, "no technical retry is spent on a deterministic observation");
+		assert.notEqual(state.stop_reason, "execution_error", `the retry budget must not be what stops the change: ${result.steps.join(" | ")}`);
+		assert.equal(state.stop_reason, "stagnation", "the producer repeated itself; that is the honest reason to stop");
+		const verdicts = state.evidence.map((e) => e.verdict);
+		assert.ok(!verdicts.includes("INDETERMINATE"), `a broken tree is a verdict on the candidate, got ${verdicts.join(",")}`);
+		assert.ok(state.attempts.length >= 2, "the producer was given the failure back and tried again");
+	});
+
 	it("explicit /verify re-runs the frozen controls on the frozen candidate without any model; human acceptance then closes (SA-013, IH-10)", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));

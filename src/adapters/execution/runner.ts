@@ -45,6 +45,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 			if (!cwd.startsWith(resolve(invocation.workspace_path))) throw new Error(`control cwd escapes the workspace: ${control.cwd}`);
 			observation = await this.sandbox.run(profile, { command: control.command, cwd, timeout_ms: control.timeout_ms, max_output_bytes: this.options.max_output_bytes }, signal);
 			const stdoutText = new TextDecoder().decode(observation.stdout);
+			const stderrText = new TextDecoder().decode(observation.stderr);
 			if (observation.stdout.byteLength > 0) artifacts.push({ name: "stdout", ref: await this.objects.put(observation.stdout, "text/plain; charset=utf-8") });
 			if (observation.stderr.byteLength > 0) artifacts.push({ name: "stderr", ref: await this.objects.put(observation.stderr, "text/plain; charset=utf-8") });
 			switch (control.parser) {
@@ -57,7 +58,8 @@ export class GenericControlRunner implements ControlExecutionPort {
 				case "junit-xml": {
 					const docs = await readReports(invocation.workspace_path, control.report_path);
 					for (const d of docs) artifacts.push({ name: `report:${d.name}`, ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml") });
-					report = parseJUnit(observation, docs.map((d) => d.text));
+					// Build tools name a compilation failure on stdout; the parser needs it to point at a file.
+					report = parseJUnit(observation, docs.map((d) => d.text), `${stdoutText}\n${stderrText}`);
 					break;
 				}
 				default:

@@ -52,6 +52,13 @@ Les workspaces utilisent `$HARNESS495_WORKSPACES_DIR`; sur macOS, le défaut est
 (budgets, `g5_human_acceptance`, `integration_enabled`, `required_reviews`), `isolation.allow_unconfined`,
 `human_origin.rpc_actor_env`, `workspace_exclusions`, `language`.
 
+`policy.budgets` se règle selon le modèle : `intervention_ms` borne une session d'agent et
+`max_continuations` dit combien de fois un producteur interrompu par cette borne reprend sur son
+propre workspace, sans consommer de tentative ni perdre ce qu'il a écrit ; `increment_ms` borne
+l'ensemble du changement. Un modèle local lent demande une durée plus large ou davantage de
+continuations. `workspace_exclusions` retire des workspaces et des manifestes les arbres qui ne
+sont pas du contenu applicatif (`node_modules/`, `target/`, `.m2/`, `.mvn/`, `.gradle/`, `vendor/`…).
+
 Variables d'environnement : `HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1`,
 `HARNESS495_LANGUAGE=en`, `HARNESS495_ALLOW_UNCONFINED=1` (tests uniquement ; refuse ensuite toute
 intervention productrice), `HARNESS495_SCRIPTED_AGENT=<json>` (campagnes sans modèle).

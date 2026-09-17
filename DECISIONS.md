@@ -73,6 +73,42 @@ lignes ≥ 0,8 (hypothèse annoncée `renamed?`), jamais présentés comme certa
 `--test-reporter=spec`/`tap` de `node:test` réduite au comptage), `junit-xml` (rapports Surefire /
 JUnit). Tout autre format est refusé (`capability_missing`).
 **Motif.** Couvrir F-TS (`node --test`) et F-JAVA (Maven Surefire) avec un contrat commun.
+**Conséquence.** INDETERMINATE est réservé à la dimension incident — erreur de lancement, timeout,
+signal — c'est-à-dire aux seuls cas où une réexécution à l'identique peut répondre autrement. Une
+sortie non nulle qu'aucun échec de test n'explique (erreur de compilation, plugin en échec, module
+que le réacteur n'a jamais atteint) est un FAIL : c'est une propriété reproductible de l'arbre gelé,
+et les lignes d'erreur du build deviennent des constats.
+
+## D-18 — Une opération déterministe n'est jamais rejouée
+
+**Décision.** Le budget de reprise technique n'est consommé que si la dernière observation porte un
+incident et que cet incident ne s'est pas déjà reproduit à l'identique. Sinon G5 renvoie le
+candidat en correction avec les constats.
+**Motif.** Réexécuter un candidat gelé sous un protocole gelé est une fonction pure. Traiter tout
+INDETERMINATE comme un incident dépensait les trois reprises à produire la même preuve, puis
+bloquait le changement sur `execution_error` au lieu de rendre l'échec à l'agent.
+
+## D-19 — Une intervention tronquée est suspendue, pas annulée
+
+**Décision.** Une session arrêtée par `intervention_ms` est enregistrée `truncated`, jamais
+`completed`. Tant que `max_continuations` n'est pas atteint, le producteur reprend **sur son propre
+workspace**, dans la même tentative : aucun budget de tentative n'est consommé et rien n'est
+reconstruit depuis la référence. Le budget d'incrément (`increment_ms`) borne l'ensemble.
+**Motif.** Le plafond de durée doit borner le coût, pas détruire le travail. Une tentative repartant
+d'une copie neuve de la référence perdait tout ce que la précédente avait écrit, et un candidat gelé
+au milieu d'une édition était jugé comme une proposition finie.
+**Conséquence.** `intervention_ms` se règle selon le modèle (`policy.budgets` dans `config.json`) :
+un modèle local lent demande une durée plus large ou davantage de continuations, sans que le choix
+change la sémantique.
+
+## D-20 — Le build 495 fait partie de l'identité d'environnement
+
+**Décision.** `environment_digest` couvre le digest de l'arbre exécuté (`dist/` une fois installé,
+`src/` en développement) et la version du paquet, en plus de la plateforme, de Node, de Pi, du
+bac à sable et des outils sondés.
+**Motif.** Sans cela, une mise à jour du harness pendant un changement laissait l'identité
+d'environnement inchangée : un protocole restait « qualifié » pour du code qui n'existait plus et
+des preuves produites par deux builds se comparaient comme une seule.
 
 ## D-08 — Provenance humaine
 

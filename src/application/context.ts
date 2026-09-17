@@ -16,6 +16,8 @@ export interface ContextInput {
 	feedback: string | null;
 	tools: string[];
 	budget_bytes: number;
+	/** Frozen controls the kernel will run on the candidate, so the producer can run them first. */
+	controls?: { control_id: string; command: string[]; cwd: string }[];
 }
 
 const OUTPUT_SCHEMA_TEXT: Record<string, string> = {
@@ -48,6 +50,13 @@ export function buildContext(input: ContextInput): { manifest: ContextManifest; 
 		`Human-facing text must be written in ${input.language === "fr" ? "French" : "English"}.`,
 		`Finish your answer with a fenced json block matching exactly: ${OUTPUT_SCHEMA_TEXT[schema]}`,
 	];
+	// A producer that never runs the control it is judged by hands over a tree that may not even
+	// build; the kernel would then reject it without the model ever seeing why.
+	if ((input.role === "implement" || input.role === "prepare") && (input.controls?.length ?? 0) > 0) {
+		const commands = input.controls!.map((c) => `\`${c.command.join(" ")}\` in ${c.cwd === "." ? "the workspace root" : c.cwd} (${c.control_id})`).join("; ");
+		trusted.push(`The kernel will judge your work by running, without you: ${commands}. Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.`);
+	}
+	trusted.push("If you are running out of room, leave the workspace in a state that builds rather than half-way through a wide edit; you may be resumed on this same workspace.");
 	const truncations: string[] = [];
 	let used = 0;
 	const parts: string[] = [`# Objective\n${input.objective}`];

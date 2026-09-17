@@ -27,7 +27,7 @@ import { decideProgram, type ProgramCommand, type ProgramState } from "../domain
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type { AgentPort, ControlExecutionPort, InterventionEvent, InterventionMandate, ModelSelection, SandboxProfile, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
-import { qualifyControlDetailed } from "./qualification.ts";
+import { qualifyControlDetailed, reusableQualification } from "./qualification.ts";
 import { buildContext, outputSchemaFor } from "./context.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -263,8 +263,13 @@ export class Harness {
 			} catch (error) {
 				if (error instanceof DomainError) {
 					steps.push(`${s.phase}: ${error.code} ${error.message}`);
-					const blocked = this.tryCommit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: error.code === "CAPABILITY_MISSING" ? "capability_missing" : error.code === "CONFIGURATION_ERROR" ? "configuration_error" : error.code === "POLICY_DENIED" ? "policy_denied" : "execution_error", detail: `${error.code}: ${error.message}` }, cor);
+					// The failing step commits before it throws, so `unit` holds a stale revision: writing
+					// the block against it loses the optimistic-concurrency race and the change silently
+					// reappears ready, redoing the work that just failed.
+					const current = this.deps.ledger.loadChange(changeId) ?? unit;
+					const blocked = this.tryCommit(current, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: error.code === "CAPABILITY_MISSING" ? "capability_missing" : error.code === "CONFIGURATION_ERROR" ? "configuration_error" : error.code === "POLICY_DENIED" ? "policy_denied" : "execution_error", detail: `${error.code}: ${error.message}` }, cor);
 					unit = blocked.unit;
+					if (blocked.error) steps.push(`${s.phase}: the change could not be blocked: ${blocked.error.code} ${blocked.error.message}`);
 					return this.result(unit, steps, error.code === "CAPABILITY_MISSING" ? "capability_missing" : "blocked");
 				}
 				throw error;
@@ -284,7 +289,7 @@ export class Harness {
 		return { profile_id: role, read_paths: [workspacePath], write_paths: writes, network: "denied", env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"], env: {} };
 	}
 
-	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; untrusted?: { source: string; text: string }[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled"; intervention_id: string }> {
+	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; untrusted?: { source: string; text: string }[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled" | "truncated"; intervention_id: string }> {
 		const qualified = this.deps.sandbox.qualification.qualified || role === "observe" || role === "specify" || role === "review";
 		if (!qualified) throw new DomainError("CAPABILITY_MISSING", `sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`, { nextActions: ["qualify_capability"] });
 		const capabilities = await this.deps.agent.describeCapabilities(this.deps.model);
@@ -298,7 +303,8 @@ export class Harness {
 			const a = await this.latestArtifact<unknown>(unit.state, kind);
 			if (a) adopted.push({ kind, artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest, text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2) });
 		}
-		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000 });
+		const protocol = await this.latestArtifact<Protocol>(unit.state, "protocol");
+		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })) });
 		const contextRef = await this.storeArtifact("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
 		const mandate: InterventionMandate = { intervention_id: interventionId, change_id: unit.state.change_id, role, objective, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest, tools: TOOLS_FOR_ROLE[role], profile: this.profileFor(role, workspacePath), workspace_path: workspacePath, model: this.deps.model, budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention }, output_schema: outputSchemaFor(role) };
@@ -326,24 +332,54 @@ export class Harness {
 		this.activeHandle = null;
 		const t = terminal ?? { type: "failed" as const, at: this.now(), error: "no terminal event", counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 } };
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
+		// A session ended by the duration budget is not a proposal: the producer was still working.
+		const truncated = t.type === "completed" && t.truncated === true;
+		const result = truncated ? ("truncated" as const) : t.type;
 		const outputRef = await this.storeArtifact("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: t, events: events.filter((e) => e.type !== "model_event").slice(0, 500) }, interventionId);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: { actor_id: interventionId, actor_type: "agent", role: role === "review" ? "reviewer_agent" : "producer_agent", origin: "model_output", authentication_level: "none" }, kind: "output", ref: outputRef }, cor);
-		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result: t.type, counters, detail: t.type === "failed" ? t.error : null }, cor);
-		return { unit, output: t.type === "completed" ? t.output : null, output_valid: t.type === "completed" ? t.output_valid : false, result: t.type, intervention_id: interventionId };
+		const detail = t.type === "failed" ? t.error : truncated ? `stopped by the ${this.deps.policy.budgets.intervention_ms} ms duration budget; the workspace keeps the unfinished work` : null;
+		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result, counters, detail }, cor);
+		if (truncated) this.progress(`intervention ${role} interrupted by the duration budget`);
+		return { unit, output: t.type === "completed" ? t.output : null, output_valid: t.type === "completed" ? t.output_valid : false, result, intervention_id: interventionId };
 	}
 
-	private async projectExcerpts(reference: ReferenceSnapshot, workspacePath: string, max = 12): Promise<{ source: string; text: string }[]> {
+	/**
+	 * Project excerpts for an intervention. Sources are matched at any depth — a Maven or Gradle
+	 * module keeps its code under `<module>/src/main/java/...`, never at the root — and ranked by how
+	 * much of the objective vocabulary their path carries, so the producer is handed the files it has
+	 * to change rather than the build manifests alone.
+	 */
+	private async projectExcerpts(reference: ReferenceSnapshot, workspacePath: string, max = 12, focus = ""): Promise<{ source: string; text: string }[]> {
+		const manifest = /(^|\/)(package\.json|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|Cargo\.toml|pyproject\.toml|go\.mod|composer\.json|Gemfile|README(\.md)?|AGENTS\.md|CLAUDE\.md)$/;
+		const source = /\.(java|kt|kts|scala|ts|tsx|js|jsx|mjs|cjs|py|go|rb|rs|cs|php|swift|sql)$/;
+		const words = [...new Set(focus.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])];
+		const depth = (path: string) => path.split("/").length;
+		const score = (path: string) => {
+			const lower = path.toLowerCase();
+			// A shallower file is usually closer to the domain than a deeply nested helper; the tiny
+			// depth penalty only breaks ties between paths that carry the same vocabulary.
+			return words.reduce((n, w) => (lower.includes(w) ? n + 1 : n), 0) - depth(path) / 100;
+		};
+		const files = reference.entries.filter((e) => e.kind === "file" && e.size > 0 && e.content_digest !== null);
+		const manifests = files.filter((e) => manifest.test(e.path)).sort((a, b) => depth(a.path) - depth(b.path) || (a.path < b.path ? -1 : 1));
+		const sources = files.filter((e) => !manifest.test(e.path) && source.test(e.path)).sort((a, b) => score(b.path) - score(a.path) || (a.path < b.path ? -1 : 1));
+		const selected = [...manifests.slice(0, Math.max(1, Math.ceil(max / 3))), ...sources].slice(0, max);
 		const out: { source: string; text: string }[] = [];
-		const interesting = reference.entries.filter((e) => e.kind === "file" && /(^|\/)(package\.json|pom\.xml|README(\.md)?|AGENTS\.md)$/.test(e.path) || /^(src|test)\/[^/]+\.(js|ts|java)$/.test(e.path)).slice(0, max);
-		for (const e of interesting) {
+		for (const e of selected) {
 			try {
 				const { readFile } = await import("node:fs/promises");
-				out.push({ source: e.path, text: (await readFile(join(workspacePath, e.path), "utf8")).slice(0, 6000) });
+				out.push({ source: e.path, text: (await readFile(join(workspacePath, e.path), "utf8")).slice(0, 4000) });
 			} catch {
 				/* unreadable excerpt is simply absent */
 			}
 		}
 		return out;
+	}
+
+	/** The vocabulary an intervention is about: objective plus the adopted requirement statements. */
+	private async focusOf(state: ChangeState, objective: string): Promise<string> {
+		const requirements = await this.latestArtifact<RequirementsDocument>(state, "requirements").catch(() => null);
+		return [objective, ...(requirements?.content.requirements ?? []).map((r) => `${r.statement} ${r.criterion}`)].join(" ");
 	}
 
 	private async referenceOf(state: ChangeState): Promise<ReferenceSnapshot> {
@@ -364,7 +400,7 @@ export class Harness {
 		} else {
 			const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			try {
-				const excerpts = await this.projectExcerpts(reference, handle.path);
+				const excerpts = await this.projectExcerpts(reference, handle.path, 12, request);
 				const answered = unit.state.open_questions.filter((q) => q.answer !== null && q.id !== "language").map((q) => `Q ${q.id}: ${q.question} -> ${q.answer}`);
 				const objective = `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
 				const r = await this.runIntervention(unit, cor, "specify", objective, handle.path, { untrusted: excerpts });
@@ -431,6 +467,15 @@ export class Harness {
 		return a && a.content.qualified ? a.content : null;
 	}
 
+	private async qualificationAlreadyEstablished(state: ChangeState, control: ControlDefinition): Promise<Protocol["qualifications"][string] | null> {
+		const priors: Protocol[] = [];
+		for (const ref of state.proposals.protocol ?? []) {
+			const prior = await this.readArtifact<Protocol>(ref).catch(() => null);
+			if (prior) priors.push(prior);
+		}
+		return reusableQualification(priors, control, this.deps.environment.digest);
+	}
+
 	private async stepVerificationDesign(unit: Unit, cor: string): Promise<Unit> {
 		const reference = await this.referenceOf(unit.state);
 		const requirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements");
@@ -463,6 +508,13 @@ export class Harness {
 			const qualifications: Protocol["qualifications"] = {};
 			const base = { protocol: { protocol_id: "qualification", revision: 1, content_digest: digestValue("qualification") } as const, candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, environment: this.deps.environment, requirement_refs: refs, producer: EXECUTOR_ACTOR };
 			for (const control of detection.controls) {
+				const reusable = await this.qualificationAlreadyEstablished(unit.state, control);
+				if (reusable) {
+					this.progress(`control ${control.control_id} keeps its qualification`);
+					qualifications[control.control_id] = reusable;
+					if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
+					continue;
+				}
 				this.progress(`qualifying control ${control.control_id}`);
 				const detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: negative.path }, base);
 				const evidenceIds = {
@@ -517,7 +569,7 @@ export class Harness {
 				unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 				return this.commit(unit, { type: "preparation.close", at: this.now(), actor: KERNEL_ACTOR, qualified: false, capability_ids: [], adopted_ref: null }, cor);
 			}
-			const r = await this.runIntervention(unit, cor, "prepare", `${mandate.objective}\nRequirements to cover: ${mandate.requirement_ids.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`, handle.path, { adopted: ["mandate", "requirements"], untrusted: await this.projectExcerpts(reference, handle.path, 6), feedback });
+			const r = await this.runIntervention(unit, cor, "prepare", `${mandate.objective}\nRequirements to cover: ${mandate.requirement_ids.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`, handle.path, { adopted: ["mandate", "requirements"], untrusted: await this.projectExcerpts(reference, handle.path, 10, await this.focusOf(unit.state, mandate.objective)), feedback });
 			unit = r.unit;
 			if (unit.state.status === "blocked") return unit;
 			const notes: string[] = [];
@@ -588,12 +640,22 @@ export class Harness {
 			await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
 		}
 		const lastFeedback = unit.state.feedback.at(-1);
-		const feedback = lastFeedback ? await this.readArtifact<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
+		const priorFeedback = lastFeedback ? await this.readArtifact<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
+		const truncatedBefore = unit.state.interventions.filter((i) => i.attempt_id === attemptId && i.result === "truncated").length;
+		const resume = truncatedBefore > 0 ? `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by the duration budget, not by you (${truncatedBefore} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.` : null;
+		const feedback = [resume, priorFeedback].filter((x): x is string => Boolean(x)).join("\n\n") || null;
 		const mandate = await this.latestArtifact<Mandate>(unit.state, "mandate");
-		const r = await this.runIntervention(unit, cor, "implement", mandate?.content.objective ?? "implement the adopted design", workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: await this.projectExcerpts(reference, workspacePath, 6) });
+		const objective = mandate?.content.objective ?? "implement the adopted design";
+		const r = await this.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: await this.projectExcerpts(reference, workspacePath, 10, await this.focusOf(unit.state, objective)) });
 		unit = r.unit;
 		if (unit.state.status === "blocked") return unit;
 		if (r.result === "cancelled") return this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "execution_error", detail: "producer intervention cancelled" }, cor);
+		if (r.result === "truncated" && truncatedBefore < this.deps.policy.budgets.max_continuations) {
+			// The attempt stays open on its workspace: the next step resumes there instead of
+			// rebuilding from the reference, which would throw away everything just written.
+			this.progress(`producer resumes on workspace ${workspaceId} (continuation ${truncatedBefore + 1}/${this.deps.policy.budgets.max_continuations}); the increment budget still bounds the whole change`);
+			return unit;
+		}
 		if (r.result === "failed") {
 			const failed = this.commit(unit, { type: "operation.fail", at: this.now(), actor: KERNEL_ACTOR, operation_key: `intervention:${attemptId}` }, cor);
 			return failed;
@@ -633,7 +695,8 @@ export class Harness {
 		});
 		const altered = changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || manifest.entries.find((entry) => entry.path === p)?.baseline_state !== "added")) && !allowedProtected.includes(p));
 		const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
-		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changed, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
+		const truncatedNote = r.result === "truncated" ? [`the producer was stopped by the duration budget ${truncatedBefore + 1} time(s) and never reported itself finished`] : [];
+		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changed, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...truncatedNote, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
 		return unit;
 	}
 
@@ -696,12 +759,35 @@ export class Harness {
 		if (g5.next_action === "request_decision:IH-10") return this.requestDecision(unit, cor, "IH-10", subject, g5.reasons, null, undefined, undefined, language);
 		if (g5.next_action === "request_decision:IH-08") return this.requestDecision(unit, cor, "IH-08", subject, g5.reasons, null, undefined, undefined, language);
 		if (g5.next_action === "resolve_incident") {
+			// Re-running a frozen candidate through a frozen protocol is a pure function: it can only
+			// answer differently when the last observation was a transient incident. Anything else is
+			// a property of the candidate, and spending the retry budget on it proves nothing.
+			if (!this.retryCanDiffer(unit.state)) {
+				return this.correctOrStop(unit, cor, `${g5.reasons.join("; ")} — re-running the frozen candidate cannot change this observation`);
+			}
 			const key = `verify:${unit.state.candidate!.manifest_digest}`;
 			const retried = this.commit(unit, { type: "operation.fail", at: this.now(), actor: KERNEL_ACTOR, operation_key: key }, cor);
 			if (retried.state.status === "blocked") return retried;
 			return this.commit(retried, { type: "verification.rerun", at: this.now(), actor: KERNEL_ACTOR, reason: `indeterminate controls: ${g5.indeterminate_requirements.join(", ")} (technical retry)` }, cor);
 		}
 		return this.correctOrStop(unit, cor, g5.reasons.join("; "));
+	}
+
+	/**
+	 * Whether re-running the verification could yield another verdict: only a transient incident —
+	 * spawn error, timeout, signal — can, and only while it has not already reproduced identically.
+	 */
+	private retryCanDiffer(state: ChangeState): boolean {
+		const digest = state.candidate?.manifest_digest;
+		if (!digest) return false;
+		const observations = state.evidence
+			.filter((e) => e.valid && e.subject_digest === digest && e.verdict === "INDETERMINATE")
+			.map((e) => this.deps.ledger.getEvidence(e.evidence_id))
+			.filter((e): e is Evidence => e !== null);
+		const last = observations.at(-1);
+		if (!last || typeof last.facts.incident !== "string") return false;
+		const signature = (e: Evidence) => `${e.inputs_digest}|${String(e.facts.incident ?? "")}`;
+		return observations.filter((e) => signature(e) === signature(last)).length < 2;
 	}
 
 	private async correctOrStop(unit: Unit, cor: string, why: string): Promise<Unit> {

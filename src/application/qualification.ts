@@ -2,7 +2,8 @@
  * Qualification of a control (§11.3, VER-05): a positive witness must PASS, a negative witness
  * must FAIL and a broken runner must give INDETERMINATE. Only then may the control contribute to G2.
  */
-import type { ControlDefinition, Qualification } from "../contracts/v1/protocol.ts";
+import { digestValue } from "../contracts/digest.ts";
+import type { ControlDefinition, Protocol, Qualification } from "../contracts/v1/protocol.ts";
 import type { EvidenceCandidate } from "../contracts/v1/evidence.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../ports/execution.ts";
 
@@ -48,4 +49,32 @@ export async function qualifyControlDetailed(runner: ControlExecutionPort, contr
 
 export async function qualifyControl(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">): Promise<Qualification> {
 	return (await qualifyControlDetailed(runner, control, fixtures, base)).qualification;
+}
+
+/**
+ * What a qualification is about: the sensor. Two control definitions that run the same command the
+ * same way observe the same thing, whatever paths they go on to protect — `protected_paths` is a G4
+ * concern and never changes what the three witnesses would answer.
+ */
+export function sensorDigest(control: ControlDefinition): string {
+	return digestValue({ command: control.command, cwd: control.cwd, env: control.env, env_allowlist: control.env_allowlist, network: control.network, parser: control.parser, report_path: control.report_path, timeout_ms: control.timeout_ms, version: control.version, writable_paths: control.writable_paths });
+}
+
+/**
+ * An established qualification for this exact sensor in this exact environment, most recent first.
+ * Re-entering G2 — after a preparation, or after an earlier round was refused — then costs nothing
+ * instead of running the three witnesses again.
+ */
+export function reusableQualification(priorProtocols: readonly Protocol[], control: ControlDefinition, environmentDigest: string): Qualification | null {
+	const wanted = sensorDigest(control);
+	for (let i = priorProtocols.length - 1; i >= 0; i--) {
+		const prior = priorProtocols[i]!;
+		const qualification = prior.qualifications[control.control_id];
+		if (!qualification?.qualified) continue;
+		if (qualification.environment_digest !== environmentDigest) continue;
+		const priorControl = prior.controls.find((c) => c.control_id === control.control_id);
+		if (!priorControl || sensorDigest(priorControl) !== wanted) continue;
+		return structuredClone(qualification);
+	}
+	return null;
 }

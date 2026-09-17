@@ -24,7 +24,7 @@ export type ChangeEvent =
 	| (Base & { type: "attempt.opened"; attempt_id: string; index: number })
 	| (Base & { type: "attempt.closed"; attempt_id: string; result: "completed" | "failed" | "cancelled" | "superseded" })
 	| (Base & { type: "intervention.started"; intervention_id: string; role: InterventionRole; attempt_id: string | null; model: { provider_id: string; model_id: string; thinking_level: string }; profile_id: string })
-	| (Base & { type: "intervention.finished"; intervention_id: string; result: "completed" | "failed" | "cancelled"; counters: AttemptCounters; detail: string | null })
+	| (Base & { type: "intervention.finished"; intervention_id: string; result: "completed" | "failed" | "cancelled" | "truncated"; counters: AttemptCounters; detail: string | null })
 	| (Base & { type: "budget.consumed"; intervention_id: string; counters: AttemptCounters })
 	| (Base & { type: "budget.extended"; amount: number; decision_id: string; new_max_attempts: number })
 	| (Base & { type: "candidate.frozen"; candidate: CandidateRef; attempt_id: string; entry_count: number })

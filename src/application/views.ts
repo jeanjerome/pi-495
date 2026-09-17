@@ -20,6 +20,8 @@ export interface StatusView {
 		evidence: { evidence_id: string; control_id: string; verdict: string; valid: boolean }[];
 		pending_decisions: { decision_id: string; interaction: string }[];
 		last_intervention: { role: string; result: string; tool_calls: number; duration_ms: number } | null;
+		/** Interventions of the open attempt stopped by the duration budget and resumed since. */
+		continuations: number;
 		next_action: string;
 		updated_at: string;
 	} | null;
@@ -68,6 +70,7 @@ export function statusView(program: ProgramState | null, change: ChangeState | n
 					evidence: change.evidence.map((e) => ({ evidence_id: e.evidence_id, control_id: e.control_id, verdict: e.verdict, valid: e.valid })),
 					pending_decisions: change.pending_decisions.map((d) => ({ decision_id: d.decision_id, interaction: d.interaction })),
 					last_intervention: last ? { role: last.role, result: last.result, tool_calls: last.counters.tool_calls, duration_ms: last.counters.duration_ms } : null,
+					continuations: last?.attempt_id ? change.interventions.filter((i) => i.attempt_id === last.attempt_id && i.result === "truncated").length : 0,
 					next_action: nextActionOf(change),
 					updated_at: change.updated_at,
 				}

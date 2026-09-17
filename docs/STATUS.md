@@ -29,7 +29,14 @@ vérification a été exécutée sur cette machine.
   reste attachée au candidat présenté ; l'absence de réponse ne vaut jamais approbation.
 - Une preuve sur un autre candidat, une autre révision de protocole ou un autre environnement est
   rejetée à l'enregistrement ; FAIL et INDETERMINATE restent distingués ; timeout, binaire absent ou
-  rapport illisible donnent INDETERMINATE.
+  rapport illisible donnent INDETERMINATE. Une sortie non nulle qu'aucun échec de test n'explique
+  (compilation, plugin, module non atteint) est un FAIL rendu à l'agent avec les lignes d'erreur, et
+  ne consomme aucune reprise technique.
+- Une intervention arrêtée par le budget de durée est enregistrée `truncated` et reprend sur son
+  propre workspace dans la même tentative, jusqu'à `max_continuations` ; le travail déjà écrit
+  n'est jamais reconstruit depuis la référence.
+- Une étape qui échoue après avoir écrit enregistre son blocage : un changement bloqué ne peut pas
+  réapparaître prêt et refaire le travail qui vient d'échouer.
 - Journal chaîné SQLite + CAS : crash avant commit ou avant projection sans état incohérent ;
   altération détectée ; projection reconstruite ; export vérifiable hors ligne, expurgation déclarée.
 - Workspace isolé : le projet n'est jamais écrit ; dépôts vide, sans HEAD, propre, sale et non git

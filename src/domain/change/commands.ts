@@ -51,7 +51,7 @@ export type ChangeCommand =
 	| (Base & { type: "preparation.open"; mandate_ref: ArtifactRef })
 	| (Base & { type: "preparation.close"; qualified: boolean; capability_ids: string[]; adopted_ref: ArtifactRef | null })
 	| (Base & { type: "intervention.start"; intervention_id: string; role: InterventionRole; attempt_id: string | null; model: { provider_id: string; model_id: string; thinking_level: string }; profile_id: string; profile_qualified: boolean })
-	| (Base & { type: "intervention.finish"; intervention_id: string; result: "completed" | "failed" | "cancelled"; counters: AttemptCounters; detail: string | null })
+	| (Base & { type: "intervention.finish"; intervention_id: string; result: "completed" | "failed" | "cancelled" | "truncated"; counters: AttemptCounters; detail: string | null })
 	| (Base & { type: "budget.consume"; intervention_id: string; counters: AttemptCounters })
 	| (Base & { type: "candidate.freeze"; attempt_id: string; facts: CandidateFacts })
 	| (Base & { type: "verification.start"; operation_id: string; idempotency_key: string })

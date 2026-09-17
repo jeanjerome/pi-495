@@ -46,7 +46,7 @@ export interface InterventionState {
 	profile_id: string;
 	started_at: string;
 	ended_at: string | null;
-	result: "running" | "completed" | "failed" | "cancelled";
+	result: "running" | "completed" | "failed" | "cancelled" | "truncated";
 	counters: AttemptCounters;
 }
 

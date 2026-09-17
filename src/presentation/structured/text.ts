@@ -2,8 +2,8 @@ import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { StatusView } from "../../application/views.ts";
 
 const L = {
-	fr: { program: "Programme", change: "Changement", phase: "Phase", status: "Statut", outcome: "Résultat", gates: "Gates", attempts: "Tentatives", candidate: "Candidat", evidence: "Preuves", pending: "Décisions en attente", next: "Prochaine action", none: "aucun", limits: "Limites", stop: "Motif d'arrêt" },
-	en: { program: "Program", change: "Change", phase: "Phase", status: "Status", outcome: "Outcome", gates: "Gates", attempts: "Attempts", candidate: "Candidate", evidence: "Evidence", pending: "Pending decisions", next: "Next action", none: "none", limits: "Limits", stop: "Stop reason" },
+	fr: { program: "Programme", change: "Changement", phase: "Phase", status: "Statut", outcome: "Résultat", gates: "Gates", attempts: "Tentatives", candidate: "Candidat", evidence: "Preuves", pending: "Décisions en attente", next: "Prochaine action", none: "aucun", limits: "Limites", stop: "Motif d'arrêt", intervention: "Dernière intervention", truncated: "interrompue par le budget de durée", continuations: "reprises" },
+	en: { program: "Program", change: "Change", phase: "Phase", status: "Status", outcome: "Outcome", gates: "Gates", attempts: "Attempts", candidate: "Candidate", evidence: "Evidence", pending: "Pending decisions", next: "Next action", none: "none", limits: "Limits", stop: "Stop reason", intervention: "Last intervention", truncated: "stopped by the duration budget", continuations: "resumptions" },
 };
 
 /** Plain-text status shared by print mode, notifications and the conversational tool (UX-03). */
@@ -23,6 +23,12 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 	lines.push(`${t.gates}: ${c.gates.length ? c.gates.map((g) => `${g.gate}=${g.verdict}`).join(" ") : t.none}`);
 	for (const g of c.gates) if (g.verdict !== "PASS") for (const r of g.reasons.slice(0, 6)) lines.push(`  ${g.gate}: ${r}`);
 	lines.push(`${t.attempts}: ${c.attempts.used}/${c.attempts.max}`);
+	// A session cut short is not a proposal: saying so is what tells a slow model from a stuck one.
+	if (c.last_intervention) {
+		const cut = c.last_intervention.result === "truncated" ? ` — ${t.truncated}` : "";
+		const resumed = c.continuations > 0 ? `, ${c.continuations} ${t.continuations}` : "";
+		lines.push(`${t.intervention}: ${c.last_intervention.role}=${c.last_intervention.result}${cut}${resumed} (${Math.round(c.last_intervention.duration_ms / 1000)}s, ${c.last_intervention.tool_calls} tool calls)`);
+	}
 	if (c.candidate) lines.push(`${t.candidate}: ${c.candidate.candidate_id} ${c.candidate.manifest_digest.slice(0, 23)}`);
 	if (c.evidence.length) lines.push(`${t.evidence}: ${c.evidence.map((e) => `${e.control_id}=${e.verdict}${e.valid ? "" : "(invalid)"}`).join(" ")}`);
 	if (c.pending_decisions.length) lines.push(`${t.pending}: ${c.pending_decisions.map((d) => `${d.interaction} ${d.decision_id}`).join(", ")}`);

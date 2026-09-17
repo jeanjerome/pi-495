@@ -39,7 +39,9 @@ export function specReport(over: Partial<SpecificationReport> = {}): Specificati
 
 export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 
-export function makeHarness(options: { policy?: Partial<ActivePolicy>; scripts?: Record<string, AgentScript>; defaultScript?: AgentScript; sandbox?: "unconfined" | "platform" } = {}): TestHarness {
+type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & { budgets?: Partial<ActivePolicy["budgets"]>; adoption?: Partial<ActivePolicy["adoption"]> };
+
+export function makeHarness(options: { policy?: PolicyOverride; scripts?: Record<string, AgentScript>; defaultScript?: AgentScript; sandbox?: "unconfined" | "platform" } = {}): TestHarness {
 	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
 	const root = mkdtempSync(join(process.cwd(), "test-output", "harness-"));
 	const ledger = new SqliteLedger(join(root, "state.sqlite"));

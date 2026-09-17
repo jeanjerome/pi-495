@@ -2,6 +2,12 @@
 export interface Budgets {
 	max_attempts: number;
 	max_technical_retries: number;
+	/**
+	 * How many times a producer cut short by `intervention_ms` may resume on its own workspace
+	 * before the candidate is frozen as it stands. A continuation is not a new attempt: nothing is
+	 * rebuilt from the reference and no attempt budget is consumed.
+	 */
+	max_continuations: number;
 	intervention_ms: number;
 	increment_ms: number;
 	tool_calls_per_intervention: number;
@@ -32,6 +38,7 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	budgets: {
 		max_attempts: 3,
 		max_technical_retries: 2,
+		max_continuations: 3,
 		intervention_ms: 20 * 60_000,
 		increment_ms: 120 * 60_000,
 		tool_calls_per_intervention: 100,

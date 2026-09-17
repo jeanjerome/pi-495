@@ -9,6 +9,8 @@ export type ScriptStep =
 	| { kind: "tool"; tool: string; blocked?: boolean; is_error?: boolean }
 	| { kind: "text"; text: string }
 	| { kind: "complete"; output: unknown; output_valid?: boolean }
+	/** The duration budget ended the session: whatever was written stays in the workspace. */
+	| { kind: "truncate"; output?: unknown }
 	| { kind: "fail"; error: string }
 	| { kind: "hang" };
 
@@ -77,6 +79,9 @@ export class ScriptedAgent implements AgentPort {
 							break;
 						case "complete":
 							yield { type: "completed", at: new Date().toISOString(), output: step.output, output_valid: step.output_valid ?? true, counters: counters() };
+							return;
+						case "truncate":
+							yield { type: "completed", at: new Date().toISOString(), output: step.output ?? { raw: "" }, output_valid: false, truncated: true, counters: counters() };
 							return;
 						case "fail":
 							yield { type: "failed", at: new Date().toISOString(), error: step.error, counters: counters() };

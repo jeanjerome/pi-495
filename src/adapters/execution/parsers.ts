@@ -21,6 +21,25 @@ export function incidentOf(obs: ProcessObservation): string | null {
 	return null;
 }
 
+const BUILD_ERROR_LINE = /^\s*(?:\[ERROR\]|\[FATAL\]|error:|ERROR:)\s*(.+)$/;
+
+/**
+ * Lines naming a build failure, used as findings when the runner exited non-zero without a test
+ * failure to point at (compilation error, plugin failure, a module the reactor never reached).
+ */
+export function buildErrors(output: string, max = 10): string[] {
+	const out: string[] = [];
+	for (const raw of output.split(/\r?\n/)) {
+		const m = BUILD_ERROR_LINE.exec(raw);
+		if (!m) continue;
+		const message = m[1]!.trim();
+		if (!message || out.includes(message)) continue;
+		out.push(message);
+		if (out.length >= max) break;
+	}
+	return out;
+}
+
 /** Contract: exit code 0 means PASS, any other exit code means FAIL, an incident means INDETERMINATE (RM-016). */
 export function parseExitCode(obs: ProcessObservation): ParsedReport {
 	const incident = incidentOf(obs);
@@ -55,11 +74,21 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 	}
 	const facts = { exit_code: obs.exit_code, tests, pass, fail, skipped, todo, stdout_truncated: obs.stdout_truncated };
 	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };
-	if (tests === null || pass === null || fail === null) return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output" + (obs.stdout_truncated ? " (output truncated)" : "")], failures };
-	if (tests === 0) return { verdict: "INDETERMINATE", facts, notes: ["no test was executed: a suite without assertion proves nothing"], failures };
+	const broke = obs.exit_code !== 0;
+	const outside = (note: string): ParsedReport => ({ verdict: "FAIL", facts, notes: [note], failures: failures.length > 0 ? failures : buildErrors(stdout).length > 0 ? buildErrors(stdout) : [`exit code ${obs.exit_code}`] });
+	if (tests === null || pass === null || fail === null) {
+		// A truncated stream is a reading limit, not a property of the candidate.
+		if (obs.stdout_truncated) return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output (output truncated)"], failures };
+		if (broke) return outside(`the runner exited with ${obs.exit_code} without emitting a TAP summary`);
+		return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output"], failures };
+	}
+	if (tests === 0) {
+		if (broke) return outside(`the runner exited with ${obs.exit_code} and executed no test`);
+		return { verdict: "INDETERMINATE", facts, notes: ["no test was executed: a suite without assertion proves nothing"], failures };
+	}
 	if (fail > 0) return { verdict: "FAIL", facts, notes: [], failures };
 	if ((skipped ?? 0) > 0 || (todo ?? 0) > 0) return { verdict: "INDETERMINATE", facts, notes: [`${skipped ?? 0} skipped and ${todo ?? 0} todo tests: a skip is not a pass (RM-017)`], failures };
-	if (obs.exit_code !== 0) return { verdict: "INDETERMINATE", facts, notes: [`all tests passed but the runner exited with ${obs.exit_code}`], failures };
+	if (broke) return outside(`every test passed but the runner exited with ${obs.exit_code}: the failure is outside the tests that ran`);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
 
@@ -100,15 +129,33 @@ function intAttr(attrs: string, name: string): number {
 	return m ? Number.parseInt(m[1]!, 10) : 0;
 }
 
-export function parseJUnit(obs: ProcessObservation, documents: string[] | null): ParsedReport {
+/**
+ * A non-zero exit that no test failure explains is a verdict on the candidate, not an incident: a
+ * compilation error, a plugin failure or a module the reactor never reached are all reproducible
+ * properties of the frozen tree. Only `incidentOf` — spawn error, timeout, signal — is INDETERMINATE,
+ * because only those can give a different answer on an identical re-run.
+ */
+export function parseJUnit(obs: ProcessObservation, documents: string[] | null, output = ""): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
-	if (!documents || documents.length === 0) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, reports: 0 }, notes: ["no JUnit report found at the declared report path"], failures: [] };
+	const broke = obs.exit_code !== 0;
+	const outside = (facts: Record<string, unknown>, note: string): ParsedReport => {
+		const errors = buildErrors(output);
+		return { verdict: "FAIL", facts, notes: [note], failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`] };
+	};
+	if (!documents || documents.length === 0) {
+		const facts = { exit_code: obs.exit_code, reports: 0 };
+		if (broke) return outside(facts, `the build exited with ${obs.exit_code} before producing any test report`);
+		return { verdict: "INDETERMINATE", facts, notes: ["no JUnit report found at the declared report path"], failures: [] };
+	}
 	const s = summarizeJUnit(documents);
 	const facts = { exit_code: obs.exit_code, ...s };
-	if (s.tests === 0) return { verdict: "INDETERMINATE", facts, notes: ["JUnit reports contain no test"], failures: [] };
+	if (s.tests === 0) {
+		if (broke) return outside(facts, `the build exited with ${obs.exit_code} and the reports contain no test`);
+		return { verdict: "INDETERMINATE", facts, notes: ["JUnit reports contain no test"], failures: [] };
+	}
 	if (s.failures + s.errors > 0) return { verdict: "FAIL", facts, notes: [], failures: s.failed_cases };
 	if (s.skipped > 0) return { verdict: "INDETERMINATE", facts, notes: [`${s.skipped} skipped tests: a skip is not a pass (RM-017)`], failures: [] };
-	if (obs.exit_code !== 0) return { verdict: "INDETERMINATE", facts, notes: [`reports are green but the build exited with ${obs.exit_code}`], failures: [] };
+	if (broke) return outside(facts, `the reports are green but the build exited with ${obs.exit_code}: the failure is outside the tests that ran`);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
