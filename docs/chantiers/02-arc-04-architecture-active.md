@@ -17,7 +17,7 @@ contrôle prévu ; un changement volontaire de frontière exige une révision ar
 
 ```
 Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 1 et 4) puis ARC-01 à ARC-04 dans
-expression-besoins-harness-developpement-v1.3.md.
+docs/amont/expression-besoins.md.
 
 ARC-04 : « une architecture adoptée ne doit pas rester seulement une consigne dans le contexte ».
 Recette : un candidat fonctionnel plaçant une responsabilité dans un module interdit échoue au
@@ -51,7 +51,7 @@ Critères d'acceptation :
 | Catégorie de constat | `FINDING_CATEGORIES` comprend déjà `"structure"` |
 | Localisation | `Region` du contrat `Finding` : lignes et colonnes |
 | Précédent interne | `scripts/check-layers.ts`, règle d'imports entre couches de 495 |
-| Doctrine multi-langage | `references-externes-495.md` § 5 : adaptateurs natifs, enveloppe commune |
+| Doctrine multi-langage | `docs/amont/references-externes.md` § 5 : adaptateurs natifs, enveloppe commune |
 
 ## Journal
 

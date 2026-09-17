@@ -20,7 +20,7 @@ documentés.
 
 ```
 Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 3 et 5) puis VER-04 dans
-expression-besoins-harness-developpement-v1.3.md, ainsi que le paragraphe sur les budgets des
+docs/amont/expression-besoins.md, ainsi que le paragraphe sur les budgets des
 contrôles coûteux (section 12 du même document).
 
 Deux règles de cadrage à respecter :

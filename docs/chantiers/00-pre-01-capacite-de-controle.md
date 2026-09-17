@@ -20,7 +20,7 @@ satisfaisante.
 
 ```
 Dans ~/Projets/495-pi-package, lis d'abord docs/ROADMAP.md (sections 1, 2 et 5) puis la
-section PRE-01 de expression-besoins-harness-developpement-v1.3.md.
+section PRE-01 de docs/amont/expression-besoins.md.
 
 PRE-01 exige de distinguer quatre niveaux : un fichier de test présent, un test découvrable,
 un test exécuté, et un contrôle capable de détecter le défaut visé. `referenceHasTests`

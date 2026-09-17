@@ -21,7 +21,7 @@ Mesure relevée sur la cible Java pour un candidat accepté : 276 lignes instrum
 
 ```
 Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 1, 4 et 5) puis QLT-04 dans
-expression-besoins-harness-developpement-v1.3.md.
+docs/amont/expression-besoins.md.
 
 QLT-04 demande des règles sur le code nouveau ou modifié, des tolérances nommées pour la dette
 antérieure, et la non-aggravation comme critère. Pas de seuil global : un ratio de dépôt bloque
