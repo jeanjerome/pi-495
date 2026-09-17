@@ -66,11 +66,34 @@ export const JACOCO_PLUGIN = `      <plugin>
       </plugin>
 `;
 
+/** PITest writing an XML report at a path no timestamp moves, with a threshold per module. */
+export const PITEST_PLUGIN = `      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>1.22.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>1.2.3</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <outputFormats>
+            <outputFormat>XML</outputFormat>
+          </outputFormats>
+          <timestampedReports>false</timestampedReports>
+          <mutationThreshold>80</mutationThreshold>
+        </configuration>
+      </plugin>
+`;
+
 /**
  * F-JAVA: minimal Maven project with JUnit 5 (Surefire XML reports under target/surefire-reports).
- * With `withCoverage`, `mvn test` also writes target/site/jacoco/jacoco.xml.
+ * With `withCoverage`, `mvn test` also writes target/site/jacoco/jacoco.xml. With `withMutation`,
+ * PITest is declared with an XML report at a stable path.
  */
-export function fixtureJava(root: string, withCoverage = false): void {
+export function fixtureJava(root: string, withCoverage = false, withMutation = false): void {
 	writeFiles(root, {
 		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -97,7 +120,7 @@ export function fixtureJava(root: string, withCoverage = false): void {
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
       </plugin>
-${withCoverage ? JACOCO_PLUGIN : ""}    </plugins>
+${withCoverage ? JACOCO_PLUGIN : ""}${withMutation ? PITEST_PLUGIN : ""}    </plugins>
   </build>
 </project>
 `,

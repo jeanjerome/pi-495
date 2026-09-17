@@ -53,7 +53,7 @@ function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
+	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
 }
 
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {
@@ -202,8 +202,8 @@ describe("the target adapter proposes the sensor only where a measurement exists
 		assert.deepEqual([coverage!.parser, coverage!.report_path, coverage!.writable_paths], ["jacoco-xml", "**/target/site/jacoco", []]);
 		assert.ok(coverage!.protected_paths.includes("pom.xml"), "turning the measurement off in the POM is not the producer's to decide (QLT-04)");
 		// Its positive witness introduces code the suite calls; its own negative witness introduces code nothing calls.
-		assert.ok("src/main/java/Witness495Covered.java" in detection.positive_witness);
-		assert.deepEqual(Object.keys(detection.own_negative_witness.coverage ?? {}), ["src/main/java/Witness495Uncovered.java"]);
+		assert.ok("src/main/java/witness495/Witness495Covered.java" in detection.positive_witness);
+		assert.deepEqual(Object.keys(detection.own_negative_witness.coverage ?? {}), ["src/main/java/witness495/Witness495Uncovered.java"]);
 		assert.equal(detection.witness_tests, 2);
 		assert.ok(!detection.capability_missing.some((note) => note.includes("JaCoCo")), "the measurement this sensor reads is the one mvn test writes");
 	});

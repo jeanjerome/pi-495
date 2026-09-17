@@ -46,6 +46,25 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		assert.equal(existsSync(join(homedir(), ".495-sbx-probe")), false);
 		assert.equal(readFileSync(join(root, "ws", "in-ws.txt"), "utf8"), "1");
 	});
+	darwinOnly("seatbelt lets a loopback profile reach itself and no other host (VER-04)", async () => {
+		// A mutation engine forks worker processes and talks to them over a socket. The narrowest grant
+		// that lets such a tool run is the loopback interface: the confinement SEC-02 claims is kept,
+		// because no host but this one is reachable.
+		const sbx = new SeatbeltSandbox();
+		const script = [
+			'const net=require("net");const out=[];',
+			'const srv=net.createServer((s)=>s.end("hi")).listen(0,"127.0.0.1",()=>{',
+			'const c=net.connect(srv.address().port,"127.0.0.1");',
+			'c.on("data",()=>{out.push("self:ok");c.end();srv.close();elsewhere()});',
+			'c.on("error",(e)=>{out.push("self:"+e.code);srv.close();elsewhere()});});',
+			'srv.on("error",(e)=>{out.push("bind:"+e.code);elsewhere()});',
+			'function elsewhere(){const r=net.connect(80,"93.184.216.34");',
+			'r.on("error",(e)=>{out.push("remote:"+e.code);done()});r.on("connect",()=>{out.push("remote:ok");done()});}',
+			'function done(){console.log(out.join(","));process.exit(0)}',
+		].join("");
+		const obs = await sbx.run(profile({ network: "loopback" }), { command: [NODE, "-e", script], cwd: join(root, "ws"), timeout_ms: 20000, max_output_bytes: 4096 });
+		assert.equal(new TextDecoder().decode(obs.stdout).trim(), "self:ok,remote:EPERM", new TextDecoder().decode(obs.stderr));
+	});
 	darwinOnly("seatbelt allows network only when the mandate says so", async () => {
 		const sbx = new SeatbeltSandbox();
 		const obs = await sbx.run(profile({ network: "allowed" }), { command: [NODE, "-e", 'require("net").connect(9,"127.0.0.1").on("error",e=>{console.log(e.code)})'], cwd: join(root, "ws"), timeout_ms: 10000, max_output_bytes: 4096 });

@@ -13,7 +13,7 @@ import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, ProtocolR
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest } from "../contracts/v1/evidence.ts";
-import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
+import { isDifferentialParser, Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument, type Obligation, type ControlDefinition } from "../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, type ProducerReport, type ReviewReport, type SpecificationReport } from "../contracts/v1/reports.ts";
 import { applyInstability, blockingCount, candidateShape, compareToReference, divergesFromReference, reusableReferencePass, type CandidateShape, type ReferencePass } from "../domain/baseline.ts";
 import { apply } from "../domain/change/apply.ts";
@@ -590,9 +590,10 @@ export class Harness {
 			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
 			// A differential control answers a question every requirement asks, whatever its category: a
 			// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
-			// and a responsibility placed in a forbidden module is not demonstrated either (QLT-04,
-			// ARC-04). An improvement elsewhere never compensates for either one.
-			const differential = controls.filter((c) => c.parser === "jacoco-xml" || c.parser === "java-imports").map((c) => c.control_id);
+			// a responsibility placed in a forbidden module is not demonstrated either, and neither is a
+			// line whose mutation nothing notices (QLT-04, ARC-04, VER-04). An improvement elsewhere
+			// never compensates for any of the three.
+			const differential = controls.filter((c) => isDifferentialParser(c.parser)).map((c) => c.control_id);
 			const obligations: Obligation[] = requirements.content.requirements.map((r) => {
 				const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
 				const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
@@ -811,8 +812,9 @@ export class Harness {
 			this.progress(`running control ${control.control_id}`);
 			const invocation = { control, protocol: state.protocol.ref, candidate: state.candidate, subject: { kind: "candidate" as const, id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest }, workspace_path: workspacePath, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR, introduced_lines: introduced.lines };
 			const observed = (await this.deps.controls.runControl(invocation)).evidence;
-			// A path the diff could not read is a limit of the control that judged it, not a silent zero.
-			const limits = introduced.notes.length > 0 && control.parser === "jacoco-xml" ? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] } : observed.limits;
+			// A path the diff could not read is a limit of every control that judged the introduced lines,
+			// not a silent zero.
+			const limits = introduced.notes.length > 0 && isDifferentialParser(control.parser) ? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] } : observed.limits;
 			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" }, limits };
 			const pass = passes.get(control.control_id);
 			if (pass) {

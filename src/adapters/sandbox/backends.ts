@@ -48,7 +48,12 @@ export class SeatbeltSandbox implements SandboxPort {
 		for (const p of profile.write_paths) lines.push(`(allow file-write* (subpath ${sbplString(real(p))}))`);
 		for (const p of this.options.temp_paths) lines.push(`(allow file-write* (subpath ${sbplString(real(p))}))`);
 		lines.push('(allow file-write* (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/ttys[0-9]+$") (literal "/dev/dtracehelper"))');
-		lines.push(profile.network === "allowed" ? "(allow network*)" : "(deny network*)");
+		lines.push("(deny network*)");
+		if (profile.network === "allowed") lines.push("(allow network*)");
+		// A tool that forks workers and talks to them over a socket needs one host: itself. Granting the
+		// loopback interface and nothing else keeps the confinement SEC-02 claims — no other host is
+		// reachable — while letting such a tool run under the same profile as every other control.
+		if (profile.network === "loopback") lines.push('(allow network-bind (local ip "localhost:*"))', '(allow network-inbound (local ip "localhost:*"))', '(allow network-outbound (remote ip "localhost:*"))');
 		return `${lines.join("\n")}\n`;
 	}
 	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
@@ -80,7 +85,9 @@ export class BubblewrapSandbox implements SandboxPort {
 		const args = ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp", "--die-with-parent", "--new-session"];
 		for (const p of this.options.denied_read_paths) if (existsSync(p)) args.push("--tmpfs", p);
 		for (const p of profile.write_paths) args.push("--bind", p, p);
-		if (profile.network === "denied") args.push("--unshare-net");
+		// A network namespace of its own holds a loopback interface and no route anywhere else, so it is
+		// what both `denied` and `loopback` ask for on this platform.
+		if (profile.network !== "allowed") args.push("--unshare-net");
 		const env = buildEnv(profile.env_allowlist, profile.env);
 		return runProcess({ command: ["bwrap", ...args, "--chdir", request.cwd, "--", ...request.command], cwd: request.cwd, env }, request, signal);
 	}

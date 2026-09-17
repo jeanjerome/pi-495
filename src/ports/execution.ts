@@ -13,7 +13,11 @@ export interface SandboxProfile {
 	read_paths: string[];
 	/** absolute paths writable */
 	write_paths: string[];
-	network: "denied" | "allowed";
+	/**
+	 * `denied` grants no socket at all; `loopback` lets a process reach itself and nothing else, which
+	 * is what a tool that forks workers and talks to them over a socket needs; `allowed` is a mandate.
+	 */
+	network: "denied" | "loopback" | "allowed";
 	env_allowlist: string[];
 	env: Record<string, string>;
 }

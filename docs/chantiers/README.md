@@ -15,7 +15,7 @@ l'introduit, et pourquoi aucun contrôle qualifié ne peut seul prouver un compo
 | 1 | VER-08 | exécution des contrôles sur la référence, classement préexistant / introduit, politique d'instabilité | livré ; le contrôle de couverture de l'étage 2 l'alimente, en classant `new` tout constat que son passage de référence ne porte pas | [01-ver-08-comparaison-a-la-reference.md](01-ver-08-comparaison-a-la-reference.md) |
 | 2 | QLT-04 | couverture sur le code introduit, non-aggravation | livré pour une cible Maven dont JaCoCo lie `report` hors profil ; la stack Node et les autres clauses de QLT-04 restent absentes | [02-qlt-04-couverture-introduite.md](02-qlt-04-couverture-introduite.md) |
 | 3 | ARC-04, CON-03 | constats structurels, architecture opposable | livré pour une cible Maven multi-module ; ARC-01 partiellement, ARC-02, ARC-03 et la stack Node restent absentes | [03-arc-04-architecture-active.md](03-arc-04-architecture-active.md) |
-| 4 | VER-04 | mutation sur les classes modifiées | à faire | [04-ver-04-mutation-code-modifie.md](04-ver-04-mutation-code-modifie.md) |
+| 4 | VER-04 | mutation sur les classes modifiées | livré pour une cible Maven déclarant PITest en XML à chemin stable ; les autres angles de VER-04 et l'activation selon le risque restent absents | [04-ver-04-mutation-code-modifie.md](04-ver-04-mutation-code-modifie.md) |
 
 ## Travaux transverses
 

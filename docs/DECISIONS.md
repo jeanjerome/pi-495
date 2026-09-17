@@ -352,3 +352,67 @@ lors d'un reformatage — reste tolérée : elle s'apparie par empreinte, ne com
 constats bloquants, et le contrôle ne bloque pas. Un échec qui ne nomme aucun constat reste un
 échec, et un passage de référence `INDETERMINATE` n'est toujours pas une tolérance. La divergence
 qui paye une confirmation est celle que la tolérance a laissée debout, et non plus le verdict brut.
+
+## D-27 — Un contrôle coûteux reçoit sa portée du candidat gelé, avant tout lancement
+
+**Décision.** `ControlDefinition` porte un `scope_argument` : un argument que le protocole gèle,
+dont `{classes}` est remplacé au lancement par les classes que le sujet introduit. Le runner calcule
+cette portée avant d'ouvrir le bac à sable, et deux cas se décident sans rien exécuter — un sujet
+qui n'introduit aucune classe ne lance rien et rend `PASS`, un sujet dont personne n'a établi les
+lignes ne lance rien et rend `INDETERMINATE`. L'argument effectivement passé est celui que la preuve
+enregistre, et celui que digère `inputs_digest`.
+**Motif.** La règle est gelée à G2, avant que le candidat existe ; la portée, elle, ne peut être
+connue qu'après. Un essai de mutation sur l'arbre entier dépenserait le budget d'un changement à
+observer ce que ce changement n'a pas touché, et l'inverse — pas d'argument du tout — reviendrait à
+muter tout ce que la cible contient dès qu'un fichier bouge. La portée est dérivée du manifeste et
+des lignes introduites, calculées depuis des octets adressés par contenu : le producteur ne la
+déclare pas, il la subit.
+**Conséquence.** Le passage de référence d'un tel contrôle ne coûte rien, comme celui de la
+couverture. La commande enregistrée dans la preuve n'est plus toujours celle du protocole : c'est
+celle qui a tourné, et les deux passages restent comparables puisque la référence n'introduit rien
+et ne reçoit donc aucun argument de portée.
+
+## D-28 — Le seuil de mutation de la cible n'est pas la règle du contrôle
+
+**Décision.** Le contrôle de mutation lit son verdict dans le rapport XML, mutant par mutant, sur
+les lignes introduites. Un rapport complet — l'élément fermant est présent — prouve que l'analyse
+est allée à son terme ; une sortie non nulle après ce rapport est nommée dans les notes et ne change
+pas le verdict. Sans rapport complet, une sortie non nulle est un `FAIL` avec les erreurs de build,
+une sortie nulle accompagnée de la mention qu'aucun mutant n'a été engendré est un `PASS` explicite,
+et tout le reste est `INDETERMINATE`.
+**Motif.** `mutationThreshold` est un ratio sur tout ce que le moteur a muté ; `ROADMAP.md` §1 dit
+ce qu'un ratio mesure — l'hygiène d'un dépôt, pas un changement. L'opposer au candidat ferait échouer
+une modification à cause de la dette des lignes voisines. L'écraser par `-DmutationThreshold=0`
+serait abaisser un seuil que la cible a adopté. Le rapport est écrit avant que le seuil soit évalué :
+sa présence complète sépare donc les deux situations sans toucher à la configuration de la cible.
+**Conséquence.** Le seuil de la cible reste sa décision, visible au dossier, jamais appliquée au
+candidat. Les `pom.xml` sont protégés : l'abaisser ou exclure un mutateur reste une mutation du
+protocole, refusée à G4. Le risque résiduel est un échec de plugin survenant après l'écriture du
+rapport, qui serait lu comme un seuil manqué ; la note le laisse visible.
+
+## D-29 — Un profil d'isolation qui laisse un processus se joindre lui-même
+
+**Décision.** `SandboxProfile.network` prend une troisième valeur, `loopback`, entre `denied` et
+`allowed`. Sous Seatbelt elle ouvre `network-bind`, `network-inbound` et `network-outbound` sur
+`localhost` et rien d'autre ; sous bubblewrap elle est `--unshare-net`, dont l'espace de noms ne
+contient qu'une boucle locale. Le contrôle de mutation est le seul à la demander.
+**Motif.** Le moteur de mutation lance des JVM ouvrières et leur parle par socket. Sous
+`(deny network*)` il échoue au démarrage : le contrôle serait livré inexécutable sur la seule cible
+qualifiée. `allowed` serait disproportionné — ce serait accorder l'Internet à un contrôle qui a
+besoin de se joindre lui-même.
+**Conséquence.** La confinement que SEC-02 annonce est conservé : aucun autre hôte n'est joignable,
+ce qu'un témoin de `v1/sandbox` vérifie en se connectant à lui-même puis ailleurs. Sur Linux les
+deux valeurs donnent le même isolement, l'espace de noms réseau portant sa propre boucle locale ;
+la nuance entre `denied` et `loopback` n'y est donc pas observable.
+
+## D-30 — Les témoins d'une cible Maven vivent dans un paquet
+
+**Décision.** Les six fichiers témoins écrits dans les workspaces de qualification d'une cible Maven
+sont déclarés dans le paquet `witness495`, sous `src/main/java/witness495/` et
+`src/test/java/witness495/`, au lieu du paquet par défaut.
+**Motif.** Un moteur de mutation restreint par défaut les tests qu'il exécute aux paquets que
+l'arbre de test déclare. Un test témoin hors de tout paquet n'est jamais exécuté : les mutants du
+témoin positif ressortent alors `NO_COVERAGE`, le capteur échoue sur le tronc qu'il devrait laisser
+passer, et sa qualification échoue pour une raison qui n'a rien à voir avec ce qu'il détecte.
+**Conséquence.** Les constats des campagnes portent désormais le paquet dans leur chemin et dans
+leur symbole. Le témoin structurel utilisait déjà ce paquet sous la racine de sources de son module.

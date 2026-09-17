@@ -76,7 +76,7 @@ n'autorise à annoncer une capacité P0 avant sa recette.
 | Noyau et changement unitaire | `BES`, `REQ-01..04`, `CON-01`, `CON-02`, `CTX-01`, `CTX-02`, `CTX-04`, `CTX-05`, `AGT-01..04`, `AGT-06`, `VER-01..03`, `VER-06`, `DEC-01..03`, `DEC-05`, `DEC-06`, `SEC`, `GIT-01..03`, `GIT-05`, `EVD`, `UX`, `IMP-05` | `IT-0` à `IT-4` | livré non qualifié |
 | Préparation et dépôt vierge | `PRE`, `EXT-01..03`, `RAG-01`, `RAG-02`, `RAG-04`, `PRG-01`, `PRG-02` | `IT-5` | partiel : préparation livrée et ouverte sur l'échelle à quatre niveaux de `PRE-01`, `PRE-04` et `PRE-05` absents, `RAG` absent |
 | Programme séquentiel | `PRG-03..05`, `BES-04` | `IT-5` | noyau et stockage seulement |
-| Diagnostic et remise à niveau | `ARC-01..04`, `QLT-01..05`, `CON-03`, `VER-08`, `EXP-01..04` | — | partiel : `VER-08`, `QLT-04`, `ARC-04` et `CON-03` livrés, `ARC-01` pour sa part observable, le reste non commencé |
+| Diagnostic et remise à niveau | `ARC-01..04`, `QLT-01..05`, `CON-03`, `VER-08`, `EXP-01..04` | — | partiel : `VER-08`, `QLT-04`, `ARC-04` et `CON-03` livrés, `ARC-01` pour sa part observable, le reste non commencé ; l'angle mutation de `VER-04` complète l'échelle du contrôle de l'introduit |
 
 La quatrième sous-livraison est celle que `ROADMAP.md` détaille et que `chantiers/` porte. Elle
 n'est pas un complément : sans elle, rien ne mesure ce que la suite discriminante atteint sur le
@@ -121,7 +121,9 @@ Les valeurs initiales de délégation sont fixées par la spécification fonctio
 interventions simultanées, profondeur un, huit enfants au maximum par changement.
 
 `VER-04` est l'étage 4 de `chantiers/` : la mutation par le runner générique relève du socle, un
-intégrateur dédié à un outil de mutation relève de L2. Les deux ne se confondent pas.
+intégrateur dédié à un outil de mutation relève de L2. Les deux ne se confondent pas, et le premier
+est livré — ce qui reste de `VER-04` pour ce domaine sont ses autres angles et l'activation selon le
+risque du changement.
 
 ## 6. L3 — extensions optionnelles
 

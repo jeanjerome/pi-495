@@ -25,7 +25,7 @@ export interface ParsedReport {
 	findings?: ParsedFinding[];
 }
 
-export const PARSER_VERSIONS = { "exit-code": "1.0.0", "node-test": "1.0.0", "junit-xml": "1.0.0", "jacoco-xml": "1.0.0", "java-imports": "1.0.0" } as const;
+export const PARSER_VERSIONS = { "exit-code": "1.0.0", "node-test": "1.0.0", "junit-xml": "1.0.0", "jacoco-xml": "1.0.0", "java-imports": "1.0.0", "pitest-xml": "1.0.0" } as const;
 
 const MAX_FAILURES = 50;
 
@@ -219,25 +219,29 @@ export function measurableIntroducedPaths(introduced: IntroducedLines): string[]
 	return Object.keys(introduced).filter((path) => MEASURABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path)).sort();
 }
 
-/** An attribute value, with the five XML entities decoded: JaCoCo writes a constructor `&lt;init&gt;`. */
+/** The five XML entities, decoded: JaCoCo writes a constructor `&lt;init&gt;`. */
+export function decodeXml(text: string): string {
+	return text.replace(/&(lt|gt|quot|apos|amp);/g, (whole, entity: string) => ({ lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" })[entity] ?? whole);
+}
+
+/** An attribute value, with the five XML entities decoded. */
 function strAttr(attrs: string, name: string): string | null {
 	const m = new RegExp(`\\b${name}="([^"]*)"`).exec(attrs);
-	if (!m) return null;
-	return m[1]!.replace(/&(lt|gt|quot|apos|amp);/g, (_whole, entity: string) => ({ lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" })[entity] ?? _whole);
+	return m ? decodeXml(m[1]!) : null;
 }
 
 /** The module a report measures: `domain/target/site/jacoco/jacoco.xml` measures `domain`. */
-function moduleOf(reportName: string): string {
+export function moduleOf(reportName: string): string {
 	const at = reportName.indexOf("/target/");
 	return at > 0 ? reportName.slice(0, at) : "";
 }
 
 /**
- * The source path a `<package>/<sourcefile>` pair names. JaCoCo states neither the source root nor
- * the repository path, so the answer is looked up among the paths the candidate actually touched:
- * one match is the file, several is an ambiguity that is reported rather than guessed.
+ * The source path a package and a source file name. A report states neither the source root nor the
+ * repository path, so the answer is looked up among the paths the candidate actually touched: one
+ * match is the file, several is an ambiguity that is reported rather than guessed.
  */
-function resolveSourcePath(module: string, packageName: string, sourcefile: string, paths: readonly string[]): { path: string | null; ambiguous: boolean } {
+export function resolveSourcePath(module: string, packageName: string, sourcefile: string, paths: readonly string[]): { path: string | null; ambiguous: boolean } {
 	const suffix = packageName ? `${packageName}/${sourcefile}` : sourcefile;
 	const matches = paths.filter((path) => (path === suffix || path.endsWith(`/${suffix}`)) && (module === "" || path.startsWith(`${module}/`)));
 	return { path: matches.length === 1 ? matches[0]! : null, ambiguous: matches.length > 1 };

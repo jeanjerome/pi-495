@@ -40,6 +40,7 @@
           "parser",
           "report_path",
           "structure_rules",
+          "scope_argument",
           "network",
           "writable_paths",
           "requirement_refs",
@@ -95,7 +96,8 @@
               "node-test",
               "junit-xml",
               "jacoco-xml",
-              "java-imports"
+              "java-imports",
+              "pitest-xml"
             ]
           },
           "report_path": {
@@ -153,10 +155,21 @@
               "additionalProperties": false
             }
           },
+          "scope_argument": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "network": {
             "type": "string",
             "enum": [
               "denied",
+              "loopback",
               "allowed"
             ]
           },

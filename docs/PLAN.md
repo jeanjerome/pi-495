@@ -46,7 +46,8 @@ dans `STATUS.md` et `QUALIFICATION.md`, et ce qui reste pour franchir L0 puis L1
 
 `ROADMAP.md` couvre la moitié de P0 non commencée (ARC-01..03, QLT-01..03, QLT-05, RAG-01/02/04,
 EXP-*, PRE-04, PRE-05, et ce qui reste de la cartographie de PRE-01), les exigences au-delà de P0,
-et l'ordre proposé. `chantiers/` porte les travaux correspondants.
+et l'ordre proposé. `chantiers/` porte les travaux correspondants ; ses quatre étages du contrôle de
+l'introduit sont livrés.
 
 ## Ce qui est hors de portée de cette machine
 

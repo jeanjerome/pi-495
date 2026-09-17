@@ -127,6 +127,43 @@ gelée dans l'adaptateur de cible plutôt qu'adoptée par la cible, `src/test/ja
 portée, et une frontière franchie par réflexion ou par configuration n'est pas vue. ARC-02, ARC-03
 et ARC-05 restent absentes. Voir `chantiers/03`.
 
+## Un test qui exerce une ligne sans rien en assertir n'est plus une preuve
+
+La couverture répond à « cette ligne est-elle exercée ». Elle ne répond pas à « un test
+remarquerait-il que cette ligne change ». Une cible Maven qui déclare son moteur de mutation hors
+profil, avec un rapport XML à un chemin non horodaté, reçoit désormais un contrôle `mutation` du
+protocole gelé qui répond à la seconde question.
+
+Le contrôle est une commande que le protocole gèle et que le runner générique lance comme les
+autres ; ce qui lui est propre est la lecture du rapport et la dérivation de sa portée. Cette portée
+vient du candidat : les classes que le manifeste dit modifiées, avec le paquet lu dans la
+déclaration de chaque source, sont les seules que le moteur mute. Un sujet qui n'introduit aucune
+classe — le passage de référence — ne lance rien du tout. Le coût suit donc la taille du changement,
+et le contrôle porte un budget propre de trente minutes, distinct de celui du contrôle de test.
+
+Ce qui bloque est un mutant survivant sur une ligne que le candidat a écrite, nommé avec son
+opérateur, sa méthode et sa ligne. Un mutant survivant ailleurs dans une classe modifiée est de la
+dette de cette classe, comptée et nommée, jamais opposée au changement ; une classe non touchée
+n'est pas mutée. Le `mutationThreshold` de la cible n'est pas la règle de ce contrôle : c'est un
+ratio sur tout ce qui a été muté, il apparaît au dossier et ne fait échouer personne.
+
+Le budget se comporte comme un budget doit se comporter. S'il expire avant le rapport, l'observation
+est un incident : `INDETERMINATE`, jamais `FAIL`, avec la mention que la preuve due est manquante et
+qu'aucun seuil n'est abaissé pour conclure sans elle. Le changement passe alors en
+`resolve_incident` — une reprise technique bornée — sans qu'une tentative d'implémentation soit
+dépensée. Un mutant que le moteur n'a pas su décider a le même effet, pour la même raison.
+
+Le moteur lance des JVM ouvrières et leur parle par socket : `SandboxProfile.network` a donc une
+troisième valeur, `loopback`, qui ouvre la boucle locale et rien d'autre. Un témoin s'y connecte à
+lui-même puis à un autre hôte, et n'obtient le second qu'en `EPERM`.
+
+Reste ouvert : c'est l'angle mutation de VER-04 et lui seul — propriétés, fuzzing, contrats, tests
+différentiels et métamorphiques restent absents, et l'activation selon le risque du changement
+n'existe pas, la configuration de la cible activant le contrôle pour tous ses changements. La portée
+se limite aux sources `.java`, la stack Node n'a pas de capteur de mutation, et un mutant équivalent
+bloque comme un autre : il est nommé assez précisément pour être reconnu, mais aucune liste
+d'exclusion justifiée n'est gelée avec le protocole. Voir `chantiers/04`.
+
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
 - Linux x86-64 : backend bubblewrap implémenté, jamais exécuté ; annoncé non qualifié.
@@ -150,6 +187,9 @@ et ARC-05 restent absentes. Voir `chantiers/03`.
   et `ROADMAP.md`. Ce qui est livré d'ARC-01 est la partie observable de son diagnostic : modules,
   dépendances, cycles et frontières localisés dans le code ; la comparaison entre architecture
   déclarée et architecture réalisée et le marquage des liens dynamiques n'y sont pas.
+- Angles de vérification (VER-04) : l'angle mutation est livré sur une cible Maven qui déclare son
+  moteur ; les profils de propriétés, de fuzzing, de contrats, de tests différentiels et
+  métamorphiques, ainsi que l'activation selon le risque du changement, restent absents.
 - Diagnostic de capacité de contrôle (PRE-01) : l'échelle à quatre niveaux et le déclencheur de
   préparation sont livrés et exercés par `v2/preparation` ; la cartographie des assertions et des
   dépendances des contrôles n'est pas écrite, et IH-04 reste absente, si bien qu'une exigence non

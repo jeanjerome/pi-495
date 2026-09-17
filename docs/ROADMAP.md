@@ -99,7 +99,7 @@ lieu.
 
 | Domaine | Exigences |
 | --- | --- |
-| Vérification | VER-04 angles multiples (propriétés, fuzzing, mutation), VER-07 performance et exploitation |
+| Vérification | VER-04 pour ses autres angles — propriétés, fuzzing, contrats, tests différentiels et métamorphiques, et l'activation selon le risque ; VER-07 performance et exploitation |
 | Amélioration | IMP-01 défauts échappés, IMP-02 renforcement par changement séparé, IMP-03 comparer modèles et configurations, IMP-04 optimiser une métrique sous contraintes [P2] |
 | Connaissance | CON-04 réutilisation, CON-05 connaissance versionnée, RAG-03 passages traçables, RAG-05 corpus, CTX-03 chargement progressif |
 | Architecture | ARC-05 suivre la dérive et la réalisation de la cible |
@@ -107,7 +107,8 @@ lieu.
 
 VER-05 et DEC-04, marquées `[P1]`, sont couvertes : la qualification par témoin négatif et la
 détection de stagnation ont été livrées avec le socle parce que G2 et les budgets les appellent.
-Elles ne figurent donc pas dans ce tableau.
+Elles ne figurent donc pas dans ce tableau. L'angle mutation de VER-04 est livré par l'étage 4 ; ce
+qui reste de cette exigence est ce que la ligne ci-dessus nomme.
 
 Une règle de cadrage encadre ce découpage : une capacité requise par un incrément P0 ne peut être
 écartée au motif qu'une intégration avancée est prévue ensuite. L'orchestration générique de tests
@@ -151,7 +152,7 @@ verdicts, pas sur un moteur unique imposé à tous les langages.
 | 1 | VER-08 | exécuter les contrôles sur la référence, classer les constats, traiter l'instabilité par une règle préenregistrée | livré : `domain/baseline.ts`, `domain/findings.ts`, `harness.referencePasses`, `Protocol.baseline` |
 | 2 | QLT-04 | contrôle de couverture sur les lignes introduites | livré : contrôle `coverage`, parseur `jacoco-xml`, `application/coverage.ts` |
 | 3 | ARC-04, CON-03 | constats structurels (frontières, cycles, dépendances interdites) dans la même enveloppe | livré : contrôle `structure`, parseur `java-imports`, `ControlDefinition.structure_rules`, `adapters/execution/structure.ts` |
-| 4 | VER-04 | mutation sur les classes modifiées | runner générique, budget de contrôle dédié |
+| 4 | VER-04 | mutation sur les classes modifiées | livré : contrôle `mutation`, parseur `pitest-xml`, `adapters/execution/mutation.ts`, `ControlDefinition.scope_argument` |
 
 L'ordre n'est pas une préférence. L'étage 2 mesure la couverture du code introduit : sans l'étage 0
 il mesure des tests qui ne prouvent rien, et sans l'étage 1 il ne sait pas distinguer une lacune
@@ -163,7 +164,10 @@ code existant sans exécution supplémentaire côté candidat : le rapport de co
 par le contrôle de test. L'étage 1 ajoute un passage sur la référence, mémorisé par
 contrôle, par référence et par empreinte d'environnement : il n'est payé qu'à la première
 vérification d'un changement. L'étage 3 lit les déclarations de l'arbre sans rien exécuter ni
-compiler, de part et d'autre. L'étage 4 ajoute un analyseur natif et un budget de contrôle propre.
+compiler, de part et d'autre. L'étage 4 est le seul à lancer un build de plus, avec un budget propre
+de trente minutes ; il ne mute que les classes que le candidat a modifiées, de sorte que son coût
+suit la taille du changement, et son passage de référence ne lance rien puisque la référence
+n'introduit aucune classe.
 
 Trois travaux n'appartiennent pas à cette échelle et peuvent avancer en parallèle : la complétude de
 la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon L0.

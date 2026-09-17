@@ -32,7 +32,7 @@ const INHERITED = "export var inherited = 1;\n";
 const CLEAN = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 const INTRODUCED = "export function greet(name) {\n  var greeting = `Hello, ${name}`;\n  return greeting;\n}\n";
 
-const control: ControlDefinition = { control_id: "unit", version: "1", title: "node:test suite", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 60_000, parser: "node-test", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"] };
+const control: ControlDefinition = { control_id: "unit", version: "1", title: "node:test suite", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 60_000, parser: "node-test", report_path: null, structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"] };
 
 function invocation(workspacePath: string, subjectDigest: string, kind: "reference" | "candidate"): ControlInvocation {
 	return { control, protocol: { protocol_id: "prt_1", revision: 1, content_digest: digestValue("prt") }, candidate: { candidate_id: kind, manifest_digest: subjectDigest, base_digest: subjectDigest, workspace_id: "ws" }, subject: { kind, id: kind, revision: 1, digest: subjectDigest }, workspace_path: workspacePath, environment: { environment_id: "env", digest: ENV, profile_id: "verify" }, requirement_refs: control.requirement_refs, producer: EXECUTOR };

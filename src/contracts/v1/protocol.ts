@@ -7,10 +7,28 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
  * control already wrote and judges only the lines the candidate introduced (QLT-04); it executes
  * no measurement of its own. `java-imports` reads the package and import declarations of the Java
  * sources and judges them against the frozen architecture rules (ARC-04, CON-03); it compiles
- * nothing. Each is native to its ecosystem, behind the one finding envelope.
+ * nothing. `pitest-xml` reads the mutation report of a run scoped to the classes the candidate
+ * modified and judges the mutants sitting on the lines it wrote (VER-04). Each is native to its
+ * ecosystem, behind the one finding envelope.
  */
-export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml", "java-imports"] as const;
+export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml", "java-imports", "pitest-xml"] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
+
+/**
+ * Sensors that judge what the subject introduced instead of the state of the whole tree. A question
+ * every requirement asks, whatever its category: a requirement whose lines no test exercises is not
+ * demonstrated by a suite that stayed green, a responsibility placed in a forbidden module is not
+ * demonstrated either, and neither is a line whose mutation no test notices. An improvement
+ * elsewhere never compensates for any of the three (QLT-04, ARC-04, VER-04).
+ */
+export const DIFFERENTIAL_PARSER_IDS = ["jacoco-xml", "java-imports", "pitest-xml"] as const;
+
+export function isDifferentialParser(parser: ParserId): boolean {
+	return (DIFFERENTIAL_PARSER_IDS as readonly string[]).includes(parser);
+}
+
+/** What a `scope_argument` puts the class patterns of the subject in place of. */
+export const SCOPE_PLACEHOLDER = "{classes}";
 
 export const STRUCTURE_RULE_KINDS = ["forbidden_dependency", "no_cycle"] as const;
 export type StructureRuleKind = (typeof STRUCTURE_RULE_KINDS)[number];
@@ -50,7 +68,15 @@ export const ControlDefinition = Type.Object(
 		report_path: Type.Union([Type.String(), Type.Null()]),
 		/** Architecture rules a structural sensor applies; empty for every other sensor. */
 		structure_rules: Type.Array(StructureRule),
-		network: Closed(["denied", "allowed"] as const),
+		/**
+		 * Argument that scopes an expensive control to what the subject introduced, `{classes}`
+		 * replaced by the class patterns derived from the frozen candidate. Null for a control that
+		 * judges the whole tree. A subject with nothing to scope is not run at all: a mutation
+		 * analysis nobody could scope would spend the budget of one change on the whole tree.
+		 */
+		scope_argument: Type.Union([Type.String(), Type.Null()]),
+		/** `loopback` is the process reaching itself: a forked worker talking back, never another host. */
+		network: Closed(["denied", "loopback", "allowed"] as const),
 		writable_paths: Type.Array(Type.String()),
 		requirement_refs: Type.Array(RequirementRef),
 		protected: Type.Boolean({ description: "the control definition files may not be modified by a producer" }),

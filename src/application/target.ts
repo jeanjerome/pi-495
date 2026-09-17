@@ -5,7 +5,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import type { ControlDefinition, StructureRule } from "../contracts/v1/protocol.ts";
+import { SCOPE_PLACEHOLDER, type ControlDefinition, type StructureRule } from "../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../contracts/v1/evidence.ts";
 
 export interface StackDetection {
@@ -44,58 +44,137 @@ export function detectStack(projectPath: string, requirementRefs: RequirementRef
 		}
 		const scripts = pkg.scripts ?? {};
 		const controls: ControlDefinition[] = [
-			{ control_id: "unit", version: "1", title: "node:test suite", command: [nodeBinary, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 10 * 60_000, parser: "node-test", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["test/", "tests/", "package.json"] },
+			{ control_id: "unit", version: "1", title: "node:test suite", command: [nodeBinary, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 10 * 60_000, parser: "node-test", report_path: null, structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["test/", "tests/", "package.json"] },
 		];
-		if (scripts.lint) controls.push({ control_id: "lint", version: "1", title: `npm run lint (${scripts.lint})`, command: [nodeBinary, join(projectPath, "node_modules", ".bin", "___unused___")].slice(0, 0).concat(commandFromScript(scripts.lint, nodeBinary)), cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 5 * 60_000, parser: "exit-code", report_path: null, structure_rules: [], network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"] });
+		if (scripts.lint) controls.push({ control_id: "lint", version: "1", title: `npm run lint (${scripts.lint})`, command: [nodeBinary, join(projectPath, "node_modules", ".bin", "___unused___")].slice(0, 0).concat(commandFromScript(scripts.lint, nodeBinary)), cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 5 * 60_000, parser: "exit-code", report_path: null, structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"] });
 		return { stack: "node", facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) }, controls, positive_witness: { "test/495-positive-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 positive witness: the runner reports a passing test", () => { assert.equal(1, 1); });\n' }, witness_tests: 1, own_negative_witness: {}, negative_witness: { "test/495-negative-witness.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("495 negative witness: an injected defect must be detected", () => { assert.equal(1, 2); });\n', "src/495-negative-witness.js": "var forbidden = 1;\n" }, preparation_paths: ["test/", "tests/"], capability_missing: [] };
 	}
 	if (existsSync(pomPath)) {
 		const reactor = discoverMavenReactor(projectPath);
 		const witnessPrefix = reactor.witness_module ? `${reactor.witness_module}/` : "";
 		const jacoco = bindsJacocoReport(projectPath, reactor.pom_paths);
+		const mutation = readsMutationReport(projectPath, reactor.pom_paths);
 		const rules = structureRules(reactor);
+		// Both sensors judge introduced production code, so both need a class the suite calls.
+		const measuresIntroducedCode = jacoco || mutation.usable;
 		const controls: ControlDefinition[] = [
-			{ control_id: "maven-test", version: "1", title: "mvn test (Surefire)", command: ["mvn", "-B", "-q", "-o", "test"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 20 * 60_000, parser: "junit-xml", report_path: "**/target/surefire-reports", structure_rules: [], network: "denied", writable_paths: reactor.target_paths, requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.preparation_paths, ...reactor.pom_paths] },
+			{ control_id: "maven-test", version: "1", title: "mvn test (Surefire)", command: ["mvn", "-B", "-q", "-o", "test"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 20 * 60_000, parser: "junit-xml", report_path: "**/target/surefire-reports", structure_rules: [], scope_argument: null, network: "denied", writable_paths: reactor.target_paths, requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.preparation_paths, ...reactor.pom_paths] },
 		];
 		// The measurement is the one `mvn test` already writes: JaCoCo binds `report` to that phase, so
 		// this sensor runs no command of its own and reads the report left in the workspace. It is
 		// declared after the control that produces it, and the verification runs them in that order.
-		if (jacoco) controls.push({ control_id: "coverage", version: "1", title: "introduced-line coverage, read from the JaCoCo report of mvn test", command: [nodeBinary, "-e", ""], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 60_000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
+		if (jacoco) controls.push({ control_id: "coverage", version: "1", title: "introduced-line coverage, read from the JaCoCo report of mvn test", command: [nodeBinary, "-e", ""], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 60_000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
 		// The architecture is read from what the target itself declares — the reactor, the dependency
 		// direction of its POMs, the package root each module lays out — and frozen here. The producer
 		// receives the boundaries in its context and never the rules: a boundary it could edit in the
 		// tree would be a suggestion, and ARC-04 asks for the opposite.
-		if (rules.length > 0) controls.push({ control_id: "structure", version: "1", title: "frozen architecture boundaries, read from the Java declarations", command: [nodeBinary, "-e", ""], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 120_000, parser: "java-imports", report_path: null, structure_rules: rules, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
+		if (rules.length > 0) controls.push({ control_id: "structure", version: "1", title: "frozen architecture boundaries, read from the Java declarations", command: [nodeBinary, "-e", ""], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 120_000, parser: "java-imports", report_path: null, structure_rules: rules, scope_argument: null, network: "denied", writable_paths: [], requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
+		// Mutation is the one question coverage cannot answer, and the one control that runs a build of
+		// its own. It is declared last and given a budget of its own, and it is scoped at each run to
+		// the classes the frozen candidate modified: the engine mutates those and nothing else, so what
+		// it costs follows the size of the change rather than the size of the target (VER-04).
+		if (mutation.usable) controls.push({ control_id: "mutation", version: "1", title: "surviving mutants on the classes the candidate modified, read from the PITest XML report", command: ["mvn", "-B", "-q", "-o", "test-compile", "org.pitest:pitest-maven:mutationCoverage", "-DfailWhenNoMutations=false", "-Dthreads=1"], cwd: ".", env_allowlist: BASE_ENV, env: {}, timeout_ms: 30 * 60_000, parser: "pitest-xml", report_path: "**/target/pit-reports", structure_rules: [], scope_argument: `-DtargetClasses=${SCOPE_PLACEHOLDER}`, network: "loopback", writable_paths: reactor.target_paths, requirement_refs: requirementRefs, protected: true, protected_paths: [...reactor.pom_paths] });
 		const positive: Record<string, string> = {
-			[`${witnessPrefix}src/test/java/PositiveWitness495Test.java`]: jacoco
-				? "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test {\n    @Test void runnerReportsAPassingTest() { assertEquals(1, 1); }\n    @Test void introducedCodeIsExercised() { assertEquals(4, new Witness495Covered().twice(2)); }\n}\n"
-				: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n",
+			[`${witnessPrefix}${WITNESS_TEST_ROOT}PositiveWitness495Test.java`]: measuresIntroducedCode
+				? `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\npublic class PositiveWitness495Test {\n    @Test void runnerReportsAPassingTest() { assertEquals(1, 1); }\n    @Test void introducedCodeIsExercised() { assertEquals(4, new Witness495Covered().twice(2)); }\n}\n`
+				: `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\npublic class PositiveWitness495Test { @Test void runnerReportsAPassingTest() { assertEquals(1, 1); } }\n`,
 		};
-		// The coverage witnesses are introduced production code, not tests: one class the suite calls,
-		// one it never calls. The defect this control claims to detect is the second, and a failing test
-		// would not exhibit it — it would stop the build before the measurement is written.
-		if (jacoco) positive[`${witnessPrefix}src/main/java/Witness495Covered.java`] = "public final class Witness495Covered {\n    public int twice(int n) {\n        return n * 2;\n    }\n}\n";
+		// The witnesses of both differential sensors are introduced production code, not tests: a class
+		// the suite calls and asserts on is what they must both let through. The defect each of them
+		// claims to detect is a different treatment of that class, and a failing test exhibits neither
+		// — it would stop the build before any report is written.
+		if (measuresIntroducedCode) positive[`${witnessPrefix}${WITNESS_SOURCE_ROOT}Witness495Covered.java`] = witnessClass("Witness495Covered", "twice", "n * 2");
 		return {
 			stack: "maven",
-			facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules, jacoco_report_bound: jacoco, architecture_rules: rules.map((rule) => rule.rule_id) },
+			facts: { pom: true, modules: reactor.modules, ignored_modules: reactor.ignored_modules, jacoco_report_bound: jacoco, mutation_report_readable: mutation.usable, mutation_engine: mutation, architecture_rules: rules.map((rule) => rule.rule_id) },
 			controls,
 			positive_witness: positive,
-			witness_tests: jacoco ? 2 : 1,
-			negative_witness: { [`${witnessPrefix}src/test/java/NegativeWitness495Test.java`]: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n" },
+			witness_tests: measuresIntroducedCode ? 2 : 1,
+			negative_witness: { [`${witnessPrefix}${WITNESS_TEST_ROOT}NegativeWitness495Test.java`]: `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\npublic class NegativeWitness495Test { @Test void injectedDefectMustBeDetected() { assertEquals(1, 2); } }\n` },
 			own_negative_witness: {
-				...(jacoco ? { coverage: { [`${witnessPrefix}src/main/java/Witness495Uncovered.java`]: "public final class Witness495Uncovered {\n    public int half(int n) {\n        return n / 2;\n    }\n}\n" } } : {}),
+				...(jacoco ? { coverage: { [`${witnessPrefix}${WITNESS_SOURCE_ROOT}Witness495Uncovered.java`]: witnessClass("Witness495Uncovered", "half", "n / 2") } } : {}),
 				// A failing test proves nothing about a boundary: the tree that carries this defect is one
 				// where a module imports what it declares no dependency on, and it compiles nowhere.
 				...(rules.length > 0 ? { structure: structureNegativeWitness(rules) } : {}),
+				// A mutant survives where a test executes a line without asserting anything about it. The
+				// coverage witness does not exhibit that defect — the line is never executed there, which
+				// is the other control's business — so this one introduces a class the suite calls and
+				// leaves unchecked.
+				...(mutation.usable ? { mutation: mutationNegativeWitness(witnessPrefix) } : {}),
 			},
 			preparation_paths: reactor.preparation_paths,
 			capability_missing: [
 				...(jacoco ? [] : ["no JaCoCo report bound outside a profile: the coverage of the introduced lines is not measured on this target (QLT-04)"]),
+				...(mutation.usable ? [] : [mutationCapabilityMissing(mutation)]),
 				...(rules.some((rule) => rule.kind === "forbidden_dependency") ? [] : ["no two modules of this reactor lay out package roots that could be opposed to each other: no dependency direction between modules is checked on this target (CON-03)"]),
 			],
 		};
 	}
 	return { stack: "unknown", facts: {}, controls: [], positive_witness: {}, witness_tests: 0, negative_witness: {}, own_negative_witness: {}, preparation_paths: [], capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"] };
+}
+
+/**
+ * What a target declares about its mutation engine. Three properties make its report readable by a
+ * control, and each is checked on its own so that the one that is missing can be named: the plugin
+ * declared outside any profile, an XML report among its output formats, and a report path carrying
+ * no timestamp. A run whose report lands in a directory named after the minute it started is not a
+ * report a frozen control can read, and a measurement a sensor silently fails to find is worth
+ * nothing (QLT-02).
+ */
+export interface MutationEngineConfiguration {
+	declared: boolean;
+	xml_report: boolean;
+	stable_report_path: boolean;
+	/** The three together: the report of a scoped run can be found and read. */
+	usable: boolean;
+}
+
+export function readsMutationReport(projectPath: string, pomPaths: readonly string[]): MutationEngineConfiguration {
+	const found = { declared: false, xml_report: false, stable_report_path: false };
+	for (const rel of pomPaths) {
+		let xml = "";
+		try { xml = readFileSync(join(projectPath, rel), "utf8"); } catch { continue; }
+		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
+		if (!/pitest-maven/.test(outsideProfiles)) continue;
+		found.declared = true;
+		if (/<outputFormats>[\s\S]*?\bXML\b[\s\S]*?<\/outputFormats>/i.test(outsideProfiles)) found.xml_report = true;
+		if (/<timestampedReports>\s*false\s*<\/timestampedReports>/i.test(outsideProfiles)) found.stable_report_path = true;
+	}
+	return { ...found, usable: found.declared && found.xml_report && found.stable_report_path };
+}
+
+/** What the target would have to declare for the mutants of its modified classes to be observed. */
+export function mutationCapabilityMissing(engine: MutationEngineConfiguration): string {
+	if (!engine.declared) return "no mutation engine declared outside a profile: whether a test would notice a change to the introduced lines is not observed on this target (VER-04)";
+	const missing = [...(engine.xml_report ? [] : ["no XML report among its output formats"]), ...(engine.stable_report_path ? [] : ["timestamped report directories, which no frozen control can name"])];
+	return `a mutation engine is declared on this target but its report cannot be read: ${missing.join(" and ")} (VER-04)`;
+}
+
+/**
+ * The package the witnesses of a Maven target are written in, on both sides of the source root.
+ * None of them sits in the default package: a mutation engine scopes the tests it runs to the
+ * packages its test tree declares, so a witness test outside every package is never executed, and a
+ * sensor proved on a witness nothing ran is not proved at all (VER-05).
+ */
+export const WITNESS_PACKAGE = "witness495";
+export const WITNESS_SOURCE_ROOT = `src/main/java/${WITNESS_PACKAGE}/`;
+export const WITNESS_TEST_ROOT = `src/test/java/${WITNESS_PACKAGE}/`;
+
+/** A witness class of one method, whose body is the single expression the mutators rewrite. */
+function witnessClass(name: string, method: string, body: string): string {
+	return `package ${WITNESS_PACKAGE};\n\npublic final class ${name} {\n    public int ${method}(int n) {\n        return ${body};\n    }\n}\n`;
+}
+
+/**
+ * The tree that carries the defect the mutation control claims to detect (VER-05): a class the suite
+ * executes and asserts nothing about. Its mutants are reached by a test and killed by none, which is
+ * exactly what coverage cannot see and what this control exists for.
+ */
+export function mutationNegativeWitness(witnessPrefix: string): Record<string, string> {
+	return {
+		[`${witnessPrefix}${WITNESS_SOURCE_ROOT}Witness495Unasserted.java`]: witnessClass("Witness495Unasserted", "half", "n / 2"),
+		[`${witnessPrefix}${WITNESS_TEST_ROOT}NegativeMutationWitness495Test.java`]: `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\n\npublic class NegativeMutationWitness495Test {\n    @Test void executesWithoutAsserting() { new Witness495Unasserted().half(4); }\n}\n`,
+	};
 }
 
 /**
