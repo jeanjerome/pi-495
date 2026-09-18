@@ -89,6 +89,11 @@ ligne dit alors ce que vaut un ensemble, jamais ce que vaut l'un de ses facteurs
 en revanche un vrai A/B contre la première : un seul réglage y change, et elle mesure ce que vaut le
 préremplissage ANE, soit **+33 %** sur un prompt froid.
 
+L'A/B symétrique manquera toujours : le préremplissage ANE est réservé par le serveur aux
+architectures `qwen3_5`, `qwen3_6` et `qwen3_8`, et l'activer sur un modèle `qwen4_exp` est refusé en
+HTTP 400. Entre ces deux modèles, l'ANE reste donc confondu avec l'architecture et la
+quantification, quoi qu'on mesure.
+
 La version du serveur appartient à la comparaison autant que le modèle : une mesure prise sous une
 autre version d'oMLX se note dans sa fiche.
 
