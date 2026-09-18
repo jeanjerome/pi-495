@@ -4,7 +4,7 @@
 **Objet :** le prompt d'une intervention `prepare` ou `implement` lui ordonne de lancer les contrôles
 elle-même, et son mandat lui interdit d'écrire ailleurs que dans les racines de test ; un producteur
 qui se vérifie autrement que par la commande exacte du contrôle voit sa proposition refusée
-**Ne dépend d'aucun étage**
+**Ne dépend d'aucun étage ; la question générale dont ce cas est un symptôme est instruite par `chantiers/K`**
 
 ## Motif
 
