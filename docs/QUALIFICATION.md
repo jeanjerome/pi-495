@@ -9,12 +9,12 @@ Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible s
 | Niveau | Fichiers | Contenu | Résultat |
 | --- | --- | --- | --- |
 | V0 | `test/v0/*` | contrats, noyau du changement, programme, propriétés générées (fast-check, seeds 495/496), modèle et composant de revue, extraction des sorties, lignes introduites par un candidat | passent |
-| V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap dont le profil `loopback` qui se joint lui-même et aucun autre hôte, runner et parsers dont agrégation Surefire multi-module, couverture différentielle JaCoCo (constat localisé, dette antérieure nommée, mesure absente indéterminée, trois témoins), constats structurels (règles dérivées des POM et de la disposition des paquets, import interdit introduit refusé avec sa localisation, cycle préexistant classé `preexisting`, trois témoins, frontières transmises au producteur) et mutation des classes modifiées (mutant survivant sur une ligne écrite refusé avec opérateur et méthode, survivant sur une classe non touchée sans effet, dette de la classe comptée sans bloquer, budget dépassé indéterminé puis incident à G5, seuil de la cible nommé et non opposé, portée dérivée des déclarations et non lancée sur la référence, trois témoins), superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
+| V1 | `test/v1/*` | sandbox Seatbelt/unconfined/bubblewrap dont le profil `loopback` qui se joint lui-même et aucun autre hôte, runner et parsers dont agrégation Surefire multi-module, couverture différentielle JaCoCo (constat localisé, dette antérieure nommée, mesure absente indéterminée, trois témoins), constats structurels (règles dérivées des POM et de la disposition des paquets, import interdit introduit refusé avec sa localisation, cycle préexistant classé `preexisting`, trois témoins, frontières transmises au producteur) et mutation des classes modifiées (mutant survivant sur une ligne écrite refusé avec opérateur et méthode, survivant sur une classe non touchée sans effet, dette de la classe comptée sans bloquer, budget dépassé indéterminé puis incident à G5, seuil de la cible nommé et non opposé, portée dérivée des déclarations et non lancée sur la référence, trois témoins), capteur qui lit le rapport d'un autre contrôle (ordre dérivé des rapports déclarés, cycle nommé, rapport écrit hors du protocole traité comme présent ; producteur exécuté dans chaque workspace de témoin, de sorte que le témoin négatif propre d'un capteur sans mesure y trouve un rapport à juger), superviseur de worker (protocole JSONL, abort, silence, crash), agent scripté | passent |
 | V2 | `test/v2/*` | journal SQLite + CAS avec pannes injectées, workspace et candidat, cycles complets par le contrôleur, préparation dont échelle de capacité de contrôle et périmètre Maven multi-module, export, intégration Git | passent |
 | V3 | `test/v3/pi-entries` | `pi -p` et `pi --mode json` réels avec agent scripté : même verdict, `decision_required` sans approbation, diagnostic de démarrage dit à chaque entrée | passent |
 | V3 | `test/v3/pi-rpc-sdk` | `pi --mode rpc` réel piloté par un client JSONL, et un hôte SDK chargeant le package par `createAgentSession` : mêmes faits et mêmes verdicts que print et JSON, même empreinte de candidat, même instantané de revue, dialogue de décision par le sous-protocole UI refusé à un client non déclaré, aucun échappement terminal | passent |
 
-Total : 252 tests, 0 échec (V0 101, V1 89, V2 55, V3 7 — et V4 hors suite par défaut). Le compte
+Total : 256 tests, 0 échec (V0 103, V1 91, V2 55, V3 7 — et V4 hors suite par défaut). Le compte
 fait ici est une transcription : l'autorité est la sortie de `npm test`.
 
 ## Contrôles de dépôt (`npm run check`)
@@ -22,7 +22,7 @@ fait ici est une transcription : l'autorité est la sortie de `npm test`.
 | Contrôle | Ce qu'il tient | Résultat |
 | --- | --- | --- |
 | `check-layers.ts` | sens des dépendances entre couches | `layer rules satisfied` |
-| `check-architecture.ts` | chaque composant déclaré au catalogue est revendiqué par un module, aucun cycle d'import, fusions nommées | `16 declared components, all claimed; 67 modules, no import cycle` ; `divergence: src/application/harness.ts carries CMP-APP, CMP-VER` |
+| `check-architecture.ts` | chaque composant déclaré au catalogue est revendiqué par un module, aucun cycle d'import, fusions nommées | `16 declared components, all claimed; 68 modules, no import cycle` ; `divergence: src/application/harness.ts carries CMP-APP, CMP-VER` |
 | `check-traceability.ts` | chaque exigence `[P0]` de l'amont possède une ligne de matrice | `85 functional + 8 non-functional [P0] requirements, all present in the matrix` |
 | `check-distribution.ts` | `dist/` reproduit les sources, schémas JSON identiques aux contrats, attribution des dépendances redistribuées, licences de l'arbre installé | `0 dependencies redistributed, 4 provided by the host (MIT), 263 packages installed under 0BSD, Apache-2.0, BSD-3-Clause, BlueOak-1.0.0, ISC, MIT, Unlicense` |
 
@@ -136,7 +136,8 @@ exécuté, donc aucun rapport ; la mesure absente est rendue `INDETERMINATE`, ce
 pour une mesure qui manque, mais un témoin négatif doit rendre `FAIL`. La qualification échoue, G2
 refuse, et le parcours s'arrête avant G3 sur toute cible Maven qui lie JaCoCo hors profil. La
 campagne V4 ne le voyait pas : elle exécute le contrôle producteur dans chaque workspace de témoin
-avant de qualifier le capteur, ce que le cycle ne fait pas.
+avant de qualifier le capteur, ce que le cycle ne faisait pas. La section « La même cible le 18
+septembre » ci-dessous transcrit la même campagne conduite après que ce constat a été clos.
 
 L'exécution de mutation du témoin négatif sort en 1 après avoir écrit un rapport complet — le seuil
 de ratio que la cible fixe sur tout ce qu'elle mute — et le capteur le nomme sans l'opposer au
@@ -146,6 +147,52 @@ L'instantané de référence porte 3 375 entrées pour 151,6 Mo, non tronqué : 
 entrées) en fait partie, et c'est ce qui rend les contrôles exécutables réseau coupé : le
 `maven.repo.local` déclaré par `.mvn/maven.config` est relatif au répertoire du réacteur, donc au
 workspace.
+
+### La même cible le 18 septembre : le rapport lu est déclaré, et le parcours va jusqu'à G5
+
+`ControlDefinition` porte depuis `D-36` ce que chaque contrôle écrit dans le workspace et ce qu'il y
+lit sans le produire. `mvn test` déclare `surefire-reports` et `jacoco-report`, le capteur de
+couverture déclare lire le second, et la qualification exécute le producteur dans chacun de ses deux
+workspaces de témoin avant de l'interroger. La même campagne scriptée, même commande et mêmes
+données isolées sous Seatbelt, rend alors ceci en 58 s :
+
+`G0=PASS G1=PASS G2=PASS G3=PASS G4=PASS G5=PASS`, résultat `accepted`, candidat `cand_1dffd1315265`
+(`sha256:1dffd13152653a46`), preuves `maven-test=PASS coverage=PASS structure=PASS mutation=PASS`,
+une tentative sur trois. L'ordre que le protocole gèle — `maven-test`, `coverage`, `structure`,
+`mutation` — se relit de ses déclarations et non du rang des contrôles dans un tableau.
+
+Les quatre capteurs sur leurs trois témoins, réseau coupé :
+
+| Contrôle | Positif | Négatif | Incident | Qualifié |
+| --- | --- | --- | --- | --- |
+| `maven-test` | PASS, 40 cas, 0 échec, 6 rapports (5 483 ms) | FAIL sur `witness495.NegativeWitness495Test.injectedDefectMustBeDetected`, 15 cas, 1 échec, 4 rapports (2 456 ms) | INDETERMINATE, `spawn error` (6 ms) | oui |
+| `coverage` | PASS, 2 rapports, 2 fichiers introduits, 16 lignes introduites, 1 fichier mesurable, 2 lignes mesurées, 0 non couverte (36 ms) | **FAIL**, 2 rapports, 3 fichiers introduits, 23 lignes introduites, 2 fichiers mesurables, 4 lignes mesurées, 2 non couvertes, localisées à `Witness495Uncovered.java:3` (`<init>`) et `:5` (`half`) (36 ms) | INDETERMINATE, `spawn error` (6 ms) | **oui** |
+| `structure` | PASS, 3 règles, 20 sources, 13 paquets, 0 violation (35 ms) | FAIL, 1 violation introduite : `domain/src/main/java/witness495/Witness495Boundary.java:3 forbidden import io.scalastic.demo.infrastructure.Witness495Forbidden` (33 ms) | INDETERMINATE, `spawn error` (6 ms) | oui |
+| `mutation` | PASS, 2 classes cadrées, 2 mutants, 2 tués (2 400 ms) | FAIL, 4 classes cadrées, 4 mutants, 2 tués, 2 survivants (2 843 ms) | INDETERMINATE, `spawn error` (6 ms) | oui |
+
+Le témoin négatif de `coverage` n'est plus un workspace vide : le producteur y a écrit ses deux
+rapports JaCoCo, le capteur y trouve les quatre lignes qu'il sait mesurer, et il refuse les deux que
+la suite n'exerce pas. C'est le verdict qu'un témoin négatif doit rendre, et il le rend pour la
+raison qu'il revendique, nommée au fichier, à la ligne et au symbole.
+
+Les deux passages de vérification qui suivent, référence puis candidat :
+
+| Contrôle | Référence | Candidat |
+| --- | --- | --- |
+| `maven-test` | PASS, 38 cas, 5 rapports (5 500 ms) | PASS, 40 cas, 6 rapports (5 510 ms) |
+| `coverage` | PASS, 0 rapport : « the candidate introduces no line JaCoCo measures » | PASS, 2 rapports, 2 fichiers introduits, 33 lignes introduites, 1 fichier mesurable, 2 lignes mesurées, 0 non couverte |
+| `structure` | PASS, 3 règles, 19 sources, 12 paquets, 0 violation | PASS, 3 règles, 19 sources, 12 paquets, 0 violation |
+| `mutation` | PASS, aucune exécution : « the subject introduces no class this sensor mutates » | PASS, 2 classes cadrées, 4 mutants, 2 introduits, 2 tués, 0 survivant (2 665 ms) |
+
+Les douze risques résiduels du rapport restent ceux d'une qualification réussie : l'`INDETERMINATE`
+du témoin d'incident de chaque contrôle, le seuil de ratio que la cible fixe sur tout ce que la
+mutation touche, et les deux limites du passage de référence. Aucun n'est un verdict sur le candidat.
+
+Ce que cette campagne n'établit pas, comme les deux précédentes : la production de code. Les
+interventions y sont rejouées depuis `~/.495-campagnes/scripts/java-agent.json`, sans aucun appel de
+modèle. Elle qualifie la chaîne de contrôles sur une cible réelle — détection, diagnostic,
+préparation, qualification des capteurs, gel du protocole, vérification comparée à la référence,
+acceptation —, jamais le producteur.
 
 ### Ce que les trois campagnes disent des commandes et du cycle réel
 
@@ -258,10 +305,53 @@ seule colonne. Voir `D-35` et `revues/R4-ux-accessibilite.md`.
 Cette observation ne conduit pas la revue UX et accessibilité : l'observateur est l'auteur, la
 largeur est unique et au-dessus du seuil du mode étroit, et aucun lecteur d'écran n'a servi.
 
-Le cycle avec le modèle n'a pas été relancé sur la cible Maven avec des budgets relevés. Le parcours
-s'y arrête à G2, avant toute intervention de production : les deux seules interventions qui
-précèdent sont `specify` et `prepare`, et relever `increment_ms`, `intervention_ms` ou
-`max_continuations` ne déplace pas ce mur. Ce qui l'ouvrirait est dans `chantiers/D`.
+### Le cycle avec le modèle local sur la cible Maven, une fois le protocole gelable
+
+Trois lancements le 18 septembre 2026, même commande et même cible, sans `HARNESS495_SCRIPTED_AGENT`
+— c'est la production de code que cette campagne éprouve, et elle seule. Les budgets sont relevés
+ensemble dans `<données>/config.json` avant le premier : `intervention_ms` 20 → 60 min,
+`increment_ms` 120 → 360 min, `max_continuations` 3 → 5. Relever `intervention_ms` seul n'aurait fait
+que déplacer l'endroit où le changement meurt ; les trois ensemble devaient laisser une intervention
+finir sur son plafond d'appels d'outils plutôt que sur l'horloge.
+
+| Lancement | Verdict | Motif d'arrêt | Durée |
+| --- | --- | --- | --- |
+| 1 | aucun gate évalué, changement `blocked` en phase `clarifying` | `configuration_error` : `specification intervention completed with an invalid structured output` | 335 s, dont 332 s d'intervention (18 appels d'outils, 104 699 jetons connus) |
+| 2 | aucun gate évalué, changement `blocked` en phase `clarifying` | même `configuration_error` | 272 s, dont 268 s d'intervention (16 appels d'outils, 77 498 jetons connus) |
+| 3 | aucun gate évalué, changement `decision_required` en phase `clarifying` | `decision_pending` : `IH-01`, `dec_mu6swcar451de6e77c` | 357 s, dont 355 s d'intervention (18 appels d'outils, 94 113 jetons connus) |
+
+**Les budgets n'ont jamais été atteints.** L'intervention de spécification se termine d'elle-même en
+268 à 355 s, soit un dixième du plafond de 60 min, et aucune n'est `truncated` : `max_continuations`
+n'est pas exercé, et `increment_ms` non plus. La prémisse selon laquelle chaque intervention atteint
+le plafond de 20 min ne se reproduit pas sur cette cible, au moins pour `specify`. Ce que le modèle
+dépense est en jetons — 77 000 à 105 000 pour un seul rapport de spécification — et en appels
+d'outils, 16 à 18 sur 100 autorisés, soit un rythme de 2,7 à 3,6 par minute.
+
+**Les deux premiers lancements meurent sur `chantiers/F`, et pas de la même manière.** Au premier, le
+rapport est dans un bloc annoncé `json` dont l'objet racine n'est jamais clos, arrêté à 7 002
+caractères ; `extractJsonOutput` ne trouve aucun bloc analysable. Au second, il n'y a aucune clôture
+de bloc du tout : le rapport est en prose suivie d'un objet JSON nu, lui aussi arrêté en cours, à
+6 910 caractères. Le recours qui lit un objet nu s'ancre sur le **dernier** `{` du texte, qui tombe
+alors à l'intérieur du rapport et non à sa racine : ce qui atteint la validation est l'objet
+`design` imbriqué, quatre clés au lieu du schéma `specification-report`. Dans les deux cas le texte
+refusé est conservé dans `output.raw` et s'exporte. Ce constat appartient à `chantiers/F` ; il n'a
+pas été corrigé ici.
+
+**Le troisième lancement passe la spécification et s'arrête là où la conception le prévoit.** Le
+rapport valide son schéma, et le noyau ouvre une interaction `IH-01` sur une question ouverte
+matérielle que le modèle a lui-même posée : la limite de 50 caractères s'applique-t-elle à la seule
+création, ou aussi à la mise à jour du nom, le placement dans le record `User` valant pour les deux
+et le placement dans `UserApiService.createUser` pour la création seule. `required_authority:
+"requester"`, texte libre autorisé, l'autre issue étant l'abandon. Aucun gate n'est évalué, aucune
+tentative n'est consommée, et le changement attend une réponse humaine ; le dossier reste repris par
+le répertoire courant.
+
+Ce que cette campagne établit : sur une cible réelle et avec un modèle réel, le parcours atteint la
+première interaction humaine de la conception au lieu de mourir sur un mur technique, et il s'y
+arrête sans rien décider à la place de son demandeur. Ce qu'elle n'établit pas : la production de
+code. Aucune intervention `implement` n'a été lancée, aucun candidat n'a été gelé, et les gates ne
+sont pas évalués. Ce qui l'ouvrirait est une réponse à `IH-01`, qui relève du demandeur du
+changement, puis un quatrième lancement conduit jusqu'à G5.
 
 ## Revues obligatoires
 

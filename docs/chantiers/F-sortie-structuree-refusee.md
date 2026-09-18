@@ -77,6 +77,30 @@ Critères d'acceptation :
 
 ## Journal
 
+**18 septembre 2026.** Deux occurrences de plus, sur la cible Maven multi-module cette fois, pendant
+le cycle réel que `chantiers/D` avait différé. Le constat n'a donc rien de propre à `node-demo` ni à
+une longueur de rapport : sur trois lancements successifs, deux meurent avant tout gate sur un
+rapport de spécification refusé, et le troisième passe. Les deux formes diffèrent, et la seconde
+n'était pas connue.
+
+**Un bloc annoncé `json` dont l'objet racine n'est jamais clos.** 332 s, 18 appels d'outils,
+104 699 jetons connus ; le texte s'arrête à 7 002 caractères, `extractJsonOutput` ne trouve aucun
+bloc analysable. C'est la forme déjà décrite ci-dessus.
+
+**Un objet nu, non clos, dont le recours extrait un sous-objet.** 268 s, 16 appels d'outils,
+77 498 jetons connus. Le rapport est en prose suivie d'un objet JSON sans aucune clôture de bloc, et
+lui aussi arrêté en cours, à 6 910 caractères. Le recours de `extractJsonOutput` s'ancre sur le
+**dernier** `{` du texte : sur un rapport qui porte des objets imbriqués, ce `{` tombe à l'intérieur
+du rapport et non à sa racine. Ce qui atteint `normalizeOutput` puis `Value.Check` est donc l'objet
+`design` — `summary`, `components`, `interfaces`, `risks` — analysé comme s'il était le rapport
+entier, et refusé contre le schéma `specification-report`. L'erreur rendue dit « invalid structured
+output » là où la cause est une troncature ; le recours a produit un objet valide au mauvais niveau.
+
+Ce que cela ajoute à la fiche : le recours au dernier `{` n'est pas seulement inopérant sur un objet
+tronqué, il peut rendre un sous-objet qui s'analyse, ce qui déplace le diagnostic. Et les deux
+troncatures tombent à 6 910 et 7 002 caractères, assez près l'une de l'autre pour mériter d'être
+mesurée avant d'être expliquée.
+
 **17 septembre 2026.** Ouverture. Le constat vient de la première campagne réelle sur `node-demo` :
 261 s de bout en bout, dont 260 s d'intervention, pour un changement bloqué avant tout gate. La même
 cible sous agent scripté va jusqu'à G2 et s'y arrête pour une autre raison, traitée en `chantiers/E`.

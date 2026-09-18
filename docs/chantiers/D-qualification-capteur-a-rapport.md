@@ -1,6 +1,7 @@
 # Transverse D — la qualification d'un capteur qui lit le rapport d'un autre contrôle
 
-**État :** ouvert
+**État :** clos pour la qualification du capteur ; le cycle avec le modèle attend une réponse à
+`IH-01`
 **Objet :** un capteur qui ne produit aucune mesure, mais lit celle qu'un autre contrôle laisse dans
 le workspace, ne peut pas être qualifié dans le cycle ; G2 refuse alors tout protocole sur une cible
 Maven liant JaCoCo hors profil
@@ -153,6 +154,49 @@ Critères d'acceptation :
 | Budgets du cycle réel | `src/domain/policy.ts`, `<données>/config.json` |
 
 ## Journal
+
+**18 septembre 2026.** Le constat de départ est reproduit avant toute modification : même commande,
+mêmes données isolées, G0 PASS, G1 PASS, G2 FAIL en 30,9 s, arrêt sur `capability_missing`,
+« control coverage: negative witness gave INDETERMINATE, expected FAIL ; no JaCoCo report found at
+the declared report path, for 2 introduced source file(s) ».
+
+Le test qui échoue est écrit d'abord, au niveau de `test/v1/control-runner`, sans Java ni Maven : un
+contrôle producteur qui écrit deux rapports — la suite, puis un audit qu'il n'écrit que si la suite
+est verte —, un capteur qui n'exécute qu'un `node -e ""` et lit le second, et trois workspaces. Il
+échoue sur le comportement d'alors avec le motif exact du constat : positif `PASS` parce que le
+workspace positif venait de servir à qualifier le producteur, négatif `INDETERMINATE` avec
+« no JUnit report found at the declared report path », qualification refusée.
+
+La dépendance est portée par `ControlDefinition` (`../DECISIONS.md` D-36) : `provides` nomme les
+rapports qu'un contrôle laisse dans le workspace, `requires` ceux qu'il lit sans les produire,
+`domain/controls.ts` en dérive l'ordre — topologique, stable sur l'ordre d'arrivée, cycles nommés —
+et la qualification exécute les producteurs d'un capteur dans chacun de ses workspaces de témoin. Le
+protocole gèle ses contrôles dans cet ordre, que la vérification suit ; `sensorDigest` intègre
+`requires`. La forme écartée — exécuter les contrôles qui précèdent le capteur dans le tableau — fait
+porter la dépendance par un rang que rien n'énonce.
+
+Vérifié sur la cible réelle : la même campagne scriptée rend `G0…G5 PASS`, résultat `accepted`,
+candidat `cand_1dffd1315265`, preuves `maven-test=PASS coverage=PASS structure=PASS mutation=PASS`,
+une tentative sur trois, en 58,4 s. Les quatre capteurs se qualifient sur leurs trois témoins ; le
+témoin négatif de `coverage` rend `FAIL` sur les deux lignes introduites que la suite n'exerce pas,
+localisées au fichier, à la ligne et au symbole. Les chiffres sont dans `../QUALIFICATION.md`.
+
+Second travail, le cycle réel sur la même cible, sans agent scripté. Les trois budgets sont relevés
+ensemble avant le premier lancement : `intervention_ms` 20 → 60 min, `increment_ms` 120 → 360 min,
+`max_continuations` 3 → 5. Aucun n'est atteint : l'intervention de spécification se termine
+d'elle-même en 268 à 355 s, aucune n'est `truncated`, et ce que le modèle dépense se compte en
+jetons — 77 000 à 105 000 par rapport — plutôt qu'en minutes. La prémisse d'une intervention qui bute
+sur son plafond de durée ne se reproduit pas sur cette cible.
+
+Trois lancements. Les deux premiers meurent avant tout gate sur une sortie structurée invalide, sous
+deux formes distinctes — bloc `json` dont l'objet racine n'est jamais clos ; objet nu non clos dont
+le recours au dernier `{` extrait l'objet `design` imbriqué au lieu du rapport. C'est `chantiers/F`,
+noté et non corrigé ici. Le troisième valide son rapport et s'arrête en `decision_required` sur
+`IH-01` (`dec_mu6swcar451de6e77c`), question ouverte matérielle posée par le modèle lui-même :
+la limite de 50 caractères vaut-elle aussi pour la mise à jour du nom, ce que le placement de la
+règle décide. `required_authority: "requester"` — aucun gate évalué, aucune tentative consommée, et
+rien n'est décidé à la place du demandeur. Ce qui ouvrirait la suite est une réponse à cette
+interaction, puis un quatrième lancement conduit jusqu'à G5 : c'est ce qui reste de cette fiche.
 
 **17 septembre 2026.** Ouverture. Le constat vient d'une campagne de 30 s depuis l'entrée Pi sur la
 cible Maven, agent scripté : G0 PASS, G1 PASS, G2 FAIL, arrêt sur `capability_missing`. Les faits

@@ -218,29 +218,25 @@ reviewer de sécurité indépendant du producteur, un utilisateur représentatif
 terminal, un responsable produit. Leur dossier est complet, leur conduite ne l'est pas, et ce qui
 manque est nommé dans chacun.
 
-## Sur une cible réelle, le parcours s'arrête à G2, et pas pour la même raison des deux côtés
+## Sur une cible réelle, le protocole se gèle d'un côté et pas de l'autre
 
-Le cycle complet de la demande à l'acceptation n'a été mené que sur la fixture F-TS et sur une cible
-de démonstration équivalente, construite pour l'observation : neuf étapes, G0 à G5 en PASS, candidat
-gelé, `unit=PASS lint=PASS`, résultat `accepted`. Conduit depuis
-Pi sous un agent déterministe sur les deux cibles de `~/Projets/495-workspace/cibles/` qu'un
-adaptateur reconnaît, il s'arrête à G2 des deux côtés, pour deux causes indépendantes que
-`QUALIFICATION.md` transcrit. Le seul essai avec le modèle local n'a pas atteint G0 : son rapport de
-spécification a été refusé, ce qui est un troisième constat, à part.
+Conduit depuis Pi sous un agent déterministe sur les deux cibles de `~/Projets/495-workspace/cibles/`
+qu'un adaptateur reconnaît, le parcours traverse les neuf étapes sur la cible Maven multi-module et
+s'arrête à G2 sur la cible Node, pour deux causes indépendantes que `QUALIFICATION.md` transcrit.
+Conduit avec le modèle local sur la cible Maven, il atteint la première interaction humaine de la
+conception et s'y arrête — voir plus bas.
 
-Sur la cible Maven multi-module, trois capteurs sur quatre se qualifient sur leurs trois témoins,
-réseau coupé et sous Seatbelt : la suite Surefire, les frontières d'architecture dérivées des POM, et
-la mutation cadrée sur les classes modifiées. Le quatrième, la couverture des lignes introduites, ne
-peut pas se qualifier : il ne produit aucune mesure, il lit le rapport que `mvn test` laisse dans le
-workspace, et son témoin négatif reçoit un workspace neuf où ce contrôle producteur n'est jamais
-lancé. Sans rapport, la mesure absente est rendue `INDETERMINATE` — le bon verdict pour une mesure qui
-manque — alors qu'un témoin négatif doit rendre `FAIL`. G2 refuse donc de geler le protocole, et
-aucune cible Maven liant JaCoCo hors profil ne peut aujourd'hui dépasser G2 depuis un cycle. Rien
-n'est faux dans le capteur ni dans le parseur : ce qui manque est l'ordre. Le protocole exécute ses
-contrôles dans l'ordre déclaré, la vérification honore cet ordre, la qualification ne le connaît pas ;
-`ControlDefinition` ne déclare aucun producteur pour le rapport qu'un capteur lit. La campagne V4
-échappait au constat parce qu'elle lance le contrôle producteur dans chaque workspace de témoin avant
-de qualifier le capteur.
+Sur la cible Maven multi-module, le parcours va désormais jusqu'à G5. Ce qui l'arrêtait tenait en un
+ordre que rien n'énonçait : le capteur de couverture ne produit aucune mesure, il lit le rapport que
+`mvn test` laisse dans le workspace, et son témoin négatif recevait un workspace neuf où ce contrôle
+producteur n'était jamais lancé. Sans rapport, la mesure absente était rendue `INDETERMINATE` — le
+bon verdict pour une mesure qui manque — là où un témoin négatif doit rendre `FAIL`. Ni le capteur ni
+le parseur n'étaient en cause. `ControlDefinition` porte maintenant ce que chaque contrôle écrit dans
+le workspace et ce qu'il y lit sans le produire ; la qualification exécute les producteurs d'un
+capteur dans chacun de ses workspaces de témoin, et le protocole gèle ses contrôles dans l'ordre que
+ces déclarations donnent, que la vérification suit ensuite (`D-36`). Les quatre capteurs se
+qualifient alors sur leurs trois témoins, réseau coupé et sous Seatbelt, et la même campagne rend
+`G0…G5 PASS`, `accepted`, `maven-test=PASS coverage=PASS structure=PASS mutation=PASS` en 58 s.
 
 Sur la cible Node, l'adaptateur déclare le contrôle `unit` comme `node --test --test-reporter=tap` et
 ne lit jamais `scripts.test` : la cible est en vitest, son témoin positif — la référence plus un cas
@@ -251,12 +247,35 @@ segment, si bien qu'un motif d'un seul segment comme `dist/` retire ce répertoi
 profondeur, y compris le `dist/` de chaque dépendance installée. Un import nu vers un paquet dont
 l'entrée y réside ne résout donc plus dans la copie de travail, quelle que soit la commande de test.
 
-Ce que les deux campagnes établissent malgré l'arrêt : la détection de pile, le diagnostic de
-capacité, la préparation — un test discriminant écrit par une intervention bornée, jugé `FAIL` sur la
-référence nue puis adopté —, la qualification des capteurs sur trois témoins, les gates G0 à G2, le
-rapport d'ingénierie qui sépare observations, jugements et non-établi, et l'export vérifiable d'un
-changement arrêté fonctionnent depuis l'entrée Pi sur des cibles réelles. Elles n'établissent rien de
-la production de code : les interventions y étaient rejouées depuis un fichier, sans modèle.
+Ce que ces campagnes établissent : la détection de pile, le diagnostic de capacité, la préparation —
+un test discriminant écrit par une intervention bornée, jugé `FAIL` sur la référence nue puis adopté
+—, la qualification des capteurs sur trois témoins, le gel du protocole, la vérification comparée à
+la référence, les six gates, le rapport d'ingénierie qui sépare observations, jugements et non-établi,
+et l'export vérifiable fonctionnent depuis l'entrée Pi sur une cible réelle. Elles n'établissent rien
+de la production de code : les interventions y étaient rejouées depuis un fichier, sans modèle. Une
+campagne conduite sous agent scripté qualifie la chaîne qui encadre le producteur, jamais le
+producteur.
+
+## Avec un modèle réel, le parcours s'arrête là où la conception demande un humain
+
+Trois lancements du cycle sur la cible Maven, sans agent scripté : c'est la production de code qu'ils
+éprouvent. Les deux premiers meurent avant tout gate sur un rapport de spécification qui ne valide
+pas son schéma — `chantiers/F`, deux formes distinctes de la même cause, transcrites dans
+`QUALIFICATION.md`. Le troisième passe : le rapport valide, et le noyau ouvre `IH-01` sur une
+question ouverte matérielle que le modèle a posée lui-même — la limite de 50 caractères
+s'applique-t-elle aussi à la mise à jour du nom, ce que le placement de la règle décide. Le
+changement reste en `decision_required`, `required_authority: "requester"`, aucun gate évalué,
+aucune tentative consommée.
+
+Ce que cela dit du produit. Le mur n'est plus technique : sur une cible réelle et avec un modèle
+réel, le parcours va jusqu'à l'endroit où la conception veut qu'un humain tranche, et il n'y tranche
+rien à sa place. Ce que cela ne dit pas : rien de la production de code, puisque aucune intervention
+`implement` n'a été lancée et aucun candidat gelé. Et ce que cela confirme du coût : les trois
+budgets relevés ensemble — `intervention_ms` à 60 min, `increment_ms` à 360 min,
+`max_continuations` à 5 — ne sont jamais approchés. L'intervention de spécification se termine
+d'elle-même en 268 à 355 s, aucune n'est `truncated`, et ce que le modèle dépense se compte en
+jetons (77 000 à 105 000 pour un rapport) plutôt qu'en minutes. La prémisse d'une intervention qui
+bute sur son plafond de durée ne se reproduit pas ici.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -267,10 +286,11 @@ la production de code : les interventions y étaient rejouées depuis un fichier
   que le changement s'arrête bien en `capability_missing`, et que l'échec du confinement est
   désormais rendu comme incident plutôt que comme verdict du contrôle de la cible. Voir `D-31`,
   `D-32` et `QUALIFICATION.md`.
-- Cycle complet depuis Pi sur une cible réelle : **non atteint**. Le parcours s'arrête à G2, par la
-  qualification du capteur de couverture sur une cible Maven et par la commande de test de
-  l'adaptateur node sur une cible vitest — voir la section ci-dessus, `QUALIFICATION.md` et les
-  fiches `chantiers/D` et `chantiers/E`.
+- Cycle complet depuis Pi sur une cible réelle avec un modèle : **non atteint**. Sous agent
+  déterministe, la cible Maven traverse les neuf étapes et rend `accepted` ; avec le modèle local,
+  le parcours s'arrête en `decision_required` sur `IH-01`, sans qu'aucune intervention de production
+  ait été lancée. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de
+  l'adaptateur — voir les sections ci-dessus, `QUALIFICATION.md` et la fiche `chantiers/E`.
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
   changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
   `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée
