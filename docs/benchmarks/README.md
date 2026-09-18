@@ -71,5 +71,16 @@ Pour qu'une nouvelle ligne soit comparable aux précédentes :
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-09-18 | `Qwen3.8-27B-oQ8e-mtp` | `batched` (llm) | `profile-qwen38-01` | 288 tok/s | 29,3 tok/s | 12,5 s | 80 % | [fiche](2026-09-18-qwen3.8-27b-oq8e.md) |
 
-Machine de référence : macOS 27 arm64, oMLX sur `127.0.0.1:8000`. Les mesures d'une autre machine
-appartiennent à une autre table.
+La version du serveur appartient à la comparaison autant que le modèle : une mesure prise sous une
+autre version d'oMLX se note dans sa fiche.
+
+## Machine
+
+MacBook Pro, **Apple M4 Max** : 16 cœurs CPU (12 performance, 4 efficacité), **40 cœurs GPU**,
+**128 Go de RAM**, Metal 4. macOS 27.0 (build 26A428), **oMLX 0.6.4 (2529)** sur `127.0.0.1:8000`.
+
+Le matériel n'est pas ici une précaution de forme : la quantité de mémoire **change la géométrie du
+cache de préfixe**. `scheduler.py` fixe le plancher de bloc à 4 096 jetons quand
+`get_system_memory() >= 64 Go` et que NAX est absent, contre 0 — donc une cible de 2 048 — sous ce
+seuil. Une mesure prise sur une machine de moins de 64 Go, ou sur une machine NAX/M5, ne décrit pas
+la même granularité de cache et n'appartient pas à cette table. Voir la fiche du 18 septembre.
