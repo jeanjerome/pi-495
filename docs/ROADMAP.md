@@ -58,8 +58,8 @@ Une capacité de ce tableau reste inopposable sur une cible réelle : l'adaptate
 que la cible déclare comme commande de test, et une cible en vitest n'y passe pas (`chantiers/E`).
 Le capteur de couverture de QLT-04, lui, se qualifie désormais dans un cycle — le rapport qu'il lit
 est déclaré par le contrôle qui l'écrit, et la qualification exécute ce producteur dans chacun de ses
-workspaces de témoin (`chantiers/D`, `DECISIONS.md` D-36) —, et la cible Maven traverse les neuf
-étapes sous agent déterministe.
+workspaces de témoin (`chantiers/D`, `DECISIONS.md` D-36) —, et la cible Maven va de la demande à
+l'acceptation avec le modèle local.
 
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
 classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. ARC-04 et
@@ -181,10 +181,10 @@ n'introduit aucune classe.
 Neuf travaux n'appartiennent pas à cette échelle. Trois peuvent avancer en parallèle : la complétude
 de la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon
 L0. Six sont sortis des campagnes conduites depuis Pi sur des cibles réelles. `chantiers/D` — la
-qualification d'un capteur qui lit le rapport d'un autre contrôle — est clos, et la cible Maven va
-jusqu'à G5 sous agent déterministe ; ce qui commande l'ordre est désormais `chantiers/F`, une sortie
-d'intervention refusée qui laisse le changement sans issue, et qu'un cycle conduit avec le modèle
-local rencontre avant tout le reste. Viennent ensuite `chantiers/E` (la commande de test d'une cible
+qualification d'un capteur qui lit le rapport d'un autre contrôle — est clos, et la cible Maven va de
+la demande à l'acceptation avec le modèle local ; ce qui commande l'ordre est désormais
+`chantiers/F`, une sortie d'intervention refusée qui laisse le changement sans issue, et qui a tué
+deux lancements sur quatre. Viennent ensuite `chantiers/E` (la commande de test d'une cible
 Node), `chantiers/H` (sous-module, fichier spécial et rétention du workspace du candidat),
 `chantiers/G` (la lisibilité de l'état d'un changement arrêté) et `chantiers/I` (ce que Pi rend déjà
 et que la revue réimplémente).

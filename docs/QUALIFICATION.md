@@ -307,25 +307,21 @@ largeur est unique et au-dessus du seuil du mode étroit, et aucun lecteur d'éc
 
 ### Le cycle avec le modèle local sur la cible Maven, une fois le protocole gelable
 
-Trois lancements le 18 septembre 2026, même commande et même cible, sans `HARNESS495_SCRIPTED_AGENT`
+Quatre lancements le 18 septembre 2026, même commande et même cible, sans `HARNESS495_SCRIPTED_AGENT`
 — c'est la production de code que cette campagne éprouve, et elle seule. Les budgets sont relevés
 ensemble dans `<données>/config.json` avant le premier : `intervention_ms` 20 → 60 min,
-`increment_ms` 120 → 360 min, `max_continuations` 3 → 5. Relever `intervention_ms` seul n'aurait fait
-que déplacer l'endroit où le changement meurt ; les trois ensemble devaient laisser une intervention
-finir sur son plafond d'appels d'outils plutôt que sur l'horloge.
+`increment_ms` 120 → 360 min, `max_continuations` 3 → 5.
 
 | Lancement | Verdict | Motif d'arrêt | Durée |
 | --- | --- | --- | --- |
 | 1 | aucun gate évalué, changement `blocked` en phase `clarifying` | `configuration_error` : `specification intervention completed with an invalid structured output` | 335 s, dont 332 s d'intervention (18 appels d'outils, 104 699 jetons connus) |
 | 2 | aucun gate évalué, changement `blocked` en phase `clarifying` | même `configuration_error` | 272 s, dont 268 s d'intervention (16 appels d'outils, 77 498 jetons connus) |
 | 3 | aucun gate évalué, changement `decision_required` en phase `clarifying` | `decision_pending` : `IH-01`, `dec_mu6swcar451de6e77c` | 357 s, dont 355 s d'intervention (18 appels d'outils, 94 113 jetons connus) |
+| 4 | **`G0…G5 PASS`, résultat `accepted`**, candidat `cand_f882d3b9a516` | aucun : `closed / completed`, une tentative sur trois | 71 min 32 s de bout en bout, dont 20 min 33 s d'attente de la réponse humaine |
 
-**Les budgets n'ont jamais été atteints.** L'intervention de spécification se termine d'elle-même en
-268 à 355 s, soit un dixième du plafond de 60 min, et aucune n'est `truncated` : `max_continuations`
-n'est pas exercé, et `increment_ms` non plus. La prémisse selon laquelle chaque intervention atteint
-le plafond de 20 min ne se reproduit pas sur cette cible, au moins pour `specify`. Ce que le modèle
-dépense est en jetons — 77 000 à 105 000 pour un seul rapport de spécification — et en appels
-d'outils, 16 à 18 sur 100 autorisés, soit un rythme de 2,7 à 3,6 par minute.
+Le quatrième n'est pas un lancement de plus : c'est le troisième, repris après que la décision `IH-01`
+a été répondue dans le TUI. Le changement `chg_mu6sopkhf9e51f38b0` porte donc les deux, et le dossier
+tient d'un seul tenant.
 
 **Les deux premiers lancements meurent sur `chantiers/F`, et pas de la même manière.** Au premier, le
 rapport est dans un bloc annoncé `json` dont l'objet racine n'est jamais clos, arrêté à 7 002
@@ -337,21 +333,88 @@ alors à l'intérieur du rapport et non à sa racine : ce qui atteint la validat
 refusé est conservé dans `output.raw` et s'exporte. Ce constat appartient à `chantiers/F` ; il n'a
 pas été corrigé ici.
 
-**Le troisième lancement passe la spécification et s'arrête là où la conception le prévoit.** Le
-rapport valide son schéma, et le noyau ouvre une interaction `IH-01` sur une question ouverte
-matérielle que le modèle a lui-même posée : la limite de 50 caractères s'applique-t-elle à la seule
-création, ou aussi à la mise à jour du nom, le placement dans le record `User` valant pour les deux
-et le placement dans `UserApiService.createUser` pour la création seule. `required_authority:
-"requester"`, texte libre autorisé, l'autre issue étant l'abandon. Aucun gate n'est évalué, aucune
-tentative n'est consommée, et le changement attend une réponse humaine ; le dossier reste repris par
-le répertoire courant.
+**Le troisième valide sa spécification et s'arrête où la conception le prévoit.** Le noyau ouvre
+`IH-01` sur une question ouverte matérielle que le modèle a lui-même posée : la limite de 50
+caractères s'applique-t-elle à la seule création, ou aussi à la mise à jour du nom, le placement
+dans le record `User` valant pour les deux et le placement dans `UserApiService.createUser` pour la
+création seule. `required_authority: "requester"`. Le changement attend, sans qu'aucun gate soit
+évalué ni aucune tentative consommée.
 
-Ce que cette campagne établit : sur une cible réelle et avec un modèle réel, le parcours atteint la
-première interaction humaine de la conception au lieu de mourir sur un mur technique, et il s'y
-arrête sans rien décider à la place de son demandeur. Ce qu'elle n'établit pas : la production de
-code. Aucune intervention `implement` n'a été lancée, aucun candidat n'a été gelé, et les gates ne
-sont pas évalués. Ce qui l'ouvrirait est une réponse à `IH-01`, qui relève du demandeur du
-changement, puis un quatrième lancement conduit jusqu'à G5.
+**La réponse humaine ouvre le reste du parcours.** Répondue dans le TUI par `jeanjerome`
+(`origin: tui_session`, `authentication_level: session`) — « La limite s'applique à la création et à
+la mise à jour » —, elle est enregistrée sur la révision qu'elle tranchait, et le rapport
+d'ingénierie la porte à côté des jugements du noyau : `[humain] jeanjerome: IH-01 answer`. C'est le
+premier jugement humain inscrit au dossier d'un cycle réel.
+
+| Étape | Durée | Appels d'outils |
+| --- | --- | --- |
+| `specify` | 355 s | 18 (3,0/min) |
+| `prepare` | 1 948 s | 74 (2,3/min) |
+| G2, quatre capteurs sur leurs trois témoins | 32 s | — |
+| `implement` | 684 s | 30 (2,6/min) |
+| vérification, référence puis candidat | 15 s | — |
+
+**La préparation est ce qui coûte, et ce qui rend le reste opposable.** Les quatre exigences sont
+`undiscriminated` au niveau `file_present` : G2 refuse de laisser une suite verte tenir lieu de
+preuve et commande d'abord les tests qui discriminent. L'intervention en écrit quatre, sur les deux
+modules, dont un scénario Cucumber et ses pas :
+`domain/src/test/.../UserTest.java`, `domain/src/test/.../UserApiServiceTest.java`,
+`infrastructure/src/test/.../UserFriendManagementSteps.java` et son
+`.../UserFriendManagement.feature`. Le noyau les juge sur la référence nue — `on_reference: FAIL`,
+`discriminant: true`, `loadable: true` — et les adopte comme oracle protégé. Le diagnostic de
+capacité passe de `file_present` à `discriminating`, sans exigence non discriminée, 38 cas découverts
+et 38 exécutés.
+
+**G2 gèle le protocole en 32 s, et c'est là que le capteur à rapport se qualifie pour la première
+fois dans un cycle conduit par un modèle.** L'ordre gelé — `maven-test`, `coverage`, `structure`,
+`mutation` — se lit des déclarations : `maven-test` écrit `surefire-reports` et `jacoco-report`,
+`coverage` déclare lire le second et n'écrit rien. Les quatre capteurs rendent
+`PASS / FAIL / INDETERMINATE` sur leurs trois témoins, le témoin négatif de `coverage` compris.
+
+**Le candidat ne touche que ce qu'il doit.** `cand_f882d3b9a516` porte cinq chemins : le fichier de
+production `domain/src/main/java/.../user/domain/User.java` et les quatre tests préparés. La règle
+est dans le constructeur compact du record — donc création et mise à jour, ce que la décision
+humaine avait tranché —, sous la forme d'une constante `MAX_NAME_LENGTH = 50` et d'un `throw
+ValidationException` qui reprend le mécanisme déjà utilisé par la validation de nom existante.
+
+| Contrôle | Référence | Candidat |
+| --- | --- | --- |
+| `maven-test` | PASS, 38 cas, 5 rapports (5 592 ms) | PASS, 46 cas, 0 échec, 5 rapports (4 999 ms) |
+| `coverage` | PASS, 0 rapport : « the candidate introduces no line JaCoCo measures » | PASS, 2 rapports, 5 fichiers introduits, 121 lignes introduites, 1 fichier mesurable, 2 lignes mesurées, 0 non couverte |
+| `structure` | PASS, 3 règles, 19 sources, 12 paquets, 0 violation | PASS, 3 règles, 19 sources, 12 paquets, 0 violation |
+| `mutation` | PASS, aucune exécution : « the subject introduces no class this sensor mutates » | PASS, 2 classes cadrées, 4 mutants, 2 introduits, 2 tués, 0 survivant |
+
+Les deux lignes que le candidat ajoute sont donc exercées **et** leurs mutants tués. C'est ce que
+l'échelle du contrôle de l'introduit cherche à obtenir : un G5 qui dit quelque chose, plutôt qu'un
+vert obtenu par absence de mesure.
+
+**Ce que les budgets ont réellement fait.** Un seul des trois relèvements porte : `prepare` dure
+32,5 min, donc sous l'ancien plafond de 20 min il aurait été coupé vers le 46ᵉ appel d'outil et repris
+en continuation. Les deux autres ne sont pas exercés — la durée d'intervention cumulée est de 49,8
+min, sous l'ancien `increment_ms` de 120 min, et aucune intervention n'est `truncated`, donc
+`max_continuations` ne sert pas. Le rythme observé est de 2,3 à 3,0 appels d'outils par minute selon
+le rôle, et ce que le modèle dépense se compte autant en jetons — 77 000 à 105 000 pour un seul
+rapport de spécification — qu'en minutes.
+
+**Ce que ce coût annonce pour une demande moins simple.** La demande ici est minimale : deux lignes
+de production dans un constructeur compact, une constante et un `throw`. Elle coûte pourtant 51 min
+de machine et 122 appels d'outils. Le budget qui va céder en premier n'est aucun des trois relevés,
+c'est celui qui ne l'a pas été : `tool_calls_per_intervention`, laissé à 100, dont la préparation a
+déjà consommé **74 sur la demande la plus simple qui soit**. À 2,3 appels par minute, une préparation
+qui atteint le plafond de 100 est coupée vers 43 min — avant le plafond de durée de 60 min, qui
+cesse donc d'être la contrainte active. Ce qui suit se déduit : une demande portant sur plusieurs
+exigences ou plusieurs modules fait tronquer la préparation, la reprise consomme une continuation,
+et c'est là que `max_continuations` et `increment_ms` commencent à compter — cinq continuations de
+43 min approchent les 360 min du plafond d'incrément pour la seule préparation. Ces trois budgets
+n'ont pas été éprouvés par cette campagne ; ils ont seulement été mis hors du chemin d'une demande
+qui ne les atteignait pas.
+
+Ce que cette campagne établit : sur une cible Maven réelle, avec un modèle local et sous Seatbelt, le
+parcours va de la demande à l'acceptation en produisant du code — les tests qui discriminent, puis
+l'implémentation qu'ils jugent — et la seule intervention humaine est celle que la conception prévoit,
+sur une question que le modèle a posée. Ce qu'elle n'établit pas : la reproductibilité, puisque deux
+lancements sur quatre sont morts avant tout gate sur `chantiers/F` ; ni le passage à l'échelle, la
+demande éprouvée étant la plus petite possible.
 
 ## Revues obligatoires
 

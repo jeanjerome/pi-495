@@ -256,26 +256,45 @@ de la production de code : les interventions y étaient rejouées depuis un fich
 campagne conduite sous agent scripté qualifie la chaîne qui encadre le producteur, jamais le
 producteur.
 
-## Avec un modèle réel, le parcours s'arrête là où la conception demande un humain
+## Avec un modèle réel, le cycle va de la demande à l'acceptation
 
-Trois lancements du cycle sur la cible Maven, sans agent scripté : c'est la production de code qu'ils
+Quatre lancements sur la cible Maven, sans agent scripté : c'est la production de code qu'ils
 éprouvent. Les deux premiers meurent avant tout gate sur un rapport de spécification qui ne valide
-pas son schéma — `chantiers/F`, deux formes distinctes de la même cause, transcrites dans
-`QUALIFICATION.md`. Le troisième passe : le rapport valide, et le noyau ouvre `IH-01` sur une
-question ouverte matérielle que le modèle a posée lui-même — la limite de 50 caractères
-s'applique-t-elle aussi à la mise à jour du nom, ce que le placement de la règle décide. Le
-changement reste en `decision_required`, `required_authority: "requester"`, aucun gate évalué,
-aucune tentative consommée.
+pas son schéma — `chantiers/F`, deux formes distinctes de la même cause. Le troisième valide, et le
+noyau ouvre `IH-01` sur une question que le modèle a posée lui-même : la limite de 50 caractères
+vaut-elle aussi pour la mise à jour du nom, ce que le placement de la règle décide. Répondue dans le
+TUI, elle ouvre le reste du parcours, et le quatrième — le même changement repris — va jusqu'au bout :
+`G0…G5 PASS`, `accepted`, candidat `cand_f882d3b9a516`, une tentative sur trois, 71 min 32 s dont
+20 min 33 s d'attente de la réponse humaine.
 
-Ce que cela dit du produit. Le mur n'est plus technique : sur une cible réelle et avec un modèle
-réel, le parcours va jusqu'à l'endroit où la conception veut qu'un humain tranche, et il n'y tranche
-rien à sa place. Ce que cela ne dit pas : rien de la production de code, puisque aucune intervention
-`implement` n'a été lancée et aucun candidat gelé. Et ce que cela confirme du coût : les trois
-budgets relevés ensemble — `intervention_ms` à 60 min, `increment_ms` à 360 min,
-`max_continuations` à 5 — ne sont jamais approchés. L'intervention de spécification se termine
-d'elle-même en 268 à 355 s, aucune n'est `truncated`, et ce que le modèle dépense se compte en
-jetons (77 000 à 105 000 pour un rapport) plutôt qu'en minutes. La prémisse d'une intervention qui
-bute sur son plafond de durée ne se reproduit pas ici.
+Ce que cela établit. Sur une cible réelle et avec un modèle réel, le parcours produit du code sous
+contrôle : les quatre exigences sont diagnostiquées non discriminables, une préparation bornée écrit
+quatre fichiers de test sur deux modules — dont un scénario Cucumber et ses pas —, le noyau les juge
+`FAIL` sur la référence nue et les adopte comme oracle protégé, le diagnostic passe à
+`discriminating`, G2 gèle le protocole, l'implémentation ne touche que le fichier de production
+qu'elle doit et les tests préparés, et les quatre capteurs jugent le candidat contre la référence.
+Les deux lignes ajoutées au record `User` sont exercées par la suite et leurs deux mutants tués : le
+G5 dit quelque chose, il n'est pas un vert obtenu par absence de mesure.
+
+Ce que cela révèle du produit, en trois points. D'abord, la **préparation est l'étape coûteuse et
+c'est elle qui rend le reste opposable** : 32,5 min sur les 51 min de machine, contre 11,4 min
+d'implémentation. Ensuite, le **relèvement des budgets n'a porté que sur `intervention_ms`** : sous
+l'ancien plafond de 20 min la préparation aurait été coupée et reprise en continuation, tandis que
+`increment_ms` et `max_continuations` ne sont pas exercés — 49,8 min d'intervention cumulée, aucune
+intervention `truncated`. Enfin, le **jugement humain entre au dossier** : le rapport d'ingénierie
+porte `[humain] jeanjerome: IH-01 answer` à côté des six jugements du noyau, attribué et attaché à la
+révision qu'il tranchait.
+
+Ce qu'elle n'établit pas, et qu'il faut lire à côté du succès : ni la reproductibilité — deux
+lancements sur quatre sont morts avant tout gate sur une sortie structurée refusée, ce qui fait de
+`chantiers/F` le travail qui commande l'ordre —, ni le passage à l'échelle. La demande éprouvée est
+la plus petite possible, deux lignes de production, et elle consomme déjà 51 min de machine et 122
+appels d'outils. Le budget qui cédera en premier sur une demande plus large n'est aucun des trois
+relevés : c'est `tool_calls_per_intervention`, resté à 100, dont la préparation a consommé 74 ici.
+Une préparation qui l'atteint est tronquée vers 43 min, avant le plafond de durée, et c'est alors
+seulement que les continuations et le plafond d'incrément deviennent la contrainte active. Le coût
+d'un changement suit le nombre d'exigences à rendre discriminables et le nombre de modules à
+instrumenter, pas la taille du code écrit.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -286,11 +305,11 @@ bute sur son plafond de durée ne se reproduit pas ici.
   que le changement s'arrête bien en `capability_missing`, et que l'échec du confinement est
   désormais rendu comme incident plutôt que comme verdict du contrôle de la cible. Voir `D-31`,
   `D-32` et `QUALIFICATION.md`.
-- Cycle complet depuis Pi sur une cible réelle avec un modèle : **non atteint**. Sous agent
-  déterministe, la cible Maven traverse les neuf étapes et rend `accepted` ; avec le modèle local,
-  le parcours s'arrête en `decision_required` sur `IH-01`, sans qu'aucune intervention de production
-  ait été lancée. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de
-  l'adaptateur — voir les sections ci-dessus, `QUALIFICATION.md` et la fiche `chantiers/E`.
+- Cycle complet depuis Pi sur une cible réelle avec un modèle : **atteint une fois**, sur la cible
+  Maven multi-module, de la demande à l'acceptation, avec une réponse humaine à `IH-01` en cours de
+  route. Ce qui n'est pas établi est la reproductibilité : deux lancements sur quatre sont morts
+  avant tout gate sur une sortie structurée refusée (`chantiers/F`). La cible Node, elle, s'arrête
+  toujours à G2 sur la commande de test de l'adaptateur (`chantiers/E`).
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
   changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
   `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée

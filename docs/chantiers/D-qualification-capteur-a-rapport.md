@@ -1,7 +1,6 @@
 # Transverse D — la qualification d'un capteur qui lit le rapport d'un autre contrôle
 
-**État :** clos pour la qualification du capteur ; le cycle avec le modèle attend une réponse à
-`IH-01`
+**État :** clos
 **Objet :** un capteur qui ne produit aucune mesure, mais lit celle qu'un autre contrôle laisse dans
 le workspace, ne peut pas être qualifié dans le cycle ; G2 refuse alors tout protocole sur une cible
 Maven liant JaCoCo hors profil
@@ -195,8 +194,19 @@ noté et non corrigé ici. Le troisième valide son rapport et s'arrête en `dec
 `IH-01` (`dec_mu6swcar451de6e77c`), question ouverte matérielle posée par le modèle lui-même :
 la limite de 50 caractères vaut-elle aussi pour la mise à jour du nom, ce que le placement de la
 règle décide. `required_authority: "requester"` — aucun gate évalué, aucune tentative consommée, et
-rien n'est décidé à la place du demandeur. Ce qui ouvrirait la suite est une réponse à cette
-interaction, puis un quatrième lancement conduit jusqu'à G5 : c'est ce qui reste de cette fiche.
+rien n'est décidé à la place du demandeur.
+
+La réponse — « La limite s'applique à la création et à la mise à jour » — est enregistrée dans le TUI
+et le même changement va jusqu'au bout : `G0…G5 PASS`, `accepted`, candidat `cand_f882d3b9a516`, une
+tentative sur trois, 71 min 32 s dont 20 min 33 s d'attente humaine. Les quatre capteurs se
+qualifient, le témoin négatif de `coverage` compris : c'est la première qualification d'un capteur à
+rapport dans un cycle conduit par un modèle. Les deux lignes ajoutées au record `User` sont exercées
+et leurs deux mutants tués. Les chiffres sont dans `../QUALIFICATION.md`.
+
+Ce que cette fiche laisse aux autres : la reproductibilité appartient à `chantiers/F`, deux
+lancements sur quatre y étant morts ; et le passage à l'échelle reste à éprouver, la demande conduite
+étant la plus petite possible alors que la préparation a déjà consommé 74 des 100 appels d'outils
+qu'une intervention peut dépenser.
 
 **17 septembre 2026.** Ouverture. Le constat vient d'une campagne de 30 s depuis l'entrée Pi sur la
 cible Maven, agent scripté : G0 PASS, G1 PASS, G2 FAIL, arrêt sur `capability_missing`. Les faits
