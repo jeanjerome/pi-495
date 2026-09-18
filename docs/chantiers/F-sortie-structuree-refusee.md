@@ -77,6 +77,13 @@ Critères d'acceptation :
 
 ## Journal
 
+**18 septembre 2026, plus tard.** Un second modèle ne rencontre pas le mur. La même demande, sur la
+même cible, conduite avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP` : l'intervention `specify` rend un rapport
+conforme au schéma `specification-report` au premier lancement, en 445 s et 27 appels d'outils. Un
+seul essai ne renseigne pas sur la fréquence, mais il établit que le refus n'est pas une propriété du
+harnais ni de la taille du rapport : il dépend du modèle qui l'écrit. Cette campagne est transcrite
+dans `../QUALIFICATION.md`.
+
 **18 septembre 2026.** Deux occurrences de plus, sur la cible Maven multi-module cette fois, pendant
 le cycle réel que `chantiers/D` avait différé. Le constat n'a donc rien de propre à `node-demo` ni à
 une longueur de rapport : sur trois lancements successifs, deux meurent avant tout gate sur un

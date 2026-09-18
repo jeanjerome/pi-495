@@ -61,6 +61,19 @@ Un contrôle préalable n'est pas possible : un modèle dont le chargement a éc
 `/v1/models` et ne porte aucun indicateur dans l'API d'administration. Seule une requête révèle son
 état, et c'est le préchauffage qui la paie.
 
+## Ce que le banc représente mal
+
+Mesuré le 18 septembre sur une campagne réelle : les prompts que le harnais envoie ont une médiane de
+**32 878 jetons** et une pointe à 52 359, alors que le scénario `prefill` du banc en prérremplit
+12 437. Le banc décrit donc une charge plus légère que la vraie, et comme le coût de lecture croît
+avec la taille du morceau, il sous-estime vraisemblablement les écarts entre modèles.
+
+Un correctif possible serait d'élargir le budget d'entrée au-delà des 60 000 octets qu'une
+intervention reçoit — mais ce budget est celui du produit, et le banc perdrait sa fidélité en le
+dépassant. La lecture juste est donc : les chiffres du banc ordonnent les modèles, ils ne prédisent
+pas les durées d'un cycle. Pour celles-ci, le journal du serveur donne une ligne par requête servie,
+et c'est la source utilisée dans `../QUALIFICATION.md`.
+
 ## Ajouter une mesure
 
 Pour qu'une nouvelle ligne soit comparable aux précédentes :

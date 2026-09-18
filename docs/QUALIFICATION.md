@@ -416,6 +416,99 @@ sur une question que le modèle a posée. Ce qu'elle n'établit pas : la reprodu
 lancements sur quatre sont morts avant tout gate sur `chantiers/F` ; ni le passage à l'échelle, la
 demande éprouvée étant la plus petite possible.
 
+### Le même cycle avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP` — campagne en cours
+
+Même cible, même demande au mot près, mêmes budgets, agent non scripté, cache de préfixe vidé avant
+le départ. Seul le modèle change : `Qwen3.8-Flash-Next-MLX-oQ4-MTP` sous le profil
+`pi-flashnext-01`, moteur VLM, contre `Qwen3.8-27B-oQ8e-mtp` sous `profile-qwen38-01`, moteur LM.
+Conduite depuis le TUI, là où la précédente démarrait en `--mode json` — le travail demandé au modèle
+est le même, seule la session diffère.
+
+**La campagne est interrompue à `verification_design`, avant G2**, l'opérateur ayant arrêté la
+seconde intervention de préparation. Ce qui suit est ce qu'elle a établi jusque-là ; le reste attend
+sa reprise.
+
+#### La spécification valide son schéma du premier coup
+
+`specify` rend un rapport conforme au schéma `specification-report` au premier lancement, en 445 s et
+27 appels d'outils. La campagne du 27B avait échoué deux fois sur trois sur ce point — c'est le mur
+de `chantiers/F`, et ce modèle ne l'a pas rencontré. Un seul essai ne fait pas une loi, mais c'est le
+premier lancement d'un modèle qui franchit cette étape sans reprise.
+
+#### Il cadre davantage avant de produire
+
+Là où le 27B ouvrait une seule interaction `IH-01`, celui-ci en ouvre **quatre**, toutes matérielles :
+la portée de la borne, le décompte sur chaîne brute ou trimée, le contrat de refus — « le message
+exact doit être fixé, car les scénarios Cucumber comparent le corps en égalité stricte » — et le
+traitement des utilisateurs déjà stockés dont le nom dépasse la borne. Le 27B avait tranché les trois
+dernières tout seul, dans le code.
+
+Les réponses données élargissent le mandat par rapport à la campagne de référence : chaîne trimée,
+422 plutôt que le 400 de `ValidationException`, refus y compris en lecture. **Les deux candidats ne
+porteront donc pas le même périmètre**, et cet écart vient des réponses humaines, pas des modèles.
+Restent strictement comparables : la validité des sorties structurées, les débits, les rythmes, la
+qualification des capteurs et le franchissement des gates.
+
+Le rapport rend cinq exigences contre quatre, dont deux marquées satisfaites par la référence — un
+jugement plus fin, une exigence que la cible honore déjà n'ayant pas besoin d'un test qui échoue
+d'abord. Trois seulement sont non discriminées, contre quatre.
+
+#### Il écrit hors de son périmètre pour se vérifier, et le paie
+
+La première préparation est **refusée**, alors que ses quatre fichiers de test sont bons :
+`on_reference: FAIL`, `discriminant: true`, `loadable: true`. Ce qui la fait refuser est onze
+fichiers écrits hors mandat, un atelier de compilation manuelle à la racine du workspace —
+`.verify-scratch/RunTests.java`, `compile.sh`, `javac.log`, `sources.txt` et les autres — que le
+modèle s'est fabriqué pour contrôler son travail lui-même. Le mandat n'autorise que les trois racines
+`src/test/`.
+
+C'est cet atelier qui consomme le budget : l'intervention atteint le plafond de
+`tool_calls_per_intervention` et est abandonnée par le noyau (`BUDGET_EXHAUSTED`, puis
+`handle.abort`), après 100 appels, 38,2 min et 6 125 866 jetons connus. Le plafond n'est donc pas la
+cause mais le symptôme : la cause est une indiscipline de périmètre.
+
+#### Il corrige au vu du refus
+
+Le harnais rouvre une préparation en rendant au modèle le motif du refus et les onze chemins. La
+seconde intervention **n'écrit plus rien hors des racines autorisées** — vérifié sur le workspace,
+aucun fichier hors périmètre plus d'une minute après la copie de référence. La préparation est
+adoptée : mêmes quatre fichiers, `FAIL` sur la référence nue, discriminante, chargeable.
+
+Réserve sur les chiffres de ce second round : **l'opérateur l'a interrompu**, d'où un
+`intervention.finished result=cancelled` à 37 appels, 17,5 min et 1 308 606 jetons. Ce ne sont pas
+les mesures d'une intervention menée à son terme. Ce que l'épisode établit sans réserve est ailleurs,
+et tient au harnais plutôt qu'au modèle : le noyau juge les fichiers produits, pas la façon dont la
+session s'est terminée, et adopte une préparation valide issue d'une session interrompue.
+
+| Préparation | Round 1 | Round 2 | 27B, round unique |
+| --- | --- | --- | --- |
+| Fin | `failed`, abandon sur plafond | `cancelled` par l'opérateur | `completed` |
+| Appels d'outils | 100 | 37 | 74 |
+| Durée | 38,2 min | 17,5 min | 32,5 min |
+| Jetons connus | 6 125 866 | 1 308 606 | 2 488 865 |
+| Écritures hors périmètre | 11 | 0 | 0 |
+| Verdict | refusée | adoptée | adoptée |
+
+#### Ce que le modèle apporte réellement, mesuré sur la charge du harnais
+
+Le journal du serveur donne une ligne par requête servie, ce qui permet de comparer les deux modèles
+sur la charge réelle plutôt que sur celle du banc :
+
+| | 27B, cycle complet | Flash-Next, `specify` | Flash-Next, `prepare` |
+| --- | --- | --- | --- |
+| Requêtes servies | 100 | 11 | — |
+| Prompt médian | 32 878 jetons | 14 948 | environ 39 000 |
+| Durée médiane par requête | **24,0 s** | 31,0 s | **10,6 s** |
+| Génération médiane | 31 tok/s | 33,3 tok/s | 32 à 59 tok/s |
+
+Deux enseignements. D'abord **le banc sous-estimait la charge** : son scénario le plus lourd
+prérremplit 12 437 jetons, quand les prompts réels du cycle ont une médiane de 32 878 et une pointe à
+52 359. Ensuite, sur des prompts comparables, le gain est net — 10,6 s la requête contre 24,0 s —
+**mais il ne se transforme pas en cycle plus court** : le rythme d'appels d'outils reste voisin, le
+temps de phase est dominé par quelques requêtes longues où le modèle écrit de gros blocs, et ce
+modèle-ci dépense en exploration ce qu'il gagne en vitesse. Sur les deux rounds de préparation il a
+consommé 55,7 min et 7,4 M de jetons pour le résultat que le 27B obtenait en 32,5 min et 2,5 M.
+
 ## Revues obligatoires
 
 Trois des six revues de `amont/conception-verification.md` §11 ont été conduites le 17 septembre
