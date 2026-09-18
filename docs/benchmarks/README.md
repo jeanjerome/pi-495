@@ -81,10 +81,13 @@ Pour qu'une nouvelle ligne soit comparable aux précédentes :
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-09-18 | `Qwen3.8-27B-oQ8e-mtp` | `batched` (llm) | `profile-qwen38-01` | 288 tok/s | 29,3 tok/s | 12,5 s | 80 % | [fiche](2026-09-18-qwen3.8-27b-oq8e.md) |
 | 2026-09-18 | `Qwen3.8-Flash-Next-MLX-oQ4-MTP` | `vlm` | `pi-flashnext-01` | **523 tok/s** | 30,3 tok/s | **5,9 s** | 80 % | [fiche](2026-09-18-qwen3.8-flash-next-oq4.md) |
+| 2026-09-18 | `Qwen3.8-27B-oQ8e-mtp`, **ANE coupé** | `batched` (llm) | aucun (détaché) | 217 tok/s | 30,2 tok/s | 15,2 s | 80 % | [fiche](2026-09-18-qwen3.8-27b-oq8e-sans-ane.md) |
 
-Deux lignes ne font pas un A/B. Entre ces deux-là, quatre variables changent ensemble —
-architecture, quantification, moteur et profil —, et chaque fiche nomme lesquelles. Une ligne dit ce
-que vaut un ensemble, jamais ce que vaut l'un de ses facteurs.
+Deux lignes ne font pas forcément un A/B. Entre les deux premières, quatre variables changent
+ensemble — architecture, quantification, moteur et profil —, et chaque fiche nomme lesquelles ; une
+ligne dit alors ce que vaut un ensemble, jamais ce que vaut l'un de ses facteurs. La troisième est
+en revanche un vrai A/B contre la première : un seul réglage y change, et elle mesure ce que vaut le
+préremplissage ANE, soit **+33 %** sur un prompt froid.
 
 La version du serveur appartient à la comparaison autant que le modèle : une mesure prise sous une
 autre version d'oMLX se note dans sa fiche.

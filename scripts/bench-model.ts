@@ -298,8 +298,13 @@ async function decodeScenario(): Promise<Measure[]> {
 async function agenticScenario(): Promise<Measure[]> {
 	const ctx = contextFor("implement");
 	const tools = toolsFor("implement");
+	// The prefix must be unique to this run. It is identical from one run to the next otherwise, and
+	// the SSD cache outlives a run: a second measurement of the same model would inherit the blocks
+	// of the first and read as faster than it is. Inside the run the prefix stays byte-identical, so
+	// the cache is still exercised — which is the point of this scenario.
+	const nonce = `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	const messages: Message[] = [
-		{ role: "system", content: ctx.system },
+		{ role: "system", content: `[bench nonce ${nonce}]\n${ctx.system}` },
 		{ role: "user", content: ctx.user },
 	];
 	const out: Measure[] = [];
