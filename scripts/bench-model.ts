@@ -185,9 +185,29 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 	let ttft: number | null = null;
 	let usage: Record<string, unknown> = {};
 	let text = "";
+	const failed = (message: string): Measure => ({ scenario, turn, ttft_ms: null, total_ms: Math.round(performance.now() - started), prompt_tokens: 0, cached_tokens: 0, completion_tokens: 0, prefill_tokens: 0, prefill_tok_s: null, decode_tok_s: null, cached_ratio: null, usage: {}, error: message });
+	// Three failures that look alike in a log and call for different actions: the endpoint is not
+	// there, the endpoint answered and refused, or the answer broke mid-stream. Saying "unreachable"
+	// for a server that replied sends the next operator looking in the wrong place.
+	let res: Response;
 	try {
-		const res = await fetch(`${BASE}/chat/completions`, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
-		if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+		res = await fetch(`${BASE}/chat/completions`, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+	} catch (error) {
+		return failed(`point d'accès injoignable (${BASE}) : ${(error as Error).message}`);
+	}
+	if (!res.ok) {
+		const raw = (await res.text()).trim();
+		let detail = raw;
+		try {
+			const parsed = JSON.parse(raw) as { error?: { message?: string; type?: string } };
+			if (parsed.error?.message) detail = parsed.error.message;
+		} catch {
+			/* the server did not answer json; the raw body is what there is */
+		}
+		return failed(`le serveur a répondu HTTP ${res.status} — ${detail.length > 600 ? `${detail.slice(0, 600)}…` : detail}`);
+	}
+	if (!res.body) return failed(`le serveur a répondu HTTP ${res.status} sans corps à lire`);
+	try {
 		const reader = res.body.getReader();
 		const decoder = new TextDecoder();
 		let buffer = "";
@@ -213,7 +233,7 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 			}
 		}
 	} catch (error) {
-		return { scenario, turn, ttft_ms: null, total_ms: performance.now() - started, prompt_tokens: 0, cached_tokens: 0, completion_tokens: 0, prefill_tokens: 0, prefill_tok_s: null, decode_tok_s: null, cached_ratio: null, usage: {}, error: (error as Error).message };
+		return failed(`flux interrompu après ${Math.round(performance.now() - started)} ms : ${(error as Error).message}`);
 	}
 	const total = performance.now() - started;
 	const prompt = Number(usage["prompt_tokens"] ?? 0);
@@ -354,6 +374,23 @@ function summarize(rows: Measure[]): Record<string, unknown> {
 const wanted = SCENARIO === "all" ? ["prefill", "decode", "agentic"] : [SCENARIO];
 const config = await fingerprint();
 console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(config["engine_type"] ?? "?")} · profil ${String(config["active_profile_name"] ?? "aucun")}`);
+
+// A model the server has not loaded yet answers its first request with the load in it — on this
+// machine some thirty seconds of weights and ANE warm-up. Measured, that would be charged to the
+// first prompt of whichever scenario ran first, and two runs would compare a cold load with a warm
+// one. One unmeasured request pays for it.
+{
+	const warm = await call("warmup", 0, [{ role: "user", content: "ok" }], 4, null, false);
+	const loaded = Number(warm.usage["model_load_duration"] ?? 0);
+	if (warm.error) {
+		console.error(`préchauffage refusé : ${warm.error}`);
+		// A model whose load failed is still listed by /v1/models and carries no flag in the admin
+		// listing, so nothing short of a request reveals it. The refusal is the diagnosis.
+		console.error("rien n'est mesuré : aucune ligne de ce passage ne serait comparable.");
+		process.exit(1);
+	}
+	console.error(`préchauffage: ${(warm.total_ms / 1000).toFixed(1)} s${loaded > 0 ? ` dont ${loaded.toFixed(1)} s de chargement` : " (modèle déjà résident)"}`);
+}
 
 const rows: Measure[] = [];
 for (const name of wanted) {

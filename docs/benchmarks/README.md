@@ -51,6 +51,16 @@ Trois pièges, tous rencontrés à la première exécution :
 - le serveur impose son propre échantillonnage quand `force_sampling` est vrai : la longueur des
   réponses varie d'un passage à l'autre. D'où les répétitions et les médianes.
 
+## Quand le banc refuse de mesurer
+
+Il sort en code 1 sans rien écrire plutôt que de produire des lignes incomparables, et il nomme
+laquelle des trois pannes il a rencontrée : point d'accès injoignable, réponse HTTP de refus — le
+message du serveur est alors repris en entier —, ou flux interrompu en cours de génération.
+
+Un contrôle préalable n'est pas possible : un modèle dont le chargement a échoué reste listé par
+`/v1/models` et ne porte aucun indicateur dans l'API d'administration. Seule une requête révèle son
+état, et c'est le préchauffage qui la paie.
+
 ## Ajouter une mesure
 
 Pour qu'une nouvelle ligne soit comparable aux précédentes :
