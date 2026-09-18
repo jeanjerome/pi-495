@@ -101,7 +101,10 @@ Aux dix conditions de la règle de décision de livraison s'ajoutent les critèr
 
 1. les 93 exigences `[P0]` possèdent un verdict **discriminant** sur leur périmètre applicable, ou
    l'arbitrage humain qui en tient lieu ; un contrôle vert sur la référence n'est pas un verdict ;
-2. TypeScript et Java couvrent les parcours de référence ;
+2. TypeScript et Java couvrent les parcours de référence — **non satisfait** : conduits depuis Pi,
+   les deux parcours s'arrêtent à G2, l'un sur la qualification du capteur de couverture
+   (`chantiers/D`), l'autre sur la commande de test de l'adaptateur node (`chantiers/E`). Ce qui
+   traverse les neuf étapes aujourd'hui est une fixture, pas une cible ;
 3. macOS arm64 et Linux x86-64 sont qualifiés ; L0 a décidé de ne pas revendiquer Linux, donc ce
    critère est aujourd'hui **non satisfait** et le restera tant qu'une machine Linux ne conduira pas
    les campagnes — à moins qu'une révision de l'amont ne retire cette plateforme de la cible ;
@@ -163,6 +166,9 @@ d'application méritent d'être rappelées parce qu'elles sont faciles à contou
 
 - `V4` est obligatoire **pour chaque combinaison revendiquée** de stack et de plateforme. Une
   campagne exécutée une fois, hors suite par défaut, qualifie cette exécution, pas la combinaison.
+  La campagne Maven du 17 septembre 2026 en donne la démonstration : `V4` qualifie le capteur de
+  couverture en lançant elle-même le contrôle qui écrit le rapport, ce que le cycle ne fait pas, et
+  le même capteur échoue donc à se qualifier dès qu'un changement réel le demande.
 - Une indisponibilité externe ne transforme pas une propriété déterministe en propriété
   invérifiable. `V0` à `V3` restent exécutables localement sans modèle réel.
 - Une revue ne remplace pas un contrôle mécanique disponible. Un constat qu'un programme sait rendre

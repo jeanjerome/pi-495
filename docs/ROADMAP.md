@@ -54,6 +54,13 @@ non-aggravation comme critère.
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
 
+Deux capacités de ce tableau sont livrées mais inopposables sur une cible réelle, ce qui change
+l'ordre : le capteur de couverture de QLT-04 ne se qualifie pas dans un cycle — son témoin négatif ne
+reçoit pas le rapport qu'il lit — et aucune cible Maven liant JaCoCo hors profil ne dépasse donc G2
+(`chantiers/D`) ; l'adaptateur node ne lit pas ce que la cible déclare comme commande de test, et une
+cible en vitest n'y passe pas davantage (`chantiers/E`). Tant que ces deux-là tiennent, la
+démonstration qui suit ne s'exerce que sur des fixtures.
+
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont
 classés contre elle et l'instabilité est traitée par une règle gelée dans le protocole. ARC-04 et
 CON-03 en sont sortis : les frontières qu'une cible Maven déclare — direction de dépendance de ses
@@ -171,8 +178,16 @@ de trente minutes ; il ne mute que les classes que le candidat a modifiées, de 
 suit la taille du changement, et son passage de référence ne lance rien puisque la référence
 n'introduit aucune classe.
 
-Trois travaux n'appartiennent pas à cette échelle et peuvent avancer en parallèle : la complétude de
-la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon L0.
+Neuf travaux n'appartiennent pas à cette échelle. Trois peuvent avancer en parallèle : la complétude
+de la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon
+L0. Six sont sortis des campagnes conduites depuis Pi sur des cibles réelles, et deux d'entre eux
+commandent l'ordre plus que les étages : `chantiers/D` — la qualification d'un capteur qui lit le
+rapport d'un autre contrôle, qui bloque l'étage 2 sur toute cible Maven et avec lui la campagne
+réelle — puis `chantiers/F`, une sortie d'intervention refusée qui laisse le changement sans issue,
+ce qu'un cycle avec un modèle rencontre avant tout le reste. Viennent ensuite `chantiers/E` (la
+commande de test d'une cible Node), `chantiers/H` (sous-module, fichier spécial et rétention du
+workspace du candidat), `chantiers/G` (la lisibilité de l'état d'un changement arrêté) et
+`chantiers/I` (ce que Pi rend déjà et que la revue réimplémente).
 
 Chaque étage et chaque travail transverse a sa fiche dans `chantiers/`, avec ses points d'ancrage
 dans le code, ses critères d'acceptation et son journal.

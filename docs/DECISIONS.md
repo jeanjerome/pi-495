@@ -498,6 +498,8 @@ Le constat vient d'une observation dans un vrai terminal. La règle de couches i
 l'identique en RPC, en JSON et en print (ADR-010, UX-11) —, donc la mesure entre par là où les
 styles entrent déjà : l'injection depuis `extension/`.
 **Conséquence.** Ce que l'hôte apporte est un raffinement — graphèmes, largeurs est-asiatiques,
-hyperliens OSC 8 — et non la correction elle-même. `v0/review-surface` éprouve l'invariant avec un
+hyperliens OSC 8 — et non la correction elle-même. Ce qu'il rend par ailleurs — listes, défilement,
+aide clavier — reste hors de la vue tant que `chantiers/I` n'a pas tranché ce que la règle de
+couches protège. `v0/review-surface` éprouve l'invariant avec un
 thème qui émet de vraies séquences : toute ligne rendue occupe la largeur annoncée, et le
 séparateur tient une seule colonne.

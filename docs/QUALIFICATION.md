@@ -82,7 +82,8 @@ avec leurs critères et une conception exécutable.
 `execution_error`, et l'erreur est classée `configuration_error` alors que le noyau la déclare
 réessayable et nomme `retry_specification` comme action suivante. Aucune entrée Pi n'expose cette
 action : le changement reste bloqué. Son dossier s'exporte et se vérifie tout de même
-(`42 files, 370 991 bytes, 0 redactions, verify: ok`).
+(`42 files, 370 991 bytes, 0 redactions, verify: ok`). Ce que cette campagne ouvre est dans
+`chantiers/F`.
 
 ### `node-demo` avec l'agent scripté : le contrôle `unit` ne passe pas sur la référence
 
@@ -110,7 +111,8 @@ la sortie conservée les nomme :
 
 L'instantané de référence de cette cible porte 788 entrées pour 22,2 Mo, dont 761 sous
 `node_modules/` — qui n'est pas exclu — et trois fichiers dépassent la taille digestible : la revue
-les rend en `unknown` et l'instantané est marqué tronqué.
+les rend en `unknown` et l'instantané est marqué tronqué. Les deux causes de l'arrêt et la sémantique
+des exclusions sont reprises dans `chantiers/E`.
 
 ### `simple-demo-hexagonal-architecture` avec l'agent scripté : trois capteurs sur quatre se qualifient
 
@@ -220,6 +222,10 @@ par aucun chemin. Les workspaces de clarification, de préparation et de témoin
 du côté candidat — `readSide` rend `missing: workspace no longer available` s'il manque. La rétention
 est donc porteuse de la relisibilité, en même temps qu'elle est une ressource que rien ne réclame :
 116 Ko ici, mais 151 Mo par tentative sur la cible Maven.
+
+Ces trois faits sont portés par `chantiers/H`. Ce que l'observation de la surface a ouvert sur les
+primitives que l'hôte rend déjà — mesure d'une ligne stylée, composants de liste et de défilement —
+est porté par `chantiers/I`.
 
 ### Ce que la même campagne rend dans un vrai terminal
 

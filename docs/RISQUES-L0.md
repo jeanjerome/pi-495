@@ -26,7 +26,7 @@ Trois issues sont possibles, et une seule est employée par ligne.
 | 3 | Extension tierce avec droits complets | ouvert | `v2/telemetry`, `v1/agent-port` ; inventaire absent |
 | 4 | Sandbox macOS ou Linux incomplète | traité, résiduel nommé | `v1/sandbox`, campagne Linux du 17 septembre 2026 |
 | 5 | SQLite ou CAS corrompu | traité, résiduel nommé | `v2/ledger`, `v2/export-integration` |
-| 6 | Dépôt sale mal restitué | traité | `v2/workspace`, `v2/export-integration` |
+| 6 | Dépôt sale mal restitué | traité, résiduel nommé | `v2/workspace`, `v2/export-integration` ; fichier spécial non restitué |
 | 7 | Sortie ou rapport volumineux | traité, résiduel nommé | `v0/review-parameters`, `v1/sandbox`, `v2/ledger` |
 | 8 | Décision RPC attribuée à tort à un humain | traité | `v0/change-rules`, `v3/pi-rpc-sdk` |
 | 9 | Compaction Pi perdant une obligation | traité | `v2/harness`, `v2/ledger` |
@@ -81,10 +81,19 @@ pagination et les budgets de lecture. `v3/pi-rpc-sdk` établit que RPC, l'hôte 
 même instantané — même `snapshot_id`, mêmes comptes, même texte — et que print, qui ne porte aucune
 charge structurée, en imprime les mêmes lignes.
 
-**Résiduel nommé.** Aucune observation humaine dans un vrai terminal n'a eu lieu. Le rendu est
-vérifié par tests de composant, ce qui ne remplace ni un redimensionnement réel, ni un lecteur
-d'écran, ni un jugement d'accessibilité. Le dossier est écrit et attend son autorité —
-`revues/R4-ux-accessibilite.md`.
+**Ce qu'une première observation dans un vrai terminal a établi.** Le 17 septembre 2026, l'état
+d'un changement arrêté puis un candidat complet ont été relus dans le TUI. `ctx.ui.custom()` porte la
+surface : rien n'est tronqué, les blocs OLD/NEW se lisent sans préfixe de diff ni numéro de ligne, la
+liaison se retrouve par le répertoire courant. Elle a aussi trouvé ce qu'aucun test de composant ne
+pouvait rendre : les deux panneaux n'étaient pas alignés, la largeur d'une ligne étant mesurée sur la
+chaîne déjà stylée, dix colonnes perdues par couleur — le thème des tests n'émet aucune séquence,
+donc la largeur y était juste par construction. Clos par un contrôle (`D-35`,
+`v0/review-surface`). Trois écarts de lisibilité restent ouverts dans `chantiers/G`.
+
+**Résiduel nommé.** L'observation est celle de l'auteur, à une seule largeur au-dessus du seuil du
+mode étroit, sans lecteur d'écran et sans norme nommée à l'amont : ni l'autorité ni l'environnement
+complet de la revue ne sont réunis. Le mode étroit et la progression d'un cycle réel restent
+inobservés. Le dossier est écrit et attend son autorité — `revues/R4-ux-accessibilite.md`.
 
 ## 3. Extension tierce avec droits complets
 
@@ -170,7 +179,9 @@ C'est un risque d'exploitation, pas d'intégrité, et il est enregistré comme t
 **Traitement envisagé.** Snapshot complet, workspace matérialisé et intégration comparée.
 **Preuve attendue.** `C-CAN`, `C-GIT`, `F-NOHEAD`.
 
-**Décision.** Le traitement est retenu tel quel, et livré en entier.
+**Décision.** Le traitement est retenu tel quel, et livré pour les fichiers, les liens symboliques
+et les répertoires. Un genre d'entrée n'est pas restitué, et un autre n'est jamais produit — voir le
+résiduel.
 
 **Preuve.** `v2/workspace` couvre les cinq situations d'entrée, dont `F-NOHEAD` — un dépôt Git sans
 `HEAD` garde les fichiers de l'utilisateur inventoriés comme préexistants, sans erreur Git — et le
@@ -179,6 +190,15 @@ commité. Le workspace est matérialisé à part : le worker y écrit, jamais da
 manifeste liste ajouts, modifications, suppressions, changements de mode et de lien symbolique.
 L'identité d'un candidat suit son contenu et non le nom de son workspace. `v2/export-integration`
 tient l'intégration comparée : destination revalidée, conflit, réconciliation.
+
+**Résiduel nommé.** Deux genres d'entrée échappent à cette restitution, mesurés le 17 septembre 2026.
+Un fichier spécial — tube nommé, socket, périphérique — est inventorié en `special` mais n'est pas
+recopié dans le workspace, qui ne reçoit que fichiers et liens : la comparaison rend alors une
+suppression que personne n'a faite, et ce chemin entre dans `selected_paths`, donc dans l'empreinte
+du candidat. Un sous-module n'est jamais produit comme tel — le genre `submodule` est déclaré au
+contrat et inatteignable —, si bien qu'il passe pour un répertoire ordinaire et que son fichier
+`.git` est présenté comme du contenu de projet. `chantiers/H` porte les deux, avec la rétention du
+workspace du candidat dont la revue dépend.
 
 ## 7. Sortie ou rapport volumineux
 
@@ -197,6 +217,10 @@ paramètres sur la fixture `F-LARGE` de `test/fixtures/review-corpus.ts` : charg
 avec ce qui n'est pas encore chargé annoncé et atteignable, fichier au-dessus du budget de lecture
 typé `too_large` avec sa taille et toujours présent dans l'arbre, et aucune action de revue perdue
 par le rétrécissement du terminal.
+
+Ces trois paramètres ont depuis été observés hors fixture : sur un candidat réel portant un fichier
+de 3 145 688 octets, la page rendue est bien `too_large`, aucune ligne n'est lue, et la taille reste
+affichée — le budget de lecture de 2 Mio se comporte sur un arbre réel comme sur le corpus.
 
 **Résiduel nommé.** `C-PERF` n'a pas été exécuté : aucune mesure p95, aucune dispersion, aucune
 baseline. `NFR-04` est annoncée non mesurée dans `STATUS.md`. Les bornes existent, les temps ne sont
