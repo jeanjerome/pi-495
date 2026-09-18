@@ -29,6 +29,7 @@ Ce qui a été construit, dans quel état, et prouvé par quoi. Vivant : actuali
 | [DECISIONS.md](DECISIONS.md) | Décisions prises pendant l'implémentation, avec motif et conséquence. |
 | [RISQUES-L0.md](RISQUES-L0.md) | Les dix risques de la conception technique §16 : pour chacun, la décision de traitement retenue et la preuve qui la soutient, ou le travail qui manque. |
 | [revues/](revues/README.md) | Les six revues obligatoires de qualification : le dossier de chacune, et les constats de celles qui sont conduites. |
+| [MODELE-LOCAL.md](MODELE-LOCAL.md) | Installation d'oMLX et configuration du modèle local des deux côtés, oMLX et Pi, avec les pièges qui rendent un modèle inchargeable. |
 | [benchmarks/](benchmarks/README.md) | Vitesse du modèle sous la charge que le harnais envoie : protocole, table de comparaison et une fiche par mesure. |
 
 `TRACEABILITY.md` est le pont entre les deux natures : elle relie chaque exigence amont au code et
