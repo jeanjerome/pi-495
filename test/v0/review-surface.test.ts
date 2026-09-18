@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { ReviewSurface, fit } from "../../src/presentation/tui/review-surface.ts";
+import { ReviewSurface, fit, stripSequences, visibleLength } from "../../src/presentation/tui/review-surface.ts";
 import { buildSnapshot, type ChangePage, type ContentPage } from "../../src/application/review.ts";
 import type { ManifestEntry, ReferenceSnapshot, CandidateManifest } from "../../src/contracts/v1/candidate.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -98,5 +98,27 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 	it("fit truncates by visible characters", () => {
 		assert.equal([...fit("héllo wörld", 5)].length, 5);
 		assert.equal(fit("ab", 4), "ab  ");
+	});
+	it("fit measures the text a theme styled, not the escape sequences it wrapped around it", () => {
+		const styled = `${ESC}[31mabc${ESC}[39m`;
+		assert.equal(visibleLength(styled), 3, "three printed characters");
+		assert.equal(visibleLength(fit(styled, 10)), 10, "padded to the announced width");
+		assert.equal(fit(styled, 2), "a…", "a line cut on its visible text");
+		assert.ok(!fit(styled, 2).includes(ESC), "no sequence leaks out of a cut");
+		assert.equal(visibleLength(`${ESC}]8;;https://example.invalid${ESC}\\link${ESC}]8;;${ESC}\\`), 4, "a hyperlink prints its label only");
+	});
+	it("pads every row to the announced width once a theme has styled it, so the panes stay aligned (UX-08)", async () => {
+		const paint = (code: string) => (s: string) => `${ESC}[${code}m${s}${ESC}[39m`;
+		const styles = { added: paint("32"), modified: paint("33"), deleted: paint("31"), renamed: paint("36"), intact: paint("90"), selected: paint("7"), dim: paint("90"), header: paint("1"), oldBlock: paint("31"), newBlock: paint("32"), focus: paint("1"), warn: paint("33") };
+		const snap = buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" });
+		const s = new ReviewSurface({ snapshot: snap, query, styles, rows: () => 14, onExit: () => {}, requestRender: () => {} });
+		s.selectPath("src/a.js");
+		s.render(120);
+		await tick();
+		s.invalidate();
+		const lines = s.render(120);
+		assert.deepEqual([...new Set(lines.map((l) => visibleLength(l)))], [120], "every row is padded to the width it was asked for");
+		const columns = [...new Set(lines.map((l) => stripSequences(l).indexOf("│")).filter((c) => c >= 0))];
+		assert.equal(columns.length, 1, `the separator sits at one column, saw ${JSON.stringify(columns)}`);
 	});
 });

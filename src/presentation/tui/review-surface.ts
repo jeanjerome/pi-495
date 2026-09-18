@@ -51,9 +51,69 @@ export function treeRowOverhead(depth: number): number {
 	return 2 * depth + 4;
 }
 
+/**
+ * Columns a line actually occupies once a theme has styled it. The escape sequences a style wraps
+ * around a value are not printed: counting them as characters pads the line short by their length,
+ * and the separator between the two panes then lands at a different column on every row — ten
+ * columns of drift for a single colour, which no test on unstyled lines can see (UX-08).
+ */
+export function visibleLength(s: string): number {
+	let count = 0;
+	for (let i = 0; i < s.length; i++) {
+		const skipped = sequenceLength(s, i);
+		if (skipped > 0) {
+			i += skipped - 1;
+			continue;
+		}
+		if (s.codePointAt(i)! > 0xffff) i++;
+		count++;
+	}
+	return count;
+}
+
+/** Length of the terminal sequence starting at `i`, or 0 when nothing starts there. */
+function sequenceLength(s: string, i: number): number {
+	if (s.charCodeAt(i) !== 0x1b) return 0;
+	const next = s[i + 1];
+	if (next === "[") {
+		let j = i + 2;
+		while (j < s.length && (s.charCodeAt(j) < 0x40 || s.charCodeAt(j) > 0x7e)) j++;
+		return Math.min(j + 1, s.length) - i;
+	}
+	if (next === "]") {
+		let j = i + 2;
+		while (j < s.length && s.charCodeAt(j) !== 0x07 && !(s.charCodeAt(j) === 0x1b && s[j + 1] === "\\")) j++;
+		return Math.min(j + (s.charCodeAt(j) === 0x1b ? 2 : 1), s.length) - i;
+	}
+	return 1;
+}
+
+/** The same line stripped of every terminal sequence: what is left is exactly what is printed. */
+export function stripSequences(s: string): string {
+	let out = "";
+	for (let i = 0; i < s.length; i++) {
+		const skipped = sequenceLength(s, i);
+		if (skipped > 0) {
+			i += skipped - 1;
+			continue;
+		}
+		out += s[i];
+	}
+	return out;
+}
+
+/**
+ * Pads or cuts a line to an announced width. Cutting inside an escape sequence would leak it to the
+ * terminal, so a line that must be cut is cut on its visible text and loses the styling that
+ * straddled the cut. What this measures is code points, not terminal cells: a host that knows its
+ * own terminal — graphemes, east-asian widths, hyperlinks — injects its measure through
+ * `SurfaceOptions.fit`, and `extension/review-command.ts` passes the one Pi uses for every other
+ * surface. The invariant itself stays here, so it holds whatever the host injects.
+ */
 export function fit(s: string, width: number): string {
-	const chars = [...s];
-	if (chars.length <= width) return s + " ".repeat(width - chars.length);
+	const visible = visibleLength(s);
+	if (visible <= width) return s + " ".repeat(width - visible);
+	const chars = [...stripSequences(s)];
 	if (width <= 1) return chars.slice(0, width).join("");
 	return `${chars.slice(0, width - 1).join("")}…`;
 }
@@ -69,12 +129,15 @@ export interface SurfaceOptions {
 	requestRender: () => void;
 	initialPath?: string | null;
 	language?: "fr" | "en";
+	/** How the host measures and pads a styled line; defaults to `fit`. */
+	fit?: (text: string, width: number) => string;
 }
 
 export class ReviewSurface {
 	readonly snapshot: ReviewSnapshot;
 	private readonly query: ReviewQuery;
 	private readonly st: Styles;
+	private readonly fitLine: (text: string, width: number) => string;
 	private readonly opts: SurfaceOptions;
 	expanded = new Set<string>();
 	changedOnly = true;
@@ -97,6 +160,7 @@ export class ReviewSurface {
 		this.snapshot = options.snapshot;
 		this.query = options.query;
 		this.st = options.styles ?? PLAIN;
+		this.fitLine = options.fit ?? fit;
 		this.opts = options;
 		for (const row of flatten(this.snapshot.root, false)) if (row.node.kind === "directory") this.expanded.add(row.node.path);
 		if (options.initialPath) this.selectPath(options.initialPath);
@@ -265,9 +329,9 @@ export class ReviewSurface {
 		const s = this.snapshot;
 		const L = this.opts.language === "en" ? EN : FR;
 		const head = `${L.review} ${s.change_id} · ${L.ref} ${s.reference.head_commit ? s.reference.head_commit.slice(0, 10) : s.reference.kind} → ${L.cand} ${s.candidate ? `${s.candidate.candidate_id} (${s.candidate.manifest_digest.slice(7, 19)})` : L.none} · ${s.fresh ? L.fresh : this.st.warn(`${L.newer} ${s.newer_candidate} (r)`)}${s.complete ? "" : this.st.warn(` · ${L.incomplete}`)}`;
-		out.push(this.st.header(fit(neutralize(head), width)));
+		out.push(this.st.header(this.fitLine(neutralize(head), width)));
 		const counts = `${L.counts}: A${s.counts.added} M${s.counts.modified} D${s.counts.deleted} R${s.counts.renamed + s.counts["renamed?"]} =${s.counts.intact} · ${this.changedOnly ? L.changedOnly : L.allPaths}${this.search ? ` · /${this.search}` : ""}`;
-		out.push(this.st.dim(fit(counts, width)));
+		out.push(this.st.dim(this.fitLine(counts, width)));
 		const bodyRows = rows - 4;
 		const node = this.current();
 		if (node) this.ensureLoaded(node, bodyRows);
@@ -275,11 +339,11 @@ export class ReviewSurface {
 		const readerWidth = narrow ? width : width - treeLines.width - 1;
 		const readerLines = this.renderReader(node, readerWidth, bodyRows, L);
 		for (let i = 0; i < bodyRows; i++) {
-			if (narrow) out.push(this.narrowPane === "tree" ? (treeLines.lines[i] ?? fit("", width)) : (readerLines[i] ?? fit("", width)));
-			else out.push(`${treeLines.lines[i] ?? fit("", treeLines.width)}│${readerLines[i] ?? fit("", readerWidth)}`);
+			if (narrow) out.push(this.narrowPane === "tree" ? (treeLines.lines[i] ?? this.fitLine("", width)) : (readerLines[i] ?? this.fitLine("", width)));
+			else out.push(`${treeLines.lines[i] ?? this.fitLine("", treeLines.width)}│${readerLines[i] ?? this.fitLine("", readerWidth)}`);
 		}
 		const ctx = node ? `${LABEL[node.status]} · ${node.path}${node.old_path ? ` (${L.from} ${node.old_path})` : ""}${node.limits.length ? ` · ${this.st.warn(node.limits.join("; "))}` : ""}` : L.noSelection;
-		out.push(this.st.dim(fit(neutralize(ctx), width)));
+		out.push(this.st.dim(this.fitLine(neutralize(ctx), width)));
 		// No review operation may vanish (`specification-fonctionnelle.md` §16). The labelled help is
 		// 123 columns wide, so any terminal narrower than that would have actions cut off its end.
 		// The compact form names the same keys without their labels: it is used whenever the labelled
@@ -287,7 +351,7 @@ export class ReviewSurface {
 		const prefix = this.searching ? `/${this.search}▏ ` : "";
 		const pane = narrow ? ` [${this.narrowPane === "tree" ? L.tree : L.reader}]` : "";
 		const labelled = `${prefix}${L.help}${pane}`;
-		out.push(this.st.dim(fit([...labelled].length <= width ? labelled : `${prefix}${L.helpKeys}${pane}`, width)));
+		out.push(this.st.dim(this.fitLine(visibleLength(labelled) <= width ? labelled : `${prefix}${L.helpKeys}${pane}`, width)));
 		this.cachedLines = out.slice(0, rows);
 		this.cachedWidth = width;
 		return this.cachedLines;
@@ -307,11 +371,11 @@ export class ReviewSurface {
 			const agg = n.kind === "directory" ? this.st.dim(` ${Object.entries(n.aggregate).filter(([k]) => k !== "intact").map(([k, v]) => `${SYMBOL[k as PathStatus]}${v}`).join(" ")}`) : "";
 			const text = `${"  ".repeat(r.depth)}${marker}${sym} ${neutralize(n.name)}${n.kind === "directory" ? "/" : ""}${n.old_path ? this.st.dim(` ← ${neutralize(n.old_path)}`) : ""}${agg}`;
 			const colored = n.kind === "directory" ? text : this.color(n.status, text);
-			const line = fit(colored, width);
+			const line = this.fitLine(colored, width);
 			lines.push(i === this.selected ? (this.focus === "tree" ? this.st.selected(this.st.focus(line)) : this.st.selected(line)) : line);
 		}
-		while (lines.length < height) lines.push(fit("", width));
-		if (rows.length === 0) lines[0] = fit(this.st.dim("(vide)"), width);
+		while (lines.length < height) lines.push(this.fitLine("", width));
+		if (rows.length === 0) lines[0] = this.fitLine(this.st.dim("(vide)"), width);
 		return { lines, width };
 	}
 
@@ -328,7 +392,7 @@ export class ReviewSurface {
 	private renderReader(node: ReviewNode | null, width: number, height: number, L: typeof FR): string[] {
 		const lines: string[] = [];
 		const title = node ? `${L.modes[this.mode]} — ${neutralize(node.path)}` : L.modes[this.mode];
-		lines.push(this.st.header(fit(this.focus === "reader" ? this.st.focus(title) : title, width)));
+		lines.push(this.st.header(this.fitLine(this.focus === "reader" ? this.st.focus(title) : title, width)));
 		const body: string[] = [];
 		if (!node) body.push(L.noSelection);
 		else if (node.kind === "directory") {
@@ -354,9 +418,9 @@ export class ReviewSurface {
 		}
 		if (this.readerScroll > Math.max(0, body.length - 1)) this.readerScroll = Math.max(0, body.length - 1);
 		const visible = body.slice(this.readerScroll, this.readerScroll + height - 1);
-		for (const b of visible) lines.push(fit(b, width));
-		while (lines.length < height) lines.push(fit("", width));
-		if (body.length > height - 1) lines[height - 1] = this.st.dim(fit(`${L.lines} ${this.readerScroll + 1}-${Math.min(body.length, this.readerScroll + height - 1)}/${body.length}`, width));
+		for (const b of visible) lines.push(this.fitLine(b, width));
+		while (lines.length < height) lines.push(this.fitLine("", width));
+		if (body.length > height - 1) lines[height - 1] = this.st.dim(this.fitLine(`${L.lines} ${this.readerScroll + 1}-${Math.min(body.length, this.readerScroll + height - 1)}/${body.length}`, width));
 		return lines;
 	}
 
@@ -384,12 +448,12 @@ export class ReviewSurface {
 				}
 			}
 		}
-		return out.map((l) => fit(l, width));
+		return out.map((l) => this.fitLine(l, width));
 	}
 
 	private renderContent(page: ContentPage, width: number): string[] {
-		if (page.kind !== "text") return [this.st.warn(`${page.kind}`), JSON.stringify(page.metadata)].map((l) => fit(l, width));
-		const out = page.lines.map((l) => fit(neutralize(l), width));
+		if (page.kind !== "text") return [this.st.warn(`${page.kind}`), JSON.stringify(page.metadata)].map((l) => this.fitLine(l, width));
+		const out = page.lines.map((l) => this.fitLine(neutralize(l), width));
 		if (page.truncated) out.push(this.st.warn(`… ${page.total_lines - page.start_line + 1 - page.lines.length} lignes non chargées`));
 		return out;
 	}

@@ -1,4 +1,5 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { ChangePage, ContentPage, PathStatus, ReviewSnapshot } from "../application/review.ts";
 import { ReviewSurface, type Styles } from "../presentation/tui/review-surface.ts";
 
@@ -8,7 +9,10 @@ type Review = { snapshot: ReviewSnapshot; changes(path: string, status: PathStat
 export async function openReviewTui(ctx: ExtensionCommandContext, review: Review, lang: "fr" | "en"): Promise<void> {
 	await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
 		const styles: Styles = { added: (s) => theme.fg("success", s), modified: (s) => theme.fg("warning", s), deleted: (s) => theme.fg("error", s), renamed: (s) => theme.fg("accent", s), intact: (s) => theme.fg("muted", s), selected: (s) => theme.bg("selectedBg", s), dim: (s) => theme.fg("dim", s), header: (s) => theme.bold(s), oldBlock: (s) => theme.fg("toolDiffRemoved", s), newBlock: (s) => theme.fg("toolDiffAdded", s), focus: (s) => theme.bold(s), warn: (s) => theme.fg("warning", s) };
-		const surface = new ReviewSurface({ snapshot: review.snapshot, query: { changes: review.changes, content: review.content }, styles, rows: () => Math.max(10, (tui.terminal.rows ?? 24) - 2), onExit: () => done(), requestRender: () => tui.requestRender(), language: lang });
+		// The columns a styled line occupies are the host's business, not the view's: Pi measures its
+		// own surfaces with graphemes, east-asian widths and hyperlinks in mind, and the review is
+		// measured the same way rather than by a second implementation that would drift from it.
+		const surface = new ReviewSurface({ snapshot: review.snapshot, query: { changes: review.changes, content: review.content }, styles, fit: (text, width) => truncateToWidth(text, width, "…", true), rows: () => Math.max(10, (tui.terminal.rows ?? 24) - 2), onExit: () => done(), requestRender: () => tui.requestRender(), language: lang });
 		return { render: (w) => surface.render(w), invalidate: () => surface.invalidate(), handleInput: (d) => surface.handleInput(d) };
 	});
 }
