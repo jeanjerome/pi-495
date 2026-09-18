@@ -462,6 +462,8 @@ fichiers écrits hors mandat, un atelier de compilation manuelle à la racine du
 modèle s'est fabriqué pour contrôler son travail lui-même. Le mandat n'autorise que les trois racines
 `src/test/`.
 
+Ce refus n'est pas une faute du modèle mais une contradiction du prompt, instruite dans `chantiers/J`.
+
 C'est cet atelier qui consomme le budget : l'intervention atteint le plafond de
 `tool_calls_per_intervention` et est abandonnée par le noyau (`BUDGET_EXHAUSTED`, puis
 `handle.abort`), après 100 appels, 38,2 min et 6 125 866 jetons connus. Le plafond n'est donc pas la
