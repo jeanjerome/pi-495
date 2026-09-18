@@ -34,9 +34,18 @@ function technicalDetail(evidence: EvidenceCandidate): string {
 	return facts.join(", ");
 }
 
-export async function qualifyControlDetailed(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">): Promise<DetailedQualification> {
+/**
+ * Qualifies one control. `prerequisites` are the controls that write the reports it reads, in the
+ * order they run in: a sensor that measures nothing of its own is asked nothing meaningful in a
+ * workspace where they have not run, and a witness workspace is a fresh copy of the reference. What
+ * they answer there is not the question — only their effect on the tree is (VER-05, QLT-04).
+ */
+export async function qualifyControlDetailed(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">, prerequisites: readonly ControlDefinition[] = []): Promise<DetailedQualification> {
 	const run = async (path: string, c: ControlDefinition, files: Record<string, string>) => (await runner.runControl({ ...base, control: c, workspace_path: path, introduced_lines: introducedByAddedFiles(files) })).evidence;
+	const produce = async (path: string, files: Record<string, string>) => { for (const producer of prerequisites) await run(path, producer, files); };
+	await produce(fixtures.positive_path, fixtures.positive_files ?? {});
 	const positiveEvidence = await run(fixtures.positive_path, control, fixtures.positive_files ?? {});
+	await produce(fixtures.negative_path, fixtures.negative_files ?? {});
 	const negativeEvidence = await run(fixtures.negative_path, control, fixtures.negative_files ?? {});
 	const incidentEvidence = await run(fixtures.positive_path, { ...control, command: ["/nonexistent/495-broken-runner", ...control.command.slice(1)] }, fixtures.positive_files ?? {});
 	const positive = positiveEvidence.verdict;
@@ -55,8 +64,8 @@ export async function qualifyControlDetailed(runner: ControlExecutionPort, contr
 	};
 }
 
-export async function qualifyControl(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">): Promise<Qualification> {
-	return (await qualifyControlDetailed(runner, control, fixtures, base)).qualification;
+export async function qualifyControl(runner: ControlExecutionPort, control: ControlDefinition, fixtures: QualificationFixtures, base: Omit<ControlInvocation, "control" | "workspace_path">, prerequisites: readonly ControlDefinition[] = []): Promise<Qualification> {
+	return (await qualifyControlDetailed(runner, control, fixtures, base, prerequisites)).qualification;
 }
 
 /**
@@ -65,7 +74,7 @@ export async function qualifyControl(runner: ControlExecutionPort, control: Cont
  * concern and never changes what the three witnesses would answer.
  */
 export function sensorDigest(control: ControlDefinition): string {
-	return digestValue({ command: control.command, cwd: control.cwd, env: control.env, env_allowlist: control.env_allowlist, network: control.network, parser: control.parser, report_path: control.report_path, timeout_ms: control.timeout_ms, version: control.version, writable_paths: control.writable_paths });
+	return digestValue({ command: control.command, cwd: control.cwd, env: control.env, env_allowlist: control.env_allowlist, network: control.network, parser: control.parser, report_path: control.report_path, requires: control.requires, timeout_ms: control.timeout_ms, version: control.version, writable_paths: control.writable_paths });
 }
 
 /**

@@ -13,6 +13,8 @@
     "parser",
     "report_path",
     "structure_rules",
+    "provides",
+    "requires",
     "scope_argument",
     "network",
     "writable_paths",
@@ -126,6 +128,18 @@
         },
         "$id": "urn:495:contract:structure-rule:1",
         "additionalProperties": false
+      }
+    },
+    "provides": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     },
     "scope_argument": {

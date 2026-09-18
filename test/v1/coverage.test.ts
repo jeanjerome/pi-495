@@ -53,7 +53,7 @@ function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
+	return { control_id: "coverage", version: "1", title: "introduced-line coverage", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "jacoco-xml", report_path: "**/target/site/jacoco", structure_rules: [], provides: [], requires: ["jacoco-report"], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
 }
 
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {

@@ -25,6 +25,7 @@ import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import { decide } from "../domain/change/decide.ts";
 import { runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
 import { matchesScope } from "../domain/gates/g4.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
@@ -536,6 +537,11 @@ export class Harness {
 		try {
 			const detection = detectStack(positive.path, refs);
 			if (detection.controls.length === 0) throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", { nextActions: ["prepare_capabilities"] });
+			// Producers before the sensors that read what they leave in the workspace, read off what each
+			// control declares (VER-05). Two controls waiting on each other have no order at all, and
+			// running them in the one an adapter happened to push into the array would hide it.
+			const ordering = orderControls(detection.controls);
+			if (ordering.cycles.length > 0) throw new DomainError("CONFIGURATION_ERROR", `controls declare a cycle of reports: ${ordering.cycles.join(", ")}`, { nextActions: ["prepare_capabilities"] });
 			const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis => diagnoseControlCapability({ stack: detection.stack, test_files: referenceTestFiles(reference, detection.preparation_paths), requirements: requirements.content.requirements, suite, prepared });
 			// What no existing control can decide is settled before any of them runs: the controls the
 			// protocol may freeze are green on the reference, so none of them changes verdict when a
@@ -558,7 +564,7 @@ export class Harness {
 			const qualifications: Protocol["qualifications"] = {};
 			const observed = { reported: 0, skipped: 0, witnesses: 0, any: false };
 			const base = { protocol: { protocol_id: "qualification", revision: 1, content_digest: digestValue("qualification") } as const, candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id }, subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest }, environment: this.deps.environment, requirement_refs: refs, producer: EXECUTOR_ACTOR };
-			for (const control of detection.controls) {
+			for (const control of ordering.ordered) {
 				const reusable = await this.qualificationAlreadyEstablished(unit.state, control);
 				if (reusable) {
 					this.progress(`control ${control.control_id} keeps its qualification`);
@@ -575,10 +581,14 @@ export class Harness {
 				const ownNegative = detection.own_negative_witness[control.control_id];
 				const negativeFiles = ownNegative ? { ...detection.positive_witness, ...ownNegative } : sharedNegativeFiles;
 				const ownHandle = ownNegative ? await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy) : null;
+				// A sensor that measures nothing of its own reads a report a witness workspace only holds
+				// once the control that writes it has run there. Each witness workspace is a fresh copy of
+				// the reference, so the producers run in it before the sensor is asked anything.
+				const producers = prerequisitesOf(control, ordering.ordered);
 				let detailed: DetailedQualification;
 				try {
 					if (ownHandle) await writeWitness(ownHandle.path, negativeFiles);
-					detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: ownHandle?.path ?? negative.path, positive_files: detection.positive_witness, negative_files: negativeFiles }, base);
+					detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: ownHandle?.path ?? negative.path, positive_files: detection.positive_witness, negative_files: negativeFiles }, base, producers);
 				} finally {
 					if (ownHandle) await this.deps.workspace.closeWorkspace(ownHandle.workspace_id, "delete");
 				}
@@ -603,7 +613,7 @@ export class Harness {
 			// An analyser the target does not provide is an insufficiency the protocol records, not a
 			// silence: a coverage measurement nobody produces never reads as covered code (QLT-02).
 			if (detection.capability_missing.length > 0) diagnosis = { ...diagnosis, notes: [...diagnosis.notes, ...detection.capability_missing] };
-			const controls: ControlDefinition[] = detection.controls.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
+			const controls: ControlDefinition[] = ordering.ordered.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(prepared?.files.map((f) => f.path) ?? [])])] }));
 			// A differential control answers a question every requirement asks, whatever its category: a
 			// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
 			// a responsibility placed in a forbidden module is not demonstrated either, and neither is a

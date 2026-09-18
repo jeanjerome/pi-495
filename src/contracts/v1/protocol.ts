@@ -69,6 +69,19 @@ export const ControlDefinition = Type.Object(
 		/** Architecture rules a structural sensor applies; empty for every other sensor. */
 		structure_rules: Type.Array(StructureRule),
 		/**
+		 * Reports this control leaves in the workspace, named so that another one may read them: the
+		 * Surefire reports and the JaCoCo report a single `mvn test` writes are two of them.
+		 */
+		provides: Type.Array(Type.String()),
+		/**
+		 * Reports this control reads without producing any measurement of its own. The order of the
+		 * controls — of their qualification as of their verification — is derived from these two
+		 * declarations, so the frozen protocol carries it instead of the order of the `controls` array
+		 * (VER-05, QLT-04). A report no control of the protocol writes is already in the tree or absent,
+		 * and the sensor says so itself.
+		 */
+		requires: Type.Array(Type.String()),
+		/**
 		 * Argument that scopes an expensive control to what the subject introduced, `{classes}`
 		 * replaced by the class patterns derived from the frozen candidate. Null for a control that
 		 * judges the whole tree. A subject with nothing to scope is not run at all: a mutation

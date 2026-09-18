@@ -69,7 +69,7 @@ function scopeOf(...paths: string[]): MutationScope {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "mutation", version: "1", title: "surviving mutants on the modified classes", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "pitest-xml", report_path: "**/target/pit-reports", structure_rules: [], scope_argument: `-DtargetClasses=${SCOPE_PLACEHOLDER}`, network: "denied", writable_paths: ["target"], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
+	return { control_id: "mutation", version: "1", title: "surviving mutants on the modified classes", command: [NODE, "-e", ""], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "pitest-xml", report_path: "**/target/pit-reports", structure_rules: [], provides: ["pit-reports"], requires: [], scope_argument: `-DtargetClasses=${SCOPE_PLACEHOLDER}`, network: "denied", writable_paths: ["target"], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["pom.xml"], ...over };
 }
 
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {

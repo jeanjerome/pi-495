@@ -6,6 +6,7 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox, SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { GenericControlRunner, qualifyControl } from "../../src/adapters/execution/runner.ts";
 import { reusableQualification, sensorDigest } from "../../src/application/qualification.ts";
+import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { Protocol, Qualification } from "../../src/contracts/v1/protocol.ts";
 import { parseNodeTestTap, parseJUnit, summarizeJUnit } from "../../src/adapters/execution/parsers.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
@@ -20,7 +21,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const NODE = process.execPath;
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return { control_id: "unit", version: "1", title: "unit tests", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "node-test", report_path: null, structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"], ...over };
+	return { control_id: "unit", version: "1", title: "unit tests", command: [NODE, "--test", "--test-reporter=tap"], cwd: ".", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {}, timeout_ms: 30000, parser: "node-test", report_path: null, structure_rules: [], scope_argument: null, network: "denied", writable_paths: [], provides: [], requires: [], requirement_refs: [{ requirement_id: "R1", revision: 1 }], protected: true, protected_paths: ["test/"], ...over };
 }
 function base(): Omit<ControlInvocation, "control" | "workspace_path"> {
 	return { protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") }, candidate: { candidate_id: "c", manifest_digest: digestValue("c"), base_digest: digestValue("b"), workspace_id: "w" }, subject: { kind: "candidate", id: "c", revision: 1, digest: digestValue("c") }, environment: { environment_id: "env", digest: ENV, profile_id: "verify" }, requirement_refs: [{ requirement_id: "R1", revision: 1 }], producer: EXECUTOR };
@@ -188,5 +189,87 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 		assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence));
 		const mutate = await runner.runControl({ ...base(), control: control({ control_id: "mut", command: [NODE, "-e", 'require("fs").writeFileSync("src/greet.js","x")'], parser: "exit-code" }), workspace_path: ws });
 		assert.equal(mutate.evidence.verdict, "FAIL", "write to the frozen candidate is refused by the sandbox");
+	});
+});
+
+/**
+ * A sensor that produces no measurement of its own and reads the report another control leaves in
+ * the workspace (QLT-04). Its witnesses are only meaningful once that control has run where they
+ * live: a fresh witness workspace carries no report, and an absent measurement is INDETERMINATE.
+ */
+describe("a sensor that reads the report another control writes (VER-05, PRE-03)", () => {
+	const SUITE = [
+		'import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";',
+		'const list = (dir) => { try { return readdirSync(dir).filter((f) => f.endsWith(".js")).sort(); } catch { return []; } };',
+		'const xml = (name, cases) => `<testsuite name="${name}" tests="${cases.length}" failures="${cases.filter((c) => c.failed).length}" errors="0" skipped="0">` + cases.map((c) => c.failed ? `<testcase name="${c.name}" classname="${name}"><failure message="${c.message}">-</failure></testcase>` : `<testcase name="${c.name}" classname="${name}"/>`).join("") + "</testsuite>";',
+		'const tests = list("test");',
+		'const suiteText = tests.map((f) => readFileSync(`test/${f}`, "utf8")).join("\\n");',
+		'const suiteCases = tests.map((f) => ({ name: f, failed: readFileSync(`test/${f}`, "utf8").includes("495-defect"), message: "injected defect" }));',
+		'mkdirSync("target/reports", { recursive: true });',
+		'writeFileSync("target/reports/TEST-suite.xml", xml("suite", suiteCases));',
+		'// the audit is written by the same build, after the suite: a red suite stops it before the measurement',
+		'if (!suiteCases.some((c) => c.failed)) {',
+		'  const auditCases = list("src").map((f) => ({ name: f, failed: !suiteText.includes(f), message: "no test refers to this source" }));',
+		'  mkdirSync("target/audit", { recursive: true });',
+		'  writeFileSync("target/audit/TEST-audit.xml", xml("audit", auditCases));',
+		"}",
+		"process.exit(suiteCases.some((c) => c.failed) ? 1 : 0);",
+	].join("\n");
+
+	function tree(ws: string, over: Record<string, string> = {}): void {
+		const files: Record<string, string> = {
+			"package.json": JSON.stringify({ name: "f-report", version: "1.0.0", type: "module" }, null, 2),
+			"src/feature.js": "export function feature() {\n  return 1;\n}\n",
+			"test/feature.test.js": 'import { feature } from "../src/feature.js";\nif (feature() !== 1) throw new Error("feature");\n',
+			"scripts/suite.js": SUITE,
+			...over,
+		};
+		for (const [rel, content] of Object.entries(files)) {
+			mkdirSync(join(ws, rel, ".."), { recursive: true });
+			writeFileSync(join(ws, rel), content);
+		}
+	}
+
+	const suite = () => control({ control_id: "suite", title: "the build that writes both reports", command: [NODE, "scripts/suite.js"], parser: "junit-xml", report_path: "target/reports", writable_paths: ["target"], provides: ["suite-report", "audit-report"], requires: [] });
+	const audit = () => control({ control_id: "audit", title: "the audit report the build leaves behind", command: [NODE, "-e", ""], parser: "junit-xml", report_path: "target/audit", writable_paths: [], provides: [], requires: ["audit-report"] });
+
+	it("orders the controls by what each declares it writes and reads, names a cycle and lets an external report through", () => {
+		const ordered = orderControls([audit(), suite()]);
+		assert.deepEqual(ordered.ordered.map((c) => c.control_id), ["suite", "audit"], "the reader follows the writer whatever the order of the array");
+		assert.deepEqual(ordered.cycles, []);
+		assert.deepEqual(prerequisitesOf(audit(), ordered.ordered).map((c) => c.control_id), ["suite"]);
+		assert.deepEqual(prerequisitesOf(suite(), ordered.ordered).map((c) => c.control_id), []);
+		// Controls that declare nothing about each other keep the order they are declared in: nothing
+		// separates them but their cost, and only the adapter that proposes them knows it.
+		const independent = orderControls([control({ control_id: "lint" }), control({ control_id: "audit" }), control({ control_id: "unit" })]);
+		assert.deepEqual(independent.ordered.map((c) => c.control_id), ["lint", "audit", "unit"]);
+		// A report no control in the list writes is already there: an external prerequisite blocks nobody.
+		const orphan = orderControls([control({ control_id: "reader", requires: ["written-elsewhere"] })]);
+		assert.deepEqual([orphan.ordered.map((c) => c.control_id), orphan.cycles], [["reader"], []]);
+		// Two controls waiting on each other are named instead of being run in an arbitrary order.
+		const cycle = orderControls([control({ control_id: "x", provides: ["a"], requires: ["b"] }), control({ control_id: "y", provides: ["b"], requires: ["a"] })]);
+		assert.deepEqual(cycle.cycles, ["x", "y"]);
+	});
+
+	it("runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge", async () => {
+		const pos = join(root, "pos");
+		const shared = join(root, "shared");
+		const own = join(root, "own");
+		tree(pos);
+		// The shared negative witness is a failing test: it proves the suite, and stops the build
+		// before the audit is written, which is why the sensor needs a witness workspace of its own.
+		tree(shared, { "test/495-negative-witness.test.js": '// 495-defect\nthrow new Error("injected");\n' });
+		// The defect this sensor claims to detect: a source no test refers to. The suite stays green.
+		tree(own, { "src/orphan.js": "export function orphan() {\n  return 2;\n}\n" });
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+
+		const qs = await qualifyControl(runner, suite(), { positive_path: pos, negative_path: shared }, base());
+		assert.deepEqual([qs.positive, qs.negative, qs.incident, qs.qualified], ["PASS", "FAIL", "INDETERMINATE", true], JSON.stringify(qs.notes));
+
+		// The positive workspace carries the audit report only because the suite was just qualified in
+		// it; the sensor's own negative workspace is a fresh copy where nothing has run.
+		const qa = await qualifyControl(runner, audit(), { positive_path: pos, negative_path: own }, base(), prerequisitesOf(audit(), orderControls([suite(), audit()]).ordered));
+		assert.deepEqual([qa.positive, qa.negative, qa.incident, qa.qualified], ["PASS", "FAIL", "INDETERMINATE", true], JSON.stringify(qa.notes));
+		assert.ok(qa.notes.every((n) => !n.includes("no JUnit report found")), JSON.stringify(qa.notes));
 	});
 });

@@ -12,6 +12,7 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
+import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava } from "../helpers/fixtures.ts";
@@ -47,11 +48,11 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 			const q = await qualifyControl(runner, test, { positive_path: pos, negative_path: neg, positive_files: detection.positive_witness, negative_files: { ...detection.positive_witness, ...detection.negative_witness } }, base);
 			assert.deepEqual([q.positive, q.negative, q.incident, q.qualified], ["PASS", "FAIL", "INDETERMINATE", true], JSON.stringify(q.notes));
 
-			// The coverage sensor reads the report `mvn test` leaves behind, so the test control runs
-			// first in each witness workspace — the order the frozen protocol runs them in.
-			for (const ws of [pos, cov]) await runner.runControl({ ...base, control: test, workspace_path: ws });
+			// The coverage sensor reads the report `mvn test` leaves behind: it declares that report, and
+			// the qualification runs the control that writes it in each of its witness workspaces.
+			assert.deepEqual(prerequisitesOf(coverage, orderControls(detection.controls).ordered).map((c) => c.control_id), ["maven-test"]);
 			const negativeFiles = { ...detection.positive_witness, ...detection.own_negative_witness.coverage! };
-			const qc = await qualifyControl(runner, coverage, { positive_path: pos, negative_path: cov, positive_files: detection.positive_witness, negative_files: negativeFiles }, base);
+			const qc = await qualifyControl(runner, coverage, { positive_path: pos, negative_path: cov, positive_files: detection.positive_witness, negative_files: negativeFiles }, base, [test]);
 			assert.deepEqual([qc.positive, qc.negative, qc.incident, qc.qualified], ["PASS", "FAIL", "INDETERMINATE", true], JSON.stringify(qc.notes));
 
 			// What it blocks on, named at its file, at its line and at its symbol. The two witnesses are
