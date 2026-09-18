@@ -218,6 +218,46 @@ reviewer de sécurité indépendant du producteur, un utilisateur représentatif
 terminal, un responsable produit. Leur dossier est complet, leur conduite ne l'est pas, et ce qui
 manque est nommé dans chacun.
 
+## Sur une cible réelle, le parcours s'arrête à G2, et pas pour la même raison des deux côtés
+
+Le cycle complet de la demande à l'acceptation n'a été mené que sur la fixture F-TS et sur une cible
+de démonstration équivalente, construite pour l'observation : neuf étapes, G0 à G5 en PASS, candidat
+gelé, `unit=PASS lint=PASS`, résultat `accepted`. Conduit depuis
+Pi sous un agent déterministe sur les deux cibles de `~/Projets/495-workspace/cibles/` qu'un
+adaptateur reconnaît, il s'arrête à G2 des deux côtés, pour deux causes indépendantes que
+`QUALIFICATION.md` transcrit. Le seul essai avec le modèle local n'a pas atteint G0 : son rapport de
+spécification a été refusé, ce qui est un troisième constat, à part.
+
+Sur la cible Maven multi-module, trois capteurs sur quatre se qualifient sur leurs trois témoins,
+réseau coupé et sous Seatbelt : la suite Surefire, les frontières d'architecture dérivées des POM, et
+la mutation cadrée sur les classes modifiées. Le quatrième, la couverture des lignes introduites, ne
+peut pas se qualifier : il ne produit aucune mesure, il lit le rapport que `mvn test` laisse dans le
+workspace, et son témoin négatif reçoit un workspace neuf où ce contrôle producteur n'est jamais
+lancé. Sans rapport, la mesure absente est rendue `INDETERMINATE` — le bon verdict pour une mesure qui
+manque — alors qu'un témoin négatif doit rendre `FAIL`. G2 refuse donc de geler le protocole, et
+aucune cible Maven liant JaCoCo hors profil ne peut aujourd'hui dépasser G2 depuis un cycle. Rien
+n'est faux dans le capteur ni dans le parseur : ce qui manque est l'ordre. Le protocole exécute ses
+contrôles dans l'ordre déclaré, la vérification honore cet ordre, la qualification ne le connaît pas ;
+`ControlDefinition` ne déclare aucun producteur pour le rapport qu'un capteur lit. La campagne V4
+échappait au constat parce qu'elle lance le contrôle producteur dans chaque workspace de témoin avant
+de qualifier le capteur.
+
+Sur la cible Node, l'adaptateur déclare le contrôle `unit` comme `node --test --test-reporter=tap` et
+ne lit jamais `scripts.test` : la cible est en vitest, son témoin positif — la référence plus un cas
+passant — échoue sur les deux fichiers de test de la cible, et un contrôle qui ne passe pas sur la
+référence n'est pas qualifiable. C'est un constat sur l'adaptateur, pas sur la cible. Une seconde
+cause s'y ajoute, indépendante de la pile : les exclusions de workspace sont appariées segment par
+segment, si bien qu'un motif d'un seul segment comme `dist/` retire ce répertoire à n'importe quelle
+profondeur, y compris le `dist/` de chaque dépendance installée. Un import nu vers un paquet dont
+l'entrée y réside ne résout donc plus dans la copie de travail, quelle que soit la commande de test.
+
+Ce que les deux campagnes établissent malgré l'arrêt : la détection de pile, le diagnostic de
+capacité, la préparation — un test discriminant écrit par une intervention bornée, jugé `FAIL` sur la
+référence nue puis adopté —, la qualification des capteurs sur trois témoins, les gates G0 à G2, le
+rapport d'ingénierie qui sépare observations, jugements et non-établi, et l'export vérifiable d'un
+changement arrêté fonctionnent depuis l'entrée Pi sur des cibles réelles. Elles n'établissent rien de
+la production de code : les interventions y étaient rejouées depuis un fichier, sans modèle.
+
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
 - Linux x86-64 : **plateforme non revendiquée**, sans état intermédiaire. Le backend bubblewrap est
@@ -227,10 +267,38 @@ manque est nommé dans chacun.
   que le changement s'arrête bien en `capability_missing`, et que l'échec du confinement est
   désormais rendu comme incident plutôt que comme verdict du contrôle de la cible. Voir `D-31`,
   `D-32` et `QUALIFICATION.md`.
-- Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit) ;
-  la revue UX/accessibilité humaine et l'observation dans un vrai terminal restent à faire. Le
-  protocole de conduite est écrit — `revues/R4-ux-accessibilite.md` — et attend un utilisateur
-  représentatif, un terminal réel et une norme d'accessibilité nommée à l'amont.
+- Cycle complet depuis Pi sur une cible réelle : **non atteint**. Le parcours s'arrête à G2, par la
+  qualification du capteur de couverture sur une cible Maven et par la commande de test de
+  l'adaptateur node sur une cible vitest — voir la section ci-dessus, `QUALIFICATION.md` et les
+  fiches `chantiers/D` et `chantiers/E`.
+- Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
+  changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
+  `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée
+  Pi n'expose cette action : le changement est perdu. Observé avec le modèle local sur une cible Node,
+  au premier essai, sur un rapport tronqué d'une accolade fermante. Le texte refusé, lui, est bien
+  conservé et exporté, donc la cause se diagnostique depuis le dossier — voir `chantiers/F`.
+- Cas particuliers d'un arbre (UX-10) : binaire, lien sortant, lien vers un répertoire, exécutable,
+  fichier au-delà du budget de lecture, nom et contenu portant des séquences terminales sont portés
+  et rendus sans tromper le lecteur, mesuré sur un candidat réel. Deux cas ne le sont pas : le genre
+  `submodule` est déclaré au contrat mais jamais produit par l'inventaire — un sous-module passe pour
+  un répertoire et son fichier `.git` pour du contenu de projet —, et un fichier spécial n'est pas
+  recopié dans le workspace, si bien que tout candidat déclare l'avoir supprimé. Voir `chantiers/H`.
+- Revue TUI : rendu et clavier vérifiés par tests de composant (largeur, lignes, mode étroit). Une
+  observation partielle dans un vrai terminal existe désormais, et elle a trouvé ce que les tests de
+  composant ne pouvaient pas voir : les deux panneaux de la revue n'étaient pas alignés, `fit`
+  comptant les séquences d'échappement d'un thème comme des caractères imprimés — dix colonnes
+  perdues par couleur, le séparateur à deux colonnes différentes. Le thème des tests n'émet aucune
+  séquence, donc la largeur y était juste par construction. **Clos** : la vue mesure le texte
+  visible, l'hôte injecte sa propre mesure (`truncateToWidth` de `pi-tui`, la même que Pi emploie
+  partout ailleurs), et `v0/review-surface` éprouve l'invariant sous un thème qui colore (`D-35`).
+  L'état d'un changement arrêté, relu dans le TUI à environ 205 colonnes, n'a rien montré de tronqué
+  mais garde trois écarts de lisibilité —
+  le motif d'arrêt rendu trois fois, la notification de commande qui reprend le titre du programme,
+  et huit des douze risques résiduels du rapport qui sont les traces d'une qualification réussie
+  plutôt que des risques du changement (`revues/R4-ux-accessibilite.md`, `chantiers/G`). Cela ne
+  conduit pas la revue : l'observateur est l'auteur, le mode étroit n'est pas exercé, aucun lecteur
+  d'écran n'a servi, et aucune norme d'accessibilité n'est nommée à l'amont. Le protocole de conduite
+  reste écrit et attend un utilisateur représentatif.
 - Revues obligatoires : les six dossiers existent (`revues/`), avec leur périmètre, leurs critères,
   leurs preuves, leur format de constat et ce qu'un reviewer ne peut pas y conclure. Trois sont
   conduites sur le dépôt lui-même — architecture, licences et distribution, exploitation — et leurs
@@ -250,8 +318,12 @@ manque est nommé dans chacun.
   l'état normatif vit hors de la session Pi, seul le noyau écrit une gate, et l'outil
   conversationnel est en lecture seule — voir `RISQUES-L0.md` §3.
 - Performance (NFR-04) : aucune mesure p95 ; les bornes de flux et de taille existent.
-- Ressources : tout chemin nominal supprime le workspace à sa fermeture, mais une interruption avant
-  la fermeture laisse un orphelin que rien ne reprend, `cleanupTemporaries` du CAS n'est appelé que
+- Ressources : les workspaces de clarification, de préparation et de témoins sont supprimés dans un
+  `finally`, mais **le workspace du candidat de chaque tentative n'est supprimé par aucun chemin** —
+  et c'est lui que la revue lit du côté candidat, si bien que le réclamer rendrait chaque fichier
+  `missing: workspace no longer available`. La rétention porte donc la relisibilité autant que la
+  dette : 116 Ko sur une cible de démonstration, 151 Mo par tentative sur la cible Maven. Une
+  interruption laisse en plus un orphelin que rien ne reprend, `cleanupTemporaries` du CAS n'est appelé que
   par un test, et la base, les objets et les exports croissent sans politique de purge ni
   comptabilité. `~/.495/logs/` est créé et reste vide : aucune trace d'exécution n'existe, et l'état
   n'est lisible par aucun outil en dehors de Pi — voir `revues/R6-exploitation.md`.

@@ -1,6 +1,7 @@
 # R4 — Revue UX et accessibilité
 
-**État :** en attente — l'utilisateur représentatif et l'environnement manquent
+**État :** en attente — l'utilisateur représentatif et l'environnement manquent ; une observation
+partielle dans un vrai terminal est enregistrée plus bas, avec trois constats
 **Sortie exigée (§11) :** résultats des tâches, obstacles, limites et acceptabilité
 **Autorité requise :** un utilisateur représentatif, dans un vrai terminal
 
@@ -86,6 +87,75 @@ pour une interface. Voir [README.md](README.md#format-de-constat).
   des messages ; personne n'a été observé pendant les huit minutes d'un cycle réel.
 - **Que le mode RPC rend la même chose.** `TRACEABILITY.md` le dit explicitement : concordance
   multicanale non exercée en RPC.
+
+## Observation partielle dans un vrai terminal (17 septembre 2026)
+
+Ceci n'est pas la conduite de la revue, et l'état du dossier reste « en attente » : l'observateur est
+l'auteur, l'émulateur est unique, la largeur unique — environ 205 colonnes, donc jamais le mode
+étroit —, aucun lecteur d'écran n'est utilisé et aucune norme n'est nommée à l'amont. Ce qui est levé
+est plus étroit : trois commandes de lecture ont été rendues dans un vrai terminal sur un changement
+réellement arrêté (`chg_mu5y1z75187d74d1ff`, G2 FAIL sur la qualification du capteur de couverture,
+voir `../QUALIFICATION.md`), ce qui correspond à la tâche 5 du protocole proposé — lire le résultat
+d'un changement refusé et dire pourquoi il l'a été — tentée par quelqu'un qui connaît le produit.
+
+Ce qui tient. La liaison se retrouve par le répertoire courant : une session Pi neuve affiche
+`495 verification_design/blocked` en pied de page avant toute commande. Les textes longs sont
+enveloppés à la largeur du terminal, jamais tronqués : les trois identifiants de preuve, le chemin du
+rapport JaCoCo manquant et les deux motifs de G2 sont lisibles intégralement. Le rapport rend ses
+trois sections dans l'ordre et sans mélange — douze observations mécaniques nommant leur sujet
+(`fixture sha256:428b3e0e9780`), trois jugements attribués au noyau, puis les risques résiduels.
+Aucun diagnostic de démarrage n'est annoncé, ce qui est correct : rien d'anormal n'est à dire quand le
+backend est qualifié. `/495 resume` rend le même état à la même révision, comme attendu d'un arrêt
+`capability_missing`.
+
+Trois constats.
+
+| Constat | Sévérité | Statut |
+| --- | --- | --- |
+| **R4-C03.** Le motif d'arrêt est rendu deux fois mot pour mot dans le même écran : `Motif d'arrêt`, puis `Prochaine action`, parce que `nextActionOf` rend `blocked: <stop_reason> — <stop_detail>` pour un changement bloqué. Le détail fait ici environ 500 caractères, soit six des quatorze lignes du statut occupées par le même texte, et le rapport le redonne une troisième fois en `stopped_before_the_end`. Attendu : la cause dite une fois, et une action suivante qui dit quoi faire. Observé : trois fois la même phrase, et aucune action. | `minor` | Ouvert, travail identifié — `../chantiers/G-lisibilite-etat-arrete.md` |
+| **R4-C03.** La notification TUI d'une commande ne reprend que la première ligne du message. Pour `/495 status` c'est le titre du programme et le chemin du projet : la ligne la moins décisive de l'écran. Ce qui motive l'arrêt n'y figure pas. | `minor` | Ouvert, travail identifié — même fiche |
+| **R4-C11.** Huit des douze risques résiduels du rapport sont les traces d'une qualification réussie : l'`INDETERMINATE` du témoin d'incident de chaque contrôle, et la note `spawn error … /nonexistent/495-broken-runner` qui l'accompagne. Ces deux faits sont précisément la preuve que le capteur sait détecter une panne de capteur. Ils portent sur le sujet `fixture`, pas sur le candidat, et la boucle qui construit les risques ne lit pas ce champ — que `controls_are_not_a_proof` utilise pourtant. Attendu : les risques résiduels du changement. Observé : quatre lignes sur douze qui le concernent, dont celle qui nomme la cause de l'arrêt. Sur un changement accepté, la proportion s'inverse sans s'améliorer : quatre traces de témoins pour un seul risque du changement. | `major` | Ouvert, travail identifié — même fiche |
+
+Ce que cette observation ne lève pas : le mode étroit, la conduite d'un cycle réel et sa progression,
+l'accessibilité, et l'acceptabilité par quelqu'un qui n'a pas écrit 495.
+
+### La surface de revue, regardée dans un vrai terminal
+
+Le candidat de la seconde cible de démonstration a été ouvert dans le TUI (`/495 review`). Ce que
+`R4-C07` demande est tenu à l'écran : le lecteur rend « Modifications — test/shout.test.js », la
+borne `1…0 → 1…11`, le bloc `NOUVEAU`, et le code sans préfixe `+`/`-`, sans marqueur de hunk et sans
+numéro de ligne. L'arbre porte les statuts en texte — `M`, `A`, `D` — et un agrégat par répertoire.
+
+Deux observations, dont un constat.
+
+| Constat | Sévérité | Statut |
+| --- | --- | --- |
+| **R4-C08.** Les deux panneaux ne sont pas alignés : le séparateur tombe à une colonne différente selon la ligne. `fit` comptait les points de code de la chaîne **déjà stylée**, or chaque couleur ajoute dix caractères invisibles. Mesuré sur le candidat, à 120 colonnes : les lignes stylées occupaient 110 colonnes, les lignes vides 120, et le séparateur apparaissait aux colonnes 37 et 47. Attendu : une ligne occupe la largeur annoncée. Observé : elle l'occupe moins d'autant que le thème la colore. | `major` | **Clos.** `fit` mesure le texte visible, l'hôte injecte sa propre mesure (`truncateToWidth` de `pi-tui`) par `SurfaceOptions.fit`, et `v0/review-surface` éprouve l'invariant avec un thème qui émet de vraies séquences : toutes les lignes occupent la largeur annoncée, le séparateur tient une colonne. Voir `D-35`. |
+
+Ce constat est exactement ce qu'aucun test de composant ne pouvait rendre : le thème `PLAIN` des
+tests n'émet aucune séquence, donc la largeur y était juste par construction. Il a fallu un vrai
+thème dans un vrai terminal.
+
+Une observation sans constat : l'arbre s'ouvre sur les chemins modifiés seuls — « changements
+uniquement » est le filtre par défaut, `c` bascule vers l'arbre complet. Les cas particuliers
+intacts — le lien vers un répertoire, le fichier au-delà du budget de lecture, le sous-module, le
+fichier au nom hostile — ne sont donc visibles qu'après cette bascule. C'est cohérent pour une revue
+de changement, et c'est à savoir pour instruire `R4-C10`.
+
+### Deux candidats montés pour l'observation, et deux cas que l'arbre ne porte pas
+
+Aucune cible réelle n'atteint un candidat, donc la surface de revue n'avait rien à montrer. Deux
+cibles de démonstration ont été construites hors du dépôt et conduites de la demande à l'acceptation
+avec un agent scripté (`QUALIFICATION.md`) : la première porte un fichier modifié et trois ajoutés,
+la seconde y ajoute les cas particuliers de `R4-C10`. Ce que le modèle de revue rend pour chacun est
+mesuré et transcrit là-bas ; la surface TUI passe chaque ligne affichée — titre, nom de nœud, bloc de
+diff, page de contenu — par `neutralize`, donc un nom de fichier ou un contenu portant des séquences
+terminales est rendu inerte sans que les octets conservés soient touchés.
+
+| Constat | Sévérité | Statut |
+| --- | --- | --- |
+| **R4-C10.** Le genre `submodule` est déclaré par `ENTRY_KINDS` et projeté en `special` par le modèle de revue, mais `walkTree` ne le produit jamais. Un sous-module est inventorié comme un répertoire ordinaire et son fichier `.git` — écarté seulement à la racine — est lu comme du contenu de projet : la page de contenu rend `gitdir: ../../.git/modules/vendor/sub-lib`. Attendu : un sous-module présenté comme tel, ou déclaré non porté. Observé : une frontière invisible et de la plomberie Git présentée comme du code. | `major` | Ouvert, travail identifié — `../chantiers/H-inventaire-cas-particuliers.md` |
+| **R4-C10.** Un fichier spécial est inventorié (`special`, note « special file: not read ») mais n'est pas recopié par `createWorkspace`, qui ne traite que fichiers et liens. Mesuré sur un tube nommé : le candidat rend `deleted special pipe.fifo` et place le chemin dans `selected_paths`. Attendu : un fichier spécial présenté sans tromper le lecteur. Observé : une suppression que personne n'a faite, portée par l'empreinte du candidat. | `major` | Ouvert, travail identifié — même fiche |
 
 ## Ce qui manque pour conduire
 

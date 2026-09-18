@@ -14,7 +14,7 @@ transforme un manque de preuve en succès implicite, ce que §12 point 4 refuse.
 | R1 fonctionnelle | en attente | responsable produit, distinct du producteur | [R1-fonctionnelle.md](R1-fonctionnelle.md) |
 | R2 architecture | conduite le 17/09/2026 | ingénierie, sur le dépôt | [R2-architecture.md](R2-architecture.md) |
 | R3 sécurité | en attente | reviewer indépendant du producteur | [R3-securite.md](R3-securite.md) |
-| R4 UX et accessibilité | en attente | utilisateur représentatif, terminal réel | [R4-ux-accessibilite.md](R4-ux-accessibilite.md) |
+| R4 UX et accessibilité | en attente ; observation partielle dans un vrai terminal, trois constats | utilisateur représentatif, mode étroit, lecteur d'écran, norme nommée | [R4-ux-accessibilite.md](R4-ux-accessibilite.md) |
 | R5 licences et distribution | conduite le 17/09/2026 | ingénierie, sur le dépôt | [R5-licences-distribution.md](R5-licences-distribution.md) |
 | R6 exploitation | conduite le 17/09/2026 | ingénierie, sur le dépôt | [R6-exploitation.md](R6-exploitation.md) |
 
