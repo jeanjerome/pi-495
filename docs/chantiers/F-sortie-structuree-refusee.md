@@ -77,6 +77,17 @@ Critères d'acceptation :
 
 ## Journal
 
+**19 septembre 2026.** Nouvelle occurrence, sur la cible Maven et le modèle `Flash-Next` : campagne
+`~/.495-campagnes/java-flashnext-L`, cinquième rapport de spécification refusé après 17,3 min et
+750 564 jetons, changement perdu en `configuration_error` après 55,5 min de budget d'incrément et
+aucun gate franchi. Deux faits s'ajoutent au constat. Le modèle avait **fini normalement**
+(`finish_reason=stop`, 5 876 jetons côté serveur) : le refus ne vient pas d'une coupure. Et le
+dossier **ne peut pas dire pourquoi** : `worker-main.ts` ne conserve d'une sortie refusée que
+`finalText.slice(0, 20_000)`, le rapport dépassait cette taille, et le motif d'un refus de schéma est
+presque toujours dans la queue du texte — les neuf clés étaient présentes et bien formées dans la
+tête conservée. Conserver la fin, ou les deux bouts, est la condition pour que ce chantier se
+diagnostique depuis le dossier comme `QUALIFICATION.md` le prétend.
+
 **18 septembre 2026, plus tard.** Un second modèle ne rencontre pas le mur. La même demande, sur la
 même cible, conduite avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP` : l'intervention `specify` rend un rapport
 conforme au schéma `specification-report` au premier lancement, en 445 s et 27 appels d'outils. Un

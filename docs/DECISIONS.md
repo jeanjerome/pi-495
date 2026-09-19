@@ -666,5 +666,11 @@ C'est le prix de la fidélité au jugement humain, et il est payé une fois par 
 tours et 28 min 14 s des 120 du budget d'incrément sur la campagne `java-flashnext-L`, pour une cible
 Maven que ce modèle explore en profondeur.
 
+Le mécanisme a un coût qui s'accumule : chaque réouverture oblige le rapport à porter toutes les
+réponses déjà déclarées et les exigences qu'elles engendrent, donc il grossit à chaque tour. Sur
+`java-flashnext-L` le cinquième rapport atteint 17,3 min et 750 564 jetons — le double des précédents
+— et sa sortie structurée est refusée, ce qui perd le changement (`chantiers/F`). La fidélité au
+jugement humain se paie donc aussi en surface de rapport, et non seulement en minutes.
+
 `open_questions` porte `answered_at`, recopié de l'événement `question.answered` : l'heure d'une
 décision est désormais dans l'état projeté et non plus seulement dans le journal.

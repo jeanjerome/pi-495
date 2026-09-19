@@ -342,14 +342,20 @@ constat et `D-37` pour ce qui le corrige.
   (`chantiers/F`), et le second cycle n'a abouti qu'après une reprise sur un endpoint de modèle
   disparu. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de l'adaptateur
   (`chantiers/E`).
-- Fidélité au jugement humain sur une cible réelle : **non établie**. Le défaut est corrigé et tenu
-  par des suites déterministes — une réponse matérielle rouvre la spécification, et G1 refuse des
-  exigences qui ne portent pas une réponse enregistrée (`D-37`) —, mais aucune campagne n'a été
-  reconduite depuis : ce qu'un modèle fait réellement du bloc `answers` qu'on lui demande, et si le
-  protocole gelé assère alors le contrat décidé, reste à mesurer. Le constat d'origine, sur un
-  changement `accepted`, `G0…G5 PASS`, quatre contrôles verts, et retrouvé sur le cycle du 27B où les
-  exigences sont adoptées treize secondes après une réponse qu'elles ne portent pas, est dans
-  `chantiers/L`.
+- Fidélité au jugement humain : **établie jusqu'au rapport de spécification, pas au-delà**. La
+  campagne `java-flashnext-L` du 19 septembre 2026, même cible et même modèle que le constat, montre
+  la réponse « 422 » portée par l'objectif et par les exigences du rapport dès la première
+  réouverture, `R3-contrat-http-400` remplacée par `req-422-contract`, les huit réponses déclarées et
+  liées, et une liaison morte attrapée par son nom. Elle n'a **franchi aucun gate** : le cinquième
+  rapport casse sur une sortie structurée refusée et le changement est perdu (`chantiers/F`). Que les
+  exigences adoptées à G1, le protocole gelé à G2 et les contrôles exécutés portent réellement le
+  contrat décidé reste donc **non mesuré sur une cible réelle**. Le constat d'origine est dans
+  `chantiers/L`, la campagne dans `QUALIFICATION.md`.
+- Convergence de la spécification, et clôture humaine de l'interrogation : **absentes**. Sur la cible
+  Maven, ce modèle pose des questions matérielles à chaque tour — 4, puis 2, puis 2, puis 2 — dont
+  certaines relèvent de `prepare` et de G2 plutôt que de la spécification. `IH-01` n'offre que
+  *répondre* ou *abandonner le changement* : rien ne permet à un humain de déclarer qu'une question
+  n'est plus matérielle et de faire décider avec ce qui est acquis. À verser à `chantiers/L`.
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
   changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
   `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée

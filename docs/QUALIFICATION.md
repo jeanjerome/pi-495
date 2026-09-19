@@ -622,6 +622,84 @@ observations de témoins affichent toutes le digest de la référence comme suje
 témoin positif, le contre-exemple et l'incident d'un même contrôle sont indiscernables, et que des
 `FAIL` et `INDETERMINATE` attendus se lisent comme des échecs. À verser à `chantiers/G`.
 
+### La réouverture de la spécification, éprouvée sur la même cible et le même modèle
+
+Campagne `~/.495-campagnes/java-flashnext-L`, 19 septembre 2026, conduite après `D-37`. Même cible
+Maven, même modèle `Qwen3.8-Flash-Next-MLX-oQ4-MTP` sous `pi-flashnext-01`, même demande au mot près
+que la campagne du 18. L'objet est étroit : une réponse matérielle atteint-elle l'artefact qu'un gate
+adopte ? La campagne **n'a franchi aucun gate**, et ce qu'elle établit tient donc entièrement à ce
+qui précède G0.
+
+#### Le contrat changé ne coûte pas de reprise
+
+`SpecificationReport` porte désormais `answers` en champ obligatoire. Les **quatre** premiers
+rapports valident leur schéma **du premier coup**, `answers` comprise et bien formée. Le risque pesé
+en écrivant `D-37` — un champ requis de plus sur un modèle qui bute déjà sur la sortie structurée —
+ne s'est pas matérialisé sur ces quatre lancements.
+
+#### La réponse atteint l'artefact
+
+Le premier rapport repose le piège du 18 : `R3-contrat-http-400` exige un `400` avant toute réponse.
+La réponse enregistrée est « 422 avec le message 'Name cannot be longer than 50 characters' ». Le
+noyau rouvre la spécification, et **dès le deuxième rapport** l'objectif porte « 422 », « mise à
+jour » et « chaîne trimée », `R3-contrat-http-400` a disparu au profit de `req-422-contract`, et les
+huit réponses finissent déclarées dans `answers`, liées à des exigences obligatoires nommées. Le
+défaut du 18 ne s'est pas reproduit.
+
+Le modèle s'est de surcroît corrigé lui-même d'un tour à l'autre, passant `q-schema-alignment`
+d'`observable: true` portée par une exigence non obligatoire — que G1 aurait refusée — à
+`observable: false`.
+
+#### Le contrôle attrape une liaison morte
+
+Le quatrième rapport lie la décision « sur la chaîne trimée » à `r-threshold-trimmed` en déclarant
+l'exigence `r-threshold-trim**b**ed`. La réponse se lit comme portée et n'est portée par rien. C'est
+la même perte silencieuse que le constat d'origine sous une autre forme, et elle est refusée par le
+nom.
+
+#### Deux règles écrites au banc, démenties par la campagne
+
+La borne de réouverture était un plafond de deux, choisi *a priori* ; la spécification pose des
+questions matérielles à chaque tour — 4, puis 2, puis 2, puis 2 — et le plafond arrêtait une
+spécification qui progressait. Elle est devenue une borne de progression. La règle de G1 exigeait que
+*chaque* exigence nommée soit obligatoire ; le quatrième rapport en nomme une non obligatoire à côté
+de trois qui le sont, ce qui n'est pas un défaut. Elle exige désormais que toutes existent et qu'au
+moins une soit obligatoire. **Aucune des deux n'était visible sur les suites déterministes.**
+
+#### Ce qui l'arrête, et ce que le dossier n'en dit pas
+
+Le cinquième rapport casse : 17,3 min et 750 564 jetons — le double des précédents — et une sortie
+structurée refusée, `configuration_error`. Le modèle a pourtant fini normalement
+(`finish_reason=stop`, 5 876 jetons) et les neuf clés du schéma sont présentes et dans l'ordre dans
+le texte conservé. **La raison du refus est inconnaissable depuis le dossier** : seuls les 20 000
+premiers caractères d'une sortie refusée sont gardés (`worker-main.ts`), et le rapport les dépassait.
+On conserve la tête quand le motif est dans la queue. À verser à `chantiers/F`.
+
+Le changement est alors perdu : `resume` ne lève le blocage que pour `execution_error`, jamais pour
+`configuration_error`. `chantiers/F` et `STATUS.md` le portaient déjà ; la campagne le reproduit avec
+sa conséquence, 55,5 min des 120 du budget d'incrément et aucun gate.
+
+| | |
+| --- | --- |
+| Interventions `specify` | 5 — 10,5 / 9,6 / 8,1 / 10,0 / 17,3 min |
+| Jetons connus | 366 944 / 304 466 / 254 328 / 359 783 / 750 564 |
+| Budget d'incrément | 55,5 min sur 120 |
+| Questions matérielles | 10, toutes répondues |
+| Gates franchis | aucun |
+
+#### Ce que la campagne laisse ouvert
+
+La spécification **ne converge pas** sur cette cible avec ce modèle, et rien ne permet à un humain de
+clore l'interrogation : `IH-01` n'offre que *répondre* ou *abandonner le changement*. Un opérateur
+qui juge qu'une question n'est plus matérielle — `q-mutation-floor` demande si la garde doit être
+verrouillée par des tests unitaires aux deux bornes, ce qui relève de `prepare` et de G2, pas de la
+spécification — n'a rien à opposer. La réouverture est donc rythmée par l'humain, ce qui la borne,
+mais sans terme.
+
+S'y ajoute un coût propre au mécanisme : chaque réouverture oblige le rapport à porter toutes les
+réponses déjà déclarées et les exigences qu'elles engendrent, donc il grossit à chaque tour. C'est
+ce qui a conduit le cinquième dans le mur.
+
 ## Revues obligatoires
 
 Trois des six revues de `amont/conception-verification.md` §11 ont été conduites le 17 septembre

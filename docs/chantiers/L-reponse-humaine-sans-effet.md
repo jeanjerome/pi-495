@@ -1,6 +1,7 @@
 # Transverse L — la réponse à une question matérielle, et l'exigence qui l'ignore
 
-**État :** corrigé dans le noyau, non reconduit en campagne
+**État :** corrigé dans le noyau, éprouvé en campagne jusqu'au rapport de spécification ; aucun gate
+franchi depuis
 **Objet :** une réponse `IH-01` est enregistrée, attribuée, portée au mandat — et n'atteint pas les
 exigences : le noyau réemploie le rapport de spécification écrit avant elle, puis gèle un protocole
 dont l'oracle exige le contraire de ce que l'humain a décidé
@@ -172,6 +173,36 @@ Critères d'acceptation :
 | Dossier de la campagne | `~/.495-campagnes/java-flashnext` |
 
 ## Journal
+
+**19 septembre 2026, après-midi.** Campagne `~/.495-campagnes/java-flashnext-L`, même cible et même
+modèle que le constat, détaillée dans `../QUALIFICATION.md`. Ce qu'elle établit : le champ `answers`
+requis ne coûte pas de reprise sur quatre rapports d'affilée ; la réponse « 422 » atteint l'objectif
+et les exigences du rapport dès la première réouverture, `R3-contrat-http-400` cédant la place à
+`req-422-contract` ; les huit réponses finissent déclarées et liées à des exigences obligatoires ; et
+le contrôle attrape une liaison morte — `r-threshold-trimmed` déclaré `r-threshold-trimbed` — qui
+aurait laissé une décision portée par rien.
+
+Ce qu'elle a démenti : deux règles écrites au banc. La borne de réouverture, plafond de deux choisi
+d'avance, arrêtait une spécification qui progressait — elle est devenue une borne de progression. La
+condition de G1, qui exigeait que *chaque* exigence nommée soit obligatoire, refusait un rapport qui
+en nommait une de plus à côté de trois obligatoires — elle exige désormais que toutes existent et
+qu'au moins une soit obligatoire. Aucune des deux n'était visible sur les suites déterministes.
+
+Ce qu'elle laisse ouvert, et qui appartient à ce chantier :
+
+- **aucun gate franchi.** Le cinquième rapport casse sur une sortie structurée refusée et le
+  changement est perdu (`F`). Que les exigences adoptées à G1, le protocole gelé à G2 et les
+  contrôles portent réellement le contrat décidé reste non mesuré sur une cible réelle ;
+- **la spécification ne converge pas** sur cette cible avec ce modèle, et `IH-01` n'offre que
+  *répondre* ou *abandonner le changement* : rien ne permet à un humain de déclarer qu'une question
+  n'est plus matérielle et de faire décider avec ce qui est acquis. `q-mutation-floor` demandait si
+  la garde devait être verrouillée par des tests unitaires aux deux bornes — ce que `prepare` produit
+  et ce que G2 gèle ;
+- **le rapport grossit à chaque réouverture**, puisqu'il doit porter toutes les réponses déjà
+  déclarées et les exigences qu'elles engendrent. C'est ce qui conduit le cinquième dans le mur, et
+  c'est un coût propre au mécanisme retenu ;
+- **une sortie refusée ne conserve que sa tête**, 20 000 caractères, quand le motif du refus est dans
+  sa queue : le dossier ne peut pas dire pourquoi ce rapport a été refusé. À verser à `F`.
 
 **19 septembre 2026.** Correction, écrite en `D-37`. `stepClarify` ne réemploie plus un rapport qui
 a posé une question matérielle et ne déclare rien de sa réponse : il relance une intervention
