@@ -285,6 +285,29 @@ class Ctx {
 		}
 		if (c.requirements.requirements.length === 0) reasons.push("no requirement identified");
 		for (const [family, status] of Object.entries(c.requirements.contract_families)) if (status === "to_instruct") reasons.push(`contract family ${family} still to instruct`);
+		// A material question was answered by a human and the answer binds this change. What the
+		// requirements do not carry, no obligation covers and no control observes, so the decision
+		// would be lost between the ledger that records it and the artifact that binds the producer.
+		const carried = new Map(c.requirements.answers.map((a) => [a.question_id, a] as const));
+		for (const q of this.state.open_questions) {
+			if (!q.material || q.answer === null) continue;
+			const a = carried.get(q.id);
+			if (!a) {
+				reasons.push(`material answer ${q.id} is absent from the requirements`);
+				continue;
+			}
+			if (a.answer !== q.answer) reasons.push(`material answer ${q.id} differs from the recorded decision`);
+			if (!a.observable) continue;
+			if (a.requirement_ids.length === 0) {
+				reasons.push(`material answer ${q.id} fixes an observable contract that no requirement carries`);
+				continue;
+			}
+			for (const rid of a.requirement_ids) {
+				const r = c.requirements.requirements.find((x) => x.requirement_id === rid);
+				if (!r) reasons.push(`material answer ${q.id} names requirement ${rid}, which this document does not carry`);
+				else if (!r.mandatory) reasons.push(`material answer ${q.id} is carried by ${rid} alone, which is not mandatory: G2 would freeze a protocol without an obligation for it`);
+			}
+		}
 		const evaluated = { requirements: c.requirements_ref.content_digest, mandate: this.state.adopted.mandate?.ref.content_digest ?? "" };
 		if (reasons.length > 0) {
 			this.emit({ type: "gate.decided", ...this.base(), decision: this.gateDecision({ gate: "G1", verdict: "FAIL", evaluated, reasons, evidence_retained: [], evidence_ignored: [], evidence_missing: [], fail_requirements: [], indeterminate_requirements: [], next_action: "revise_requirements" }) });

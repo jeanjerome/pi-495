@@ -26,7 +26,7 @@ function piAvailable(): boolean {
 }
 const skip = !piAvailable() && "pi binary not available";
 
-const SPEC = { objective: "tidy greet", facts: [], assumptions: [], questions: [], out_of_scope: [], risks: [], requirements: [{ requirement_id: "R1", statement: "greet unchanged", mandatory: true, criterion: "tests pass", category: "functional", satisfied_by_reference: true }], design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] } };
+const SPEC = { objective: "tidy greet", facts: [], assumptions: [], questions: [], answers: [], out_of_scope: [], risks: [], requirements: [{ requirement_id: "R1", statement: "greet unchanged", mandatory: true, criterion: "tests pass", category: "functional", satisfied_by_reference: true }], design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] } };
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n";
 const REQUEST = "/495 start tidy greet without behaviour change";
 

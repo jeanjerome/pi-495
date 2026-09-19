@@ -1,6 +1,6 @@
 # Transverse L — la réponse à une question matérielle, et l'exigence qui l'ignore
 
-**État :** ouvert
+**État :** corrigé dans le noyau, non reconduit en campagne
 **Objet :** une réponse `IH-01` est enregistrée, attribuée, portée au mandat — et n'atteint pas les
 exigences : le noyau réemploie le rapport de spécification écrit avant elle, puis gèle un protocole
 dont l'oracle exige le contraire de ce que l'humain a décidé
@@ -172,6 +172,23 @@ Critères d'acceptation :
 | Dossier de la campagne | `~/.495-campagnes/java-flashnext` |
 
 ## Journal
+
+**19 septembre 2026.** Correction, écrite en `D-37`. `stepClarify` ne réemploie plus un rapport qui
+a posé une question matérielle et ne déclare rien de sa réponse : il relance une intervention
+`specify` avec les réponses dans la demande, par la branche `Answered questions:` jusque-là
+inatteignable, une fois par passage en `clarifying` et au plus deux fois par changement.
+`RequirementsDocument` porte un bloc `answers` — question et réponse recopiées du journal, liaison
+aux exigences déclarée par le rapport — et `gateG1`, qui ne consultait jamais `open_questions`, y
+refuse une réponse absente, altérée, observable sans exigence porteuse, ou portée par une exigence
+non obligatoire que G2 laisserait passer sans obligation. `artifact.revise` reste inutilisé : réviser
+fidèlement une exigence, c'est réécrire une phrase que personne ne relit. `IH-02` est construite,
+demandée par les deux gates et liée à l'empreinte de l'artefact adopté ; un refus bloque le
+changement avec son motif. Quatre tests déterministes de `test/v2/harness` tiennent l'ensemble ; les
+deux premiers échouent sur le comportement d'avant — le rapport est réemployé et le changement va
+jusqu'à `closed` avec la réponse perdue.
+
+Ce qui reste : aucune campagne n'a été reconduite depuis, donc ce qu'un modèle fait réellement du
+bloc `answers` n'est pas mesuré.
 
 **19 septembre 2026.** Ouverture. Le constat vient de la reprise de la campagne Flash-Next, conduite
 jusqu'à l'acceptation ce jour-là et transcrite dans `../QUALIFICATION.md`. Il a été lu dans le

@@ -45,6 +45,17 @@ export const SpecificationReport = Type.Object(
 		facts: Type.Array(Type.String()),
 		assumptions: Type.Array(Type.String()),
 		questions: Type.Array(Type.Object({ id: Type.String(), question: Type.String(), material: Type.Boolean() }, { additionalProperties: false })),
+		answers: Type.Array(
+			Type.Object(
+				{
+					question_id: Type.String(),
+					observable: Type.Boolean({ description: "the answer fixes something a control can observe — a status, a message, a bound; false says explicitly that it fixes nothing observable" }),
+					requirement_ids: Type.Array(Type.String(), { description: "the mandatory requirements of this report that carry the answer; empty only when observable is false" }),
+				},
+				{ additionalProperties: false },
+			),
+			{ description: "what this report did with each material question already answered: silence is not a declaration that an answer carries nothing" },
+		),
 		out_of_scope: Type.Array(Type.String()),
 		risks: Type.Array(Type.String()),
 		requirements: Type.Array(Type.Object({ requirement_id: Type.String(), statement: Type.String(), mandatory: Type.Boolean(), criterion: Type.String(), category: Type.String(), satisfied_by_reference: Type.Boolean({ description: "the project as it stands already behaves this way; false when the requirement asks for something it does not do yet" }) }, { additionalProperties: false })),

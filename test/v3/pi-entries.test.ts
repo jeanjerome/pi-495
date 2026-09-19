@@ -37,7 +37,7 @@ function scriptFile(dir: string, spec: unknown, implContent: string): string {
 	writeFileSync(path, JSON.stringify({ default: { steps: [{ kind: "complete", output: spec }] }, roles: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: implContent }, { kind: "complete", output: { summary: "d", changed_paths: ["src/greet.js"], tests_claimed: false, notes: [] } }] } } }));
 	return path;
 }
-const SPEC = { objective: "tidy greet", facts: [], assumptions: [], questions: [], out_of_scope: [], risks: [], requirements: [{ requirement_id: "R1", statement: "greet unchanged", mandatory: true, criterion: "tests pass", category: "functional", satisfied_by_reference: true }], design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] } };
+const SPEC = { objective: "tidy greet", facts: [], assumptions: [], questions: [], answers: [], out_of_scope: [], risks: [], requirements: [{ requirement_id: "R1", statement: "greet unchanged", mandatory: true, criterion: "tests pass", category: "functional", satisfied_by_reference: true }], design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] } };
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n";
 
 describe("Pi entries: print and JSON (C-PI)", { skip }, () => {

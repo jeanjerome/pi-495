@@ -323,7 +323,8 @@ candidat accepté rend `400`.
 Aucun gate ne pouvait le voir, et c'est ce qui rend le constat structurant : la discrimination ne
 dit rien du contrat. Une suite qui assère `400` échoue sur une référence sans borne de longueur
 exactement comme une suite qui assère `422`. La condition de G2, telle qu'elle est écrite, est donc
-insensible à la fidélité de l'oracle au jugement humain qui l'a précédé. Voir `chantiers/L`.
+insensible à la fidélité de l'oracle au jugement humain qui l'a précédé. Voir `chantiers/L` pour le
+constat et `D-37` pour ce qui le corrige.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -341,16 +342,14 @@ insensible à la fidélité de l'oracle au jugement humain qui l'a précédé. V
   (`chantiers/F`), et le second cycle n'a abouti qu'après une reprise sur un endpoint de modèle
   disparu. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de l'adaptateur
   (`chantiers/E`).
-- Fidélité au jugement humain : **non établie**. Une réponse à une question matérielle est
-  enregistrée, attribuée et portée au mandat, mais n'atteint pas les exigences : le noyau réemploie
-  le rapport de spécification écrit avant elle, et le protocole gèle un oracle qui exige le
-  contraire de ce que l'humain a décidé. Observé sur un changement `accepted`, `G0…G5 PASS`, quatre
-  contrôles verts, et retrouvé sur le cycle du 27B, où les exigences sont adoptées treize secondes
-  après une réponse qu'elles ne portent pas. C'est le parcours nominal, pas un incident de campagne.
-  Voir `chantiers/L`.
-- Adoption humaine des exigences (IH-02) : l'interaction est nommée par `gateG0` et `gateG1` quand
-  `policy.adoption` vaut `human`, et exclue du constructeur de demandes de décision comme `IH-04`.
-  Une cible qui demanderait cette relecture arrêterait son changement sans voie de sortie.
+- Fidélité au jugement humain sur une cible réelle : **non établie**. Le défaut est corrigé et tenu
+  par des suites déterministes — une réponse matérielle rouvre la spécification, et G1 refuse des
+  exigences qui ne portent pas une réponse enregistrée (`D-37`) —, mais aucune campagne n'a été
+  reconduite depuis : ce qu'un modèle fait réellement du bloc `answers` qu'on lui demande, et si le
+  protocole gelé assère alors le contrat décidé, reste à mesurer. Le constat d'origine, sur un
+  changement `accepted`, `G0…G5 PASS`, quatre contrôles verts, et retrouvé sur le cycle du 27B où les
+  exigences sont adoptées treize secondes après une réponse qu'elles ne portent pas, est dans
+  `chantiers/L`.
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
   changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
   `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée

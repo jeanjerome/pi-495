@@ -38,6 +38,7 @@ export function requirements(over: Partial<RequirementsDocument> = {}): Requirem
 			{ requirement_id: "R1", statement: "greet returns Hello, <name>", category: "functional", mandatory: true, criterion: "unit test greet('x') === 'Hello, x'", source: "request", contract_family: "api", satisfied_by_reference: false },
 			{ requirement_id: "R2", statement: "no lint regression", category: "quality", mandatory: true, criterion: "lint exit code 0", source: "policy", contract_family: null, satisfied_by_reference: true },
 		],
+		answers: [],
 		assumptions: [],
 		contract_families: { api: "covered", data: "not_applicable" },
 		...over,

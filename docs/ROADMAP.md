@@ -53,8 +53,8 @@ non-aggravation comme critère.
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, expertises mobilisées, démarche évaluée | absents |
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
-| IH-02 | adoption humaine du mandat et des exigences | nommée par `gateG0` et `gateG1`, exclue du constructeur de demandes de décision comme `IH-04` |
-| — | fidélité d'un artefact adopté à une réponse humaine déjà enregistrée | absente : les exigences adoptées à G1 peuvent être antérieures à la réponse qu'elles contredisent (`chantiers/L`) |
+| IH-02 | adoption humaine du mandat et des exigences | construite et demandée par `gateG0` et `gateG1`, liée à l'empreinte de l'artefact adopté (`D-37`) |
+| — | fidélité d'un artefact adopté à une réponse humaine déjà enregistrée | tenue par le noyau et les suites déterministes (`D-37`) ; jamais mesurée sur une cible réelle avec un modèle |
 
 Une capacité de ce tableau reste inopposable sur une cible réelle : l'adaptateur node ne lit pas ce
 que la cible déclare comme commande de test, et une cible en vitest n'y passe pas (`chantiers/E`).
