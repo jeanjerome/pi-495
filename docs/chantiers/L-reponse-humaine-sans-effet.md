@@ -1,0 +1,167 @@
+# Transverse L — la réponse à une question matérielle, et l'exigence qui l'ignore
+
+**État :** ouvert
+**Objet :** une réponse `IH-01` est enregistrée, attribuée, portée au mandat — et n'atteint pas les
+exigences : le noyau réemploie le rapport de spécification écrit avant elle, puis gèle un protocole
+dont l'oracle exige le contraire de ce que l'humain a décidé
+**Ne dépend d'aucun étage ; il commande l'ordre devant `chantiers/F`**
+
+## Motif
+
+Campagne du 18 au 19 septembre 2026 sur la cible Maven multi-module avec
+`Qwen3.8-Flash-Next-MLX-oQ4-MTP`, conduite de la demande à l'acceptation. Le changement
+`chg_mu77jd604d4bf66034` est `accepted`, `G0…G5 PASS`, quatre contrôles verts — et il rend `400` là
+où son propriétaire avait décidé `422`.
+
+**La chaîne, telle que le journal la porte.**
+
+| Heure | Fait |
+| --- | --- |
+| 17:10:50.008 | l'unique intervention `specify` finit ; son rapport porte `R1`…`R5`, cinq hypothèses et quatre questions matérielles |
+| 17:10:50.19 | le noyau ouvre `Q1`…`Q4` en `IH-01` |
+| 17:11:52 → 17:14:02 | les quatre réponses sont enregistrées ; `Q3` reçoit « 422 avec par exemple 'Name cannot be longer than 50 characters' » |
+| 17:14:43.021 | mandat adopté à G0 |
+| 17:14:43.029 | exigences adoptées à G1 |
+| 18:10:40 | préparation adoptée |
+| 18:11:12 | protocole gelé |
+| 09:49:43 (19/09) | candidat accepté |
+
+**Le mandat se contredit lui-même.** Adopté à G0, `mnd_mu77xww51dde0cf935` porte les quatre réponses
+mot pour mot, dont « 422 ». Son objectif, dans le même artefact, dit : « en transmettant ce refus
+jusqu'à la frontière HTTP (**400** + message) ».
+
+**Les exigences sont le rapport antérieur, inchangé.** `rqs_mu77xwwg1fd4795496`, proposé 8 ms après le
+mandat et adopté à G1, est le rapport du 17:10:50 — écrit avant toute réponse. Il porte `R3` : « un
+refus de longueur est exposé au client par un **400** portant un message d'erreur non vide » ; son
+hypothèse 2 : « ValidationException → 400 » ; son hypothèse 5 : « l'extension éventuelle à la mise à
+jour est traitée comme **question ouverte, pas comme acquis** », alors que `Q1` avait été répondue
+trois minutes plus tôt.
+
+**Le protocole gèle ensuite le contraire de la décision.** La préparation adoptée écrit
+`UserNameLength.feature`, qui assère `400` en égalité stricte et l'annonce dans son propre en-tête.
+G2 gèle cette suite comme oracle. Le candidat lève `ValidationException`, que
+`GlobalExceptionHandler` mappe sur `HttpStatus.BAD_REQUEST`. Le contrôle qui existe n'a donc pas
+manqué la décision humaine : il exige activement son contraire.
+
+**Aucun gate ne pouvait le voir.** La suite est discriminante — `FAIL` sur la référence nue —, chaque
+obligation est couverte, les quatre capteurs sont qualifiés et verts. La discrimination ne dit rien
+du contrat : une suite qui assère `400` échoue sur une référence sans borne de longueur exactement
+comme une suite qui assère `422`.
+
+**Le producteur n'est pas en cause.** Il avait le mandat et les exigences sous les yeux, et il a suivi
+l'exigence, qui est l'artefact liant.
+
+## La cause, dans une condition
+
+`stepClarify`, `src/application/harness.ts` :
+
+```ts
+if (spec && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
+    report = spec.content;                    // le rapport écrit avant les réponses
+} else {
+    const answered = …;                       // « Q Q3: … -> 422 … »
+    const objective = `${request}\n\nAnswered questions:\n${answered.join("\n")}`;
+    … runIntervention(unit, cor, "specify", objective, …)
+}
+```
+
+La branche qui réinjecte les réponses dans une nouvelle spécification n'est prise que **lorsqu'une
+question matérielle reste sans réponse** — l'état dans lequel le changement attend une décision et
+n'avance pas. Dès que toutes les réponses sont là, le rapport antérieur l'emporte. Le chemin
+`answered` → `objective` est inatteignable dans le parcours nominal.
+
+Deux constats s'y ajoutent, qui ferment les issues de secours.
+
+**La révision d'artefact existe et rien ne la déclenche.** `artifact.revise`, `artifact.revised` et
+l'invalidation `artifact_revised` sont écrits dans `domain/change/` ; ce changement n'émet aucun de
+ces événements, et aucun appelant d'`application/` ne les émet après qu'une question matérielle a
+reçu sa réponse.
+
+**L'adoption humaine des exigences n'a pas de constructeur.** `gateG1` sait rendre `INDETERMINATE`
+avec `next_action: request_decision:IH-02` quand `policy.adoption.requirements` vaut `human`, mais
+`IH-02` est exclue de `buildDecisionRequest` et de `requestDecision`, comme `IH-04`. Une cible qui
+demanderait la relecture humaine de ses exigences arrêterait donc son changement sans voie de sortie.
+Le défaut est de la même famille que celui d'`IH-04` déjà porté par `../STATUS.md`.
+
+## Prompt
+
+```
+Dans ~/Projets/495-pi-package, lis docs/chantiers/L-reponse-humaine-sans-effet.md, puis la section
+« Le même cycle avec Qwen3.8-Flash-Next-MLX-oQ4-MTP » de docs/QUALIFICATION.md.
+
+Dans le code : stepClarify dans src/application/harness.ts — la condition qui réemploie le rapport
+de spécification et la branche qui construit `Answered questions:` ; la construction du mandat dans
+la même méthode, qui porte open_questions avec leurs réponses ; gateG1 dans
+src/domain/change/decide.ts, qui ne consulte jamais open_questions ; artifactRevise dans le même
+fichier ; buildDecisionRequest dans src/application/decisions.ts, dont IH-02 est exclue.
+
+Le dossier de la campagne est dans ~/.495-campagnes/java-flashnext : il porte les quatre
+question.answered, le mandat adopté, les exigences adoptées et le protocole gelé. Cite-le plutôt
+que de supposer.
+
+Reproduis d'abord le constat sans modèle : un test au niveau de test/v2/harness où une intervention
+de spécification ouvre une question matérielle, où la réponse enregistrée contredit une exigence du
+même rapport, et qui échoue aujourd'hui parce que l'exigence adoptée à G1 est celle d'avant la
+réponse.
+
+Décide ensuite ce qui porte la correction, et écris la décision dans docs/DECISIONS.md. Trois
+formes au moins, qui ne s'excluent pas :
+
+  - une réponse à une question matérielle rouvre la spécification : le rapport est refait avec les
+    réponses dans la demande, ce que la branche `Answered questions:` sait déjà faire ; dire alors
+    ce que coûte cette seconde intervention et sur quel budget elle est comptée ;
+  - le noyau révise l'artefact plutôt que de le refaire, par le mécanisme artifact.revise déjà
+    écrit ; dire ce qu'il révise exactement et ce qui garantit que la révision est fidèle à la
+    réponse, puisque personne ne relit le texte ;
+  - G1 refuse d'adopter une spécification antérieure à une réponse matérielle qu'elle ne porte pas.
+    C'est le refus le plus sûr et le plus pauvre : il arrête le changement sans rien corriger, donc
+    il ne vaut qu'accompagné de l'une des deux premières.
+
+Traite aussi l'issue humaine : IH-02 est nommée par gateG0 et gateG1 et exclue du constructeur de
+demandes de décision. Soit elle est construite, soit les deux gates cessent de la nommer. Décide,
+avec le motif.
+
+Enfin, dis ce qui vérifie la correction. Le principe du produit est qu'une consigne sans contrôle
+est un vœu ; il vaut aussi pour une décision humaine. Une réponse matérielle qui porte un contrat
+observable — un statut HTTP, un message, une borne — doit se retrouver dans une exigence, donc dans
+une obligation du protocole, donc dans un contrôle. Dis comment, et ce que le harnais fait d'une
+réponse qui ne porte aucun contrat observable.
+
+Critères d'acceptation :
+- un test déterministe couvre une réponse matérielle qui contredit le rapport antérieur, et échoue
+  sur le comportement actuel ;
+- une réponse matérielle enregistrée ne peut plus être absente de l'artefact que G1 adopte, ou son
+  absence arrête le changement en le disant ;
+- la décision sur IH-02 est écrite, quelle qu'elle soit ;
+- npm run build puis npm run check passent.
+```
+
+## Critères d'acceptation
+
+- un test déterministe couvre une réponse matérielle qui contredit le rapport antérieur, et échoue
+  sur le comportement actuel ;
+- une réponse matérielle enregistrée ne peut plus être absente de l'artefact que G1 adopte, ou son
+  absence arrête le changement en le disant ;
+- la décision sur `IH-02` est écrite, quelle qu'elle soit ;
+- `npm run build` puis `npm run check` passent.
+
+## Points d'ancrage
+
+| Élément | Emplacement |
+| --- | --- |
+| Réemploi du rapport de spécification | `src/application/harness.ts`, `stepClarify` |
+| Réponses réinjectées, branche inatteignable | `src/application/harness.ts`, `stepClarify`, `Answered questions:` |
+| Mandat porteur des réponses | `src/application/harness.ts`, `stepClarify`, construction de `Mandate` |
+| Adoption des exigences sans consulter les réponses | `src/domain/change/decide.ts`, `gateG1` |
+| Révision d'artefact écrite et jamais déclenchée | `src/domain/change/decide.ts`, `artifactRevise` ; `src/domain/invalidation.ts` |
+| `IH-02` nommée par les gates et exclue du constructeur | `src/application/decisions.ts`, `buildDecisionRequest` ; `src/application/harness.ts`, `requestDecision` |
+| Dossier de la campagne | `~/.495-campagnes/java-flashnext` |
+
+## Journal
+
+**19 septembre 2026.** Ouverture. Le constat vient de la reprise de la campagne Flash-Next, conduite
+jusqu'à l'acceptation ce jour-là et transcrite dans `../QUALIFICATION.md`. Il a été lu dans le
+dossier : les quatre `question.answered`, le mandat qui porte « 422 » à côté d'un objectif qui dit
+« 400 », les exigences adoptées 41 s après la dernière réponse et identiques au rapport écrit
+40 minutes plus tôt, puis le scénario Cucumber gelé qui compare le corps en égalité stricte. Aucun
+événement `artifact.revised` n'existe dans ce changement.

@@ -91,3 +91,21 @@ Critères d'acceptation :
 vrai terminal, à environ 205 colonnes, sur `/495 status`, `/495 report` et `/495 resume`. Ils sont
 enregistrés dans le dossier `R4`, qui reste en attente : l'observateur est l'auteur, le mode étroit
 n'est pas exercé et aucun lecteur d'écran n'a servi.
+
+**19 septembre 2026.** Le constat se reproduit sur la campagne Flash-Next, et en plus net : sur les
+douze lignes de risques résiduels du rapport d'un changement **accepté**, onze ne portent pas sur le
+candidat — quatre témoins d'incident, quatre messages de capteur volontairement cassé, un
+contre-exemple de mutation, deux passages de référence — et la seule qui parle du changement est
+`controls_are_not_a_proof`.
+
+Deux points nouveaux s'y ajoutent. D'abord une ligne **dit le contraire du fait mesuré** : « control
+coverage: the candidate introduces no line JaCoCo measures » est portée par le passage de référence,
+dont le sujet est la référence, alors que le contrôle a mesuré 2 lignes sur le candidat sans porter
+aucune limite. Le mot « candidate » dans une limite de référence induit la conclusion inverse.
+Ensuite, les observations mécaniques affichent le digest de la référence comme sujet des douze
+témoins, si bien que témoin positif, contre-exemple et incident d'un même contrôle sont
+indiscernables et que des `FAIL` et `INDETERMINATE` attendus se lisent comme des échecs.
+
+Ces deux points débordent le cadre d'origine de la fiche, qui portait sur l'état d'un changement
+**arrêté** : ils se produisent sur un changement abouti, et c'est là qu'ils coûtent le plus, puisque
+le rapport est alors ce qu'un lecteur oppose à un candidat accepté.

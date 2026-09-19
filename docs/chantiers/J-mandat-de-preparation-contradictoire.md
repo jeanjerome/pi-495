@@ -102,8 +102,9 @@ L'asymétrie d'environnement — JAVA_HOME et MAVEN_USER_HOME absents de l'env_a
 intervention alors que les contrôles les reçoivent — est à trancher, pas forcément à corriger :
 écris la décision, avec son motif.
 
-Vérifie sur la cible réelle : reprends la campagne de ~/.495-campagnes/java-flashnext, arrêtée en
-verification_design, ou relances-en une ; la préparation doit être adoptée du premier coup.
+Vérifie sur la cible réelle en lançant une campagne neuve : la préparation doit être adoptée du
+premier coup. Celle de ~/.495-campagnes/java-flashnext est close et acceptée, elle ne se reprend
+plus ; son dossier reste lisible et porte les onze chemins refusés du premier round.
 
 npm run build avant npm run check.
 ```
@@ -137,3 +138,9 @@ plafond d'appels d'outils atteint en les produisant, seconde préparation adopt�
 a nommé les chemins. La contradiction entre l'instruction de vérification et le mandat a été lue
 dans le code, et la tolérance accidentelle de `target/` vérifiée dans `preparedFilesFrom` et les
 exclusions par défaut.
+
+**19 septembre 2026.** La campagne Flash-Next est allée jusqu'à l'acceptation après reprise, mais
+elle n'apporte rien à cette fiche : la reprise n'a rejoué que l'implémentation, aucune préparation
+n'a tourné. Les deux rounds de préparation restent ceux du 18 septembre, et le constat est inchangé.
+La vérification sur cible réelle demande donc une campagne neuve, que le dossier clos ne remplace
+pas.

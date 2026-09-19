@@ -53,6 +53,8 @@ non-aggravation comme critère.
 | EXP-01..04 | disciplines applicables, proportionnalité des choix, expertises mobilisées, démarche évaluée | absents |
 | NFR-05 | portabilité qualifiée | backend Linux implémenté, jamais exécuté |
 | IH-04 | arbitrage de vérifiabilité, l'issue humaine d'une exigence non discriminable | déclarée dans les contrats, exclue du constructeur de demandes de décision |
+| IH-02 | adoption humaine du mandat et des exigences | nommée par `gateG0` et `gateG1`, exclue du constructeur de demandes de décision comme `IH-04` |
+| — | fidélité d'un artefact adopté à une réponse humaine déjà enregistrée | absente : les exigences adoptées à G1 peuvent être antérieures à la réponse qu'elles contredisent (`chantiers/L`) |
 
 Une capacité de ce tableau reste inopposable sur une cible réelle : l'adaptateur node ne lit pas ce
 que la cible déclare comme commande de test, et une cible en vitest n'y passe pas (`chantiers/E`).
@@ -103,6 +105,13 @@ livrés, pour une cible dont la couverture est mesurée.
 exigence « possède un verdict » est satisfaite par un contrôle vert qui n'a rien discriminé. La
 condition à tenir est qu'elle possède un verdict discriminant, ou l'arbitrage humain qui en tient
 lieu.
+
+Et un verdict discriminant n'est pas davantage une preuve de fidélité. Une suite qui assère un
+statut HTTP échoue sur une référence dépourvue de la règle exactement comme une suite qui en assère
+un autre : la discrimination établit que l'oracle distingue le comportement nouveau de l'ancien,
+jamais qu'il distingue le bon contrat du mauvais. C'est ce qui a laissé un changement `accepted`
+rendre `400` là où son propriétaire avait décidé `422` — voir `chantiers/L`. L'arbitrage humain ne
+tient donc lieu de discrimination qu'à la condition d'atteindre l'artefact que la gate adopte.
 
 ## 3. Ce qui est prévu au-delà de P0
 
@@ -178,16 +187,25 @@ de trente minutes ; il ne mute que les classes que le candidat a modifiées, de 
 suit la taille du changement, et son passage de référence ne lance rien puisque la référence
 n'introduit aucune classe.
 
-Neuf travaux n'appartiennent pas à cette échelle. Trois peuvent avancer en parallèle : la complétude
-de la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture du jalon
-L0. Six sont sortis des campagnes conduites depuis Pi sur des cibles réelles. `chantiers/D` — la
-qualification d'un capteur qui lit le rapport d'un autre contrôle — est clos, et la cible Maven va de
-la demande à l'acceptation avec le modèle local ; ce qui commande l'ordre est désormais
-`chantiers/F`, une sortie d'intervention refusée qui laisse le changement sans issue, et qui a tué
-deux lancements sur quatre. Viennent ensuite `chantiers/E` (la commande de test d'une cible
-Node), `chantiers/H` (sous-module, fichier spécial et rétention du workspace du candidat),
-`chantiers/G` (la lisibilité de l'état d'un changement arrêté) et `chantiers/I` (ce que Pi rend déjà
-et que la revue réimplémente).
+Douze travaux n'appartiennent pas à cette échelle. Trois peuvent avancer en parallèle : la
+complétude de la matrice de traçabilité, les six revues obligatoires de qualification, et la clôture
+du jalon L0. Les neuf autres sont sortis des campagnes conduites depuis Pi sur des cibles réelles.
+
+Ce qui commande l'ordre est `chantiers/L` : une réponse à une question matérielle est enregistrée,
+attribuée, portée au mandat, et n'atteint pas les exigences — un changement `accepted` rend donc
+`400` là où son propriétaire avait décidé `422`, et le protocole gelé exige ce `400`. Il passe
+devant les autres parce qu'il ne fait pas échouer un parcours : il en fait réussir un qui ne devrait
+pas, ce qu'aucun gate ni aucun contrôle ne rattrape, et ce qui atteint la valeur du dossier plutôt
+que sa production.
+
+Vient ensuite `chantiers/F`, une sortie d'intervention refusée qui laisse le changement sans issue,
+et qui a tué deux lancements sur quatre. Puis `chantiers/J` (le mandat qui interdit la vérification
+qu'il exige) et `chantiers/K` (la clarté des prompts et les skills du harnais), dont le premier est
+un symptôme du second. Puis `chantiers/E` (la commande de test d'une cible Node), `chantiers/H`
+(sous-module, fichier spécial et rétention du workspace du candidat), `chantiers/G` (la lisibilité
+de l'état d'un changement, arrêté ou abouti) et `chantiers/I` (ce que Pi rend déjà et que la revue
+réimplémente). `chantiers/D` — la qualification d'un capteur qui lit le rapport d'un autre contrôle
+— est clos, et la cible Maven va de la demande à l'acceptation avec deux modèles locaux.
 
 Chaque étage et chaque travail transverse a sa fiche dans `chantiers/`, avec ses points d'ancrage
 dans le code, ses critères d'acceptation et son journal.

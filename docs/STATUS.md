@@ -4,7 +4,8 @@ Les incréments `IT-0` à `IT-4` servent le jalon L0, `IT-5` ouvre L1 ; les crit
 et ce qui reste pour chacun sont dans `MILESTONES.md`.
 
 Machine de référence : macOS 27 arm64, Node 24.21, Pi 0.85.1, Git 2.55, JDK 25 + Maven 3.9.9,
-modèle local `omlx/qwen3.8-27b-oq8e`. Date : 17 septembre 2026.
+modèles locaux `omlx/qwen3.8-27b-oq8e` et `Qwen3.8-Flash-Next-MLX-oQ4-MTP`. Date : 19 septembre
+2026.
 
 « Livré » = code + tests passants. « Qualifié ici » = la preuve prévue par la conception de
 vérification a été exécutée sur cette machine.
@@ -286,8 +287,8 @@ porte `[humain] jeanjerome: IH-01 answer` à côté des six jugements du noyau, 
 révision qu'il tranchait.
 
 Ce qu'elle n'établit pas, et qu'il faut lire à côté du succès : ni la reproductibilité — deux
-lancements sur quatre sont morts avant tout gate sur une sortie structurée refusée, ce qui fait de
-`chantiers/F` le travail qui commande l'ordre —, ni le passage à l'échelle. La demande éprouvée est
+lancements sur quatre sont morts avant tout gate sur une sortie structurée refusée (`chantiers/F`)
+—, ni le passage à l'échelle. La demande éprouvée est
 la plus petite possible, deux lignes de production, et elle consomme déjà 51 min de machine et 122
 appels d'outils. Le budget qui cédera en premier sur une demande plus large n'est aucun des trois
 relevés : c'est `tool_calls_per_intervention`, resté à 100, dont la préparation a consommé 74 ici.
@@ -295,6 +296,34 @@ Une préparation qui l'atteint est tronquée vers 43 min, avant le plafond de du
 seulement que les continuations et le plafond d'incrément deviennent la contrainte active. Le coût
 d'un changement suit le nombre d'exigences à rendre discriminables et le nombre de modules à
 instrumenter, pas la taille du code écrit.
+
+## Un second modèle aboutit, et le dossier accepté contredit son propriétaire
+
+La même demande, sur la même cible, conduite avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP`, va elle aussi de
+la demande à l'acceptation : `G0…G5 PASS`, candidat `cand_fd571c5761ee`, quatre contrôles verts,
+77 min 56 s de temps machine et une tentative sur trois. Elle ajoute deux enseignements que la
+première ne pouvait pas donner.
+
+**Un changement bloqué revient sans rien perdre.** Trois interventions `implement` meurent sur
+`Connection error.` quand le serveur de modèle disparaît, le budget de reprises techniques s'épuise
+et le changement est bloqué en `execution_error`. Repris le lendemain par `/495 resume`, il
+redémarre sur la tentative ouverte, sur son workspace, avec une identité d'environnement recalculée
+identique à celle que le protocole avait gelée et un manifeste de contexte au contenu identique à
+celui de l'intervention morte. Aucune tentative consommée, aucun travail reconstruit. Réserve :
+`change.unblock` ne remet pas à zéro le compteur de reprises, qui reste à sa valeur d'épuisement,
+si bien qu'une seule défaillance de plus rebloquerait sans aucune reprise.
+
+**Une décision humaine n'a aucun effet sur les artefacts qui lient la suite.** Le propriétaire
+répond `422` à une question matérielle que le modèle avait posée ; le mandat adopté porte cette
+réponse mot pour mot à côté d'un objectif qui dit `400` ; les exigences adoptées 8 ms plus tard sont
+le rapport de spécification écrit quarante minutes plus tôt, avant toute réponse, et exigent `400`.
+La suite préparée assère alors ce `400` en égalité stricte, le protocole la gèle comme oracle, et le
+candidat accepté rend `400`.
+
+Aucun gate ne pouvait le voir, et c'est ce qui rend le constat structurant : la discrimination ne
+dit rien du contrat. Une suite qui assère `400` échoue sur une référence sans borne de longueur
+exactement comme une suite qui assère `422`. La condition de G2, telle qu'elle est écrite, est donc
+insensible à la fidélité de l'oracle au jugement humain qui l'a précédé. Voir `chantiers/L`.
 
 ## Ce qui n'est pas qualifié, ou hors de cette machine
 
@@ -305,11 +334,21 @@ instrumenter, pas la taille du code écrit.
   que le changement s'arrête bien en `capability_missing`, et que l'échec du confinement est
   désormais rendu comme incident plutôt que comme verdict du contrôle de la cible. Voir `D-31`,
   `D-32` et `QUALIFICATION.md`.
-- Cycle complet depuis Pi sur une cible réelle avec un modèle : **atteint une fois**, sur la cible
-  Maven multi-module, de la demande à l'acceptation, avec une réponse humaine à `IH-01` en cours de
-  route. Ce qui n'est pas établi est la reproductibilité : deux lancements sur quatre sont morts
-  avant tout gate sur une sortie structurée refusée (`chantiers/F`). La cible Node, elle, s'arrête
-  toujours à G2 sur la commande de test de l'adaptateur (`chantiers/E`).
+- Cycle complet depuis Pi sur une cible réelle avec un modèle : **atteint deux fois, avec deux
+  modèles**, sur la cible Maven multi-module, de la demande à l'acceptation, avec des réponses
+  humaines à `IH-01` en cours de route. Ce qui n'est pas établi est la reproductibilité : deux
+  lancements sur quatre sont morts avant tout gate sur une sortie structurée refusée
+  (`chantiers/F`), et le second cycle n'a abouti qu'après une reprise sur un endpoint de modèle
+  disparu. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de l'adaptateur
+  (`chantiers/E`).
+- Fidélité au jugement humain : **non établie**. Une réponse à une question matérielle est
+  enregistrée, attribuée et portée au mandat, mais n'atteint pas les exigences : le noyau réemploie
+  le rapport de spécification écrit avant elle, et le protocole gèle un oracle qui exige le
+  contraire de ce que l'humain a décidé. Observé sur un changement `accepted`, `G0…G5 PASS`, quatre
+  contrôles verts. Voir `chantiers/L`.
+- Adoption humaine des exigences (IH-02) : l'interaction est nommée par `gateG0` et `gateG1` quand
+  `policy.adoption` vaut `human`, et exclue du constructeur de demandes de décision comme `IH-04`.
+  Une cible qui demanderait cette relecture arrêterait son changement sans voie de sortie.
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque le
   changement sur `configuration_error`. Le noyau déclare l'erreur réessayable et nomme
   `retry_specification`, mais `resume` ne lève le blocage que pour `execution_error` et aucune entrée
@@ -333,7 +372,8 @@ instrumenter, pas la taille du code écrit.
   L'état d'un changement arrêté, relu dans le TUI à environ 205 colonnes, n'a rien montré de tronqué
   mais garde trois écarts de lisibilité —
   le motif d'arrêt rendu trois fois, la notification de commande qui reprend le titre du programme,
-  et huit des douze risques résiduels du rapport qui sont les traces d'une qualification réussie
+  et huit des douze risques résiduels du rapport qui sont les traces d'une qualification réussie —
+  onze sur douze sur la campagne du 19 septembre, dont une qui énonce le contraire du fait mesuré
   plutôt que des risques du changement (`revues/R4-ux-accessibilite.md`, `chantiers/G`). Cela ne
   conduit pas la revue : l'observateur est l'auteur, le mode étroit n'est pas exercé, aucun lecteur
   d'écran n'a servi, et aucune norme d'accessibilité n'est nommée à l'amont. Le protocole de conduite

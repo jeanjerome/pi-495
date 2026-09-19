@@ -416,7 +416,7 @@ sur une question que le modèle a posée. Ce qu'elle n'établit pas : la reprodu
 lancements sur quatre sont morts avant tout gate sur `chantiers/F` ; ni le passage à l'échelle, la
 demande éprouvée étant la plus petite possible.
 
-### Le même cycle avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP` — campagne en cours
+### Le même cycle avec `Qwen3.8-Flash-Next-MLX-oQ4-MTP`
 
 Même cible, même demande au mot près, mêmes budgets, agent non scripté, cache de préfixe vidé avant
 le départ. Seul le modèle change : `Qwen3.8-Flash-Next-MLX-oQ4-MTP` sous le profil
@@ -424,9 +424,9 @@ le départ. Seul le modèle change : `Qwen3.8-Flash-Next-MLX-oQ4-MTP` sous le pr
 Conduite depuis le TUI, là où la précédente démarrait en `--mode json` — le travail demandé au modèle
 est le même, seule la session diffère.
 
-**La campagne est interrompue à `verification_design`, avant G2**, l'opérateur ayant arrêté la
-seconde intervention de préparation. Ce qui suit est ce qu'elle a établi jusque-là ; le reste attend
-sa reprise.
+**La campagne va de la demande à l'acceptation**, en deux séances séparées par une nuit et par un
+blocage. Ce qui suit se lit dans cet ordre : ce que la première séance a établi, ce qui l'a arrêtée,
+ce que la reprise a rendu, et le défaut que le dossier accepté révèle.
 
 #### La spécification valide son schéma du premier coup
 
@@ -510,6 +510,109 @@ prérremplit 12 437 jetons, quand les prompts réels du cycle ont une médiane d
 temps de phase est dominé par quelques requêtes longues où le modèle écrit de gros blocs, et ce
 modèle-ci dépense en exploration ce qu'il gagne en vitesse. Sur les deux rounds de préparation il a
 consommé 55,7 min et 7,4 M de jetons pour le résultat que le 27B obtenait en 32,5 min et 2,5 M.
+
+#### Ce qui l'arrête n'est pas le modèle
+
+Le protocole est gelé à 18:11:12Z — `G2 PASS`, quatre contrôles, `G3 PASS` 348 ms plus tard —, puis
+trois interventions `implement` successives finissent sur `Connection error.` : 91,2 s, 6,5 s et
+6,4 s, la première ayant consommé 6 appels d'outils et 36 155 jetons, les deux autres aucun. Le
+serveur de modèle ne répond plus. Au troisième échec, `operation.fail` porte le compteur de la clé
+`intervention:att_mu79ykvr3b5164f3a6` à 3 pour un `max_technical_retries` de 2, et le changement est
+bloqué en `execution_error` à 18:12:59Z, en phase `implementing`.
+
+Deux modèles ne peuvent pas être résidents ensemble sur cette machine : le journal oMLX refuse le
+préchargement du Flash-Next épinglé tant que le 27B occupe la mémoire — `projected memory 122.47GB
+would exceed the metal_cap`. Décharger explicitement celui dont on ne se sert pas est donc un
+préalable à toute reprise, et `MODELE-LOCAL.md` §2 le dit.
+
+#### La reprise ne perd rien
+
+`/495 resume` le 19 septembre à 09:36:20Z : `change.unblock` remet le statut à `ready` et
+l'intervention repart **sur la tentative ouverte**, sans en consommer une nouvelle. Trois identités
+se vérifient à ce moment et tiennent :
+
+- l'identité d'environnement recalculée est celle que le protocole avait gelée la veille,
+  `sha256:4dddbe640eed7d96589249f6ba293db38d36047eff5c89f488004af2531adbac` — les commits de
+  l'intervalle ne touchent pas l'arbre exécuté, dont le digest ne couvre que `dist/` ou `src/` ;
+- le manifeste de contexte remis au producteur porte le même contenu que celui de l'intervention
+  morte, `sha256:35036e7f8a1a1b57ddf94a3409ae666ba80aebadd5191a4e78528cd648dea091` ;
+- le workspace `ws_mu79ykvr_d` est celui de la tentative, avec ce que la préparation y avait écrit.
+
+L'intervention aboutit en 13 min 05 s, 41 appels d'outils et 1 400 929 jetons connus. Le candidat
+`cand_fd571c5761ee` est gelé à 09:49:26Z sur 3 379 entrées, dont cinq modifiées : un fichier de
+production — `domain/src/main/java/…/user/domain/User.java` — et les quatre fichiers de test de la
+préparation adoptée. `G4 PASS`, puis la vérification en 17 s, puis `G5 PASS` et `accepted` à
+09:49:43Z.
+
+| Contrôle | Référence | Candidat | Mesure sur le candidat |
+| --- | --- | --- | --- |
+| `maven-test` | 6,1 s PASS | 5,4 s PASS | 47 tests, 0 échec |
+| `coverage` | 0,0 s PASS | 0,1 s PASS | 276 lignes introduites sur 5 fichiers, 1 fichier mesurable, 2 lignes mesurées, 0 non couverte |
+| `structure` | 0,0 s PASS | 0,0 s PASS | 3 règles, 19 sources, 12 paquets, 0 violation, 0 cycle |
+| `mutation` | 0,0 s PASS | 3,0 s PASS | portée `User` et types imbriqués, 4 mutants, 2 introduits, 2 tués, 0 survivant |
+
+Les 17 s de vérification sont ce que la conception prévoit et non un raccourci : seuls `maven-test`
+et `mutation` exécutent quelque chose, `coverage` lit le rapport que le premier vient d'écrire,
+`structure` lit des déclarations, et le passage de référence ne mute rien puisque la référence
+n'introduit aucune classe. Les quatre passages de référence sont exécutés ce jour-là, `reused: false`.
+
+Le vert de `coverage` porte sur 2 lignes des 276 introduites parce qu'un seul des cinq fichiers est
+de la production : JaCoCo instrumente ce que la cible construit, pas ses tests.
+
+Coût de tout le changement : une tentative sur trois, 77 min 56 s de temps machine sur les 360 du
+budget d'incrément, 211 appels d'outils, sept interventions — `specify` (7,4 min, 27 appels),
+`prepare` refusée sur plafond (38,2 min, 100 appels), `prepare` interrompue puis adoptée (17,5 min,
+37 appels), trois `implement` mortes sur l'endpoint (1,7 min cumulées), `implement` aboutie
+(13,1 min, 41 appels). L'export du dossier rend `138 files, 3 668 914 bytes, 0 redactions,
+verify: ok`.
+
+Une réserve sur la reprise elle-même : `change.unblock` remet le statut à `ready` sans remettre à
+zéro `budgets.retries`, qui reste à 3 pour la clé de cette tentative. Une seule défaillance de plus
+aurait rebloqué le changement immédiatement, sans aucune reprise. À verser à `chantiers/F`.
+
+#### La décision humaine n'atteint pas l'exigence
+
+Le dossier accepté porte un défaut que ni les gates ni les contrôles ne pouvaient voir : il rend
+`400` là où son propriétaire avait décidé `422`.
+
+L'unique intervention `specify` finit à 17:10:50.008Z ; son rapport porte cinq exigences, cinq
+hypothèses et quatre questions matérielles, que le noyau ouvre aussitôt en `IH-01`. Les quatre
+réponses sont enregistrées entre 17:11:52 et 17:14:02, dont `Q3` : « 422 avec par exemple 'Name
+cannot be longer than 50 characters' ». À 17:14:43, le mandat est adopté à G0 avec les quatre
+réponses mot pour mot — et un objectif qui dit, dans le même artefact, « en transmettant ce refus
+jusqu'à la frontière HTTP (400 + message) ». Huit millisecondes plus tard, G1 adopte des exigences
+qui sont le rapport du 17:10:50 inchangé : `R3` exige un `400`, l'hypothèse 2 retient
+`ValidationException → 400`, et l'hypothèse 5 traite encore comme « question ouverte » ce que `Q1`
+avait tranché trois minutes plus tôt.
+
+La suite préparée assère alors `400` en égalité stricte, G2 la gèle comme oracle, et le candidat
+lève une `ValidationException` que `GlobalExceptionHandler` mappe sur `BAD_REQUEST`. Le contrôle
+gelé n'a donc pas manqué la décision : il exige son contraire. Rien dans les gates ne s'y oppose —
+la suite est bien discriminante, `FAIL` sur la référence nue, parce qu'une suite qui assère `400`
+échoue sur une référence sans borne de longueur exactement comme une suite qui assère `422`.
+
+Ce que la campagne établit donc sur la production de code vaut pour la chaîne mécanique et pas pour
+la fidélité au jugement humain. Voir `chantiers/L`.
+
+#### Ce que le rapport d'ingénierie ne montre pas
+
+Douze lignes de risques résiduels, dont **onze ne portent pas sur ce candidat** : quatre
+`indeterminate_control` et quatre `spawn error: … /nonexistent/495-broken-runner` sont les témoins
+d'incident des quatre capteurs, donc les traces d'une qualification réussie ; une est le
+contre-exemple du capteur de mutation ; deux viennent des passages de référence. La seule qui parle
+du changement est `controls_are_not_a_proof`.
+
+L'une de ces onze dit de surcroît le contraire du fait mesuré. « control coverage: the candidate
+introduces no line JaCoCo measures » est portée par le passage de **référence**, dont le sujet est la
+référence ; sur le candidat, le même contrôle a mesuré 2 lignes et n'a porté aucune limite. Le mot
+« candidate » dans le message d'une limite de référence conduit le lecteur à la conclusion inverse.
+
+S'y ajoutent deux indistinctions. Les quatre jugements humains s'affichent en quatre lignes
+identiques, `[humain] jeanjerome: IH-01 answer on change …`, alors que le journal porte leur
+identifiant, leur question et leur réponse — c'est ce qui masque le défaut ci-dessus. Et les douze
+observations de témoins affichent toutes le digest de la référence comme sujet, si bien que le
+témoin positif, le contre-exemple et l'incident d'un même contrôle sont indiscernables, et que des
+`FAIL` et `INDETERMINATE` attendus se lisent comme des échecs. À verser à `chantiers/G`.
 
 ## Revues obligatoires
 

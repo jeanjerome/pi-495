@@ -160,10 +160,10 @@ Ce que ce travail doit produire :
   - la mise à jour de chantiers/J si la décision le clôt, ou la raison pour laquelle il reste
     ouvert.
 
-Vérifie enfin sur la cible réelle : la campagne de ~/.495-campagnes/java-flashnext est arrêtée en
-verification_design et repart sur /495 resume depuis le TUI, modèle Qwen3.8-Flash-Next-MLX-oQ4-MTP.
-Une préparation adoptée du premier coup y vaudrait preuve. Transcris le verdict depuis la sortie,
-pas de mémoire.
+Vérifie enfin sur la cible réelle en lançant une campagne neuve depuis le TUI avec
+Qwen3.8-Flash-Next-MLX-oQ4-MTP. Une préparation adoptée du premier coup y vaudrait preuve.
+Transcris le verdict depuis la sortie, pas de mémoire. La campagne de
+~/.495-campagnes/java-flashnext est close et acceptée : son dossier sert de matière, pas de banc.
 
 Critères d'acceptation :
 - chaque défaut de prompt avancé est appuyé par un texte réellement produit par un modèle, cité
@@ -209,3 +209,11 @@ lancer. Le point d'entrée retenu — charger des skills du harnais par un chemi
 inscrire au manifeste, plutôt que d'ouvrir la découverte de l'hôte — vient de ce que la session est
 ouverte avec `cwd` sur une copie du projet cible : la découverte ferait entrer la cible dans les
 instructions, ce que le produit interdit par ailleurs.
+
+**19 septembre 2026.** La campagne Flash-Next est close et acceptée ; sa reprise n'a rejoué que
+l'implémentation, donc elle ne vérifie aucune reformulation de prompt. Son dossier ajoute en
+revanche une matière au relevé rôle par rôle : le rôle `specify` y pose quatre questions matérielles
+que le noyau ouvre en `IH-01`, les quatre réponses sont enregistrées, et aucune n'atteint les
+exigences adoptées. Ce n'est pas un défaut de prompt et cela ne relève pas de cette fiche — voir
+`L-reponse-humaine-sans-effet.md` —, mais cela borne ce qu'une instruction mieux écrite peut
+obtenir : un producteur discipliné suit l'exigence, et l'exigence peut contredire la décision.
