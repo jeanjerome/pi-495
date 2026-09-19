@@ -200,7 +200,9 @@ Ce qu'elle laisse ouvert, et qui appartient à ce chantier :
   et ce que G2 gèle ;
 - **le rapport grossit à chaque réouverture**, puisqu'il doit porter toutes les réponses déjà
   déclarées et les exigences qu'elles engendrent. C'est ce qui conduit le cinquième dans le mur, et
-  c'est un coût propre au mécanisme retenu ;
+  c'est un coût propre au mécanisme retenu. Une piste tient au noyau plutôt qu'au modèle : il a
+  enregistré les réponses et lu les déclarations du rapport précédent, donc il peut les reporter
+  lui-même et ne demander au rapport suivant que les réponses nouvelles ;
 - **une sortie refusée ne conserve que sa tête**, 20 000 caractères, quand le motif du refus est dans
   sa queue : le dossier ne peut pas dire pourquoi ce rapport a été refusé. À verser à `F`.
 
