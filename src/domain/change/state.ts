@@ -1,5 +1,5 @@
 import type { ActorRef, ArtifactRef, CandidateRef, GateId, Phase, ExecStatus, Outcome, StopReason, ProtocolRef, SubjectRef, Verdict, HumanInteraction, InterventionRole } from "../../contracts/v1/common.ts";
-import type { Obligation } from "../../contracts/v1/protocol.ts";
+import type { AnsweredQuestion, Obligation } from "../../contracts/v1/protocol.ts";
 
 export type ArtifactKind = "request" | "diagnostic" | "mandate" | "requirements" | "protocol" | "design" | "trajectory" | "preparation" | "feedback" | "review" | "milestone" | "reference" | "candidate" | "context" | "output" | "integration";
 
@@ -15,6 +15,8 @@ export interface OpenQuestion {
 	question: string;
 	material: boolean;
 	answer: string | null;
+	/** When the answer was recorded: a specification that ended before it cannot carry it. */
+	answered_at: string | null;
 	decision_id: string | null;
 }
 
@@ -210,6 +212,33 @@ export function openAttempt(state: ChangeState): AttemptState | null {
 
 export function runningIntervention(state: ChangeState): InterventionState | null {
 	return state.interventions.find((i) => i.result === "running") ?? null;
+}
+
+/**
+ * The material answers a specification report was written without. A report that asked the question
+ * and declares nothing about its answer is the report of before the decision, whatever its text
+ * says; a report that declares the answer — even to say it fixes nothing observable — carries it.
+ */
+export function answersTheReportIgnores(state: ChangeState, report: { questions: { id: string }[]; answers: { question_id: string }[] }): OpenQuestion[] {
+	const asked = new Set(report.questions.map((q) => q.id));
+	const carried = new Set(report.answers.map((a) => a.question_id));
+	return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !carried.has(q.id));
+}
+
+/**
+ * The recorded material answers, as the requirements document carries them: question and answer are
+ * copied from the ledger, the binding to the requirements comes from the report. An answer the
+ * report says nothing about is held observable and carried by nothing, so silence is refused at G1
+ * instead of passing for a declaration that the answer fixes nothing (ADR-013, fail closed).
+ */
+export function answersOf(state: ChangeState, report: { answers: { question_id: string; observable: boolean; requirement_ids: string[] }[] }): AnsweredQuestion[] {
+	const declared = new Map(report.answers.map((a) => [a.question_id, a] as const));
+	return state.open_questions
+		.filter((q) => q.material && q.answer !== null)
+		.map((q) => {
+			const d = declared.get(q.id);
+			return { question_id: q.id, question: q.question, answer: q.answer as string, observable: d?.observable ?? true, requirement_ids: d?.requirement_ids ?? [] };
+		});
 }
 
 export function subjectOfChange(state: ChangeState): SubjectRef {

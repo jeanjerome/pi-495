@@ -30,6 +30,7 @@ export function specReport(over: Partial<SpecificationReport> = {}): Specificati
 		facts: ["greet exists in src/greet.js"],
 		assumptions: [],
 		questions: [],
+		answers: [],
 		out_of_scope: ["documentation"],
 		risks: [],
 		requirements: [{ requirement_id: "R1", statement: "greet returns Hello, <name>", mandatory: true, criterion: "the unit test suite passes", category: "functional", satisfied_by_reference: true }],

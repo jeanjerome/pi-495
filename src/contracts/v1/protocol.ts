@@ -210,10 +210,28 @@ export const Requirement = Type.Object(
 );
 export type Requirement = Static<typeof Requirement>;
 
+/**
+ * A material question, the answer a human recorded for it, and the requirements that carry it. The
+ * question and the answer are copied from the ledger, never from a model; only the binding to the
+ * requirements and the `observable` declaration come from the specification.
+ */
+export const AnsweredQuestion = Type.Object(
+	{
+		question_id: Identifier,
+		question: Type.String({ minLength: 1 }),
+		answer: Type.String({ minLength: 1 }),
+		observable: Type.Boolean({ description: "the answer fixes something a control can observe — a status, a message, a bound" }),
+		requirement_ids: Type.Array(Identifier),
+	},
+	{ additionalProperties: false },
+);
+export type AnsweredQuestion = Static<typeof AnsweredQuestion>;
+
 export const RequirementsDocument = Type.Object(
 	{
 		change_id: Identifier,
 		requirements: Type.Array(Requirement),
+		answers: Type.Array(AnsweredQuestion),
 		assumptions: Type.Array(Type.String()),
 		contract_families: Type.Record(Type.String(), Closed(["covered", "not_applicable", "to_instruct"] as const)),
 	},

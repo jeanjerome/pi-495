@@ -4,6 +4,7 @@
   "required": [
     "change_id",
     "requirements",
+    "answers",
     "assumptions",
     "contract_families"
   ],
@@ -63,6 +64,47 @@
           "satisfied_by_reference": {
             "type": "boolean",
             "description": "the reference already exhibits this behaviour, so a suite that stays green proves it; false means the requirement needs a control that fails on the reference"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "question_id",
+          "question",
+          "answer",
+          "observable",
+          "requirement_ids"
+        ],
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observable": {
+            "type": "boolean",
+            "description": "the answer fixes something a control can observe — a status, a message, a bound"
+          },
+          "requirement_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
           }
         },
         "additionalProperties": false

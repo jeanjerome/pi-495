@@ -95,10 +95,10 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			s.protocol = event.protocol;
 			return s;
 		case "question.opened":
-			s.open_questions = [...s.open_questions, { id: event.id, question: event.question, material: event.material, answer: null, decision_id: event.decision_id }];
+			s.open_questions = [...s.open_questions, { id: event.id, question: event.question, material: event.material, answer: null, answered_at: null, decision_id: event.decision_id }];
 			return s;
 		case "question.answered":
-			s.open_questions = s.open_questions.map((q) => (q.id === event.id ? { ...q, answer: event.answer } : q));
+			s.open_questions = s.open_questions.map((q) => (q.id === event.id ? { ...q, answer: event.answer, answered_at: event.at } : q));
 			return s;
 		case "gate.decided":
 			s.gates = { ...s.gates, [event.decision.gate]: event.decision };

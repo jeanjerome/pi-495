@@ -24,7 +24,7 @@ import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import { decide } from "../domain/change/decide.ts";
-import { runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { answersOf, answersTheReportIgnores, runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
 import { matchesScope } from "../domain/gates/g4.ts";
@@ -65,6 +65,13 @@ export interface HarnessDeps {
 	onDecisionRequested?: (request: DecisionRequest) => void;
 	onProgress?: (message: string) => void;
 }
+
+/**
+ * How many times a recorded material answer may reopen the specification. One covers the nominal
+ * case, the second a question the reopened report asks in its turn; past that, a report that keeps
+ * ignoring an answer is a refusal at G1 rather than another intervention paid on the increment.
+ */
+const MAX_SPECIFICATION_REOPENINGS = 2;
 
 export const KERNEL_ACTOR: ActorRef = { actor_id: "495-kernel", actor_type: "kernel", role: "kernel", origin: "kernel", authentication_level: "host_qualified" };
 export const EXECUTOR_ACTOR: ActorRef = { actor_id: "495-executor", actor_type: "executor", role: "executor", origin: "executor", authentication_level: "host_qualified" };
@@ -445,9 +452,17 @@ export class Harness {
 		const request = await this.readArtifact<string>(unit.state.request);
 		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
 		let report: SpecificationReport;
-		if (spec && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
+		// A report written before a material answer cannot carry it, and reusing it is how a recorded
+		// human decision reaches nothing: the answer is put back into the request and the
+		// specification is redone. The reopening is bounded — beyond it the absence is G1's business,
+		// and a change is never held by a producer that will not declare what it did with an answer.
+		const ignored = spec ? answersTheReportIgnores(unit.state, spec.content) : [];
+		const reopenings = unit.state.interventions.filter((i) => i.role === "specify").length - 1;
+		const reopen = ignored.length > 0 && reopenings < MAX_SPECIFICATION_REOPENINGS;
+		if (spec && !reopen && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
 			report = spec.content;
 		} else {
+			if (reopen) this.progress(`specification reopened by ${ignored.length} material answer(s): ${ignored.map((q) => q.id).join(", ")}`);
 			const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			try {
 				const excerpts = await this.projectExcerpts(reference, handle.path, 12, request);
@@ -481,13 +496,26 @@ export class Harness {
 		validate(MandateSchema, mandate, "mandate");
 		const mandateRef = await this.storeArtifact("mandate", unit.state.change_id, this.id("mnd"), mandate, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "mandate", ref: mandateRef }, cor);
-		return this.commit(unit, { type: "gate.evaluate", gate: "G0", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: mandateRef, mandate }, cor);
+		unit = this.commit(unit, { type: "gate.evaluate", gate: "G0", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: mandateRef, mandate }, cor);
+		return this.requestAdoption(unit, cor, "G0", "mandate", mandateRef, language);
+	}
+
+	/**
+	 * A gate that asks for the human adoption of an artifact must be able to ask: the decision is
+	 * bound to the exact text presented, so a revised artifact is adopted again rather than inheriting
+	 * the approval of the one it replaced.
+	 */
+	private async requestAdoption(unit: Unit, cor: string, gate: "G0" | "G1", kind: "mandate" | "requirements", ref: ArtifactRef, language: "fr" | "en"): Promise<Unit> {
+		const decided = unit.state.gates[gate];
+		if (!decided || decided.next_action !== "request_decision:IH-02") return unit;
+		const subject: SubjectRef = { kind: "artifact", id: ref.artifact_id, revision: ref.revision, digest: ref.content_digest };
+		return this.requestDecision(unit, cor, "IH-02", subject, decided.reasons, null, kind, undefined, language);
 	}
 
 	private async stepSpecify(unit: Unit, cor: string): Promise<Unit> {
 		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
 		if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
-		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), assumptions: spec.content.assumptions, contract_families: {} };
+		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), answers: answersOf(unit.state, spec.content), assumptions: spec.content.assumptions, contract_families: {} };
 		const issues: string[] = [];
 		try {
 			validate(RequirementsDocumentSchema, doc, "requirements");
@@ -498,7 +526,7 @@ export class Harness {
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "requirements", ref }, cor);
 		unit = this.commit(unit, { type: "gate.evaluate", gate: "G1", at: this.now(), actor: KERNEL_ACTOR, requirements_ref: ref, requirements: doc, report: { valid: issues.length === 0, issues } }, cor);
 		if (unit.state.gates.G1?.verdict === "FAIL") throw new DomainError("PRECONDITION_FAILED", `requirements rejected at G1: ${unit.state.gates.G1.reasons.join("; ")}`, { nextActions: ["revise_requirements"] });
-		return unit;
+		return this.requestAdoption(unit, cor, "G1", "requirements", ref, this.language(unit.state));
 	}
 
 	private async materializePrepared(prepared: PreparationRecord | null, workspacePath: string): Promise<void> {
@@ -1033,7 +1061,7 @@ export class Harness {
 
 	// --- human decisions -----------------------------------------------------------------------------
 
-	private async requestDecision(unit: Unit, cor: string, interaction: Exclude<HumanInteraction, "IH-02" | "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">, subject: SubjectRef, facts: string[], recommendation: string | null, arg?: string, decisionId?: string, language: "fr" | "en" = "fr"): Promise<Unit> {
+	private async requestDecision(unit: Unit, cor: string, interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">, subject: SubjectRef, facts: string[], recommendation: string | null, arg?: string, decisionId?: string, language: "fr" | "en" = "fr"): Promise<Unit> {
 		const request = buildDecisionRequest({ decision_id: decisionId ?? this.id("dec"), change_id: unit.state.change_id, interaction, subject, language, facts, recommendation, ...(arg !== undefined ? { arg } : {}), requested_at: this.now() });
 		this.deps.ledger.putDecisionRequest(request);
 		const next = this.commit(unit, { type: "decision.request", at: this.now(), actor: KERNEL_ACTOR, request }, cor);
@@ -1083,6 +1111,9 @@ export class Harness {
 		}
 		if (request.interaction === "IH-11" && (response.option_id === "export_only" || response.option_id === "cancel")) {
 			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "policy_denied", detail: "integration declined by the change owner; the change stays accepted and exportable" }, cor);
+		}
+		if (request.interaction === "IH-02" && response.option_id === "refuse") {
+			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "policy_denied", detail: `adoption refused by the change owner${response.free_text ? `: ${response.free_text}` : ""}` }, cor);
 		}
 		if (request.interaction === "IH-07" && response.option_id === "stop") {
 			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "attempts_exhausted", detail: "budget extension refused" }, cor);

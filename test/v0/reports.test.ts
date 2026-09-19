@@ -5,7 +5,7 @@ import { OUTPUT_SCHEMAS, extractJsonOutput, normalizeOutput } from "../../src/co
 
 describe("structured output extraction (AGT-06)", () => {
 	it("skips earlier code blocks of other languages and takes the last json block", () => {
-		const text = "Analyse.\n```js\nexport function shout(n) { return n; }\n```\nCritères.\n```json\n{\"objective\":\"x\",\"facts\":[],\"assumptions\":[],\"questions\":[],\"out_of_scope\":[],\"risks\":[],\"requirements\":[],\"design\":{\"summary\":\"s\",\"components\":[],\"interfaces\":[],\"risks\":[]}}\n```\n";
+		const text = "Analyse.\n```js\nexport function shout(n) { return n; }\n```\nCritères.\n```json\n{\"objective\":\"x\",\"facts\":[],\"assumptions\":[],\"questions\":[],\"answers\":[],\"out_of_scope\":[],\"risks\":[],\"requirements\":[],\"design\":{\"summary\":\"s\",\"components\":[],\"interfaces\":[],\"risks\":[]}}\n```\n";
 		const out = extractJsonOutput(text);
 		assert.ok(out && typeof out === "object");
 		assert.equal(Value.Check(OUTPUT_SCHEMAS["specification-report"], out), true);

@@ -8,6 +8,7 @@ import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
 const cleanups: string[] = [];
 afterEach(() => { for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true }); });
@@ -187,7 +188,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		t.agent.startIntervention = async (m) => {
 			if (m.role === "specify") {
 				calls++;
-				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: specReport(calls === 1 ? { questions: [{ id: "q-format", question: "Faut-il un point d'exclamation final ?", material: true }] } : {}) }] });
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: specReport(calls === 1 ? { questions: [{ id: "q-format", question: "Faut-il un point d'exclamation final ?", material: true }] } : { answers: [{ question_id: "q-format", observable: true, requirement_ids: ["R1"] }] }) }] });
 				if (calls === 2) assert.ok(m.objective.includes("Answered questions"), "answer is given back to the specifier");
 			}
 			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
@@ -207,6 +208,126 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const second = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(second.stopped_because, "closed", second.steps.join(" | "));
 		assert.equal(second.view.change?.outcome, "accepted");
+	});
+
+	// A recorded answer that contradicts the report it answers is the case the Flash-Next campaign
+	// carried to acceptance: the mandate held "422" while the requirement adopted eight milliseconds
+	// later still said "400", and the frozen suite then demanded the status the owner had replaced.
+	const QUESTION = { id: "q-refus", question: "Quel statut pour un refus de longueur : 400 ou 422 ?", material: true };
+	const ANSWER = "422 avec le message 'Name cannot be longer than 50 characters'";
+	const beforeTheAnswer = () =>
+		specReport({
+			objective: "refuser un nom trop long en transmettant le refus jusqu'à la frontière HTTP (400 + message)",
+			questions: [QUESTION],
+			answers: [],
+			requirements: [{ requirement_id: "R1", statement: "un refus de longueur est exposé au client par un 400 portant un message non vide", mandatory: true, criterion: "le scénario d'acceptation vérifie le statut 400", category: "interface", satisfied_by_reference: true }],
+		});
+	const afterTheAnswer = () =>
+		specReport({
+			objective: "refuser un nom trop long en transmettant le refus jusqu'à la frontière HTTP (422 + message)",
+			questions: [QUESTION],
+			answers: [{ question_id: QUESTION.id, observable: true, requirement_ids: ["R1"] }],
+			requirements: [{ requirement_id: "R1", statement: "un refus de longueur est exposé au client par un 422 portant le message convenu", mandatory: true, criterion: "le scénario d'acceptation vérifie le statut 422 et le message", category: "interface", satisfied_by_reference: true }],
+		});
+
+	it("an answer to a material question reopens the specification, and the requirements adopted at G1 carry it rather than the report written before it (SA-004, RM-010)", async () => {
+		const p = project();
+		let calls = 0;
+		const t = track(makeHarness());
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: calls === 1 ? beforeTheAnswer() : afterTheAnswer() }] });
+				if (calls === 2) assert.ok(m.objective.includes(ANSWER), "the recorded answer is in the request the second report is written from");
+			}
+			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "refuser un nom de plus de 50 caractères", actor: HUMAN });
+		const first = await t.harness.advance(change.change_id);
+		assert.equal(first.stopped_because, "decision_required");
+		const req = t.requested[0]!;
+		assert.equal(req.interaction, "IH-01");
+		const answered = t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: ANSWER, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+		assert.equal(answered.error, null);
+		const second = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(second.stopped_because, "closed", second.steps.join(" | "));
+		assert.equal(calls, 2, "the specification is written again once the answer is recorded");
+
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		assert.equal(state.adopted.requirements?.ref.content_digest, adopted.ref.content_digest, "the document read back is the one G1 adopted");
+		assert.ok(adopted.content.requirements[0]!.statement.includes("422"), `the adopted requirement still carries the status the answer replaced: ${adopted.content.requirements[0]!.statement}`);
+		assert.deepEqual(adopted.content.answers, [{ question_id: QUESTION.id, question: QUESTION.question, answer: ANSWER, observable: true, requirement_ids: ["R1"] }]);
+		const mandate = (await t.harness.latestArtifact<Mandate>(state, "mandate"))!;
+		assert.ok(mandate.content.objective.includes("422"), `the mandate objective contradicts the answer it carries: ${mandate.content.objective}`);
+		assert.equal(mandate.content.open_questions.find((q) => q.id === QUESTION.id)?.answer, ANSWER);
+	});
+
+	it("a specification that keeps ignoring a recorded answer stops the change at G1, naming the question (RM-011)", async () => {
+		const p = project();
+		let calls = 0;
+		const t = track(makeHarness());
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: beforeTheAnswer() }] });
+			}
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "refuser un nom de plus de 50 caractères", actor: HUMAN });
+		await t.harness.advance(change.change_id);
+		const req = t.requested[0]!;
+		t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: ANSWER, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "blocked", result.steps.join(" | "));
+		assert.equal(calls, 2, "the specification is reopened once; a report that ignores the answer again is the gate's business, not another intervention's");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.gates.G1?.verdict, "FAIL");
+		assert.ok(state.gates.G1!.reasons.some((r) => r.includes(QUESTION.id)), state.gates.G1!.reasons.join(" | "));
+		assert.ok(state.stop_detail?.includes("observable contract that no requirement carries"), state.stop_detail ?? "");
+		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+	});
+
+	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {
+		const p = project();
+		const t = track(makeHarness({ policy: { adoption: { requirements: "human" } }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
+		const first = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(first.stopped_because, "decision_required", first.steps.join(" | "));
+		const req = t.requested.at(-1)!;
+		assert.equal(req.interaction, "IH-02");
+		assert.equal(req.subject.kind, "artifact");
+		assert.equal(req.required_authority, "change_owner");
+		assert.ok(req.options.some((o) => o.id === "adopt") && req.options.some((o) => o.id === "refuse"));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.gates.G1?.verdict, "INDETERMINATE");
+		assert.equal(req.subject.digest, state.proposals.requirements!.at(-1)!.content_digest, "the decision is presented on the text it adopts");
+		const ok = t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "adopt", free_text: null, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+		assert.equal(ok.error, null);
+		const second = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(second.stopped_because, "closed", second.steps.join(" | "));
+		assert.equal(second.view.change?.outcome, "accepted");
+	});
+
+	it("a mandate whose human adoption is refused stops the change with the reason, and nothing is adopted at G0 (IH-02)", async () => {
+		const p = project();
+		const t = track(makeHarness({ policy: { adoption: { mandate: "human" } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
+		const first = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(first.stopped_because, "decision_required", first.steps.join(" | "));
+		const req = t.requested.at(-1)!;
+		assert.equal(req.interaction, "IH-02");
+		assert.equal(req.allow_free_text, true);
+		const refused = t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "refuse", free_text: "l'objectif ne dit pas ce que le demandeur a décidé", reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+		assert.equal(refused.error, null);
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.status, "blocked");
+		assert.equal(state.stop_reason, "policy_denied");
+		assert.ok(state.stop_detail?.includes("l'objectif ne dit pas"), state.stop_detail ?? "");
+		assert.equal(state.adopted.mandate, undefined);
 	});
 
 	it("an unqualified sandbox blocks before any producing intervention (capability_missing, ADR-013)", async () => {

@@ -148,7 +148,9 @@ export default function harness495(pi: ExtensionAPI): void {
 			if (!choice || choice.startsWith("(")) continue;
 			const optionId = choice.split(" — ")[0]!;
 			let freeText: string | null = null;
-			if (req.allow_free_text && (optionId === "answer" || optionId === "extend")) freeText = (await ctx.ui.input(lang() === "fr" ? "Votre réponse" : "Your answer")) ?? null;
+			// A refusal that carries no reason leaves the dossier with a blocked change and nothing to
+			// read; only the interactions whose text is actually recorded are asked for one.
+			if (req.allow_free_text && (optionId === "answer" || optionId === "extend" || optionId === "refuse")) freeText = (await ctx.ui.input(lang() === "fr" ? (optionId === "refuse" ? "Motif du refus" : "Votre réponse") : optionId === "refuse" ? "Reason for the refusal" : "Your answer")) ?? null;
 			const answer = rt.harness.answerDecision(changeId, { decision_id: req.decision_id, option_id: optionId, free_text: freeText, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin);
 			if (answer.error) emit(ctx, `${lang() === "fr" ? "Décision refusée" : "Decision refused"}: ${answer.error.code} ${answer.error.message}`);
 			else emit(ctx, `${lang() === "fr" ? "Décision enregistrée" : "Decision recorded"}: ${answer.decision?.human_decision_id}`);
