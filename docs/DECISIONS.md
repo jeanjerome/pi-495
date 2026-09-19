@@ -568,8 +568,9 @@ même rôle.
    question et la réponse recopiées du journal, un booléen `observable` et les exigences qui la
    portent. G1 le confronte à `open_questions`, qu'il ne consultait jamais : une réponse absente,
    une réponse dont le texte diffère de la décision enregistrée, une réponse observable que ne porte
-   aucune exigence, ou que porte une exigence non obligatoire — G2 gèlerait alors un protocole sans
-   obligation pour elle — sont des motifs de `FAIL`, nommant la question.
+   aucune exigence, une réponse qui nomme une exigence absente du document, ou qui n'en nomme aucune
+   d'obligatoire — G2 gèlerait alors un protocole sans obligation pour elle — sont des motifs de
+   `FAIL`, nommant la question. Nommer une exigence non obligatoire de surcroît n'en est pas un.
 3. **`artifact.revise` ne porte pas cette correction.** Le mécanisme existe et reste inutilisé ici.
    Réviser fidèlement une exigence à une réponse, c'est réécrire « un refus est exposé par un 400 »
    en « … par un 422 » : une phrase, que le noyau ne comprend pas et que personne ne relit. Une
@@ -598,9 +599,11 @@ l'adoption, au lieu d'hériter de l'approbation de celle qu'elle remplace.
 **Ce qui vérifie la correction.** Une consigne sans contrôle est un vœu, et une décision humaine ne
 fait pas exception. La chaîne est fermée par construction : une réponse observable nomme au moins une
 exigence obligatoire ; G2 refuse tout protocole où une exigence obligatoire n'a pas d'obligation, et
-toute obligation sans contrôle qualifié ni décision humaine assignée ; la vérification exécute les
-contrôles de l'obligation sur le candidat gelé. Réponse → exigence → obligation → contrôle, chaque
-maillon étant déjà refusé par un gate quand il manque. Ce qu'aucun gate ne peut faire est juger que
+toute obligation sans contrôle qualifié, sans décision humaine assignée et sans justification de
+non-applicabilité ; la vérification exécute les contrôles de l'obligation sur le candidat gelé.
+Réponse → exigence → obligation → contrôle, chaque maillon étant déjà refusé par un gate quand il
+manque. La seule sortie est la non-applicabilité justifiée, que le protocole gelé porte en toutes
+lettres et qui se relit dans le dossier. Ce qu'aucun gate ne peut faire est juger que
 la phrase de l'exigence dit bien ce que la réponse disait : c'est le texte, et il est relu par la
 seule `IH-02` quand la cible la demande.
 

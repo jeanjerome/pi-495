@@ -302,11 +302,12 @@ class Ctx {
 				reasons.push(`material answer ${q.id} fixes an observable contract that no requirement carries`);
 				continue;
 			}
-			for (const rid of a.requirement_ids) {
-				const r = c.requirements.requirements.find((x) => x.requirement_id === rid);
-				if (!r) reasons.push(`material answer ${q.id} names requirement ${rid}, which this document does not carry`);
-				else if (!r.mandatory) reasons.push(`material answer ${q.id} is carried by ${rid} alone, which is not mandatory: G2 would freeze a protocol without an obligation for it`);
-			}
+			// Naming a requirement that is not mandatory is not a defect as long as a mandatory one
+			// carries the answer too; what would lose it is a name that matches nothing, or a set G2
+			// could freeze without a single obligation.
+			const named = a.requirement_ids.map((rid) => ({ rid, requirement: c.requirements.requirements.find((x) => x.requirement_id === rid) }));
+			for (const { rid, requirement } of named) if (!requirement) reasons.push(`material answer ${q.id} names requirement ${rid}, which this document does not carry`);
+			if (!named.some((n) => n.requirement?.mandatory)) reasons.push(`material answer ${q.id} fixes an observable contract that no mandatory requirement carries: G2 would freeze a protocol without an obligation for it`);
 		}
 		const evaluated = { requirements: c.requirements_ref.content_digest, mandate: this.state.adopted.mandate?.ref.content_digest ?? "" };
 		if (reasons.length > 0) {

@@ -298,11 +298,11 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const p = project();
 		const QA = { id: "q-status", question: "400 ou 422 ?", material: true };
 		const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
-		const round = (over: Parameters<typeof specReport>[0]) => specReport({ requirements: [{ requirement_id: "R1", statement: "le refus est exposé au client", mandatory: true, criterion: "le scénario d'acceptation le vérifie", category: "interface", satisfied_by_reference: true }], ...over });
+		const round = (over: Parameters<typeof specReport>[0]) => specReport({ requirements: [{ requirement_id: "R1", statement: "le refus est exposé au client", mandatory: true, criterion: "le scénario d'acceptation le vérifie", category: "interface", satisfied_by_reference: true }, { requirement_id: "R2", statement: "les lectures ne changent pas", mandatory: false, criterion: "les scénarios existants gardent leur statut", category: "regression", satisfied_by_reference: true }], ...over });
 		const reports = [
 			round({ questions: [QA], answers: [] }),
 			round({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }] }),
-			round({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }, { question_id: QB.id, observable: false, requirement_ids: [] }] }),
+			round({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1", "R2"] }, { question_id: QB.id, observable: false, requirement_ids: [] }] }),
 		];
 		let calls = 0;
 		const t = track(makeHarness());
@@ -332,7 +332,40 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
-		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.observable, a.requirement_ids]), [[QA.id, true, ["R1"]], [QB.id, false, []]]);
+		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.observable, a.requirement_ids]), [[QA.id, true, ["R1", "R2"]], [QB.id, false, []]]);
+	});
+
+	// Observed on java-flashnext-L: the specification bound a decision to `r-threshold-trimmed` while
+	// declaring `r-threshold-trimbed`. The answer reads as carried and is carried by nothing.
+	it("refuses at G1 an answer bound to a requirement the document does not carry, and accepts a non-mandatory one named beside a mandatory one (RM-011)", async () => {
+		const p = project();
+		const Q = { id: "q-seuil", question: "chaîne brute ou trimée ?", material: true };
+		const requirements = [
+			{ requirement_id: "R1", statement: "le seuil est mesuré sur la chaîne trimée", mandatory: true, criterion: "les deux bornes sont vérifiées", category: "functional", satisfied_by_reference: true },
+			{ requirement_id: "R2", statement: "la valeur stockée reste brute", mandatory: false, criterion: "le nom est relu tel quel", category: "functional", satisfied_by_reference: true },
+		];
+		let calls = 0;
+		const t = track(makeHarness());
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				const bound = calls >= 3 ? ["R1", "R2"] : ["R1-trimee", "R2"];
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: specReport({ questions: [Q], answers: calls === 1 ? [] : [{ question_id: Q.id, observable: true, requirement_ids: bound }], requirements }) }] });
+			}
+			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		await t.harness.advance(change.change_id);
+		const req = t.requested[0]!;
+		t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: "sur la chaîne trimée", reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+		const blocked = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
+		const reasons = t.ledger.loadChange(change.change_id)!.state.gates.G1!.reasons;
+		assert.ok(reasons.some((r) => r.includes("R1-trimee") && r.includes("does not carry")), reasons.join(" | "));
+		assert.ok(reasons.some((r) => r.includes("no mandatory requirement carries")), reasons.join(" | "));
+		assert.equal(reasons.some((r) => r.includes("R2")), false, "naming a non-mandatory requirement is not itself a reason");
 	});
 
 	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {
