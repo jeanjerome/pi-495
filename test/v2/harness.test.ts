@@ -368,6 +368,125 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(reasons.some((r) => r.includes("R2")), false, "naming a non-mandatory requirement is not itself a reason");
 	});
 
+	// Every reopening made the report redeclare each answer already taken, so it grew at each round
+	// until the fifth was refused on its structured output (chantiers/F). The kernel recorded those
+	// answers and read those declarations: it carries them, and asks the next report for what is new.
+	const CARRIED = [
+		{ requirement_id: "R1", statement: "le refus est exposé au client", mandatory: true, criterion: "le scénario d'acceptation le vérifie", category: "interface", satisfied_by_reference: true },
+		{ requirement_id: "R2", statement: "la mise à jour suit la même règle", mandatory: true, criterion: "le scénario de mise à jour le vérifie", category: "interface", satisfied_by_reference: true },
+	];
+	const QA = { id: "q-status", question: "400 ou 422 ?", material: true };
+	const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
+
+	/** Plays one specification report per round and keeps the objective each one was written from. */
+	function rounds(t: TestHarness, reports: ReturnType<typeof specReport>[]): { objectives: string[]; calls: () => number } {
+		const objectives: string[] = [];
+		let calls = 0;
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				objectives.push(m.objective);
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }] });
+			}
+			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
+			return original(m);
+		};
+		return { objectives, calls: () => calls };
+	}
+
+	it("carries an answer declaration from one report to the next, and asks the reopened report only for the answer it has not declared (RM-010)", async () => {
+		const p = project();
+		const t = track(makeHarness());
+		const { objectives, calls } = rounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
+			specReport({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }], requirements: CARRIED }),
+			// Silent about QA, and still carrying R1: the kernel holds the declaration it already read.
+			specReport({ questions: [QA, QB], answers: [{ question_id: QB.id, observable: true, requirement_ids: ["R2"] }], requirements: CARRIED }),
+		]);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const answerPending = () => {
+			const req = t.requested.at(-1)!;
+			assert.equal(req.interaction, "IH-01");
+			assert.equal(t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: `réponse à ${req.question}`, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin()).error, null);
+		};
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerPending();
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerPending();
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 3, "a report silent about an answer an earlier one bound is not reopened for it");
+
+		const third = objectives[2]!;
+		assert.ok(third.includes(`${QA.id}: ${QA.question} -> réponse à ${QA.question} [already declared, carried by R1]`), third);
+		assert.ok(third.includes(`${QB.id}: ${QB.question} -> réponse à ${QB.question} [to declare in \`answers\`]`), third);
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.requirement_ids]), [[QA.id, ["R1"]], [QB.id, ["R2"]]], "the carried declaration binds the answer in the document G1 adopts");
+	});
+
+	it("stops carrying a declaration as soon as the report drops the requirement that held it, and G1 refuses the answer nothing binds (RM-011)", async () => {
+		const p = project();
+		const t = track(makeHarness());
+		const { calls } = rounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
+			specReport({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }], requirements: CARRIED }),
+			// R1 is gone, so the declaration that named it binds nothing: what the kernel carries is a
+			// binding, not a receipt, and the answer counts as undeclared again.
+			specReport({ questions: [QA, QB], answers: [{ question_id: QB.id, observable: true, requirement_ids: ["R2"] }], requirements: [CARRIED[1]!] }),
+		]);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const answerPending = () => {
+			const req = t.requested.at(-1)!;
+			assert.equal(t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: `réponse à ${req.question}`, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin()).error, null);
+		};
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerPending();
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerPending();
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 3);
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.gates.G1?.verdict, "FAIL");
+		assert.ok(state.gates.G1!.reasons.some((r) => r.includes(QA.id) && r.includes("no requirement carries")), state.gates.G1!.reasons.join(" | "));
+		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+	});
+
+	// The first campaign lost five changes this way: the kernel declared the error retryable and named
+	// `retry_specification`, `resume` only lifted `execution_error`, and nothing could take the action.
+	it("lifts a block the kernel declared retryable, and the change redoes the step that threw (DEC-05)", async () => {
+		const p = project();
+		let calls = 0;
+		const t = track(makeHarness());
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				// A model that finished normally on a report its own fenced block leaves unclosed.
+				t.agent.scripts.set("specify", calls === 1 ? { steps: [{ kind: "complete", output: { objective: "refuser un nom trop long", design: { summary: "" } }, output_valid: false }] } : { steps: [{ kind: "complete", output: specReport() }] });
+			}
+			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
+		const blocked = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.stop_reason, "configuration_error");
+		assert.equal(state.stop_retryable, true);
+		assert.ok(state.stop_detail?.includes("retry_specification"), state.stop_detail ?? "");
+		assert.ok(blocked.view.change?.next_action.includes("resume"), blocked.view.change?.next_action ?? "");
+
+		const resumed = t.harness.resume(change.change_id, HUMAN);
+		assert.equal(resumed.change?.status, "ready", resumed.change?.next_action ?? "");
+		const second = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(second.stopped_because, "closed", second.steps.join(" | "));
+		assert.equal(second.view.change?.outcome, "accepted");
+		assert.equal(calls, 2, "the refused specification is written again, on the same change");
+	});
+
 	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { adoption: { requirements: "human" } }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));

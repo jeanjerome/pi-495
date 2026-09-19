@@ -15,7 +15,7 @@ import { Value } from "typebox/value";
 import type { InterventionEvent, InterventionMandate, SandboxPort } from "../../ports/execution.ts";
 import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { digestValue } from "../../contracts/digest.ts";
-import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, normalizeOutput, type SupervisorMessage, type WorkerConfig, type WorkerMessage } from "./protocol.ts";
+import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, normalizeOutput, retainedRefusedText, type SupervisorMessage, type WorkerConfig, type WorkerMessage } from "./protocol.ts";
 
 const send = (m: WorkerMessage) => process.stdout.write(`${JSON.stringify(m)}\n`);
 const now = () => new Date().toISOString();
@@ -211,7 +211,7 @@ async function main(): Promise<void> {
 			session.dispose();
 			if (abortRequested) finish({ type: "cancelled", at: now(), counters });
 			else if (lastError && !finalText) finish({ type: "failed", at: now(), error: lastError, counters });
-			else finish({ type: "completed", at: now(), output: outputValid ? output : { raw: finalText.slice(0, 20_000) }, output_valid: outputValid, truncated, counters });
+			else finish({ type: "completed", at: now(), output: outputValid ? output : { raw: retainedRefusedText(finalText) }, output_valid: outputValid, truncated, counters });
 		} catch (error) {
 			finish({ type: "failed", at: now(), error: (error as Error).message, counters });
 		}

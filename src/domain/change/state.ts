@@ -162,6 +162,8 @@ export interface ChangeState {
 	outcome: Outcome;
 	stop_reason: StopReason | null;
 	stop_detail: string | null;
+	/** The kernel declared the cause of this block retryable, so `resume` has something to lift. */
+	stop_retryable: boolean;
 	request: ArtifactRef;
 	reference: { reference_id: string; kind: string; digest: string };
 	proposals: Partial<Record<ArtifactKind, ArtifactRef[]>>;
@@ -214,34 +216,77 @@ export function runningIntervention(state: ChangeState): InterventionState | nul
 	return state.interventions.find((i) => i.result === "running") ?? null;
 }
 
+/** What a specification report says it did with one material answer: the binding, not the text. */
+export interface AnswerDeclaration {
+	question_id: string;
+	observable: boolean;
+	requirement_ids: string[];
+}
+
+interface DeclaringReport {
+	requirements: { requirement_id: string; mandatory: boolean }[];
+	answers: AnswerDeclaration[];
+}
+
+/**
+ * Whether a declaration still binds in a given set of requirements: an observable answer is carried
+ * by requirements the document holds, one of them mandatory at least, since G2 freezes an obligation
+ * only for those. A declaration that fixes nothing observable binds nothing and always holds.
+ */
+function declarationHolds(a: AnswerDeclaration, requirements: { requirement_id: string; mandatory: boolean }[]): boolean {
+	if (!a.observable) return true;
+	const named = a.requirement_ids.map((rid) => requirements.find((r) => r.requirement_id === rid));
+	return named.length > 0 && named.every((r) => r !== undefined) && named.some((r) => r?.mandatory);
+}
+
+/**
+ * What a report says about each answered material question — its own declarations, over the ones it
+ * inherits from the reports written before it on the same change. Every reopening would otherwise
+ * make the report redeclare the whole history of the decisions taken, which is what grows it at each
+ * round until its output is refused (`chantiers/F`); the kernel recorded those answers and read those
+ * declarations, so it carries them itself and asks the next report only for what it has not already
+ * said. An inherited declaration is dropped as soon as the report stops carrying the requirements it
+ * names: it would then bind nothing, and the answer counts as undeclared again.
+ */
+export function declarationsOfReport(priors: DeclaringReport[], report: DeclaringReport): Map<string, AnswerDeclaration> {
+	const declared = new Map<string, AnswerDeclaration>();
+	for (const prior of priors) {
+		for (const a of prior.answers) {
+			if (declarationHolds(a, report.requirements)) declared.set(a.question_id, a);
+			else declared.delete(a.question_id);
+		}
+	}
+	for (const a of report.answers) declared.set(a.question_id, a);
+	return declared;
+}
+
 /**
  * The material answers a specification report was written without. A report that asked the question
- * and declares nothing about its answer is the report of before the decision, whatever its text
- * says; a report that declares the answer — even to say it fixes nothing observable — carries it.
+ * and declares nothing about its answer — neither itself nor by what it inherits — is the report of
+ * before the decision, whatever its text says; a report that declares the answer, even to say it
+ * fixes nothing observable, carries it.
  */
-export function answersTheReportIgnores(state: ChangeState, report: { questions: { id: string }[]; answers: { question_id: string }[] }): OpenQuestion[] {
+export function answersTheReportIgnores(state: ChangeState, report: { questions: { id: string }[] }, declared: Map<string, AnswerDeclaration>): OpenQuestion[] {
 	const asked = new Set(report.questions.map((q) => q.id));
-	const carried = new Set(report.answers.map((a) => a.question_id));
-	return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !carried.has(q.id));
+	return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !declared.has(q.id));
 }
 
 /**
  * The answered material questions a specification report accounts for. Used to tell a reopening
  * that took an answer into account from one that gave the same report back.
  */
-export function answersTheReportCarries(state: ChangeState, report: { answers: { question_id: string }[] }): string[] {
+export function answersTheReportCarries(state: ChangeState, declared: Map<string, AnswerDeclaration>): string[] {
 	const answered = new Set(state.open_questions.filter((q) => q.material && q.answer !== null).map((q) => q.id));
-	return report.answers.map((a) => a.question_id).filter((id) => answered.has(id));
+	return [...declared.keys()].filter((id) => answered.has(id));
 }
 
 /**
  * The recorded material answers, as the requirements document carries them: question and answer are
- * copied from the ledger, the binding to the requirements comes from the report. An answer the
- * report says nothing about is held observable and carried by nothing, so silence is refused at G1
- * instead of passing for a declaration that the answer fixes nothing (ADR-013, fail closed).
+ * copied from the ledger, the binding to the requirements comes from the report. An answer no report
+ * of this change says anything about is held observable and carried by nothing, so silence is refused
+ * at G1 instead of passing for a declaration that the answer fixes nothing (ADR-013, fail closed).
  */
-export function answersOf(state: ChangeState, report: { answers: { question_id: string; observable: boolean; requirement_ids: string[] }[] }): AnsweredQuestion[] {
-	const declared = new Map(report.answers.map((a) => [a.question_id, a] as const));
+export function answersOf(state: ChangeState, declared: Map<string, AnswerDeclaration>): AnsweredQuestion[] {
 	return state.open_questions
 		.filter((q) => q.material && q.answer !== null)
 		.map((q) => {

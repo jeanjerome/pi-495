@@ -106,6 +106,23 @@ export function extractJsonOutput(text: string): unknown | undefined {
 	return undefined;
 }
 
+/**
+ * What the trace keeps of a model text whose structured output was refused. The reason a report
+ * fails its schema is almost always at its end — a block left open, a key written last, a value cut
+ * mid-string — so keeping only the head keeps the part that was already well formed and drops the
+ * evidence: the dossier of a refused intervention then cannot say why it was refused. Both ends are
+ * kept, the tail the larger of the two, and the cut is written in the text so no two kept fragments
+ * read as contiguous. The head and the tail together honour `limit`; the line that names the cut is
+ * the harness speaking, and is counted apart.
+ */
+export function retainedRefusedText(text: string, limit = 20_000, head = 8_000): string {
+	if (text.length <= limit) return text;
+	const kept = Math.min(head, limit);
+	const tail = limit - kept;
+	const elided = text.length - kept - tail;
+	return `${text.slice(0, kept)}\n\n[... ${elided} characters elided by the harness: head and tail of the refused output are kept ...]\n\n${tail > 0 ? text.slice(text.length - tail) : ""}`;
+}
+
 /** Drops unknown properties and fills missing arrays with [] before validation (tolerant to small models). */
 export function normalizeOutput(schema: import("typebox").TSchema, value: unknown): unknown {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return value;

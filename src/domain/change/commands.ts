@@ -65,7 +65,7 @@ export type ChangeCommand =
 	| (Base & { type: "change.pause" })
 	| (Base & { type: "change.resume" })
 	| (Base & { type: "change.cancel"; reason: string })
-	| (Base & { type: "change.block"; reason: StopReason; detail: string })
+	| (Base & { type: "change.block"; reason: StopReason; detail: string; retryable?: boolean })
 	| (Base & { type: "change.unblock" })
 	| (Base & { type: "decision.request"; request: DecisionRequest })
 	| (Base & { type: "decision.answer"; human_decision_id: string; response: DecisionResponse; origin: HumanOrigin })

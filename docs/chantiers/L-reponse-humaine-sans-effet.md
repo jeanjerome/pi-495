@@ -174,6 +174,25 @@ Critères d'acceptation :
 
 ## Journal
 
+**19 septembre 2026, soir.** Le noyau reporte les réponses, écrit en `D-39`. Une déclaration de
+réponse portée par un rapport antérieur du même changement est reportée sur le rapport suivant tant
+que celui-ci porte encore les exigences qu'elle nomme, dont une obligatoire au moins ; la demande
+dit à chaque réponse ce qui est déjà déclaré et par quelles exigences, et ce qui reste à déclarer.
+Ce que le noyau reporte est une liaison, pas un reçu : la déclaration héritée tombe dès que le
+rapport cesse de porter l'exigence qui la tenait, et `G1` refuse alors la réponse en la nommant.
+Les exigences ne sont pas reportées — elles sont la substance du rapport, et en abandonner une est
+une déclaration qu'il faut pouvoir lire. L'allègement porte donc sur le bloc `answers`, qui
+croissait avec le nombre de réponses, et non sur le corps du rapport : la croissance est réduite,
+pas supprimée. Deux tests déterministes tiennent la règle et sa chute ; le premier échoue sur le
+comportement d'avant — le rapport silencieux sur une réponse déjà liée était rouvert, puis refusé
+à `G1`.
+
+Des quatre points laissés ouverts l'après-midi, celui-ci est traité ; la reprise après une sortie
+refusée l'est en `F` avec `D-38`. Restent la convergence de la spécification sur cible réelle et la
+clôture humaine de l'interrogation — `IH-01` n'offre toujours que *répondre* ou *abandonner le
+changement*. Et ce qu'un modèle fait de la demande allégée n'est pas mesuré : aucune campagne n'a
+été reconduite.
+
 **19 septembre 2026, après-midi.** Campagne `~/.495-campagnes/java-flashnext-L`, même cible et même
 modèle que le constat, détaillée dans `../QUALIFICATION.md`. Ce qu'elle établit : le champ `answers`
 requis ne coûte pas de reprise sur quatre rapports d'affilée ; la réponse « 422 » atteint l'objectif

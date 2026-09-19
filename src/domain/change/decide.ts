@@ -96,8 +96,8 @@ class Ctx {
 	enter(phase: Phase, reason: string, status: "ready" | "running" | "completed" = "ready"): void {
 		this.emit({ type: "phase.entered", ...this.base(), phase, status, reason });
 	}
-	block(reason: StopReason, detail: string): void {
-		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail });
+	block(reason: StopReason, detail: string, retryable = false): void {
+		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail, retryable });
 	}
 	gateDecision(partial: Omit<GateDecisionState, "decided_at" | "state_revision">): GateDecisionState {
 		return { ...partial, decided_at: this.at, state_revision: this.state.revision };
@@ -659,7 +659,7 @@ class Ctx {
 
 	changeBlock(c: CommandOf<"change.block">): Decision {
 		this.requireActive();
-		this.block(c.reason, c.detail);
+		this.block(c.reason, c.detail, c.retryable ?? false);
 		return ok(this.events);
 	}
 

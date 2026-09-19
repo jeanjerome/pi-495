@@ -1,6 +1,6 @@
 # Transverse F — une sortie structurée refusée, et le changement qui n'a plus d'issue
 
-**État :** ouvert
+**État :** corrigé dans le noyau, non éprouvé en campagne
 **Objet :** un rapport d'intervention qui ne valide pas son schéma bloque le changement sur
 `configuration_error`, et aucune entrée Pi n'expose l'action que le noyau nomme lui-même
 **Ne dépend d'aucun étage**
@@ -76,6 +76,27 @@ Critères d'acceptation :
 | Trace conservée de l'intervention | dossier exporté, `objects/`, `output.raw` |
 
 ## Journal
+
+**19 septembre 2026, soir.** Correction, écrite en `D-38`. Un blocage dont le noyau a déclaré la
+cause réessayable est levé par `resume`, quelle que soit sa classe d'arrêt : le blocage porte
+désormais cette réessayabilité dans l'état projeté, son détail nomme les actions que l'erreur
+portait, et la ligne d'état le dit — `blocked: configuration_error — … (next: retry_specification) —
+resume retries it`. Le changement repart à la phase où il s'est arrêté et l'étape qui a levé
+l'erreur est refaite. Une sortie refusée conserve ses deux bouts, 8 000 caractères de tête et
+12 000 de queue, la coupe écrite dans le texte avec le nombre de caractères élidés. Un bloc JSON
+tronqué n'est toujours pas refermé par le harnais, et le motif de ce refus est écrit : une structure
+refermée valide sans que rien ne dise qu'elle est le rapport, comme le recours au dernier `{` l'a
+déjà montré. Deux tests déterministes tiennent l'ensemble ; le premier échoue sur le comportement
+d'avant — `resume` rend le même état bloqué et le changement ne repart pas.
+
+Les trois travaux de la demande sont donc traités : l'issue opératoire existe et est exercée ; ce
+que coûte une reprise est écrit — le budget d'incrément et les compteurs d'appels d'outils, sans
+tentative consommée, `max_technical_retries` ne s'appliquant qu'aux opérations à effet externe ; et
+la tolérance sur un rapport tronqué est décidée, en refus.
+
+Ce qui reste : aucune campagne n'a été reconduite depuis, donc une reprise réelle après un rapport
+refusé n'est pas mesurée, et la queue conservée n'a pas encore servi à diagnostiquer un refus sur un
+dossier.
 
 **19 septembre 2026.** Nouvelle occurrence, sur la cible Maven et le modèle `Flash-Next` : campagne
 `~/.495-campagnes/java-flashnext-L`, cinquième rapport de spécification refusé après 17,3 min et

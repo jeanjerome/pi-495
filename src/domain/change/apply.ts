@@ -17,6 +17,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			status: "ready",
 			outcome: "pending",
 			stop_reason: null,
+			stop_retryable: false,
 			stop_detail: null,
 			request: event.request,
 			reference: event.reference,
@@ -56,12 +57,14 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			if (event.status !== "blocked") {
 				s.stop_reason = null;
 				s.stop_detail = null;
+				s.stop_retryable = false;
 			}
 			return s;
 		case "status.changed":
 			s.status = event.status;
 			s.stop_reason = event.stop_reason;
 			s.stop_detail = event.detail;
+			s.stop_retryable = event.status === "blocked" && (event.retryable ?? false);
 			return s;
 		case "outcome.set":
 			s.outcome = event.outcome;

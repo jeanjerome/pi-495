@@ -24,7 +24,7 @@ import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import { decide } from "../domain/change/decide.ts";
-import { answersOf, answersTheReportCarries, answersTheReportIgnores, runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { answersOf, answersTheReportCarries, answersTheReportIgnores, declarationsOfReport, runningIntervention, subjectOfChange, type AnswerDeclaration, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
 import { matchesScope } from "../domain/gates/g4.ts";
@@ -317,7 +317,10 @@ export class Harness {
 					// the block against it loses the optimistic-concurrency race and the change silently
 					// reappears ready, redoing the work that just failed.
 					const current = this.deps.ledger.loadChange(changeId) ?? unit;
-					const blocked = this.tryCommit(current, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: error.code === "CAPABILITY_MISSING" ? "capability_missing" : error.code === "CONFIGURATION_ERROR" ? "configuration_error" : error.code === "POLICY_DENIED" ? "policy_denied" : "execution_error", detail: `${error.code}: ${error.message}` }, cor);
+					// The action the error names is of no use to anyone unless the block records that it can
+					// be retried and says so where the operator reads the change.
+					const detail = `${error.code}: ${error.message}${error.nextActions.length > 0 ? ` (next: ${error.nextActions.join(", ")})` : ""}`;
+					const blocked = this.tryCommit(current, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: error.code === "CAPABILITY_MISSING" ? "capability_missing" : error.code === "CONFIGURATION_ERROR" ? "configuration_error" : error.code === "POLICY_DENIED" ? "policy_denied" : "execution_error", detail, retryable: error.retryable }, cor);
 					unit = blocked.unit;
 					if (blocked.error) steps.push(`${s.phase}: the change could not be blocked: ${blocked.error.code} ${blocked.error.message}`);
 					return this.result(unit, steps, error.code === "CAPABILITY_MISSING" ? "capability_missing" : "blocked");
@@ -440,11 +443,14 @@ export class Harness {
 
 	// --- phase steps -----------------------------------------------------------------------------
 
-	/** The specification report before the current one, against which a reopening's progress is read. */
-	private async previousDiagnostic(state: ChangeState): Promise<SpecificationReport | null> {
-		const proposed = state.proposals.diagnostic ?? [];
-		if (proposed.length < 2) return null;
-		return this.readArtifact<SpecificationReport>(proposed[proposed.length - 2]!).catch(() => null);
+	/** Every specification report of this change but the current one, oldest first. */
+	private async priorDiagnostics(state: ChangeState): Promise<SpecificationReport[]> {
+		const out: SpecificationReport[] = [];
+		for (const ref of (state.proposals.diagnostic ?? []).slice(0, -1)) {
+			const prior = await this.readArtifact<SpecificationReport>(ref).catch(() => null);
+			if (prior) out.push(prior);
+		}
+		return out;
 	}
 
 	private async stepClarify(unit: Unit, cor: string): Promise<Unit> {
@@ -458,10 +464,12 @@ export class Harness {
 		// reopening produced must account for an answer the one before it did not. A report that
 		// gives the same ground back is G1's business, and a change is never held by a specification
 		// that will not say what it did with an answer.
-		const ignored = spec ? answersTheReportIgnores(unit.state, spec.content) : [];
-		const previous = await this.previousDiagnostic(unit.state);
-		const carried = new Set(previous ? answersTheReportCarries(unit.state, previous) : []);
-		const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(unit.state, spec!.content).some((id) => !carried.has(id)));
+		const priors = await this.priorDiagnostics(unit.state);
+		const declared = spec ? declarationsOfReport(priors, spec.content) : new Map<string, AnswerDeclaration>();
+		const ignored = spec ? answersTheReportIgnores(unit.state, spec.content, declared) : [];
+		const previous = priors[priors.length - 1] ?? null;
+		const before = new Set(previous ? answersTheReportCarries(unit.state, declarationsOfReport(priors.slice(0, -1), previous)) : []);
+		const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(unit.state, declared).some((id) => !before.has(id)));
 		if (spec && !reopen && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
 			report = spec.content;
 		} else {
@@ -469,7 +477,15 @@ export class Harness {
 			const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			try {
 				const excerpts = await this.projectExcerpts(reference, handle.path, 12, request);
-				const answered = unit.state.open_questions.filter((q) => q.answer !== null && q.id !== "language").map((q) => `Q ${q.id}: ${q.question} -> ${q.answer}`);
+				// An answer an earlier report already bound is carried by the kernel: the next report is
+				// told which requirements hold it and has to declare again only what it changes.
+				const answered = unit.state.open_questions
+					.filter((q) => q.answer !== null && q.id !== "language")
+					.map((q) => {
+						const d = declared.get(q.id);
+						const standing = !d ? "to declare in `answers`" : d.observable ? `already declared, carried by ${d.requirement_ids.join(", ")}` : "already declared as fixing nothing observable";
+						return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
+					});
 				const objective = `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
 				const r = await this.runIntervention(unit, cor, "specify", objective, handle.path, { untrusted: excerpts });
 				unit = r.unit;
@@ -518,7 +534,8 @@ export class Harness {
 	private async stepSpecify(unit: Unit, cor: string): Promise<Unit> {
 		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
 		if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
-		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), answers: answersOf(unit.state, spec.content), assumptions: spec.content.assumptions, contract_families: {} };
+		const declared = declarationsOfReport(await this.priorDiagnostics(unit.state), spec.content);
+		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), answers: answersOf(unit.state, declared), assumptions: spec.content.assumptions, contract_families: {} };
 		const issues: string[] = [];
 		try {
 			validate(RequirementsDocumentSchema, doc, "requirements");
@@ -1152,7 +1169,10 @@ export class Harness {
 		if (running) u = this.commit(u, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: running.intervention_id, result: "failed", counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 }, detail: "intervention was running when the session stopped; treated as failed on resume" }, cor);
 		if (u.state.operation && u.state.operation.kind === "verification") u = this.commit(u, { type: "verification.rerun", at: this.now(), actor: KERNEL_ACTOR, reason: "verification was interrupted; it will be re-run" }, cor);
 		if (u.state.status === "paused") u = this.commit(u, { type: "change.resume", at: this.now(), actor }, cor);
-		else if (u.state.status === "blocked" && u.state.stop_reason === "execution_error") u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor: KERNEL_ACTOR }, cor).unit;
+		// A block whose cause the kernel declared retryable is lifted whatever its class: the change
+		// goes back to the step that threw and redoes it. Declaring an error retryable and leaving no
+		// entry able to act on it is what loses a change on an invalid structured output.
+		else if (u.state.status === "blocked" && (u.state.stop_reason === "execution_error" || u.state.stop_retryable)) u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor: KERNEL_ACTOR }, cor).unit;
 		return this.status(changeId);
 	}
 

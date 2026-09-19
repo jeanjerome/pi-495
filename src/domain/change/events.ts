@@ -9,7 +9,9 @@ interface Base {
 export type ChangeEvent =
 	| (Base & { type: "change.created"; change_id: string; program_id: string; increment_id: string; request: ArtifactRef; reference: { reference_id: string; kind: string; digest: string }; environment_digest: string | null })
 	| (Base & { type: "phase.entered"; phase: Phase; status: ExecStatus; reason: string })
-	| (Base & { type: "status.changed"; status: ExecStatus; stop_reason: StopReason | null; detail: string | null })
+	// `retryable` is absent from every status change but a block, and from blocks written before the
+	// kernel recorded it, so it is read as false rather than required of a replayed ledger.
+	| (Base & { type: "status.changed"; status: ExecStatus; stop_reason: StopReason | null; detail: string | null; retryable?: boolean })
 	| (Base & { type: "outcome.set"; outcome: Outcome })
 	| (Base & { type: "artifact.proposed"; kind: ArtifactKind; ref: ArtifactRef })
 	| (Base & { type: "artifact.adopted"; kind: ArtifactKind; ref: ArtifactRef; gate: GateId | null })

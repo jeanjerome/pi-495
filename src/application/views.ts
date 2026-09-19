@@ -31,7 +31,7 @@ export interface StatusView {
 export function nextActionOf(s: ChangeState): string {
 	if (s.phase === "closed") return s.outcome === "integrated" ? "done: integrated" : s.outcome === "accepted" ? "done: accepted (export available)" : `done: ${s.outcome}`;
 	if (s.status === "decision_required") return `decide: ${s.pending_decisions.map((d) => d.interaction).join(", ")}`;
-	if (s.status === "blocked") return `blocked: ${s.stop_reason ?? "unknown"} — ${s.stop_detail ?? ""}`;
+	if (s.status === "blocked") return `blocked: ${s.stop_reason ?? "unknown"} — ${s.stop_detail ?? ""}${s.stop_retryable ? " — resume retries it" : ""}`;
 	if (s.status === "paused") return "resume";
 	if (s.status === "running") return "wait: intervention or verification running";
 	switch (s.phase) {
