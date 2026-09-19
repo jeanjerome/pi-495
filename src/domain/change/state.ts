@@ -226,6 +226,15 @@ export function answersTheReportIgnores(state: ChangeState, report: { questions:
 }
 
 /**
+ * The answered material questions a specification report accounts for. Used to tell a reopening
+ * that took an answer into account from one that gave the same report back.
+ */
+export function answersTheReportCarries(state: ChangeState, report: { answers: { question_id: string }[] }): string[] {
+	const answered = new Set(state.open_questions.filter((q) => q.material && q.answer !== null).map((q) => q.id));
+	return report.answers.map((a) => a.question_id).filter((id) => answered.has(id));
+}
+
+/**
  * The recorded material answers, as the requirements document carries them: question and answer are
  * copied from the ledger, the binding to the requirements comes from the report. An answer the
  * report says nothing about is held observable and carried by nothing, so silence is refused at G1

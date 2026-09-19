@@ -283,12 +283,56 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: ANSWER, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
 		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(result.stopped_because, "blocked", result.steps.join(" | "));
-		assert.equal(calls, 2, "the specification is reopened once; a report that ignores the answer again is the gate's business, not another intervention's");
+		assert.equal(calls, 2, "a reopening that gives the same report back is not reopened again: that is the gate's business, not another intervention's");
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.gates.G1?.verdict, "FAIL");
 		assert.ok(state.gates.G1!.reasons.some((r) => r.includes(QUESTION.id)), state.gates.G1!.reasons.join(" | "));
 		assert.ok(state.stop_detail?.includes("observable contract that no requirement carries"), state.stop_detail ?? "");
 		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+	});
+
+	// Measured on the java-flashnext-L campaign: a real specification asks new material questions at
+	// each round, so a reopening budget counted in advance stops a specification that was converging.
+	// What bounds it is progress — a report that accounts for an answer the one before it did not.
+	it("reopens the specification again when a round of answers opens new material questions, and stops when a report gives the same ground back (RM-010)", async () => {
+		const p = project();
+		const QA = { id: "q-status", question: "400 ou 422 ?", material: true };
+		const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
+		const round = (over: Parameters<typeof specReport>[0]) => specReport({ requirements: [{ requirement_id: "R1", statement: "le refus est exposé au client", mandatory: true, criterion: "le scénario d'acceptation le vérifie", category: "interface", satisfied_by_reference: true }], ...over });
+		const reports = [
+			round({ questions: [QA], answers: [] }),
+			round({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }] }),
+			round({ questions: [QA, QB], answers: [{ question_id: QA.id, observable: true, requirement_ids: ["R1"] }, { question_id: QB.id, observable: false, requirement_ids: [] }] }),
+		];
+		let calls = 0;
+		const t = track(makeHarness());
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify") {
+				calls++;
+				t.agent.scripts.set("specify", { steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }] });
+			}
+			if (m.role === "implement") t.agent.scripts.set("implement", { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] });
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const answerPending = () => {
+			const req = t.requested.at(-1)!;
+			assert.equal(req.interaction, "IH-01");
+			const done = t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "answer", free_text: `réponse à ${req.question}`, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());
+			assert.equal(done.error, null);
+		};
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerPending();
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required", "the reopened report opens a question of its own");
+		answerPending();
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls, 3, "a second reopening is allowed because the first took an answer into account");
+
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.observable, a.requirement_ids]), [[QA.id, true, ["R1"]], [QB.id, false, []]]);
 	});
 
 	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {

@@ -557,8 +557,12 @@ même rôle.
    réponses : un rapport qui a posé une question et ne déclare rien de sa réponse est le rapport
    d'avant la décision, quel que soit son texte, et une nouvelle intervention `specify` est lancée
    avec les réponses dans la demande — le chemin `Answered questions:` qui existait déjà et que le
-   parcours nominal n'atteignait jamais. La réouverture est bornée à `MAX_SPECIFICATION_REOPENINGS`
-   par changement, une par passage en `clarifying`.
+   parcours nominal n'atteignait jamais. **Ce qui borne la réouverture est la progression, pas un
+   compte** : le rapport qu'une réouverture produit doit rendre compte d'une réponse que le
+   précédent ne portait pas. Un rapport qui rend le même terrain n'est pas rouvert une fois de plus,
+   il est refusé au point 2. La récurrence s'arrête d'elle-même : l'ensemble des réponses prises en
+   compte croît strictement, il est borné par celui des réponses enregistrées, et celui-là ne grandit
+   que lorsqu'un humain répond — chaque tour suspend le changement et l'attend.
 2. **G1 refuse d'adopter des exigences qui n'emportent pas une réponse enregistrée.** Le document
    d'exigences porte désormais un bloc `answers` : pour chaque question matérielle répondue, la
    question et la réponse recopiées du journal, un booléen `observable` et les exigences qui la
@@ -627,6 +631,17 @@ auraient dû le rendre caduc ; la branche qui les réinjecte n'était prise que 
 restait sans réponse, état dans lequel le changement n'avance pas. Le producteur n'était pas en
 cause : il avait suivi l'exigence, qui est l'artefact liant.
 
+La borne de progression n'est pas le premier choix : un plafond de deux réouvertures par changement
+l'a précédé, et la campagne `~/.495-campagnes/java-flashnext-L` du 19 septembre 2026 l'a démenti.
+Même modèle, même cible, même demande au mot près. La spécification pose **quatre** questions
+matérielles, puis **deux** après les réponses, puis **deux** encore : chaque tour consomme de vraies
+réponses — l'objectif porte « 422 » et « mise à jour » dès le deuxième rapport, `R3-contrat-http-400`
+y disparaît au profit de `req-422-contract` —, chaque tour rétrécit les questions, et les durées
+décroissent, 10 min 33 s, 9 min 34 s, 8 min 07 s. Un plafond compté d'avance arrêtait donc à G1 une
+spécification qui convergeait. Le modèle a de surcroît corrigé seul une déclaration de son tour
+précédent, passant `q-schema-alignment` d'`observable: true` portée par une exigence non obligatoire
+— que G1 aurait refusée — à `observable: false` : c'est un tour de plus qui l'a permis.
+
 Le marqueur retenu pour « ce rapport a-t-il été écrit avec la réponse » est une déclaration du
 rapport, pas un horodatage. Comparer l'heure de la réponse à celle de la fin de l'intervention aurait
 été plus direct et n'est pas testable : l'horloge des suites déterministes est figée, si bien qu'un
@@ -644,7 +659,9 @@ le budget d'incrément `increment_ms` et `tool_calls_total`, bornée par `interv
 `tool_calls_per_intervention`, sans consommer de tentative — `attempts_used` ne bouge que pour
 `implement`. Sur la campagne Flash-Next, la première spécification a coûté 7 min 24 s et 227 126
 jetons connus sur les 77 min 56 s du changement, soit de l'ordre du dixième ; sur le 27B, 5 min 55 s.
-C'est le prix de la fidélité au jugement humain, et il est payé une fois par tour de questions.
+C'est le prix de la fidélité au jugement humain, et il est payé une fois par tour de questions — trois
+tours et 28 min 14 s des 120 du budget d'incrément sur la campagne `java-flashnext-L`, pour une cible
+Maven que ce modèle explore en profondeur.
 
 `open_questions` porte `answered_at`, recopié de l'événement `question.answered` : l'heure d'une
 décision est désormais dans l'état projeté et non plus seulement dans le journal.

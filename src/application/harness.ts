@@ -24,7 +24,7 @@ import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../domain/change/commands.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import { decide } from "../domain/change/decide.ts";
-import { answersOf, answersTheReportIgnores, runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { answersOf, answersTheReportCarries, answersTheReportIgnores, runningIntervention, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
 import { matchesScope } from "../domain/gates/g4.ts";
@@ -65,13 +65,6 @@ export interface HarnessDeps {
 	onDecisionRequested?: (request: DecisionRequest) => void;
 	onProgress?: (message: string) => void;
 }
-
-/**
- * How many times a recorded material answer may reopen the specification. One covers the nominal
- * case, the second a question the reopened report asks in its turn; past that, a report that keeps
- * ignoring an answer is a refusal at G1 rather than another intervention paid on the increment.
- */
-const MAX_SPECIFICATION_REOPENINGS = 2;
 
 export const KERNEL_ACTOR: ActorRef = { actor_id: "495-kernel", actor_type: "kernel", role: "kernel", origin: "kernel", authentication_level: "host_qualified" };
 export const EXECUTOR_ACTOR: ActorRef = { actor_id: "495-executor", actor_type: "executor", role: "executor", origin: "executor", authentication_level: "host_qualified" };
@@ -447,6 +440,13 @@ export class Harness {
 
 	// --- phase steps -----------------------------------------------------------------------------
 
+	/** The specification report before the current one, against which a reopening's progress is read. */
+	private async previousDiagnostic(state: ChangeState): Promise<SpecificationReport | null> {
+		const proposed = state.proposals.diagnostic ?? [];
+		if (proposed.length < 2) return null;
+		return this.readArtifact<SpecificationReport>(proposed[proposed.length - 2]!).catch(() => null);
+	}
+
 	private async stepClarify(unit: Unit, cor: string): Promise<Unit> {
 		const reference = await this.referenceOf(unit.state);
 		const request = await this.readArtifact<string>(unit.state.request);
@@ -454,11 +454,14 @@ export class Harness {
 		let report: SpecificationReport;
 		// A report written before a material answer cannot carry it, and reusing it is how a recorded
 		// human decision reaches nothing: the answer is put back into the request and the
-		// specification is redone. The reopening is bounded — beyond it the absence is G1's business,
-		// and a change is never held by a producer that will not declare what it did with an answer.
+		// specification is redone. What bounds the reopening is progress, not a count — the report a
+		// reopening produced must account for an answer the one before it did not. A report that
+		// gives the same ground back is G1's business, and a change is never held by a specification
+		// that will not say what it did with an answer.
 		const ignored = spec ? answersTheReportIgnores(unit.state, spec.content) : [];
-		const reopenings = unit.state.interventions.filter((i) => i.role === "specify").length - 1;
-		const reopen = ignored.length > 0 && reopenings < MAX_SPECIFICATION_REOPENINGS;
+		const previous = await this.previousDiagnostic(unit.state);
+		const carried = new Set(previous ? answersTheReportCarries(unit.state, previous) : []);
+		const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(unit.state, spec!.content).some((id) => !carried.has(id)));
 		if (spec && !reopen && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
 			report = spec.content;
 		} else {
