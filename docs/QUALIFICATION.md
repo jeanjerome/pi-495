@@ -700,6 +700,89 @@ S'y ajoute un coût propre au mécanisme : chaque réouverture oblige le rapport
 réponses déjà déclarées et les exigences qu'elles engendrent, donc il grossit à chaque tour. C'est
 ce qui a conduit le cinquième dans le mur.
 
+### La reprise d'une sortie refusée, et le report des réponses, éprouvés sur cible réelle
+
+Campagne `~/.495-campagnes/java-flashnext-L2`, 19 septembre 2026, conduite après `D-38` et `D-39`.
+Même cible Maven, même modèle `Qwen3.8-Flash-Next-MLX-oQ4-MTP`, même demande au mot près que les
+deux campagnes précédentes. Changement `chg_mu8k6f3k537d7f5266`, laissé bloqué comme pièce. Cinq
+interventions `specify`, 44,0 min du budget d'incrément sur 120, 1 187 178 jetons connus.
+
+#### Un blocage déclaré réessayable est levé, et l'étape est refaite
+
+Le troisième rapport est refusé sur son schéma. Le journal porte la chaîne entière :
+
+| Séquence | Heure | Fait |
+| --- | --- | --- |
+| 147 | 16:29:40.816 | `status.changed` `blocked` / `configuration_error` / `retryable: true`, détail « … invalid structured output (next: retry_specification) » |
+| 148 | 16:30:52.683 | `status.changed` `ready`, `stop_reason` nul — `changeUnblock`, émis par `resume` |
+| 149 | 16:30:54.562 | `intervention.started` : la spécification est refaite |
+
+L'événement 146 avait déjà clos l'intervention, donc aucune n'était `running` : la remise à `ready`
+ne peut venir que de `changeUnblock`. Soixante-douze secondes entre le blocage et le redémarrage, là
+où le même refus perdait le changement sur trois campagnes antérieures. La ligne d'état le disait :
+« blocked: configuration_error — … (next: retry_specification) — resume retries it ».
+
+#### Le noyau reporte les réponses qu'il a lues
+
+Le premier rapport pose cinq questions matérielles, toutes répondues. Le deuxième les déclare toutes,
+liées à des exigences obligatoires qu'il porte. La demande remise au troisième, lue dans son manifeste
+de contexte, porte alors le report :
+
+```
+Q1 … [already declared, carried by REQ-422-MESSAGE, REQ-DISTINCT-ERROR-TYPE, REQ-ACCEPT-OBSERVABLE]
+Q4 … [already declared, carried by REQ-STORAGE-VARCHAR255, REQ-READ-LONG-NAMES]
+Q6 … [to declare in `answers`]
+```
+
+Le rapport suivant n'a plus à redire que les réponses nouvelles. La règle de repli s'est exercée
+elle aussi : le quatrième rapport renomme `REQ-422-MESSAGE` en `REQ-422-BODY-FORMAT`, la déclaration
+héritée de `Q1` nomme alors une exigence que le document ne porte plus, elle tombe, et G1 refuse en
+nommant la question. Ce que le noyau reporte est une liaison, pas un reçu — vérifié hors du banc.
+
+#### G0 est franchi
+
+Le mandat est adopté à G0 à 16:39:24, ce qu'aucune campagne de cette famille n'avait atteint. G1
+refuse ensuite, pour la raison ci-dessus.
+
+#### Le refus du troisième rapport, diagnostiqué depuis le dossier
+
+La sortie refusée fait 16 825 caractères et le dossier la porte entière. Elle ne comporte **aucun
+bloc** délimité : dix lignes, zéro clôture. L'objet du rapport commence à l'offset 935 et se parse
+jusqu'à la fin du texte — il est complet et valide. Le recours de `extractJsonOutput` s'ancre sur le
+**dernier** `{`, à l'offset 16 265, qui tombe dans un sous-objet, et le parse échoue sur les
+caractères qui suivent. Le rapport n'était donc pas tronqué : il a été perdu par son extraction.
+`chantiers/F` décrivait ce recours comme inopérant sur un objet tronqué ; ici l'objet est intact.
+
+#### Ce que la campagne a trouvé sans le chercher
+
+- **G1 refuse sur un prédicat plus large que celui qui rouvre la spécification.** `gateG1` refuse
+  toute réponse matérielle qu'aucune exigence ne porte ; `answersTheReportIgnores` ne rouvre que sur
+  les réponses aux questions **que le rapport a posées**. Le quatrième rapport ne pose aucune
+  question et défait une liaison : le changement est refusé sans recours. Trois `resume` successifs
+  reproposent le même document et G1 rend le même `FAIL` — boucle exercée, événements 190 à 195.
+  Le `revise_requirements` que le gate nomme n'a pas de constructeur, comme `artifact.revise`.
+  À verser à `chantiers/L`.
+- **Un changement bloqué se débloque de lui-même.** `apply.ts` met `status = "ready"` à toute
+  `intervention.finished`, sans condition : clore une intervention restée `running` fait passer un
+  changement de `blocked` à `ready` sans `change.unblock`, contourne les gardes de `changeUnblock`
+  et laisse `stop_reason` périmé sur un changement qui tourne. À verser à `chantiers/M`.
+- **Aucun bail n'est jamais pris.** `acquireLease` et `releaseLease` sont écrits dans le port du
+  journal et dans l'adaptateur SQLite, scope `change:<id>`, propriétaire unique ; aucun appelant hors
+  `test/v2/ledger.test.ts`. Deux sessions Pi ont conduit ce changement en même temps ; ce qui les a
+  arrêtées est un `REVISION_CONFLICT` qui **bloque le changement**, pas un verrou qui refuse le
+  second conducteur. À verser à `chantiers/M`.
+- **Une réponse humaine erronée ne se révoque pas.** `decision.revoke`, `decision.revoked` et
+  l'invalidation `authorization_revoked` n'existent que dans `domain/change/` : aucune méthode
+  d'`application/`, aucune sous-commande `/495`. Une réponse enregistrée par erreur ne peut plus
+  être reprise. Même famille que `IH-02` et `IH-04`.
+
+#### Ce que la campagne ne permet toujours pas de revendiquer
+
+Aucun gate au-delà de G0. Que le protocole gelé à G2 et les contrôles exécutés portent le contrat
+décidé reste **non mesuré**. Les réponses aux questions ouvertes après le premier tour ont été
+reportées de la campagne `java-flashnext-L` plutôt que formées devant les questions posées : le
+mécanisme est donc mesuré, le jugement moins.
+
 ## Revues obligatoires
 
 Trois des six revues de `amont/conception-verification.md` §11 ont été conduites le 17 septembre

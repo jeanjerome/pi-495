@@ -1,6 +1,6 @@
 # Transverse F — une sortie structurée refusée, et le changement qui n'a plus d'issue
 
-**État :** corrigé dans le noyau, non éprouvé en campagne
+**État :** reprise corrigée et éprouvée en campagne ; le recours d'extraction perd un rapport complet
 **Objet :** un rapport d'intervention qui ne valide pas son schéma bloque le changement sur
 `configuration_error`, et aucune entrée Pi n'expose l'action que le noyau nomme lui-même
 **Ne dépend d'aucun étage**
@@ -76,6 +76,32 @@ Critères d'acceptation :
 | Trace conservée de l'intervention | dossier exporté, `objects/`, `output.raw` |
 
 ## Journal
+
+**19 septembre 2026, nuit.** Campagne `~/.495-campagnes/java-flashnext-L2`, même cible et même modèle,
+détaillée dans `../QUALIFICATION.md`. Le troisième rapport de spécification est refusé sur son schéma,
+et le changement repart : le blocage porte `retryable: true` et nomme `retry_specification`,
+`resume` émet `changeUnblock` — aucune intervention n'était `running`, donc rien d'autre ne pouvait
+le faire —, et une nouvelle intervention `specify` démarre deux secondes plus tard. Soixante-douze
+secondes entre le blocage et le redémarrage, là où le même refus perdait le changement. La mesure
+que ce chantier attendait est faite.
+
+Le dossier dit aussi **pourquoi** le rapport a été refusé, et la réponse déplace le constat. La
+sortie conservée fait 16 825 caractères, sous le plafond, donc entière. Elle ne porte **aucun bloc
+délimité** : dix lignes, zéro clôture — le modèle n'a pas posé le bloc `json` que l'instruction
+demande. L'objet du rapport commence à l'offset 935 et se parse **jusqu'à la fin du texte** : il est
+complet et valide. Le recours de `extractJsonOutput` s'ancre sur le dernier `{`, à l'offset 16 265,
+qui tombe dans un sous-objet ; le parse échoue sur ce qui le suit, et le rapport entier est perdu.
+
+Ce que cela change : la fiche tenait le recours pour inopérant sur un objet *tronqué*. Il perd aussi
+un objet **intact**, pour la seule raison qu'il cherche par la fin. Un recours qui essaie les `{`
+depuis le début du texte, et retient le premier dont le parse consomme le reste, rendrait ce rapport
+sans rien inventer — ce n'est pas une tolérance sur une sortie malformée, c'est la lecture correcte
+d'une sortie bien formée. La décision de ne pas refermer une structure ouverte (`D-38`) n'est pas en
+cause et reste entière.
+
+Reste non mesuré : la conservation des deux bouts. Cette occurrence tenait sous 20 000 caractères,
+donc l'ancienne troncature aurait gardé le même texte ; la queue n'a pas encore servi sur un rapport
+qui dépasse.
 
 **19 septembre 2026, soir.** Correction, écrite en `D-38`. Un blocage dont le noyau a déclaré la
 cause réessayable est levé par `resume`, quelle que soit sa classe d'arrêt : le blocage porte

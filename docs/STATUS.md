@@ -342,31 +342,45 @@ constat et `D-37` pour ce qui le corrige.
   (`chantiers/F`), et le second cycle n'a abouti qu'après une reprise sur un endpoint de modèle
   disparu. La cible Node, elle, s'arrête toujours à G2 sur la commande de test de l'adaptateur
   (`chantiers/E`).
-- Fidélité au jugement humain : **établie jusqu'au rapport de spécification, pas au-delà**. La
-  campagne `java-flashnext-L` du 19 septembre 2026, même cible et même modèle que le constat, montre
-  la réponse « 422 » portée par l'objectif et par les exigences du rapport dès la première
-  réouverture, `R3-contrat-http-400` remplacée par `req-422-contract`, les huit réponses déclarées et
-  liées, et une liaison morte attrapée par son nom. Elle n'a **franchi aucun gate** : le cinquième
-  rapport casse sur une sortie structurée refusée et le changement est perdu (`chantiers/F`). Que les
-  exigences adoptées à G1, le protocole gelé à G2 et les contrôles exécutés portent réellement le
-  contrat décidé reste donc **non mesuré sur une cible réelle**. Le coût propre au mécanisme — un
-  rapport qui grossit à chaque réouverture — est réduit depuis : le noyau reporte lui-même les
-  déclarations de réponse qu'il a déjà lues et ne demande au rapport suivant que ce qui est nouveau
-  (`D-39`), l'allègement portant sur le bloc `answers` et non sur le corps du rapport. Le constat
-  d'origine est dans `chantiers/L`, la campagne dans `QUALIFICATION.md`.
+- Fidélité au jugement humain : **établie jusqu'à G0, pas au-delà**. Deux campagnes du 19 septembre
+  2026 sur la cible Maven avec le même modèle. `java-flashnext-L` montre la réponse « 422 » portée
+  par l'objectif et par les exigences dès la première réouverture, les huit réponses déclarées et
+  liées, et une liaison morte attrapée par son nom ; elle ne franchit aucun gate. `java-flashnext-L2`
+  va plus loin : le noyau reporte lui-même les déclarations qu'il a lues — la demande du troisième
+  rapport porte `already declared, carried by REQ-422-MESSAGE, …` et ne réclame que les réponses
+  nouvelles (`D-39`) — et le **mandat est adopté à G0**. Elle s'arrête à G1, sur la règle de repli
+  qui joue comme prévu puis sur un cul-de-sac qui, lui, ne l'était pas : `gateG1` refuse toute
+  réponse qu'aucune exigence ne porte, alors que la réouverture ne se déclenche que sur les
+  questions *que le rapport a posées*, si bien qu'un rapport qui défait une liaison sans rien
+  demander boucle sans recours. Que le protocole gelé à G2 et les contrôles exécutés portent le
+  contrat décidé reste donc **non mesuré sur une cible réelle**. Le constat d'origine et le
+  cul-de-sac sont dans `chantiers/L`, les campagnes dans `QUALIFICATION.md`.
 - Convergence de la spécification, et clôture humaine de l'interrogation : **absentes**. Sur la cible
   Maven, ce modèle pose des questions matérielles à chaque tour — 4, puis 2, puis 2, puis 2 — dont
   certaines relèvent de `prepare` et de G2 plutôt que de la spécification. `IH-01` n'offre que
   *répondre* ou *abandonner le changement* : rien ne permet à un humain de déclarer qu'une question
   n'est plus matérielle et de faire décider avec ce qui est acquis. À verser à `chantiers/L`.
 - Sortie d'intervention invalide : un rapport structuré qui ne valide pas son schéma bloque toujours
-  le changement sur `configuration_error`, mais le blocage a désormais une issue. Le noyau enregistre
-  que la cause est réessayable, le détail nomme `retry_specification`, `resume` lève le blocage et
-  l'étape qui a levé l'erreur est refaite sur le même changement (`D-38`). Une sortie refusée conserve
-  en outre ses deux bouts au lieu de sa seule tête, ce qui met le motif d'un refus de schéma dans le
-  dossier. Ce qui n'est pas mesuré : aucune campagne n'a été reconduite depuis, donc la reprise n'a
-  pas été exercée sur une cible réelle. Le constat d'origine — quatre changements perdus sur deux
-  cibles et deux modèles — est dans `chantiers/F`.
+  le changement sur `configuration_error`, mais le blocage a une issue, **exercée sur cible réelle**.
+  Sur `java-flashnext-L2`, le blocage porte `retryable: true`, son détail nomme `retry_specification`,
+  `resume` émet `changeUnblock` — aucune intervention ne tournait, donc rien d'autre ne pouvait le
+  faire — et la spécification est refaite soixante-douze secondes plus tard (`D-38`). Le constat
+  d'origine était quatre changements perdus sur deux cibles et deux modèles. Ce que la même campagne
+  ajoute : le rapport refusé n'était **pas tronqué**. Il ne portait aucun bloc délimité, son objet
+  était complet et valide, et le recours de `extractJsonOutput`, qui s'ancre sur le dernier `{`, est
+  tombé dans un sous-objet. Un rapport bien formé peut donc être perdu par sa seule extraction. Voir
+  `chantiers/F`.
+- État d'arrêt et session conductrice : deux défauts ouverts par `java-flashnext-L2`. Clore une
+  intervention restée `running` fait passer un changement de `blocked` à `ready` sans
+  `change.unblock`, ce qui contourne les gardes de la levée et laisse le motif d'arrêt sur un
+  changement qui tourne. Et l'exclusion écrite au journal — `acquireLease`, scope `change:<id>` — n'a
+  aucun appelant hors des tests : deux sessions Pi ont conduit le même changement, chacune lançant
+  une intervention, et ce qui les a départagées est un `REVISION_CONFLICT` qui bloque le changement.
+  Voir `chantiers/M`.
+- Révocation d'une décision humaine : **absente**. `decision.revoke`, `decision.revoked` et
+  l'invalidation `authorization_revoked` n'existent que dans `domain/change/` ; aucune méthode
+  d'`application/`, aucune sous-commande `/495`. Une réponse `IH-01` enregistrée par erreur ne peut
+  plus être reprise. Même famille qu'`IH-04`, à verser à `chantiers/L`.
 - Cas particuliers d'un arbre (UX-10) : binaire, lien sortant, lien vers un répertoire, exécutable,
   fichier au-delà du budget de lecture, nom et contenu portant des séquences terminales sont portés
   et rendus sans tromper le lecteur, mesuré sur un candidat réel. Deux cas ne le sont pas : le genre

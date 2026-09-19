@@ -1,7 +1,7 @@
 # Transverse L — la réponse à une question matérielle, et l'exigence qui l'ignore
 
-**État :** corrigé dans le noyau, éprouvé en campagne jusqu'au rapport de spécification ; aucun gate
-franchi depuis
+**État :** corrigé dans le noyau et éprouvé jusqu'à G0 ; un rapport qui défait une liaison refuse à
+G1 sans recours
 **Objet :** une réponse `IH-01` est enregistrée, attribuée, portée au mandat — et n'atteint pas les
 exigences : le noyau réemploie le rapport de spécification écrit avant elle, puis gèle un protocole
 dont l'oracle exige le contraire de ce que l'humain a décidé
@@ -173,6 +173,42 @@ Critères d'acceptation :
 | Dossier de la campagne | `~/.495-campagnes/java-flashnext` |
 
 ## Journal
+
+**19 septembre 2026, nuit.** Campagne `~/.495-campagnes/java-flashnext-L2`, détaillée dans
+`../QUALIFICATION.md`. Le report des réponses est mesuré hors du banc : le deuxième rapport déclare
+les cinq réponses liées à des exigences obligatoires, et la demande remise au troisième porte
+« already declared, carried by REQ-422-MESSAGE, … » pour celles-là et « to declare in `answers` »
+pour les deux nouvelles. **G0 est franchi**, ce qu'aucune campagne de cette famille n'avait atteint.
+
+La règle de repli s'est exercée elle aussi, et elle a révélé un cul-de-sac. Le quatrième rapport
+renomme `REQ-422-MESSAGE` en `REQ-422-BODY-FORMAT` ; la déclaration héritée de `Q1` nomme alors une
+exigence que le document ne porte plus, elle tombe, `Q1` redevient non déclarée, et `gateG1` la
+refuse en la nommant. Jusque-là, c'est le comportement voulu. Mais ce rapport **ne pose aucune
+question**, et `answersTheReportIgnores` ne retient que les réponses aux questions *que le rapport a
+posées* :
+
+```ts
+return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !declared.has(q.id));
+```
+
+`ignored` est donc vide, aucune réouverture n'est déclenchée, le même document est reproposé à
+chaque passage et G1 rend le même `FAIL`. Trois `resume` successifs l'ont exercé — événements 190 à
+195 du journal de la campagne, `ready` puis `artifact.proposed` puis `G1=FAIL` puis `blocked`, à
+l'identique. Le `revise_requirements` que le gate nomme n'a pas de constructeur, comme
+`artifact.revise`. Le changement est perdu.
+
+**La cause est un écart entre deux prédicats.** `gateG1` refuse sur *toute* réponse matérielle
+qu'aucune exigence ne porte ; la réouverture ne se déclenche que sur le sous-ensemble des questions
+que le rapport a posées. La condition `asked.has(q.id)` est antérieure au report : quand un rapport
+ne pouvait ignorer que ce qu'il avait lui-même demandé, elle décrivait exactement la situation. Le
+report a ouvert le cas qu'elle ne couvre pas — un rapport qui défait une liaison sans avoir rien
+demandé. Les deux doivent juger la même chose, la borne de progression continuant de borner la
+réouverture.
+
+S'y ajoute, de la même famille que `IH-02` et `IH-04` : **une réponse humaine enregistrée par erreur
+ne se révoque pas**. `decision.revoke`, `decision.revoked` et l'invalidation `authorization_revoked`
+n'existent que dans `domain/change/` — aucune méthode d'`application/`, aucune sous-commande `/495`.
+Le noyau sait défaire une autorisation et personne ne peut le lui demander.
 
 **19 septembre 2026, soir.** Le noyau reporte les réponses, écrit en `D-39`. Une déclaration de
 réponse portée par un rapport antérieur du même changement est reportée sur le rapport suivant tant
