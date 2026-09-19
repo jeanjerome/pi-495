@@ -345,7 +345,9 @@ insensible à la fidélité de l'oracle au jugement humain qui l'a précédé. V
   enregistrée, attribuée et portée au mandat, mais n'atteint pas les exigences : le noyau réemploie
   le rapport de spécification écrit avant elle, et le protocole gèle un oracle qui exige le
   contraire de ce que l'humain a décidé. Observé sur un changement `accepted`, `G0…G5 PASS`, quatre
-  contrôles verts. Voir `chantiers/L`.
+  contrôles verts, et retrouvé sur le cycle du 27B, où les exigences sont adoptées treize secondes
+  après une réponse qu'elles ne portent pas. C'est le parcours nominal, pas un incident de campagne.
+  Voir `chantiers/L`.
 - Adoption humaine des exigences (IH-02) : l'interaction est nommée par `gateG0` et `gateG1` quand
   `policy.adoption` vaut `human`, et exclue du constructeur de demandes de décision comme `IH-04`.
   Une cible qui demanderait cette relecture arrêterait son changement sans voie de sortie.

@@ -100,15 +100,19 @@ code introduit, et G2 accepte encore une obligation sans consulter le diagnostic
 Aux dix conditions de la règle de décision de livraison s'ajoutent les critères propres au jalon :
 
 1. les 93 exigences `[P0]` possèdent un verdict **discriminant** sur leur périmètre applicable, ou
-   l'arbitrage humain qui en tient lieu ; un contrôle vert sur la référence n'est pas un verdict ;
+   l'arbitrage humain qui en tient lieu ; un contrôle vert sur la référence n'est pas un verdict, et
+   un verdict discriminant n'est pas davantage une preuve de fidélité — un oracle qui distingue le
+   comportement nouveau de l'ancien peut exiger le contraire de ce qu'une réponse humaine
+   enregistrée a décidé (`chantiers/L`) ;
 2. TypeScript et Java couvrent les parcours de référence — **non satisfait**, mais sur une seule des
-   deux piles désormais. Le parcours Java est couvert : conduite depuis Pi avec le modèle local sur
-   la cible Maven multi-module, une demande va de bout en bout et rend `accepted`, tests
-   discriminants préparés et adoptés, protocole gelé, candidat jugé contre la référence, avec une
-   réponse humaine à `IH-01` en cours de route. Deux réserves l'accompagnent : deux lancements sur
-   quatre sont morts avant tout gate sur une sortie structurée refusée (`chantiers/F`), et la demande
-   éprouvée est la plus petite possible. Le parcours TypeScript, lui, s'arrête toujours à G2 sur la
-   commande de test de l'adaptateur node (`chantiers/E`) ;
+   deux piles désormais. Le parcours Java est couvert deux fois, avec deux modèles locaux : conduite
+   depuis Pi sur la cible Maven multi-module, une demande va de bout en bout et rend `accepted`,
+   tests discriminants préparés et adoptés, protocole gelé, candidat jugé contre la référence, avec
+   des réponses humaines à `IH-01` en cours de route. Trois réserves l'accompagnent : deux lancements
+   sur quatre sont morts avant tout gate sur une sortie structurée refusée (`chantiers/F`), le second
+   cycle n'a abouti qu'après une reprise sur un endpoint de modèle disparu, et la demande éprouvée
+   est la plus petite possible. Le parcours TypeScript, lui, s'arrête toujours à G2 sur la commande
+   de test de l'adaptateur node (`chantiers/E`) ;
 3. macOS arm64 et Linux x86-64 sont qualifiés ; L0 a décidé de ne pas revendiquer Linux, donc ce
    critère est aujourd'hui **non satisfait** et le restera tant qu'une machine Linux ne conduira pas
    les campagnes — à moins qu'une révision de l'amont ne retire cette plateforme de la cible ;

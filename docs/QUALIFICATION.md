@@ -323,6 +323,14 @@ Le quatrième n'est pas un lancement de plus : c'est le troisième, repris aprè
 a été répondue dans le TUI. Le changement `chg_mu6sopkhf9e51f38b0` porte donc les deux, et le dossier
 tient d'un seul tenant.
 
+Cette reprise porte un défaut qui n'a été reconnu qu'après coup, sur la campagne Flash-Next : la
+réponse « La limite s'applique à la création et à la mise à jour. » est enregistrée à 10:34:08, et
+les exigences sont adoptées à G1 à 10:34:21 — treize secondes plus tard, et identiques au rapport de
+spécification produit à 10:13:35, avant la question. `R1` y porte « Une création d'utilisateur via
+POST /api/users… » et aucune exigence n'énonce la mise à jour. Que le candidat la couvre malgré tout
+tient au placement de la règle dans le record `User` : à une conception, donc, et non à une exigence
+ni à un contrôle. Voir `chantiers/L`.
+
 **Les deux premiers lancements meurent sur `chantiers/F`, et pas de la même manière.** Au premier, le
 rapport est dans un bloc annoncé `json` dont l'objet racine n'est jamais clos, arrêté à 7 002
 caractères ; `extractJsonOutput` ne trouve aucun bloc analysable. Au second, il n'y a aucune clôture

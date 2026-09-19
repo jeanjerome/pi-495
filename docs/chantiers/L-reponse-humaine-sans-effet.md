@@ -51,6 +51,20 @@ comme une suite qui assère `422`.
 **Le producteur n'est pas en cause.** Il avait le mandat et les exigences sous les yeux, et il a suivi
 l'exigence, qui est l'artefact liant.
 
+**Ce n'est pas propre à cette campagne.** Le cycle du 27B (`~/.495-campagnes/java-cycle-3`) prend le
+même chemin, et `QUALIFICATION.md` le décrivait déjà sans en tirer la conséquence : son quatrième
+lancement est le troisième repris après la réponse `IH-01`. Or son journal donne `specify` terminé à
+10:13:35, la réponse « La limite s'applique à la création et à la mise à jour. » enregistrée à
+10:34:08, et les exigences adoptées à G1 **treize secondes plus tard**, à 10:34:21. Elles portent
+`R1` : « Une création d'utilisateur via POST /api/users… », et aucune n'énonce le cas de la mise à
+jour. La réponse n'a pas davantage atteint l'artefact là-bas.
+
+Ce que le candidat du 27B couvre tout de même la modification tient au placement de la règle dans le
+record `User`, décidé par la conception — pas à une exigence, donc pas à un contrôle. Les deux
+campagnes se ressemblent jusque-là : ce qu'une réponse humaine obtient, elle l'obtient par accident
+de conception. C'est le parcours nominal qui est en cause, sur deux modèles et deux cycles, et non
+un incident de l'un d'eux.
+
 ## La cause, dans une condition
 
 `stepClarify`, `src/application/harness.ts` :
