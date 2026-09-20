@@ -21,7 +21,8 @@ import {
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack, mutationCapabilityMissing, readsMutationReport } from "../../src/application/target.ts";
+import { detectStack } from "../../src/application/target.ts";
+import { mutationCapabilityMissing, readsMutationReport } from "../../src/application/stacks/maven.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
