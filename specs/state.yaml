@@ -10,9 +10,8 @@ active_epic_id: null
 
 handoff:
   next_skill: survey-context
-  last_step_completed: "The remise à plat is closed: every component of the §4.1 catalogue is an identifiable module, and the rule on a frozen candidate written to while the controls measure it lives in the kernel (src/domain/candidate.ts) with a net written before the move and checked by mutation"
+  last_step_completed: "The remise à plat is closed: the kernel holds the rule on a frozen candidate written to during measurement, each stack a target may be is its own adapter under application/stacks/, and the Pi extension entry point is 31 lines wiring a session, a command, a tool and the driving of a change"
   open_decisions:
-    - "Whether to split src/extension/index.ts (679 lines) and src/application/target.ts (702 lines) for readability; neither breaks the one-component-per-module rule, so this is comfort, not a correction"
     - "Chantier N is the next candidate and has not started; its four material questions are in its fiche, not here, and none of them is settled"
   required_reading:
     - docs/chantiers/README.md
@@ -20,4 +19,4 @@ handoff:
 
 git:
   branch: main
-  hash: 0e1fa85e88315c1ea8234fb8018ec05a0da1fe72
+  hash: fcc3d9448fe082eb8cf31450ded6cd993b200409
