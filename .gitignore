@@ -4,3 +4,5 @@ dist/
 .DS_Store
 test-output/
 .dist-check/
+.claude/skills/
+.cursor/rules
