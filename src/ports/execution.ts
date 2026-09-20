@@ -134,6 +134,12 @@ export interface ContextManifest {
 	input_budget_bytes: number;
 	output_reserve_tokens: number;
 	truncations: string[];
+	/**
+	 * Addresses the exact text handed to the model — system prompt and prompt — in the object store.
+	 * Without it a dossier holds the instructions and the objective but not the project excerpts,
+	 * which are the bulk of what was read, so it cannot say what produced a report.
+	 */
+	prompt_digest: string | null;
 }
 
 export interface InterventionMandate {

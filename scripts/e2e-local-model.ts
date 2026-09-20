@@ -24,7 +24,7 @@ const mandate: InterventionMandate = {
 	objective: "Make greet return 'Hello, <name>!' with a trailing exclamation mark",
 	prompt: ["You work in the current directory, a small JavaScript project.", "Task: modify src/greet.js so that greet(name) returns `Hello, ${name}!` (with a trailing exclamation mark) and update test/greet.test.js to expect it.", "Use the read, edit, write and bash tools. Run `node --test` with bash to check.", "When finished, answer with a short summary followed by a fenced ```json block with exactly these fields: {\"summary\": string, \"changed_paths\": string[], \"tests_claimed\": boolean, \"notes\": string[]}."].join("\n"),
 	system_prompt: "You are a careful software engineer working inside an isolated workspace. Only the workspace is writable. Do not attempt to access other directories or the network.",
-	context: { role: "implement", objective: "greet", output_schema: "producer-report", trusted_instructions: ["workspace only"], adopted_refs: [], untrusted_excerpts: [], tools: TOOLS_FOR_ROLE.implement, exclusions: [], input_budget_bytes: 20000, output_reserve_tokens: 2000, truncations: [] },
+	context: { role: "implement", objective: "greet", output_schema: "producer-report", trusted_instructions: ["workspace only"], adopted_refs: [], untrusted_excerpts: [], tools: TOOLS_FOR_ROLE.implement, exclusions: [], input_budget_bytes: 20000, output_reserve_tokens: 2000, truncations: [], prompt_digest: null },
 	tools: TOOLS_FOR_ROLE.implement,
 	profile: { profile_id: "implement", read_paths: [ws], write_paths: [ws], network: "denied", env_allowlist: ["PATH", "HOME", "TMPDIR"], env: {} },
 	workspace_path: ws,

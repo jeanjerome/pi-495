@@ -312,6 +312,22 @@ Critères d'acceptation :
 
 ## Journal
 
+**20 septembre 2026.** Relevé de ce qui est réellement remis, lu dans les manifestes de contexte des
+23 interventions `specify` enregistrées, et trois corrections écrites en `D-40`. Ce que le relevé
+donne, sur la campagne `java-flashnext-L2` : les instructions pèsent 2 302 caractères contre
+24 224 octets d'extraits du projet, soit **7,9 à 8,7 % du prompt**, et l'objectif passe de 69 à
+2 651 caractères au fil des réouvertures. Quatre défauts de forme s'y lisent. Le contrat de sortie
+était montré en pseudo-type — `{"objective": string, …}`, qui n'est pas du JSON — alors qu'il décide
+du sort de l'intervention ; rien ne disait ce que son absence coûte ; l'instruction sur le workspace
+à laisser compilable était remise à des rôles sans droit d'écriture, en contradiction avec celle qui
+le leur interdit ; et l'instruction de rôle `specify` a enflé à 973 caractères portant cinq règles
+hétérogènes dans un paragraphe, dont trois ajoutées en deux jours.
+
+`D-40` traite les trois premiers, qui sont locaux, et rend le quatrième mesurable : le manifeste
+porte désormais `prompt_digest`, qui adresse le texte exact remis au modèle, et les extraits sont
+écrits sous les empreintes que le manifeste nommait déjà. Le découpage de l'instruction de rôle,
+lui, reste le travail de cette fiche.
+
 **18 septembre 2026.** Ouverture. Le constat est cumulatif : deux spécifications refusées sur trois
 avec le modèle 27B (`chantiers/F`), une préparation refusée pour écriture hors mandat avec le
 Flash-Next (`chantiers/J`), et une commande no-op annoncée au producteur comme une commande à

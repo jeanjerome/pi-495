@@ -358,6 +358,10 @@ export class Harness {
 		}
 		const protocol = await this.latestArtifact<Protocol>(unit.state, "protocol");
 		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
+		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or
+		// those digests resolve to nothing and the dossier cannot say what the model read.
+		await this.deps.objects.putText(ctx.record, "application/json");
+		for (const u of extra.untrusted ?? []) await this.deps.objects.putText(u.text, "text/plain");
 		const contextRef = await this.storeArtifact("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
 		const mandate: InterventionMandate = { intervention_id: interventionId, change_id: unit.state.change_id, role, objective, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest, tools: TOOLS_FOR_ROLE[role], profile: this.profileFor(role, workspacePath), workspace_path: workspacePath, model: this.deps.model, budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention }, output_schema: outputSchemaFor(role) };

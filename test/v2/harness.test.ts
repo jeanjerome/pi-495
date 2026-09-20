@@ -487,6 +487,31 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(calls, 2, "the refused specification is written again, on the same change");
 	});
 
+	// A dossier read back must say what produced a report. Before, it held the instructions and the
+	// objective — under a tenth of the prompt — while the project excerpts, which are the bulk of
+	// what the model read, were named by a digest the store did not hold.
+	it("keeps the text every intervention was handed, excerpts included, addressable in the store (CTX-01)", async () => {
+		const p = project();
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		const contexts = t.ledger.listArtifacts(change.change_id, "context");
+		assert.ok(contexts.length > 0, "every intervention proposes its context");
+		for (const stored of contexts) {
+			const manifest = JSON.parse(new TextDecoder().decode((await t.objects.get(stored.ref.content_digest))!)) as ContextManifest;
+			assert.ok(manifest.prompt_digest, `${manifest.role} names no prompt`);
+			const recorded = await t.objects.get(manifest.prompt_digest!);
+			assert.ok(recorded, `the text handed to ${manifest.role} is not in the store`);
+			const { system_prompt, prompt } = JSON.parse(new TextDecoder().decode(recorded)) as { system_prompt: string; prompt: string };
+			assert.ok(system_prompt.includes(manifest.trusted_instructions[0]!), "the record carries the instructions as sent");
+			assert.ok(prompt.includes(manifest.objective), "the record carries the objective as sent");
+			for (const e of manifest.untrusted_excerpts) {
+				assert.equal(await t.objects.has(e.digest), true, `the excerpt ${e.source} read by ${manifest.role} is named and absent`);
+			}
+		}
+	});
+
 	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { adoption: { requirements: "human" } }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));

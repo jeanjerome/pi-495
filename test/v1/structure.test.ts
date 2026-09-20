@@ -12,7 +12,10 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { analyzeJavaStructure, owningPackage, packageEdges, readDeclarations, readJavaSources, stronglyConnectedComponents, underPrefix } from "../../src/adapters/execution/structure.ts";
-import { buildContext, type ContextInput } from "../../src/application/context.ts";
+import { buildContext, OUTPUT_SCHEMA_EXAMPLES, type ContextInput } from "../../src/application/context.ts";
+import { Value } from "typebox/value";
+import { OUTPUT_SCHEMAS } from "../../src/contracts/v1/reports.ts";
+import { digestBytes } from "../../src/contracts/digest.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { compareToReference } from "../../src/domain/baseline.ts";
@@ -207,6 +210,47 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 		const read = await readJavaSources(project, ["domain/src/main/java/", "infrastructure/src/main/java/", "absent/src/main/java/"]);
 		assert.deepEqual(read.sources.map((s) => s.path), ["domain/src/main/java/io/demo/domain/port/UserPort.java", SERVICE, USER, "infrastructure/src/main/java/io/demo/infra/UserRepository.java"]);
 		assert.deepEqual(read.notes, [], "a module without that source root is a fact of the tree, not a limit of the reading");
+	});
+});
+
+// A refused structured output costs the whole intervention, and three of the five specification
+// reports of the java-flashnext campaigns died on their shape. What the model is shown of that
+// shape, and what it is told it costs, are the two things the harness controls.
+describe("what an intervention is told of its output contract (CTX-01, AGT-06)", () => {
+	const base: ContextInput = { role: "specify", objective: "x", language: "en", adopted: [], untrusted: [], feedback: null, tools: [], budget_bytes: 10_000 };
+
+	it("shows a valid answer of the required shape, not a sketch of its types", () => {
+		for (const [name, example] of Object.entries(OUTPUT_SCHEMA_EXAMPLES)) {
+			assert.equal(Value.Check(OUTPUT_SCHEMAS[name as keyof typeof OUTPUT_SCHEMAS], example), true, `the example shown for ${name} does not satisfy the schema it illustrates`);
+		}
+		const prompt = buildContext(base).system_prompt;
+		const shown = prompt.slice(prompt.indexOf("{"));
+		assert.doesNotThrow(() => JSON.parse(shown), "what the model is shown must itself parse as JSON");
+		assert.equal(Value.Check(OUTPUT_SCHEMAS["specification-report"], JSON.parse(shown)), true);
+	});
+
+	it("says what a missing block costs, since the kernel reads nothing else", () => {
+		const prompt = buildContext(base).system_prompt;
+		assert.match(prompt, /discarded and the change stops/, "a model that does not know the fence is load-bearing has no reason to treat it as such");
+	});
+
+	it("does not tell a role that cannot write to leave the workspace building", () => {
+		const resumable = /leave the workspace in a state that builds/;
+		for (const role of ["specify", "review", "observe"] as const) {
+			assert.ok(!resumable.test(buildContext({ ...base, role }).system_prompt), `${role} writes nothing and is never resumed on a workspace`);
+		}
+		for (const role of ["implement", "prepare"] as const) {
+			assert.match(buildContext({ ...base, role }).system_prompt, resumable, `${role} can leave a tree half-edited`);
+		}
+	});
+
+	it("addresses the exact text it sent, so a dossier can be read back on it", () => {
+		const built = buildContext({ ...base, untrusted: [{ source: "pom.xml", text: "<project/>" }] });
+		assert.equal(built.manifest.prompt_digest, digestBytes(built.record), "the manifest addresses the record, not a reconstruction of it");
+		const recorded = JSON.parse(built.record) as { system_prompt: string; prompt: string };
+		assert.equal(recorded.system_prompt, built.system_prompt);
+		assert.equal(recorded.prompt, built.prompt);
+		assert.match(recorded.prompt, /<project\/>/, "the project excerpt the model read is in the record");
 	});
 });
 
