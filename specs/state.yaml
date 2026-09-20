@@ -5,22 +5,19 @@ project_cycle:
   phase_name: discover
   completed_phases: []
 
-active_flow: qlt-arc-target-capability
+active_flow: null
 active_epic_id: null
 
 handoff:
   next_skill: survey-context
-  last_step_completed: "The harness itself is held by an external referential (Biome lint and formatter, both refused by Preflight); the capability for a target is untouched"
+  last_step_completed: "The remise à plat is closed: every component of the §4.1 catalogue is an identifiable module, and the rule on a frozen candidate written to while the controls measure it lives in the kernel (src/domain/candidate.ts) with a net written before the move and checked by mutation"
   open_decisions:
-    - "Which stack first: extend the Maven adapter, or close the Node gap and pull transverse E in as a prerequisite"
-    - "Whether the kernel ships a starting profile per stack, or only the adoption mechanism"
-    - "CMP-* granularity across ARC-01..03"
-    - "Whether QLT-01's referential is frozen into the G2 protocol, as StructureRule was for ARC-04"
+    - "Whether to split src/extension/index.ts (679 lines) and src/application/target.ts (702 lines) for readability; neither breaks the one-component-per-module rule, so this is comfort, not a correction"
+    - "Chantier N is the next candidate and has not started; its four material questions are in its fiche, not here, and none of them is settled"
   required_reading:
+    - docs/chantiers/README.md
     - docs/chantiers/N-referentiel-de-qualite-et-architecture-cible.md
-    - docs/amont/expression-besoins.md (§4.16 ARC-01..05, §4.17 QLT-01..05, REC-33..REC-36)
-    - docs/DECISIONS.md (D-42, D-43)
 
 git:
   branch: main
-  hash: 3bfd60855888b4759160369ffcaf743168a59cdb
+  hash: 0e1fa85e88315c1ea8234fb8018ec05a0da1fe72
