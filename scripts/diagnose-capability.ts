@@ -28,8 +28,17 @@ try {
 	console.log(`stack: ${detection.stack}`);
 	console.log(`test roots: ${detection.preparation_paths.join(", ") || "none"}`);
 	console.log(`test files named as such: ${test_files.length}`);
-	for (const [label, requirements] of [["behaviour to add", [addition]], ["behaviour to keep", [preservation]]] as const) {
-		const diagnosis = diagnoseControlCapability({ stack: detection.stack, test_files, requirements, suite: null, prepared: null });
+	for (const [label, requirements] of [
+		["behaviour to add", [addition]],
+		["behaviour to keep", [preservation]],
+	] as const) {
+		const diagnosis = diagnoseControlCapability({
+			stack: detection.stack,
+			test_files,
+			requirements,
+			suite: null,
+			prepared: null,
+		});
 		const opens = diagnosis.undiscriminated_requirements.length > 0 && detection.preparation_paths.length > 0;
 		console.log(`\n${label}: level ${diagnosis.level}, preparation ${opens ? "opens" : "does not open"}`);
 		for (const note of diagnosis.notes) console.log(`  - ${note}`);

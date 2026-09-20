@@ -43,7 +43,8 @@ export function includedEntries(entries: readonly ManifestEntry[], exclusions: s
 
 /** Removes obsolete limit diagnostics that refer exclusively to excluded paths. */
 export function includedLimits(entries: readonly ManifestEntry[], limits: Limits, exclusions: string[]): Limits {
-	const limitPath = (note: string): string | null => note.match(/^(.+) exceeds \d+ bytes$/)?.[1] ?? note.match(/^unreadable directory (.+?): /)?.[1] ?? null;
+	const limitPath = (note: string): string | null =>
+		note.match(/^(.+) exceeds \d+ bytes$/)?.[1] ?? note.match(/^unreadable directory (.+?): /)?.[1] ?? null;
 	const notes = limits.notes.filter((note) => {
 		const path = limitPath(note);
 		return path === null || !isExcluded(path, exclusions);
@@ -60,7 +61,14 @@ export function includedLimits(entries: readonly ManifestEntry[], limits: Limits
  */
 export async function walkTree(root: string, options: WalkOptions): Promise<WalkResult> {
 	const entries: ManifestEntry[] = [];
-	const limits: Limits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [...options.exclusions], unstable: false, notes: [] };
+	const limits: Limits = {
+		truncated: false,
+		bytes_read: 0,
+		bytes_total: 0,
+		exclusions: [...options.exclusions],
+		unstable: false,
+		notes: [],
+	};
 	const stack: string[] = [root];
 	while (stack.length > 0) {
 		const dir = stack.pop()!;
@@ -87,7 +95,17 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 			const mode = (st.mode & 0o777).toString(8).padStart(6, "0");
 			if (st.isSymbolicLink()) {
 				const target = await readlink(abs);
-				entries.push({ path: rel, kind: "symlink", content_digest: `sha256:${createHash("sha256").update(target).digest("hex")}`, size: Buffer.byteLength(target), mode, symlink_target: target, baseline_state: "unchanged", origin: "unknown", limits: null });
+				entries.push({
+					path: rel,
+					kind: "symlink",
+					content_digest: `sha256:${createHash("sha256").update(target).digest("hex")}`,
+					size: Buffer.byteLength(target),
+					mode,
+					symlink_target: target,
+					baseline_state: "unchanged",
+					origin: "unknown",
+					limits: null,
+				});
 				continue;
 			}
 			if (st.isDirectory()) {
@@ -95,19 +113,63 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 				continue;
 			}
 			if (!st.isFile()) {
-				entries.push({ path: rel, kind: "special", content_digest: null, size: 0, mode, symlink_target: null, baseline_state: "unchanged", origin: "unknown", limits: { truncated: true, bytes_read: 0, bytes_total: null, exclusions: [], unstable: false, notes: ["special file: not read"] } });
+				entries.push({
+					path: rel,
+					kind: "special",
+					content_digest: null,
+					size: 0,
+					mode,
+					symlink_target: null,
+					baseline_state: "unchanged",
+					origin: "unknown",
+					limits: {
+						truncated: true,
+						bytes_read: 0,
+						bytes_total: null,
+						exclusions: [],
+						unstable: false,
+						notes: ["special file: not read"],
+					},
+				});
 				continue;
 			}
 			limits.bytes_total = (limits.bytes_total ?? 0) + st.size;
 			if (st.size > options.max_file_bytes) {
-				entries.push({ path: rel, kind: "file", content_digest: null, size: st.size, mode, symlink_target: null, baseline_state: "unchanged", origin: "unknown", limits: { truncated: true, bytes_read: 0, bytes_total: st.size, exclusions: [], unstable: false, notes: [`file exceeds ${options.max_file_bytes} bytes; not digested`] } });
+				entries.push({
+					path: rel,
+					kind: "file",
+					content_digest: null,
+					size: st.size,
+					mode,
+					symlink_target: null,
+					baseline_state: "unchanged",
+					origin: "unknown",
+					limits: {
+						truncated: true,
+						bytes_read: 0,
+						bytes_total: st.size,
+						exclusions: [],
+						unstable: false,
+						notes: [`file exceeds ${options.max_file_bytes} bytes; not digested`],
+					},
+				});
 				limits.truncated = true;
 				limits.notes.push(`${rel} exceeds ${options.max_file_bytes} bytes`);
 				continue;
 			}
 			const bytes = await readFile(abs);
 			limits.bytes_read += bytes.byteLength;
-			entries.push({ path: rel, kind: "file", content_digest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`, size: bytes.byteLength, mode, symlink_target: null, baseline_state: "unchanged", origin: "unknown", limits: null });
+			entries.push({
+				path: rel,
+				kind: "file",
+				content_digest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+				size: bytes.byteLength,
+				mode,
+				symlink_target: null,
+				baseline_state: "unchanged",
+				origin: "unknown",
+				limits: null,
+			});
 		}
 	}
 	entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -124,7 +186,12 @@ export function diffEntries(reference: readonly ManifestEntry[], candidate: read
 		const r = ref.get(c.path);
 		if (!r) out.push({ ...c, baseline_state: "added", origin: "agent" });
 		else if (r.kind !== c.kind) out.push({ ...c, baseline_state: "type_changed", origin: "agent" });
-		else if (r.content_digest !== c.content_digest || r.symlink_target !== c.symlink_target || (r.content_digest === null && c.content_digest === null && r.size !== c.size)) out.push({ ...c, baseline_state: "modified", origin: "agent" });
+		else if (
+			r.content_digest !== c.content_digest ||
+			r.symlink_target !== c.symlink_target ||
+			(r.content_digest === null && c.content_digest === null && r.size !== c.size)
+		)
+			out.push({ ...c, baseline_state: "modified", origin: "agent" });
 		else if (r.mode !== c.mode) out.push({ ...c, baseline_state: "mode_changed", origin: "agent" });
 		else out.push({ ...c, baseline_state: "unchanged", origin: r.origin });
 	}

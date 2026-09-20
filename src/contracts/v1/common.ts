@@ -24,7 +24,24 @@ export const IsoDateTime = Type.String({ format: "date-time" });
 export const Revision = Type.Integer({ minimum: 1 });
 export const NonNegativeInt = Type.Integer({ minimum: 0 });
 
-export const ARTIFACT_KINDS = ["request", "diagnostic", "mandate", "requirements", "protocol", "design", "trajectory", "preparation", "feedback", "review", "milestone", "reference", "candidate", "context", "output", "integration"] as const;
+export const ARTIFACT_KINDS = [
+	"request",
+	"diagnostic",
+	"mandate",
+	"requirements",
+	"protocol",
+	"design",
+	"trajectory",
+	"preparation",
+	"feedback",
+	"review",
+	"milestone",
+	"reference",
+	"candidate",
+	"context",
+	"output",
+	"integration",
+] as const;
 export const ArtifactKind = Closed(ARTIFACT_KINDS);
 
 export const ArtifactRef = Type.Object(
@@ -39,7 +56,22 @@ export const ArtifactRef = Type.Object(
 export type ArtifactRef = Static<typeof ArtifactRef>;
 
 /** `fixture` is a tree fabricated for a witness; `reference` is the initial tree the change starts from. */
-export const SUBJECT_KINDS = ["program", "increment", "change", "attempt", "candidate", "artifact", "protocol", "control", "component", "fixture", "reference", "build", "environment", "integration"] as const;
+export const SUBJECT_KINDS = [
+	"program",
+	"increment",
+	"change",
+	"attempt",
+	"candidate",
+	"artifact",
+	"protocol",
+	"control",
+	"component",
+	"fixture",
+	"reference",
+	"build",
+	"environment",
+	"integration",
+] as const;
 export const SubjectRef = Type.Object(
 	{
 		kind: Closed(SUBJECT_KINDS),
@@ -75,7 +107,18 @@ export const EnvironmentRef = Type.Object(
 export type EnvironmentRef = Static<typeof EnvironmentRef>;
 
 export const ACTOR_TYPES = ["human", "kernel", "agent", "executor", "integrator", "extension", "system"] as const;
-export const ACTOR_ORIGINS = ["tui_session", "rpc_qualified", "sdk_qualified", "json", "print", "model_output", "tool_call", "kernel", "executor", "system"] as const;
+export const ACTOR_ORIGINS = [
+	"tui_session",
+	"rpc_qualified",
+	"sdk_qualified",
+	"json",
+	"print",
+	"model_output",
+	"tool_call",
+	"kernel",
+	"executor",
+	"system",
+] as const;
 export const AUTHENTICATION_LEVELS = ["none", "session", "host_qualified"] as const;
 export const ActorRef = Type.Object(
 	{
@@ -104,13 +147,46 @@ export const VERDICTS = ["PASS", "FAIL", "INDETERMINATE", "NOT_RUN", "NOT_APPLIC
 export const Verdict = Closed(VERDICTS);
 export type Verdict = (typeof VERDICTS)[number];
 
-export const PHASES = ["intake", "clarifying", "specifying", "verification_design", "preparing", "designing", "implementing", "verifying", "reviewing", "deciding", "integrating", "closed"] as const;
+export const PHASES = [
+	"intake",
+	"clarifying",
+	"specifying",
+	"verification_design",
+	"preparing",
+	"designing",
+	"implementing",
+	"verifying",
+	"reviewing",
+	"deciding",
+	"integrating",
+	"closed",
+] as const;
 export type Phase = (typeof PHASES)[number];
-export const EXEC_STATUSES = ["ready", "running", "paused", "decision_required", "blocked", "completed", "cancelled"] as const;
+export const EXEC_STATUSES = [
+	"ready",
+	"running",
+	"paused",
+	"decision_required",
+	"blocked",
+	"completed",
+	"cancelled",
+] as const;
 export type ExecStatus = (typeof EXEC_STATUSES)[number];
 export const OUTCOMES = ["pending", "accepted", "rejected", "integrated", "abandoned"] as const;
 export type Outcome = (typeof OUTCOMES)[number];
-export const STOP_REASONS = ["user_cancelled", "budget_exhausted", "attempts_exhausted", "stagnation", "configuration_error", "capability_missing", "execution_error", "evidence_missing", "policy_denied", "integration_conflict", "decision_pending"] as const;
+export const STOP_REASONS = [
+	"user_cancelled",
+	"budget_exhausted",
+	"attempts_exhausted",
+	"stagnation",
+	"configuration_error",
+	"capability_missing",
+	"execution_error",
+	"evidence_missing",
+	"policy_denied",
+	"integration_conflict",
+	"decision_pending",
+] as const;
 export type StopReason = (typeof STOP_REASONS)[number];
 export const GATES = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"] as const;
 export type GateId = (typeof GATES)[number];
@@ -120,7 +196,20 @@ export type EffectState = (typeof EFFECT_STATES)[number];
 export const OPERATION_STATUSES = ["accepted", "running", "succeeded", "failed", "indeterminate", "cancelled"] as const;
 export type OperationStatus = (typeof OPERATION_STATUSES)[number];
 
-export const ERROR_CATEGORIES = ["request", "configuration", "capability", "provider", "execution", "verification", "candidate", "policy", "evidence", "git", "storage", "interface"] as const;
+export const ERROR_CATEGORIES = [
+	"request",
+	"configuration",
+	"capability",
+	"provider",
+	"execution",
+	"verification",
+	"candidate",
+	"policy",
+	"evidence",
+	"git",
+	"storage",
+	"interface",
+] as const;
 export type ErrorCategory = (typeof ERROR_CATEGORIES)[number];
 
 export const CanonicalError = Type.Object(
@@ -161,11 +250,43 @@ export const Envelope = Type.Object(
 );
 export type Envelope = Static<typeof Envelope>;
 
-export const HUMAN_INTERACTIONS = ["IH-01", "IH-02", "IH-03", "IH-04", "IH-05", "IH-06", "IH-07", "IH-08", "IH-09", "IH-10", "IH-11", "IH-12"] as const;
+export const HUMAN_INTERACTIONS = [
+	"IH-01",
+	"IH-02",
+	"IH-03",
+	"IH-04",
+	"IH-05",
+	"IH-06",
+	"IH-07",
+	"IH-08",
+	"IH-09",
+	"IH-10",
+	"IH-11",
+	"IH-12",
+] as const;
 export type HumanInteraction = (typeof HUMAN_INTERACTIONS)[number];
 
-export const ROLES = ["requester", "change_owner", "program_owner", "maintainer", "discipline_referent", "producer_agent", "reviewer_agent", "kernel", "executor", "integrator"] as const;
+export const ROLES = [
+	"requester",
+	"change_owner",
+	"program_owner",
+	"maintainer",
+	"discipline_referent",
+	"producer_agent",
+	"reviewer_agent",
+	"kernel",
+	"executor",
+	"integrator",
+] as const;
 export type Role = (typeof ROLES)[number];
 
-export const INTERVENTION_ROLES = ["observe", "specify", "prepare", "implement", "verify", "review", "integrate"] as const;
+export const INTERVENTION_ROLES = [
+	"observe",
+	"specify",
+	"prepare",
+	"implement",
+	"verify",
+	"review",
+	"integrate",
+] as const;
 export type InterventionRole = (typeof INTERVENTION_ROLES)[number];

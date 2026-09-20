@@ -1,7 +1,20 @@
 import { Type, type Static } from "typebox";
 import { canonicalize } from "../canonical.ts";
 import { digestBytes } from "../digest.ts";
-import { ActorRef, Closed, Digest, EnvironmentRef, Identifier, IsoDateTime, NonNegativeInt, ObjectRef, ProtocolRef, SubjectRef, Verdict, contractId } from "./common.ts";
+import {
+	ActorRef,
+	Closed,
+	Digest,
+	EnvironmentRef,
+	Identifier,
+	IsoDateTime,
+	NonNegativeInt,
+	ObjectRef,
+	ProtocolRef,
+	SubjectRef,
+	Verdict,
+	contractId,
+} from "./common.ts";
 
 export const RequirementRef = Type.Object(
 	{ requirement_id: Identifier, revision: Type.Integer({ minimum: 1 }) },
@@ -22,14 +35,31 @@ export const Limits = Type.Object(
 );
 export type Limits = Static<typeof Limits>;
 
-export const EMPTY_LIMITS: Limits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
+export const EMPTY_LIMITS: Limits = {
+	truncated: false,
+	bytes_read: 0,
+	bytes_total: 0,
+	exclusions: [],
+	unstable: false,
+	notes: [],
+};
 
 export const Integrity = Type.Object(
 	{ content_digest: Digest, chained_to: Type.Union([Identifier, Type.Null()]) },
 	{ additionalProperties: false },
 );
 
-export const FINDING_CATEGORIES = ["assertion", "structure", "quality", "security", "performance", "scope", "protocol", "review", "incident"] as const;
+export const FINDING_CATEGORIES = [
+	"assertion",
+	"structure",
+	"quality",
+	"security",
+	"performance",
+	"scope",
+	"protocol",
+	"review",
+	"incident",
+] as const;
 export const SEVERITIES = ["blocker", "major", "minor", "info"] as const;
 export const BASELINE_STATES = ["new", "preexisting", "removed", "unknown"] as const;
 /** What a finding the reference already carries is worth (VER-08, QLT-04). */
@@ -40,7 +70,12 @@ export const INSTABILITY_RULES = ["confirm_then_indeterminate", "none"] as const
 export type InstabilityRule = (typeof INSTABILITY_RULES)[number];
 
 export const Region = Type.Object(
-	{ start_line: Type.Integer({ minimum: 1 }), end_line: Type.Integer({ minimum: 1 }), start_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]), end_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]) },
+	{
+		start_line: Type.Integer({ minimum: 1 }),
+		end_line: Type.Integer({ minimum: 1 }),
+		start_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+		end_col: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+	},
 	{ additionalProperties: false },
 );
 export type Region = Static<typeof Region>;

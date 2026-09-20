@@ -14,8 +14,25 @@ import { validate } from "../contracts/validate.ts";
 import type { CandidateRef, EnvironmentRef, ProtocolRef } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from "../contracts/v1/evidence.ts";
-import { isDifferentialParser, type ControlCapabilityDiagnosis, type ControlDefinition, type Obligation, type Protocol, type Qualification, type RequirementsDocument } from "../contracts/v1/protocol.ts";
-import { applyInstability, blockingCount, candidateShape, compareToReference, divergesFromReference, reusableReferencePass, type CandidateShape, type ReferencePass } from "../domain/baseline.ts";
+import {
+	isDifferentialParser,
+	type ControlCapabilityDiagnosis,
+	type ControlDefinition,
+	type Obligation,
+	type Protocol,
+	type Qualification,
+	type RequirementsDocument,
+} from "../contracts/v1/protocol.ts";
+import {
+	applyInstability,
+	blockingCount,
+	candidateShape,
+	compareToReference,
+	divergesFromReference,
+	reusableReferencePass,
+	type CandidateShape,
+	type ReferencePass,
+} from "../domain/baseline.ts";
 import type { EvidenceFact } from "../domain/change/commands.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
@@ -123,7 +140,12 @@ export class VerificationCoordinator {
 	 */
 	orderOf(controls: ControlDefinition[]): ControlDefinition[] {
 		const ordering = orderControls(controls);
-		if (ordering.cycles.length > 0) throw new DomainError("CONFIGURATION_ERROR", `controls declare a cycle of reports: ${ordering.cycles.join(", ")}`, { nextActions: ["prepare_capabilities"] });
+		if (ordering.cycles.length > 0)
+			throw new DomainError(
+				"CONFIGURATION_ERROR",
+				`controls declare a cycle of reports: ${ordering.cycles.join(", ")}`,
+				{ nextActions: ["prepare_capabilities"] },
+			);
 		return ordering.ordered;
 	}
 
@@ -143,7 +165,12 @@ export class VerificationCoordinator {
 			const observed = { reported: 0, skipped: 0, witnesses: 0, any: false };
 			const base = {
 				protocol: { protocol_id: "qualification", revision: 1, content_digest: digestValue("qualification") } as const,
-				candidate: { candidate_id: "qualification", manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: positive.workspace_id },
+				candidate: {
+					candidate_id: "qualification",
+					manifest_digest: reference.tree_digest,
+					base_digest: reference.tree_digest,
+					workspace_id: positive.workspace_id,
+				},
 				subject: { kind: "fixture" as const, id: reference.reference_id, revision: 1, digest: reference.tree_digest },
 				environment: this.deps.environment,
 				requirement_refs: input.requirement_refs,
@@ -154,8 +181,18 @@ export class VerificationCoordinator {
 				if (reusable) {
 					this.deps.progress(`control ${control.control_id} keeps its qualification`);
 					qualifications[control.control_id] = reusable;
-					this.countReferenceCases(observed, control, input.witnesses.tests, reusable.evidence_ids ? this.deps.ledger.getEvidence(reusable.evidence_ids.positive)?.facts ?? null : null);
-					if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
+					this.countReferenceCases(
+						observed,
+						control,
+						input.witnesses.tests,
+						reusable.evidence_ids
+							? (this.deps.ledger.getEvidence(reusable.evidence_ids.positive)?.facts ?? null)
+							: null,
+					);
+					if (prepared)
+						qualifications[control.control_id]!.notes.push(
+							`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
+						);
 					continue;
 				}
 				this.deps.progress(`qualifying control ${control.control_id}`);
@@ -165,7 +202,9 @@ export class VerificationCoordinator {
 				// workspace, built on the positive one (VER-05).
 				const ownNegative = input.witnesses.own_negative[control.control_id];
 				const negativeFiles = ownNegative ? { ...input.witnesses.positive, ...ownNegative } : sharedNegativeFiles;
-				const ownHandle = ownNegative ? await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy) : null;
+				const ownHandle = ownNegative
+					? await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy)
+					: null;
 				// A sensor that measures nothing of its own reads a report a witness workspace only holds
 				// once the control that writes it has run there. Each witness workspace is a fresh copy of
 				// the reference, so the producers run in it before the sensor is asked anything.
@@ -173,23 +212,49 @@ export class VerificationCoordinator {
 				let detailed: DetailedQualification;
 				try {
 					if (ownHandle) await writeWitness(ownHandle.path, negativeFiles);
-					detailed = await qualifyControlDetailed(this.deps.controls, control, { positive_path: positive.path, negative_path: ownHandle?.path ?? negative.path, positive_files: input.witnesses.positive, negative_files: negativeFiles }, base, producers);
+					detailed = await qualifyControlDetailed(
+						this.deps.controls,
+						control,
+						{
+							positive_path: positive.path,
+							negative_path: ownHandle?.path ?? negative.path,
+							positive_files: input.witnesses.positive,
+							negative_files: negativeFiles,
+						},
+						base,
+						producers,
+					);
 				} finally {
 					if (ownHandle) await this.deps.workspace.closeWorkspace(ownHandle.workspace_id, "delete");
 				}
-				const evidenceIds = { positive: this.deps.id("evq"), negative: this.deps.id("evq"), incident: this.deps.id("evq") };
+				const evidenceIds = {
+					positive: this.deps.id("evq"),
+					negative: this.deps.id("evq"),
+					incident: this.deps.id("evq"),
+				};
 				this.storeEvidence(input.change_id, detailed.evidence.positive, evidenceIds.positive);
 				this.storeEvidence(input.change_id, detailed.evidence.negative, evidenceIds.negative);
 				this.storeEvidence(input.change_id, detailed.evidence.incident, evidenceIds.incident);
 				qualifications[control.control_id] = { ...detailed.qualification, evidence_ids: evidenceIds };
 				this.countReferenceCases(observed, control, input.witnesses.tests, detailed.evidence.positive.facts);
-				if (!detailed.qualification.qualified) qualifications[control.control_id]!.notes.push(`qualification evidence: positive=${evidenceIds.positive}, negative=${evidenceIds.negative}, incident=${evidenceIds.incident}`);
-				if (prepared) qualifications[control.control_id]!.notes.push(`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`);
+				if (!detailed.qualification.qualified)
+					qualifications[control.control_id]!.notes.push(
+						`qualification evidence: positive=${evidenceIds.positive}, negative=${evidenceIds.negative}, incident=${evidenceIds.incident}`,
+					);
+				if (prepared)
+					qualifications[control.control_id]!.notes.push(
+						`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
+					);
 			}
 			// Levels 2 and 3 of the scale are read off a run the qualification pays for anyway: the
 			// positive witness runs the reference suite next to its own case, so what the reference
 			// itself discovers and executes needs no run of its own.
-			return { qualifications, observation: observed.any ? { reported: observed.reported, skipped: observed.skipped, witnesses: observed.witnesses } : null };
+			return {
+				qualifications,
+				observation: observed.any
+					? { reported: observed.reported, skipped: observed.skipped, witnesses: observed.witnesses }
+					: null,
+			};
 		} finally {
 			await this.deps.workspace.closeWorkspace(negative.workspace_id, "delete");
 		}
@@ -200,11 +265,22 @@ export class VerificationCoordinator {
 	 * the behaviour the tree does not have yet, which is the only thing that makes it discriminant; a
 	 * suite reporting no test at all did not load, whatever its exit code said.
 	 */
-	async judgePreparedSuite(input: { control: ControlDefinition; reference: ReferenceSnapshot; manifest: CandidateManifest; workspace_id: string; workspace_path: string }): Promise<{ on_reference: PreparationRecord["on_reference"]; loadable: boolean; notes: string[] }> {
+	async judgePreparedSuite(input: {
+		control: ControlDefinition;
+		reference: ReferenceSnapshot;
+		manifest: CandidateManifest;
+		workspace_id: string;
+		workspace_path: string;
+	}): Promise<{ on_reference: PreparationRecord["on_reference"]; loadable: boolean; notes: string[] }> {
 		const { evidence } = await this.deps.controls.runControl({
 			control: input.control,
 			protocol: { protocol_id: "preparation", revision: 0, content_digest: digestValue("preparation") },
-			candidate: { candidate_id: "preparation", manifest_digest: input.manifest.manifest_digest, base_digest: input.reference.tree_digest, workspace_id: input.workspace_id },
+			candidate: {
+				candidate_id: "preparation",
+				manifest_digest: input.manifest.manifest_digest,
+				base_digest: input.reference.tree_digest,
+				workspace_id: input.workspace_id,
+			},
 			subject: { kind: "fixture", id: input.reference.reference_id, revision: 1, digest: input.reference.tree_digest },
 			workspace_path: input.workspace_path,
 			environment: this.deps.environment,
@@ -216,7 +292,10 @@ export class VerificationCoordinator {
 		return {
 			on_reference: onReference,
 			loadable: onReference === "PASS" || (onReference === "FAIL" && tests > 0),
-			notes: onReference === "INDETERMINATE" ? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`] : [],
+			notes:
+				onReference === "INDETERMINATE"
+					? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`]
+					: [],
 		};
 	}
 
@@ -226,7 +305,10 @@ export class VerificationCoordinator {
 	 * is worth are never decided once a verdict is known (VER-08).
 	 */
 	freeze(input: FreezeInput): Protocol {
-		const controls: ControlDefinition[] = input.ordered.map((c) => ({ ...c, protected_paths: [...new Set([...c.protected_paths, ...(input.prepared?.files.map((f) => f.path) ?? [])])] }));
+		const controls: ControlDefinition[] = input.ordered.map((c) => ({
+			...c,
+			protected_paths: [...new Set([...c.protected_paths, ...(input.prepared?.files.map((f) => f.path) ?? [])])],
+		}));
 		// A differential control answers a question every requirement asks, whatever its category: a
 		// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
 		// a responsibility placed in a forbidden module is not demonstrated either, and neither is a
@@ -234,11 +316,32 @@ export class VerificationCoordinator {
 		// never compensates for any of the three.
 		const differential = controls.filter((c) => isDifferentialParser(c.parser)).map((c) => c.control_id);
 		const obligations: Obligation[] = input.requirements.requirements.map((r) => {
-			const preferred = r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint") ? controls.filter((c) => c.control_id === "lint") : controls.filter((c) => c.control_id !== "lint");
+			const preferred =
+				r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint")
+					? controls.filter((c) => c.control_id === "lint")
+					: controls.filter((c) => c.control_id !== "lint");
 			const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
-			return { requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision }, mandatory: r.mandatory, control_ids: [...new Set([...chosen, ...differential])], combination: "all_pass", human_interaction: null, not_applicable_reason: null };
+			return {
+				requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
+				mandatory: r.mandatory,
+				control_ids: [...new Set([...chosen, ...differential])],
+				combination: "all_pass",
+				human_interaction: null,
+				not_applicable_reason: null,
+			};
 		});
-		return { protocol_id: this.deps.id("prt"), change_id: input.change_id, controls, qualifications: input.qualifications, capability_diagnosis: input.diagnosis, obligations, required_reviews: [...this.deps.policy.required_reviews], arbitration: "human_decision", baseline: { ...this.deps.policy.baseline }, environment_digest: this.deps.environment.digest };
+		return {
+			protocol_id: this.deps.id("prt"),
+			change_id: input.change_id,
+			controls,
+			qualifications: input.qualifications,
+			capability_diagnosis: input.diagnosis,
+			obligations,
+			required_reviews: [...this.deps.policy.required_reviews],
+			arbitration: "human_decision",
+			baseline: { ...this.deps.policy.baseline },
+			environment_digest: this.deps.environment.digest,
+		};
 	}
 
 	/**
@@ -256,34 +359,84 @@ export class VerificationCoordinator {
 		const passes = await this.referencePasses(input.change_id, protocol, input.protocol_ref, reference);
 		for (const control of protocol.controls) {
 			this.deps.progress(`running control ${control.control_id}`);
-			const invocation = { control, protocol: input.protocol_ref, candidate: input.candidate, subject: { kind: "candidate" as const, id: input.candidate.candidate_id, revision: 1, digest: input.candidate.manifest_digest }, workspace_path: input.workspace_path, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR, introduced_lines: introduced.lines };
+			const invocation = {
+				control,
+				protocol: input.protocol_ref,
+				candidate: input.candidate,
+				subject: {
+					kind: "candidate" as const,
+					id: input.candidate.candidate_id,
+					revision: 1,
+					digest: input.candidate.manifest_digest,
+				},
+				workspace_path: input.workspace_path,
+				environment: this.deps.environment,
+				requirement_refs: control.requirement_refs,
+				producer: EXECUTOR_ACTOR,
+				introduced_lines: introduced.lines,
+			};
 			const observed = (await this.deps.controls.runControl(invocation)).evidence;
 			// A path the diff could not read is a limit of every control that judged the introduced lines,
 			// not a silent zero.
-			const limits = introduced.notes.length > 0 && isDifferentialParser(control.parser) ? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] } : observed.limits;
+			const limits =
+				introduced.notes.length > 0 && isDifferentialParser(control.parser)
+					? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] }
+					: observed.limits;
 			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" }, limits };
 			const pass = passes.get(control.control_id);
 			if (pass) {
 				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
 				// The divergence to pay a confirmation for is the one the tolerance left standing: a control
 				// whose every finding the reference already carried has nothing to confirm.
-				if (baseline.instability === "confirm_then_indeterminate" && baseline.max_confirmations > 0 && divergesFromReference(outcome.verdict, pass.verdict)) {
+				if (
+					baseline.instability === "confirm_then_indeterminate" &&
+					baseline.max_confirmations > 0 &&
+					divergesFromReference(outcome.verdict, pass.verdict)
+				) {
 					// The two passes diverge and no preexisting finding explains it. The frozen rule pays
 					// for one confirmation on the same candidate before the change is corrected for it.
-					this.deps.progress(`confirming control ${control.control_id}: it fails on the candidate and passes on the reference`);
+					this.deps.progress(
+						`confirming control ${control.control_id}: it fails on the candidate and passes on the reference`,
+					);
 					const confirmation = (await this.deps.controls.runControl(invocation)).evidence;
 					const confirmationId = this.deps.id("evc");
-					this.storeEvidence(input.change_id, { ...confirmation, facts: { ...confirmation.facts, run: "confirmation" } }, confirmationId);
+					this.storeEvidence(
+						input.change_id,
+						{ ...confirmation, facts: { ...confirmation.facts, run: "confirmation" } },
+						confirmationId,
+					);
 					outcome = applyInstability(outcome, confirmation.verdict, confirmationId);
 				}
-				candidate = { ...candidate, verdict: outcome.verdict, findings: outcome.findings, baseline: outcome.comparison, limits: { ...candidate.limits, unstable: outcome.comparison.unstable, notes: [...candidate.limits.notes, ...outcome.comparison.notes] } };
+				candidate = {
+					...candidate,
+					verdict: outcome.verdict,
+					findings: outcome.findings,
+					baseline: outcome.comparison,
+					limits: {
+						...candidate.limits,
+						unstable: outcome.comparison.unstable,
+						notes: [...candidate.limits.notes, ...outcome.comparison.notes],
+					},
+				};
 			}
 			const evidenceId = this.deps.id("evd");
 			const evidence = this.storeEvidence(input.change_id, candidate, evidenceId);
 			// What blocks is what the frozen tolerance leaves blocking: without a reference pass, every
 			// blocking finding counts, because an unknown baseline is not a tolerance (VER-08).
-			const blocking = evidence.baseline ? evidence.baseline.blocking_findings : blockingCount(evidence.findings, "block_any");
-			facts.push({ evidence_id: evidenceId, control_id: evidence.control_id, control_version: evidence.control_version, requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id), subject_digest: evidence.subject.digest, protocol_revision: evidence.protocol_revision.revision, environment_digest: evidence.environment_digest, verdict: evidence.verdict, findings_blocking: blocking });
+			const blocking = evidence.baseline
+				? evidence.baseline.blocking_findings
+				: blockingCount(evidence.findings, "block_any");
+			facts.push({
+				evidence_id: evidenceId,
+				control_id: evidence.control_id,
+				control_version: evidence.control_version,
+				requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id),
+				subject_digest: evidence.subject.digest,
+				protocol_revision: evidence.protocol_revision.revision,
+				environment_digest: evidence.environment_digest,
+				verdict: evidence.verdict,
+				findings_blocking: blocking,
+			});
 		}
 		return { facts, candidate_moved: await this.candidateMoved(input) };
 	}
@@ -296,11 +449,23 @@ export class VerificationCoordinator {
 	private async candidateMoved(input: RunInput): Promise<boolean> {
 		const { protocol, manifest, reference } = input;
 		const writable = protocol.controls.flatMap((c) => c.writable_paths.map((p) => (p.endsWith("/") ? p : `${p}/`)));
-		const handle = { workspace_id: input.candidate.workspace_id, path: input.workspace_path, reference_id: reference.reference_id, created_at: this.deps.now() };
-		const after = await this.deps.workspace.snapshotCandidate(handle, reference, { ...this.deps.workspacePolicy, exclusions: [...this.deps.workspacePolicy.exclusions, ...writable] });
+		const handle = {
+			workspace_id: input.candidate.workspace_id,
+			path: input.workspace_path,
+			reference_id: reference.reference_id,
+			created_at: this.deps.now(),
+		};
+		const after = await this.deps.workspace.snapshotCandidate(handle, reference, {
+			...this.deps.workspacePolicy,
+			exclusions: [...this.deps.workspacePolicy.exclusions, ...writable],
+		});
 		if (after.manifest_digest === manifest.manifest_digest) return false;
 		const observedTree = canonicalize(after.entries.map((e) => [e.path, e.content_digest]));
-		const frozenTree = canonicalize(manifest.entries.filter((e) => !writable.some((w) => e.path.startsWith(w))).map((e) => [e.path, e.content_digest]));
+		const frozenTree = canonicalize(
+			manifest.entries
+				.filter((e) => !writable.some((w) => e.path.startsWith(w)))
+				.map((e) => [e.path, e.content_digest]),
+		);
 		return observedTree !== frozenTree;
 	}
 
@@ -311,14 +476,33 @@ export class VerificationCoordinator {
 	 * and this environment is read back from the ledger: a reference does not change during a change,
 	 * so the attempts that follow a refusal cost nothing on the reference side.
 	 */
-	private async referencePasses(changeId: string, protocol: Protocol, protocolRef: ProtocolRef, reference: ReferenceSnapshot): Promise<Map<string, ReferencePass>> {
+	private async referencePasses(
+		changeId: string,
+		protocol: Protocol,
+		protocolRef: ProtocolRef,
+		reference: ReferenceSnapshot,
+	): Promise<Map<string, ReferencePass>> {
 		const passes = new Map<string, ReferencePass>();
 		if (!protocol.baseline.compare_to_reference) return passes;
 		const established = this.deps.ledger.listEvidence(changeId);
 		const pending: ControlDefinition[] = [];
 		for (const control of protocol.controls) {
-			const reused = reusableReferencePass(established, control, reference.tree_digest, this.deps.environment.digest, protocolRef);
-			if (reused) passes.set(control.control_id, { reference_id: reference.reference_id, reference_digest: reference.tree_digest, verdict: reused.verdict, findings: reused.findings, evidence_id: reused.evidence_id, reused: true });
+			const reused = reusableReferencePass(
+				established,
+				control,
+				reference.tree_digest,
+				this.deps.environment.digest,
+				protocolRef,
+			);
+			if (reused)
+				passes.set(control.control_id, {
+					reference_id: reference.reference_id,
+					reference_digest: reference.tree_digest,
+					verdict: reused.verdict,
+					findings: reused.findings,
+					evidence_id: reused.evidence_id,
+					reused: true,
+				});
 			else pending.push(control);
 		}
 		if (pending.length === 0) return passes;
@@ -328,11 +512,41 @@ export class VerificationCoordinator {
 				this.deps.progress(`running control ${control.control_id} on the reference`);
 				// The reference introduces nothing: that is the whole content of this pass for a differential
 				// control, and it is why such a control carries no preexisting finding of its own (QLT-04).
-				const { evidence } = await this.deps.controls.runControl({ control, protocol: protocolRef, candidate: { candidate_id: reference.reference_id, manifest_digest: reference.tree_digest, base_digest: reference.tree_digest, workspace_id: handle.workspace_id }, subject: { kind: "reference", id: reference.reference_id, revision: 1, digest: reference.tree_digest }, workspace_path: handle.path, environment: this.deps.environment, requirement_refs: control.requirement_refs, producer: EXECUTOR_ACTOR, introduced_lines: {} });
+				const { evidence } = await this.deps.controls.runControl({
+					control,
+					protocol: protocolRef,
+					candidate: {
+						candidate_id: reference.reference_id,
+						manifest_digest: reference.tree_digest,
+						base_digest: reference.tree_digest,
+						workspace_id: handle.workspace_id,
+					},
+					subject: { kind: "reference", id: reference.reference_id, revision: 1, digest: reference.tree_digest },
+					workspace_path: handle.path,
+					environment: this.deps.environment,
+					requirement_refs: control.requirement_refs,
+					producer: EXECUTOR_ACTOR,
+					introduced_lines: {},
+				});
 				const evidenceId = this.deps.id("evr");
 				// Observed on the initial tree: every finding of this pass is a defect the change inherited.
-				const stored = this.storeEvidence(changeId, { ...evidence, facts: { ...evidence.facts, run: "reference" }, findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })) }, evidenceId);
-				passes.set(control.control_id, { reference_id: reference.reference_id, reference_digest: reference.tree_digest, verdict: stored.verdict, findings: stored.findings, evidence_id: evidenceId, reused: false });
+				const stored = this.storeEvidence(
+					changeId,
+					{
+						...evidence,
+						facts: { ...evidence.facts, run: "reference" },
+						findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })),
+					},
+					evidenceId,
+				);
+				passes.set(control.control_id, {
+					reference_id: reference.reference_id,
+					reference_digest: reference.tree_digest,
+					verdict: stored.verdict,
+					findings: stored.findings,
+					evidence_id: evidenceId,
+					reused: false,
+				});
 			}
 		} finally {
 			await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
@@ -346,7 +560,10 @@ export class VerificationCoordinator {
 	 * the calculation an auditor would redo is the one the controls were given (QLT-04).
 	 */
 	private async introducedLines(manifest: CandidateManifest, shape: CandidateShape): Promise<IntroducedLinesResult> {
-		const index = async (artifactId: string) => await this.deps.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 }).catch(() => ({}));
+		const index = async (artifactId: string) =>
+			await this.deps
+				.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 })
+				.catch(() => ({}));
 		const candidateFiles = await index(`files_${manifest.candidate_id}`);
 		const referenceFiles = await index(`base_files_${manifest.candidate_id}`);
 		const bytesOf = (files: Record<string, { digest: string }>) => async (path: string) => {
@@ -357,7 +574,10 @@ export class VerificationCoordinator {
 	}
 
 	/** A qualification an earlier protocol of this change established for this exact sensor. */
-	private async establishedQualification(protocolRefs: readonly { artifact_id: string; revision: number }[], control: ControlDefinition): Promise<Qualification | null> {
+	private async establishedQualification(
+		protocolRefs: readonly { artifact_id: string; revision: number }[],
+		control: ControlDefinition,
+	): Promise<Qualification | null> {
 		const priors: Protocol[] = [];
 		for (const ref of protocolRefs) {
 			const prior = await this.deps.readArtifact<Protocol>(ref).catch(() => null);
@@ -370,10 +590,16 @@ export class VerificationCoordinator {
 	 * Adds what one qualification run saw on the reference to the suite observation. Only a parser
 	 * that reports cases can contribute: an exit code alone tells nothing apart.
 	 */
-	private countReferenceCases(into: { reported: number; skipped: number; witnesses: number; any: boolean }, control: ControlDefinition, witnessTests: number, facts: Record<string, unknown> | null): void {
+	private countReferenceCases(
+		into: { reported: number; skipped: number; witnesses: number; any: boolean },
+		control: ControlDefinition,
+		witnessTests: number,
+		facts: Record<string, unknown> | null,
+	): void {
 		if (control.parser === "exit-code" || !facts || typeof facts.tests !== "number") return;
 		into.reported += facts.tests;
-		into.skipped += (typeof facts.skipped === "number" ? facts.skipped : 0) + (typeof facts.todo === "number" ? facts.todo : 0);
+		into.skipped +=
+			(typeof facts.skipped === "number" ? facts.skipped : 0) + (typeof facts.todo === "number" ? facts.todo : 0);
 		into.witnesses += witnessTests;
 		into.any = true;
 	}
@@ -381,7 +607,26 @@ export class VerificationCoordinator {
 	/** Seals one observation into the ledger: chained, digested, and never rewritten (EVD-01). */
 	private storeEvidence(changeId: string, candidate: EvidenceCandidate, evidenceId: string): Evidence {
 		validate(EvidenceCandidate, candidate, "evidence-candidate");
-		const evidence: Evidence = { evidence_id: evidenceId, requirement_refs: candidate.requirement_refs, control_id: candidate.control_id, control_version: candidate.control_version, subject: candidate.subject, protocol_revision: candidate.protocol_revision, environment_digest: candidate.environment.digest, inputs_digest: candidate.inputs_digest, started_at: candidate.started_at, ended_at: candidate.ended_at, verdict: candidate.verdict, facts: candidate.facts, findings: candidate.findings, artifacts: candidate.artifacts, limits: candidate.limits, baseline: candidate.baseline, producer: candidate.producer, integrity: { content_digest: "", chained_to: null } };
+		const evidence: Evidence = {
+			evidence_id: evidenceId,
+			requirement_refs: candidate.requirement_refs,
+			control_id: candidate.control_id,
+			control_version: candidate.control_version,
+			subject: candidate.subject,
+			protocol_revision: candidate.protocol_revision,
+			environment_digest: candidate.environment.digest,
+			inputs_digest: candidate.inputs_digest,
+			started_at: candidate.started_at,
+			ended_at: candidate.ended_at,
+			verdict: candidate.verdict,
+			facts: candidate.facts,
+			findings: candidate.findings,
+			artifacts: candidate.artifacts,
+			limits: candidate.limits,
+			baseline: candidate.baseline,
+			producer: candidate.producer,
+			integrity: { content_digest: "", chained_to: null },
+		};
 		evidence.integrity.content_digest = evidenceDigest(evidence);
 		validate(Evidence, evidence, "evidence");
 		this.deps.ledger.putEvidence(evidence, changeId);

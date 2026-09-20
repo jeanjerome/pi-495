@@ -36,8 +36,16 @@ const LABEL = flag("label", "");
 
 // --- endpoint, read where pi reads it -------------------------------------------------------------
 
-interface PiModel { id: string; contextWindow?: number; maxTokens?: number }
-interface PiProvider { baseUrl: string; apiKey?: string; models?: PiModel[] }
+interface PiModel {
+	id: string;
+	contextWindow?: number;
+	maxTokens?: number;
+}
+interface PiProvider {
+	baseUrl: string;
+	apiKey?: string;
+	models?: PiModel[];
+}
 
 const agentDir = join(homedir(), ".pi", "agent");
 
@@ -51,7 +59,9 @@ function readJson<T>(path: string): T | null {
 
 const settings = readJson<{ defaultProvider?: string; defaultModel?: string }>(join(agentDir, "settings.json")) ?? {};
 const catalogue = readJson<{ providers?: Record<string, PiProvider> }>(join(agentDir, "models.json")) ?? {};
-const [wantedProvider, wantedModel] = (flag("model") ?? `${settings.defaultProvider ?? ""}/${settings.defaultModel ?? ""}`).split("/");
+const [wantedProvider, wantedModel] = (
+	flag("model") ?? `${settings.defaultProvider ?? ""}/${settings.defaultModel ?? ""}`
+).split("/");
 const provider = catalogue.providers?.[wantedProvider ?? ""];
 if (!provider || !wantedModel) {
 	console.error(`no provider "${wantedProvider}" with model "${wantedModel}" in ${join(agentDir, "models.json")}`);
@@ -75,7 +85,28 @@ function rng(seed: number): () => number {
 	};
 }
 
-const WORDS = ["user", "name", "repository", "service", "domain", "adapter", "value", "identifier", "request", "response", "mapper", "entity", "record", "validation", "exception", "port", "handler", "factory", "builder", "context"];
+const WORDS = [
+	"user",
+	"name",
+	"repository",
+	"service",
+	"domain",
+	"adapter",
+	"value",
+	"identifier",
+	"request",
+	"response",
+	"mapper",
+	"entity",
+	"record",
+	"validation",
+	"exception",
+	"port",
+	"handler",
+	"factory",
+	"builder",
+	"context",
+];
 
 /** A Java-shaped source file of about `bytes` characters; the target stack of the real campaigns. */
 function javaSource(seed: number, bytes: number, path: string): { source: string; text: string } {
@@ -87,17 +118,53 @@ function javaSource(seed: number, bytes: number, path: string): { source: string
 		if (n === 0) lines.push(`    private final String ${pick()}${Math.floor(rand() * 100)};`);
 		else if (n === 1) lines.push(`    public String ${pick()}() { return this.${pick()} + "${pick()}"; }`);
 		else if (n === 2) lines.push(`    // ${pick()} ${pick()} ${pick()} ${pick()} ${pick()}`);
-		else lines.push(`    public void ${pick()}(String ${pick()}) { if (${pick()} == null) throw new ValidationException("${pick()}"); }`);
+		else
+			lines.push(
+				`    public void ${pick()}(String ${pick()}) { if (${pick()} == null) throw new ValidationException("${pick()}"); }`,
+			);
 	}
 	lines.push("}");
 	return { source: path, text: lines.join("\n").slice(0, bytes) };
 }
 
-const OBJECTIVE = "Refuser la création d'un utilisateur dont le nom dépasse 50 caractères, en cohérence avec la validation de nom existante du domaine";
+const OBJECTIVE =
+	"Refuser la création d'un utilisateur dont le nom dépasse 50 caractères, en cohérence avec la validation de nom existante du domaine";
 
-const ADOPTED_MANDATE = JSON.stringify({ change_id: "chg_bench", objective: OBJECTIVE, scope: ["domain/src/main/java"], out_of_scope: ["infrastructure/src/main/resources"], assumptions: ["le mécanisme ValidationException existe"], open_questions: [], allowed_paths: ["domain/src/main/java", "domain/src/test/java"], integration: "disabled", language: "fr" }, null, 2);
+const ADOPTED_MANDATE = JSON.stringify(
+	{
+		change_id: "chg_bench",
+		objective: OBJECTIVE,
+		scope: ["domain/src/main/java"],
+		out_of_scope: ["infrastructure/src/main/resources"],
+		assumptions: ["le mécanisme ValidationException existe"],
+		open_questions: [],
+		allowed_paths: ["domain/src/main/java", "domain/src/test/java"],
+		integration: "disabled",
+		language: "fr",
+	},
+	null,
+	2,
+);
 
-const ADOPTED_REQUIREMENTS = JSON.stringify({ change_id: "chg_bench", requirements: Array.from({ length: 4 }, (_, i) => ({ requirement_id: `R${i + 1}`, statement: `Exigence ${i + 1} sur la longueur du nom`, category: "fonctionnel", mandatory: true, criterion: `Un nom de plus de 50 caractères est refusé (cas ${i + 1})`, source: "demande", contract_family: null, satisfied_by_reference: false })), assumptions: [], contract_families: {} }, null, 2);
+const ADOPTED_REQUIREMENTS = JSON.stringify(
+	{
+		change_id: "chg_bench",
+		requirements: Array.from({ length: 4 }, (_, i) => ({
+			requirement_id: `R${i + 1}`,
+			statement: `Exigence ${i + 1} sur la longueur du nom`,
+			category: "fonctionnel",
+			mandatory: true,
+			criterion: `Un nom de plus de 50 caractères est refusé (cas ${i + 1})`,
+			source: "demande",
+			contract_family: null,
+			satisfied_by_reference: false,
+		})),
+		assumptions: [],
+		contract_families: {},
+	},
+	null,
+	2,
+);
 
 /** The prompt a role really receives, built by the product's own context builder. */
 function contextFor(role: "specify" | "implement"): { system: string; user: string } {
@@ -107,7 +174,13 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
 		language: "fr",
 		adopted: [
 			{ kind: "mandate", artifact_id: "mnd_bench", revision: 1, digest: "sha256:bench", text: ADOPTED_MANDATE },
-			{ kind: "requirements", artifact_id: "req_bench", revision: 1, digest: "sha256:bench", text: ADOPTED_REQUIREMENTS },
+			{
+				kind: "requirements",
+				artifact_id: "req_bench",
+				revision: 1,
+				digest: "sha256:bench",
+				text: ADOPTED_REQUIREMENTS,
+			},
 		],
 		untrusted: [],
 		feedback: null,
@@ -129,13 +202,67 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
  * matters for a speed measurement is that their token cost is present and identical between runs.
  */
 const TOOL_SCHEMAS: Record<string, unknown> = {
-	read: { description: "Read a file from the workspace.", parameters: { type: "object", properties: { path: { type: "string", description: "Workspace-relative path" }, offset: { type: "number" }, limit: { type: "number" } }, required: ["path"] } },
-	write: { description: "Write a file in the workspace, creating parent directories.", parameters: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"] } },
-	edit: { description: "Replace an exact string in a workspace file.", parameters: { type: "object", properties: { path: { type: "string" }, old_string: { type: "string" }, new_string: { type: "string" }, replace_all: { type: "boolean" } }, required: ["path", "old_string", "new_string"] } },
-	bash: { description: "Run a shell command in the workspace. The network is denied.", parameters: { type: "object", properties: { command: { type: "string" }, cwd: { type: "string" }, timeout: { type: "number" } }, required: ["command"] } },
-	ls: { description: "List a directory of the workspace.", parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] } },
-	find: { description: "Find files by glob pattern in the workspace.", parameters: { type: "object", properties: { pattern: { type: "string" }, path: { type: "string" } }, required: ["pattern"] } },
-	grep: { description: "Search file contents by regular expression in the workspace.", parameters: { type: "object", properties: { pattern: { type: "string" }, path: { type: "string" }, glob: { type: "string" } }, required: ["pattern"] } },
+	read: {
+		description: "Read a file from the workspace.",
+		parameters: {
+			type: "object",
+			properties: {
+				path: { type: "string", description: "Workspace-relative path" },
+				offset: { type: "number" },
+				limit: { type: "number" },
+			},
+			required: ["path"],
+		},
+	},
+	write: {
+		description: "Write a file in the workspace, creating parent directories.",
+		parameters: {
+			type: "object",
+			properties: { path: { type: "string" }, content: { type: "string" } },
+			required: ["path", "content"],
+		},
+	},
+	edit: {
+		description: "Replace an exact string in a workspace file.",
+		parameters: {
+			type: "object",
+			properties: {
+				path: { type: "string" },
+				old_string: { type: "string" },
+				new_string: { type: "string" },
+				replace_all: { type: "boolean" },
+			},
+			required: ["path", "old_string", "new_string"],
+		},
+	},
+	bash: {
+		description: "Run a shell command in the workspace. The network is denied.",
+		parameters: {
+			type: "object",
+			properties: { command: { type: "string" }, cwd: { type: "string" }, timeout: { type: "number" } },
+			required: ["command"],
+		},
+	},
+	ls: {
+		description: "List a directory of the workspace.",
+		parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+	},
+	find: {
+		description: "Find files by glob pattern in the workspace.",
+		parameters: {
+			type: "object",
+			properties: { pattern: { type: "string" }, path: { type: "string" } },
+			required: ["pattern"],
+		},
+	},
+	grep: {
+		description: "Search file contents by regular expression in the workspace.",
+		parameters: {
+			type: "object",
+			properties: { pattern: { type: "string" }, path: { type: "string" }, glob: { type: "string" } },
+			required: ["pattern"],
+		},
+	},
 };
 
 function toolsFor(role: "specify" | "implement"): unknown[] {
@@ -164,9 +291,22 @@ interface Measure {
 	error?: string;
 }
 
-interface Message { role: string; content: string; tool_calls?: unknown[]; tool_call_id?: string; name?: string }
+interface Message {
+	role: string;
+	content: string;
+	tool_calls?: unknown[];
+	tool_call_id?: string;
+	name?: string;
+}
 
-async function call(scenario: string, turn: number, messages: Message[], maxTokens: number, tools: unknown[] | null, thinking: boolean): Promise<Measure> {
+async function call(
+	scenario: string,
+	turn: number,
+	messages: Message[],
+	maxTokens: number,
+	tools: unknown[] | null,
+	thinking: boolean,
+): Promise<Measure> {
 	const body: Record<string, unknown> = {
 		model: wantedModel,
 		messages,
@@ -180,7 +320,21 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 	let ttft: number | null = null;
 	let usage: Record<string, unknown> = {};
 	let text = "";
-	const failed = (message: string): Measure => ({ scenario, turn, ttft_ms: null, total_ms: Math.round(performance.now() - started), prompt_tokens: 0, cached_tokens: 0, completion_tokens: 0, prefill_tokens: 0, prefill_tok_s: null, decode_tok_s: null, cached_ratio: null, usage: {}, error: message });
+	const failed = (message: string): Measure => ({
+		scenario,
+		turn,
+		ttft_ms: null,
+		total_ms: Math.round(performance.now() - started),
+		prompt_tokens: 0,
+		cached_tokens: 0,
+		completion_tokens: 0,
+		prefill_tokens: 0,
+		prefill_tok_s: null,
+		decode_tok_s: null,
+		cached_ratio: null,
+		usage: {},
+		error: message,
+	});
 	// Three failures that look alike in a log and call for different actions: the endpoint is not
 	// there, the endpoint answered and refused, or the answer broke mid-stream. Saying "unreachable"
 	// for a server that replied sends the next operator looking in the wrong place.
@@ -199,7 +353,9 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 		} catch {
 			/* the server did not answer json; the raw body is what there is */
 		}
-		return failed(`le serveur a répondu HTTP ${res.status} — ${detail.length > 600 ? `${detail.slice(0, 600)}…` : detail}`);
+		return failed(
+			`le serveur a répondu HTTP ${res.status} — ${detail.length > 600 ? `${detail.slice(0, 600)}…` : detail}`,
+		);
 	}
 	if (!res.body) return failed(`le serveur a répondu HTTP ${res.status} sans corps à lire`);
 	try {
@@ -216,8 +372,15 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 				if (!line.startsWith("data:")) continue;
 				const payload = line.slice(5).trim();
 				if (payload === "[DONE]") continue;
-				let chunk: { choices?: { delta?: { content?: string; reasoning_content?: string } }[]; usage?: Record<string, unknown> };
-				try { chunk = JSON.parse(payload) as typeof chunk; } catch { continue; }
+				let chunk: {
+					choices?: { delta?: { content?: string; reasoning_content?: string } }[];
+					usage?: Record<string, unknown>;
+				};
+				try {
+					chunk = JSON.parse(payload) as typeof chunk;
+				} catch {
+					continue;
+				}
 				const delta = chunk.choices?.[0]?.delta;
 				const piece = (delta?.content ?? "") + (delta?.reasoning_content ?? "");
 				// The first token the server emits, thinking included: that is when prefill ended.
@@ -247,7 +410,10 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 		// Below a thousand tokens the time to first token is scheduling, not prompt processing:
 		// reporting a rate there would look like a measurement without being one.
 		prefill_tok_s: ttft !== null && ttft > 0 && prefill >= 1000 ? Math.round((prefill / ttft) * 1000) : null,
-		decode_tok_s: ttft !== null && total > ttft && completion > 0 ? Math.round((completion / (total - ttft)) * 1000 * 10) / 10 : null,
+		decode_tok_s:
+			ttft !== null && total > ttft && completion > 0
+				? Math.round((completion / (total - ttft)) * 1000 * 10) / 10
+				: null,
 		cached_ratio: prompt > 0 ? Math.round((cached / prompt) * 1000) / 1000 : null,
 		usage,
 		...(text.length === 0 ? { error: "empty completion" } : {}),
@@ -277,7 +443,10 @@ async function decodeScenario(): Promise<Measure[]> {
 	for (let i = 0; i < REPEAT; i++) {
 		const messages: Message[] = [
 			{ role: "system", content: "Tu es un ingénieur logiciel. Réponds en prose continue, sans listes." },
-			{ role: "user", content: `Décris en détail, en français, la démarche de vérification d'un changement logiciel : spécification, conception de la vérification, production, contrôle. Écris un texte long et continu. [variante ${i}]` },
+			{
+				role: "user",
+				content: `Décris en détail, en français, la démarche de vérification d'un changement logiciel : spécification, conception de la vérification, production, contrôle. Écris un texte long et continu. [variante ${i}]`,
+			},
 		];
 		out.push(await call("decode", i, messages, 768, null, false));
 	}
@@ -372,7 +541,9 @@ function summarize(rows: Measure[]): Record<string, unknown> {
 
 const wanted = SCENARIO === "all" ? ["prefill", "decode", "agentic"] : [SCENARIO];
 const config = await fingerprint();
-console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(config.engine_type ?? "?")} · profil ${String(config.active_profile_name ?? "aucun")}`);
+console.error(
+	`endpoint ${BASE} · model ${wantedModel} · engine ${String(config.engine_type ?? "?")} · profil ${String(config.active_profile_name ?? "aucun")}`,
+);
 
 // A model the server has not loaded yet answers its first request with the load in it — on this
 // machine some thirty seconds of weights and ANE warm-up. Measured, that would be charged to the
@@ -388,7 +559,9 @@ console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(confi
 		console.error("rien n'est mesuré : aucune ligne de ce passage ne serait comparable.");
 		process.exit(1);
 	}
-	console.error(`préchauffage: ${(warm.total_ms / 1000).toFixed(1)} s${loaded > 0 ? ` dont ${loaded.toFixed(1)} s de chargement` : " (modèle déjà résident)"}`);
+	console.error(
+		`préchauffage: ${(warm.total_ms / 1000).toFixed(1)} s${loaded > 0 ? ` dont ${loaded.toFixed(1)} s de chargement` : " (modèle déjà résident)"}`,
+	);
 }
 
 const rows: Measure[] = [];
@@ -397,13 +570,23 @@ for (const name of wanted) {
 	if (name === "prefill") rows.push(...(await prefillScenario()));
 	else if (name === "decode") rows.push(...(await decodeScenario()));
 	else if (name === "agentic") rows.push(...(await agenticScenario()));
-	else { console.error(`scénario inconnu: ${name}`); process.exit(1); }
+	else {
+		console.error(`scénario inconnu: ${name}`);
+		process.exit(1);
+	}
 }
 
 const summaries: Record<string, unknown> = {};
 for (const name of wanted) summaries[name] = summarize(rows.filter((r) => r.scenario === name));
 
-const report = { label: LABEL, at: new Date().toISOString(), config, parameters: { repeat: REPEAT, turns: TURNS, input_budget_bytes: 60_000 }, summaries, rows };
+const report = {
+	label: LABEL,
+	at: new Date().toISOString(),
+	config,
+	parameters: { repeat: REPEAT, turns: TURNS, input_budget_bytes: 60_000 },
+	summaries,
+	rows,
+};
 
 const fmt = (v: unknown): string => (v === null || v === undefined ? "—" : String(v));
 console.error("");
@@ -416,7 +599,8 @@ for (const name of wanted) {
 	);
 }
 const failed = rows.filter((r) => r.error);
-if (failed.length > 0) console.error(`\n${failed.length} requête(s) en échec : ${[...new Set(failed.map((r) => r.error))].join(" ; ")}`);
+if (failed.length > 0)
+	console.error(`\n${failed.length} requête(s) en échec : ${[...new Set(failed.map((r) => r.error))].join(" ; ")}`);
 console.error("\nLe serveur impose ses propres paramètres d'échantillonnage (force_sampling) : la longueur des");
 console.error("réponses varie d'un passage à l'autre, d'où les médianes plutôt que des valeurs uniques.");
 

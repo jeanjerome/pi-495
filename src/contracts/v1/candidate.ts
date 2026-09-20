@@ -3,7 +3,14 @@ import { Closed, Digest, Identifier, NonNegativeInt, contractId } from "./common
 import { Limits } from "./evidence.ts";
 
 export const ENTRY_KINDS = ["file", "symlink", "directory", "submodule", "special"] as const;
-export const BASELINE_ENTRY_STATES = ["unchanged", "added", "modified", "deleted", "mode_changed", "type_changed"] as const;
+export const BASELINE_ENTRY_STATES = [
+	"unchanged",
+	"added",
+	"modified",
+	"deleted",
+	"mode_changed",
+	"type_changed",
+] as const;
 export const ORIGINS = ["agent", "user", "mixed", "unknown"] as const;
 
 export const ManifestEntry = Type.Object(
@@ -22,7 +29,13 @@ export const ManifestEntry = Type.Object(
 );
 export type ManifestEntry = Static<typeof ManifestEntry>;
 
-export const REFERENCE_KINDS = ["git_clean_head", "git_dirty_head", "git_no_head", "empty_directory", "non_git_directory"] as const;
+export const REFERENCE_KINDS = [
+	"git_clean_head",
+	"git_dirty_head",
+	"git_no_head",
+	"empty_directory",
+	"non_git_directory",
+] as const;
 
 export const ReferenceSnapshot = Type.Object(
 	{

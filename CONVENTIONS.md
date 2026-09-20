@@ -128,9 +128,9 @@ Never duplicate a fact `docs/` already owns into a `specs/` file. Point at the `
 
 ## Formatting
 
-- Lint with Biome (`npm run lint:code`) and type with `tsc --noEmit`. No style debates beyond that.
-- The formatter stays disabled: the tree has never been machine-formatted, so enabling it would rewrite
-  nearly every file at once and mix a mass reformatting into whatever change is in flight.
+- Lint and format with Biome (`npm run lint:code`) and type with `tsc --noEmit`. No style debates beyond that.
+- The formatter runs at 120 columns. Import order is not machine-sorted: imports are grouped by the
+  architectural layer they come from, which is how the one-way dependency direction stays readable.
 
 ## Logging
 

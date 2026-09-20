@@ -25,7 +25,14 @@ export interface ParsedReport {
 	findings?: ParsedFinding[];
 }
 
-export const PARSER_VERSIONS = { "exit-code": "1.0.0", "node-test": "1.0.0", "junit-xml": "1.0.0", "jacoco-xml": "1.0.0", "java-imports": "1.0.0", "pitest-xml": "1.0.0" } as const;
+export const PARSER_VERSIONS = {
+	"exit-code": "1.0.0",
+	"node-test": "1.0.0",
+	"junit-xml": "1.0.0",
+	"jacoco-xml": "1.0.0",
+	"java-imports": "1.0.0",
+	"pitest-xml": "1.0.0",
+} as const;
 
 const MAX_FAILURES = 50;
 
@@ -59,8 +66,14 @@ export function buildErrors(output: string, max = 10): string[] {
 /** Contract: exit code 0 means PASS, any other exit code means FAIL, an incident means INDETERMINATE (RM-016). */
 export function parseExitCode(obs: ProcessObservation): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
-	return { verdict: obs.exit_code === 0 ? "PASS" : "FAIL", facts: { exit_code: obs.exit_code }, notes: [], failures: obs.exit_code === 0 ? [] : [`exit code ${obs.exit_code}`] };
+	if (incident)
+		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	return {
+		verdict: obs.exit_code === 0 ? "PASS" : "FAIL",
+		facts: { exit_code: obs.exit_code },
+		notes: [],
+		failures: obs.exit_code === 0 ? [] : [`exit code ${obs.exit_code}`],
+	};
 }
 
 /** TAP output of `node --test --test-reporter=tap`. Skipped or todo tests never count as PASS (§6.5). */
@@ -91,20 +104,50 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 	const facts = { exit_code: obs.exit_code, tests, pass, fail, skipped, todo, stdout_truncated: obs.stdout_truncated };
 	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };
 	const broke = obs.exit_code !== 0;
-	const outside = (note: string): ParsedReport => ({ verdict: "FAIL", facts, notes: [note], failures: failures.length > 0 ? failures : buildErrors(stdout).length > 0 ? buildErrors(stdout) : [`exit code ${obs.exit_code}`] });
+	const outside = (note: string): ParsedReport => ({
+		verdict: "FAIL",
+		facts,
+		notes: [note],
+		failures:
+			failures.length > 0
+				? failures
+				: buildErrors(stdout).length > 0
+					? buildErrors(stdout)
+					: [`exit code ${obs.exit_code}`],
+	});
 	if (tests === null || pass === null || fail === null) {
 		// A truncated stream is a reading limit, not a property of the candidate.
-		if (obs.stdout_truncated) return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output (output truncated)"], failures };
+		if (obs.stdout_truncated)
+			return {
+				verdict: "INDETERMINATE",
+				facts,
+				notes: ["TAP summary not found in the output (output truncated)"],
+				failures,
+			};
 		if (broke) return outside(`the runner exited with ${obs.exit_code} without emitting a TAP summary`);
 		return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output"], failures };
 	}
 	if (tests === 0) {
 		if (broke) return outside(`the runner exited with ${obs.exit_code} and executed no test`);
-		return { verdict: "INDETERMINATE", facts, notes: ["no test was executed: a suite without assertion proves nothing"], failures };
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: ["no test was executed: a suite without assertion proves nothing"],
+			failures,
+		};
 	}
 	if (fail > 0) return { verdict: "FAIL", facts, notes: [], failures };
-	if ((skipped ?? 0) > 0 || (todo ?? 0) > 0) return { verdict: "INDETERMINATE", facts, notes: [`${skipped ?? 0} skipped and ${todo ?? 0} todo tests: a skip is not a pass (RM-017)`], failures };
-	if (broke) return outside(`every test passed but the runner exited with ${obs.exit_code}: the failure is outside the tests that ran`);
+	if ((skipped ?? 0) > 0 || (todo ?? 0) > 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [`${skipped ?? 0} skipped and ${todo ?? 0} todo tests: a skip is not a pass (RM-017)`],
+			failures,
+		};
+	if (broke)
+		return outside(
+			`every test passed but the runner exited with ${obs.exit_code}: the failure is outside the tests that ran`,
+		);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
 
@@ -153,16 +196,27 @@ function intAttr(attrs: string, name: string): number {
  */
 export function parseJUnit(obs: ProcessObservation, documents: string[] | null, output = ""): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident)
+		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
 	const broke = obs.exit_code !== 0;
 	const outside = (facts: Record<string, unknown>, note: string): ParsedReport => {
 		const errors = buildErrors(output);
-		return { verdict: "FAIL", facts, notes: [note], failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`] };
+		return {
+			verdict: "FAIL",
+			facts,
+			notes: [note],
+			failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`],
+		};
 	};
 	if (!documents || documents.length === 0) {
 		const facts = { exit_code: obs.exit_code, reports: 0 };
 		if (broke) return outside(facts, `the build exited with ${obs.exit_code} before producing any test report`);
-		return { verdict: "INDETERMINATE", facts, notes: ["no JUnit report found at the declared report path"], failures: [] };
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: ["no JUnit report found at the declared report path"],
+			failures: [],
+		};
 	}
 	const s = summarizeJUnit(documents);
 	const facts = { exit_code: obs.exit_code, ...s };
@@ -171,8 +225,18 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 		return { verdict: "INDETERMINATE", facts, notes: ["JUnit reports contain no test"], failures: [] };
 	}
 	if (s.failures + s.errors > 0) return { verdict: "FAIL", facts, notes: [], failures: s.failed_cases };
-	if (s.skipped > 0) return { verdict: "INDETERMINATE", facts, notes: [`${s.skipped} skipped tests: a skip is not a pass (RM-017)`], failures: [] };
-	if (broke) return outside(facts, `the reports are green but the build exited with ${obs.exit_code}: the failure is outside the tests that ran`);
+	if (s.skipped > 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [`${s.skipped} skipped tests: a skip is not a pass (RM-017)`],
+			failures: [],
+		};
+	if (broke)
+		return outside(
+			facts,
+			`the reports are green but the build exited with ${obs.exit_code}: the failure is outside the tests that ran`,
+		);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
 
@@ -216,12 +280,17 @@ const TEST_SOURCE = /(^|\/)src\/test\//;
  * unmeasured file: a test, a POM or a resource is simply not what JaCoCo instruments.
  */
 export function measurableIntroducedPaths(introduced: IntroducedLines): string[] {
-	return Object.keys(introduced).filter((path) => MEASURABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path)).sort();
+	return Object.keys(introduced)
+		.filter((path) => MEASURABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path))
+		.sort();
 }
 
 /** The five XML entities, decoded: JaCoCo writes a constructor `&lt;init&gt;`. */
 export function decodeXml(text: string): string {
-	return text.replace(/&(lt|gt|quot|apos|amp);/g, (whole, entity: string) => ({ lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" })[entity] ?? whole);
+	return text.replace(
+		/&(lt|gt|quot|apos|amp);/g,
+		(whole, entity: string) => ({ lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" })[entity] ?? whole,
+	);
 }
 
 /** An attribute value, with the five XML entities decoded. */
@@ -241,9 +310,16 @@ export function moduleOf(reportName: string): string {
  * repository path, so the answer is looked up among the paths the candidate actually touched: one
  * match is the file, several is an ambiguity that is reported rather than guessed.
  */
-export function resolveSourcePath(module: string, packageName: string, sourcefile: string, paths: readonly string[]): { path: string | null; ambiguous: boolean } {
+export function resolveSourcePath(
+	module: string,
+	packageName: string,
+	sourcefile: string,
+	paths: readonly string[],
+): { path: string | null; ambiguous: boolean } {
 	const suffix = packageName ? `${packageName}/${sourcefile}` : sourcefile;
-	const matches = paths.filter((path) => (path === suffix || path.endsWith(`/${suffix}`)) && (module === "" || path.startsWith(`${module}/`)));
+	const matches = paths.filter(
+		(path) => (path === suffix || path.endsWith(`/${suffix}`)) && (module === "" || path.startsWith(`${module}/`)),
+	);
 	return { path: matches.length === 1 ? matches[0]! : null, ambiguous: matches.length > 1 };
 }
 
@@ -264,10 +340,16 @@ export function summarizeJacoco(documents: readonly JacocoDocument[], paths: rea
 				const sourcefile = strAttr(source[1] ?? "", "name");
 				if (!sourcefile) continue;
 				const resolved = resolveSourcePath(module, packageName, sourcefile, paths);
-				if (resolved.ambiguous) { ambiguous.add(packageName ? `${packageName}/${sourcefile}` : sourcefile); continue; }
+				if (resolved.ambiguous) {
+					ambiguous.add(packageName ? `${packageName}/${sourcefile}` : sourcefile);
+					continue;
+				}
 				if (!resolved.path) continue;
 				let lines = measurement.files.get(resolved.path);
-				if (!lines) { lines = new Map(); measurement.files.set(resolved.path, lines); }
+				if (!lines) {
+					lines = new Map();
+					measurement.files.set(resolved.path, lines);
+				}
 				for (const line of (source[2] ?? "").matchAll(/<line\b([^>]*)>/g)) {
 					const attrs = line[1] ?? "";
 					const nr = intAttr(attrs, "nr");
@@ -286,7 +368,8 @@ export function summarizeJacoco(documents: readonly JacocoDocument[], paths: rea
 			}
 		}
 	}
-	for (const name of [...ambiguous].sort()) measurement.notes.push(`${name} matches several touched paths: the report cannot be attributed to one of them`);
+	for (const name of [...ambiguous].sort())
+		measurement.notes.push(`${name} matches several touched paths: the report cannot be attributed to one of them`);
 	return measurement;
 }
 
@@ -298,7 +381,10 @@ function symbolsOf(packageBody: string, sourcefile: string): { line: number; sym
 		if (strAttr(attrs, "sourcefilename") !== sourcefile) continue;
 		const name = (strAttr(attrs, "name") ?? "").split("/").join(".");
 		const methods = [...(klass[2] ?? "").matchAll(/<method\b([^>]*)>/g)];
-		if (methods.length === 0) { out.push({ line: 1, symbol: name }); continue; }
+		if (methods.length === 0) {
+			out.push({ line: 1, symbol: name });
+			continue;
+		}
 		for (const method of methods) {
 			const line = intAttr(method[1] ?? "", "line");
 			out.push({ line: line > 0 ? line : 1, symbol: `${name}.${strAttr(method[1] ?? "", "name") ?? "?"}` });
@@ -327,12 +413,31 @@ export function symbolAt(symbols: readonly { line: number; symbol: string }[], l
  * mention an introduced source file, or no introduced-line set at all are all INDETERMINATE: an
  * absent measurement has never been proof of coverage.
  */
-export function parseJacoco(obs: ProcessObservation, documents: readonly JacocoDocument[] | null, introduced: IntroducedLines | null): ParsedReport {
+export function parseJacoco(
+	obs: ProcessObservation,
+	documents: readonly JacocoDocument[] | null,
+	introduced: IntroducedLines | null,
+): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident)
+		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
 	const reports = documents?.length ?? 0;
-	if (obs.exit_code !== 0) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, reports }, notes: [`the coverage sensor exited with ${obs.exit_code} without reading a report`], failures: [] };
-	if (introduced === null) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, reports }, notes: ["no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown"], failures: [] };
+	if (obs.exit_code !== 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts: { exit_code: obs.exit_code, reports },
+			notes: [`the coverage sensor exited with ${obs.exit_code} without reading a report`],
+			failures: [],
+		};
+	if (introduced === null)
+		return {
+			verdict: "INDETERMINATE",
+			facts: { exit_code: obs.exit_code, reports },
+			notes: [
+				"no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown",
+			],
+			failures: [],
+		};
 	const wanted = measurableIntroducedPaths(introduced);
 	const facts: Record<string, unknown> = {
 		exit_code: obs.exit_code,
@@ -341,11 +446,39 @@ export function parseJacoco(obs: ProcessObservation, documents: readonly JacocoD
 		introduced_lines: Object.values(introduced).reduce((total, lines) => total + lines.length, 0),
 		measurable_files: wanted.length,
 	};
-	if (wanted.length === 0) return { verdict: "PASS", facts: { ...facts, measured_lines: 0, uncovered_lines: 0, partially_covered_lines: 0, tolerated_uncovered_lines: 0 }, notes: ["the candidate introduces no line JaCoCo measures"], failures: [], findings: [] };
-	if (reports === 0) return { verdict: "INDETERMINATE", facts, notes: [`no JaCoCo report found at the declared report path, for ${wanted.length} introduced source file(s)`], failures: [] };
+	if (wanted.length === 0)
+		return {
+			verdict: "PASS",
+			facts: {
+				...facts,
+				measured_lines: 0,
+				uncovered_lines: 0,
+				partially_covered_lines: 0,
+				tolerated_uncovered_lines: 0,
+			},
+			notes: ["the candidate introduces no line JaCoCo measures"],
+			failures: [],
+			findings: [],
+		};
+	if (reports === 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [`no JaCoCo report found at the declared report path, for ${wanted.length} introduced source file(s)`],
+			failures: [],
+		};
 	const measurement = summarizeJacoco(documents ?? [], wanted);
 	const unmeasured = wanted.filter((path) => !measurement.files.has(path));
-	if (unmeasured.length > 0) return { verdict: "INDETERMINATE", facts: { ...facts, unmeasured_files: unmeasured.length }, notes: [`no coverage report measures ${unmeasured.length} introduced source file(s): ${unmeasured.slice(0, MAX_NAMED_PATHS).join(", ")}`, ...measurement.notes], failures: [] };
+	if (unmeasured.length > 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts: { ...facts, unmeasured_files: unmeasured.length },
+			notes: [
+				`no coverage report measures ${unmeasured.length} introduced source file(s): ${unmeasured.slice(0, MAX_NAMED_PATHS).join(", ")}`,
+				...measurement.notes,
+			],
+			failures: [],
+		};
 
 	const findings: ParsedFinding[] = [];
 	let measured = 0;
@@ -367,20 +500,45 @@ export function parseJacoco(obs: ProcessObservation, documents: readonly JacocoD
 			const named = symbol ? ` in ${symbol}` : "";
 			if (!line.covered) {
 				uncovered++;
-				if (findings.length < MAX_COVERAGE_FINDINGS) findings.push({ rule_id: COVERAGE_RULE_UNCOVERED, category: "quality", severity: "blocker", message: `${path}:${nr} introduced line never exercised by the suite${named}`, symbol });
+				if (findings.length < MAX_COVERAGE_FINDINGS)
+					findings.push({
+						rule_id: COVERAGE_RULE_UNCOVERED,
+						category: "quality",
+						severity: "blocker",
+						message: `${path}:${nr} introduced line never exercised by the suite${named}`,
+						symbol,
+					});
 			} else if (line.branches_missed > 0) {
 				partial++;
-				if (findings.length < MAX_COVERAGE_FINDINGS) findings.push({ rule_id: COVERAGE_RULE_PARTIAL, category: "quality", severity: "major", message: `${path}:${nr} introduced line exercised on part of its branches only${named}`, symbol });
+				if (findings.length < MAX_COVERAGE_FINDINGS)
+					findings.push({
+						rule_id: COVERAGE_RULE_PARTIAL,
+						category: "quality",
+						severity: "major",
+						message: `${path}:${nr} introduced line exercised on part of its branches only${named}`,
+						symbol,
+					});
 			}
 		}
 	}
 	const notes = [...measurement.notes];
-	if (tolerated > 0) notes.push(`${tolerated} line(s) of the touched files were already unexercised before this change and are tolerated: the rule is on the introduced lines, not on a ratio (QLT-04)`);
-	if (partial > 0) notes.push(`${partial} introduced line(s) are exercised on part of their branches only: reported, not blocking`);
-	if (uncovered + partial > MAX_COVERAGE_FINDINGS) notes.push(`${uncovered + partial} findings reduced to the first ${MAX_COVERAGE_FINDINGS}`);
+	if (tolerated > 0)
+		notes.push(
+			`${tolerated} line(s) of the touched files were already unexercised before this change and are tolerated: the rule is on the introduced lines, not on a ratio (QLT-04)`,
+		);
+	if (partial > 0)
+		notes.push(`${partial} introduced line(s) are exercised on part of their branches only: reported, not blocking`);
+	if (uncovered + partial > MAX_COVERAGE_FINDINGS)
+		notes.push(`${uncovered + partial} findings reduced to the first ${MAX_COVERAGE_FINDINGS}`);
 	return {
 		verdict: uncovered > 0 ? "FAIL" : "PASS",
-		facts: { ...facts, measured_lines: measured, uncovered_lines: uncovered, partially_covered_lines: partial, tolerated_uncovered_lines: tolerated },
+		facts: {
+			...facts,
+			measured_lines: measured,
+			uncovered_lines: uncovered,
+			partially_covered_lines: partial,
+			tolerated_uncovered_lines: tolerated,
+		},
 		notes,
 		failures: [],
 		findings,

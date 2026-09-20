@@ -19,7 +19,24 @@ export type ProducerReport = Static<typeof ProducerReport>;
 export const ReviewReport = Type.Object(
 	{
 		conclusion: Type.Union([Type.Literal("approve"), Type.Literal("reject"), Type.Literal("consultative")]),
-		findings: Type.Array(Type.Object({ path: Type.Union([Type.String(), Type.Null()]), line: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]), severity: Type.Union([Type.Literal("blocker"), Type.Literal("major"), Type.Literal("minor"), Type.Literal("info")]), expected: Type.String(), observed: Type.String(), requirement_id: Type.Union([Type.String(), Type.Null()]) }, { additionalProperties: false })),
+		findings: Type.Array(
+			Type.Object(
+				{
+					path: Type.Union([Type.String(), Type.Null()]),
+					line: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
+					severity: Type.Union([
+						Type.Literal("blocker"),
+						Type.Literal("major"),
+						Type.Literal("minor"),
+						Type.Literal("info"),
+					]),
+					expected: Type.String(),
+					observed: Type.String(),
+					requirement_id: Type.Union([Type.String(), Type.Null()]),
+				},
+				{ additionalProperties: false },
+			),
+		),
 		limits: Type.Array(Type.String()),
 	},
 	{ $id: "urn:495:contract:review-report:1", additionalProperties: false },
@@ -44,28 +61,70 @@ export const SpecificationReport = Type.Object(
 		objective: Type.String({ minLength: 1 }),
 		facts: Type.Array(Type.String()),
 		assumptions: Type.Array(Type.String()),
-		questions: Type.Array(Type.Object({ id: Type.String(), question: Type.String(), material: Type.Boolean() }, { additionalProperties: false })),
+		questions: Type.Array(
+			Type.Object(
+				{ id: Type.String(), question: Type.String(), material: Type.Boolean() },
+				{ additionalProperties: false },
+			),
+		),
 		answers: Type.Array(
 			Type.Object(
 				{
 					question_id: Type.String(),
-					observable: Type.Boolean({ description: "the answer fixes something a control can observe — a status, a message, a bound; false says explicitly that it fixes nothing observable" }),
-					requirement_ids: Type.Array(Type.String(), { description: "the mandatory requirements of this report that carry the answer; empty only when observable is false" }),
+					observable: Type.Boolean({
+						description:
+							"the answer fixes something a control can observe — a status, a message, a bound; false says explicitly that it fixes nothing observable",
+					}),
+					requirement_ids: Type.Array(Type.String(), {
+						description:
+							"the mandatory requirements of this report that carry the answer; empty only when observable is false",
+					}),
 				},
 				{ additionalProperties: false },
 			),
-			{ description: "what this report did with each material question already answered: silence is not a declaration that an answer carries nothing" },
+			{
+				description:
+					"what this report did with each material question already answered: silence is not a declaration that an answer carries nothing",
+			},
 		),
 		out_of_scope: Type.Array(Type.String()),
 		risks: Type.Array(Type.String()),
-		requirements: Type.Array(Type.Object({ requirement_id: Type.String(), statement: Type.String(), mandatory: Type.Boolean(), criterion: Type.String(), category: Type.String(), satisfied_by_reference: Type.Boolean({ description: "the project as it stands already behaves this way; false when the requirement asks for something it does not do yet" }) }, { additionalProperties: false })),
-		design: Type.Object({ summary: Type.String(), components: Type.Array(Type.String()), interfaces: Type.Array(Type.String()), risks: Type.Array(Type.String()) }, { additionalProperties: false }),
+		requirements: Type.Array(
+			Type.Object(
+				{
+					requirement_id: Type.String(),
+					statement: Type.String(),
+					mandatory: Type.Boolean(),
+					criterion: Type.String(),
+					category: Type.String(),
+					satisfied_by_reference: Type.Boolean({
+						description:
+							"the project as it stands already behaves this way; false when the requirement asks for something it does not do yet",
+					}),
+				},
+				{ additionalProperties: false },
+			),
+		),
+		design: Type.Object(
+			{
+				summary: Type.String(),
+				components: Type.Array(Type.String()),
+				interfaces: Type.Array(Type.String()),
+				risks: Type.Array(Type.String()),
+			},
+			{ additionalProperties: false },
+		),
 	},
 	{ $id: "urn:495:contract:specification-report:1", additionalProperties: false },
 );
 export type SpecificationReport = Static<typeof SpecificationReport>;
 
-export const OUTPUT_SCHEMAS = { "producer-report": ProducerReport, "review-report": ReviewReport, "observation-report": ObservationReport, "specification-report": SpecificationReport } as const;
+export const OUTPUT_SCHEMAS = {
+	"producer-report": ProducerReport,
+	"review-report": ReviewReport,
+	"observation-report": ObservationReport,
+	"specification-report": SpecificationReport,
+} as const;
 
 /**
  * Extracts the structured output of a model text: the last fenced block whose language is `json`
@@ -79,8 +138,10 @@ export function extractJsonOutput(text: string): unknown | undefined {
 	for (const line of lines) {
 		const fence = /^\s*```(\w*)\s*$/.exec(line);
 		if (fence) {
-			if (open) { blocks.push(open); open = null; }
-			else open = { lang: (fence[1] ?? "").toLowerCase(), body: [] };
+			if (open) {
+				blocks.push(open);
+				open = null;
+			} else open = { lang: (fence[1] ?? "").toLowerCase(), body: [] };
 			continue;
 		}
 		if (open) open.body.push(line);
@@ -136,8 +197,14 @@ export function normalizeOutput(schema: import("typebox").TSchema, value: unknow
 			else if (sub.type === "object") x = normalizeOutput(sub as import("typebox").TSchema, {});
 			else if (sub.type === "string") x = x === null ? null : undefined;
 			else if (sub.type === "boolean") x = false;
-		} else if (sub.type === "object" && typeof x === "object" && !Array.isArray(x)) x = normalizeOutput(sub as import("typebox").TSchema, x);
-		else if (sub.type === "array" && Array.isArray(x) && (sub as { items?: { type?: string } }).items?.type === "object") x = x.map((item) => normalizeOutput((sub as { items: import("typebox").TSchema }).items, item));
+		} else if (sub.type === "object" && typeof x === "object" && !Array.isArray(x))
+			x = normalizeOutput(sub as import("typebox").TSchema, x);
+		else if (
+			sub.type === "array" &&
+			Array.isArray(x) &&
+			(sub as { items?: { type?: string } }).items?.type === "object"
+		)
+			x = x.map((item) => normalizeOutput((sub as { items: import("typebox").TSchema }).items, item));
 		if (x !== undefined) out[key] = x;
 	}
 	return out;

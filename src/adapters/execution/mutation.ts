@@ -23,7 +23,15 @@
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
-import { buildErrors, decodeXml, incidentOf, moduleOf, resolveSourcePath, type ParsedFinding, type ParsedReport } from "./parsers.ts";
+import {
+	buildErrors,
+	decodeXml,
+	incidentOf,
+	moduleOf,
+	resolveSourcePath,
+	type ParsedFinding,
+	type ParsedReport,
+} from "./parsers.ts";
 import { readDeclarations } from "./structure.ts";
 
 export const MUTATION_RULE_SURVIVED = "mutation:introduced-line-mutant-survived";
@@ -49,7 +57,9 @@ const NOT_VIABLE = new Set(["NON_VIABLE"]);
  * what an engine mutates, and a declaration without an instruction produces no mutant.
  */
 export function mutableIntroducedPaths(introduced: IntroducedLines): string[] {
-	return Object.keys(introduced).filter((path) => MUTABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path)).sort();
+	return Object.keys(introduced)
+		.filter((path) => MUTABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path))
+		.sort();
 }
 
 export interface MutationScope {
@@ -74,9 +84,17 @@ export async function mutationScopeOf(workspacePath: string, introduced: Introdu
 	const notes: string[] = [];
 	for (const path of mutableIntroducedPaths(introduced)) {
 		const absolute = resolve(root, path);
-		if (!absolute.startsWith(`${root}/`)) { notes.push(`${path} escapes the workspace and was not scoped`); continue; }
+		if (!absolute.startsWith(`${root}/`)) {
+			notes.push(`${path} escapes the workspace and was not scoped`);
+			continue;
+		}
 		let text: string;
-		try { text = await readFile(absolute, "utf8"); } catch (error) { notes.push(`unreadable source ${path}: ${(error as Error).message}; its classes were not mutated`); continue; }
+		try {
+			text = await readFile(absolute, "utf8");
+		} catch (error) {
+			notes.push(`unreadable source ${path}: ${(error as Error).message}; its classes were not mutated`);
+			continue;
+		}
 		const declared = readDeclarations(path, text).package_name;
 		const name = basename(path).replace(MUTABLE_SOURCE, "");
 		const type = declared ? `${declared}.${name}` : name;
@@ -159,9 +177,17 @@ export function summarizeMutations(documents: readonly PitestDocument[], paths: 
 			const outer = mutatedClass.split("$")[0] ?? "";
 			const at = outer.lastIndexOf(".");
 			const packageName = at > 0 ? outer.slice(0, at).split(".").join("/") : "";
-			const resolved = sourcefile ? resolveSourcePath(module, packageName, sourcefile, paths) : { path: null, ambiguous: false };
-			if (resolved.ambiguous) { ambiguous.add(packageName ? `${packageName}/${sourcefile}` : sourcefile); continue; }
-			if (!resolved.path) { outOfScope++; continue; }
+			const resolved = sourcefile
+				? resolveSourcePath(module, packageName, sourcefile, paths)
+				: { path: null, ambiguous: false };
+			if (resolved.ambiguous) {
+				ambiguous.add(packageName ? `${packageName}/${sourcefile}` : sourcefile);
+				continue;
+			}
+			if (!resolved.path) {
+				outOfScope++;
+				continue;
+			}
 			const mutator = tagText(body, "mutator");
 			mutants.push({
 				status: attr(element[1] ?? "", "status") || "UNKNOWN",
@@ -174,13 +200,24 @@ export function summarizeMutations(documents: readonly PitestDocument[], paths: 
 			});
 		}
 	}
-	const notes = [...ambiguous].sort().map((name) => `${name} matches several scoped paths: the mutants of that source cannot be attributed to one of them`);
+	const notes = [...ambiguous]
+		.sort()
+		.map(
+			(name) => `${name} matches several scoped paths: the mutants of that source cannot be attributed to one of them`,
+		);
 	return { mutants, out_of_scope: outOfScope, notes };
 }
 
 /** What the control answers when nobody computed what the subject introduced: nothing is run. */
 export function unscopedMutation(): ParsedReport {
-	return { verdict: "INDETERMINATE", facts: { scoped_classes: 0, scoped_files: 0 }, notes: ["no introduced-line set was given: a mutation run nobody could scope would mutate the whole tree on the budget of one change"], failures: [] };
+	return {
+		verdict: "INDETERMINATE",
+		facts: { scoped_classes: 0, scoped_files: 0 },
+		notes: [
+			"no introduced-line set was given: a mutation run nobody could scope would mutate the whole tree on the budget of one change",
+		],
+		failures: [],
+	};
 }
 
 /**
@@ -189,7 +226,13 @@ export function unscopedMutation(): ParsedReport {
  * reason it exists, and a run with an empty scope would spend it to observe nothing.
  */
 export function nothingToMutate(scope: MutationScope): ParsedReport {
-	return { verdict: "PASS", facts: { scoped_classes: 0, scoped_files: 0, mutants: 0, reports: 0 }, notes: ["the subject introduces no class this sensor mutates: no mutation run was spawned", ...scope.notes], failures: [], findings: [] };
+	return {
+		verdict: "PASS",
+		facts: { scoped_classes: 0, scoped_files: 0, mutants: 0, reports: 0 },
+		notes: ["the subject introduces no class this sensor mutates: no mutation run was spawned", ...scope.notes],
+		failures: [],
+		findings: [],
+	};
 }
 
 /**
@@ -205,29 +248,77 @@ export function nothingToMutate(scope: MutationScope): ParsedReport {
  * the line of each mutant that survived, so that an equivalent mutant can be recognised as such
  * instead of being hidden inside a ratio.
  */
-export function analyzeMutation(obs: ProcessObservation, documents: readonly PitestDocument[] | null, introduced: IntroducedLines | null, scope: MutationScope, output = ""): ParsedReport {
+export function analyzeMutation(
+	obs: ProcessObservation,
+	documents: readonly PitestDocument[] | null,
+	introduced: IntroducedLines | null,
+	scope: MutationScope,
+	output = "",
+): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) {
-		const budget = obs.timed_out ? ["the mutation budget ended the run before the report was written: the proof this control owes is missing, and no threshold is lowered to conclude without it (VER-04)"] : [];
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident, scoped_classes: scope.classes.length, scoped_files: scope.paths.length }, notes: [incident, ...budget], failures: [] };
+		const budget = obs.timed_out
+			? [
+					"the mutation budget ended the run before the report was written: the proof this control owes is missing, and no threshold is lowered to conclude without it (VER-04)",
+				]
+			: [];
+		return {
+			verdict: "INDETERMINATE",
+			facts: {
+				exit_code: obs.exit_code,
+				incident,
+				scoped_classes: scope.classes.length,
+				scoped_files: scope.paths.length,
+			},
+			notes: [incident, ...budget],
+			failures: [],
+		};
 	}
 	if (introduced === null) return unscopedMutation();
 	if (scope.paths.length === 0) return nothingToMutate(scope);
 
 	const complete = (documents ?? []).filter((doc) => isCompleteMutationReport(doc.text));
-	const facts: Record<string, unknown> = { exit_code: obs.exit_code, reports: complete.length, scoped_classes: scope.classes.length, scoped_files: scope.paths.length };
+	const facts: Record<string, unknown> = {
+		exit_code: obs.exit_code,
+		reports: complete.length,
+		scoped_classes: scope.classes.length,
+		scoped_files: scope.paths.length,
+	};
 	if (complete.length === 0) {
 		// The report is written once the analysis is over. Without one, a non-zero exit is a build that
 		// broke on the frozen tree — a reproducible property of the candidate, not an incident.
 		if (obs.exit_code !== 0) {
 			const errors = buildErrors(output);
-			return { verdict: "FAIL", facts, notes: [`the mutation run exited with ${obs.exit_code} before writing a report`], failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`] };
+			return {
+				verdict: "FAIL",
+				facts,
+				notes: [`the mutation run exited with ${obs.exit_code} before writing a report`],
+				failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`],
+			};
 		}
 		// A run that completed and states it generated nothing wrote no report because there was nothing
 		// to write: an interface, a record or a constant holder carries no instruction to mutate. That is
 		// a fact about the scoped classes, and this control has nothing to conclude about them.
-		if (NO_MUTANT_GENERATED.test(output)) return { verdict: "PASS", facts: { ...facts, mutants: 0, introduced_mutants: 0 }, notes: [`the engine generated no mutant on the ${scope.paths.length} scoped source file(s): this control has nothing to conclude on them`, ...scope.notes], failures: [], findings: [] };
-		return { verdict: "INDETERMINATE", facts, notes: [`no complete mutation report at the declared report path, for ${scope.paths.length} scoped source file(s): ${scope.paths.slice(0, MAX_NAMED_PATHS).join(", ")}`, ...scope.notes], failures: [] };
+		if (NO_MUTANT_GENERATED.test(output))
+			return {
+				verdict: "PASS",
+				facts: { ...facts, mutants: 0, introduced_mutants: 0 },
+				notes: [
+					`the engine generated no mutant on the ${scope.paths.length} scoped source file(s): this control has nothing to conclude on them`,
+					...scope.notes,
+				],
+				failures: [],
+				findings: [],
+			};
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [
+				`no complete mutation report at the declared report path, for ${scope.paths.length} scoped source file(s): ${scope.paths.slice(0, MAX_NAMED_PATHS).join(", ")}`,
+				...scope.notes,
+			],
+			failures: [],
+		};
 	}
 
 	const summary = summarizeMutations(complete, scope.paths);
@@ -249,30 +340,71 @@ export function analyzeMutation(obs: ProcessObservation, documents: readonly Pit
 			continue;
 		}
 		onIntroduced++;
-		if (DETECTED.has(mutant.status)) { killed++; continue; }
-		if (NOT_VIABLE.has(mutant.status)) { excluded++; continue; }
+		if (DETECTED.has(mutant.status)) {
+			killed++;
+			continue;
+		}
+		if (NOT_VIABLE.has(mutant.status)) {
+			excluded++;
+			continue;
+		}
 		if (mutant.status === "SURVIVED" || mutant.status === "NO_COVERAGE") {
 			const rule = mutant.status === "SURVIVED" ? MUTATION_RULE_SURVIVED : MUTATION_RULE_UNCOVERED;
 			const what = mutant.status === "SURVIVED" ? "no test notices" : "no test exercises";
 			const described = mutant.description || `${mutant.mutator} applied`;
-			if (findings.length < MAX_MUTATION_FINDINGS) findings.push({ rule_id: rule, category: "quality", severity: "blocker", message: `${mutant.path}:${mutant.line} introduced line whose mutation ${what}: ${described} (${mutant.mutator}) in ${method}`, symbol: method });
+			if (findings.length < MAX_MUTATION_FINDINGS)
+				findings.push({
+					rule_id: rule,
+					category: "quality",
+					severity: "blocker",
+					message: `${mutant.path}:${mutant.line} introduced line whose mutation ${what}: ${described} (${mutant.mutator}) in ${method}`,
+					symbol: method,
+				});
 			continue;
 		}
 		undecidedCount++;
-		if (undecided.length < MAX_NAMED_PATHS) undecided.push(`${mutant.path}:${mutant.line} ${mutant.status} (${mutant.mutator})`);
+		if (undecided.length < MAX_NAMED_PATHS)
+			undecided.push(`${mutant.path}:${mutant.line} ${mutant.status} (${mutant.mutator})`);
 	}
 
 	const notes = [...summary.notes, ...scope.notes];
-	if (obs.exit_code !== 0) notes.push(`the mutation run exited with ${obs.exit_code} after writing a complete report: a threshold the target sets over everything it mutated is a ratio, and a ratio is not what is opposed to this candidate (QLT-04)`);
-	if (onIntroduced === 0) notes.push(`the engine generated no mutant on the introduced lines of ${scope.paths.length} scoped source file(s): this control has nothing to conclude on them`);
-	if (excluded > 0) notes.push(`${excluded} mutant(s) of the introduced lines never ran and are excluded: a mutant the engine reports as non-viable is not a defect`);
-	if (inherited > 0) notes.push(`${inherited} mutant(s) survive on lines of the scoped classes this subject did not write: counted as debt of those classes, never opposed to the candidate (QLT-04)`);
-	if (summary.out_of_scope > 0) notes.push(`${summary.out_of_scope} mutant(s) name a class outside the scope of this run and were left aside`);
+	if (obs.exit_code !== 0)
+		notes.push(
+			`the mutation run exited with ${obs.exit_code} after writing a complete report: a threshold the target sets over everything it mutated is a ratio, and a ratio is not what is opposed to this candidate (QLT-04)`,
+		);
+	if (onIntroduced === 0)
+		notes.push(
+			`the engine generated no mutant on the introduced lines of ${scope.paths.length} scoped source file(s): this control has nothing to conclude on them`,
+		);
+	if (excluded > 0)
+		notes.push(
+			`${excluded} mutant(s) of the introduced lines never ran and are excluded: a mutant the engine reports as non-viable is not a defect`,
+		);
+	if (inherited > 0)
+		notes.push(
+			`${inherited} mutant(s) survive on lines of the scoped classes this subject did not write: counted as debt of those classes, never opposed to the candidate (QLT-04)`,
+		);
+	if (summary.out_of_scope > 0)
+		notes.push(`${summary.out_of_scope} mutant(s) name a class outside the scope of this run and were left aside`);
 	if (findings.length >= MAX_MUTATION_FINDINGS) notes.push(`findings reduced to the first ${MAX_MUTATION_FINDINGS}`);
-	if (undecidedCount > 0) notes.push(`the engine could not decide ${undecidedCount} mutant(s) of the introduced lines: ${undecided.join(", ")}`);
+	if (undecidedCount > 0)
+		notes.push(
+			`the engine could not decide ${undecidedCount} mutant(s) of the introduced lines: ${undecided.join(", ")}`,
+		);
 
 	const survived = findings.length;
-	const allFacts = { ...facts, mutants: summary.mutants.length, introduced_mutants: onIntroduced, killed_mutants: killed, surviving_mutants: survived, excluded_mutants: excluded, undecided_mutants: undecidedCount, inherited_survivors: inherited, out_of_scope_mutants: summary.out_of_scope, statuses };
+	const allFacts = {
+		...facts,
+		mutants: summary.mutants.length,
+		introduced_mutants: onIntroduced,
+		killed_mutants: killed,
+		surviving_mutants: survived,
+		excluded_mutants: excluded,
+		undecided_mutants: undecidedCount,
+		inherited_survivors: inherited,
+		out_of_scope_mutants: summary.out_of_scope,
+		statuses,
+	};
 	if (survived > 0) return { verdict: "FAIL", facts: allFacts, notes, failures: [], findings };
 	if (undecidedCount > 0) return { verdict: "INDETERMINATE", facts: allFacts, notes, failures: [], findings };
 	return { verdict: "PASS", facts: allFacts, notes, failures: [], findings: [] };

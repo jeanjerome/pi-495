@@ -1,4 +1,11 @@
-import type { ActorRef, CandidateRef, EnvironmentRef, InterventionRole, ProtocolRef, SubjectRef } from "../contracts/v1/common.ts";
+import type {
+	ActorRef,
+	CandidateRef,
+	EnvironmentRef,
+	InterventionRole,
+	ProtocolRef,
+	SubjectRef,
+} from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
@@ -82,7 +89,11 @@ export interface WorkspaceHandle {
 export interface WorkspacePort {
 	captureReference(projectPath: string, policy: WorkspacePolicy): Promise<ReferenceSnapshot>;
 	createWorkspace(reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<WorkspaceHandle>;
-	snapshotCandidate(handle: WorkspaceHandle, reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<CandidateManifest>;
+	snapshotCandidate(
+		handle: WorkspaceHandle,
+		reference: ReferenceSnapshot,
+		policy: WorkspacePolicy,
+	): Promise<CandidateManifest>;
 	closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void>;
 	workspacePath(workspaceId: string): string;
 }
@@ -111,7 +122,10 @@ export interface ControlInvocation {
 
 export interface ControlExecutionPort {
 	/** Runs the control on a frozen candidate and normalises the observation. Always resolves. */
-	runControl(invocation: ControlInvocation, signal?: AbortSignal): Promise<{ evidence: EvidenceCandidate; observation: ProcessObservation | null }>;
+	runControl(
+		invocation: ControlInvocation,
+		signal?: AbortSignal,
+	): Promise<{ evidence: EvidenceCandidate; observation: ProcessObservation | null }>;
 }
 
 // --- agent interventions (§8.4) -------------------------------------------------------------------
@@ -165,9 +179,25 @@ export type InterventionEvent =
 	| { type: "tool_finished"; at: string; tool: string; call_id: string; is_error: boolean; blocked: boolean }
 	| { type: "checkpointed"; at: string }
 	/** `truncated` means the duration budget ended the session: the workspace holds unfinished work. */
-	| { type: "completed"; at: string; output: unknown; output_valid: boolean; truncated?: boolean; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } }
-	| { type: "failed"; at: string; error: string; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } }
-	| { type: "cancelled"; at: string; counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number } };
+	| {
+			type: "completed";
+			at: string;
+			output: unknown;
+			output_valid: boolean;
+			truncated?: boolean;
+			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+	  }
+	| {
+			type: "failed";
+			at: string;
+			error: string;
+			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+	  }
+	| {
+			type: "cancelled";
+			at: string;
+			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+	  };
 
 export interface AgentCapabilities {
 	provider_id: string;
@@ -187,4 +217,11 @@ export interface AgentPort {
 	startIntervention(mandate: InterventionMandate): Promise<InterventionHandle>;
 }
 
-export const EMPTY_LIMITS: Limits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
+export const EMPTY_LIMITS: Limits = {
+	truncated: false,
+	bytes_read: 0,
+	bytes_total: 0,
+	exclusions: [],
+	unstable: false,
+	notes: [],
+};

@@ -9,26 +9,269 @@ type Lang = "fr" | "en";
 
 const T = {
 	fr: {
-		"IH-01": (q: string) => ({ question: q, options: [{ id: "answer", label: "Répondre (texte libre)", effect: "La réponse devient une décision enregistrée sur cette révision.", risky: false }, { id: "abandon", label: "Abandonner le changement", effect: "Le changement est clôturé comme abandonné, le dossier est conservé.", risky: true }] }),
-		"IH-02": (kind: string) => ({ question: `Adopter ${kind === "mandate" ? "le mandat" : "les exigences"} de ce changement ?`, options: [{ id: "adopt", label: "Adopter", effect: "Le gate passe si le reste est satisfait ; l'adoption porte sur ce texte exact et tombe si l'artefact change.", risky: true }, { id: "refuse", label: "Refuser (motif en texte libre)", effect: "Le changement est bloqué ; le dossier est exportable.", risky: false }] }),
-		"IH-07": (used: string) => ({ question: `Le budget de tentatives est épuisé (${used}). Étendre le budget ?`, options: [{ id: "extend", label: "Étendre d'une tentative (indiquer un nombre en texte libre)", effect: "Une nouvelle tentative de correction sera autorisée ; la consommation passée n'est pas remise à zéro.", risky: true }, { id: "stop", label: "Arrêter ici", effect: "Le changement reste bloqué ; le dossier est exportable.", risky: false }] }),
-		"IH-08": () => ({ question: "Deux revues obligatoires sont contradictoires. Trancher ?", options: [{ id: "accept", label: "Retenir l'approbation", effect: "La revue rejetante est écartée pour cette révision seulement.", risky: true }, { id: "reject", label: "Retenir le rejet", effect: "Le candidat est refusé.", risky: false }] }),
-		"IH-10": () => ({ question: "Accepter ce candidat ?", options: [{ id: "accept", label: "Accepter", effect: "G5 peut passer si toutes les autres obligations sont satisfaites.", risky: true }, { id: "refuse", label: "Refuser", effect: "G5 échoue ; une correction ou un rejet suit.", risky: false }, { id: "correct", label: "Demander une correction", effect: "Une nouvelle tentative est autorisée si le budget le permet.", risky: false }] }),
-		"IH-11": (dest: string) => ({ question: `Intégrer le candidat accepté dans ${dest} ?`, options: [{ id: "integrate", label: "Intégrer localement", effect: "Un commit local est créé ; aucun push, aucune publication.", risky: true }, { id: "export_only", label: "Exporter seulement", effect: "Aucun effet Git ; le dossier est exportable.", risky: false }, { id: "cancel", label: "Annuler", effect: "Le changement reste accepté sans intégration.", risky: false }] }),
-		"IH-12": (detail: string) => ({ question: `L'effet Git est incertain (${detail}). Qu'observez-vous ?`, options: [{ id: "confirm_applied", label: "Confirmer : effectué", effect: "L'intégration est considérée appliquée et vérifiée ensuite.", risky: true }, { id: "confirm_not_applied", label: "Confirmer : non effectué", effect: "L'opération est marquée échouée et peut être relancée.", risky: true }, { id: "investigate", label: "Investiguer", effect: "Le changement reste bloqué.", risky: false }] }),
+		"IH-01": (q: string) => ({
+			question: q,
+			options: [
+				{
+					id: "answer",
+					label: "Répondre (texte libre)",
+					effect: "La réponse devient une décision enregistrée sur cette révision.",
+					risky: false,
+				},
+				{
+					id: "abandon",
+					label: "Abandonner le changement",
+					effect: "Le changement est clôturé comme abandonné, le dossier est conservé.",
+					risky: true,
+				},
+			],
+		}),
+		"IH-02": (kind: string) => ({
+			question: `Adopter ${kind === "mandate" ? "le mandat" : "les exigences"} de ce changement ?`,
+			options: [
+				{
+					id: "adopt",
+					label: "Adopter",
+					effect:
+						"Le gate passe si le reste est satisfait ; l'adoption porte sur ce texte exact et tombe si l'artefact change.",
+					risky: true,
+				},
+				{
+					id: "refuse",
+					label: "Refuser (motif en texte libre)",
+					effect: "Le changement est bloqué ; le dossier est exportable.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-07": (used: string) => ({
+			question: `Le budget de tentatives est épuisé (${used}). Étendre le budget ?`,
+			options: [
+				{
+					id: "extend",
+					label: "Étendre d'une tentative (indiquer un nombre en texte libre)",
+					effect:
+						"Une nouvelle tentative de correction sera autorisée ; la consommation passée n'est pas remise à zéro.",
+					risky: true,
+				},
+				{
+					id: "stop",
+					label: "Arrêter ici",
+					effect: "Le changement reste bloqué ; le dossier est exportable.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-08": () => ({
+			question: "Deux revues obligatoires sont contradictoires. Trancher ?",
+			options: [
+				{
+					id: "accept",
+					label: "Retenir l'approbation",
+					effect: "La revue rejetante est écartée pour cette révision seulement.",
+					risky: true,
+				},
+				{ id: "reject", label: "Retenir le rejet", effect: "Le candidat est refusé.", risky: false },
+			],
+		}),
+		"IH-10": () => ({
+			question: "Accepter ce candidat ?",
+			options: [
+				{
+					id: "accept",
+					label: "Accepter",
+					effect: "G5 peut passer si toutes les autres obligations sont satisfaites.",
+					risky: true,
+				},
+				{ id: "refuse", label: "Refuser", effect: "G5 échoue ; une correction ou un rejet suit.", risky: false },
+				{
+					id: "correct",
+					label: "Demander une correction",
+					effect: "Une nouvelle tentative est autorisée si le budget le permet.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-11": (dest: string) => ({
+			question: `Intégrer le candidat accepté dans ${dest} ?`,
+			options: [
+				{
+					id: "integrate",
+					label: "Intégrer localement",
+					effect: "Un commit local est créé ; aucun push, aucune publication.",
+					risky: true,
+				},
+				{
+					id: "export_only",
+					label: "Exporter seulement",
+					effect: "Aucun effet Git ; le dossier est exportable.",
+					risky: false,
+				},
+				{ id: "cancel", label: "Annuler", effect: "Le changement reste accepté sans intégration.", risky: false },
+			],
+		}),
+		"IH-12": (detail: string) => ({
+			question: `L'effet Git est incertain (${detail}). Qu'observez-vous ?`,
+			options: [
+				{
+					id: "confirm_applied",
+					label: "Confirmer : effectué",
+					effect: "L'intégration est considérée appliquée et vérifiée ensuite.",
+					risky: true,
+				},
+				{
+					id: "confirm_not_applied",
+					label: "Confirmer : non effectué",
+					effect: "L'opération est marquée échouée et peut être relancée.",
+					risky: true,
+				},
+				{ id: "investigate", label: "Investiguer", effect: "Le changement reste bloqué.", risky: false },
+			],
+		}),
 	},
 	en: {
-		"IH-01": (q: string) => ({ question: q, options: [{ id: "answer", label: "Answer (free text)", effect: "The answer becomes a recorded decision on this revision.", risky: false }, { id: "abandon", label: "Abandon the change", effect: "The change is closed as abandoned; the dossier is kept.", risky: true }] }),
-		"IH-02": (kind: string) => ({ question: `Adopt the ${kind === "mandate" ? "mandate" : "requirements"} of this change?`, options: [{ id: "adopt", label: "Adopt", effect: "The gate passes if everything else is satisfied; the adoption covers this exact text and lapses if the artifact changes.", risky: true }, { id: "refuse", label: "Refuse (reason as free text)", effect: "The change is blocked; the dossier can be exported.", risky: false }] }),
-		"IH-07": (used: string) => ({ question: `The attempt budget is exhausted (${used}). Extend it?`, options: [{ id: "extend", label: "Extend by one attempt (give a number as free text)", effect: "A new correction attempt is allowed; past consumption is not reset.", risky: true }, { id: "stop", label: "Stop here", effect: "The change stays blocked; the dossier can be exported.", risky: false }] }),
-		"IH-08": () => ({ question: "Two required reviews contradict each other. Arbitrate?", options: [{ id: "accept", label: "Keep the approval", effect: "The rejecting review is set aside for this revision only.", risky: true }, { id: "reject", label: "Keep the rejection", effect: "The candidate is refused.", risky: false }] }),
-		"IH-10": () => ({ question: "Accept this candidate?", options: [{ id: "accept", label: "Accept", effect: "G5 may pass if every other obligation is satisfied.", risky: true }, { id: "refuse", label: "Refuse", effect: "G5 fails; a correction or a rejection follows.", risky: false }, { id: "correct", label: "Request a correction", effect: "A new attempt is allowed if the budget permits.", risky: false }] }),
-		"IH-11": (dest: string) => ({ question: `Integrate the accepted candidate into ${dest}?`, options: [{ id: "integrate", label: "Integrate locally", effect: "A local commit is created; no push, no publication.", risky: true }, { id: "export_only", label: "Export only", effect: "No Git effect; the dossier can be exported.", risky: false }, { id: "cancel", label: "Cancel", effect: "The change stays accepted without integration.", risky: false }] }),
-		"IH-12": (detail: string) => ({ question: `The Git effect is uncertain (${detail}). What do you observe?`, options: [{ id: "confirm_applied", label: "Confirm: applied", effect: "The integration is considered applied and then verified.", risky: true }, { id: "confirm_not_applied", label: "Confirm: not applied", effect: "The operation is marked failed and can be relaunched.", risky: true }, { id: "investigate", label: "Investigate", effect: "The change stays blocked.", risky: false }] }),
+		"IH-01": (q: string) => ({
+			question: q,
+			options: [
+				{
+					id: "answer",
+					label: "Answer (free text)",
+					effect: "The answer becomes a recorded decision on this revision.",
+					risky: false,
+				},
+				{
+					id: "abandon",
+					label: "Abandon the change",
+					effect: "The change is closed as abandoned; the dossier is kept.",
+					risky: true,
+				},
+			],
+		}),
+		"IH-02": (kind: string) => ({
+			question: `Adopt the ${kind === "mandate" ? "mandate" : "requirements"} of this change?`,
+			options: [
+				{
+					id: "adopt",
+					label: "Adopt",
+					effect:
+						"The gate passes if everything else is satisfied; the adoption covers this exact text and lapses if the artifact changes.",
+					risky: true,
+				},
+				{
+					id: "refuse",
+					label: "Refuse (reason as free text)",
+					effect: "The change is blocked; the dossier can be exported.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-07": (used: string) => ({
+			question: `The attempt budget is exhausted (${used}). Extend it?`,
+			options: [
+				{
+					id: "extend",
+					label: "Extend by one attempt (give a number as free text)",
+					effect: "A new correction attempt is allowed; past consumption is not reset.",
+					risky: true,
+				},
+				{
+					id: "stop",
+					label: "Stop here",
+					effect: "The change stays blocked; the dossier can be exported.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-08": () => ({
+			question: "Two required reviews contradict each other. Arbitrate?",
+			options: [
+				{
+					id: "accept",
+					label: "Keep the approval",
+					effect: "The rejecting review is set aside for this revision only.",
+					risky: true,
+				},
+				{ id: "reject", label: "Keep the rejection", effect: "The candidate is refused.", risky: false },
+			],
+		}),
+		"IH-10": () => ({
+			question: "Accept this candidate?",
+			options: [
+				{ id: "accept", label: "Accept", effect: "G5 may pass if every other obligation is satisfied.", risky: true },
+				{ id: "refuse", label: "Refuse", effect: "G5 fails; a correction or a rejection follows.", risky: false },
+				{
+					id: "correct",
+					label: "Request a correction",
+					effect: "A new attempt is allowed if the budget permits.",
+					risky: false,
+				},
+			],
+		}),
+		"IH-11": (dest: string) => ({
+			question: `Integrate the accepted candidate into ${dest}?`,
+			options: [
+				{
+					id: "integrate",
+					label: "Integrate locally",
+					effect: "A local commit is created; no push, no publication.",
+					risky: true,
+				},
+				{
+					id: "export_only",
+					label: "Export only",
+					effect: "No Git effect; the dossier can be exported.",
+					risky: false,
+				},
+				{ id: "cancel", label: "Cancel", effect: "The change stays accepted without integration.", risky: false },
+			],
+		}),
+		"IH-12": (detail: string) => ({
+			question: `The Git effect is uncertain (${detail}). What do you observe?`,
+			options: [
+				{
+					id: "confirm_applied",
+					label: "Confirm: applied",
+					effect: "The integration is considered applied and then verified.",
+					risky: true,
+				},
+				{
+					id: "confirm_not_applied",
+					label: "Confirm: not applied",
+					effect: "The operation is marked failed and can be relaunched.",
+					risky: true,
+				},
+				{ id: "investigate", label: "Investigate", effect: "The change stays blocked.", risky: false },
+			],
+		}),
 	},
 } as const;
 
-export function buildDecisionRequest(args: { decision_id: string; change_id: string; interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">; subject: SubjectRef; language: Lang; facts: string[]; recommendation: string | null; arg?: string; requested_at: string; authority?: DecisionRequest["required_authority"] }): DecisionRequest {
+export function buildDecisionRequest(args: {
+	decision_id: string;
+	change_id: string;
+	interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">;
+	subject: SubjectRef;
+	language: Lang;
+	facts: string[];
+	recommendation: string | null;
+	arg?: string;
+	requested_at: string;
+	authority?: DecisionRequest["required_authority"];
+}): DecisionRequest {
 	const t = T[args.language][args.interaction](args.arg ?? "");
-	return { decision_id: args.decision_id, change_id: args.change_id, interaction: args.interaction, subject: args.subject, question: t.question, facts: args.facts, recommendation: args.recommendation, options: [...t.options], required_authority: args.authority ?? (args.interaction === "IH-01" ? "requester" : "change_owner"), allow_free_text: args.interaction === "IH-01" || args.interaction === "IH-02" || args.interaction === "IH-07", requested_at: args.requested_at, expires_at: null, language: args.language };
+	return {
+		decision_id: args.decision_id,
+		change_id: args.change_id,
+		interaction: args.interaction,
+		subject: args.subject,
+		question: t.question,
+		facts: args.facts,
+		recommendation: args.recommendation,
+		options: [...t.options],
+		required_authority: args.authority ?? (args.interaction === "IH-01" ? "requester" : "change_owner"),
+		allow_free_text: args.interaction === "IH-01" || args.interaction === "IH-02" || args.interaction === "IH-07",
+		requested_at: args.requested_at,
+		expires_at: null,
+		language: args.language,
+	};
 }

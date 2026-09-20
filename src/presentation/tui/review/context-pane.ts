@@ -8,6 +8,8 @@ import { LABEL, type PaneContext, type Selection } from "./view.ts";
 
 export function renderContext(ctx: PaneContext, node: Selection, width: number): string {
 	const L = ctx.labels;
-	const text = node ? `${LABEL[node.status]} · ${node.path}${node.old_path ? ` (${L.from} ${node.old_path})` : ""}${node.limits.length ? ` · ${ctx.styles.warn(node.limits.join("; "))}` : ""}` : L.noSelection;
+	const text = node
+		? `${LABEL[node.status]} · ${node.path}${node.old_path ? ` (${L.from} ${node.old_path})` : ""}${node.limits.length ? ` · ${ctx.styles.warn(node.limits.join("; "))}` : ""}`
+		: L.noSelection;
 	return ctx.styles.dim(ctx.fit(neutralize(text), width));
 }

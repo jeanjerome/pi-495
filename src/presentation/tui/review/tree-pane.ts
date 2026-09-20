@@ -32,7 +32,9 @@ export function selectPath(ctx: PaneContext, path: string): void {
 
 /** Row indices of the files this change touched: what the file-to-file keys jump between. */
 export function changedFiles(ctx: PaneContext): number[] {
-	return visibleRows(ctx).map((r, i) => (r.node.kind !== "directory" && r.node.status !== "intact" ? i : -1)).filter((i) => i >= 0);
+	return visibleRows(ctx)
+		.map((r, i) => (r.node.kind !== "directory" && r.node.status !== "intact" ? i : -1))
+		.filter((i) => i >= 0);
 }
 
 export function renderTree(ctx: PaneContext, width: number, height: number): { lines: string[]; width: number } {
@@ -47,11 +49,25 @@ export function renderTree(ctx: PaneContext, width: number, height: number): { l
 		const n = r.node;
 		const marker = n.kind === "directory" ? (view.expanded.has(n.path) ? "▾ " : "▸ ") : "  ";
 		const sym = n.kind === "directory" ? (n.status === "intact" ? " " : "*") : SYMBOL[n.status];
-		const agg = n.kind === "directory" ? ctx.styles.dim(` ${Object.entries(n.aggregate).filter(([k]) => k !== "intact").map(([k, v]) => `${SYMBOL[k as PathStatus]}${v}`).join(" ")}`) : "";
+		const agg =
+			n.kind === "directory"
+				? ctx.styles.dim(
+						` ${Object.entries(n.aggregate)
+							.filter(([k]) => k !== "intact")
+							.map(([k, v]) => `${SYMBOL[k as PathStatus]}${v}`)
+							.join(" ")}`,
+					)
+				: "";
 		const text = `${"  ".repeat(r.depth)}${marker}${sym} ${neutralize(n.name)}${n.kind === "directory" ? "/" : ""}${n.old_path ? ctx.styles.dim(` ← ${neutralize(n.old_path)}`) : ""}${agg}`;
 		const colored = n.kind === "directory" ? text : color(ctx, n.status, text);
 		const line = ctx.fit(colored, width);
-		lines.push(i === view.selected ? (view.focus === "tree" ? ctx.styles.selected(ctx.styles.focus(line)) : ctx.styles.selected(line)) : line);
+		lines.push(
+			i === view.selected
+				? view.focus === "tree"
+					? ctx.styles.selected(ctx.styles.focus(line))
+					: ctx.styles.selected(line)
+				: line,
+		);
 	}
 	while (lines.length < height) lines.push(ctx.fit("", width));
 	if (rows.length === 0) lines[0] = ctx.fit(ctx.styles.dim("(vide)"), width);

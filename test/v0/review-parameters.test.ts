@@ -5,7 +5,16 @@
  */
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { CONTENT_PAGE_LINES, FILE_READ_BUDGET_BYTES, buildSnapshot, findNode, readChanges, readContent, type ChangePage, type ContentPage } from "../../src/application/review.ts";
+import {
+	CONTENT_PAGE_LINES,
+	FILE_READ_BUDGET_BYTES,
+	buildSnapshot,
+	findNode,
+	readChanges,
+	readContent,
+	type ChangePage,
+	type ContentPage,
+} from "../../src/application/review.ts";
 import { MAX_DIFFED_BYTES } from "../../src/application/coverage.ts";
 import { NARROW_THRESHOLD, ReviewSurface, treeRowOverhead } from "../../src/presentation/tui/review-surface.ts";
 import { summarizeReview } from "../../src/presentation/structured/review-text.ts";
@@ -17,12 +26,50 @@ import { REVIEW_CORPUS, deepestChangedPath, nameOfLength, tallFile } from "../fi
 
 const noLimits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
 function entry(path: string, state: ManifestEntry["baseline_state"], over: Partial<ManifestEntry> = {}): ManifestEntry {
-	return { path, kind: "file", content_digest: digestValue(path + state), size: 1, mode: "000644", symlink_target: null, baseline_state: state, origin: "unknown", limits: null, ...over };
+	return {
+		path,
+		kind: "file",
+		content_digest: digestValue(path + state),
+		size: 1,
+		mode: "000644",
+		symlink_target: null,
+		baseline_state: state,
+		origin: "unknown",
+		limits: null,
+		...over,
+	};
 }
 function snapshotOf(entries: ManifestEntry[]) {
-	const reference: ReferenceSnapshot = { reference_id: "ref_1", kind: "git_clean_head", project_path: "/p", head_commit: "a".repeat(40), branch: "main", tree_digest: digestValue("t"), entries: entries.map((e) => ({ ...e, baseline_state: "unchanged" })), exclusions: [], captured_at: "t", limits: noLimits };
-	const manifest: CandidateManifest = { candidate_id: "cand_1", workspace_id: "ws", base_reference_id: "ref_1", base_digest: reference.tree_digest, selected_paths: [], exclusions: [], entries, metadata_policy: "content_and_mode", manifest_digest: digestValue("m"), frozen_at: "t", limits: noLimits };
-	return { reference, manifest, snapshot: buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" }) };
+	const reference: ReferenceSnapshot = {
+		reference_id: "ref_1",
+		kind: "git_clean_head",
+		project_path: "/p",
+		head_commit: "a".repeat(40),
+		branch: "main",
+		tree_digest: digestValue("t"),
+		entries: entries.map((e) => ({ ...e, baseline_state: "unchanged" })),
+		exclusions: [],
+		captured_at: "t",
+		limits: noLimits,
+	};
+	const manifest: CandidateManifest = {
+		candidate_id: "cand_1",
+		workspace_id: "ws",
+		base_reference_id: "ref_1",
+		base_digest: reference.tree_digest,
+		selected_paths: [],
+		exclusions: [],
+		entries,
+		metadata_policy: "content_and_mode",
+		manifest_digest: digestValue("m"),
+		frozen_at: "t",
+		limits: noLimits,
+	};
+	return {
+		reference,
+		manifest,
+		snapshot: buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" }),
+	};
 }
 /** A reader whose pages come from `text`, recording what width of page it was asked for. */
 function pagedQuery(text: string) {
@@ -30,11 +77,22 @@ function pagedQuery(text: string) {
 	const lines = splitLines(text);
 	return {
 		asked,
-		async changes(path: string): Promise<ChangePage> { return { path, status: "modified", kind: "text", hunks: [], intraline: {}, metadata: {}, notes: [] }; },
+		async changes(path: string): Promise<ChangePage> {
+			return { path, status: "modified", kind: "text", hunks: [], intraline: {}, metadata: {}, notes: [] };
+		},
 		async content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage> {
 			asked.push({ start, limit });
 			const slice = lines.slice(start - 1, start - 1 + limit);
-			return { path, side, kind: "text", lines: slice, start_line: start, total_lines: lines.length, truncated: start - 1 + slice.length < lines.length, metadata: {} };
+			return {
+				path,
+				side,
+				kind: "text",
+				lines: slice,
+				start_line: start,
+				total_lines: lines.length,
+				truncated: start - 1 + slice.length < lines.length,
+				metadata: {},
+			};
 		},
 	};
 }
@@ -44,11 +102,22 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 	const path = deepestChangedPath();
 	const { snapshot } = snapshotOf([entry(path, "modified"), entry("README.md", "unchanged")]);
 	function surface(narrowThreshold: number) {
-		return new ReviewSurface({ snapshot, query: pagedQuery("a\n"), rows: () => 20, narrowThreshold, onExit: () => {}, requestRender: () => {} });
+		return new ReviewSurface({
+			snapshot,
+			query: pagedQuery("a\n"),
+			rows: () => 20,
+			narrowThreshold,
+			onExit: () => {},
+			requestRender: () => {},
+		});
 	}
 	/** The tree row of the only changed path, without the padding `fit` adds. */
 	function treeRow(lines: string[]): string {
-		return lines.slice(2, -2).map((l) => l.split("│")[0] ?? l).find((l) => l.includes("-adapter.ts") || l.includes("…"))!.trimEnd();
+		return lines
+			.slice(2, -2)
+			.map((l) => l.split("│")[0] ?? l)
+			.find((l) => l.includes("-adapter.ts") || l.includes("…"))!
+			.trimEnd();
 	}
 
 	it("is the smallest width at which the tree column still shows the corpus's deepest changed name whole", () => {
@@ -70,7 +139,10 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 
 	it("keeps the name readable on both sides of the threshold: split above, alternating below", () => {
 		const wide = surface(NARROW_THRESHOLD).render(NARROW_THRESHOLD);
-		assert.ok(wide.some((l) => l.includes("│")), "two panes at the threshold");
+		assert.ok(
+			wide.some((l) => l.includes("│")),
+			"two panes at the threshold",
+		);
 		assert.ok(!treeRow(wide).includes("…"), treeRow(wide));
 		const narrow = surface(NARROW_THRESHOLD).render(NARROW_THRESHOLD - 1);
 		assert.ok(!narrow.slice(2, -2).some((l) => l.includes("│")), "one pane below it");
@@ -100,18 +172,32 @@ describe("pagination of large files (§10.5, §16)", () => {
 		surface.handleInput("m"); // changes → new: the reader shows the content itself
 		surface.render(120);
 		await tick();
-		assert.deepEqual(query.asked, [{ start: 1, limit: CONTENT_PAGE_LINES }], "the first page is one page, not the whole file");
+		assert.deepEqual(
+			query.asked,
+			[{ start: 1, limit: CONTENT_PAGE_LINES }],
+			"the first page is one page, not the whole file",
+		);
 
 		// Reading to the edge of what is loaded shows what is not, then brings the next page in.
 		surface.focus = "reader";
 		for (let page = 1; page <= 2; page++) {
 			surface.readerScroll = CONTENT_PAGE_LINES * page - 5;
 			surface.invalidate();
-			assert.match(surface.render(120).join("\n"), new RegExp(`${total - CONTENT_PAGE_LINES * page} lignes non chargées`), `the limit left after ${page} page(s) is visible`);
+			assert.match(
+				surface.render(120).join("\n"),
+				new RegExp(`${total - CONTENT_PAGE_LINES * page} lignes non chargées`),
+				`the limit left after ${page} page(s) is visible`,
+			);
 			await tick();
 		}
-		assert.deepEqual(query.asked.map((a) => a.start), [1, CONTENT_PAGE_LINES + 1, CONTENT_PAGE_LINES * 2 + 1]);
-		assert.ok(query.asked.every((a) => a.limit === CONTENT_PAGE_LINES), "no page is ever larger than the budget");
+		assert.deepEqual(
+			query.asked.map((a) => a.start),
+			[1, CONTENT_PAGE_LINES + 1, CONTENT_PAGE_LINES * 2 + 1],
+		);
+		assert.ok(
+			query.asked.every((a) => a.limit === CONTENT_PAGE_LINES),
+			"no page is ever larger than the budget",
+		);
 		surface.readerScroll = total - 5;
 		surface.invalidate();
 		const text = surface.render(120).join("\n");
@@ -123,7 +209,11 @@ describe("pagination of large files (§10.5, §16)", () => {
 		// The tallest terminal body this surface renders is bounded by its rows; ten screens of a
 		// 200-row terminal is the margin the value was chosen for.
 		assert.ok(CONTENT_PAGE_LINES >= 10 * 200, `${CONTENT_PAGE_LINES} lines is ten screens of a 200-row terminal`);
-		assert.equal(Math.ceil(FILE_READ_BUDGET_BYTES / (CONTENT_PAGE_LINES * REVIEW_CORPUS.line.p95)), 7, "seven pages cover the largest readable file");
+		assert.equal(
+			Math.ceil(FILE_READ_BUDGET_BYTES / (CONTENT_PAGE_LINES * REVIEW_CORPUS.line.p95)),
+			7,
+			"seven pages cover the largest readable file",
+		);
 	});
 });
 
@@ -151,7 +241,12 @@ describe("large-file budgets (§10.5, §16)", () => {
 		const { snapshot } = snapshotOf(entries);
 		assert.ok(findNode(snapshot.root, big), "the path is in the tree, not dropped");
 		assert.equal(findNode(snapshot.root, big)!.status, "modified");
-		const review = { snapshot, changes: (p: string, s: never, o: string | null) => readChanges(sources(entries), p, s, o), content: (p: string, side: "old" | "new", start: number, limit: number) => readContent(sources(entries), p, side, { start_line: start, limit }) };
+		const review = {
+			snapshot,
+			changes: (p: string, s: never, o: string | null) => readChanges(sources(entries), p, s, o),
+			content: (p: string, side: "old" | "new", start: number, limit: number) =>
+				readContent(sources(entries), p, side, { start_line: start, limit }),
+		};
 		const text = await summarizeReview(review, big, "fr");
 		assert.match(text, /modified\s+assets\/big\.bin/);
 		assert.match(text, /too_large/);
@@ -166,7 +261,10 @@ describe("large-file budgets (§10.5, §16)", () => {
 		assert.equal(snapshot.complete, true);
 		assert.ok(findNode(snapshot.root, between)!.status === "modified");
 		// ...and refused by the reader, which says so rather than showing an empty comparison.
-		assert.equal((await readContent(sources(entries), between, "new", { start_line: 1, limit: CONTENT_PAGE_LINES })).kind, "too_large");
+		assert.equal(
+			(await readContent(sources(entries), between, "new", { start_line: 1, limit: CONTENT_PAGE_LINES })).kind,
+			"too_large",
+		);
 	});
 
 	it("the differential coverage refuses the same bytes as the review", () => {

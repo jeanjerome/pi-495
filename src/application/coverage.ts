@@ -72,7 +72,12 @@ export type BytesSource = (path: string) => Promise<Uint8Array | null>;
  * from manufacturing one. A rename the manifest cannot prove leaves the file read as an addition:
  * the limit is reported, never guessed.
  */
-export async function introducedLinesOf(manifest: CandidateManifest, renames: ReadonlyMap<string, string>, reference: BytesSource, candidate: BytesSource): Promise<IntroducedLinesResult> {
+export async function introducedLinesOf(
+	manifest: CandidateManifest,
+	renames: ReadonlyMap<string, string>,
+	reference: BytesSource,
+	candidate: BytesSource,
+): Promise<IntroducedLinesResult> {
 	const formerName = new Map([...renames].map(([from, to]) => [to, from] as const));
 	const lines: IntroducedLines = {};
 	const notes: string[] = [];
@@ -80,16 +85,32 @@ export async function introducedLinesOf(manifest: CandidateManifest, renames: Re
 		if (entry.kind !== "file" || entry.content_digest === null) continue;
 		// `type_changed` is a file the reference held as something else — a symlink turned into source:
 		// it has no reference text, so every one of its lines is introduced, like an addition.
-		if (entry.baseline_state !== "added" && entry.baseline_state !== "modified" && entry.baseline_state !== "type_changed") continue;
-		if (entry.size > MAX_DIFFED_BYTES) { notes.push(`${entry.path}: ${entry.size} bytes, above the ${MAX_DIFFED_BYTES} byte diff limit`); continue; }
+		if (
+			entry.baseline_state !== "added" &&
+			entry.baseline_state !== "modified" &&
+			entry.baseline_state !== "type_changed"
+		)
+			continue;
+		if (entry.size > MAX_DIFFED_BYTES) {
+			notes.push(`${entry.path}: ${entry.size} bytes, above the ${MAX_DIFFED_BYTES} byte diff limit`);
+			continue;
+		}
 		const candidateBytes = await candidate(entry.path);
-		if (!candidateBytes) { notes.push(`${entry.path}: candidate bytes unavailable`); continue; }
+		if (!candidateBytes) {
+			notes.push(`${entry.path}: candidate bytes unavailable`);
+			continue;
+		}
 		if (isBinary(candidateBytes)) continue;
 		const former = formerName.get(entry.path) ?? (entry.baseline_state === "modified" ? entry.path : null);
 		const referenceBytes = former === null ? null : await reference(former);
-		if (former !== null && !referenceBytes) { notes.push(`${entry.path}: reference bytes of ${former} unavailable, read as an addition`); }
+		if (former !== null && !referenceBytes) {
+			notes.push(`${entry.path}: reference bytes of ${former} unavailable, read as an addition`);
+		}
 		if (referenceBytes && isBinary(referenceBytes)) continue;
-		const introduced = introducedLines(referenceBytes ? new TextDecoder().decode(referenceBytes) : "", new TextDecoder().decode(candidateBytes));
+		const introduced = introducedLines(
+			referenceBytes ? new TextDecoder().decode(referenceBytes) : "",
+			new TextDecoder().decode(candidateBytes),
+		);
 		if (introduced.length > 0) lines[entry.path] = introduced;
 	}
 	return { lines, notes };

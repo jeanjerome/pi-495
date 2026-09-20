@@ -78,17 +78,44 @@ export interface Lease {
 
 /** Transactional normative journal (conception §7, ADR-005). Only the application layer writes it. */
 export interface LedgerPort {
-	appendChange(changeId: string, expectedRevision: number, events: readonly ChangeEvent[], meta: AppendMeta): CommitReceipt;
+	appendChange(
+		changeId: string,
+		expectedRevision: number,
+		events: readonly ChangeEvent[],
+		meta: AppendMeta,
+	): CommitReceipt;
 	loadChange(changeId: string): { state: ChangeState; revision: number } | null;
 	readChangeEvents(changeId: string, fromSequence?: number): StoredEvent<ChangeEvent>[];
-	listChanges(programId?: string): { change_id: string; program_id: string; increment_id: string; phase: string; status: string; outcome: string; updated_at: string }[];
+	listChanges(programId?: string): {
+		change_id: string;
+		program_id: string;
+		increment_id: string;
+		phase: string;
+		status: string;
+		outcome: string;
+		updated_at: string;
+	}[];
 
-	appendProgram(programId: string, expectedRevision: number, events: readonly ProgramEvent[], meta: AppendMeta): CommitReceipt;
+	appendProgram(
+		programId: string,
+		expectedRevision: number,
+		events: readonly ProgramEvent[],
+		meta: AppendMeta,
+	): CommitReceipt;
 	loadProgram(programId: string): { state: ProgramState; revision: number } | null;
 	readProgramEvents(programId: string): StoredEvent<ProgramEvent>[];
-	listPrograms(projectPath?: string): { program_id: string; project_path: string; title: string; updated_at: string; closed: boolean }[];
+	listPrograms(
+		projectPath?: string,
+	): { program_id: string; project_path: string; title: string; updated_at: string; closed: boolean }[];
 
-	putArtifact(kind: ArtifactKind, changeId: string, artifactId: string, object: ObjectRef, producerId: string, at: string): ArtifactRef;
+	putArtifact(
+		kind: ArtifactKind,
+		changeId: string,
+		artifactId: string,
+		object: ObjectRef,
+		producerId: string,
+		at: string,
+	): ArtifactRef;
 	getArtifact(ref: Pick<ArtifactRef, "artifact_id" | "revision">): StoredArtifact | null;
 	listArtifacts(changeId: string, kind?: ArtifactKind): StoredArtifact[];
 

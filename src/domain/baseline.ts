@@ -15,7 +15,10 @@ import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import { fingerprintOf, locate } from "./findings.ts";
 
 /** What a control ran on. Two passes with the same inputs digest observed the same thing. */
-export function controlInputsDigest(control: Pick<ControlDefinition, "command" | "cwd" | "env">, subjectDigest: string): string {
+export function controlInputsDigest(
+	control: Pick<ControlDefinition, "command" | "cwd" | "env">,
+	subjectDigest: string,
+): string {
 	return digestValue({ command: control.command, cwd: control.cwd, env: control.env, candidate: subjectDigest });
 }
 
@@ -24,13 +27,28 @@ export function controlInputsDigest(control: Pick<ControlDefinition, "command" |
  * reference does not change while a change is under way: running it again at every attempt would
  * spend the same time on the same tree to obtain the same answer.
  */
-export function reusableReferencePass(evidence: readonly Evidence[], control: ControlDefinition, referenceDigest: string, environmentDigest: string, protocol: ProtocolRef): Evidence | null {
+export function reusableReferencePass(
+	evidence: readonly Evidence[],
+	control: ControlDefinition,
+	referenceDigest: string,
+	environmentDigest: string,
+	protocol: ProtocolRef,
+): Evidence | null {
 	const inputs = controlInputsDigest(control, referenceDigest);
 	for (let i = evidence.length - 1; i >= 0; i--) {
 		const pass = evidence[i]!;
 		if (pass.control_id !== control.control_id || pass.facts.run !== "reference") continue;
-		if (pass.subject.digest !== referenceDigest || pass.environment_digest !== environmentDigest || pass.inputs_digest !== inputs) continue;
-		if (pass.protocol_revision.protocol_id !== protocol.protocol_id || pass.protocol_revision.revision !== protocol.revision) continue;
+		if (
+			pass.subject.digest !== referenceDigest ||
+			pass.environment_digest !== environmentDigest ||
+			pass.inputs_digest !== inputs
+		)
+			continue;
+		if (
+			pass.protocol_revision.protocol_id !== protocol.protocol_id ||
+			pass.protocol_revision.revision !== protocol.revision
+		)
+			continue;
 		return pass;
 	}
 	return null;
@@ -67,7 +85,9 @@ export interface BaselineOutcome {
 export function candidateShape(manifest: CandidateManifest): CandidateShape {
 	const renames = new Map<string, string>();
 	const taken = new Set<string>();
-	const added = manifest.entries.filter((entry) => entry.baseline_state === "added" && entry.kind === "file" && entry.content_digest !== null);
+	const added = manifest.entries.filter(
+		(entry) => entry.baseline_state === "added" && entry.kind === "file" && entry.content_digest !== null,
+	);
 	const disappeared = new Set<string>();
 	for (const gone of manifest.entries) {
 		if (gone.baseline_state !== "deleted") continue;
@@ -83,12 +103,24 @@ export function candidateShape(manifest: CandidateManifest): CandidateShape {
 
 /** Identity of a finding once its file is set aside: what survives a rename the manifest cannot prove. */
 function pathlessKey(finding: Finding): string {
-	return fingerprintOf({ tool: finding.tool, rule_id: finding.rule_id, symbol: finding.symbol, path: null, text: locate(finding.message).text });
+	return fingerprintOf({
+		tool: finding.tool,
+		rule_id: finding.rule_id,
+		symbol: finding.symbol,
+		path: null,
+		text: locate(finding.message).text,
+	});
 }
 
 /** Identity of a reference finding as it would read once its file took its candidate name. */
 function relocatedKey(finding: Finding, path: string): string {
-	return fingerprintOf({ tool: finding.tool, rule_id: finding.rule_id, symbol: finding.symbol, path, text: locate(finding.message).text });
+	return fingerprintOf({
+		tool: finding.tool,
+		rule_id: finding.rule_id,
+		symbol: finding.symbol,
+		path,
+		text: locate(finding.message).text,
+	});
 }
 
 interface Pool {
@@ -98,7 +130,11 @@ interface Pool {
 	size(key: string): number;
 }
 
-function pool(findings: readonly Finding[], consumed: ReadonlySet<number>, key: (finding: Finding) => string | null): Pool {
+function pool(
+	findings: readonly Finding[],
+	consumed: ReadonlySet<number>,
+	key: (finding: Finding) => string | null,
+): Pool {
 	const buckets = new Map<string, number[]>();
 	findings.forEach((finding, index) => {
 		if (consumed.has(index)) return;
@@ -128,20 +164,35 @@ export interface Classification {
  * only when a single finding on each side can claim the pairing, so that a rename cannot turn
  * inherited debt into an introduced defect, nor hide it (QLT-04).
  */
-export function classifyFindings(reference: readonly Finding[], candidate: readonly Finding[], shape: CandidateShape): Classification {
+export function classifyFindings(
+	reference: readonly Finding[],
+	candidate: readonly Finding[],
+	shape: CandidateShape,
+): Classification {
 	const consumed = new Set<number>();
 	const notes: string[] = [];
 	const matched = new Map<number, Finding>();
 	let pending = candidate.map((finding, index) => ({ finding, index }));
 
-	const pass = (referenceKey: (finding: Finding) => string | null, candidateKey: (finding: Finding) => string | null, guard?: (candidateFinding: Finding, available: Pool, key: string) => boolean, note?: (referenceFinding: Finding, candidateFinding: Finding) => string) => {
+	const pass = (
+		referenceKey: (finding: Finding) => string | null,
+		candidateKey: (finding: Finding) => string | null,
+		guard?: (candidateFinding: Finding, available: Pool, key: string) => boolean,
+		note?: (referenceFinding: Finding, candidateFinding: Finding) => string,
+	) => {
 		const available = pool(reference, consumed, referenceKey);
 		const next: typeof pending = [];
 		for (const entry of pending) {
 			const key = candidateKey(entry.finding);
-			if (key === null) { next.push(entry); continue; }
+			if (key === null) {
+				next.push(entry);
+				continue;
+			}
 			const index = available.peek(key);
-			if (index === null || (guard && !guard(entry.finding, available, key))) { next.push(entry); continue; }
+			if (index === null || (guard && !guard(entry.finding, available, key))) {
+				next.push(entry);
+				continue;
+			}
 			available.claim(key);
 			consumed.add(index);
 			matched.set(entry.index, { ...entry.finding, baseline_state: "preexisting" });
@@ -150,12 +201,16 @@ export function classifyFindings(reference: readonly Finding[], candidate: reado
 		pending = next;
 	};
 
-	pass((f) => f.fingerprint, (f) => f.fingerprint);
+	pass(
+		(f) => f.fingerprint,
+		(f) => f.fingerprint,
+	);
 	pass(
 		(f) => (f.path !== null && shape.renames.has(f.path) ? relocatedKey(f, shape.renames.get(f.path)!) : null),
 		(f) => f.fingerprint,
 		undefined,
-		(referenceFinding, candidateFinding) => `preexisting finding followed from ${referenceFinding.path} to ${candidateFinding.path}: the candidate renamed the file`,
+		(referenceFinding, candidateFinding) =>
+			`preexisting finding followed from ${referenceFinding.path} to ${candidateFinding.path}: the candidate renamed the file`,
 	);
 	const unmatchedByText = new Map<string, number>();
 	for (const entry of pending) {
@@ -166,12 +221,18 @@ export function classifyFindings(reference: readonly Finding[], candidate: reado
 		(f) => (f.path !== null && shape.disappeared.has(f.path) ? pathlessKey(f) : null),
 		(f) => pathlessKey(f),
 		// Only an unambiguous pairing: one finding gone with its file, one finding appeared elsewhere.
-		(candidateFinding, available, key) => available.size(key) === 1 && unmatchedByText.get(pathlessKey(candidateFinding)) === 1,
-		(referenceFinding, candidateFinding) => `preexisting finding followed from ${referenceFinding.path} to ${candidateFinding.path}: same finding, file no longer at its former path`,
+		(candidateFinding, available, key) =>
+			available.size(key) === 1 && unmatchedByText.get(pathlessKey(candidateFinding)) === 1,
+		(referenceFinding, candidateFinding) =>
+			`preexisting finding followed from ${referenceFinding.path} to ${candidateFinding.path}: same finding, file no longer at its former path`,
 	);
 
-	const findings: Finding[] = candidate.map((finding, index) => matched.get(index) ?? { ...finding, baseline_state: "new" });
-	const removed = reference.filter((_finding, index) => !consumed.has(index)).map((finding) => ({ ...finding, baseline_state: "removed" as const }));
+	const findings: Finding[] = candidate.map(
+		(finding, index) => matched.get(index) ?? { ...finding, baseline_state: "new" },
+	);
+	const removed = reference
+		.filter((_finding, index) => !consumed.has(index))
+		.map((finding) => ({ ...finding, baseline_state: "removed" as const }));
 	return {
 		findings: [...findings, ...removed],
 		counts: { new: findings.length - matched.size, preexisting: matched.size, removed: removed.length },
@@ -206,13 +267,23 @@ export function blockingCount(findings: readonly Finding[], tolerance: BaselineT
  * Any other case keeps what the control observed: a reference pass that concluded nothing is not a
  * tolerance, and a failure the reference does not share is the candidate's.
  */
-export function verdictUnderTolerance(raw: Verdict, referencePass: Verdict, findings: readonly Finding[], tolerance: BaselineTolerance): { verdict: Verdict; notes: string[] } {
+export function verdictUnderTolerance(
+	raw: Verdict,
+	referencePass: Verdict,
+	findings: readonly Finding[],
+	tolerance: BaselineTolerance,
+): { verdict: Verdict; notes: string[] } {
 	if (tolerance !== "no_aggravation" || raw !== "FAIL") return { verdict: raw, notes: [] };
 	if (referencePass !== "FAIL" && referencePass !== "PASS") return { verdict: raw, notes: [] };
 	if (blockingCount(findings, tolerance) > 0) return { verdict: raw, notes: [] };
 	const preexisting = findings.filter((finding) => finding.baseline_state === "preexisting").length;
 	if (preexisting === 0) return { verdict: raw, notes: [] };
-	return { verdict: "PASS", notes: [`this control fails on nothing the reference does not already carry: ${preexisting} preexisting finding(s) tolerated, none aggravated (VER-08)`] };
+	return {
+		verdict: "PASS",
+		notes: [
+			`this control fails on nothing the reference does not already carry: ${preexisting} preexisting finding(s) tolerated, none aggravated (VER-08)`,
+		],
+	};
 }
 
 /** The candidate pass is worse than the reference pass, and no preexisting defect explains it. */
@@ -221,7 +292,13 @@ export function divergesFromReference(raw: Verdict, referencePass: Verdict): boo
 }
 
 /** Compares the two passes of one control and states what the candidate is worth against them. */
-export function compareToReference(raw: Verdict, candidateFindings: readonly Finding[], referencePass: ReferencePass, shape: CandidateShape, tolerance: BaselineTolerance): BaselineOutcome {
+export function compareToReference(
+	raw: Verdict,
+	candidateFindings: readonly Finding[],
+	referencePass: ReferencePass,
+	shape: CandidateShape,
+	tolerance: BaselineTolerance,
+): BaselineOutcome {
 	const classification = classifyFindings(referencePass.findings, candidateFindings, shape);
 	const tolerated = verdictUnderTolerance(raw, referencePass.verdict, classification.findings, tolerance);
 	return {
@@ -252,10 +329,24 @@ export function compareToReference(raw: Verdict, candidateFindings: readonly Fin
  * that alternates keeps INDETERMINATE and is not run again. Relaunching until the first green is
  * exactly what this forbids.
  */
-export function applyInstability(outcome: BaselineOutcome, confirmation: Verdict, confirmationEvidenceId: string | null): BaselineOutcome {
+export function applyInstability(
+	outcome: BaselineOutcome,
+	confirmation: Verdict,
+	confirmationEvidenceId: string | null,
+): BaselineOutcome {
 	const reference = `confirmation pass ${confirmationEvidenceId ?? "(unrecorded)"}`;
 	if (confirmation === outcome.comparison.raw_verdict) {
-		return { ...outcome, comparison: { ...outcome.comparison, confirmations: outcome.comparison.confirmations + 1, notes: [...outcome.comparison.notes, `${reference} answered ${confirmation} again: the divergence from the reference is a property of the candidate`] } };
+		return {
+			...outcome,
+			comparison: {
+				...outcome.comparison,
+				confirmations: outcome.comparison.confirmations + 1,
+				notes: [
+					...outcome.comparison.notes,
+					`${reference} answered ${confirmation} again: the divergence from the reference is a property of the candidate`,
+				],
+			},
+		};
 	}
 	return {
 		verdict: "INDETERMINATE",
@@ -265,7 +356,10 @@ export function applyInstability(outcome: BaselineOutcome, confirmation: Verdict
 			unstable: true,
 			confirmations: outcome.comparison.confirmations + 1,
 			blocking_findings: 0,
-			notes: [...outcome.comparison.notes, `the control answered ${outcome.comparison.raw_verdict} then ${confirmation} on the same candidate (${reference}): unstable, verdict kept INDETERMINATE and the control is not run again (VER-08)`],
+			notes: [
+				...outcome.comparison.notes,
+				`the control answered ${outcome.comparison.raw_verdict} then ${confirmation} on the same candidate (${reference}): unstable, verdict kept INDETERMINATE and the control is not run again (VER-08)`,
+			],
 		},
 	};
 }

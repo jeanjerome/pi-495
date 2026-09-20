@@ -32,13 +32,25 @@ export class PiRpcClient {
 	private exited: { code: number | null; signal: NodeJS.Signals | null } | null = null;
 	private lastEventAt = Date.now();
 
-	constructor(options: { bin: string; args: string[]; cwd: string; env: Record<string, string | undefined>; respond?: UiResponder | undefined }) {
-		this.child = spawn(options.bin, options.args, { cwd: options.cwd, env: options.env, stdio: ["pipe", "pipe", "pipe"] }) as ChildProcessWithoutNullStreams;
+	constructor(options: {
+		bin: string;
+		args: string[];
+		cwd: string;
+		env: Record<string, string | undefined>;
+		respond?: UiResponder | undefined;
+	}) {
+		this.child = spawn(options.bin, options.args, {
+			cwd: options.cwd,
+			env: options.env,
+			stdio: ["pipe", "pipe", "pipe"],
+		}) as ChildProcessWithoutNullStreams;
 		this.child.stdout.setEncoding("utf8");
 		this.child.stdout.on("data", (chunk: string) => this.consume(chunk, options.respond));
 		this.child.stderr.setEncoding("utf8");
 		this.child.stderr.on("data", (chunk: string) => this.stderr.push(chunk));
-		this.child.on("exit", (code, signal) => { this.exited = { code, signal }; });
+		this.child.on("exit", (code, signal) => {
+			this.exited = { code, signal };
+		});
 	}
 
 	private consume(chunk: string, respond?: UiResponder): void {
@@ -51,7 +63,11 @@ export class PiRpcClient {
 			this.buffer = this.buffer.slice(index + 1);
 			if (!line.trim()) continue;
 			let event: RpcEvent;
-			try { event = JSON.parse(line) as RpcEvent; } catch { continue; }
+			try {
+				event = JSON.parse(line) as RpcEvent;
+			} catch {
+				continue;
+			}
 			this.events.push(event);
 			this.lastEventAt = Date.now();
 			if (event.type === "extension_ui_request") {
@@ -77,8 +93,20 @@ export class PiRpcClient {
 		const already = this.events.find(predicate);
 		if (already) return Promise.resolve(already);
 		return new Promise((resolve, reject) => {
-			const timer = setTimeout(() => reject(new Error(`no matching RPC event within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`)), timeoutMs);
-			this.waiters.push({ predicate, resolve: (e) => { clearTimeout(timer); resolve(e); } });
+			const timer = setTimeout(
+				() =>
+					reject(
+						new Error(`no matching RPC event within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`),
+					),
+				timeoutMs,
+			);
+			this.waiters.push({
+				predicate,
+				resolve: (e) => {
+					clearTimeout(timer);
+					resolve(e);
+				},
+			});
 		});
 	}
 
@@ -91,21 +119,35 @@ export class PiRpcClient {
 		for (;;) {
 			await new Promise((resolve) => setTimeout(resolve, 250));
 			if (Date.now() - this.lastEventAt >= quietMs) return;
-			if (Date.now() > deadline) throw new Error(`the RPC stream never fell quiet within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`);
+			if (Date.now() > deadline)
+				throw new Error(
+					`the RPC stream never fell quiet within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`,
+				);
 		}
 	}
 
 	/** The `495` custom messages, with the structured payload each one carries. */
 	messages(): { content: string; details: Record<string, unknown> }[] {
-		return this.events.filter((e) => e.type === "message_end" && e.message?.customType === "495").map((e) => ({ content: String(e.message?.content ?? ""), details: (e.message?.details ?? {}) as Record<string, unknown> }));
+		return this.events
+			.filter((e) => e.type === "message_end" && e.message?.customType === "495")
+			.map((e) => ({
+				content: String(e.message?.content ?? ""),
+				details: (e.message?.details ?? {}) as Record<string, unknown>,
+			}));
 	}
 
 	async close(): Promise<void> {
 		this.child.stdin.end();
 		if (this.exited) return;
 		await new Promise<void>((resolve) => {
-			const timer = setTimeout(() => { this.child.kill("SIGKILL"); resolve(); }, 5000);
-			this.child.on("exit", () => { clearTimeout(timer); resolve(); });
+			const timer = setTimeout(() => {
+				this.child.kill("SIGKILL");
+				resolve();
+			}, 5000);
+			this.child.on("exit", () => {
+				clearTimeout(timer);
+				resolve();
+			});
 		});
 	}
 }

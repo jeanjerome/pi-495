@@ -16,7 +16,11 @@ import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } fr
 
 const execFileAsync = promisify(execFile);
 
-export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = { exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"], max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 };
+export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
+	exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
+	max_file_bytes: 8 * 1024 * 1024,
+	max_entries: 50_000,
+};
 
 export interface GitInfo {
 	is_repo: boolean;
@@ -25,27 +29,47 @@ export interface GitInfo {
 	dirty_paths: string[];
 }
 
-export async function git(cwd: string, args: string[], allowFailure = false): Promise<{ stdout: string; stderr: string; code: number }> {
+export async function git(
+	cwd: string,
+	args: string[],
+	allowFailure = false,
+): Promise<{ stdout: string; stderr: string; code: number }> {
 	try {
-		const { stdout, stderr } = await execFileAsync("git", args, { cwd, maxBuffer: 64 * 1024 * 1024, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" } });
+		const { stdout, stderr } = await execFileAsync("git", args, {
+			cwd,
+			maxBuffer: 64 * 1024 * 1024,
+			env: { ...process.env, GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
+		});
 		return { stdout, stderr, code: 0 };
 	} catch (error) {
 		const e = error as { stdout?: string; stderr?: string; code?: number };
-		if (allowFailure) return { stdout: e.stdout ?? "", stderr: e.stderr ?? "", code: typeof e.code === "number" ? e.code : 1 };
+		if (allowFailure)
+			return { stdout: e.stdout ?? "", stderr: e.stderr ?? "", code: typeof e.code === "number" ? e.code : 1 };
 		throw error;
 	}
 }
 
 export async function inspectGit(path: string): Promise<GitInfo> {
 	const inside = await git(path, ["rev-parse", "--is-inside-work-tree"], true);
-	if (inside.code !== 0 || inside.stdout.trim() !== "true") return { is_repo: false, head: null, branch: null, dirty_paths: [] };
+	if (inside.code !== 0 || inside.stdout.trim() !== "true")
+		return { is_repo: false, head: null, branch: null, dirty_paths: [] };
 	const top = await git(path, ["rev-parse", "--show-toplevel"], true);
-	if (top.code !== 0 || realpathSync(top.stdout.trim()) !== realpathSync(path)) return { is_repo: false, head: null, branch: null, dirty_paths: [] };
+	if (top.code !== 0 || realpathSync(top.stdout.trim()) !== realpathSync(path))
+		return { is_repo: false, head: null, branch: null, dirty_paths: [] };
 	const head = await git(path, ["rev-parse", "--verify", "HEAD"], true);
 	const branch = await git(path, ["symbolic-ref", "--short", "-q", "HEAD"], true);
 	const status = await git(path, ["status", "--porcelain=v1", "-z", "--untracked-files=all"], true);
-	const dirty = status.stdout.split("\0").filter(Boolean).map((line) => line.slice(3)).map((p) => p.split(" -> ").pop()!);
-	return { is_repo: true, head: head.code === 0 ? head.stdout.trim() : null, branch: branch.code === 0 ? branch.stdout.trim() : null, dirty_paths: dirty };
+	const dirty = status.stdout
+		.split("\0")
+		.filter(Boolean)
+		.map((line) => line.slice(3))
+		.map((p) => p.split(" -> ").pop()!);
+	return {
+		is_repo: true,
+		head: head.code === 0 ? head.stdout.trim() : null,
+		branch: branch.code === 0 ? branch.stdout.trim() : null,
+		dirty_paths: dirty,
+	};
 }
 
 let wsCounter = 0;
@@ -86,11 +110,33 @@ export class GitWorkspace implements WorkspacePort {
 		const dirty = info.dirty_paths.map((p) => p.replace(/\/$/, ""));
 		const entries: ManifestEntry[] = walked.entries.map((e) => {
 			const isDirty = dirty.some((d) => e.path === d || e.path.startsWith(`${d}/`));
-			const state: ManifestEntry["baseline_state"] = kind === "git_clean_head" ? "unchanged" : kind === "git_dirty_head" ? (isDirty ? "modified" : "unchanged") : "added";
-			return { ...e, baseline_state: state, origin: kind === "git_clean_head" ? "unknown" : state === "unchanged" ? "unknown" : "user" };
+			const state: ManifestEntry["baseline_state"] =
+				kind === "git_clean_head"
+					? "unchanged"
+					: kind === "git_dirty_head"
+						? isDirty
+							? "modified"
+							: "unchanged"
+						: "added";
+			return {
+				...e,
+				baseline_state: state,
+				origin: kind === "git_clean_head" ? "unknown" : state === "unchanged" ? "unknown" : "user",
+			};
 		});
 		const treeDigest = digestValue(entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target]));
-		return { reference_id: `ref_${treeDigest.slice(7, 19)}`, kind, project_path: path, head_commit: info.head, branch: info.branch, tree_digest: treeDigest, entries, exclusions: policy.exclusions, captured_at: new Date().toISOString(), limits: walked.limits };
+		return {
+			reference_id: `ref_${treeDigest.slice(7, 19)}`,
+			kind,
+			project_path: path,
+			head_commit: info.head,
+			branch: info.branch,
+			tree_digest: treeDigest,
+			entries,
+			exclusions: policy.exclusions,
+			captured_at: new Date().toISOString(),
+			limits: walked.limits,
+		};
 	}
 
 	async createWorkspace(reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<WorkspaceHandle> {
@@ -110,17 +156,46 @@ export class GitWorkspace implements WorkspacePort {
 		}
 		await git(path, ["init", "-q"], true);
 		await writeFile(join(path, ".git", "info", "495-reference"), `${reference.reference_id}\n`).catch(() => undefined);
-		return { workspace_id: workspaceId, path, reference_id: reference.reference_id, created_at: new Date().toISOString() };
+		return {
+			workspace_id: workspaceId,
+			path,
+			reference_id: reference.reference_id,
+			created_at: new Date().toISOString(),
+		};
 	}
 
-	async snapshotCandidate(handle: WorkspaceHandle, reference: ReferenceSnapshot, policy: WorkspacePolicy): Promise<CandidateManifest> {
+	async snapshotCandidate(
+		handle: WorkspaceHandle,
+		reference: ReferenceSnapshot,
+		policy: WorkspacePolicy,
+	): Promise<CandidateManifest> {
 		const walked = await walkTree(handle.path, policy);
 		const referenceEntries = includedEntries(reference.entries, policy.exclusions);
 		const referenceLimits = includedLimits(reference.entries, reference.limits, policy.exclusions);
 		const entries = diffEntries(referenceEntries, walked.entries);
 		const selected = entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
-		const digest = digestBytes(canonicalize({ base_ref: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries: entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]), metadata_policy: "content_and_mode" }));
-		return { candidate_id: `cand_${digest.slice(7, 19)}`, workspace_id: handle.workspace_id, base_reference_id: reference.reference_id, base_digest: reference.tree_digest, selected_paths: selected, exclusions: policy.exclusions, entries, metadata_policy: "content_and_mode", manifest_digest: digest, frozen_at: new Date().toISOString(), limits: mergeLimits(referenceLimits, walked.limits) };
+		const digest = digestBytes(
+			canonicalize({
+				base_ref: reference.tree_digest,
+				selected_paths: selected,
+				exclusions: policy.exclusions,
+				entries: entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]),
+				metadata_policy: "content_and_mode",
+			}),
+		);
+		return {
+			candidate_id: `cand_${digest.slice(7, 19)}`,
+			workspace_id: handle.workspace_id,
+			base_reference_id: reference.reference_id,
+			base_digest: reference.tree_digest,
+			selected_paths: selected,
+			exclusions: policy.exclusions,
+			entries,
+			metadata_policy: "content_and_mode",
+			manifest_digest: digest,
+			frozen_at: new Date().toISOString(),
+			limits: mergeLimits(referenceLimits, walked.limits),
+		};
 	}
 
 	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {
@@ -129,5 +204,12 @@ export class GitWorkspace implements WorkspacePort {
 }
 
 function mergeLimits(a: ReferenceSnapshot["limits"], b: ReferenceSnapshot["limits"]): ReferenceSnapshot["limits"] {
-	return { truncated: a.truncated || b.truncated, bytes_read: b.bytes_read, bytes_total: b.bytes_total, exclusions: [...new Set([...a.exclusions, ...b.exclusions])], unstable: a.unstable || b.unstable, notes: [...a.notes, ...b.notes] };
+	return {
+		truncated: a.truncated || b.truncated,
+		bytes_read: b.bytes_read,
+		bytes_total: b.bytes_total,
+		exclusions: [...new Set([...a.exclusions, ...b.exclusions])],
+		unstable: a.unstable || b.unstable,
+		notes: [...a.notes, ...b.notes],
+	};
 }

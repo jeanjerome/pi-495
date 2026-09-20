@@ -15,7 +15,12 @@ export interface SpawnPlan {
  * Spawns without a shell in its own process group, enforces the timeout with SIGTERM then SIGKILL
  * after a grace period, and bounds captured output (§12.2, §12.3). Always resolves.
  */
-export function runProcess(plan: SpawnPlan, request: ExecutableRequest, signal?: AbortSignal, graceMs = 2000): Promise<ProcessObservation> {
+export function runProcess(
+	plan: SpawnPlan,
+	request: ExecutableRequest,
+	signal?: AbortSignal,
+	graceMs = 2000,
+): Promise<ProcessObservation> {
 	const startedAt = new Date();
 	return new Promise((resolve) => {
 		const [file, ...args] = plan.command;
@@ -29,7 +34,13 @@ export function runProcess(plan: SpawnPlan, request: ExecutableRequest, signal?:
 		let settled = false;
 		let child: ReturnType<typeof spawn>;
 		try {
-			child = spawn(file, args, { cwd: plan.cwd, env: plan.env, stdio: [request.stdin != null ? "pipe" : "ignore", "pipe", "pipe"], detached: process.platform !== "win32", shell: false });
+			child = spawn(file, args, {
+				cwd: plan.cwd,
+				env: plan.env,
+				stdio: [request.stdin != null ? "pipe" : "ignore", "pipe", "pipe"],
+				detached: process.platform !== "win32",
+				shell: false,
+			});
 		} catch (error) {
 			resolve(finish(null, null, false, (error as Error).message));
 			return;
@@ -72,9 +83,26 @@ export function runProcess(plan: SpawnPlan, request: ExecutableRequest, signal?:
 			resolve(finish(code, sig, timedOut, null));
 		});
 
-		function finish(code: number | null, sig: NodeJS.Signals | null, timeout: boolean, spawnError: string | null): ProcessObservation {
+		function finish(
+			code: number | null,
+			sig: NodeJS.Signals | null,
+			timeout: boolean,
+			spawnError: string | null,
+		): ProcessObservation {
 			const endedAt = new Date();
-			return { exit_code: code, signal: sig, timed_out: timeout, spawn_error: spawnError, stdout: stdout.bytes(), stderr: stderr.bytes(), stdout_truncated: stdout.truncated, stderr_truncated: stderr.truncated, started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(), duration_ms: endedAt.getTime() - startedAt.getTime() };
+			return {
+				exit_code: code,
+				signal: sig,
+				timed_out: timeout,
+				spawn_error: spawnError,
+				stdout: stdout.bytes(),
+				stderr: stderr.bytes(),
+				stdout_truncated: stdout.truncated,
+				stderr_truncated: stderr.truncated,
+				started_at: startedAt.toISOString(),
+				ended_at: endedAt.toISOString(),
+				duration_ms: endedAt.getTime() - startedAt.getTime(),
+			};
 		}
 	});
 }
@@ -107,7 +135,11 @@ class Collector {
 	}
 }
 
-export function buildEnv(allowlist: string[], explicit: Record<string, string>, source: NodeJS.ProcessEnv = process.env): Record<string, string> {
+export function buildEnv(
+	allowlist: string[],
+	explicit: Record<string, string>,
+	source: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
 	const env: Record<string, string> = {};
 	for (const key of allowlist) {
 		const v = source[key];

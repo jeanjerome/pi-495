@@ -2,7 +2,14 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import type { AgentCapabilities, AgentPort, InterventionEvent, InterventionHandle, InterventionMandate, ModelSelection } from "../../ports/execution.ts";
+import type {
+	AgentCapabilities,
+	AgentPort,
+	InterventionEvent,
+	InterventionHandle,
+	InterventionMandate,
+	ModelSelection,
+} from "../../ports/execution.ts";
 import type { SupervisorMessage, WorkerConfig, WorkerMessage } from "./protocol.ts";
 
 export interface SupervisorOptions {
@@ -29,20 +36,44 @@ export function defaultWorkerCommand(): string[] {
  * the normative storage (AT-04).
  */
 export class PiWorkerAgent implements AgentPort {
-	private readonly options: Required<Pick<SupervisorOptions, "config" | "workerCommand" | "silence_timeout_ms" | "grace_ms" | "env">> & Pick<SupervisorOptions, "capabilityProbe">;
+	private readonly options: Required<
+		Pick<SupervisorOptions, "config" | "workerCommand" | "silence_timeout_ms" | "grace_ms" | "env">
+	> &
+		Pick<SupervisorOptions, "capabilityProbe">;
 	constructor(options: SupervisorOptions) {
-		this.options = { workerCommand: defaultWorkerCommand(), silence_timeout_ms: 60_000, grace_ms: 3_000, env: {}, ...options };
+		this.options = {
+			workerCommand: defaultWorkerCommand(),
+			silence_timeout_ms: 60_000,
+			grace_ms: 3_000,
+			env: {},
+			...options,
+		};
 	}
 
 	async describeCapabilities(model: ModelSelection): Promise<AgentCapabilities> {
 		if (this.options.capabilityProbe) return this.options.capabilityProbe(model);
-		return { provider_id: model.provider_id, model_id: model.model_id, available: Boolean(model.provider_id && model.model_id), reasons: [] };
+		return {
+			provider_id: model.provider_id,
+			model_id: model.model_id,
+			available: Boolean(model.provider_id && model.model_id),
+			reasons: [],
+		};
 	}
 
 	async startIntervention(mandate: InterventionMandate): Promise<InterventionHandle> {
 		const [file, ...args] = this.options.workerCommand;
-		const env: Record<string, string> = { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...(process.env.TMPDIR ? { TMPDIR: process.env.TMPDIR } : {}), ...this.options.env };
-		const child: ChildProcess = spawn(file!, args, { cwd: mandate.workspace_path, env, stdio: ["pipe", "pipe", "pipe"], detached: process.platform !== "win32" });
+		const env: Record<string, string> = {
+			PATH: process.env.PATH ?? "",
+			HOME: process.env.HOME ?? "",
+			...(process.env.TMPDIR ? { TMPDIR: process.env.TMPDIR } : {}),
+			...this.options.env,
+		};
+		const child: ChildProcess = spawn(file!, args, {
+			cwd: mandate.workspace_path,
+			env,
+			stdio: ["pipe", "pipe", "pipe"],
+			detached: process.platform !== "win32",
+		});
 		const queue: InterventionEvent[] = [];
 		let done = false;
 		let notify: (() => void) | null = null;
@@ -51,7 +82,12 @@ export class PiWorkerAgent implements AgentPort {
 			if (e.type === "completed" || e.type === "failed" || e.type === "cancelled") done = true;
 			notify?.();
 		};
-		const counters = () => ({ tool_calls: toolCalls, duration_ms: Date.now() - startedAt, tokens_known: 0, delegations: 0 });
+		const counters = () => ({
+			tool_calls: toolCalls,
+			duration_ms: Date.now() - startedAt,
+			tokens_known: 0,
+			delegations: 0,
+		});
 		const startedAt = Date.now();
 		let toolCalls = 0;
 		let lastSignal = Date.now();
@@ -66,14 +102,21 @@ export class PiWorkerAgent implements AgentPort {
 		const silence = setInterval(() => {
 			if (done) return;
 			if (Date.now() - lastSignal > this.options.silence_timeout_ms) {
-				push({ type: "failed", at: new Date().toISOString(), error: `worker silent for more than ${this.options.silence_timeout_ms} ms`, counters: counters() });
+				push({
+					type: "failed",
+					at: new Date().toISOString(),
+					error: `worker silent for more than ${this.options.silence_timeout_ms} ms`,
+					counters: counters(),
+				});
 				killGroup("SIGTERM");
 				setTimeout(() => killGroup("SIGKILL"), this.options.grace_ms).unref();
 			}
 		}, 1000);
 		silence.unref();
 		const stderrChunks: string[] = [];
-		child.stderr?.on("data", (d: Buffer) => { if (stderrChunks.join("").length < 20_000) stderrChunks.push(d.toString("utf8")); });
+		child.stderr?.on("data", (d: Buffer) => {
+			if (stderrChunks.join("").length < 20_000) stderrChunks.push(d.toString("utf8"));
+		});
 		const rl = createInterface({ input: child.stdout!, crlfDelay: Number.POSITIVE_INFINITY });
 		rl.on("line", (line) => {
 			if (!line.trim()) return;
@@ -89,10 +132,23 @@ export class PiWorkerAgent implements AgentPort {
 				push(msg.event);
 			}
 		});
-		child.on("error", (error) => push({ type: "failed", at: new Date().toISOString(), error: `worker spawn error: ${error.message}`, counters: counters() }));
+		child.on("error", (error) =>
+			push({
+				type: "failed",
+				at: new Date().toISOString(),
+				error: `worker spawn error: ${error.message}`,
+				counters: counters(),
+			}),
+		);
 		child.on("close", (code, sig) => {
 			clearInterval(silence);
-			if (!done) push({ type: "failed", at: new Date().toISOString(), error: `worker exited (${code ?? sig}) without a terminal event${stderrChunks.length ? `: ${stderrChunks.join("").slice(-2000)}` : ""}`, counters: counters() });
+			if (!done)
+				push({
+					type: "failed",
+					at: new Date().toISOString(),
+					error: `worker exited (${code ?? sig}) without a terminal event${stderrChunks.length ? `: ${stderrChunks.join("").slice(-2000)}` : ""}`,
+					counters: counters(),
+				});
 		});
 		const message: SupervisorMessage = { type: "mandate", mandate, config: this.options.config };
 		child.stdin?.write(`${JSON.stringify(message)}\n`);
@@ -101,7 +157,9 @@ export class PiWorkerAgent implements AgentPort {
 				next: async (): Promise<IteratorResult<InterventionEvent>> => {
 					while (queue.length === 0) {
 						if (done) return { value: undefined, done: true };
-						await new Promise<void>((r) => { notify = r; });
+						await new Promise<void>((r) => {
+							notify = r;
+						});
 						notify = null;
 					}
 					return { value: queue.shift()!, done: false };
@@ -118,8 +176,12 @@ export class PiWorkerAgent implements AgentPort {
 				} catch {
 					/* stdin closed */
 				}
-				setTimeout(() => { if (!done) killGroup("SIGTERM"); }, this.options.grace_ms).unref();
-				setTimeout(() => { if (!done) killGroup("SIGKILL"); }, this.options.grace_ms * 2).unref();
+				setTimeout(() => {
+					if (!done) killGroup("SIGTERM");
+				}, this.options.grace_ms).unref();
+				setTimeout(() => {
+					if (!done) killGroup("SIGKILL");
+				}, this.options.grace_ms * 2).unref();
 			},
 		};
 	}

@@ -19,42 +19,121 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	const request = await ctx.artifacts.read<string>(unit.state.request);
 	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 	let report: SpecificationReport;
-	const standing = specificationStanding(unit.state, spec?.content ?? null, await ctx.artifacts.priorDiagnostics(unit.state));
+	const standing = specificationStanding(
+		unit.state,
+		spec?.content ?? null,
+		await ctx.artifacts.priorDiagnostics(unit.state),
+	);
 	if (spec && standing.settled) {
 		report = spec.content;
 	} else {
-		if (standing.reopen) ctx.progress(`specification reopened by ${standing.ignored.length} material answer(s): ${standing.ignored.map((q) => q.id).join(", ")}`);
+		if (standing.reopen)
+			ctx.progress(
+				`specification reopened by ${standing.ignored.length} material answer(s): ${standing.ignored.map((q) => q.id).join(", ")}`,
+			);
 		const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 		try {
 			const objective = specificationObjective(request, unit.state.open_questions, standing.declared);
 			const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, {});
 			unit = r.unit;
-			if (r.result !== "completed" || !r.output_valid || !Value.Check(OUTPUT_SCHEMAS["specification-report"], r.output)) {
-				throw new DomainError("CONFIGURATION_ERROR", `specification intervention ${r.result}${r.result === "completed" ? " with an invalid structured output" : ""}`, { retryable: true, nextActions: ["retry_specification"] });
+			if (
+				r.result !== "completed" ||
+				!r.output_valid ||
+				!Value.Check(OUTPUT_SCHEMAS["specification-report"], r.output)
+			) {
+				throw new DomainError(
+					"CONFIGURATION_ERROR",
+					`specification intervention ${r.result}${r.result === "completed" ? " with an invalid structured output" : ""}`,
+					{ retryable: true, nextActions: ["retry_specification"] },
+				);
 			}
 			report = r.output as SpecificationReport;
 		} finally {
 			await ctx.workspace.closeWorkspace(handle.workspace_id, "delete");
 		}
-		const diagRef = await ctx.artifacts.store("diagnostic", unit.state.change_id, ctx.id("dia"), report, KERNEL_ACTOR.actor_id);
-		unit = ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "diagnostic", ref: diagRef }, cor);
+		const diagRef = await ctx.artifacts.store(
+			"diagnostic",
+			unit.state.change_id,
+			ctx.id("dia"),
+			report,
+			KERNEL_ACTOR.actor_id,
+		);
+		unit = ctx.commit(
+			unit,
+			{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "diagnostic", ref: diagRef },
+			cor,
+		);
 	}
 	const langQ = unit.state.open_questions.find((q) => q.id === "language");
 	const language = (langQ?.question.split(":")[1] as "fr" | "en" | undefined) ?? "fr";
-	const material = report.questions.filter((q) => q.material && !unit.state.open_questions.some((s) => s.id === q.id && s.answer !== null));
+	const material = report.questions.filter(
+		(q) => q.material && !unit.state.open_questions.some((s) => s.id === q.id && s.answer !== null),
+	);
 	if (material.length > 0) {
 		for (const q of material) {
 			if (unit.state.open_questions.some((s) => s.id === q.id)) continue;
 			const decisionId = ctx.id("dec");
-			unit = ctx.commit(unit, { type: "question.open", at: ctx.now(), actor: KERNEL_ACTOR, id: q.id, question: q.question, material: true, decision_id: decisionId }, cor);
-			unit = await ctx.requestDecision(unit, cor, "IH-01", subjectOfChange(unit.state), [], null, q.question, decisionId, language);
+			unit = ctx.commit(
+				unit,
+				{
+					type: "question.open",
+					at: ctx.now(),
+					actor: KERNEL_ACTOR,
+					id: q.id,
+					question: q.question,
+					material: true,
+					decision_id: decisionId,
+				},
+				cor,
+			);
+			unit = await ctx.requestDecision(
+				unit,
+				cor,
+				"IH-01",
+				subjectOfChange(unit.state),
+				[],
+				null,
+				q.question,
+				decisionId,
+				language,
+			);
 		}
 		return unit;
 	}
-	const mandate: Mandate = { change_id: unit.state.change_id, objective: report.objective, scope: report.requirements.map((r) => r.requirement_id), out_of_scope: report.out_of_scope, assumptions: report.assumptions, open_questions: report.questions.map((q) => ({ id: q.id, question: q.question, material: q.material, answer: unit.state.open_questions.find((s) => s.id === q.id)?.answer ?? (q.material ? null : "non-material, left open") })), allowed_paths: [], integration: ctx.policy.integration_enabled ? "local_branch" : "disabled", language };
+	const mandate: Mandate = {
+		change_id: unit.state.change_id,
+		objective: report.objective,
+		scope: report.requirements.map((r) => r.requirement_id),
+		out_of_scope: report.out_of_scope,
+		assumptions: report.assumptions,
+		open_questions: report.questions.map((q) => ({
+			id: q.id,
+			question: q.question,
+			material: q.material,
+			answer:
+				unit.state.open_questions.find((s) => s.id === q.id)?.answer ?? (q.material ? null : "non-material, left open"),
+		})),
+		allowed_paths: [],
+		integration: ctx.policy.integration_enabled ? "local_branch" : "disabled",
+		language,
+	};
 	validate(MandateSchema, mandate, "mandate");
-	const mandateRef = await ctx.artifacts.store("mandate", unit.state.change_id, ctx.id("mnd"), mandate, KERNEL_ACTOR.actor_id);
-	unit = ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "mandate", ref: mandateRef }, cor);
-	unit = ctx.commit(unit, { type: "gate.evaluate", gate: "G0", at: ctx.now(), actor: KERNEL_ACTOR, mandate_ref: mandateRef, mandate }, cor);
+	const mandateRef = await ctx.artifacts.store(
+		"mandate",
+		unit.state.change_id,
+		ctx.id("mnd"),
+		mandate,
+		KERNEL_ACTOR.actor_id,
+	);
+	unit = ctx.commit(
+		unit,
+		{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "mandate", ref: mandateRef },
+		cor,
+	);
+	unit = ctx.commit(
+		unit,
+		{ type: "gate.evaluate", gate: "G0", at: ctx.now(), actor: KERNEL_ACTOR, mandate_ref: mandateRef, mandate },
+		cor,
+	);
 	return requestAdoption(ctx, unit, cor, "G0", "mandate", mandateRef, language);
 }

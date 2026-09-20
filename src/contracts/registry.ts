@@ -1,10 +1,28 @@
 import type { TSchema } from "typebox";
-import { ActorRef, ArtifactRef, CandidateRef, CanonicalError, Envelope, EnvironmentRef, ObjectRef, ProtocolRef, SubjectRef } from "./v1/common.ts";
+import {
+	ActorRef,
+	ArtifactRef,
+	CandidateRef,
+	CanonicalError,
+	Envelope,
+	EnvironmentRef,
+	ObjectRef,
+	ProtocolRef,
+	SubjectRef,
+} from "./v1/common.ts";
 import { CandidateManifest, ReferenceSnapshot } from "./v1/candidate.ts";
 import { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "./v1/decision.ts";
 import { BaselineComparison, Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
 import { OperationRequest, OperationResult } from "./v1/operation.ts";
-import { BaselinePolicy, ControlDefinition, Design, Mandate, Protocol, RequirementsDocument, StructureRule } from "./v1/protocol.ts";
+import {
+	BaselinePolicy,
+	ControlDefinition,
+	Design,
+	Mandate,
+	Protocol,
+	RequirementsDocument,
+	StructureRule,
+} from "./v1/protocol.ts";
 
 /** Every published contract, keyed by its short name. Used to emit `contracts/v1/*.json`. */
 export const CONTRACTS: Record<string, TSchema> = {

@@ -78,7 +78,10 @@ export async function readJavaSources(workspacePath: string, scopes: readonly st
 	const byPath = new Map<string, JavaSource>();
 	for (const scope of [...new Set(scopes)].sort()) {
 		const base = resolve(root, scope);
-		if (base !== root && !base.startsWith(`${root}/`)) { notes.push(`scope ${scope} escapes the workspace and was not read`); continue; }
+		if (base !== root && !base.startsWith(`${root}/`)) {
+			notes.push(`scope ${scope} escapes the workspace and was not read`);
+			continue;
+		}
 		const relativeBase = scope.replace(/\/*$/, "");
 		try {
 			if (!(await stat(base)).isDirectory()) continue;
@@ -90,18 +93,36 @@ export async function readJavaSources(workspacePath: string, scopes: readonly st
 		while (stack.length > 0) {
 			const current = stack.pop()!;
 			let entries: Dirent[];
-			try { entries = await readdir(current.absolute, { withFileTypes: true }); } catch (error) { notes.push(`unreadable directory ${current.relative}: ${(error as Error).message}`); continue; }
+			try {
+				entries = await readdir(current.absolute, { withFileTypes: true });
+			} catch (error) {
+				notes.push(`unreadable directory ${current.relative}: ${(error as Error).message}`);
+				continue;
+			}
 			for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
 				const rel = current.relative ? `${current.relative}/${entry.name}` : entry.name;
 				if (entry.isDirectory()) {
-					if (!SKIPPED_DIRECTORIES.has(entry.name)) stack.push({ absolute: join(current.absolute, entry.name), relative: rel });
+					if (!SKIPPED_DIRECTORIES.has(entry.name))
+						stack.push({ absolute: join(current.absolute, entry.name), relative: rel });
 					continue;
 				}
 				if (!entry.isFile() || !entry.name.endsWith(".java") || byPath.has(rel)) continue;
-				if (byPath.size >= MAX_SOURCE_FILES) { notes.push(`source limit ${MAX_SOURCE_FILES} reached: the declarations of the remaining files were not read`); stack.length = 0; break; }
+				if (byPath.size >= MAX_SOURCE_FILES) {
+					notes.push(`source limit ${MAX_SOURCE_FILES} reached: the declarations of the remaining files were not read`);
+					stack.length = 0;
+					break;
+				}
 				let text: string;
-				try { text = await readFile(join(current.absolute, entry.name), "utf8"); } catch (error) { notes.push(`unreadable source ${rel}: ${(error as Error).message}`); continue; }
-				if (text.length > MAX_SOURCE_BYTES) { notes.push(`${rel} exceeds ${MAX_SOURCE_BYTES} bytes: its declarations were not read`); continue; }
+				try {
+					text = await readFile(join(current.absolute, entry.name), "utf8");
+				} catch (error) {
+					notes.push(`unreadable source ${rel}: ${(error as Error).message}`);
+					continue;
+				}
+				if (text.length > MAX_SOURCE_BYTES) {
+					notes.push(`${rel} exceeds ${MAX_SOURCE_BYTES} bytes: its declarations were not read`);
+					continue;
+				}
 				byPath.set(rel, readDeclarations(rel, text));
 			}
 		}
@@ -116,7 +137,9 @@ export function underPrefix(name: string, prefix: string): boolean {
 }
 
 function inScope(path: string, scopes: readonly string[]): boolean {
-	return scopes.some((scope) => (scope.endsWith("/") ? path.startsWith(scope) : path === scope || path.startsWith(`${scope}/`)));
+	return scopes.some((scope) =>
+		scope.endsWith("/") ? path.startsWith(scope) : path === scope || path.startsWith(`${scope}/`),
+	);
 }
 
 /**
@@ -167,7 +190,10 @@ export function stronglyConnectedComponents(edges: readonly PackageEdge[]): stri
 		if (!graph.has(to)) graph.set(to, new Set());
 		graph.get(from)!.add(to);
 	};
-	for (const edge of edges) { add(forward, edge.from, edge.to); add(backward, edge.to, edge.from); }
+	for (const edge of edges) {
+		add(forward, edge.from, edge.to);
+		add(backward, edge.to, edge.from);
+	}
 	const nodes = [...forward.keys()].sort();
 	const order: string[] = [];
 	const seen = new Set<string>();
@@ -176,11 +202,15 @@ export function stronglyConnectedComponents(edges: readonly PackageEdge[]): stri
 		const stack: { node: string; expanded: boolean }[] = [{ node: start, expanded: false }];
 		while (stack.length > 0) {
 			const frame = stack.pop()!;
-			if (frame.expanded) { order.push(frame.node); continue; }
+			if (frame.expanded) {
+				order.push(frame.node);
+				continue;
+			}
 			if (seen.has(frame.node)) continue;
 			seen.add(frame.node);
 			stack.push({ node: frame.node, expanded: true });
-			for (const next of [...(forward.get(frame.node) ?? [])].sort().reverse()) if (!seen.has(next)) stack.push({ node: next, expanded: false });
+			for (const next of [...(forward.get(frame.node) ?? [])].sort().reverse())
+				if (!seen.has(next)) stack.push({ node: next, expanded: false });
 		}
 	}
 	const assigned = new Set<string>();
@@ -194,7 +224,11 @@ export function stronglyConnectedComponents(edges: readonly PackageEdge[]): stri
 		while (stack.length > 0) {
 			const node = stack.pop()!;
 			component.push(node);
-			for (const previous of backward.get(node) ?? []) if (!assigned.has(previous)) { assigned.add(previous); stack.push(previous); }
+			for (const previous of backward.get(node) ?? [])
+				if (!assigned.has(previous)) {
+					assigned.add(previous);
+					stack.push(previous);
+				}
 		}
 		if (component.length > 1) components.push(component.sort());
 	}
@@ -217,14 +251,47 @@ function introducedIndex(introduced: IntroducedLines): Map<string, Set<number>> 
  * a tree whose only violations were already there is not this candidate's failure, and a control
  * that answered otherwise could never be qualified on a target that carries any debt.
  */
-export function analyzeJavaStructure(obs: ProcessObservation, sources: readonly JavaSource[], rules: readonly StructureRule[], introduced: IntroducedLines | null, readNotes: readonly string[] = []): ParsedReport {
+export function analyzeJavaStructure(
+	obs: ProcessObservation,
+	sources: readonly JavaSource[],
+	rules: readonly StructureRule[],
+	introduced: IntroducedLines | null,
+	readNotes: readonly string[] = [],
+): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident) return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident)
+		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
 	const facts: Record<string, unknown> = { exit_code: obs.exit_code, rules: rules.length, sources: sources.length };
-	if (obs.exit_code !== 0) return { verdict: "INDETERMINATE", facts, notes: [`the structural sensor exited with ${obs.exit_code} without reading the sources`], failures: [] };
-	if (rules.length === 0) return { verdict: "INDETERMINATE", facts, notes: ["no architecture rule is frozen for this target: a structural control without a rule proves nothing"], failures: [] };
-	if (introduced === null) return { verdict: "INDETERMINATE", facts, notes: ["no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown"], failures: [] };
-	if (sources.length === 0) return { verdict: "INDETERMINATE", facts, notes: [`no Java source under the declared scopes, for ${rules.length} frozen rule(s)`, ...readNotes], failures: [] };
+	if (obs.exit_code !== 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [`the structural sensor exited with ${obs.exit_code} without reading the sources`],
+			failures: [],
+		};
+	if (rules.length === 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: ["no architecture rule is frozen for this target: a structural control without a rule proves nothing"],
+			failures: [],
+		};
+	if (introduced === null)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [
+				"no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown",
+			],
+			failures: [],
+		};
+	if (sources.length === 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [`no Java source under the declared scopes, for ${rules.length} frozen rule(s)`, ...readNotes],
+			failures: [],
+		};
 
 	const written = introducedIndex(introduced);
 	const wroteLine = (path: string, line: number) => written.get(path)?.has(line) ?? false;
@@ -241,7 +308,13 @@ export function analyzeJavaStructure(obs: ProcessObservation, sources: readonly 
 					if (crossed === undefined) continue;
 					violations.push({
 						introduced: wroteLine(source.path, imported.line),
-						finding: { rule_id: rule.rule_id, category: "structure", severity: "blocker", message: `${source.path}:${imported.line} forbidden import ${imported.name}, ${rule.statement}`, symbol: source.package_name },
+						finding: {
+							rule_id: rule.rule_id,
+							category: "structure",
+							severity: "blocker",
+							message: `${source.path}:${imported.line} forbidden import ${imported.name}, ${rule.statement}`,
+							symbol: source.package_name,
+						},
 					});
 				}
 			}
@@ -258,18 +331,35 @@ export function analyzeJavaStructure(obs: ProcessObservation, sources: readonly 
 			const at = internal.find((edge) => wroteLine(edge.path, edge.line)) ?? internal[0]!;
 			violations.push({
 				introduced: wroteLine(at.path, at.line),
-				finding: { rule_id: rule.rule_id, category: "structure", severity: "blocker", message: `${at.path}:${at.line} import ${at.to} closes a dependency cycle between ${component.length} packages (${component.join(", ")}), ${rule.statement}`, symbol: at.from },
+				finding: {
+					rule_id: rule.rule_id,
+					category: "structure",
+					severity: "blocker",
+					message: `${at.path}:${at.line} import ${at.to} closes a dependency cycle between ${component.length} packages (${component.join(", ")}), ${rule.statement}`,
+					symbol: at.from,
+				},
 			});
 		}
 	}
 
 	const introducedViolations = violations.filter((v) => v.introduced).length;
 	const inherited = violations.length - introducedViolations;
-	if (inherited > 0) notes.push(`${inherited} violation(s) sit on lines this subject did not write: reported at their exact place for the comparison to the reference, never opposed to the candidate (QLT-04)`);
-	if (violations.length > MAX_STRUCTURE_FINDINGS) notes.push(`${violations.length} findings reduced to the first ${MAX_STRUCTURE_FINDINGS}`);
+	if (inherited > 0)
+		notes.push(
+			`${inherited} violation(s) sit on lines this subject did not write: reported at their exact place for the comparison to the reference, never opposed to the candidate (QLT-04)`,
+		);
+	if (violations.length > MAX_STRUCTURE_FINDINGS)
+		notes.push(`${violations.length} findings reduced to the first ${MAX_STRUCTURE_FINDINGS}`);
 	return {
 		verdict: introducedViolations > 0 ? "FAIL" : "PASS",
-		facts: { ...facts, packages: new Set(sources.map((s) => s.package_name).filter((p) => p !== null)).size, violations: violations.length, introduced_violations: introducedViolations, inherited_violations: inherited, cycles },
+		facts: {
+			...facts,
+			packages: new Set(sources.map((s) => s.package_name).filter((p) => p !== null)).size,
+			violations: violations.length,
+			introduced_violations: introducedViolations,
+			inherited_violations: inherited,
+			cycles,
+		},
 		notes,
 		failures: [],
 		findings: violations.slice(0, MAX_STRUCTURE_FINDINGS).map((v) => v.finding),

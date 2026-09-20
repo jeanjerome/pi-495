@@ -49,16 +49,30 @@ if (!existsSync(dist)) {
 } else {
 	rmSync(scratch, { recursive: true, force: true });
 	try {
-		execFileSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.build.json", "--outDir", scratch], { cwd: root, stdio: "pipe" });
+		execFileSync(
+			process.execPath,
+			[join(root, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.build.json", "--outDir", scratch],
+			{ cwd: root, stdio: "pipe" },
+		);
 		const built = new Set(walk(scratch, scratch));
 		const shipped = new Set(walk(dist, dist));
 		const missing = [...built].filter((f) => !shipped.has(f)).sort();
 		const extra = [...shipped].filter((f) => !built.has(f)).sort();
-		const differing = [...built].filter((f) => shipped.has(f) && !readFileSync(join(scratch, f)).equals(readFileSync(join(dist, f)))).sort();
-		const show = (label: string, list: string[]) => (list.length === 0 ? [] : [`  ${label} (${list.length}): ${list.slice(0, 8).join(", ")}${list.length > 8 ? ", …" : ""}`]);
+		const differing = [...built]
+			.filter((f) => shipped.has(f) && !readFileSync(join(scratch, f)).equals(readFileSync(join(dist, f))))
+			.sort();
+		const show = (label: string, list: string[]) =>
+			list.length === 0
+				? []
+				: [`  ${label} (${list.length}): ${list.slice(0, 8).join(", ")}${list.length > 8 ? ", …" : ""}`];
 		if (missing.length + extra.length + differing.length > 0) {
 			failures.push(
-				["dist/ is not what the sources build (run `npm run build`):", ...show("absent from dist", missing), ...show("no longer produced", extra), ...show("differing", differing)].join("\n"),
+				[
+					"dist/ is not what the sources build (run `npm run build`):",
+					...show("absent from dist", missing),
+					...show("no longer produced", extra),
+					...show("differing", differing),
+				].join("\n"),
 			);
 		}
 	} catch (error) {
@@ -75,7 +89,9 @@ const opaque = maps.filter((f) => {
 	return !map.sourcesContent || map.sourcesContent.some((c) => c === null || c === undefined);
 });
 if (opaque.length > 0) {
-	failures.push(`${opaque.length} source maps carry no inlined source, so they reference files the package does not ship (set "inlineSources" in tsconfig.build.json): ${opaque.slice(0, 5).join(", ")}`);
+	failures.push(
+		`${opaque.length} source maps carry no inlined source, so they reference files the package does not ship (set "inlineSources" in tsconfig.build.json): ${opaque.slice(0, 5).join(", ")}`,
+	);
 }
 
 // 3. The JSON contracts shipped beside the build are the ones the sources define. They travel with
@@ -86,7 +102,8 @@ for (const [name, schema] of Object.entries(registry)) {
 	const path = join(root, "contracts/v1", `${name}.json`);
 	const expected = `${JSON.stringify({ $schema: "https://json-schema.org/draft/2020-12/schema", ...JSON.parse(JSON.stringify(schema)) }, null, 2)}\n`;
 	if (!existsSync(path)) failures.push(`contracts/v1/${name}.json is missing (run \`npm run contracts\`)`);
-	else if (readFileSync(path, "utf8") !== expected) failures.push(`contracts/v1/${name}.json no longer matches the source contract (run \`npm run contracts\`)`);
+	else if (readFileSync(path, "utf8") !== expected)
+		failures.push(`contracts/v1/${name}.json no longer matches the source contract (run \`npm run contracts\`)`);
 }
 const emitted = new Set(Object.keys(registry).map((name) => `${name}.json`));
 for (const file of readdirSync(join(root, "contracts/v1")).filter((f) => f.endsWith(".json"))) {
@@ -98,7 +115,8 @@ for (const file of readdirSync(join(root, "contracts/v1")).filter((f) => f.endsW
 // so it is inventoried by its declaration and its licence, not by the NOTICE.
 const bundled = Object.keys(pkg.dependencies ?? {}).concat(pkg.bundledDependencies ?? []);
 const unattributed = bundled.filter((name) => !notice.includes(name));
-if (unattributed.length > 0) failures.push(`redistributed dependencies the NOTICE does not name: ${unattributed.join(", ")}`);
+if (unattributed.length > 0)
+	failures.push(`redistributed dependencies the NOTICE does not name: ${unattributed.join(", ")}`);
 
 // 5. Every external module the sources import is a declared peer, and every peer is installed and
 // permissively licensed.
@@ -108,7 +126,8 @@ for (const file of walk(join(root, "src"), root).filter((f) => f.endsWith(".ts")
 	const text = readFileSync(join(root, file), "utf8");
 	for (const line of text.split("\n")) {
 		// Only real import statements: a module specifier quoted inside a template of witness code is not one.
-		const m = /^\s*(?:import|export)\b[^"']*from\s+["']([^"']+)["']/.exec(line) ?? /^\s*import\s+["']([^"']+)["']/.exec(line);
+		const m =
+			/^\s*(?:import|export)\b[^"']*from\s+["']([^"']+)["']/.exec(line) ?? /^\s*import\s+["']([^"']+)["']/.exec(line);
 		if (!m) continue;
 		const specifier = m[1]!;
 		if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
@@ -116,11 +135,15 @@ for (const file of walk(join(root, "src"), root).filter((f) => f.endsWith(".ts")
 	}
 }
 const undeclared = [...imported].filter((name) => !peers.includes(name)).sort();
-if (undeclared.length > 0) failures.push(`modules imported by src/ that no peerDependency declares: ${undeclared.join(", ")}`);
+if (undeclared.length > 0)
+	failures.push(`modules imported by src/ that no peerDependency declares: ${undeclared.join(", ")}`);
 const peerLicences: string[] = [];
 for (const name of peers) {
 	try {
-		const manifest = JSON.parse(readFileSync(join(root, "node_modules", name, "package.json"), "utf8")) as { version: string; license?: string };
+		const manifest = JSON.parse(readFileSync(join(root, "node_modules", name, "package.json"), "utf8")) as {
+			version: string;
+			license?: string;
+		};
 		peerLicences.push(`${name}@${manifest.version} ${manifest.license ?? "UNKNOWN"}`);
 		if (!manifest.license) failures.push(`peer dependency ${name} declares no licence`);
 	} catch {
@@ -130,11 +153,25 @@ for (const name of peers) {
 
 // 6. Licences of the installed tree. Nothing here is redistributed, but a reviewer is entitled to
 // the inventory, and a non-permissive licence entering the build must be a decision, not a surprise.
-const ALLOWED = new Set(["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "BlueOak-1.0.0", "CC0-1.0", "Unlicense", "Python-2.0"]);
+const ALLOWED = new Set([
+	"MIT",
+	"Apache-2.0",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"ISC",
+	"0BSD",
+	"BlueOak-1.0.0",
+	"CC0-1.0",
+	"Unlicense",
+	"Python-2.0",
+]);
 
 /** A dual licence is permissive when every branch is: taking one branch would make the choice implicit. */
 function permissive(licence: string): boolean {
-	return licence.replace(/^\(|\)$/g, "").split(" OR ").every((branch) => ALLOWED.has(branch.trim()));
+	return licence
+		.replace(/^\(|\)$/g, "")
+		.split(" OR ")
+		.every((branch) => ALLOWED.has(branch.trim()));
 }
 const licences = new Map<string, string[]>();
 function scanModules(dir: string): void {
@@ -148,7 +185,12 @@ function scanModules(dir: string): void {
 			continue;
 		}
 		try {
-			const manifest = JSON.parse(readFileSync(join(p, "package.json"), "utf8")) as { name: string; version: string; license?: string; licenses?: { type: string }[] };
+			const manifest = JSON.parse(readFileSync(join(p, "package.json"), "utf8")) as {
+				name: string;
+				version: string;
+				license?: string;
+				licenses?: { type: string }[];
+			};
 			const licence = manifest.license ?? manifest.licenses?.map((l) => l.type).join(" OR ") ?? "UNKNOWN";
 			if (!licences.has(licence)) licences.set(licence, []);
 			licences.get(licence)!.push(`${manifest.name}@${manifest.version}`);
@@ -161,13 +203,21 @@ function scanModules(dir: string): void {
 scanModules(join(root, "node_modules"));
 const foreign = [...licences].filter(([licence]) => !permissive(licence));
 if (foreign.length > 0) {
-	failures.push(`licences outside the permissive allowlist:\n  ${foreign.map(([licence, pkgs]) => `${licence}: ${pkgs.slice(0, 6).join(", ")}`).join("\n  ")}`);
+	failures.push(
+		`licences outside the permissive allowlist:\n  ${foreign.map(([licence, pkgs]) => `${licence}: ${pkgs.slice(0, 6).join(", ")}`).join("\n  ")}`,
+	);
 }
 
 // 7. The licence travels as a copy, not as an address. Apache-2.0 §4(a) asks for a copy of the
 // License with the work, and a package meant to be verifiable offline cannot answer with a URL.
 const licenceFile = readFileSync(join(root, "LICENSE"), "utf8");
-if (pkg.license === "Apache-2.0" && !(licenceFile.includes("TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION") && licenceFile.includes("END OF TERMS AND CONDITIONS"))) {
+if (
+	pkg.license === "Apache-2.0" &&
+	!(
+		licenceFile.includes("TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION") &&
+		licenceFile.includes("END OF TERMS AND CONDITIONS")
+	)
+) {
 	failures.push("package.json declares Apache-2.0 but LICENSE does not carry the terms, only a reference to them");
 }
 
@@ -186,4 +236,6 @@ if (failures.length > 0) {
 	process.exit(1);
 }
 const total = [...licences.values()].reduce((n, l) => n + l.length, 0);
-console.log(`distribution consistent: dist/ reproduces the sources, ${bundled.length} dependencies redistributed, ${peers.length} provided by the host (${peerLicences.join(", ")}), ${total} packages installed under ${[...licences.keys()].sort().join(", ")}`);
+console.log(
+	`distribution consistent: dist/ reproduces the sources, ${bundled.length} dependencies redistributed, ${peers.length} provided by the host (${peerLicences.join(", ")}), ${total} packages installed under ${[...licences.keys()].sort().join(", ")}`,
+);

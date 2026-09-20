@@ -107,10 +107,12 @@ export const Qualification = Type.Object(
 		qualified: Type.Boolean(),
 		environment_digest: Digest,
 		notes: Type.Array(Type.String()),
-		evidence_ids: Type.Optional(Type.Object(
-			{ positive: Identifier, negative: Identifier, incident: Identifier },
-			{ additionalProperties: false },
-		)),
+		evidence_ids: Type.Optional(
+			Type.Object(
+				{ positive: Identifier, negative: Identifier, incident: Identifier },
+				{ additionalProperties: false },
+			),
+		),
 	},
 	{ additionalProperties: false },
 );
@@ -204,7 +206,10 @@ export const Requirement = Type.Object(
 		criterion: Type.String({ minLength: 1 }),
 		source: Type.String(),
 		contract_family: Type.Union([Type.String(), Type.Null()]),
-		satisfied_by_reference: Type.Boolean({ description: "the reference already exhibits this behaviour, so a suite that stays green proves it; false means the requirement needs a control that fails on the reference" }),
+		satisfied_by_reference: Type.Boolean({
+			description:
+				"the reference already exhibits this behaviour, so a suite that stays green proves it; false means the requirement needs a control that fails on the reference",
+		}),
 	},
 	{ additionalProperties: false },
 );
@@ -220,7 +225,9 @@ export const AnsweredQuestion = Type.Object(
 		question_id: Identifier,
 		question: Type.String({ minLength: 1 }),
 		answer: Type.String({ minLength: 1 }),
-		observable: Type.Boolean({ description: "the answer fixes something a control can observe — a status, a message, a bound" }),
+		observable: Type.Boolean({
+			description: "the answer fixes something a control can observe — a status, a message, a bound",
+		}),
 		requirement_ids: Type.Array(Identifier),
 	},
 	{ additionalProperties: false },
@@ -246,7 +253,17 @@ export const Mandate = Type.Object(
 		scope: Type.Array(Type.String()),
 		out_of_scope: Type.Array(Type.String()),
 		assumptions: Type.Array(Type.String()),
-		open_questions: Type.Array(Type.Object({ id: Identifier, question: Type.String(), material: Type.Boolean(), answer: Type.Union([Type.String(), Type.Null()]) }, { additionalProperties: false })),
+		open_questions: Type.Array(
+			Type.Object(
+				{
+					id: Identifier,
+					question: Type.String(),
+					material: Type.Boolean(),
+					answer: Type.Union([Type.String(), Type.Null()]),
+				},
+				{ additionalProperties: false },
+			),
+		),
 		allowed_paths: Type.Array(Type.String()),
 		integration: Closed(["disabled", "local_branch"] as const),
 		language: Closed(["fr", "en"] as const),

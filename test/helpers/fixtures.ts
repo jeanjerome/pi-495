@@ -8,7 +8,18 @@ export function tempDir(prefix = "495-"): string {
 }
 
 export function gitCmd(cwd: string, args: string[]): string {
-	return execFileSync("git", args, { cwd, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@x", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@x", GIT_TERMINAL_PROMPT: "0" } });
+	return execFileSync("git", args, {
+		cwd,
+		encoding: "utf8",
+		env: {
+			...process.env,
+			GIT_AUTHOR_NAME: "t",
+			GIT_AUTHOR_EMAIL: "t@x",
+			GIT_COMMITTER_NAME: "t",
+			GIT_COMMITTER_EMAIL: "t@x",
+			GIT_TERMINAL_PROMPT: "0",
+		},
+	});
 }
 
 export function writeFiles(root: string, files: Record<string, string>): void {
@@ -22,10 +33,21 @@ export function writeFiles(root: string, files: Record<string, string>): void {
 /** F-TS: small JavaScript project with node:test tests and a lint script. */
 export function fixtureTs(root: string): void {
 	writeFiles(root, {
-		"package.json": JSON.stringify({ name: "f-ts", version: "1.0.0", type: "module", scripts: { test: "node --test", lint: "node scripts/lint.js" } }, null, 2),
+		"package.json": JSON.stringify(
+			{
+				name: "f-ts",
+				version: "1.0.0",
+				type: "module",
+				scripts: { test: "node --test", lint: "node scripts/lint.js" },
+			},
+			null,
+			2,
+		),
 		"src/greet.js": "export function greet(name) {\n  return `Hello, ${name}`;\n}\n",
-		"test/greet.test.js": 'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n',
-		"scripts/lint.js": 'import { readFileSync } from "node:fs";\nconst src = readFileSync(new URL("../src/greet.js", import.meta.url), "utf8");\nif (/\\bvar\\b/.test(src)) { console.error("lint: var is forbidden"); process.exit(1); }\nconsole.log("lint ok");\n',
+		"test/greet.test.js":
+			'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n',
+		"scripts/lint.js":
+			'import { readFileSync } from "node:fs";\nconst src = readFileSync(new URL("../src/greet.js", import.meta.url), "utf8");\nif (/\\bvar\\b/.test(src)) { console.error("lint: var is forbidden"); process.exit(1); }\nconsole.log("lint ok");\n',
 		"README.md": "# f-ts\n",
 	});
 }
@@ -124,8 +146,10 @@ ${withCoverage ? JACOCO_PLUGIN : ""}${withMutation ? PITEST_PLUGIN : ""}    </pl
   </build>
 </project>
 `,
-		"src/main/java/io/h495/Greeter.java": "package io.h495;\n\npublic final class Greeter {\n    private Greeter() {}\n\n    public static String greet(String name) {\n        return \"Hello, \" + name;\n    }\n}\n",
-		"src/test/java/io/h495/GreeterTest.java": "package io.h495;\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\nclass GreeterTest {\n    @Test\n    void greets() {\n        assertEquals(\"Hello, x\", Greeter.greet(\"x\"));\n    }\n}\n",
+		"src/main/java/io/h495/Greeter.java":
+			'package io.h495;\n\npublic final class Greeter {\n    private Greeter() {}\n\n    public static String greet(String name) {\n        return "Hello, " + name;\n    }\n}\n',
+		"src/test/java/io/h495/GreeterTest.java":
+			'package io.h495;\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\nclass GreeterTest {\n    @Test\n    void greets() {\n        assertEquals("Hello, x", Greeter.greet("x"));\n    }\n}\n',
 	});
 }
 
@@ -154,7 +178,8 @@ export function fixtureMavenMultiModule(root: string, withTests = false): void {
 	};
 	if (withTests) {
 		files["domain/src/test/java/io/h495/AddressTest.java"] = "package io.h495; public final class AddressTest {}\n";
-		files["infrastructure/src/test/java/io/h495/AdapterTest.java"] = "package io.h495; public final class AdapterTest {}\n";
+		files["infrastructure/src/test/java/io/h495/AdapterTest.java"] =
+			"package io.h495; public final class AdapterTest {}\n";
 	}
 	writeFiles(root, files);
 }
@@ -181,10 +206,17 @@ ${dependencies}</project>
 </project>
 `,
 		"domain/pom.xml": modulePom("demo-domain"),
-		"infrastructure/pom.xml": modulePom("demo-infrastructure", "  <dependencies><dependency><groupId>io.demo</groupId><artifactId>demo-domain</artifactId><version>1.0.0</version></dependency></dependencies>\n"),
-		"domain/src/main/java/io/demo/domain/user/User.java": "package io.demo.domain.user;\n\npublic final class User {\n    public String name() { return \"x\"; }\n}\n",
-		"domain/src/main/java/io/demo/domain/service/UserService.java": "package io.demo.domain.service;\n\nimport io.demo.domain.user.User;\n\npublic final class UserService {\n    public User keep(User user) { return user; }\n}\n",
-		"domain/src/main/java/io/demo/domain/port/UserPort.java": "package io.demo.domain.port;\n\npublic interface UserPort {\n    String read();\n}\n",
-		"infrastructure/src/main/java/io/demo/infra/UserRepository.java": "package io.demo.infra;\n\nimport io.demo.domain.port.UserPort;\n\npublic final class UserRepository implements UserPort {\n    public String read() { return \"x\"; }\n}\n",
+		"infrastructure/pom.xml": modulePom(
+			"demo-infrastructure",
+			"  <dependencies><dependency><groupId>io.demo</groupId><artifactId>demo-domain</artifactId><version>1.0.0</version></dependency></dependencies>\n",
+		),
+		"domain/src/main/java/io/demo/domain/user/User.java":
+			'package io.demo.domain.user;\n\npublic final class User {\n    public String name() { return "x"; }\n}\n',
+		"domain/src/main/java/io/demo/domain/service/UserService.java":
+			"package io.demo.domain.service;\n\nimport io.demo.domain.user.User;\n\npublic final class UserService {\n    public User keep(User user) { return user; }\n}\n",
+		"domain/src/main/java/io/demo/domain/port/UserPort.java":
+			"package io.demo.domain.port;\n\npublic interface UserPort {\n    String read();\n}\n",
+		"infrastructure/src/main/java/io/demo/infra/UserRepository.java":
+			'package io.demo.infra;\n\nimport io.demo.domain.port.UserPort;\n\npublic final class UserRepository implements UserPort {\n    public String read() { return "x"; }\n}\n',
 	});
 }

@@ -52,7 +52,12 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	adoption: { mandate: "kernel", requirements: "kernel", protocol: "kernel", design: "kernel" },
 	g5_human_acceptance: false,
 	integration_enabled: false,
-	baseline: { compare_to_reference: true, tolerance: "no_aggravation", instability: "confirm_then_indeterminate", max_confirmations: 1 },
+	baseline: {
+		compare_to_reference: true,
+		tolerance: "no_aggravation",
+		instability: "confirm_then_indeterminate",
+		max_confirmations: 1,
+	},
 	stagnation_identical_candidates: 2,
 	required_reviews: [],
 };

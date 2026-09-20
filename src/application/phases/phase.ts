@@ -53,9 +53,26 @@ export interface PhaseContext {
 	/** Runs the command through the domain reducer and appends what it accepts, atomically. */
 	commit(unit: Unit, command: ChangeCommand, correlation: string): Unit;
 	/** Composes the context of one bounded agent session, runs it, and records what it produced. */
-	runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null }): Promise<InterventionOutcome>;
+	runIntervention(
+		unit: Unit,
+		cor: string,
+		role: InterventionMandate["role"],
+		objective: string,
+		workspacePath: string,
+		extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null },
+	): Promise<InterventionOutcome>;
 	/** Puts a decision to the human and stops the change on it. */
-	requestDecision(unit: Unit, cor: string, interaction: PhaseInteraction, subject: SubjectRef, facts: string[], recommendation: string | null, arg?: string, decisionId?: string, language?: "fr" | "en"): Promise<Unit>;
+	requestDecision(
+		unit: Unit,
+		cor: string,
+		interaction: PhaseInteraction,
+		subject: SubjectRef,
+		facts: string[],
+		recommendation: string | null,
+		arg?: string,
+		decisionId?: string,
+		language?: "fr" | "en",
+	): Promise<Unit>;
 	/** The ledger and store reads the feedback document is composed from. */
 	feedbackSources(): FeedbackSources;
 	/** The indeterminate observations recorded on the frozen candidate, oldest first. */
@@ -67,9 +84,22 @@ export interface PhaseContext {
  * bound to the exact text presented, so a revised artifact is adopted again rather than inheriting
  * the approval of the one it replaced.
  */
-export async function requestAdoption(ctx: PhaseContext, unit: Unit, cor: string, gate: "G0" | "G1", kind: "mandate" | "requirements", ref: ArtifactRef, language: "fr" | "en"): Promise<Unit> {
+export async function requestAdoption(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	gate: "G0" | "G1",
+	kind: "mandate" | "requirements",
+	ref: ArtifactRef,
+	language: "fr" | "en",
+): Promise<Unit> {
 	const decided = unit.state.gates[gate];
 	if (decided?.next_action !== "request_decision:IH-02") return unit;
-	const subject: SubjectRef = { kind: "artifact", id: ref.artifact_id, revision: ref.revision, digest: ref.content_digest };
+	const subject: SubjectRef = {
+		kind: "artifact",
+		id: ref.artifact_id,
+		revision: ref.revision,
+		digest: ref.content_digest,
+	};
 	return ctx.requestDecision(unit, cor, "IH-02", subject, decided.reasons, null, kind, undefined, language);
 }

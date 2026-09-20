@@ -9,14 +9,27 @@ import { join, relative } from "node:path";
 
 const root = join(process.cwd(), "src");
 const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
-	{ layer: "contracts", forbidden: [/\.\.\/(domain|ports|application|adapters|extension|presentation|export)\//, /@earendil-works/] },
-	{ layer: "domain", forbidden: [/\.\.\/(ports|application|adapters|extension|presentation|export)\//, /@earendil-works/, /node:(fs|child_process|net|http|sqlite)/] },
+	{
+		layer: "contracts",
+		forbidden: [/\.\.\/(domain|ports|application|adapters|extension|presentation|export)\//, /@earendil-works/],
+	},
+	{
+		layer: "domain",
+		forbidden: [
+			/\.\.\/(ports|application|adapters|extension|presentation|export)\//,
+			/@earendil-works/,
+			/node:(fs|child_process|net|http|sqlite)/,
+		],
+	},
 	{ layer: "ports", forbidden: [/\.\.\/(application|adapters|extension|presentation|export)\//, /@earendil-works/] },
 	{ layer: "application", forbidden: [/\.\.\/(adapters|extension|presentation)\//, /@earendil-works/] },
 	{ layer: "adapters", forbidden: [/\.\.\/(extension|presentation)\//, /\.\.\/\.\.\/(extension|presentation)\//] },
 	// A view that imported Pi would tie the review to a component; what keeps the same review data
 	// readable from RPC, JSON, print and an SDK host is that no view depends on one (ADR-010, UX-11).
-	{ layer: "presentation", forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//, /@earendil-works/] },
+	{
+		layer: "presentation",
+		forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//, /@earendil-works/],
+	},
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
 ];
 
@@ -32,12 +45,17 @@ function walk(dir: string, files: string[] = []): string[] {
 for (const rule of rules) {
 	const dir = join(root, rule.layer);
 	let files: string[] = [];
-	try { files = walk(dir); } catch { continue; }
+	try {
+		files = walk(dir);
+	} catch {
+		continue;
+	}
 	for (const file of files) {
 		const src = readFileSync(file, "utf8");
 		for (const line of src.split("\n")) {
 			if (!/^\s*(import|export)\b.*from\s+["']/.test(line) && !/import\(/.test(line)) continue;
-			for (const re of rule.forbidden) if (re.test(line)) violations.push(`${relative(process.cwd(), file)}: ${line.trim()}`);
+			for (const re of rule.forbidden)
+				if (re.test(line)) violations.push(`${relative(process.cwd(), file)}: ${line.trim()}`);
 		}
 	}
 }

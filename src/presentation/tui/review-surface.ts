@@ -16,7 +16,17 @@ import { NARROW_THRESHOLD, fit } from "./review/measure.ts";
 import { renderReader } from "./review/reader-pane.ts";
 import { renderContext } from "./review/context-pane.ts";
 import { changedFiles, currentNode, renderTree, selectPath, visibleRows } from "./review/tree-pane.ts";
-import { EN, FR, PLAIN, type LoadedPage, type PaneContext, type ReaderMode, type ReviewQuery, type ReviewView, type Styles } from "./review/view.ts";
+import {
+	EN,
+	FR,
+	PLAIN,
+	type LoadedPage,
+	type PaneContext,
+	type ReaderMode,
+	type ReviewQuery,
+	type ReviewView,
+	type Styles,
+} from "./review/view.ts";
 
 export { decodeKey } from "./review/keymap.ts";
 export { NARROW_THRESHOLD, fit, stripSequences, treeRowOverhead, visibleLength } from "./review/measure.ts";
@@ -66,13 +76,21 @@ export class ReviewSurface implements ReviewView {
 		this.st = options.styles ?? PLAIN;
 		this.fitLine = options.fit ?? fit;
 		this.opts = options;
-		for (const row of flatten(this.snapshot.root, false)) if (row.node.kind === "directory") this.expanded.add(row.node.path);
+		for (const row of flatten(this.snapshot.root, false))
+			if (row.node.kind === "directory") this.expanded.add(row.node.path);
 		if (options.initialPath) this.selectPath(options.initialPath);
 	}
 
 	/** What a pane is allowed to see of this surface. */
 	private pane(): PaneContext {
-		return { snapshot: this.snapshot, view: this, pages: this.cache, styles: this.st, labels: this.opts.language === "en" ? EN : FR, fit: this.fitLine };
+		return {
+			snapshot: this.snapshot,
+			view: this,
+			pages: this.cache,
+			styles: this.st,
+			labels: this.opts.language === "en" ? EN : FR,
+			fit: this.fitLine,
+		};
 	}
 
 	rows(): { node: ReviewNode; depth: number }[] {
@@ -96,7 +114,10 @@ export class ReviewSurface implements ReviewView {
 	}
 
 	handleInput(data: string): void {
-		const moved = handleKey(this.pane(), data, { exit: () => this.opts.onExit(), refresh: () => this.opts.onRefresh?.() });
+		const moved = handleKey(this.pane(), data, {
+			exit: () => this.opts.onExit(),
+			refresh: () => this.opts.onRefresh?.(),
+		});
 		if (!moved) return;
 		this.invalidate();
 		this.opts.requestRender();
@@ -129,11 +150,29 @@ export class ReviewSurface implements ReviewView {
 		if ("error" in loaded || !("lines" in loaded) || !loaded.truncated) return;
 		if (this.readerScroll + rows < loaded.lines.length) return;
 		this.loading = key;
-		this.settle(key, this.query.content(node.path, this.mode, loaded.start_line + loaded.lines.length, CONTENT_PAGE_LINES).then((next) => ({ ...loaded, lines: [...loaded.lines, ...next.lines], truncated: next.truncated })));
+		this.settle(
+			key,
+			this.query
+				.content(node.path, this.mode, loaded.start_line + loaded.lines.length, CONTENT_PAGE_LINES)
+				.then((next) => ({ ...loaded, lines: [...loaded.lines, ...next.lines], truncated: next.truncated })),
+		);
 	}
 
 	private settle(key: string, page: Promise<LoadedPage>): void {
-		page.then((p) => { this.cache.set(key, p); }, (error: Error) => { this.cache.set(key, { error: error.message }); }).finally(() => { this.loading = null; this.invalidate(); this.opts.requestRender(); });
+		page
+			.then(
+				(p) => {
+					this.cache.set(key, p);
+				},
+				(error: Error) => {
+					this.cache.set(key, { error: error.message });
+				},
+			)
+			.finally(() => {
+				this.loading = null;
+				this.invalidate();
+				this.opts.requestRender();
+			});
 	}
 
 	render(width: number): string[] {
@@ -149,7 +188,12 @@ export class ReviewSurface implements ReviewView {
 		const readerWidth = narrow ? width : width - tree.width - 1;
 		const reader = renderReader(ctx, node, readerWidth, bodyRows);
 		for (let i = 0; i < bodyRows; i++) {
-			if (narrow) out.push(this.narrowPane === "tree" ? (tree.lines[i] ?? this.fitLine("", width)) : (reader[i] ?? this.fitLine("", width)));
+			if (narrow)
+				out.push(
+					this.narrowPane === "tree"
+						? (tree.lines[i] ?? this.fitLine("", width))
+						: (reader[i] ?? this.fitLine("", width)),
+				);
 			else out.push(`${tree.lines[i] ?? this.fitLine("", tree.width)}│${reader[i] ?? this.fitLine("", readerWidth)}`);
 		}
 		out.push(renderContext(ctx, node, width));

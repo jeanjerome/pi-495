@@ -14,7 +14,9 @@ export interface WorkerConfig {
 	heartbeat_ms: number;
 }
 
-export type SupervisorMessage = { type: "mandate"; mandate: InterventionMandate; config: WorkerConfig } | { type: "abort"; reason: string };
+export type SupervisorMessage =
+	| { type: "mandate"; mandate: InterventionMandate; config: WorkerConfig }
+	| { type: "abort"; reason: string };
 
 export type WorkerMessage =
 	| { type: "ready"; pid: number; pi_version: string }
@@ -22,5 +24,20 @@ export type WorkerMessage =
 	| { type: "event"; event: import("../../ports/execution.ts").InterventionEvent }
 	| { type: "log"; level: "info" | "warn" | "error"; message: string };
 
-export { ProducerReport, ReviewReport, ObservationReport, SpecificationReport, OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, extractJsonOutput, normalizeOutput, retainedRefusedText } from "../../contracts/v1/reports.ts";
-export type { ProducerReport as ProducerReportType, ReviewReport as ReviewReportType, ObservationReport as ObservationReportType, SpecificationReport as SpecificationReportType } from "../../contracts/v1/reports.ts";
+export {
+	ProducerReport,
+	ReviewReport,
+	ObservationReport,
+	SpecificationReport,
+	OUTPUT_SCHEMAS,
+	TOOLS_FOR_ROLE,
+	extractJsonOutput,
+	normalizeOutput,
+	retainedRefusedText,
+} from "../../contracts/v1/reports.ts";
+export type {
+	ProducerReport as ProducerReportType,
+	ReviewReport as ReviewReportType,
+	ObservationReport as ObservationReportType,
+	SpecificationReport as SpecificationReportType,
+} from "../../contracts/v1/reports.ts";

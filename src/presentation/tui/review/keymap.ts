@@ -19,7 +19,24 @@ export interface KeymapActions {
 	refresh(): void;
 }
 
-const KEYS: Record<string, string> = { "\r": "enter", "\n": "enter", "\t": "tab", "\x1b": "escape", "\x7f": "backspace", "\b": "backspace", "\x1b[A": "up", "\x1b[B": "down", "\x1b[C": "right", "\x1b[D": "left", "\x1b[5~": "pageup", "\x1b[6~": "pagedown", "\x1bOA": "up", "\x1bOB": "down", "\x1bOC": "right", "\x1bOD": "left" };
+const KEYS: Record<string, string> = {
+	"\r": "enter",
+	"\n": "enter",
+	"\t": "tab",
+	"\x1b": "escape",
+	"\x7f": "backspace",
+	"\b": "backspace",
+	"\x1b[A": "up",
+	"\x1b[B": "down",
+	"\x1b[C": "right",
+	"\x1b[D": "left",
+	"\x1b[5~": "pageup",
+	"\x1b[6~": "pagedown",
+	"\x1bOA": "up",
+	"\x1bOB": "down",
+	"\x1bOC": "right",
+	"\x1bOD": "left",
+};
 
 export function decodeKey(data: string): string {
 	return KEYS[data] ?? data;
@@ -102,7 +119,9 @@ export function handleKey(ctx: PaneContext, data: string, actions: KeymapActions
 			break;
 		}
 		case "p": {
-			const prev = changedFiles(ctx).reverse().find((i) => i < view.selected);
+			const prev = changedFiles(ctx)
+				.reverse()
+				.find((i) => i < view.selected);
 			if (prev !== undefined) {
 				view.selected = prev;
 				view.readerScroll = 0;
@@ -114,7 +133,10 @@ export function handleKey(ctx: PaneContext, data: string, actions: KeymapActions
 			const page = node ? ctx.pages.get(`changes:${node.path}`) : undefined;
 			if (page && "hunks" in page) {
 				const starts = hunkStarts(page, view.foldContext);
-				const target = key === "]" ? starts.find((s) => s > view.readerScroll) : [...starts].reverse().find((s) => s < view.readerScroll);
+				const target =
+					key === "]"
+						? starts.find((s) => s > view.readerScroll)
+						: [...starts].reverse().find((s) => s < view.readerScroll);
 				if (target !== undefined) view.readerScroll = target;
 			}
 			break;

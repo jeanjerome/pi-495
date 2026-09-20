@@ -22,7 +22,15 @@ import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
-import type { AgentPort, ControlExecutionPort, InterventionMandate, ModelSelection, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import type {
+	AgentPort,
+	ControlExecutionPort,
+	InterventionMandate,
+	ModelSelection,
+	SandboxSelection,
+	WorkspacePolicy,
+	WorkspacePort,
+} from "../ports/execution.ts";
 import { KERNEL_ACTOR } from "./actors.ts";
 import { ArtifactRepository } from "./artifacts.ts";
 import { InterventionSupervisor } from "./intervention.ts";
@@ -43,7 +51,16 @@ import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
-import { buildSnapshot, readChanges, readContent, FILE_READ_BUDGET_BYTES, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
+import {
+	buildSnapshot,
+	readChanges,
+	readContent,
+	FILE_READ_BUDGET_BYTES,
+	type ChangePage,
+	type ContentPage,
+	type PathStatus,
+	type ReviewSnapshot,
+} from "./review.ts";
 import type { Finding } from "../contracts/v1/evidence.ts";
 
 export interface HarnessDeps {
@@ -78,7 +95,14 @@ export interface StartArgs {
 export interface AdvanceResult {
 	view: StatusView;
 	steps: string[];
-	stopped_because: "closed" | "decision_required" | "blocked" | "paused" | "max_steps" | "cancelled" | "capability_missing";
+	stopped_because:
+		| "closed"
+		| "decision_required"
+		| "blocked"
+		| "paused"
+		| "max_steps"
+		| "cancelled"
+		| "capability_missing";
 }
 
 /** The phase a change is in decides what runs next; this table is the whole of that order. */
@@ -139,8 +163,10 @@ export class Harness {
 			progress: (message: string) => harness.progress(message),
 			language: (state: ChangeState) => harness.language(state),
 			commit: (unit: Unit, command: ChangeCommand, correlation: string) => harness.commit(unit, command, correlation),
-			runIntervention: (unit, cor, role, objective, workspacePath, extra) => harness.runIntervention(unit, cor, role, objective, workspacePath, extra),
-			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language) => harness.requestDecision(unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language),
+			runIntervention: (unit, cor, role, objective, workspacePath, extra) =>
+				harness.runIntervention(unit, cor, role, objective, workspacePath, extra),
+			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language) =>
+				harness.requestDecision(unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language),
 			feedbackSources: () => harness.feedbackSources(),
 			indeterminateObservations: (state: ChangeState) => harness.indeterminateObservations(state),
 		};
@@ -182,13 +208,19 @@ export class Harness {
 		const d = decide(unit.state, command, this.deps.policy);
 		if (!d.ok) throw d.error;
 		if (d.events.length === 0) return unit;
-		const receipt = this.deps.ledger.appendChange(unit.state.change_id, unit.revision, d.events, { correlation_id: correlation });
+		const receipt = this.deps.ledger.appendChange(unit.state.change_id, unit.revision, d.events, {
+			correlation_id: correlation,
+		});
 		let state = unit.state;
 		for (const e of d.events) state = apply(state, e);
 		return { state, revision: receipt.revision };
 	}
 
-	private tryCommit(unit: Unit, command: ChangeCommand, correlation: string): { unit: Unit; error: DomainError | null } {
+	private tryCommit(
+		unit: Unit,
+		command: ChangeCommand,
+		correlation: string,
+	): { unit: Unit; error: DomainError | null } {
 		try {
 			return { unit: this.commit(unit, command, correlation), error: null };
 		} catch (error) {
@@ -228,21 +260,102 @@ export class Harness {
 		const programId = this.id("prg");
 		const changeId = this.id("chg");
 		const incrementId = "inc_1";
-		const requestRef = await this.artifacts.store("request", changeId, this.id("req"), args.request_text, args.actor.actor_id);
-		const referenceRef = await this.artifacts.store("reference", changeId, this.id("ref"), reference, KERNEL_ACTOR.actor_id);
+		const requestRef = await this.artifacts.store(
+			"request",
+			changeId,
+			this.id("req"),
+			args.request_text,
+			args.actor.actor_id,
+		);
+		const referenceRef = await this.artifacts.store(
+			"reference",
+			changeId,
+			this.id("ref"),
+			reference,
+			KERNEL_ACTOR.actor_id,
+		);
 		const title = args.title ?? args.request_text.split("\n")[0]!.slice(0, 80);
-		this.commitProgram(programId, { type: "program.create", at, actor: args.actor, program_id: programId, project_path: reference.project_path, objective: requestRef, title }, cor);
-		this.commitProgram(programId, { type: "trajectory.adopt", at, actor: args.actor, increments: [{ increment_id: incrementId, title, kind: "functional", value: title, depends_on: [], required_capabilities: [], requirement_ids: [], closure_criterion: "change accepted at G5" }], milestones: [], reason: "initial single-increment trajectory" }, cor);
-		this.commitProgram(programId, { type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId }, cor);
+		this.commitProgram(
+			programId,
+			{
+				type: "program.create",
+				at,
+				actor: args.actor,
+				program_id: programId,
+				project_path: reference.project_path,
+				objective: requestRef,
+				title,
+			},
+			cor,
+		);
+		this.commitProgram(
+			programId,
+			{
+				type: "trajectory.adopt",
+				at,
+				actor: args.actor,
+				increments: [
+					{
+						increment_id: incrementId,
+						title,
+						kind: "functional",
+						value: title,
+						depends_on: [],
+						required_capabilities: [],
+						requirement_ids: [],
+						closure_criterion: "change accepted at G5",
+					},
+				],
+				milestones: [],
+				reason: "initial single-increment trajectory",
+			},
+			cor,
+		);
+		this.commitProgram(
+			programId,
+			{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId },
+			cor,
+		);
 		let unit: Unit = { state: null as unknown as ChangeState, revision: 0 };
-		const d = decide(null, { type: "change.create", at, actor: args.actor, change_id: changeId, program_id: programId, increment_id: incrementId, request: requestRef, reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest }, environment_digest: this.deps.environment.digest }, this.deps.policy);
+		const d = decide(
+			null,
+			{
+				type: "change.create",
+				at,
+				actor: args.actor,
+				change_id: changeId,
+				program_id: programId,
+				increment_id: incrementId,
+				request: requestRef,
+				reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest },
+				environment_digest: this.deps.environment.digest,
+			},
+			this.deps.policy,
+		);
 		if (!d.ok) throw d.error;
 		const receipt = this.deps.ledger.appendChange(changeId, 0, d.events, { correlation_id: cor });
 		let state: ChangeState | null = null;
 		for (const e of d.events) state = apply(state, e);
 		unit = { state: state!, revision: receipt.revision };
-		unit = this.commit(unit, { type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef }, cor);
-		if (args.language) unit = this.commit(unit, { type: "question.open", at, actor: KERNEL_ACTOR, id: "language", question: `language:${args.language}`, material: false, decision_id: null }, cor);
+		unit = this.commit(
+			unit,
+			{ type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef },
+			cor,
+		);
+		if (args.language)
+			unit = this.commit(
+				unit,
+				{
+					type: "question.open",
+					at,
+					actor: KERNEL_ACTOR,
+					id: "language",
+					question: `language:${args.language}`,
+					material: false,
+					decision_id: null,
+				},
+				cor,
+			);
 		return { program: this.deps.ledger.loadProgram(programId)!.state, change: unit.state };
 	}
 
@@ -250,7 +363,9 @@ export class Harness {
 		const loaded = this.deps.ledger.loadChange(changeId);
 		if (!loaded) return statusView(null, null, [`change ${changeId} not found`]);
 		const program = this.deps.ledger.loadProgram(loaded.state.program_id)?.state ?? null;
-		return statusView(program, loaded.state, [`sandbox:${this.deps.sandbox.backend.backend}:${this.deps.sandbox.qualification.qualified ? "qualified" : "not-qualified"}`]);
+		return statusView(program, loaded.state, [
+			`sandbox:${this.deps.sandbox.backend.backend}:${this.deps.sandbox.qualification.qualified ? "qualified" : "not-qualified"}`,
+		]);
 	}
 
 	/**
@@ -274,7 +389,8 @@ export class Harness {
 			const s = unit.state;
 			if (s.phase === "closed") return this.result(unit, steps, s.status === "cancelled" ? "cancelled" : "closed");
 			if (s.status === "decision_required") return this.result(unit, steps, "decision_required");
-			if (s.status === "blocked") return this.result(unit, steps, s.stop_reason === "capability_missing" ? "capability_missing" : "blocked");
+			if (s.status === "blocked")
+				return this.result(unit, steps, s.stop_reason === "capability_missing" ? "capability_missing" : "blocked");
 			if (s.status === "paused") return this.result(unit, steps, "paused");
 			const cor = this.id("cor");
 			try {
@@ -292,9 +408,28 @@ export class Harness {
 					// The action the error names is of no use to anyone unless the block records that it can
 					// be retried and says so where the operator reads the change.
 					const detail = `${error.code}: ${error.message}${error.nextActions.length > 0 ? ` (next: ${error.nextActions.join(", ")})` : ""}`;
-					const blocked = this.tryCommit(current, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: error.code === "CAPABILITY_MISSING" ? "capability_missing" : error.code === "CONFIGURATION_ERROR" ? "configuration_error" : error.code === "POLICY_DENIED" ? "policy_denied" : "execution_error", detail, retryable: error.retryable }, cor);
+					const blocked = this.tryCommit(
+						current,
+						{
+							type: "change.block",
+							at: this.now(),
+							actor: KERNEL_ACTOR,
+							reason:
+								error.code === "CAPABILITY_MISSING"
+									? "capability_missing"
+									: error.code === "CONFIGURATION_ERROR"
+										? "configuration_error"
+										: error.code === "POLICY_DENIED"
+											? "policy_denied"
+											: "execution_error",
+							detail,
+							retryable: error.retryable,
+						},
+						cor,
+					);
 					unit = blocked.unit;
-					if (blocked.error) steps.push(`${s.phase}: the change could not be blocked: ${blocked.error.code} ${blocked.error.message}`);
+					if (blocked.error)
+						steps.push(`${s.phase}: the change could not be blocked: ${blocked.error.code} ${blocked.error.message}`);
 					return this.result(unit, steps, error.code === "CAPABILITY_MISSING" ? "capability_missing" : "blocked");
 				}
 				throw error;
@@ -309,34 +444,156 @@ export class Harness {
 
 	// --- interventions ---------------------------------------------------------------------------
 
-	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled" | "truncated"; intervention_id: string }> {
+	private async runIntervention(
+		unit: Unit,
+		cor: string,
+		role: InterventionMandate["role"],
+		objective: string,
+		workspacePath: string,
+		extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null },
+	): Promise<{
+		unit: Unit;
+		output: unknown;
+		output_valid: boolean;
+		result: "completed" | "failed" | "cancelled" | "truncated";
+		intervention_id: string;
+	}> {
 		await this.interventions.requireCapable(role);
 		const interventionId = this.id("int");
 		const attemptId = extra.attempt_id ?? (role === "implement" || role === "prepare" ? this.id("att") : null);
-		unit = this.commit(unit, { type: "intervention.start", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, role, attempt_id: attemptId, model: this.deps.model, profile_id: role, profile_qualified: this.interventions.qualifiedFor(role) }, cor);
-		if (unit.state.status === "blocked") return { unit, output: null, output_valid: false, result: "failed", intervention_id: interventionId };
+		unit = this.commit(
+			unit,
+			{
+				type: "intervention.start",
+				at: this.now(),
+				actor: KERNEL_ACTOR,
+				intervention_id: interventionId,
+				role,
+				attempt_id: attemptId,
+				model: this.deps.model,
+				profile_id: role,
+				profile_qualified: this.interventions.qualifiedFor(role),
+			},
+			cor,
+		);
+		if (unit.state.status === "blocked")
+			return { unit, output: null, output_valid: false, result: "failed", intervention_id: interventionId };
 		const adopted: { kind: string; artifact_id: string; revision: number; digest: string; text: string }[] = [];
 		for (const kind of extra.adopted ?? []) {
 			const a = await this.artifacts.latest<unknown>(unit.state, kind);
-			if (a) adopted.push({ kind, artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest, text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2) });
+			if (a)
+				adopted.push({
+					kind,
+					artifact_id: a.ref.artifact_id,
+					revision: a.ref.revision,
+					digest: a.ref.content_digest,
+					text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2),
+				});
 		}
 		const protocol = await this.artifacts.latest<Protocol>(unit.state, "protocol");
-		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
+		const ctx = buildContext({
+			role,
+			objective,
+			language: this.language(unit.state),
+			adopted,
+			untrusted: [],
+			feedback: extra.feedback ?? null,
+			tools: TOOLS_FOR_ROLE[role],
+			budget_bytes: 60_000,
+			controls: (protocol?.content.controls ?? []).map((c) => ({
+				control_id: c.control_id,
+				command: c.command,
+				cwd: c.cwd,
+			})),
+			boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)),
+		});
 		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or
 		// those digests resolve to nothing and the dossier cannot say what the model read.
 		await this.deps.objects.putText(ctx.record, "application/json");
-		const contextRef = await this.artifacts.store("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
-		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
+		const contextRef = await this.artifacts.store(
+			"context",
+			unit.state.change_id,
+			this.id("ctx"),
+			ctx.manifest,
+			KERNEL_ACTOR.actor_id,
+		);
+		unit = this.commit(
+			unit,
+			{ type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef },
+			cor,
+		);
 		// Each tool call is paid for as it happens: what the budget refuses ends the session there.
-		const report = await this.interventions.run({ intervention_id: interventionId, change_id: unit.state.change_id, role, objective, workspace_path: workspacePath, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest }, () => {
-			const consumed = this.tryCommit(unit, { type: "budget.consume", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, counters: { tool_calls: 1, duration_ms: 0, tokens_known: 0, delegations: 0 } }, cor);
-			unit = consumed.unit;
-			return consumed.error;
-		});
-		const outputRef = await this.artifacts.store("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: report.terminal, events: report.events }, interventionId);
-		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: { actor_id: interventionId, actor_type: "agent", role: role === "review" ? "reviewer_agent" : "producer_agent", origin: "model_output", authentication_level: "none" }, kind: "output", ref: outputRef }, cor);
-		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result: report.result, counters: report.counters, detail: report.detail }, cor);
-		return { unit, output: report.output, output_valid: report.output_valid, result: report.result, intervention_id: interventionId };
+		const report = await this.interventions.run(
+			{
+				intervention_id: interventionId,
+				change_id: unit.state.change_id,
+				role,
+				objective,
+				workspace_path: workspacePath,
+				prompt: ctx.prompt,
+				system_prompt: ctx.system_prompt,
+				context: ctx.manifest,
+			},
+			() => {
+				const consumed = this.tryCommit(
+					unit,
+					{
+						type: "budget.consume",
+						at: this.now(),
+						actor: KERNEL_ACTOR,
+						intervention_id: interventionId,
+						counters: { tool_calls: 1, duration_ms: 0, tokens_known: 0, delegations: 0 },
+					},
+					cor,
+				);
+				unit = consumed.unit;
+				return consumed.error;
+			},
+		);
+		const outputRef = await this.artifacts.store(
+			"output",
+			unit.state.change_id,
+			this.id("out"),
+			{ intervention_id: interventionId, role, terminal: report.terminal, events: report.events },
+			interventionId,
+		);
+		unit = this.commit(
+			unit,
+			{
+				type: "artifact.propose",
+				at: this.now(),
+				actor: {
+					actor_id: interventionId,
+					actor_type: "agent",
+					role: role === "review" ? "reviewer_agent" : "producer_agent",
+					origin: "model_output",
+					authentication_level: "none",
+				},
+				kind: "output",
+				ref: outputRef,
+			},
+			cor,
+		);
+		unit = this.commit(
+			unit,
+			{
+				type: "intervention.finish",
+				at: this.now(),
+				actor: KERNEL_ACTOR,
+				intervention_id: interventionId,
+				result: report.result,
+				counters: report.counters,
+				detail: report.detail,
+			},
+			cor,
+		);
+		return {
+			unit,
+			output: report.output,
+			output_valid: report.output_valid,
+			result: report.result,
+			intervention_id: interventionId,
+		};
 	}
 
 	// --- phase steps -----------------------------------------------------------------------------
@@ -356,8 +613,28 @@ export class Harness {
 
 	// --- human decisions -----------------------------------------------------------------------------
 
-	private async requestDecision(unit: Unit, cor: string, interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">, subject: SubjectRef, facts: string[], recommendation: string | null, arg?: string, decisionId?: string, language: "fr" | "en" = "fr"): Promise<Unit> {
-		const request = buildDecisionRequest({ decision_id: decisionId ?? this.id("dec"), change_id: unit.state.change_id, interaction, subject, language, facts, recommendation, ...(arg !== undefined ? { arg } : {}), requested_at: this.now() });
+	private async requestDecision(
+		unit: Unit,
+		cor: string,
+		interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">,
+		subject: SubjectRef,
+		facts: string[],
+		recommendation: string | null,
+		arg?: string,
+		decisionId?: string,
+		language: "fr" | "en" = "fr",
+	): Promise<Unit> {
+		const request = buildDecisionRequest({
+			decision_id: decisionId ?? this.id("dec"),
+			change_id: unit.state.change_id,
+			interaction,
+			subject,
+			language,
+			facts,
+			recommendation,
+			...(arg !== undefined ? { arg } : {}),
+			requested_at: this.now(),
+		});
 		this.deps.ledger.putDecisionRequest(request);
 		const next = this.commit(unit, { type: "decision.request", at: this.now(), actor: KERNEL_ACTOR, request }, cor);
 		this.deps.onDecisionRequested?.(request);
@@ -365,53 +642,145 @@ export class Harness {
 	}
 
 	/** Opens a read-only review of the frozen candidate (or of the reference alone). Identical data in every Pi entry (RM-066). */
-	async openReview(changeId: string, candidateId?: string): Promise<{ snapshot: ReviewSnapshot; changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>; content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage> }> {
+	async openReview(
+		changeId: string,
+		candidateId?: string,
+	): Promise<{
+		snapshot: ReviewSnapshot;
+		changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
+		content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
+	}> {
 		const { state } = this.load(changeId);
 		const reference = await this.artifacts.reference(state);
 		const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
-		const manifest = wanted ? await this.artifacts.read<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null) : null;
+		const manifest = wanted
+			? await this.artifacts.read<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null)
+			: null;
 		const workspacePath = manifest ? this.deps.workspace.workspacePath(manifest.workspace_id) : null;
 		const findings: (Finding & { evidence_id: string })[] = [];
-		for (const e of state.evidence.filter((x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest)) {
+		for (const e of state.evidence.filter(
+			(x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest,
+		)) {
 			const ev = this.deps.ledger.getEvidence(e.evidence_id);
 			if (ev) for (const f of ev.findings) findings.push({ ...f, evidence_id: ev.evidence_id });
 		}
-		const newer = manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id ? state.candidate.candidate_id : null;
-		const snapshot = buildSnapshot({ change_id: changeId, reference, manifest, findings, newer_candidate: newer, now: this.now() });
-		const sources = { referencePath: reference.project_path, workspacePath, reference, manifest, maxBytes: FILE_READ_BUDGET_BYTES };
-		return { snapshot, changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath), content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }) };
+		const newer =
+			manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id
+				? state.candidate.candidate_id
+				: null;
+		const snapshot = buildSnapshot({
+			change_id: changeId,
+			reference,
+			manifest,
+			findings,
+			newer_candidate: newer,
+			now: this.now(),
+		});
+		const sources = {
+			referencePath: reference.project_path,
+			workspacePath,
+			reference,
+			manifest,
+			maxBytes: FILE_READ_BUDGET_BYTES,
+		};
+		return {
+			snapshot,
+			changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath),
+			content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }),
+		};
 	}
 
 	pendingDecisions(changeId: string): DecisionRequest[] {
 		const unit = this.load(changeId);
-		return unit.state.pending_decisions.map((d) => this.deps.ledger.getDecisionRequest(d.decision_id)).filter((d): d is DecisionRequest => d !== null);
+		return unit.state.pending_decisions
+			.map((d) => this.deps.ledger.getDecisionRequest(d.decision_id))
+			.filter((d): d is DecisionRequest => d !== null);
 	}
 
 	/** Records a human decision; provenance is provided by the host adapter, never by the content (ADR-014). */
-	answerDecision(changeId: string, response: DecisionResponse, origin: HumanOrigin): { view: StatusView; decision: HumanDecision | null; error: DomainError | null } {
+	answerDecision(
+		changeId: string,
+		response: DecisionResponse,
+		origin: HumanOrigin,
+	): { view: StatusView; decision: HumanDecision | null; error: DomainError | null } {
 		const cor = this.id("cor");
 		let unit = this.load(changeId);
 		const request = this.deps.ledger.getDecisionRequest(response.decision_id);
-		if (!request) return { view: this.status(changeId), decision: null, error: new DomainError("UNKNOWN_REFERENCE", `decision ${response.decision_id} not found`) };
+		if (!request)
+			return {
+				view: this.status(changeId),
+				decision: null,
+				error: new DomainError("UNKNOWN_REFERENCE", `decision ${response.decision_id} not found`),
+			};
 		const humanDecisionId = this.id("hd");
 		const actor: ActorRef = origin.actor;
-		const res = this.tryCommit(unit, { type: "decision.answer", at: this.now(), actor, human_decision_id: humanDecisionId, response, origin }, cor);
+		const res = this.tryCommit(
+			unit,
+			{ type: "decision.answer", at: this.now(), actor, human_decision_id: humanDecisionId, response, origin },
+			cor,
+		);
 		unit = res.unit;
 		if (res.error) return { view: this.status(changeId), decision: null, error: res.error };
-		const decision: HumanDecision = { human_decision_id: humanDecisionId, request, response, origin, recorded_at: this.now(), revoked: false };
+		const decision: HumanDecision = {
+			human_decision_id: humanDecisionId,
+			request,
+			response,
+			origin,
+			recorded_at: this.now(),
+			revoked: false,
+		};
 		this.deps.ledger.putHumanDecision(decision, changeId);
-		if (request.interaction === "IH-01" && response.option_id === "abandon") unit = this.commit(unit, { type: "change.cancel", at: this.now(), actor, reason: "abandoned at clarification" }, cor);
+		if (request.interaction === "IH-01" && response.option_id === "abandon")
+			unit = this.commit(
+				unit,
+				{ type: "change.cancel", at: this.now(), actor, reason: "abandoned at clarification" },
+				cor,
+			);
 		if (request.interaction === "IH-10" && response.option_id === "correct") {
-			unit = this.commit(unit, { type: "gate.evaluate", gate: "G5", at: this.now(), actor: KERNEL_ACTOR, decision_id: humanDecisionId }, cor);
+			unit = this.commit(
+				unit,
+				{ type: "gate.evaluate", gate: "G5", at: this.now(), actor: KERNEL_ACTOR, decision_id: humanDecisionId },
+				cor,
+			);
 		}
 		if (request.interaction === "IH-11" && (response.option_id === "export_only" || response.option_id === "cancel")) {
-			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "policy_denied", detail: "integration declined by the change owner; the change stays accepted and exportable" }, cor);
+			unit = this.commit(
+				unit,
+				{
+					type: "change.block",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "policy_denied",
+					detail: "integration declined by the change owner; the change stays accepted and exportable",
+				},
+				cor,
+			);
 		}
 		if (request.interaction === "IH-02" && response.option_id === "refuse") {
-			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "policy_denied", detail: `adoption refused by the change owner${response.free_text ? `: ${response.free_text}` : ""}` }, cor);
+			unit = this.commit(
+				unit,
+				{
+					type: "change.block",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "policy_denied",
+					detail: `adoption refused by the change owner${response.free_text ? `: ${response.free_text}` : ""}`,
+				},
+				cor,
+			);
 		}
 		if (request.interaction === "IH-07" && response.option_id === "stop") {
-			unit = this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "attempts_exhausted", detail: "budget extension refused" }, cor);
+			unit = this.commit(
+				unit,
+				{
+					type: "change.block",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "attempts_exhausted",
+					detail: "budget extension refused",
+				},
+				cor,
+			);
 		}
 		return { view: this.status(changeId), decision, error: null };
 	}
@@ -422,16 +791,42 @@ export class Harness {
 		const cor = this.id("cor");
 		let unit = this.load(changeId);
 		if (unit.state.phase !== "verifying") {
-			unit = this.commit(unit, { type: "verification.rerun", at: this.now(), actor: KERNEL_ACTOR, reason: "explicit re-verification requested" }, cor);
+			unit = this.commit(
+				unit,
+				{
+					type: "verification.rerun",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "explicit re-verification requested",
+				},
+				cor,
+			);
 		}
 		unit = await verifyPhase(this.phase, unit, cor);
-		return { view: this.status(changeId), steps: ["verify"], stopped_because: unit.state.status === "blocked" ? "blocked" : "max_steps" };
+		return {
+			view: this.status(changeId),
+			steps: ["verify"],
+			stopped_because: unit.state.status === "blocked" ? "blocked" : "max_steps",
+		};
 	}
 
 	pause(changeId: string, actor: ActorRef): StatusView {
 		let unit = this.load(changeId);
 		const running = runningIntervention(unit.state);
-		if (running) unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: running.intervention_id, result: "cancelled", counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 }, detail: "paused" }, this.id("cor"));
+		if (running)
+			unit = this.commit(
+				unit,
+				{
+					type: "intervention.finish",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					intervention_id: running.intervention_id,
+					result: "cancelled",
+					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
+					detail: "paused",
+				},
+				this.id("cor"),
+			);
 		this.commit(unit, { type: "change.pause", at: this.now(), actor }, this.id("cor"));
 		return this.status(changeId);
 	}
@@ -441,13 +836,37 @@ export class Harness {
 		const cor = this.id("cor");
 		const running = runningIntervention(unit.state);
 		let u = unit;
-		if (running) u = this.commit(u, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: running.intervention_id, result: "failed", counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 }, detail: "intervention was running when the session stopped; treated as failed on resume" }, cor);
-		if (u.state.operation && u.state.operation.kind === "verification") u = this.commit(u, { type: "verification.rerun", at: this.now(), actor: KERNEL_ACTOR, reason: "verification was interrupted; it will be re-run" }, cor);
+		if (running)
+			u = this.commit(
+				u,
+				{
+					type: "intervention.finish",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					intervention_id: running.intervention_id,
+					result: "failed",
+					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
+					detail: "intervention was running when the session stopped; treated as failed on resume",
+				},
+				cor,
+			);
+		if (u.state.operation && u.state.operation.kind === "verification")
+			u = this.commit(
+				u,
+				{
+					type: "verification.rerun",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "verification was interrupted; it will be re-run",
+				},
+				cor,
+			);
 		if (u.state.status === "paused") u = this.commit(u, { type: "change.resume", at: this.now(), actor }, cor);
 		// A block whose cause the kernel declared retryable is lifted whatever its class: the change
 		// goes back to the step that threw and redoes it. Declaring an error retryable and leaving no
 		// entry able to act on it is what loses a change on an invalid structured output.
-		else if (u.state.status === "blocked" && (u.state.stop_reason === "execution_error" || u.state.stop_retryable)) u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor: KERNEL_ACTOR }, cor).unit;
+		else if (u.state.status === "blocked" && (u.state.stop_reason === "execution_error" || u.state.stop_retryable))
+			u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor: KERNEL_ACTOR }, cor).unit;
 		return this.status(changeId);
 	}
 

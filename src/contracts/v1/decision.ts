@@ -1,5 +1,14 @@
 import { Type, type Static } from "typebox";
-import { ActorRef, Closed, HUMAN_INTERACTIONS, Identifier, IsoDateTime, ROLES, SubjectRef, contractId } from "./common.ts";
+import {
+	ActorRef,
+	Closed,
+	HUMAN_INTERACTIONS,
+	Identifier,
+	IsoDateTime,
+	ROLES,
+	SubjectRef,
+	contractId,
+} from "./common.ts";
 
 export const DecisionOption = Type.Object(
 	{ id: Identifier, label: Type.String(), effect: Type.String(), risky: Type.Boolean() },

@@ -65,7 +65,17 @@ export class DomainError extends Error {
 	readonly retryable: boolean;
 	readonly effectState: EffectState;
 	readonly nextActions: string[];
-	constructor(code: DomainErrorCode, summary: string, options: { subject?: SubjectRef | null; phase?: Phase | null; retryable?: boolean; effectState?: EffectState; nextActions?: string[] } = {}) {
+	constructor(
+		code: DomainErrorCode,
+		summary: string,
+		options: {
+			subject?: SubjectRef | null;
+			phase?: Phase | null;
+			retryable?: boolean;
+			effectState?: EffectState;
+			nextActions?: string[];
+		} = {},
+	) {
 		super(summary);
 		this.name = "DomainError";
 		this.code = code;

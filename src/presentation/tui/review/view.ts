@@ -28,13 +28,44 @@ export interface Styles {
 	warn(s: string): string;
 }
 
-export const PLAIN: Styles = { added: (s) => s, modified: (s) => s, deleted: (s) => s, renamed: (s) => s, intact: (s) => s, selected: (s) => s, dim: (s) => s, header: (s) => s, oldBlock: (s) => s, newBlock: (s) => s, focus: (s) => s, warn: (s) => s };
+export const PLAIN: Styles = {
+	added: (s) => s,
+	modified: (s) => s,
+	deleted: (s) => s,
+	renamed: (s) => s,
+	intact: (s) => s,
+	selected: (s) => s,
+	dim: (s) => s,
+	header: (s) => s,
+	oldBlock: (s) => s,
+	newBlock: (s) => s,
+	focus: (s) => s,
+	warn: (s) => s,
+};
 
 export type ReaderMode = "changes" | "new" | "old" | "metadata" | "findings";
 export const MODES: ReaderMode[] = ["changes", "new", "old", "metadata", "findings"];
 
-export const SYMBOL: Record<PathStatus, string> = { intact: "=", added: "A", modified: "M", deleted: "D", renamed: "R", "renamed?": "R?", special: "S", unknown: "?" };
-export const LABEL: Record<PathStatus, string> = { intact: "intact", added: "ajouté", modified: "modifié", deleted: "supprimé", renamed: "renommé", "renamed?": "renommé?", special: "spécial", unknown: "inconnu" };
+export const SYMBOL: Record<PathStatus, string> = {
+	intact: "=",
+	added: "A",
+	modified: "M",
+	deleted: "D",
+	renamed: "R",
+	"renamed?": "R?",
+	special: "S",
+	unknown: "?",
+};
+export const LABEL: Record<PathStatus, string> = {
+	intact: "intact",
+	added: "ajouté",
+	modified: "modifié",
+	deleted: "supprimé",
+	renamed: "renommé",
+	"renamed?": "renommé?",
+	special: "spécial",
+	unknown: "inconnu",
+};
 
 /** A page the surface loaded, or why it could not be loaded. */
 export type LoadedPage = ChangePage | ContentPage | { error: string };
@@ -68,7 +99,66 @@ export interface PaneContext {
 /** The node the tree has selected, or nothing when the tree is empty. */
 export type Selection = ReviewNode | null;
 
-export const FR = { review: "Revue", ref: "référence", cand: "candidat", none: "aucun", fresh: "à jour", newer: "candidat plus récent :", incomplete: "comparaison incomplète", counts: "Statuts", changedOnly: "changements uniquement", allPaths: "arbre complet", from: "depuis", noSelection: "aucune sélection", tree: "arbre", reader: "lecteur", help: "↑↓ naviguer  ⏎ ouvrir  tab focus  c filtre  m mode  n/p fichier  ]/[ modif  x contexte  +/- largeur  / rechercher  q retour", helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q", modes: { changes: "Modifications", new: "Contenu (nouveau)", old: "Contenu (ancien)", metadata: "Métadonnées", findings: "Constats" }, directory: "Répertoire", status: "État", kind: "Type", path: "Chemin", noFindings: "aucun constat sur ce chemin", loading: "chargement…", error: "erreur", lines: "lignes" };
-export const EN = { ...FR, review: "Review", ref: "reference", cand: "candidate", none: "none", fresh: "up to date", newer: "newer candidate:", incomplete: "incomplete comparison", counts: "Statuses", changedOnly: "changes only", allPaths: "full tree", from: "from", noSelection: "no selection", tree: "tree", reader: "reader", help: "↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back", helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q", modes: { changes: "Changes", new: "Content (new)", old: "Content (old)", metadata: "Metadata", findings: "Findings" }, directory: "Directory", status: "Status", kind: "Kind", path: "Path", noFindings: "no finding on this path", loading: "loading…", error: "error", lines: "lines" };
+export const FR = {
+	review: "Revue",
+	ref: "référence",
+	cand: "candidat",
+	none: "aucun",
+	fresh: "à jour",
+	newer: "candidat plus récent :",
+	incomplete: "comparaison incomplète",
+	counts: "Statuts",
+	changedOnly: "changements uniquement",
+	allPaths: "arbre complet",
+	from: "depuis",
+	noSelection: "aucune sélection",
+	tree: "arbre",
+	reader: "lecteur",
+	help: "↑↓ naviguer  ⏎ ouvrir  tab focus  c filtre  m mode  n/p fichier  ]/[ modif  x contexte  +/- largeur  / rechercher  q retour",
+	helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q",
+	modes: {
+		changes: "Modifications",
+		new: "Contenu (nouveau)",
+		old: "Contenu (ancien)",
+		metadata: "Métadonnées",
+		findings: "Constats",
+	},
+	directory: "Répertoire",
+	status: "État",
+	kind: "Type",
+	path: "Chemin",
+	noFindings: "aucun constat sur ce chemin",
+	loading: "chargement…",
+	error: "erreur",
+	lines: "lignes",
+};
+export const EN = {
+	...FR,
+	review: "Review",
+	ref: "reference",
+	cand: "candidate",
+	none: "none",
+	fresh: "up to date",
+	newer: "newer candidate:",
+	incomplete: "incomplete comparison",
+	counts: "Statuses",
+	changedOnly: "changes only",
+	allPaths: "full tree",
+	from: "from",
+	noSelection: "no selection",
+	tree: "tree",
+	reader: "reader",
+	help: "↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back",
+	helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q",
+	modes: { changes: "Changes", new: "Content (new)", old: "Content (old)", metadata: "Metadata", findings: "Findings" },
+	directory: "Directory",
+	status: "Status",
+	kind: "Kind",
+	path: "Path",
+	noFindings: "no finding on this path",
+	loading: "loading…",
+	error: "error",
+	lines: "lines",
+};
 
 export type Labels = typeof FR;

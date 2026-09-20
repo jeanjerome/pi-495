@@ -11,7 +11,15 @@ import type { InterventionRole } from "../contracts/v1/common.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
-import type { AgentPort, ContextManifest, InterventionEvent, InterventionMandate, ModelSelection, SandboxProfile, SandboxSelection } from "../ports/execution.ts";
+import type {
+	AgentPort,
+	ContextManifest,
+	InterventionEvent,
+	InterventionMandate,
+	ModelSelection,
+	SandboxProfile,
+	SandboxSelection,
+} from "../ports/execution.ts";
 import { outputSchemaFor } from "./context.ts";
 
 export interface InterventionDeps {
@@ -68,9 +76,19 @@ export class InterventionSupervisor {
 
 	/** Refuses, before anything is committed, when the sandbox or the model cannot carry the role. */
 	async requireCapable(role: InterventionRole): Promise<void> {
-		if (!this.qualifiedFor(role)) throw new DomainError("CAPABILITY_MISSING", `sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`, { nextActions: ["qualify_capability"] });
+		if (!this.qualifiedFor(role))
+			throw new DomainError(
+				"CAPABILITY_MISSING",
+				`sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`,
+				{ nextActions: ["qualify_capability"] },
+			);
 		const capabilities = await this.deps.agent.describeCapabilities(this.deps.model);
-		if (!capabilities.available) throw new DomainError("CAPABILITY_MISSING", `model ${this.deps.model.provider_id}/${this.deps.model.model_id} unavailable: ${capabilities.reasons.join("; ")}`, { nextActions: ["configure_model"] });
+		if (!capabilities.available)
+			throw new DomainError(
+				"CAPABILITY_MISSING",
+				`model ${this.deps.model.provider_id}/${this.deps.model.model_id} unavailable: ${capabilities.reasons.join("; ")}`,
+				{ nextActions: ["configure_model"] },
+			);
 	}
 
 	/** Cancels the intervention currently running, if any (§12.3). */
@@ -95,7 +113,10 @@ export class InterventionSupervisor {
 			profile: this.profileFor(role, request.workspace_path),
 			workspace_path: request.workspace_path,
 			model: this.deps.model,
-			budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention },
+			budgets: {
+				duration_ms: this.deps.policy.budgets.intervention_ms,
+				tool_calls: this.deps.policy.budgets.tool_calls_per_intervention,
+			},
 			output_schema: outputSchemaFor(role),
 		};
 		this.deps.progress(`intervention ${role} started (${this.deps.model.provider_id}/${this.deps.model.model_id})`);
@@ -117,7 +138,12 @@ export class InterventionSupervisor {
 			}
 		}
 		this.active = null;
-		const t = terminal ?? { type: "failed" as const, at: this.deps.now(), error: "no terminal event", counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 } };
+		const t = terminal ?? {
+			type: "failed" as const,
+			at: this.deps.now(),
+			error: "no terminal event",
+			counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 },
+		};
 		// The tool calls the caller already counted one by one are not counted a second time.
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
 		// A session ended by the duration budget is not a proposal: the producer was still working.
@@ -131,13 +157,25 @@ export class InterventionSupervisor {
 			counters,
 			terminal: t,
 			events: events.filter((e) => e.type !== "model_event").slice(0, 500),
-			detail: t.type === "failed" ? t.error : truncated ? `stopped by the ${this.deps.policy.budgets.intervention_ms} ms duration budget; the workspace keeps the unfinished work` : null,
+			detail:
+				t.type === "failed"
+					? t.error
+					: truncated
+						? `stopped by the ${this.deps.policy.budgets.intervention_ms} ms duration budget; the workspace keeps the unfinished work`
+						: null,
 		};
 	}
 
 	/** The permissions a role runs under: only a role that writes is given a writable path. */
 	private profileFor(role: InterventionMandate["role"], workspacePath: string): SandboxProfile {
 		const writes = role === "implement" || role === "prepare" ? [workspacePath] : [];
-		return { profile_id: role, read_paths: [workspacePath], write_paths: writes, network: "denied", env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"], env: {} };
+		return {
+			profile_id: role,
+			read_paths: [workspacePath],
+			write_paths: writes,
+			network: "denied",
+			env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"],
+			env: {},
+		};
 	}
 }

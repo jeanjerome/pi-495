@@ -18,15 +18,42 @@ const ESC = String.fromCharCode(27);
 const SENTINEL = "495-SDK-HOST:";
 
 let root: string;
-beforeEach(() => { mkdirSync(join(process.cwd(), "test-output"), { recursive: true }); root = mkdtempSync(join(process.cwd(), "test-output", "v3rpc-")); });
+beforeEach(() => {
+	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
+	root = mkdtempSync(join(process.cwd(), "test-output", "v3rpc-"));
+});
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function piAvailable(): boolean {
-	try { execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 }); return true; } catch { return false; }
+	try {
+		execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 });
+		return true;
+	} catch {
+		return false;
+	}
 }
 const skip = !piAvailable() && "pi binary not available";
 
-const SPEC = { objective: "tidy greet", facts: [], assumptions: [], questions: [], answers: [], out_of_scope: [], risks: [], requirements: [{ requirement_id: "R1", statement: "greet unchanged", mandatory: true, criterion: "tests pass", category: "functional", satisfied_by_reference: true }], design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] } };
+const SPEC = {
+	objective: "tidy greet",
+	facts: [],
+	assumptions: [],
+	questions: [],
+	answers: [],
+	out_of_scope: [],
+	risks: [],
+	requirements: [
+		{
+			requirement_id: "R1",
+			statement: "greet unchanged",
+			mandatory: true,
+			criterion: "tests pass",
+			category: "functional",
+			satisfied_by_reference: true,
+		},
+	],
+	design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] },
+};
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n";
 const REQUEST = "/495 start tidy greet without behaviour change";
 
@@ -36,8 +63,27 @@ function channel(name: string): { project: string; env: Record<string, string> }
 	fixtureTs(project);
 	initRepo(project);
 	const agent = join(root, `agent-${name}.json`);
-	writeFileSync(agent, JSON.stringify({ default: { steps: [{ kind: "complete", output: SPEC }] }, roles: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: { summary: "d", changed_paths: ["src/greet.js"], tests_claimed: false, notes: [] } }] } } }));
-	const env: Record<string, string> = { HARNESS495_DATA_DIR: join(root, `data-${name}`), HARNESS495_SCRIPTED_AGENT: agent };
+	writeFileSync(
+		agent,
+		JSON.stringify({
+			default: { steps: [{ kind: "complete", output: SPEC }] },
+			roles: {
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: RIGHT },
+						{
+							kind: "complete",
+							output: { summary: "d", changed_paths: ["src/greet.js"], tests_claimed: false, notes: [] },
+						},
+					],
+				},
+			},
+		}),
+	);
+	const env: Record<string, string> = {
+		HARNESS495_DATA_DIR: join(root, `data-${name}`),
+		HARNESS495_SCRIPTED_AGENT: agent,
+	};
 	if (process.platform !== "darwin") env.HARNESS495_ALLOW_UNCONFINED = "1";
 	return { project, env };
 }
@@ -50,51 +96,121 @@ interface ChangeView {
 	evidence: { control_id: string; verdict: string }[];
 }
 /** The facts and verdicts a channel is required to agree on, whatever it looks like on screen. */
-interface Facts { outcome: string; gates: string; candidate: string; evidence: string }
+interface Facts {
+	outcome: string;
+	gates: string;
+	candidate: string;
+	evidence: string;
+}
 
 function factsOf(view: ChangeView): Facts {
-	return { outcome: view.outcome, gates: view.gates.map((g) => `${g.gate}=${g.verdict}`).join(" "), candidate: view.candidate?.manifest_digest ?? "none", evidence: view.evidence.map((e) => `${e.control_id}=${e.verdict}`).join(" ") };
+	return {
+		outcome: view.outcome,
+		gates: view.gates.map((g) => `${g.gate}=${g.verdict}`).join(" "),
+		candidate: view.candidate?.manifest_digest ?? "none",
+		evidence: view.evidence.map((e) => `${e.control_id}=${e.verdict}`).join(" "),
+	};
 }
 
 /** Print mode has no structured payload: the same facts are read back from the text it prints. */
 function factsOfPrint(text: string): Facts {
 	const read = (re: RegExp) => re.exec(text)?.[1]?.trim() ?? "";
-	return { outcome: read(/^Résultat: (\S+)$/m) || read(/Résultat: (\S+)/), gates: read(/^Gates: (.+)$/m), candidate: read(/^Candidat: \S+ (\S+)$/m), evidence: read(/^Preuves: (.+)$/m) };
+	return {
+		outcome: read(/^Résultat: (\S+)$/m) || read(/Résultat: (\S+)/),
+		gates: read(/^Gates: (.+)$/m),
+		candidate: read(/^Candidat: \S+ (\S+)$/m),
+		evidence: read(/^Preuves: (.+)$/m),
+	};
 }
 
 function views(messages: { details: Record<string, unknown> }[]): ChangeView[] {
-	return messages.map((m) => (m.details as { view?: { change?: ChangeView } }).view?.change).filter((c): c is ChangeView => Boolean(c));
+	return messages
+		.map((m) => (m.details as { view?: { change?: ChangeView } }).view?.change)
+		.filter((c): c is ChangeView => Boolean(c));
 }
 
 function runPrint(cwd: string, env: Record<string, string>, prompt: string): string {
-	const r = spawnSync(PI, ["-ne", "-p", "--no-session", "-e", EXT, prompt], { cwd, encoding: "utf8", timeout: 300_000, env: { ...process.env, ...env }, maxBuffer: 64 * 1024 * 1024 });
+	const r = spawnSync(PI, ["-ne", "-p", "--no-session", "-e", EXT, prompt], {
+		cwd,
+		encoding: "utf8",
+		timeout: 300_000,
+		env: { ...process.env, ...env },
+		maxBuffer: 64 * 1024 * 1024,
+	});
 	if (r.error) throw r.error;
 	return `${r.stdout}${r.stderr}`;
 }
 
-function runJson(cwd: string, env: Record<string, string>, prompt: string): { content: string; details: Record<string, unknown> }[] {
-	const r = spawnSync(PI, ["-ne", "--mode", "json", "--no-session", "-e", EXT, prompt], { cwd, encoding: "utf8", timeout: 300_000, env: { ...process.env, ...env }, maxBuffer: 64 * 1024 * 1024 });
-	if (r.error) throw r.error;
-	return r.stdout.split("\n").filter(Boolean).flatMap((line) => {
-		let event: { type?: string; message?: { customType?: string; content?: unknown; details?: Record<string, unknown> } };
-		try { event = JSON.parse(line) as typeof event; } catch { return []; }
-		if (event.type !== "message_end" || event.message?.customType !== "495") return [];
-		return [{ content: String(event.message.content ?? ""), details: event.message.details ?? {} }];
+function runJson(
+	cwd: string,
+	env: Record<string, string>,
+	prompt: string,
+): { content: string; details: Record<string, unknown> }[] {
+	const r = spawnSync(PI, ["-ne", "--mode", "json", "--no-session", "-e", EXT, prompt], {
+		cwd,
+		encoding: "utf8",
+		timeout: 300_000,
+		env: { ...process.env, ...env },
+		maxBuffer: 64 * 1024 * 1024,
 	});
+	if (r.error) throw r.error;
+	return r.stdout
+		.split("\n")
+		.filter(Boolean)
+		.flatMap((line) => {
+			let event: {
+				type?: string;
+				message?: { customType?: string; content?: unknown; details?: Record<string, unknown> };
+			};
+			try {
+				event = JSON.parse(line) as typeof event;
+			} catch {
+				return [];
+			}
+			if (event.type !== "message_end" || event.message?.customType !== "495") return [];
+			return [{ content: String(event.message.content ?? ""), details: event.message.details ?? {} }];
+		});
 }
 
-function runSdk(cwd: string, env: Record<string, string>, prompts: string[]): { content: string; details: Record<string, unknown> }[] {
-	const r = spawnSync(process.execPath, [SDK_HOST, cwd, EXT, "json", ...prompts], { cwd, encoding: "utf8", timeout: 300_000, env: { ...process.env, ...env }, maxBuffer: 64 * 1024 * 1024 });
+function runSdk(
+	cwd: string,
+	env: Record<string, string>,
+	prompts: string[],
+): { content: string; details: Record<string, unknown> }[] {
+	const r = spawnSync(process.execPath, [SDK_HOST, cwd, EXT, "json", ...prompts], {
+		cwd,
+		encoding: "utf8",
+		timeout: 300_000,
+		env: { ...process.env, ...env },
+		maxBuffer: 64 * 1024 * 1024,
+	});
 	if (r.error) throw r.error;
 	const line = r.stdout.split("\n").find((l) => l.startsWith(SENTINEL));
-	assert.ok(line, `SDK host produced no result line; stdout: ${r.stdout.slice(0, 500)} stderr: ${r.stderr.slice(0, 1000)}`);
-	const parsed = JSON.parse(line.slice(SENTINEL.length)) as { errors: unknown[]; messages: { content: string; details: Record<string, unknown> }[] };
+	assert.ok(
+		line,
+		`SDK host produced no result line; stdout: ${r.stdout.slice(0, 500)} stderr: ${r.stderr.slice(0, 1000)}`,
+	);
+	const parsed = JSON.parse(line.slice(SENTINEL.length)) as {
+		errors: unknown[];
+		messages: { content: string; details: Record<string, unknown> }[];
+	};
 	assert.deepEqual(parsed.errors, [], "the SDK host loaded the package without error");
 	return parsed.messages;
 }
 
-async function runRpc(cwd: string, env: Record<string, string>, prompts: string[], respond?: (r: RpcEvent) => Record<string, unknown> | null): Promise<PiRpcClient> {
-	const client = new PiRpcClient({ bin: PI, args: ["-ne", "--mode", "rpc", "--no-session", "-e", EXT], cwd, env: { ...process.env, ...env }, respond });
+async function runRpc(
+	cwd: string,
+	env: Record<string, string>,
+	prompts: string[],
+	respond?: (r: RpcEvent) => Record<string, unknown> | null,
+): Promise<PiRpcClient> {
+	const client = new PiRpcClient({
+		bin: PI,
+		args: ["-ne", "--mode", "rpc", "--no-session", "-e", EXT],
+		cwd,
+		env: { ...process.env, ...env },
+		respond,
+	});
 	for (let i = 0; i < prompts.length; i++) {
 		client.send({ id: `r${i}`, type: "prompt", message: prompts[i] });
 		await client.waitFor((e) => e.type === "response" && e.id === `r${i}`, 60_000);
@@ -127,7 +243,10 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		assert.equal(printFacts.outcome, rpcFacts.outcome);
 		assert.equal(printFacts.gates, rpcFacts.gates);
 		assert.equal(printFacts.evidence, rpcFacts.evidence);
-		assert.ok(printFacts.candidate.length > 10 && rpcFacts.candidate.startsWith(printFacts.candidate), `${printFacts.candidate} is the prefix of ${rpcFacts.candidate}`);
+		assert.ok(
+			printFacts.candidate.length > 10 && rpcFacts.candidate.startsWith(printFacts.candidate),
+			`${printFacts.candidate} is the prefix of ${rpcFacts.candidate}`,
+		);
 		// The digest is derived from the candidate's content alone, so four channels that produced
 		// the same candidate must name the same one.
 		assert.match(rpcFacts.candidate, /^sha256:[0-9a-f]{64}$/);
@@ -157,7 +276,14 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 
 		// The snapshot identity is derived from the reference tree and the candidate manifest, so
 		// four channels reviewing the same candidate must name the same snapshot and the same paths.
-		const identity = (s: Record<string, unknown>) => ({ snapshot_id: s.snapshot_id, candidate: (s.candidate as { manifest_digest: string } | null)?.manifest_digest ?? null, counts: s.counts, complete: s.complete, fresh: s.fresh, limits: s.limits });
+		const identity = (s: Record<string, unknown>) => ({
+			snapshot_id: s.snapshot_id,
+			candidate: (s.candidate as { manifest_digest: string } | null)?.manifest_digest ?? null,
+			counts: s.counts,
+			complete: s.complete,
+			fresh: s.fresh,
+			limits: s.limits,
+		});
 		assert.deepEqual(identity(sdkSnapshot), identity(rpcSnapshot));
 		assert.deepEqual(identity(jsonSnapshot), identity(rpcSnapshot));
 		// The first line names the change and the commit of this run's repository; everything below
@@ -167,16 +293,25 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		assert.equal(body(rpcReview.content), body(sdkReview.content), "the same textual review");
 		assert.equal(body(rpcReview.content), body(jsonReview.content));
 		const digest = (rpcSnapshot.candidate as { manifest_digest: string }).manifest_digest;
-		for (const text of [rpcReview.content, sdkReview.content, jsonReview.content]) assert.ok(header(text).includes(digest), "every channel names the same candidate digest");
-		for (const line of body(rpcReview.content).split("\n")) assert.ok(printText.includes(line), `print carries the review line: ${line}`);
+		for (const text of [rpcReview.content, sdkReview.content, jsonReview.content])
+			assert.ok(header(text).includes(digest), "every channel names the same candidate digest");
+		for (const line of body(rpcReview.content).split("\n"))
+			assert.ok(printText.includes(line), `print carries the review line: ${line}`);
 		assert.match(rpcReview.content, /modified\s+src\/greet\.js/);
 	});
 
 	it("a decision stays pending for an undeclared RPC client and is recorded from a declared one (D-12, SA-030, SA-031)", async () => {
 		const undeclared = channel("dec-open");
-		const openClient = await runRpc(undeclared.project, { ...undeclared.env, HARNESS495_HUMAN_ACCEPTANCE: "1" }, [REQUEST]);
-		const openText = openClient.messages().map((m) => m.content).join("\n");
-		const dialogs = openClient.uiRequests.filter((r) => r.method === "select" || r.method === "confirm" || r.method === "input");
+		const openClient = await runRpc(undeclared.project, { ...undeclared.env, HARNESS495_HUMAN_ACCEPTANCE: "1" }, [
+			REQUEST,
+		]);
+		const openText = openClient
+			.messages()
+			.map((m) => m.content)
+			.join("\n");
+		const dialogs = openClient.uiRequests.filter(
+			(r) => r.method === "select" || r.method === "confirm" || r.method === "input",
+		);
 		await openClient.close();
 		assert.match(openText, /decision_required/);
 		assert.match(openText, /IH-10/);
@@ -187,13 +322,18 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 
 		const declared = channel("dec-qualified");
 		const answers: string[] = [];
-		const qualifiedClient = await runRpc(declared.project, { ...declared.env, HARNESS495_HUMAN_ACCEPTANCE: "1", HARNESS495_RPC_HUMAN_ACTOR: "alice" }, [REQUEST, "/495 report"], (request) => {
-			if (request.method !== "select") return null;
-			const options = request.options as string[];
-			const accept = options.find((o) => o.startsWith("accept"))!;
-			answers.push(accept);
-			return { value: accept };
-		});
+		const qualifiedClient = await runRpc(
+			declared.project,
+			{ ...declared.env, HARNESS495_HUMAN_ACCEPTANCE: "1", HARNESS495_RPC_HUMAN_ACTOR: "alice" },
+			[REQUEST, "/495 report"],
+			(request) => {
+				if (request.method !== "select") return null;
+				const options = request.options as string[];
+				const accept = options.find((o) => o.startsWith("accept"))!;
+				answers.push(accept);
+				return { value: accept };
+			},
+		);
 		const qualifiedMessages = qualifiedClient.messages();
 		await qualifiedClient.close();
 		assert.equal(answers.length, 1, "exactly one decision dialog travelled over the UI sub-protocol");

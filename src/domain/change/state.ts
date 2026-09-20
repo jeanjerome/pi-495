@@ -1,7 +1,37 @@
-import type { ActorRef, ArtifactRef, CandidateRef, GateId, Phase, ExecStatus, Outcome, StopReason, ProtocolRef, SubjectRef, Verdict, HumanInteraction, InterventionRole } from "../../contracts/v1/common.ts";
+import type {
+	ActorRef,
+	ArtifactRef,
+	CandidateRef,
+	GateId,
+	Phase,
+	ExecStatus,
+	Outcome,
+	StopReason,
+	ProtocolRef,
+	SubjectRef,
+	Verdict,
+	HumanInteraction,
+	InterventionRole,
+} from "../../contracts/v1/common.ts";
 import type { AnsweredQuestion, Obligation } from "../../contracts/v1/protocol.ts";
 
-export type ArtifactKind = "request" | "diagnostic" | "mandate" | "requirements" | "protocol" | "design" | "trajectory" | "preparation" | "feedback" | "review" | "milestone" | "reference" | "candidate" | "context" | "output" | "integration";
+export type ArtifactKind =
+	| "request"
+	| "diagnostic"
+	| "mandate"
+	| "requirements"
+	| "protocol"
+	| "design"
+	| "trajectory"
+	| "preparation"
+	| "feedback"
+	| "review"
+	| "milestone"
+	| "reference"
+	| "candidate"
+	| "context"
+	| "output"
+	| "integration";
 
 export interface AdoptedArtifact {
 	kind: ArtifactKind;
@@ -193,7 +223,19 @@ export interface ChangeState {
 	feedback: { attempt_id: string; digest: string; bytes: number }[];
 }
 
-export const ACTIVE_PHASES: readonly Phase[] = ["intake", "clarifying", "specifying", "verification_design", "preparing", "designing", "implementing", "verifying", "reviewing", "deciding", "integrating"];
+export const ACTIVE_PHASES: readonly Phase[] = [
+	"intake",
+	"clarifying",
+	"specifying",
+	"verification_design",
+	"preparing",
+	"designing",
+	"implementing",
+	"verifying",
+	"reviewing",
+	"deciding",
+	"integrating",
+];
 
 export function isActive(state: ChangeState): boolean {
 	return state.phase !== "closed" && state.status !== "cancelled" && state.status !== "completed";
@@ -233,7 +275,10 @@ interface DeclaringReport {
  * by requirements the document holds, one of them mandatory at least, since G2 freezes an obligation
  * only for those. A declaration that fixes nothing observable binds nothing and always holds.
  */
-function declarationHolds(a: AnswerDeclaration, requirements: { requirement_id: string; mandatory: boolean }[]): boolean {
+function declarationHolds(
+	a: AnswerDeclaration,
+	requirements: { requirement_id: string; mandatory: boolean }[],
+): boolean {
 	if (!a.observable) return true;
 	const named = a.requirement_ids.map((rid) => requirements.find((r) => r.requirement_id === rid));
 	return named.length > 0 && named.every((r) => r !== undefined) && named.some((r) => r?.mandatory);
@@ -248,7 +293,10 @@ function declarationHolds(a: AnswerDeclaration, requirements: { requirement_id: 
  * said. An inherited declaration is dropped as soon as the report stops carrying the requirements it
  * names: it would then bind nothing, and the answer counts as undeclared again.
  */
-export function declarationsOfReport(priors: DeclaringReport[], report: DeclaringReport): Map<string, AnswerDeclaration> {
+export function declarationsOfReport(
+	priors: DeclaringReport[],
+	report: DeclaringReport,
+): Map<string, AnswerDeclaration> {
 	const declared = new Map<string, AnswerDeclaration>();
 	for (const prior of priors) {
 		for (const a of prior.answers) {
@@ -266,7 +314,11 @@ export function declarationsOfReport(priors: DeclaringReport[], report: Declarin
  * before the decision, whatever its text says; a report that declares the answer, even to say it
  * fixes nothing observable, carries it.
  */
-export function answersTheReportIgnores(state: ChangeState, report: { questions: { id: string }[] }, declared: Map<string, AnswerDeclaration>): OpenQuestion[] {
+export function answersTheReportIgnores(
+	state: ChangeState,
+	report: { questions: { id: string }[] },
+	declared: Map<string, AnswerDeclaration>,
+): OpenQuestion[] {
 	const asked = new Set(report.questions.map((q) => q.id));
 	return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !declared.has(q.id));
 }
@@ -291,12 +343,23 @@ export function answersOf(state: ChangeState, declared: Map<string, AnswerDeclar
 		.filter((q) => q.material && q.answer !== null)
 		.map((q) => {
 			const d = declared.get(q.id);
-			return { question_id: q.id, question: q.question, answer: q.answer as string, observable: d?.observable ?? true, requirement_ids: d?.requirement_ids ?? [] };
+			return {
+				question_id: q.id,
+				question: q.question,
+				answer: q.answer as string,
+				observable: d?.observable ?? true,
+				requirement_ids: d?.requirement_ids ?? [],
+			};
 		});
 }
 
 export function subjectOfChange(state: ChangeState): SubjectRef {
-	return { kind: "change", id: state.change_id, revision: Math.max(1, state.revision), digest: state.candidate?.manifest_digest ?? state.reference.digest };
+	return {
+		kind: "change",
+		id: state.change_id,
+		revision: Math.max(1, state.revision),
+		digest: state.candidate?.manifest_digest ?? state.reference.digest,
+	};
 }
 
 export function subjectOfCandidate(state: ChangeState): SubjectRef | null {
@@ -332,12 +395,24 @@ export interface SpecificationStanding {
  * business, and a change is never held by a specification that will not say what it did with an
  * answer.
  */
-export function specificationStanding(state: ChangeState, report: SpecificationReportView | null, priors: SpecificationReportView[]): SpecificationStanding {
+export function specificationStanding(
+	state: ChangeState,
+	report: SpecificationReportView | null,
+	priors: SpecificationReportView[],
+): SpecificationStanding {
 	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
 	const declared = declarationsOfReport(priors, report);
 	const ignored = answersTheReportIgnores(state, report, declared);
 	const previous = priors[priors.length - 1] ?? null;
-	const before = new Set(previous ? answersTheReportCarries(state, declarationsOfReport(priors.slice(0, -1), previous)) : []);
-	const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
-	return { declared, ignored, reopen, settled: !reopen && state.open_questions.every((q) => !q.material || q.answer !== null) };
+	const before = new Set(
+		previous ? answersTheReportCarries(state, declarationsOfReport(priors.slice(0, -1), previous)) : [],
+	);
+	const reopen =
+		ignored.length > 0 && (previous === null || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+	return {
+		declared,
+		ignored,
+		reopen,
+		settled: !reopen && state.open_questions.every((q) => !q.material || q.answer !== null),
+	};
 }

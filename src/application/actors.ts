@@ -5,5 +5,17 @@
  */
 import type { ActorRef } from "../contracts/v1/common.ts";
 
-export const KERNEL_ACTOR: ActorRef = { actor_id: "495-kernel", actor_type: "kernel", role: "kernel", origin: "kernel", authentication_level: "host_qualified" };
-export const EXECUTOR_ACTOR: ActorRef = { actor_id: "495-executor", actor_type: "executor", role: "executor", origin: "executor", authentication_level: "host_qualified" };
+export const KERNEL_ACTOR: ActorRef = {
+	actor_id: "495-kernel",
+	actor_type: "kernel",
+	role: "kernel",
+	origin: "kernel",
+	authentication_level: "host_qualified",
+};
+export const EXECUTOR_ACTOR: ActorRef = {
+	actor_id: "495-executor",
+	actor_type: "executor",
+	role: "executor",
+	origin: "executor",
+	authentication_level: "host_qualified",
+};

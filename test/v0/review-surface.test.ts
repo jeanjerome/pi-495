@@ -7,22 +7,99 @@ import { digestValue } from "../../src/contracts/digest.ts";
 import { diffLines, hunks } from "../../src/application/diff.ts";
 
 function entry(path: string, state: ManifestEntry["baseline_state"], over: Partial<ManifestEntry> = {}): ManifestEntry {
-	return { path, kind: "file", content_digest: digestValue(path + state), size: 1, mode: "000644", symlink_target: null, baseline_state: state, origin: "unknown", limits: null, ...over };
+	return {
+		path,
+		kind: "file",
+		content_digest: digestValue(path + state),
+		size: 1,
+		mode: "000644",
+		symlink_target: null,
+		baseline_state: state,
+		origin: "unknown",
+		limits: null,
+		...over,
+	};
 }
 const ESC = String.fromCharCode(27);
 const limits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
-const reference: ReferenceSnapshot = { reference_id: "ref_1", kind: "git_clean_head", project_path: "/p", head_commit: "a".repeat(40), branch: "main", tree_digest: digestValue("t"), entries: [entry("README.md", "unchanged"), entry("src/a.js", "unchanged"), entry("src/b.js", "unchanged")], exclusions: [], captured_at: "t", limits };
-const manifest: CandidateManifest = { candidate_id: "cand_1", workspace_id: "ws", base_reference_id: "ref_1", base_digest: reference.tree_digest, selected_paths: [], exclusions: [], entries: [entry("README.md", "unchanged"), entry("src/a.js", "modified"), entry("src/b.js", "deleted"), entry("src/c.js", "added"), entry(`bad${ESC}[2Jname.js`, "added")], metadata_policy: "content_and_mode", manifest_digest: digestValue("m"), frozen_at: "t", limits };
+const reference: ReferenceSnapshot = {
+	reference_id: "ref_1",
+	kind: "git_clean_head",
+	project_path: "/p",
+	head_commit: "a".repeat(40),
+	branch: "main",
+	tree_digest: digestValue("t"),
+	entries: [entry("README.md", "unchanged"), entry("src/a.js", "unchanged"), entry("src/b.js", "unchanged")],
+	exclusions: [],
+	captured_at: "t",
+	limits,
+};
+const manifest: CandidateManifest = {
+	candidate_id: "cand_1",
+	workspace_id: "ws",
+	base_reference_id: "ref_1",
+	base_digest: reference.tree_digest,
+	selected_paths: [],
+	exclusions: [],
+	entries: [
+		entry("README.md", "unchanged"),
+		entry("src/a.js", "modified"),
+		entry("src/b.js", "deleted"),
+		entry("src/c.js", "added"),
+		entry(`bad${ESC}[2Jname.js`, "added"),
+	],
+	metadata_policy: "content_and_mode",
+	manifest_digest: digestValue("m"),
+	frozen_at: "t",
+	limits,
+};
 const OLD = "a\nx = a + b;\ny = 1;\n";
 const NEW = "a\nx = a - b;\ny = 1;\nz = 2;\n";
 const query = {
-	async changes(path: string): Promise<ChangePage> { return { path, status: "modified", kind: "text", hunks: hunks(diffLines(OLD, NEW), 3), intraline: {}, metadata: {}, notes: [] }; },
-	async content(path: string, side: "old" | "new"): Promise<ContentPage> { return { path, side, kind: "text", lines: (side === "old" ? OLD : NEW).split("\n"), start_line: 1, total_lines: 4, truncated: false, metadata: {} }; },
+	async changes(path: string): Promise<ChangePage> {
+		return {
+			path,
+			status: "modified",
+			kind: "text",
+			hunks: hunks(diffLines(OLD, NEW), 3),
+			intraline: {},
+			metadata: {},
+			notes: [],
+		};
+	},
+	async content(path: string, side: "old" | "new"): Promise<ContentPage> {
+		return {
+			path,
+			side,
+			kind: "text",
+			lines: (side === "old" ? OLD : NEW).split("\n"),
+			start_line: 1,
+			total_lines: 4,
+			truncated: false,
+			metadata: {},
+		};
+	},
 };
 function surface(rows = 20, narrowThreshold = 100, onExit = () => {}) {
-	const snap = buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" });
+	const snap = buildSnapshot({
+		change_id: "chg_1",
+		reference,
+		manifest,
+		findings: [],
+		newer_candidate: null,
+		now: "t",
+	});
 	let renders = 0;
-	const s = new ReviewSurface({ snapshot: snap, query, rows: () => rows, narrowThreshold, onExit, requestRender: () => { renders++; } });
+	const s = new ReviewSurface({
+		snapshot: snap,
+		query,
+		rows: () => rows,
+		narrowThreshold,
+		onExit,
+		requestRender: () => {
+			renders++;
+		},
+	});
 	return { s, snap, renders: () => renders };
 }
 const visible = (lines: string[]) => lines.map((l) => [...l].length);
@@ -33,7 +110,10 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		const { s } = surface(14);
 		const lines = s.render(120);
 		assert.equal(lines.length, 14);
-		assert.ok(visible(lines).every((n) => n <= 120), JSON.stringify(visible(lines)));
+		assert.ok(
+			visible(lines).every((n) => n <= 120),
+			JSON.stringify(visible(lines)),
+		);
 		const text = lines.join("\n");
 		assert.match(text, /M a\.js/);
 		assert.match(text, /D b\.js/);
@@ -60,7 +140,9 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 	});
 	it("keyboard navigation keeps selection and focus, exits on q without side effects", () => {
 		let exited = 0;
-		const { s } = surface(20, 100, () => { exited++; });
+		const { s } = surface(20, 100, () => {
+			exited++;
+		});
 		s.render(120);
 		const first = s.current()?.path;
 		s.handleInput("\x1b[B");
@@ -84,7 +166,10 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		const { s } = surface(16, 100);
 		s.selectPath("src/a.js");
 		const wide = s.render(120);
-		assert.ok(wide.some((l) => l.includes("│")), "two panes side by side");
+		assert.ok(
+			wide.some((l) => l.includes("│")),
+			"two panes side by side",
+		);
 		const narrow = s.render(60);
 		assert.ok(visible(narrow).every((n) => n <= 60));
 		assert.ok(!narrow.slice(2, 12).some((l) => l.includes("│")), "one pane at a time");
@@ -105,19 +190,54 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.equal(visibleLength(fit(styled, 10)), 10, "padded to the announced width");
 		assert.equal(fit(styled, 2), "a…", "a line cut on its visible text");
 		assert.ok(!fit(styled, 2).includes(ESC), "no sequence leaks out of a cut");
-		assert.equal(visibleLength(`${ESC}]8;;https://example.invalid${ESC}\\link${ESC}]8;;${ESC}\\`), 4, "a hyperlink prints its label only");
+		assert.equal(
+			visibleLength(`${ESC}]8;;https://example.invalid${ESC}\\link${ESC}]8;;${ESC}\\`),
+			4,
+			"a hyperlink prints its label only",
+		);
 	});
 	it("pads every row to the announced width once a theme has styled it, so the panes stay aligned (UX-08)", async () => {
 		const paint = (code: string) => (s: string) => `${ESC}[${code}m${s}${ESC}[39m`;
-		const styles = { added: paint("32"), modified: paint("33"), deleted: paint("31"), renamed: paint("36"), intact: paint("90"), selected: paint("7"), dim: paint("90"), header: paint("1"), oldBlock: paint("31"), newBlock: paint("32"), focus: paint("1"), warn: paint("33") };
-		const snap = buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" });
-		const s = new ReviewSurface({ snapshot: snap, query, styles, rows: () => 14, onExit: () => {}, requestRender: () => {} });
+		const styles = {
+			added: paint("32"),
+			modified: paint("33"),
+			deleted: paint("31"),
+			renamed: paint("36"),
+			intact: paint("90"),
+			selected: paint("7"),
+			dim: paint("90"),
+			header: paint("1"),
+			oldBlock: paint("31"),
+			newBlock: paint("32"),
+			focus: paint("1"),
+			warn: paint("33"),
+		};
+		const snap = buildSnapshot({
+			change_id: "chg_1",
+			reference,
+			manifest,
+			findings: [],
+			newer_candidate: null,
+			now: "t",
+		});
+		const s = new ReviewSurface({
+			snapshot: snap,
+			query,
+			styles,
+			rows: () => 14,
+			onExit: () => {},
+			requestRender: () => {},
+		});
 		s.selectPath("src/a.js");
 		s.render(120);
 		await tick();
 		s.invalidate();
 		const lines = s.render(120);
-		assert.deepEqual([...new Set(lines.map((l) => visibleLength(l)))], [120], "every row is padded to the width it was asked for");
+		assert.deepEqual(
+			[...new Set(lines.map((l) => visibleLength(l)))],
+			[120],
+			"every row is padded to the width it was asked for",
+		);
 		const columns = [...new Set(lines.map((l) => stripSequences(l).indexOf("│")).filter((c) => c >= 0))];
 		assert.equal(columns.length, 1, `the separator sits at one column, saw ${JSON.stringify(columns)}`);
 	});

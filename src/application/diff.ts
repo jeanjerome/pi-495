@@ -2,7 +2,10 @@
  * Line diff (Myers) and intraline highlighting (common prefix/suffix), decision D-06.
  * Segments are typed; presenters render OLD/NEW blocks without `+`/`-` prefixes (UX-07).
  */
-export type Segment = { kind: "unchanged"; old_start: number; new_start: number; lines: string[] } | { kind: "old"; old_start: number; lines: string[] } | { kind: "new"; new_start: number; lines: string[] };
+export type Segment =
+	| { kind: "unchanged"; old_start: number; new_start: number; lines: string[] }
+	| { kind: "old"; old_start: number; lines: string[] }
+	| { kind: "new"; new_start: number; lines: string[] };
 
 export interface Hunk {
 	old_start: number;
@@ -37,7 +40,10 @@ export function myers(a: readonly string[], b: readonly string[]): Op[] {
 			if (k === -d || (k !== d && (v.get(k - 1) ?? 0) < (v.get(k + 1) ?? 0))) x = v.get(k + 1) ?? 0;
 			else x = (v.get(k - 1) ?? 0) + 1;
 			let y = x - k;
-			while (x < n && y < m && a[x] === b[y]) { x++; y++; }
+			while (x < n && y < m && a[x] === b[y]) {
+				x++;
+				y++;
+			}
 			v.set(k, x);
 			if (x >= n && y >= m) break outer;
 		}
@@ -53,10 +59,19 @@ export function myers(a: readonly string[], b: readonly string[]): Op[] {
 		else prevK = k - 1;
 		const prevX = vd.get(prevK) ?? 0;
 		const prevY = prevX - prevK;
-		while (x > prevX && y > prevY) { ops.push({ type: "eq", a: x - 1, b: y - 1 }); x--; y--; }
+		while (x > prevX && y > prevY) {
+			ops.push({ type: "eq", a: x - 1, b: y - 1 });
+			x--;
+			y--;
+		}
 		if (d > 0) {
-			if (x === prevX) { ops.push({ type: "ins", a: x, b: y - 1 }); y--; }
-			else { ops.push({ type: "del", a: x - 1, b: y }); x--; }
+			if (x === prevX) {
+				ops.push({ type: "ins", a: x, b: y - 1 });
+				y--;
+			} else {
+				ops.push({ type: "del", a: x - 1, b: y });
+				x--;
+			}
 		}
 	}
 	return ops.reverse();
@@ -72,13 +87,19 @@ export function diffLines(oldText: string, newText: string): Segment[] {
 		const op = ops[i]!;
 		if (op.type === "eq") {
 			const seg: Segment = { kind: "unchanged", old_start: op.a + 1, new_start: op.b + 1, lines: [] };
-			while (i < ops.length && ops[i]!.type === "eq") { seg.lines.push(a[ops[i]!.a]!); i++; }
+			while (i < ops.length && ops[i]!.type === "eq") {
+				seg.lines.push(a[ops[i]!.a]!);
+				i++;
+			}
 			segments.push(seg);
 			continue;
 		}
 		const dels: Op[] = [];
 		const inss: Op[] = [];
-		while (i < ops.length && ops[i]!.type !== "eq") { (ops[i]!.type === "del" ? dels : inss).push(ops[i]!); i++; }
+		while (i < ops.length && ops[i]!.type !== "eq") {
+			(ops[i]!.type === "del" ? dels : inss).push(ops[i]!);
+			i++;
+		}
 		if (dels.length) segments.push({ kind: "old", old_start: dels[0]!.a + 1, lines: dels.map((d) => a[d.a]!) });
 		if (inss.length) segments.push({ kind: "new", new_start: inss[0]!.b + 1, lines: inss.map((d) => b[d.b]!) });
 	}
@@ -89,7 +110,12 @@ export function diffLines(oldText: string, newText: string): Segment[] {
 export function hunks(segments: Segment[], context = 3): Hunk[] {
 	const out: Hunk[] = [];
 	let current: Hunk | null = null;
-	const close = () => { if (current) { out.push(current); current = null; } };
+	const close = () => {
+		if (current) {
+			out.push(current);
+			current = null;
+		}
+	};
 	for (let i = 0; i < segments.length; i++) {
 		const seg = segments[i]!;
 		if (seg.kind === "unchanged") {
@@ -97,8 +123,20 @@ export function hunks(segments: Segment[], context = 3): Hunk[] {
 				const next = segments[i + 1];
 				if (!next) break;
 				const tail = seg.lines.slice(Math.max(0, seg.lines.length - context));
-				current = { old_start: seg.old_start + seg.lines.length - tail.length, old_count: 0, new_start: seg.new_start + seg.lines.length - tail.length, new_count: 0, segments: [] };
-				if (tail.length) current.segments.push({ kind: "unchanged", old_start: current.old_start, new_start: current.new_start, lines: tail });
+				current = {
+					old_start: seg.old_start + seg.lines.length - tail.length,
+					old_count: 0,
+					new_start: seg.new_start + seg.lines.length - tail.length,
+					new_count: 0,
+					segments: [],
+				};
+				if (tail.length)
+					current.segments.push({
+						kind: "unchanged",
+						old_start: current.old_start,
+						new_start: current.new_start,
+						lines: tail,
+					});
 				current.old_count += tail.length;
 				current.new_count += tail.length;
 			} else if (seg.lines.length > context * 2) {
@@ -110,7 +148,20 @@ export function hunks(segments: Segment[], context = 3): Hunk[] {
 				const next = segments[i + 1];
 				if (!next) break;
 				const tail = seg.lines.slice(seg.lines.length - context);
-				current = { old_start: seg.old_start + seg.lines.length - context, old_count: tail.length, new_start: seg.new_start + seg.lines.length - context, new_count: tail.length, segments: [{ kind: "unchanged", old_start: seg.old_start + seg.lines.length - context, new_start: seg.new_start + seg.lines.length - context, lines: tail }] };
+				current = {
+					old_start: seg.old_start + seg.lines.length - context,
+					old_count: tail.length,
+					new_start: seg.new_start + seg.lines.length - context,
+					new_count: tail.length,
+					segments: [
+						{
+							kind: "unchanged",
+							old_start: seg.old_start + seg.lines.length - context,
+							new_start: seg.new_start + seg.lines.length - context,
+							lines: tail,
+						},
+					],
+				};
 			} else {
 				current.segments.push(seg);
 				current.old_count += seg.lines.length;
@@ -118,7 +169,14 @@ export function hunks(segments: Segment[], context = 3): Hunk[] {
 			}
 			continue;
 		}
-		if (!current) current = { old_start: seg.kind === "old" ? seg.old_start : 1, old_count: 0, new_start: seg.kind === "new" ? seg.new_start : 1, new_count: 0, segments: [] };
+		if (!current)
+			current = {
+				old_start: seg.kind === "old" ? seg.old_start : 1,
+				old_count: 0,
+				new_start: seg.kind === "new" ? seg.new_start : 1,
+				new_count: 0,
+				segments: [],
+			};
 		current.segments.push(seg);
 		if (seg.kind === "old") current.old_count += seg.lines.length;
 		else current.new_count += seg.lines.length;
@@ -132,7 +190,12 @@ export function intraline(oldLine: string, newLine: string): { old: [number, num
 	let p = 0;
 	while (p < oldLine.length && p < newLine.length && oldLine[p] === newLine[p]) p++;
 	let s = 0;
-	while (s < oldLine.length - p && s < newLine.length - p && oldLine[oldLine.length - 1 - s] === newLine[newLine.length - 1 - s]) s++;
+	while (
+		s < oldLine.length - p &&
+		s < newLine.length - p &&
+		oldLine[oldLine.length - 1 - s] === newLine[newLine.length - 1 - s]
+	)
+		s++;
 	const oldSpan = oldLine.length - p - s;
 	const newSpan = newLine.length - p - s;
 	if (p + s === 0) return null;

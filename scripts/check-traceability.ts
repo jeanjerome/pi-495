@@ -97,7 +97,10 @@ if (missing.length > 0) {
 }
 
 /** The matrix states its own totals; a stale count is a matrix that no longer describes the upstream. */
-const announced = /porte (\d+) exigences fonctionnelles `\[P0\]`[^.]*?et (\d+) exigences non\s+fonctionnelles[^.]*?soit (\d+)\./.exec(matrix);
+const announced =
+	/porte (\d+) exigences fonctionnelles `\[P0\]`[^.]*?et (\d+) exigences non\s+fonctionnelles[^.]*?soit (\d+)\./.exec(
+		matrix,
+	);
 if (!announced) {
 	failures.push("TRACEABILITY.md no longer states how many [P0] requirements the upstream carries");
 } else {
@@ -105,7 +108,9 @@ if (!announced) {
 	const expected = [functional.length, nonFunctional.length, functional.length + nonFunctional.length];
 	const stated = [Number(fn), Number(nfr), Number(total)];
 	if (stated.join("/") !== expected.join("/")) {
-		failures.push(`TRACEABILITY.md announces ${stated.join("/")} [P0] requirements, the upstream carries ${expected.join("/")}`);
+		failures.push(
+			`TRACEABILITY.md announces ${stated.join("/")} [P0] requirements, the upstream carries ${expected.join("/")}`,
+		);
 	}
 }
 
@@ -113,4 +118,6 @@ if (failures.length > 0) {
 	console.error(`traceability violations:\n${failures.join("\n")}`);
 	process.exit(1);
 }
-console.log(`traceability complete: ${functional.length} functional + ${nonFunctional.length} non-functional [P0] requirements, all present in the matrix`);
+console.log(
+	`traceability complete: ${functional.length} functional + ${nonFunctional.length} non-functional [P0] requirements, all present in the matrix`,
+);

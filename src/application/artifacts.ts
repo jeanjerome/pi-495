@@ -32,19 +32,33 @@ export class ArtifactRepository {
 	}
 
 	/** Writes the bytes, then the reference that addresses them. A text artifact is kept as text. */
-	async store(kind: ArtifactKind, changeId: string, artifactId: string, content: unknown, producerId: string): Promise<ArtifactRef> {
-		const obj = await this.deps.objects.put(new TextEncoder().encode(typeof content === "string" ? content : canonicalize(content)), typeof content === "string" ? "text/plain; charset=utf-8" : "application/json");
+	async store(
+		kind: ArtifactKind,
+		changeId: string,
+		artifactId: string,
+		content: unknown,
+		producerId: string,
+	): Promise<ArtifactRef> {
+		const obj = await this.deps.objects.put(
+			new TextEncoder().encode(typeof content === "string" ? content : canonicalize(content)),
+			typeof content === "string" ? "text/plain; charset=utf-8" : "application/json",
+		);
 		return this.deps.ledger.putArtifact(kind, changeId, artifactId, obj, producerId, this.deps.now());
 	}
 
 	/** Reads one revision back, and refuses bytes whose digest no longer matches the reference. */
 	async read<T>(ref: Pick<ArtifactRef, "artifact_id" | "revision">): Promise<T> {
 		const stored = this.deps.ledger.getArtifact(ref);
-		if (!stored) throw new DomainError("EVIDENCE_MISSING", `artifact ${ref.artifact_id} r${ref.revision} is missing from the ledger`);
+		if (!stored)
+			throw new DomainError(
+				"EVIDENCE_MISSING",
+				`artifact ${ref.artifact_id} r${ref.revision} is missing from the ledger`,
+			);
 		const bytes = await this.deps.objects.get(stored.object);
 		if (!bytes) throw new DomainError("EVIDENCE_MISSING", `object ${stored.object.digest} is missing from the store`);
 		const text = new TextDecoder().decode(bytes);
-		if (digestBytes(bytes) !== stored.object.digest) throw new DomainError("EVIDENCE_STALE", `object ${stored.object.digest} is corrupted`);
+		if (digestBytes(bytes) !== stored.object.digest)
+			throw new DomainError("EVIDENCE_STALE", `object ${stored.object.digest} is corrupted`);
 		return (stored.object.media_type.startsWith("application/json") ? JSON.parse(text) : text) as T;
 	}
 
@@ -84,7 +98,8 @@ export class ArtifactRepository {
 		if (!prepared) return;
 		for (const f of prepared.files) {
 			const bytes = await this.deps.objects.get(f.digest);
-			if (!bytes) throw new DomainError("EVIDENCE_MISSING", `prepared file ${f.path} (${f.digest}) is missing from the store`);
+			if (!bytes)
+				throw new DomainError("EVIDENCE_MISSING", `prepared file ${f.path} (${f.digest}) is missing from the store`);
 			const target = join(workspacePath, f.path);
 			await mkdir(dirname(target), { recursive: true });
 			await writeFile(target, bytes);
@@ -92,8 +107,13 @@ export class ArtifactRepository {
 	}
 
 	/** The workspace an attempt already opened, when the producer is resumed on its own work. */
-	async workspaceOfAttempt(changeId: string, attemptId: string): Promise<{ workspace_id: string; path: string } | null> {
-		const opened = this.deps.ledger.listArtifacts(changeId, "candidate").find((a) => a.ref.artifact_id === `ws_${attemptId}`);
+	async workspaceOfAttempt(
+		changeId: string,
+		attemptId: string,
+	): Promise<{ workspace_id: string; path: string } | null> {
+		const opened = this.deps.ledger
+			.listArtifacts(changeId, "candidate")
+			.find((a) => a.ref.artifact_id === `ws_${attemptId}`);
 		return opened ? await this.read<{ workspace_id: string; path: string }>(opened.ref) : null;
 	}
 
@@ -106,11 +126,17 @@ export class ArtifactRepository {
 	}
 
 	/** Puts the bytes of each path under `root` in the store, keyed by path. Unreadable paths are skipped. */
-	async storeBytesOf(root: string, paths: string[]): Promise<Record<string, { digest: string; size_bytes: number; media_type: string }>> {
+	async storeBytesOf(
+		root: string,
+		paths: string[],
+	): Promise<Record<string, { digest: string; size_bytes: number; media_type: string }>> {
 		const out: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
 		for (const path of paths) {
 			try {
-				const ref = await this.deps.objects.put(new Uint8Array(await readFile(join(root, path))), "application/octet-stream");
+				const ref = await this.deps.objects.put(
+					new Uint8Array(await readFile(join(root, path))),
+					"application/octet-stream",
+				);
 				out[path] = { digest: ref.digest, size_bytes: ref.size_bytes, media_type: ref.media_type };
 			} catch {
 				/* unreadable file: the manifest already carries the limit */

@@ -63,18 +63,25 @@ if (unrealized.length > 0) {
 
 const undeclared = [...claimedBy.keys()].filter((id) => !declared.has(id));
 if (undeclared.length > 0) {
-	failures.push(`component identifiers claimed in src/ that the catalogue does not declare:\n  ${undeclared.join(", ")}`);
+	failures.push(
+		`component identifiers claimed in src/ that the catalogue does not declare:\n  ${undeclared.join(", ")}`,
+	);
 }
 
 /** Resolves `./x.ts` and `../y/z.ts` against the importing file; anything else is external. */
 function localImports(file: string, text: string): string[] {
 	const out: string[] = [];
-	for (const m of text.matchAll(/(?:from|import\()\s*["'](\.[^"']+)["']/g)) out.push(normalize(join(dirname(file), m[1]!)));
+	for (const m of text.matchAll(/(?:from|import\()\s*["'](\.[^"']+)["']/g))
+		out.push(normalize(join(dirname(file), m[1]!)));
 	return out;
 }
 
 const graph = new Map<string, string[]>();
-for (const [file, text] of sources) graph.set(file, localImports(file, text).filter((p) => sources.has(p)));
+for (const [file, text] of sources)
+	graph.set(
+		file,
+		localImports(file, text).filter((p) => sources.has(p)),
+	);
 
 const cycles: string[] = [];
 const state = new Map<string, 1 | 2>();
@@ -82,7 +89,8 @@ function visit(node: string, stack: string[]): void {
 	state.set(node, 1);
 	stack.push(node);
 	for (const next of graph.get(node) ?? []) {
-		if (state.get(next) === 1) cycles.push([...stack.slice(stack.indexOf(next)), next].map((p) => relative(root, p)).join(" -> "));
+		if (state.get(next) === 1)
+			cycles.push([...stack.slice(stack.indexOf(next)), next].map((p) => relative(root, p)).join(" -> "));
 		else if (!state.has(next)) visit(next, stack);
 	}
 	stack.pop();
@@ -105,4 +113,6 @@ const merged = [...new Set([...claimedBy.values()].flat())]
 	.map((file) => ({ file, ids: [...claimedBy].filter(([, fs]) => fs.includes(file)).map(([id]) => id) }))
 	.filter((m) => m.ids.length > 1);
 for (const m of merged) console.log(`divergence: ${m.file} carries ${m.ids.sort().join(", ")}`);
-console.log(`architecture read back: ${declared.size} declared components, all claimed; ${files.length} modules, no import cycle`);
+console.log(
+	`architecture read back: ${declared.size} declared components, all claimed; ${files.length} modules, no import cycle`,
+);

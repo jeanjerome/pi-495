@@ -33,15 +33,32 @@ export function specReport(over: Partial<SpecificationReport> = {}): Specificati
 		answers: [],
 		out_of_scope: ["documentation"],
 		risks: [],
-		requirements: [{ requirement_id: "R1", statement: "greet returns Hello, <name>", mandatory: true, criterion: "the unit test suite passes", category: "functional", satisfied_by_reference: true }],
-		design: { summary: "change the template literal in src/greet.js", components: ["greet"], interfaces: ["greet(name)"], risks: [] },
+		requirements: [
+			{
+				requirement_id: "R1",
+				statement: "greet returns Hello, <name>",
+				mandatory: true,
+				criterion: "the unit test suite passes",
+				category: "functional",
+				satisfied_by_reference: true,
+			},
+		],
+		design: {
+			summary: "change the template literal in src/greet.js",
+			components: ["greet"],
+			interfaces: ["greet(name)"],
+			risks: [],
+		},
 		...over,
 	};
 }
 
 export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 
-type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & { budgets?: Partial<ActivePolicy["budgets"]>; adoption?: Partial<ActivePolicy["adoption"]> };
+type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & {
+	budgets?: Partial<ActivePolicy["budgets"]>;
+	adoption?: Partial<ActivePolicy["adoption"]>;
+};
 
 export interface HarnessOptions {
 	policy?: PolicyOverride;
@@ -62,16 +79,62 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 	const ledger = new SqliteLedger(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
 	const workspace = new GitWorkspace(join(root, "workspaces"));
-	const sandbox = options.sandbox === "platform" ? selectSandbox({ allow_unconfined: false }) : { backend: new UnconfinedSandbox(), qualification: { ...new UnconfinedSandbox().qualify({ profile_id: "observe", read_paths: [], write_paths: [], network: "denied", env_allowlist: [], env: {} }), qualified: true, reasons: ["test-only: unconfined backend declared qualified for V2"] } };
+	const sandbox =
+		options.sandbox === "platform"
+			? selectSandbox({ allow_unconfined: false })
+			: {
+					backend: new UnconfinedSandbox(),
+					qualification: {
+						...new UnconfinedSandbox().qualify({
+							profile_id: "observe",
+							read_paths: [],
+							write_paths: [],
+							network: "denied",
+							env_allowlist: [],
+							env: {},
+						}),
+						qualified: true,
+						reasons: ["test-only: unconfined backend declared qualified for V2"],
+					},
+				};
 	const real = new GenericControlRunner(sandbox.backend, objects);
 	const controls = options.controls ? options.controls(real) : real;
-	const agent = new ScriptedAgent(options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] }, options.scripts ?? {});
+	const agent = new ScriptedAgent(
+		options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] },
+		options.scripts ?? {},
+	);
 	const sources = fixedSources();
 	const ids = options.ids ?? sources.ids;
 	const requested: DecisionRequest[] = [];
 	const progress: string[] = [];
-	const policy: ActivePolicy = { ...DEFAULT_POLICY, ...(options.policy ?? {}), budgets: { ...DEFAULT_POLICY.budgets, ...(options.policy?.budgets ?? {}) }, adoption: { ...DEFAULT_POLICY.adoption, ...(options.policy?.adoption ?? {}) } };
-	const deps: HarnessDeps = { ledger, objects, workspace, controls, agent, sandbox, clock: sources.clock, ids, policy, workspacePolicy: DEFAULT_WORKSPACE_POLICY, environment: { environment_id: "env_test", digest: digestValue({ test: true }), profile_id: sandbox.backend.backend }, model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off" }, instance_id: "test", denied_read_paths: [root], onDecisionRequested: (r) => requested.push(r), onProgress: (m) => progress.push(m) };
+	const policy: ActivePolicy = {
+		...DEFAULT_POLICY,
+		...(options.policy ?? {}),
+		budgets: { ...DEFAULT_POLICY.budgets, ...(options.policy?.budgets ?? {}) },
+		adoption: { ...DEFAULT_POLICY.adoption, ...(options.policy?.adoption ?? {}) },
+	};
+	const deps: HarnessDeps = {
+		ledger,
+		objects,
+		workspace,
+		controls,
+		agent,
+		sandbox,
+		clock: sources.clock,
+		ids,
+		policy,
+		workspacePolicy: DEFAULT_WORKSPACE_POLICY,
+		environment: {
+			environment_id: "env_test",
+			digest: digestValue({ test: true }),
+			profile_id: sandbox.backend.backend,
+		},
+		model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off" },
+		instance_id: "test",
+		denied_read_paths: [root],
+		onDecisionRequested: (r) => requested.push(r),
+		onProgress: (m) => progress.push(m),
+	};
 	return { harness: new Harness(deps), ledger, objects, agent, root, requested, progress };
 }
 

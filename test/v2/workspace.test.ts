@@ -4,11 +4,23 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY, inspectGit } from "../../src/adapters/workspace/git-workspace.ts";
 import { walkTree, diffEntries, isExcluded } from "../../src/adapters/workspace/walk.ts";
-import { fixtureTs, gitCmd, initRepo, tempDir, writeFiles, fixtureSpecial, fixtureMavenMultiModule, ESC } from "../helpers/fixtures.ts";
+import {
+	fixtureTs,
+	gitCmd,
+	initRepo,
+	tempDir,
+	writeFiles,
+	fixtureSpecial,
+	fixtureMavenMultiModule,
+	ESC,
+} from "../helpers/fixtures.ts";
 
 let root: string;
 let ws: GitWorkspace;
-beforeEach(() => { root = tempDir("495-ws-"); ws = new GitWorkspace(join(root, "workspaces")); });
+beforeEach(() => {
+	root = tempDir("495-ws-");
+	ws = new GitWorkspace(join(root, "workspaces"));
+});
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("reference capture: the five entry situations (§9.1, SA-002, SA-003, GIT-01)", () => {
@@ -27,7 +39,13 @@ describe("reference capture: the five entry situations (§9.1, SA-002, SA-003, G
 		const ref = await ws.captureReference(p, DEFAULT_WORKSPACE_POLICY);
 		assert.equal(ref.kind, "git_no_head");
 		assert.equal(ref.head_commit, null);
-		assert.deepEqual(ref.entries.map((e) => [e.path, e.baseline_state, e.origin]), [["a.txt", "added", "user"], ["src/b.js", "added", "user"]]);
+		assert.deepEqual(
+			ref.entries.map((e) => [e.path, e.baseline_state, e.origin]),
+			[
+				["a.txt", "added", "user"],
+				["src/b.js", "added", "user"],
+			],
+		);
 	});
 	it("clean repository references HEAD and the tree", async () => {
 		const p = join(root, "clean");
@@ -89,9 +107,15 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 			"domain/target/classes/Address.class": "stale bytecode",
 			"infrastructure/target/test-classes/features/User.feature": "stale test resource",
 		});
-		writeFileSync(join(project, "infrastructure", "target", "application.jar"), "x".repeat(DEFAULT_WORKSPACE_POLICY.max_file_bytes + 1));
+		writeFileSync(
+			join(project, "infrastructure", "target", "application.jar"),
+			"x".repeat(DEFAULT_WORKSPACE_POLICY.max_file_bytes + 1),
+		);
 		const retained = await ws.captureReference(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: [] });
-		assert.ok(retained.entries.some((entry) => entry.path.includes("/target/")), "the retained snapshot reproduces the former inventory");
+		assert.ok(
+			retained.entries.some((entry) => entry.path.includes("/target/")),
+			"the retained snapshot reproduces the former inventory",
+		);
 		assert.equal(retained.limits.truncated, true);
 		retained.entries.push({ ...retained.entries[0]!, path: ".DS_Store" });
 
@@ -99,8 +123,14 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.equal(existsSync(join(handle.path, "domain", "target")), false);
 		assert.equal(existsSync(join(handle.path, "infrastructure", "target")), false);
 		const manifest = await ws.snapshotCandidate(handle, retained, DEFAULT_WORKSPACE_POLICY);
-		assert.equal(manifest.entries.some((entry) => entry.path.includes("/target/")), false);
-		assert.equal(manifest.entries.some((entry) => entry.path.endsWith(".DS_Store")), false);
+		assert.equal(
+			manifest.entries.some((entry) => entry.path.includes("/target/")),
+			false,
+		);
+		assert.equal(
+			manifest.entries.some((entry) => entry.path.endsWith(".DS_Store")),
+			false,
+		);
 		assert.deepEqual(manifest.selected_paths, []);
 		assert.equal(manifest.limits.truncated, false);
 		assert.deepEqual(manifest.limits.notes, []);
@@ -125,7 +155,10 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		const handle = await ws.createWorkspace(ref, DEFAULT_WORKSPACE_POLICY);
 		assert.notEqual(handle.path, p);
 		assert.equal(readFileSync(join(handle.path, "notes.txt"), "utf8"), "user\n");
-		writeFileSync(join(handle.path, "src", "greet.js"), "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n");
+		writeFileSync(
+			join(handle.path, "src", "greet.js"),
+			"export function greet(name) {\n  return `Hello, ${name}!`;\n}\n",
+		);
 		writeFileSync(join(handle.path, "src", "new.js"), "export const x = 1;\n");
 		unlinkSync(join(handle.path, "README.md"));
 		chmodSync(join(handle.path, "scripts", "lint.js"), 0o755);
@@ -140,7 +173,13 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.equal(states["notes.txt"], "unchanged");
 		assert.equal(manifest.entries.find((e) => e.path === "notes.txt")?.origin, "user");
 		assert.equal(manifest.entries.find((e) => e.path === "src/new.js")?.origin, "agent");
-		assert.deepEqual(manifest.selected_paths, ["README.md", "scripts/lint.js", "src/alias.js", "src/greet.js", "src/new.js"]);
+		assert.deepEqual(manifest.selected_paths, [
+			"README.md",
+			"scripts/lint.js",
+			"src/alias.js",
+			"src/greet.js",
+			"src/new.js",
+		]);
 		assert.equal(manifest.base_digest, ref.tree_digest);
 		assert.equal(readFileSync(join(p, "README.md"), "utf8"), "# f-ts\n", "project untouched");
 		assert.equal(existsSync(join(p, "src", "new.js")), false);
@@ -163,7 +202,10 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		const m2 = await ws.snapshotCandidate(h2, ref, DEFAULT_WORKSPACE_POLICY);
 		assert.equal(m1.manifest_digest, m2.manifest_digest);
 		writeFileSync(join(h2.path, "x.js"), "2");
-		assert.notEqual((await ws.snapshotCandidate(h2, ref, DEFAULT_WORKSPACE_POLICY)).manifest_digest, m1.manifest_digest);
+		assert.notEqual(
+			(await ws.snapshotCandidate(h2, ref, DEFAULT_WORKSPACE_POLICY)).manifest_digest,
+			m1.manifest_digest,
+		);
 	});
 	it("special files are inventoried honestly: binary digested, escaping symlink kept as a link, executable mode kept (F-SPECIAL)", async () => {
 		const p = join(root, "special");
@@ -175,9 +217,16 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.equal(link?.kind, "symlink");
 		assert.equal(link?.symlink_target, "../etc/passwd");
 		assert.equal(walked.entries.find((e) => e.path === "src/exec.sh")?.mode, "000755");
-		assert.ok(walked.entries.some((e) => e.path.includes(`${ESC}[31m`)), "hostile name preserved as bytes");
+		assert.ok(
+			walked.entries.some((e) => e.path.includes(`${ESC}[31m`)),
+			"hostile name preserved as bytes",
+		);
 		assert.equal(walked.entries.find((e) => e.path === "bin/data.bin")?.size, 5);
-		assert.equal(walked.entries.some((e) => e.path === ".DS_Store" || e.path.includes("/._")), false, "host metadata is not normative content");
+		assert.equal(
+			walked.entries.some((e) => e.path === ".DS_Store" || e.path.includes("/._")),
+			false,
+			"host metadata is not normative content",
+		);
 	});
 	it("a file above the size limit is reported as a limit, not silently skipped (AT-12)", async () => {
 		const p = join(root, "big");

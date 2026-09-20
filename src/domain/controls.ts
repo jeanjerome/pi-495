@@ -46,7 +46,10 @@ export function orderControls(controls: readonly ControlDefinition[]): ControlOr
  * the order they run in. What it reads and what nobody writes is not a prerequisite: it is either
  * already in the tree or absent, and the sensor says so itself.
  */
-export function prerequisitesOf(control: ControlDefinition, controls: readonly ControlDefinition[]): ControlDefinition[] {
+export function prerequisitesOf(
+	control: ControlDefinition,
+	controls: readonly ControlDefinition[],
+): ControlDefinition[] {
 	const needed = new Set<string>();
 	const producers = new Set<string>();
 	const queue = [...control.requires];

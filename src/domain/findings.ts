@@ -50,7 +50,11 @@ export function relativize(text: string, ...workspacePaths: string[]): string {
 }
 
 function squeeze(text: string): string {
-	return text.replace(/\s+/g, " ").trim().replace(/^[\s:,\-–—]+/, "").trim();
+	return text
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/^[\s:,\-–—]+/, "")
+		.trim();
 }
 
 function normalizePath(path: string): string {
@@ -72,8 +76,17 @@ export function locate(message: string): FindingLocation {
 		const line = Number.parseInt(m[2]!, 10);
 		if (!Number.isFinite(line) || line < 1) continue;
 		const column = col ? Number.parseInt(m[3]!, 10) : null;
-		const region: Region = { start_line: line, end_line: line, start_col: column !== null && Number.isFinite(column) ? column : null, end_col: null };
-		return { path: normalizePath(m[1]!), region, text: squeeze(message.slice(0, m.index) + message.slice(m.index + m[0].length)) };
+		const region: Region = {
+			start_line: line,
+			end_line: line,
+			start_col: column !== null && Number.isFinite(column) ? column : null,
+			end_col: null,
+		};
+		return {
+			path: normalizePath(m[1]!),
+			region,
+			text: squeeze(message.slice(0, m.index) + message.slice(m.index + m[0].length)),
+		};
 	}
 	const bare = BARE_PATH.exec(head);
 	if (bare) return { path: normalizePath(bare[1]!), region: null, text: squeeze(message.split(bare[1]!).join(" ")) };
@@ -93,5 +106,11 @@ export interface FindingIdentity {
  * out. Two passes over the same defect agree on it even when the code around it moved.
  */
 export function fingerprintOf(identity: FindingIdentity): string {
-	return digestValue({ tool: identity.tool, rule_id: identity.rule_id, symbol: identity.symbol, path: identity.path, text: squeeze(identity.text) });
+	return digestValue({
+		tool: identity.tool,
+		rule_id: identity.rule_id,
+		symbol: identity.symbol,
+		path: identity.path,
+		text: squeeze(identity.text),
+	});
 }
