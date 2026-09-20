@@ -8,7 +8,7 @@ import { protectedPathsChanged } from "../../domain/gates/g4.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { implementObjective, resumeNote } from "../context.ts";
 import { mirrorsProductionResource } from "../target.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const reference = await ctx.artifacts.reference(unit.state);

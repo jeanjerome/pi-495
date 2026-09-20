@@ -3,7 +3,7 @@
  */
 import type { SubjectRef } from "../../contracts/v1/common.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function integrate(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	if (!ctx.policy.integration_enabled) return ctx.commit(unit, { type: "change.block", at: ctx.now(), actor: KERNEL_ACTOR, reason: "policy_denied", detail: "integration is disabled by policy" }, cor);

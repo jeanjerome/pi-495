@@ -9,7 +9,6 @@ import { digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { DomainError } from "../../domain/errors.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
-import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { git, inspectGit } from "../workspace/git-workspace.ts";
 import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
 import { KERNEL_ACTOR } from "../../application/actors.ts";
@@ -30,10 +29,8 @@ export interface IntegrationReceipt {
 
 export class GitIntegrator {
 	private readonly harness: Harness;
-	private readonly objects: ObjectStorePort;
-	constructor(harness: Harness, objects: ObjectStorePort) {
+	constructor(harness: Harness) {
 		this.harness = harness;
-		this.objects = objects;
 	}
 
 	/** Bound to the controller: one integration step per call. */

@@ -90,9 +90,9 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 		assert.match(String(slow.evidence.facts.incident), /timeout/);
 		const broken = await runner.runControl({ ...base(), control: control({ command: ["/nonexistent/495-runner"] }), workspace_path: ws });
 		assert.equal(broken.evidence.verdict, "INDETERMINATE");
-		const escape = await runner.runControl({ ...base(), control: control({ cwd: "../../" }), workspace_path: ws });
-		assert.equal(escape.evidence.verdict, "INDETERMINATE");
-		assert.match(escape.evidence.limits.notes[0] ?? "", /escapes/);
+		const escaping = await runner.runControl({ ...base(), control: control({ cwd: "../../" }), workspace_path: ws });
+		assert.equal(escaping.evidence.verdict, "INDETERMINATE");
+		assert.match(escaping.evidence.limits.notes[0] ?? "", /escapes/);
 	});
 	it("exit-code parser follows its contract only: lint script", async () => {
 		const ws = join(root, "ws");

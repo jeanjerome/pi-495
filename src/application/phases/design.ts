@@ -5,7 +5,7 @@ import type { Design } from "../../contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function design(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");

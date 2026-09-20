@@ -6,7 +6,7 @@ import type { ReviewReport } from "../../contracts/v1/reports.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { reviewObjective } from "../context.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function review(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const state = unit.state;

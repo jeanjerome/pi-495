@@ -5,7 +5,7 @@ import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
 import type { Protocol } from "../../contracts/v1/protocol.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "../actors.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function verify(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const state = unit.state;

@@ -205,7 +205,7 @@ export async function buildFeedback(state: ChangeState, why: string, sources: Fe
 		const stderr = ev.artifacts.find((a) => a.name === "stderr") ?? ev.artifacts.find((a) => a.name === "stdout");
 		if (stderr) {
 			const bytes = await sources.readBytes(stderr.ref, { offset: 0, length: 8000 });
-			if (bytes) lines.push("  output excerpt:\n" + new TextDecoder().decode(bytes).split("\n").slice(-40).map((l) => `    ${l}`).join("\n"));
+			if (bytes) lines.push(`  output excerpt:\n${new TextDecoder().decode(bytes).split("\n").slice(-40).map((l) => `    ${l}`).join("\n")}`);
 		}
 	}
 	let text = lines.join("\n");

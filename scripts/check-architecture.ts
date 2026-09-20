@@ -63,7 +63,7 @@ if (unrealized.length > 0) {
 
 const undeclared = [...claimedBy.keys()].filter((id) => !declared.has(id));
 if (undeclared.length > 0) {
-	failures.push(`component identifiers claimed in src/ that the catalogue does not declare:\n  ` + undeclared.join(", "));
+	failures.push(`component identifiers claimed in src/ that the catalogue does not declare:\n  ${undeclared.join(", ")}`);
 }
 
 /** Resolves `./x.ts` and `../y/z.ts` against the importing file; anything else is external. */
@@ -89,10 +89,10 @@ function visit(node: string, stack: string[]): void {
 	state.set(node, 2);
 }
 for (const file of files) if (!state.has(file)) visit(file, []);
-if (cycles.length > 0) failures.push(`import cycles in src/:\n  ` + [...new Set(cycles)].join("\n  "));
+if (cycles.length > 0) failures.push(`import cycles in src/:\n  ${[...new Set(cycles)].join("\n  ")}`);
 
 if (failures.length > 0) {
-	console.error("architecture violations:\n" + failures.join("\n"));
+	console.error(`architecture violations:\n${failures.join("\n")}`);
 	process.exit(1);
 }
 

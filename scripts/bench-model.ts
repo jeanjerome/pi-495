@@ -59,7 +59,7 @@ if (!provider || !wantedModel) {
 }
 const BASE = provider.baseUrl.replace(/\/$/, "");
 const HEADERS: Record<string, string> = { "Content-Type": "application/json" };
-if (provider.apiKey) HEADERS["Authorization"] = `Bearer ${provider.apiKey}`;
+if (provider.apiKey) HEADERS.Authorization = `Bearer ${provider.apiKey}`;
 
 // --- deterministic corpus -------------------------------------------------------------------------
 
@@ -175,7 +175,7 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 		stream_options: { include_usage: true },
 		chat_template_kwargs: { enable_thinking: thinking },
 	};
-	if (tools) body["tools"] = tools;
+	if (tools) body.tools = tools;
 	const started = performance.now();
 	let ttft: number | null = null;
 	let usage: Record<string, unknown> = {};
@@ -210,8 +210,7 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 			const { done, value } = await reader.read();
 			if (done) break;
 			buffer += decoder.decode(value, { stream: true });
-			let nl: number;
-			while ((nl = buffer.indexOf("\n")) >= 0) {
+			for (let nl = buffer.indexOf("\n"); nl >= 0; nl = buffer.indexOf("\n")) {
 				const line = buffer.slice(0, nl).trim();
 				buffer = buffer.slice(nl + 1);
 				if (!line.startsWith("data:")) continue;
@@ -231,10 +230,10 @@ async function call(scenario: string, turn: number, messages: Message[], maxToke
 		return failed(`flux interrompu après ${Math.round(performance.now() - started)} ms : ${(error as Error).message}`);
 	}
 	const total = performance.now() - started;
-	const prompt = Number(usage["prompt_tokens"] ?? 0);
-	const details = (usage["prompt_tokens_details"] ?? {}) as Record<string, unknown>;
-	const cached = Number(details["cached_tokens"] ?? 0);
-	const completion = Number(usage["completion_tokens"] ?? 0);
+	const prompt = Number(usage.prompt_tokens ?? 0);
+	const details = (usage.prompt_tokens_details ?? {}) as Record<string, unknown>;
+	const cached = Number(details.cached_tokens ?? 0);
+	const completion = Number(usage.completion_tokens ?? 0);
 	const prefill = Math.max(0, prompt - cached);
 	return {
 		scenario,
@@ -325,18 +324,18 @@ async function fingerprint(): Promise<Record<string, unknown>> {
 		if (!res.ok) return { ...out, admin: `HTTP ${res.status}` };
 		const body = (await res.json()) as { models?: Record<string, unknown>[] };
 		const entry = (body.models ?? []).find((m) => {
-			const s = (m["settings"] ?? {}) as Record<string, unknown>;
-			return m["id"] === wantedModel || s["model_alias"] === wantedModel;
+			const s = (m.settings ?? {}) as Record<string, unknown>;
+			return m.id === wantedModel || s.model_alias === wantedModel;
 		});
 		if (!entry) return { ...out, admin: "model not found in admin listing" };
-		const s = (entry["settings"] ?? {}) as Record<string, unknown>;
+		const s = (entry.settings ?? {}) as Record<string, unknown>;
 		return {
 			...out,
-			resolved_id: entry["id"],
-			engine_type: entry["engine_type"],
-			model_type: entry["model_type"],
-			active_profile_name: s["active_profile_name"] ?? null,
-			model_alias: s["model_alias"] ?? null,
+			resolved_id: entry.id,
+			engine_type: entry.engine_type,
+			model_type: entry.model_type,
+			active_profile_name: s.active_profile_name ?? null,
+			model_alias: s.model_alias ?? null,
 			settings: s,
 		};
 	} catch (error) {
@@ -373,7 +372,7 @@ function summarize(rows: Measure[]): Record<string, unknown> {
 
 const wanted = SCENARIO === "all" ? ["prefill", "decode", "agentic"] : [SCENARIO];
 const config = await fingerprint();
-console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(config["engine_type"] ?? "?")} · profil ${String(config["active_profile_name"] ?? "aucun")}`);
+console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(config.engine_type ?? "?")} · profil ${String(config.active_profile_name ?? "aucun")}`);
 
 // A model the server has not loaded yet answers its first request with the load in it — on this
 // machine some thirty seconds of weights and ANE warm-up. Measured, that would be charged to the
@@ -381,7 +380,7 @@ console.error(`endpoint ${BASE} · model ${wantedModel} · engine ${String(confi
 // one. One unmeasured request pays for it.
 {
 	const warm = await call("warmup", 0, [{ role: "user", content: "ok" }], 4, null, false);
-	const loaded = Number(warm.usage["model_load_duration"] ?? 0);
+	const loaded = Number(warm.usage.model_load_duration ?? 0);
 	if (warm.error) {
 		console.error(`préchauffage refusé : ${warm.error}`);
 		// A model whose load failed is still listed by /v1/models and carries no flag in the admin
@@ -413,7 +412,7 @@ console.error("----------|---------|-------------|---------------|--------------
 for (const name of wanted) {
 	const s = summaries[name] as Record<string, unknown>;
 	console.error(
-		`${name.padEnd(9)} | ${fmt(s["ttft_ms_median"]).padStart(7)} | ${fmt(s["prefill_tokens_median"]).padStart(11)} | ${fmt(s["prefill_tok_s_median"]).padStart(13)} | ${fmt(s["decode_tok_s_median"]).padStart(12)} | ${fmt(s["cached_ratio_median"]).padStart(5)} | ${fmt(s["prompt_tokens_median"]).padStart(9)}`,
+		`${name.padEnd(9)} | ${fmt(s.ttft_ms_median).padStart(7)} | ${fmt(s.prefill_tokens_median).padStart(11)} | ${fmt(s.prefill_tok_s_median).padStart(13)} | ${fmt(s.decode_tok_s_median).padStart(12)} | ${fmt(s.cached_ratio_median).padStart(5)} | ${fmt(s.prompt_tokens_median).padStart(9)}`,
 	);
 }
 const failed = rows.filter((r) => r.error);

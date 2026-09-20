@@ -110,7 +110,7 @@ if (!announced) {
 }
 
 if (failures.length > 0) {
-	console.error("traceability violations:\n" + failures.join("\n"));
+	console.error(`traceability violations:\n${failures.join("\n")}`);
 	process.exit(1);
 }
 console.log(`traceability complete: ${functional.length} functional + ${nonFunctional.length} non-functional [P0] requirements, all present in the matrix`);

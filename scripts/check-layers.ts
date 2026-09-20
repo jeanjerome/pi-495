@@ -42,7 +42,7 @@ for (const rule of rules) {
 	}
 }
 if (violations.length > 0) {
-	console.error("layer violations:\n" + violations.join("\n"));
+	console.error(`layer violations:\n${violations.join("\n")}`);
 	process.exit(1);
 }
 console.log("layer rules satisfied");

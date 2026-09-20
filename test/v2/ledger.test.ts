@@ -162,7 +162,7 @@ describe("CAS object store (§7.3)", () => {
 		assert.equal(new TextDecoder().decode((await cas.get(a))!), "hello");
 		assert.equal(new TextDecoder().decode((await cas.get(a, { offset: 1, length: 3 }))!), "ell");
 		assert.equal(await cas.verify(a.digest), true);
-		assert.equal(await cas.get("sha256:" + "0".repeat(64)), null);
+		assert.equal(await cas.get(`sha256:${"0".repeat(64)}`), null);
 		assert.deepEqual(await cas.listDigests(), [a.digest]);
 	});
 	it("a crash before rename leaves no visible object, only a recoverable temporary", async () => {

@@ -131,6 +131,11 @@ for (const name of peers) {
 // 6. Licences of the installed tree. Nothing here is redistributed, but a reviewer is entitled to
 // the inventory, and a non-permissive licence entering the build must be a decision, not a surprise.
 const ALLOWED = new Set(["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "BlueOak-1.0.0", "CC0-1.0", "Unlicense", "Python-2.0"]);
+
+/** A dual licence is permissive when every branch is: taking one branch would make the choice implicit. */
+function permissive(licence: string): boolean {
+	return licence.replace(/^\(|\)$/g, "").split(" OR ").every((branch) => ALLOWED.has(branch.trim()));
+}
 const licences = new Map<string, string[]>();
 function scanModules(dir: string): void {
 	if (!existsSync(dir)) return;
@@ -154,9 +159,9 @@ function scanModules(dir: string): void {
 	}
 }
 scanModules(join(root, "node_modules"));
-const foreign = [...licences].filter(([licence]) => !ALLOWED.has(licence));
+const foreign = [...licences].filter(([licence]) => !permissive(licence));
 if (foreign.length > 0) {
-	failures.push(`licences outside the permissive allowlist:\n  ` + foreign.map(([licence, pkgs]) => `${licence}: ${pkgs.slice(0, 6).join(", ")}`).join("\n  "));
+	failures.push(`licences outside the permissive allowlist:\n  ${foreign.map(([licence, pkgs]) => `${licence}: ${pkgs.slice(0, 6).join(", ")}`).join("\n  ")}`);
 }
 
 // 7. The licence travels as a copy, not as an address. Apache-2.0 §4(a) asks for a copy of the
@@ -177,7 +182,7 @@ const noise = (pkg.files ?? [])
 if (noise.length > 0) failures.push(`platform files inside the shipped directories: ${noise.join(", ")}`);
 
 if (failures.length > 0) {
-	console.error("distribution violations:\n" + failures.join("\n"));
+	console.error(`distribution violations:\n${failures.join("\n")}`);
 	process.exit(1);
 }
 const total = [...licences.values()].reduce((n, l) => n + l.length, 0);

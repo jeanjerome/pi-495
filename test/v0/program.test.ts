@@ -85,12 +85,12 @@ describe("milestones (SA-038, RM-007, RM-008, PRG-05)", () => {
 			p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: id, change_id: `chg_${id}` });
 			p.run({ type: "increment.result", at: tick(), actor: KERNEL, increment_id: id, status: "integrated", note: null });
 		}
-		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: {}, integrated_digest: "sha256:" + "a".repeat(64) });
+		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: {}, integrated_digest: `sha256:${"a".repeat(64)}` });
 		const ev = p.state!.milestone_evaluations[0]!;
 		assert.equal(ev.verdict, "INDETERMINATE");
 		assert.deepEqual(ev.indeterminate, ["global:PERF-1:NOT_RUN"]);
 		assert.equal(p.state!.closed, false);
-		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: { "PERF-1": "PASS" }, integrated_digest: "sha256:" + "a".repeat(64) });
+		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: { "PERF-1": "PASS" }, integrated_digest: `sha256:${"a".repeat(64)}` });
 		assert.equal(p.state!.milestone_evaluations[1]!.verdict, "PASS");
 		assert.equal(p.state!.closed, true);
 	});
@@ -99,7 +99,7 @@ describe("milestones (SA-038, RM-007, RM-008, PRG-05)", () => {
 		p.run({ type: "trajectory.adopt", at: tick(), actor: HUMAN, increments: [inc("A")], milestones: [{ milestone_id: "M1", title: "m", increment_ids: ["A"], global_requirement_ids: ["E2E"], final: false }], reason: "init" });
 		p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: "A", change_id: "c" });
 		p.run({ type: "increment.result", at: tick(), actor: KERNEL, increment_id: "A", status: "accepted", note: null });
-		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: { E2E: "FAIL" }, integrated_digest: "sha256:" + "a".repeat(64) });
+		p.run({ type: "milestone.evaluate", at: tick(), actor: KERNEL, milestone_id: "M1", global_verdicts: { E2E: "FAIL" }, integrated_digest: `sha256:${"a".repeat(64)}` });
 		assert.equal(p.state!.milestone_evaluations[0]!.verdict, "FAIL");
 	});
 });

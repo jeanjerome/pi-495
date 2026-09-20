@@ -76,7 +76,7 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	it("integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { integration_enabled: true }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: "export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n" }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
-		t.harness.integrator = new GitIntegrator(t.harness, t.objects).step;
+		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change, result } = await acceptedChange(t, p);
 		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
 		assert.equal(t.requested.at(-1)?.interaction, "IH-11");
@@ -100,7 +100,7 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	it("a destination that advanced before integration is detected and re-verified, never merged silently", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { integration_enabled: true }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: "export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n" }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
-		t.harness.integrator = new GitIntegrator(t.harness, t.objects).step;
+		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await acceptedChange(t, p);
 		writeFileSync(join(p, "README.md"), "# advanced by the user\n");
 		gitCmd(p, ["commit", "-qam", "user moved on"]);
@@ -117,7 +117,7 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	it("export-only declines integration and keeps the change accepted", async () => {
 		const p = project();
 		const t = track(makeHarness({ policy: { integration_enabled: true }, scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: "export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n" }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
-		t.harness.integrator = new GitIntegrator(t.harness, t.objects).step;
+		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await acceptedChange(t, p);
 		const req = t.requested.at(-1)!;
 		const a = t.harness.answerDecision(change.change_id, { decision_id: req.decision_id, option_id: "export_only", free_text: null, reason: null, subject_revision: req.subject.revision, scope: null, expires_at: null }, origin());

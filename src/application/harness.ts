@@ -7,12 +7,11 @@
  * for the protocol and the evidence, the target registry for what a stack offers, the review query
  * model for what a candidate shows. This module holds the order of the phases, and nothing else.
  */
-import { join } from "node:path";
 import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, SubjectRef } from "../contracts/v1/common.ts";
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import { type Protocol } from "../contracts/v1/protocol.ts";
+import type { Protocol } from "../contracts/v1/protocol.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
@@ -32,7 +31,7 @@ import { decide as decidePhase } from "./phases/decide.ts";
 import { design } from "./phases/design.ts";
 import { implement } from "./phases/implement.ts";
 import { integrate } from "./phases/integrate.ts";
-import { type PhaseContext, type Unit } from "./phases/phase.ts";
+import type { PhaseContext, Unit } from "./phases/phase.ts";
 import { prepare } from "./phases/prepare.ts";
 import { review } from "./phases/review.ts";
 import { specify } from "./phases/specify.ts";

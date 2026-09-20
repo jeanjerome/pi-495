@@ -1,0 +1,20 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				// tsconfig sets noUncheckedIndexedAccess, so `!` is how an invariant the type cannot see is asserted at the point that knows it.
+				"noNonNullAssertion": "off"
+			},
+			"suspicious": {
+				// Target sources and producer prompts travel as string literals, where `${name}` is the text a candidate must contain.
+				"noTemplateCurlyInString": "off"
+			}
+		}
+	},
+	// The tree has never been machine-formatted: adopting the formatter would rewrite 131 of 134 files in one pass.
+	"formatter": { "enabled": false },
+	"files": { "includes": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"] }
+}

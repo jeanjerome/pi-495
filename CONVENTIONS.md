@@ -36,7 +36,7 @@ forward work — not "green enough for this task."
 **Shift Left (1-10-100):** a defect costs roughly 1× to fix in development, 10× in integration,
 100× in production (IBM Systems Sciences Institute; CloudQA benchmarks). Fix a red gate now.
 
-**Preflight** is `npm run check` — typecheck, test, and the four `lint:*` scripts chained together.
+**Preflight** is `npm run check` — typecheck, test, and the five `lint:*` scripts chained together.
 Preflight MUST pass before a kickoff, develop, or verify phase advances.
 
 ## Discovered Defects
@@ -128,7 +128,9 @@ Never duplicate a fact `docs/` already owns into a `specs/` file. Point at the `
 
 ## Formatting
 
-- Use the project's configured formatter and `tsc --noEmit` for types. No style debates beyond that.
+- Lint with Biome (`npm run lint:code`) and type with `tsc --noEmit`. No style debates beyond that.
+- The formatter stays disabled: the tree has never been machine-formatted, so enabling it would rewrite
+  nearly every file at once and mix a mass reformatting into whatever change is in flight.
 
 ## Logging
 

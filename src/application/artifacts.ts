@@ -76,7 +76,7 @@ export class ArtifactRepository {
 	/** The preparation the kernel adopted, when one was qualified; never a refused proposal. */
 	async adoptedPreparation(state: ChangeState): Promise<PreparationRecord | null> {
 		const a = state.adopted.preparation ? await this.latest<PreparationRecord>(state, "preparation") : null;
-		return a && a.content.qualified ? a.content : null;
+		return a?.content.qualified ? a.content : null;
 	}
 
 	/** Writes the adopted prepared files back into a workspace, from the store and not from a tree. */

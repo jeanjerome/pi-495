@@ -10,7 +10,7 @@ import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ActorRef } from "../contracts/v1/common.ts";
-import type { DecisionRequest, HumanOrigin } from "../contracts/v1/decision.ts";
+import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import { DomainError } from "../domain/errors.ts";
 import { formatDecision, formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";

@@ -9,7 +9,7 @@ import { join } from "node:path";
  */
 export function resolveDataDir(env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string {
 	const override = env.HARNESS495_DATA_DIR;
-	if (override && override.trim()) return override;
+	if (override?.trim()) return override;
 	return join(home, ".495");
 }
 
@@ -20,7 +20,7 @@ export function resolveDataDir(env: NodeJS.ProcessEnv = process.env, home: strin
 export function legacyDataDirs(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform, home: string = homedir()): string[] {
 	if (platform === "darwin") return [join(home, "Library", "Application Support", "495")];
 	if (platform === "win32") return [join(env.LOCALAPPDATA ?? join(home, "AppData", "Local"), "495")];
-	const xdg = env.XDG_DATA_HOME && env.XDG_DATA_HOME.trim() ? env.XDG_DATA_HOME : join(home, ".local", "share");
+	const xdg = env.XDG_DATA_HOME?.trim() ? env.XDG_DATA_HOME : join(home, ".local", "share");
 	return [join(xdg, "495")];
 }
 
@@ -38,7 +38,7 @@ export function resolveWorkspacesDir(
 	temporary: string = tmpdir(),
 ): string {
 	const override = env.HARNESS495_WORKSPACES_DIR;
-	if (override && override.trim()) return override;
+	if (override?.trim()) return override;
 	const colocated = join(dataDir, "workspaces");
 	if (!/\s/.test(colocated)) return colocated;
 	const cache = platform === "darwin" ? join(home, "Library", "Caches", "495", "workspaces") : join(home, ".cache", "495", "workspaces");

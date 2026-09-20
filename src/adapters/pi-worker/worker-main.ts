@@ -43,7 +43,6 @@ class PathGuard {
 async function main(): Promise<void> {
 	const rl = createInterface({ input: process.stdin, crlfDelay: Number.POSITIVE_INFINITY });
 	let mandate: InterventionMandate | null = null;
-	let config: WorkerConfig | null = null;
 	let abortRequested: string | null = null;
 	let truncated = false;
 	let sessionRef: { abort: () => Promise<void> } | null = null;
@@ -58,7 +57,6 @@ async function main(): Promise<void> {
 		}
 		if (msg.type === "mandate" && !mandate) {
 			mandate = msg.mandate;
-			config = msg.config;
 			void run(msg.mandate, msg.config);
 		} else if (msg.type === "abort") {
 			abortRequested = msg.reason;

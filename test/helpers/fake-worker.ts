@@ -38,7 +38,7 @@ rl.on("line", (line) => {
 			break;
 		default:
 			writeFileSync(join(m.workspace_path, "from-worker.txt"), "written by fake worker\n");
-			send({ type: "event", event: { type: "tool_started", at: now(), tool: "write", call_id: "c1", args_digest: "sha256:" + "0".repeat(64) } });
+			send({ type: "event", event: { type: "tool_started", at: now(), tool: "write", call_id: "c1", args_digest: `sha256:${"0".repeat(64)}` } });
 			send({ type: "event", event: { type: "tool_finished", at: now(), tool: "write", call_id: "c1", is_error: false, blocked: false } });
 			send({ type: "event", event: { type: "completed", at: now(), output: { summary: "done", changed_paths: ["from-worker.txt"], tests_claimed: true, notes: [] }, output_valid: true, counters } });
 			setTimeout(() => process.exit(0), 20);

@@ -69,7 +69,7 @@ export interface PhaseContext {
  */
 export async function requestAdoption(ctx: PhaseContext, unit: Unit, cor: string, gate: "G0" | "G1", kind: "mandate" | "requirements", ref: ArtifactRef, language: "fr" | "en"): Promise<Unit> {
 	const decided = unit.state.gates[gate];
-	if (!decided || decided.next_action !== "request_decision:IH-02") return unit;
+	if (decided?.next_action !== "request_decision:IH-02") return unit;
 	const subject: SubjectRef = { kind: "artifact", id: ref.artifact_id, revision: ref.revision, digest: ref.content_digest };
 	return ctx.requestDecision(unit, cor, "IH-02", subject, decided.reasons, null, kind, undefined, language);
 }

@@ -9,7 +9,7 @@ import { preparedFilesFrom, samePreparationPaths } from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
 import { detectStack } from "../target.ts";
 import type { StackDetection } from "../target.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 /** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
 export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {

@@ -4,7 +4,6 @@
  */
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type { ControlCapabilityDiagnosis, RequirementsDocument } from "../../contracts/v1/protocol.ts";
-import { decide } from "../../domain/change/decide.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { preparationMandateObjective } from "../context.ts";
@@ -12,7 +11,7 @@ import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts
 import type { ReferenceSuiteObservation } from "../preparation.ts";
 import { detectStack } from "../target.ts";
 import type { StackDetection } from "../target.ts";
-import { type PhaseContext, type Unit } from "./phase.ts";
+import type { PhaseContext, Unit } from "./phase.ts";
 
 /**
  * Opens the bounded preparation mandate the diagnosis calls for (SA-008). Two refused rounds are

@@ -71,6 +71,6 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		diagnostics.push(`HARNESS495_SCRIPTED_AGENT: interventions are simulated from ${env.HARNESS495_SCRIPTED_AGENT}; no model is called`);
 	}
 	const harness = new Harness({ ledger, objects, workspace, controls, agent, sandbox, clock: systemClock, ids: randomIds, policy: config.policy, workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 }, environment: environment.ref, model: inputs.model, instance_id: randomIds.next("ins"), denied_read_paths: normative });
-	harness.integrator = new GitIntegrator(harness, objects).step;
+	harness.integrator = new GitIntegrator(harness).step;
 	return { harness, ledger, objects, config, dataDir, workspacesDir, diagnostics, sandbox_backend: sandbox.backend.backend, sandbox_qualified: sandbox.qualification.qualified, environment_digest: environment.ref.digest, close: () => ledger.close() };
 }

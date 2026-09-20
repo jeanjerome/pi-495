@@ -376,6 +376,7 @@ class Ctx {
 		return ok(this.events);
 	}
 
+	// biome-ignore lint/correctness/noUnusedFunctionParameters: the six gate methods share one signature so the dispatcher can treat them alike
 	gateG5(c: Extract<ChangeCommand, { gate: "G5" }>): Decision {
 		this.requirePhase("deciding");
 		if (this.state.status === "blocked" || this.state.status === "paused") this.requireNotBlocked();
@@ -404,7 +405,7 @@ class Ctx {
 		if (!integ) this.fail("PRECONDITION_FAILED", "no integration prepared");
 		const reasons: string[] = [];
 		if (!this.state.candidate || c.applied_digest !== this.state.candidate.manifest_digest) reasons.push("applied tree differs from the accepted candidate");
-		if (!this.state.gates.G5 || this.state.gates.G5.verdict !== "PASS") reasons.push("G5 is not passed");
+		if (this.state.gates.G5?.verdict !== "PASS") reasons.push("G5 is not passed");
 		if (this.state.operation && this.state.operation.effect_state !== "confirmed") reasons.push(`integration effect is ${this.state.operation.effect_state}`);
 		const evaluated = { candidate: this.state.candidate?.manifest_digest ?? "", destination_before: integ.destination_before, destination_after: c.destination_after, receipt: c.receipt_digest };
 		if (reasons.length > 0) {
@@ -501,7 +502,7 @@ class Ctx {
 		this.requireKernelAuthority();
 		if (runningIntervention(this.state)) this.fail("PRECONDITION_FAILED", "producers must be stopped before freezing the candidate");
 		const attempt = this.state.attempts.find((a) => a.attempt_id === c.attempt_id);
-		if (!attempt || attempt.result !== "open") this.fail("PRECONDITION_FAILED", `attempt ${c.attempt_id} is not open`);
+		if (attempt?.result !== "open") this.fail("PRECONDITION_FAILED", `attempt ${c.attempt_id} is not open`);
 		if (!this.state.protocol) this.fail("PROTOCOL_NOT_FROZEN", "no protocol frozen");
 		this.emit({ type: "candidate.frozen", ...this.base(), candidate: c.facts.candidate, attempt_id: c.attempt_id, entry_count: c.facts.entry_count });
 		const result = evaluateG4(this.state, c.facts);
@@ -794,11 +795,11 @@ class Ctx {
 		this.requireKernelAuthority();
 		if (!this.policy.integration_enabled) this.fail("POLICY_DENIED", "integration is disabled by policy");
 		const g5 = this.state.gates.G5;
-		if (!g5 || g5.verdict !== "PASS" || !this.state.candidate) this.fail("PRECONDITION_FAILED", "only a candidate accepted at G5 can be integrated (RM-053)");
+		if (g5?.verdict !== "PASS" || !this.state.candidate) this.fail("PRECONDITION_FAILED", "only a candidate accepted at G5 can be integrated (RM-053)");
 		if (g5.evaluated.candidate !== this.state.candidate.manifest_digest) this.fail("EVIDENCE_STALE", "G5 evaluated another candidate");
 		if (!this.state.integration_authorization_id) this.fail("DECISION_REQUIRED", "integration requires a valid IH-11 authorization", ["request_decision:IH-11"]);
 		const auth = this.state.human_decisions.find((d) => d.human_decision_id === this.state.integration_authorization_id);
-		if (!auth || !auth.valid || auth.subject.digest !== this.state.candidate.manifest_digest) this.fail("DECISION_NOT_APPLICABLE", "the integration authorization does not cover this candidate");
+		if (!auth?.valid || auth.subject.digest !== this.state.candidate.manifest_digest) this.fail("DECISION_NOT_APPLICABLE", "the integration authorization does not cover this candidate");
 		if (this.state.operation) {
 			if (this.state.operation.idempotency_key === c.idempotency_key) return ok(this.events);
 			this.fail("OPERATION_ACTIVE", `operation ${this.state.operation.operation_id} is active`);

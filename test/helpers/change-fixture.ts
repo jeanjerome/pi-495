@@ -74,7 +74,7 @@ export function design(over: Partial<Design> = {}): Design {
 	return { change_id: "chg_1", summary: "add greet in src/greet.ts", components: ["greet"], interfaces: ["greet(name)"], alternatives: [], risks: [], requirement_ids: ["R1", "R2"], compatible_with_mandate: true, executable: true, ...over };
 }
 
-export function candidate(seed: string, base = "sha256:" + "0".repeat(64)): CandidateRef {
+export function candidate(seed: string, base = `sha256:${"0".repeat(64)}`): CandidateRef {
 	return { candidate_id: `cand_${seed}`, manifest_digest: digestValue({ seed }), base_digest: base, workspace_id: "ws_1" };
 }
 

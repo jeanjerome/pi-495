@@ -61,10 +61,8 @@ function isBinary(bytes: Uint8Array): boolean {
 	return false;
 }
 
-export interface BytesSource {
-	/** The bytes of a path on one side, or null when that side does not hold it. */
-	(path: string): Promise<Uint8Array | null>;
-}
+/** The bytes of a path on one side, or null when that side does not hold it. */
+export type BytesSource = (path: string) => Promise<Uint8Array | null>;
 
 /**
  * The introduced lines of a frozen candidate, path by path.
