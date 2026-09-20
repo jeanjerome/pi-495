@@ -8,7 +8,6 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { canonicalize } from "../contracts/canonical.ts";
 import { digestValue } from "../contracts/digest.ts";
 import { validate } from "../contracts/validate.ts";
 import type { CandidateRef, EnvironmentRef, ProtocolRef } from "../contracts/v1/common.ts";
@@ -34,6 +33,7 @@ import {
 	type ReferencePass,
 } from "../domain/baseline.ts";
 import type { EvidenceFact } from "../domain/change/commands.ts";
+import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
@@ -438,35 +438,28 @@ export class VerificationCoordinator {
 				findings_blocking: blocking,
 			});
 		}
-		return { facts, candidate_moved: await this.candidateMoved(input) };
+		// Evidence is about the snapshot the protocol froze: the kernel says whether the tree the
+		// controls left behind is still that one (VER-03).
+		const writable = writablePrefixes(protocol.controls);
+		const after = await this.snapshotAfterControls(input, writable);
+		return { facts, candidate_moved: candidateMoved(manifest, after, writable) };
 	}
 
 	/**
-	 * Whether the frozen candidate was written to while the controls ran. What a control declares
-	 * writable is not a mutation — a build writes its outputs there — so both sides are read with
-	 * those paths left out, and only a difference elsewhere counts.
+	 * The candidate tree once the controls have run, taken with their writable declarations excluded:
+	 * a build output is not part of what the two passes have to agree on.
 	 */
-	private async candidateMoved(input: RunInput): Promise<boolean> {
-		const { protocol, manifest, reference } = input;
-		const writable = protocol.controls.flatMap((c) => c.writable_paths.map((p) => (p.endsWith("/") ? p : `${p}/`)));
+	private async snapshotAfterControls(input: RunInput, writable: readonly string[]): Promise<CandidateManifest> {
 		const handle = {
 			workspace_id: input.candidate.workspace_id,
 			path: input.workspace_path,
-			reference_id: reference.reference_id,
+			reference_id: input.reference.reference_id,
 			created_at: this.deps.now(),
 		};
-		const after = await this.deps.workspace.snapshotCandidate(handle, reference, {
+		return await this.deps.workspace.snapshotCandidate(handle, input.reference, {
 			...this.deps.workspacePolicy,
 			exclusions: [...this.deps.workspacePolicy.exclusions, ...writable],
 		});
-		if (after.manifest_digest === manifest.manifest_digest) return false;
-		const observedTree = canonicalize(after.entries.map((e) => [e.path, e.content_digest]));
-		const frozenTree = canonicalize(
-			manifest.entries
-				.filter((e) => !writable.some((w) => e.path.startsWith(w)))
-				.map((e) => [e.path, e.content_digest]),
-		);
-		return observedTree !== frozenTree;
 	}
 
 	/**
