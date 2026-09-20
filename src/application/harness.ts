@@ -310,7 +310,7 @@ export class Harness {
 
 	// --- interventions ---------------------------------------------------------------------------
 
-	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; untrusted?: { source: string; text: string }[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled" | "truncated"; intervention_id: string }> {
+	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled" | "truncated"; intervention_id: string }> {
 		await this.interventions.requireCapable(role);
 		const interventionId = this.id("int");
 		const attemptId = extra.attempt_id ?? (role === "implement" || role === "prepare" ? this.id("att") : null);
@@ -322,11 +322,10 @@ export class Harness {
 			if (a) adopted.push({ kind, artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest, text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2) });
 		}
 		const protocol = await this.artifacts.latest<Protocol>(unit.state, "protocol");
-		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
+		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
 		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or
 		// those digests resolve to nothing and the dossier cannot say what the model read.
 		await this.deps.objects.putText(ctx.record, "application/json");
-		for (const u of extra.untrusted ?? []) await this.deps.objects.putText(u.text, "text/plain");
 		const contextRef = await this.artifacts.store("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
 		// Each tool call is paid for as it happens: what the budget refuses ends the session there.

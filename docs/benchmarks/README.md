@@ -5,7 +5,7 @@ a son fichier daté ; la table de comparaison ci-dessous les met en regard.
 
 Un banc générique répondrait à une question que 495 ne pose pas. `scripts/bench-model.ts` construit
 donc ses prompts avec `buildContext`, le constructeur de contexte du produit : mêmes instructions de
-confiance, mêmes artefacts adoptés, mêmes extraits de projet étiquetés non fiables, même budget
+confiance, mêmes artefacts adoptés, même budget
 d'entrée de 60 000 octets, mêmes outils exposés par `TOOLS_FOR_ROLE`. Ce qui est chronométré est ce
 qu'une intervention envoie.
 
@@ -67,6 +67,13 @@ Mesuré le 18 septembre sur une campagne réelle : les prompts que le harnais en
 **32 878 jetons** et une pointe à 52 359, alors que le scénario `prefill` du banc en prérremplit
 12 437. Le banc décrit donc une charge plus légère que la vraie, et comme le coût de lecture croît
 avec la taille du morceau, il sous-estime vraisemblablement les écarts entre modèles.
+
+Ces deux nombres ont été mesurés quand une intervention portait jusqu'à 48 Ko d'extraits du projet.
+Le harnais n'en envoie plus (D-41) et le banc non plus : une intervention part maintenant d'une
+invite nettement plus courte, et lit ce dont elle a besoin par ses outils, tour par tour — ce que le
+scénario `agentic` décrivait déjà. Les trois lignes du 18 septembre 2026 gardent leur valeur pour
+ordonner les modèles entre eux ; leur colonne « Prefill froid » n'est pas comparable à celle d'une
+mesure prise après ce changement.
 
 Un correctif possible serait d'élargir le budget d'entrée au-delà des 60 000 octets qu'une
 intervention reçoit — mais ce budget est celui du produit, et le banc perdrait sa fidélité en le

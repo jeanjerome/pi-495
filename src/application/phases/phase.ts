@@ -53,7 +53,7 @@ export interface PhaseContext {
 	/** Runs the command through the domain reducer and appends what it accepts, atomically. */
 	commit(unit: Unit, command: ChangeCommand, correlation: string): Unit;
 	/** Composes the context of one bounded agent session, runs it, and records what it produced. */
-	runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; untrusted?: { source: string; text: string }[]; feedback?: string | null; attempt_id?: string | null }): Promise<InterventionOutcome>;
+	runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null }): Promise<InterventionOutcome>;
 	/** Puts a decision to the human and stops the change on it. */
 	requestDecision(unit: Unit, cor: string, interaction: PhaseInteraction, subject: SubjectRef, facts: string[], recommendation: string | null, arg?: string, decisionId?: string, language?: "fr" | "en"): Promise<Unit>;
 	/** The ledger and store reads the feedback document is composed from. */

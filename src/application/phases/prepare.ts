@@ -2,10 +2,9 @@
  * Preparing: a bounded intervention writes the tests no existing control can replace, and the kernel
  * judges them on the bare reference before adopting any of them.
  */
-import type { RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
-import { focusOf, preparationObjective, projectExcerpts } from "../context.ts";
+import { preparationObjective } from "../context.ts";
 import { preparedFilesFrom, samePreparationPaths } from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
 import { detectStack } from "../target.ts";
@@ -30,9 +29,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			unit = ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 			return ctx.commit(unit, { type: "preparation.close", at: ctx.now(), actor: KERNEL_ACTOR, qualified: false, capability_ids: [], adopted_ref: null }, cor);
 		}
-		const adoptedRequirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements").catch(() => null);
-		const excerpts = await projectExcerpts(reference, handle.path, 10, focusOf(mandate.objective, adoptedRequirements?.content.requirements ?? []));
-		const r = await ctx.runIntervention(unit, cor, "prepare", preparationObjective(mandate.objective, mandate.requirement_ids), handle.path, { adopted: ["mandate", "requirements"], untrusted: excerpts, feedback });
+		const r = await ctx.runIntervention(unit, cor, "prepare", preparationObjective(mandate.objective, mandate.requirement_ids), handle.path, { adopted: ["mandate", "requirements"], feedback });
 		unit = r.unit;
 		if (unit.state.status === "blocked") return unit;
 		const notes: string[] = [];

@@ -93,11 +93,6 @@ function javaSource(seed: number, bytes: number, path: string): { source: string
 	return { source: path, text: lines.join("\n").slice(0, bytes) };
 }
 
-/** Untrusted project excerpts filling the input budget the harness gives an intervention. */
-function excerpts(count: number, bytesEach: number): { source: string; text: string }[] {
-	return Array.from({ length: count }, (_, i) => javaSource(i + 1, bytesEach, `domain/src/main/java/io/scalastic/demo/user/domain/Generated${i + 1}.java`));
-}
-
 const OBJECTIVE = "Refuser la création d'un utilisateur dont le nom dépasse 50 caractères, en cohérence avec la validation de nom existante du domaine";
 
 const ADOPTED_MANDATE = JSON.stringify({ change_id: "chg_bench", objective: OBJECTIVE, scope: ["domain/src/main/java"], out_of_scope: ["infrastructure/src/main/resources"], assumptions: ["le mécanisme ValidationException existe"], open_questions: [], allowed_paths: ["domain/src/main/java", "domain/src/test/java"], integration: "disabled", language: "fr" }, null, 2);
@@ -114,7 +109,7 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
 			{ kind: "mandate", artifact_id: "mnd_bench", revision: 1, digest: "sha256:bench", text: ADOPTED_MANDATE },
 			{ kind: "requirements", artifact_id: "req_bench", revision: 1, digest: "sha256:bench", text: ADOPTED_REQUIREMENTS },
 		],
-		untrusted: excerpts(12, 4000),
+		untrusted: [],
 		feedback: null,
 		tools: TOOLS_FOR_ROLE[role],
 		budget_bytes: 60_000,

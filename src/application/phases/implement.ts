@@ -2,11 +2,11 @@
  * Implementing: a producer works in an isolated workspace, and the candidate it leaves is frozen with
  * what it changed and what it touched of the protected paths.
  */
-import type { Mandate, RequirementsDocument } from "../../contracts/v1/protocol.ts";
+import type { Mandate } from "../../contracts/v1/protocol.ts";
 import type { ProducerReport } from "../../contracts/v1/reports.ts";
 import { protectedPathsChanged } from "../../domain/gates/g4.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
-import { focusOf, implementObjective, projectExcerpts, resumeNote } from "../context.ts";
+import { implementObjective, resumeNote } from "../context.ts";
 import { mirrorsProductionResource } from "../target.ts";
 import { type PhaseContext, type Unit } from "./phase.ts";
 
@@ -34,9 +34,7 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 	const feedback = [resume, priorFeedback].filter((x): x is string => Boolean(x)).join("\n\n") || null;
 	const mandate = await ctx.artifacts.latest<Mandate>(unit.state, "mandate");
 	const objective = implementObjective(mandate?.content.objective ?? null);
-	const adoptedRequirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements").catch(() => null);
-	const excerpts = await projectExcerpts(reference, workspacePath, 10, focusOf(objective, adoptedRequirements?.content.requirements ?? []));
-	const r = await ctx.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: excerpts });
+	const r = await ctx.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId });
 	unit = r.unit;
 	if (unit.state.status === "blocked") return unit;
 	if (r.result === "cancelled") return ctx.commit(unit, { type: "change.block", at: ctx.now(), actor: KERNEL_ACTOR, reason: "execution_error", detail: "producer intervention cancelled" }, cor);

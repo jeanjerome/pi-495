@@ -10,7 +10,7 @@ import { validate } from "../../contracts/validate.ts";
 import { specificationStanding, subjectOfChange } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
-import { projectExcerpts, specificationObjective } from "../context.ts";
+import { specificationObjective } from "../context.ts";
 import { Value } from "typebox/value";
 import { type PhaseContext, type Unit, requestAdoption } from "./phase.ts";
 
@@ -26,9 +26,8 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		if (standing.reopen) ctx.progress(`specification reopened by ${standing.ignored.length} material answer(s): ${standing.ignored.map((q) => q.id).join(", ")}`);
 		const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 		try {
-			const excerpts = await projectExcerpts(reference, handle.path, 12, request);
 			const objective = specificationObjective(request, unit.state.open_questions, standing.declared);
-			const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, { untrusted: excerpts });
+			const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, {});
 			unit = r.unit;
 			if (r.result !== "completed" || !r.output_valid || !Value.Check(OUTPUT_SCHEMAS["specification-report"], r.output)) {
 				throw new DomainError("CONFIGURATION_ERROR", `specification intervention ${r.result}${r.result === "completed" ? " with an invalid structured output" : ""}`, { retryable: true, nextActions: ["retry_specification"] });

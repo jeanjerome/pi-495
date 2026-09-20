@@ -487,10 +487,10 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(calls, 2, "the refused specification is written again, on the same change");
 	});
 
-	// A dossier read back must say what produced a report. Before, it held the instructions and the
-	// objective — under a tenth of the prompt — while the project excerpts, which are the bulk of
-	// what the model read, were named by a digest the store did not hold.
-	it("keeps the text every intervention was handed, excerpts included, addressable in the store (CTX-01)", async () => {
+	// A dossier read back must say what produced a report. The manifest names the assembled text by
+	// digest; without the bytes behind that digest it holds the instructions and the objective and
+	// nothing of what was actually sent, and the workspace an intervention ran in is deleted after it.
+	it("keeps the exact text every intervention was handed addressable in the store (CTX-01)", async () => {
 		const p = project();
 		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -506,6 +506,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			const { system_prompt, prompt } = JSON.parse(new TextDecoder().decode(recorded)) as { system_prompt: string; prompt: string };
 			assert.ok(system_prompt.includes(manifest.trusted_instructions[0]!), "the record carries the instructions as sent");
 			assert.ok(prompt.includes(manifest.objective), "the record carries the objective as sent");
+			// Nothing fills this today; whatever ever does must reach the store with the prompt.
 			for (const e of manifest.untrusted_excerpts) {
 				assert.equal(await t.objects.has(e.digest), true, `the excerpt ${e.source} read by ${manifest.role} is named and absent`);
 			}
@@ -582,26 +583,24 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal((await t.ledger.verifyIntegrity()).ok, true);
 	});
 
-	it("hands an intervention the sources it must change, at any depth and ranked by the request", async () => {
+	// Which files an intervention must read is not the harness's to guess: it holds the request and
+	// nothing else, while the model holds the tree and the tools to search it. Measured on a real
+	// tree, a selection scoring the request's words against the paths matched nothing on a French
+	// request over an English tree and fell back to the shallowest paths in alphabetical order —
+	// lint and benchmark scripts, build manifests, and not one file of the module the request named,
+	// for about a third of the median prompt.
+	it("puts no project file in a prompt: an intervention reads the tree with its own tools", async () => {
 		const p = project();
-		// A Maven or Gradle module keeps its code under `<module>/src/main/java/...`: a selection that
-		// only matches the top level hands the model its build manifests and nothing to work from.
-		writeFiles(p, {
-			"modules/core/src/main/java/io/demo/user/UserRepository.java": "class UserRepository {}\n",
-			"modules/core/src/main/java/io/demo/billing/InvoiceFormatter.java": "class InvoiceFormatter {}\n",
-		});
-		const t = track(makeHarness());
-		const { change } = await t.harness.start({ project_path: p, request_text: "Add a postal address to the user repository", actor: HUMAN });
-		await t.harness.advance(change.change_id, { max_steps: 2 });
-		const specify = t.agent.started.find((m) => m.role === "specify");
-		assert.ok(specify, "the specification intervention ran");
-		const sources = specify.context.untrusted_excerpts.map((e) => e.source);
-		assert.ok(sources.includes("modules/core/src/main/java/io/demo/user/UserRepository.java"), `nested sources must be reachable: ${sources.join(", ")}`);
-		assert.ok(sources.some((x) => x.endsWith("package.json")), "build manifests are still there");
-		assert.ok(
-			sources.indexOf("modules/core/src/main/java/io/demo/user/UserRepository.java") < sources.indexOf("modules/core/src/main/java/io/demo/billing/InvoiceFormatter.java"),
-			`the file the request names comes first: ${sources.join(", ")}`,
-		);
+		writeFiles(p, { "modules/core/src/main/java/io/demo/user/UserRepository.java": "class UserRepository {}\n" });
+		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "write", path: "src/greet.js", content: RIGHT }, { kind: "complete", output: report(["src/greet.js"]) }] } } }));
+		const { change } = await t.harness.start({ project_path: p, request_text: "Ajouter une adresse postale au dépôt des utilisateurs", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.ok(t.agent.started.length > 0, "at least one intervention ran");
+		for (const mandate of t.agent.started) {
+			assert.deepEqual(mandate.context.untrusted_excerpts, [], `${mandate.role} was handed project files it never asked for`);
+			assert.ok(!mandate.prompt.includes("Untrusted project content"), `${mandate.role} carries a project excerpt block`);
+			assert.ok(mandate.tools.some((x) => x === "read" || x === "grep" || x === "find" || x === "ls"), `${mandate.role} cannot read the tree itself`);
+		}
 	});
 
 	it("a step that fails after writing still records the block, so the change cannot silently restart", async () => {

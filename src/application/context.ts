@@ -3,15 +3,17 @@
  * by reference and digest, project excerpts explicitly labelled untrusted, a bounded input budget
  * and an explicit output schema per role. The full prompt is derived from the manifest.
  *
- * Everything an intervention is handed is composed here and nowhere else: what it is asked, which
- * project files it is shown, what the previous attempt was refused for, and what it is told when it
- * is resumed on work of its own. A phase names the facts; it does not write the text.
+ * Everything an intervention is handed is composed here and nowhere else: what it is asked, what
+ * the previous attempt was refused for, and what it is told when it is resumed on work of its own.
+ * A phase names the facts; it does not write the text.
+ *
+ * No project file is pushed into a prompt. Which files an intervention needs to read is not the
+ * harness's to guess: it holds the request and nothing else, while the model holds the tree and the
+ * tools to search it. The untrusted block stays, because data that is not authoritative must be
+ * labelled as such wherever it comes from (CTX-05); nothing in the harness fills it today.
  */
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
-import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { AnswerDeclaration, ChangeState } from "../domain/change/state.ts";
 import type { ContextManifest } from "../ports/execution.ts";
@@ -174,45 +176,6 @@ export function reviewObjective(reviewerRole: string, changedPaths: readonly str
 export function resumeNote(interruptions: number): string | null {
 	if (interruptions <= 0) return null;
 	return `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by the duration budget, not by you (${interruptions} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.`;
-}
-
-// --- which project files an intervention is shown ------------------------------------------------
-
-/** The vocabulary an intervention is about: its objective plus the adopted requirement statements. */
-export function focusOf(objective: string, requirements: readonly { statement: string; criterion: string }[]): string {
-	return [objective, ...requirements.map((r) => `${r.statement} ${r.criterion}`)].join(" ");
-}
-
-/**
- * Project excerpts for an intervention. Sources are matched at any depth — a Maven or Gradle
- * module keeps its code under `<module>/src/main/java/...`, never at the root — and ranked by how
- * much of the objective vocabulary their path carries, so the producer is handed the files it has
- * to change rather than the build manifests alone.
- */
-export async function projectExcerpts(reference: ReferenceSnapshot, workspacePath: string, max = 12, focus = ""): Promise<{ source: string; text: string }[]> {
-	const manifest = /(^|\/)(package\.json|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|Cargo\.toml|pyproject\.toml|go\.mod|composer\.json|Gemfile|README(\.md)?|AGENTS\.md|CLAUDE\.md)$/;
-	const source = /\.(java|kt|kts|scala|ts|tsx|js|jsx|mjs|cjs|py|go|rb|rs|cs|php|swift|sql)$/;
-	const words = [...new Set(focus.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])];
-	const depth = (path: string) => path.split("/").length;
-	const score = (path: string) => {
-		const lower = path.toLowerCase();
-		// A shallower file is usually closer to the domain than a deeply nested helper; the tiny
-		// depth penalty only breaks ties between paths that carry the same vocabulary.
-		return words.reduce((n, w) => (lower.includes(w) ? n + 1 : n), 0) - depth(path) / 100;
-	};
-	const files = reference.entries.filter((e) => e.kind === "file" && e.size > 0 && e.content_digest !== null);
-	const manifests = files.filter((e) => manifest.test(e.path)).sort((a, b) => depth(a.path) - depth(b.path) || (a.path < b.path ? -1 : 1));
-	const sources = files.filter((e) => !manifest.test(e.path) && source.test(e.path)).sort((a, b) => score(b.path) - score(a.path) || (a.path < b.path ? -1 : 1));
-	const selected = [...manifests.slice(0, Math.max(1, Math.ceil(max / 3))), ...sources].slice(0, max);
-	const out: { source: string; text: string }[] = [];
-	for (const e of selected) {
-		try {
-			out.push({ source: e.path, text: (await readFile(join(workspacePath, e.path), "utf8")).slice(0, 4000) });
-		} catch {
-			/* unreadable excerpt is simply absent */
-		}
-	}
-	return out;
 }
 
 // --- what the previous attempt was refused for ---------------------------------------------------
