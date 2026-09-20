@@ -58,7 +58,7 @@ demande un capteur éprouvé sur trois témoins.
 
 ```
 Dans ~/Projets/495-pi-package, lis la section « Campagnes depuis Pi sur les cibles » de
-docs/QUALIFICATION.md, puis detectStack dans src/application/target.ts et isExcluded dans
+specs/archive/QUALIFICATION.md, puis detectStack dans src/application/target.ts et isExcluded dans
 src/adapters/workspace/walk.ts.
 
 Deux travaux, indépendants.

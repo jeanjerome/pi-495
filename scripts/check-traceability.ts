@@ -1,16 +1,16 @@
 /**
- * Completeness of the traceability matrix (docs/README.md: `TRACEABILITY.md` names every upstream
+ * Completeness of the traceability matrix (specs/archive/README.md: `TRACEABILITY.md` names every upstream
  * requirement, covered or explicitly not covered). Every `[P0]` identifier declared in
- * docs/amont/expression-besoins.md — `####` for functional requirements, `###` for NFR-01..08 —
- * must appear in the first column of one of the two tables of docs/TRACEABILITY.md. A requirement
+ * specs/archive/amont/expression-besoins.md — `####` for functional requirements, `###` for NFR-01..08 —
+ * must appear in the first column of one of the two tables of specs/archive/TRACEABILITY.md. A requirement
  * absent from both tables has no known state, which is the condition this control refuses.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const upstreamPath = join(root, "docs/amont/expression-besoins.md");
-const matrixPath = join(root, "docs/TRACEABILITY.md");
+const upstreamPath = join(root, "specs/archive/amont/expression-besoins.md");
+const matrixPath = join(root, "specs/archive/TRACEABILITY.md");
 
 /** `AGT-06`, `NFR-01`, `UX-05` — two letters or more, then a zero-padded number. */
 const ID = "[A-Z]{2,}-[0-9]{2,}";

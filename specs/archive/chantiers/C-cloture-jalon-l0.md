@@ -31,9 +31,9 @@ pas franchi.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/MILESTONES.md (jalon L0), puis la section 16 de
-docs/amont/conception-technique.md et la section « Ce qui n'est pas qualifié » de
-docs/STATUS.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/MILESTONES.md (jalon L0), puis la section 16 de
+specs/archive/amont/conception-technique.md et la section « Ce qui n'est pas qualifié » de
+specs/archive/STATUS.md.
 
 Quatre travaux, indépendants.
 
@@ -57,18 +57,18 @@ Critères d'acceptation :
 - chaque ligne de la section 16 possède une décision et une preuve, ou un travail ouvert ;
 - les trois paramètres différés sont fixés avec leur justification ;
 - Linux est qualifié ou explicitement non revendiqué, sans état intermédiaire ;
-- docs/MILESTONES.md et docs/STATUS.md reflètent l'état réel du jalon.
+- specs/archive/MILESTONES.md et specs/archive/STATUS.md reflètent l'état réel du jalon.
 ```
 
 ## Points d'ancrage
 
 | Élément | Emplacement |
 | --- | --- |
-| Risques et preuves attendues | `docs/amont/conception-technique.md` §16 |
-| Sorties d'incrément | `docs/amont/conception-technique.md` §18 |
+| Risques et preuves attendues | `specs/archive/amont/conception-technique.md` §16 |
+| Sorties d'incrément | `specs/archive/amont/conception-technique.md` §18 |
 | Backend Linux | `src/adapters/sandbox/backends.ts`, `bwrap` |
-| Paramètres différés | `docs/amont/specification-fonctionnelle.md`, table des seuils |
-| État déclaré | `docs/STATUS.md`, `docs/MILESTONES.md` |
+| Paramètres différés | `specs/archive/amont/specification-fonctionnelle.md`, table des seuils |
+| État déclaré | `specs/archive/STATUS.md`, `specs/archive/MILESTONES.md` |
 
 ## Journal
 

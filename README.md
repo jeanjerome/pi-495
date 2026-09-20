@@ -80,6 +80,7 @@ HARNESS495_RUN_JAVA=1 node --test test/v4/java-stack.test.ts   # F-JAVA (JDK + M
 node scripts/e2e-local-model.ts                                   # intervention réelle avec le modèle Pi
 ```
 
-Toute la documentation est sous `docs/`, dont `docs/README.md` est l'index : les documents amont
-et normatifs dans `docs/amont/`, le suivi de l'implémentation à la racine de `docs/`, et les
-travaux ouverts dans `docs/chantiers/`.
+Toute la documentation est sous `specs/`, dont `specs/README.md` est l'index. Le corpus rédigé
+avant la bascule est archivé sous `specs/archive/`, dans sa disposition d'origine : les documents
+amont et normatifs dans `specs/archive/amont/`, le suivi de l'implémentation à la racine de
+`specs/archive/`, et les travaux ouverts dans `specs/archive/chantiers/`.

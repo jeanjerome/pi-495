@@ -69,7 +69,7 @@ hors périmètre — le feedback fonctionne. Mais il a fallu le payer.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/chantiers/J-mandat-de-preparation-contradictoire.md, puis
+Dans ~/Projets/495-pi-package, lis specs/archive/chantiers/J-mandat-de-preparation-contradictoire.md, puis
 dans le code : l'instruction poussée aux rôles prepare et implement dans src/application/context.ts
 (buildContext, la branche `The kernel will judge your work by running`), l'objectif construit par
 openPreparation dans src/application/harness.ts, preparedFilesFrom dans
@@ -80,7 +80,7 @@ préparation dont l'intervention écrit un fichier de travail hors des racines a
 script, un journal — en plus de tests corrects, et qui échoue aujourd'hui parce que la préparation
 est refusée alors que ses tests sont valides.
 
-Décide ensuite ce qui porte la tolérance, et écris la décision dans docs/DECISIONS.md. Deux formes
+Décide ensuite ce qui porte la tolérance, et écris la décision dans specs/archive/DECISIONS.md. Deux formes
 au moins :
 
   - le mandat énonce ce qui est RETENU plutôt que ce qui est PERMIS — « seuls les fichiers sous ces

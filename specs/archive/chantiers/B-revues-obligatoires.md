@@ -7,7 +7,7 @@ autorité ou un environnement absents
 
 ## Motif
 
-`docs/amont/conception-verification.md` §11 rend six revues obligatoires à la qualification d'une
+`specs/archive/amont/conception-verification.md` §11 rend six revues obligatoires à la qualification d'une
 livraison : fonctionnelle, architecture, sécurité, UX et accessibilité, licences et distribution,
 exploitation. La règle de décision de livraison du même document en fait une condition : les
 constats bloquants doivent être clos, refusés explicitement par l'autorité compétente, ou couverts
@@ -24,8 +24,8 @@ exercé avec un reviewer humain ni avec un modèle réel.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/amont/conception-verification.md sections 11 et 12,
-puis la section « Ce qui n'est pas qualifié » de docs/STATUS.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/amont/conception-verification.md sections 11 et 12,
+puis la section « Ce qui n'est pas qualifié » de specs/archive/STATUS.md.
 
 Six revues sont obligatoires : fonctionnelle, architecture, sécurité, UX et accessibilité,
 licences et distribution, exploitation. Aucune n'est faite.
@@ -57,25 +57,25 @@ Critères d'acceptation :
 - les trois revues conduisibles sont conduites, leurs constats enregistrés et leurs bloquants
   soit clos, soit ouverts comme travail identifié ;
 - les trois autres sont déclarées en attente avec l'autorité ou l'environnement manquant ;
-- docs/STATUS.md reflète l'état réel de chacune.
+- specs/archive/STATUS.md reflète l'état réel de chacune.
 ```
 
 ## Points d'ancrage
 
 | Élément | Emplacement |
 | --- | --- |
-| Liste et objet des revues | `docs/amont/conception-verification.md` §11 |
-| Condition de livraison | `docs/amont/conception-verification.md` §12, points 5 et 8 |
+| Liste et objet des revues | `specs/archive/amont/conception-verification.md` §11 |
+| Condition de livraison | `specs/archive/amont/conception-verification.md` §12, points 5 et 8 |
 | Mandat de revue en lecture seule | rôle `review` de `context.ts`, profil d'exécution associé |
 | Arbitrage de constats incompatibles | IH-08, G5 |
 | Dossier remis au reviewer | `src/export/`, `export-service.ts` |
-| Les six dossiers | `docs/revues/` |
+| Les six dossiers | `specs/archive/revues/` |
 
 ## Journal
 
 **17 septembre 2026 — les six dossiers, trois revues conduites.**
 
-`docs/revues/` porte un dossier par revue : périmètre exact, critères rattachés à une exigence
+`specs/archive/revues/` porte un dossier par revue : périmètre exact, critères rattachés à une exigence
 amont, preuves disponibles avec ce que chacune établit, format de constat, et ce que le reviewer ne
 peut pas conclure faute de preuve. Le format de constat est l'enveloppe canonique `Finding`,
 catégorie `review`, avec trois verdicts par critère : conforme, constat, indéterminé — `indéterminé`

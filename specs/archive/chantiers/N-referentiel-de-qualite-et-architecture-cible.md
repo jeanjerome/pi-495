@@ -20,7 +20,7 @@ référence elle-même — ce qui est exactement ce que `QLT-02` (baseline de l'
 
 Une distinction à ne pas perdre en route : adopter Biome sur le code du harnais (`D-42`, `D-43`)
 applique à 495 la discipline que `QLT-01` décrit ; cela ne donne au noyau **aucune** des capacités
-que `QLT-01` exige pour une cible. `docs/TRACEABILITY.md` le dit à ses lignes 71 et 72, et reste
+que `QLT-01` exige pour une cible. `specs/archive/TRACEABILITY.md` le dit à ses lignes 71 et 72, et reste
 inchangée tant que rien n'est tenu.
 
 ## Ce qui est déjà là
@@ -78,12 +78,12 @@ Ces quatre-là ne se tranchent pas dans le code.
 
 ```
 Dans ~/Projets/495-pi-package, lis d'abord AGENTS.md et CONVENTIONS.md, puis
-docs/chantiers/N-referentiel-de-qualite-et-architecture-cible.md en entier.
+specs/archive/chantiers/N-referentiel-de-qualite-et-architecture-cible.md en entier.
 
 Objet : donner au noyau la capacité QLT-01 — permettre de définir, pour une cible, les
 conventions, seuils et contrôles pertinents par technologie et par composant, chaque règle
 exposant son oracle, toute recommandation « état de l'art » portant sa source et sa date
-d'adoption. Lis la formulation exacte en §4.17 de docs/amont/expression-besoins.md, et la
+d'adoption. Lis la formulation exacte en §4.17 de specs/archive/amont/expression-besoins.md, et la
 recette REC-35 du même document.
 
 Ne commence pas par écrire du code. Commence par répondre aux quatre questions matérielles de
@@ -95,19 +95,19 @@ décide de la forme de tout le reste.
 ce sont les deux capteurs de la même famille déjà livrés, et la forme à reprendre.
 
 Contraintes : tout CMP-* nouveau reçoit sa ligne au catalogue §4.1 de
-docs/amont/conception-technique.md dans le même changement ; npm run check doit être vert avant
-et après ; QLT-01 ne s'inscrit dans docs/TRACEABILITY.md que pour ce qui est réellement tenu et
+specs/archive/amont/conception-technique.md dans le même changement ; npm run check doit être vert avant
+et après ; QLT-01 ne s'inscrit dans specs/archive/TRACEABILITY.md que pour ce qui est réellement tenu et
 éprouvé sur une cible.
 ```
 
 ## Points d'ancrage
 
-- `docs/amont/expression-besoins.md` §4.16 (`ARC-01..05`) et §4.17 (`QLT-01..05`) ; recettes `REC-33`
+- `specs/archive/amont/expression-besoins.md` §4.16 (`ARC-01..05`) et §4.17 (`QLT-01..05`) ; recettes `REC-33`
   à `REC-36`
-- `docs/TRACEABILITY.md` lignes 71 et 72 (absences déclarées), ligne 34 (`ARC-04` / `CON-03` et le
+- `specs/archive/TRACEABILITY.md` lignes 71 et 72 (absences déclarées), ligne 34 (`ARC-04` / `CON-03` et le
   manque `ARC-01`), ligne 33 (`QLT-04` et ce qu'il ne couvre pas)
-- `docs/ROADMAP.md` §1 « le contrôle de l'introduit » et §2 « la moitié de P0 non commencée »
-- `docs/DECISIONS.md` `D-42` et `D-43` — l'adoption d'un référentiel externe sur le harnais, et
+- `specs/archive/ROADMAP.md` §1 « le contrôle de l'introduit » et §2 « la moitié de P0 non commencée »
+- `specs/archive/DECISIONS.md` `D-42` et `D-43` — l'adoption d'un référentiel externe sur le harnais, et
   pourquoi elle ne vaut pas `QLT-01`
 - `src/application/coverage.ts`, `src/adapters/execution/structure.ts`, `src/application/target.ts`
 - `src/contracts/v1/evidence.ts` (`FINDING_CATEGORIES`, `baseline_state`), `src/contracts/v1/protocol.ts`

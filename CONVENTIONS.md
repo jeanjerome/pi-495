@@ -65,26 +65,33 @@ Never use these phrases, or a close paraphrase, to wave off a reproducible failu
 | Not introduced by my changes | Bisect it or fix it anyway. A solo owner owns the whole tree. |
 | Out of scope | Invoke quick-fix or fix-bug. Scope-minimization never overrides Always Green. |
 
-## specs/ — bigpowers workflow bookkeeping (docs/ stays authoritative)
+## specs/ — the documentation surface
 
-495 already runs its own governance system under `docs/` (indexed by `docs/README.md`):
-`docs/amont/` is the normative specification and wins on conflict; `docs/STATUS.md`,
-`docs/TRACEABILITY.md`, `docs/DECISIONS.md`, `docs/RISQUES-L0.md`, and `docs/revues/` track
-implementation; `docs/chantiers/` tracks open work. `specs/` does not replace any of that — it
-carries only the bookkeeping bigpowers skills themselves need.
+`specs/` carries the documentation of 495, at its bigpowers location. The corpus written before the
+switch is archived under `specs/archive/`, in its original layout: `specs/archive/amont/` holds the
+normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md` and
+`RISQUES-L0.md` track implementation, `specs/archive/chantiers/` tracks open work, and
+`specs/archive/revues/` holds the six mandatory reviews.
+
+Archived means nothing new is written there. It does not mean inert: two Preflight controls read
+that corpus and only keep their power to refuse because it is hand-maintained.
 
 | File | Owns |
 |------|------|
 | `specs/state.yaml` | Active session, handoff, `workflow_mode: solo-git` |
-| `specs/release-plan.yaml` | bigpowers-tracked epic ordering (separate from `docs/ROADMAP.md`) |
+| `specs/release-plan.yaml` | bigpowers-tracked epic ordering |
 | `specs/execution-status.yaml` | bigpowers story/epic status |
 | `specs/bugs/registry.yaml` | Bug intake queue, generated |
 | `specs/bugs/BUG-*.md` | Bug RCA + fix plan (`investigate-bug`) |
 | `specs/verifications/` | Verify-work evidence, audit reports |
-| `specs/adr/ADR-*.md` | A decision `docs/DECISIONS.md` does not already cover |
-| `specs/product/`, `specs/tech-architecture/` | Point back to the matching `docs/amont/` file. Do not restate it. |
+| `specs/adr/ADR-*.md` | One architecture decision per file |
+| `specs/tech-architecture/tech-stack.md` | Stack, layering and observed conventions, derived from the code by `map-codebase` |
+| `specs/archive/` | The corpus written before the switch, read by two Preflight controls |
 
-Never duplicate a fact `docs/` already owns into a `specs/` file. Point at the `docs/` file instead.
+A file a skill regenerates is never a place to hand-write something that must last: `map-codebase`
+rewrites `tech-stack.md` whole, `build-epic` regenerates `TRACEABILITY_LATEST.md`, `scope-work`
+rewrites `SCOPE_LATEST.yaml`. Durable hand-written content belongs in `specs/adr/`, `specs/epics/`,
+`specs/bugs/BUG-*.md` or `specs/archive/`.
 
 ## Code Style
 

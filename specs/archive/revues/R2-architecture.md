@@ -34,7 +34,7 @@ pas d'une revue.
 | --- | --- | --- |
 | `scripts/check-layers.ts`, branché sur `npm run check` | sortie : `layer rules satisfied` | R2-C01, par interdiction d'import par couche. |
 | `scripts/check-architecture.ts`, branché sur `npm run check` | sortie : `16 declared components, all claimed; 67 modules, no import cycle` | R2-C02, R2-C03. |
-| Catalogue §4.1 et en-têtes des modules | `docs/amont/conception-technique.md`, `src/**/*.ts` | R2-C03, correspondance déclaré ↔ réalisé. |
+| Catalogue §4.1 et en-têtes des modules | `specs/archive/amont/conception-technique.md`, `src/**/*.ts` | R2-C03, correspondance déclaré ↔ réalisé. |
 | `src/domain/change/decide.ts` et sa suite | `test/v0/change-rules`, `test/v0/properties` | R2-C04 : le réducteur est appelé avec des faits, sans I/O. |
 | `src/contracts/validate.ts`, `src/contracts/registry.ts`, `contracts/v1/*.json` | `test/v0/contracts` | R2-C05 : validation à l'exécution, schémas publiés. |
 | `src/adapters/storage-sqlite/schema.ts`, `ledger.ts` | `test/v2/ledger` (« refuses a database whose schema is newer ») | R2-C06. |

@@ -14,8 +14,8 @@ handoff:
   open_decisions:
     - "Chantier N is the next candidate and has not started; its four material questions are in its fiche, not here, and none of them is settled"
   required_reading:
-    - docs/chantiers/README.md
-    - docs/chantiers/N-referentiel-de-qualite-et-architecture-cible.md
+    - specs/archive/chantiers/README.md
+    - specs/archive/chantiers/N-referentiel-de-qualite-et-architecture-cible.md
 
 git:
   branch: main

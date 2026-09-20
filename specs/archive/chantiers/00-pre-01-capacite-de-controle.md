@@ -18,8 +18,8 @@ C'était la recette de PRE-01 prise en défaut : l'insuffisance convertie en cou
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis d'abord docs/ROADMAP.md (sections 1, 2 et 5) puis la
-section PRE-01 de docs/amont/expression-besoins.md.
+Dans ~/Projets/495-pi-package, lis d'abord specs/archive/ROADMAP.md (sections 1, 2 et 5) puis la
+section PRE-01 de specs/archive/amont/expression-besoins.md.
 
 PRE-01 exige de distinguer quatre niveaux : un fichier de test présent, un test découvrable,
 un test exécuté, et un contrôle capable de détecter le défaut visé. `referenceHasTests`
@@ -46,7 +46,7 @@ Critères d'acceptation :
   trentaine de tests, ouvre une préparation pour une demande d'ajout de comportement ;
 - le test V2 « accepts a conforming change end to end » (refactoring sur F-TS) continue de
   passer sans préparation ;
-- corrige la ligne PRE-01 de docs/TRACEABILITY.md quand elle devient vraie ;
+- corrige la ligne PRE-01 de specs/archive/TRACEABILITY.md quand elle devient vraie ;
 - `npm run check` passe.
 ```
 

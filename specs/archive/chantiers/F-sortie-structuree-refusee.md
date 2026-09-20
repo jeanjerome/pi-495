@@ -35,7 +35,7 @@ courant depuis une session Pi neuve.
 
 ```
 Dans ~/Projets/495-pi-package, lis la campagne « node-demo avec le modèle local » de
-docs/QUALIFICATION.md, puis extractJsonOutput et normalizeOutput dans
+specs/archive/QUALIFICATION.md, puis extractJsonOutput et normalizeOutput dans
 src/contracts/v1/reports.ts, runIntervention dans src/application/harness.ts, et resume dans
 la même classe.
 

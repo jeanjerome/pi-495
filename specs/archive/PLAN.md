@@ -1,8 +1,8 @@
 # Plan d'implémentation — 495
 
 Ce plan suit l'ordre recommandé par la conception technique (§18). Chaque incrément est
-livré avec ses tests, sa matrice de traçabilité (`docs/TRACEABILITY.md`) et son statut
-(`docs/STATUS.md`). Les décisions prises seul pendant l'implémentation sont dans `DECISIONS.md`.
+livré avec ses tests, sa matrice de traçabilité (`specs/archive/TRACEABILITY.md`) et son statut
+(`specs/archive/STATUS.md`). Les décisions prises seul pendant l'implémentation sont dans `DECISIONS.md`.
 
 Les incréments `IT-0` à `IT-4` servent le jalon L0 — la conception technique leur donne pour sortie
 « parcours L0 complet et base du parcours L1 ». `IT-5` ouvre L1. Livrer un incrément n'est pas
@@ -23,7 +23,7 @@ franchir le jalon qu'il sert : les critères de sortie sont dans `MILESTONES.md`
 | `contracts/v1/` | JSON Schema 2020-12 générés. |
 | `test/v0…v3/` | Niveaux de validation V0 (pur), V1 (ports/adaptateurs), V2 (intégration stockage/git/exécution), V3 (parcours Pi). |
 | `test/fixtures/` | Corpus F-* (générés à la volée dans des répertoires temporaires). |
-| `docs/` | Plan, statut, traçabilité, qualification, guide d'utilisation. |
+| `specs/archive/` | Plan, statut, traçabilité, qualification, guide d'utilisation. |
 
 ## Incréments
 

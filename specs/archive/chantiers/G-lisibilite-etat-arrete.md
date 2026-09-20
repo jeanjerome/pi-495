@@ -45,7 +45,7 @@ Aucun de ces trois écarts n'est un défaut de mesure : ce sont trois décisions
 
 ```
 Dans ~/Projets/495-pi-package, lis la section « Observation partielle dans un vrai terminal »
-de docs/revues/R4-ux-accessibilite.md, puis nextActionOf dans src/application/views.ts,
+de specs/archive/revues/R4-ux-accessibilite.md, puis nextActionOf dans src/application/views.ts,
 formatStatus dans src/presentation/structured/text.ts, emit dans src/extension/index.ts, et
 engineeringReport dans src/application/report.ts.
 
@@ -83,7 +83,7 @@ Critères d'acceptation :
 | Notification TUI d'une commande | `src/extension/index.ts`, `emit` |
 | Construction des risques résiduels | `src/application/report.ts`, `engineeringReport` |
 | Sujet d'une preuve | `src/contracts/v1/evidence.ts`, `subject.kind` |
-| Constats d'origine | `docs/revues/R4-ux-accessibilite.md` |
+| Constats d'origine | `specs/archive/revues/R4-ux-accessibilite.md` |
 
 ## Journal
 

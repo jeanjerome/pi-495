@@ -17,8 +17,8 @@ contrôle prévu ; un changement volontaire de frontière exige une révision ar
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 1 et 4) puis ARC-01 à ARC-04 dans
-docs/amont/expression-besoins.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/ROADMAP.md (sections 1 et 4) puis ARC-01 à ARC-04 dans
+specs/archive/amont/expression-besoins.md.
 
 ARC-04 : « une architecture adoptée ne doit pas rester seulement une consigne dans le contexte ».
 Recette : un candidat fonctionnel plaçant une responsabilité dans un module interdit échoue au
@@ -56,7 +56,7 @@ Critères d'acceptation :
 | Constat | catégorie `"structure"` de `FINDING_CATEGORIES`, localisation par `Region` |
 | Frontières transmises au producteur | `ContextInput.boundaries` dans `src/application/context.ts` |
 | Précédent interne | `scripts/check-layers.ts`, règle d'imports entre couches de 495 |
-| Doctrine multi-langage | `docs/amont/references-externes.md` § 5 : adaptateurs natifs, enveloppe commune |
+| Doctrine multi-langage | `specs/archive/amont/references-externes.md` § 5 : adaptateurs natifs, enveloppe commune |
 
 ## Journal
 

@@ -7,7 +7,7 @@ Read CONVENTIONS.md before any GitHub or git operation.
 <!-- BEGIN bigpowers:context-routing -->
 ## Context Routing
 
-Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `docs/README.md` indexes the project's own documentation map (amont/, suivi, chantiers/).
+Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/README.md` indexes the documentation map; the corpus written before the switch is archived under `specs/archive/` in its original layout.
 <!-- END bigpowers:context-routing -->
 
 <!-- BEGIN bigpowers:learned-preferences -->
@@ -63,16 +63,16 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Architecture
 
-Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package. `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `docs/amont/conception-technique.md` §4.1 and refuses import cycles.
+Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package. `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `specs/archive/amont/conception-technique.md` §4.1 and refuses import cycles.
 
 ## Conventions
 
 - Keep dependency direction one-way. Never import a layer listed after your own in the chain above.
 - Route the Pi API only through `extension/` or `adapters/pi-worker/`.
-- Give every new component a `CMP-*` id and add it to `docs/amont/conception-technique.md` §4.1 in the same change.
+- Give every new component a `CMP-*` id and add it to `specs/archive/amont/conception-technique.md` §4.1 in the same change.
 - Rebuild `dist/` from `src/` before every check. Never hand-edit `dist/`.
 - Attribute every redistributed dependency in `NOTICE`. Keep peer dependencies on the permissive licence allowlist.
-- Cover every `[P0]` requirement id from `docs/amont/expression-besoins.md` in `docs/TRACEABILITY.md`.
+- Cover every `[P0]` requirement id from `specs/archive/amont/expression-besoins.md` in `specs/archive/TRACEABILITY.md`.
 - Write commit messages as `<type>: <description>`, one line, describing the resulting behavior. Carry no ticket, chantier, lot, or phase reference. Carry no AI attribution.
 
 ## Never
@@ -81,15 +81,15 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Never proceed on a red Preflight (`npm run check`) — fix it before forward work.
 - Never hand-edit `dist/` — rebuild it with `npm run build`.
 - Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, `presentation/`, or `export/`.
-- Never claim a `CMP-*` component id in `src/` without a matching row in `docs/amont/conception-technique.md` §4.1.
+- Never claim a `CMP-*` component id in `src/` without a matching row in `specs/archive/amont/conception-technique.md` §4.1.
 - Never let an unqualified sandbox backend run unconfined. Refuse with `capability_missing` instead.
 
 ## Agent Rules
 
 - **Workflow Mandate:** Use bigpowers skills (`plan-work`, `develop-tdd`, `orchestrate-project`) for new planning and delivery work.
-- **docs/ stays authoritative:** `docs/amont/` remains the normative specification. `docs/STATUS.md`, `docs/TRACEABILITY.md`, `docs/DECISIONS.md`, `docs/RISQUES-L0.md`, and `docs/chantiers/` keep tracking implementation as they already do. `specs/` carries bigpowers workflow bookkeeping only — it does not replace `docs/`.
+- **`specs/` is the documentation surface:** new normative content goes there, in its bigpowers location. The corpus written earlier is archived under `specs/archive/` — `specs/archive/amont/` for the normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md`, `RISQUES-L0.md` and `chantiers/` for implementation tracking. Archived means nothing new is written there; two Preflight controls still read it, and only keep their power to refuse because they do.
 - **Always Green:** Preflight (`npm run check`) must be green before forward work.
-- Read CONVENTIONS.md and the relevant `docs/` file before writing code.
+- Read CONVENTIONS.md and the relevant `specs/` file before writing code.
 - Write the minimum code that solves the stated problem.
 - Run tests after every change. Show evidence before declaring done.
 

@@ -59,7 +59,7 @@ destruction de ce qu'il protégeait.
 
 ```
 Dans ~/Projets/495-pi-package, lis la sous-section « Un second candidat : les cas particuliers
-d'un arbre » de docs/QUALIFICATION.md, puis walkTree et createWorkspace dans
+d'un arbre » de specs/archive/QUALIFICATION.md, puis walkTree et createWorkspace dans
 src/adapters/workspace/, ENTRY_KINDS dans src/contracts/v1/candidate.ts, et openReview dans
 src/application/harness.ts.
 
@@ -101,7 +101,7 @@ Critères d'acceptation :
 | Comparaison candidat / référence | `src/adapters/workspace/git-workspace.ts`, `snapshotCandidate` |
 | Côté candidat de la revue | `src/application/harness.ts`, `openReview` ; `src/application/review.ts`, `readSide` |
 | Octets du candidat déjà conservés | artefacts `files_<candidate_id>` et `base_files_<candidate_id>` |
-| Constats d'origine | `docs/revues/R4-ux-accessibilite.md`, `docs/revues/R6-exploitation.md` |
+| Constats d'origine | `specs/archive/revues/R4-ux-accessibilite.md`, `specs/archive/revues/R6-exploitation.md` |
 
 ## Journal
 

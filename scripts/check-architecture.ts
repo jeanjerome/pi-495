@@ -1,6 +1,6 @@
 /**
  * Comparison of the declared architecture with the realized one, applied to 495 itself.
- * `docs/amont/conception-technique.md` §4.1 catalogues the components the product is made of; a
+ * `specs/archive/amont/conception-technique.md` §4.1 catalogues the components the product is made of; a
  * component whose identifier no module claims has an unknown realization, and an identifier claimed
  * in `src/` that the catalogue does not declare is a component nobody decided. Import cycles are
  * refused for the same reason `structure` refuses them on a target: two modules that import each
@@ -12,7 +12,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 
 const root = process.cwd();
-const catalogue = join(root, "docs/amont/conception-technique.md");
+const catalogue = join(root, "specs/archive/amont/conception-technique.md");
 const srcDir = join(root, "src");
 
 const COMPONENT = /CMP-[A-Z]{2,4}/g;
@@ -40,7 +40,8 @@ function declaredComponents(markdown: string): Map<string, string> {
 
 const files = walk(srcDir);
 const declared = declaredComponents(readFileSync(catalogue, "utf8"));
-if (declared.size === 0) failures.push("no component catalogue found in docs/amont/conception-technique.md §4.1");
+if (declared.size === 0)
+	failures.push("no component catalogue found in specs/archive/amont/conception-technique.md §4.1");
 
 const claimedBy = new Map<string, string[]>();
 const sources = new Map<string, string>();

@@ -19,8 +19,8 @@ documentés.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 3 et 5) puis VER-04 dans
-docs/amont/expression-besoins.md, ainsi que le paragraphe sur les budgets des
+Dans ~/Projets/495-pi-package, lis specs/archive/ROADMAP.md (sections 3 et 5) puis VER-04 dans
+specs/archive/amont/expression-besoins.md, ainsi que le paragraphe sur les budgets des
 contrôles coûteux (section 12 du même document).
 
 Deux règles de cadrage à respecter :

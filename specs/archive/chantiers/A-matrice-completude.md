@@ -1,12 +1,12 @@
 # Transverse A — complétude de la matrice de traçabilité
 
 **État :** livré
-**Objet :** `docs/TRACEABILITY.md` doit porter une ligne par exigence `[P0]`, couverte ou non
+**Objet :** `specs/archive/TRACEABILITY.md` doit porter une ligne par exigence `[P0]`, couverte ou non
 **Ne dépend d'aucun étage**
 
 ## Motif
 
-`docs/README.md` confie à la matrice un rôle précis : elle est le pont entre l'amont et le suivi,
+`specs/archive/README.md` confie à la matrice un rôle précis : elle est le pont entre l'amont et le suivi,
 et elle **nomme les exigences qui ne sont pas couvertes**. Une exigence absente de la matrice n'y
 est donc pas neutre : elle est indistinguable d'une exigence satisfaite.
 
@@ -24,16 +24,16 @@ en titre `###`. Un décompte qui ne lit qu'un niveau de titre en oublie huit, do
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/README.md (rôle de la matrice) puis
-docs/TRACEABILITY.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/README.md (rôle de la matrice) puis
+specs/archive/TRACEABILITY.md.
 
 Deux travaux.
 
 1. Un contrôle de complétude. Écris un script, sur le modèle de scripts/check-layers.ts,
-   qui extrait de docs/amont/expression-besoins.md tous les identifiants portant [P0] — aux
+   qui extrait de specs/archive/amont/expression-besoins.md tous les identifiants portant [P0] — aux
    deux niveaux de titre, #### pour les exigences fonctionnelles et ### pour NFR-01..08 — et
    qui échoue si l'un d'eux n'apparaît ni dans la table des couvertes ni dans la table des non
-   couvertes de docs/TRACEABILITY.md. Les notations de plage utilisées par la matrice
+   couvertes de specs/archive/TRACEABILITY.md. Les notations de plage utilisées par la matrice
    (« ARC-01..04 », « UX-06..UX-10 ») doivent être développées, sans quoi le contrôle criera au
    loup. Branche-le sur npm run check.
 
@@ -52,7 +52,7 @@ Deux travaux.
 Le contrôle de l'étape 1 doit passer avant et après l'étape 2 : c'est lui le livrable durable.
 
 Critères d'acceptation :
-- retirer une ligne de docs/TRACEABILITY.md fait échouer npm run check ;
+- retirer une ligne de specs/archive/TRACEABILITY.md fait échouer npm run check ;
 - ajouter une exigence [P0] dans l'amont sans ligne de matrice fait échouer npm run check ;
 - les cinq recettes ci-dessus sont exercées par un test, et la mention « non qualifié »
   disparaît de leur ligne ;
@@ -64,8 +64,8 @@ Critères d'acceptation :
 | Élément | Emplacement |
 | --- | --- |
 | Précédent de contrôle sur le dépôt | `scripts/check-layers.ts` |
-| Source des identifiants | `docs/amont/expression-besoins.md`, titres `####` et `###` portant `[P0]` |
-| Cible du contrôle | `docs/TRACEABILITY.md`, deux tables |
+| Source des identifiants | `specs/archive/amont/expression-besoins.md`, titres `####` et `###` portant `[P0]` |
+| Cible du contrôle | `specs/archive/TRACEABILITY.md`, deux tables |
 | Unicité des opérations | `operations.idempotency_key`, contrainte `UNIQUE` dans `schema.ts` |
 | Empreinte d'environnement | `environment_digest` dans `runtime.ts` et le protocole |
 

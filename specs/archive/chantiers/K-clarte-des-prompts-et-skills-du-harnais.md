@@ -185,14 +185,14 @@ les artefacts adoptés et les extraits.
 
 ```
 Dans ~/Projets/495-pi-package, on instruit la clarté des prompts d'intervention, à toutes les
-étapes. Le constat de départ est dans docs/chantiers/J-mandat-de-preparation-contradictoire.md :
+étapes. Le constat de départ est dans specs/archive/chantiers/J-mandat-de-preparation-contradictoire.md :
 le prompt du rôle prepare ordonne de lancer les contrôles soi-même et le mandat du même prompt
 interdit d'écrire ailleurs que dans les racines de test. Un modèle a obéi aux deux, s'est fabriqué
 un atelier javac hors périmètre, a vu sa préparation refusée et a brûlé ses 100 appels d'outils.
 La fiche J traite ce cas ; ce travail-ci traite la question générale dont il est un symptôme.
 
 Lis d'abord : chantiers/J, chantiers/F (une sortie structurée refusée bloque le changement), et
-dans docs/QUALIFICATION.md les trois sections « Le cycle avec le modèle local sur la cible Maven »,
+dans specs/archive/QUALIFICATION.md les trois sections « Le cycle avec le modèle local sur la cible Maven »,
 « Le même cycle avec Qwen3.8-Flash-Next-MLX-oQ4-MTP » et « Campagnes depuis Pi sur les cibles ».
 
 Dans le code :
@@ -261,7 +261,7 @@ Quatre contraintes bornent toute solution, et une proposition qui les ignore est
 Ce que ce travail doit produire :
   - un relevé, rôle par rôle, de ce que le prompt dit aujourd'hui et de ce qui a échoué dessus,
     appuyé sur les dossiers ;
-  - une décision écrite dans docs/DECISIONS.md : la forme que prennent les instructions, le
+  - une décision écrite dans specs/archive/DECISIONS.md : la forme que prennent les instructions, le
     découpage retenu, la manière dont une skill du harnais est chargée, sélectionnée et inscrite au
     manifeste, et ce qui reste dans context.ts ;
   - les reformulations elles-mêmes, avec pour chacune le test qui la tient. Le niveau de

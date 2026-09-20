@@ -52,8 +52,8 @@ est payé par le changement.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/chantiers/M-etat-d-arret-et-session-conductrice.md, puis
-la section « La reprise d'une sortie refusée, et le report des réponses » de docs/QUALIFICATION.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/chantiers/M-etat-d-arret-et-session-conductrice.md, puis
+la section « La reprise d'une sortie refusée, et le report des réponses » de specs/archive/QUALIFICATION.md.
 
 Dans le code : apply.ts dans src/domain/change/, cas intervention.finished ; changeUnblock et
 block dans src/domain/change/decide.ts ; resume et advance dans src/application/harness.ts ;

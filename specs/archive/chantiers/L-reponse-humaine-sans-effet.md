@@ -101,8 +101,8 @@ Le défaut est de la même famille que celui d'`IH-04` déjà porté par `../STA
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/chantiers/L-reponse-humaine-sans-effet.md, puis la section
-« Le même cycle avec Qwen3.8-Flash-Next-MLX-oQ4-MTP » de docs/QUALIFICATION.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/chantiers/L-reponse-humaine-sans-effet.md, puis la section
+« Le même cycle avec Qwen3.8-Flash-Next-MLX-oQ4-MTP » de specs/archive/QUALIFICATION.md.
 
 Dans le code : stepClarify dans src/application/harness.ts — la condition qui réemploie le rapport
 de spécification et la branche qui construit `Answered questions:` ; la construction du mandat dans
@@ -119,7 +119,7 @@ de spécification ouvre une question matérielle, où la réponse enregistrée c
 même rapport, et qui échoue aujourd'hui parce que l'exigence adoptée à G1 est celle d'avant la
 réponse.
 
-Décide ensuite ce qui porte la correction, et écris la décision dans docs/DECISIONS.md. Trois
+Décide ensuite ce qui porte la correction, et écris la décision dans specs/archive/DECISIONS.md. Trois
 formes au moins, qui ne s'excluent pas :
 
   - une réponse à une question matérielle rouvre la spécification : le rapport est refait avec les

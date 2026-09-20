@@ -56,8 +56,8 @@ tableau `controls`. C'est la forme que l'étape 1 de ce travail doit décider ou
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis d'abord docs/chantiers/D-qualification-capteur-a-rapport.md,
-puis la section « Campagnes depuis Pi sur les cibles » de docs/QUALIFICATION.md. Dans le code :
+Dans ~/Projets/495-pi-package, lis d'abord specs/archive/chantiers/D-qualification-capteur-a-rapport.md,
+puis la section « Campagnes depuis Pi sur les cibles » de specs/archive/QUALIFICATION.md. Dans le code :
 la boucle de qualification de stepVerificationDesign (src/application/harness.ts),
 qualifyControlDetailed (src/application/qualification.ts), ControlDefinition
 (src/contracts/v1/protocol.ts) et test/v4/java-stack.test.ts, qui lance le contrôle producteur
@@ -91,7 +91,7 @@ Deux travaux, dans cet ordre.
    n'y existe pas, la mesure absente est rendue INDETERMINATE, et un témoin négatif doit
    rendre FAIL.
 
-   Décide ensuite ce qui porte la dépendance, et écris la décision dans docs/DECISIONS.md :
+   Décide ensuite ce qui porte la dépendance, et écris la décision dans specs/archive/DECISIONS.md :
    un producteur déclaré dans ControlDefinition — ce que fait pi-lens pour ses producteurs de
    faits, `provides` / `requires` et un ordonnanceur topologique avec détection de cycle, voir
    clients/dispatch/ dans github.com/apmantza/pi-lens — ou les contrôles qui précèdent le
@@ -123,12 +123,12 @@ Deux travaux, dans cet ordre.
    Si le changement meurt sur une sortie structurée invalide, c'est chantiers/F et non ce
    travail : note-le et relance, ne corrige pas en passant.
 
-Où écrire quoi, quand c'est fini : la campagne et ses chiffres dans docs/QUALIFICATION.md, ce
-qu'elle révèle du produit dans docs/STATUS.md, la décision dans docs/DECISIONS.md, l'état des
-exigences dans docs/TRACEABILITY.md (VER-05, PRE-03, QLT-04 y portent aujourd'hui la mention
+Où écrire quoi, quand c'est fini : la campagne et ses chiffres dans specs/archive/QUALIFICATION.md, ce
+qu'elle révèle du produit dans specs/archive/STATUS.md, la décision dans specs/archive/DECISIONS.md, l'état des
+exigences dans specs/archive/TRACEABILITY.md (VER-05, PRE-03, QLT-04 y portent aujourd'hui la mention
 « partiel » qui renvoie ici), le journal de cette fiche et sa ligne dans chantiers/README.md.
-Si l'ordre des travaux change, une ligne dans docs/ROADMAP.md ; si le critère de sortie L1 n°2
-bouge, une ligne dans docs/MILESTONES.md.
+Si l'ordre des travaux change, une ligne dans specs/archive/ROADMAP.md ; si le critère de sortie L1 n°2
+bouge, une ligne dans specs/archive/MILESTONES.md.
 
 Critères d'acceptation :
 - un test déterministe couvre la qualification d'un capteur qui lit le rapport d'un autre
@@ -136,7 +136,7 @@ Critères d'acceptation :
 - la campagne scriptée sur simple-demo-hexagonal-architecture franchit G2 et son verdict de
   G5 est transcrit depuis la sortie réelle ;
 - la campagne avec le modèle a son verdict, son motif d'arrêt et sa durée dans
-  docs/QUALIFICATION.md, et ce qu'elle révèle dans docs/STATUS.md ;
+  specs/archive/QUALIFICATION.md, et ce qu'elle révèle dans specs/archive/STATUS.md ;
 - aucune campagne conduite sous agent scripté n'est présentée comme qualifiant la production ;
 - npm run build puis npm run check passent.
 ```

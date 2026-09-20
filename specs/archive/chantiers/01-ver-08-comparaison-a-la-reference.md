@@ -26,8 +26,8 @@ déclarer tout constat comme introduit.
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis docs/ROADMAP.md (sections 1 et 5) puis VER-08 dans
-docs/amont/expression-besoins.md.
+Dans ~/Projets/495-pi-package, lis specs/archive/ROADMAP.md (sections 1 et 5) puis VER-08 dans
+specs/archive/amont/expression-besoins.md.
 
 VER-08 demande d'exécuter les contrôles pertinents sur la référence initiale et sur le candidat
 dans des environnements comparables, de garder visible un défaut préexistant sous une tolérance
@@ -67,7 +67,7 @@ Critères d'acceptation :
   seul le nouveau bloque ;
 - un renommage de fichier ne transforme pas un constat préexistant en constat introduit ;
 - un contrôle alternant réussite et échec reste INDETERMINATE et n'est pas relancé ;
-- corrige la ligne VER-08 de docs/TRACEABILITY.md quand elle devient vraie ;
+- corrige la ligne VER-08 de specs/archive/TRACEABILITY.md quand elle devient vraie ;
 - npm run check passe.
 ```
 
