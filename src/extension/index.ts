@@ -2,33 +2,21 @@
  * 495 Pi extension (CMP-PI, ADR-001, ADR-009): deterministic `/495` commands, a closed
  * conversational tool without authority, session bindings kept outside the Pi session, mode-aware
  * presentation. All normative work happens in the application controller.
+ *
+ * This module wires the four surfaces Pi offers — lifecycle hooks, a command, a tool and a message
+ * renderer — onto one session. It holds no state of its own: what they share is in `session.ts`.
  */
-import { userInfo } from "node:os";
 import { join } from "node:path";
-import {
-	VERSION,
-	getAgentDir,
-	getPackageDir,
-	type ExtensionAPI,
-	type ExtensionCommandContext,
-	type ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
+import { VERSION, type ExtensionAPI, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ActorRef } from "../contracts/v1/common.ts";
-import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import { DomainError } from "../domain/errors.ts";
 import { formatDecision, formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
-import { createRuntime, type HarnessRuntime } from "./runtime.ts";
 import { openReviewTui } from "./review-command.ts";
-import type { StatusView } from "../application/views.ts";
-
-interface Binding {
-	program_id: string;
-	change_id: string;
-}
+import { ExtensionSession, VERSION_495, kernelUser, safeUser } from "./session.ts";
 
 const SUBCOMMANDS = [
 	"start",
@@ -48,178 +36,49 @@ const SUBCOMMANDS = [
 ] as const;
 
 export default function harness495(pi: ExtensionAPI): void {
-	let runtime: HarnessRuntime | null = null;
-	let binding: Binding | null = null;
-	let busy = false;
-
-	const lang = () => runtime?.config.language ?? "fr";
-
-	function ensureRuntime(ctx: ExtensionContext): HarnessRuntime {
-		if (runtime) return runtime;
-		const model = ctx.model
-			? { provider_id: ctx.model.provider, model_id: ctx.model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
-			: { provider_id: "", model_id: "", thinking_level: "off" };
-		runtime = createRuntime({
-			pi_version: VERSION,
-			pi_package_dir: getPackageDir(),
-			pi_agent_dir: getAgentDir(),
-			model,
-		});
-		return runtime;
-	}
-
-	function humanOrigin(ctx: ExtensionContext): HumanOrigin | null {
-		const sessionId = ctx.sessionManager.getSessionId();
-		if (ctx.mode === "tui") {
-			const actor: ActorRef = {
-				actor_id: safeUser(),
-				actor_type: "human",
-				role: "change_owner",
-				origin: "tui_session",
-				authentication_level: "session",
-			};
-			return { actor, host: "tui", session_id: sessionId, asserted_at: new Date().toISOString() };
-		}
-		if (ctx.mode === "rpc") {
-			const envName = runtime?.config.human_origin.rpc_actor_env ?? "HARNESS495_RPC_HUMAN_ACTOR";
-			const declared = process.env[envName];
-			if (!declared) return null;
-			const actor: ActorRef = {
-				actor_id: declared,
-				actor_type: "human",
-				role: "change_owner",
-				origin: "rpc_qualified",
-				authentication_level: "host_qualified",
-			};
-			return { actor, host: "rpc", session_id: sessionId, asserted_at: new Date().toISOString() };
-		}
-		return null;
-	}
-
-	function emit(ctx: ExtensionContext, text: string, details?: unknown): void {
-		if (ctx.mode === "print") {
-			process.stdout.write(`${text}\n`);
-			return;
-		}
-		pi.sendMessage({ customType: "495", content: text, display: true, details: details ?? {} });
-		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.notify(text.split("\n")[0] ?? "495", "info");
-	}
-
-	/**
-	 * Diagnostics waiting to be told: what the runtime could not honour, such as an ignored
-	 * configuration or a sandbox backend that is not qualified. A screen receives them as soon as
-	 * the session starts; print, JSON and RPC receive them on the first `/495` that follows, because
-	 * a structured entry opens its stream after `session_start`. Each one is said once per channel.
-	 */
-	let pending: string[] = [];
-
-	function announce(ctx: ExtensionContext, severity: "warning" | "error" = "warning"): void {
-		if (ctx.hasUI) for (const text of pending) ctx.ui.notify(text, severity);
-	}
-
-	/** Said on the first operation of the session, whatever the entry, then forgotten. */
-	function flushDiagnostics(ctx: ExtensionContext): void {
-		for (const text of pending.splice(0)) emit(ctx, text, { diagnostic: text });
-	}
-
-	function updateFooter(ctx: ExtensionContext, view: StatusView | null): void {
-		if (!ctx.hasUI) return;
-		const c = view?.change;
-		ctx.ui.setStatus(
-			"495",
-			c ? `495 ${c.phase}/${c.status}${c.pending_decisions.length ? " ⏸decision" : ""}` : "495 —",
-		);
-	}
-
-	function currentView(ctx: ExtensionContext): StatusView | null {
-		if (!binding) return null;
-		return ensureRuntime(ctx).harness.status(binding.change_id);
-	}
-
-	function resolveBinding(ctx: ExtensionContext): Binding | null {
-		const rt = ensureRuntime(ctx);
-		const sid = ctx.sessionManager.getSessionId();
-		const bySession = rt.ledger.getSessionBinding(sid);
-		if (bySession?.change_id) return { program_id: bySession.program_id, change_id: bySession.change_id };
-		return null;
-	}
-
-	function bind(ctx: ExtensionContext, b: Binding): void {
-		const rt = ensureRuntime(ctx);
-		binding = b;
-		rt.ledger.bindSession({
-			session_id: ctx.sessionManager.getSessionId(),
-			cwd: ctx.cwd,
-			program_id: b.program_id,
-			change_id: b.change_id,
-			bound_at: new Date().toISOString(),
-		});
-		pi.appendEntry("495-binding", b);
-	}
-
-	async function withLoader<T>(
-		ctx: ExtensionCommandContext,
-		title: string,
-		work: (progress: (m: string) => void) => Promise<T>,
-	): Promise<T> {
-		if (ctx.mode !== "tui") return work(() => {});
-		const { BorderedLoader } = await import("@earendil-works/pi-coding-agent");
-		let failure: Error | null = null;
-		const result = await ctx.ui.custom<T>((tui, theme, _kb, done) => {
-			const loader = new BorderedLoader(tui, theme, title);
-			loader.onAbort = () => {
-				void ensureRuntime(ctx).harness.abortCurrent("user abort");
-			};
-			work((m) => {
-				ctx.ui.setStatus("495", `495 ${m}`);
-				tui.requestRender();
-			}).then(done, (e: Error) => {
-				failure = e;
-				done(undefined as unknown as T);
-			});
-			return loader;
-		});
-		if (failure) throw failure;
-		return result;
-	}
+	const session = new ExtensionSession(pi);
 
 	async function conduct(ctx: ExtensionCommandContext, changeId: string): Promise<void> {
-		const rt = ensureRuntime(ctx);
-		if (busy) {
-			emit(ctx, "495: une opération est déjà en cours dans cette session.");
+		const rt = session.ensureRuntime(ctx);
+		if (session.busy) {
+			session.emit(ctx, "495: une opération est déjà en cours dans cette session.");
 			return;
 		}
-		busy = true;
+		session.busy = true;
 		try {
 			rt.harness.deps.onProgress = (m) => {
 				if (ctx.hasUI) ctx.ui.setStatus("495", `495 ${m}`);
 			};
-			const result = await withLoader(ctx, "495", async () => rt.harness.advance(changeId, { max_steps: 40 }));
-			updateFooter(ctx, result.view);
-			emit(ctx, `${formatStatus(result.view, lang())}\n${result.steps.length ? `\n${result.steps.join("\n")}` : ""}`, {
-				view: result.view,
-				stopped_because: result.stopped_because,
-			});
+			const result = await session.withLoader(ctx, "495", async () => rt.harness.advance(changeId, { max_steps: 40 }));
+			session.updateFooter(ctx, result.view);
+			session.emit(
+				ctx,
+				`${formatStatus(result.view, session.lang())}\n${result.steps.length ? `\n${result.steps.join("\n")}` : ""}`,
+				{
+					view: result.view,
+					stopped_because: result.stopped_because,
+				},
+			);
 			if (result.stopped_because === "decision_required") await presentDecisions(ctx, changeId);
 		} finally {
-			busy = false;
+			session.busy = false;
 		}
 	}
 
 	async function presentDecisions(ctx: ExtensionCommandContext, changeId: string): Promise<void> {
-		const rt = ensureRuntime(ctx);
+		const rt = session.ensureRuntime(ctx);
 		const pending = rt.harness.pendingDecisions(changeId);
 		if (pending.length === 0) {
-			emit(ctx, lang() === "fr" ? "Aucune décision en attente." : "No pending decision.");
+			session.emit(ctx, session.lang() === "fr" ? "Aucune décision en attente." : "No pending decision.");
 			return;
 		}
-		const origin = humanOrigin(ctx);
+		const origin = session.humanOrigin(ctx);
 		for (const req of pending) {
-			emit(ctx, formatDecision(req), { decision: req });
+			session.emit(ctx, formatDecision(req), { decision: req });
 			if (!origin || !ctx.hasUI) {
-				emit(
+				session.emit(
 					ctx,
-					lang() === "fr"
+					session.lang() === "fr"
 						? `decision_required: ${req.decision_id} — répondez dans le TUI Pi avec /495 decide (reprise: /495 resume dans une session liée).`
 						: `decision_required: ${req.decision_id} — answer in the Pi TUI with /495 decide.`,
 					{ decision_required: req.decision_id },
@@ -228,7 +87,7 @@ export default function harness495(pi: ExtensionAPI): void {
 			}
 			const choice = await ctx.ui.select(req.question, [
 				...req.options.map((o) => `${o.id} — ${o.label}${o.risky ? " ⚠" : ""}`),
-				lang() === "fr" ? "(plus tard)" : "(later)",
+				session.lang() === "fr" ? "(plus tard)" : "(later)",
 			]);
 			if (!choice || choice.startsWith("(")) continue;
 			const optionId = choice.split(" — ")[0]!;
@@ -238,7 +97,7 @@ export default function harness495(pi: ExtensionAPI): void {
 			if (req.allow_free_text && (optionId === "answer" || optionId === "extend" || optionId === "refuse"))
 				freeText =
 					(await ctx.ui.input(
-						lang() === "fr"
+						session.lang() === "fr"
 							? optionId === "refuse"
 								? "Motif du refus"
 								: "Votre réponse"
@@ -260,52 +119,23 @@ export default function harness495(pi: ExtensionAPI): void {
 				origin,
 			);
 			if (answer.error)
-				emit(
+				session.emit(
 					ctx,
-					`${lang() === "fr" ? "Décision refusée" : "Decision refused"}: ${answer.error.code} ${answer.error.message}`,
+					`${session.lang() === "fr" ? "Décision refusée" : "Decision refused"}: ${answer.error.code} ${answer.error.message}`,
 				);
 			else
-				emit(
+				session.emit(
 					ctx,
-					`${lang() === "fr" ? "Décision enregistrée" : "Decision recorded"}: ${answer.decision?.human_decision_id}`,
+					`${session.lang() === "fr" ? "Décision enregistrée" : "Decision recorded"}: ${answer.decision?.human_decision_id}`,
 				);
-			updateFooter(ctx, answer.view);
+			session.updateFooter(ctx, answer.view);
 		}
 	}
 
-	pi.on("session_start", async (_event, ctx) => {
-		try {
-			const rt = ensureRuntime(ctx);
-			binding = resolveBinding(ctx);
-			if (!binding) {
-				const candidates = rt.ledger.findBindingsByCwd(ctx.cwd).filter((b) => b.change_id);
-				if (candidates.length === 1 && candidates[0]!.change_id)
-					binding = { program_id: candidates[0]!.program_id, change_id: candidates[0]!.change_id };
-			}
-			updateFooter(ctx, currentView(ctx));
-			// A diagnostic states what the runtime could not honour — an ignored configuration, a
-			// sandbox backend that is not qualified. Announcing it only where there is a UI would
-			// leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
-			// Held until the first command as well: a structured entry does not carry a message
-			// emitted before its stream is open.
-			pending = rt.diagnostics.map((d) => `495: ${d}`);
-			announce(ctx);
-		} catch (error) {
-			pending = [`495: ${(error as Error).message}`];
-			announce(ctx, "error");
-		}
-	});
-
-	pi.on("session_shutdown", async () => {
-		if (runtime) {
-			await runtime.harness.abortCurrent("session shutdown").catch(() => undefined);
-			runtime.close();
-			runtime = null;
-		}
-	});
-
-	pi.on("session_before_switch", async () => (busy ? { cancel: true } : undefined));
-	pi.on("session_before_fork", async () => (busy ? { cancel: true } : undefined));
+	pi.on("session_start", async (_event, ctx) => session.openedAt(ctx));
+	pi.on("session_shutdown", async () => session.close());
+	pi.on("session_before_switch", async () => (session.busy ? { cancel: true } : undefined));
+	pi.on("session_before_fork", async () => (session.busy ? { cancel: true } : undefined));
 
 	pi.registerMessageRenderer(
 		"495",
@@ -323,25 +153,25 @@ export default function harness495(pi: ExtensionAPI): void {
 		handler: async (args, ctx) => {
 			const [sub, ...rest] = (args ?? "").trim().split(/\s+/);
 			const text = rest.join(" ").trim();
-			flushDiagnostics(ctx);
+			session.flushDiagnostics(ctx);
 			try {
-				const rt = ensureRuntime(ctx);
+				const rt = session.ensureRuntime(ctx);
 				switch (sub) {
 					case "start": {
 						if (!text) {
-							emit(ctx, "usage: /495 start <request text>");
+							session.emit(ctx, "usage: /495 start <request text>");
 							return;
 						}
-						if (binding) {
-							emit(
+						if (session.binding) {
+							session.emit(
 								ctx,
-								lang() === "fr"
-									? `Cette session est déjà liée à ${binding.change_id} ; /495 status, /495 resume ou /495 unbind.`
-									: `This session is bound to ${binding.change_id}; use /495 status, resume or unbind.`,
+								session.lang() === "fr"
+									? `Cette session est déjà liée à ${session.binding.change_id} ; /495 status, /495 resume ou /495 unbind.`
+									: `This session is bound to ${session.binding.change_id}; use /495 status, resume or unbind.`,
 							);
 							return;
 						}
-						const origin = humanOrigin(ctx);
+						const origin = session.humanOrigin(ctx);
 						const actor: ActorRef = origin?.actor ?? {
 							actor_id: safeUser(),
 							actor_type: "human",
@@ -349,25 +179,25 @@ export default function harness495(pi: ExtensionAPI): void {
 							origin: ctx.mode === "json" ? "json" : "print",
 							authentication_level: "none",
 						};
-						const created = await withLoader(ctx, "495 start", async () =>
-							rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: lang() }),
+						const created = await session.withLoader(ctx, "495 start", async () =>
+							rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: session.lang() }),
 						);
-						bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
-						emit(
+						session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
+						session.emit(
 							ctx,
-							`${lang() === "fr" ? "Programme créé" : "Program created"}: ${created.program.program_id} / ${created.change.change_id}`,
+							`${session.lang() === "fr" ? "Programme créé" : "Program created"}: ${created.program.program_id} / ${created.change.change_id}`,
 						);
 						await conduct(ctx, created.change.change_id);
 						return;
 					}
 					case "status": {
-						const view = currentView(ctx);
-						updateFooter(ctx, view);
-						emit(
+						const view = session.currentView(ctx);
+						session.updateFooter(ctx, view);
+						session.emit(
 							ctx,
 							view
-								? formatStatus(view, lang())
-								: lang() === "fr"
+								? formatStatus(view, session.lang())
+								: session.lang() === "fr"
 									? "Aucun programme lié à cette session. /495 start <demande> ou /495 bind <change_id>."
 									: "No program bound. /495 start <request> or /495 bind <change_id>.",
 							{ view },
@@ -375,131 +205,136 @@ export default function harness495(pi: ExtensionAPI): void {
 						return;
 					}
 					case "resume": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
-						rt.harness.resume(binding.change_id, humanOrigin(ctx)?.actor ?? kernelUser());
-						await conduct(ctx, binding.change_id);
+						rt.harness.resume(session.binding.change_id, session.humanOrigin(ctx)?.actor ?? kernelUser());
+						await conduct(ctx, session.binding.change_id);
 						return;
 					}
 					case "verify": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
-						busy = true;
+						session.busy = true;
 						try {
-							const result = await withLoader(ctx, "495 verify", async () => rt.harness.verify(binding!.change_id));
-							emit(ctx, formatStatus(result.view, lang()), { view: result.view });
-							updateFooter(ctx, result.view);
+							const result = await session.withLoader(ctx, "495 verify", async () =>
+								rt.harness.verify(session.binding!.change_id),
+							);
+							session.emit(ctx, formatStatus(result.view, session.lang()), { view: result.view });
+							session.updateFooter(ctx, result.view);
 						} finally {
-							busy = false;
+							session.busy = false;
 						}
 						return;
 					}
 					case "decide": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
-						await presentDecisions(ctx, binding.change_id);
+						await presentDecisions(ctx, session.binding.change_id);
 						return;
 					}
 					case "review": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
 						const review = await rt.harness.openReview(
-							binding.change_id,
+							session.binding.change_id,
 							rest[0]?.startsWith("cand_") ? rest[0] : undefined,
 						);
-						if (ctx.mode === "tui") await openReviewTui(ctx, review, lang());
+						if (ctx.mode === "tui") await openReviewTui(ctx, review, session.lang());
 						else {
 							const { summarizeReview } = await import("../presentation/structured/review-text.ts");
-							emit(
+							session.emit(
 								ctx,
-								await summarizeReview(review, rest[0] && !rest[0].startsWith("cand_") ? rest[0] : null, lang()),
+								await summarizeReview(review, rest[0] && !rest[0].startsWith("cand_") ? rest[0] : null, session.lang()),
 								{ snapshot: review.snapshot },
 							);
 						}
 						return;
 					}
 					case "report": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
-						const report = await rt.harness.report(binding.change_id);
-						emit(ctx, formatReport(report, lang()), { report });
+						const report = await rt.harness.report(session.binding.change_id);
+						session.emit(ctx, formatReport(report, session.lang()), { report });
 						return;
 					}
 					case "integrate": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
 						if (!rt.config.policy.integration_enabled) {
-							emit(
+							session.emit(
 								ctx,
-								lang() === "fr"
+								session.lang() === "fr"
 									? "L'intégration est désactivée par la politique (HARNESS495_INTEGRATION=1 ou config.json)."
 									: "Integration is disabled by policy.",
 							);
 							return;
 						}
-						await conduct(ctx, binding.change_id);
+						await conduct(ctx, session.binding.change_id);
 						return;
 					}
 					case "export": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
 						const redact = rest.includes("--redact");
 						const dest = join(
 							rt.dataDir,
 							"exports",
-							`${binding.change_id}-${redact ? "redacted" : "full"}-${Date.now()}`,
+							`${session.binding.change_id}-${redact ? "redacted" : "full"}-${Date.now()}`,
 						);
 						const result = await exportChange(rt.ledger, rt.objects, {
-							change_id: binding.change_id,
+							change_id: session.binding.change_id,
 							destination: dest,
 							redact,
 							now: new Date().toISOString(),
 							producer: `495 ${VERSION}`,
 						});
 						const check = await verifyExport(dest);
-						emit(
+						session.emit(
 							ctx,
-							`${lang() === "fr" ? "Export" : "Export"}: ${result.path}\n${result.files} files, ${result.bytes} bytes, ${result.redactions} redactions${result.missing.length ? `, missing: ${result.missing.join(", ")}` : ""}\nverify: ${check.ok ? "ok" : check.problems.join("; ")}`,
+							`${session.lang() === "fr" ? "Export" : "Export"}: ${result.path}\n${result.files} files, ${result.bytes} bytes, ${result.redactions} redactions${result.missing.length ? `, missing: ${result.missing.join(", ")}` : ""}\nverify: ${check.ok ? "ok" : check.problems.join("; ")}`,
 							{ export: result, verify: check },
 						);
 						return;
 					}
 					case "pause": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
 						await rt.harness.abortCurrent("pause");
-						emit(
+						session.emit(
 							ctx,
-							formatStatus(rt.harness.pause(binding.change_id, humanOrigin(ctx)?.actor ?? kernelUser()), lang()),
+							formatStatus(
+								rt.harness.pause(session.binding.change_id, session.humanOrigin(ctx)?.actor ?? kernelUser()),
+								session.lang(),
+							),
 						);
 						return;
 					}
 					case "cancel": {
-						if (!binding) {
-							emit(ctx, "no binding");
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
 							return;
 						}
-						const origin = humanOrigin(ctx);
+						const origin = session.humanOrigin(ctx);
 						if (!origin) {
-							emit(
+							session.emit(
 								ctx,
-								lang() === "fr"
+								session.lang() === "fr"
 									? "L'annulation exige une provenance humaine (TUI ou hôte RPC qualifié)."
 									: "Cancellation requires a human origin.",
 							);
@@ -509,16 +344,19 @@ export default function harness495(pi: ExtensionAPI): void {
 							ctx.hasUI &&
 							!(await ctx.ui.confirm(
 								"495",
-								lang() === "fr"
+								session.lang() === "fr"
 									? "Annuler le changement ? Le dossier est conservé."
 									: "Cancel the change? The dossier is kept.",
 							))
 						)
 							return;
 						await rt.harness.abortCurrent("cancel");
-						emit(
+						session.emit(
 							ctx,
-							formatStatus(rt.harness.cancel(binding.change_id, origin.actor, text || "cancelled from Pi"), lang()),
+							formatStatus(
+								rt.harness.cancel(session.binding.change_id, origin.actor, text || "cancelled from Pi"),
+								session.lang(),
+							),
 						);
 						return;
 					}
@@ -529,36 +367,36 @@ export default function harness495(pi: ExtensionAPI): void {
 								.listChanges()
 								.filter((c) => c.phase !== "closed")
 								.map((c) => `${c.change_id} ${c.phase}/${c.status} (${c.program_id})`);
-							emit(ctx, list.length ? list.join("\n") : "no change recorded");
+							session.emit(ctx, list.length ? list.join("\n") : "no change recorded");
 							return;
 						}
 						const loaded = rt.ledger.loadChange(target);
 						if (!loaded) {
-							emit(ctx, `unknown change ${target}`);
+							session.emit(ctx, `unknown change ${target}`);
 							return;
 						}
-						bind(ctx, { program_id: loaded.state.program_id, change_id: target });
-						emit(ctx, formatStatus(rt.harness.status(target), lang()));
+						session.bind(ctx, { program_id: loaded.state.program_id, change_id: target });
+						session.emit(ctx, formatStatus(rt.harness.status(target), session.lang()));
 						return;
 					}
 					case "unbind":
 						rt.ledger.unbindSession(ctx.sessionManager.getSessionId());
-						binding = null;
-						updateFooter(ctx, null);
-						emit(ctx, "unbound");
+						session.binding = null;
+						session.updateFooter(ctx, null);
+						session.emit(ctx, "unbound");
 						return;
 					default:
-						emit(
+						session.emit(
 							ctx,
 							`495 ${VERSION_495}\n/495 start <demande> · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`,
 						);
 				}
 			} catch (error) {
 				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : (error as Error).message;
-				emit(ctx, `495 error: ${msg}`, {
+				session.emit(ctx, `495 error: ${msg}`, {
 					error: error instanceof DomainError ? error.toCanonical() : { message: msg },
 				});
-				updateFooter(ctx, currentView(ctx));
+				session.updateFooter(ctx, session.currentView(ctx));
 			}
 		},
 	});
@@ -586,22 +424,22 @@ export default function harness495(pi: ExtensionAPI): void {
 			path: Type.Optional(Type.String({ description: "for review_summary: a path to read" })),
 		}),
 		async execute(_id, params, _signal, _onUpdate, ctx) {
-			flushDiagnostics(ctx);
-			const rt = ensureRuntime(ctx);
+			session.flushDiagnostics(ctx);
+			const rt = session.ensureRuntime(ctx);
 			const say = (text: string, details: unknown = {}) => ({ content: [{ type: "text" as const, text }], details });
 			switch (params.operation) {
 				case "status": {
-					const view = currentView(ctx);
-					return say(view ? formatStatus(view, lang()) : "no program bound", { view });
+					const view = session.currentView(ctx);
+					return say(view ? formatStatus(view, session.lang()) : "no program bound", { view });
 				}
 				case "list_pending_decisions":
 					return say(
-						binding
-							? rt.harness.pendingDecisions(binding.change_id).map(formatDecision).join("\n\n") || "none"
+						session.binding
+							? rt.harness.pendingDecisions(session.binding.change_id).map(formatDecision).join("\n\n") || "none"
 							: "no program bound",
 					);
 				case "start": {
-					if (binding) return say(`already bound to ${binding.change_id}`);
+					if (session.binding) return say(`already bound to ${session.binding.change_id}`);
 					if (!params.request_text) return say("request_text required");
 					const created = await rt.harness.start({
 						project_path: ctx.cwd,
@@ -613,38 +451,38 @@ export default function harness495(pi: ExtensionAPI): void {
 							origin: "tool_call",
 							authentication_level: "none",
 						},
-						language: lang(),
+						language: session.lang(),
 					});
-					bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
+					session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
 					return say(
 						`program ${created.program.program_id} created; run /495 resume to conduct it (a tool call cannot drive decisions)`,
 					);
 				}
 				case "verify": {
-					if (!binding || busy) return say(busy ? "busy" : "no program bound");
-					busy = true;
+					if (!session.binding || session.busy) return say(session.busy ? "busy" : "no program bound");
+					session.busy = true;
 					try {
-						return say(formatStatus((await rt.harness.verify(binding.change_id)).view, lang()));
+						return say(formatStatus((await rt.harness.verify(session.binding.change_id)).view, session.lang()));
 					} finally {
-						busy = false;
+						session.busy = false;
 					}
 				}
 				case "review_summary": {
-					if (!binding) return say("no program bound");
-					const review = await rt.harness.openReview(binding.change_id);
+					if (!session.binding) return say("no program bound");
+					const review = await rt.harness.openReview(session.binding.change_id);
 					const { summarizeReview } = await import("../presentation/structured/review-text.ts");
-					return say(await summarizeReview(review, params.path ?? null, lang()));
+					return say(await summarizeReview(review, params.path ?? null, session.lang()));
 				}
 				case "report": {
-					if (!binding) return say("no program bound");
-					const report = await rt.harness.report(binding.change_id);
-					return say(formatReport(report, lang()), { report });
+					if (!session.binding) return say("no program bound");
+					const report = await rt.harness.report(session.binding.change_id);
+					return say(formatReport(report, session.lang()), { report });
 				}
 				case "export": {
-					if (!binding) return say("no program bound");
-					const dest = join(rt.dataDir, "exports", `${binding.change_id}-redacted-${Date.now()}`);
+					if (!session.binding) return say("no program bound");
+					const dest = join(rt.dataDir, "exports", `${session.binding.change_id}-redacted-${Date.now()}`);
 					const result = await exportChange(rt.ledger, rt.objects, {
-						change_id: binding.change_id,
+						change_id: session.binding.change_id,
 						destination: dest,
 						redact: true,
 						now: new Date().toISOString(),
@@ -656,24 +494,4 @@ export default function harness495(pi: ExtensionAPI): void {
 			return say("unsupported");
 		},
 	});
-}
-
-const VERSION_495 = "0.1.0";
-
-function safeUser(): string {
-	try {
-		return userInfo().username || "local-user";
-	} catch {
-		return "local-user";
-	}
-}
-
-function kernelUser(): ActorRef {
-	return {
-		actor_id: "495-kernel",
-		actor_type: "kernel",
-		role: "kernel",
-		origin: "kernel",
-		authentication_level: "host_qualified",
-	};
 }
