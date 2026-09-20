@@ -29,9 +29,10 @@ import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
-import type { AgentPort, ControlExecutionPort, InterventionEvent, InterventionMandate, ModelSelection, SandboxProfile, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import type { AgentPort, ControlExecutionPort, InterventionMandate, ModelSelection, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "./actors.ts";
-import { buildContext, outputSchemaFor } from "./context.ts";
+import { InterventionSupervisor } from "./intervention.ts";
+import { buildContext, buildFeedback, focusOf, implementObjective, preparationMandateObjective, preparationObjective, projectExcerpts, resumeNote, reviewObjective, specificationObjective, type FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -86,7 +87,8 @@ export class Harness {
 	readonly deps: HarnessDeps;
 	/** Resolves the protocol, qualifies the sensors, runs the controls and produces the evidence. */
 	private readonly verification: VerificationCoordinator;
-	private activeHandle: { abort(reason: string): Promise<void> } | null = null;
+	/** Drives one bounded agent session and reports what it observed. */
+	private readonly interventions: InterventionSupervisor;
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
 		const harness = this;
@@ -105,13 +107,19 @@ export class Harness {
 			},
 			progress: (message: string) => harness.progress(message),
 		});
+		this.interventions = new InterventionSupervisor({
+			agent: deps.agent,
+			sandbox: deps.sandbox,
+			model: deps.model,
+			policy: deps.policy,
+			now: () => harness.now(),
+			progress: (message: string) => harness.progress(message),
+		});
 	}
 
 	/** Cancels the intervention currently supervised, if any (§12.3). */
 	async abortCurrent(reason: string): Promise<boolean> {
-		if (!this.activeHandle) return false;
-		await this.activeHandle.abort(reason);
-		return true;
+		return this.interventions.abortCurrent(reason);
 	}
 
 	// --- helpers -----------------------------------------------------------------------------------
@@ -195,6 +203,15 @@ export class Harness {
 		const ref = adopted?.ref ?? state.proposals[kind]?.at(-1);
 		if (!ref) return null;
 		return { ref, content: await this.readArtifact<T>(ref) };
+	}
+
+	/** The ledger and store reads the feedback document is composed from. */
+	private feedbackSources(): FeedbackSources {
+		return {
+			getEvidence: (evidenceId: string) => this.deps.ledger.getEvidence(evidenceId),
+			readBytes: (ref, range) => this.deps.objects.get(ref, range),
+			max_bytes: this.deps.policy.budgets.feedback_bytes,
+		};
 	}
 
 	private language(state: ChangeState): "fr" | "en" {
@@ -324,19 +341,11 @@ export class Harness {
 
 	// --- interventions ---------------------------------------------------------------------------
 
-	private profileFor(role: InterventionMandate["role"], workspacePath: string): SandboxProfile {
-		const writes = role === "implement" || role === "prepare" ? [workspacePath] : [];
-		return { profile_id: role, read_paths: [workspacePath], write_paths: writes, network: "denied", env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"], env: {} };
-	}
-
 	private async runIntervention(unit: Unit, cor: string, role: InterventionMandate["role"], objective: string, workspacePath: string, extra: { adopted?: ArtifactKind[]; untrusted?: { source: string; text: string }[]; feedback?: string | null; attempt_id?: string | null }): Promise<{ unit: Unit; output: unknown; output_valid: boolean; result: "completed" | "failed" | "cancelled" | "truncated"; intervention_id: string }> {
-		const qualified = this.deps.sandbox.qualification.qualified || role === "observe" || role === "specify" || role === "review";
-		if (!qualified) throw new DomainError("CAPABILITY_MISSING", `sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`, { nextActions: ["qualify_capability"] });
-		const capabilities = await this.deps.agent.describeCapabilities(this.deps.model);
-		if (!capabilities.available) throw new DomainError("CAPABILITY_MISSING", `model ${this.deps.model.provider_id}/${this.deps.model.model_id} unavailable: ${capabilities.reasons.join("; ")}`, { nextActions: ["configure_model"] });
+		await this.interventions.requireCapable(role);
 		const interventionId = this.id("int");
 		const attemptId = extra.attempt_id ?? (role === "implement" || role === "prepare" ? this.id("att") : null);
-		unit = this.commit(unit, { type: "intervention.start", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, role, attempt_id: attemptId, model: this.deps.model, profile_id: role, profile_qualified: qualified }, cor);
+		unit = this.commit(unit, { type: "intervention.start", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, role, attempt_id: attemptId, model: this.deps.model, profile_id: role, profile_qualified: this.interventions.qualifiedFor(role) }, cor);
 		if (unit.state.status === "blocked") return { unit, output: null, output_valid: false, result: "failed", intervention_id: interventionId };
 		const adopted: { kind: string; artifact_id: string; revision: number; digest: string; text: string }[] = [];
 		for (const kind of extra.adopted ?? []) {
@@ -351,79 +360,16 @@ export class Harness {
 		for (const u of extra.untrusted ?? []) await this.deps.objects.putText(u.text, "text/plain");
 		const contextRef = await this.storeArtifact("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
-		const mandate: InterventionMandate = { intervention_id: interventionId, change_id: unit.state.change_id, role, objective, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest, tools: TOOLS_FOR_ROLE[role], profile: this.profileFor(role, workspacePath), workspace_path: workspacePath, model: this.deps.model, budgets: { duration_ms: this.deps.policy.budgets.intervention_ms, tool_calls: this.deps.policy.budgets.tool_calls_per_intervention }, output_schema: outputSchemaFor(role) };
-		this.progress(`intervention ${role} started (${this.deps.model.provider_id}/${this.deps.model.model_id})`);
-		const handle = await this.deps.agent.startIntervention(mandate);
-		this.activeHandle = handle;
-		let terminal: InterventionEvent | null = null;
-		let toolCalls = 0;
-		const events: InterventionEvent[] = [];
-		for await (const event of handle.events) {
-			events.push(event);
-			if (event.type === "tool_finished") {
-				toolCalls++;
-				const consumed = this.tryCommit(unit, { type: "budget.consume", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, counters: { tool_calls: 1, duration_ms: 0, tokens_known: 0, delegations: 0 } }, cor);
-				unit = consumed.unit;
-				if (consumed.error) {
-					await handle.abort(consumed.error.message);
-				}
-			}
-			if (event.type === "completed" || event.type === "failed" || event.type === "cancelled") {
-				terminal = event;
-				break;
-			}
-		}
-		this.activeHandle = null;
-		const t = terminal ?? { type: "failed" as const, at: this.now(), error: "no terminal event", counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 } };
-		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
-		// A session ended by the duration budget is not a proposal: the producer was still working.
-		const truncated = t.type === "completed" && t.truncated === true;
-		const result = truncated ? ("truncated" as const) : t.type;
-		const outputRef = await this.storeArtifact("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: t, events: events.filter((e) => e.type !== "model_event").slice(0, 500) }, interventionId);
+		// Each tool call is paid for as it happens: what the budget refuses ends the session there.
+		const report = await this.interventions.run({ intervention_id: interventionId, change_id: unit.state.change_id, role, objective, workspace_path: workspacePath, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest }, () => {
+			const consumed = this.tryCommit(unit, { type: "budget.consume", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, counters: { tool_calls: 1, duration_ms: 0, tokens_known: 0, delegations: 0 } }, cor);
+			unit = consumed.unit;
+			return consumed.error;
+		});
+		const outputRef = await this.storeArtifact("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: report.terminal, events: report.events }, interventionId);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: { actor_id: interventionId, actor_type: "agent", role: role === "review" ? "reviewer_agent" : "producer_agent", origin: "model_output", authentication_level: "none" }, kind: "output", ref: outputRef }, cor);
-		const detail = t.type === "failed" ? t.error : truncated ? `stopped by the ${this.deps.policy.budgets.intervention_ms} ms duration budget; the workspace keeps the unfinished work` : null;
-		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result, counters, detail }, cor);
-		if (truncated) this.progress(`intervention ${role} interrupted by the duration budget`);
-		return { unit, output: t.type === "completed" ? t.output : null, output_valid: t.type === "completed" ? t.output_valid : false, result, intervention_id: interventionId };
-	}
-
-	/**
-	 * Project excerpts for an intervention. Sources are matched at any depth — a Maven or Gradle
-	 * module keeps its code under `<module>/src/main/java/...`, never at the root — and ranked by how
-	 * much of the objective vocabulary their path carries, so the producer is handed the files it has
-	 * to change rather than the build manifests alone.
-	 */
-	private async projectExcerpts(reference: ReferenceSnapshot, workspacePath: string, max = 12, focus = ""): Promise<{ source: string; text: string }[]> {
-		const manifest = /(^|\/)(package\.json|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|Cargo\.toml|pyproject\.toml|go\.mod|composer\.json|Gemfile|README(\.md)?|AGENTS\.md|CLAUDE\.md)$/;
-		const source = /\.(java|kt|kts|scala|ts|tsx|js|jsx|mjs|cjs|py|go|rb|rs|cs|php|swift|sql)$/;
-		const words = [...new Set(focus.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])];
-		const depth = (path: string) => path.split("/").length;
-		const score = (path: string) => {
-			const lower = path.toLowerCase();
-			// A shallower file is usually closer to the domain than a deeply nested helper; the tiny
-			// depth penalty only breaks ties between paths that carry the same vocabulary.
-			return words.reduce((n, w) => (lower.includes(w) ? n + 1 : n), 0) - depth(path) / 100;
-		};
-		const files = reference.entries.filter((e) => e.kind === "file" && e.size > 0 && e.content_digest !== null);
-		const manifests = files.filter((e) => manifest.test(e.path)).sort((a, b) => depth(a.path) - depth(b.path) || (a.path < b.path ? -1 : 1));
-		const sources = files.filter((e) => !manifest.test(e.path) && source.test(e.path)).sort((a, b) => score(b.path) - score(a.path) || (a.path < b.path ? -1 : 1));
-		const selected = [...manifests.slice(0, Math.max(1, Math.ceil(max / 3))), ...sources].slice(0, max);
-		const out: { source: string; text: string }[] = [];
-		for (const e of selected) {
-			try {
-				const { readFile } = await import("node:fs/promises");
-				out.push({ source: e.path, text: (await readFile(join(workspacePath, e.path), "utf8")).slice(0, 4000) });
-			} catch {
-				/* unreadable excerpt is simply absent */
-			}
-		}
-		return out;
-	}
-
-	/** The vocabulary an intervention is about: objective plus the adopted requirement statements. */
-	private async focusOf(state: ChangeState, objective: string): Promise<string> {
-		const requirements = await this.latestArtifact<RequirementsDocument>(state, "requirements").catch(() => null);
-		return [objective, ...(requirements?.content.requirements ?? []).map((r) => `${r.statement} ${r.criterion}`)].join(" ");
+		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result: report.result, counters: report.counters, detail: report.detail }, cor);
+		return { unit, output: report.output, output_valid: report.output_valid, result: report.result, intervention_id: interventionId };
 	}
 
 	private async referenceOf(state: ChangeState): Promise<ReferenceSnapshot> {
@@ -467,17 +413,8 @@ export class Harness {
 			if (reopen) this.progress(`specification reopened by ${ignored.length} material answer(s): ${ignored.map((q) => q.id).join(", ")}`);
 			const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			try {
-				const excerpts = await this.projectExcerpts(reference, handle.path, 12, request);
-				// An answer an earlier report already bound is carried by the kernel: the next report is
-				// told which requirements hold it and has to declare again only what it changes.
-				const answered = unit.state.open_questions
-					.filter((q) => q.answer !== null && q.id !== "language")
-					.map((q) => {
-						const d = declared.get(q.id);
-						const standing = !d ? "to declare in `answers`" : d.observable ? `already declared, carried by ${d.requirement_ids.join(", ")}` : "already declared as fixing nothing observable";
-						return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
-					});
-				const objective = `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
+				const excerpts = await projectExcerpts(reference, handle.path, 12, request);
+				const objective = specificationObjective(request, unit.state.open_questions, declared);
 				const r = await this.runIntervention(unit, cor, "specify", objective, handle.path, { untrusted: excerpts });
 				unit = r.unit;
 				if (r.result !== "completed" || !r.output_valid || !Value.Check(OUTPUT_SCHEMAS["specification-report"], r.output)) {
@@ -603,7 +540,7 @@ export class Harness {
 	private async openPreparation(unit: Unit, cor: string, detection: StackDetection, refs: RequirementRef[], diagnosis: ControlCapabilityDiagnosis): Promise<Unit> {
 		const alreadyTried = (unit.state.proposals.preparation ?? []).filter((a) => a.artifact_id.startsWith("prep_")).length;
 		if (alreadyTried >= 2) throw new DomainError("CAPABILITY_MISSING", `no discriminant test could be prepared after two preparation interventions: ${diagnosis.notes.join("; ")}`, { nextActions: ["prepare_capabilities", "assign_human_decision"] });
-		const objective = `Write automated tests for the adopted requirements in the target technology (${detection.stack}); only files under ${detection.preparation_paths.join(", ")} may be created or modified. The controls already on this target cannot decide ${diagnosis.undiscriminated_requirements.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
+		const objective = preparationMandateObjective(detection.stack, detection.preparation_paths, diagnosis.undiscriminated_requirements);
 		const mandate = { objective, allowed_paths: detection.preparation_paths, requirement_ids: refs.map((r) => r.requirement_id), stack: detection.stack };
 		const ref = await this.storeArtifact("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate", diagnosis }, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
@@ -628,7 +565,9 @@ export class Harness {
 				unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 				return this.commit(unit, { type: "preparation.close", at: this.now(), actor: KERNEL_ACTOR, qualified: false, capability_ids: [], adopted_ref: null }, cor);
 			}
-			const r = await this.runIntervention(unit, cor, "prepare", `${mandate.objective}\nRequirements to cover: ${mandate.requirement_ids.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`, handle.path, { adopted: ["mandate", "requirements"], untrusted: await this.projectExcerpts(reference, handle.path, 10, await this.focusOf(unit.state, mandate.objective)), feedback });
+			const adoptedRequirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements").catch(() => null);
+			const excerpts = await projectExcerpts(reference, handle.path, 10, focusOf(mandate.objective, adoptedRequirements?.content.requirements ?? []));
+			const r = await this.runIntervention(unit, cor, "prepare", preparationObjective(mandate.objective, mandate.requirement_ids), handle.path, { adopted: ["mandate", "requirements"], untrusted: excerpts, feedback });
 			unit = r.unit;
 			if (unit.state.status === "blocked") return unit;
 			const notes: string[] = [];
@@ -701,11 +640,13 @@ export class Harness {
 		const lastFeedback = unit.state.feedback.at(-1);
 		const priorFeedback = lastFeedback ? await this.readArtifact<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
 		const truncatedBefore = unit.state.interventions.filter((i) => i.attempt_id === attemptId && i.result === "truncated").length;
-		const resume = truncatedBefore > 0 ? `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by the duration budget, not by you (${truncatedBefore} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.` : null;
+		const resume = resumeNote(truncatedBefore);
 		const feedback = [resume, priorFeedback].filter((x): x is string => Boolean(x)).join("\n\n") || null;
 		const mandate = await this.latestArtifact<Mandate>(unit.state, "mandate");
-		const objective = mandate?.content.objective ?? "implement the adopted design";
-		const r = await this.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: await this.projectExcerpts(reference, workspacePath, 10, await this.focusOf(unit.state, objective)) });
+		const objective = implementObjective(mandate?.content.objective ?? null);
+		const adoptedRequirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements").catch(() => null);
+		const excerpts = await projectExcerpts(reference, workspacePath, 10, focusOf(objective, adoptedRequirements?.content.requirements ?? []));
+		const r = await this.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: excerpts });
 		unit = r.unit;
 		if (unit.state.status === "blocked") return unit;
 		if (r.result === "cancelled") return this.commit(unit, { type: "change.block", at: this.now(), actor: KERNEL_ACTOR, reason: "execution_error", detail: "producer intervention cancelled" }, cor);
@@ -781,7 +722,7 @@ export class Harness {
 		for (const role of state.protocol.required_reviews) {
 			if (state.reviews.some((r) => r.valid && r.reviewer_role === role && r.subject_digest === state.candidate!.manifest_digest)) continue;
 			const manifest = await this.readArtifact<CandidateManifest>({ artifact_id: state.candidate.candidate_id, revision: 1 });
-			const r = await this.runIntervention(unit, cor, "review", `Review the candidate as the ${role} reviewer. Changed paths: ${manifest.selected_paths.join(", ")}`, workspacePath, { adopted: ["mandate", "requirements", "design"] });
+			const r = await this.runIntervention(unit, cor, "review", reviewObjective(role, manifest.selected_paths), workspacePath, { adopted: ["mandate", "requirements", "design"] });
 			unit = r.unit;
 			const report = r.result === "completed" && r.output_valid ? (r.output as ReviewReport) : null;
 			const reviewId = this.id("rev");
@@ -841,7 +782,7 @@ export class Harness {
 
 	private async correctOrStop(unit: Unit, cor: string, why: string): Promise<Unit> {
 		const state = unit.state;
-		const feedback = await this.buildFeedback(state, why);
+		const feedback = await buildFeedback(state, why, this.feedbackSources());
 		const attemptId = this.id("att");
 		const current = state.attempts.at(-1);
 		if (current) await this.storeArtifact("feedback", state.change_id, `fb_${current.attempt_id}`, feedback.text, KERNEL_ACTOR.actor_id);
@@ -850,35 +791,6 @@ export class Harness {
 			return this.requestDecision(next, cor, "IH-07", subjectOfChange(next.state), [why], "stop", `${next.state.budgets.attempts_used}/${next.state.budgets.max_attempts}`, undefined, this.language(next.state));
 		}
 		return next;
-	}
-
-	/** Bounded feedback (DEC-02): requirement, expected, observed, location, evidence reference. */
-	private async buildFeedback(state: ChangeState, why: string): Promise<{ text: string; bytes: number; truncated: boolean }> {
-		const lines: string[] = [`Verdict: ${state.gates.G5?.verdict ?? state.gates.G4?.verdict ?? "FAIL"}`, `Reasons: ${why}`];
-		for (const g of [state.gates.G4, state.gates.G5]) if (g) for (const r of g.reasons) lines.push(`- ${g.gate}: ${r}`);
-		for (const entry of state.evidence.filter((e) => e.valid && e.subject_digest === state.candidate?.manifest_digest && e.verdict !== "PASS")) {
-			const ev = this.deps.ledger.getEvidence(entry.evidence_id);
-			if (!ev) continue;
-			lines.push(`\nControl ${ev.control_id} -> ${ev.verdict} (evidence ${ev.evidence_id})`);
-			if (ev.baseline) lines.push(`  baseline ${ev.baseline.reference_verdict} on the reference: ${ev.baseline.new_findings} introduced, ${ev.baseline.preexisting_findings} preexisting, ${ev.baseline.removed_findings} removed`);
-			// A preexisting finding is named as such: the producer is asked for what this change owes,
-			// not for the debt it inherited (QLT-04).
-			for (const f of ev.findings.filter((finding) => finding.baseline_state !== "removed").slice(0, 20)) lines.push(`  * ${f.severity} [${f.baseline_state}] ${f.message}${f.path ? ` at ${f.path}${f.region ? `:${f.region.start_line}` : ""}` : ""}`);
-			for (const n of ev.limits.notes) lines.push(`  ! ${n}`);
-			const stderr = ev.artifacts.find((a) => a.name === "stderr") ?? ev.artifacts.find((a) => a.name === "stdout");
-			if (stderr) {
-				const bytes = await this.deps.objects.get(stderr.ref, { offset: 0, length: 8000 });
-				if (bytes) lines.push("  output excerpt:\n" + new TextDecoder().decode(bytes).split("\n").slice(-40).map((l) => `    ${l}`).join("\n"));
-			}
-		}
-		let text = lines.join("\n");
-		const max = this.deps.policy.budgets.feedback_bytes;
-		let truncated = false;
-		if (Buffer.byteLength(text) > max) {
-			text = `${Buffer.from(text).subarray(0, max - 60).toString()}\n[feedback truncated by 495; full evidence in the dossier]`;
-			truncated = true;
-		}
-		return { text, bytes: Buffer.byteLength(text), truncated };
 	}
 
 	private async stepIntegrate(unit: Unit, cor: string): Promise<Unit> {

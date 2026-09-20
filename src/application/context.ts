@@ -2,9 +2,18 @@
  * Context builder (CMP-CTX, CTX-01, CTX-02, CTX-05): trusted instructions first, adopted artifacts
  * by reference and digest, project excerpts explicitly labelled untrusted, a bounded input budget
  * and an explicit output schema per role. The full prompt is derived from the manifest.
+ *
+ * Everything an intervention is handed is composed here and nowhere else: what it is asked, which
+ * project files it is shown, what the previous attempt was refused for, and what it is told when it
+ * is resumed on work of its own. A phase names the facts; it does not write the text.
  */
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { digestBytes } from "../contracts/digest.ts";
-import type { InterventionRole } from "../contracts/v1/common.ts";
+import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
+import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
+import type { Evidence } from "../contracts/v1/evidence.ts";
+import type { AnswerDeclaration, ChangeState } from "../domain/change/state.ts";
 import type { ContextManifest } from "../ports/execution.ts";
 
 export interface ContextInput {
@@ -118,4 +127,130 @@ export function buildContext(input: ContextInput): { manifest: ContextManifest; 
 	const record = JSON.stringify({ system_prompt, prompt }, null, 2);
 	const manifest: ContextManifest = { role: input.role, objective: input.objective, output_schema: schema, trusted_instructions: trusted, adopted_refs: input.adopted.map((a) => ({ kind: a.kind, artifact_id: a.artifact_id, revision: a.revision, digest: a.digest })), untrusted_excerpts: excerpts, tools: input.tools, exclusions: [], input_budget_bytes: input.budget_bytes, output_reserve_tokens: 4000, truncations, prompt_digest: digestBytes(record) };
 	return { manifest, system_prompt, prompt, record };
+}
+
+// --- what an intervention is asked ---------------------------------------------------------------
+
+/**
+ * The request, with the answers a human has already given beside it. An answer an earlier report
+ * already bound is carried by the kernel: the next report is told which requirements hold it and
+ * has to declare again only what it changes.
+ */
+export function specificationObjective(request: string, questions: readonly { id: string; question: string; answer: string | null }[], declared: ReadonlyMap<string, AnswerDeclaration>): string {
+	const answered = questions
+		.filter((q) => q.answer !== null && q.id !== "language")
+		.map((q) => {
+			const d = declared.get(q.id);
+			const standing = !d ? "to declare in `answers`" : d.observable ? `already declared, carried by ${d.requirement_ids.join(", ")}` : "already declared as fixing nothing observable";
+			return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
+		});
+	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
+}
+
+/** The mandate a bounded preparation is opened on: what is missing, and where it may be written. */
+export function preparationMandateObjective(stack: string, allowedPaths: readonly string[], undiscriminated: readonly string[]): string {
+	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} may be created or modified. The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
+}
+
+/** What the preparing intervention is asked, on top of the mandate it was opened on. */
+export function preparationObjective(mandateObjective: string, requirementIds: readonly string[]): string {
+	return `${mandateObjective}\nRequirements to cover: ${requirementIds.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`;
+}
+
+/** What the producer is asked: the adopted mandate, or the design alone when no mandate is held. */
+export function implementObjective(mandateObjective: string | null): string {
+	return mandateObjective ?? "implement the adopted design";
+}
+
+/** What a reviewer is asked, and on which paths. */
+export function reviewObjective(reviewerRole: string, changedPaths: readonly string[]): string {
+	return `Review the candidate as the ${reviewerRole} reviewer. Changed paths: ${changedPaths.join(", ")}`;
+}
+
+/**
+ * What a producer resumed on its own workspace is told. A session the duration budget ended is not
+ * a refusal of the work: starting over would throw away everything already written.
+ */
+export function resumeNote(interruptions: number): string | null {
+	if (interruptions <= 0) return null;
+	return `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by the duration budget, not by you (${interruptions} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.`;
+}
+
+// --- which project files an intervention is shown ------------------------------------------------
+
+/** The vocabulary an intervention is about: its objective plus the adopted requirement statements. */
+export function focusOf(objective: string, requirements: readonly { statement: string; criterion: string }[]): string {
+	return [objective, ...requirements.map((r) => `${r.statement} ${r.criterion}`)].join(" ");
+}
+
+/**
+ * Project excerpts for an intervention. Sources are matched at any depth — a Maven or Gradle
+ * module keeps its code under `<module>/src/main/java/...`, never at the root — and ranked by how
+ * much of the objective vocabulary their path carries, so the producer is handed the files it has
+ * to change rather than the build manifests alone.
+ */
+export async function projectExcerpts(reference: ReferenceSnapshot, workspacePath: string, max = 12, focus = ""): Promise<{ source: string; text: string }[]> {
+	const manifest = /(^|\/)(package\.json|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|Cargo\.toml|pyproject\.toml|go\.mod|composer\.json|Gemfile|README(\.md)?|AGENTS\.md|CLAUDE\.md)$/;
+	const source = /\.(java|kt|kts|scala|ts|tsx|js|jsx|mjs|cjs|py|go|rb|rs|cs|php|swift|sql)$/;
+	const words = [...new Set(focus.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])];
+	const depth = (path: string) => path.split("/").length;
+	const score = (path: string) => {
+		const lower = path.toLowerCase();
+		// A shallower file is usually closer to the domain than a deeply nested helper; the tiny
+		// depth penalty only breaks ties between paths that carry the same vocabulary.
+		return words.reduce((n, w) => (lower.includes(w) ? n + 1 : n), 0) - depth(path) / 100;
+	};
+	const files = reference.entries.filter((e) => e.kind === "file" && e.size > 0 && e.content_digest !== null);
+	const manifests = files.filter((e) => manifest.test(e.path)).sort((a, b) => depth(a.path) - depth(b.path) || (a.path < b.path ? -1 : 1));
+	const sources = files.filter((e) => !manifest.test(e.path) && source.test(e.path)).sort((a, b) => score(b.path) - score(a.path) || (a.path < b.path ? -1 : 1));
+	const selected = [...manifests.slice(0, Math.max(1, Math.ceil(max / 3))), ...sources].slice(0, max);
+	const out: { source: string; text: string }[] = [];
+	for (const e of selected) {
+		try {
+			out.push({ source: e.path, text: (await readFile(join(workspacePath, e.path), "utf8")).slice(0, 4000) });
+		} catch {
+			/* unreadable excerpt is simply absent */
+		}
+	}
+	return out;
+}
+
+// --- what the previous attempt was refused for ---------------------------------------------------
+
+export interface FeedbackSources {
+	/** One observation, as the ledger holds it. */
+	getEvidence(evidenceId: string): Evidence | null;
+	/** Bytes of a stored object, bounded to the range asked. */
+	readBytes(ref: ObjectRef | string, range: { offset: number; length: number }): Promise<Uint8Array | null>;
+	/** What a producer may be handed to read, beyond which the text is cut and says so. */
+	max_bytes: number;
+}
+
+/** Bounded feedback (DEC-02): requirement, expected, observed, location, evidence reference. */
+export async function buildFeedback(state: ChangeState, why: string, sources: FeedbackSources): Promise<{ text: string; bytes: number; truncated: boolean }> {
+	const lines: string[] = [`Verdict: ${state.gates.G5?.verdict ?? state.gates.G4?.verdict ?? "FAIL"}`, `Reasons: ${why}`];
+	for (const g of [state.gates.G4, state.gates.G5]) if (g) for (const r of g.reasons) lines.push(`- ${g.gate}: ${r}`);
+	for (const entry of state.evidence.filter((e) => e.valid && e.subject_digest === state.candidate?.manifest_digest && e.verdict !== "PASS")) {
+		const ev = sources.getEvidence(entry.evidence_id);
+		if (!ev) continue;
+		lines.push(`\nControl ${ev.control_id} -> ${ev.verdict} (evidence ${ev.evidence_id})`);
+		if (ev.baseline) lines.push(`  baseline ${ev.baseline.reference_verdict} on the reference: ${ev.baseline.new_findings} introduced, ${ev.baseline.preexisting_findings} preexisting, ${ev.baseline.removed_findings} removed`);
+		// A preexisting finding is named as such: the producer is asked for what this change owes,
+		// not for the debt it inherited (QLT-04).
+		for (const f of ev.findings.filter((finding) => finding.baseline_state !== "removed").slice(0, 20)) lines.push(`  * ${f.severity} [${f.baseline_state}] ${f.message}${f.path ? ` at ${f.path}${f.region ? `:${f.region.start_line}` : ""}` : ""}`);
+		for (const n of ev.limits.notes) lines.push(`  ! ${n}`);
+		const stderr = ev.artifacts.find((a) => a.name === "stderr") ?? ev.artifacts.find((a) => a.name === "stdout");
+		if (stderr) {
+			const bytes = await sources.readBytes(stderr.ref, { offset: 0, length: 8000 });
+			if (bytes) lines.push("  output excerpt:\n" + new TextDecoder().decode(bytes).split("\n").slice(-40).map((l) => `    ${l}`).join("\n"));
+		}
+	}
+	let text = lines.join("\n");
+	const max = sources.max_bytes;
+	let truncated = false;
+	if (Buffer.byteLength(text) > max) {
+		text = `${Buffer.from(text).subarray(0, max - 60).toString()}\n[feedback truncated by 495; full evidence in the dossier]`;
+		truncated = true;
+	}
+	return { text, bytes: Buffer.byteLength(text), truncated };
 }
