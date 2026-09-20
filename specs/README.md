@@ -29,3 +29,8 @@ contrôles ne gardent leur pouvoir de refus qu'en lisant des documents tenus à 
 |---|---|---|
 | `tech-architecture/tech-stack.md` | dérivé du code | `map-codebase` |
 | `adr/ADR-001..018` | `archive/amont/conception-technique.md` §15 | extraction |
+| `adr/D-45…` | décisions d'implémentation, à raison d'un fichier par décision | à la main |
+| `product/SCOPE_LATEST.yaml` | le périmètre du travail ouvert, 22 epics | `scope-work` |
+| `release-plan.yaml` | l'index ordonné des epics | `plan-release` |
+
+`D-01` à `D-44` restent dans `archive/DECISIONS.md` ; la série se continue sous `adr/`.
