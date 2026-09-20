@@ -1,3 +1,219 @@
-# Product scope for 495. specs/archive/amont/expression-besoins.md is the normative
-# requirements document (BES, REQ, VER, DEC, PRE, ARC, QLT, PRG ids). This
-# file does not restate it — treat specs/archive/amont/ as the normative source.
+# Périmètre du travail ouvert de 495 — PRD borné.
+# Sources : specs/archive/ROADMAP.md §2, §3 et §5, specs/archive/TRACEABILITY.md,
+# specs/archive/chantiers/README.md. Le texte normatif des exigences reste dans
+# specs/archive/amont/expression-besoins.md ; ce fichier ne le restitue pas.
+
+feature_name: Travail ouvert de 495 — seconde moitié de P0
+
+core_value: >
+  Rendre opposable sur une cible réelle ce que le noyau sait déjà décider, et fermer les cas où un
+  changement aboutit alors qu'il ne devrait pas.
+
+summary: >
+  495 conduit un changement de Pi à travers des gates adossées à des preuves exécutées. Les
+  incréments IT-0 à IT-4 sont livrés et qualifiés sur la machine de référence : un cycle complet va
+  de la demande à l'acceptation sur une cible Maven, avec un modèle local, sous Seatbelt.
+
+  Ce qui reste de P0 se répartit en deux natures. D'un côté, des capacités absentes du noyau : juger
+  ce que vaut la référence elle-même (QLT-01..03, QLT-05, ARC-01..03), caractériser un existant peu
+  testé sans consacrer ses défauts (PRE-04), faire évoluer la capacité de vérification à chaque
+  incrément (PRE-05), déclencher une phase documentaire (RAG), et instruire toutes les disciplines
+  applicables à un changement (EXP). De l'autre, dix travaux sortis des campagnes conduites sur des
+  cibles réelles, qui portent moins sur des fonctions manquantes que sur des comportements de bord.
+
+  L'ordre est commandé par un défaut de gravité particulière : une réponse humaine à une question
+  matérielle est enregistrée, attribuée et portée au mandat sans atteindre les exigences, de sorte
+  qu'un changement est accepté en rendant un contrat que son propriétaire n'avait pas décidé. Ce
+  défaut ne fait échouer aucun parcours — il en fait réussir un qui ne devrait pas, ce qu'aucune
+  gate ni aucun contrôle ne rattrape. Il passe donc devant tout le reste.
+
+in_scope:
+  - epic: e01-reponse-humaine-atteint-les-exigences
+    source: chantiers/L
+    objet: >
+      Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport qui défait une liaison sans poser de question dispose d'un recours.
+    motif: >
+      Un changement accepté rend 400 là où son propriétaire avait décidé 422, et le protocole gelé exige ce 400. La discrimination établit que l'oracle distingue le comportement nouveau de l'ancien, jamais qu'il distingue le bon contrat du mauvais.
+
+  - epic: e02-sortie-refusee-garde-une-issue
+    source: chantiers/F
+    objet: >
+      Une sortie d'intervention structurée mais refusée laisse au changement une issue, et un rapport complet et valide n'est plus perdu parce que la recherche part de la fin.
+    motif: >
+      A tué deux lancements sur quatre.
+
+  - epic: e03-mandat-coherent-avec-sa-verification
+    source: chantiers/J
+    objet: >
+      Le mandat n'interdit plus au producteur la vérification qu'il lui ordonne de conduire.
+    motif: >
+      Symptôme de e04 ; aujourd'hui seule une exclusion de workspace invisible depuis le prompt sauve le cas qui passe par Maven.
+
+  - epic: e04-clarte-des-instructions-d-intervention
+    source: chantiers/K
+    objet: >
+      Les instructions portées à un producteur sont découpées et sélectionnées par rôle, au lieu d'un bloc unique.
+    motif: >
+      Trois campagnes montrent qu'elles se contredisent ou se noient. Cause de e03.
+
+  - epic: e05-commande-de-test-d-une-cible-node
+    source: chantiers/E
+    objet: >
+      Une cible Node voit sa commande de test lue depuis ce qu'elle déclare, et une copie de travail conserve ce dont ses dépendances ont besoin.
+    motif: >
+      Une cible en vitest ne passe pas ; aucune capacité n'est opposable sur une cible Node.
+
+  - epic: e06-inventaire-des-cas-particuliers-d-un-arbre
+    source: chantiers/H
+    objet: >
+      L'inventaire d'un arbre traite le sous-module et le fichier spécial, et la revue ne dépend plus d'un workspace que rien ne réclame.
+
+  - epic: e07-lisibilite-d-un-changement-arrete
+    source: chantiers/G
+    objet: >
+      L'état d'un changement, arrêté ou abouti, est lisible : une cause énoncée une fois, une notification sur la ligne décisive, des risques résiduels qui portent sur le candidat.
+
+  - epic: e08-la-revue-s-appuie-sur-ce-que-pi-rend
+    source: chantiers/I
+    objet: >
+      La revue cesse de réimplémenter ce que Pi rend déjà, sans affaiblir la règle de couches qui garde le modèle de revue indépendant du rendu.
+
+  - epic: e09-etat-d-arret-et-session-conductrice
+    source: chantiers/M
+    objet: >
+      Clore une intervention ne rend plus prêt un changement bloqué, et une seule session conduit un changement donné.
+
+  - epic: e10-referentiel-de-qualite-d-une-cible
+    source: chantiers/N
+    requirements: [QLT-01, QLT-02, QLT-03, QLT-05]
+    objet: >
+      Le noyau sait dire ce que vaut une cible sur la qualité : conventions, seuils et contrôles définis par technologie et composant, existant mesuré avec les écarts localisés et les périmètres séparés, remise aux standards traduite en incréments priorisés, et conformité démontrée dans le seul périmètre réellement contrôlé.
+    motif: >
+      Les quatre ne sont pas livrables séparément : mesurer un existant suppose un référentiel adopté, et démontrer une remise en conformité suppose la baseline qui lui sert de point de départ.
+
+  - epic: e11-architecture-cible-d-une-cible
+    source: chantiers/N
+    requirements: [ARC-01, ARC-02, ARC-03]
+    objet: >
+      Le noyau sait dire ce que vaut l'architecture d'une cible : diagnostic de l'architecture réellement présente avec ses angles morts déclarés, recommandation argumentée par les contraintes et non par un style, et migration traduite en étapes avec contrats de transition et retour arrière.
+    motif: >
+      Même chaîne : recommander une cible suppose le diagnostic de l'existant, et planifier une migration suppose la cible adoptée.
+
+  - epic: e12-cartographie-des-controles-existants
+    requirements: [PRE-01]
+    objet: >
+      La cartographie des contrôles d'une cible porte les assertions qu'ils tiennent réellement, au-delà de l'échelle de capacité à quatre niveaux déjà livrée.
+    motif: >
+      L'instabilité relève de VER-08, livré. Ce qui reste est la part assertions.
+
+  - epic: e13-tests-de-caracterisation-d-un-existant
+    requirements: [PRE-04]
+    objet: >
+      Un existant peu testé reçoit des tests de caractérisation et des jeux de référence avant transformation, en distinguant comportement observé et comportement voulu, sans consacrer un défaut existant comme exigence.
+
+  - epic: e14-capacite-de-verification-par-increment
+    requirements: [PRE-05]
+    objet: >
+      À chaque incrément, la couverture nécessaire est complétée et les contrôles nouveaux ou modifiés sont qualifiés avant de servir d'autorité d'acceptation, avec isolation des données de test et un corpus de contre-exemples réutilisables.
+
+  - epic: e15-besoin-de-connaissance-identifie
+    requirements: [RAG-01]
+    objet: >
+      Une phase documentaire se déclenche sur une technologie nouvelle, un changement de version, un manque de références ou des erreurs d'API ; les questions à résoudre sont enregistrées et le moyen justifié, sans prétendre mesurer ce qu'un modèle connaît.
+
+  - epic: e16-corpus-officiel-versionne
+    requirements: [RAG-02]
+    objet: >
+      La documentation correspondant aux versions utilisées est récupérée avec son origine, sa version, sa date, son empreinte et ses droits ; les références communautaires sont distinguées et une documentation indisponible ou ambiguë reste signalée.
+
+  - epic: e17-utilisation-de-la-documentation-verifiee
+    requirements: [RAG-04]
+    objet: >
+      Un choix technique se rattache à ses sources, et les usages d'API importants sont confrontés à des exemples exécutables, au compilateur, au typage ou à des tests de contrat.
+    motif: >
+      Une citation ne prouve pas que le code produit est correct.
+
+  - epic: e18-disciplines-applicables-examinees
+    requirements: [EXP-01]
+    objet: >
+      Pour un changement significatif, les disciplines à examiner sont déterminées, et chacune est traitée, déclarée non applicable avec motif, ou signalée comme restant à instruire.
+
+  - epic: e19-choix-argumentes-avec-proportionnalite
+    requirements: [EXP-02]
+    objet: >
+      Une décision importante porte ses contraintes, alternatives raisonnables, bénéfices, coûts, risques et moyens de validation ; un choix local réversible reçoit une justification courte.
+    motif: >
+      Ni la sophistication ni le nombre d'agents ne constituent un critère d'expertise.
+
+  - epic: e20-expertises-mobilisees-et-verifiees
+    requirements: [EXP-03]
+    objet: >
+      Un risque est associé au moyen d'analyse qui lui convient — règle automatique, documentation officielle, expérimentation, revue spécialisée ou décision humaine — et les désaccords comme les zones non maîtrisées sont explicités.
+    motif: >
+      Un rôle nommé « senior » ne garantit aucune compétence.
+
+  - epic: e21-qualite-de-la-demarche-evaluee
+    requirements: [EXP-04]
+    objet: >
+      Les recommandations et réalisations sont confrontées à des critères adoptés et à des cas de référence ; défauts, décisions contestées et reprises sont mesurés.
+    motif: >
+      Aucune équivalence avec une équipe senior ne se revendique sur des prompts de rôle ou des contrôles verts.
+
+  - epic: e22-arbitrage-de-verifiabilite
+    requirements: [IH-04]
+    objet: >
+      Un oracle insuffisant ouvre une demande de décision humaine portant l'obligation, la lacune, les options et le risque, avec pour issues préparer, assigner une revue humaine ou réviser l'exigence.
+    motif: >
+      Déclarée dans les contrats, mais exclue du constructeur de demandes de décision.
+
+out_of_scope:
+  - item: Les trois revues obligatoires restantes (chantiers/B)
+    raison: depends-on-external-factor
+    detail: >
+      Trois des six revues attendent une autorité ou un environnement qui n'existent pas ici. Les
+      six dossiers existent et trois revues sont conduites.
+
+  - item: Portabilité Linux qualifiée (NFR-05)
+    raison: depends-on-external-factor
+    detail: >
+      Le backend Linux est implémenté et son refus éprouvé sur Linux, mais jamais exécuté en
+      confinement. La machine de référence est macOS arm64 ; Linux n'est pas revendiqué.
+
+  - item: Les autres angles de VER-04 — propriétés, fuzzing, contrats, tests différentiels et métamorphiques, activation selon le risque
+    raison: deferred
+    detail: L'angle mutation est livré. Le reste est au-delà de P0 (ROADMAP §3).
+
+  - item: VER-07, IMP-01..04, CON-04, CON-05, RAG-03, RAG-05, CTX-03, ARC-05, REQ-05, AGT-05, AGT-07, GIT-04, EXT-05
+    raison: deferred
+    detail: >
+      Au-delà de P0 (ROADMAP §3). Une capacité requise par un incrément P0 ne peut pas être écartée
+      au motif qu'une intégration avancée est prévue ensuite — mais aucune de celles-ci ne l'est.
+
+  - item: Un intégrateur dédié à un outil de mutation, de fuzzing ou d'indexation documentaire
+    raison: deferred
+    detail: >
+      L'orchestration générique par le runner relève du socle ; les intégrations spécialisées
+      viennent après (règle de cadrage, ROADMAP §3).
+
+constraints:
+  - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
+  - Machine de référence macOS 27 arm64, Node 24, Pi 0.85.1 ; Linux non revendiqué.
+  - Preflight vert est une condition d'entrée, pas un objectif de sortie.
+  - "Les travaux touchant au protocole gelé changent `environment_digest` et invalident le protocole d'un cycle en cours : ne pas les engager pendant qu'une campagne tourne."
+  - Tout composant nouveau réclame un identifiant `CMP-*` inscrit au catalogue dans le même changement.
+  - Une exigence devenue couverte s'inscrit dans la matrice de traçabilité, qui refuse une absence silencieuse.
+
+success_criteria:
+  - Un changement dont le propriétaire a décidé un contrat ne peut plus être accepté en rendant un autre contrat.
+  - Une intervention dont la sortie est refusée dispose toujours d'une issue ; aucun lancement ne meurt sans recours.
+  - Une cible Node va de la demande à l'acceptation comme la cible Maven le fait déjà.
+  - Le noyau rend un jugement sur la référence elle-même, et pas seulement sur le candidat qui lui est opposé.
+  - Chaque exigence sortie de l'état « absente » est inscrite dans la matrice avec la preuve qui la tient, et la règle de décision de livraison est appliquée en dix points.
+
+references:
+  - specs/archive/ROADMAP.md — §2 la moitié de P0 non commencée, §3 au-delà de P0, §5 ordre proposé
+  - specs/archive/TRACEABILITY.md — état réel par exigence, y compris les non couvertes
+  - specs/archive/chantiers/README.md — une fiche par travail, avec prompt autonome et journal
+  - specs/archive/amont/expression-besoins.md — le texte normatif des exigences citées
+  - specs/archive/amont/conception-verification.md — §12, la règle de décision de livraison en dix points
+  - specs/tech-architecture/tech-stack.md — état du code et fronts actifs
