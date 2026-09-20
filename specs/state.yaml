@@ -1,23 +1,26 @@
 workflow_mode: solo-git
 
 project_cycle:
-  current_phase: 6
-  phase_name: release
-  completed_phases: [1, 2, 3, 4, 5]
+  current_phase: 1
+  phase_name: discover
+  completed_phases: []
 
-active_flow: quality-referential
+active_flow: qlt-arc-target-capability
 active_epic_id: null
 
 handoff:
-  next_skill: release-branch
-  last_step_completed: "Biome holds the harness: lint baseline cleared to zero, formatter adopted at 120 columns, both refused by Preflight"
+  next_skill: survey-context
+  last_step_completed: "The harness itself is held by an external referential (Biome lint and formatter, both refused by Preflight); the capability for a target is untouched"
   open_decisions:
-    - "Import order stays grouped by layer rather than machine-sorted"
-    - "QLT-01..05 and ARC-01..03 remain absent from the kernel: this adoption covers the harness code only"
+    - "Which stack first: extend the Maven adapter, or close the Node gap and pull transverse E in as a prerequisite"
+    - "Whether the kernel ships a starting profile per stack, or only the adoption mechanism"
+    - "CMP-* granularity across ARC-01..03"
+    - "Whether QLT-01's referential is frozen into the G2 protocol, as StructureRule was for ARC-04"
   required_reading:
+    - docs/chantiers/N-referentiel-de-qualite-et-architecture-cible.md
+    - docs/amont/expression-besoins.md (§4.16 ARC-01..05, §4.17 QLT-01..05, REC-33..REC-36)
     - docs/DECISIONS.md (D-42, D-43)
-    - biome.jsonc
 
 git:
   branch: main
-  hash: 51ed57f6f4fee17e0a6af87e5694774dd15b6f55
+  hash: 3bfd60855888b4759160369ffcaf743168a59cdb

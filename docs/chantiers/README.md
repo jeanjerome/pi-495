@@ -36,6 +36,7 @@ Ils ne s'insèrent pas dans l'échelle des étages et peuvent avancer en parall�
 | J | le mandat qui interdit la vérification qu'il exige | ouvert : le prompt ordonne au producteur de lancer les contrôles lui-même, le mandat lui interdit d'écrire hors des racines de test, et seule une exclusion de workspace invisible depuis le prompt sauve celui qui passe par Maven | [J-mandat-de-preparation-contradictoire.md](J-mandat-de-preparation-contradictoire.md) |
 | M | l'état d'arrêt d'un changement, et la session qui le conduit | ouvert : clore une intervention rend `ready` un changement bloqué sans `change.unblock` et lui laisse son motif d'arrêt, et l'exclusion écrite au journal n'est jamais prise — deux sessions ont conduit le même changement | [M-etat-d-arret-et-session-conductrice.md](M-etat-d-arret-et-session-conductrice.md) |
 | I | ce que Pi rend déjà, et ce que la revue réimplémente | ouvert : la mesure d'une ligne stylée est reprise de `pi-tui` (`D-35`) ; reprendre ses composants demande d'arbitrer ce que la règle de couches protège | [I-ce-que-pi-rend-deja.md](I-ce-que-pi-rend-deja.md) |
+| N | le référentiel de qualité d'une cible, et l'architecture qu'on lui oppose | ouvert : `QLT-01..03`, `QLT-05` et `ARC-01..03` sont absentes du noyau ; la moitié observable d'`ARC-01` existe pour Maven, et l'adoption d'un référentiel sur le harnais (`D-42`, `D-43`) ne vaut pas la capacité pour une cible | [N-referentiel-de-qualite-et-architecture-cible.md](N-referentiel-de-qualite-et-architecture-cible.md) |
 
 ## Contraintes communes
 
