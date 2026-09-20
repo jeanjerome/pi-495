@@ -12,7 +12,8 @@ import type { ChangeState } from "../../domain/change/state.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { git, inspectGit } from "../workspace/git-workspace.ts";
 import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
-import { KERNEL_ACTOR, type Harness } from "../../application/harness.ts";
+import { KERNEL_ACTOR } from "../../application/actors.ts";
+import type { Harness } from "../../application/harness.ts";
 
 type Unit = { state: ChangeState; revision: number };
 

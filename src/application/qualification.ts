@@ -1,6 +1,7 @@
 /**
- * Qualification of a control (§11.3, VER-05): a positive witness must PASS, a negative witness
- * must FAIL and a broken runner must give INDETERMINATE. Only then may the control contribute to G2.
+ * Qualification of a control (CMP-VER, §11.3, VER-05): a positive witness must PASS, a negative
+ * witness must FAIL and a broken runner must give INDETERMINATE. Only then may the control
+ * contribute to G2.
  */
 import { digestValue } from "../contracts/digest.ts";
 import type { ControlDefinition, Protocol, Qualification } from "../contracts/v1/protocol.ts";
