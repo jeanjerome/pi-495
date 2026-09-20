@@ -90,7 +90,7 @@ export function detectNodeStack(
 }
 
 /** Converts a simple npm script (`node scripts/lint.js`) into an argv; a shell-only script is refused (no implicit shell). */
-export function commandFromScript(script: string, nodeBinary: string): string[] {
+function commandFromScript(script: string, nodeBinary: string): string[] {
 	const parts = script.trim().split(/\s+/);
 	if (parts.length === 0) return ["/bin/false"];
 	if (/[|&;<>$`]/.test(script)) return ["/bin/sh", "-c", script];

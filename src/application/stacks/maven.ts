@@ -253,9 +253,9 @@ export function mutationCapabilityMissing(engine: MutationEngineConfiguration): 
  * packages its test tree declares, so a witness test outside every package is never executed, and a
  * sensor proved on a witness nothing ran is not proved at all (VER-05).
  */
-export const WITNESS_PACKAGE = "witness495";
-export const WITNESS_SOURCE_ROOT = `src/main/java/${WITNESS_PACKAGE}/`;
-export const WITNESS_TEST_ROOT = `src/test/java/${WITNESS_PACKAGE}/`;
+const WITNESS_PACKAGE = "witness495";
+const WITNESS_SOURCE_ROOT = `src/main/java/${WITNESS_PACKAGE}/`;
+const WITNESS_TEST_ROOT = `src/test/java/${WITNESS_PACKAGE}/`;
 
 /** A witness class of one method, whose body is the single expression the mutators rewrite. */
 function witnessClass(name: string, method: string, body: string): string {
@@ -267,7 +267,7 @@ function witnessClass(name: string, method: string, body: string): string {
  * executes and asserts nothing about. Its mutants are reached by a test and killed by none, which is
  * exactly what coverage cannot see and what this control exists for.
  */
-export function mutationNegativeWitness(witnessPrefix: string): Record<string, string> {
+function mutationNegativeWitness(witnessPrefix: string): Record<string, string> {
 	return {
 		[`${witnessPrefix}${WITNESS_SOURCE_ROOT}Witness495Unasserted.java`]: witnessClass(
 			"Witness495Unasserted",
@@ -283,7 +283,7 @@ export function mutationNegativeWitness(witnessPrefix: string): Record<string, s
  * outside any profile. Inside a profile, the report exists only when that profile is activated, which
  * the control cannot assume — and a sensor that silently finds no measurement is worth nothing.
  */
-export function bindsJacocoReport(projectPath: string, pomPaths: readonly string[]): boolean {
+function bindsJacocoReport(projectPath: string, pomPaths: readonly string[]): boolean {
 	for (const rel of pomPaths) {
 		let xml = "";
 		try {
@@ -297,7 +297,7 @@ export function bindsJacocoReport(projectPath: string, pomPaths: readonly string
 	return false;
 }
 
-export interface MavenModule {
+interface MavenModule {
 	/** Module directory relative to the reactor root; empty for the root module. */
 	path: string;
 	artifact_id: string | null;
@@ -320,7 +320,7 @@ interface MavenReactor {
 }
 
 /** Discovers the root project and every reachable `<module>` without executing Maven. */
-export function discoverMavenReactor(projectPath: string): MavenReactor {
+function discoverMavenReactor(projectPath: string): MavenReactor {
 	const root = resolve(projectPath);
 	const queue = [""];
 	const seen = new Set<string>();
@@ -405,7 +405,7 @@ export function discoverMavenReactor(projectPath: string): MavenReactor {
  * plugin dependencies and profiles — are removed first: a dependency that exists only under an
  * activated profile is not one the reactor guarantees, the same reading `bindsJacocoReport` applies.
  */
-export function pomIdentity(xml: string): { artifact_id: string | null; dependencies: string[] } {
+function pomIdentity(xml: string): { artifact_id: string | null; dependencies: string[] } {
 	const own = xml
 		.replace(/<parent\b[\s\S]*?<\/parent>/g, "")
 		.replace(/<dependencyManagement\b[\s\S]*?<\/dependencyManagement>/g, "")
@@ -433,7 +433,7 @@ export function pomIdentity(xml: string): { artifact_id: string | null; dependen
  * subdirectories under it declares `io.scalastic.demo.domain`; a tree whose sources sit in the
  * default package declares nothing, and nothing is what this returns.
  */
-export function packageRootOf(sourceRoot: string): string | null {
+function packageRootOf(sourceRoot: string): string | null {
 	const segments: string[] = [];
 	let current = sourceRoot;
 	for (let depth = 0; depth < 32; depth++) {
@@ -463,7 +463,7 @@ export function packageRootOf(sourceRoot: string): string | null {
  * their presence is not a defect of this analyser's making, and a module that already carries one
  * keeps it as a named preexisting finding.
  */
-export const FRAMEWORK_PACKAGES = [
+const FRAMEWORK_PACKAGES = [
 	"org.springframework",
 	"jakarta.",
 	"javax.",
@@ -482,7 +482,7 @@ export const FRAMEWORK_PACKAGES = [
  * property that two packages importing each other are one package. A reactor that declares nothing
  * gets no rule, and the insufficiency is recorded rather than replaced by a convention.
  */
-export function structureRules(reactor: MavenReactor): StructureRule[] {
+function structureRules(reactor: MavenReactor): StructureRule[] {
 	const modules = reactor.module_info.filter(
 		(m) => m.artifact_id !== null && m.package_root !== null && m.source_root !== null,
 	);
@@ -543,7 +543,7 @@ export function structureRules(reactor: MavenReactor): StructureRule[] {
  * one is a source of a module importing exactly what that module declares no dependency on. It is
  * never compiled — a boundary is read in the declarations, not in a build.
  */
-export function structureNegativeWitness(rules: readonly StructureRule[]): Record<string, string> {
+function structureNegativeWitness(rules: readonly StructureRule[]): Record<string, string> {
 	const boundary = rules.find(
 		(rule) => rule.kind === "forbidden_dependency" && rule.scope.length > 0 && rule.forbidden.length > 0,
 	);
