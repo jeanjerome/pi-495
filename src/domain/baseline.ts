@@ -269,3 +269,20 @@ export function applyInstability(outcome: BaselineOutcome, confirmation: Verdict
 		},
 	};
 }
+
+/**
+ * Whether re-running the verification could answer differently. Re-running a frozen candidate
+ * through a frozen protocol is a pure function: only a transient incident — spawn error, timeout,
+ * signal — can, and only while it has not already reproduced identically. A control the frozen rule
+ * has already declared unstable is never run again: its indetermination is the answer, and running
+ * it until it comes out green is exactly what VER-08 forbids.
+ *
+ * `observations` are the indeterminate observations recorded on the frozen candidate, oldest first.
+ */
+export function retryCanDiffer(observations: readonly Evidence[]): boolean {
+	const last = observations.at(-1);
+	if (last?.limits.unstable) return false;
+	if (!last || typeof last.facts.incident !== "string") return false;
+	const signature = (e: Evidence) => `${e.inputs_digest}|${String(e.facts.incident ?? "")}`;
+	return observations.filter((e) => signature(e) === signature(last)).length < 2;
+}

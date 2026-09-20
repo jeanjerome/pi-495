@@ -303,3 +303,41 @@ export function subjectOfCandidate(state: ChangeState): SubjectRef | null {
 	if (!state.candidate) return null;
 	return { kind: "candidate", id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest };
 }
+
+/** What the reopening rule reads of a specification report. */
+export interface SpecificationReportView {
+	questions: { id: string }[];
+	requirements: { requirement_id: string; mandatory: boolean }[];
+	answers: AnswerDeclaration[];
+}
+
+export interface SpecificationStanding {
+	/** What the report says about each answered material question, the inherited ones included. */
+	declared: Map<string, AnswerDeclaration>;
+	/** The recorded material answers the report says nothing about. */
+	ignored: OpenQuestion[];
+	/** The report must be written again: it ignores an answer, and the round before it progressed. */
+	reopen: boolean;
+	/** Every material question is answered and the report accounts for it: this report stands. */
+	settled: boolean;
+}
+
+/**
+ * Where a specification stands against the answers given since it was written.
+ *
+ * A report written before a material answer cannot carry it, and reusing it is how a recorded human
+ * decision reaches nothing: the answer is put back into the request and the specification is redone.
+ * What bounds the reopening is progress, not a count — the report a reopening produced must account
+ * for an answer the one before it did not. A report that gives the same ground back is G1's
+ * business, and a change is never held by a specification that will not say what it did with an
+ * answer.
+ */
+export function specificationStanding(state: ChangeState, report: SpecificationReportView | null, priors: SpecificationReportView[]): SpecificationStanding {
+	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
+	const declared = declarationsOfReport(priors, report);
+	const ignored = answersTheReportIgnores(state, report, declared);
+	const previous = priors[priors.length - 1] ?? null;
+	const before = new Set(previous ? answersTheReportCarries(state, declarationsOfReport(priors.slice(0, -1), previous)) : []);
+	const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+	return { declared, ignored, reopen, settled: !reopen && state.open_questions.every((q) => !q.material || q.answer !== null) };
+}

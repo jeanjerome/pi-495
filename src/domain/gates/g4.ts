@@ -1,3 +1,4 @@
+import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
 import type { CandidateFacts } from "../change/commands.ts";
 import type { ChangeState } from "../change/state.ts";
 
@@ -35,4 +36,34 @@ export function matchesScope(path: string, pattern: string): boolean {
 
 function escapeRe(s: string): string {
 	return s.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export interface ProtectedPaths {
+	/** Every path this candidate changed, whatever it is. */
+	changed: string[];
+	/** Changes to a protected path the frozen protocol allows. */
+	allowed: string[];
+	/** Changes to a protected path nothing allows: the producer altered an oracle. */
+	altered: string[];
+}
+
+/**
+ * Splits what a candidate changed against the paths the frozen protocol protects (SEC-03, RM-043).
+ * Three changes to a protected path are allowed: a prepared file put back exactly as the kernel
+ * adopted it, which the producer did not touch; a file added under a protected directory, which
+ * took nothing away from an oracle that already stood; and whatever `alsoAllowed` recognizes, which
+ * is where a target's own layout conventions are read rather than written into the kernel.
+ */
+export function protectedPathsChanged(manifest: CandidateManifest, protectedPaths: readonly string[], preparedFiles: readonly { path: string; digest: string }[], alsoAllowed: (path: string) => boolean = () => false): ProtectedPaths {
+	const entryOf = (path: string) => manifest.entries.find((e) => e.path === path);
+	const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
+	const allowed = changed.filter((p) => {
+		const entry = entryOf(p);
+		const prepared = preparedFiles.find((f) => f.path === p);
+		if (prepared && prepared.digest === (entry?.content_digest ?? null)) return true;
+		if (entry?.baseline_state === "added" && protectedPaths.some((pattern) => pattern.endsWith("/") && matchesScope(p, pattern))) return true;
+		return alsoAllowed(p);
+	});
+	const altered = changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || entryOf(p)?.baseline_state !== "added")) && !allowed.includes(p));
+	return { changed, allowed, altered };
 }

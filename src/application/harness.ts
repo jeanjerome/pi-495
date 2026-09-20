@@ -17,14 +17,15 @@ import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, SubjectRe
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
+import { retryCanDiffer } from "../domain/baseline.ts";
 import { Mandate as MandateSchema, RequirementsDocument as RequirementsDocumentSchema, type ControlCapabilityDiagnosis, type Design, type Mandate, type Protocol, type RequirementsDocument } from "../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS, TOOLS_FOR_ROLE, type ProducerReport, type ReviewReport, type SpecificationReport } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
-import { answersOf, answersTheReportCarries, answersTheReportIgnores, declarationsOfReport, runningIntervention, subjectOfChange, type AnswerDeclaration, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { answersOf, declarationsOfReport, runningIntervention, specificationStanding, subjectOfChange, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
-import { matchesScope } from "../domain/gates/g4.ts";
+import { protectedPathsChanged } from "../domain/gates/g4.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
@@ -36,8 +37,8 @@ import { buildContext, buildFeedback, focusOf, implementObjective, preparationMa
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import type { Clock, IdSource } from "./ids.ts";
-import { detectStack, type StackDetection } from "./target.ts";
-import { diagnoseControlCapability, isProtectedPrepared, preparedFilesFrom, referenceTestFiles, samePreparationPaths, type PreparationRecord, type ReferenceSuiteObservation } from "./preparation.ts";
+import { detectStack, mirrorsProductionResource, type StackDetection } from "./target.ts";
+import { diagnoseControlCapability, preparedFilesFrom, referenceTestFiles, samePreparationPaths, type PreparationRecord, type ReferenceSuiteObservation } from "./preparation.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
 import { buildSnapshot, readChanges, readContent, FILE_READ_BUDGET_BYTES, type ChangePage, type ContentPage, type PathStatus, type ReviewSnapshot } from "./review.ts";
@@ -395,26 +396,15 @@ export class Harness {
 		const request = await this.readArtifact<string>(unit.state.request);
 		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
 		let report: SpecificationReport;
-		// A report written before a material answer cannot carry it, and reusing it is how a recorded
-		// human decision reaches nothing: the answer is put back into the request and the
-		// specification is redone. What bounds the reopening is progress, not a count — the report a
-		// reopening produced must account for an answer the one before it did not. A report that
-		// gives the same ground back is G1's business, and a change is never held by a specification
-		// that will not say what it did with an answer.
-		const priors = await this.priorDiagnostics(unit.state);
-		const declared = spec ? declarationsOfReport(priors, spec.content) : new Map<string, AnswerDeclaration>();
-		const ignored = spec ? answersTheReportIgnores(unit.state, spec.content, declared) : [];
-		const previous = priors[priors.length - 1] ?? null;
-		const before = new Set(previous ? answersTheReportCarries(unit.state, declarationsOfReport(priors.slice(0, -1), previous)) : []);
-		const reopen = ignored.length > 0 && (previous === null || answersTheReportCarries(unit.state, declared).some((id) => !before.has(id)));
-		if (spec && !reopen && unit.state.open_questions.every((q) => !q.material || q.answer !== null)) {
+		const standing = specificationStanding(unit.state, spec?.content ?? null, await this.priorDiagnostics(unit.state));
+		if (spec && standing.settled) {
 			report = spec.content;
 		} else {
-			if (reopen) this.progress(`specification reopened by ${ignored.length} material answer(s): ${ignored.map((q) => q.id).join(", ")}`);
+			if (standing.reopen) this.progress(`specification reopened by ${standing.ignored.length} material answer(s): ${standing.ignored.map((q) => q.id).join(", ")}`);
 			const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			try {
 				const excerpts = await projectExcerpts(reference, handle.path, 12, request);
-				const objective = specificationObjective(request, unit.state.open_questions, declared);
+				const objective = specificationObjective(request, unit.state.open_questions, standing.declared);
 				const r = await this.runIntervention(unit, cor, "specify", objective, handle.path, { untrusted: excerpts });
 				unit = r.unit;
 				if (r.result !== "completed" || !r.output_valid || !Value.Check(OUTPUT_SCHEMAS["specification-report"], r.output)) {
@@ -676,24 +666,11 @@ export class Harness {
 		await this.storeArtifact("candidate", unit.state.change_id, `files_${manifest.candidate_id}`, files, KERNEL_ACTOR.actor_id);
 		await this.storeArtifact("candidate", unit.state.change_id, `base_files_${manifest.candidate_id}`, baseFiles, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
-		const changedPaths = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
-		const changedSet = new Set(changedPaths);
-		const protectedPaths = unit.state.protocol?.protected_paths ?? [];
 		const prepared = await this.adoptedPreparation(unit.state);
-		const allowedProtected = changedPaths.filter((p) => {
-			const entry = manifest.entries.find((candidateEntry) => candidateEntry.path === p);
-			if (isProtectedPrepared(p, prepared, entry?.content_digest ?? null)) return true;
-			if (entry?.baseline_state === "added" && protectedPaths.some((pattern) => pattern.endsWith("/") && matchesScope(p, pattern))) return true;
-			const resource = p.match(/^(.*)src\/test\/resources\/(.+)$/);
-			if (!entry || !resource || entry.baseline_state === "deleted") return false;
-			const productionPath = `${resource[1]}src/main/resources/${resource[2]}`;
-			const productionEntry = manifest.entries.find((candidateEntry) => candidateEntry.path === productionPath);
-			return changedSet.has(productionPath) && productionEntry?.baseline_state !== "deleted" && entry.content_digest !== null && entry.content_digest === productionEntry?.content_digest;
-		});
-		const altered = changedPaths.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || manifest.entries.find((entry) => entry.path === p)?.baseline_state !== "added")) && !allowedProtected.includes(p));
+		const scope = protectedPathsChanged(manifest, unit.state.protocol?.protected_paths ?? [], prepared?.files ?? [], (p) => mirrorsProductionResource(manifest, p));
 		const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
 		const truncatedNote = r.result === "truncated" ? [`the producer was stopped by the duration budget ${truncatedBefore + 1} time(s) and never reported itself finished`] : [];
-		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: changedPaths, out_of_scope_paths: [], altered_protected_paths: altered, allowed_protected_paths: allowedProtected, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...truncatedNote, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
+		unit = this.commit(unit, { type: "candidate.freeze", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, facts: { candidate: { candidate_id: manifest.candidate_id, manifest_digest: manifest.manifest_digest, base_digest: manifest.base_digest, workspace_id: wsHandle.workspace_id }, entry_count: manifest.entries.length, changed_paths: scope.changed, out_of_scope_paths: [], altered_protected_paths: scope.altered, allowed_protected_paths: scope.allowed, complete: !manifest.limits.truncated, limits_notes: [...manifest.limits.notes, ...truncatedNote, ...(producerReport ? [] : ["producer output invalid or missing"])] } }, cor);
 		return unit;
 	}
 
@@ -749,7 +726,7 @@ export class Harness {
 			// Re-running a frozen candidate through a frozen protocol is a pure function: it can only
 			// answer differently when the last observation was a transient incident. Anything else is
 			// a property of the candidate, and spending the retry budget on it proves nothing.
-			if (!this.retryCanDiffer(unit.state)) {
+			if (!retryCanDiffer(this.indeterminateObservations(unit.state))) {
 				return this.correctOrStop(unit, cor, `${g5.reasons.join("; ")} — re-running the frozen candidate cannot change this observation`);
 			}
 			const key = `verify:${unit.state.candidate!.manifest_digest}`;
@@ -760,24 +737,14 @@ export class Harness {
 		return this.correctOrStop(unit, cor, g5.reasons.join("; "));
 	}
 
-	/**
-	 * Whether re-running the verification could yield another verdict: only a transient incident —
-	 * spawn error, timeout, signal — can, and only while it has not already reproduced identically.
-	 */
-	private retryCanDiffer(state: ChangeState): boolean {
+	/** The indeterminate observations recorded on the frozen candidate, oldest first. */
+	private indeterminateObservations(state: ChangeState): Evidence[] {
 		const digest = state.candidate?.manifest_digest;
-		if (!digest) return false;
-		const observations = state.evidence
+		if (!digest) return [];
+		return state.evidence
 			.filter((e) => e.valid && e.subject_digest === digest && e.verdict === "INDETERMINATE")
 			.map((e) => this.deps.ledger.getEvidence(e.evidence_id))
 			.filter((e): e is Evidence => e !== null);
-		const last = observations.at(-1);
-		// A control the frozen rule has already declared unstable is never run again: its indetermination
-		// is the answer, and running it until it comes out green is exactly what VER-08 forbids.
-		if (last?.limits.unstable) return false;
-		if (!last || typeof last.facts.incident !== "string") return false;
-		const signature = (e: Evidence) => `${e.inputs_digest}|${String(e.facts.incident ?? "")}`;
-		return observations.filter((e) => signature(e) === signature(last)).length < 2;
 	}
 
 	private async correctOrStop(unit: Unit, cor: string, why: string): Promise<Unit> {

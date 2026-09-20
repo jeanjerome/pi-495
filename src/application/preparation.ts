@@ -39,12 +39,6 @@ export function preparedFilesFrom(manifest: CandidateManifest, allowed: string[]
 	return { files, out_of_scope: out };
 }
 
-export function isProtectedPrepared(path: string, prepared: PreparationRecord | null, digest: string | null): boolean {
-	if (!prepared) return false;
-	const f = prepared.files.find((x) => x.path === path);
-	return Boolean(f && f.digest === digest);
-}
-
 /** Level 1 of the PRE-01 scale: a file named like a test, which says nothing about it ever running. */
 const TEST_FILE_NAME = /\.(test|spec)\.[cm]?[jt]s$|Test\.java$|_test\.[jt]s$/;
 
