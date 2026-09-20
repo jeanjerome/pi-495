@@ -196,6 +196,31 @@ export class VerificationCoordinator {
 	}
 
 	/**
+	 * What a prepared suite does on the bare reference (PRE-03, SA-009). FAIL is a suite that detects
+	 * the behaviour the tree does not have yet, which is the only thing that makes it discriminant; a
+	 * suite reporting no test at all did not load, whatever its exit code said.
+	 */
+	async judgePreparedSuite(input: { control: ControlDefinition; reference: ReferenceSnapshot; manifest: CandidateManifest; workspace_id: string; workspace_path: string }): Promise<{ on_reference: PreparationRecord["on_reference"]; loadable: boolean; notes: string[] }> {
+		const { evidence } = await this.deps.controls.runControl({
+			control: input.control,
+			protocol: { protocol_id: "preparation", revision: 0, content_digest: digestValue("preparation") },
+			candidate: { candidate_id: "preparation", manifest_digest: input.manifest.manifest_digest, base_digest: input.reference.tree_digest, workspace_id: input.workspace_id },
+			subject: { kind: "fixture", id: input.reference.reference_id, revision: 1, digest: input.reference.tree_digest },
+			workspace_path: input.workspace_path,
+			environment: this.deps.environment,
+			requirement_refs: [],
+			producer: EXECUTOR_ACTOR,
+		});
+		const onReference = evidence.verdict;
+		const tests = Number(evidence.facts.tests ?? 0);
+		return {
+			on_reference: onReference,
+			loadable: onReference === "PASS" || (onReference === "FAIL" && tests > 0),
+			notes: onReference === "INDETERMINATE" ? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`] : [],
+		};
+	}
+
+	/**
 	 * The protocol the gate freezes. The rules for reading the two passes are fixed here, before any
 	 * control has run on a candidate: what a preexisting defect is worth and what an unstable control
 	 * is worth are never decided once a verdict is known (VER-08).

@@ -91,6 +91,20 @@ export class ArtifactRepository {
 		}
 	}
 
+	/** The workspace an attempt already opened, when the producer is resumed on its own work. */
+	async workspaceOfAttempt(changeId: string, attemptId: string): Promise<{ workspace_id: string; path: string } | null> {
+		const opened = this.deps.ledger.listArtifacts(changeId, "candidate").find((a) => a.ref.artifact_id === `ws_${attemptId}`);
+		return opened ? await this.read<{ workspace_id: string; path: string }>(opened.ref) : null;
+	}
+
+	/** Makes sure the bytes of each file are in the store, reading them back from the tree if not. */
+	async ensureBytes(root: string, files: readonly { path: string; digest: string }[]): Promise<void> {
+		for (const f of files) {
+			if (await this.deps.objects.get(f.digest)) continue;
+			await this.deps.objects.put(new Uint8Array(await readFile(join(root, f.path))), "text/plain; charset=utf-8");
+		}
+	}
+
 	/** Puts the bytes of each path under `root` in the store, keyed by path. Unreadable paths are skipped. */
 	async storeBytesOf(root: string, paths: string[]): Promise<Record<string, { digest: string; size_bytes: number; media_type: string }>> {
 		const out: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
