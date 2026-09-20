@@ -112,7 +112,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const reached = await t.harness.advance(change.change_id, { max_steps: 3 });
 		assert.equal(reached.view.change?.phase, "preparing", reached.steps.join(" | "));
 		const stale = { kind: "preparation-mandate", objective: "write Maven tests under src/test/", allowed_paths: ["src/test/"], requirement_ids: ["R1", "R2"], stack: "maven" };
-		const staleRef = await t.harness.storeArtifact("preparation", change.change_id, "prp_stale", stale, KERNEL.actor_id);
+		const staleRef = await t.harness.artifacts.store("preparation", change.change_id, "prp_stale", stale, KERNEL.actor_id);
 		const loaded = t.ledger.loadChange(change.change_id)!;
 		t.ledger.appendChange(change.change_id, loaded.revision, [
 			{ type: "artifact.proposed", at: loaded.state.updated_at, actor: KERNEL, kind: "preparation", ref: staleRef },
@@ -178,7 +178,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const mandateArt = t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prp_"))!;
 		const opened = JSON.parse(new TextDecoder().decode((await t.objects.get(mandateArt.object))!)) as { diagnosis: { level: string; test_files: number; undiscriminated_requirements: string[] } };
 		assert.deepEqual([opened.diagnosis.level, opened.diagnosis.test_files, opened.diagnosis.undiscriminated_requirements], ["file_present", 1, ["R1"]], "the existing test file is seen, and seen as insufficient");
-		const protocolArt = await t.harness.latestArtifact<{ capability_diagnosis: { level: string } }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
+		const protocolArt = await t.harness.artifacts.latest<{ capability_diagnosis: { level: string } }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
 		assert.equal(protocolArt?.content.capability_diagnosis.level, "discriminating", "the frozen protocol carries the diagnosis that let it freeze");
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {

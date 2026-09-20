@@ -7,14 +7,12 @@
  * for the protocol and the evidence, the target registry for what a stack offers, the review query
  * model for what a candidate shows. This module holds the order of the phases, and nothing else.
  */
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { Value } from "typebox/value";
-import { canonicalize } from "../contracts/canonical.ts";
 import { digestBytes, digestValue } from "../contracts/digest.ts";
 import { validate } from "../contracts/validate.ts";
 import type { ActorRef, ArtifactRef, EnvironmentRef, HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
-import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
+import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import { retryCanDiffer } from "../domain/baseline.ts";
@@ -32,6 +30,7 @@ import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type { AgentPort, ControlExecutionPort, InterventionMandate, ModelSelection, SandboxSelection, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "./actors.ts";
+import { ArtifactRepository } from "./artifacts.ts";
 import { InterventionSupervisor } from "./intervention.ts";
 import { buildContext, buildFeedback, focusOf, implementObjective, preparationMandateObjective, preparationObjective, projectExcerpts, resumeNote, reviewObjective, specificationObjective, type FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
@@ -86,6 +85,8 @@ interface Unit {
 
 export class Harness {
 	readonly deps: HarnessDeps;
+	/** What the change proposed and adopted, over the ledger and the object store. */
+	readonly artifacts: ArtifactRepository;
 	/** Resolves the protocol, qualifies the sensors, runs the controls and produces the evidence. */
 	private readonly verification: VerificationCoordinator;
 	/** Drives one bounded agent session and reports what it observed. */
@@ -93,6 +94,7 @@ export class Harness {
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
 		const harness = this;
+		this.artifacts = new ArtifactRepository({ ledger: deps.ledger, objects: deps.objects, now: () => harness.now() });
 		this.verification = new VerificationCoordinator({
 			controls: deps.controls,
 			workspace: deps.workspace,
@@ -104,7 +106,7 @@ export class Harness {
 			now: () => harness.now(),
 			id: (prefix: string) => harness.id(prefix),
 			readArtifact<T>(ref: { artifact_id: string; revision: number }): Promise<T> {
-				return harness.readArtifact<T>(ref);
+				return harness.artifacts.read<T>(ref);
 			},
 			progress: (message: string) => harness.progress(message),
 		});
@@ -169,43 +171,6 @@ export class Harness {
 		return this.deps.ledger.loadProgram(programId)!.state;
 	}
 
-	async storeArtifact(kind: ArtifactKind, changeId: string, artifactId: string, content: unknown, producerId: string): Promise<ArtifactRef> {
-		const obj = await this.deps.objects.put(new TextEncoder().encode(typeof content === "string" ? content : canonicalize(content)), typeof content === "string" ? "text/plain; charset=utf-8" : "application/json");
-		return this.deps.ledger.putArtifact(kind, changeId, artifactId, obj, producerId, this.now());
-	}
-
-	/** Puts the bytes of each path under `root` in the store, keyed by path. Unreadable paths are skipped. */
-	private async storeBytesOf(root: string, paths: string[]): Promise<Record<string, { digest: string; size_bytes: number; media_type: string }>> {
-		const out: Record<string, { digest: string; size_bytes: number; media_type: string }> = {};
-		const { readFile } = await import("node:fs/promises");
-		for (const path of paths) {
-			try {
-				const ref = await this.deps.objects.put(new Uint8Array(await readFile(join(root, path))), "application/octet-stream");
-				out[path] = { digest: ref.digest, size_bytes: ref.size_bytes, media_type: ref.media_type };
-			} catch {
-				/* unreadable file: the manifest already carries the limit */
-			}
-		}
-		return out;
-	}
-
-	async readArtifact<T>(ref: Pick<ArtifactRef, "artifact_id" | "revision">): Promise<T> {
-		const stored = this.deps.ledger.getArtifact(ref);
-		if (!stored) throw new DomainError("EVIDENCE_MISSING", `artifact ${ref.artifact_id} r${ref.revision} is missing from the ledger`);
-		const bytes = await this.deps.objects.get(stored.object);
-		if (!bytes) throw new DomainError("EVIDENCE_MISSING", `object ${stored.object.digest} is missing from the store`);
-		const text = new TextDecoder().decode(bytes);
-		if (digestBytes(bytes) !== stored.object.digest) throw new DomainError("EVIDENCE_STALE", `object ${stored.object.digest} is corrupted`);
-		return (stored.object.media_type.startsWith("application/json") ? JSON.parse(text) : text) as T;
-	}
-
-	async latestArtifact<T>(state: ChangeState, kind: ArtifactKind): Promise<{ ref: ArtifactRef; content: T } | null> {
-		const adopted = state.adopted[kind];
-		const ref = adopted?.ref ?? state.proposals[kind]?.at(-1);
-		if (!ref) return null;
-		return { ref, content: await this.readArtifact<T>(ref) };
-	}
-
 	/** The ledger and store reads the feedback document is composed from. */
 	private feedbackSources(): FeedbackSources {
 		return {
@@ -229,8 +194,8 @@ export class Harness {
 		const programId = this.id("prg");
 		const changeId = this.id("chg");
 		const incrementId = "inc_1";
-		const requestRef = await this.storeArtifact("request", changeId, this.id("req"), args.request_text, args.actor.actor_id);
-		const referenceRef = await this.storeArtifact("reference", changeId, this.id("ref"), reference, KERNEL_ACTOR.actor_id);
+		const requestRef = await this.artifacts.store("request", changeId, this.id("req"), args.request_text, args.actor.actor_id);
+		const referenceRef = await this.artifacts.store("reference", changeId, this.id("ref"), reference, KERNEL_ACTOR.actor_id);
 		const title = args.title ?? args.request_text.split("\n")[0]!.slice(0, 80);
 		this.commitProgram(programId, { type: "program.create", at, actor: args.actor, program_id: programId, project_path: reference.project_path, objective: requestRef, title }, cor);
 		this.commitProgram(programId, { type: "trajectory.adopt", at, actor: args.actor, increments: [{ increment_id: incrementId, title, kind: "functional", value: title, depends_on: [], required_capabilities: [], requirement_ids: [], closure_criterion: "change accepted at G5" }], milestones: [], reason: "initial single-increment trajectory" }, cor);
@@ -261,7 +226,7 @@ export class Harness {
 	async report(changeId: string): Promise<EngineeringReport> {
 		const loaded = this.deps.ledger.loadChange(changeId);
 		if (!loaded) throw new DomainError("UNKNOWN_REFERENCE", `change ${changeId} not found`);
-		const protocol = await this.latestArtifact<Protocol>(loaded.state, "protocol").catch(() => null);
+		const protocol = await this.artifacts.latest<Protocol>(loaded.state, "protocol").catch(() => null);
 		return engineeringReport(loaded.state, this.deps.ledger.listEvidence(changeId), protocol?.content ?? null);
 	}
 
@@ -350,16 +315,16 @@ export class Harness {
 		if (unit.state.status === "blocked") return { unit, output: null, output_valid: false, result: "failed", intervention_id: interventionId };
 		const adopted: { kind: string; artifact_id: string; revision: number; digest: string; text: string }[] = [];
 		for (const kind of extra.adopted ?? []) {
-			const a = await this.latestArtifact<unknown>(unit.state, kind);
+			const a = await this.artifacts.latest<unknown>(unit.state, kind);
 			if (a) adopted.push({ kind, artifact_id: a.ref.artifact_id, revision: a.ref.revision, digest: a.ref.content_digest, text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2) });
 		}
-		const protocol = await this.latestArtifact<Protocol>(unit.state, "protocol");
+		const protocol = await this.artifacts.latest<Protocol>(unit.state, "protocol");
 		const ctx = buildContext({ role, objective, language: this.language(unit.state), adopted, untrusted: extra.untrusted ?? [], feedback: extra.feedback ?? null, tools: TOOLS_FOR_ROLE[role], budget_bytes: 60_000, controls: (protocol?.content.controls ?? []).map((c) => ({ control_id: c.control_id, command: c.command, cwd: c.cwd })), boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)) });
 		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or
 		// those digests resolve to nothing and the dossier cannot say what the model read.
 		await this.deps.objects.putText(ctx.record, "application/json");
 		for (const u of extra.untrusted ?? []) await this.deps.objects.putText(u.text, "text/plain");
-		const contextRef = await this.storeArtifact("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
+		const contextRef = await this.artifacts.store("context", unit.state.change_id, this.id("ctx"), ctx.manifest, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef }, cor);
 		// Each tool call is paid for as it happens: what the budget refuses ends the session there.
 		const report = await this.interventions.run({ intervention_id: interventionId, change_id: unit.state.change_id, role, objective, workspace_path: workspacePath, prompt: ctx.prompt, system_prompt: ctx.system_prompt, context: ctx.manifest }, () => {
@@ -367,36 +332,20 @@ export class Harness {
 			unit = consumed.unit;
 			return consumed.error;
 		});
-		const outputRef = await this.storeArtifact("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: report.terminal, events: report.events }, interventionId);
+		const outputRef = await this.artifacts.store("output", unit.state.change_id, this.id("out"), { intervention_id: interventionId, role, terminal: report.terminal, events: report.events }, interventionId);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: { actor_id: interventionId, actor_type: "agent", role: role === "review" ? "reviewer_agent" : "producer_agent", origin: "model_output", authentication_level: "none" }, kind: "output", ref: outputRef }, cor);
 		unit = this.commit(unit, { type: "intervention.finish", at: this.now(), actor: KERNEL_ACTOR, intervention_id: interventionId, result: report.result, counters: report.counters, detail: report.detail }, cor);
 		return { unit, output: report.output, output_valid: report.output_valid, result: report.result, intervention_id: interventionId };
 	}
 
-	private async referenceOf(state: ChangeState): Promise<ReferenceSnapshot> {
-		const a = await this.latestArtifact<ReferenceSnapshot>(state, "reference");
-		if (!a) throw new DomainError("EVIDENCE_MISSING", "reference snapshot missing");
-		return a.content;
-	}
-
 	// --- phase steps -----------------------------------------------------------------------------
 
-	/** Every specification report of this change but the current one, oldest first. */
-	private async priorDiagnostics(state: ChangeState): Promise<SpecificationReport[]> {
-		const out: SpecificationReport[] = [];
-		for (const ref of (state.proposals.diagnostic ?? []).slice(0, -1)) {
-			const prior = await this.readArtifact<SpecificationReport>(ref).catch(() => null);
-			if (prior) out.push(prior);
-		}
-		return out;
-	}
-
 	private async stepClarify(unit: Unit, cor: string): Promise<Unit> {
-		const reference = await this.referenceOf(unit.state);
-		const request = await this.readArtifact<string>(unit.state.request);
-		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
+		const reference = await this.artifacts.reference(unit.state);
+		const request = await this.artifacts.read<string>(unit.state.request);
+		const spec = await this.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 		let report: SpecificationReport;
-		const standing = specificationStanding(unit.state, spec?.content ?? null, await this.priorDiagnostics(unit.state));
+		const standing = specificationStanding(unit.state, spec?.content ?? null, await this.artifacts.priorDiagnostics(unit.state));
 		if (spec && standing.settled) {
 			report = spec.content;
 		} else {
@@ -414,7 +363,7 @@ export class Harness {
 			} finally {
 				await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
 			}
-			const diagRef = await this.storeArtifact("diagnostic", unit.state.change_id, this.id("dia"), report, KERNEL_ACTOR.actor_id);
+			const diagRef = await this.artifacts.store("diagnostic", unit.state.change_id, this.id("dia"), report, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "diagnostic", ref: diagRef }, cor);
 		}
 		const langQ = unit.state.open_questions.find((q) => q.id === "language");
@@ -431,7 +380,7 @@ export class Harness {
 		}
 		const mandate: Mandate = { change_id: unit.state.change_id, objective: report.objective, scope: report.requirements.map((r) => r.requirement_id), out_of_scope: report.out_of_scope, assumptions: report.assumptions, open_questions: report.questions.map((q) => ({ id: q.id, question: q.question, material: q.material, answer: unit.state.open_questions.find((s) => s.id === q.id)?.answer ?? (q.material ? null : "non-material, left open") })), allowed_paths: [], integration: this.deps.policy.integration_enabled ? "local_branch" : "disabled", language };
 		validate(MandateSchema, mandate, "mandate");
-		const mandateRef = await this.storeArtifact("mandate", unit.state.change_id, this.id("mnd"), mandate, KERNEL_ACTOR.actor_id);
+		const mandateRef = await this.artifacts.store("mandate", unit.state.change_id, this.id("mnd"), mandate, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "mandate", ref: mandateRef }, cor);
 		unit = this.commit(unit, { type: "gate.evaluate", gate: "G0", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: mandateRef, mandate }, cor);
 		return this.requestAdoption(unit, cor, "G0", "mandate", mandateRef, language);
@@ -450,9 +399,9 @@ export class Harness {
 	}
 
 	private async stepSpecify(unit: Unit, cor: string): Promise<Unit> {
-		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
+		const spec = await this.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 		if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
-		const declared = declarationsOfReport(await this.priorDiagnostics(unit.state), spec.content);
+		const declared = declarationsOfReport(await this.artifacts.priorDiagnostics(unit.state), spec.content);
 		const doc: RequirementsDocument = { change_id: unit.state.change_id, requirements: spec.content.requirements.map((r) => ({ requirement_id: r.requirement_id, statement: r.statement, category: r.category, mandatory: r.mandatory, criterion: r.criterion, source: "specification intervention over the original request", contract_family: null, satisfied_by_reference: r.satisfied_by_reference })), answers: answersOf(unit.state, declared), assumptions: spec.content.assumptions, contract_families: {} };
 		const issues: string[] = [];
 		try {
@@ -460,35 +409,19 @@ export class Harness {
 		} catch (error) {
 			issues.push((error as Error).message);
 		}
-		const ref = await this.storeArtifact("requirements", unit.state.change_id, this.id("rqs"), doc, KERNEL_ACTOR.actor_id);
+		const ref = await this.artifacts.store("requirements", unit.state.change_id, this.id("rqs"), doc, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "requirements", ref }, cor);
 		unit = this.commit(unit, { type: "gate.evaluate", gate: "G1", at: this.now(), actor: KERNEL_ACTOR, requirements_ref: ref, requirements: doc, report: { valid: issues.length === 0, issues } }, cor);
 		if (unit.state.gates.G1?.verdict === "FAIL") throw new DomainError("PRECONDITION_FAILED", `requirements rejected at G1: ${unit.state.gates.G1.reasons.join("; ")}`, { nextActions: ["revise_requirements"] });
 		return this.requestAdoption(unit, cor, "G1", "requirements", ref, this.language(unit.state));
 	}
 
-	private async materializePrepared(prepared: PreparationRecord | null, workspacePath: string): Promise<void> {
-		if (!prepared) return;
-		for (const f of prepared.files) {
-			const bytes = await this.deps.objects.get(f.digest);
-			if (!bytes) throw new DomainError("EVIDENCE_MISSING", `prepared file ${f.path} (${f.digest}) is missing from the store`);
-			const target = join(workspacePath, f.path);
-			await mkdir(dirname(target), { recursive: true });
-			await writeFile(target, bytes);
-		}
-	}
-
-	private async adoptedPreparation(state: ChangeState): Promise<PreparationRecord | null> {
-		const a = state.adopted.preparation ? await this.latestArtifact<PreparationRecord>(state, "preparation") : null;
-		return a && a.content.qualified ? a.content : null;
-	}
-
 	private async stepVerificationDesign(unit: Unit, cor: string): Promise<Unit> {
-		const reference = await this.referenceOf(unit.state);
-		const requirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements");
+		const reference = await this.artifacts.reference(unit.state);
+		const requirements = await this.artifacts.latest<RequirementsDocument>(unit.state, "requirements");
 		if (!requirements) throw new DomainError("EVIDENCE_MISSING", "requirements missing");
 		const refs = requirements.content.requirements.map((r) => ({ requirement_id: r.requirement_id, revision: requirements.ref.revision }));
-		const prepared = await this.adoptedPreparation(unit.state);
+		const prepared = await this.artifacts.adoptedPreparation(unit.state);
 		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 		try {
 			const detection = detectStack(handle.path, refs);
@@ -508,7 +441,7 @@ export class Harness {
 			// silence: a coverage measurement nobody produces never reads as covered code (QLT-02).
 			if (detection.capability_missing.length > 0) diagnosis = { ...diagnosis, notes: [...diagnosis.notes, ...detection.capability_missing] };
 			const protocol = this.verification.freeze({ change_id: unit.state.change_id, ordered, qualifications: qualified.qualifications, diagnosis, requirements: requirements.content, requirements_revision: requirements.ref.revision, prepared });
-			const ref = await this.storeArtifact("protocol", unit.state.change_id, protocol.protocol_id, protocol, KERNEL_ACTOR.actor_id);
+			const ref = await this.artifacts.store("protocol", unit.state.change_id, protocol.protocol_id, protocol, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "protocol", ref }, cor);
 			unit = this.commit(unit, { type: "gate.evaluate", gate: "G2", at: this.now(), actor: KERNEL_ACTOR, protocol_ref: ref, protocol }, cor);
 			if (unit.state.gates.G2?.verdict !== "PASS") {
@@ -532,30 +465,30 @@ export class Harness {
 		if (alreadyTried >= 2) throw new DomainError("CAPABILITY_MISSING", `no discriminant test could be prepared after two preparation interventions: ${diagnosis.notes.join("; ")}`, { nextActions: ["prepare_capabilities", "assign_human_decision"] });
 		const objective = preparationMandateObjective(detection.stack, detection.preparation_paths, diagnosis.undiscriminated_requirements);
 		const mandate = { objective, allowed_paths: detection.preparation_paths, requirement_ids: refs.map((r) => r.requirement_id), stack: detection.stack };
-		const ref = await this.storeArtifact("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate", diagnosis }, KERNEL_ACTOR.actor_id);
+		const ref = await this.artifacts.store("preparation", unit.state.change_id, this.id("prp"), { ...mandate, kind: "preparation-mandate", diagnosis }, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 		return this.commit(unit, { type: "preparation.open", at: this.now(), actor: KERNEL_ACTOR, mandate_ref: ref }, cor);
 	}
 
 	/** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
 	private async stepPrepare(unit: Unit, cor: string): Promise<Unit> {
-		const reference = await this.referenceOf(unit.state);
-		const mandateArt = await this.latestArtifact<{ objective: string; allowed_paths: string[]; requirement_ids: string[]; stack: StackDetection["stack"] }>(unit.state, "preparation");
+		const reference = await this.artifacts.reference(unit.state);
+		const mandateArt = await this.artifacts.latest<{ objective: string; allowed_paths: string[]; requirement_ids: string[]; stack: StackDetection["stack"] }>(unit.state, "preparation");
 		if (!mandateArt) throw new DomainError("EVIDENCE_MISSING", "preparation mandate missing");
 		const mandate = mandateArt.content;
 		const previousRef = [...(unit.state.proposals.preparation ?? [])].reverse().find((ref) => ref.artifact_id.startsWith("prep_"));
-		const previous = previousRef ? await this.readArtifact<PreparationRecord>(previousRef) : null;
+		const previous = previousRef ? await this.artifacts.read<PreparationRecord>(previousRef) : null;
 		const feedback = previous ? `The previous preparation was refused. Keep every change inside the allowed paths.\n${previous.notes.map((note) => `- ${note}`).join("\n")}` : null;
 		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 		try {
 			const detected = detectStack(handle.path, mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })));
 			if (detected.stack !== mandate.stack || !samePreparationPaths(mandate.allowed_paths, detected.preparation_paths)) {
 				const record: PreparationRecord = { preparation_id: this.id("prc"), objective: mandate.objective, allowed_paths: mandate.allowed_paths, files: [], on_reference: "NOT_RUN", discriminant: false, loadable: false, qualified: false, notes: [`preparation mandate scope is stale; detected ${detected.stack} paths: ${detected.preparation_paths.join(", ") || "none"}`] };
-				const ref = await this.storeArtifact("preparation", unit.state.change_id, record.preparation_id, record, KERNEL_ACTOR.actor_id);
+				const ref = await this.artifacts.store("preparation", unit.state.change_id, record.preparation_id, record, KERNEL_ACTOR.actor_id);
 				unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 				return this.commit(unit, { type: "preparation.close", at: this.now(), actor: KERNEL_ACTOR, qualified: false, capability_ids: [], adopted_ref: null }, cor);
 			}
-			const adoptedRequirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements").catch(() => null);
+			const adoptedRequirements = await this.artifacts.latest<RequirementsDocument>(unit.state, "requirements").catch(() => null);
 			const excerpts = await projectExcerpts(reference, handle.path, 10, focusOf(mandate.objective, adoptedRequirements?.content.requirements ?? []));
 			const r = await this.runIntervention(unit, cor, "prepare", preparationObjective(mandate.objective, mandate.requirement_ids), handle.path, { adopted: ["mandate", "requirements"], untrusted: excerpts, feedback });
 			unit = r.unit;
@@ -590,7 +523,7 @@ export class Harness {
 			if (!discriminant && onReference === "PASS") notes.push("prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)");
 			const qualified = out_of_scope.length === 0 && files.length > 0 && loadable && discriminant;
 			const record: PreparationRecord = { preparation_id: this.id("prep"), objective: mandate.objective, allowed_paths: mandate.allowed_paths, files, on_reference: onReference, discriminant, loadable, qualified, notes };
-			const ref = await this.storeArtifact("preparation", unit.state.change_id, record.preparation_id, record, KERNEL_ACTOR.actor_id);
+			const ref = await this.artifacts.store("preparation", unit.state.change_id, record.preparation_id, record, KERNEL_ACTOR.actor_id);
 			unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "preparation", ref }, cor);
 			return this.commit(unit, { type: "preparation.close", at: this.now(), actor: KERNEL_ACTOR, qualified, capability_ids: files.map((f) => f.path), adopted_ref: qualified ? ref : null }, cor);
 		} finally {
@@ -599,10 +532,10 @@ export class Harness {
 	}
 
 	private async stepDesign(unit: Unit, cor: string): Promise<Unit> {
-		const spec = await this.latestArtifact<SpecificationReport>(unit.state, "diagnostic");
+		const spec = await this.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 		if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
 		const design: Design = { change_id: unit.state.change_id, summary: spec.content.design.summary, components: spec.content.design.components, interfaces: spec.content.design.interfaces, alternatives: [], risks: [...spec.content.risks, ...spec.content.design.risks], requirement_ids: unit.state.requirement_ids, compatible_with_mandate: true, executable: spec.content.design.summary.trim().length > 0 };
-		const ref = await this.storeArtifact("design", unit.state.change_id, this.id("dsg"), design, KERNEL_ACTOR.actor_id);
+		const ref = await this.artifacts.store("design", unit.state.change_id, this.id("dsg"), design, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "design", ref }, cor);
 		unit = this.commit(unit, { type: "gate.evaluate", gate: "G3", at: this.now(), actor: KERNEL_ACTOR, design_ref: ref, design }, cor);
 		if (unit.state.gates.G3?.verdict === "FAIL") throw new DomainError("PRECONDITION_FAILED", `design rejected at G3: ${unit.state.gates.G3.reasons.join("; ")}`);
@@ -610,31 +543,31 @@ export class Harness {
 	}
 
 	private async stepImplement(unit: Unit, cor: string): Promise<Unit> {
-		const reference = await this.referenceOf(unit.state);
+		const reference = await this.artifacts.reference(unit.state);
 		const open = unit.state.attempts.find((a) => a.result === "open");
 		const attemptId = open?.attempt_id ?? this.id("att");
 		const existing = this.deps.ledger.listArtifacts(unit.state.change_id, "candidate").find((a) => a.ref.artifact_id === `ws_${attemptId}`);
 		let workspaceId: string;
 		let workspacePath: string;
 		if (existing) {
-			const rec = await this.readArtifact<{ workspace_id: string; path: string }>(existing.ref);
+			const rec = await this.artifacts.read<{ workspace_id: string; path: string }>(existing.ref);
 			workspaceId = rec.workspace_id;
 			workspacePath = rec.path;
 		} else {
 			const h = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 			workspaceId = h.workspace_id;
 			workspacePath = h.path;
-			await this.materializePrepared(await this.adoptedPreparation(unit.state), h.path);
-			await this.storeArtifact("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
+			await this.artifacts.materializePrepared(await this.artifacts.adoptedPreparation(unit.state), h.path);
+			await this.artifacts.store("candidate", unit.state.change_id, `ws_${attemptId}`, { workspace_id: h.workspace_id, path: h.path }, KERNEL_ACTOR.actor_id);
 		}
 		const lastFeedback = unit.state.feedback.at(-1);
-		const priorFeedback = lastFeedback ? await this.readArtifact<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
+		const priorFeedback = lastFeedback ? await this.artifacts.read<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null) : null;
 		const truncatedBefore = unit.state.interventions.filter((i) => i.attempt_id === attemptId && i.result === "truncated").length;
 		const resume = resumeNote(truncatedBefore);
 		const feedback = [resume, priorFeedback].filter((x): x is string => Boolean(x)).join("\n\n") || null;
-		const mandate = await this.latestArtifact<Mandate>(unit.state, "mandate");
+		const mandate = await this.artifacts.latest<Mandate>(unit.state, "mandate");
 		const objective = implementObjective(mandate?.content.objective ?? null);
-		const adoptedRequirements = await this.latestArtifact<RequirementsDocument>(unit.state, "requirements").catch(() => null);
+		const adoptedRequirements = await this.artifacts.latest<RequirementsDocument>(unit.state, "requirements").catch(() => null);
 		const excerpts = await projectExcerpts(reference, workspacePath, 10, focusOf(objective, adoptedRequirements?.content.requirements ?? []));
 		const r = await this.runIntervention(unit, cor, "implement", objective, workspacePath, { adopted: ["mandate", "requirements", "protocol", "design"], feedback, attempt_id: attemptId, untrusted: excerpts });
 		unit = r.unit;
@@ -653,7 +586,7 @@ export class Harness {
 		this.progress("freezing the candidate");
 		const wsHandle = { workspace_id: workspaceId, path: workspacePath, reference_id: reference.reference_id, created_at: this.now() };
 		const manifest = await this.deps.workspace.snapshotCandidate(wsHandle, reference, this.deps.workspacePolicy);
-		const manifestRef = await this.storeArtifact("candidate", unit.state.change_id, manifest.candidate_id, manifest, KERNEL_ACTOR.actor_id);
+		const manifestRef = await this.artifacts.store("candidate", unit.state.change_id, manifest.candidate_id, manifest, KERNEL_ACTOR.actor_id);
 		// Keep the bytes of every changed file so that the dossier stays self-contained (EVD-01), and
 		// keep them on both sides: without the reference text of a file the candidate modified, the
 		// lines this change introduced could not be recomputed from the dossier alone (QLT-04).
@@ -661,12 +594,12 @@ export class Harness {
 		// The reference side is read from the project the snapshot was taken from, and only for the paths
 		// that snapshot holds as files: a path that became a symlink has no reference text to diff.
 		const referenceFiles = new Set(reference.entries.filter((e) => e.kind === "file" && e.content_digest !== null).map((e) => e.path));
-		const files = await this.storeBytesOf(workspacePath, changed.filter((e) => e.baseline_state !== "deleted").map((e) => e.path));
-		const baseFiles = await this.storeBytesOf(reference.project_path, changed.filter((e) => e.baseline_state !== "added" && referenceFiles.has(e.path)).map((e) => e.path));
-		await this.storeArtifact("candidate", unit.state.change_id, `files_${manifest.candidate_id}`, files, KERNEL_ACTOR.actor_id);
-		await this.storeArtifact("candidate", unit.state.change_id, `base_files_${manifest.candidate_id}`, baseFiles, KERNEL_ACTOR.actor_id);
+		const files = await this.artifacts.storeBytesOf(workspacePath, changed.filter((e) => e.baseline_state !== "deleted").map((e) => e.path));
+		const baseFiles = await this.artifacts.storeBytesOf(reference.project_path, changed.filter((e) => e.baseline_state !== "added" && referenceFiles.has(e.path)).map((e) => e.path));
+		await this.artifacts.store("candidate", unit.state.change_id, `files_${manifest.candidate_id}`, files, KERNEL_ACTOR.actor_id);
+		await this.artifacts.store("candidate", unit.state.change_id, `base_files_${manifest.candidate_id}`, baseFiles, KERNEL_ACTOR.actor_id);
 		unit = this.commit(unit, { type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef }, cor);
-		const prepared = await this.adoptedPreparation(unit.state);
+		const prepared = await this.artifacts.adoptedPreparation(unit.state);
 		const scope = protectedPathsChanged(manifest, unit.state.protocol?.protected_paths ?? [], prepared?.files ?? [], (p) => mirrorsProductionResource(manifest, p));
 		const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
 		const truncatedNote = r.result === "truncated" ? [`the producer was stopped by the duration budget ${truncatedBefore + 1} time(s) and never reported itself finished`] : [];
@@ -677,10 +610,10 @@ export class Harness {
 	private async stepVerify(unit: Unit, cor: string): Promise<Unit> {
 		const state = unit.state;
 		if (!state.candidate || !state.protocol) throw new DomainError("PRECONDITION_FAILED", "candidate and protocol required");
-		const protocol = await this.latestArtifact<Protocol>(state, "protocol");
-		const manifest = await this.readArtifact<CandidateManifest>({ artifact_id: state.candidate.candidate_id, revision: 1 });
+		const protocol = await this.artifacts.latest<Protocol>(state, "protocol");
+		const manifest = await this.artifacts.read<CandidateManifest>({ artifact_id: state.candidate.candidate_id, revision: 1 });
 		if (!protocol) throw new DomainError("EVIDENCE_MISSING", "protocol document missing");
-		const reference = await this.referenceOf(state);
+		const reference = await this.artifacts.reference(state);
 		const opId = this.id("op");
 		unit = this.commit(unit, { type: "verification.start", at: this.now(), actor: KERNEL_ACTOR, operation_id: opId, idempotency_key: `verify:${state.candidate.manifest_digest}:${state.evidence.length}` }, cor);
 		const outcome = await this.verification.run({ change_id: state.change_id, protocol: protocol.content, protocol_ref: state.protocol.ref, candidate: state.candidate, manifest, reference, workspace_path: this.deps.workspace.workspacePath(state.candidate.workspace_id) });
@@ -698,12 +631,12 @@ export class Harness {
 		const workspacePath = this.deps.workspace.workspacePath(state.candidate.workspace_id);
 		for (const role of state.protocol.required_reviews) {
 			if (state.reviews.some((r) => r.valid && r.reviewer_role === role && r.subject_digest === state.candidate!.manifest_digest)) continue;
-			const manifest = await this.readArtifact<CandidateManifest>({ artifact_id: state.candidate.candidate_id, revision: 1 });
+			const manifest = await this.artifacts.read<CandidateManifest>({ artifact_id: state.candidate.candidate_id, revision: 1 });
 			const r = await this.runIntervention(unit, cor, "review", reviewObjective(role, manifest.selected_paths), workspacePath, { adopted: ["mandate", "requirements", "design"] });
 			unit = r.unit;
 			const report = r.result === "completed" && r.output_valid ? (r.output as ReviewReport) : null;
 			const reviewId = this.id("rev");
-			await this.storeArtifact("review", unit.state.change_id, reviewId, report ?? { invalid: true, result: r.result }, r.intervention_id);
+			await this.artifacts.store("review", unit.state.change_id, reviewId, report ?? { invalid: true, result: r.result }, r.intervention_id);
 			if (!report) continue;
 			unit = this.commit(unit, { type: "review.record", at: this.now(), actor: { actor_id: r.intervention_id, actor_type: "agent", role: "reviewer_agent", origin: "model_output", authentication_level: "none" }, review_id: reviewId, reviewer_role: role, subject_digest: state.candidate.manifest_digest, conclusion: report.conclusion, blocking_findings: report.findings.filter((f) => f.severity === "blocker").length }, cor);
 		}
@@ -752,7 +685,7 @@ export class Harness {
 		const feedback = await buildFeedback(state, why, this.feedbackSources());
 		const attemptId = this.id("att");
 		const current = state.attempts.at(-1);
-		if (current) await this.storeArtifact("feedback", state.change_id, `fb_${current.attempt_id}`, feedback.text, KERNEL_ACTOR.actor_id);
+		if (current) await this.artifacts.store("feedback", state.change_id, `fb_${current.attempt_id}`, feedback.text, KERNEL_ACTOR.actor_id);
 		const next = this.commit(unit, { type: "correction.authorize", at: this.now(), actor: KERNEL_ACTOR, attempt_id: attemptId, feedback: { digest: digestBytes(feedback.text), bytes: feedback.bytes, truncated: feedback.truncated } }, cor);
 		if (next.state.status === "blocked" && next.state.stop_reason === "attempts_exhausted") {
 			return this.requestDecision(next, cor, "IH-07", subjectOfChange(next.state), [why], "stop", `${next.state.budgets.attempts_used}/${next.state.budgets.max_attempts}`, undefined, this.language(next.state));
@@ -786,9 +719,9 @@ export class Harness {
 	/** Opens a read-only review of the frozen candidate (or of the reference alone). Identical data in every Pi entry (RM-066). */
 	async openReview(changeId: string, candidateId?: string): Promise<{ snapshot: ReviewSnapshot; changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>; content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage> }> {
 		const { state } = this.load(changeId);
-		const reference = await this.referenceOf(state);
+		const reference = await this.artifacts.reference(state);
 		const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
-		const manifest = wanted ? await this.readArtifact<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null) : null;
+		const manifest = wanted ? await this.artifacts.read<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null) : null;
 		const workspacePath = manifest ? this.deps.workspace.workspacePath(manifest.workspace_id) : null;
 		const findings: (Finding & { evidence_id: string })[] = [];
 		for (const e of state.evidence.filter((x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest)) {

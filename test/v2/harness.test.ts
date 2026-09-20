@@ -59,7 +59,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.ok(referenceEvidence.every((e) => e.subject.digest === baseDigest && e.facts.run === "reference"));
 		assert.ok(candidateEvidence.every((e) => e.baseline?.reference_verdict === "PASS" && e.baseline.new_findings === 0));
 		assert.ok(candidateEvidence.every((e) => e.subject.digest === view.candidate!.manifest_digest));
-		const protocol = await t.harness.latestArtifact<{ qualifications: Record<string, { evidence_ids?: Record<string, string> }> }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
+		const protocol = await t.harness.artifacts.latest<{ qualifications: Record<string, { evidence_ids?: Record<string, string> }> }>(t.ledger.loadChange(change.change_id)!.state, "protocol");
 		assert.ok(Object.values(protocol!.content.qualifications).every((q) => Object.keys(q.evidence_ids ?? {}).length === 3));
 		assert.ok(t.ledger.listArtifacts(change.change_id, "context").length >= 2, "context manifests are recorded per intervention (CTX-01)");
 	});
@@ -256,11 +256,11 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(calls, 2, "the specification is written again once the answer is recorded");
 
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		const adopted = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
 		assert.equal(state.adopted.requirements?.ref.content_digest, adopted.ref.content_digest, "the document read back is the one G1 adopted");
 		assert.ok(adopted.content.requirements[0]!.statement.includes("422"), `the adopted requirement still carries the status the answer replaced: ${adopted.content.requirements[0]!.statement}`);
 		assert.deepEqual(adopted.content.answers, [{ question_id: QUESTION.id, question: QUESTION.question, answer: ANSWER, observable: true, requirement_ids: ["R1"] }]);
-		const mandate = (await t.harness.latestArtifact<Mandate>(state, "mandate"))!;
+		const mandate = (await t.harness.artifacts.latest<Mandate>(state, "mandate"))!;
 		assert.ok(mandate.content.objective.includes("422"), `the mandate objective contradicts the answer it carries: ${mandate.content.objective}`);
 		assert.equal(mandate.content.open_questions.find((q) => q.id === QUESTION.id)?.answer, ANSWER);
 	});
@@ -331,7 +331,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(calls, 3, "a second reopening is allowed because the first took an answer into account");
 
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		const adopted = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
 		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.observable, a.requirement_ids]), [[QA.id, true, ["R1", "R2"]], [QB.id, false, []]]);
 	});
 
@@ -422,7 +422,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.ok(third.includes(`${QA.id}: ${QA.question} -> réponse à ${QA.question} [already declared, carried by R1]`), third);
 		assert.ok(third.includes(`${QB.id}: ${QB.question} -> réponse à ${QB.question} [to declare in \`answers\`]`), third);
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		const adopted = (await t.harness.latestArtifact<RequirementsDocument>(state, "requirements"))!;
+		const adopted = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
 		assert.deepEqual(adopted.content.answers.map((a) => [a.question_id, a.requirement_ids]), [[QA.id, ["R1"]], [QB.id, ["R2"]]], "the carried declaration binds the answer in the document G1 adopts");
 	});
 
@@ -710,7 +710,7 @@ describe("what a change introduces, recomputed from the store (QLT-04)", () => {
 		// Both sides of the changed file are in the store, so the diff can be redone from the dossier.
 		const candidateId = result.view.change!.candidate!.candidate_id;
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		const sides = await Promise.all([`files_${candidateId}`, `base_files_${candidateId}`].map(async (id) => await t.harness.readArtifact<Record<string, { digest: string }>>({ artifact_id: id, revision: 1 })));
+		const sides = await Promise.all([`files_${candidateId}`, `base_files_${candidateId}`].map(async (id) => await t.harness.artifacts.read<Record<string, { digest: string }>>({ artifact_id: id, revision: 1 })));
 		assert.deepEqual(sides.map((side) => Object.keys(side)), [["src/greet.js"], ["src/greet.js"]]);
 		assert.notEqual(sides[0]!["src/greet.js"]!.digest, sides[1]!["src/greet.js"]!.digest);
 		const referenceBytes = await t.objects.get(sides[1]!["src/greet.js"]!.digest);
@@ -723,7 +723,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 	/** The context manifests recorded so far, in the order the interventions were run. */
 	async function manifests(t: TestHarness, changeId: string): Promise<ContextManifest[]> {
 		const refs = t.ledger.listArtifacts(changeId, "context");
-		return Promise.all(refs.map(async (a) => t.harness.readArtifact<ContextManifest>(a.ref)));
+		return Promise.all(refs.map(async (a) => t.harness.artifacts.read<ContextManifest>(a.ref)));
 	}
 	function normative(state: { adopted: Record<string, { ref: { artifact_id: string; revision: number; content_digest: string } } | undefined> }): Record<string, unknown> {
 		const out: Record<string, unknown> = {};
@@ -762,7 +762,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 		assert.deepEqual(restored.budgets, budgetsBefore, "the budgets are read back, not restarted");
 		assert.deepEqual(restored.feedback, before.feedback);
 		assert.equal(second.harness.status(change.change_id).change?.attempts.used, 2, "the second session inherits the attempts already spent, it does not start over");
-		const protocolAfter = await second.harness.latestArtifact<{ controls: { control_id: string }[] }>(restored, "protocol");
+		const protocolAfter = await second.harness.artifacts.latest<{ controls: { control_id: string }[] }>(restored, "protocol");
 		assert.deepEqual(protocolAfter!.content.controls.map((c) => c.control_id).sort(), ["lint", "unit"], "the frozen controls are read back from the store");
 
 		const finished = await second.harness.advance(change.change_id, { max_steps: 40 });

@@ -40,8 +40,8 @@ export class GitIntegrator {
 	step = async (unit: Unit, cor: string): Promise<Unit> => {
 		const h = this.harness;
 		const state = unit.state;
-		const reference = (await h.latestArtifact<ReferenceSnapshot>(state, "reference"))!.content;
-		const manifest = await h.readArtifact<CandidateManifest>({ artifact_id: state.candidate!.candidate_id, revision: 1 });
+		const reference = (await h.artifacts.latest<ReferenceSnapshot>(state, "reference"))!.content;
+		const manifest = await h.artifacts.read<CandidateManifest>({ artifact_id: state.candidate!.candidate_id, revision: 1 });
 		const project = reference.project_path;
 		const referenceEntries = includedEntries(reference.entries, reference.exclusions);
 		const info = await inspectGit(project);
@@ -85,7 +85,7 @@ export class GitIntegrator {
 				const appliedEntries = diffEntries(referenceEntries, applied.entries);
 				const appliedDigest = digestValue({ base_ref: reference.tree_digest, selected_paths: appliedEntries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path), exclusions: manifest.exclusions, entries: appliedEntries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]), metadata_policy: "content_and_mode" });
 				const receipt: IntegrationReceipt = { destination, before, after, candidate_digest: manifest.manifest_digest, applied_digest: appliedDigest, commit: after, files: manifest.selected_paths, at: h.now() };
-				await h.storeArtifact("integration", state.change_id, h.id("rcp"), receipt, KERNEL_ACTOR.actor_id);
+				await h.artifacts.store("integration", state.change_id, h.id("rcp"), receipt, KERNEL_ACTOR.actor_id);
 				unit = h.commit(unit, { type: "integration.effect", at: h.now(), actor: KERNEL_ACTOR, operation_id: opId, effect_state: "confirmed", detail: null, decision_id: null }, cor);
 				return h.commit(unit, { type: "gate.evaluate", gate: "G6", at: h.now(), actor: KERNEL_ACTOR, destination_after: after, applied_digest: appliedDigest, receipt_digest: digestValue(receipt) }, cor);
 			} catch (error) {
