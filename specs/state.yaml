@@ -10,14 +10,14 @@ active_epic_id: null
 
 handoff:
   next_skill: release-branch
-  last_step_completed: "Biome adopted as the lint referential of the harness; the 446-finding baseline is cleared to zero"
+  last_step_completed: "Biome holds the harness: lint baseline cleared to zero, formatter adopted at 120 columns, both refused by Preflight"
   open_decisions:
-    - "Formatter adoption deferred: enabling it would rewrite 131 of 134 files in one pass"
+    - "Import order stays grouped by layer rather than machine-sorted"
     - "QLT-01..05 and ARC-01..03 remain absent from the kernel: this adoption covers the harness code only"
   required_reading:
-    - docs/DECISIONS.md (D-42)
+    - docs/DECISIONS.md (D-42, D-43)
     - biome.jsonc
 
 git:
-  branch: quality-referential
-  hash: ff8a8a70ee729fb6576fb828405dbd039340b5e4
+  branch: main
+  hash: 51ed57f6f4fee17e0a6af87e5694774dd15b6f55
