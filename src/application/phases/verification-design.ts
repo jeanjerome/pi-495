@@ -18,7 +18,7 @@ import type { PhaseContext, Unit } from "./phase.ts";
  * enough: a third spends the same budget on the same gap, and the change stops on a missing
  * capability instead.
  */
-export async function openPreparation(
+async function openPreparation(
 	ctx: PhaseContext,
 	unit: Unit,
 	cor: string,

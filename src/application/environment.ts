@@ -82,7 +82,7 @@ function buildIdentity(): { version: string; build_digest: string } {
 
 let cachedBuild: { version: string; build_digest: string } | null = null;
 
-export function harnessBuild(): { version: string; build_digest: string } {
+function harnessBuild(): { version: string; build_digest: string } {
 	cachedBuild ??= buildIdentity();
 	return cachedBuild;
 }

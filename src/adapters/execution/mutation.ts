@@ -147,7 +147,7 @@ const NO_MUTANT_GENERATED = /No mutations found/;
  * between a run the target's own threshold ended non-zero and a build that broke before mutating
  * anything.
  */
-export function isCompleteMutationReport(text: string): boolean {
+function isCompleteMutationReport(text: string): boolean {
 	return text.includes("<mutations") && text.includes("</mutations>");
 }
 
@@ -163,7 +163,7 @@ export interface MutationSummary {
  * resolved the same way a coverage report is: from the package of the mutated class and the source
  * file it names, looked up among the paths the candidate touched, one match or nothing.
  */
-export function summarizeMutations(documents: readonly PitestDocument[], paths: readonly string[]): MutationSummary {
+function summarizeMutations(documents: readonly PitestDocument[], paths: readonly string[]): MutationSummary {
 	const mutants: Mutant[] = [];
 	const ambiguous = new Set<string>();
 	let outOfScope = 0;

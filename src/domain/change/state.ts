@@ -223,20 +223,6 @@ export interface ChangeState {
 	feedback: { attempt_id: string; digest: string; bytes: number }[];
 }
 
-export const ACTIVE_PHASES: readonly Phase[] = [
-	"intake",
-	"clarifying",
-	"specifying",
-	"verification_design",
-	"preparing",
-	"designing",
-	"implementing",
-	"verifying",
-	"reviewing",
-	"deciding",
-	"integrating",
-];
-
 export function isActive(state: ChangeState): boolean {
 	return state.phase !== "closed" && state.status !== "cancelled" && state.status !== "completed";
 }
@@ -314,7 +300,7 @@ export function declarationsOfReport(
  * before the decision, whatever its text says; a report that declares the answer, even to say it
  * fixes nothing observable, carries it.
  */
-export function answersTheReportIgnores(
+function answersTheReportIgnores(
 	state: ChangeState,
 	report: { questions: { id: string }[] },
 	declared: Map<string, AnswerDeclaration>,
@@ -327,7 +313,7 @@ export function answersTheReportIgnores(
  * The answered material questions a specification report accounts for. Used to tell a reopening
  * that took an answer into account from one that gave the same report back.
  */
-export function answersTheReportCarries(state: ChangeState, declared: Map<string, AnswerDeclaration>): string[] {
+function answersTheReportCarries(state: ChangeState, declared: Map<string, AnswerDeclaration>): string[] {
 	const answered = new Set(state.open_questions.filter((q) => q.material && q.answer !== null).map((q) => q.id));
 	return [...declared.keys()].filter((id) => answered.has(id));
 }
@@ -360,11 +346,6 @@ export function subjectOfChange(state: ChangeState): SubjectRef {
 		revision: Math.max(1, state.revision),
 		digest: state.candidate?.manifest_digest ?? state.reference.digest,
 	};
-}
-
-export function subjectOfCandidate(state: ChangeState): SubjectRef | null {
-	if (!state.candidate) return null;
-	return { kind: "candidate", id: state.candidate.candidate_id, revision: 1, digest: state.candidate.manifest_digest };
 }
 
 /** What the reopening rule reads of a specification report. */

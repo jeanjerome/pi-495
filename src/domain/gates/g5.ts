@@ -178,7 +178,7 @@ function describe(controlIds: string[], latest: Map<string, EvidenceEntry>): str
 }
 
 /** all: every verdict must PASS; any: one PASS suffices. NOT_APPLICABLE is excluded from the calculation. */
-export function combine(verdicts: Verdict[], mode: "all" | "any"): Verdict {
+function combine(verdicts: Verdict[], mode: "all" | "any"): Verdict {
 	const v = verdicts.filter((x) => x !== "NOT_APPLICABLE");
 	if (v.length === 0) return verdicts.length === 0 ? "NOT_RUN" : "NOT_APPLICABLE";
 	if (mode === "any") {

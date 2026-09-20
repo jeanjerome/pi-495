@@ -100,7 +100,3 @@ export class DomainError extends Error {
 		};
 	}
 }
-
-export function isDomainError(value: unknown): value is DomainError {
-	return value instanceof DomainError;
-}

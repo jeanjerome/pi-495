@@ -10,7 +10,7 @@ import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
-export async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
+async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
 	const state = unit.state;
 	const feedback = await buildFeedback(state, why, ctx.feedbackSources());
 	const attemptId = ctx.id("att");

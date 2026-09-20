@@ -14,7 +14,7 @@ export interface HarnessConfig {
 	language: "fr" | "en";
 }
 
-export const DEFAULT_CONFIG: HarnessConfig = {
+const DEFAULT_CONFIG: HarnessConfig = {
 	policy: DEFAULT_POLICY,
 	isolation: { allow_unconfined: false },
 	human_origin: { rpc_actor_env: "HARNESS495_RPC_HUMAN_ACTOR" },

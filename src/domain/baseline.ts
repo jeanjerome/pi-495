@@ -245,7 +245,7 @@ export function classifyFindings(
  * stays visible and stops blocking; a defect whose state could not be established keeps blocking,
  * because an unknown baseline is not a tolerance.
  */
-export function findingBlocks(finding: Finding, tolerance: BaselineTolerance): boolean {
+function findingBlocks(finding: Finding, tolerance: BaselineTolerance): boolean {
 	if (finding.severity !== "blocker") return false;
 	if (finding.baseline_state === "removed") return false;
 	if (tolerance === "block_any") return true;

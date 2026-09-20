@@ -33,7 +33,7 @@ export interface StatusView {
 	limits: string[];
 }
 
-export function nextActionOf(s: ChangeState): string {
+function nextActionOf(s: ChangeState): string {
 	if (s.phase === "closed")
 		return s.outcome === "integrated"
 			? "done: integrated"

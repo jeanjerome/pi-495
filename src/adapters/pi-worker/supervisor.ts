@@ -24,7 +24,7 @@ export interface SupervisorOptions {
 	capabilityProbe?: (model: ModelSelection) => Promise<AgentCapabilities>;
 }
 
-export function defaultWorkerCommand(): string[] {
+function defaultWorkerCommand(): string[] {
 	const here = fileURLToPath(import.meta.url);
 	const ext = here.endsWith(".ts") ? ".ts" : ".js";
 	return [process.execPath, join(dirname(here), `worker-main${ext}`)];

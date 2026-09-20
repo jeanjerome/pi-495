@@ -328,7 +328,7 @@ export function resolveSourcePath(
  * file — a reactor writes one per module, and an aggregate may repeat them — so a line executed in
  * any of them counts as executed.
  */
-export function summarizeJacoco(documents: readonly JacocoDocument[], paths: readonly string[]): CoverageMeasurement {
+function summarizeJacoco(documents: readonly JacocoDocument[], paths: readonly string[]): CoverageMeasurement {
 	const measurement: CoverageMeasurement = { files: new Map(), symbols: new Map(), notes: [] };
 	const ambiguous = new Set<string>();
 	for (const doc of documents) {
@@ -394,7 +394,7 @@ function symbolsOf(packageBody: string, sourcefile: string): { line: number; sym
 }
 
 /** The symbol a line belongs to: the last one declared at or before it. */
-export function symbolAt(symbols: readonly { line: number; symbol: string }[], line: number): string | null {
+function symbolAt(symbols: readonly { line: number; symbol: string }[], line: number): string | null {
 	let found: string | null = symbols[0]?.symbol ?? null;
 	for (const entry of symbols) {
 		if (entry.line > line) break;

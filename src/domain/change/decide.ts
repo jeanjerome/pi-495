@@ -6,7 +6,7 @@
  * The reducer reads no clock, no file system and no model. Time, identifiers, digests and
  * observations are provided as facts inside the command (AT-01, AT-02, ADR-003).
  */
-import type { ActorRef, GateId, Phase, StopReason } from "../../contracts/v1/common.ts";
+import type { ActorRef, Phase, StopReason } from "../../contracts/v1/common.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
 import { evaluateG5 } from "../gates/g5.ts";
@@ -1543,7 +1543,3 @@ const PHASE_ORDER: Phase[] = [
 	"integrating",
 	"closed",
 ];
-
-export function gateOrder(gate: GateId): number {
-	return ["G0", "G1", "G2", "G3", "G4", "G5", "G6"].indexOf(gate);
-}

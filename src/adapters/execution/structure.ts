@@ -38,8 +38,8 @@ export interface JavaSource {
 /** Directories no source tree of the project is under: build output and tool caches. */
 const SKIPPED_DIRECTORIES = new Set([".git", "target", "build", "out", "bin", "node_modules", ".idea"]);
 
-export const MAX_SOURCE_FILES = 5000;
-export const MAX_SOURCE_BYTES = 1024 * 1024;
+const MAX_SOURCE_FILES = 5000;
+const MAX_SOURCE_BYTES = 1024 * 1024;
 const MAX_STRUCTURE_FINDINGS = 200;
 
 const PACKAGE_DECLARATION = /^\s*package\s+([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*;/;

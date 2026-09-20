@@ -20,7 +20,7 @@ export interface WalkResult {
 	limits: Limits;
 }
 
-export function toPosix(p: string): string {
+function toPosix(p: string): string {
 	return sep === "/" ? p : p.split(sep).join(posix.sep);
 }
 

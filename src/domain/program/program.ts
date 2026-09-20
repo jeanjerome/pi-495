@@ -334,7 +334,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 }
 
 /** Increment ready when every dependency is accepted or integrated; blocked dependencies only block descendants (RM-009, SA-007). */
-export function recomputeEligibility(state: ProgramState): ProgramState {
+function recomputeEligibility(state: ProgramState): ProgramState {
 	const byId = new Map(state.increments.map((i) => [i.increment_id, i] as const));
 	const done = (id: string) => {
 		const s = byId.get(id)?.status;
@@ -399,7 +399,7 @@ export function findCycle(increments: readonly IncrementSpec[]): string[] | null
 }
 
 /** Milestone verdict is recomputed from global obligations; it is never the sum of child statuses (RM-007, RM-008, PRG-05). */
-export function evaluateMilestone(
+function evaluateMilestone(
 	state: ProgramState,
 	m: Milestone,
 	globalVerdicts: Record<string, Verdict>,
