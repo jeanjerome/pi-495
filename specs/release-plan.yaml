@@ -1,0 +1,151 @@
+# Index des epics du travail ouvert de 495.
+# Dérivé de specs/product/SCOPE_LATEST.yaml — les identifiants y font foi.
+
+release:
+  version: "0.1.0"          # version courante du package ; aucun tag git, aucune release publiée
+  codename: "Seconde moitié de P0"
+  status: planning
+  semantic_release: false   # ni CI ni semantic-release dans ce dépôt : la version est posée à la main
+  bump_hint: minor
+
+ordering:
+  authority: specs/archive/ROADMAP.md §5
+  note: >
+    La liste est en ordre d'exécution, pas en ordre WSJF décroissant. L'ordre des huit premiers
+    est celui que la ROADMAP argumente — « l'ordre n'est pas une préférence ». Le score WSJF est
+    calculé et conservé pour chaque epic ; là où il aurait classé autrement, un champ wsjf_note
+    le dit. Aucun score n'a été ajusté pour reproduire l'ordre.
+  formula: "(business_value + time_criticality + risk_reduction) / job_size"
+
+capsules:
+  status: not_generated
+  note: >
+    Les répertoires capsule_dir sont les emplacements prévus ; aucun ne contient encore
+    d'epic.yaml, de story ni de tâches. Leur écriture demande le gabarit countable-story-format,
+    absent du paquet bigpowers installé.
+
+epics:
+  - id: e01
+    title: "Une réponse humaine atteint les exigences"
+    wsjf: 8.67
+    wsjf_inputs: { business_value: 8, time_criticality: 8, risk_reduction: 10, job_size: 3 }
+    capsule_dir: epics/e01-reponse-humaine-atteint-les-exigences
+  - id: e02
+    title: "Une sortie refusée garde une issue"
+    wsjf: 10.5
+    wsjf_inputs: { business_value: 7, time_criticality: 9, risk_reduction: 5, job_size: 2 }
+    capsule_dir: epics/e02-sortie-refusee-garde-une-issue
+  - id: e03
+    title: "Le mandat est cohérent avec sa vérification"
+    wsjf: 8.5
+    wsjf_inputs: { business_value: 5, time_criticality: 6, risk_reduction: 6, job_size: 2 }
+    capsule_dir: epics/e03-mandat-coherent-avec-sa-verification
+  - id: e04
+    title: "Clarté des instructions d'intervention"
+    wsjf: 4.0
+    wsjf_inputs: { business_value: 7, time_criticality: 7, risk_reduction: 6, job_size: 5 }
+    capsule_dir: epics/e04-clarte-des-instructions-d-intervention
+    wsjf_note: >
+      WSJF seul le placerait après e09 ; la ROADMAP le tient pour la cause de e03.
+  - id: e05
+    title: "Commande de test d'une cible Node"
+    wsjf: 4.75
+    wsjf_inputs: { business_value: 9, time_criticality: 6, risk_reduction: 4, job_size: 4 }
+    capsule_dir: epics/e05-commande-de-test-d-une-cible-node
+  - id: e06
+    title: "Inventaire des cas particuliers d'un arbre"
+    wsjf: 4.67
+    wsjf_inputs: { business_value: 5, time_criticality: 4, risk_reduction: 5, job_size: 3 }
+    capsule_dir: epics/e06-inventaire-des-cas-particuliers-d-un-arbre
+  - id: e07
+    title: "Lisibilité d'un changement arrêté"
+    wsjf: 4.33
+    wsjf_inputs: { business_value: 6, time_criticality: 4, risk_reduction: 3, job_size: 3 }
+    capsule_dir: epics/e07-lisibilite-d-un-changement-arrete
+  - id: e08
+    title: "La revue s'appuie sur ce que Pi rend"
+    wsjf: 2.5
+    wsjf_inputs: { business_value: 4, time_criticality: 3, risk_reduction: 3, job_size: 4 }
+    capsule_dir: epics/e08-la-revue-s-appuie-sur-ce-que-pi-rend
+  - id: e09
+    title: "État d'arrêt et session conductrice"
+    wsjf: 5.33
+    wsjf_inputs: { business_value: 5, time_criticality: 5, risk_reduction: 6, job_size: 3 }
+    capsule_dir: epics/e09-etat-d-arret-et-session-conductrice
+    wsjf_note: >
+      WSJF seul le placerait avant e05 ; la ROADMAP ne le range pas dans sa séquence.
+  - id: e10
+    title: "Référentiel de qualité d'une cible"
+    wsjf: 2.62
+    wsjf_inputs: { business_value: 10, time_criticality: 5, risk_reduction: 6, job_size: 8 }
+    capsule_dir: epics/e10-referentiel-de-qualite-d-une-cible
+  - id: e11
+    title: "Architecture cible d'une cible"
+    wsjf: 2.25
+    wsjf_inputs: { business_value: 9, time_criticality: 4, risk_reduction: 5, job_size: 8 }
+    capsule_dir: epics/e11-architecture-cible-d-une-cible
+  - id: e12
+    title: "Cartographie des contrôles existants"
+    wsjf: 4.0
+    wsjf_inputs: { business_value: 6, time_criticality: 4, risk_reduction: 6, job_size: 4 }
+    capsule_dir: epics/e12-cartographie-des-controles-existants
+  - id: e13
+    title: "Tests de caractérisation d'un existant"
+    wsjf: 3.4
+    wsjf_inputs: { business_value: 7, time_criticality: 3, risk_reduction: 7, job_size: 5 }
+    capsule_dir: epics/e13-tests-de-caracterisation-d-un-existant
+  - id: e14
+    title: "Capacité de vérification par incrément"
+    wsjf: 3.2
+    wsjf_inputs: { business_value: 6, time_criticality: 4, risk_reduction: 6, job_size: 5 }
+    capsule_dir: epics/e14-capacite-de-verification-par-increment
+  - id: e15
+    title: "Besoin de connaissance identifié"
+    wsjf: 2.75
+    wsjf_inputs: { business_value: 5, time_criticality: 2, risk_reduction: 4, job_size: 4 }
+    capsule_dir: epics/e15-besoin-de-connaissance-identifie
+  - id: e16
+    title: "Corpus officiel versionné"
+    wsjf: 2.2
+    wsjf_inputs: { business_value: 5, time_criticality: 2, risk_reduction: 4, job_size: 5 }
+    capsule_dir: epics/e16-corpus-officiel-versionne
+  - id: e17
+    title: "Utilisation de la documentation vérifiée"
+    wsjf: 3.5
+    wsjf_inputs: { business_value: 6, time_criticality: 2, risk_reduction: 6, job_size: 4 }
+    capsule_dir: epics/e17-utilisation-de-la-documentation-verifiee
+  - id: e18
+    title: "Disciplines applicables examinées"
+    wsjf: 3.0
+    wsjf_inputs: { business_value: 5, time_criticality: 2, risk_reduction: 5, job_size: 4 }
+    capsule_dir: epics/e18-disciplines-applicables-examinees
+  - id: e19
+    title: "Choix argumentés avec proportionnalité"
+    wsjf: 4.0
+    wsjf_inputs: { business_value: 5, time_criticality: 2, risk_reduction: 5, job_size: 3 }
+    capsule_dir: epics/e19-choix-argumentes-avec-proportionnalite
+  - id: e20
+    title: "Expertises mobilisées et vérifiées"
+    wsjf: 2.75
+    wsjf_inputs: { business_value: 4, time_criticality: 2, risk_reduction: 5, job_size: 4 }
+    capsule_dir: epics/e20-expertises-mobilisees-et-verifiees
+  - id: e21
+    title: "Qualité de la démarche évaluée"
+    wsjf: 2.6
+    wsjf_inputs: { business_value: 5, time_criticality: 2, risk_reduction: 6, job_size: 5 }
+    capsule_dir: epics/e21-qualite-de-la-demarche-evaluee
+  - id: e22
+    title: "Arbitrage de vérifiabilité"
+    wsjf: 9.0
+    wsjf_inputs: { business_value: 6, time_criticality: 5, risk_reduction: 7, job_size: 2 }
+    capsule_dir: epics/e22-arbitrage-de-verifiabilite
+    wsjf_note: >
+      WSJF le placerait deuxième ; il est petit et empêche un verdict faux, mais la ROADMAP ne l'a pas séquencé.
+
+bugs:
+  total: 0
+  fixed: 0
+  deferred: 0
+  wontfix: 0
+  open: 0
+  registry: specs/bugs/registry.yaml
