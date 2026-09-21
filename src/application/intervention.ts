@@ -89,7 +89,13 @@ export class InterventionSupervisor {
 	private refuseUndeclaredDestination(): void {
 		if (!this.deps.model.provider_id) return;
 		const reason = undeclaredEgressReason(this.deps.policy, this.deps.model.provider_id);
-		if (reason !== null) throw new DomainError("POLICY_DENIED", reason, { nextActions: ["configure_model"] });
+		if (reason === null) return;
+		// Retryable: the remedy is one line of configuration and the owner holds it. A block nobody can
+		// act on is what loses a change; a resume with the declaration still unwritten blocks again.
+		throw new DomainError("POLICY_DENIED", reason, {
+			retryable: true,
+			nextActions: ["declare_egress_destination", "configure_model"],
+		});
 	}
 
 	/**

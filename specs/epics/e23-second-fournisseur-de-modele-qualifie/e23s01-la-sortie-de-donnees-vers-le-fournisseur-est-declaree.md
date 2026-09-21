@@ -69,7 +69,8 @@ décision écrite et non un effet de bord de la configuration.
 
 **Préconditions :**
 - la politique active est chargée, depuis la configuration ou par défaut ;
-- une sélection de modèle est résolue, donc un identifiant de fournisseur est connu ;
+- une sélection de modèle peut être résolue ou non : quand elle ne l'est pas, l'identifiant de
+  fournisseur est vide, et c'est la vérification de capacité qui le nomme, pas la déclaration ;
 - aucun processus worker n'a encore été démarré.
 
 ### 5. Main flow and business logic [reviewed]
@@ -94,8 +95,10 @@ Interruption point: entre les étapes 4 et 5 — la destination est jugée, rien
 ### 6. Alternative flows and exceptions [draft]
 
 6a. **Destination non déclarée** — le superviseur lève un refus par politique avant l'étape 5.
-Aucun processus n'est démarré, aucun événement n'est inscrit, aucun octet n'est émis. Le motif
-d'arrêt est celui du refus par politique, et l'action suivante proposée est de configurer le modèle.
+Aucun processus n'est démarré, aucune intervention n'est ouverte, aucun octet n'est émis. Le refus
+lui-même est inscrit au journal comme tout blocage — voir §12. Le motif d'arrêt est celui du refus
+par politique, il est déclaré reprenable, et les actions proposées nomment la déclaration à écrire
+avant la sélection du modèle.
 
 6b. **Liste déclarée vide** — aucune intervention ne peut démarrer. C'est le comportement voulu et
 non une panne : une liste vide dit qu'aucune destination n'a été écrite. Le refus nomme la liste
@@ -189,10 +192,11 @@ que le laisser découvrir.
 ### 14. Quality attributes *NFR* [draft]
 
 - Refus d'une destination non déclarée : 0 processus démarré, 0 octet émis, 0 intervention ouverte.
-- Coût de la comparaison : une appartenance à une liste d'au plus 10 entrées, sous 1 ms, sur un
-  chemin déjà traversé une fois par intervention.
-- Aucune régression de durée mesurable sur le parcours : le point de décision est celui qui refuse
-  déjà un bac à sable non qualifié.
+- Coût de la décision : une appartenance à une liste, mesurée à 0,00001 ms sur dix entrées, au pire
+  cas sans correspondance. Rien ne borne la longueur de la liste ; la mesure dit ce qu'elle coûte,
+  pas ce qu'elle promet.
+- La décision est prise deux fois par intervention : à l'ouverture, puis à l'entrée du superviseur
+  qui démarre le worker. La seconde ne peut plus garder le journal propre — elle arrête le worker.
 
 ### 15. Security and compliance *NFR* [draft]
 
@@ -214,7 +218,9 @@ que le laisser découvrir.
 - Le message de refus est disponible dans chaque entrée Pi qualifiée — affichage, appel structuré,
   mode imprimé — avec le même verdict sur les mêmes faits, et sans composant d'affichage imposé aux
   modes sans écran.
-- Langue : française par défaut, anglaise sur configuration, comme tout diagnostic du harnais.
+- Langue : les intitulés de l'affichage suivent la configuration, française par défaut ; le détail
+  du refus lui-même est en anglais, comme tout détail d'erreur du noyau. Le traduire déborde cette
+  story et vaudrait pour tous les motifs d'arrêt, pas pour celui-ci seul.
 - Le refus nomme la destination refusée et la liste déclarée, de sorte que la correction se déduise
   du message sans lire le code.
 
@@ -255,7 +261,7 @@ Scenario: Un secret du contrôleur n'emprunte pas le canal modèle (6d)
 Scenario: Un secret retiré du dossier est signalé sans être divulgué (6e)
   Given un objet textuel du dossier portant un secret sentinelle
   When  le dossier est exporté en profil expurgé
-  Then  le secret n'apparaît dans aucun fichier du dossier
+  Then  le secret n'apparaît dans aucun objet textuel du dossier
   And   le signalement porte l'emplacement et le compte des retraits
   And   le signalement ne porte pas la valeur retirée
 ```

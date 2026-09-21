@@ -24,10 +24,13 @@ de test seul : `7089961` sort en 1, `30aad84` sort en 1.
 
 ## Ce que le refus emprunte, et ce qu'il n'introduit pas
 
-Code `POLICY_DENIED`, catégorie `policy`, motif d'arrêt `policy_denied`, action suivante
-`configure_model` — tous préexistants. Aucun code d'erreur, aucune action, aucun motif d'arrêt
-nouveaux. Le refus est placé en tête de `requireCapable`, avant la qualification du bac à sable et
-avant la sonde de capacité : la destination est jugée sans être jointe.
+Code `POLICY_DENIED`, catégorie `policy`, motif d'arrêt `policy_denied` — tous préexistants. La
+relecture croisée a depuis rendu le refus reprenable et ajouté l'action `declare_egress_destination`
+devant `configure_model` : le remède est une ligne de configuration, et un blocage que personne ne
+peut lever perd le changement. Aucun code d'erreur, aucune action, aucun motif d'arrêt
+nouveaux. Le refus est placé en tête de `requireCapable`, avant la qualification du bac à sable et avant la
+sonde de capacité, puis répété à l'entrée de `run()` — la destination est jugée sans être jointe,
+et `run()` ne repose pas sur un appelant qui aurait pensé à demander.
 
 ## Revue de sécurité — `security: high`
 

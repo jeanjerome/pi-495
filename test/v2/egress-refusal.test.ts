@@ -48,9 +48,17 @@ describe("what a refusal for an undeclared destination leaves behind (SEC-05)", 
 			producer: "test",
 		});
 		const stream = readFileSync(join(dossier.path, "events.jsonl"), "utf8");
+		const detail = stream
+			.split("\n")
+			.filter((line) => line.includes("policy_denied"))
+			.join("\n");
+		assert.ok(detail.length > 0, "the dossier carries no record of the refusal");
+		// Asserted on the block's own detail rather than anywhere in the stream, so an unrelated change
+		// that happened to mention the name elsewhere could not keep this green.
 		assert.ok(
-			stream.includes("elsewhere"),
-			"the destinations a refusal names are carried into the dossier; the story must say so rather than claim the policy stays out of it",
+			detail.includes("elsewhere"),
+			"the destinations a refusal names travel with the dossier; the story must say so rather than claim the policy stays out of it",
 		);
+		assert.ok(detail.includes("scripted"), "the refused destination is named in the record of its own refusal");
 	});
 });

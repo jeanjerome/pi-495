@@ -1,5 +1,5 @@
 story_id: e23s01
-verified_at: "2026-09-21T15:05:00Z"
+verified_at: "2026-09-21T16:16:10Z"
 verifier: verify-work
 risk: P0
 branch: sortie-vers-le-fournisseur-declaree
@@ -55,6 +55,9 @@ task_verify_commands:
   - task: 6
     command: "npm run check"
     exit_code: 0
+  - task: 2
+    command: "node --test test/v2/egress-refusal.test.ts"
+    exit_code: 0
 
 security:
   scan: security-review
@@ -82,6 +85,11 @@ manual:
     of the story spec against the named evidence that exercises it, presented to the owner for
     confirmation.
   confirmed_by_owner: true
+  confirmed_scope_note: >
+    La confirmation porte sur les six scénarios. Le sixième a été resserré depuis — « aucun objet
+    textuel du dossier » au lieu de « aucun fichier du dossier » — parce que l'expurgation ne
+    touche que les objets textuels du magasin, jamais les flux d'événements. Le scénario confirmé
+    était plus large que le code ; c'est le scénario qui a cédé, pas le code.
   confirmed_at: "2026-09-21T15:15:50Z"
   steps:
     - step: "Une destination déclarée ouvre l'intervention (§5)"
@@ -89,12 +97,12 @@ manual:
       actual: "test/v1/egress.test.ts — « carries a declared destination through to the capability check that already existed » ; profil denied tenu par test/v2/telemetry.test.ts, passé inchangé"
       passed: true
     - step: "Une destination non déclarée est refusée avant tout engagement (6a)"
-      expected: "POLICY_DENIED levé ; aucun worker démarré ; aucun événement inscrit"
+      expected: "POLICY_DENIED levé ; aucun worker démarré ; aucune intervention ouverte"
       actual: "test/v1/egress.test.ts — « is refused before the provider is reached and before any worker is started » ; probed=[] et started=[]"
       passed: true
     - step: "Une liste vide refuse toute intervention et le dit (6b)"
       expected: "POLICY_DENIED ; le message nomme la liste vide plutôt que la destination"
-      actual: "test/v1/egress.test.ts — « names the empty declaration rather than an empty list, when nothing is declared at all »"
+      actual: "test/v1/egress.test.ts — « names an empty declaration as the cause, rather than listing nothing »"
       passed: true
     - step: "Une configuration partielle ne vide pas la liste (6c)"
       expected: "La liste par défaut est gardée ; une configuration qui nomme la liste la remplace entièrement"
@@ -102,10 +110,10 @@ manual:
       passed: true
     - step: "Un secret du contrôleur n'emprunte pas le canal modèle (6d)"
       expected: "Le secret n'atteint ni l'environnement du worker ni le texte remis au modèle"
-      actual: "test/v1/egress.test.ts — « does not hand a sentinel secret… » (vrai sous-processus) et « never places a controller-environment sentinel… » ; garde structurelle : aucune occurrence de process.env dans context.ts"
+      actual: "test/v1/egress.test.ts — « hands it a closed set of variables, carrying no secret of the controller » (vrai sous-processus) et « composes only from what it was handed, carrying no value of the controller's environment » ; le test prouve d'abord que le texte porte bien ses marqueurs, pour qu'une absence ne soit pas une tautologie"
       passed: true
     - step: "Un secret retiré du dossier est signalé sans être divulgué (6e)"
-      expected: "Le secret n'apparaît dans aucun fichier ; le signalement porte emplacement et compte, jamais la valeur"
+      expected: "Le secret n'apparaît dans aucun objet textuel du dossier ; le signalement porte emplacement et compte, jamais la valeur"
       actual: "test/v2/export-integration.test.ts — « names what a redaction removed by location and count only, never by value » et la garde de type sur l'enregistrement de retrait"
       passed: true
 
@@ -115,13 +123,16 @@ gaps:
 
 known_limits:
   - >
-    La médiation de la sortie déclarée vit dans requireCapable(), méthode sœur, et non au point de
-    passage obligé qu'est run(). Correctement appelée par l'unique appelant existant ; un chemin
-    futur appelant run() directement la contournerait. Note de robustesse pour e23s03, qui édite la
-    même méthode.
+    La seconde vérification, à l'entrée de run(), ne peut plus garder le journal propre :
+    l'intervention y est déjà inscrite. Elle arrête le worker, rien de plus. Le dernier point avant
+    que les octets partent reste l'adaptateur, qui ne reçoit aucune politique.
   - >
-    loadConfig ne valide la forme d'aucun champ de la politique. Une valeur egress malformée fait
-    lever une TypeError plutôt que d'ouvrir : la défaillance reste fermée, mais brutale.
+    readEgress valide la forme de la déclaration, mais aucun autre champ de la politique ne l'est.
+    Un budget ou un seuil malformé passe encore par un cast sans contrôle.
+  - >
+    Un location invalide refuse toute intervention, alors que le champ ne décide d'aucun refus. La
+    fermeture est disproportionnée pour une donnée qui documente au lieu d'autoriser ; c'est une
+    question ouverte, pas un choix arrêté.
   - >
     exportChange accepte options.secret_patterns ; un motif à groupe de capture fourni par un
     appelant contournerait la garde de la tâche 4. Aucun appelant existant ne le fait.

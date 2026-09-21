@@ -34,38 +34,57 @@ const DEFAULT_CONFIG: HarnessConfig = {
 /**
  * The declared destinations a configuration carries, or the default when it carries none.
  *
- * A malformed declaration refuses everything rather than falling back to the default: the owner who
- * wrote it meant to narrow what may be reached, and restoring a destination they deleted would
- * widen it behind a diagnostic. An empty declaration is a state the kernel already words — nothing
- * is declared, so nothing may be handed a prompt — and it is the safe direction for a list that
- * decides what leaves the machine.
+ * A malformed declaration declares nothing rather than falling back: the owner who wrote it meant
+ * to narrow what may be reached, and restoring a destination they deleted would widen it behind a
+ * diagnostic. Every outcome is announced — the default in force, an empty declaration, and any
+ * destination off the machine — because what may leave should be said at session open rather than
+ * discovered at the first refusal.
  */
 function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
-	if (raw === undefined) return [...DEFAULT_EGRESS];
-	const refuse = (why: string): DeclaredEgress[] => {
-		diagnostics.push(`config.json: ${why}; no destination is declared, so every intervention is refused`);
-		return [];
+	const announce = (declared: DeclaredEgress[]): DeclaredEgress[] => {
+		const away = declared.filter((d) => d.location === "off_machine").map((d) => d.provider_id);
+		if (declared.length === 0)
+			diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
+		else if (away.length > 0)
+			diagnostics.push(
+				`config.json: ${declared.length} declared destination(s), ${away.length} off this machine (${away.join(", ")})`,
+			);
+		return declared;
 	};
-	if (!Array.isArray(raw)) return refuse("policy.egress is not a list of destinations");
+	const refuse = (why: string): DeclaredEgress[] => {
+		diagnostics.push(`config.json: ${why}`);
+		return announce([]);
+	};
+	/** An owner-supplied value, named for a diagnostic without spilling an arbitrary payload into it. */
+	const show = (value: unknown): string => {
+		const text = JSON.stringify(value) ?? String(value);
+		return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+	};
+
+	if (raw === undefined) {
+		diagnostics.push(
+			`config.json: policy.egress is absent; the default declaration stands (${DEFAULT_EGRESS.map((d) => d.provider_id).join(", ")})`,
+		);
+		return [...DEFAULT_EGRESS];
+	}
+	if (!Array.isArray(raw)) return refuse(`policy.egress is ${show(raw)}, not a list of destinations`);
 	const declared: DeclaredEgress[] = [];
-	for (const entry of raw) {
+	for (const [index, entry] of raw.entries()) {
 		if (typeof entry !== "object" || entry === null || Array.isArray(entry))
-			return refuse(`${JSON.stringify(entry)} is not a destination with provider_id and location`);
+			return refuse(`destination ${index} is ${show(entry)}, not an object with provider_id and location`);
 		const { provider_id, location } = entry as Partial<DeclaredEgress>;
 		if (typeof provider_id !== "string" || provider_id === "")
-			return refuse(`${JSON.stringify(entry)} carries no provider_id`);
+			return refuse(`destination ${index} carries no provider_id`);
 		if (location === undefined || !EGRESS_LOCATIONS.includes(location))
 			return refuse(`destination ${provider_id} does not say where it sits (${EGRESS_LOCATIONS.join(" or ")})`);
-		declared.push({ provider_id, location });
+		// A name declared twice, once on the machine and once off it, contradicts itself about the one
+		// thing the field records. Loading it quietly would leave the contradiction to be discovered.
+		const twin = declared.find((d) => d.provider_id === provider_id);
+		if (twin && twin.location !== location)
+			return refuse(`destination ${provider_id} is declared both ${twin.location} and ${location}`);
+		if (!twin) declared.push({ provider_id, location });
 	}
-	// The one place `location` is read: a declaration that sends excerpts off the machine says so out
-	// loud, once, rather than waiting for someone to reopen the file they wrote.
-	const away = declared.filter((d) => d.location === "off_machine").map((d) => d.provider_id);
-	if (away.length > 0)
-		diagnostics.push(
-			`config.json: ${declared.length} declared destination(s), ${away.length} off this machine (${away.join(", ")})`,
-		);
-	return declared;
+	return announce(declared);
 }
 
 export function loadConfig(
@@ -99,7 +118,11 @@ export function loadConfig(
 				language: raw.language === "en" ? "en" : "fr",
 			};
 		} catch (error) {
+			// A file that cannot be read cannot be trusted to have declared anything. Keeping the default
+			// here would restore a destination the owner may have removed in the very edit that broke it.
 			diagnostics.push(`config.json ignored: ${(error as Error).message}`);
+			diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
+			config.policy = { ...config.policy, egress: [] };
 		}
 	}
 	if (env.HARNESS495_ALLOW_UNCONFINED === "1") {

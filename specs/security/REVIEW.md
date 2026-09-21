@@ -6,7 +6,7 @@
 | Conduite le | 2026-09-21, revue après la ronde de relecture croisée |
 | Branche | `sortie-vers-le-fournisseur-declaree` |
 | Risque de la story | P0 |
-| Code de production touché | `src/domain/policy.ts` (+23), `src/application/intervention.ts` (+17) |
+| Code de production touché | `src/domain/policy.ts`, `src/application/intervention.ts`, `src/extension/config.ts` (le lecteur de la déclaration) |
 
 ## Verdict
 
@@ -44,12 +44,13 @@ quitte jamais le dépôt.
 
 ## Observations sous le seuil de report (confiance < 8, non bloquantes)
 
-**Profondeur de la médiation.** Le contrôle vit dans `requireCapable()`, méthode sœur, et non au
-point de passage obligé qu'est `run()` ou `startIntervention()`. Il est correctement appelé par
-l'unique appelant existant, mais un chemin de code futur appelant `run()` directement le
-contournerait. Ce n'est pas joignable par un attaquant — ni un producteur ni un modèle ne peuvent
-appeler `run()` — donc ce n'est pas une vulnérabilité ; c'est une note de robustesse pour
-`e23s03`, qui édite la même méthode.
+**Profondeur de la médiation — refermée.** Cette revue notait que le contrôle ne vivait que dans
+`requireCapable()`, méthode sœur, et qu'un chemin futur appelant `run()` directement le
+contournerait. `run()` appelle désormais le refus en première instruction, et un test l'épingle.
+La note de robustesse transmise à `e23s03` n'a plus d'objet : ce qui reste est que la seconde
+vérification ne peut plus garder le journal propre — l'intervention y est déjà inscrite — elle ne
+peut qu'arrêter le worker. Le dernier point avant que les octets partent reste l'adaptateur, qui ne
+reçoit aucune politique.
 
 **Confiance accordée à `config.json` — refermée depuis la première passe.** Cette revue notait que
 `loadConfig` ne validait la forme d'aucun champ de la politique, `egress` compris, et qu'une valeur

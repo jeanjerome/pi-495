@@ -145,6 +145,17 @@ describe("the declaration a configuration carries (SEC-05)", () => {
 			[{ location: "on_machine" }],
 			[{ provider_id: "" }],
 			[{ provider_id: "anthropic", location: "mars" }],
+			// The case the whole-list refusal exists for: a good entry before the bad one. Without it,
+			// keeping the valid prefix would pass every other fixture here.
+			[
+				{ provider_id: "omlx", location: "on_machine" },
+				{ provider_id: "anthropic", location: "mars" },
+			],
+			// A name declared twice, contradicting itself about whether data leaves the machine.
+			[
+				{ provider_id: "omlx", location: "on_machine" },
+				{ provider_id: "omlx", location: "off_machine" },
+			],
 		];
 		for (const value of bad) {
 			const { config, diagnostics } = loadConfig(configured({ egress: value }));
@@ -152,10 +163,23 @@ describe("the declaration a configuration carries (SEC-05)", () => {
 			// says what may leave must never widen itself to recover from a typo.
 			assert.deepEqual(config.policy.egress, [], `${JSON.stringify(value)} must declare nothing, not the default`);
 			assert.ok(
-				diagnostics.some((d) => d.includes("no destination is declared")),
+				diagnostics.some((d) => d.includes("no egress destination is declared")),
 				`${JSON.stringify(value)} must be reported, not swallowed`,
 			);
 		}
+	});
+
+	it("says out loud what is in force, whether it declared the default or nothing at all", () => {
+		const absent = loadConfig(configured({ budgets: { max_attempts: 5 } })).diagnostics;
+		assert.ok(
+			absent.some((d) => d.includes("absent") && d.includes("omlx")),
+			`an inherited declaration must be announced, not assumed: ${absent.join(" | ")}`,
+		);
+		const empty = loadConfig(configured({ egress: [] })).diagnostics;
+		assert.ok(
+			empty.some((d) => d.includes("no egress destination is declared")),
+			`a declaration that refuses everything must say so at load: ${empty.join(" | ")}`,
+		);
 	});
 
 	it("keeps a declaration the owner narrowed, instead of restoring what they removed", () => {

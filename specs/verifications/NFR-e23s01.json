@@ -10,9 +10,9 @@
   "dimensions": {
     "performance": {
       "verdict": "PASS",
-      "threshold": "membership in a declaration of at most 10 entries, under 1 ms, on a path already traversed once per intervention",
+      "threshold": "a membership test on the declared list, measured rather than bounded: nothing in the code caps its length",
       "measured": "0.000009 ms per decision, worst case (10 entries, no match, full scan), 1e6 iterations after warmup",
-      "note": "Default declaration holds 1 entry. The decision point is the one that already refuses an unqualified sandbox, so no new traversal is added."
+      "note": "The decision is taken twice per intervention — at requireCapable and again at run — since the chokepoint guard was added. An earlier reading of this story claimed one traversal; that stopped being true and the verdict is restated on the measured cost, not on the traversal count."
     },
     "reliability": {
       "verdict": "PASS",
