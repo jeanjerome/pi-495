@@ -30,7 +30,7 @@ tasks:
     security_verify: >
       Aucun constat nouveau sur src/domain/policy.ts et src/extension/config.ts : la liste n'est
       élargissable que par la configuration du contrôleur, jamais par un fichier du projet cible.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
