@@ -10,7 +10,7 @@ active_epic_id: e23
 active_story: e23s02
 
 handoff:
-  next_skill: respond-review
+  next_skill: request-review
   last_step_completed: >
     e23s02 est vérifiée et la recette est confirmée par le propriétaire, le 2026-09-21T23:01:49Z, à
     la révision fac24fe. La preuve est écrite dans `specs/verifications/e23s02-verify.yaml`, la
@@ -105,6 +105,38 @@ handoff:
     le paquet épinglé est au §18 de la story, et `D-54` ne mentionne jamais `node_modules`. Et la
     condition déclarée — le préfixe de jeton — n'est jamais relue par le contrôle, alors que la
     tâche 4 et le §1 de la story promettent de refuser quand elle diffère.
+
+    Les quatre points ont été traités. Domaine : `imposedLayersFor` garde par `Object.hasOwn`,
+    `ImposedLayer` en champs `readonly`, un test de limite sur cinq clés héritées du prototype.
+    Contexte : `imposed_layers` devient requis sur `ContextInput` — plus de défaut silencieux — et
+    les six sites d'appel réels ont été trouvés et corrigés, `scripts/bench-model.ts` compris, que
+    ma propre auto-revue n'avait pas vu. Contrôle de fournisseur : la forme structurelle ne nomme
+    plus l'identifiant `isOAuthToken`, seulement le ternaire et la position ; une recherche
+    indépendante du préfixe `sk-ant-oat` referme le trou sur la condition ; l'échappement passe par
+    `JSON.parse` plutôt qu'une expression maison ; la citation erronée de D-54 renvoie au §18 de la
+    story. Contrôle de capsule : `linesOfSection` remplace trois scanners de section dupliqués ;
+    `execution-status.yaml` absent ou sans table `development_status:` refuse au lieu de rendre
+    zéro en silence ; un commentaire YAML en fin de ligne ne rend plus une story invisible ; un
+    `verify: |` ne compte plus comme une commande ; la preuve d'une story faite doit nommer son
+    propre `story_id`, ce qu'un fichier vide ne peut plus satisfaire ; un identifiant de tâche
+    répété est refusé. Dix-sept scénarios de refus rejoués à la main après coup, plus les huit du
+    contrôle de fournisseur — rien n'a régressé.
+
+    Les dix-neuf « consider » n'ont pas tous été traités un par un avec vous : ceux qui touchaient
+    du code déjà écrit cette session — nom non anglais, cast évitable, duplication locale — ont été
+    corrigés en même temps que les should-fix voisins, par jugement plutôt que par question, comme
+    l'auto-revue l'avait déjà fait pour l'attroupement de données. Restent délibérément non
+    traités : le cinquième parcours récursif de répertoire à travers `scripts/`, qui toucherait
+    quatre contrôles étrangers à cette story, et `condition: string` en prose libre, que les deux
+    relecteurs ont jugé exigé par le scénario 6f plutôt que fautif.
+
+    Réécriture d'historique confirmée par le propriétaire et conduite : les 23 commits de la
+    branche (18 de la ronde précédente, 5 nouveaux) ne portent plus aucune ligne d'attribution.
+    `git filter-branch` avec un filtre Python, les références de sauvegarde nettoyées ensuite.
+    Preflight rejoué après coup : sortie 0, arbre identique.
+
+    Ronde 1 close. Retour à `request-review` pour la ronde 2, sur les mêmes cinq fichiers de
+    production, avec deux relecteurs neufs.
   open_decisions:
     - >
       La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
@@ -161,7 +193,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: 64384bb
+  hash: 6a6c0b0
 
 metrics:
   skill_timings:
