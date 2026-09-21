@@ -1,11 +1,12 @@
 /**
  * What a provider writes above the instructions 495 composes, declared as a pure fact of the
- * domain (CTX-02, D-48, e23s02 task 1). No provider is asked and no package is read here: the
+ * domain (CTX-02, D-48, e23s02 tasks 1–2). No provider is asked and no package is read here: the
  * declaration is a lookup against what this harness has verified, checked separately by
  * `test/v3/provider-system-block.test.ts`.
  */
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
+import { buildContext } from "../../src/application/context.ts";
 import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 
 describe("imposed layers (CTX-02, D-48)", () => {
@@ -28,5 +29,35 @@ describe("imposed layers (CTX-02, D-48)", () => {
 
 	it("declares nothing for an empty identifier (6b)", () => {
 		assert.deepEqual(imposedLayersFor(""), []);
+	});
+});
+
+describe("the manifest names imposed layers, never merged into trusted instructions", () => {
+	const base = {
+		role: "implement" as const,
+		objective: "do the thing",
+		language: "en" as const,
+		adopted: [],
+		untrusted: [],
+		feedback: null,
+		tools: [],
+		budget_bytes: 10_000,
+	};
+
+	it("carries an empty list when the context is built with none (field always present)", () => {
+		const { manifest } = buildContext(base);
+		assert.deepEqual(manifest.imposed_layers, []);
+	});
+
+	it("carries the layers given, distinct from trusted_instructions and absent from the record", () => {
+		const layers = imposedLayersFor("anthropic");
+		const { manifest, system_prompt, prompt } = buildContext({ ...base, imposed_layers: layers });
+		assert.deepEqual(manifest.imposed_layers, layers);
+		assert.ok(
+			!manifest.trusted_instructions.some((i) => i.includes(layers[0]!.text)),
+			"the imposed layer must not be folded into the instructions 495 composes",
+		);
+		assert.ok(!system_prompt.includes(layers[0]!.text), "495 does not emit a layer it does not compose");
+		assert.ok(!prompt.includes(layers[0]!.text));
 	});
 });
