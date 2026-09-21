@@ -11,13 +11,23 @@ active_epic_id: null
 handoff:
   next_skill: slice-tasks
   last_step_completed: >
-    Les quatre chantiers proposés sont arbitrés. e23 — qualifier un second fournisseur de modèle —
-    entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à la phase et à la
-    dépendance au modèle, et CTX-03 sort du différé avec lui. Les quatre décisions sont écrites en
-    specs/adr/D-46 à D-49, le périmètre et l'index portent le changement, et la contrainte de
-    version passe à Pi 0.86.1, borne que les trois devDependencies @earendil-works suivent
-    désormais, de sorte que les tests et les campagnes s'exécutent contre la même version. La
-    cinquième question — quel adaptateur derrière SandboxPort — reste ouverte et attend sa mesure.
+    Deux choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
+    fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à
+    la phase et à la dépendance au modèle, et CTX-03 sort du différé avec lui ; le bloc système que
+    le fournisseur impose est déclaré au manifeste plutôt que le profil refusé ; l'identité
+    claude-cli est acceptée pour la seule machine de référence. Les quatre décisions sont en
+    specs/adr/D-46 à D-49, et le périmètre comme l'index portent le changement.
+
+    Ensuite l'alignement des dépendances et du runtime. Les trois paquets @earendil-works passent à
+    ^0.86.1, typebox à ^1.3.34, fast-check à ^4.10.2 et TypeScript à ^7.0.2 : Preflight vert à
+    chaque étape, sur Node 24.21 comme sur Node 26.9, dist/ inchangé et contrats régénérés à
+    l'identique. @types/node reste à ^24 parce qu'il garde le plancher engines >= 24, et la machine
+    est épinglée sur ce plancher dans ~/.zshenv au lieu que le plancher suive la machine (D-50) —
+    elle servait auparavant Node 22 hors terminal et Node 24 en terminal, soit deux empreintes
+    d'environnement pour un seul poste.
+
+    Reste ouvert : le gabarit de story qui bloque slice-tasks sur e23, et la cinquième question de
+    la note — quel adaptateur derrière SandboxPort — qui attend sa mesure sous Apple Container.
   open_decisions:
     - >
       Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
@@ -39,11 +49,14 @@ handoff:
     - specs/adr/D-47-prompts-et-contexte-restent-un-seul-epic-elargi-a-la-phase-et-au-modele.md
     - specs/adr/D-48-le-bloc-systeme-impose-par-le-fournisseur-est-declare-au-manifeste.md
     - specs/adr/D-49-l-identite-claude-cli-est-acceptee-pour-la-seule-machine-de-reference.md
+    - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml
     - specs/planning-status.yaml
 
 git:
+  # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
+  # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: main
-  hash: e35effc61b26bf8ee7d524bba0897f9cc98bcbb2
+  hash: 994719d0c5ced7d33d130b36a183dca37af5bf45
