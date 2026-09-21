@@ -32,8 +32,13 @@ export interface ContextInput {
 	controls?: { control_id: string; command: string[]; cwd: string }[];
 	/** Frozen architecture boundaries the candidate will be judged against (ARC-04). */
 	boundaries?: string[];
-	/** What the retained provider imposes above `trusted`, named but never composed (CTX-02, D-48). */
-	imposed_layers?: ImposedLayer[];
+	/**
+	 * What the retained provider imposes above `trusted`, named but never composed (CTX-02, D-48).
+	 * Required rather than defaulted: an omitted field would silently assert "this provider imposes
+	 * nothing", which is the exact false manifest CTX-02 exists to prevent — and one caller already
+	 * did this before it was required (review round 1, both reviewers).
+	 */
+	imposed_layers: ImposedLayer[];
 }
 
 /**
@@ -208,7 +213,7 @@ export function buildContext(input: ContextInput): {
 		trusted_instructions: trusted,
 		// Never folded into `trusted`: what a provider imposes is not what 495 composed, and the
 		// distinction is the fact this field exists to keep (CTX-02, D-48).
-		imposed_layers: input.imposed_layers ?? [],
+		imposed_layers: input.imposed_layers,
 		adopted_refs: input.adopted.map((a) => ({
 			kind: a.kind,
 			artifact_id: a.artifact_id,

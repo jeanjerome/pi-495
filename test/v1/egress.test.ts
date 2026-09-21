@@ -392,6 +392,7 @@ describe("what the context builder can put in a prompt (SEC-05, CTX-05)", () => 
 				feedback: "FEEDBACK-MARKER",
 				tools: ["read"],
 				budget_bytes: 100_000,
+				imposed_layers: [],
 			});
 			const composed = `${system_prompt}\n${prompt}\n${record}`;
 			// Not a tautology: the markers prove the text really is composed from the input, so the

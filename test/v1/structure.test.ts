@@ -407,6 +407,7 @@ describe("what an intervention is told of its output contract (CTX-01, AGT-06)",
 		feedback: null,
 		tools: [],
 		budget_bytes: 10_000,
+		imposed_layers: [],
 	};
 
 	it("shows a valid answer of the required shape, not a sketch of its types", () => {
@@ -470,6 +471,7 @@ describe("what the producer receives before it writes (ARC-04)", () => {
 		tools: [],
 		budget_bytes: 10_000,
 		boundaries: [BOUNDARY.statement],
+		imposed_layers: [],
 	};
 
 	it("hands the frozen boundaries to the intervention that produces, and tells it they are read in its code", () => {

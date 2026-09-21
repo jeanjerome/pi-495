@@ -191,6 +191,10 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
 			{ control_id: "coverage", command: ["node", "-e", ""], cwd: "." },
 		],
 		boundaries: ["le module simple-domain ne déclare aucune dépendance sur simple-infrastructure"],
+		// This benchmark measures the local instructions the harness composes, never a real
+		// provider's own request: an imposed layer is never emitted regardless (CTX-02), so there is
+		// nothing provider-specific to thread through a bench that takes no provider argument.
+		imposed_layers: [],
 	});
 	return { system: built.system_prompt, user: built.prompt };
 }
