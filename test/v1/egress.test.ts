@@ -1,12 +1,20 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { PiWorkerAgent } from "../../src/adapters/pi-worker/supervisor.ts";
+import { buildContext } from "../../src/application/context.ts";
 import { InterventionSupervisor } from "../../src/application/intervention.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY, type DeclaredEgress } from "../../src/domain/policy.ts";
 import { loadConfig } from "../../src/extension/config.ts";
-import type { AgentPort, InterventionMandate, ModelSelection, SandboxPort } from "../../src/ports/execution.ts";
+import type {
+	AgentPort,
+	InterventionEvent,
+	InterventionMandate,
+	ModelSelection,
+	SandboxPort,
+} from "../../src/ports/execution.ts";
 
 let root: string;
 beforeEach(() => {
@@ -151,5 +159,120 @@ describe("an intervention toward an undeclared destination (SEC-05, D-46)", () =
 			"a declared destination is reached: the declaration bounds what may leave, it does not refuse everything",
 		);
 		assert.deepEqual(started, [], "requiring capability starts no worker on its own");
+	});
+});
+
+/**
+ * A worker driven by the fake process of `test/helpers/fake-worker.ts`, which speaks the real
+ * supervisor protocol over real stdio without Pi nor a model (agent-port.test.ts's own fixture).
+ */
+function realWorker(env: Record<string, string> = {}) {
+	return new PiWorkerAgent({
+		config: {
+			pi_package_dir: "/none",
+			pi_agent_dir: "/none",
+			sandbox_backend: "unconfined",
+			denied_read_paths: [],
+			heartbeat_ms: 50,
+		},
+		workerCommand: [process.execPath, join(process.cwd(), "test", "helpers", "fake-worker.ts")],
+		silence_timeout_ms: 2000,
+		grace_ms: 200,
+		env,
+	});
+}
+
+function minimalMandate(objective: string): InterventionMandate {
+	return {
+		intervention_id: "int_1",
+		change_id: "chg_1",
+		role: "implement",
+		objective,
+		prompt: objective,
+		system_prompt: "sys",
+		context: {
+			role: "implement",
+			objective,
+			output_schema: "producer-report",
+			trusted_instructions: [],
+			adopted_refs: [],
+			untrusted_excerpts: [],
+			tools: [],
+			exclusions: [],
+			input_budget_bytes: 1000,
+			output_reserve_tokens: 100,
+			truncations: [],
+			prompt_digest: null,
+		},
+		tools: [],
+		profile: {
+			profile_id: "implement",
+			read_paths: [process.cwd()],
+			write_paths: [process.cwd()],
+			network: "denied",
+			env_allowlist: ["PATH"],
+			env: {},
+		},
+		workspace_path: process.cwd(),
+		model: { provider_id: "omlx", model_id: "qwen3.8-27b-oq8e", thinking_level: "off" },
+		budgets: { duration_ms: 5000, tool_calls: 5 },
+		output_schema: "producer-report",
+	};
+}
+
+async function collect(events: AsyncIterable<InterventionEvent>): Promise<InterventionEvent[]> {
+	const out: InterventionEvent[] = [];
+	for await (const e of events) out.push(e);
+	return out;
+}
+
+describe("what the worker process receives from the controller's own environment (SEC-05, D-11)", () => {
+	it("does not hand a sentinel secret in the controller's environment to the worker process", async () => {
+		const SENTINEL = "HARNESS495_TEST_SENTINEL";
+		process.env[SENTINEL] = "sk-controller-secret-do-not-leak";
+		try {
+			const handle = await realWorker().startIntervention(minimalMandate("echo-env"));
+			const events = await collect(handle.events);
+			const completed = events.find((e) => e.type === "completed");
+			assert.ok(completed, `the worker never completed: ${JSON.stringify(events)}`);
+			const output = (completed as { output: { env?: Record<string, string> } }).output;
+			assert.ok(output.env, "the fake worker did not report an environment to inspect");
+			assert.equal(
+				output.env[SENTINEL],
+				undefined,
+				"a sentinel set in the controller's own environment reached the spawned worker process",
+			);
+		} finally {
+			delete process.env[SENTINEL];
+		}
+	});
+});
+
+describe("what the context builder can put in a prompt (SEC-05, CTX-05)", () => {
+	it("reads no environment at all: nothing it composes can carry a controller secret", () => {
+		const source = readFileSync(join(process.cwd(), "src", "application", "context.ts"), "utf8");
+		const found = source.match(/process\.env/g) ?? [];
+		assert.deepEqual(found, [], "buildContext must stay a pure function of its input, never of the environment");
+	});
+
+	it("never places a controller-environment sentinel in the text handed to the model", () => {
+		const SENTINEL = "sk-controller-secret-do-not-leak";
+		process.env.HARNESS495_TEST_SENTINEL = SENTINEL;
+		try {
+			const { system_prompt, prompt, record } = buildContext({
+				role: "implement",
+				objective: "do work",
+				language: "fr",
+				adopted: [],
+				untrusted: [],
+				feedback: null,
+				tools: [],
+				budget_bytes: 10000,
+			});
+			for (const text of [system_prompt, prompt, record])
+				assert.equal(text.includes(SENTINEL), false, "the composed context carries a controller secret");
+		} finally {
+			delete process.env.HARNESS495_TEST_SENTINEL;
+		}
 	});
 });

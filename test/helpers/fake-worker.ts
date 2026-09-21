@@ -1,6 +1,7 @@
 /**
  * Fake worker speaking the supervisor protocol without Pi nor model. Behaviour is chosen by the
- * mandate objective: "complete", "invalid-output", "crash", "silent", "hang", "write-outside".
+ * mandate objective: "complete", "invalid-output", "crash", "silent", "hang", "write-outside",
+ * "echo-env" (reports its own process.env back, to let a test inspect what actually reached it).
  */
 import { createInterface } from "node:readline";
 import { writeFileSync } from "node:fs";
@@ -43,6 +44,13 @@ rl.on("line", (line) => {
 			}, 50);
 			break;
 		}
+		case "echo-env":
+			send({
+				type: "event",
+				event: { type: "completed", at: now(), output: { env: process.env }, output_valid: true, counters },
+			});
+			setTimeout(() => process.exit(0), 20);
+			break;
 		case "invalid-output":
 			send({
 				type: "event",
