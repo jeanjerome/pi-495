@@ -15,8 +15,9 @@ handoff:
     entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à la phase et à la
     dépendance au modèle, et CTX-03 sort du différé avec lui. Les quatre décisions sont écrites en
     specs/adr/D-46 à D-49, le périmètre et l'index portent le changement, et la contrainte de
-    version passe à Pi 0.86.1. La cinquième question — quel adaptateur derrière SandboxPort —
-    reste ouverte et attend sa mesure.
+    version passe à Pi 0.86.1, borne que les trois devDependencies @earendil-works suivent
+    désormais, de sorte que les tests et les campagnes s'exécutent contre la même version. La
+    cinquième question — quel adaptateur derrière SandboxPort — reste ouverte et attend sa mesure.
   open_decisions:
     - >
       Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
@@ -32,12 +33,6 @@ handoff:
       à sable change environment_digest. L'enjeu dépasse le choix d'adaptateur : un environnement
       Linux qui laisse créer un espace de noms utilisateur rouvrirait NFR-05, seule exigence [P0]
       aujourd'hui déclarée infermable.
-    - >
-      devDependencies borne Pi à ^0.85.1 et résout 0.85.1, là où la machine exécute 0.86.1 : le
-      caret sur une version 0.x interdit la montée. Les tests s'exécutent donc contre une version
-      et les campagnes contre une autre, et e23 porte sur un chemin OAuth que seule 0.86.1 expose.
-      Aligner la borne est un changement de dépendance avec son propre Preflight, pas une
-      correction documentaire ; il n'est pas engagé.
   required_reading:
     - specs/spikes/organisation-des-quatre-chantiers.md
     - specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md
@@ -51,4 +46,4 @@ handoff:
 
 git:
   branch: main
-  hash: a3176340cc56b93a80c3895c13f0859c06598b26
+  hash: e35effc61b26bf8ee7d524bba0897f9cc98bcbb2
