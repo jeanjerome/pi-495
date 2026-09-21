@@ -1,7 +1,7 @@
 development_status:
   e23: in_progress
   e23s01: done
-  e23s02: backlog
+  e23s02: done
   e23s03: backlog
   e23s04: backlog
   e23s05: backlog
@@ -25,13 +25,13 @@ stories:
     risk_max: P0
     security_max: high
   e23s02:
-    status: backlog
+    status: done
     title: Le manifeste déclare la strate imposée par le fournisseur
     bcps: 3
     epic: e23
     tasks_total: 6
-    tasks_passing: 0
-    tasks_failing: 6
+    tasks_passing: 6
+    tasks_failing: 0
     risk_max: P0
     security_max: medium
   e23s03:

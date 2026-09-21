@@ -12,7 +12,7 @@
 story_id: e23s02
 spec: e23s02-le-manifeste-declare-la-strate-imposee-par-le-fournisseur.md
 title: "Le manifeste déclare la strate imposée par le fournisseur"
-status: failing
+status: passing
 bcps: 3
 requirement: CTX-02
 delta: MODIFIED
@@ -121,7 +121,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
