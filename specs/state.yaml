@@ -9,14 +9,32 @@ active_flow: null
 active_epic_id: null
 
 handoff:
-  next_skill: survey-context
-  last_step_completed: "The remise à plat is closed: the kernel holds the rule on a frozen candidate written to during measurement, each stack a target may be is its own adapter under application/stacks/, and the Pi extension entry point is 31 lines wiring a session, a command, a tool and the driving of a change"
+  next_skill: slice-tasks
+  last_step_completed: >
+    specs/ est devenue la surface documentaire. Le corpus antérieur est archivé sous specs/archive/
+    dans sa disposition d'origine, les 18 ADR amont et les 48 décisions d'implémentation sont un
+    fichier par décision sous specs/adr/, le périmètre du travail ouvert est borné en 22 epics et
+    l'index est ordonné.
   open_decisions:
-    - "Chantier N is the next candidate and has not started; its four material questions are in its fiche, not here, and none of them is settled"
+    - >
+      Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
+      moment d'attaquer son epic. Reste à trancher comment écrire une story sans le gabarit
+      countable-story-format, absent du paquet installé, et sans fabriquer de commande verify.
+    - >
+      L'archive n'est pas inerte : check-architecture et check-traceability y lisent le catalogue
+      des composants, la liste des exigences et la matrice. Laisser une skill régénérer cette
+      matrice viderait le gate, qui ne pourrait plus être en désaccord avec le code dont il
+      dériverait.
+    - >
+      e01 est le premier epic de l'index : une réponse humaine qui n'atteint pas les exigences,
+      de sorte qu'un changement est accepté en rendant un contrat que son propriétaire n'avait pas
+      décidé. La ROADMAP le place devant parce qu'il fait réussir un parcours qui ne devrait pas.
   required_reading:
-    - specs/archive/chantiers/README.md
-    - specs/archive/chantiers/N-referentiel-de-qualite-et-architecture-cible.md
+    - specs/README.md
+    - specs/release-plan.yaml
+    - specs/product/SCOPE_LATEST.yaml
+    - specs/adr/D-45-la-surface-documentaire-est-specs.md
 
 git:
   branch: main
-  hash: fcc3d9448fe082eb8cf31450ded6cd993b200409
+  hash: f7c24f486e03ee490343856f5dc0ab5d6508e9c0

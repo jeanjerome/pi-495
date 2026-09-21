@@ -1,0 +1,32 @@
+# Avancement de la phase de découverte, tenu par run-planning.
+
+context_capsule: null
+
+workflows:
+  survey-context:
+    required: true
+    status: done
+    note: "Le corpus archivé sous specs/archive/ tient ce rôle : ROADMAP §2 et §5, TRACEABILITY, chantiers."
+  scope-work:
+    required: true
+    status: done
+    note: "specs/product/SCOPE_LATEST.yaml — 22 epics, un par exigence [P0] ouverte ou par fiche chantier."
+  research-first:
+    required: false
+    status: optional
+    note: "Aucune dépendance externe proposée : le harnais n'a aucune dépendance d'exécution."
+  elaborate-spec:
+    required: false
+    status: optional
+    note: "Les exigences sont déjà spécifiées et normatives dans specs/archive/amont/."
+  plan-release:
+    required: true
+    status: done
+    note: "specs/release-plan.yaml — index ordonné, WSJF calculé sans être ajusté à l'ordre."
+  slice-tasks:
+    required: true
+    status: pending
+    note: >
+      Bloqué sur deux points : le gabarit countable-story-format est absent du paquet bigpowers
+      installé, et une tâche exige une commande verify exécutable, impossible à écrire sans avoir
+      conçu le travail. Se fait epic par epic au moment de l'attaquer, pas pour les 22 d'avance.
