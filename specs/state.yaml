@@ -10,23 +10,44 @@ active_epic_id: e23
 active_story: e23s02
 
 handoff:
-  next_skill: plan-work
+  next_skill: develop-tdd
   last_step_completed: >
-    La branche `strate-imposee-au-manifeste` est ouverte depuis `main` au commit 6807368, dans le
-    dépôt principal et non dans un arbre de travail lié : c'est la forme qu'a prise la branche
-    précédente, et un arbre séparé rappellerait une installation complète des dépendances pour
-    rien.
+    e23s02 est planifiée : une spécification au gabarit des vingt sections, et six tâches portant
+    chacune une commande exécutable et nées en `failing`. La forme tient — `lint:story-format` lit
+    désormais deux documents au lieu d'un.
 
-    Preflight est vert sur `main` avant l'ouverture : sortie 0 relevée sans passer par un tube,
-    305 tests sur 305, les sept contrôles de lint rendus sans un avertissement. `origin/main` est
-    un ancêtre de `main` — trente et un commits d'écart, aucun dans l'autre sens — donc il n'y a
-    rien à intégrer avant de partir. Aucun verrou de story n'est posé : `specs/agent-locks.yaml`
-    n'existe pas dans ce dépôt.
+    Le propriétaire a tranché deux points que la planification a soulevés. Le manifeste de contexte
+    reste un type interne : aucun schéma de contrat n'est publié pour lui, donc un lecteur extérieur
+    n'a toujours rien contre quoi le valider, et la publication reste un travail candidat à part
+    entière. Le contrôle, lui, lit le paquet du fournisseur que le dépôt épingle et non celui qui
+    est installé sur la machine — les deux ont déjà divergé, et la tranche accepte de ne pas voir
+    cette divergence-là en échange d'un contrôle qui ne s'esquive jamais. §18 de la story porte les
+    deux.
 
-    e23s02 n'a pas de spécification : la capsule ne porte que `e23s02-tasks.yaml` et ses quatre
-    tâches, et `lint:story-format` ne lit qu'un seul document, celui d'e23s01. Le pas suivant est
-    donc plan-work et non develop-tdd, qui n'aurait rien à lire. La question ouverte sur la porte
-    de cohérence 4a de plan-work se pose à la sortie de ce pas-là : elle est maintenant atteinte.
+    La conception retenue tient en quatre pièces : le noyau de domaine déclare ce qu'un fournisseur
+    impose — texte, position, condition — ; le manifeste porte ces strates comme une liste nommée,
+    toujours présente et vide quand rien n'est imposé, jamais mêlée aux instructions de confiance ;
+    le noyau la renseigne depuis le fournisseur retenu ; et un contrôle relève le bloc dans le
+    paquet épinglé et refuse tout écart. Les trois faits que le contrôle compare ont été relevés sur
+    la version épinglée pendant la planification : le texte imposé, la condition qui le déclenche —
+    le chemin d'abonnement, reconnu au préfixe du jeton — et la position, le prompt système de 495
+    étant poussé en second. Une seule occurrence dans les 275 fichiers distribués, relevée en 12 ms.
+
+    La porte de cohérence de plan-work est tranchée et remplacée. La mesure a corrigé l'hypothèse
+    qui en était écrite : le script ne meurt pas sur les stories non planifiées mais sur la
+    première story de la capsule, au premier tour de boucle, parce qu'il déduit sa racine de son
+    propre emplacement et confie l'extraction à un module Python absent de la machine ; sous
+    `set -euo pipefail` cette seule substitution en échec le fait sortir avant le premier constat.
+    Les deux causes n'en font qu'une. Une passerelle de liens symboliques le ferait tourner — elle
+    a été essayée et fonctionne — mais elle repose sur un cache que npm peut effacer et ne corrige
+    pas le fond : le script exige une spécification pour chaque story qu'un epic déclare, alors que
+    495 remplit une capsule story par story. `scripts/check-capsule.ts` le remplace, chaîné dans
+    Preflight sous `lint:capsule`, et refuse ce qui est mal câblé sans refuser ce qui n'est pas
+    encore câblé. Ses huit refus ont été éprouvés un par un sur des copies abîmées ; `D-54` porte la
+    décision.
+
+    Preflight est vert sur la branche : sortie 0, 305 tests sur 305, huit contrôles, zéro
+    avertissement.
 
     Les trois finitions d'e23s01 restent dues et sont reprises telles quelles : le dédoublonnage
     de deux destinations identiques est silencieux et doit être annoncé dans les diagnostics puis
@@ -37,24 +58,13 @@ handoff:
     `**partiel** :` qu'elle emploie déjà ailleurs.
   open_decisions:
     - >
-      La porte de cohérence inter-artefacts de plan-work, à son étape 4a, ne tient pas, et la
-      mesure a corrigé l'hypothèse : le script ne rend pas quatre refus de gravité haute pour les
-      stories non encore planifiées — il meurt avant d'en rendre aucun. Il sort en 1 sans écrire
-      une ligne, ce qu'un lecteur ne distingue pas d'un blocage. Deux causes indépendantes, l'une
-      et l'autre relevées : sous `set -e`, la lecture de la clé `spec:` d'un fichier de tâches qui
-      n'en porte pas fait sortir le script, et l'extraction des commandes verify s'appuie sur un
-      module Python absent de la machine tout en visant l'arborescence du paquet plutôt que ce
-      dépôt. e23s01, jugée sur une capsule ne portant qu'elle, passe sans aucun constat. Trois
-      voies : fabriquer cette capsule isolée à chaque story, écrire un contrôle à nous qui admette
-      une capsule remplie story par story, ou passer la porte sciemment et écrire pourquoi. La
-      question se pose à la sortie de plan-work, pas à son entrée.
-    - >
-      Tout script bigpowers invoqué à son chemin de paquet déduit sa racine de dépôt de son propre
-      emplacement, donc juge `/opt/homebrew` — dépôt git de Homebrew — et non ce dépôt.
-      `verify-tdd-red-commit.sh` rendait un PASS sur un commit de Homebrew ; `check-blind-spots.sh`,
-      `completeness-critic.sh`, `sync-status-from-epics.sh` et `trace-stories.sh` lisaient les specs
-      du paquet. Contournés par une passerelle de liens symboliques montée hors du dépôt. À trancher :
-      garder cette passerelle comme outil de session, ou écrire nos propres contrôles.
+      La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
+      remplacée par un contrôle du dépôt (`D-54`). Tout autre script invoqué à son chemin de paquet
+      déduit toujours sa racine de son propre emplacement, donc juge l'arborescence du paquet — ou
+      `/opt/homebrew`, dépôt git de Homebrew — et non ce dépôt. `verify-tdd-red-commit.sh` rendait
+      un PASS sur un commit de Homebrew ; `check-blind-spots.sh`, `completeness-critic.sh`,
+      `sync-status-from-epics.sh` et `trace-stories.sh` lisaient les specs du paquet. À trancher
+      pour chacun : passerelle de liens symboliques, contrôle à nous, ou abandon.
     - >
       `bp-timing.sh` écrit ses mesures dans ce fichier par un aller-retour PyYAML, qui remplace les
       scalaires de bloc par du texte entre guillemets à apostrophes doublées. La mise en forme a été
@@ -79,7 +89,10 @@ handoff:
     - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
     - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
     - specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md
+    - specs/adr/D-53-une-declaration-de-sortie-malformee-ne-declare-rien.md
+    - specs/adr/D-54-la-coherence-d-une-capsule-est-tenue-par-un-controle-du-depot.md
     - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
+    - specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s02-le-manifeste-declare-la-strate-imposee-par-le-fournisseur.md
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml
@@ -89,7 +102,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: 6807368
+  hash: e6b4da6
 
 metrics:
   skill_timings:

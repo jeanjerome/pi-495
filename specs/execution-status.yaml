@@ -29,9 +29,11 @@ stories:
     title: Le manifeste déclare la strate imposée par le fournisseur
     bcps: 3
     epic: e23
-    tasks_total: 4
+    tasks_total: 6
     tasks_passing: 0
-    tasks_failing: 4
+    tasks_failing: 6
+    risk_max: P0
+    security_max: medium
   e23s03:
     status: backlog
     title: 'Le refus d''un profil incapable a un effet avant une intervention facturée'
