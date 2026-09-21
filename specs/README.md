@@ -4,6 +4,21 @@
 canonique : `state.yaml`, `release-plan.yaml`, `execution-status.yaml`, `product/`,
 `tech-architecture/`, `adr/`, `epics/`, `verifications/`, `bugs/`.
 
+## `references/` — les documents écrits ailleurs
+
+`references/` porte les documents que 495 n'écrit pas et ne modifie pas, recopiés parce qu'un
+contrôle les lit. Chaque copie annonce en tête d'où elle vient et dans quelle version. Aujourd'hui
+`countable-story-format.md`, le format des stories que `plan-work` écrit : le paquet bigpowers
+installé ne distribue que ses `SKILL.md`, et le format que ces procédures citent ne se trouve sinon
+nulle part sur la machine.
+
+| Contrôle | Lit | Refuse |
+|---|---|---|
+| `scripts/check-story-format.ts` | `references/countable-story-format.md` | une story d'`epics/` dont une des vingt sections manque, sort de son rang, change de nom ou n'annonce pas son état |
+
+Le contrôle ne réénonce pas les vingt sections : il les extrait de la copie. Une story et le format
+qu'elle prétend suivre ne peuvent donc pas diverger sans que l'un des deux soit modifié.
+
 ## `archive/` — le corpus antérieur
 
 `archive/` porte le corpus rédigé avant la bascule, dans sa disposition d'origine :

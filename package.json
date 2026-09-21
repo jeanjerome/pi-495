@@ -34,12 +34,13 @@
     "test:v2": "node --test --test-concurrency=1 'test/v2/**/*.test.ts'",
     "test:v3": "node --test --test-concurrency=1 'test/v3/**/*.test.ts'",
     "contracts": "node scripts/emit-contracts.ts",
-    "check": "npm run typecheck && npm run test && npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution",
+    "check": "npm run typecheck && npm run test && npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format",
     "lint:code": "biome check",
     "lint:layers": "node scripts/check-layers.ts",
     "lint:traceability": "node scripts/check-traceability.ts",
     "lint:architecture": "node scripts/check-architecture.ts",
     "lint:exports": "node scripts/check-exports.ts",
+    "lint:story-format": "node scripts/check-story-format.ts",
     "lint:distribution": "node scripts/check-distribution.ts"
   },
   "peerDependencies": {
