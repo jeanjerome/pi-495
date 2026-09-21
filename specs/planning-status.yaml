@@ -25,11 +25,10 @@ workflows:
     note: "specs/release-plan.yaml — index ordonné, WSJF calculé sans être ajusté à l'ordre."
   slice-tasks:
     required: true
-    status: pending
+    status: in_progress
     note: >
-      Plus rien ne le bloque. Le gabarit countable-story-format est recopié sous
-      specs/references/ et Preflight refuse une story dont une section manque (D-51) ; une
-      commande verify s'écrit rouge, et ce qui demande une main s'écrit verify-script (D-52).
-      slice-tasks n'écrit d'ailleurs pas de story : il écrit les fichiers de tâches, et renvoie
-      le gabarit à plan-work. Se fait epic par epic au moment de l'attaquer, pas pour les 22
-      d'avance ; e23 est en tête.
+      Se fait epic par epic au moment de l'attaquer, pas pour les 22 d'avance : la case ne se
+      ferme donc pas d'un coup. e23 est découpé — capsule ouverte, cinq stories en ordre
+      contraint, 15 BCP, fichiers de tâches écrits. Les 21 autres attendent leur tour.
+      slice-tasks n'écrit pas de story : il écrit les fichiers de tâches et renvoie le gabarit
+      countable-story-format à plan-work (D-51, D-52).

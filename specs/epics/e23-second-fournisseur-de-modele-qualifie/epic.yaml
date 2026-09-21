@@ -1,0 +1,81 @@
+# Capsule de l'epic e23. Les stories sont en ordre d'exécution ; l'ordre est contraint,
+# pas préférentiel — le motif de chaque position est écrit en regard.
+
+epic_id: e23
+title: "Second fournisseur de modèle qualifié"
+status: not_started
+capsule_dir: specs/epics/e23-second-fournisseur-de-modele-qualifie
+
+objet: >
+  Un second fournisseur de modèle est qualifié par le chemin d'abonnement que Pi expose déjà.
+  Aucun code n'est à écrire pour joindre le fournisseur : Pi présente un jeton OAuth en Bearer sans
+  frapper de clé d'API, et 495 n'appelle jamais un modèle lui-même. Ce que cet epic livre est ce
+  que le harnais doit porter en conséquence.
+
+motif: >
+  Tant que le modèle local est le seul témoin, une instruction mauvaise ne se distingue pas d'un
+  modèle incapable : les trois campagnes qui fondent le travail ouvert ont tourné avec un modèle
+  qui rend deux fois sur trois un rapport que le schéma refuse. L'instrument est réparé avant de
+  servir de preuve.
+
+exigences: [AGT-01, AGT-02, CTX-02, SEC-05]
+decisions: [D-46, D-48, D-49]
+
+stories:
+  - id: e23s01
+    title: "La sortie de données vers le fournisseur est déclarée"
+    bcps: 2
+    delta: MODIFIED
+    requirement: SEC-05
+    position: >
+      Première parce qu'une seule intervention sur le fournisseur distant fait quitter la machine
+      aux extraits et aux invites. Déclarer la sortie après l'avoir ouverte serait la constater,
+      pas la maîtriser.
+  - id: e23s02
+    title: "Le manifeste déclare la strate imposée par le fournisseur"
+    bcps: 3
+    delta: MODIFIED
+    requirement: CTX-02
+    position: >
+      Avant toute campagne : le fournisseur écrit un bloc système au-dessus des instructions de
+      495, et un manifeste qui l'ignore est faux. Un manifeste faux vaut moins qu'aucun manifeste.
+  - id: e23s03
+    title: "Le refus d'un profil incapable a un effet avant une intervention facturée"
+    bcps: 3
+    delta: MODIFIED
+    requirement: AGT-01
+    position: >
+      Avant la campagne, qui est la première à consommer un quota d'abonnement. La clause d'AGT-01
+      n'a jamais eu d'effet tant que le modèle était gratuit.
+  - id: e23s04
+    title: "Le même cas de contrat passe avec deux fournisseurs qualifiés"
+    bcps: 5
+    delta: ADDED
+    requirement: AGT-02
+    position: >
+      Après les trois précédentes, dont elle est la mise à l'épreuve. C'est la story qui tient la
+      recette d'AGT-02 sur un parcours complet au lieu de preuves unitaires.
+  - id: e23s05
+    title: "Les budgets d'intervention sont remesurés sur un modèle frontière"
+    bcps: 2
+    delta: MODIFIED
+    requirement: AGT-02
+    position: >
+      Dernière : elle consomme la mesure que la campagne produit. Les bornes actuelles sont
+      calibrées sur 2,5 appels d'outil par minute ; avec un modèle frontière la borne n'est plus
+      le temps mais la fenêtre d'abonnement.
+
+bcps_total: 15
+
+hors_perimetre:
+  - >
+    Le bac à sable ne bouge pas : le worker est déjà exempté de confinement réseau pour joindre le
+    fournisseur (D-11). Quel adaptateur se tient derrière SandboxPort reste une question ouverte,
+    sans rang dans l'index tant que la mesure sous Apple Container n'a pas répondu.
+  - >
+    L'usage au-delà de la machine de référence n'est pas revendiqué : Pi s'annonce sous
+    claude-cli et 495 ne compose pas ces en-têtes (D-49). La restriction est portée aux contraintes
+    du périmètre ; l'instruire appartient au propriétaire, pas à cet epic.
+  - >
+    Les variantes d'instruction indexées sur les capacités déclarées appartiennent à e04, qui les
+    porte comme axe « dépendance au modèle ». Cet epic les rend possibles ; il ne les écrit pas.

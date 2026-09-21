@@ -1,0 +1,24 @@
+story_id: e23s05
+title: "Les budgets d'intervention sont remesurés sur un modèle frontière"
+status: failing
+bcps: 2
+requirement: AGT-02
+
+tasks:
+  - id: 1
+    description: >
+      Le débit réel d'appels d'outils et la durée d'intervention sont relevés depuis le journal des
+      campagnes, et non estimés. La mesure se relance sur un dossier conservé.
+    verify: "node scripts/measure-budgets.ts ~/.495-campagnes/e23-distant"
+    status: failing
+  - id: 2
+    description: >
+      Les bornes par défaut portent ce que la mesure tient, et le motif de chaque borne est écrit
+      à côté d'elle. Avec un modèle frontière la borne n'est plus le temps d'intervention mais la
+      fenêtre d'abonnement : la politique dit laquelle des deux arrête un incrément.
+    verify: "node --test test/v2/verification.test.ts"
+    status: failing
+  - id: 3
+    description: "L'ensemble des contrôles passe avec le changement."
+    verify: "npm run check"
+    status: failing

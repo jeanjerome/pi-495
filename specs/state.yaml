@@ -6,10 +6,10 @@ project_cycle:
   completed_phases: []
 
 active_flow: null
-active_epic_id: null
+active_epic_id: e23
 
 handoff:
-  next_skill: slice-tasks
+  next_skill: plan-work
   last_step_completed: >
     Deux choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
     fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à
@@ -37,6 +37,16 @@ handoff:
     main s'écrit verify-script (D-52). slice-tasks n'écrit d'ailleurs pas de story : il écrit les
     fichiers de tâches et renvoie le gabarit à plan-work.
 
+    Enfin le découpage d'e23, premier epic à recevoir sa capsule. Cinq stories en ordre contraint
+    et non préférentiel : la sortie de données est déclarée avant qu'une seule intervention la
+    rende effective, le manifeste apprend à nommer la strate que le fournisseur impose au-dessus
+    des instructions locales, le refus d'un profil incapable reçoit un effet avant que du quota
+    d'abonnement soit consommé, puis la campagne tient la recette d'AGT-02 sur deux fournisseurs,
+    et ses relevés remesurent les budgets en dernier. 15 BCP. Une seule tâche est en
+    verify-script, celle qui conduit les deux campagnes : elle demande le signal du propriétaire
+    et consomme du quota. Toutes les autres nomment un test ou un contrôle qui échoue aujourd'hui
+    parce qu'il n'est pas écrit.
+
     Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort — qui
     attend sa mesure sous Apple Container.
   open_decisions:
@@ -59,6 +69,7 @@ handoff:
     - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
     - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
     - specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md
+    - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml
@@ -68,4 +79,4 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: main
-  hash: 994719d0c5ced7d33d130b36a183dca37af5bf45
+  hash: 0c0d4a45e97d14b9c4a024da7b8473a26d545d80

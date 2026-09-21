@@ -1,0 +1,31 @@
+story_id: e23s03
+title: "Le refus d'un profil incapable a un effet avant une intervention facturée"
+status: failing
+bcps: 3
+requirement: AGT-01
+
+tasks:
+  - id: 1
+    description: >
+      Les capacités décrites portent ce qu'AGT-01 énumère — outils, streaming, annulation,
+      sessions, paramètres de raisonnement, limites connues, forme des résultats — au lieu du seul
+      couple disponible ou non.
+    verify: "node --test test/v1/agent-port.test.ts"
+    status: failing
+  - id: 2
+    description: >
+      Le superviseur sonde le modèle au lieu de déclarer disponible tout couple fournisseur-modèle
+      non vide. Un champ non supporté n'est ni ignoré ni converti arbitrairement.
+    verify: "node --test test/v3/capability-probe.test.ts"
+    status: failing
+  - id: 3
+    description: >
+      Un endpoint local dépourvu du format d'appels d'outils requis produit une erreur de capacité
+      lisible avant lancement, et non un échec en cours d'intervention — la seconde clause de la
+      recette d'AGT-02, qu'aucun fournisseur ne mettait à l'épreuve.
+    verify: "node --test test/v2/harness.test.ts"
+    status: failing
+  - id: 4
+    description: "L'ensemble des contrôles passe avec le changement."
+    verify: "npm run check"
+    status: failing
