@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Périmètre | `git diff $(git merge-base main HEAD)..HEAD` |
-| Conduite le | 2026-09-21 |
+| Conduite le | 2026-09-21, revue après la ronde de relecture croisée |
 | Branche | `sortie-vers-le-fournisseur-declaree` |
 | Risque de la story | P0 |
 | Code de production touché | `src/domain/policy.ts` (+23), `src/application/intervention.ts` (+17) |
@@ -51,11 +51,20 @@ contournerait. Ce n'est pas joignable par un attaquant — ni un producteur ni u
 appeler `run()` — donc ce n'est pas une vulnérabilité ; c'est une note de robustesse pour
 `e23s03`, qui édite la même méthode.
 
-**Confiance accordée à `config.json`.** `loadConfig` ne valide la forme d'aucun champ de la
-politique, `egress` compris. Une valeur malformée — `null`, une chaîne — fait lever une
-`TypeError` au démarrage d'une intervention plutôt que d'ouvrir quoi que ce soit : la défaillance
-reste fermée, mais elle est brutale au lieu d'être un refus propre. Le fichier est de toute façon
-dans les chemins refusés en lecture du bac à sable et hors d'atteinte d'un projet cible.
+**Confiance accordée à `config.json` — refermée depuis la première passe.** Cette revue notait que
+`loadConfig` ne validait la forme d'aucun champ de la politique, `egress` compris, et qu'une valeur
+malformée levait une `TypeError` au démarrage d'une intervention. `readEgress` valide désormais la
+liste, nomme l'entrée fautive dans un diagnostic, et **ne déclare plus rien** en cas de défaut —
+plutôt que de revenir au défaut, ce qui aurait réadmis en silence une destination que le
+propriétaire venait de retirer. Le fichier reste hors d'atteinte d'un projet cible, dans les chemins
+refusés en lecture du bac à sable.
+
+**Ce qu'un refus laisse au dossier.** Un refus de destination inscrit un blocage au journal, de
+motif `policy_denied`, dont le détail nomme les destinations déclarées ; le flux d'événements part
+au dossier exporté. Les noms des fournisseurs que l'installation a le droit de joindre voyagent donc
+avec un dossier remis à un tiers. Ce sont des noms de politique et non des secrets — aucune
+sentinelle, aucun jeton, aucun chemin de travail n'y figure — mais le fait est consigné ici et au
+§12 de la story plutôt que laissé à découvrir.
 
 **Motifs d'expurgation fournis par l'appelant.** `exportChange` accepte `options.secret_patterns`.
 Un appelant fournissant un motif à groupe de capture pourrait contourner la garde structurelle de

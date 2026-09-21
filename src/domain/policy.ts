@@ -24,9 +24,10 @@ export const EGRESS_LOCATIONS = ["on_machine", "off_machine"] as const;
 export type EgressLocation = (typeof EGRESS_LOCATIONS)[number];
 
 /**
- * A destination excerpts and prompts may be handed to. `location` is what tells a prompt that stays
- * on this machine from one handed to a third party, which is the exposure SEC-05 asks to reduce:
- * without it the list says who, never whether anything left.
+ * A destination excerpts and prompts may be handed to. `location` records what the owner declared
+ * about where it sits — not what the harness measured: 495 composes neither address nor headers,
+ * and a provider named here could be repointed at a remote host without it noticing. It is the
+ * owner's statement of exposure, opposable to them, and no more than that.
  */
 export interface DeclaredEgress {
 	provider_id: string;
@@ -99,5 +100,5 @@ export function undeclaredEgressReason(policy: ActivePolicy, providerId: string)
 	if (policy.egress.some((d) => d.provider_id === providerId)) return null;
 	if (policy.egress.length === 0)
 		return "no egress destination is declared, so no intervention may hand excerpts or prompts to a model";
-	return `${providerId} is not a declared egress destination: ${policy.egress.map((d) => d.provider_id).join(", ")}`;
+	return `${providerId} is not declared in policy.egress; declared destinations: ${policy.egress.map((d) => d.provider_id).join(", ")}`;
 }

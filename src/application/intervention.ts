@@ -76,8 +76,10 @@ export class InterventionSupervisor {
 
 	/**
 	 * Refuses a destination the policy has not declared, without reaching it: nothing is handed to a
-	 * provider in order to find out whether it was allowed (SEC-05). Asked again where the bytes
-	 * actually leave, so the control does not rest on a caller remembering to ask first.
+	 * provider in order to find out whether it was allowed (SEC-05). Asked a second time in `run()`
+	 * as a line of defence, not as a last-mile gate: by then the intervention is journaled and the
+	 * context record written, so the second call cannot keep the journal clean — only stop the
+	 * worker. The last point before bytes leave is the adapter, which takes no policy.
 	 *
 	 * A selection carrying no provider is not an undeclared destination but a model that was never
 	 * configured. Nothing can leave for a provider that does not exist, and the capability check
@@ -85,7 +87,7 @@ export class InterventionSupervisor {
 	 * a policy refusal.
 	 */
 	private refuseUndeclaredDestination(): void {
-		if (this.deps.model.provider_id === "") return;
+		if (!this.deps.model.provider_id) return;
 		const reason = undeclaredEgressReason(this.deps.policy, this.deps.model.provider_id);
 		if (reason !== null) throw new DomainError("POLICY_DENIED", reason, { nextActions: ["configure_model"] });
 	}

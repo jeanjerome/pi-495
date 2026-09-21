@@ -16,9 +16,9 @@
     },
     "reliability": {
       "verdict": "PASS",
-      "threshold": "a refusal starts 0 processes, emits 0 bytes, writes 0 events; failure direction is closed",
-      "measured": "probed=[] and started=[] asserted by test/v1/egress.test.ts on refusal; four input classes all refuse (unknown provider, empty declaration, empty provider_id, exact-equality comparison cannot over-match)",
-      "note": "A malformed policy.egress from config.json throws rather than opening; the direction stays closed."
+      "threshold": "a refusal starts 0 processes, emits 0 bytes and opens 0 interventions; failure direction is closed",
+      "measured": "probed=[] and started=[] asserted by test/v1/egress.test.ts on refusal; test/v2/egress-refusal.test.ts drives a real harness and asserts 0 intervention artifacts; four input classes all refuse (unknown provider, empty declaration, empty provider_id, exact-equality comparison cannot over-match)",
+      "note": "A refusal is journaled as a change.block with stop reason policy_denied, like every other refusal. An earlier reading of this story claimed no event was written; that was true of the supervisor in isolation and false of a harness driving a change."
     },
     "operability": {
       "verdict": "PASS",

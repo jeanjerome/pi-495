@@ -70,7 +70,7 @@ décision écrite et non un effet de bord de la configuration.
 **Préconditions :**
 - la politique active est chargée, depuis la configuration ou par défaut ;
 - une sélection de modèle est résolue, donc un identifiant de fournisseur est connu ;
-- aucun processus worker n'a encore été démarré et aucun événement n'a été inscrit au journal.
+- aucun processus worker n'a encore été démarré.
 
 ### 5. Main flow and business logic [reviewed]
 
@@ -170,9 +170,13 @@ fournisseur et de modèle employés — est déjà inscrit à l'état du changem
 dossier exporté. Un lecteur du dossier sait donc vers quelle destination les extraits sont partis
 sans consulter la machine.
 
-Un refus pour destination non déclarée n'inscrit rien au journal : il se produit avant tout
-engagement, et un changement qui n'a pas démarré d'intervention n'en a pas produit la trace. Le
-refus est rendu au lecteur vivant, pas au dossier.
+Un refus pour destination non déclarée n'ouvre aucune intervention, donc le journal ne porte aucune
+trace d'intervention. Il porte en revanche le refus lui-même : le noyau inscrit un blocage, de motif
+`policy_denied`, comme pour tout autre refus — c'est ce qui rend un dossier clos lisible. Le détail
+de ce blocage nomme les destinations déclarées, et le flux d'événements part au dossier exporté :
+les noms des fournisseurs que cette installation a le droit de joindre voyagent donc avec tout
+dossier remis à un tiers. Ce sont des noms de politique, pas des secrets, et le dire ici vaut mieux
+que le laisser découvrir.
 
 ### 13. Solution variabilities [reviewed]
 
@@ -184,7 +188,7 @@ refus est rendu au lecteur vivant, pas au dossier.
 
 ### 14. Quality attributes *NFR* [draft]
 
-- Refus d'une destination non déclarée : 0 processus démarré, 0 octet émis, 0 événement inscrit.
+- Refus d'une destination non déclarée : 0 processus démarré, 0 octet émis, 0 intervention ouverte.
 - Coût de la comparaison : une appartenance à une liste d'au plus 10 entrées, sous 1 ms, sur un
   chemin déjà traversé une fois par intervention.
 - Aucune régression de durée mesurable sur le parcours : le point de décision est celui qui refuse
@@ -228,7 +232,7 @@ Scenario: Une destination non déclarée est refusée avant tout engagement (6a)
   When  une phase demande l'ouverture d'une intervention
   Then  un refus par politique est levé
   And   aucun processus worker n'a été démarré
-  And   aucun événement n'a été inscrit au journal
+  And   aucune intervention n'est ouverte
 
 Scenario: Une liste vide refuse toute intervention et le dit (6b)
   Given une politique dont la liste déclarée est vide
@@ -261,10 +265,10 @@ Scenario: Un secret retiré du dossier est signalé sans être divulgué (6e)
 - Le bac à sable ne bouge pas. Le worker reste exempté de confinement réseau pour joindre le
   fournisseur, et cette story ne tente pas de le confiner : une extension Pi ne peut pas confiner
   l'appel modèle sans priver le worker du fournisseur.
-- La politique elle-même n'est pas ajoutée au dossier exporté. L'identifiant de fournisseur employé
-  y figure déjà par l'état du changement, ce qui suffit à dire où les extraits sont allés ; écrire
-  en plus la liste des destinations autorisées serait une garantie de second ordre pour un coût
-  qu'aucune exigence ne réclame aujourd'hui.
+- La politique n'est pas écrite au dossier exporté comme artefact à part. L'identifiant de
+  fournisseur employé y figure par l'état du changement, et les destinations déclarées y figurent
+  par le détail d'un blocage quand il y en a eu un : cela suffit à dire où les extraits sont allés,
+  et en ajouter une copie serait une garantie de second ordre qu'aucune exigence ne réclame.
 - L'observation effective du trafic n'est pas revendiquée. 495 tient le droit de partir, jamais le
   départ : rien ici ne vérifie qu'aucune connexion vers une destination non déclarée n'a lieu.
 - La qualification du fournisseur d'abonnement, la mesure du bloc système qu'il impose et le

@@ -19,10 +19,12 @@ export interface HarnessConfig {
  * its own; the one provider configured here answers on the loopback interface, so nothing leaves
  * the machine until a destination off it is written down.
  */
-const DEFAULT_EGRESS: DeclaredEgress[] = [{ provider_id: "omlx", location: "on_machine" }];
+const DEFAULT_EGRESS: readonly DeclaredEgress[] = Object.freeze([
+	Object.freeze({ provider_id: "omlx", location: "on_machine" }) as DeclaredEgress,
+]);
 
 const DEFAULT_CONFIG: HarnessConfig = {
-	policy: { ...DEFAULT_POLICY, egress: DEFAULT_EGRESS },
+	policy: { ...DEFAULT_POLICY, egress: [...DEFAULT_EGRESS] },
 	isolation: { allow_unconfined: false },
 	human_origin: { rpc_actor_env: "HARNESS495_RPC_HUMAN_ACTOR" },
 	workspace_exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
@@ -30,31 +32,39 @@ const DEFAULT_CONFIG: HarnessConfig = {
 };
 
 /**
- * The declared destinations a configuration carries, or the default when it carries none. A
- * malformed declaration is refused with a diagnostic rather than accepted: it decides whether
- * excerpts and prompts may leave, and a shape nobody checked would fail later as an opaque crash.
+ * The declared destinations a configuration carries, or the default when it carries none.
+ *
+ * A malformed declaration refuses everything rather than falling back to the default: the owner who
+ * wrote it meant to narrow what may be reached, and restoring a destination they deleted would
+ * widen it behind a diagnostic. An empty declaration is a state the kernel already words — nothing
+ * is declared, so nothing may be handed a prompt — and it is the safe direction for a list that
+ * decides what leaves the machine.
  */
 function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
-	if (raw === undefined) return DEFAULT_EGRESS;
-	if (!Array.isArray(raw)) {
-		diagnostics.push("config.json: policy.egress is not a list of destinations; the default declaration stands");
-		return DEFAULT_EGRESS;
-	}
+	if (raw === undefined) return [...DEFAULT_EGRESS];
+	const refuse = (why: string): DeclaredEgress[] => {
+		diagnostics.push(`config.json: ${why}; no destination is declared, so every intervention is refused`);
+		return [];
+	};
+	if (!Array.isArray(raw)) return refuse("policy.egress is not a list of destinations");
 	const declared: DeclaredEgress[] = [];
 	for (const entry of raw) {
-		const { provider_id, location } = (entry ?? {}) as Partial<DeclaredEgress>;
-		if (typeof provider_id !== "string" || provider_id === "") {
-			diagnostics.push("config.json: a declared destination carries no provider; the default declaration stands");
-			return DEFAULT_EGRESS;
-		}
-		if (location === undefined || !EGRESS_LOCATIONS.includes(location)) {
-			diagnostics.push(
-				`config.json: destination ${provider_id} does not say where it sits (${EGRESS_LOCATIONS.join(" or ")}); the default declaration stands`,
-			);
-			return DEFAULT_EGRESS;
-		}
+		if (typeof entry !== "object" || entry === null || Array.isArray(entry))
+			return refuse(`${JSON.stringify(entry)} is not a destination with provider_id and location`);
+		const { provider_id, location } = entry as Partial<DeclaredEgress>;
+		if (typeof provider_id !== "string" || provider_id === "")
+			return refuse(`${JSON.stringify(entry)} carries no provider_id`);
+		if (location === undefined || !EGRESS_LOCATIONS.includes(location))
+			return refuse(`destination ${provider_id} does not say where it sits (${EGRESS_LOCATIONS.join(" or ")})`);
 		declared.push({ provider_id, location });
 	}
+	// The one place `location` is read: a declaration that sends excerpts off the machine says so out
+	// loud, once, rather than waiting for someone to reopen the file they wrote.
+	const away = declared.filter((d) => d.location === "off_machine").map((d) => d.provider_id);
+	if (away.length > 0)
+		diagnostics.push(
+			`config.json: ${declared.length} declared destination(s), ${away.length} off this machine (${away.join(", ")})`,
+		);
 	return declared;
 }
 

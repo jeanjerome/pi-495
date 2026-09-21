@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { buildContext } from "../../src/application/context.ts";
@@ -91,7 +91,7 @@ describe("the rule that says what may leave (SEC-05, D-11, D-46)", () => {
 		for (const near of ["OMLX", "omlx ", "oml", "omlx2", "*", ""])
 			assert.match(
 				undeclaredEgressReason(policy, near) ?? "",
-				/is not a declared egress destination: omlx/,
+				/is not declared in policy.egress; declared destinations: omlx/,
 				`${JSON.stringify(near)} must not be admitted by resemblance`,
 			);
 	});
@@ -136,25 +136,61 @@ describe("the declaration a configuration carries (SEC-05)", () => {
 		assert.deepEqual(config.policy.egress, declared, "a declaration is written whole, never merged entry by entry");
 	});
 
-	it("refuses a malformed declaration with a diagnostic, instead of crashing where it is read", () => {
-		for (const bad of [null, "omlx", { provider_id: "omlx" }, [{ location: "on_machine" }], [{ provider_id: "" }]]) {
-			const { config, diagnostics } = loadConfig(configured({ egress: bad }));
-			assert.deepEqual(config.policy.egress, LOCAL, `${JSON.stringify(bad)} must leave the default standing`);
+	it("declares nothing at all when any part of a declaration is malformed", () => {
+		const bad = [
+			null,
+			"omlx",
+			{ provider_id: "omlx" },
+			["anthropic"],
+			[{ location: "on_machine" }],
+			[{ provider_id: "" }],
+			[{ provider_id: "anthropic", location: "mars" }],
+		];
+		for (const value of bad) {
+			const { config, diagnostics } = loadConfig(configured({ egress: value }));
+			// Falling back to the default would restore a destination the owner deleted: a control that
+			// says what may leave must never widen itself to recover from a typo.
+			assert.deepEqual(config.policy.egress, [], `${JSON.stringify(value)} must declare nothing, not the default`);
 			assert.ok(
-				diagnostics.some((d) => d.includes("egress") || d.includes("destination")),
-				`${JSON.stringify(bad)} must be reported, not swallowed`,
+				diagnostics.some((d) => d.includes("no destination is declared")),
+				`${JSON.stringify(value)} must be reported, not swallowed`,
 			);
 		}
 	});
 
-	it("refuses a destination that does not say where it sits", () => {
-		const { config, diagnostics } = loadConfig(
-			configured({ egress: [{ provider_id: "anthropic", location: "mars" }] }),
+	it("keeps a declaration the owner narrowed, instead of restoring what they removed", () => {
+		const narrowed = [{ provider_id: "anthropic", location: "off_machine" }];
+		const { config } = loadConfig(configured({ egress: narrowed }));
+		assert.deepEqual(config.policy.egress, narrowed);
+		assert.equal(
+			config.policy.egress.some((d) => d.provider_id === "omlx"),
+			false,
+			"a destination the owner removed must not come back",
 		);
-		assert.deepEqual(config.policy.egress, LOCAL);
+	});
+
+	it("says out loud when a declaration sends excerpts off the machine", () => {
+		const { diagnostics } = loadConfig(
+			configured({
+				egress: [
+					{ provider_id: "omlx", location: "on_machine" },
+					{ provider_id: "anthropic", location: "off_machine" },
+				],
+			}),
+		);
 		assert.ok(
-			diagnostics.some((d) => d.includes("where it sits")),
-			diagnostics.join(" | "),
+			diagnostics.some((d) => d.includes("off this machine") && d.includes("anthropic")),
+			`a destination off the machine must be announced, not only stored: ${diagnostics.join(" | ")}`,
+		);
+	});
+
+	it("hands out its own array, never the one the next load will read", () => {
+		const first = loadConfig(root).config.policy.egress;
+		first.push({ provider_id: "injected", location: "off_machine" });
+		assert.deepEqual(
+			loadConfig(root).config.policy.egress.map((d) => d.provider_id),
+			["omlx"],
+			"one caller widening its own copy must not widen what the next caller is told",
 		);
 	});
 });
@@ -260,7 +296,8 @@ describe("what the worker process receives from the controller's own environment
 				Object.keys(env)
 					.filter((k) => !injectedByPlatform.includes(k))
 					.sort(),
-				["HOME", "PATH", "TMPDIR"].filter((k) => process.env[k] !== undefined).sort(),
+				// PATH and HOME are set unconditionally by the supervisor; only TMPDIR is conditional.
+				["HOME", "PATH", ...(process.env.TMPDIR === undefined ? [] : ["TMPDIR"])].sort(),
 				"the worker environment is built from a closed list, never from the controller's own",
 			);
 		} finally {
@@ -270,27 +307,32 @@ describe("what the worker process receives from the controller's own environment
 });
 
 describe("what the context builder can put in a prompt (SEC-05, CTX-05)", () => {
-	it("reads no environment at all, so nothing it composes can carry a controller secret", () => {
-		const source = readFileSync(join(process.cwd(), "src", "application", "context.ts"), "utf8");
-		assert.deepEqual(
-			source.match(/process\s*\.\s*env|process\s*\[\s*["'`]env/g) ?? [],
-			[],
-			"buildContext must stay a pure function of its input, never of the environment",
-		);
-		// And no value of the environment reaches the text it composes, whatever its name.
-		const { system_prompt, prompt, record } = buildContext({
-			role: "implement",
-			objective: "do work",
-			language: "fr",
-			adopted: [],
-			untrusted: [],
-			feedback: null,
-			tools: [],
-			budget_bytes: 10000,
-		});
-		const composed = `${system_prompt}\n${prompt}\n${record}`;
-		for (const [name, value] of Object.entries(process.env))
-			if (value && value.length > 12)
+	it("composes only from what it was handed, carrying no value of the controller's environment", () => {
+		const planted = {
+			HARNESS495_TEST_TOKEN: "sk-planted-controller-token-0001",
+			HARNESS495_TEST_PATHLIKE: "/planted/controller/path/0002",
+		};
+		Object.assign(process.env, planted);
+		try {
+			const { system_prompt, prompt, record } = buildContext({
+				role: "implement",
+				objective: "tidy the greeter",
+				language: "fr",
+				adopted: [{ kind: "mandate", artifact_id: "art_1", revision: 1, digest: "sha256:x", text: "ADOPTED-MARKER" }],
+				untrusted: [{ source: "repo", text: "UNTRUSTED-MARKER" }],
+				feedback: "FEEDBACK-MARKER",
+				tools: ["read"],
+				budget_bytes: 100_000,
+			});
+			const composed = `${system_prompt}\n${prompt}\n${record}`;
+			// Not a tautology: the markers prove the text really is composed from the input, so the
+			// absence of the planted values below says something about what was left out.
+			for (const marker of ["ADOPTED-MARKER", "UNTRUSTED-MARKER", "FEEDBACK-MARKER"])
+				assert.ok(composed.includes(marker), `the composed context dropped ${marker}, so this test proves nothing`);
+			for (const [name, value] of Object.entries(planted))
 				assert.equal(composed.includes(value), false, `the composed context carries the value of ${name}`);
+		} finally {
+			for (const name of Object.keys(planted)) delete process.env[name];
+		}
 	});
 });
