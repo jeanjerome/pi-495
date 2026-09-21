@@ -10,7 +10,7 @@ active_epic_id: e23
 active_story: e23s02
 
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   last_step_completed: >
     e23s02 est vérifiée et la recette est confirmée par le propriétaire, le 2026-09-21T23:01:49Z, à
     la révision fac24fe. La preuve est écrite dans `specs/verifications/e23s02-verify.yaml`, la
@@ -54,6 +54,23 @@ handoff:
 
     Preflight reste vert : `npm run build && npm run check` en une seule exécution contiguë, sortie
     0, 318 tests sur 318, neuf contrôles de lint, zéro avertissement.
+
+    L'auto-revue est écrite dans `specs/verifications/AUDIT-e23-e23s02.md`. Elle a corrigé une chose
+    avant de rendre son rapport : `checkCapsule` faisait 57 lignes contre les 4 à 20 que la
+    convention demande, et les quatre paramètres qui circulaient ensemble étaient un attroupement de
+    données. Découpée en trois fonctions à un seul niveau d'abstraction, l'attroupement nommé
+    `Capsule`, et les dix refus du contrôle rejoués un par un après coup — rien n'a bougé.
+
+    Elle laisse un point ouvert et quatre consignés. Ouvert : `check-capsule.ts` n'a aucun test
+    automatisé. Aucun des sept autres contrôles n'en a — c'est la pratique du dépôt, et elle tenait
+    tant qu'un contrôle ne portait que des règles de structure. Celui-ci décide maintenant si une
+    story peut se dire faite, et la question d'ouvrir la pratique d'un test par contrôle dépasse
+    cette story. Consignés : un motif de secret dans le diff qui n'en est pas un — le préfixe de
+    jeton cité dans la condition déclarée ; le périmètre de la branche, plus large que la story pour
+    trois raisons écrites ; `context.ts` (351 lignes) et `harness.ts` (881) qui dépassaient déjà la
+    borne avant que j'y ajoute six et quatre lignes ; et un cinquième parcours récursif de
+    répertoire dans `scripts/`, dette nommée dont la fermeture toucherait quatre contrôles étrangers
+    à cette story.
   open_decisions:
     - >
       La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
@@ -110,7 +127,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: fac24fe
+  hash: 07d22da
 
 metrics:
   skill_timings:

@@ -99,62 +99,78 @@ function tasks(text: string): { id: string; verify: string | null; status: strin
 	return out;
 }
 
-function checkCapsule(capsule: string): void {
-	const dir = join(root, epicsPath, capsule);
-	const where = `${epicsPath}/${capsule}`;
+/** What one capsule is judged against: where it is, what it holds, and the stories it declares. */
+interface Capsule {
+	where: string;
+	dir: string;
+	entries: string[];
+	declared: string[];
+}
+
+/** The tasks a file declares: each needs a command to run and a state a ledger can hold. */
+function checkTasks(capsule: Capsule, entry: string, text: string): void {
+	const taskList = tasks(text);
+	if (taskList.length === 0) failures.push(`${capsule.where}/${entry}: carries no task`);
+	for (const task of taskList) {
+		if (!task.verify) failures.push(`${capsule.where}/${entry}: task ${task.id} carries no verify command`);
+		if (!task.status || !TASK_STATES.includes(task.status as (typeof TASK_STATES)[number]))
+			failures.push(
+				`${capsule.where}/${entry}: task ${task.id} is ${task.status ?? "(nothing)"}, not one of ${TASK_STATES.join(" or ")}`,
+			);
+	}
+}
+
+/** One tasks file against its epic, and the spec it names — or null when it has not been planned. */
+function checkTasksFile(capsule: Capsule, entry: string, story: string): string | null {
+	const text = readFileSync(join(capsule.dir, entry), "utf8");
+	const storyId = key(text, "story_id");
+	if (storyId !== story)
+		failures.push(`${capsule.where}/${entry}: carries story_id ${storyId ?? "(none)"}, but its name says ${story}`);
+	if (!capsule.declared.includes(story))
+		failures.push(`${capsule.where}/${entry}: story ${story} is not one the epic declares`);
+	checkTasks(capsule, entry, text);
+
+	const spec = key(text, "spec");
+	if (spec === null) {
+		// A story with no spec is one `plan-work` has not reached. That is the normal state of a
+		// capsule, and the only thing it forbids is calling the story finished.
+		const status = key(text, "status");
+		if (status && SETTLED.includes(status))
+			failures.push(`${capsule.where}/${entry}: story ${story} is ${status} while no spec was ever written for it`);
+		return null;
+	}
+	if (!capsule.entries.includes(spec))
+		failures.push(`${capsule.where}/${entry}: names the spec ${spec}, which is not in the capsule`);
+	return spec;
+}
+
+function checkCapsule(name: string): void {
+	const dir = join(root, epicsPath, name);
+	const where = `${epicsPath}/${name}`;
 	const epicPath = join(dir, "epic.yaml");
 	if (!existsSync(epicPath)) {
 		failures.push(`${where}: no epic.yaml, so nothing says which stories this capsule carries`);
 		return;
 	}
-	const entries = readdirSync(dir);
 	const declared = declaredStories(readFileSync(epicPath, "utf8"));
 	if (declared.length === 0) failures.push(`${where}/epic.yaml declares no story`);
+	const capsule: Capsule = { where, dir, entries: readdirSync(dir), declared };
 
 	const namedSpecs = new Set<string>();
 	const carried = new Set<string>();
-	for (const entry of entries) {
+	for (const entry of capsule.entries) {
 		const m = TASKS_FILE.exec(entry);
 		if (!m) continue;
-		const fromName = m[1]!;
-		const text = readFileSync(join(dir, entry), "utf8");
-		const storyId = key(text, "story_id");
-		carried.add(fromName);
-		if (storyId !== fromName)
-			failures.push(`${where}/${entry}: carries story_id ${storyId ?? "(none)"}, but its name says ${fromName}`);
-		if (!declared.includes(fromName))
-			failures.push(`${where}/${entry}: story ${fromName} is not one the epic declares`);
-
-		const spec = key(text, "spec");
-		if (spec !== null) {
-			namedSpecs.add(spec);
-			if (!entries.includes(spec))
-				failures.push(`${where}/${entry}: names the spec ${spec}, which is not in the capsule`);
-		} else {
-			// A story with no spec is one `plan-work` has not reached. That is the normal state of a
-			// capsule, and the only thing it forbids is calling the story finished.
-			const status = key(text, "status");
-			if (status && SETTLED.includes(status))
-				failures.push(`${where}/${entry}: story ${fromName} is ${status} while no spec was ever written for it`);
-		}
-
-		const taskList = tasks(text);
-		if (taskList.length === 0) failures.push(`${where}/${entry}: carries no task`);
-		for (const task of taskList) {
-			if (!task.verify) failures.push(`${where}/${entry}: task ${task.id} carries no verify command`);
-			if (!task.status || !TASK_STATES.includes(task.status as (typeof TASK_STATES)[number]))
-				failures.push(
-					`${where}/${entry}: task ${task.id} is ${task.status ?? "(nothing)"}, not one of ${TASK_STATES.join(" or ")}`,
-				);
-		}
+		carried.add(m[1]!);
+		const spec = checkTasksFile(capsule, entry, m[1]!);
+		if (spec) namedSpecs.add(spec);
 	}
 
 	for (const story of declared)
 		if (!carried.has(story)) failures.push(`${where}/epic.yaml declares ${story}, and no tasks file carries it`);
-	for (const entry of entries) {
-		if (!SPEC_FILE.test(entry) || namedSpecs.has(entry)) continue;
-		failures.push(`${where}/${entry}: a story spec no tasks file names, so nothing runs it`);
-	}
+	for (const entry of capsule.entries)
+		if (SPEC_FILE.test(entry) && !namedSpecs.has(entry))
+			failures.push(`${where}/${entry}: a story spec no tasks file names, so nothing runs it`);
 }
 
 /** Stories `execution-status.yaml` calls done, which must each carry their verification evidence. */
