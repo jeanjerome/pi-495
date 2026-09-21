@@ -97,6 +97,57 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 		assert.equal((await verifyExport(full.path)).ok, false);
 	});
 
+	it("names what a redaction removed by location and count only, never by value (SEC-05)", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+			}),
+		);
+		const { change } = await acceptedChange(t, p);
+		const red = await exportChange(t.ledger, t.objects, {
+			change_id: change.change_id,
+			destination: join(t.root, "export-signal"),
+			redact: true,
+			now: "t",
+			producer: "test",
+		});
+		const { redactions } = JSON.parse(readFileSync(join(red.path, "redactions.json"), "utf8")) as {
+			redactions: { path: string; count: number; kind: string }[];
+		};
+		assert.ok(redactions.length >= 1, "the sentinel in the fixture was not found");
+		for (const r of redactions) {
+			assert.equal(
+				Object.keys(r).sort().join(","),
+				"count,kind,path",
+				"a redaction record names where and how many, and nothing else",
+			);
+			assert.ok(r.path.length > 0, "an unnamed location tells a reader nothing to act on");
+			assert.ok(r.count >= 1);
+			assert.equal(
+				JSON.stringify(r).includes("sk-abcdefghijklmnop1234"),
+				false,
+				"the record carries the removed value",
+			);
+		}
+	});
+
+	it("the redaction record type stays closed to path, count and kind: no field could carry the removed value (SEC-05)", () => {
+		const source = readFileSync(join(process.cwd(), "src", "export", "export-service.ts"), "utf8");
+		assert.match(
+			source,
+			/redactions:\s*\{\s*path:\s*string;\s*count:\s*number;\s*kind:\s*string\s*\}\[\]\s*=\s*\[\];/,
+			"a value field added here would let a secret ride along in the very report meant to prove it was removed",
+		);
+	});
+
 	it("carries its own verifier, which a third party runs with nothing but Node (RM-072)", async () => {
 		const p = project();
 		const t = track(
