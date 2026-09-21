@@ -44,6 +44,7 @@ const mandate: InterventionMandate = {
 		objective: "greet",
 		output_schema: "producer-report",
 		trusted_instructions: ["workspace only"],
+		imposed_layers: [],
 		adopted_refs: [],
 		untrusted_excerpts: [],
 		tools: TOOLS_FOR_ROLE.implement,

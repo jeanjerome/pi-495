@@ -9,6 +9,7 @@ import type {
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
+import type { ImposedLayer } from "../domain/imposed-layers.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
 
@@ -141,6 +142,8 @@ export interface ContextManifest {
 	objective: string;
 	output_schema: string;
 	trusted_instructions: string[];
+	/** What a provider writes above `trusted_instructions` on its own, never composed here (CTX-02, D-48). */
+	imposed_layers: ImposedLayer[];
 	adopted_refs: { kind: string; artifact_id: string; revision: number; digest: string }[];
 	untrusted_excerpts: { source: string; digest: string; bytes: number }[];
 	tools: string[];

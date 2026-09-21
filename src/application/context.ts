@@ -16,6 +16,7 @@ import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { AnswerDeclaration, ChangeState } from "../domain/change/state.ts";
+import type { ImposedLayer } from "../domain/imposed-layers.ts";
 import type { ContextManifest } from "../ports/execution.ts";
 
 export interface ContextInput {
@@ -31,6 +32,8 @@ export interface ContextInput {
 	controls?: { control_id: string; command: string[]; cwd: string }[];
 	/** Frozen architecture boundaries the candidate will be judged against (ARC-04). */
 	boundaries?: string[];
+	/** What the retained provider imposes above `trusted`, named but never composed (CTX-02, D-48). */
+	imposed_layers?: ImposedLayer[];
 }
 
 /**
@@ -203,6 +206,9 @@ export function buildContext(input: ContextInput): {
 		objective: input.objective,
 		output_schema: schema,
 		trusted_instructions: trusted,
+		// Never folded into `trusted`: what a provider imposes is not what 495 composed, and the
+		// distinction is the fact this field exists to keep (CTX-02, D-48).
+		imposed_layers: input.imposed_layers ?? [],
 		adopted_refs: input.adopted.map((a) => ({
 			kind: a.kind,
 			artifact_id: a.artifact_id,

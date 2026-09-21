@@ -23,6 +23,7 @@ export function mandate(objective: string, root: string, over: Partial<Intervent
 			objective,
 			output_schema: "producer-report",
 			trusted_instructions: [],
+			imposed_layers: [],
 			adopted_refs: [],
 			untrusted_excerpts: [],
 			tools: ["read", "write"],

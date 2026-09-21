@@ -50,7 +50,7 @@ tasks:
       Aucun constat nouveau sur src/application/context.ts et src/ports/execution.ts : les
       instructions de confiance sont inchangées, la strate déclarée ne rejoint ni le prompt système
       ni l'invite, et rien de plus n'est émis vers le fournisseur.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
