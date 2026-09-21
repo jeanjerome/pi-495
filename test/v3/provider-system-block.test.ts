@@ -20,10 +20,13 @@ function run(packageDir: string): { code: number | null; stdout: string; stderr:
 	return { code: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 
-/** The exact shape the installed Pi package builds its request in: a ternary on the OAuth path,
- * the provider's block first, 495's own system text pushed second — condition and position both. */
-function shaped(text: string): string {
-	return `var x=1;isOAuthToken2?(params.system=[{type:"text",text:"${text}",...cacheControl?{cache_control:cacheControl}:{}}],initialSystemText&&params.system.push({type:"text",text:sanitizeSurrogates(initialSystemText)})):initialSystemText&&(params.system=[{type:"text",text:sanitizeSurrogates(initialSystemText)}]);`;
+/**
+ * The shape the installed Pi package builds its request in: a ternary — under any name, `condition`
+ * defaults to the real one's `isOAuthToken2` — the provider's block first, 495's own system text
+ * pushed second, and the token-prefix check the declared condition names.
+ */
+function shaped(text: string, condition = "isOAuthToken2"): string {
+	return `function ${condition}(k){return k.includes("sk-ant-oat")}var x=1;${condition}?(params.system=[{type:"text",text:"${text}",...cacheControl?{cache_control:cacheControl}:{}}],initialSystemText&&params.system.push({type:"text",text:sanitizeSurrogates(initialSystemText)})):initialSystemText&&(params.system=[{type:"text",text:sanitizeSurrogates(initialSystemText)}]);`;
 }
 
 function fixture(root: string, files: Record<string, string>): void {
@@ -53,7 +56,7 @@ describe("provider system block control (CTX-02, D-48)", () => {
 		assert.equal(result.code, 0, result.stderr);
 	});
 
-	it("refuses when the relevable text differs from the declaration, and names both (6d)", () => {
+	it("refuses when the detected text differs from the declaration, and names both (6d)", () => {
 		fixture(root, { "bundle/chunks/a.js": shaped("You are a different assistant entirely.") });
 		const result = run(root);
 		assert.notEqual(result.code, 0);
@@ -61,21 +64,40 @@ describe("provider system block control (CTX-02, D-48)", () => {
 		assert.match(result.stderr, new RegExp(DECLARED.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 	});
 
-	it("refuses when no relevable block is found (6e)", () => {
+	it("refuses when no detectable block is found (6e)", () => {
 		fixture(root, { "bundle/chunks/a.js": "var x = 1;\nfunction f() { return x; }\n" });
 		const result = run(root);
 		assert.notEqual(result.code, 0);
-		assert.match(result.stderr, /no relevable block/i);
+		assert.match(result.stderr, /no detectable block/i);
 	});
 
-	it("refuses on more than one relevable block, rather than trusting the first (§14)", () => {
+	it("refuses on more than one detectable block, rather than trusting the first (§14)", () => {
 		fixture(root, {
 			"bundle/chunks/a.js": shaped(DECLARED),
 			"bundle/chunks/b.js": shaped(DECLARED),
 		});
 		const result = run(root);
 		assert.notEqual(result.code, 0);
-		assert.match(result.stderr, /2|two/i);
+		// Anchored on the count phrase, not a bare digit: an unanchored /2|two/i also matches a
+		// filesystem path that happens to contain a "2" (review round 1, reviewer B, reproduced —
+		// it passed on a message reporting 3 blocks because the fixture's own path held a "2").
+		assert.match(result.stderr, /\b2 detectable blocks\b/);
+	});
+
+	it("passes when the ternary's condition is renamed by a cosmetic rebuild (review round 1)", () => {
+		fixture(root, { "bundle/chunks/a.js": shaped(DECLARED, "Ke") });
+		const result = run(root);
+		assert.equal(result.code, 0, result.stderr);
+	});
+
+	it("refuses when the declared condition's token prefix cannot be found, even with text and shape intact", () => {
+		fixture(root, {
+			"bundle/chunks/a.js": `var x=1;isOAuthToken2?(params.system=[{type:"text",text:"${DECLARED}"}],initialSystemText&&params.system.push({type:"text",text:sanitizeSurrogates(initialSystemText)})):0;`,
+		});
+		const result = run(root);
+		assert.notEqual(result.code, 0);
+		assert.match(result.stderr, /sk-ant-oat/);
+		assert.match(result.stderr, /condition.*could not be confirmed/);
 	});
 
 	it("refuses when the package directory itself does not exist", () => {

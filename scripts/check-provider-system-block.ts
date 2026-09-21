@@ -6,27 +6,34 @@
  *
  * It reads the package the dependency lock pins — `node_modules/@earendil-works/pi-coding-agent`
  * by default, or a directory given on the command line, which is how the test fixtures this
- * control's own refusals. It never reads the package installed elsewhere on a machine (D-54's
- * choice, for the reasons D-54 gives): reproducible over accurate to whatever this machine happens
- * to run.
+ * control's own refusals. It never reads the package installed elsewhere on a machine — the story's
+ * own §18 names that choice — reproducible over accurate to whatever this machine happens to run.
  *
- * A single regular expression stands for three of the declaration's four facts at once: the text is
- * captured, and the surrounding shape — a ternary on the OAuth path, the provider's block written
- * first, 495's own system text pushed second — is what proves the condition and the position. That
- * shape is minifier output, tied to exact variable names as much as to structure; a change to
- * either reads as the block no longer being relevable, not as a distinguishable position or
- * condition failure. Finer detection would cost more than the distinction is worth: either fact
- * drifting is a fact for a human to look at, and this control's whole job is to make that moment
- * impossible to miss, not to say in advance what changed.
+ * The text and the position are established by one regular expression each: the text is captured
+ * exactly, and the surrounding shape — a ternary, the provider's block written into `params.system`
+ * first, 495's own system text pushed second — is structural proof that the provider's block comes
+ * before 495's. The shape names no identifier: review round 1 (both reviewers) showed that
+ * anchoring on the minifier's name for the ternary's condition (`isOAuthToken2`) made a semantics-
+ * preserving rebuild of the same package refuse for no real reason, which is brittle in the wrong
+ * place — a rename is not a fact this control exists to catch. The condition itself — the OAuth
+ * token prefix the provider's own check is written against — is a second, independent search for
+ * that literal in the same file, added for the same round: without it, the declared condition was
+ * never read at all, so it could drift with the control staying green.
+ *
+ * A version drift is still not silently absorbed. Should the shape or the token prefix stop being
+ * findable, the control refuses rather than passes: that loss of the means of checking is a fact
+ * for a human to look at, not a fact this control resolves on its own.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { imposedLayersFor } from "../src/domain/imposed-layers.ts";
 
 const PROVIDER_ID = "anthropic";
-/** Conditional on the OAuth path, the provider's block first, 495's own instructions pushed second. */
+/** The OAuth token prefix `condition` names; independent of BLOCK, so a drifted condition refuses. */
+const CONDITION_LITERAL = "sk-ant-oat";
+/** A ternary of any name, the provider's block written into `params.system` first, 495's pushed second. */
 const BLOCK =
-	/isOAuthToken\w*\?\(params\.system=\[\{type:"text",text:"((?:[^"\\]|\\.)*)"[^\]]*\}\],initialSystemText&&params\.system\.push\(/g;
+	/\w+\?\(params\.system=\[\{type:"text",text:"((?:[^"\\]|\\.)*)"[^\]]*\}\],initialSystemText&&params\.system\.push\(/g;
 
 function jsFiles(dir: string): string[] {
 	const out: string[] = [];
@@ -54,18 +61,18 @@ if (!declared) {
 const hits: { file: string; text: string }[] = [];
 for (const file of jsFiles(distDir)) {
 	const source = readFileSync(file, "utf8");
-	for (const m of source.matchAll(BLOCK)) hits.push({ file, text: m[1]!.replace(/\\(.)/g, "$1") });
+	for (const m of source.matchAll(BLOCK)) hits.push({ file, text: JSON.parse(`"${m[1]}"`) });
 }
 
 if (hits.length === 0) {
 	console.error(
-		`provider system block: no relevable block found under ${distDir} — this is the means of checking lost, not proof that ${PROVIDER_ID} imposes nothing`,
+		`provider system block: no detectable block found under ${distDir} — this is the means of checking lost, not proof that ${PROVIDER_ID} imposes nothing`,
 	);
 	process.exit(1);
 }
 if (hits.length > 1) {
 	console.error(
-		`provider system block: ${hits.length} relevable blocks found under ${distDir}, so the one to trust is ambiguous:\n${hits.map((h) => `  ${h.file}: ${JSON.stringify(h.text)}`).join("\n")}`,
+		`provider system block: ${hits.length} detectable blocks found under ${distDir}, so the one to trust is ambiguous:\n${hits.map((h) => `  ${h.file}: ${JSON.stringify(h.text)}`).join("\n")}`,
 	);
 	process.exit(1);
 }
@@ -73,6 +80,12 @@ const found = hits[0]!;
 if (found.text !== declared.text) {
 	console.error(
 		`provider system block: the block found in ${found.file} differs from the declaration\n  found:    ${JSON.stringify(found.text)}\n  declared: ${JSON.stringify(declared.text)}`,
+	);
+	process.exit(1);
+}
+if (!readFileSync(found.file, "utf8").includes(CONDITION_LITERAL)) {
+	console.error(
+		`provider system block: ${found.file} carries the declared text but not ${JSON.stringify(CONDITION_LITERAL)} — the condition the declaration names could not be confirmed`,
 	);
 	process.exit(1);
 }
