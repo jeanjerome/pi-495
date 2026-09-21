@@ -117,4 +117,24 @@ describe("an intervention toward an undeclared destination (SEC-05, D-46)", () =
 		assert.deepEqual(probed, [], "the refusal precedes the provider: an undeclared destination is not even asked");
 		assert.deepEqual(started, [], "no worker process was started");
 	});
+
+	it("names the empty declaration rather than an empty list, when nothing is declared at all", async () => {
+		const { supervisor, probed } = supervisorFor(
+			{ provider_id: "omlx", model_id: "qwen3.8-27b-oq8e", thinking_level: "off" },
+			[],
+		);
+		await assert.rejects(
+			() => supervisor.requireCapable("implement"),
+			(error: DomainError) => {
+				assert.equal(error.code, "POLICY_DENIED");
+				assert.match(
+					error.message,
+					/no egress destination is declared/,
+					"an empty declaration refuses everything on purpose, and says so rather than listing nothing",
+				);
+				return true;
+			},
+		);
+		assert.deepEqual(probed, [], "nothing is declared, so nothing is reached");
+	});
 });
