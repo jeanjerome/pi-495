@@ -34,7 +34,7 @@
     "test:v2": "node --test --test-concurrency=1 'test/v2/**/*.test.ts'",
     "test:v3": "node --test --test-concurrency=1 'test/v3/**/*.test.ts'",
     "contracts": "node scripts/emit-contracts.ts",
-    "check": "npm run typecheck && npm run test && npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule",
+    "check": "npm run typecheck && npm run test && npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule && npm run lint:provider-block",
     "lint:code": "biome check",
     "lint:layers": "node scripts/check-layers.ts",
     "lint:traceability": "node scripts/check-traceability.ts",
@@ -42,7 +42,8 @@
     "lint:exports": "node scripts/check-exports.ts",
     "lint:story-format": "node scripts/check-story-format.ts",
     "lint:distribution": "node scripts/check-distribution.ts",
-    "lint:capsule": "node scripts/check-capsule.ts"
+    "lint:capsule": "node scripts/check-capsule.ts",
+    "lint:provider-block": "node scripts/check-provider-system-block.ts"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

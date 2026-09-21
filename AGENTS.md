@@ -51,7 +51,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 | Run | N/A — Pi loads the built extension; there is no standalone entry point |
 | Test | `npm test` |
 | Build | `npm run build` |
-| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule` |
+| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule && npm run lint:provider-block` |
 | Preflight | `npm run check` |
 | CI | N/A — no CI job configured; run `npm run check` locally before every commit |
 
@@ -61,7 +61,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Lint
 
-`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule`
+`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule && npm run lint:provider-block`
 
 ## Build
 

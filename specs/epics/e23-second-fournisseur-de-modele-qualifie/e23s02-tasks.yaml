@@ -91,7 +91,7 @@ tasks:
       Aucun constat nouveau sur le contrôle lui-même : il lit le code distribué du paquet, jamais
       le fichier d'authentification ni aucun identifiant, et ne reproduit dans son message que du
       texte déjà public.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:

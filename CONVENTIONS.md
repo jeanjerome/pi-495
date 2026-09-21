@@ -36,7 +36,7 @@ forward work — not "green enough for this task."
 **Shift Left (1-10-100):** a defect costs roughly 1× to fix in development, 10× in integration,
 100× in production (IBM Systems Sciences Institute; CloudQA benchmarks). Fix a red gate now.
 
-**Preflight** is `npm run check` — typecheck, test, and the eight `lint:*` scripts chained together.
+**Preflight** is `npm run check` — typecheck, test, and the nine `lint:*` scripts chained together.
 Preflight MUST pass before a kickoff, develop, or verify phase advances.
 
 ## Discovered Defects

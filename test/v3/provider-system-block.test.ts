@@ -65,7 +65,7 @@ describe("provider system block control (CTX-02, D-48)", () => {
 		fixture(root, { "bundle/chunks/a.js": "var x = 1;\nfunction f() { return x; }\n" });
 		const result = run(root);
 		assert.notEqual(result.code, 0);
-		assert.match(result.stderr, /no .* relev|none relev|could not/i);
+		assert.match(result.stderr, /no relevable block/i);
 	});
 
 	it("refuses on more than one relevable block, rather than trusting the first (§14)", () => {
