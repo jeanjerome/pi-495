@@ -2,8 +2,11 @@ import { strict as assert } from "node:assert";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
+import { InterventionSupervisor } from "../../src/application/intervention.ts";
+import type { DomainError } from "../../src/domain/errors.ts";
+import { DEFAULT_POLICY, type DeclaredEgress } from "../../src/domain/policy.ts";
 import { loadConfig } from "../../src/extension/config.ts";
+import type { AgentPort, InterventionMandate, ModelSelection, SandboxPort } from "../../src/ports/execution.ts";
 
 let root: string;
 beforeEach(() => {
@@ -51,5 +54,67 @@ describe("the declared egress a configuration carries (SEC-05)", () => {
 		];
 		const { config } = loadConfig(configured({ egress: declared }));
 		assert.deepEqual(config.policy.egress, declared, "a declaration is written whole, never merged entry by entry");
+	});
+});
+
+/**
+ * A supervisor whose sandbox is qualified and whose model answers, so that the only thing left to
+ * refuse is the destination. The agent records what it was asked, because the point of the refusal
+ * is what it prevents rather than what it says.
+ */
+function supervisorFor(model: ModelSelection, egress: DeclaredEgress[] = DEFAULT_POLICY.egress) {
+	const probed: ModelSelection[] = [];
+	const started: InterventionMandate[] = [];
+	const agent: AgentPort = {
+		async describeCapabilities(m) {
+			probed.push(m);
+			return { provider_id: m.provider_id, model_id: m.model_id, available: true, reasons: [] };
+		},
+		async startIntervention(mandate) {
+			started.push(mandate);
+			throw new Error("this test never drives a session");
+		},
+	};
+	const supervisor = new InterventionSupervisor({
+		agent,
+		sandbox: {
+			backend: { backend: "test" } as unknown as SandboxPort,
+			qualification: {
+				backend: "test",
+				platform: "test",
+				qualified: true,
+				capabilities: { filesystem_confinement: true, network_confinement: true, process_group_termination: true },
+				reasons: [],
+			},
+		},
+		model,
+		policy: { ...DEFAULT_POLICY, egress },
+		now: () => "2026-09-21T00:00:00Z",
+		progress: () => {},
+	});
+	return { supervisor, probed, started };
+}
+
+describe("an intervention toward an undeclared destination (SEC-05, D-46)", () => {
+	it("is refused before the provider is reached and before any worker is started", async () => {
+		const { supervisor, probed, started } = supervisorFor({
+			provider_id: "anthropic",
+			model_id: "claude-opus",
+			thinking_level: "off",
+		});
+		await assert.rejects(
+			() => supervisor.requireCapable("implement"),
+			(error: DomainError) => {
+				assert.equal(
+					error.code,
+					"POLICY_DENIED",
+					"an undeclared destination is a policy refusal, not a missing capability",
+				);
+				assert.match(error.message, /anthropic/, "the refusal names the destination it refused");
+				return true;
+			},
+		);
+		assert.deepEqual(probed, [], "the refusal precedes the provider: an undeclared destination is not even asked");
+		assert.deepEqual(started, [], "no worker process was started");
 	});
 });
