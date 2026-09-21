@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, reopenHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import type { ContextManifest } from "../../src/ports/execution.ts";
+import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -1041,6 +1042,47 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 					`the excerpt ${e.source} read by ${manifest.role} is named and absent`,
 				);
 			}
+		}
+	});
+
+	// D-48: on the OAuth subscription path the provider writes its own system block above what 495
+	// composes. The dossier must say so — a manifest silent on it would be a manifest that lies about
+	// having composed the whole of what the model saw (CTX-02).
+	it("names the layer the retained provider imposes, and never emits it itself (CTX-02, D-48)", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				model: { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" },
+				policy: { egress: [{ provider_id: "anthropic", location: "off_machine" }] },
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		const contexts = t.ledger.listArtifacts(change.change_id, "context");
+		assert.ok(contexts.length > 0);
+		const expected = imposedLayersFor("anthropic");
+		assert.equal(expected.length, 1, "the fixture provider must be one the domain declares a layer for");
+		for (const stored of contexts) {
+			const manifest = JSON.parse(
+				new TextDecoder().decode((await t.objects.get(stored.ref.content_digest))!),
+			) as ContextManifest;
+			assert.deepEqual(manifest.imposed_layers, expected, `${manifest.role} does not carry the imposed layer`);
+			const recorded = await t.objects.get(manifest.prompt_digest!);
+			const { system_prompt, prompt } = JSON.parse(new TextDecoder().decode(recorded!)) as {
+				system_prompt: string;
+				prompt: string;
+			};
+			assert.ok(!system_prompt.includes(expected[0]!.text), "495 must not emit what it does not compose");
+			assert.ok(!prompt.includes(expected[0]!.text));
 		}
 	});
 

@@ -7,7 +7,7 @@ import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/bac
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { Harness, type HarnessDeps } from "../../src/application/harness.ts";
-import type { ControlExecutionPort } from "../../src/ports/execution.ts";
+import type { ControlExecutionPort, ModelSelection } from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -70,6 +70,8 @@ export interface HarnessOptions {
 	root?: string;
 	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
 	ids?: IdSource;
+	/** Overrides the scripted default, e.g. to drive a test against a provider that imposes a layer. */
+	model?: Partial<ModelSelection>;
 }
 
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
@@ -133,7 +135,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 			digest: digestValue({ test: true }),
 			profile_id: sandbox.backend.backend,
 		},
-		model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off" },
+		model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off", ...(options.model ?? {}) },
 		instance_id: "test",
 		denied_read_paths: [root],
 		onDecisionRequested: (r) => requested.push(r),
