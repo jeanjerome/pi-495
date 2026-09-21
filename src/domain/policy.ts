@@ -20,7 +20,8 @@ export interface Budgets {
 export type AdoptionRule = "kernel" | "human";
 
 /** Where a declared destination sits relative to the machine 495 runs on (SEC-05). */
-export type EgressLocation = "on_machine" | "off_machine";
+export const EGRESS_LOCATIONS = ["on_machine", "off_machine"] as const;
+export type EgressLocation = (typeof EGRESS_LOCATIONS)[number];
 
 /**
  * A destination excerpts and prompts may be handed to. `location` is what tells a prompt that stays
@@ -72,9 +73,9 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	adoption: { mandate: "kernel", requirements: "kernel", protocol: "kernel", design: "kernel" },
 	g5_human_acceptance: false,
 	integration_enabled: false,
-	// The one provider this machine has configured, answering on 127.0.0.1: nothing leaves the machine
-	// by default. A destination off the machine is written by configuration, never inherited.
-	egress: [{ provider_id: "omlx", location: "on_machine" }],
+	// The kernel knows no machine, so it declares no destination. What this installation may reach is
+	// a configuration fact, and `extension/config.ts` holds it.
+	egress: [],
 	baseline: {
 		compare_to_reference: true,
 		tolerance: "no_aggravation",
@@ -84,3 +85,19 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	stagnation_identical_candidates: 2,
 	required_reviews: [],
 };
+
+/**
+ * Why a destination may not be handed excerpts and prompts, or `null` when the policy declares it
+ * (SEC-05). 495 never calls a model itself: the worker reaches the provider its host resolved, and
+ * is the one process exempt from network confinement in order to (D-11). That exemption says what
+ * is permitted; this list says what goes out.
+ *
+ * The comparison is exact — no pattern, no prefix, no wildcard — so it can refuse a destination it
+ * does not know but can never admit one by resemblance.
+ */
+export function undeclaredEgressReason(policy: ActivePolicy, providerId: string): string | null {
+	if (policy.egress.some((d) => d.provider_id === providerId)) return null;
+	if (policy.egress.length === 0)
+		return "no egress destination is declared, so no intervention may hand excerpts or prompts to a model";
+	return `${providerId} is not a declared egress destination: ${policy.egress.map((d) => d.provider_id).join(", ")}`;
+}

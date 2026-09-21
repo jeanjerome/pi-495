@@ -55,7 +55,7 @@ export function specReport(over: Partial<SpecificationReport> = {}): Specificati
 
 export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 
-type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & {
+export type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & {
 	budgets?: Partial<ActivePolicy["budgets"]>;
 	adoption?: Partial<ActivePolicy["adoption"]>;
 };

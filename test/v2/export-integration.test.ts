@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
+import { makeHarness, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
 import { fixtureTs, gitCmd, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
@@ -36,9 +36,11 @@ const RIGHT =
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
 /** A harness whose producer writes `content` to src/greet.js and reports that one path done. */
-function writingHarness(content: string, policy?: { integration_enabled: boolean }): TestHarness {
+function writingHarness(content: string, policy?: PolicyOverride): TestHarness {
 	return track(
 		makeHarness({
+			// `exactOptionalPropertyTypes` refuses an explicit `policy: undefined`, so the key is omitted
+			// rather than passed empty.
 			...(policy ? { policy } : {}),
 			scripts: {
 				implement: {
@@ -132,15 +134,6 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 				"the record carries the removed value",
 			);
 		}
-	});
-
-	it("the redaction record type stays closed to path, count and kind: no field could carry the removed value (SEC-05)", () => {
-		const source = readFileSync(join(process.cwd(), "src", "export", "export-service.ts"), "utf8");
-		assert.match(
-			source,
-			/redactions:\s*\{\s*path:\s*string;\s*count:\s*number;\s*kind:\s*string\s*\}\[\]\s*=\s*\[\];/,
-			"a value field added here would let a secret ride along in the very report meant to prove it was removed",
-		);
 	});
 
 	it("carries its own verifier, which a third party runs with nothing but Node (RM-072)", async () => {

@@ -10,7 +10,7 @@
 import type { InterventionRole } from "../contracts/v1/common.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { DomainError } from "../domain/errors.ts";
-import type { ActivePolicy } from "../domain/policy.ts";
+import { type ActivePolicy, undeclaredEgressReason } from "../domain/policy.ts";
 import type {
 	AgentPort,
 	ContextManifest,
@@ -76,20 +76,18 @@ export class InterventionSupervisor {
 
 	/**
 	 * Refuses a destination the policy has not declared, without reaching it: nothing is handed to a
-	 * provider in order to find out whether it was allowed (SEC-05).
+	 * provider in order to find out whether it was allowed (SEC-05). Asked again where the bytes
+	 * actually leave, so the control does not rest on a caller remembering to ask first.
+	 *
+	 * A selection carrying no provider is not an undeclared destination but a model that was never
+	 * configured. Nothing can leave for a provider that does not exist, and the capability check
+	 * names that state on its own terms; judging it here would answer a configuration question with
+	 * a policy refusal.
 	 */
 	private refuseUndeclaredDestination(): void {
-		const declared = this.deps.policy.egress;
-		if (declared.some((d) => d.provider_id === this.deps.model.provider_id)) return;
-		throw new DomainError(
-			"POLICY_DENIED",
-			declared.length === 0
-				? "no egress destination is declared, so no intervention may hand excerpts or prompts to a model"
-				: `${this.deps.model.provider_id} is not a declared egress destination: ${declared
-						.map((d) => d.provider_id)
-						.join(", ")}`,
-			{ nextActions: ["configure_model"] },
-		);
+		if (this.deps.model.provider_id === "") return;
+		const reason = undeclaredEgressReason(this.deps.policy, this.deps.model.provider_id);
+		if (reason !== null) throw new DomainError("POLICY_DENIED", reason, { nextActions: ["configure_model"] });
 	}
 
 	/**
@@ -122,6 +120,7 @@ export class InterventionSupervisor {
 
 	/** Drives one session to its terminal event and reports what it observed. */
 	async run(request: InterventionRequest, budget: ToolCallBudget): Promise<InterventionReport> {
+		this.refuseUndeclaredDestination();
 		const role = request.role;
 		const mandate: InterventionMandate = {
 			intervention_id: request.intervention_id,
