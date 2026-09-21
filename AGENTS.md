@@ -89,6 +89,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, `presentation/`, or `export/`.
 - Never claim a `CMP-*` component id in `src/` without a matching row in `specs/archive/amont/conception-technique.md` §4.1.
 - Never let an unqualified sandbox backend run unconfined. Refuse with `capability_missing` instead.
+- Never run `bigpowers init` in this repository. It replaces `scripts/` with a symlink to the package tree, which would remove every Preflight control. A script a skill cites by `bash scripts/…` is reached at `$(npm root -g)/bigpowers/scripts/…` instead.
 
 ## Agent Rules
 

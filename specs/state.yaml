@@ -11,7 +11,7 @@ active_epic_id: e23
 handoff:
   next_skill: plan-work
   last_step_completed: >
-    Deux choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
+    Cinq choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
     fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à
     la phase et à la dépendance au modèle, et CTX-03 sort du différé avec lui ; le bloc système que
     le fournisseur impose est déclaré au manifeste plutôt que le profil refusé ; l'identité
@@ -26,7 +26,7 @@ handoff:
     elle servait auparavant Node 22 hors terminal et Node 24 en terminal, soit deux empreintes
     d'environnement pour un seul poste.
 
-    Enfin la levée de ce qui bloquait slice-tasks. Le gabarit de story n'était pas introuvable mais
+    Puis la levée de ce qui bloquait slice-tasks. Le gabarit de story n'était pas introuvable mais
     non distribué : le paquet bigpowers installé porte 81 SKILL.md et pas l'arborescence docs/ que
     ces procédures citent, alors que les procédures elles-mêmes sont identiques à l'octet à
     l'amont. Le gabarit est recopié sous specs/references/, épinglé à sa version, et
@@ -37,7 +37,7 @@ handoff:
     main s'écrit verify-script (D-52). slice-tasks n'écrit d'ailleurs pas de story : il écrit les
     fichiers de tâches et renvoie le gabarit à plan-work.
 
-    Enfin le découpage d'e23, premier epic à recevoir sa capsule. Cinq stories en ordre contraint
+    Vient ensuite le découpage d'e23, premier epic à recevoir sa capsule. Cinq stories en ordre contraint
     et non préférentiel : la sortie de données est déclarée avant qu'une seule intervention la
     rende effective, le manifeste apprend à nommer la strate que le fournisseur impose au-dessus
     des instructions locales, le refus d'un profil incapable reçoit un effet avant que du quota
@@ -47,9 +47,32 @@ handoff:
     et consomme du quota. Toutes les autres nomment un test ou un contrôle qui échoue aujourd'hui
     parce qu'il n'est pas écrit.
 
+    Enfin l'installation bigpowers, réancrée. Les 81 compétences de .claude/skills/ étaient 81
+    liens vers un cache npx, que le paquet n'occupait qu'au gré d'une invocation : un vidage les
+    aurait toutes tuées d'un coup, sans bruit. Elles pointent désormais sur une installation
+    globale, 81 sur 81, aucun lien mort. Les scripts que les procédures invoquent par
+    `bash scripts/…` sont distribués et se joignent à $(npm root -g)/bigpowers/scripts ; ils ne
+    sont pas câblés dans le dépôt, et ne doivent pas l'être : la commande qui s'en charge,
+    bigpowers init, remplace scripts/ par un lien vers l'arborescence du paquet, ce qui
+    emporterait tous les contrôles de Preflight. AGENTS.md porte cet interdit. Ce qui n'est
+    réellement pas distribué est docs/ — le paquet publié n'en porte que templates/ —, motif de
+    D-51, inchangé. À savoir aussi : `bigpowers status` cherche un marqueur sous ~/.claude/skills
+    et déclare donc « not installed » pour toute installation locale ; ce n'est pas un symptôme.
+
     Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort — qui
-    attend sa mesure sous Apple Container.
+    attend sa mesure sous Apple Container, et la porte de cohérence de plan-work ci-dessous.
   open_decisions:
+    - >
+      La porte de cohérence inter-artefacts de plan-work, à son étape 4a, n'est pas tenue. Le
+      script qui la conduit est distribué et présent dans l'arborescence du paquet — il s'invoque
+      à son chemin, rien n'est à recopier — mais il exige un fichier de story pour chaque ligne de
+      stories d'epic.yaml. Après la première story, les quatre autres en seraient dépourvues et il
+      rendrait quatre refus de gravité haute, alors que planifier une story à la fois est la façon
+      de travailler ici. Il attend aussi une clé spec: dans chaque fichier de tâches, que les
+      nôtres n'ont pas. Trois voies : l'invoquer quand même en acceptant ses refus, écrire un
+      contrôle à nous qui admette une capsule remplie story par story, ou passer la porte sciemment
+      et écrire pourquoi. La question se pose à la sortie de plan-work, pas à son entrée : elle ne
+      retient pas le lancement de la première story.
     - >
       Quel adaptateur se tient derrière SandboxPort : les backends écrits à la main,
       @anthropic-ai/sandbox-runtime, ou une micro-VM. Pi n'implémente aucun bac à sable et le
