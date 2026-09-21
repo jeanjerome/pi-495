@@ -16,6 +16,10 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
 - Put an arbitration to the owner in plain French, without identifiers, scores or coded vocabulary:
   state what each option costs and what it buys. Keep the coded vocabulary for the written artefact
   that records the answer, not for the question that asks for it.
+- Keep dependencies at their latest published version whenever Preflight stays green — a bound left
+  behind is a divergence waiting to happen, and a caret on a `0.x` version silently locks the minor.
+  The exception is a bound that guards a declared floor: `@types/node` tracks `engines.node`, not the
+  newest release (`specs/adr/D-50`).
 
 ## Workspace Facts
 
