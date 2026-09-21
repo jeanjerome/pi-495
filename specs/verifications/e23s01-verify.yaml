@@ -1,0 +1,132 @@
+story_id: e23s01
+verified_at: "2026-09-21T15:05:00Z"
+verifier: verify-work
+risk: P0
+branch: sortie-vers-le-fournisseur-declaree
+
+phases:
+  smoke:
+    passed: null
+    note: >
+      Not applicable. 495 exposes no CLI, no service and no standalone entry point — Pi loads the
+      built extension. There is no process to cold-start, so this phase is skipped rather than
+      claimed.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: >
+      Eight controls inside npm run check: lint:code, lint:layers, lint:architecture, lint:exports,
+      lint:traceability, lint:distribution, lint:story-format.
+  tests:
+    passed: true
+    coverage: null
+    note: >
+      No coverage instrumentation runs on the harness itself; QLT-04 coverage applies to target
+      projects, not to 495. Reporting a percentage here would be inventing one.
+
+  terminal_verdict:
+    command: "npm run check"
+    exit_code: 0
+    captured_at: "2026-09-21T15:00:47Z"
+    note: "Single contiguous run — no output merged from any other attempt."
+
+task_verify_commands:
+  - task: 1
+    command: "node --test test/v1/egress.test.ts"
+    exit_code: 0
+  - task: 2
+    command: "node --test test/v1/egress.test.ts"
+    exit_code: 0
+  - task: 3
+    command: "node --test test/v1/egress.test.ts"
+    exit_code: 0
+  - task: 4
+    command: "node --test test/v2/export-integration.test.ts"
+    exit_code: 0
+  - task: 5
+    command: "npm run lint:traceability"
+    exit_code: 0
+  - task: 6
+    command: "npm run check"
+    exit_code: 0
+
+security:
+  scan: security-review
+  report: specs/security/REVIEW.md
+  high_findings_confidence_ge_8: 0
+  blocked: false
+
+blind_spots:
+  command: "scripts/check-blind-spots.sh"
+  exit_code: 0
+  findings: { high: 0, medium: 0, low: 0 }
+  note: >
+    First run returned 0 findings vacuously — specs/execution-status.yaml was empty, so the check
+    had nothing to judge. Re-run after the file was seeded from the capsule; the 0 recorded here is
+    the second run, against real data.
+
+nfr_gate:
+  report: specs/verifications/NFR-e23s01.json
+  verdict: GO
+
+manual:
+  method: >
+    495 has no user-facing surface of its own to click through: it is a Pi extension with no
+    standalone entry point. The honest form of UAT here is a walk of every Gherkin scenario in §17
+    of the story spec against the named evidence that exercises it, presented to the owner for
+    confirmation.
+  confirmed_by_owner: false
+  steps:
+    - step: "Une destination déclarée ouvre l'intervention (§5)"
+      expected: "Le superviseur poursuit sur la vérification de capacité ; le profil du mandat refuse toujours le réseau"
+      actual: "test/v1/egress.test.ts — « carries a declared destination through to the capability check that already existed » ; profil denied tenu par test/v2/telemetry.test.ts, passé inchangé"
+      passed: true
+    - step: "Une destination non déclarée est refusée avant tout engagement (6a)"
+      expected: "POLICY_DENIED levé ; aucun worker démarré ; aucun événement inscrit"
+      actual: "test/v1/egress.test.ts — « is refused before the provider is reached and before any worker is started » ; probed=[] et started=[]"
+      passed: true
+    - step: "Une liste vide refuse toute intervention et le dit (6b)"
+      expected: "POLICY_DENIED ; le message nomme la liste vide plutôt que la destination"
+      actual: "test/v1/egress.test.ts — « names the empty declaration rather than an empty list, when nothing is declared at all »"
+      passed: true
+    - step: "Une configuration partielle ne vide pas la liste (6c)"
+      expected: "La liste par défaut est gardée ; une configuration qui nomme la liste la remplace entièrement"
+      actual: "test/v1/egress.test.ts — deux tests, « keeps the declaration… » et « replaces the declaration entirely… »"
+      passed: true
+    - step: "Un secret du contrôleur n'emprunte pas le canal modèle (6d)"
+      expected: "Le secret n'atteint ni l'environnement du worker ni le texte remis au modèle"
+      actual: "test/v1/egress.test.ts — « does not hand a sentinel secret… » (vrai sous-processus) et « never places a controller-environment sentinel… » ; garde structurelle : aucune occurrence de process.env dans context.ts"
+      passed: true
+    - step: "Un secret retiré du dossier est signalé sans être divulgué (6e)"
+      expected: "Le secret n'apparaît dans aucun fichier ; le signalement porte emplacement et compte, jamais la valeur"
+      actual: "test/v2/export-integration.test.ts — « names what a redaction removed by location and count only, never by value » et la garde de type sur l'enregistrement de retrait"
+      passed: true
+
+gaps:
+  closed: true
+  open: []
+
+known_limits:
+  - >
+    La médiation de la sortie déclarée vit dans requireCapable(), méthode sœur, et non au point de
+    passage obligé qu'est run(). Correctement appelée par l'unique appelant existant ; un chemin
+    futur appelant run() directement la contournerait. Note de robustesse pour e23s03, qui édite la
+    même méthode.
+  - >
+    loadConfig ne valide la forme d'aucun champ de la politique. Une valeur egress malformée fait
+    lever une TypeError plutôt que d'ouvrir : la défaillance reste fermée, mais brutale.
+  - >
+    exportChange accepte options.secret_patterns ; un motif à groupe de capture fourni par un
+    appelant contournerait la garde de la tâche 4. Aucun appelant existant ne le fait.
+  - >
+    La traçabilité story → code de bigpowers repose sur un grep d'identifiants de story dans les
+    sources. CLAUDE.md interdit ces références dans le contenu écrit, donc link_count vaut 1 avec
+    une confiance « low » et ne peut structurellement pas monter. La traçabilité réelle de 495 est
+    exigence → composant → preuve, dans specs/archive/TRACEABILITY.md, tenue verte par
+    scripts/check-traceability.ts.

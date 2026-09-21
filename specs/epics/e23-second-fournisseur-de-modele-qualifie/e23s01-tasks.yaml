@@ -8,7 +8,7 @@
 story_id: e23s01
 spec: e23s01-la-sortie-de-donnees-vers-le-fournisseur-est-declaree.md
 title: "La sortie de données vers le fournisseur est déclarée"
-status: failing
+status: passing
 bcps: 2
 requirement: SEC-05
 delta: MODIFIED
@@ -117,7 +117,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

@@ -1,0 +1,58 @@
+development_status:
+  e23: in_progress
+  e23s01: done
+  e23s02: backlog
+  e23s03: backlog
+  e23s04: backlog
+  e23s05: backlog
+
+epics:
+  e23:
+    status: in_progress
+    title: Second fournisseur de modèle qualifié
+    wsjf: 12.0
+    total_bcps: 15
+
+stories:
+  e23s01:
+    status: done
+    title: La sortie de données vers le fournisseur est déclarée
+    bcps: 2
+    epic: e23
+    tasks_total: 6
+    tasks_passing: 6
+    tasks_failing: 0
+    risk_max: P0
+    security_max: high
+  e23s02:
+    status: backlog
+    title: Le manifeste déclare la strate imposée par le fournisseur
+    bcps: 3
+    epic: e23
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+  e23s03:
+    status: backlog
+    title: 'Le refus d''un profil incapable a un effet avant une intervention facturée'
+    bcps: 3
+    epic: e23
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+  e23s04:
+    status: backlog
+    title: Le même cas de contrat passe avec deux fournisseurs qualifiés
+    bcps: 5
+    epic: e23
+    tasks_total: 5
+    tasks_passing: 0
+    tasks_failing: 5
+  e23s05:
+    status: backlog
+    title: 'Les budgets d''intervention sont remesurés sur un modèle frontière'
+    bcps: 2
+    epic: e23
+    tasks_total: 3
+    tasks_passing: 0
+    tasks_failing: 3

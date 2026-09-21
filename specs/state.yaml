@@ -1,117 +1,123 @@
 workflow_mode: solo-git
+
 project_cycle:
   current_phase: 1
   phase_name: discover
   completed_phases: []
+
 active_flow: null
 active_epic_id: e23
+active_story: e23s01
+
 handoff:
-  next_skill: develop-tdd
-  last_step_completed: 'Cinq choses. D''abord l''arbitrage des quatre chantiers proposés
-    : e23 — qualifier un second fournisseur de modèle — entre à l''index en tête,
-    devant e01 ; e04 est élargi à la dépendance à la phase et à la dépendance au modèle,
-    et CTX-03 sort du différé avec lui ; le bloc système que le fournisseur impose
-    est déclaré au manifeste plutôt que le profil refusé ; l''identité claude-cli
-    est acceptée pour la seule machine de référence. Les quatre décisions sont en
-    specs/adr/D-46 à D-49, et le périmètre comme l''index portent le changement.
+  next_skill: audit-code
+  last_step_completed: >
+    Cinq choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
+    fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à
+    la phase et à la dépendance au modèle, et CTX-03 sort du différé avec lui ; le bloc système que
+    le fournisseur impose est déclaré au manifeste plutôt que le profil refusé ; l'identité
+    claude-cli est acceptée pour la seule machine de référence. Les quatre décisions sont en
+    specs/adr/D-46 à D-49, et le périmètre comme l'index portent le changement.
 
-    Ensuite l''alignement des dépendances et du runtime. Les trois paquets @earendil-works
-    passent à ^0.86.1, typebox à ^1.3.34, fast-check à ^4.10.2 et TypeScript à ^7.0.2
-    : Preflight vert à chaque étape, sur Node 24.21 comme sur Node 26.9, dist/ inchangé
-    et contrats régénérés à l''identique. @types/node reste à ^24 parce qu''il garde
-    le plancher engines >= 24, et la machine est épinglée sur ce plancher dans ~/.zshenv
-    au lieu que le plancher suive la machine (D-50) — elle servait auparavant Node
-    22 hors terminal et Node 24 en terminal, soit deux empreintes d''environnement
-    pour un seul poste.
+    Ensuite l'alignement des dépendances et du runtime. Les trois paquets @earendil-works passent à
+    ^0.86.1, typebox à ^1.3.34, fast-check à ^4.10.2 et TypeScript à ^7.0.2 : Preflight vert à
+    chaque étape, sur Node 24.21 comme sur Node 26.9, dist/ inchangé et contrats régénérés à
+    l'identique. @types/node reste à ^24 parce qu'il garde le plancher engines >= 24, et la machine
+    est épinglée sur ce plancher dans ~/.zshenv au lieu que le plancher suive la machine (D-50) —
+    elle servait auparavant Node 22 hors terminal et Node 24 en terminal, soit deux empreintes
+    d'environnement pour un seul poste.
 
-    Puis la levée de ce qui bloquait slice-tasks. Le gabarit de story n''était pas
-    introuvable mais non distribué : le paquet bigpowers installé porte 81 SKILL.md
-    et pas l''arborescence docs/ que ces procédures citent, alors que les procédures
-    elles-mêmes sont identiques à l''octet à l''amont. Le gabarit est recopié sous
-    specs/references/, épinglé à sa version, et lint:story-format entre dans Preflight
-    : il en extrait les vingt sections et refuse une story dont une section manque,
-    sort de son rang, change de nom ou n''annonce pas son état (D-51). La commande
-    verify, elle, n''a jamais été censée passer au moment où on l''écrit — plan-work
-    exige qu''une tâche naisse failing et ne bascule qu''après une sortie en 0 —,
-    et ce qui demande une main s''écrit verify-script (D-52). slice-tasks n''écrit
-    d''ailleurs pas de story : il écrit les fichiers de tâches et renvoie le gabarit
-    à plan-work.
+    Puis la levée de ce qui bloquait slice-tasks. Le gabarit de story n'était pas introuvable mais
+    non distribué : le paquet bigpowers installé porte 81 SKILL.md et pas l'arborescence docs/ que
+    ces procédures citent, alors que les procédures elles-mêmes sont identiques à l'octet à
+    l'amont. Le gabarit est recopié sous specs/references/, épinglé à sa version, et
+    lint:story-format entre dans Preflight : il en extrait les vingt sections et refuse une story
+    dont une section manque, sort de son rang, change de nom ou n'annonce pas son état (D-51). La
+    commande verify, elle, n'a jamais été censée passer au moment où on l'écrit — plan-work exige
+    qu'une tâche naisse failing et ne bascule qu'après une sortie en 0 —, et ce qui demande une
+    main s'écrit verify-script (D-52). slice-tasks n'écrit d'ailleurs pas de story : il écrit les
+    fichiers de tâches et renvoie le gabarit à plan-work.
 
-    Vient ensuite le découpage d''e23, premier epic à recevoir sa capsule. Cinq stories
-    en ordre contraint et non préférentiel : la sortie de données est déclarée avant
-    qu''une seule intervention la rende effective, le manifeste apprend à nommer la
-    strate que le fournisseur impose au-dessus des instructions locales, le refus
-    d''un profil incapable reçoit un effet avant que du quota d''abonnement soit consommé,
-    puis la campagne tient la recette d''AGT-02 sur deux fournisseurs, et ses relevés
-    remesurent les budgets en dernier. 15 BCP. Une seule tâche est en verify-script,
-    celle qui conduit les deux campagnes : elle demande le signal du propriétaire
-    et consomme du quota. Toutes les autres nomment un test ou un contrôle qui échoue
-    aujourd''hui parce qu''il n''est pas écrit.
+    Vient ensuite le découpage d'e23, premier epic à recevoir sa capsule. Cinq stories en ordre contraint
+    et non préférentiel : la sortie de données est déclarée avant qu'une seule intervention la
+    rende effective, le manifeste apprend à nommer la strate que le fournisseur impose au-dessus
+    des instructions locales, le refus d'un profil incapable reçoit un effet avant que du quota
+    d'abonnement soit consommé, puis la campagne tient la recette d'AGT-02 sur deux fournisseurs,
+    et ses relevés remesurent les budgets en dernier. 15 BCP. Une seule tâche est en
+    verify-script, celle qui conduit les deux campagnes : elle demande le signal du propriétaire
+    et consomme du quota. Toutes les autres nomment un test ou un contrôle qui échoue aujourd'hui
+    parce qu'il n'est pas écrit.
 
-    Enfin l''installation bigpowers, réancrée. Les 81 compétences de .claude/skills/
-    étaient 81 liens vers un cache npx, que le paquet n''occupait qu''au gré d''une
-    invocation : un vidage les aurait toutes tuées d''un coup, sans bruit. Elles pointent
-    désormais sur une installation globale, 81 sur 81, aucun lien mort. Les scripts
-    que les procédures invoquent par `bash scripts/…` sont distribués et se joignent
-    à $(npm root -g)/bigpowers/scripts ; ils ne sont pas câblés dans le dépôt, et
-    ne doivent pas l''être : la commande qui s''en charge, bigpowers init, remplace
-    scripts/ par un lien vers l''arborescence du paquet, ce qui emporterait tous les
-    contrôles de Preflight. AGENTS.md porte cet interdit. Ce qui n''est réellement
-    pas distribué est docs/ — le paquet publié n''en porte que templates/ —, motif
-    de D-51, inchangé. À savoir aussi : `bigpowers status` cherche un marqueur sous
-    ~/.claude/skills et déclare donc « not installed » pour toute installation locale
-    ; ce n''est pas un symptôme.
+    Enfin l'installation bigpowers, réancrée. Les 81 compétences de .claude/skills/ étaient 81
+    liens vers un cache npx, que le paquet n'occupait qu'au gré d'une invocation : un vidage les
+    aurait toutes tuées d'un coup, sans bruit. Elles pointent désormais sur une installation
+    globale, 81 sur 81, aucun lien mort. Les scripts que les procédures invoquent par
+    `bash scripts/…` sont distribués et se joignent à $(npm root -g)/bigpowers/scripts ; ils ne
+    sont pas câblés dans le dépôt, et ne doivent pas l'être : la commande qui s'en charge,
+    bigpowers init, remplace scripts/ par un lien vers l'arborescence du paquet, ce qui
+    emporterait tous les contrôles de Preflight. AGENTS.md porte cet interdit. Ce qui n'est
+    réellement pas distribué est docs/ — le paquet publié n'en porte que templates/ —, motif de
+    D-51, inchangé. À savoir aussi : `bigpowers status` cherche un marqueur sous ~/.claude/skills
+    et déclare donc « not installed » pour toute installation locale ; ce n'est pas un symptôme.
 
-    Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort
-    — qui attend sa mesure sous Apple Container, et la porte de cohérence de plan-work
-    ci-dessous.
-
-    '
+    Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort — qui
+    attend sa mesure sous Apple Container, et la porte de cohérence de plan-work ci-dessous.
   open_decisions:
-  - 'La porte de cohérence inter-artefacts de plan-work, à son étape 4a, ne tient
-    pas, et la mesure a corrigé l''hypothèse : le script ne rend pas quatre refus
-    de gravité haute pour les stories non encore planifiées — il meurt avant d''en
-    rendre aucun. Il sort en 1 sans écrire une ligne, ce qu''un lecteur ne distingue
-    pas d''un blocage. Deux causes indépendantes, l''une et l''autre relevées : sous
-    `set -e`, la lecture de la clé `spec:` d''un fichier de tâches qui n''en porte
-    pas fait sortir le script, et l''extraction des commandes verify s''appuie sur
-    un module Python absent de la machine tout en visant l''arborescence du paquet
-    plutôt que ce dépôt. e23s01, jugée sur une capsule ne portant qu''elle, passe
-    sans aucun constat. Trois voies : fabriquer cette capsule isolée à chaque story,
-    écrire un contrôle à nous qui admette une capsule remplie story par story, ou
-    passer la porte sciemment et écrire pourquoi. La question se pose à la sortie
-    de plan-work, pas à son entrée.
-
-    '
-  - 'Quel adaptateur se tient derrière SandboxPort : les backends écrits à la main,
-    @anthropic-ai/sandbox-runtime, ou une micro-VM. Pi n''implémente aucun bac à sable
-    et le documente comme un choix. La première mesure se conduit sous Apple Container
-    et non Docker — container system start, une image Debian, bwrap --unshare-user
-    --unshare-net true — sur signal du propriétaire et jamais pendant qu''une campagne
-    tourne, puisqu''un changement de bac à sable change environment_digest. L''enjeu
-    dépasse le choix d''adaptateur : un environnement Linux qui laisse créer un espace
-    de noms utilisateur rouvrirait NFR-05, seule exigence [P0] aujourd''hui déclarée
-    infermable.
-
-    '
+    - >
+      La porte de cohérence inter-artefacts de plan-work, à son étape 4a, ne tient pas, et la
+      mesure a corrigé l'hypothèse : le script ne rend pas quatre refus de gravité haute pour les
+      stories non encore planifiées — il meurt avant d'en rendre aucun. Il sort en 1 sans écrire
+      une ligne, ce qu'un lecteur ne distingue pas d'un blocage. Deux causes indépendantes, l'une
+      et l'autre relevées : sous `set -e`, la lecture de la clé `spec:` d'un fichier de tâches qui
+      n'en porte pas fait sortir le script, et l'extraction des commandes verify s'appuie sur un
+      module Python absent de la machine tout en visant l'arborescence du paquet plutôt que ce
+      dépôt. e23s01, jugée sur une capsule ne portant qu'elle, passe sans aucun constat. Trois
+      voies : fabriquer cette capsule isolée à chaque story, écrire un contrôle à nous qui admette
+      une capsule remplie story par story, ou passer la porte sciemment et écrire pourquoi. La
+      question se pose à la sortie de plan-work, pas à son entrée.
+    - >
+      Tout script bigpowers invoqué à son chemin de paquet déduit sa racine de dépôt de son propre
+      emplacement, donc juge `/opt/homebrew` — dépôt git de Homebrew — et non ce dépôt.
+      `verify-tdd-red-commit.sh` rendait un PASS sur un commit de Homebrew ; `check-blind-spots.sh`,
+      `completeness-critic.sh`, `sync-status-from-epics.sh` et `trace-stories.sh` lisaient les specs
+      du paquet. Contournés par une passerelle de liens symboliques montée hors du dépôt. À trancher :
+      garder cette passerelle comme outil de session, ou écrire nos propres contrôles.
+    - >
+      `bp-timing.sh` écrit ses mesures dans ce fichier par un aller-retour PyYAML, qui remplace les
+      scalaires de bloc par du texte entre guillemets à apostrophes doublées. La mise en forme a été
+      restaurée une fois à la main ; elle se reperdra au prochain appel. À trancher : renoncer au
+      chronométrage, ou déplacer les mesures hors de ce fichier.
+    - >
+      Quel adaptateur se tient derrière SandboxPort : les backends écrits à la main,
+      @anthropic-ai/sandbox-runtime, ou une micro-VM. Pi n'implémente aucun bac à sable et le
+      documente comme un choix. La première mesure se conduit sous Apple Container et non Docker —
+      container system start, une image Debian, bwrap --unshare-user --unshare-net true — sur
+      signal du propriétaire et jamais pendant qu'une campagne tourne, puisqu'un changement de bac
+      à sable change environment_digest. L'enjeu dépasse le choix d'adaptateur : un environnement
+      Linux qui laisse créer un espace de noms utilisateur rouvrirait NFR-05, seule exigence [P0]
+      aujourd'hui déclarée infermable.
   required_reading:
-  - specs/spikes/organisation-des-quatre-chantiers.md
-  - specs/references/countable-story-format.md
-  - specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md
-  - specs/adr/D-47-prompts-et-contexte-restent-un-seul-epic-elargi-a-la-phase-et-au-modele.md
-  - specs/adr/D-48-le-bloc-systeme-impose-par-le-fournisseur-est-declare-au-manifeste.md
-  - specs/adr/D-49-l-identite-claude-cli-est-acceptee-pour-la-seule-machine-de-reference.md
-  - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
-  - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
-  - specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md
-  - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
-  - specs/README.md
-  - specs/release-plan.yaml
-  - specs/product/SCOPE_LATEST.yaml
-  - specs/planning-status.yaml
+    - specs/spikes/organisation-des-quatre-chantiers.md
+    - specs/references/countable-story-format.md
+    - specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md
+    - specs/adr/D-47-prompts-et-contexte-restent-un-seul-epic-elargi-a-la-phase-et-au-modele.md
+    - specs/adr/D-48-le-bloc-systeme-impose-par-le-fournisseur-est-declare-au-manifeste.md
+    - specs/adr/D-49-l-identite-claude-cli-est-acceptee-pour-la-seule-machine-de-reference.md
+    - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
+    - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
+    - specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md
+    - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
+    - specs/README.md
+    - specs/release-plan.yaml
+    - specs/product/SCOPE_LATEST.yaml
+    - specs/planning-status.yaml
+
 git:
+  # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
+  # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: main
   hash: 0c0d4a45e97d14b9c4a024da7b8473a26d545d80
+
 metrics:
   skill_timings:
     develop-tdd:

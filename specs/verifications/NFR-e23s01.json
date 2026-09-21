@@ -1,0 +1,32 @@
+{
+  "story_id": "e23s01",
+  "risk": "P0",
+  "evaluated_at": "2026-09-21T15:05:00Z",
+  "threshold_source": {
+    "file": "specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s01-la-sortie-de-donnees-vers-le-fournisseur-est-declaree.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "specs/tech-architecture/e23-TEST_PLAN_LATEST.md does not exist and TEST_PLAN_LATEST.md is empty (0 bytes); the only declared thresholds for this story are the ones its own spec states."
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "membership in a declaration of at most 10 entries, under 1 ms, on a path already traversed once per intervention",
+      "measured": "0.000009 ms per decision, worst case (10 entries, no match, full scan), 1e6 iterations after warmup",
+      "note": "Default declaration holds 1 entry. The decision point is the one that already refuses an unqualified sandbox, so no new traversal is added."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "a refusal starts 0 processes, emits 0 bytes, writes 0 events; failure direction is closed",
+      "measured": "probed=[] and started=[] asserted by test/v1/egress.test.ts on refusal; four input classes all refuse (unknown provider, empty declaration, empty provider_id, exact-equality comparison cannot over-match)",
+      "note": "A malformed policy.egress from config.json throws rather than opening; the direction stays closed."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "the refusal is readable in every qualified Pi entry and names what to correct",
+      "measured": "POLICY_DENIED carries category 'policy', stop reason 'policy_denied' and next action 'configure_model', all preexisting; the message names the refused destination and the declared list, or names the declaration as empty",
+      "note": "No new presentation component; the refusal rides the existing diagnostic path."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}
