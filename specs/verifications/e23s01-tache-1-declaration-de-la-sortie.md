@@ -51,6 +51,6 @@ Aucun constat nouveau sur les deux chemins touchés.
 Une entrée de `config.json` qui nommait un fournisseur sans dire où il se situe produisait une
 destination de situation indéfinie, et cette preuve concluait que valider ce champ seul serait un
 traitement particulier que rien n'appuyait. La relecture croisée a conclu l'inverse : `readEgress`
-refuse désormais la déclaration entière pour cette entrée, et `D-53` porte le motif. La limite qui
-subsiste est l'autre côté du même choix — un `location` invalide refuse tout alors que ce champ
-n'autorise rien.
+refuse désormais la déclaration entière pour cette entrée, et `D-53` porte le motif. L'autre côté du même choix — un `location` invalide refuse
+tout alors que ce champ n'autorise rien — a été porté au propriétaire et tranché dans le même sens :
+le refus juge si le fichier peut être cru, pas ce que le champ autorise.

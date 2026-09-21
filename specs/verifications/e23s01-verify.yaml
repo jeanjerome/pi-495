@@ -136,10 +136,6 @@ known_limits:
     readEgress valide la forme de la déclaration, mais aucun autre champ de la politique ne l'est.
     Un budget ou un seuil malformé passe encore par un cast sans contrôle.
   - >
-    Un location invalide refuse toute intervention, alors que le champ ne décide d'aucun refus. La
-    fermeture est disproportionnée pour une donnée qui documente au lieu d'autoriser ; c'est une
-    question ouverte, pas un choix arrêté.
-  - >
     exportChange accepte options.secret_patterns ; un motif à groupe de capture fourni par un
     appelant contournerait la garde de la tâche 4. Aucun appelant existant ne le fait.
   - >

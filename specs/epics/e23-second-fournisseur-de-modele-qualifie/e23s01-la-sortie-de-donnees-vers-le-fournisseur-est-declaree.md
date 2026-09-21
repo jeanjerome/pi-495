@@ -188,8 +188,12 @@ que le laisser découvrir.
 - **Liste des destinations déclarées** (config) — vide : aucune intervention ne démarre. Par
   défaut : le fournisseur local seul. Élargie : chaque destination écrite autorise son fournisseur
   et aucun autre.
-- **Situation d'une destination** (config) — sur la machine, ou hors d'elle. Ne change aucun refus
-  aujourd'hui ; elle est ce qu'un lecteur interroge pour savoir si quelque chose est sorti.
+- **Situation d'une destination** (config) — sur la machine, ou hors d'elle. Elle ne décide d'aucun
+  refus au moment d'une intervention : la comparaison porte sur le seul identifiant de fournisseur.
+  Elle en décide un au chargement, en revanche — une situation illisible fait refuser la
+  déclaration entière, parce qu'un fichier dont une partie ne se lit pas n'est pas une déclaration
+  à moitié bonne. Son lecteur est le diagnostic d'ouverture de session, qui nomme les destinations
+  situées hors de la machine.
 
 ### 14. Quality attributes *NFR* [draft]
 

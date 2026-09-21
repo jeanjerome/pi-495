@@ -54,11 +54,18 @@ message du refus le dit : la nouvelle déclaration prend effet dans une nouvelle
 fichier à la reprise serait une autre story ; promettre une reprise qui ne peut pas marcher aurait
 été pire que le silence.
 
-Un `location` invalide refuse toute intervention, alors que ce champ ne décide d'aucun refus : il
-documente l'exposition, il ne l'autorise pas. La fermeture est disproportionnée pour cette donnée-là,
-et c'est la limite connue de cette décision. La trancher demande de savoir si `location` doit un jour
-décider quelque chose — question ouverte de `e23s01`, que `e23s04` rouvrira en déclarant une
-destination réellement hors machine.
+Un `location` invalide refuse toute intervention, au même titre qu'un `provider_id` absent, et
+c'est voulu. L'objection est réelle : ce champ ne décide d'aucun refus — il documente l'exposition,
+il ne l'autorise pas — et une faute de frappe dedans arrête donc tout. Mais le refus ne juge pas ce
+que le champ autorise : il juge si le fichier écrit par le propriétaire peut être cru quand il dit
+ce qu'il a voulu dire. C'est exactement l'argument qui fonde le refus de la liste entière, et
+l'appliquer à `provider_id` sans l'appliquer à `location` serait l'incohérence. Une déclaration
+dont une partie est illisible n'est pas une déclaration à moitié bonne ; c'est une déclaration que
+personne n'a écrite.
+
+Le prix est assumé : `e23s04` écrira la première destination réellement hors machine, donc le
+moment où ce champ sera le plus exposé à une faute de frappe. Le diagnostic nomme alors la
+destination et les deux valeurs admises, à l'ouverture de session, avant qu'aucun refus ne survienne.
 
 Le détail du blocage nomme les destinations déclarées, et le flux d'événements part au dossier
 exporté : les noms des fournisseurs que l'installation a le droit de joindre voyagent avec tout
