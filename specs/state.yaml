@@ -9,54 +9,46 @@ active_flow: null
 active_epic_id: null
 
 handoff:
-  next_skill: change-request
+  next_skill: slice-tasks
   last_step_completed: >
-    Quatre chantiers proposés ont été confrontés à l'index des 22 epics et au code. Leurs constats
-    vérifiés, l'organisation proposée et les questions ouvertes sont dans
-    specs/spikes/organisation-des-quatre-chantiers.md. Rien n'est porté dans SCOPE_LATEST.yaml,
-    release-plan.yaml ni adr/ : la proposition attend son arbitrage.
+    Les quatre chantiers proposés sont arbitrés. e23 — qualifier un second fournisseur de modèle —
+    entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à la phase et à la
+    dépendance au modèle, et CTX-03 sort du différé avec lui. Les quatre décisions sont écrites en
+    specs/adr/D-46 à D-49, le périmètre et l'index portent le changement, et la contrainte de
+    version passe à Pi 0.86.1. La cinquième question — quel adaptateur derrière SandboxPort —
+    reste ouverte et attend sa mesure.
   open_decisions:
     - >
       Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
       moment d'attaquer son epic. Reste à trancher comment écrire une story sans le gabarit
       countable-story-format, absent du paquet installé, et sans fabriquer de commande verify.
+      C'est ce qui bloque slice-tasks sur e23, désormais en tête de l'index.
     - >
-      L'archive n'est pas inerte : check-architecture et check-traceability y lisent le catalogue
-      des composants, la liste des exigences et la matrice. Laisser une skill régénérer cette
-      matrice viderait le gate, qui ne pourrait plus être en désaccord avec le code dont il
-      dériverait.
+      Quel adaptateur se tient derrière SandboxPort : les backends écrits à la main,
+      @anthropic-ai/sandbox-runtime, ou une micro-VM. Pi n'implémente aucun bac à sable et le
+      documente comme un choix. La première mesure se conduit sous Apple Container et non Docker —
+      container system start, une image Debian, bwrap --unshare-user --unshare-net true — sur
+      signal du propriétaire et jamais pendant qu'une campagne tourne, puisqu'un changement de bac
+      à sable change environment_digest. L'enjeu dépasse le choix d'adaptateur : un environnement
+      Linux qui laisse créer un espace de noms utilisateur rouvrirait NFR-05, seule exigence [P0]
+      aujourd'hui déclarée infermable.
     - >
-      e01 reste le premier epic de l'index adopté. Un epic e23 est proposé devant lui — qualifier un
-      second fournisseur de modèle — non parce qu'il prime en gravité, mais parce qu'il coûte peu et
-      change la preuve sous la campagne de e01 elle-même. Adoption à trancher.
-    - >
-      Un abonnement Claude Pro/Max est consommé nativement par Pi 0.86.1, par jeton OAuth présenté en
-      Bearer, sans qu'aucune clé d'API soit frappée : les trois voies envisagées — CLI Claude Code,
-      paquet pi-claude-bridge, implémentation propre — sont caduques. Le fournisseur impose en
-      revanche un premier bloc système que buildContext ne connaît pas, ce qui rendrait faux le
-      manifeste de contexte. À trancher : porter ce bloc au manifeste, ou refuser le profil.
-    - >
-      Les gestionnaires de prompts et de contexte visent un seul module, CMP-CTX, dont le travail est
-      déjà ouvert sous e04. À trancher : e04 absorbe les deux axes neufs — dépendance au modèle,
-      dépendance à la phase —, ou le corpus d'instructions devient un composant distinct avec son
-      propre identifiant CMP-* au catalogue.
-    - >
-      Pi n'implémente aucun bac à sable et le documente comme un choix. La question ouverte est quel
-      adaptateur se tient derrière SandboxPort : les backends écrits à la main, @anthropic-ai/sandbox-runtime,
-      ou une micro-VM. Première mesure à conduire sous Apple Container, pas Docker ; hors campagne,
-      puisqu'un changement de bac à sable change environment_digest.
-    - >
-      La machine exécute Pi 0.86.1 alors que SCOPE_LATEST.yaml annonce 0.85.1 et que node_modules a
-      résolu 0.85.1. pi_version alimente environment_digest : la montée de version a déjà invalidé le
-      protocole gelé de tout changement en vol. Correction due indépendamment de l'arbitrage.
+      devDependencies borne Pi à ^0.85.1 et résout 0.85.1, là où la machine exécute 0.86.1 : le
+      caret sur une version 0.x interdit la montée. Les tests s'exécutent donc contre une version
+      et les campagnes contre une autre, et e23 porte sur un chemin OAuth que seule 0.86.1 expose.
+      Aligner la borne est un changement de dépendance avec son propre Preflight, pas une
+      correction documentaire ; il n'est pas engagé.
   required_reading:
     - specs/spikes/organisation-des-quatre-chantiers.md
+    - specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md
+    - specs/adr/D-47-prompts-et-contexte-restent-un-seul-epic-elargi-a-la-phase-et-au-modele.md
+    - specs/adr/D-48-le-bloc-systeme-impose-par-le-fournisseur-est-declare-au-manifeste.md
+    - specs/adr/D-49-l-identite-claude-cli-est-acceptee-pour-la-seule-machine-de-reference.md
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml
-    - specs/adr/D-45-la-surface-documentaire-est-specs.md
-    - specs/archive/chantiers/K-clarte-des-prompts-et-skills-du-harnais.md
+    - specs/planning-status.yaml
 
 git:
   branch: main
-  hash: 4c23de9e607f3f44b9d40a5e58b01d4e51357dbe
+  hash: a3176340cc56b93a80c3895c13f0859c06598b26

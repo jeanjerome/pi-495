@@ -13,7 +13,9 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
 <!-- BEGIN bigpowers:learned-preferences -->
 ## Learned User Preferences
 
-- (none yet — updated via `session-state`)
+- Put an arbitration to the owner in plain French, without identifiers, scores or coded vocabulary:
+  state what each option costs and what it buys. Keep the coded vocabulary for the written artefact
+  that records the answer, not for the question that asks for it.
 
 ## Workspace Facts
 
