@@ -70,7 +70,7 @@ tasks:
       Aucun constat nouveau sur src/adapters/pi-worker/supervisor.ts et src/application/context.ts :
       l'environnement du worker reste une liste fermée et le constructeur de contexte ne lit aucune
       variable d'environnement.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
