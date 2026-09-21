@@ -12,56 +12,51 @@ active_story: e23s01
 handoff:
   next_skill: release-branch
   last_step_completed: >
-    Cinq choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
-    fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à
-    la phase et à la dépendance au modèle, et CTX-03 sort du différé avec lui ; le bloc système que
-    le fournisseur impose est déclaré au manifeste plutôt que le profil refusé ; l'identité
-    claude-cli est acceptée pour la seule machine de référence. Les quatre décisions sont en
-    specs/adr/D-46 à D-49, et le périmètre comme l'index portent le changement.
+    e23s01 est livrée : la sortie de données vers le fournisseur est déclarée, et une destination
+    non déclarée est refusée avant qu'un processus démarre. Le code utile tient en trois fichiers.
+    `ActivePolicy` porte `egress`, une liste de destinations `{ provider_id, location }` ;
+    `undeclaredEgressReason` dit dans le domaine pourquoi une destination n'est pas déclarée, aux
+    côtés de `evaluateG2` et `evaluateG5` ; `refuseUndeclaredDestination` lève le refus dans le
+    superviseur, à l'ouverture de l'intervention puis à l'entrée de `run()`. Aucun composant, aucun
+    code d'erreur, aucun identifiant nouveaux : `POLICY_DENIED` et `policy_denied` existaient.
 
-    Ensuite l'alignement des dépendances et du runtime. Les trois paquets @earendil-works passent à
-    ^0.86.1, typebox à ^1.3.34, fast-check à ^4.10.2 et TypeScript à ^7.0.2 : Preflight vert à
-    chaque étape, sur Node 24.21 comme sur Node 26.9, dist/ inchangé et contrats régénérés à
-    l'identique. @types/node reste à ^24 parce qu'il garde le plancher engines >= 24, et la machine
-    est épinglée sur ce plancher dans ~/.zshenv au lieu que le plancher suive la machine (D-50) —
-    elle servait auparavant Node 22 hors terminal et Node 24 en terminal, soit deux empreintes
-    d'environnement pour un seul poste.
+    Le noyau ne déclare rien de lui-même — il ne connaît aucune machine — et `extension/config.ts`
+    porte le défaut `omlx` sur la machine. `readEgress` valide la déclaration lue de `config.json`
+    et applique la règle de `D-53` : une déclaration dont une partie est illisible ne déclare rien
+    du tout, parce que revenir au défaut réadmettrait une destination que le propriétaire vient
+    peut-être de retirer. Un fichier qui s'analyse sans être un objet est traité comme illisible ;
+    un `provider_id` surdimensionné est refusé et nommé par sa longueur, jamais recopié. Un
+    `location` invalide refuse aussi tout : le propriétaire l'a tranché ainsi, et `D-53` porte le
+    motif — le refus juge si le fichier peut être cru, pas ce que le champ autorise.
 
-    Puis la levée de ce qui bloquait slice-tasks. Le gabarit de story n'était pas introuvable mais
-    non distribué : le paquet bigpowers installé porte 81 SKILL.md et pas l'arborescence docs/ que
-    ces procédures citent, alors que les procédures elles-mêmes sont identiques à l'octet à
-    l'amont. Le gabarit est recopié sous specs/references/, épinglé à sa version, et
-    lint:story-format entre dans Preflight : il en extrait les vingt sections et refuse une story
-    dont une section manque, sort de son rang, change de nom ou n'annonce pas son état (D-51). La
-    commande verify, elle, n'a jamais été censée passer au moment où on l'écrit — plan-work exige
-    qu'une tâche naisse failing et ne bascule qu'après une sortie en 0 —, et ce qui demande une
-    main s'écrit verify-script (D-52). slice-tasks n'écrit d'ailleurs pas de story : il écrit les
-    fichiers de tâches et renvoie le gabarit à plan-work.
+    Quatre rondes de relecture croisée en double aveugle. Elles n'ont jamais trouvé de défaut
+    laissant passer une destination non déclarée ; presque tous les constats visaient ce qui était
+    écrit autour du code. Trois enseignements valent d'être gardés. D'abord le test par mutation :
+    trois comportements que des commits existaient pour introduire — le refus reprenable, les
+    actions suivantes, le fichier illisible — n'étaient tenus par aucun test, et seule la mutation
+    l'a montré. Ensuite la véracité documentaire : un recensement a trouvé treize affirmations
+    fausses réparties sur quatre fichiers, la story se contredisant elle-même entre son §6a et son
+    §12 ; dix-huit artefacts affirment des faits sur ce code, et corriger l'un en périme d'autres.
+    Enfin le piège du remède : rendre le refus reprenable promettait une reprise qui ne pouvait pas
+    marcher, la déclaration n'étant lue qu'au démarrage du runtime — le message le dit désormais.
 
-    Vient ensuite le découpage d'e23, premier epic à recevoir sa capsule. Cinq stories en ordre contraint
-    et non préférentiel : la sortie de données est déclarée avant qu'une seule intervention la
-    rende effective, le manifeste apprend à nommer la strate que le fournisseur impose au-dessus
-    des instructions locales, le refus d'un profil incapable reçoit un effet avant que du quota
-    d'abonnement soit consommé, puis la campagne tient la recette d'AGT-02 sur deux fournisseurs,
-    et ses relevés remesurent les budgets en dernier. 15 BCP. Une seule tâche est en
-    verify-script, celle qui conduit les deux campagnes : elle demande le signal du propriétaire
-    et consomme du quota. Toutes les autres nomment un test ou un contrôle qui échoue aujourd'hui
-    parce qu'il n'est pas écrit.
+    Preflight vert à la clôture, 300 tests, sept contrôles de lint, zéro avertissement biome,
+    arbre propre, 28 commits sur `sortie-vers-le-fournisseur-declaree`. La branche n'est pas
+    fusionnée : `release-branch` ouvrira la PR.
 
-    Enfin l'installation bigpowers, réancrée. Les 81 compétences de .claude/skills/ étaient 81
-    liens vers un cache npx, que le paquet n'occupait qu'au gré d'une invocation : un vidage les
-    aurait toutes tuées d'un coup, sans bruit. Elles pointent désormais sur une installation
-    globale, 81 sur 81, aucun lien mort. Les scripts que les procédures invoquent par
-    `bash scripts/…` sont distribués et se joignent à $(npm root -g)/bigpowers/scripts ; ils ne
-    sont pas câblés dans le dépôt, et ne doivent pas l'être : la commande qui s'en charge,
-    bigpowers init, remplace scripts/ par un lien vers l'arborescence du paquet, ce qui
-    emporterait tous les contrôles de Preflight. AGENTS.md porte cet interdit. Ce qui n'est
-    réellement pas distribué est docs/ — le paquet publié n'en porte que templates/ —, motif de
-    D-51, inchangé. À savoir aussi : `bigpowers status` cherche un marqueur sous ~/.claude/skills
-    et déclare donc « not installed » pour toute installation locale ; ce n'est pas un symptôme.
+    Reste à faire sur cette story, mis de côté sciemment et non oublié — deux finitions d'une
+    demi-heure. Un, le dédoublonnage de deux entrées identiques est silencieux : la fusion est
+    justifiée, puisqu'une déclaration qui dit deux fois la même chose se comprend, mais elle doit
+    être annoncée et épinglée par un test. Deux, le test d'aliasing de `DEFAULT_EGRESS` exerce le
+    chemin sans `config.json`, donc celui où `readEgress` n'est pas appelé : il prouve la garantie
+    sur le mauvais chemin. Et une ligne de traçabilité : la recette de SEC-05 demande une sentinelle
+    injectée dans l'environnement du contrôleur **puis dans une sortie d'outil** ; la seconde moitié
+    n'est pas couverte, le §18 la met hors périmètre, et la matrice doit le dire avec la notation
+    `**partiel** :` qu'elle emploie déjà six fois ailleurs.
 
-    Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort — qui
-    attend sa mesure sous Apple Container, et la porte de cohérence de plan-work ci-dessous.
+    Les deux questions de la story ne sont pas en attente d'un arbitrage : elles sont
+    inrépondables tant que `e23s04` n'a pas configuré l'abonnement et déclaré une destination hors
+    machine. Elles restent au §19.
   open_decisions:
     - >
       La porte de cohérence inter-artefacts de plan-work, à son étape 4a, ne tient pas, et la
@@ -115,8 +110,8 @@ handoff:
 git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
-  branch: main
-  hash: 0c0d4a45e97d14b9c4a024da7b8473a26d545d80
+  branch: sortie-vers-le-fournisseur-declaree
+  hash: 08baff497b643a435960d9276bfe3566fbbe034f
 
 metrics:
   skill_timings:
