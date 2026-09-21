@@ -60,12 +60,12 @@ ne promet aucune capacité produit. La conception technique §18 lui rattache le
 - **Les dix lignes de risque** de `amont/conception-technique.md` §16 possèdent chacune leur
   décision écrite et sa preuve, ou le travail qui manque : [RISQUES-L0.md](RISQUES-L0.md).
 - **Les trois paramètres différés** sont fixés avec leur protocole, leur fixture et leur critère de
-  décision (`DECISIONS.md` D-33, `v0/review-parameters`).
+  décision (`specs/adr/` D-33, `v0/review-parameters`).
 
 ### Linux x86-64 n'est pas revendiquée
 
 L0 demande une décision argumentée, pas une promesse. La décision est de **ne pas revendiquer
-Linux** (`DECISIONS.md` D-31). Il n'existe pas d'état intermédiaire : le backend `bubblewrap` échoue
+Linux** (`specs/adr/` D-31). Il n'existe pas d'état intermédiaire : le backend `bubblewrap` échoue
 sa qualification sur toute machine, et la frontière d'exécution refuse alors tout rôle confiné avec
 `capability_missing`. Ce refus est éprouvé par exécution sur Linux, pas seulement écrit —
 `QUALIFICATION.md`, campagne du 17 septembre 2026.

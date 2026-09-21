@@ -40,7 +40,7 @@ inchangée tant que rien n'est tenu.
   pour la découverte des capacités d'une stack. Aucun `CMP-*` ne couvre aujourd'hui un diagnostic
   d'architecture ni un référentiel de qualité : il faudra en créer, avec leur ligne au catalogue dans
   le même changement.
-- `DECISIONS.md` ne porte aucune décision sur un référentiel de qualité, une baseline de dette ou une
+- `specs/adr/` ne porte aucune décision sur un référentiel de qualité, une baseline de dette ou une
   architecture cible. Terrain vierge, rien à re-trancher.
 
 ## Ordre imposé
@@ -107,7 +107,7 @@ et après ; QLT-01 ne s'inscrit dans specs/archive/TRACEABILITY.md que pour ce q
 - `specs/archive/TRACEABILITY.md` lignes 71 et 72 (absences déclarées), ligne 34 (`ARC-04` / `CON-03` et le
   manque `ARC-01`), ligne 33 (`QLT-04` et ce qu'il ne couvre pas)
 - `specs/archive/ROADMAP.md` §1 « le contrôle de l'introduit » et §2 « la moitié de P0 non commencée »
-- `specs/archive/DECISIONS.md` `D-42` et `D-43` — l'adoption d'un référentiel externe sur le harnais, et
+- `specs/adr/` `D-42` et `D-43` — l'adoption d'un référentiel externe sur le harnais, et
   pourquoi elle ne vaut pas `QLT-01`
 - `src/application/coverage.ts`, `src/adapters/execution/structure.ts`, `src/application/target.ts`
 - `src/contracts/v1/evidence.ts` (`FINDING_CATEGORIES`, `baseline_state`), `src/contracts/v1/protocol.ts`

@@ -79,7 +79,7 @@ suite qui échoue sur la référence. Une exigence que la référence honore dé
 non-régression la décide, pourvu que la suite existante exécute réellement quelque chose.
 
 Cette distinction est déclarée par l'intervention de spécification, champ `satisfied_by_reference`,
-et non devinée par le noyau (voir `DECISIONS.md`, D-21). La valeur par défaut d'une sortie qui
+et non devinée par le noyau (voir `specs/adr/`, D-21). La valeur par défaut d'une sortie qui
 l'omet est `false`, c'est-à-dire l'ouverture d'une préparation.
 
 La première passe du diagnostic précède l'écriture des témoins : ce qu'aucun contrôle ne peut

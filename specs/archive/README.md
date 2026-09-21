@@ -26,7 +26,7 @@ Ce qui a été construit, dans quel état, et prouvé par quoi. Vivant : actuali
 | [STATUS.md](STATUS.md) | État par incrément, ce qui est démontré, limites connues, ce qui n'est pas qualifié. |
 | [TRACEABILITY.md](TRACEABILITY.md) | Matrice exigence → composants → preuves, y compris les exigences non couvertes. |
 | [QUALIFICATION.md](QUALIFICATION.md) | Rapport d'exécution sur la machine de référence. |
-| [DECISIONS.md](DECISIONS.md) | Décisions prises pendant l'implémentation, avec motif et conséquence. |
+| [DECISIONS.md](DECISIONS.md) | Renvoi : les décisions sont un fichier par décision sous `specs/adr/`. |
 | [RISQUES-L0.md](RISQUES-L0.md) | Les dix risques de la conception technique §16 : pour chacun, la décision de traitement retenue et la preuve qui la soutient, ou le travail qui manque. |
 | [revues/](revues/README.md) | Les six revues obligatoires de qualification : le dossier de chacune, et les constats de celles qui sont conduites. |
 | [MODELE-LOCAL.md](MODELE-LOCAL.md) | Installation d'oMLX et configuration du modèle local des deux côtés, oMLX et Pi, avec les pièges qui rendent un modèle inchargeable. |
@@ -49,7 +49,7 @@ porte l'état d'avancement et le critère de sortie.
 | Une exigence nouvelle ou révisée | `amont/`, par révision explicite |
 | Un constat sur ce que le code fait réellement | `STATUS.md` |
 | Une exigence devenue couverte, ou révélée non couverte | `TRACEABILITY.md` |
-| Un arbitrage d'implémentation | `DECISIONS.md` |
+| Un arbitrage d'implémentation | `specs/adr/` |
 | Un travail à engager | `chantiers/`, et une ligne dans `ROADMAP.md` s'il change l'ordre |
 | Une exécution de campagne | `QUALIFICATION.md` |
 | Un constat de revue obligatoire, ou ce qui manque pour la conduire | `revues/`, dans le dossier de la revue concernée |

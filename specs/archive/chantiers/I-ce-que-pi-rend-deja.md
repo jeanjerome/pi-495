@@ -66,7 +66,7 @@ l'invariant de largeur. Une surface faite de composants Pi ne s'éprouve plus qu
 ## Prompt
 
 ```
-Dans ~/Projets/495-pi-package, lis D-35 dans specs/archive/DECISIONS.md, la règle `presentation` de
+Dans ~/Projets/495-pi-package, lis D-35 dans specs/adr/, la règle `presentation` de
 scripts/check-layers.ts avec son commentaire, et src/presentation/tui/review-surface.ts.
 Regarde ensuite ce qu'exportent @earendil-works/pi-tui (index.d.ts) et
 @earendil-works/pi-coding-agent : SelectList, ScrollView, HStack, Box, TruncatedText, keyHint,
@@ -84,7 +84,7 @@ modèle de revue ou la pureté de la surface ?
    faut alors dire comment le rendu reste éprouvé : un harnais TUI, ou des tests de plus bas
    niveau sur le modèle.
 
-Écris la décision retenue dans specs/archive/DECISIONS.md avec son motif et sa conséquence, et mets la
+Écris la décision retenue dans specs/adr/ avec son motif et sa conséquence, et mets la
 règle de couches en accord avec elle. Ne convertis rien avant que la décision soit écrite.
 
 Critères d'acceptation :

@@ -2,7 +2,7 @@
 
 Ce plan suit l'ordre recommandé par la conception technique (§18). Chaque incrément est
 livré avec ses tests, sa matrice de traçabilité (`specs/archive/TRACEABILITY.md`) et son statut
-(`specs/archive/STATUS.md`). Les décisions prises seul pendant l'implémentation sont dans `DECISIONS.md`.
+(`specs/archive/STATUS.md`). Les décisions prises seul pendant l'implémentation sont dans `specs/adr/`.
 
 Les incréments `IT-0` à `IT-4` servent le jalon L0 — la conception technique leur donne pour sortie
 « parcours L0 complet et base du parcours L1 ». `IT-5` ouvre L1. Livrer un incrément n'est pas

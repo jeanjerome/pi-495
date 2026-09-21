@@ -80,7 +80,7 @@ préparation dont l'intervention écrit un fichier de travail hors des racines a
 script, un journal — en plus de tests corrects, et qui échoue aujourd'hui parce que la préparation
 est refusée alors que ses tests sont valides.
 
-Décide ensuite ce qui porte la tolérance, et écris la décision dans specs/archive/DECISIONS.md. Deux formes
+Décide ensuite ce qui porte la tolérance, et écris la décision dans specs/adr/. Deux formes
 au moins :
 
   - le mandat énonce ce qui est RETENU plutôt que ce qui est PERMIS — « seuls les fichiers sous ces

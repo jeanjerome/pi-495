@@ -91,7 +91,7 @@ Deux travaux, dans cet ordre.
    n'y existe pas, la mesure absente est rendue INDETERMINATE, et un témoin négatif doit
    rendre FAIL.
 
-   Décide ensuite ce qui porte la dépendance, et écris la décision dans specs/archive/DECISIONS.md :
+   Décide ensuite ce qui porte la dépendance, et écris la décision dans specs/adr/ :
    un producteur déclaré dans ControlDefinition — ce que fait pi-lens pour ses producteurs de
    faits, `provides` / `requires` et un ordonnanceur topologique avec détection de cycle, voir
    clients/dispatch/ dans github.com/apmantza/pi-lens — ou les contrôles qui précèdent le
@@ -124,7 +124,7 @@ Deux travaux, dans cet ordre.
    travail : note-le et relance, ne corrige pas en passant.
 
 Où écrire quoi, quand c'est fini : la campagne et ses chiffres dans specs/archive/QUALIFICATION.md, ce
-qu'elle révèle du produit dans specs/archive/STATUS.md, la décision dans specs/archive/DECISIONS.md, l'état des
+qu'elle révèle du produit dans specs/archive/STATUS.md, la décision dans specs/adr/, l'état des
 exigences dans specs/archive/TRACEABILITY.md (VER-05, PRE-03, QLT-04 y portent aujourd'hui la mention
 « partiel » qui renvoie ici), le journal de cette fiche et sa ligne dans chantiers/README.md.
 Si l'ordre des travaux change, une ligne dans specs/archive/ROADMAP.md ; si le critère de sortie L1 n°2
@@ -166,7 +166,7 @@ est verte —, un capteur qui n'exécute qu'un `node -e ""` et lit le second, et
 workspace positif venait de servir à qualifier le producteur, négatif `INDETERMINATE` avec
 « no JUnit report found at the declared report path », qualification refusée.
 
-La dépendance est portée par `ControlDefinition` (`../DECISIONS.md` D-36) : `provides` nomme les
+La dépendance est portée par `ControlDefinition` (`specs/adr/` D-36) : `provides` nomme les
 rapports qu'un contrôle laisse dans le workspace, `requires` ceux qu'il lit sans les produire,
 `domain/controls.ts` en dérive l'ordre — topologique, stable sur l'ordre d'arrivée, cycles nommés —
 et la qualification exécute les producteurs d'un capteur dans chacun de ses workspaces de témoin. Le

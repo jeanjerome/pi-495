@@ -60,7 +60,7 @@ Une capacité de ce tableau reste inopposable sur une cible réelle : l'adaptate
 que la cible déclare comme commande de test, et une cible en vitest n'y passe pas (`chantiers/E`).
 Le capteur de couverture de QLT-04, lui, se qualifie désormais dans un cycle — le rapport qu'il lit
 est déclaré par le contrôle qui l'écrit, et la qualification exécute ce producteur dans chacun de ses
-workspaces de témoin (`chantiers/D`, `DECISIONS.md` D-36) —, et la cible Maven va de la demande à
+workspaces de témoin (`chantiers/D`, `specs/adr/` D-36) —, et la cible Maven va de la demande à
 l'acceptation avec le modèle local.
 
 VER-08 est sorti de ce tableau : les contrôles s'exécutent sur la référence, les constats sont

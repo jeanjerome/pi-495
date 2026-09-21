@@ -261,7 +261,7 @@ Quatre contraintes bornent toute solution, et une proposition qui les ignore est
 Ce que ce travail doit produire :
   - un relevé, rôle par rôle, de ce que le prompt dit aujourd'hui et de ce qui a échoué dessus,
     appuyé sur les dossiers ;
-  - une décision écrite dans specs/archive/DECISIONS.md : la forme que prennent les instructions, le
+  - une décision écrite dans specs/adr/ : la forme que prennent les instructions, le
     découpage retenu, la manière dont une skill du harnais est chargée, sélectionnée et inscrite au
     manifeste, et ce qui reste dans context.ts ;
   - les reformulations elles-mêmes, avec pour chacune le test qui la tient. Le niveau de
