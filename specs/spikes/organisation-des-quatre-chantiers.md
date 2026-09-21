@@ -145,13 +145,13 @@ parallèle.
 
 ## 6. Corrections dues indépendamment de l'arbitrage
 
-La première est faite ; la seconde est un changement de dépendance, inscrit aux contraintes du
-périmètre et non encore appliqué.
+Les deux sont faites.
 
 - ~~`specs/product/SCOPE_LATEST.yaml` porte « Pi 0.85.1 » dans ses contraintes~~ — corrigé en
   **0.86.1**, la version que la machine exécute.
-- `node_modules` du dépôt a résolu `@earendil-works/pi-coding-agent` et `pi-ai` en **0.85.1** : les
-  tests s'exécutent contre une version et les campagnes contre une autre.
+- ~~`node_modules` du dépôt a résolu `@earendil-works/pi-coding-agent` et `pi-ai` en **0.85.1**~~ —
+  les trois bornes `devDependencies` sont montées à `^0.86.1` et résolvent 0.86.1. Les tests et les
+  campagnes s'exécutent désormais contre la même version.
 - Ce n'est pas cosmétique : `pi_version` alimente `describeEnvironment` (`src/extension/runtime.ts:82`)
   donc `environment_digest`. Le passage en 0.86.1 a **déjà** invalidé le protocole gelé de tout
   changement en vol, avec `environment_changed`.
