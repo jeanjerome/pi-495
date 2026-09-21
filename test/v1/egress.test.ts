@@ -169,16 +169,25 @@ describe("the declaration a configuration carries (SEC-05)", () => {
 		}
 	});
 
-	it("says out loud what is in force, whether it declared the default or nothing at all", () => {
+	it("says out loud when nothing is declared, and stays quiet when the default changes nothing", () => {
 		const absent = loadConfig(configured({ budgets: { max_attempts: 5 } })).diagnostics;
-		assert.ok(
-			absent.some((d) => d.includes("absent") && d.includes("omlx")),
-			`an inherited declaration must be announced, not assumed: ${absent.join(" | ")}`,
-		);
+		assert.deepEqual(absent, [], "a default that changes no exposure is not worth a line at every session open");
 		const empty = loadConfig(configured({ egress: [] })).diagnostics;
 		assert.ok(
 			empty.some((d) => d.includes("no egress destination is declared")),
 			`a declaration that refuses everything must say so at load: ${empty.join(" | ")}`,
+		);
+	});
+
+	it("declares nothing when the file itself cannot be read", () => {
+		writeFileSync(join(root, "config.json"), "{ not json");
+		const { config, diagnostics } = loadConfig(root);
+		// A file that cannot be read cannot be trusted to have declared anything: keeping the default
+		// would restore a destination the owner may have removed in the very edit that broke it.
+		assert.deepEqual(config.policy.egress, [], "an unreadable configuration must not inherit a destination");
+		assert.ok(
+			diagnostics.some((d) => d.includes("no egress destination is declared")),
+			diagnostics.join(" | "),
 		);
 	});
 

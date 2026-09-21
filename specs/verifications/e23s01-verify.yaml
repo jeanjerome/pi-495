@@ -21,7 +21,7 @@ phases:
   lint:
     passed: true
     note: >
-      Eight controls inside npm run check: lint:code, lint:layers, lint:architecture, lint:exports,
+      Seven controls inside npm run check: lint:code, lint:layers, lint:architecture, lint:exports,
       lint:traceability, lint:distribution, lint:story-format.
   tests:
     passed: true
@@ -34,7 +34,9 @@ phases:
     command: "npm run check"
     exit_code: 0
     captured_at: "2026-09-21T15:00:47Z"
-    note: "Single contiguous run — no output merged from any other attempt."
+    note: >
+      Single contiguous run — no output merged from any other attempt. Captured before the three
+      cross-review commits; re-run green at each of them, the last time at 2026-09-21T17:10:00Z.
 
 task_verify_commands:
   - task: 1
@@ -86,10 +88,14 @@ manual:
     confirmation.
   confirmed_by_owner: true
   confirmed_scope_note: >
-    La confirmation porte sur les six scénarios. Le sixième a été resserré depuis — « aucun objet
-    textuel du dossier » au lieu de « aucun fichier du dossier » — parce que l'expurgation ne
-    touche que les objets textuels du magasin, jamais les flux d'événements. Le scénario confirmé
-    était plus large que le code ; c'est le scénario qui a cédé, pas le code.
+    La confirmation a porté sur les six scénarios de la révision 105d2d3. Trois commits de relecture
+    croisée ont touché le code depuis — 158f014, 095e044, c622ec3 — et deux d'entre eux ont changé
+    du comportement, pas seulement de la prose : le refus est devenu reprenable et a gagné une
+    action, et une déclaration malformée est passée du repli au refus, ce qui déplace la frontière
+    du scénario 6c. Le scénario 6e a par ailleurs été resserré — « aucun objet textuel du dossier »
+    au lieu de « aucun fichier du dossier » — parce que l'expurgation ne touche que les objets
+    textuels du magasin. La confirmation reste vraie de ce qu'elle a jugé ; elle n'a pas été
+    redemandée sur l'état actuel, et ce champ ne prétend pas le contraire.
   confirmed_at: "2026-09-21T15:15:50Z"
   steps:
     - step: "Une destination déclarée ouvre l'intervention (§5)"
@@ -114,7 +120,7 @@ manual:
       passed: true
     - step: "Un secret retiré du dossier est signalé sans être divulgué (6e)"
       expected: "Le secret n'apparaît dans aucun objet textuel du dossier ; le signalement porte emplacement et compte, jamais la valeur"
-      actual: "test/v2/export-integration.test.ts — « names what a redaction removed by location and count only, never by value » et la garde de type sur l'enregistrement de retrait"
+      actual: "test/v2/export-integration.test.ts — « names what a redaction removed by location and count only, never by value » ; la garde de type qui accompagnait ce scénario a été retirée depuis la confirmation, comme fragile"
       passed: true
 
 gaps:

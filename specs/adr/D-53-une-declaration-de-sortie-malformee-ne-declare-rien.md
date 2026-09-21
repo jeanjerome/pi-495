@@ -38,9 +38,13 @@ qui ne reçoit aucune politique : l'y placer demanderait de lui en passer une.
 
 ## Conséquences
 
-Le refus est **reprenable**. Le remède tient en une ligne de configuration et le propriétaire la
-détient ; un blocage que personne ne peut lever perd le changement. Une reprise avec la déclaration
-toujours absente bloque de nouveau.
+Le refus est **reprenable** : un blocage que personne ne peut lever perd le changement, et le
+remède tient en une ligne de configuration que le propriétaire détient. Mais la déclaration est lue
+une seule fois, quand le runtime est construit, et tenue par référence — une reprise dans la même
+session est donc jugée contre la politique chargée **avant** l'édition, et bloque de nouveau. Le
+message du refus le dit : la nouvelle déclaration prend effet dans une nouvelle session. Relire le
+fichier à la reprise serait une autre story ; promettre une reprise qui ne peut pas marcher aurait
+été pire que le silence.
 
 Un `location` invalide refuse toute intervention, alors que ce champ ne décide d'aucun refus : il
 documente l'exposition, il ne l'autorise pas. La fermeture est disproportionnée pour cette donnée-là,

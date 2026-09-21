@@ -39,7 +39,7 @@ quitte jamais le dépôt.
 | --- | --- |
 | Fournisseur absent de la liste | refusé (`POLICY_DENIED`) |
 | Liste déclarée vide | refusé, et le message nomme la liste vide |
-| `provider_id` vide, faute de modèle configuré | refusé |
+| `provider_id` vide, faute de modèle configuré | non jugé ici — la vérification de capacité le refuse sous son propre motif |
 | Comparaison | égalité de chaîne exacte — ni motif, ni préfixe, ni joker ; ne peut pas sur-apparier |
 
 ## Observations sous le seuil de report (confiance < 8, non bloquantes)

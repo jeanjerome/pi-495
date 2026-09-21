@@ -98,7 +98,9 @@ Interruption point: entre les étapes 4 et 5 — la destination est jugée, rien
 Aucun processus n'est démarré, aucune intervention n'est ouverte, aucun octet n'est émis. Le refus
 lui-même est inscrit au journal comme tout blocage — voir §12. Le motif d'arrêt est celui du refus
 par politique, il est déclaré reprenable, et les actions proposées nomment la déclaration à écrire
-avant la sélection du modèle.
+avant la sélection du modèle. La déclaration étant lue au démarrage, le message dit qu'une nouvelle
+prend effet dans une nouvelle session : une reprise dans la même session serait jugée contre la
+politique d'avant l'édition.
 
 6b. **Liste déclarée vide** — aucune intervention ne peut démarrer. C'est le comportement voulu et
 non une panne : une liste vide dit qu'aucune destination n'a été écrite. Le refus nomme la liste

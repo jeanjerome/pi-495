@@ -22,18 +22,22 @@ l'emplacement et le compte, et que sa forme ne puisse structurellement pas porte
 | --- | --- |
 | Le secret n'apparaît dans aucun fichier du dossier (préexistant) | déjà vert |
 | Un enregistrement de retrait ne porte que `path`, `count`, `kind` | vert à l'arrivée |
-| Le type qui porte le signalement ne réserve aucun champ pour une valeur (garde structurelle) | vert à l'arrivée |
+| Le type qui porte le signalement ne réserve aucun champ pour une valeur (garde structurelle) | vert à l'arrivée, **retirée depuis** |
 
 Aucun code de production écrit. Deux tests, un seul commit `test:`.
 
-## Ce que la garde structurelle établit
+## La garde structurelle a été retirée, et ce qui reste est plus faible
 
-`src/export/export-service.ts` retire un secret par `text.replace(re, () => { count++; return
-"[REDACTED-BY-495]"; })` : le rappel ne déclare aucun paramètre, donc le texte trouvé n'entre jamais
-en mémoire JS au-delà de l'appel de la fonction native `replace`. `redactions.push({ path, count,
-kind: "secret-sentinel" })` ne peut donc pas fuir une valeur qu'il n'a jamais reçue. La garde fixe
-la déclaration de type elle-même — un champ `value` ou `secret` ajouté à ce type ferait échouer le
-test avant qu'il atteigne un fichier.
+Cette preuve affirmait qu'un champ `value` ajouté au type du signalement ferait échouer un test
+avant d'atteindre un fichier. Ce test comparait la **source** de `export-service.ts` à une
+expression rationnelle ; la relecture croisée l'a jugé fragile — un renommage de champ ou un simple
+reformatage le cassait sans que le comportement bouge — et contraire à la règle « n'affirmer qu'à
+travers l'interface publique ». Il a été retiré.
+
+Ce qui reste est l'assertion comportementale : chaque enregistrement émis ne porte que `path`,
+`count` et `kind`, et la valeur retirée n'y figure pas. Elle est vraie de ce que le service produit,
+et muette sur ce que le type permettrait. Le fait demeure que `redactText` retire sans capturer —
+son rappel ne déclare aucun paramètre — mais plus aucun test ne le tient.
 
 ## Revue de sécurité — `security: high`
 

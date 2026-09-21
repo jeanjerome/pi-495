@@ -100,5 +100,8 @@ export function undeclaredEgressReason(policy: ActivePolicy, providerId: string)
 	if (policy.egress.some((d) => d.provider_id === providerId)) return null;
 	if (policy.egress.length === 0)
 		return "no egress destination is declared, so no intervention may hand excerpts or prompts to a model";
-	return `${providerId} is not declared in policy.egress; declared destinations: ${policy.egress.map((d) => d.provider_id).join(", ")}`;
+	return (
+		`${providerId} is not declared in policy.egress; declared destinations: ${policy.egress.map((d) => d.provider_id).join(", ")}. ` +
+		"The declaration is read once at startup, so a new one takes effect in a new session."
+	);
 }

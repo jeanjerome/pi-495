@@ -40,7 +40,8 @@ tasks:
   - id: 2
     description: >
       Une intervention dont la destination n'est pas déclarée est refusée par politique avant qu'un
-      processus démarre, qu'un octet parte ou qu'un événement soit inscrit. Une destination déclarée
+      processus démarre, qu'un octet parte ou qu'une intervention soit ouverte. Le refus lui-même est
+      inscrit au journal, reprenable, et nomme la déclaration à écrire. Une destination déclarée
       poursuit sur la vérification de capacité existante. Le profil du mandat continue de refuser le
       réseau : la déclaration dit ce qui sort, l'exemption dit ce qui est permis, et les deux
       restent distincts.

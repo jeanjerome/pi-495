@@ -55,12 +55,12 @@ pour l'une, 16 pour l'autre, chacune à un seul niveau.
 | Provenance & Metadata | **PASS** | `type: feat`, `context: domain`, `risk: P0` au fichier de tâches ; §20 de la story cite D-11, D-46, D-49, D-52. |
 | Law of Demeter | **PASS** | Les deux accès ajoutés — `this.deps.policy.egress`, `this.deps.model.provider_id` — sont plus courts que les voisins préexistants de la même classe. `deps` est un enregistrement de dépendances injectées, pas une chaîne d'objets étrangers. |
 | CONVENTIONS.md | **PASS** | Aucun fichier hors `specs/`, `src/`, `test/`. Aucun `gh issue create`, aucun appel direct à l'API REST GitHub. |
-| Scope | **PASS** | Deux fichiers de production, 40 lignes. Les refactorisations ci-dessus portent sur des fichiers ouverts pour cette story, sous règle du scout. |
+| Scope | **PASS** | Deux fichiers de production à la date de cet audit ; trois depuis, la relecture croisée ayant ajouté le lecteur de la déclaration. Les refactorisations ci-dessus portent sur des fichiers ouverts pour cette story, sous règle du scout. |
 | Boy Scout | **PASS** | Trois fichiers repartent plus propres qu'ils n'étaient : duplication retirée, fichier sous la borne, cast supprimé. |
 | Types & Safety | **PASS** (après correction) | Plus aucun `as unknown as`, `@ts-ignore` ni `any`. |
-| Test Coverage | **PASS** | `refuseUndeclaredDestination` est privée et éprouvée par trois tests à travers `requireCapable`, interface publique. F.I.R.S.T tenu ; le test à sous-processus restaure `process.env` en `finally`. |
+| Test Coverage | **PASS** | `refuseUndeclaredDestination` est privée et éprouvée à travers `requireCapable` et `run`, interfaces publiques. F.I.R.S.T tenu ; le test à sous-processus restaure `process.env` en `finally`. |
 | SOLID & heuristiques | **PASS** | Responsabilité unique rétablie par l'extraction. Règle du pas-de-côté respectée. Conditionnel exprimé au positif avec retour anticipé ; imbrication logique maximale : 1. |
-| Style | **PASS** | Fonctions 13 et 16 lignes ; fichiers 86, 203, 269, 274 lignes ; noms à moins de 5 occurrences ; commentaires disant le pourquoi. |
+| Style | **PASS** à la date de cet audit ; `readEgress`, écrit depuis, fait une quarantaine de lignes. Les bornes chiffrées viennent de la liste d'audit, non de CONVENTIONS.md, qui n'en fixe aucune. Fichiers 86, 203, 269, 274 lignes ; noms à moins de 5 occurrences ; commentaires disant le pourquoi. |
 
 ## Sentinelles ressemblant à des secrets — signalées, non masquées
 
@@ -87,7 +87,7 @@ c'est la suppression d'une duplication présente.
 $ npm run build && npm run check
 AUDIT_PREFLIGHT_EXIT=0
 $ node --test test/v1/egress.test.ts test/v1/agent-port.test.ts
-ℹ pass 17   ℹ fail 0
+ℹ pass 17   ℹ fail 0   (à la date de cet audit ; 26 à HEAD)
 $ node --test test/v2/export-integration.test.ts
-ℹ pass 7    ℹ fail 0
+ℹ pass 7    ℹ fail 0   (à la date de cet audit ; 6 à HEAD, un test fragile ayant été retiré)
 ```

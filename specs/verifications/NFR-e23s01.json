@@ -1,7 +1,7 @@
 {
   "story_id": "e23s01",
   "risk": "P0",
-  "evaluated_at": "2026-09-21T15:05:00Z",
+  "evaluated_at": "2026-09-21T17:10:00Z",
   "threshold_source": {
     "file": "specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s01-la-sortie-de-donnees-vers-le-fournisseur-est-declaree.md",
     "section": "14. Quality attributes *NFR*",
@@ -17,13 +17,13 @@
     "reliability": {
       "verdict": "PASS",
       "threshold": "a refusal starts 0 processes, emits 0 bytes and opens 0 interventions; failure direction is closed",
-      "measured": "probed=[] and started=[] asserted by test/v1/egress.test.ts on refusal; test/v2/egress-refusal.test.ts drives a real harness and asserts 0 intervention artifacts; four input classes all refuse (unknown provider, empty declaration, empty provider_id, exact-equality comparison cannot over-match)",
+      "measured": "probed=[] and started=[] asserted by test/v1/egress.test.ts on refusal; test/v2/egress-refusal.test.ts drives a real harness and asserts no intervention event; three input classes refuse (unknown provider, empty declaration, malformed declaration) and exact-equality comparison cannot over-match. An empty provider_id is deliberately not judged here — it is a model never configured, and the capability check names it on its own terms.",
       "note": "A refusal is journaled as a change.block with stop reason policy_denied, like every other refusal. An earlier reading of this story claimed no event was written; that was true of the supervisor in isolation and false of a harness driving a change."
     },
     "operability": {
       "verdict": "PASS",
       "threshold": "the refusal is readable in every qualified Pi entry and names what to correct",
-      "measured": "POLICY_DENIED carries category 'policy', stop reason 'policy_denied' and next action 'configure_model', all preexisting; the message names the refused destination and the declared list, or names the declaration as empty",
+      "measured": "POLICY_DENIED carries category 'policy' and stop reason 'policy_denied', both preexisting. The refusal is marked retryable, so the block lifts on resume once the destination is declared, and next actions name declare_egress_destination ahead of the preexisting configure_model. The message names the refused destination and the declared list, or names the declaration as empty.",
       "note": "No new presentation component; the refusal rides the existing diagnostic path."
     }
   },

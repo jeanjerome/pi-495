@@ -29,7 +29,7 @@ de la tâche 1.
 | Comportement | État à l'arrivée |
 | --- | --- |
 | Un secret placé dans l'environnement du contrôleur n'atteint pas le processus worker | vert à l'arrivée |
-| `context.ts` ne lit `process.env` nulle part dans sa source (garde structurelle) | vert à l'arrivée |
+| `context.ts` ne lit `process.env` nulle part dans sa source (garde structurelle) | vert à l'arrivée, **retirée depuis** |
 | Le texte composé (`system_prompt`, `prompt`, `record`) ne porte pas un secret placé dans l'environnement | vert à l'arrivée |
 
 ## Ce qui a rendu la première assertion observable
@@ -38,6 +38,16 @@ de la tâche 1.
 `test/v1/agent-port.test.ts` le teste déjà. `test/helpers/fake-worker.ts` a gagné un objectif
 `echo-env`, qui renvoie son propre `process.env` dans l'événement `completed`. C'est un ajout à
 l'appareil d'observation du test, pas au comportement observé ; il rejoint le commit `test:`.
+
+## La garde structurelle a été retirée, et ce qui reste est plus faible
+
+Cette preuve affirmait qu'un ajout de lecture d'environnement dans `context.ts` ferait échouer un
+test avant d'atteindre un texte remis au modèle. Ce test balayait la source du fichier ; la relecture
+croisée l'a jugé contraire à la règle « n'affirmer qu'à travers l'interface publique », et il a été
+retiré. Ce qui reste prouve que deux valeurs plantées dans l'environnement n'atteignent pas le texte
+composé, après avoir prouvé que ce texte porte bien ses marqueurs — donc pas une tautologie, mais
+pas davantage une barrière : une lecture d'une **autre** variable passerait. Porter cette règle dans
+un contrôle de Preflight, où une règle de forme de source a sa place, reste à faire.
 
 ## Revue de sécurité — `security: high`
 

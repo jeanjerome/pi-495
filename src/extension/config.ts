@@ -32,13 +32,22 @@ const DEFAULT_CONFIG: HarnessConfig = {
 };
 
 /**
+ * No destination is declared. The consequence is worded once, wherever the refusal was decided, so
+ * the two paths that can reach it cannot drift apart. Each caller says its own cause first.
+ */
+function declareNothing(diagnostics: string[]): DeclaredEgress[] {
+	diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
+	return [];
+}
+
+/**
  * The declared destinations a configuration carries, or the default when it carries none.
  *
  * A malformed declaration declares nothing rather than falling back: the owner who wrote it meant
  * to narrow what may be reached, and restoring a destination they deleted would widen it behind a
- * diagnostic. Every outcome is announced — the default in force, an empty declaration, and any
- * destination off the machine — because what may leave should be said at session open rather than
- * discovered at the first refusal.
+ * diagnostic. What changes exposure is announced — an empty declaration and any destination off the
+ * machine — so it is read at session open rather than discovered at the first refusal. A default
+ * that changes nothing is not announced, whether it came from an absent key or an absent file.
  */
 function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
 	const announce = (declared: DeclaredEgress[]): DeclaredEgress[] => {
@@ -53,7 +62,7 @@ function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
 	};
 	const refuse = (why: string): DeclaredEgress[] => {
 		diagnostics.push(`config.json: ${why}`);
-		return announce([]);
+		return declareNothing(diagnostics);
 	};
 	/** An owner-supplied value, named for a diagnostic without spilling an arbitrary payload into it. */
 	const show = (value: unknown): string => {
@@ -61,12 +70,7 @@ function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
 		return text.length > 60 ? `${text.slice(0, 60)}…` : text;
 	};
 
-	if (raw === undefined) {
-		diagnostics.push(
-			`config.json: policy.egress is absent; the default declaration stands (${DEFAULT_EGRESS.map((d) => d.provider_id).join(", ")})`,
-		);
-		return [...DEFAULT_EGRESS];
-	}
+	if (raw === undefined) return [...DEFAULT_EGRESS];
 	if (!Array.isArray(raw)) return refuse(`policy.egress is ${show(raw)}, not a list of destinations`);
 	const declared: DeclaredEgress[] = [];
 	for (const [index, entry] of raw.entries()) {
@@ -121,8 +125,7 @@ export function loadConfig(
 			// A file that cannot be read cannot be trusted to have declared anything. Keeping the default
 			// here would restore a destination the owner may have removed in the very edit that broke it.
 			diagnostics.push(`config.json ignored: ${(error as Error).message}`);
-			diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
-			config.policy = { ...config.policy, egress: [] };
+			config.policy = { ...config.policy, egress: declareNothing(diagnostics) };
 		}
 	}
 	if (env.HARNESS495_ALLOW_UNCONFINED === "1") {

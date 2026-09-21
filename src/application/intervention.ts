@@ -90,8 +90,11 @@ export class InterventionSupervisor {
 		if (!this.deps.model.provider_id) return;
 		const reason = undeclaredEgressReason(this.deps.policy, this.deps.model.provider_id);
 		if (reason === null) return;
-		// Retryable: the remedy is one line of configuration and the owner holds it. A block nobody can
-		// act on is what loses a change; a resume with the declaration still unwritten blocks again.
+		// Retryable: the remedy is one line of configuration and the owner holds it, so the block must be
+		// liftable — one nobody can act on is what loses a change. The declaration is read when the
+		// runtime is built and held by reference, so a resume in the same session is judged against the
+		// policy loaded before the edit: the message says so rather than promising a resume that cannot
+		// work.
 		throw new DomainError("POLICY_DENIED", reason, {
 			retryable: true,
 			nextActions: ["declare_egress_destination", "configure_model"],

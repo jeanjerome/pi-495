@@ -46,10 +46,11 @@ Aucun constat nouveau sur les deux chemins touchés.
   (`src/extension/runtime.ts:63`), donc un producteur ne peut ni le lire ni l'écrire. Aucun fichier
   du projet cible n'élargit la liste.
 
-## Limite relevée, non traitée
+## Limite relevée, fermée depuis
 
-Une entrée de `config.json` qui nomme un fournisseur sans dire où il se situe produit une
-destination dont la situation est indéfinie. Elle n'affaiblit pas le refus de la tâche 2, qui porte
-sur l'identifiant du fournisseur, mais rend incomplet ce que le dossier dit de l'exposition.
-`loadConfig` ne valide la forme d'aucun autre champ de la politique ; valider celui-ci seul serait
-un traitement particulier que rien n'appuie aujourd'hui.
+Une entrée de `config.json` qui nommait un fournisseur sans dire où il se situe produisait une
+destination de situation indéfinie, et cette preuve concluait que valider ce champ seul serait un
+traitement particulier que rien n'appuyait. La relecture croisée a conclu l'inverse : `readEgress`
+refuse désormais la déclaration entière pour cette entrée, et `D-53` porte le motif. La limite qui
+subsiste est l'autre côté du même choix — un `location` invalide refuse tout alors que ce champ
+n'autorise rien.
