@@ -115,7 +115,6 @@ git:
 metrics:
   skill_timings:
     develop-tdd:
-      calls: 0
-      total_seconds: 0
-      avg_seconds: 0
-      _start: '2026-09-21T14:13:15Z'
+      calls: 1
+      total_seconds: 542.0
+      avg_seconds: 542.0
