@@ -137,4 +137,19 @@ describe("an intervention toward an undeclared destination (SEC-05, D-46)", () =
 		);
 		assert.deepEqual(probed, [], "nothing is declared, so nothing is reached");
 	});
+
+	it("carries a declared destination through to the capability check that already existed", async () => {
+		const { supervisor, probed, started } = supervisorFor({
+			provider_id: "omlx",
+			model_id: "qwen3.8-27b-oq8e",
+			thinking_level: "off",
+		});
+		await supervisor.requireCapable("implement");
+		assert.deepEqual(
+			probed.map((m) => m.provider_id),
+			["omlx"],
+			"a declared destination is reached: the declaration bounds what may leave, it does not refuse everything",
+		);
+		assert.deepEqual(started, [], "requiring capability starts no worker on its own");
+	});
 });
