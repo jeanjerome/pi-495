@@ -1,30 +1,128 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+# Le dépôt n'a pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins
+# touchés, et son absence de constat est écrite au moment où la tâche bascule.
+#
+# Deux choses absentes de ce plan le sont par arbitrage et non par oubli : aucun schéma de contrat
+# n'est publié pour le manifeste, et le contrôle lit le paquet que le dépôt épingle, jamais celui
+# qui est installé sur la machine. §18 de la story dit ce que chacune laisse de côté.
+
 story_id: e23s02
+spec: e23s02-le-manifeste-declare-la-strate-imposee-par-le-fournisseur.md
 title: "Le manifeste déclare la strate imposée par le fournisseur"
 status: failing
 bcps: 3
 requirement: CTX-02
+delta: MODIFIED
+risk: P0
+context: domain
+type: feat
 
 tasks:
   - id: 1
     description: >
-      Le manifeste de contexte porte les contraintes extérieures que 495 ne compose pas, comme une
-      strate nommée et distincte des instructions de confiance. Le contrat émis suit le changement.
-    verify: "node --test test/v0/contracts.test.ts && npm run contracts && git diff --exit-code src/contracts"
+      Le noyau de domaine déclare ce qu'un fournisseur impose au-dessus des instructions de 495 :
+      par fournisseur, le texte mot pour mot, sa position relative aux instructions locales, et la
+      condition à laquelle le fournisseur l'applique. La réponse est une liste, vide pour un
+      fournisseur qui n'impose rien, pour un fournisseur inconnu, et pour un identifiant vide.
+    verify: "node --test test/v1/imposed-layers.test.ts"
+    risk: P1
+    security: low
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "unit"
+
   - id: 2
     description: >
-      buildContext renseigne cette strate depuis le fournisseur retenu, et le manifeste écrit au
-      dossier nomme le bloc système imposé au-dessus des instructions locales.
-    verify: "node --test test/v2/harness.test.ts"
+      Le manifeste de contexte porte ces strates comme une liste nommée, distincte des instructions
+      de confiance et jamais mêlée à elles : 495 ne les compose pas. Le champ est toujours présent,
+      vide quand rien n'est imposé, parce qu'un champ absent ne se distingue pas d'un harnais qui
+      ne savait pas répondre. Le constructeur de contexte les reçoit en entrée et n'invente aucune
+      source pour elles.
+    verify: "node --test test/v1/imposed-layers.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/application/context.ts et src/ports/execution.ts : les
+      instructions de confiance sont inchangées, la strate déclarée ne rejoint ni le prompt système
+      ni l'invite, et rien de plus n'est émis vers le fournisseur.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "unit"
+
   - id: 3
     description: >
-      Un contrôle relève le bloc imposé sur le paquet Pi installé et refuse quand il diffère de ce
-      que le manifeste déclare. D-48 laisse à cet epic la mesure de sa stabilité d'une version à
-      l'autre et la décision de ce qu'un changement doit produire : le refus est cette décision.
-    verify: "node --test test/v3/provider-system-block.test.ts"
+      Le noyau renseigne cette liste depuis le fournisseur retenu pour l'intervention, et le
+      manifeste écrit au dossier nomme le bloc imposé au-dessus des instructions locales. Le texte
+      réellement remis au modèle, adressé par empreinte à côté du manifeste, ne contient pas cette
+      strate — 495 ne l'émet pas.
+    verify: "node --test test/v2/harness.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/application/harness.ts : la sélection de modèle est lue là où
+      elle l'est déjà, aucun identifiant nouveau n'atteint le worker, et l'enregistrement du texte
+      remis reste celui qui a été envoyé.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
   - id: 4
-    description: "L'ensemble des contrôles passe avec le changement."
-    verify: "npm run check"
+    description: >
+      Un contrôle relève le bloc imposé dans le paquet du fournisseur que le dépôt épingle et
+      refuse quand le texte, la condition d'application ou la position diffèrent de ce que la
+      déclaration affirme. Il exige exactement une occurrence : zéro veut dire que le moyen de
+      relever a été perdu, et laisser passer cette perte reviendrait à ne plus rien refuser. Son
+      message porte le texte relevé en regard du texte déclaré.
+    verify: "node --test test/v3/provider-system-block.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur le contrôle lui-même : il lit le code distribué du paquet, jamais
+      le fichier d'authentification ni aucun identifiant, et ne reproduit dans son message que du
+      texte déjà public.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
+  - id: 5
+    description: >
+      La matrice de traçabilité porte CTX-02 sur la déclaration de la strate imposée et sur le
+      contrôle qui la tient, en plus des instructions composées qu'elle nomme déjà. La clause sur
+      les contraintes extérieures à la hiérarchie locale avait une exigence et aucun porteur.
+    verify: "npm run lint:traceability"
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Traceability"
+
+  - id: 6
+    description: >
+      L'ensemble des contrôles passe avec le changement, la campagne de sortie déclarée comprise :
+      elle affirme qu'un secret du contrôleur n'atteint pas le texte remis au modèle, et doit
+      continuer à passer inchangée — c'est elle qui prouve que la strate a été nommée sans rien
+      ajouter à ce qui est émis.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"
