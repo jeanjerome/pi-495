@@ -25,9 +25,19 @@ summary: >
   matérielle est enregistrée, attribuée et portée au mandat sans atteindre les exigences, de sorte
   qu'un changement est accepté en rendant un contrat que son propriétaire n'avait pas décidé. Ce
   défaut ne fait échouer aucun parcours — il en fait réussir un qui ne devrait pas, ce qu'aucune
-  gate ni aucun contrôle ne rattrape. Il passe donc devant tout le reste.
+  gate ni aucun contrôle ne rattrape. Il passe donc devant tout le reste, à une réserve près : la
+  qualification d'un second fournisseur de modèle le précède, non parce qu'elle prime en gravité,
+  mais parce que la campagne qui établit ce défaut n'a pour témoin qu'un modèle local qui rend deux
+  fois sur trois un rapport que le schéma refuse. Un instrument réparé avant de servir de preuve.
 
 in_scope:
+  - epic: e23-second-fournisseur-de-modele-qualifie
+    source: spikes/organisation-des-quatre-chantiers
+    objet: >
+      Un second fournisseur de modèle est qualifié par le chemin d'abonnement que Pi expose déjà : la recette « le même cas de contrat passe avec deux fournisseurs qualifiés » est tenue sur un parcours complet et non plus par des preuves unitaires, le refus d'un profil incompatible avant une intervention facturée reçoit un effet, les budgets d'intervention sont remesurés sur un modèle frontière, la sortie de données vers le fournisseur est déclarée, et le bloc système que le fournisseur impose au-dessus des instructions locales est porté au manifeste de contexte comme contrainte extérieure.
+    motif: >
+      Aucun code n'est à écrire pour joindre le fournisseur : Pi consomme déjà un abonnement par jeton OAuth présenté en Bearer, sans frapper de clé d'API. Ce qui reste est ce que le harnais doit porter en conséquence. Tant que le modèle local est le seul témoin, une instruction mauvaise ne se distingue pas d'un modèle incapable, et les campagnes des epics suivants héritent de cette confusion.
+
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L
     objet: >
@@ -51,10 +61,11 @@ in_scope:
 
   - epic: e04-clarte-des-instructions-d-intervention
     source: chantiers/K
+    requirements: [CTX-03]
     objet: >
-      Les instructions portées à un producteur sont découpées et sélectionnées par rôle, au lieu d'un bloc unique.
+      Les instructions portées à un producteur sont découpées et sélectionnées par rôle, au lieu d'un bloc unique ; la sélection tient compte de la phase en cours autant que du rôle, et des capacités déclarées du modèle, jamais de son nom ; les skills, modèles de prompts et références documentaires qu'elle assemble sont des ressources versionnées.
     motif: >
-      Trois campagnes montrent qu'elles se contredisent ou se noient. Cause de e03.
+      Trois campagnes montrent qu'elles se contredisent ou se noient. Cause de e03. Le découpage par rôle, la dépendance à la phase et la dépendance au modèle visent un seul et même constructeur : les séparer produirait deux plans qui éditent la même fonction. L'axe modèle reste sans objet tant qu'un seul fournisseur est qualifié.
 
   - epic: e05-commande-de-test-d-une-cible-node
     source: chantiers/E
@@ -183,7 +194,7 @@ out_of_scope:
     raison: deferred
     detail: L'angle mutation est livré. Le reste est au-delà de P0 (ROADMAP §3).
 
-  - item: VER-07, IMP-01..04, CON-04, CON-05, RAG-03, RAG-05, CTX-03, ARC-05, REQ-05, AGT-05, AGT-07, GIT-04, EXT-05
+  - item: VER-07, IMP-01..04, CON-04, CON-05, RAG-03, RAG-05, ARC-05, REQ-05, AGT-05, AGT-07, GIT-04, EXT-05
     raison: deferred
     detail: >
       Au-delà de P0 (ROADMAP §3). Une capacité requise par un incrément P0 ne peut pas être écartée
@@ -197,7 +208,17 @@ out_of_scope:
 
 constraints:
   - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
-  - Machine de référence macOS 27 arm64, Node 24, Pi 0.85.1 ; Linux non revendiqué.
+  - Machine de référence macOS 27 arm64, Node 24, Pi 0.86.1 ; Linux non revendiqué.
+  - >
+    `devDependencies` borne Pi à `^0.85.1` et résout 0.85.1, là où la machine exécute 0.86.1 : les
+    tests s'exécutent contre une version et les campagnes contre une autre. `pi_version` alimente
+    `environment_digest`, donc la montée de version a déjà invalidé le protocole gelé de tout
+    changement en vol. Aligner la borne est un changement de dépendance à part entière.
+  - >
+    Sur le chemin d'abonnement, Pi s'annonce au fournisseur sous `user-agent: claude-cli/2.1.251`
+    et `x-app: cli` ; 495 ne compose pas ces en-têtes. Ce chemin est retenu pour la qualification
+    sur la machine de référence, et aucun usage au-delà n'est revendiqué tant que la question n'a
+    pas été instruite.
   - Preflight vert est une condition d'entrée, pas un objectif de sortie.
   - "Les travaux touchant au protocole gelé changent `environment_digest` et invalident le protocole d'un cycle en cours : ne pas les engager pendant qu'une campagne tourne."
   - Tout composant nouveau réclame un identifiant `CMP-*` inscrit au catalogue dans le même changement.
@@ -209,6 +230,7 @@ success_criteria:
   - Une cible Node va de la demande à l'acceptation comme la cible Maven le fait déjà.
   - Le noyau rend un jugement sur la référence elle-même, et pas seulement sur le candidat qui lui est opposé.
   - Chaque exigence sortie de l'état « absente » est inscrite dans la matrice avec la preuve qui la tient, et la règle de décision de livraison est appliquée en dix points.
+  - Le même cas de contrat passe de bout en bout avec deux fournisseurs de modèle qualifiés, et le manifeste de contexte déclare toute strate d'instruction qu'un fournisseur impose sans que le harnais la choisisse.
 
 references:
   - specs/archive/ROADMAP.md — §2 la moitié de P0 non commencée, §3 au-delà de P0, §5 ordre proposé

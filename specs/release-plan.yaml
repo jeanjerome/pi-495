@@ -15,6 +15,8 @@ ordering:
     est celui que la ROADMAP argumente — « l'ordre n'est pas une préférence ». Le score WSJF est
     calculé et conservé pour chaque epic ; là où il aurait classé autrement, un champ wsjf_note
     le dit. Aucun score n'a été ajusté pour reproduire l'ordre.
+    e23 est postérieur à la ROADMAP, qui ne le séquence donc pas : sa place est décidée par
+    arbitrage et portée par son wsjf_note.
   formula: "(business_value + time_criticality + risk_reduction) / job_size"
 
 capsules:
@@ -25,6 +27,15 @@ capsules:
     absent du paquet bigpowers installé.
 
 epics:
+  - id: e23
+    title: "Second fournisseur de modèle qualifié"
+    wsjf: 12.0
+    wsjf_inputs: { business_value: 8, time_criticality: 7, risk_reduction: 9, job_size: 2 }
+    capsule_dir: epics/e23-second-fournisseur-de-modele-qualifie
+    wsjf_note: >
+      Score le plus élevé de l'index, et la ROADMAP §5 lui est antérieure. Placé en tête non parce
+      qu'il prime en gravité sur e01, mais parce qu'il répare le témoin sous la campagne de e01
+      elle-même. Décision en specs/adr/D-46.
   - id: e01
     title: "Une réponse humaine atteint les exigences"
     wsjf: 8.67
@@ -42,11 +53,14 @@ epics:
     capsule_dir: epics/e03-mandat-coherent-avec-sa-verification
   - id: e04
     title: "Clarté des instructions d'intervention"
-    wsjf: 4.0
-    wsjf_inputs: { business_value: 7, time_criticality: 7, risk_reduction: 6, job_size: 5 }
+    wsjf: 2.86
+    wsjf_inputs: { business_value: 7, time_criticality: 7, risk_reduction: 6, job_size: 7 }
     capsule_dir: epics/e04-clarte-des-instructions-d-intervention
     wsjf_note: >
-      WSJF seul le placerait après e09 ; la ROADMAP le tient pour la cause de e03.
+      WSJF seul le placerait après e09 ; la ROADMAP le tient pour la cause de e03, et sa position
+      ne change pas. job_size passe de 5 à 7 parce que l'objet de l'epic a grandi — dépendance à
+      la phase, dépendance au modèle, et CTX-03 sorti du différé — et non pour déplacer un rang.
+      Décision en specs/adr/D-47.
   - id: e05
     title: "Commande de test d'une cible Node"
     wsjf: 4.75

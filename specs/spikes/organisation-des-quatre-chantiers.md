@@ -1,9 +1,13 @@
 # Organisation de quatre chantiers proposés
 
-**Statut : proposition non adoptée.** Rien de ce document n'a été porté dans
-`specs/product/SCOPE_LATEST.yaml`, `specs/release-plan.yaml` ni `specs/adr/`. Il tient les constats
-vérifiés et les options ouvertes le temps de l'arbitrage, après quoi son contenu se répartit dans
-ces trois emplacements et le fichier disparaît.
+**Statut : arbitré sur trois chantiers, le quatrième attend une mesure.** Les questions 1 à 4 du §7
+sont tranchées et portées dans `specs/product/SCOPE_LATEST.yaml`, `specs/release-plan.yaml` et les
+fichiers `specs/adr/D-46` à `D-49`. Ce qui reste à ce document est la frontière d'exécution (§4) et
+la question 5, qui attend la mesure sous Apple Container. Le fichier disparaît quand elle a répondu.
+
+Le §1 est conservé jusqu'à ce que `e23` soit joué : il porte les `fichier:ligne` du paquet Pi
+**installé** (0.86.1) sur lesquels les quatre décisions s'appuient, et qu'aucune d'elles ne restitue
+en entier.
 
 Emplacement : `specs/spikes/` est retenu parce que `specs/archive/spikes/` est gelé avec le reste de
 l'archive (`specs/adr/D-45…`). À déplacer si un autre emplacement est préféré.
@@ -128,7 +132,7 @@ Debian, `bwrap --unshare-user --unshare-net true`, et le point est tranché.
 **Contrainte d'ordonnancement.** Toucher au bac à sable change `environment_digest` : ne pas l'engager
 pendant qu'une campagne tourne.
 
-## 5. Organisation proposée
+## 5. Organisation proposée — adoptée
 
 | Chantier | Devient |
 | --- | --- |
@@ -141,21 +145,27 @@ parallèle.
 
 ## 6. Corrections dues indépendamment de l'arbitrage
 
-- `specs/product/SCOPE_LATEST.yaml` porte « Pi 0.85.1 » dans ses contraintes ; la machine exécute
-  **0.86.1**.
+La première est faite ; la seconde est un changement de dépendance, inscrit aux contraintes du
+périmètre et non encore appliqué.
+
+- ~~`specs/product/SCOPE_LATEST.yaml` porte « Pi 0.85.1 » dans ses contraintes~~ — corrigé en
+  **0.86.1**, la version que la machine exécute.
 - `node_modules` du dépôt a résolu `@earendil-works/pi-coding-agent` et `pi-ai` en **0.85.1** : les
   tests s'exécutent contre une version et les campagnes contre une autre.
 - Ce n'est pas cosmétique : `pi_version` alimente `describeEnvironment` (`src/extension/runtime.ts:82`)
   donc `environment_digest`. Le passage en 0.86.1 a **déjà** invalidé le protocole gelé de tout
   changement en vol, avec `environment_changed`.
 
-## 7. Questions ouvertes
+## 7. Questions — quatre tranchées, une ouverte
 
-1. `e23` est-il adopté comme epic, et placé avant `e01` ?
-2. `e04` absorbe-t-il les deux axes, ou faut-il deux epics distincts pour les prompts et pour le
-   contexte ? La séparation demanderait un second identifiant `CMP-*` au catalogue, donc de trancher
-   d'abord si le corpus d'instructions est un composant distinct du constructeur de manifeste.
-3. Le bloc système imposé par le fournisseur : porté au manifeste, ou profil refusé ? La réponse
-   décide si l'abonnement est utilisable sans affaiblir ce que le manifeste garantit.
-4. L'identité `claude-cli` annoncée sur le fil est-elle acceptée, et sous quelle mention au dossier ?
-5. Quel adaptateur derrière `SandboxPort`, après la mesure sous Apple Container ?
+| Question | Réponse | Décision |
+| --- | --- | --- |
+| 1. `e23` adopté, et placé avant `e01` ? | Oui, en tête de l'index, WSJF 12,0 | `D-46` |
+| 2. `e04` absorbe les deux axes, ou deux epics ? | `e04` élargi, `CTX-03` remonte avec lui, aucun `CMP-*` nouveau | `D-47` |
+| 3. Bloc système imposé : manifeste, ou profil refusé ? | Déclaré au manifeste comme contrainte extérieure | `D-48` |
+| 4. Identité `claude-cli` acceptée, sous quelle mention ? | Acceptée pour la machine de référence seule, restriction portée au périmètre | `D-49` |
+| 5. Quel adaptateur derrière `SandboxPort` ? | **Ouverte** — attend la mesure du §4 | — |
+
+La question 5 ne se tranche pas sans la mesure : `container system start`, une image Debian sous
+Apple Container, `bwrap --unshare-user --unshare-net true`. Hors campagne, puisqu'un changement de
+bac à sable change `environment_digest`.
