@@ -88,7 +88,7 @@ tasks:
     security_verify: >
       Aucun constat nouveau sur src/export/export-service.ts : le signalement d'expurgation ne
       reproduit pas la valeur retirée.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
