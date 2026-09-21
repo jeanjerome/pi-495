@@ -84,9 +84,11 @@ export class InterventionSupervisor {
 		if (!declared.some((d) => d.provider_id === this.deps.model.provider_id))
 			throw new DomainError(
 				"POLICY_DENIED",
-				`${this.deps.model.provider_id} is not a declared egress destination: ${declared
-					.map((d) => d.provider_id)
-					.join(", ")}`,
+				declared.length === 0
+					? "no egress destination is declared, so no intervention may hand excerpts or prompts to a model"
+					: `${this.deps.model.provider_id} is not a declared egress destination: ${declared
+							.map((d) => d.provider_id)
+							.join(", ")}`,
 				{ nextActions: ["configure_model"] },
 			);
 		if (!this.qualifiedFor(role))
