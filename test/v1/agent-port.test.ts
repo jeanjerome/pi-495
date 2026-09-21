@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { PiWorkerAgent } from "../../src/adapters/pi-worker/supervisor.ts";
 import { ScriptedAgent } from "../../src/adapters/pi-worker/scripted-agent.ts";
+import { collect } from "../helpers/intervention-fixture.ts";
 import { extractJsonOutput, OUTPUT_SCHEMAS } from "../../src/adapters/pi-worker/protocol.ts";
 import type { InterventionEvent, InterventionMandate } from "../../src/ports/execution.ts";
 import { Value } from "typebox/value";
@@ -52,12 +53,6 @@ function mandate(objective: string, over: Partial<InterventionMandate> = {}): In
 		output_schema: "producer-report",
 		...over,
 	};
-}
-
-async function collect(events: AsyncIterable<InterventionEvent>): Promise<InterventionEvent[]> {
-	const out: InterventionEvent[] = [];
-	for await (const e of events) out.push(e);
-	return out;
 }
 
 const fakeWorker = () =>

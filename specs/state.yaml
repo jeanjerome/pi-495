@@ -10,7 +10,7 @@ active_epic_id: e23
 active_story: e23s01
 
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   last_step_completed: >
     Cinq choses. D'abord l'arbitrage des quatre chantiers proposés : e23 — qualifier un second
     fournisseur de modèle — entre à l'index en tête, devant e01 ; e04 est élargi à la dépendance à

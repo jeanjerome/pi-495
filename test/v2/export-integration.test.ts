@@ -35,6 +35,23 @@ const RIGHT =
 	"export function greet(name) {\n  return `Hello, ${name}`;\n}\nexport const SECRET = 'sk-abcdefghijklmnop1234';\n";
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
+/** A harness whose producer writes `content` to src/greet.js and reports that one path done. */
+function writingHarness(content: string, policy?: { integration_enabled: boolean }): TestHarness {
+	return track(
+		makeHarness({
+			...(policy ? { policy } : {}),
+			scripts: {
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		}),
+	);
+}
+
 async function acceptedChange(t: TestHarness, p: string) {
 	const { change } = await t.harness.start({ project_path: p, request_text: "tidy greet", actor: HUMAN });
 	const result = await t.harness.advance(change.change_id, { max_steps: 30 });
@@ -44,18 +61,7 @@ async function acceptedChange(t: TestHarness, p: string) {
 describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 	it("writes a self-contained, verifiable dossier; redaction removes sentinels and says so", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				scripts: {
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: RIGHT },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness(RIGHT);
 		const { change, result } = await acceptedChange(t, p);
 		assert.equal(result.view.change?.outcome, "accepted");
 		const full = await exportChange(t.ledger, t.objects, {
@@ -99,18 +105,7 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 
 	it("names what a redaction removed by location and count only, never by value (SEC-05)", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				scripts: {
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: RIGHT },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness(RIGHT);
 		const { change } = await acceptedChange(t, p);
 		const red = await exportChange(t.ledger, t.objects, {
 			change_id: change.change_id,
@@ -150,18 +145,7 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 
 	it("carries its own verifier, which a third party runs with nothing but Node (RM-072)", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				scripts: {
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: RIGHT },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness(RIGHT);
 		const { change } = await acceptedChange(t, p);
 		const full = await exportChange(t.ledger, t.objects, {
 			change_id: change.change_id,
@@ -201,23 +185,9 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () => {
 	it("integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				scripts: {
-					implement: {
-						steps: [
-							{
-								kind: "write",
-								path: "src/greet.js",
-								content: "export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n",
-							},
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n", {
+			integration_enabled: true,
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change, result } = await acceptedChange(t, p);
 		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
@@ -253,23 +223,9 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	});
 	it("a destination that advanced before integration is detected and re-verified, never merged silently", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				scripts: {
-					implement: {
-						steps: [
-							{
-								kind: "write",
-								path: "src/greet.js",
-								content: "export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n",
-							},
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n", {
+			integration_enabled: true,
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await acceptedChange(t, p);
 		writeFileSync(join(p, "README.md"), "# advanced by the user\n");
@@ -298,23 +254,9 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	});
 	it("export-only declines integration and keeps the change accepted", async () => {
 		const p = project();
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				scripts: {
-					implement: {
-						steps: [
-							{
-								kind: "write",
-								path: "src/greet.js",
-								content: "export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n",
-							},
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
-				},
-			}),
-		);
+		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n", {
+			integration_enabled: true,
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await acceptedChange(t, p);
 		const req = t.requested.at(-1)!;

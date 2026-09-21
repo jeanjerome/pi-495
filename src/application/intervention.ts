@@ -75,22 +75,29 @@ export class InterventionSupervisor {
 	}
 
 	/**
+	 * Refuses a destination the policy has not declared, without reaching it: nothing is handed to a
+	 * provider in order to find out whether it was allowed (SEC-05).
+	 */
+	private refuseUndeclaredDestination(): void {
+		const declared = this.deps.policy.egress;
+		if (declared.some((d) => d.provider_id === this.deps.model.provider_id)) return;
+		throw new DomainError(
+			"POLICY_DENIED",
+			declared.length === 0
+				? "no egress destination is declared, so no intervention may hand excerpts or prompts to a model"
+				: `${this.deps.model.provider_id} is not a declared egress destination: ${declared
+						.map((d) => d.provider_id)
+						.join(", ")}`,
+			{ nextActions: ["configure_model"] },
+		);
+	}
+
+	/**
 	 * Refuses, before anything is committed, when the destination, the sandbox or the model cannot
-	 * carry the role. The destination is judged first: a provider the policy has not declared is
-	 * refused without being reached, so nothing is handed to it in order to find out (SEC-05).
+	 * carry the role. The destination is judged first, so a refused one is never reached.
 	 */
 	async requireCapable(role: InterventionRole): Promise<void> {
-		const declared = this.deps.policy.egress;
-		if (!declared.some((d) => d.provider_id === this.deps.model.provider_id))
-			throw new DomainError(
-				"POLICY_DENIED",
-				declared.length === 0
-					? "no egress destination is declared, so no intervention may hand excerpts or prompts to a model"
-					: `${this.deps.model.provider_id} is not a declared egress destination: ${declared
-							.map((d) => d.provider_id)
-							.join(", ")}`,
-				{ nextActions: ["configure_model"] },
-			);
+		this.refuseUndeclaredDestination();
 		if (!this.qualifiedFor(role))
 			throw new DomainError(
 				"CAPABILITY_MISSING",

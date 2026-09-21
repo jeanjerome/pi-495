@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { PiWorkerAgent } from "../../src/adapters/pi-worker/supervisor.ts";
+import { collect } from "../helpers/intervention-fixture.ts";
 import { buildContext } from "../../src/application/context.ts";
 import { InterventionSupervisor } from "../../src/application/intervention.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
@@ -66,6 +67,21 @@ describe("the declared egress a configuration carries (SEC-05)", () => {
 });
 
 /**
+ * A qualified sandbox that would throw if it were ever used. Every test below refuses before an
+ * intervention runs, so a backend that refuses to run is the honest stand-in: were the refusal to
+ * move after the sandbox, these tests would fail loudly rather than quietly exercise a stub.
+ */
+const unreachableSandbox: SandboxPort = {
+	backend: "test",
+	qualify: () => {
+		throw new Error("qualify() is not reached by these tests");
+	},
+	run: () => {
+		throw new Error("run() is not reached by these tests");
+	},
+};
+
+/**
  * A supervisor whose sandbox is qualified and whose model answers, so that the only thing left to
  * refuse is the destination. The agent records what it was asked, because the point of the refusal
  * is what it prevents rather than what it says.
@@ -86,7 +102,7 @@ function supervisorFor(model: ModelSelection, egress: DeclaredEgress[] = DEFAULT
 	const supervisor = new InterventionSupervisor({
 		agent,
 		sandbox: {
-			backend: { backend: "test" } as unknown as SandboxPort,
+			backend: unreachableSandbox,
 			qualification: {
 				backend: "test",
 				platform: "test",
@@ -218,12 +234,6 @@ function minimalMandate(objective: string): InterventionMandate {
 		budgets: { duration_ms: 5000, tool_calls: 5 },
 		output_schema: "producer-report",
 	};
-}
-
-async function collect(events: AsyncIterable<InterventionEvent>): Promise<InterventionEvent[]> {
-	const out: InterventionEvent[] = [];
-	for await (const e of events) out.push(e);
-	return out;
 }
 
 describe("what the worker process receives from the controller's own environment (SEC-05, D-11)", () => {
