@@ -19,6 +19,19 @@ export interface Budgets {
 
 export type AdoptionRule = "kernel" | "human";
 
+/** Where a declared destination sits relative to the machine 495 runs on (SEC-05). */
+export type EgressLocation = "on_machine" | "off_machine";
+
+/**
+ * A destination excerpts and prompts may be handed to. `location` is what tells a prompt that stays
+ * on this machine from one handed to a third party, which is the exposure SEC-05 asks to reduce:
+ * without it the list says who, never whether anything left.
+ */
+export interface DeclaredEgress {
+	provider_id: string;
+	location: EgressLocation;
+}
+
 export interface ActivePolicy {
 	policy_id: string;
 	revision: number;
@@ -31,6 +44,13 @@ export interface ActivePolicy {
 	};
 	g5_human_acceptance: boolean;
 	integration_enabled: boolean;
+	/**
+	 * Destinations excerpts and prompts may leave for (SEC-05). 495 never calls a model itself: the
+	 * worker reaches the provider Pi resolved for it, and is the one process exempt from network
+	 * confinement in order to (D-11). That exemption says what is permitted; this list says what goes
+	 * out. A provider absent from it is refused before an intervention starts.
+	 */
+	egress: DeclaredEgress[];
 	/** Frozen with the protocol at G2: how the candidate is compared to the reference (VER-08). */
 	baseline: BaselinePolicy;
 	stagnation_identical_candidates: number;
@@ -52,6 +72,9 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	adoption: { mandate: "kernel", requirements: "kernel", protocol: "kernel", design: "kernel" },
 	g5_human_acceptance: false,
 	integration_enabled: false,
+	// The one provider this machine has configured, answering on 127.0.0.1: nothing leaves the machine
+	// by default. A destination off the machine is written by configuration, never inherited.
+	egress: [{ provider_id: "omlx", location: "on_machine" }],
 	baseline: {
 		compare_to_reference: true,
 		tolerance: "no_aggravation",
