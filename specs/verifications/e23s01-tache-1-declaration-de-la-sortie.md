@@ -20,8 +20,15 @@ sources.
 | La déclaration par défaut ne porte que des destinations situées sur la machine | rouge — le champ n'existait pas | `d443466` test seul, puis `7707b18` |
 | Une configuration qui nomme la politique sans nommer la liste garde la liste ; une configuration qui la nomme la remplace entièrement | **vert à l'arrivée** | test de caractérisation seul |
 
-L'isolation du rouge a été contrôlée : `verify-tdd-red-commit.sh` rend `PASS: test-only commit
-fails in isolation` sur `d443466`.
+L'isolation du rouge a été contrôlée à la main, et non par `verify-tdd-red-commit.sh` : ce script
+fait `cd` vers son propre répertoire, qui est sous `/opt/homebrew`, lui-même dépôt git de Homebrew.
+Son `PASS` portait sur un commit de Homebrew et ne disait rien de ce dépôt. Le contrôle réel, par
+arbre de travail détaché sur le commit de test seul :
+
+```
+d443466 (test seul)      node --test test/v1/egress.test.ts  exit=1
+7707b18 (implémentation) node --test test/v1/egress.test.ts  exit=0
+```
 
 Le second comportement n'a demandé aucun code. L'étalement de `loadConfig` remplace une clé nommée
 et garde une clé absente, ce qui est déjà la sémantique voulue pour une liste — au contraire de
