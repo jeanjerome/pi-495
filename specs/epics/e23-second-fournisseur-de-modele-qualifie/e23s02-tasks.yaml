@@ -106,7 +106,7 @@ tasks:
     verify: "npm run lint:traceability"
     risk: P2
     security: low
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories:
