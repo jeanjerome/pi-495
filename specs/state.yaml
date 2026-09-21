@@ -9,12 +9,12 @@ active_flow: null
 active_epic_id: null
 
 handoff:
-  next_skill: slice-tasks
+  next_skill: change-request
   last_step_completed: >
-    specs/ est devenue la surface documentaire. Le corpus antérieur est archivé sous specs/archive/
-    dans sa disposition d'origine, les 18 ADR amont et les 48 décisions d'implémentation sont un
-    fichier par décision sous specs/adr/, le périmètre du travail ouvert est borné en 22 epics et
-    l'index est ordonné.
+    Quatre chantiers proposés ont été confrontés à l'index des 22 epics et au code. Leurs constats
+    vérifiés, l'organisation proposée et les questions ouvertes sont dans
+    specs/spikes/organisation-des-quatre-chantiers.md. Rien n'est porté dans SCOPE_LATEST.yaml,
+    release-plan.yaml ni adr/ : la proposition attend son arbitrage.
   open_decisions:
     - >
       Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
@@ -26,15 +26,37 @@ handoff:
       matrice viderait le gate, qui ne pourrait plus être en désaccord avec le code dont il
       dériverait.
     - >
-      e01 est le premier epic de l'index : une réponse humaine qui n'atteint pas les exigences,
-      de sorte qu'un changement est accepté en rendant un contrat que son propriétaire n'avait pas
-      décidé. La ROADMAP le place devant parce qu'il fait réussir un parcours qui ne devrait pas.
+      e01 reste le premier epic de l'index adopté. Un epic e23 est proposé devant lui — qualifier un
+      second fournisseur de modèle — non parce qu'il prime en gravité, mais parce qu'il coûte peu et
+      change la preuve sous la campagne de e01 elle-même. Adoption à trancher.
+    - >
+      Un abonnement Claude Pro/Max est consommé nativement par Pi 0.86.1, par jeton OAuth présenté en
+      Bearer, sans qu'aucune clé d'API soit frappée : les trois voies envisagées — CLI Claude Code,
+      paquet pi-claude-bridge, implémentation propre — sont caduques. Le fournisseur impose en
+      revanche un premier bloc système que buildContext ne connaît pas, ce qui rendrait faux le
+      manifeste de contexte. À trancher : porter ce bloc au manifeste, ou refuser le profil.
+    - >
+      Les gestionnaires de prompts et de contexte visent un seul module, CMP-CTX, dont le travail est
+      déjà ouvert sous e04. À trancher : e04 absorbe les deux axes neufs — dépendance au modèle,
+      dépendance à la phase —, ou le corpus d'instructions devient un composant distinct avec son
+      propre identifiant CMP-* au catalogue.
+    - >
+      Pi n'implémente aucun bac à sable et le documente comme un choix. La question ouverte est quel
+      adaptateur se tient derrière SandboxPort : les backends écrits à la main, @anthropic-ai/sandbox-runtime,
+      ou une micro-VM. Première mesure à conduire sous Apple Container, pas Docker ; hors campagne,
+      puisqu'un changement de bac à sable change environment_digest.
+    - >
+      La machine exécute Pi 0.86.1 alors que SCOPE_LATEST.yaml annonce 0.85.1 et que node_modules a
+      résolu 0.85.1. pi_version alimente environment_digest : la montée de version a déjà invalidé le
+      protocole gelé de tout changement en vol. Correction due indépendamment de l'arbitrage.
   required_reading:
+    - specs/spikes/organisation-des-quatre-chantiers.md
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml
     - specs/adr/D-45-la-surface-documentaire-est-specs.md
+    - specs/archive/chantiers/K-clarte-des-prompts-et-skills-du-harnais.md
 
 git:
   branch: main
-  hash: f7c24f486e03ee490343856f5dc0ab5d6508e9c0
+  hash: 4c23de9e607f3f44b9d40a5e58b01d4e51357dbe
