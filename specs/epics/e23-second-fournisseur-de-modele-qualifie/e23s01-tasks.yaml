@@ -1,34 +1,124 @@
 # Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
 # des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+# Le dépôt n'a pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins
+# touchés, et son absence de constat est écrite au moment où la tâche bascule.
 
 story_id: e23s01
+spec: e23s01-la-sortie-de-donnees-vers-le-fournisseur-est-declaree.md
 title: "La sortie de données vers le fournisseur est déclarée"
 status: failing
 bcps: 2
 requirement: SEC-05
+delta: MODIFIED
+risk: P0
+context: domain
+type: feat
 
 tasks:
   - id: 1
     description: >
-      La politique d'exécution nomme le canal modèle comme sortie réseau déclarée, distincte de
-      l'exemption de confinement dont le worker bénéficie déjà : l'exemption dit ce qui est permis,
-      la déclaration dit ce qui sort.
+      La politique active porte la liste des destinations vers lesquelles des extraits et des
+      invites ont le droit de partir, chacune située — sur la machine, ou hors d'elle. Par défaut
+      elle porte le seul fournisseur employé aujourd'hui, local. Une configuration qui mentionne la
+      politique sans mentionner la liste garde la liste par défaut ; une configuration qui mentionne
+      la liste la remplace entièrement.
     verify: "node --test test/v1/egress.test.ts"
+    risk: P1
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/domain/policy.ts et src/extension/config.ts : la liste n'est
+      élargissable que par la configuration du contrôleur, jamais par un fichier du projet cible.
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "unit"
+
   - id: 2
     description: >
-      Un secret sentinelle placé dans l'environnement du contrôleur n'atteint ni le contexte remis
-      au modèle ni l'export public, et sa suppression est signalée sans divulgation — la recette de
-      SEC-05 tenue sur le canal modèle et non plus sur les seuls artefacts.
-    verify: "node --test test/v2/export-integration.test.ts"
+      Une intervention dont la destination n'est pas déclarée est refusée par politique avant qu'un
+      processus démarre, qu'un octet parte ou qu'un événement soit inscrit. Une destination déclarée
+      poursuit sur la vérification de capacité existante. Le profil du mandat continue de refuser le
+      réseau : la déclaration dit ce qui sort, l'exemption dit ce qui est permis, et les deux
+      restent distincts.
+    verify: "node --test test/v1/egress.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/application/intervention.ts : le refus précède la sonde de
+      capacité, n'ouvre aucun processus, et emprunte le code d'erreur de refus par politique
+      existant sans en introduire un nouveau.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
   - id: 3
     description: >
-      La matrice de traçabilité porte SEC-05 sur le canal modèle. La campagne NFR-06 mesure
-      l'absence de télémétrie produit, pas ce canal : la ligne le dit au lieu de le laisser croire.
-    verify: "npm run lint:traceability"
+      Un secret sentinelle placé dans l'environnement du contrôleur n'atteint ni l'environnement
+      remis au worker ni le texte remis au modèle — la recette de SEC-05 tenue sur le canal modèle
+      et non plus sur les seuls artefacts.
+    verify: "node --test test/v1/egress.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/adapters/pi-worker/supervisor.ts et src/application/context.ts :
+      l'environnement du worker reste une liste fermée et le constructeur de contexte ne lit aucune
+      variable d'environnement.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
   - id: 4
-    description: "L'ensemble des contrôles passe avec le changement."
-    verify: "npm run check"
+    description: >
+      Le même secret sentinelle n'atteint pas l'export public, et son retrait est signalé par son
+      emplacement et son compte — jamais par sa valeur, ni dans le signalement, ni dans le manifeste,
+      ni dans un diagnostic.
+    verify: "node --test test/v2/export-integration.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/export/export-service.ts : le signalement d'expurgation ne
+      reproduit pas la valeur retirée.
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
+  - id: 5
+    description: >
+      La matrice de traçabilité porte SEC-05 sur le canal modèle en plus du service d'export. La
+      campagne NFR-06 mesure l'absence de télémétrie produit, pas ce canal : sa ligne le dit au lieu
+      de le laisser croire.
+    verify: "npm run lint:traceability"
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Traceability"
+
+  - id: 6
+    description: >
+      L'ensemble des contrôles passe avec le changement, la campagne de télémétrie comprise : elle
+      affirme que tout profil refuse le réseau, et doit continuer à passer inchangée — c'est elle
+      qui prouve que la déclaration n'a pas été logée dans le profil de bac à sable.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"
