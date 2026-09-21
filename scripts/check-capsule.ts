@@ -10,7 +10,15 @@
  * one that gets bypassed. What is refused here is a story an epic declares and no tasks file
  * carries, a tasks file whose story its epic never declared, a spec named but absent, a spec present
  * that nothing names, a task with no command to run, a task whose state is not one a ledger can
- * hold, and a story called done while its spec was never written.
+ * hold, a story called done while its spec was never written, and a story called done in
+ * `execution-status.yaml` that carries no verification evidence.
+ *
+ * That last rule replaces one this repository was told it already had. `check-blind-spots.sh` of the
+ * tool package advertises it as its first check, but the check cannot fire: the status table is read
+ * with `re.match(r'\s+(\S+):\s*"([^"]*)"', stripped)` against a line already stripped of its
+ * indentation, so the match never succeeds, the parsed table is always empty, and four of its seven
+ * checks read an empty table without saying so. It reported zero findings on a tree where a story
+ * was done with no evidence at all. A gate that cannot fail is not a gate.
  *
  * The files are read with expressions rather than parsed: the repository carries no YAML reader, and
  * the shapes read here — a list of story ids, a handful of top-level keys, one block per task — are
@@ -21,6 +29,10 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const epicsPath = "specs/epics";
+const statusPath = "specs/execution-status.yaml";
+const verificationsPath = "specs/verifications";
+/** `  e23s02: done` under `development_status:` — the story, then the state it claims. */
+const DEV_STATUS = /^ {2}(e\d+s\d+):\s*"?([a-z_]+)"?\s*$/;
 
 /** `e23s02-tasks.yaml` — the runnable half of one story. */
 const TASKS_FILE = /^(e\d+s\d+)-tasks\.yaml$/;
@@ -145,6 +157,28 @@ function checkCapsule(capsule: string): void {
 	}
 }
 
+/** Stories `execution-status.yaml` calls done, which must each carry their verification evidence. */
+function checkVerified(): number {
+	if (!existsSync(join(root, statusPath))) return 0;
+	let done = 0;
+	let inDevStatus = false;
+	for (const line of readFileSync(join(root, statusPath), "utf8").split("\n")) {
+		if (/^development_status:\s*$/.test(line)) {
+			inDevStatus = true;
+			continue;
+		}
+		if (inDevStatus && /^\S/.test(line)) break;
+		const m = DEV_STATUS.exec(line);
+		if (!inDevStatus || !m) continue;
+		if (m[2] !== "done") continue;
+		done++;
+		const evidence = join(verificationsPath, `${m[1]}-verify.yaml`);
+		if (!existsSync(join(root, evidence)))
+			failures.push(`${statusPath}: ${m[1]} is done and ${evidence} does not exist, so nothing verified it`);
+	}
+	return done;
+}
+
 if (!existsSync(join(root, epicsPath))) {
 	console.error(`capsule violations:\n  ${epicsPath} is missing, and nothing else says what is being built`);
 	process.exit(1);
@@ -155,6 +189,7 @@ const capsules = readdirSync(join(root, epicsPath), { withFileTypes: true })
 	.map((e) => e.name)
 	.sort();
 for (const capsule of capsules) checkCapsule(capsule);
+const verified = checkVerified();
 
 if (failures.length > 0) {
 	console.error(`capsule violations:\n${failures.map((f) => `  ${f}`).join("\n")}`);
@@ -164,4 +199,6 @@ const planned = capsules.reduce(
 	(n, c) => n + readdirSync(join(root, epicsPath, c)).filter((e) => SPEC_FILE.test(e)).length,
 	0,
 );
-console.log(`capsules wired: ${capsules.length} capsule(s), ${planned} story/ies planned, every task runnable`);
+console.log(
+	`capsules wired: ${capsules.length} capsule(s), ${planned} story/ies planned, every task runnable, ${verified} done and verified`,
+);

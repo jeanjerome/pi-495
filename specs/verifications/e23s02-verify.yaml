@@ -1,0 +1,223 @@
+story_id: e23s02
+verified_at: "2026-09-21T22:48:17Z"
+verifier: verify-work
+risk: P0
+branch: strate-imposee-au-manifeste
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start conducted rather than skipped, unlike e23s01 where it was declared not applicable.
+      A fresh target repository and a fresh HARNESS495_DATA_DIR, the built extension loaded from
+      dist/ — `pi -ne -p --no-session -e dist/extension/index.js "/495 status"`. The extension
+      answered, and the data directory was provisioned from nothing: state.sqlite, objects,
+      workspaces, exports, locks, logs. No stale configuration could carry a result.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: >
+      Nine controls inside npm run check: lint:code, lint:layers, lint:architecture, lint:exports,
+      lint:traceability, lint:distribution, lint:story-format, lint:capsule, lint:provider-block.
+      The last two are this repository's own; the ninth was added by this story.
+  tests:
+    passed: true
+    coverage: null
+    note: >
+      318 tests, 318 passing. No coverage instrumentation runs on the harness itself; reporting a
+      percentage here would be inventing one.
+
+  terminal_verdict:
+    command: "npm run build && npm run check"
+    exit_code: 0
+    captured_at: "2026-09-21T22:19:04Z"
+    note: >
+      Single contiguous run — no output merged from any other attempt. The build precedes the check
+      because lint:distribution compares dist/ to a fresh build of the sources.
+
+task_verify_commands:
+  - task: 1
+    command: "node --test test/v1/imposed-layers.test.ts"
+    exit_code: 0
+  - task: 2
+    command: "node --test test/v1/imposed-layers.test.ts"
+    exit_code: 0
+  - task: 3
+    command: "node --test test/v2/harness.test.ts"
+    exit_code: 0
+  - task: 4
+    command: "node --test test/v3/provider-system-block.test.ts"
+    exit_code: 0
+  - task: 5
+    command: "npm run lint:traceability"
+    exit_code: 0
+  - task: 6
+    command: "npm run check"
+    exit_code: 0
+
+security:
+  scan: hand review over the diff against the merge base
+  report: specs/security/REVIEW.md
+  high_findings_confidence_ge_8: 0
+  blocked: false
+  established_not_assumed:
+    - >
+      The manifest reaches the worker process — the whole mandate is serialised into
+      `{ type: "mandate", mandate, config }` (adapters/pi-worker/supervisor.ts:153) — and stops
+      there: no file under src/adapters/pi-worker/ reads `mandate.context`. What the worker hands
+      the model is `m.system_prompt` and `m.prompt`, nothing else.
+    - >
+      Measured on dist/, a context built with the layer and one built without produce byte-identical
+      system_prompt, prompt and record, and the same prompt_digest. 0 extra bytes leave for the
+      provider.
+
+blind_spots:
+  command: "scripts/check-blind-spots.sh (tool package)"
+  exit_code: 0
+  findings: { high: 0, medium: 0, low: 0 }
+  trusted: false
+  note: >
+    The zero is vacuous and is recorded as such. Run at its package path the script reads
+    /opt/homebrew/lib/node_modules/bigpowers/specs/execution-status.yaml, which does not exist, and
+    exits 1. Run through a symlink gateway so it reaches this repository it exits 0 with zero
+    findings — but its status table is parsed by
+    `re.match(r'\s+(\S+):\s*"([^"]*)"', stripped)` applied to a line already stripped of its
+    indentation. That match can never succeed, so the parsed table is always empty. Reproduced in
+    isolation: the parser returns {} on this repository's own file. Four of its seven checks read
+    that table — verify-gap, test-gap, epic-orphan, bootstrap-testless — and cannot fire. The three
+    that do not depend on it — stale-tag, double-tag, sc-gap — are live, and their zero is real.
+    The proof is not theoretical: e23s02 was marked done with no verification evidence at all, the
+    exact condition its verify-gap check calls HIGH, and it reported zero findings.
+  replacement: >
+    The one HIGH check that mattered now lives in scripts/check-capsule.ts, which this repository
+    owns and Preflight runs: a story marked done in execution-status.yaml must carry
+    specs/verifications/<story>-verify.yaml. Verified to have teeth before this file existed — it
+    refused, naming e23s02.
+  corrects: >
+    specs/verifications/e23s01-verify.yaml records blind_spots exit_code 0 with a note claiming the
+    run was "against real data". That claim does not hold: the checks keyed on story status could
+    not have fired then either.
+
+completeness_critic:
+  command: "scripts/lib/completeness-critic.sh (tool package, through the gateway)"
+  exit_code: 1
+  findings: { blocker: 1, warning: 0, filled: 1 }
+  blocker: "active story e23s02 has zero explicit story-tag links"
+  waived: true
+  waiver_reason: >
+    Structural conflict, not a gap in the work, and the same one e23s01 recorded as a known limit.
+    The critic measures traceability by grepping story identifiers inside source files; the global
+    instructions forbid exactly that — no ticket, chantier, lot or phase reference in code comments,
+    commits or written content. The count cannot rise without breaking a standing rule. 495 traces
+    requirement -> component -> evidence in specs/archive/TRACEABILITY.md instead, held green by
+    scripts/check-traceability.ts, and CTX-02 gained its own row in this story.
+
+nfr_gate:
+  report: specs/verifications/NFR-e23s02.json
+  verdict: GO
+
+manual:
+  method: >
+    The owner refused a walk resting on unit tests and module probes and asked for confirmation by a
+    real execution in the harness. Two full campaigns were conducted through the built extension
+    loaded from dist/, against the real local model, under the real sandbox, each accepted with the
+    six gates passing — and one negative control. The dossiers were then read back read-only from
+    their SQLite ledger and object store, the way a dossier reader would, not through any test
+    helper.
+  campaigns:
+    - id: "chg_mubtj37ia3e0a8a347"
+      provider: omlx
+      dossier: "~/.495-campagnes/e23s02-uat-omlx"
+      outcome: "accepted — G0..G5 PASS, unit=PASS, 3 interventions (specify, prepare, implement)"
+      observed: "all 3 context artifacts carry imposed_layers present and empty"
+    - id: "chg_mubtue1mfff8d2f5f6"
+      provider: anthropic
+      dossier: "~/.495-campagnes/e23s02-uat-anthropic"
+      outcome: "accepted — G0..G5 PASS, 3 interventions, model selection recorded as provider_id anthropic"
+      observed: >
+        all 3 context artifacts carry the declared layer with its four fields, and the text actually
+        handed to the model — fetched from the object store by prompt_digest — contains it in
+        neither system_prompt nor prompt
+      fiction_declared: >
+        To exercise the declaring path without spending the owner's subscription quota, Pi was given
+        an isolated agent directory (PI_CODING_AGENT_DIR) whose models.json defines a provider named
+        anthropic served by the local endpoint. Everything else is real. What this run proves is
+        that the harness declares what the domain knows about the provider Pi resolved; it does not
+        and cannot prove that Anthropic imposed anything during it. That half is proven
+        independently by lint:provider-block, which reads Anthropic's own shipped code.
+    - id: "negative control"
+      provider: anthropic
+      outcome: "refused — blocked, policy_denied, before any intervention opened"
+      observed: >
+        Same isolated configuration without the egress declaration: POLICY_DENIED, "anthropic is not
+        declared in policy.egress; declared destinations: omlx". This is what shows the accepted run
+        passed the e23s01 gate rather than bypassing it, and that the two stories compose.
+  confirmed_by_owner: null
+  confirmed_at: null
+  confirmation_note: >
+    Pending. The real-run evidence the owner asked for is recorded above and presented for their
+    confirmation; this field is not set until they give it.
+  steps:
+    - step: "La strate est nommée au manifeste, avec texte, position et condition (§5)"
+      expected: "Le manifeste porte la strate, distincte des instructions composées"
+      actual: "Dossier réel chg_mubtue1mfff8d2f5f6 — les 3 artefacts de contexte la portent, quatre champs ; trusted_instructions ne la contient pas"
+      passed: true
+    - step: "Un fournisseur qui n'impose rien déclare une liste vide, champ présent (6a)"
+      expected: "imposed_layers = [] et le champ existe"
+      actual: "Dossier réel chg_mubtj37ia3e0a8a347 — les 3 artefacts portent [] avec le champ présent"
+      passed: true
+    - step: "Une sélection de modèle non résolue ne déclare rien (6b)"
+      expected: "Liste vide ; aucun diagnostic émis par le constructeur"
+      actual: "test/v1/imposed-layers.test.ts pour la liste vide. La seconde clause tient à la forme : buildContext ne rend que {manifest, system_prompt, prompt, record} — il n'a pas de canal de diagnostic à ne pas employer"
+      passed: true
+    - step: "Un fournisseur jamais vérifié ne déclare rien (6c)"
+      expected: "Liste vide, sans deviner"
+      actual: "test/v1/imposed-layers.test.ts"
+      passed: true
+    - step: "Le texte imposé par le paquet a changé (6d)"
+      expected: "Refus nommant le texte relevé et le texte déclaré"
+      actual: "test/v3/provider-system-block.test.ts sur fixture au texte modifié"
+      passed: true
+    - step: "Le bloc n'est plus relevable dans le paquet (6e)"
+      expected: "Refus quand même — la perte du moyen de vérifier n'est pas une preuve d'innocuité"
+      actual: "test/v3/provider-system-block.test.ts sur fixture sans la forme ; deux autres refus tenus, plus d'une occurrence et répertoire absent"
+      passed: true
+    - step: "La condition est déclarée avec la strate, appliquée ou non (6f)"
+      expected: "La condition est écrite en toutes lettres et ne dépend pas du chemin emprunté"
+      actual: "Dossier réel — la condition est inscrite dans les 3 artefacts. « Appliquée ou non » tient à la forme : imposedLayersFor ne prend que l'identifiant de fournisseur, et la campagne réelle le montre — la condition est déclarée alors que rien ne l'imposait, l'endpoint étant local"
+      passed: true
+    - step: "Le dossier écrit porte la strate, le texte remis en reste exempt (§5)"
+      expected: "Chaque artefact de contexte la porte ; l'enregistrement adressé par empreinte ne la contient pas"
+      actual: "Dossier réel relu depuis SQLite et le magasin d'objets : 3 artefacts sur 3 la portent, et le texte remis au modèle ne la contient ni en système ni en invite"
+      passed: true
+
+gaps:
+  closed: true
+  open: []
+
+known_limits:
+  - >
+    Aucune campagne n'a été conduite contre le vrai chemin d'abonnement. Ce qui est prouvé est que
+    le harnais déclare ce que le domaine sait du fournisseur que Pi a résolu ; ce qu'Anthropic impose
+    réellement est prouvé séparément, par lint:provider-block lisant le code distribué du paquet.
+    Les deux moitiés ne se recouvrent pas : aucune exécution unique ne les tient ensemble
+    aujourd'hui.
+  - >
+    La condition déclarée n'est pas observable par 495. La campagne réelle sur un endpoint local
+    nommé anthropic en est la démonstration involontaire : la strate a été déclarée alors que rien
+    ne l'imposait. C'est la sur-déclaration que le §19 de la story porte comme question ouverte.
+  - >
+    Le contrôle est lié à la sortie d'un minifieur — noms de variables compris. Une reconstruction
+    du paquet sans changement de comportement peut le faire refuser. C'est la posture voulue, mais
+    elle rend le refus ambigu : il dit que la forme a bougé, jamais laquelle des trois garanties.
+  - >
+    Deux gardes du paquet d'outils ne peuvent pas juger ce dépôt : la porte de cohérence, remplacée
+    par check-capsule.ts (D-54), et le relevé d'angles morts, dont quatre vérifications sur sept
+    sont mortes. Le critère de complétude, lui, tourne mais refuse une règle que les instructions
+    globales interdisent de satisfaire.

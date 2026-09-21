@@ -1,0 +1,32 @@
+{
+  "story_id": "e23s02",
+  "risk": "P0",
+  "evaluated_at": "2026-09-21T22:30:00Z",
+  "threshold_source": {
+    "file": "specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s02-le-manifeste-declare-la-strate-imposee-par-le-fournisseur.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "specs/tech-architecture/e23-TEST_PLAN_LATEST.md does not exist and TEST_PLAN_LATEST.md is empty (0 bytes); the only declared thresholds for this story are the ones its own spec states."
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "0 extra bytes emitted toward the provider; one list read per context build, bounded by the number of declared providers; the control at 12 ms over the distributed tree of the pinned version",
+      "measured": "0 extra bytes. Built from dist/, a context with the anthropic layer and one without produce byte-identical system_prompt, prompt and record, and the same prompt_digest — the change is provably inert on what is sent. Lookup: 1.52 us/call on a hit, 0.88 us/call on a miss, 1e6 iterations after warmup, one call per intervention. Control: 12 ms of scan over 275 .js files and 10.2 MB, 0.11 s wall for the whole process including Node startup, three consecutive runs.",
+      "note": "The measurement is taken on dist/, not on src/, because that is what an installation runs."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "the failure direction is closed: nothing is affirmed about a provider that was never verified, and the loss of the means of checking is a refusal rather than a pass",
+      "measured": "The domain returns an empty list for a provider known to impose nothing, for one never verified, and for an empty identifier — never a guess. The control refuses on four distinct fixtures: no relevable block, more than one, a text differing from the declaration, and a package directory that does not exist. Comparison is exact string equality, which cannot over-match. All six cases are held by test/v3/provider-system-block.test.ts, one of them against the package this repository actually depends on.",
+      "note": "The field is always present in the manifest and empty when nothing is imposed, so an absent field can never be read as a provider that imposes nothing."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "a refusal is readable where Preflight is read, and names what to correct without opening the provider's package",
+      "measured": "lint:provider-block prints, on success, the provider, the fact it matches, and the file the block was found in. On a differing text it prints both texts on their own lines, found against declared. On absence it says the means of checking is lost rather than that nothing is imposed. No new presentation component: the control rides the same chained-exit path as the eight others.",
+      "note": "Wired into npm run check, so the refusal surfaces at the same moment as every other gate rather than on a separate command nobody runs."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}
