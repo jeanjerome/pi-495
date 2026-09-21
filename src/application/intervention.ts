@@ -74,8 +74,21 @@ export class InterventionSupervisor {
 		return this.deps.sandbox.qualification.qualified || role === "observe" || role === "specify" || role === "review";
 	}
 
-	/** Refuses, before anything is committed, when the sandbox or the model cannot carry the role. */
+	/**
+	 * Refuses, before anything is committed, when the destination, the sandbox or the model cannot
+	 * carry the role. The destination is judged first: a provider the policy has not declared is
+	 * refused without being reached, so nothing is handed to it in order to find out (SEC-05).
+	 */
 	async requireCapable(role: InterventionRole): Promise<void> {
+		const declared = this.deps.policy.egress;
+		if (!declared.some((d) => d.provider_id === this.deps.model.provider_id))
+			throw new DomainError(
+				"POLICY_DENIED",
+				`${this.deps.model.provider_id} is not a declared egress destination: ${declared
+					.map((d) => d.provider_id)
+					.join(", ")}`,
+				{ nextActions: ["configure_model"] },
+			);
 		if (!this.qualifiedFor(role))
 			throw new DomainError(
 				"CAPABILITY_MISSING",
