@@ -81,7 +81,8 @@ manual:
     standalone entry point. The honest form of UAT here is a walk of every Gherkin scenario in §17
     of the story spec against the named evidence that exercises it, presented to the owner for
     confirmation.
-  confirmed_by_owner: false
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-21T15:15:50Z"
   steps:
     - step: "Une destination déclarée ouvre l'intervention (§5)"
       expected: "Le superviseur poursuit sur la vérification de capacité ; le profil du mandat refuse toujours le réseau"

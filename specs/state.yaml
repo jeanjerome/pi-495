@@ -124,3 +124,7 @@ metrics:
       calls: 1
       total_seconds: 542.0
       avg_seconds: 542.0
+    verify-work:
+      calls: 1
+      total_seconds: 1036.0
+      avg_seconds: 1036.0
