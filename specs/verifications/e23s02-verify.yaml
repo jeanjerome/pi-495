@@ -158,11 +158,15 @@ manual:
         Same isolated configuration without the egress declaration: POLICY_DENIED, "anthropic is not
         declared in policy.egress; declared destinations: omlx". This is what shows the accepted run
         passed the e23s01 gate rather than bypassing it, and that the two stories compose.
-  confirmed_by_owner: null
-  confirmed_at: null
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-21T23:01:49Z"
   confirmation_note: >
-    Pending. The real-run evidence the owner asked for is recorded above and presented for their
-    confirmation; this field is not set until they give it.
+    Confirmed at revision fac24fe, on the real-run evidence above. The owner had refused a first
+    walk resting on unit tests and probes of the built modules, and asked for confirmation by a real
+    execution in the harness; the two campaigns, the dossiers read back read-only, and the negative
+    control are what was put in front of them and what they confirmed. The confirmation does not
+    extend to the true subscription path, which was not exercised — that limit is stated under
+    known_limits rather than folded into this field.
   steps:
     - step: "La strate est nommée au manifeste, avec texte, position et condition (§5)"
       expected: "Le manifeste porte la strate, distincte des instructions composées"

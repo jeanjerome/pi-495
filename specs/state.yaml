@@ -10,51 +10,50 @@ active_epic_id: e23
 active_story: e23s02
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
-    e23s02 est faite : ses six tâches passent, un `status: passing` par tâche et au niveau de la
-    story, et Preflight sort vert avec ce changement compris — 318 tests sur 318, neuf contrôles de
-    lint, zéro avertissement.
+    e23s02 est vérifiée et la recette est confirmée par le propriétaire, le 2026-09-21T23:01:49Z, à
+    la révision fac24fe. La preuve est écrite dans `specs/verifications/e23s02-verify.yaml`, la
+    mesure NFR dans `NFR-e23s02.json`, verdict GO, et la revue de sécurité ajoutée à
+    `specs/security/REVIEW.md` — aucun constat à confiance ≥ 8.
 
-    Chaque tâche a suivi le cycle rouge-vert en deux commits distincts, jamais mêlés : un commit
-    `test:` seul, vérifié rouge à l'isolement par un arbre de travail détaché sur son propre
-    parent, puis un commit `feat:` qui le fait passer. Le script du paquet cité par develop-tdd
-    pour ce contrôle mécanique — `verify-tdd-red-commit.sh` — souffre du même défaut de racine que
-    la porte de cohérence : invoqué à son chemin `/opt/homebrew`, il jugerait le dépôt Git de
-    Homebrew. Il n'a pas été appelé ; la vérification d'isolement a été faite à la main, sur chaque
-    commit rouge, et son résultat est dans l'historique des tool calls plutôt que dans ce fichier.
+    La première recette proposée a été refusée. Elle s'appuyait sur des tests et sur des sondes des
+    modules bâtis ; le propriétaire a demandé une vraie exécution dans le harnais. Deux campagnes
+    complètes ont donc été conduites avec l'extension chargée depuis `dist/`, le modèle local, le
+    bac à sable réel, toutes deux acceptées avec les six portes au vert. Sur `omlx`, les trois
+    artefacts de contexte portent le champ présent et vide. Sur `anthropic`, les trois portent la
+    strate et ses quatre champs, et le texte réellement remis au modèle — relu par son empreinte
+    dans le magasin d'objets — ne la contient ni en système ni en invite. Les deux dossiers sont
+    gardés sous `~/.495-campagnes/e23s02-uat-omlx` et `-anthropic`.
 
-    Quatre pièces portent le changement. `src/domain/imposed-layers.ts` déclare, par identifiant de
-    fournisseur, ce qu'il impose au-dessus des instructions locales — texte, position, condition —
-    vide pour un fournisseur qui n'impose rien, inconnu, ou dont l'identifiant est vide ; seul
-    `anthropic` est connu, la valeur relevée sur le paquet 0.86.1 pendant la planification.
-    `ContextManifest` et `ContextInput` gagnent un champ `imposed_layers`, toujours présent, jamais
-    mêlé à `trusted_instructions` ; `buildContext` le recopie sans le composer. `harness.ts`
-    renseigne ce champ depuis `this.deps.model.provider_id` à chaque construction de contexte, donc
-    sur toute intervention, écrivante ou non. `scripts/check-provider-system-block.ts`, nouveau,
-    lit le paquet que le dépôt épingle — jamais celui installé sur la machine, D-54 — exige
-    exactement une occurrence de la forme repérée, et refuse sur zéro, sur plus d'une, ou sur un
-    texte qui diffère ; il est chaîné dans `npm run check` sous `lint:capsule` et
-    `lint:provider-block`, désormais neuf contrôles de lint. `AGENTS.md` et `CONVENTIONS.md`
-    portent le compte à jour.
+    Une part de cette campagne est feinte et la preuve le dit : pour ne pas dépenser le quota
+    d'abonnement, Pi a reçu un répertoire de configuration isolé — `PI_CODING_AGENT_DIR` — où un
+    fournisseur *nommé* `anthropic` est servi par l'endpoint local. Ce que la campagne établit est
+    que le harnais déclare ce que le domaine sait du fournisseur que Pi a résolu ; ce qu'Anthropic
+    impose réellement reste établi à part, par `lint:provider-block` qui lit son code distribué.
+    Aucune exécution unique ne tient les deux moitiés ensemble aujourd'hui.
 
-    Un site de construction du manifeste avait échappé à la première recherche par grep :
-    `scripts/e2e-local-model.ts` construisait aussi un littéral `ContextManifest`, trouvé par le
-    typage strict et non par la relecture. La leçon vaut pour la prochaine fois qu'un champ est
-    ajouté à ce type : chercher `adopted_refs:` retrouve les trois occurrences, mais seule la
-    compilation les confirme toutes.
+    Un contrôle négatif accompagne la campagne : la même configuration sans la déclaration de sortie
+    est refusée avant toute intervention, sous `policy_denied`. La campagne acceptée a donc franchi
+    la porte d'e23s01 plutôt que de la contourner, et les deux stories se composent.
 
-    `specs/archive/TRACEABILITY.md` sépare désormais CTX-02 de CTX-01/CTX-05 : la ligne nomme les
-    quatre porteurs — déclaration, manifeste, câblage, contrôle — là où elle ne nommait que
-    `context.ts`. `dist/` a été reconstruit avant Preflight ; il n'est pas suivi par git, donc rien
-    à committer de ce côté.
+    Le relevé d'angles morts du paquet d'outils ne peut pas échouer, et c'est démontré, pas supposé.
+    Sa table d'états est lue par une expression qui réclame une indentation sur une ligne dont
+    l'indentation vient d'être retirée : la table est toujours vide, et quatre de ses sept
+    vérifications — dont celle qui refuse une story dite faite sans preuve — lisent du vide sans le
+    dire. e23s02 était exactement dans ce cas et il a rendu zéro constat. La règle qui comptait vit
+    désormais dans `scripts/check-capsule.ts` : une story dite faite dans `execution-status.yaml`
+    sans `specs/verifications/<story>-verify.yaml` est refusée. Elle a mordu avant que le fichier
+    existe. Cela corrige au passage la preuve d'e23s01, qui enregistrait ce zéro comme un verdict
+    obtenu « contre des données réelles » : il ne l'était pas.
 
-    `active_story` reste `e23s02` : develop-tdd rend la main à verify-work, pas à plan-work — c'est
-    son propre contrat de handoff, et rien ici n'a encore relu les huit scénarios Gherkin du §17 un
-    par un ni conduit de vérification manuelle. Aucune tâche de cette story n'a demandé de
-    `verify-script:` : les six sont sorties d'un `verify:` automatique, donc aucune manœuvre
-    humaine n'est en attente. e23s03, sans spécification, reste la story suivante une fois
-    verify-work — puis la suite de la chaîne — franchie sur celle-ci.
+    Le critère de complétude, lui, tourne et refuse — « zéro lien de story » — parce qu'il mesure la
+    traçabilité en cherchant des identifiants de story dans les sources, ce que les instructions
+    globales interdisent d'écrire. Dérogation motivée, comme pour e23s01 ; la traçabilité réelle est
+    exigence → composant → preuve, et CTX-02 y a gagné sa propre ligne.
+
+    Preflight reste vert : `npm run build && npm run check` en une seule exécution contiguë, sortie
+    0, 318 tests sur 318, neuf contrôles de lint, zéro avertissement.
   open_decisions:
     - >
       La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
@@ -64,6 +63,16 @@ handoff:
       un PASS sur un commit de Homebrew ; `check-blind-spots.sh`, `completeness-critic.sh`,
       `sync-status-from-epics.sh` et `trace-stories.sh` lisaient les specs du paquet. À trancher
       pour chacun : passerelle de liens symboliques, contrôle à nous, ou abandon.
+
+      Deux d'entre eux sont désormais instruits. `check-blind-spots.sh` ne souffre pas seulement de
+      sa racine : même branché sur ce dépôt par la passerelle, sa table d'états est lue par
+      `re.match(r'\s+(\S+):\s*"([^"]*)"', stripped)` sur une ligne déjà dénudée de son indentation,
+      donc toujours vide, et quatre de ses sept vérifications sont mortes. Sa seule vérification qui
+      comptait ici est reprise dans `check-capsule.ts`. Une passerelle ne le réparerait pas : il est
+      à abandonner ou à réécrire. `completeness-critic.sh` tourne par la passerelle et refuse pour
+      une raison qui ne se satisfait pas sans enfreindre les instructions globales — il exige des
+      identifiants de story dans les sources. Reste à trancher ce qu'on en fait : dérogation écrite
+      à chaque story, comme aujourd'hui, ou abandon.
     - >
       `bp-timing.sh` écrit ses mesures dans ce fichier par un aller-retour PyYAML, qui remplace les
       scalaires de bloc par du texte entre guillemets à apostrophes doublées. La mise en forme a été
@@ -101,7 +110,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: 2f44e09
+  hash: fac24fe
 
 metrics:
   skill_timings:
