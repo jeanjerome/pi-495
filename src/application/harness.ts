@@ -18,6 +18,7 @@ import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
 import { runningIntervention, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
+import { imposedLayersFor } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
@@ -500,6 +501,9 @@ export class Harness {
 			feedback: extra.feedback ?? null,
 			tools: TOOLS_FOR_ROLE[role],
 			budget_bytes: 60_000,
+			// The provider is read from the same selection the supervisor judges the destination
+			// against; what it imposes is declared whether or not this intervention writes (CTX-02).
+			imposed_layers: imposedLayersFor(this.deps.model.provider_id),
 			controls: (protocol?.content.controls ?? []).map((c) => ({
 				control_id: c.control_id,
 				command: c.command,

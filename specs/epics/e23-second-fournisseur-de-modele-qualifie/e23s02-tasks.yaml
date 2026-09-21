@@ -70,7 +70,7 @@ tasks:
       Aucun constat nouveau sur src/application/harness.ts : la sélection de modèle est lue là où
       elle l'est déjà, aucun identifiant nouveau n'atteint le worker, et l'enregistrement du texte
       remis reste celui qui a été envoyé.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
