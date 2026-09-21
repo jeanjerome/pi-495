@@ -10,7 +10,7 @@ active_epic_id: e23
 active_story: e23s02
 
 handoff:
-  next_skill: request-review
+  next_skill: respond-review
   last_step_completed: >
     e23s02 est vérifiée et la recette est confirmée par le propriétaire, le 2026-09-21T23:01:49Z, à
     la révision fac24fe. La preuve est écrite dans `specs/verifications/e23s02-verify.yaml`, la
@@ -71,6 +71,40 @@ handoff:
     borne avant que j'y ajoute six et quatre lignes ; et un cinquième parcours récursif de
     répertoire dans `scripts/`, dette nommée dont la fermeture toucherait quatre contrôles étrangers
     à cette story.
+
+    Ronde de relecture 1 sur 5, deux relecteurs en aveugle, porte ET : **échec des deux côtés**.
+    A rend 58 % avec un point bloquant, B rend 40 % avec deux. Leurs verdicts convergent sur
+    l'essentiel, et les deux points bloquants sont réels, reproduits ici plutôt que crus sur parole.
+
+    Un : quatorze des dix-huit commits de la branche portent des lignes d'attribution IA et un
+    identifiant de session, ce que les instructions globales et CONVENTIONS interdisent en toutes
+    lettres. Les quatre premiers en sont exempts — la règle a été tenue puis perdue en cours de
+    session. B affirme dix-huit sur dix-huit ; c'est quatorze, mesuré.
+
+    Deux : `imposedLayersFor` résout les clés héritées d'`Object.prototype`. `imposedLayersFor("toString")`
+    rend `[null]`, `"__proto__"` rend `[{}]`. Conduit jusqu'au bout par B : un fournisseur nommé
+    `__proto__` écrit une strate vide au dossier — le manifeste faux que cette story existe pour
+    empêcher — et `toString` fait tomber la campagne sur « canonical JSON cannot represent function »
+    au moment d'écrire l'artefact. `provider_id` vient de la configuration Pi du propriétaire, donc
+    de l'extérieur. Le critère 6c de la story est faux pour six identifiants, et aucun test ne
+    couvrait cette borne.
+
+    Le reste se concentre sur `check-capsule.ts`, et les deux relecteurs remontent à la même racine :
+    il est parti sans test. Quatre trous trouvés à la première sonde — une commande `verify:` réduite
+    à un scalaire de bloc passe pour exécutable ; un fichier de preuve vide de zéro octet vaut
+    vérification ; `checkVerified` rend zéro en silence quand `execution-status.yaml` manque ou que
+    sa clé est renommée, exactement le défaut que son propre en-tête reproche à l'outil qu'il
+    remplace ; et un commentaire YAML en fin de ligne rend une story « faite » invisible au contrôle.
+    C'est le point que l'auto-revue avait laissé ouvert au relecteur : les deux ont tranché dans le
+    même sens.
+
+    Trois constats visent mon propre travail de test et de prose. L'assertion `/2|two/i` du test
+    d'ambiguïté passe sur un message qui annonce **trois** blocs, parce que le chemin du dépôt
+    contient un `2` — un test qui n'est pas auto-validant, vérifié ici. Le commentaire d'en-tête du
+    contrôle de fournisseur cite `D-54` pour une décision que `D-54` ne porte pas : le choix de lire
+    le paquet épinglé est au §18 de la story, et `D-54` ne mentionne jamais `node_modules`. Et la
+    condition déclarée — le préfixe de jeton — n'est jamais relue par le contrôle, alors que la
+    tâche 4 et le §1 de la story promettent de refuser quand elle diffère.
   open_decisions:
     - >
       La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
@@ -127,7 +161,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: 07d22da
+  hash: 64384bb
 
 metrics:
   skill_timings:
