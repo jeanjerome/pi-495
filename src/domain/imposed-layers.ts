@@ -8,10 +8,10 @@
 
 /** `above_local_instructions` is the one position observed to date; D-48 is the sole prior art. */
 export interface ImposedLayer {
-	provider_id: string;
-	position: "above_local_instructions";
-	condition: string;
-	text: string;
+	readonly provider_id: string;
+	readonly position: "above_local_instructions";
+	readonly condition: string;
+	readonly text: string;
 }
 
 const IMPOSED: Readonly<Record<string, ImposedLayer>> = Object.freeze({
@@ -27,9 +27,14 @@ const IMPOSED: Readonly<Record<string, ImposedLayer>> = Object.freeze({
  * The layers a provider imposes, or an empty list for a provider that imposes nothing, an unknown
  * provider, or an empty identifier (§6a–§6c of e23s02). 495 declares only what it has verified
  * against the provider's own package; it does not infer a layer from a name it has never checked.
+ *
+ * `IMPOSED` is an object literal and so inherits `Object.prototype`: a plain `IMPOSED[providerId]`
+ * would resolve `providerId` values like `toString` or `__proto__` to an inherited member rather
+ * than to nothing, which is exactly the false manifest this module exists to prevent. `providerId`
+ * is not a constant — it comes from the owner's Pi model configuration — so this is a real
+ * boundary, not a theoretical one (review round 1, both reviewers, confirmed by reproduction).
  */
 export function imposedLayersFor(providerId: string): ImposedLayer[] {
-	if (!providerId) return [];
-	const layer = IMPOSED[providerId];
-	return layer ? [layer] : [];
+	if (!providerId || !Object.hasOwn(IMPOSED, providerId)) return [];
+	return [IMPOSED[providerId]!];
 }

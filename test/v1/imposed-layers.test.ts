@@ -16,7 +16,7 @@ describe("imposed layers (CTX-02, D-48)", () => {
 		assert.equal(layers[0]!.provider_id, "anthropic");
 		assert.equal(layers[0]!.position, "above_local_instructions");
 		assert.equal(layers[0]!.text, "You are Claude Code, Anthropic's official CLI for Claude.");
-		assert.match(layers[0]!.condition, /subscription/);
+		assert.equal(layers[0]!.condition, "the OAuth subscription path is used (an access token prefixed sk-ant-oat)");
 	});
 
 	it("declares nothing for a provider known to impose nothing (6a)", () => {
@@ -30,6 +30,14 @@ describe("imposed layers (CTX-02, D-48)", () => {
 	it("declares nothing for an empty identifier (6b)", () => {
 		assert.deepEqual(imposedLayersFor(""), []);
 	});
+
+	// An object literal inherits Object.prototype: a plain index lookup would resolve one of these
+	// to an inherited member instead of to nothing, and provider_id is owner-configured, not a
+	// constant (review round 1: both reviewers, reproduced independently).
+	it("declares nothing for a provider identifier that names an inherited object member", () => {
+		for (const name of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"])
+			assert.deepEqual(imposedLayersFor(name), [], `${name} must not resolve to an inherited member`);
+	});
 });
 
 describe("the manifest names imposed layers, never merged into trusted instructions", () => {
@@ -42,6 +50,7 @@ describe("the manifest names imposed layers, never merged into trusted instructi
 		feedback: null,
 		tools: [],
 		budget_bytes: 10_000,
+		imposed_layers: [],
 	};
 
 	it("carries an empty list when the context is built with none (field always present)", () => {
