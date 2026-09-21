@@ -30,7 +30,7 @@ tasks:
     verify: "node --test test/v1/imposed-layers.test.ts"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
