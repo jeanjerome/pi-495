@@ -26,14 +26,20 @@ handoff:
     elle servait auparavant Node 22 hors terminal et Node 24 en terminal, soit deux empreintes
     d'environnement pour un seul poste.
 
-    Reste ouvert : le gabarit de story qui bloque slice-tasks sur e23, et la cinquième question de
-    la note — quel adaptateur derrière SandboxPort — qui attend sa mesure sous Apple Container.
+    Enfin la levée de ce qui bloquait slice-tasks. Le gabarit de story n'était pas introuvable mais
+    non distribué : le paquet bigpowers installé porte 81 SKILL.md et pas l'arborescence docs/ que
+    ces procédures citent, alors que les procédures elles-mêmes sont identiques à l'octet à
+    l'amont. Le gabarit est recopié sous specs/references/, épinglé à sa version, et
+    lint:story-format entre dans Preflight : il en extrait les vingt sections et refuse une story
+    dont une section manque, sort de son rang, change de nom ou n'annonce pas son état (D-51). La
+    commande verify, elle, n'a jamais été censée passer au moment où on l'écrit — plan-work exige
+    qu'une tâche naisse failing et ne bascule qu'après une sortie en 0 —, et ce qui demande une
+    main s'écrit verify-script (D-52). slice-tasks n'écrit d'ailleurs pas de story : il écrit les
+    fichiers de tâches et renvoie le gabarit à plan-work.
+
+    Reste ouvert : la cinquième question de la note — quel adaptateur derrière SandboxPort — qui
+    attend sa mesure sous Apple Container.
   open_decisions:
-    - >
-      Les capsules d'epic ne sont pas générées, et ce n'est pas un retard : une capsule se crée au
-      moment d'attaquer son epic. Reste à trancher comment écrire une story sans le gabarit
-      countable-story-format, absent du paquet installé, et sans fabriquer de commande verify.
-      C'est ce qui bloque slice-tasks sur e23, désormais en tête de l'index.
     - >
       Quel adaptateur se tient derrière SandboxPort : les backends écrits à la main,
       @anthropic-ai/sandbox-runtime, ou une micro-VM. Pi n'implémente aucun bac à sable et le
@@ -45,11 +51,14 @@ handoff:
       aujourd'hui déclarée infermable.
   required_reading:
     - specs/spikes/organisation-des-quatre-chantiers.md
+    - specs/references/countable-story-format.md
     - specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md
     - specs/adr/D-47-prompts-et-contexte-restent-un-seul-epic-elargi-a-la-phase-et-au-modele.md
     - specs/adr/D-48-le-bloc-systeme-impose-par-le-fournisseur-est-declare-au-manifeste.md
     - specs/adr/D-49-l-identite-claude-cli-est-acceptee-pour-la-seule-machine-de-reference.md
     - specs/adr/D-50-le-plancher-node-reste-24-et-la-machine-y-est-epinglee.md
+    - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
+    - specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md
     - specs/README.md
     - specs/release-plan.yaml
     - specs/product/SCOPE_LATEST.yaml

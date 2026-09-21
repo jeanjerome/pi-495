@@ -23,8 +23,9 @@ capsules:
   status: not_generated
   note: >
     Les répertoires capsule_dir sont les emplacements prévus ; aucun ne contient encore
-    d'epic.yaml, de story ni de tâches. Leur écriture demande le gabarit countable-story-format,
-    absent du paquet bigpowers installé.
+    d'epic.yaml, de story ni de tâches. Une capsule s'écrit au moment d'attaquer son epic, pas
+    pour les 22 d'avance. Le gabarit qui manquait à leur écriture est désormais sous
+    specs/references/ et Preflight l'oppose aux stories (D-51).
 
 epics:
   - id: e23
