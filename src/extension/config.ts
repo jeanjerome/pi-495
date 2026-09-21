@@ -19,6 +19,9 @@ export interface HarnessConfig {
  * its own; the one provider configured here answers on the loopback interface, so nothing leaves
  * the machine until a destination off it is written down.
  */
+/** A provider id is a short name. Longer than this it is a payload, and it is refused as one. */
+const MAX_PROVIDER_ID = 64;
+
 const DEFAULT_EGRESS: readonly DeclaredEgress[] = Object.freeze([
 	Object.freeze({ provider_id: "omlx", location: "on_machine" }) as DeclaredEgress,
 ]);
@@ -79,6 +82,10 @@ function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
 		const { provider_id, location } = entry as Partial<DeclaredEgress>;
 		if (typeof provider_id !== "string" || provider_id === "")
 			return refuse(`destination ${index} carries no provider_id`);
+		// Named by its length, not echoed: a diagnostic reaches the display, the structured entries and,
+		// through a block detail, the exported dossier.
+		if (provider_id.length > MAX_PROVIDER_ID)
+			return refuse(`destination ${index} carries a provider_id of ${provider_id.length} characters`);
 		if (location === undefined || !EGRESS_LOCATIONS.includes(location))
 			return refuse(`destination ${provider_id} does not say where it sits (${EGRESS_LOCATIONS.join(" or ")})`);
 		// A name declared twice, once on the machine and once off it, contradicts itself about the one
@@ -100,7 +107,13 @@ export function loadConfig(
 	let config: HarnessConfig = structuredClone(DEFAULT_CONFIG);
 	if (existsSync(path)) {
 		try {
-			const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<HarnessConfig> & {
+			const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+			// A file that parses but is not an object declares nothing in substance, exactly like one
+			// that does not parse: reading it as an absent configuration would restore a destination the
+			// owner may have removed in the very edit that emptied it.
+			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+				throw new Error(`expected an object, read ${Array.isArray(parsed) ? "a list" : typeof parsed}`);
+			const raw = parsed as Partial<HarnessConfig> & {
 				policy?: Partial<ActivePolicy> & {
 					budgets?: Partial<ActivePolicy["budgets"]>;
 					adoption?: Partial<ActivePolicy["adoption"]>;

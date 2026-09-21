@@ -12,7 +12,15 @@ n'a de réponse évidente.
 
 ## Décision
 
-**Une déclaration malformée ne déclare rien.** Si une seule entrée est illisible — pas un objet, pas
+**Une déclaration malformée ne déclare rien.** Un fichier qui s'analyse mais n'est pas un objet —
+une liste, un nombre, une chaîne — est traité comme un fichier illisible et non comme une
+configuration absente : le lire comme absente restaurerait ce que le propriétaire vient peut-être
+de retirer. Un `provider_id` plus long qu'un nom court est refusé et nommé par sa longueur, jamais
+recopié : un diagnostic atteint l'affichage, les entrées structurées et, par un détail de blocage,
+le dossier exporté. Pour la même raison, un refus nomme quelques destinations déclarées et compte
+les autres au lieu d'énumérer la liste entière.
+
+ Si une seule entrée est illisible — pas un objet, pas
 de `provider_id`, une situation inconnue, un nom déclaré deux fois avec deux situations
 contradictoires — la liste entière est abandonnée et aucune destination n'est déclarée. Un fichier
 `config.json` illisible fait de même. Toute intervention est alors refusée, et chacun de ces états

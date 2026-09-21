@@ -58,7 +58,7 @@ résolus en lecture lors d'une reprise ; plus rien n'y est écrit.
 `egress` — la liste des destinations vers lesquelles des extraits et des invites ont le droit de
 partir, chacune `{ "provider_id": …, "location": "on_machine" | "off_machine" }`. Clé absente : la
 déclaration par défaut s'applique, `omlx` sur la machine. Liste vide, malformée, ou fichier
-illisible : rien n'est déclaré et toute intervention est refusée. Chacun de ces états est annoncé à
+illisible, ou qui ne contient pas un objet : rien n'est déclaré et toute intervention est refusée. Chacun de ces états est annoncé à
 l'ouverture de session), `isolation.allow_unconfined`,
 `human_origin.rpc_actor_env`, `workspace_exclusions`, `language`.
 

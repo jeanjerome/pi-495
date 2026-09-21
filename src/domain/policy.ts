@@ -87,6 +87,9 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	required_reviews: [],
 };
 
+/** How many declared destinations a refusal names before it counts the rest. */
+const NAMED_IN_REFUSAL = 8;
+
 /**
  * Why a destination may not be handed excerpts and prompts, or `null` when the policy declares it
  * (SEC-05). 495 never calls a model itself: the worker reaches the provider its host resolved, and
@@ -100,8 +103,13 @@ export function undeclaredEgressReason(policy: ActivePolicy, providerId: string)
 	if (policy.egress.some((d) => d.provider_id === providerId)) return null;
 	if (policy.egress.length === 0)
 		return "no egress destination is declared, so no intervention may hand excerpts or prompts to a model";
+	// Naming a few is what makes the refusal actionable; naming all of them would put a whole
+	// declaration into a message that travels to the display, the structured entries and the dossier.
+	const shown = policy.egress.slice(0, NAMED_IN_REFUSAL).map((d) => d.provider_id);
+	const rest = policy.egress.length - shown.length;
 	return (
-		`${providerId} is not declared in policy.egress; declared destinations: ${policy.egress.map((d) => d.provider_id).join(", ")}. ` +
+		`${providerId} is not declared in policy.egress; declared destinations: ${shown.join(", ")}` +
+		`${rest > 0 ? `, and ${rest} more` : ""}. ` +
 		"The declaration is read once at startup, so a new one takes effect in a new session."
 	);
 }

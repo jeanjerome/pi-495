@@ -85,6 +85,13 @@ describe("the rule that says what may leave (SEC-05, D-11, D-46)", () => {
 		);
 	});
 
+	it("names a few declared destinations and counts the rest, whatever the list holds", () => {
+		const many = Array.from({ length: 40 }, (_, i) => ({ provider_id: `p${i}`, location: "on_machine" as const }));
+		const reason = undeclaredEgressReason({ ...DEFAULT_POLICY, egress: many }, "anthropic") ?? "";
+		assert.ok(reason.length < 300, `a refusal travels to the dossier; it must stay a message: ${reason.length} chars`);
+		assert.match(reason, /and 32 more/, "the refusal must say how many it did not name");
+	});
+
 	it("admits a declared destination and no other, by exact name", () => {
 		const policy = { ...DEFAULT_POLICY, egress: LOCAL };
 		assert.equal(undeclaredEgressReason(policy, "omlx"), null);
@@ -187,6 +194,35 @@ describe("the declaration a configuration carries (SEC-05)", () => {
 		assert.deepEqual(config.policy.egress, [], "an unreadable configuration must not inherit a destination");
 		assert.ok(
 			diagnostics.some((d) => d.includes("no egress destination is declared")),
+			diagnostics.join(" | "),
+		);
+	});
+
+	it("declares nothing when the file parses but is not a configuration", () => {
+		// Valid JSON that is not an object declares nothing in substance, exactly like a file that does
+		// not parse. Reading it as an absent configuration would restore what the owner may have removed.
+		for (const body of ["[]", '"omlx"', "5", "null"]) {
+			writeFileSync(join(root, "config.json"), body);
+			const { config, diagnostics } = loadConfig(root);
+			assert.deepEqual(config.policy.egress, [], `${body} must declare nothing`);
+			assert.ok(
+				diagnostics.some((d) => d.includes("no egress destination is declared")),
+				`${body}: ${diagnostics}`,
+			);
+		}
+	});
+
+	it("names an oversized provider by its length, instead of echoing it into every channel", () => {
+		const { config, diagnostics } = loadConfig(
+			configured({ egress: [{ provider_id: "z".repeat(300), location: "on_machine" }] }),
+		);
+		assert.deepEqual(config.policy.egress, []);
+		assert.ok(
+			diagnostics.every((d) => d.length < 200),
+			`a diagnostic reaches the display, the structured entries and the dossier: ${diagnostics.map((d) => d.length)}`,
+		);
+		assert.ok(
+			diagnostics.some((d) => d.includes("300 characters")),
 			diagnostics.join(" | "),
 		);
 	});
