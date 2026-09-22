@@ -6,9 +6,10 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { imposedLayersFor } from "../src/domain/imposed-layers.ts";
+import type { InterventionMandate } from "../src/ports/execution.ts";
 import { PiWorkerAgent } from "../src/adapters/pi-worker/supervisor.ts";
 import { TOOLS_FOR_ROLE } from "../src/adapters/pi-worker/protocol.ts";
-import type { InterventionMandate } from "../src/ports/execution.ts";
 import { fixtureTs } from "../test/helpers/fixtures.ts";
 
 const [provider, modelId] = (process.argv[2] ?? "omlx/qwen3.8-27b-oq8e").split("/") as [string, string];
@@ -44,7 +45,9 @@ const mandate: InterventionMandate = {
 		objective: "greet",
 		output_schema: "producer-report",
 		trusted_instructions: ["workspace only"],
-		imposed_layers: [],
+		// Read from the provider this run was given, not assumed empty: a manifest that asserts a
+		// provider imposes nothing is the exact falsehood the declaration exists to prevent (CTX-02).
+		imposed_layers: imposedLayersFor(provider),
 		adopted_refs: [],
 		untrusted_excerpts: [],
 		tools: TOOLS_FOR_ROLE.implement,

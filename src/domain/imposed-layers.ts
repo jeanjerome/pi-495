@@ -4,9 +4,22 @@
  * is the control's job (`scripts/check-provider-system-block.ts`), not this one's. A provider
  * absent here is one this harness has never verified, and it is declared nothing rather than
  * guessed at.
+ *
+ * This table is an **expectation**, not an observation. It states what 495 has verified about a
+ * provider's package, not what that provider put in front of the model on a given call. Pi
+ * publishes `before_provider_request`, which hands over the request payload after the provider
+ * built it; `e23s06` is open to read the imposed layer from there, at which point this table
+ * becomes something an observation can be held against rather than the source (`D-55`).
  */
 
-/** `above_local_instructions` is the one position observed to date; D-48 is the sole prior art. */
+/**
+ * `above_local_instructions` is the one position observed to date; D-48 is the sole prior art.
+ *
+ * `condition` is prose a reader reads back out of an exported dossier, so it is written to survive
+ * that journey: the export redacts anything shaped like a secret, and a token prefix spelled out
+ * far enough would be rewritten on its way out, leaving the dossier asserting a condition nobody
+ * declared. Name the prefix, never a whole token.
+ */
 export interface ImposedLayer {
 	readonly provider_id: string;
 	readonly position: "above_local_instructions";
@@ -32,7 +45,7 @@ const IMPOSED: Readonly<Record<string, ImposedLayer>> = Object.freeze({
  * would resolve `providerId` values like `toString` or `__proto__` to an inherited member rather
  * than to nothing, which is exactly the false manifest this module exists to prevent. `providerId`
  * is not a constant — it comes from the owner's Pi model configuration — so this is a real
- * boundary, not a theoretical one (review round 1, both reviewers, confirmed by reproduction).
+ * boundary, not a theoretical one.
  */
 export function imposedLayersFor(providerId: string): ImposedLayer[] {
 	if (!providerId || !Object.hasOwn(IMPOSED, providerId)) return [];

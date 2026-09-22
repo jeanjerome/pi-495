@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { buildContext } from "../src/application/context.ts";
+import { imposedLayersFor } from "../src/domain/imposed-layers.ts";
 import { TOOLS_FOR_ROLE } from "../src/contracts/v1/reports.ts";
 
 // --- arguments ------------------------------------------------------------------------------------
@@ -191,10 +192,9 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
 			{ control_id: "coverage", command: ["node", "-e", ""], cwd: "." },
 		],
 		boundaries: ["le module simple-domain ne déclare aucune dépendance sur simple-infrastructure"],
-		// This benchmark measures the local instructions the harness composes, never a real
-		// provider's own request: an imposed layer is never emitted regardless (CTX-02), so there is
-		// nothing provider-specific to thread through a bench that takes no provider argument.
-		imposed_layers: [],
+		// Read from the provider this bench was pointed at, like every other caller: the manifest
+		// states what that provider imposes even though the bench never sends it (CTX-02).
+		imposed_layers: imposedLayersFor(wantedProvider ?? ""),
 	});
 	return { system: built.system_prompt, user: built.prompt };
 }

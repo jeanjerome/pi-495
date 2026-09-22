@@ -33,7 +33,7 @@ describe("imposed layers (CTX-02, D-48)", () => {
 
 	// An object literal inherits Object.prototype: a plain index lookup would resolve one of these
 	// to an inherited member instead of to nothing, and provider_id is owner-configured, not a
-	// constant (review round 1: both reviewers, reproduced independently).
+	// constant, so the identifier reaching this lookup is not one this harness chose.
 	it("declares nothing for a provider identifier that names an inherited object member", () => {
 		for (const name of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"])
 			assert.deepEqual(imposedLayersFor(name), [], `${name} must not resolve to an inherited member`);

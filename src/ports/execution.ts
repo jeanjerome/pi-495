@@ -143,7 +143,7 @@ export interface ContextManifest {
 	output_schema: string;
 	trusted_instructions: string[];
 	/** What a provider writes above `trusted_instructions` on its own, never composed here (CTX-02, D-48). */
-	imposed_layers: ImposedLayer[];
+	imposed_layers: readonly ImposedLayer[];
 	adopted_refs: { kind: string; artifact_id: string; revision: number; digest: string }[];
 	untrusted_excerpts: { source: string; digest: string; bytes: number }[];
 	tools: string[];

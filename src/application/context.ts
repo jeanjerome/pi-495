@@ -35,10 +35,10 @@ export interface ContextInput {
 	/**
 	 * What the retained provider imposes above `trusted`, named but never composed (CTX-02, D-48).
 	 * Required rather than defaulted: an omitted field would silently assert "this provider imposes
-	 * nothing", which is the exact false manifest CTX-02 exists to prevent — and one caller already
-	 * did this before it was required (review round 1, both reviewers).
+	 * nothing", which is the exact false manifest CTX-02 exists to prevent. A caller that has no
+	 * layer to declare says so with an empty list, which is an answer rather than a silence.
 	 */
-	imposed_layers: ImposedLayer[];
+	imposed_layers: readonly ImposedLayer[];
 }
 
 /**
@@ -212,8 +212,9 @@ export function buildContext(input: ContextInput): {
 		output_schema: schema,
 		trusted_instructions: trusted,
 		// Never folded into `trusted`: what a provider imposes is not what 495 composed, and the
-		// distinction is the fact this field exists to keep (CTX-02, D-48).
-		imposed_layers: input.imposed_layers,
+		// distinction is the fact this field exists to keep (CTX-02, D-48). Copied rather than held by
+		// reference, so a caller cannot alter a manifest after it has been built.
+		imposed_layers: [...input.imposed_layers],
 		adopted_refs: input.adopted.map((a) => ({
 			kind: a.kind,
 			artifact_id: a.artifact_id,
