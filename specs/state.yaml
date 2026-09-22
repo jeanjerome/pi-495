@@ -6,191 +6,48 @@ project_cycle:
   completed_phases: []
 
 active_flow: null
-active_epic_id: e24
-active_story: e24s04
+active_epic_id: e23
+active_story: e23s03
 
 handoff:
   next_skill: null
   last_step_completed: >
-    L'antériorité de ce que Pi tient déjà est établie (`e24s04`). Le relevé vit sous l'epic `e24` du
-    périmètre, section `prior_art`, à côté de ceux de la surface de revue et de la frontière
-    d'exécution. L'epic e24 n'a plus de story ouverte.
+    Le refus d'un profil incapable a un effet avant lancement (`e23s03`). La spécification de la
+    story a été écrite avec le code, et les quatre tâches sont vertes. L'epic `e23` en est à
+    `e23s04`, la première campagne qui consomme un quota d'abonnement.
 
-    LE CYCLE EST TENU. Les trois commandes de vérification ont été lancées rouges contre l'état que
-    HEAD portait, puis vertes après le relevé, et la preuve de rouge est reproductible — un arbre
-    monté depuis `git show HEAD:` sert de témoin.
+    LE DÉFAUT ÉTAIT UNE TAUTOLOGIE. `describeCapabilities` répondait « disponible » dès que le
+    couple fournisseur-modèle n'était pas vide ; ce couple est construit depuis le modèle que Pi a
+    déjà résolu, donc la réponse ne pouvait être fausse que si aucun modèle n'était configuré. Les
+    faits qui refuseraient — couple absent du catalogue, fournisseur non authentifié — étaient lus
+    dans le worker, après lancement, et rendaient une intervention échouée. Un troisième n'était
+    jamais lu : `sdk.js:138` de `pi-coding-agent` rabat un niveau de raisonnement non supporté sur
+    le plus proche accepté, sans rien dire.
 
-    LES TROIS COMMANDES ONT CHANGÉ DE CIBLE POUR UN MOTIF MESURÉ. Elles visaient un fichier
-    `e24s04-ce-que-pi-tient.md` dans la capsule ; ce nom tombe sous le motif par lequel
-    `check-story-format.ts` reconnaît une spécification de story, donc un relevé écrit là se ferait
-    réclamer les vingt sections du gabarit. Essayé : `lint:story-format` refuse sur « section 1.
-    Business narrative is missing ». Le relevé rejoint donc le périmètre, comme ceux de e24s01 et
-    e24s03.
+    CE QUE L'HÔTE RAPPORTE EST DÉSORMAIS LA SOURCE. `src/adapters/pi-worker/capabilities.ts` lit le
+    catalogue, l'authentification, `getSupportedThinkingLevels`, la fenêtre de contexte et le
+    plafond de sortie. Chaque valeur dit si elle est rapportée ou redite ; trois sortes — streaming,
+    annulation, sessions — sont des propriétés du contrat publié pour tous, et le disent. Le
+    catalogue arrive par `ctx.modelRegistry`, que `session.ts` passe au runtime.
 
-    LES SIX SUJETS SONT TRANCHÉS, ET UN SEUL COÛTE AUJOURD'HUI. Confiance de projet : besoin absent,
-    le worker ne charge aucune ressource de projet — c'est plus strict que refuser la confiance, qui
-    laisse Pi charger `AGENTS.md`. Gardes de permission : besoin couvert plus bas, `noTools: "all"`
-    ne laisse aucun outil Pi à garder. Rendu du lecteur : couvert, `registerMessageRenderer` déjà
-    posé. Décisions humaines : dialogues couverts, mais l'identité de l'humain est déduite de
-    `node:os` faute que Pi la rapporte, et le contournement ne le dit pas — `D-55` l'exige.
-    Délégation : rien n'est écrit, `AGT-05` [P1] attend, et Pi livre `examples/extensions/subagent/`
-    en 1 547 lignes ; c'est le seul des six où regarder avant d'écrire est encore possible.
+    UNE SEULE SORTE N'EST RAPPORTÉE PAR RIEN. Ni `Model` de `pi-ai`, ni la définition de modèle que
+    `models.json` accepte ne portent de champ d'appels d'outils : la déclaration dit le dialecte, pas
+    ce que le serveur honore. Elle est donc observée — une requête, un outil trivial, rien du projet
+    — une fois par couple et par session (`D-57`).
 
-    LA COMPACTION EST L'ÉCART QUI COÛTE. Le worker l'active (`worker-main.ts:304`) et n'observe rien
-    de ce qu'elle produit : `session.subscribe` porte 23 sortes d'événements et `worker-main.ts` en
-    lit une, `message_end`. Deux conséquences — le manifeste de `CTX-02` est scellé avant qu'une
-    compaction remplace les premiers tours par un résumé que 495 n'a ni composé ni enregistré ; et
-    `counters.tokens_known` ignore l'usage du résumé, porté par `CompactionResult.usage`, comme
-    celui des réessais automatiques. C'est une lecture des déclarations de la version épinglée, écrit
-    comme telle, pas une exécution. L'observer modifierait `InterventionEvent`, donc `src/contracts/`
-    — le prix est nommé et laissé à l'epic qui porte `CTX-02`.
+    MESURÉ SUR LA MACHINE, PAS DÉDUIT. Par le Pi installé, en session réelle : `omlx/qwen3.8-27b-oq8e`
+    disponible, l'endpoint appelle l'outil (3,4 s pour la première observation, 0 ms ensuite), niveaux
+    acceptés `off, minimal, low, medium, high` — donc `xhigh` et `max` sont refusés là où ils étaient
+    rabattus, et `medium`, le défaut de `settings.json`, passe. Aucune campagne existante n'est
+    refusée par le changement.
 
-    TROIS DÉCOMPTES ANTÉRIEURS ÉTAIENT FAUX, CHACUN D'UNE UNITÉ. Le motif de e24 et `D-55`
-    annonçaient 38 accroches publiées, 31 pages de documentation et 76 extensions d'exemple.
-    Recomptés à une règle écrite : 39, 30 et 77. Le tarball de `0.86.1` a été récupéré pour trancher
-    : 37 accroches là-bas, 39 ici, la différence étant exactement `agent_before_settle` et
-    `context_with_system` que `D-55` nomme — donc aucun des trois écarts ne s'explique par le
-    relèvement de version. `SCOPE_LATEST.yaml`, `D-55` et `AGENTS.md` portent désormais les chiffres
-    mesurés.
+    DEUX QUESTIONS RESTENT AU PROPRIÉTAIRE, DUES AVANT `e23s04`. Le rythme de l'observation sur un
+    fournisseur facturé — une requête par session, ou retenue au-delà, et alors sous quelle clé. Et
+    la compaction : le worker la laisse active sans rien observer de ce qu'elle produit, donc le
+    manifeste est scellé avant qu'un résumé remplace une partie du texte, et le compteur de jetons
+    ignore ce que ce résumé coûte. Couper, observer, ou mesurer d'abord si le cas peut survenir dans
+    le budget d'une intervention.
 
-    UNE PORTE NE S'EXERCE PLUS SANS QUE PERSONNE L'AIT DIT. `src/domain/imposed-layers.ts` nomme
-    `scripts/check-provider-system-block.ts` comme le contrôle qui tient sa table contre le paquet.
-    Ce script n'est pas sur cette branche — `aaefb8f` l'a sorti de Preflight et il vit sur
-    `controle-du-bloc-fournisseur`. La table est donc une attente que rien ne confronte, jusqu'à
-    `e23s06`.
-  open_decisions:
-    - >
-      **La vue de revue s'assemble sur `pi-tui`, et le travail se conduit dans une session à lui.**
-      La direction est arrêtée par le propriétaire ; ce qui reste est l'exécution. `pi-tui` publie
-      `HStack`, `VStack`, `Container`, `ScrollView`, `SelectList`, `KeybindingsManager`,
-      `MouseRegion`, `visibleWidth`, `truncateToWidth`, `sliceByColumn`, `wrapTextWithAnsi` et
-      `fuzzyFilter` ; 495 porte 873 lignes sous `src/presentation/tui/` qui refont la disposition
-      (`review-surface.ts`), le clavier et le focus (`keymap.ts`), l'arbre virtualisé et filtré
-      (`tree-pane.ts`), le lecteur (`reader-pane.ts`) et la mesure de largeur (`measure.ts`).
-
-      L'OBSTACLE DE STRUCTURE EST LEVÉ, et c'est lui qui expliquait pourquoi ce code avait été écrit
-      à la main : `check-layers.ts` interdisait `@earendil-works` à la couche `presentation`, où
-      vivent ces 873 lignes. D'où la même absurdité écrite deux fois dans le dépôt —
-      `src/extension/review-command.ts` importait `truncateToWidth` parce qu'il en avait le droit,
-      et `src/presentation/tui/review/measure.ts` recalculait les colonnes d'une ligne stylée parce
-      qu'il ne l'avait pas. La justification invoquait `UX-11` — qu'aucune vue ne fasse dépendre la
-      donnée de revue d'un composant — mais cette donnée vit dans `application/review.ts` et
-      `presentation/structured/`, que la règle n'atteignait pas : elle gardait la donnée en
-      interdisant la vue, qui est ailleurs. L'interdiction reste sur le noyau des exigences et
-      décisions — `domain/`, `contracts/`, `ports/`, `application/`, `export/` — parce que `NFR-07`
-      [P0] la nomme et qu'elle y garde son sens : le noyau se teste sans réseau ni modèle réel.
-
-      CE QUI NE BOUGE PAS. Les 481 lignes du modèle de comparaison — `src/application/review.ts` et
-      `src/presentation/structured/review-text.ts` — restent à 495 et restent indépendantes du
-      rendu : c'est ce qui fait tenir `UX-11`, la même comparaison hors du TUI. Les invariants
-      `RM-057` à `RM-066` et les exigences `UX-06` à `UX-11` ne changent pas non plus ; ils viennent
-      d'être réécrits pour dire l'acquis, et c'est précisément ce qui rend le rendu remplaçable
-      sans rien perdre.
-
-      UN EFFET DE BORD À NOMMER. `D-33` a figé `NARROW_THRESHOLD`, `CONTENT_PAGE_LINES` et
-      `FILE_READ_BUDGET_BYTES` sur un corpus mesuré, et pose que re-mesurer est une révision de
-      décision. Un conteneur qui gère lui-même la largeur peut rendre le premier sans objet : si
-      c'est le cas, `D-33` se révise explicitement plutôt que de laisser une constante orpheline.
-
-      Mise à jour du 2026-09-22 : la mesure et le décodage clavier passent déjà par `pi-tui`
-      (`measure.ts`, `keymap.ts`), et le dessin de la comparaison est sorti du dépôt vers
-      `@xynogen/pix-pretty` (`D-56`). La disposition, l'arbre virtualisé et le focus restent écrits
-      ici : la décision n'est pas close, son périmètre a rétréci.
-    - >
-      **L'archive ne se supprime pas.** La mesure des références entrantes ne trouve aucun orphelin
-      parmi les 32 fichiers de `archive/`. Trois dépendances vivantes l'interdisent : l'epic ouvert
-      `e04` est adossé à `archive/chantiers/K-clarte-des-prompts-et-skills-du-harnais.md`,
-      `SCOPE_LATEST.yaml` cite `archive/chantiers/README.md` comme source de son format, et
-      `TRACEABILITY.md`, que Preflight lit, pointe quatre fois dans `chantiers/` et `revues/`.
-      Ce qui reste à trancher est seulement si `MILESTONES.md`, `ROADMAP.md`, `PLAN.md` et
-      `MODELE-LOCAL.md` gardent une valeur, question de fond et non de place occupée.
-    - >
-      **Le bac à sable suit l'exemple de Pi, et le travail se conduit dans une session à lui.** La
-      direction est arrêtée par le propriétaire ; ce qui reste est l'exécution, pas le choix.
-
-      L'ANTÉRIORITÉ EST ÉTABLIE ET CHIFFRÉE (`e24s03`, `SCOPE_LATEST.yaml` § `prior_art`). Ce qui
-      manque à l'arbitrage n'est plus la matière : c'est la mesure sous Apple Container, présent ici
-      en 1.4.1, et la levée de deux obstacles que l'étude a trouvés. La licence : `node-forge`
-      déclare `(BSD-3-Clause OR GPL-2.0)` et `lint:distribution` refuse une licence duale dont une
-      branche n'est pas permissive — porter `GPL-2.0` sur la liste est une décision de licence, pas
-      un réglage. Le shell : `wrapWithSandboxArgv` rend une ligne de bash de dix-huit mille
-      caractères, quand `SandboxPort.run` interdit le shell ; un adaptateur devrait reconstruire
-      l'appel depuis le profil que le candidat génère, ou renoncer.
-
-      Ce que l'adoption gagnerait, à l'inverse, est nommé : une politique réseau par domaine que le
-      tri-état n'a pas, un masquage des secrets qui est la recette de `SEC-05` écrite comme
-      capacité, l'attribution d'une violation à la commande qui l'a causée, et un `bubblewrap`
-      maintenu ailleurs que chez nous — sans rouvrir `NFR-05` pour autant, dont l'obstacle est un
-      environnement Linux qui laisse créer un espace de noms utilisateur, pas notre code. Ce qu'elle
-      coûterait : 16 Mo, un proxy dans le processus appelant, et un `environment_digest` neuf qui
-      rend les campagnes antérieures non transférables — d'où la mesure hors campagne, sur signal
-      du propriétaire.
-
-      Le confinement ne se relâche pas : `CONVENTIONS.md` interdit qu'un backend non qualifié tourne
-      sans confinement, et impose `capability_missing`. L'ADR s'écrit dans cette session-là, avec ce
-      qui aura été mesuré, plutôt qu'ici sur une intention.
-    - >
-      **Que deviennent les deux contrôles retirés.** Pour `controle-du-bloc-fournisseur`, la réponse
-      est acquise en principe : `examples/extensions/provider-payload.ts` rapporte en dix-huit lignes
-      ce que ce contrôle déduisait du code distribué du fournisseur, et l'exemple était dans le
-      paquet avant que le contrôle soit écrit. `e23s06` porte la reprise. Pour `controle-de-capsule`,
-      le bénéficiaire est nommé dans `D-54` et reste valable : rien ne refuse aujourd'hui une story
-      dite faite sans preuve.
-    - >
-      La déduction de racine des scripts bigpowers n'est tranchée que pour la porte de cohérence,
-      remplacée par un contrôle du dépôt (`D-54`). Tout autre script invoqué à son chemin de paquet
-      déduit sa racine de son propre emplacement, donc juge l'arborescence du paquet — ou
-      `/opt/homebrew` — et non ce dépôt. `check-blind-spots.sh` est à abandonner ou à réécrire : sa
-      table d'états est lue par une expression qui ne correspond jamais, et quatre de ses sept
-      vérifications sont mortes. `completeness-critic.sh` exige des identifiants de story dans les
-      sources, ce qui enfreint les instructions globales : dérogation à chaque story, ou abandon.
-    - >
-      **Deux artefacts de suivi sont l'œuvre de ces scripts et ne valent pas ce qu'ils affichent.**
-      `specs/blind-spots.json` annonce `total_findings: 0` : ce zéro est celui d'un script dont
-      quatre vérifications sur sept sont mortes, pas celui d'un dépôt sans angle mort.
-      `specs/traceability-matrix.json` compte cinq stories quand l'epic en porte six, et
-      `tagged_stories: 0`. Les deux datent du 2026-09-21 et aucun contrôle du dépôt ne les lit —
-      ils ne trompent donc que le lecteur humain, et les régénérer avec les scripts en l'état
-      produirait un faux apaisement plutôt qu'une mise à jour. À traiter avec le sort des scripts
-      eux-mêmes.
-
-      `bp-timing.sh` écrit ses mesures dans ce fichier par un aller-retour PyYAML, qui remplace les
-      scalaires de bloc par du texte entre guillemets. Le défaut est confirmé à la source :
-      `scripts/yaml-tools.py` du paquet lit par `yaml.safe_load` et réécrit par `yaml.safe_dump`,
-      donc `bp-yaml-set.sh` détruirait ce handoff de la même façon — ce fichier s'édite à la main.
-      À trancher : renoncer au chronométrage, ou déplacer les mesures hors de ce fichier.
-  required_reading:
-    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-l-anteriorite-du-bac-a-sable-est-etablie.md
-    - specs/INVENTAIRE_SPECS.md
-    - specs/RELEVE_SPECS_LATEST.md
-    - specs/adr/D-55-495-s-appuie-sur-l-api-de-pi-avant-de-reconstruire-ou-de-deduire.md
-    - specs/adr/D-51-le-gabarit-de-story-est-recopie-et-rendu-opposable.md
-    - specs/archive/amont/conception-technique.md
-    - specs/archive/amont/specification-fonctionnelle.md
-    - specs/archive/amont/expression-besoins.md
-    - specs/README.md
-    - specs/release-plan.yaml
-    - specs/product/SCOPE_LATEST.yaml
-    - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
-    - specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s06-tasks.yaml
-    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/epic.yaml
-    - specs/adr/D-56-la-comparaison-est-dessinee-par-pix-pretty-en-gouttiere.md
-    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-tasks.yaml
-    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-l-anteriorite-de-ce-que-pi-tient-est-etablie.md
-    - AGENTS.md
-git:
-  # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
-  # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
-  branch: main
-  hash: a23c439
-
-metrics:
-  skill_timings:
-    develop-tdd:
-      calls: 1
-      total_seconds: 542.0
-      avg_seconds: 542.0
-    verify-work:
-      calls: 1
-      total_seconds: 1036.0
-      avg_seconds: 1036.0
+    TROIS DETTES CONNUES, INCHANGÉES. L'identité humaine déduite de `node:os` ne dit pas ce qui a été
+    cherché chez Pi ; l'événement de reprise déclaré que rien n'émet attend l'epic qui touche ce
+    contrat ; la table du bloc fournisseur reste une attente que rien ne confronte jusqu'à `e23s06`.

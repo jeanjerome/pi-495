@@ -3,7 +3,7 @@ development_status:
   e24: done
   e23s01: done
   e23s02: done
-  e23s03: backlog
+  e23s03: done
   e23s04: backlog
   e23s05: backlog
   e23s06: backlog
@@ -46,13 +46,15 @@ stories:
     risk_max: P0
     security_max: medium
   e23s03:
-    status: backlog
+    status: done
     title: 'Le refus d''un profil incapable a un effet avant une intervention facturée'
     bcps: 3
     epic: e23
     tasks_total: 4
-    tasks_passing: 0
-    tasks_failing: 4
+    tasks_passing: 4
+    tasks_failing: 0
+    risk_max: P0
+    security_max: medium
   e23s04:
     status: backlog
     title: Le même cas de contrat passe avec deux fournisseurs qualifiés
