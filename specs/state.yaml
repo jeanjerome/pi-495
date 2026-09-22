@@ -12,42 +12,71 @@ active_story: e23s04
 handoff:
   next_skill: null
   last_step_completed: >
-    La story `e23s04` est spécifiée et sa première tâche est verte. Les deux questions qui la
-    précédaient sont tranchées par `D-58` ; aucune n'appelait un arbitrage du propriétaire.
+    L'instrument de comparaison existe et il est prouvé sur des dossiers réels. Les deux campagnes
+    attendent les deux gestes du propriétaire. Preflight vert : 337 tests sur 337, sept contrôles,
+    `npm run check` en 0.
 
-    LE RYTHME DE L'OBSERVATION RESTE LA SESSION. Retenir le résultat au-delà demanderait une clé et
-    une péremption, donc de décider ce qui rend une qualification caduque. Le but ne l'a jamais
-    demandé : l'observation existe pour éviter qu'une intervention entière se paie une incapacité, et
-    elle y suffit dès qu'elle précède la première intervention de la session. Elle coûte environ
-    soixante jetons présentés et deux cent cinquante-six au plus rendus.
+    LA COMPARAISON SE LIT SANS OUVRIR PI. `node scripts/compare-dossiers.ts --local <dossier>
+    --distant <dossier>` ouvre chaque `state.sqlite` en lecture seule, lit le manifeste du candidat
+    et les artefacts de sortie dans le magasin d'objets, et sépare deux choses. Ce qui décide de la
+    recette — l'issue, les portes décidées et leurs verdicts, la référence sur laquelle le candidat
+    repose, les chemins qu'il a modifiés, le verdict de chaque contrôle — sort en 1 dès qu'il
+    diffère. Ce qui n'est qu'énoncé — interventions, appels d'outils, durées, jetons, tentatives, ce
+    que le schéma a refusé, ce que l'hôte a réécrit du contexte, la formulation des exigences, le
+    contenu final de chaque fichier — n'est opposé à aucun des deux : deux modèles n'écrivent pas le
+    même code, et une comparaison qui l'exigerait refuserait tous les couples de fournisseurs au
+    lieu de ceux qui se contredisent.
 
-    LA RÉÉCRITURE DU CONTEXTE EST LUE, PAS COUPÉE. L'hôte publie `compaction_start` et
-    `compaction_end`, et le résultat porte les jetons remplacés, ce qui reste et l'usage de la requête
-    qui a écrit le résumé. `src/adapters/pi-worker/session-observer.ts` les lit, ajoute cet usage aux
-    jetons connus et inscrit `context_compacted` au dossier — motif, jetons remplacés, jetons
-    restants, coût du résumé, ou la raison pour laquelle la réécriture n'a pas eu lieu. Prouvé contre
-    une vraie session de l'hôte dans `test/v3/session-observation.test.ts`. Couper aurait rendu le
-    harnais moins capable ; mesurer d'abord est ce que l'observation fait.
+    PROUVÉ DES DEUX CÔTÉS. `e23s02-rev2-omlx` contre `e23s02-rev2-anthropic` : six portes PASS de
+    part et d'autre, même référence, mêmes deux chemins modifiés, contrôle `unit` PASS des deux
+    côtés, sortie 0 — et `src/greet.js` porte la même empreinte de contenu tandis que
+    `test/greet.test.js` diffère, 657 contre 316 octets, énoncé comme chemin et non comme faute.
+    Contrôle négatif contre `e23s02-rev2-negatif`, la campagne refusée avant toute intervention :
+    sortie 1 et dix divergences nommées, à commencer par l'issue et par six portes jamais décidées.
+    Sa propre commande verify reste rouge, `~/.495-campagnes/e23-local` et `e23-distant` n'existant
+    pas encore.
 
-    LE CAS EST ATTEIGNABLE, PAS COURANT. Seuil de l'hôte `contexte > fenêtre − réserve`, réserve de
-    16 384 par défaut ; sur le modèle local, fenêtre de 131 072, donc réécriture au-delà de 114 688.
-    La plus longue intervention au journal porte 107 095 jetons connus.
+    LA CIBLE DU CAS DE CONTRAT EST PRÊTE. `~/.495-campagnes/e23s04-cible` copie la cible JS minimale
+    des campagnes précédentes : arbre propre, un commit, la même demande qu'elles ont portée — greet
+    doit rendre « Hello, <name>! » avec un point d'exclamation final. L'intégration étant désactivée,
+    aucune campagne n'écrit dans la cible, et les deux reposent donc sur la même référence.
 
-    LA CAMPAGNE N'A JAMAIS EU LIEU. Les campagnes que le dossier appelle `anthropic` employaient
-    `~/.495-campagnes/e23s02-rev2-piconf/models.json`, qui déclare un fournisseur nommé `anthropic` à
-    l'adresse `http://127.0.0.1:8000/v1` — l'endpoint local sous un autre nom, ce qui était le bon
-    montage pour éprouver une table indexée sur l'identifiant du fournisseur. `~/.pi/agent/auth.json`
-    est vide : aucune requête n'a jamais quitté cette machine.
+    DEUX GESTES DU PROPRIÉTAIRE OUVRENT LA TÂCHE 2. Le premier est interactif et lui seul peut le
+    faire : `pi`, puis `/login`, puis Claude Pro/Max ; `pi auth check --provider anthropic` le
+    confirme sans imprimer de secret. Le second est la déclaration de sortie, qui n'a de valeur que
+    parce qu'une main l'écrit :
 
-    DEUX GESTES DU PROPRIÉTAIRE OUVRENT LA TÂCHE 2. Authentifier Pi auprès du fournisseur
-    d'abonnement, qui est interactif ; et déclarer la destination `off_machine` dans la configuration
-    de la campagne distante, là où les campagnes antérieures portaient `on_machine` sans mentir. À
-    savoir avant de dépenser : l'usage d'un abonnement Claude Pro/Max par un harnais tiers est compté
-    au jeton sur l'usage supplémentaire du compte, et non prélevé sur les plafonds du plan.
+      mkdir -p ~/.495-campagnes/e23-distant
+      printf '%s\n' '{ "policy": { "egress": [ { "provider_id": "anthropic", "location": "off_machine" } ] } }' \
+        > ~/.495-campagnes/e23-distant/config.json
 
-    RESTENT QUATRE TÂCHES. Les deux campagnes, la comparaison des dossiers — `scripts/compare-dossiers.ts`
-    n'est pas écrit et sa commande est déclarée rouge —, la matrice portée sur la campagne, et le
-    relevé déposé en preuve.
+    La campagne locale ne demande aucune configuration : la déclaration par défaut porte déjà `omlx`
+    en `on_machine`.
+
+    LES DEUX CAMPAGNES, UNE À LA FOIS, DEPUIS LA CIBLE. Un seul pilote par changement, et jamais
+    pendant qu'une autre tourne :
+
+      cd ~/.495-campagnes/e23s04-cible
+      HARNESS495_DATA_DIR=~/.495-campagnes/e23-local pi -ne \
+        -e ~/Projets/495-pi-package/dist/extension/index.js --model omlx/qwen3.8-27b-oq8e
+      HARNESS495_DATA_DIR=~/.495-campagnes/e23-distant pi -ne \
+        -e ~/Projets/495-pi-package/dist/extension/index.js --model anthropic/claude-sonnet-5
+
+    puis, dans chacune, `/495 start greet doit rendre "Hello, <name>!" avec un point d'exclamation
+    final`. Trois à six minutes sur le modèle local. Le choix du modèle distant appartient au
+    propriétaire : le catalogue de Pi annonce 2 $ et 10 $ par million de jetons en entrée et en
+    sortie pour `claude-sonnet-5`, 1 $ et 5 $ pour `claude-haiku-4-5`, 5 $ et 25 $ pour
+    `claude-opus-5`, et la campagne locale a compté 57 516 jetons connus en tout.
+
+    CE QUE LA CAMPAGNE DISTANTE ÉPROUVERA POUR DE BON. Le chemin d'abonnement impose son propre
+    premier bloc système au-dessus des instructions locales ; jusqu'ici la strate n'était déclarée
+    que depuis le code du fournisseur, jamais rencontrée. La facturation est comptée au jeton sur
+    l'usage supplémentaire du compte, et non prélevée sur les plafonds du plan.
+
+    RESTENT QUATRE TÂCHES. Les deux campagnes, la comparaison des dossiers par la commande ci-dessus,
+    la matrice portée sur la campagne au lieu des preuves unitaires, et le relevé déposé en preuve
+    dans `specs/verifications/e23-deux-fournisseurs.md` — fichier à ne pas créer avant d'avoir la
+    mesure, sa seule existence étant ce que la tâche 5 vérifie.
 
     UN MANQUE NOMMÉ, HORS PÉRIMÈTRE. L'hôte rapporte le coût en argent de chaque réponse, détaillé
     par entrée, sortie et cache ; 495 n'en lit rien et ne compte que les jetons. C'est le sujet de
