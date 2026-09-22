@@ -55,8 +55,21 @@ const manifest: CandidateManifest = {
 };
 const OLD = "a\nx = a + b;\ny = 1;\n";
 const NEW = "a\nx = a - b;\ny = 1;\nz = 2;\n";
+/** A reviewed file that tries to paint the reader's terminal: the drawing must render it inert. */
+const HOSTILE_OLD = "const banner = 'plain';\n";
+const HOSTILE_NEW = `const banner = '${ESC}[2J${ESC}[31mwiped${ESC}[0m';\n`;
 const query = {
 	async changes(path: string): Promise<ChangePage> {
+		if (path.includes(ESC))
+			return {
+				path,
+				status: "added",
+				kind: "text",
+				hunks: hunks(diffLines(HOSTILE_OLD, HOSTILE_NEW), 3),
+				intraline: {},
+				metadata: {},
+				notes: [],
+			};
 		return {
 			path,
 			status: "modified",
@@ -143,6 +156,16 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.match(text, /[-+]\s*│.*x = a - b;/, "the new line is drawn too");
 		assert.match(text, /\d+\s*[-+]\s*│/, "signs and line numbers sit in the gutter");
 		assert.ok(!text.includes("@@"), "no patch headers");
+	});
+	it("renders a terminal sequence held in a reviewed file inert (UX-10)", async () => {
+		const { s } = surface(30);
+		s.selectPath(`bad${ESC}[2Jname.js`);
+		const text = await drawn(s, 140);
+		// The renderer paints what it is handed and inspects nothing, so what reaches it is neutralized
+		// first. `\u241b` is the visible stand-in a neutralized escape leaves behind.
+		assert.match(text, /\u241b/, "the sequence from the file is shown as an inert glyph");
+		assert.ok(!text.includes(`${ESC}[2J`), "and never reaches the terminal as a clear-screen");
+		assert.match(stripSequences(text), /wiped/, "while the text around it stays readable");
 	});
 	it("draws the comparison 495 computed, never one the renderer made up (UX-07)", async () => {
 		const { s } = surface(30);
