@@ -1,11 +1,31 @@
-# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52).
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes opposent au
+# relevé ce qu'il doit porter : c'est faible par nature — une expression qui cherche nos propres mots
+# dans notre propre fichier — et ça n'est pas déguisé en preuve d'exécution. Ce qui tient vraiment
+# cette story est que chaque décompte du relevé a été mesuré sur les deux arbres installés par une
+# commande dont la sortie est reproductible, et que trois décomptes antérieurs en sont ressortis faux.
+#
+# Les trois commandes ont changé de cible, et le motif est mesuré plutôt que préféré. Elles visaient
+# `e24s04-ce-que-pi-tient.md`, dans la capsule. Ce nom tombe sous `^e\d+s\d+-.+\.md$`, le motif par
+# lequel `scripts/check-story-format.ts` reconnaît une spécification de story : un relevé écrit là se
+# ferait réclamer les vingt sections du gabarit, et `npm run lint:story-format` refuserait. Essayé,
+# refusé sur « section 1. Business narrative is missing ». Le relevé rejoint donc celui de `e24s01`
+# et de `e24s03`, dans le périmètre, sous l'epic qu'il instruit.
+#
+# Les nouvelles commandes ont été éprouvées rouges avant l'écriture, contre l'état que HEAD portait,
+# puis vertes après : le cycle de D-52 est tenu, et le mot cherché n'est jamais un nombre — une
+# remesure garde ses phrases et change ses chiffres, et une porte accrochée au chiffre périmerait
+# sans que rien ait faibli. C'est d'ailleurs exactement le défaut que cette story a trouvé ailleurs.
 
 story_id: e24s04
+spec: e24s04-l-anteriorite-de-ce-que-pi-tient-est-etablie.md
 title: "L'antériorité de ce que Pi tient déjà est établie"
-status: failing
+status: passing
 bcps: 3
 decision: D-55
 delta: ADDED
+risk: P2
+context: specs
+type: docs
 
 tasks:
   - id: 1
@@ -13,19 +33,22 @@ tasks:
       Les sujets que D-55 nomme sans les avoir relus sont repris un par un — compaction, confiance de
       projet, rendu du lecteur, gardes de permission, décisions humaines, délégation — et chacun
       reçoit le même traitement : ce que Pi en tient, ce que 495 en écrit, et l'écart.
-    verify: "grep -q 'Prior Art' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
-    status: failing
+    verify: "grep -qF 'Prior Art — ce que Pi tient déjà' specs/product/SCOPE_LATEST.yaml && grep -qF 'session_before_compact' specs/product/SCOPE_LATEST.yaml && grep -qF 'project_trust' specs/product/SCOPE_LATEST.yaml && grep -qF 'registerEntryRenderer' specs/product/SCOPE_LATEST.yaml && grep -qF 'permission-gate.ts' specs/product/SCOPE_LATEST.yaml && grep -qF 'ui_prompt_start' specs/product/SCOPE_LATEST.yaml && grep -qF 'subagent' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
   - id: 2
     description: >
       Chaque sujet où 495 entretient une table, analyse un fichier ou relit du code tiers pour
       établir un fait est relu sous le critère que D-55 pose : Pi le rapporte-t-il déjà ? Le relevé
       nomme l'accroche ou l'absence d'accroche, contre la version épinglée.
-    verify: "grep -q 'version épinglée' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
-    status: failing
+    verify: "grep -qF 'version épinglée' specs/product/SCOPE_LATEST.yaml && grep -qF 'imposed-layers.ts' specs/product/SCOPE_LATEST.yaml && grep -qF 'check-declarations.ts' specs/product/SCOPE_LATEST.yaml && grep -qF 'src/adapters/platform/paths.ts' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
   - id: 3
     description: >
       Les accroches que 495 pose sont comptées contre celles que Pi publie, et le relevé dit
       lesquelles manquent à un besoin réel — une accroche non posée n'est un défaut que si un besoin
       la réclamait.
-    verify: "grep -q 'accroches' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
-    status: failing
+    verify: "grep -qF 'Accroches posées contre accroches publiées' specs/product/SCOPE_LATEST.yaml && grep -qF \"Une accroche non posée n'est un défaut que si un besoin la réclamait.\" specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing

@@ -57,8 +57,9 @@ in_scope:
       emojis et les accents combinants ; les touches Home, Fin, Suppr et les flèches modifiées
       arrivant en octets bruts ; des noms de fichier coupés dès que le relecteur réduisait le
       partage ; et la hauteur du terminal ignorée après un redimensionnement. Aucun n'aurait été vu
-      autrement. Pi embarque hors ligne trente et une pages de documentation et soixante-seize
-      extensions d'exemple, et 495 posait quatre accroches sur les trente-huit publiées.
+      autrement. Pi embarque hors ligne trente pages de documentation et soixante-dix-sept
+      extensions d'exemple, et 495 pose quatre accroches sur les trente-neuf publiées — compté sur
+      `0.87.0`, la version épinglée.
       L'étude ne remplace pas `e08`, qui fait cesser la réimplémentation dans la revue elle-même :
       elle le précède et le déborde, puisqu'elle vaut pour toute capacité à venir et regarde
       au-delà de Pi. La clause de `e08` sur la règle de couches est par ailleurs dépassée :
@@ -194,6 +195,111 @@ in_scope:
       des deux obstacles, 16 Mo, un proxy en processus et un digest d'environnement neuf ; router
       vers une micro-VM gagne une frontière plus forte, contre QEMU, Node ≥ 23.6 et une granularité
       qui est la session quand le besoin est le contrôle.
+
+      ---
+
+      ## Prior Art — ce que Pi tient déjà
+
+      **Le critère, écrit avant les sujets.** `D-55` pose une question et une seule : le fait que 495
+      établit lui-même, Pi le rapporte-t-il déjà ? Elle se tranche contre la version épinglée et non
+      contre la documentation, qui décrit le Pi le plus récent. Le dépôt épingle
+      `@earendil-works/pi-coding-agent` en `^0.87.0` et installe `0.87.0` ; tout chiffre qui suit est
+      lu dans cet arbre-là.
+
+      **Ce que la mesure donne, avant tout verdict.** Pi publie **39 accroches** à `0.87.0` — les
+      surcharges `on(event: "…")` d'`ExtensionAPI`, dans `dist/core/extensions/types.d.ts`. 495 en
+      pose **quatre** : `session_start`, `session_shutdown`, `session_before_switch`,
+      `session_before_fork` (`src/extension/index.ts:18-21`). Le worker ne passe pas par les
+      accroches — son `ResourceLoader` rend une liste d'extensions vide — mais par
+      `session.subscribe`. Ce flux porte **23 sortes d'événements** (`AgentSessionEvent`,
+      `dist/core/agent-session.d.ts`) ; `worker-main.ts` en lit **une**, `message_end`.
+
+      **Trois décomptes antérieurs sont corrigés, et c'est la leçon plutôt qu'un détail.** Le motif
+      de cet epic et `D-55` annonçaient « trente-huit accroches publiées », « trente et une pages de
+      documentation » et « soixante-seize extensions d'exemple ». Recomptés à une règle écrite — les
+      surcharges `on(event: "…")` d'`ExtensionAPI`, les fichiers `.md` de `docs/`, les entrées
+      d'`examples/extensions/` hors `README.md` — les trois sont faux d'une unité : 39, 30 et 77.
+      Les accroches sont le cas instructif, parce que le tarball de `0.86.1` est encore récupérable
+      et répond : 37 à `0.86.1`, 39 à `0.87.0`, la différence étant exactement les deux événements
+      que `D-55` nomme — `agent_before_settle` et `context_with_system`. Aucune des deux versions ne
+      donne 38, et les deux autres comptes sont identiques sur les deux arbres, donc aucun des trois
+      ne s'explique par le relèvement de version. Un décompte qui ne dit ni sa version ni sa règle ne
+      se vérifie pas ; il se recopie.
+
+      | Sujet | Ce que Pi tient | Ce que 495 écrit | Verdict | Motif |
+      |---|---|---|---|---|
+      | Compaction | `session_before_compact`, `session_compact`, `session_compact_failed`, `compaction_start`/`compaction_end` sur `subscribe`, `ctx.compact()`, `ctx.getContextUsage()` ; `docs/compaction.md` (463 lignes) ; `custom-compaction.ts`, `trigger-compact.ts`, `summarize.ts` | l'active et n'en enregistre rien (`worker-main.ts:304`) | **accroche manquante pour un besoin écrit** | `CTX-02` promet que le dossier dise ce qui a été mis devant le modèle ; une compaction réécrit ce que le modèle reçoit, après que le manifeste a été scellé. Et son appel au modèle est facturé hors du compteur. |
+      | Confiance de projet | `project_trust`, `ctx.isProjectTrusted()`, `docs/security.md`, `project-trust.ts` | rien | **besoin absent — déjà fermé plus bas** | La confiance de projet garde le *chargement* de ressources de projet. Le worker n'en charge aucune : `ResourceLoader` explicitement vide, `SettingsManager.inMemory`, `.pi/` dans les exclusions, configuration lue en `~/.495/config.json`. C'est plus strict que refuser la confiance, qui laisse Pi charger `AGENTS.md` et `CLAUDE.md`. |
+      | Rendu du lecteur | `registerMessageRenderer`, `registerEntryRenderer`, `registerMarkdownTransformer` ; `message-renderer.ts`, `entry-renderer.ts`, `built-in-tool-renderer.ts`, `truncated-tool.ts` | `registerMessageRenderer("495", …)` posé (`index.ts:23`) ; `reader-pane.ts` dessine le modèle de revue | **besoin couvert — une écriture morte relevée** | Ce que Pi rend est une entrée de transcription ; ce que `reader-pane.ts` rend est un fichier de la cible sous un mode de lecture. Deux objets, pas un doublon. En passant : `pi.appendEntry("495-binding", b)` (`session.ts:165`) est écrit une fois et relu nulle part — `resolveBinding` interroge le journal. |
+      | Gardes de permission | `tool_call` rendant `{ block, reason }`, `tool_result`, `user_bash` ; `permission-gate.ts`, `confirm-destructive.ts`, `protected-paths.ts`, `dirty-repo-guard.ts` | `noTools: "all"` et des outils à lui ; la garde est dans l'outil (`PathGuard`, `worker-main.ts:31-56`), dans le budget (`:134-142`) et dans le profil de bac à sable | **besoin couvert plus bas — l'accroche ne s'applique pas** | Une accroche `tool_call` garde les outils de Pi. Le worker n'en active aucun : il n'y a rien à garder là où 495 écrit lui-même l'outil et exécute son corps sous profil. Un refus posé au-dessus de l'outil serait une seconde garde, pas la garde. |
+      | Décisions humaines | `ctx.ui.confirm`/`select`/`input`/`custom`/`notify`, `ui_prompt_start`, `ui_prompt_end` ; `question.ts`, `qna.ts`, `questionnaire.ts`, `timed-confirm.ts` | appelle les dialogues de Pi directement (relevé en `e24s01`) ; déduit l'acteur de `node:os` | **dialogue couvert — identité : contournement non déclaré** | Pi rend le mode, le `hasUI` et l'identifiant de session, et aucune identité : ni `ExtensionContext` ni `ExtensionUIContext` ne portent d'utilisateur. `safeUser()` lit `userInfo().username` faute de mieux, et `ADR-014` veut la provenance fournie par l'hôte. Le contournement est légitime ; `D-55` demande qu'il nomme, là où il vit, ce qui a été cherché et non trouvé. |
+      | Délégation | `examples/extensions/subagent/` — 1 547 lignes, un processus `pi` par enfant pour un contexte isolé, modes simple, parallèle et chaîné, sortie structurée ; `handoff.ts` | un compteur `delegations` initialisé à zéro en six endroits et jamais incrémenté | **prendre la forme avant d'écrire** | `AGT-05` [P1] veut des sous-budgets, une profondeur maximale, un plafond cumulatif et une annulation qui descend. L'exemple livré n'est pas réutilisable tel quel — il lance la CLI `pi`, quand 495 lance son propre worker — mais il donne la forme, qui est ce que le second volet de `D-55` demande de reprendre. C'est le seul sujet des six où rien n'est encore écrit : le moment de regarder est maintenant. |
+
+      **La compaction est le seul écart qui coûte aujourd'hui.** Le worker l'active
+      (`SettingsManager.inMemory({ compaction: { enabled: true }, retry: { enabled: true, maxRetries: 2 } })`)
+      et n'observe rien de ce qu'elle produit. Deux conséquences, lues dans les déclarations de la
+      version épinglée et non exécutées — c'est une lecture, et elle est écrite comme telle.
+      D'abord le dossier : `CTX-02` fait promettre au manifeste ce qui a été mis devant le modèle, et
+      il est scellé avant l'intervention ; une compaction remplace ensuite les premiers tours par un
+      résumé que 495 n'a ni composé ni enregistré. Ensuite le compteur : `counters.tokens_known`
+      n'additionne que `usage.totalTokens` des `message_end` d'assistant (`worker-main.ts:335`),
+      alors que l'appel de résumé porte son usage sur `CompactionResult.usage`, rendu par
+      `compaction_end`, et qu'un réessai automatique émet une requête de plus sans `message_end`
+      supplémentaire. Le budget d'intervention sous-compte donc de tout le travail de résumé et de
+      réessai.
+
+      **Ce que l'observation coûterait, dit avant d'être proposé.** `InterventionEvent`
+      (`src/ports/execution.ts:178-202`) est un ensemble fermé qui n'a de place ni pour une
+      compaction ni pour un réessai : l'enregistrer est une modification de contrat, donc de
+      `src/contracts/`, pas l'ajout d'un abonnement. Ce n'est pas un motif de ne pas le faire ; c'est
+      le prix, et il appartient à l'epic qui porte `CTX-02`, pas à celui-ci.
+
+      **Ce que 495 établit lui-même, relu sujet par sujet.** Le critère de `D-55` s'applique partout
+      où le dépôt entretient une table, analyse un fichier ou relit du code tiers pour fonder un
+      fait. Cinq endroits, contre la version épinglée :
+
+      - `src/domain/imposed-layers.ts` — table entretenue à la main. Déjà relevée par `D-55`, et
+        `e23s06` est ouverte pour la remplacer par une observation sur `before_provider_request`,
+        accroche présente à `0.86.1` comme à `0.87.0`. Ce que la relecture ajoute : le contrôle que
+        son commentaire nomme, `scripts/check-provider-system-block.ts`, n'est pas sur cette branche
+        — il vit sur `controle-du-bloc-fournisseur` et `aaefb8f` l'a sorti de Preflight. La table est
+        donc, aujourd'hui, une attente que rien ne confronte.
+      - `scripts/check-declarations.ts` — la bonne forme, et elle sert de repère : il compile une
+        sonde contre le paquet installé sans le mappage `paths`, de sorte que la comparaison est
+        celle du compilateur et non d'une expression régulière. Aucune accroche Pi ne s'y applique :
+        le paquet en cause est `pix-pretty`, pas Pi.
+      - `scripts/check-distribution.ts` — lit les licences dans l'arbre installé. Pi ne rapporte pas
+        la licence d'un autre paquet ; il n'y a pas d'accroche à chercher, et la lecture directe est
+        la source.
+      - `src/adapters/platform/paths.ts` — porte déjà la clause de contournement que `D-55` exige, et
+        elle est vérifiée ici : `ExtensionContext` ne porte aucun emplacement de stockage, et Pi
+        n'exporte que `CONFIG_DIR_NAME`, `getAgentDir`, `getPackageDir`, `getDocsPath`,
+        `getExamplesPath` et `getReadmePath`. La clause tient.
+      - `src/extension/session.ts` — `safeUser()` déduit l'acteur du système d'exploitation. Vérifié
+        de la même façon : aucune identité d'utilisateur dans `ExtensionContext` ni dans
+        `ExtensionUIContext`. Il manque la clause, pas la recherche.
+
+      À l'inverse, deux faits sont déjà pris chez Pi plutôt que redits : `pi_version` vient de
+      `VERSION` (`session.ts:79`) et de `pi.VERSION` (`worker-main.ts:100`), jamais d'un numéro écrit
+      dans le dépôt.
+
+      **Accroches posées contre accroches publiées.** Quatre sur trente-neuf ; trente-cinq absences.
+
+      **Une accroche non posée n'est un défaut que si un besoin la réclamait.** Quatre le sont :
+      `session_before_compact`, `session_compact` et `session_compact_failed` pour `CTX-02` et les
+      budgets, `before_provider_request` pour la strate imposée, déjà ouverte par `e23s06`. Les
+      trente et une autres ne nomment aucun besoin d'aujourd'hui, et trois le nomment même à
+      l'envers : `session_info_changed`, `session_before_tree` et `session_tree` porteraient la
+      session Pi dans le dossier, ce qu'`ADR-018` refuse. Reste une précision de forme, qui décide
+      où se pose l'observation de la compaction : les accroches ne sont pas chargées *dans le
+      worker*, dont la liste d'extensions est vide ; ce qui y est atteignable est `compaction_start`
+      et `compaction_end` sur `session.subscribe`. L'accroche et l'événement ne sont pas au même
+      endroit, et c'est l'événement qui s'applique.
+
+      **Trouvé en passant, et laissé où il est.** `InterventionEvent` déclare un événement
+      `checkpointed` que rien n'émet — seule la déclaration existe. Pi livre `git-checkpoint.ts`, qui
+      pose un point de reprise par tour. Ce n'est pas un sujet de `D-55` : c'est une déclaration sans
+      producteur, et elle appartient à l'epic qui voudra la tenir ou la retirer.
 
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L

@@ -7,44 +7,57 @@ project_cycle:
 
 active_flow: null
 active_epic_id: e24
-active_story: e24s03
+active_story: e24s04
 
 handoff:
   next_skill: null
   last_step_completed: >
-    L'antériorité de la frontière d'exécution est établie (`e24s03`). Le relevé vit sous l'epic
-    `e24` du périmètre, section `prior_art`, à côté de celui de la surface de revue. Un commit,
-    Preflight vert : `0343103`.
+    L'antériorité de ce que Pi tient déjà est établie (`e24s04`). Le relevé vit sous l'epic `e24` du
+    périmètre, section `prior_art`, à côté de ceux de la surface de revue et de la frontière
+    d'exécution. L'epic e24 n'a plus de story ouverte.
 
-    LE CYCLE EST TENU CETTE FOIS. Les cinq commandes de vérification ont été écrites d'abord et
-    lancées rouges, puis vertes après le relevé. C'est ce que `e24s01` et `e24s02` ne pouvaient pas
-    dire, et la capsule le disait.
+    LE CYCLE EST TENU. Les trois commandes de vérification ont été lancées rouges contre l'état que
+    HEAD portait, puis vertes après le relevé, et la preuve de rouge est reproductible — un arbre
+    monté depuis `git show HEAD:` sert de témoin.
 
-    CE QUI A ÉTÉ MESURÉ, ET NON LU. `@anthropic-ai/sandbox-runtime` a été installée dans un
-    répertoire jetable hors du dépôt et exécutée : écriture hors périmètre refusée, lecture de
-    `~/.ssh` refusée, refus réseau en 23 ms avec un diagnostic qui nomme sa cause, domaine autorisé
-    joint en 78 ms. Le profil SBPL qu'elle génère fait 263 lignes quand le nôtre en fait 21. Elle
-    publie un `dist/` construit et ses `.d.ts` — donc rien des déclarations écrites à la main ni du
-    chargeur que `D-56` a payés.
+    LES TROIS COMMANDES ONT CHANGÉ DE CIBLE POUR UN MOTIF MESURÉ. Elles visaient un fichier
+    `e24s04-ce-que-pi-tient.md` dans la capsule ; ce nom tombe sous le motif par lequel
+    `check-story-format.ts` reconnaît une spécification de story, donc un relevé écrit là se ferait
+    réclamer les vingt sections du gabarit. Essayé : `lint:story-format` refuse sur « section 1.
+    Business narrative is missing ». Le relevé rejoint donc le périmètre, comme ceux de e24s01 et
+    e24s03.
 
-    DEUX OBSTACLES REFUSENT L'ADOPTION, ET AUCUN N'ÉTAIT CONNU. `node-forge`, sa dépendance,
-    déclare `(BSD-3-Clause OR GPL-2.0)` ; `check-distribution.ts` n'admet une licence duale que si
-    chaque branche est permissive, donc `lint:distribution` refuserait l'installation. Et
-    `wrapWithSandboxArgv` ne rend pas l'argv sans shell que son nom laisse croire : il rend
-    `['/bin/bash', '-c', <18 712 caractères>]`, quand `SandboxPort.run` dit « Never uses a shell ».
-    L'`env` qu'il rend à côté est l'environnement hôte entier, pas une liste blanche.
+    LES SIX SUJETS SONT TRANCHÉS, ET UN SEUL COÛTE AUJOURD'HUI. Confiance de projet : besoin absent,
+    le worker ne charge aucune ressource de projet — c'est plus strict que refuser la confiance, qui
+    laisse Pi charger `AGENTS.md`. Gardes de permission : besoin couvert plus bas, `noTools: "all"`
+    ne laisse aucun outil Pi à garder. Rendu du lecteur : couvert, `registerMessageRenderer` déjà
+    posé. Décisions humaines : dialogues couverts, mais l'identité de l'humain est déduite de
+    `node:os` faute que Pi la rapporte, et le contournement ne le dit pas — `D-55` l'exige.
+    Délégation : rien n'est écrit, `AGT-05` [P1] attend, et Pi livre `examples/extensions/subagent/`
+    en 1 547 lignes ; c'est le seul des six où regarder avant d'écrire est encore possible.
 
-    UNE ESTIMATION ANTÉRIEURE EST CORRIGÉE. Le spike chiffrait l'adoption à « environ 390 lignes de
-    génération de profil en moins ». Compté sur le code : 44 lignes génèrent réellement un profil,
-    les 345 autres sont `runProcess` et la qualification, que le candidat ne remplace pas. Le motif
-    d'adopter n'est donc pas le code économisé mais la politique réseau par domaine, le masquage des
-    secrets et un `bubblewrap` entretenu ailleurs que chez nous.
+    LA COMPACTION EST L'ÉCART QUI COÛTE. Le worker l'active (`worker-main.ts:304`) et n'observe rien
+    de ce qu'elle produit : `session.subscribe` porte 23 sortes d'événements et `worker-main.ts` en
+    lit une, `message_end`. Deux conséquences — le manifeste de `CTX-02` est scellé avant qu'une
+    compaction remplace les premiers tours par un résumé que 495 n'a ni composé ni enregistré ; et
+    `counters.tokens_known` ignore l'usage du résumé, porté par `CompactionResult.usage`, comme
+    celui des réessais automatiques. C'est une lecture des déclarations de la version épinglée, écrit
+    comme telle, pas une exécution. L'observer modifierait `InterventionEvent`, donc `src/contracts/`
+    — le prix est nommé et laissé à l'epic qui porte `CTX-02`.
 
-    UNE MESURE FAUSSE A ÉTÉ TROUVÉE AVANT D'ÊTRE ÉCRITE. Une première sonde attribuait au candidat
-    un refus réseau en huit secondes ; la cause était `spawnSync` dans la sonde, qui bloque la
-    boucle d'événements et empêche le proxy — hébergé dans le processus appelant — de répondre, y
-    compris pour un domaine autorisé. `runProcess` lance déjà en asynchrone, donc le dépôt satisfait
-    la contrainte ; elle est désormais écrite comme contrainte du port.
+    TROIS DÉCOMPTES ANTÉRIEURS ÉTAIENT FAUX, CHACUN D'UNE UNITÉ. Le motif de e24 et `D-55`
+    annonçaient 38 accroches publiées, 31 pages de documentation et 76 extensions d'exemple.
+    Recomptés à une règle écrite : 39, 30 et 77. Le tarball de `0.86.1` a été récupéré pour trancher
+    : 37 accroches là-bas, 39 ici, la différence étant exactement `agent_before_settle` et
+    `context_with_system` que `D-55` nomme — donc aucun des trois écarts ne s'explique par le
+    relèvement de version. `SCOPE_LATEST.yaml`, `D-55` et `AGENTS.md` portent désormais les chiffres
+    mesurés.
+
+    UNE PORTE NE S'EXERCE PLUS SANS QUE PERSONNE L'AIT DIT. `src/domain/imposed-layers.ts` nomme
+    `scripts/check-provider-system-block.ts` comme le contrôle qui tient sa table contre le paquet.
+    Ce script n'est pas sur cette branche — `aaefb8f` l'a sorti de Preflight et il vit sur
+    `controle-du-bloc-fournisseur`. La table est donc une attente que rien ne confronte, jusqu'à
+    `e23s06`.
   open_decisions:
     - >
       **La vue de revue s'assemble sur `pi-tui`, et le travail se conduit dans une session à lui.**
@@ -162,11 +175,14 @@ handoff:
     - specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s06-tasks.yaml
     - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/epic.yaml
     - specs/adr/D-56-la-comparaison-est-dessinee-par-pix-pretty-en-gouttiere.md
+    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-tasks.yaml
+    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-l-anteriorite-de-ce-que-pi-tient-est-etablie.md
+    - AGENTS.md
 git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: main
-  hash: 0343103
+  hash: a23c439
 
 metrics:
   skill_timings:

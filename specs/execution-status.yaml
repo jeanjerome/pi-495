@@ -1,6 +1,6 @@
 development_status:
   e23: in_progress
-  e24: in_progress
+  e24: done
   e23s01: done
   e23s02: done
   e23s03: backlog
@@ -10,7 +10,7 @@ development_status:
   e24s01: done
   e24s02: done
   e24s03: done
-  e24s04: backlog
+  e24s04: done
 
 epics:
   e23:
@@ -19,7 +19,7 @@ epics:
     wsjf: 12.0
     total_bcps: 20
   e24:
-    status: in_progress
+    status: done
     title: "Ce qui existe déjà est établi avant d'être réécrit"
     wsjf: 9.5
     total_bcps: 13
@@ -113,10 +113,15 @@ stories:
     # de D-52 est tenu. Une cinquième tâche oppose les deux obstacles que l'étude a mesurés — la
     # licence duale de node-forge et le shell que le candidat rend.
   e24s04:
-    status: backlog
+    status: done
     title: "L'antériorité de ce que Pi tient déjà est établie"
     bcps: 3
     epic: e24
     tasks_total: 3
-    tasks_passing: 0
-    tasks_failing: 3
+    tasks_passing: 3
+    tasks_failing: 0
+    risk_max: P2
+    # Les trois commandes ont été rouges contre l'état de HEAD et vertes après le relevé : le cycle
+    # de D-52 est tenu. Elles ont changé de cible pour un motif mesuré — le nom de fichier qu'elles
+    # visaient dans la capsule tombe sous le motif de check-story-format.ts, qui aurait réclamé les
+    # vingt sections du gabarit à un relevé.

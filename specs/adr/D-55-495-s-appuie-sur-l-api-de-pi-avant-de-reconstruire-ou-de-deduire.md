@@ -57,9 +57,9 @@ dépôt de Pi sous `packages/coding-agent/docs/` — et se confirme dans la surf
 version épinglée, `@earendil-works/pi-coding-agent/dist/**/*.d.ts` et les paquets pairs.
 
 Les trois sources sont sur la machine, dans le paquet installé, et se lisent hors ligne :
-`node_modules/@earendil-works/pi-coding-agent/docs/` porte trente et une pages, dont
+`node_modules/@earendil-works/pi-coding-agent/docs/` porte trente pages, dont
 `containerization`, `compaction`, `security`, `sessions`, `providers`, `extensions` et `skills` ;
-`examples/extensions/` porte soixante-seize extensions qui marchent ; les paquets pairs
+`examples/extensions/` porte soixante-dix-sept extensions qui marchent ; les paquets pairs
 `pi-ai`, `pi-tui` et `pi-telemetry` portent le reste. Aucune des trois ne demande de réseau. Les deux
 étapes comptent : la documentation décrit le Pi le plus récent, et une API qu'elle annonce n'est pas
 une API que ce dépôt possède. Ce qui est bâti sur une API dit contre quelle version elle a été
