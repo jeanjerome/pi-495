@@ -1,14 +1,40 @@
 {
-  "name": "harness-495",
+  "name": "pi-495",
   "version": "0.1.0",
-  "description": "495 \u2014 development harness for Pi: gated, evidence-backed software changes driven from the Pi TUI and its other public entry points",
+  "description": "Evidence-gated harness for coding agents, inside Pi. The checks are frozen before the change exists; it is accepted on evidence, never on the agent's word.",
   "type": "module",
   "license": "Apache-2.0",
+  "author": "Jean-Jerome Levy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeanjerome/pi-495.git"
+  },
+  "homepage": "https://github.com/jeanjerome/pi-495#readme",
+  "bugs": {
+    "url": "https://github.com/jeanjerome/pi-495/issues"
+  },
   "keywords": [
     "pi-package",
-    "harness",
-    "software-engineering",
-    "verification"
+    "pi-extension",
+    "pi-coding-agent",
+    "coding-agents",
+    "ai-agents",
+    "agent-harness",
+    "harness-engineering",
+    "agentic-coding",
+    "llm-agents",
+    "spec-driven-development",
+    "test-driven-development",
+    "mutation-testing",
+    "human-in-the-loop",
+    "code-review",
+    "sandboxing",
+    "verification",
+    "local-llm",
+    "ollama",
+    "developer-tools",
+    "typescript",
+    "software-engineering"
   ],
   "engines": {
     "node": ">=24.0.0"
@@ -42,7 +68,8 @@
     "lint:exports": "node scripts/check-exports.ts",
     "lint:declarations": "node scripts/check-declarations.ts",
     "lint:story-format": "node scripts/check-story-format.ts",
-    "lint:distribution": "node scripts/check-distribution.ts"
+    "lint:distribution": "node scripts/check-distribution.ts",
+    "prepublishOnly": "npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

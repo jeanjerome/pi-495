@@ -1,4 +1,4 @@
-# 495 (harness-495) — AI Agents
+# 495 (pi-495) — AI Agents
 
 > **Multi-agent context** — This file is the canonical project context for **Cline**, **Aider**, **OpenCode**, **Codex CLI**, and other AGENTS.md-native tools. Claude Code and Cursor read it via the `CLAUDE.md` symlink.
 
