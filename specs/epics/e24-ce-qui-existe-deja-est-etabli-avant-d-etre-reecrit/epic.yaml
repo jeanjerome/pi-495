@@ -1,0 +1,86 @@
+# Capsule de l'epic e24. Les stories sont en ordre d'exécution ; l'ordre est contraint,
+# pas préférentiel — le motif de chaque position est écrit en regard.
+#
+# Deux stories sont faites avant que cette capsule soit écrite, ce qui est l'inverse de la méthode.
+# Le dire vaut mieux que le lisser : l'étude a été conduite par la commande d'antériorité, son
+# résultat a été arbitré par le propriétaire, et l'adoption qui en découle a été livrée en trois
+# commits. La capsule enregistre ce qui a été fait et sous quelle preuve, elle ne le reconstitue
+# pas. Ce que la preuve ne couvre pas est écrit story par story.
+
+id: e24
+title: "Ce qui existe déjà est établi avant d'être réécrit"
+status: in_progress
+capsule_dir: specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit
+
+objet: >
+  Avant qu'une capacité soit écrite, ce qui y répond déjà est établi et comparé : l'API et les
+  paquets de Pi, les paquets construits pour Pi par d'autres, et ce qui existe hors de cet
+  écosystème. L'epic livre, pour chaque besoin examiné, le candidat retenu ou l'absence de candidat,
+  et la raison — réutiliser, s'inspirer de la forme, ou écrire, avec ce qui a été cherché et non
+  trouvé quand on écrit. Les critères sont dits avant d'être appliqués : ce que le besoin demande
+  réellement, la licence, l'entretien du paquet, le poids qu'il ajoute, et ce à quoi il nous lie.
+
+motif: >
+  Le coût de ne pas regarder est mesuré, pas supposé. Quatre défauts d'une seule surface ont été
+  trouvés en lisant ce que Pi publiait déjà, et aucun n'aurait été vu autrement. L'epic ne livre
+  aucune capacité : ce qu'il livre est le droit d'écrire le reste.
+
+exigences: [UX-07, UX-10]
+decisions: [D-55, D-56]
+
+stories:
+  - id: e24s01
+    title: "L'antériorité de la surface de revue est établie"
+    bcps: 2
+    delta: ADDED
+    decision: D-55
+    position: >
+      Première parce qu'aucune des suivantes n'a de sens avant elle : une adoption décidée sans
+      l'étude serait le contraire de ce que l'epic existe pour installer. Elle ne touche aucun code.
+  - id: e24s02
+    title: "La comparaison est dessinée par le paquet retenu plutôt que réécrite"
+    bcps: 5
+    delta: MODIFIED
+    requirement: UX-07
+    position: >
+      Après l'étude, dont elle est la conséquence arbitrée : le propriétaire a tranché parmi les
+      candidats qu'elle a rendus. Elle est la première fois que l'epic coûte quelque chose — une
+      dépendance d'exécution là où le paquet n'en avait aucune — donc la première fois que le
+      critère « ce à quoi il nous lie » est payé plutôt qu'énoncé.
+  - id: e24s03
+    title: "L'antériorité du bac à sable est établie"
+    bcps: 3
+    delta: ADDED
+    decision: D-55
+    position: >
+      Avant e24s04 parce que c'est le sujet où l'écart mesuré est le plus grand : une décision
+      ouverte hésite entre des backends écrits à la main, quand Pi documente le sujet en quatre
+      motifs et livre deux extensions qui marchent. Elle établit les candidats ; elle ne tranche
+      pas, la mesure sous Apple Container restant la condition de l'arbitrage.
+  - id: e24s04
+    title: "L'antériorité de ce que Pi tient déjà est établie"
+    bcps: 3
+    delta: ADDED
+    decision: D-55
+    position: >
+      Dernière parce qu'elle est la plus large et la moins urgente : compaction, confiance de
+      projet, gardes de permission, décisions humaines et délégation ont chacune leur exemple livré,
+      et aucune n'est en cours de réécriture aujourd'hui.
+
+total_bcps: 13
+
+hors_perimetre:
+  - >
+    L'epic n'écrit aucune capacité. Quand une étude conclut qu'il faut écrire, ce qui est écrit
+    appartient à l'epic qui porte le besoin, pas à celui-ci. e24s02 fait exception et le dit : son
+    adoption est la mise à l'épreuve du critère, pas une capacité nouvelle.
+  - >
+    Le choix entre les deux forks publiés du même paquet n'est pas tranché par l'epic. e24s02 a pris
+    le plus actif et l'a écrit ; c'est un choix révocable en changeant un nom, et il appartient au
+    propriétaire de le confirmer ou de le renverser.
+  - >
+    e08 — « la revue s'appuie sur ce que Pi rend » — n'est pas absorbé. Cet epic le précède et le
+    déborde : il vaut pour toute capacité à venir et regarde au-delà de Pi.
+  - >
+    La mesure du bac à sable sous Apple Container reste au spike qui la porte. e24s03 établit les
+    candidats et leurs coûts ; la question 5 du spike se tranche avec la mesure, pas avec l'étude.

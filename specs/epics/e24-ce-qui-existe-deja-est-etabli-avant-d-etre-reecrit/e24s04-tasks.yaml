@@ -1,0 +1,31 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52).
+
+story_id: e24s04
+title: "L'antériorité de ce que Pi tient déjà est établie"
+status: failing
+bcps: 3
+decision: D-55
+delta: ADDED
+
+tasks:
+  - id: 1
+    description: >
+      Les sujets que D-55 nomme sans les avoir relus sont repris un par un — compaction, confiance de
+      projet, rendu du lecteur, gardes de permission, décisions humaines, délégation — et chacun
+      reçoit le même traitement : ce que Pi en tient, ce que 495 en écrit, et l'écart.
+    verify: "grep -q 'Prior Art' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
+    status: failing
+  - id: 2
+    description: >
+      Chaque sujet où 495 entretient une table, analyse un fichier ou relit du code tiers pour
+      établir un fait est relu sous le critère que D-55 pose : Pi le rapporte-t-il déjà ? Le relevé
+      nomme l'accroche ou l'absence d'accroche, contre la version épinglée.
+    verify: "grep -q 'version épinglée' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
+    status: failing
+  - id: 3
+    description: >
+      Les accroches que 495 pose sont comptées contre celles que Pi publie, et le relevé dit
+      lesquelles manquent à un besoin réel — une accroche non posée n'est un défaut que si un besoin
+      la réclamait.
+    verify: "grep -q 'accroches' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s04-ce-que-pi-tient.md"
+    status: failing

@@ -1,12 +1,16 @@
 development_status:
   e23: in_progress
-  e24: backlog
+  e24: in_progress
   e23s01: done
   e23s02: done
   e23s03: backlog
   e23s04: backlog
   e23s05: backlog
   e23s06: backlog
+  e24s01: done
+  e24s02: done
+  e24s03: backlog
+  e24s04: backlog
 
 epics:
   e23:
@@ -15,10 +19,10 @@ epics:
     wsjf: 12.0
     total_bcps: 20
   e24:
-    status: backlog
+    status: in_progress
     title: "Ce qui existe déjà est établi avant d'être réécrit"
     wsjf: 9.5
-    total_bcps: null   # capsule non écrite : une capsule s'écrit au moment d'attaquer son epic
+    total_bcps: 13
 
 stories:
   e23s01:
@@ -73,3 +77,42 @@ stories:
     tasks_total: 6
     tasks_passing: 0
     tasks_failing: 6
+  e24s01:
+    status: done
+    title: "L'antériorité de la surface de revue est établie"
+    bcps: 2
+    epic: e24
+    tasks_total: 5
+    tasks_passing: 5
+    tasks_failing: 0
+    risk_max: P2
+    # Story écrite après le travail : l'état passant est constaté, pas atteint par un cycle rouge
+    # puis vert. La capsule le dit, story par story.
+  e24s02:
+    status: done
+    title: "La comparaison est dessinée par le paquet retenu plutôt que réécrite"
+    bcps: 5
+    epic: e24
+    tasks_total: 7
+    tasks_passing: 7
+    tasks_failing: 0
+    risk_max: P0
+    security_max: high
+    # Deux tâches ont eu leur rouge, éprouvées par contrôle négatif : la neutralisation retirée, et
+    # le paquet installé fait dériver pour de vrai. Les cinq autres sont constatées.
+  e24s03:
+    status: backlog
+    title: "L'antériorité du bac à sable est établie"
+    bcps: 3
+    epic: e24
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+  e24s04:
+    status: backlog
+    title: "L'antériorité de ce que Pi tient déjà est établie"
+    bcps: 3
+    epic: e24
+    tasks_total: 3
+    tasks_passing: 0
+    tasks_failing: 3

@@ -6,52 +6,43 @@ project_cycle:
   completed_phases: []
 
 active_flow: null
-active_epic_id: e23
-active_story: e23s02
+active_epic_id: e24
+active_story: e24s02
 
 handoff:
   next_skill: null
   last_step_completed: >
-    La reprise des specs est faite pour la partie documentaire. Trois passes, chacune verte à
-    Preflight, 85 exigences toujours tracées.
+    La revue dessine ses modifications avec un paquet de l'écosystème au lieu de les réécrire, et la
+    capsule de `e24` enregistre ce travail. Trois commits, Preflight vert à chacun : `85b8d9d`,
+    `6c34012`, `03cf4c3`.
 
-    LES CHIFFRES. Chaque valeur n'est plus écrite qu'à un seul endroit. `§8.10` de la spécification
-    fonctionnelle recopiait les dix valeurs de `§12` en le disant lui-même : il ne porte plus que le
-    comportement à la limite, qui ne change pas avec la valeur. `NFR-04` énonce trois garanties — un
-    état local rendu sans attente perceptible, une annulation honorée, un processus contrôlé qui ne
-    survit pas à sa terminaison — et ses durées sont descendues en configuration. `RM-032`, `RM-033`,
-    l'étape 6 de `PF-14` et la ligne `DEC-03` de la conception de vérification ne portent plus de
-    nombre. Deux occurrences subsistent et sont légitimes : `SA-015` et `SA-016` sont des exemples
-    Gherkin, et un exemple a besoin d'une valeur concrète pour être exécutable.
+    CE QUI A ÉTÉ LEVÉ. La forme en blocs ANCIEN/NOUVEAU venait de `conception-technique.md` §5.5,
+    pas d'une exigence — `UX-07` ne prescrit aucune forme et délègue « la forme de la comparaison »
+    au TUI, ce que le relevé des spécifications avait déjà noté. `D-56` porte la décision.
 
-    LA VUE DE REVUE. `UX-06`, `UX-07`, `UX-08` et `UX-11` disent ce que le relecteur établit, non la
-    disposition qui le lui montre ; `§10.1`, `§10.3`, `§10.4`, `PF-12`, `RM-062`, `SA-023` et
-    `SA-025` suivent. Plus aucune mention de panneau dans la spécification fonctionnelle.
+    CE QUI A ÉTÉ PAYÉ. `@xynogen/pix-pretty` publie ses sources TypeScript et aucun build : elles ne
+    compilent pas sous les réglages du dépôt, et Node refuse de typer-effacer un fichier sous
+    `node_modules`. D'où des déclarations écrites à la main sous `types/pix-pretty/`, un chargeur
+    réclamé par le paquet lui-même, et les deux premières dépendances d'exécution du harnais. La vue
+    des modifications prend tout l'écran, le moteur ne prenant aucune largeur de son appelant.
 
-    UNE AFFIRMATION FAUSSE A ÉTÉ TROUVÉE ET CORRIGÉE. `expression-besoins.md` §11.2 soutenait que la
-    vue « n'est pas présentée comme une capacité déjà fournie par Pi ou par un package candidat ».
-    `pi-tui` publie `HStack`, `VStack`, `Container`, `ScrollView`, `SelectList`,
-    `KeybindingsManager`, `MouseRegion`, `visibleWidth`, `truncateToWidth`, `sliceByColumn`,
-    `fuzzyFilter` et `stripTerminalSequences`. 495 en importe deux sur une soixantaine.
+    TROIS DÉFAUTS TROUVÉS APRÈS COUP, ET CE QUI LES A TROUVÉS. Le chargement différé échouait sous
+    Pi : ma sonde passait grâce à `--import jiti/register`, un crochet global que Pi ne pose pas, et
+    le lanceur de tests portait le même drapeau — 316 tests verts pour une raison que la production
+    n'avait pas. C'est le banc de `bench/`, qui ouvre `dist/` dans une vraie session Pi, qui l'a
+    montré en trente secondes. Puis le repli du contexte ne s'annonçait plus, contre `UX-07`. Puis,
+    en le réparant, que le moteur recomparait les deux côtés du hunk et dessinait une ligne
+    inchangée comme supprimée puis rajoutée : les lignes lui sont désormais construites depuis les
+    segments du calcul maison.
 
-    LES RÈGLES NE CHANGENT PAS, ET C'EST LE POINT. Un invariant ne se délègue pas ; sa mise en œuvre,
-    si. La correspondance est donc écrite en conception technique, §5.x : pour chacun des invariants
-    déjà couverts, la surface Pi qui le tient. Relevé sur la version épinglée : 38 événements
-    d'extension, 31 pages de documentation et 76 extensions d'exemple, toutes lisibles hors ligne
-    dans le paquet installé. 495 pose quatre accroches.
+    CE QUI REFUSE MAINTENANT. `lint:declarations` compile les appels de la revue contre le paquet
+    installé, sans le renvoi de `paths` : la comparaison est celle du compilateur, pas d'une
+    expression régulière sur du code tiers. Éprouvé par contrôle négatif réel, comme la
+    neutralisation des séquences terminal d'un fichier relu.
 
-    DEUX ENDROITS DU CODE SONT CONCERNÉS, et ce ne sont pas des hypothèses.
-    `src/presentation/tui/review/measure.ts` calcule les colonnes qu'occupe une ligne stylée, ce que
-    `visibleWidth` rend ; `NARROW_THRESHOLD`, mesuré sur le corpus figé de `D-33`, n'a de raison
-    d'être que parce que la surface assemble ses panneaux à la main. Et `src/adapters/sandbox/` porte
-    389 lignes de backends écrits à la main quand l'exemple livré par Pi couvre `sandbox-exec` et
-    `bubblewrap` en 321 lignes par `@anthropic-ai/sandbox-runtime`. Rien de ce code n'a été touché :
-    c'est un changement de comportement, pas de documentation.
-
-    DEUX AFFIRMATIONS FAUSSES ONT ÉTÉ ÉCRITES PUIS RETIRÉES dans cette session, toutes deux faute
-    d'avoir mesuré avant de conclure : cinq copies du budget de tentatives dont deux étaient des
-    exemples légitimes, et « 4 500 lignes d'archive que rien ne lit ». La seconde a failli coûter une
-    suppression. La règle qui en découle est consignée dans `AGENTS.md`.
+    LA CAPSULE DE `e24` est écrite après coup et le dit, story par story : l'état passant de ses
+    tâches est constaté, pas atteint par le cycle rouge-puis-vert de `D-52`. Deux tâches font
+    exception et ont eu leur rouge, toutes deux par contrôle négatif.
   open_decisions:
     - >
       **La vue de revue s'assemble sur `pi-tui`, et le travail se conduit dans une session à lui.**
@@ -85,6 +76,11 @@ handoff:
       `FILE_READ_BUDGET_BYTES` sur un corpus mesuré, et pose que re-mesurer est une révision de
       décision. Un conteneur qui gère lui-même la largeur peut rendre le premier sans objet : si
       c'est le cas, `D-33` se révise explicitement plutôt que de laisser une constante orpheline.
+
+      Mise à jour du 2026-09-22 : la mesure et le décodage clavier passent déjà par `pi-tui`
+      (`measure.ts`, `keymap.ts`), et le dessin de la comparaison est sorti du dépôt vers
+      `@xynogen/pix-pretty` (`D-56`). La disposition, l'arbre virtualisé et le focus restent écrits
+      ici : la décision n'est pas close, son périmètre a rétréci.
     - >
       **L'archive ne se supprime pas.** La mesure des références entrantes ne trouve aucun orphelin
       parmi les 32 fichiers de `archive/`. Trois dépendances vivantes l'interdisent : l'epic ouvert
@@ -155,11 +151,13 @@ handoff:
     - specs/product/SCOPE_LATEST.yaml
     - specs/epics/e23-second-fournisseur-de-modele-qualifie/epic.yaml
     - specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s06-tasks.yaml
+    - specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/epic.yaml
+    - specs/adr/D-56-la-comparaison-est-dessinee-par-pix-pretty-en-gouttiere.md
 git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
-  branch: strate-imposee-au-manifeste
-  hash: 0be1439
+  branch: main
+  hash: 03cf4c3
 
 metrics:
   skill_timings:

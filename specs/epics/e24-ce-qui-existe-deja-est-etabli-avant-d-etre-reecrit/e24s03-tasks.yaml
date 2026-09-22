@@ -1,0 +1,40 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment des
+# fichiers qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+
+story_id: e24s03
+title: "L'antériorité du bac à sable est établie"
+status: failing
+bcps: 3
+decision: D-55
+delta: ADDED
+
+tasks:
+  - id: 1
+    description: >
+      Le besoin réel est écrit avant les candidats : ce que SEC-01 et SEC-02 exigent d'une frontière
+      d'exécution, et ce que le refus capability_missing suppose d'elle. Un candidat comparé à un
+      besoin non écrit se choisit sur ses qualités, pas sur les nôtres.
+    verify: "grep -q 'Prior Art' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
+    status: failing
+  - id: 2
+    description: >
+      Les candidats sont relevés sur la machine, pas sur ce qu'une page annonce : les quatre motifs
+      que la documentation de containerization traite, les deux extensions d'exemple livrées, et les
+      backends écrits à la main que le dépôt porte aujourd'hui. Chacun avec sa licence, son
+      entretien, son poids et ce à quoi il lie.
+    verify: "grep -q 'sandbox-runtime' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
+    status: failing
+  - id: 3
+    description: >
+      L'écart entre ce que le dépôt écrit à la main et ce que l'écosystème livre est chiffré — lignes
+      de génération de profil, plateformes couvertes, politique réseau par domaine que le tri-état
+      actuel n'a pas — et le relevé dit ce que l'adoption coûterait en dépendance d'exécution.
+    verify: "grep -q 'politique réseau' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
+    status: failing
+  - id: 4
+    description: >
+      Le relevé remet la matière de l'arbitrage sans le rendre : la question de l'adaptateur derrière
+      SandboxPort reste ouverte tant que la mesure sous Apple Container n'a pas répondu, et le
+      relevé dit ce que chaque réponse coûterait.
+    verify: "grep -q 'Apple Container' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
+    status: failing

@@ -20,11 +20,12 @@ ordering:
   formula: "(business_value + time_criticality + risk_reduction) / job_size"
 
 capsules:
-  status: not_generated
+  status: partial
   note: >
-    Les répertoires capsule_dir sont les emplacements prévus ; aucun ne contient encore
-    d'epic.yaml, de story ni de tâches. Une capsule s'écrit au moment d'attaquer son epic, pas
-    pour les 22 d'avance. Le gabarit qui manquait à leur écriture est désormais sous
+    Deux capsules existent, e23 et e24 ; les vingt autres répertoires capsule_dir restent des
+    emplacements prévus. Une capsule s'écrit au moment d'attaquer son epic, pas pour les 22
+    d'avance. Celle de e24 fait exception et le dit : elle a été écrite après ses deux premières
+    stories, sur un travail déjà livré. Le gabarit qui manquait à leur écriture est désormais sous
     specs/references/ et Preflight l'oppose aux stories (D-51).
 
 epics:

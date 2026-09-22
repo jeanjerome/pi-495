@@ -1,0 +1,57 @@
+# Le livrable de cette story est un texte, pas du code : ses commandes de vérification opposent au
+# relevé ce qu'il doit porter. C'est faible par nature — une expression qui cherche nos propres mots
+# dans notre propre fichier — et ça n'est pas déguisé en preuve d'exécution. Ce qui tient vraiment
+# cette story est ce que le relevé a fait trouver, et e24s02 le mesure.
+#
+# Les tâches sont écrites après coup, sur un travail déjà conduit : leur état passant est constaté,
+# pas atteint par le cycle rouge-puis-vert que D-52 demande. Le dire est la condition pour que cette
+# capsule vaille quelque chose.
+
+story_id: e24s01
+spec: e24s01-l-anteriorite-de-la-surface-de-revue-est-etablie.md
+title: "L'antériorité de la surface de revue est établie"
+status: passing
+bcps: 2
+decision: D-55
+delta: ADDED
+risk: P2
+context: specs
+type: docs
+
+tasks:
+  - id: 1
+    description: >
+      Les critères de choix sont écrits avant d'être appliqués, dans le périmètre : ce que le besoin
+      demande réellement, la licence, l'entretien du paquet, le poids ajouté, et ce à quoi
+      l'adoption nous lie.
+    verify: "grep -qF \"Les critères de choix sont dits avant d'être appliqués\" specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
+  - id: 2
+    description: >
+      Chaque besoin examiné de la surface de revue porte un verdict et le motif qui le tient. Neuf
+      besoins sont relevés ; la commande refuse si la table en perd un.
+    verify: "test \"$(grep -cE '^      \\| .+ \\| .+ \\| .+ \\| \\*\\*' specs/product/SCOPE_LATEST.yaml)\" -ge 9"
+    risk: P2
+    status: passing
+  - id: 3
+    description: >
+      Un besoin auquel aucun candidat ne répond dit qu'aucun ne s'applique, plutôt que de laisser
+      croire que rien n'a été cherché.
+    verify: "grep -qF \"aucun candidat ne s'applique\" specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
+  - id: 4
+    description: >
+      Le candidat publié sous deux scopes concurrents les nomme tous les deux, et dit que le choix
+      entre eux est une question distincte.
+    verify: "grep -qF '@xynogen/pix-pretty' specs/product/SCOPE_LATEST.yaml && grep -qF '@dihak/pix-pretty' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
+  - id: 5
+    description: >
+      Le coût d'une adoption est chiffré sur la machine et non supposé : poids installé, dépendance
+      native inutilisée, et ce que la façon de publier du paquet impose au dépôt.
+    verify: "grep -qF 'dix-sept mégaoctets' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
