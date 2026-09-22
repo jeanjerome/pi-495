@@ -1,29 +1,34 @@
 {
   "story_id": "e23s02",
   "risk": "P0",
-  "evaluated_at": "2026-09-21T22:30:00Z",
+  "evaluated_at": "2026-09-22T09:40:00Z",
+  "supersedes": "the 2026-09-22T08:45:00Z evaluation. Two of its sentences were wrong and are replaced rather than amended: the equality it claimed over the whole imposed array held only over that array's double-quoted string literals, and the refusal count named fixtures the control did not have. The control was rewritten so that every element it reads is classified.",
   "threshold_source": {
     "file": "specs/epics/e23-second-fournisseur-de-modele-qualifie/e23s02-le-manifeste-declare-la-strate-imposee-par-le-fournisseur.md",
     "section": "14. Quality attributes *NFR*",
     "note": "specs/tech-architecture/e23-TEST_PLAN_LATEST.md does not exist and TEST_PLAN_LATEST.md is empty (0 bytes); the only declared thresholds for this story are the ones its own spec states."
   },
+  "environment": {
+    "pi_version": "0.87.0",
+    "note": "Raised from 0.86.1 on 2026-09-22, repository bounds and global install together. pi_version feeds environment_digest, so the previous campaigns' measurements are not transferable."
+  },
   "dimensions": {
     "performance": {
       "verdict": "PASS",
-      "threshold": "0 extra bytes emitted toward the provider; one list read per context build, bounded by the number of declared providers; the control at 12 ms over the distributed tree of the pinned version",
-      "measured": "0 extra bytes. Built from dist/, a context with the anthropic layer and one without produce byte-identical system_prompt, prompt and record, and the same prompt_digest — the change is provably inert on what is sent. Lookup: 1.52 us/call on a hit, 0.88 us/call on a miss, 1e6 iterations after warmup, one call per intervention. Control: 12 ms of scan over 275 .js files and 10.2 MB, 0.11 s wall for the whole process including Node startup, three consecutive runs.",
-      "note": "The measurement is taken on dist/, not on src/, because that is what an installation runs."
+      "threshold": "0 extra bytes emitted toward the provider; one list read per context build, bounded by the number of declared providers; the control bounded by what it reads",
+      "measured": "0 extra bytes: campaign chg_mucf90gb6fc4f2c217 closed accepted with the field present and empty in all 3 context artifacts, and the harness emits no layer it did not compose. Lookup, result consumed so the loop is not eliminated, 1e6 iterations after 1e5 of warmup: 7.3 ns/call on a hit, 6.8 ns on a miss, 5.5 ns on an inherited-member identifier the guard rejects early — one call per intervention. Control: the 2 copies this tree holds, 104.8 KB read, 0.10-0.11 s wall for the whole process including Node startup, three consecutive runs.",
+      "note": "The rewritten control reads the readable provider module rather than the distributed bundle: 2 files / 104.8 KB against the 275 files / 10.2 MB the previous evaluation measured. The wall time is unchanged because it was always dominated by Node startup."
     },
     "reliability": {
       "verdict": "PASS",
       "threshold": "the failure direction is closed: nothing is affirmed about a provider that was never verified, and the loss of the means of checking is a refusal rather than a pass",
-      "measured": "The domain returns an empty list for a provider known to impose nothing, for one never verified, and for an empty identifier — never a guess. The control refuses on four distinct fixtures: no relevable block, more than one, a text differing from the declaration, and a package directory that does not exist. Comparison is exact string equality, which cannot over-match. All six cases are held by test/v3/provider-system-block.test.ts, one of them against the package this repository actually depends on.",
-      "note": "The field is always present in the manifest and empty when nothing is imposed, so an absent field can never be read as a provider that imposes nothing."
+      "measured": "The domain returns an empty list for a provider known to impose nothing, for one never verified, for an empty identifier, and for the five inherited Object.prototype members. The control classifies everything it reads and refuses what it cannot: more than one imposed block in the module (§14), an array element that is not a readable text part, a text carrying an escape it cannot decode, a guard with no module-level predicate of that name, a predicate that is not exactly one membership test — which is what refuses a widened or neutralised condition — a token prefix differing from the declared one, copies of the module that disagree, no copy at all, and a text differing from the declaration. Held by test/v3/provider-system-block.test.ts (16 cases) and test/v1/imposed-layers.test.ts. A declaration naming no token prefix also refuses; that one is exercised by hand and not by a test.",
+      "note": "Every copy of the module under the given root is now found by walking the tree, not by enumerating two expected shapes, so a copy nested under a package outside the provider's scope is read rather than missed. What the control establishes about the condition is a name correspondence between the guard and a predicate of that name, not a proof of dataflow; the docstring says so."
     },
     "operability": {
       "verdict": "PASS",
       "threshold": "a refusal is readable where Preflight is read, and names what to correct without opening the provider's package",
-      "measured": "lint:provider-block prints, on success, the provider, the fact it matches, and the file the block was found in. On a differing text it prints both texts on their own lines, found against declared. On absence it says the means of checking is lost rather than that nothing is imposed. No new presentation component: the control rides the same chained-exit path as the eight others.",
+      "measured": "lint:provider-block prints, on success, the provider, the fact it matches, how many copies of the module agreed, and the file read. On a differing text it prints found against declared, each on its own line, every part of the array listed. On a differing condition it prints both token prefixes and the declared condition they came from. On absence it says the means of checking is lost rather than that nothing is imposed. An escape it cannot decode refuses in a sentence instead of an unhandled SyntaxError and a stack trace. No new presentation component: the control rides the same chained-exit path as the eight others.",
       "note": "Wired into npm run check, so the refusal surfaces at the same moment as every other gate rather than on a separate command nobody runs."
     }
   },

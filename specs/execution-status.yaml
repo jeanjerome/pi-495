@@ -5,13 +5,14 @@ development_status:
   e23s03: backlog
   e23s04: backlog
   e23s05: backlog
+  e23s06: backlog
 
 epics:
   e23:
     status: in_progress
     title: Second fournisseur de modèle qualifié
     wsjf: 12.0
-    total_bcps: 15
+    total_bcps: 20
 
 stories:
   e23s01:
@@ -58,3 +59,11 @@ stories:
     tasks_total: 3
     tasks_passing: 0
     tasks_failing: 3
+  e23s06:
+    status: backlog
+    title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
+    bcps: 5
+    epic: e23
+    tasks_total: 6
+    tasks_passing: 0
+    tasks_failing: 6

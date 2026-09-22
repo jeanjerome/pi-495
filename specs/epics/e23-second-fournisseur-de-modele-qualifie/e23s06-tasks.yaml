@@ -1,0 +1,58 @@
+story_id: e23s06
+title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
+status: failing
+bcps: 5
+requirement: CTX-02
+
+tasks:
+  - id: 1
+    description: >
+      Le worker pose un observateur sur l'accroche de requête que Pi expose, `before_provider_request`.
+      Le chargeur de ressources du worker sert aujourd'hui une liste d'extensions vide ; c'est là que
+      l'observateur se pose, sans fork ni modification de Pi. La tâche établit par exécution qu'un
+      gestionnaire qui ne renvoie rien laisse la requête intacte, au lieu de le supposer : 495 observe
+      une intervention, il ne la réécrit pas. Pi documente cette accroche comme un outil de
+      débogage : la tâche dit ce que 495 fait le jour où elle change ou disparaît, plutôt que de
+      supposer à un outil de débogage la stabilité qu'un dossier opposable demande.
+    verify: "node --test test/v3/provider-request-hook.test.ts"
+    status: failing
+  - id: 2
+    description: >
+      Ce que le fournisseur a écrit au-dessus des instructions de 495 est relevé dans la charge utile
+      de la requête, là où son bloc système est déjà composé, et non déduit d'une table que 495
+      entretient. Pi passe cette charge sans la typer : une forme que le relevé ne sait pas lire est
+      refusée, jamais prise pour une absence de strate — ne rien voir n'est pas voir que rien n'est
+      imposé.
+    verify: "node --test test/v1/imposed-layers-observed.test.ts"
+    status: failing
+  - id: 3
+    description: >
+      Le dossier porte ce qui a été observé, et un lecteur sait que c'est un fait relevé et non une
+      attente. Le manifeste de contexte est écrit avant l'intervention alors que la charge utile
+      n'existe qu'à l'émission de la requête : la tâche tranche où le fait observé s'inscrit — forme
+      du manifeste, artefact voisin, ou les deux — plutôt que de faire passer une observation pour
+      une déclaration. Le choix de l'accroche se pèse ici plutôt qu'il ne se présume :
+      `context_with_system`, apparue en 0.87.0, porte la transcription complète avec le message
+      système en tête, là où `before_provider_request` porte le corps de requête déjà sérialisé par
+      le fournisseur. La tâche dit laquelle porte le fait cherché, et pourquoi.
+    verify: "node --test test/v2/harness.test.ts"
+    status: failing
+  - id: 4
+    description: >
+      Un écart entre ce qui est observé et ce qui était déclaré est un fait visible, et non un
+      silence. La déclaration cesse d'être la source de ce que le modèle a reçu et ne vaut plus que
+      comme attente ; ce que `lint:provider-block` conserve ou perd de sa raison d'être est tranché
+      ici, avec la sur-déclaration que la condition du §6f d'e23s02 imposait faute d'observation.
+    verify: "node --test test/v3/provider-block-divergence.test.ts"
+    status: failing
+  - id: 5
+    description: >
+      Une campagne réelle sur le chemin d'abonnement montre l'observé et le déclaré concordants, et
+      un contrôle négatif montre que l'observation sait ne pas concorder. Une liste adossée à des
+      tests ne vaut pas recette : la preuve est une exécution, et ce qui y serait feint se déclare.
+    verify: "node --test test/v3/campaign-observed-layer.test.ts"
+    status: failing
+  - id: 6
+    description: "L'ensemble des contrôles passe avec le changement."
+    verify: "npm run check"
+    status: failing

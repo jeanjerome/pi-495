@@ -1,18 +1,37 @@
 story_id: e23s02
-verified_at: "2026-09-21T22:48:17Z"
+verified_at: "2026-09-22T08:52:00Z"
 verifier: verify-work
 risk: P0
 branch: strate-imposee-au-manifeste
+
+supersedes: >
+  The 2026-09-21T22:48:17Z verification, taken at revision fac24fe. It no longer described the
+  shipped code and is replaced rather than amended. Three things moved under it: the provider
+  control was rewritten to read the readable provider module instead of the distributed bundle, so
+  its own known_limits entry — "le contrôle est lié à la sortie d'un minifieur" — stopped being
+  true; the capsule control was rewritten and now carries 43 tests; and Pi was raised from 0.86.1
+  to 0.87.0 in the repository and in the global install together. `pi_version` feeds
+  `environment_digest`, so the earlier campaigns are not transferable evidence and were re-run
+  rather than cited.
+
+environment:
+  pi_version: "0.87.0"
+  node: "24.21"
+  sandbox: "seatbelt, qualified"
+  note: >
+    Pi raised the same day, repository bounds and global install together. A caret on a 0.x version
+    locks the minor, so the three `devDependencies` bounds had to be written to `^0.87.0` by hand;
+    leaving one behind would run the tests against one version and the campaigns against another.
 
 phases:
   smoke:
     passed: true
     note: >
-      Cold start conducted rather than skipped, unlike e23s01 where it was declared not applicable.
-      A fresh target repository and a fresh HARNESS495_DATA_DIR, the built extension loaded from
-      dist/ — `pi -ne -p --no-session -e dist/extension/index.js "/495 status"`. The extension
-      answered, and the data directory was provisioned from nothing: state.sqlite, objects,
-      workspaces, exports, locks, logs. No stale configuration could carry a result.
+      Cold start on 0.87.0, the question a version bump actually raises. A fresh
+      HARNESS495_DATA_DIR and the extension loaded from dist/ —
+      `pi -ne -p --no-session -e dist/extension/index.js "/495 status"`, exit 0. The extension
+      answered and the data directory was provisioned from nothing: state.sqlite, objects,
+      workspaces, exports, locks, logs.
   build:
     passed: true
     command: "npm run build"
@@ -23,205 +42,220 @@ phases:
   lint:
     passed: true
     note: >
-      Nine controls inside npm run check: lint:code, lint:layers, lint:architecture, lint:exports,
-      lint:traceability, lint:distribution, lint:story-format, lint:capsule, lint:provider-block.
-      The last two are this repository's own; the ninth was added by this story.
+      Nine controls chained, including the two this story added. lint:provider-block now reports
+      "matches the declaration in all 2 copies of the module", lint:capsule "2 done and verified".
   tests:
     passed: true
-    coverage: null
+    count: 367
     note: >
-      318 tests, 318 passing. No coverage instrumentation runs on the harness itself; reporting a
-      percentage here would be inventing one.
+      367 of 367. The story's own slice is unchanged in behaviour; what grew is the controls'
+      coverage — 11 cases on the provider control, 43 on the capsule control, which had none.
 
-  terminal_verdict:
-    command: "npm run build && npm run check"
-    exit_code: 0
-    captured_at: "2026-09-21T22:19:04Z"
-    note: >
-      Single contiguous run — no output merged from any other attempt. The build precedes the check
-      because lint:distribution compares dist/ to a fresh build of the sources.
+terminal_verdict:
+  command: "npm run build && npm run check"
+  exit_code: 0
+  started_at: "2026-09-22T08:34:21Z"
+  ended_at: "2026-09-22T08:36:19Z"
+  note: >
+    Single contiguous run, one command, one exit code. 367 tests passing, nine lint controls, Biome
+    clean over 156 files. No output from any other attempt is merged into this block.
 
 task_verify_commands:
-  - task: 1
-    command: "node --test test/v1/imposed-layers.test.ts"
-    exit_code: 0
-  - task: 2
-    command: "node --test test/v1/imposed-layers.test.ts"
-    exit_code: 0
-  - task: 3
-    command: "node --test test/v2/harness.test.ts"
-    exit_code: 0
-  - task: 4
-    command: "node --test test/v3/provider-system-block.test.ts"
-    exit_code: 0
-  - task: 5
-    command: "npm run lint:traceability"
-    exit_code: 0
-  - task: 6
-    command: "npm run check"
-    exit_code: 0
+  note: "Each task's own verify command, re-run before UAT; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v1/imposed-layers.test.ts", exit_code: 0 }
+    - { task: 2, command: "node --test test/v1/imposed-layers.test.ts", exit_code: 0 }
+    - { task: 3, command: "node --test test/v2/harness.test.ts", exit_code: 0 }
+    - { task: 4, command: "node --test test/v3/provider-system-block.test.ts", exit_code: 0 }
+    - { task: 5, command: "npm run lint:traceability", exit_code: 0 }
+    - { task: 6, command: "npm run check", exit_code: 0 }
 
 security:
-  scan: hand review over the diff against the merge base
-  report: specs/security/REVIEW.md
-  high_findings_confidence_ge_8: 0
-  blocked: false
-  established_not_assumed:
-    - >
-      The manifest reaches the worker process — the whole mandate is serialised into
-      `{ type: "mandate", mandate, config }` (adapters/pi-worker/supervisor.ts:153) — and stops
-      there: no file under src/adapters/pi-worker/ reads `mandate.context`. What the worker hands
-      the model is `m.system_prompt` and `m.prompt`, nothing else.
-    - >
-      Measured on dist/, a context built with the layer and one built without produce byte-identical
-      system_prompt, prompt and record, and the same prompt_digest. 0 extra bytes leave for the
-      provider.
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — second pass, appended"
+  note: >
+    The rewrite opened three surfaces the first review did not cover, and each was traced from input
+    to sink rather than assumed. No regex injection: the three dynamic patterns in the capsule
+    control interpolate either a section name that is a code literal at all nine call sites, or a
+    story id already constrained by /^e\d+s\d+$/; the provider control interpolates an identifier
+    captured by \w+. No catastrophic backtracking: measured at 1 000, 10 000 and 50 000 characters
+    of pathological input, both expressions return in 0 ms, the alternation branches being disjoint.
+    JSON.parse reads a string literal and builds no object, so there is no prototype-pollution
+    surface, and it is guarded. Both controls are read-only and open nothing under the owner's Pi
+    configuration.
 
 blind_spots:
-  command: "scripts/check-blind-spots.sh (tool package)"
-  exit_code: 0
-  findings: { high: 0, medium: 0, low: 0 }
-  trusted: false
+  ran: true
+  usable: false
   note: >
-    The zero is vacuous and is recorded as such. Run at its package path the script reads
-    /opt/homebrew/lib/node_modules/bigpowers/specs/execution-status.yaml, which does not exist, and
-    exits 1. Run through a symlink gateway so it reaches this repository it exits 0 with zero
-    findings — but its status table is parsed by
-    `re.match(r'\s+(\S+):\s*"([^"]*)"', stripped)` applied to a line already stripped of its
-    indentation. That match can never succeed, so the parsed table is always empty. Reproduced in
-    isolation: the parser returns {} on this repository's own file. Four of its seven checks read
-    that table — verify-gap, test-gap, epic-orphan, bootstrap-testless — and cannot fire. The three
-    that do not depend on it — stale-tag, double-tag, sc-gap — are live, and their zero is real.
-    The proof is not theoretical: e23s02 was marked done with no verification evidence at all, the
-    exact condition its verify-gap check calls HIGH, and it reported zero findings.
-  replacement: >
-    The one HIGH check that mattered now lives in scripts/check-capsule.ts, which this repository
-    owns and Preflight runs: a story marked done in execution-status.yaml must carry
-    specs/verifications/<story>-verify.yaml. Verified to have teeth before this file existed — it
-    refused, naming e23s02.
-  corrects: >
-    specs/verifications/e23s01-verify.yaml records blind_spots exit_code 0 with a note claiming the
-    run was "against real data". That claim does not hold: the checks keyed on story status could
-    not have fired then either.
+    Reproduced again rather than asserted. `check-blind-spots.sh` of the tool package deduces its
+    repository root from its own location, looks for execution-status.yaml at
+    `<npx cache>/bigpowers/specs/execution-status.yaml`, does not find it — and exits 0. A gate that
+    cannot fail is not a gate. Its one rule that mattered here lives in scripts/check-capsule.ts
+    (D-54), which refuses a story called done in execution-status.yaml without evidence naming its
+    own story_id, a verified_at, and phases that passed. That control is chained in Preflight and
+    green.
 
 completeness_critic:
-  command: "scripts/lib/completeness-critic.sh (tool package, through the gateway)"
-  exit_code: 1
-  findings: { blocker: 1, warning: 0, filled: 1 }
-  blocker: "active story e23s02 has zero explicit story-tag links"
-  waived: true
-  waiver_reason: >
-    Structural conflict, not a gap in the work, and the same one e23s01 recorded as a known limit.
-    The critic measures traceability by grepping story identifiers inside source files; the global
-    instructions forbid exactly that — no ticket, chantier, lot or phase reference in code comments,
-    commits or written content. The count cannot rise without breaking a standing rule. 495 traces
-    requirement -> component -> evidence in specs/archive/TRACEABILITY.md instead, held green by
-    scripts/check-traceability.ts, and CTX-02 gained its own row in this story.
+  ran: false
+  note: >
+    Documented derogation, as for e23s01. It measures traceability by looking for story identifiers
+    in the sources, which the global written-content rules forbid writing. The real traceability is
+    requirement → component → evidence, and CTX-02 carries its own row.
 
 nfr_gate:
-  report: specs/verifications/NFR-e23s02.json
   verdict: GO
+  evidence: "specs/verifications/NFR-e23s02.json"
+  note: >
+    Re-measured, not carried over: the previous evaluation's performance figures described a control
+    that scanned 275 files and 10.2 MB of a minified tree. The rewritten one reads 2 files and
+    104.8 KB. The lookup was re-measured with its result consumed, the first attempt having been
+    eliminated by the optimiser and reported a meaningless 0.00 µs.
 
 manual:
   method: >
-    The owner refused a walk resting on unit tests and module probes and asked for confirmation by a
-    real execution in the harness. Two full campaigns were conducted through the built extension
-    loaded from dist/, against the real local model, under the real sandbox, each accepted with the
-    six gates passing — and one negative control. The dossiers were then read back read-only from
-    their SQLite ledger and object store, the way a dossier reader would, not through any test
-    helper.
+    The owner refuses a walk resting on unit tests and module probes. Two full campaigns were
+    conducted again through the built extension loaded from dist/, against the real local model,
+    under the real sandbox, plus one negative control. The dossiers were then read back read-only
+    from their SQLite ledger and object store — the way a dossier reader would, not through any test
+    helper. The earlier campaigns were not cited: they ran on Pi 0.86.1 and on code that predates
+    even the first review round's fixes.
   campaigns:
-    - id: "chg_mubtj37ia3e0a8a347"
+    - id: "chg_mucf90gb6fc4f2c217"
       provider: omlx
-      dossier: "~/.495-campagnes/e23s02-uat-omlx"
-      outcome: "accepted — G0..G5 PASS, unit=PASS, 3 interventions (specify, prepare, implement)"
-      observed: "all 3 context artifacts carry imposed_layers present and empty"
-    - id: "chg_mubtue1mfff8d2f5f6"
+      dossier: "~/.495-campagnes/e23s02-rev2-omlx"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions"
+      observed: "all 3 context artifacts (specify, prepare, implement) carry imposed_layers present and empty"
+    - id: "chg_mucfdr1n5d39e4d90e"
       provider: anthropic
-      dossier: "~/.495-campagnes/e23s02-uat-anthropic"
-      outcome: "accepted — G0..G5 PASS, 3 interventions, model selection recorded as provider_id anthropic"
+      dossier: "~/.495-campagnes/e23s02-rev2-anthropic"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions"
       observed: >
-        all 3 context artifacts carry the declared layer with its four fields, and the text actually
-        handed to the model — fetched from the object store by prompt_digest — contains it in
-        neither system_prompt nor prompt
+        The ledger records provider_id anthropic on every intervention.started. All 3 context
+        artifacts carry the declared layer with its four fields — condition, position, provider_id,
+        text. None is folded into trusted_instructions. The text actually handed to the model,
+        fetched from the object store by prompt_digest (three distinct digests), contains it in
+        neither system_prompt nor prompt.
       fiction_declared: >
         To exercise the declaring path without spending the owner's subscription quota, Pi was given
         an isolated agent directory (PI_CODING_AGENT_DIR) whose models.json defines a provider named
         anthropic served by the local endpoint. Everything else is real. What this run proves is
         that the harness declares what the domain knows about the provider Pi resolved; it does not
         and cannot prove that Anthropic imposed anything during it. That half is proven
-        independently by lint:provider-block, which reads Anthropic's own shipped code.
-    - id: "negative control"
+        independently by lint:provider-block, which reads the provider's own shipped code.
+    - id: "negative control — chg_mucfam3c1936ed3a49"
       provider: anthropic
-      outcome: "refused — blocked, policy_denied, before any intervention opened"
+      dossier: "~/.495-campagnes/e23s02-rev2-negatif"
+      outcome: "refused — blocked, policy_denied, no gate decided, 0/3 attempts"
       observed: >
-        Same isolated configuration without the egress declaration: POLICY_DENIED, "anthropic is not
-        declared in policy.egress; declared destinations: omlx". This is what shows the accepted run
-        passed the e23s01 gate rather than bypassing it, and that the two stories compose.
+        The same isolated configuration without the egress declaration: POLICY_DENIED, "anthropic is
+        not declared in policy.egress; declared destinations: omlx". The ledger confirms zero
+        intervention.started events, so nothing was opened before the refusal. This is what shows
+        the accepted run passed the e23s01 gate rather than bypassing it, and that the two stories
+        compose.
   confirmed_by_owner: true
-  confirmed_at: "2026-09-21T23:01:49Z"
+  confirmed_at: "2026-09-22T09:05:53Z"
   confirmation_note: >
-    Confirmed at revision fac24fe, on the real-run evidence above. The owner had refused a first
-    walk resting on unit tests and probes of the built modules, and asked for confirmation by a real
-    execution in the harness; the two campaigns, the dossiers read back read-only, and the negative
-    control are what was put in front of them and what they confirmed. The confirmation does not
-    extend to the true subscription path, which was not exercised — that limit is stated under
-    known_limits rather than folded into this field.
+    Confirmed by the owner on the evidence above, which replaces the confirmation of
+    2026-09-21T23:01:49Z: that one referred to revision fac24fe and carried over neither to this
+    code nor to Pi 0.87.0. What was put in front of the owner is what they read back themselves —
+    the anthropic dossier reopened read-only from its SQLite ledger and object store, the three
+    context artifacts carrying the declared layer with its four fields, the three recorded prompts
+    free of it, and the six gates. They also had the negative control and the declared fiction in
+    hand. The confirmation does not extend to the true subscription path, which was not exercised;
+    that limit is stated under known_limits rather than folded into this field.
+    One fact of the reading is worth keeping: G2, which freezes the verification protocol, and G5,
+    which judges the checks at the end, evaluated the same environment digest. The environment did
+    not move under the campaign — the risk a version bump mid-flight would have created, and the
+    one environment_changed exists to catch.
   steps:
     - step: "La strate est nommée au manifeste, avec texte, position et condition (§5)"
       expected: "Le manifeste porte la strate, distincte des instructions composées"
-      actual: "Dossier réel chg_mubtue1mfff8d2f5f6 — les 3 artefacts de contexte la portent, quatre champs ; trusted_instructions ne la contient pas"
+      actual: "Dossier réel chg_mucfdr1n5d39e4d90e — les 3 artefacts la portent, quatre champs ; trusted_instructions ne la contient pas"
       passed: true
     - step: "Un fournisseur qui n'impose rien déclare une liste vide, champ présent (6a)"
       expected: "imposed_layers = [] et le champ existe"
-      actual: "Dossier réel chg_mubtj37ia3e0a8a347 — les 3 artefacts portent [] avec le champ présent"
+      actual: "Dossier réel chg_mucf90gb6fc4f2c217 — les 3 artefacts portent [] avec le champ présent"
       passed: true
     - step: "Une sélection de modèle non résolue ne déclare rien (6b)"
       expected: "Liste vide ; aucun diagnostic émis par le constructeur"
-      actual: "test/v1/imposed-layers.test.ts pour la liste vide. La seconde clause tient à la forme : buildContext ne rend que {manifest, system_prompt, prompt, record} — il n'a pas de canal de diagnostic à ne pas employer"
+      actual: >
+        test/v1/imposed-layers.test.ts pour la liste vide. La seconde clause tient à la forme :
+        buildContext ne rend que {manifest, system_prompt, prompt, record} — il n'a pas de canal de
+        diagnostic à ne pas employer
       passed: true
     - step: "Un fournisseur jamais vérifié ne déclare rien (6c)"
       expected: "Liste vide, sans deviner"
-      actual: "test/v1/imposed-layers.test.ts"
+      actual: >
+        test/v1/imposed-layers.test.ts, y compris les cinq identifiants qui nomment un membre hérité
+        d'Object.prototype — la garde Object.hasOwn les refuse, ce que la première vérification ne
+        couvrait pas puisqu'elle précédait ce correctif
       passed: true
     - step: "Le texte imposé par le paquet a changé (6d)"
       expected: "Refus nommant le texte relevé et le texte déclaré"
-      actual: "test/v3/provider-system-block.test.ts sur fixture au texte modifié"
+      actual: "test/v3/provider-system-block.test.ts sur fixture au texte modifié, et sur une part imposée surnuméraire que l'ancien contrôle ne voyait pas"
       passed: true
     - step: "Le bloc n'est plus relevable dans le paquet (6e)"
       expected: "Refus quand même — la perte du moyen de vérifier n'est pas une preuve d'innocuité"
-      actual: "test/v3/provider-system-block.test.ts sur fixture sans la forme ; deux autres refus tenus, plus d'une occurrence et répertoire absent"
+      actual: "test/v3/provider-system-block.test.ts : huit refus tenus par des tests, dont aucune copie, copies en désaccord, et échappement indécodable"
       passed: true
     - step: "La condition est déclarée avec la strate, appliquée ou non (6f)"
       expected: "La condition est écrite en toutes lettres et ne dépend pas du chemin emprunté"
-      actual: "Dossier réel — la condition est inscrite dans les 3 artefacts. « Appliquée ou non » tient à la forme : imposedLayersFor ne prend que l'identifiant de fournisseur, et la campagne réelle le montre — la condition est déclarée alors que rien ne l'imposait, l'endpoint étant local"
+      actual: >
+        Dossier réel — la condition est inscrite dans les 3 artefacts alors que rien ne l'imposait,
+        l'endpoint étant local. Et le contrôle relie désormais la condition déclarée au code du
+        fournisseur : une déclaration qui nommerait un autre préfixe de jeton est refusée, ce qui a
+        été exercé à la main contre le paquet réel
       passed: true
-    - step: "Le dossier écrit porte la strate, le texte remis en reste exempt (§5)"
+    - step: "Le dossier écrit porte la strate, le texte remis en reste exempt (§5, §17 scénario 8)"
       expected: "Chaque artefact de contexte la porte ; l'enregistrement adressé par empreinte ne la contient pas"
-      actual: "Dossier réel relu depuis SQLite et le magasin d'objets : 3 artefacts sur 3 la portent, et le texte remis au modèle ne la contient ni en système ni en invite"
+      actual: "Dossier réel relu depuis SQLite et le magasin d'objets : 3 artefacts sur 3 la portent, et les 3 textes remis — trois empreintes distinctes — ne la contiennent ni en système ni en invite"
+      passed: true
+    - step: "Contrôle négatif : la porte d'e23s01 n'est pas contournée"
+      expected: "Sans déclaration de sortie, refus avant toute intervention"
+      actual: "chg_mucfam3c1936ed3a49 — policy_denied, aucune porte décidée, zéro intervention ouverte, vérifié au journal"
       passed: true
 
 gaps:
   closed: true
-  open: []
+  note: >
+    No gap between promised and observed behaviour. What the re-verification did surface is
+    documentary rather than behavioural, and is recorded under known_limits.
+
+after_confirmation:
+  - >
+    2026-09-22, after the owner's confirmation: the capsule control was moved to its own branch
+    (`controle-de-capsule`) and unchained from this branch's Preflight, which now runs eight lint
+    controls rather than nine. The measurements above were taken while it was chained and are left
+    as they were — they record what was run. What no longer holds on this branch is the sentence
+    under `blind_spots` saying that control is chained and green: it is neither, here. Nothing else
+    in this verification depended on it. D-54 carries the same note.
+  - >
+    2026-09-22, review round 3: three statements written above are wrong and are corrected in the
+    documents that carry them rather than silently here. The ReDoS figure in `security.note` — "both
+    expressions return in 0 ms" — measured the wrong input shape; the imposed-block expression is
+    quadratic in repeated unmatched prefixes (0.9 ms at 13 KB, 50.4 ms at 105 KB), bounded by file
+    size and not exploitable, but not what was written. `NFR-e23s02.json`'s claim of equality "over
+    the whole imposed array" is equality over its double-quoted string literals only. The security
+    review's failure-direction table overclaims on two rows for the same reason. The owner's
+    confirmation rested in part on these sentences and was told so.
 
 known_limits:
   - >
-    Aucune campagne n'a été conduite contre le vrai chemin d'abonnement. Ce qui est prouvé est que
-    le harnais déclare ce que le domaine sait du fournisseur que Pi a résolu ; ce qu'Anthropic impose
-    réellement est prouvé séparément, par lint:provider-block lisant le code distribué du paquet.
-    Les deux moitiés ne se recouvrent pas : aucune exécution unique ne les tient ensemble
-    aujourd'hui.
+    The true subscription path was not exercised. Both campaigns reach a local endpoint; the
+    anthropic one reaches it under a provider merely named anthropic. What Anthropic actually
+    imposes is established separately, by lint:provider-block reading the provider's own shipped
+    code. No single execution holds the two halves together, and that remains true.
   - >
-    La condition déclarée n'est pas observable par 495. La campagne réelle sur un endpoint local
-    nommé anthropic en est la démonstration involontaire : la strate a été déclarée alors que rien
-    ne l'imposait. C'est la sur-déclaration que le §19 de la story porte comme question ouverte.
+    The control reads the packages the repository pins, not the one installed on the machine. The
+    two agree today — the control was run against the installed tree as well and passed — but §18
+    accepts not seeing that divergence in exchange for a control that never dodges.
   - >
-    Le contrôle est lié à la sortie d'un minifieur — noms de variables compris. Une reconstruction
-    du paquet sans changement de comportement peut le faire refuser. C'est la posture voulue, mais
-    elle rend le refus ambigu : il dit que la forme a bougé, jamais laquelle des trois garanties.
+    Pi documents `before_provider_request`, an extension hook that hands over the provider's request
+    payload after it is built. It would let the dossier record what the model actually received
+    instead of what the domain declares, and would close the over-declaration of §6f. That is
+    e23s06, opened for it (D-55); this story's declarative approach stands until it lands.
   - >
-    Deux gardes du paquet d'outils ne peuvent pas juger ce dépôt : la porte de cohérence, remplacée
-    par check-capsule.ts (D-54), et le relevé d'angles morts, dont quatre vérifications sur sept
-    sont mortes. Le critère de complétude, lui, tourne mais refuse une règle que les instructions
-    globales interdisent de satisfaire.
+    One refusal of the provider control — a declaration naming no token prefix at all — is exercised
+    by hand and not covered by a test.

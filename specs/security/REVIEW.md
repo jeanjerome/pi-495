@@ -135,3 +135,98 @@ plutôt que d'en taire une. Portée au §19 de la story comme question ouverte.
 séquences d'échappement de terminal. Le contenu vient d'une dépendance déjà exécutée par le
 harnais, dont le pouvoir dépasse de loin la coloration d'un message ; consigné pour mémoire, non
 traité.
+
+---
+
+# Revue de sécurité — e23s02, seconde passe après réécriture des contrôles
+
+| | |
+|---|---|
+| Périmètre | arbre de travail contre `git merge-base main HEAD` (6807368), 31 fichiers |
+| Conduite le | 2026-09-22, après la ronde de relecture 2 et la montée de Pi en 0.87.0 |
+| Branche | `strate-imposee-au-manifeste` |
+| Risque de la story | P0 |
+| Code touché depuis la première revue | `scripts/check-provider-system-block.ts` (réécrit), `scripts/check-capsule.ts` (réécrit), `scripts/e2e-local-model.ts`, `src/application/context.ts`, `src/ports/execution.ts` |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8. La porte passe.
+
+La première revue portait sur un contrôle qui lisait un paquet minifié. Celui-ci lit un module en
+clair, construit une expression à partir d'un identifiant relevé dans du code tiers, et prend sa
+racine sur la ligne de commande. Ces trois changements ouvrent des surfaces qui n'existaient pas, et
+chacune a été tracée de l'entrée au puits.
+
+## Hypothèses vérifiées, non supposées
+
+**Aucune injection d'expression régulière.** Quatre expressions sont construites dynamiquement. Les
+trois de `check-capsule.ts` interpolent soit un nom de section, littéral de code aux neuf sites
+d'appel — `stories`, `tasks`, `development_status`, `phases`, `spec`, `status`, `story_id`,
+`verified_at` —, soit un identifiant de story déjà contraint par `/^e\d+s\d+$/` avant d'atteindre
+l'interpolation. Celle de `check-provider-system-block.ts` interpole un identifiant relevé par
+`\w+`, qui ne peut donc porter aucun caractère qu'un moteur lirait comme syntaxe.
+
+**Retour arrière : corrigé le 2026-09-22.** La mesure écrite ici le 22 au matin — « les deux
+expressions rendent en 0 ms » — portait sur la mauvaise forme d'entrée : un préfixe suivi de N
+accolades, qui est bien linéaire. Sur la forme qui compte, des préfixes `if (x) { params.system = [`
+répétés et jamais conclus, l'expression du bloc imposé est **quadratique** : 0,9 ms à 13 Ko, 3,1 ms à
+26 Ko, 12,6 ms à 53 Ko, 50,4 ms à 105 Ko. Le fichier lu fait 105 Ko et le contrôle ne tourne pas en
+service, donc rien n'est exploitable — mais le chiffre publié n'était pas ce que l'expression fait.
+L'alternance `(?:[^"\\]|\\.)*` de la lecture des textes, elle, a bien ses branches disjointes et
+reste linéaire.
+
+**`JSON.parse` sur du texte tiers ne déserialise pas d'objet.** L'appel lit un littéral de chaîne
+JSON et rend une chaîne ; aucune forme d'objet n'est construite, donc aucune surface de pollution de
+prototype. L'appel est gardé : un échappement que JSON ne décode pas fait refuser le contrôle avec
+une phrase, au lieu de mourir en trace d'appel comme auparavant.
+
+**Les deux contrôles sont en lecture seule.** Aucune écriture de fichier, aucune création ou
+suppression de répertoire. Aucun n'ouvre `auth.json`, `models.json` ni quoi que ce soit sous la
+configuration Pi du propriétaire.
+
+**Aucune exécution ni aucun réseau n'entre par ce changement.** Le diff de production ne porte ni
+`exec`, ni `spawn`, ni `fetch`, ni `eval`. Le seul `spawnSync` du diff est dans un fichier de test,
+et lance l'exécutable Node courant sur un chemin de script et un répertoire temporaire.
+
+**La borne du fournisseur inconnu tient toujours.** `provider_id` vient de la configuration Pi du
+propriétaire, donc de l'extérieur, et `imposedLayersFor` le garde par `Object.hasOwn`. Le même
+chemin est désormais emprunté par `scripts/e2e-local-model.ts`, qui prend le fournisseur sur la
+ligne de commande : la garde le couvre sans changement.
+
+## Sens de la défaillance : fermé
+
+Table révisée le 2026-09-22 : deux de ses lignes sur-affirmaient. « Part imposée supplémentaire »
+ne valait que pour un littéral entre guillemets, et « condition différente » ne valait pas pour un
+prédicat élargi. Le contrôle a été réécrit pour classer tout ce qu'il lit, et la table dit ce qu'il
+fait désormais.
+
+| Entrée | Effet |
+| --- | --- |
+| Aucune copie du module dans l'arbre | refus (le moyen de vérifier est perdu) |
+| Copies présentes mais en désaccord | refus, aucune n'est élue |
+| Plus d'un bloc imposé dans le module | refus — le fournisseur écrit à plusieurs endroits (§14) |
+| Texte imposé différent du déclaré | refus, les deux textes nommés |
+| Part imposée supplémentaire, littérale | refus, la part en trop est nommée |
+| Élément du tableau qui n'est pas une part lisible | refus — il ne contribue plus « rien » |
+| Prédicat élargi, neutralisé, ou d'une autre forme | refus — seule une unique vérification d'appartenance est lue |
+| Garde sans prédicat de ce nom | refus |
+| Condition du paquet différente de la déclarée | refus, les deux jetons nommés |
+| Déclaration ne nommant aucun jeton | refus — une condition invérifiable ne doit pas passer |
+| Échappement indécodable dans le texte relevé | refus en toutes lettres |
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+**Racine prise sur la ligne de commande.** Les deux contrôles acceptent un chemin en argument et
+lisent dessous. C'est un contrôle de développement que l'opérateur lance lui-même : aucune frontière
+de privilège n'est franchie, et la lecture ne sort pas de l'arbre qu'on lui désigne. C'est ce qui
+les rend testables, ce qu'ils n'étaient pas.
+
+**Texte tiers réimprimé dans un message de refus.** Inchangé depuis la première revue, et toujours
+vrai : le contrôle imprime par `JSON.stringify`, qui échappe les caractères de contrôle, séquence
+d'échappement de terminal comprise. Un paquet hostile ne peut donc pas colorer un message.
+
+**La condition déclarée passe à un caractère du filtre de rédaction de l'export.**
+`/sk-[A-Za-z0-9_-]{8,}/` réclame huit caractères après `sk-` ; la condition en porte sept. Rien ne
+fuit et rien n'est rédigé aujourd'hui, mais écrire le préfixe une lettre plus loin ferait rédiger la
+condition à la sortie, et le dossier affirmerait alors une condition que personne n'a déclarée. La
+contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision se prend.

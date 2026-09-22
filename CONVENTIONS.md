@@ -128,6 +128,34 @@ rewrites `SCOPE_LATEST.yaml`. Durable hand-written content belongs in `specs/adr
 - Inject a dependency through a constructor or parameter. Never reach for a global or a bare import.
 - Wrap a third-party library behind a project-owned port (see `src/ports/`).
 
+## Pi is the host, not one dependency among others
+
+495 is an extension of Pi. Pi is what keeps 495 from rebuilding what already exists, and what lets
+it state a fact instead of inferring one. Reach for Pi's own API first — before writing the
+capability, and before deducing from the outside what Pi can report from the inside.
+
+- **Look for the API before building.** A hook, an event, a runtime or a typed result Pi already
+  publishes beats a table 495 maintains, a file 495 parses, or a fact 495 reads out of a package's
+  code.
+- **Read the documentation the pinned package ships.** It is already on disk, at the exact version
+  installed, with no tag to get wrong: `node_modules/@earendil-works/pi-coding-agent/docs/`, and
+  `extensions.md` there carries the event list. Prefer it to any URL. The same corpus is tagged on
+  the web — `https://github.com/earendil-works/pi/blob/v<pinned>/packages/coding-agent/docs/` — and
+  <https://pi.dev/docs/latest> tracks the newest Pi, so it shows what is coming, not what this
+  repository has. The difference is not theoretical: read against `latest` while pinned at 0.86.1,
+  `context_with_system` and `agent_before_settle` both looked available, and neither existed. Reading
+  the packaged copy would not have raised the question at all.
+- **Confirm in the pinned surface before building on it.** The tagged docs say what that release
+  documents; `@earendil-works/pi-coding-agent/dist/**/*.d.ts` and the peer packages say what it
+  ships. What is built on an API names the version it was confirmed against.
+- **Prefer an observed fact to a restated one.** What Pi hands over was measured; what 495 restates
+  is believed, and drifts the day the host changes. Where both exist, the observed one is the source
+  and the restated one is at most an expectation. Say in the code which of the two a value is.
+- **A workaround names what it replaces.** When no API covers the need, write where the workaround
+  lives what was looked for and not found, so it can be deleted the day it arrives.
+- **Leaning on Pi never bends the layering.** The Pi API is reached through `extension/` or
+  `adapters/pi-worker/` and nowhere else (`AGENTS.md` § Architecture).
+
 ## Structure
 
 - Follow the layering already declared in `AGENTS.md` § Architecture.

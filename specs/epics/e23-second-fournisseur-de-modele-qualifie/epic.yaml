@@ -61,11 +61,21 @@ stories:
     delta: MODIFIED
     requirement: AGT-02
     position: >
-      Dernière : elle consomme la mesure que la campagne produit. Les bornes actuelles sont
+      Après la campagne, dont elle consomme la mesure. Les bornes actuelles sont
       calibrées sur 2,5 appels d'outil par minute ; avec un modèle frontière la borne n'est plus
       le temps mais la fenêtre d'abonnement.
 
-total_bcps: 15
+  - id: e23s06
+    title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
+    bcps: 5
+    delta: MODIFIED
+    requirement: CTX-02
+    position: >
+      Après les campagnes, parce qu'elle n'observe rien sans une exécution réelle sur le chemin
+      d'abonnement. Elle ne corrige pas e23s02, elle la remplace comme source de ce que le modèle a
+      reçu — ce qui suppose que la déclaration existe et ait été éprouvée d'abord.
+
+total_bcps: 20
 
 hors_perimetre:
   - >
