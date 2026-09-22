@@ -37,6 +37,16 @@ epics:
       Score le plus élevé de l'index, et la ROADMAP §5 lui est antérieure. Placé en tête non parce
       qu'il prime en gravité sur e01, mais parce qu'il répare le témoin sous la campagne de e01
       elle-même. Décision en specs/adr/D-46.
+  - id: e24
+    title: "Ce qui existe déjà est établi avant d'être réécrit"
+    wsjf: 9.5
+    wsjf_inputs: { business_value: 6, time_criticality: 6, risk_reduction: 7, job_size: 2 }
+    capsule_dir: epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit
+    wsjf_note: >
+      Le score est élevé pour un travail qui ne livre aucune capacité : ce qu'il livre est le droit
+      d'écrire le reste. Il est placé après e23 parce que e23 est engagé, et avant tout travail de
+      surface. Sa taille est celle d'une étude, pas d'une implémentation. Les valeurs portées ici
+      sont un jugement et non une mesure ; le motif les tient.
   - id: e01
     title: "Une réponse humaine atteint les exigences"
     wsjf: 8.67

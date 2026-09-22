@@ -38,6 +38,33 @@ in_scope:
     motif: >
       Aucun code n'est à écrire pour joindre le fournisseur : Pi consomme déjà un abonnement par jeton OAuth présenté en Bearer, sans frapper de clé d'API. Ce qui reste est ce que le harnais doit porter en conséquence. Tant que le modèle local est le seul témoin, une instruction mauvaise ne se distingue pas d'un modèle incapable, et les campagnes des epics suivants héritent de cette confusion.
 
+  - epic: e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit
+    source: specs/adr/D-55
+    objet: >
+      Avant qu'une capacité soit écrite, ce qui y répond déjà est établi et comparé : l'API et les
+      paquets de Pi, les paquets construits pour Pi par d'autres, et ce qui existe hors de cet
+      écosystème. L'étude cherche les candidats plutôt que d'en valider un — `pix-pretty`, du
+      monorepo `pix-mono`, est un point de départ nommé et non une réponse : sous licence MIT, il
+      publie `diff`, `diff-render`, `highlight`, `renderers`, `icons`, des vues d'arbre et des
+      cadres modaux, et il est consommé par `pix-read`, `pix-bash` et `pix-edit`. L'epic livre, pour
+      chaque besoin examiné, le candidat retenu ou l'absence de candidat, et la raison : réutiliser,
+      s'inspirer de la forme, ou écrire — avec ce qui a été cherché et non trouvé quand on écrit.
+      Les critères de choix sont dits avant d'être appliqués : ce que le besoin demande réellement,
+      la licence, l'entretien du paquet, le poids qu'il ajoute, et ce à quoi il nous lie.
+    motif: >
+      Le coût de ne pas regarder est mesuré, pas supposé. Quatre défauts d'une seule surface ont été
+      trouvés en lisant ce que Pi publiait déjà : un alignement faux sur les glyphes larges, les
+      emojis et les accents combinants ; les touches Home, Fin, Suppr et les flèches modifiées
+      arrivant en octets bruts ; des noms de fichier coupés dès que le relecteur réduisait le
+      partage ; et la hauteur du terminal ignorée après un redimensionnement. Aucun n'aurait été vu
+      autrement. Pi embarque hors ligne trente et une pages de documentation et soixante-seize
+      extensions d'exemple, et 495 posait quatre accroches sur les trente-huit publiées.
+      L'étude ne remplace pas `e08`, qui fait cesser la réimplémentation dans la revue elle-même :
+      elle le précède et le déborde, puisqu'elle vaut pour toute capacité à venir et regarde
+      au-delà de Pi. La clause de `e08` sur la règle de couches est par ailleurs dépassée :
+      l'interdiction d'importer un paquet Pi depuis `presentation/` a été levée, et ne demeure que
+      sur le noyau des exigences et décisions, où `NFR-07` la nomme.
+
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L
     objet: >
