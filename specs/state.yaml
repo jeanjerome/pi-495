@@ -68,14 +68,24 @@ handoff:
       Ce qui reste à trancher est seulement si `MILESTONES.md`, `ROADMAP.md`, `PLAN.md` et
       `MODELE-LOCAL.md` gardent une valeur, question de fond et non de place occupée.
     - >
-      **Le bac à sable est instruit, plus seulement ouvert.** La question hésitait entre des backends
-      écrits à la main, `@anthropic-ai/sandbox-runtime` et une micro-VM. `docs/containerization.md`
-      traite les quatre motifs et `examples/extensions/sandbox/` en livre un qui marche, bâti sur
-      `@anthropic-ai/sandbox-runtime` avec `sandbox-exec` sur macOS et `bubblewrap` sur Linux —
-      c'est-à-dire les trois options à la fois. `gondolin/` porte la variante micro-VM. Reste à
-      conduire la mesure sous Apple Container, sur signal du propriétaire et jamais pendant qu'une
-      campagne tourne, puisqu'un changement de bac à sable change `environment_digest`. `NFR-05`
-      reste la seule exigence [P0] déclarée infermable.
+      **Le bac à sable suit l'exemple de Pi, et le travail se conduit dans une session à lui.** La
+      direction est arrêtée par le propriétaire ; ce qui reste est l'exécution, pas le choix. La
+      question hésitait entre des backends écrits à la main, `@anthropic-ai/sandbox-runtime` et une
+      micro-VM : `examples/extensions/sandbox/` livre les trois à la fois en 321 lignes, bâti sur
+      `@anthropic-ai/sandbox-runtime` avec `sandbox-exec` sur macOS et `bubblewrap` sur Linux, et
+      `gondolin/` porte la variante micro-VM. `docs/containerization.md` en donne les quatre motifs.
+
+      Ce dont cette session-là aura besoin. `src/adapters/sandbox/` porte aujourd'hui 389 lignes
+      écrites à la main, derrière `SandboxPort`. L'exemple remplace le `bash` intégré, mais indique
+      lui-même la voie qui n'y touche pas — confiner par mutation de l'entrée sur `tool_call` — et
+      c'est celle qui laisse la frontière de 495 où elle est. Le confinement ne se relâche pas :
+      `CONVENTIONS.md` interdit qu'un backend non qualifié tourne sans confinement, et impose
+      `capability_missing`. La mesure se conduit sous Apple Container et non Docker, sur signal du
+      propriétaire, et jamais pendant qu'une campagne tourne — un changement de bac à sable change
+      `environment_digest` et rend les campagnes antérieures non transférables. `NFR-05` en dépend :
+      c'est la seule exigence [P0] aujourd'hui déclarée infermable, et un environnement Linux qui
+      laisse créer un espace de noms utilisateur la rouvrirait. L'ADR s'écrit dans cette
+      session-là, avec ce qui aura été mesuré, plutôt qu'ici sur une intention.
     - >
       **Que deviennent les deux contrôles retirés.** Pour `controle-du-bloc-fournisseur`, la réponse
       est acquise en principe : `examples/extensions/provider-payload.ts` rapporte en dix-huit lignes
