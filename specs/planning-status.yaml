@@ -10,11 +10,17 @@ workflows:
   scope-work:
     required: true
     status: done
-    note: "specs/product/SCOPE_LATEST.yaml — 22 epics, un par exigence [P0] ouverte ou par fiche chantier."
+    note: "specs/product/SCOPE_LATEST.yaml — 24 epics : un par exigence [P0] ouverte ou par fiche chantier, plus e23 et e24 postérieurs à la ROADMAP."
   research-first:
-    required: false
-    status: optional
-    note: "Aucune dépendance externe proposée : le harnais n'a aucune dépendance d'exécution."
+    required: true
+    status: in_progress
+    note: >
+      La note qui rendait cette case sans objet — « aucune dépendance externe proposée » — ne tient
+      plus. Elle confondait « le harnais n'a aucune dépendance d'exécution » avec « rien d'extérieur
+      n'est à examiner » : Pi embarque trente et une pages et soixante-seize extensions d'exemple
+      qu'aucune session n'avait lues, et quatre défauts d'une seule surface en sont sortis. e24 porte
+      l'étude, et D-55 en fait une règle : l'API et les paquets de l'hôte sont cherchés avant qu'une
+      capacité soit écrite. La case se ferme quand e24 rend ses conclusions.
   elaborate-spec:
     required: false
     status: optional
@@ -27,8 +33,8 @@ workflows:
     required: true
     status: in_progress
     note: >
-      Se fait epic par epic au moment de l'attaquer, pas pour les 22 d'avance : la case ne se
+      Se fait epic par epic au moment de l'attaquer, pas pour les 24 d'avance : la case ne se
       ferme donc pas d'un coup. e23 est découpé — capsule ouverte, cinq stories en ordre
-      contraint, 15 BCP, fichiers de tâches écrits. Les 21 autres attendent leur tour.
+      contraint, 15 BCP, fichiers de tâches écrits. Les 22 autres attendent leur tour.
       slice-tasks n'écrit pas de story : il écrit les fichiers de tâches et renvoie le gabarit
       countable-story-format à plan-work (D-51, D-52).

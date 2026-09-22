@@ -1,5 +1,6 @@
 development_status:
   e23: in_progress
+  e24: backlog
   e23s01: done
   e23s02: done
   e23s03: backlog
@@ -13,6 +14,11 @@ epics:
     title: Second fournisseur de modèle qualifié
     wsjf: 12.0
     total_bcps: 20
+  e24:
+    status: backlog
+    title: "Ce qui existe déjà est établi avant d'être réécrit"
+    wsjf: 9.5
+    total_bcps: null   # capsule non écrite : une capsule s'écrit au moment d'attaquer son epic
 
 stories:
   e23s01:

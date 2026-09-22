@@ -128,6 +128,15 @@ handoff:
       vérifications sont mortes. `completeness-critic.sh` exige des identifiants de story dans les
       sources, ce qui enfreint les instructions globales : dérogation à chaque story, ou abandon.
     - >
+      **Deux artefacts de suivi sont l'œuvre de ces scripts et ne valent pas ce qu'ils affichent.**
+      `specs/blind-spots.json` annonce `total_findings: 0` : ce zéro est celui d'un script dont
+      quatre vérifications sur sept sont mortes, pas celui d'un dépôt sans angle mort.
+      `specs/traceability-matrix.json` compte cinq stories quand l'epic en porte six, et
+      `tagged_stories: 0`. Les deux datent du 2026-09-21 et aucun contrôle du dépôt ne les lit —
+      ils ne trompent donc que le lecteur humain, et les régénérer avec les scripts en l'état
+      produirait un faux apaisement plutôt qu'une mise à jour. À traiter avec le sort des scripts
+      eux-mêmes.
+
       `bp-timing.sh` écrit ses mesures dans ce fichier par un aller-retour PyYAML, qui remplace les
       scalaires de bloc par du texte entre guillemets. Le défaut est confirmé à la source :
       `scripts/yaml-tools.py` du paquet lit par `yaml.safe_load` et réécrit par `yaml.safe_dump`,
@@ -150,7 +159,7 @@ git:
   # hash désigne le commit dont ce handoff décrit le travail, donc le parent du commit qui porte
   # ce fichier : il est normal qu'il ne soit pas HEAD. Ce n'est pas une péremption à corriger.
   branch: strate-imposee-au-manifeste
-  hash: c9cbbe3
+  hash: 0be1439
 
 metrics:
   skill_timings:
