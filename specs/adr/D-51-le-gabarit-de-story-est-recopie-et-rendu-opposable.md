@@ -1,7 +1,7 @@
 # D-51: Le gabarit de story est recopié dans le dépôt, et un contrôle le rend opposable
 
 **Status:** Acceptée
-**Date:** 2026-09-21
+**Date:** 2026-09-21, portée du §14 précisée le 2026-09-22
 
 ## Context
 
@@ -33,6 +33,18 @@ accessibilité — la section porte « sans objet » et sa raison en une ligne, 
 lui-même. Supprimer une section plafonnerait la maturité de toutes les stories du dépôt pour
 économiser trois lignes.
 
+Le §14 relève du même régime, et sa consigne demande à être lue avant d'être suivie. Le gabarit y
+appelle des cibles de niveau de service — latence au p95, disponibilité, plafond de charge — et
+conclut « Numbers only — no adjectives » ; son exemple donne un temps de bout en bout et un taux de
+disponibilité mensuel. Ces grandeurs décrivent un service hébergé. 495 n'expose ni CLI, ni service,
+ni CI, et la plupart de ses stories n'ont aucune cible de cette forme à annoncer.
+
+La consigne se lit donc ainsi : **le §14 porte une propriété que le produit garantit, et rien
+d'autre.** « Octets supplémentaires émis vers le fournisseur : 0 » en est une — elle tient quelle
+que soit la manière dont la story est implémentée. Le temps de parcours du code qui a été écrit n'en
+est pas une : elle mesure ce choix d'implémentation, pas ce que le produit promet. Une story sans
+propriété garantie écrit « sans objet » et sa raison, comme aux trois autres sections.
+
 ## Consequences
 
 `specs/references/` est un troisième régime documentaire, à côté de ce que 495 écrit et de ce qu'il
@@ -47,6 +59,13 @@ Fibonacci font partie du format et ne sont pas vérifiés, pas plus que la couve
 Une story qui passe le contrôle a ses vingt sections à leur rang ; elle n'a pas pour autant quelque
 chose à dire dans chacune.
 
+Rien ne refuse donc une mesure d'implémentation placée au §14, et elle n'y reste pas. Le §17 la
+reprend en critère d'acceptation, un critère se prouve, et la preuve cite le chiffre. Le chiffre ne
+vaut que pour la version mesurée : la version suivante le périme, et périme la preuve avec lui, sans
+que rien ne le signale. `e23s02` §14 en portait une — un temps de balayage relevé sur l'arborescence
+d'une version épinglée, avec son compte de fichiers et son volume lu. Une propriété garantie ne se
+dégrade pas de cette façon, et c'est la raison de la distinction posée plus haut.
+
 Le dernier paragraphe de `D-45` cesse d'être exact sur ce point : le gabarit n'est plus absent.
 
 **Alternative rejetée :** un simple renvoi à l'adresse amont dans `specs/README.md`. Elle ne
@@ -56,3 +75,9 @@ introuvable — sans qu'on sache quelle version avait servi aux stories déjà �
 **Alternative rejetée :** un format local réduit aux sections qui parlent à 495. Elle raccourcissait
 les stories au prix d'une divergence assumée avec ce que les compétences installées attendent, et
 d'un plafond de maturité posé d'avance sur tout le dépôt.
+
+**Alternative rejetée :** un contrôle qui refuserait un chiffre au §14. Il attraperait un littéral et
+manquerait un compte écrit en toutes lettres, qui périme autant. Surtout, il ne saurait pas
+distinguer la propriété garantie de la mesure d'implémentation — c'est la seule distinction qui
+compte ici, et elle relève d'un jugement, pas d'un motif de refus. Un contrôle qui ne sait pas la
+faire n'établirait que la bonne forme de nos sections, sans bénéficiaire.
