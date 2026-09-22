@@ -33,6 +33,12 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
 
 ## Workspace Facts
 
+- Shell utilities on this machine are the GNU ones, installed by Homebrew and put ahead of the
+  system's on PATH through `gnubin` shims — so GNU syntax is the syntax that works: `sed -i` with no
+  backup suffix, `grep -P`, `find -printf`, and GNU coreutils for `date`, `stat`, `readlink`,
+  `realpath`, `head`, `sort`. Measured, not assumed: `grep` is ugrep and `find` is bfs, and both
+  take the GNU flags anyway. **The exception is `awk`** — `/usr/bin/awk`, the BSD one, not gawk, so
+  `gensub` and the other gawk extensions fail. Keep awk to POSIX, or call `gawk` by name.
 - Pi ships its reference on the machine, offline, in the installed package: 31 doc pages under
   `node_modules/@earendil-works/pi-coding-agent/docs/` and 76 working extensions under
   `examples/extensions/`. Read them before specifying a capability or deducing a fact from outside
