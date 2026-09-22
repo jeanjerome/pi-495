@@ -54,11 +54,37 @@ handoff:
     suppression. La règle qui en découle est consignée dans `AGENTS.md`.
   open_decisions:
     - >
-      **Ramener sur Pi le code déjà écrit.** Trois endroits sont nommés et mesurés : la mesure de
-      largeur et le seuil de bascule de la vue de revue, et les backends de bac à sable. C'est un
-      changement de comportement sur du code en place, à conduire story par story sous le régime
-      habituel, et non une reprise documentaire. La conception technique §5.x dit où s'accrocher
-      pour chacun.
+      **La vue de revue s'assemble sur `pi-tui`, et le travail se conduit dans une session à lui.**
+      La direction est arrêtée par le propriétaire ; ce qui reste est l'exécution. `pi-tui` publie
+      `HStack`, `VStack`, `Container`, `ScrollView`, `SelectList`, `KeybindingsManager`,
+      `MouseRegion`, `visibleWidth`, `truncateToWidth`, `sliceByColumn`, `wrapTextWithAnsi` et
+      `fuzzyFilter` ; 495 porte 873 lignes sous `src/presentation/tui/` qui refont la disposition
+      (`review-surface.ts`), le clavier et le focus (`keymap.ts`), l'arbre virtualisé et filtré
+      (`tree-pane.ts`), le lecteur (`reader-pane.ts`) et la mesure de largeur (`measure.ts`).
+
+      L'OBSTACLE DE STRUCTURE EST LEVÉ, et c'est lui qui expliquait pourquoi ce code avait été écrit
+      à la main : `check-layers.ts` interdisait `@earendil-works` à la couche `presentation`, où
+      vivent ces 873 lignes. D'où la même absurdité écrite deux fois dans le dépôt —
+      `src/extension/review-command.ts` importait `truncateToWidth` parce qu'il en avait le droit,
+      et `src/presentation/tui/review/measure.ts` recalculait les colonnes d'une ligne stylée parce
+      qu'il ne l'avait pas. La justification invoquait `UX-11` — qu'aucune vue ne fasse dépendre la
+      donnée de revue d'un composant — mais cette donnée vit dans `application/review.ts` et
+      `presentation/structured/`, que la règle n'atteignait pas : elle gardait la donnée en
+      interdisant la vue, qui est ailleurs. L'interdiction reste sur le noyau des exigences et
+      décisions — `domain/`, `contracts/`, `ports/`, `application/`, `export/` — parce que `NFR-07`
+      [P0] la nomme et qu'elle y garde son sens : le noyau se teste sans réseau ni modèle réel.
+
+      CE QUI NE BOUGE PAS. Les 481 lignes du modèle de comparaison — `src/application/review.ts` et
+      `src/presentation/structured/review-text.ts` — restent à 495 et restent indépendantes du
+      rendu : c'est ce qui fait tenir `UX-11`, la même comparaison hors du TUI. Les invariants
+      `RM-057` à `RM-066` et les exigences `UX-06` à `UX-11` ne changent pas non plus ; ils viennent
+      d'être réécrits pour dire l'acquis, et c'est précisément ce qui rend le rendu remplaçable
+      sans rien perdre.
+
+      UN EFFET DE BORD À NOMMER. `D-33` a figé `NARROW_THRESHOLD`, `CONTENT_PAGE_LINES` et
+      `FILE_READ_BUDGET_BYTES` sur un corpus mesuré, et pose que re-mesurer est une révision de
+      décision. Un conteneur qui gère lui-même la largeur peut rendre le premier sans objet : si
+      c'est le cas, `D-33` se révise explicitement plutôt que de laisser une constante orpheline.
     - >
       **L'archive ne se supprime pas.** La mesure des références entrantes ne trouve aucun orphelin
       parmi les 32 fichiers de `archive/`. Trois dépendances vivantes l'interdisent : l'epic ouvert
