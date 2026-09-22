@@ -121,7 +121,7 @@ export function handleKey(ctx: PaneContext, data: string, actions: KeymapActions
 		case "[": {
 			const page = node ? ctx.pages.get(`changes:${node.path}`) : undefined;
 			if (page && "hunks" in page) {
-				const starts = hunkStarts(page, view.foldContext);
+				const starts = hunkStarts(ctx, page);
 				const target =
 					key === "]"
 						? starts.find((s) => s > view.readerScroll)

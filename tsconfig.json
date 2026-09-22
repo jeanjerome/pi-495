@@ -16,6 +16,14 @@
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
+    // `@xynogen/pix-pretty` ships TypeScript sources and no build, so importing it would compile its
+    // sources here, under settings they were never written for. These mappings point the compiler at
+    // the declarations under `types/pix-pretty/`; the runtime still loads the package itself.
+    "paths": {
+      "@xynogen/pix-pretty/diff": ["./types/pix-pretty/diff.d.ts"],
+      "@xynogen/pix-pretty/diff-render": ["./types/pix-pretty/diff-render.d.ts"],
+      "@xynogen/pix-pretty/lang": ["./types/pix-pretty/lang.d.ts"]
+    },
     "noEmit": true,
     "rootDir": "."
   },

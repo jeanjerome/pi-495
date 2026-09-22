@@ -2,9 +2,11 @@
  * FileReaderPane (§5.5): what the selection holds, in the mode the reader is in — the changes, the
  * new or the old content, the metadata, or the findings recorded on that path.
  *
- * Changed portions are shown as ANCIEN and NOUVEAU blocks, never as `+`/`-` prefixes or hunk
- * markers: a `+` belonging to the code must not be indistinguishable from one the display added
- * (§5.5, UX-09). The last line says how far into the body the reader sits when it does not all fit.
+ * Changed portions are drawn by `pix-pretty` (see `diff-view.ts`), which puts its signs and line
+ * numbers in a gutter left of a separator: what the comparison adds stays outside the code, so a
+ * `+` belonging to the program is still a character of the program (UX-07). Drawing is asynchronous
+ * and the body says so until it arrives.
+ * The last line says how far into the body the reader sits when it does not all fit.
  */
 import { neutralize, type ChangePage, type ContentPage } from "../../../application/review.ts";
 import { LABEL, type PaneContext, type Selection } from "./view.ts";
@@ -66,29 +68,14 @@ function renderChanges(ctx: PaneContext, page: ChangePage, width: number): strin
 		return out;
 	}
 	for (const n of page.notes) out.push(ctx.styles.dim(n));
-	if (page.hunks.length === 0) out.push(ctx.styles.dim("aucune différence textuelle"));
-	for (const h of page.hunks) {
-		out.push(
-			ctx.styles.dim(
-				`── ${h.old_start}…${h.old_start + h.old_count - 1} → ${h.new_start}…${h.new_start + h.new_count - 1} ──`,
-			),
-		);
-		for (const seg of h.segments) {
-			if (seg.kind === "unchanged") {
-				if (ctx.view.foldContext) {
-					out.push(ctx.styles.dim(`  … ${seg.lines.length} ligne(s) inchangée(s)`));
-					continue;
-				}
-				for (const l of seg.lines) out.push(`  ${neutralize(l)}`);
-			} else if (seg.kind === "old") {
-				out.push(ctx.styles.oldBlock("ANCIEN"));
-				for (const l of seg.lines) out.push(ctx.styles.oldBlock(`  ${neutralize(l)}`));
-			} else {
-				out.push(ctx.styles.newBlock("NOUVEAU"));
-				for (const l of seg.lines) out.push(ctx.styles.newBlock(`  ${neutralize(l)}`));
-			}
-		}
+	if (page.hunks.length === 0) {
+		out.push(ctx.styles.dim("aucune différence textuelle"));
+		return out.map((l) => ctx.fit(l, width));
 	}
+	const drawn = ctx.diff(page);
+	if (drawn === null) out.push(ctx.styles.dim(ctx.labels.loading));
+	else if (drawn.error !== undefined) out.push(ctx.styles.warn(`${ctx.labels.error}: ${drawn.error}`));
+	else out.push(...drawn.lines);
 	return out.map((l) => ctx.fit(l, width));
 }
 
@@ -101,15 +88,14 @@ function renderContent(ctx: PaneContext, page: ContentPage, width: number): stri
 	return out;
 }
 
-/** Where each changed portion starts in the rendered body: what the change-to-change keys jump to. */
-export function hunkStarts(page: ChangePage, fold: boolean): number[] {
-	const starts: number[] = [];
-	let line = page.notes.length;
-	for (const h of page.hunks) {
-		starts.push(line);
-		line++;
-		for (const seg of h.segments)
-			line += seg.kind === "unchanged" ? (fold ? 1 : seg.lines.length) : seg.lines.length + 1;
-	}
-	return starts;
+/**
+ * Where each changed portion starts in the rendered body: what the change-to-change keys jump to.
+ *
+ * The offsets come from the body as it was drawn, shifted by the notes the reader shows above it —
+ * counting them a second time here would drift from the drawing the moment either changes.
+ */
+export function hunkStarts(ctx: PaneContext, page: ChangePage): number[] {
+	const drawn = ctx.diff(page);
+	if (drawn === null || drawn.error !== undefined) return [];
+	return drawn.starts.map((s) => s + page.notes.length);
 }

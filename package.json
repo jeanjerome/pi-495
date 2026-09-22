@@ -1,7 +1,7 @@
 {
   "name": "harness-495",
   "version": "0.1.0",
-  "description": "495 — development harness for Pi: gated, evidence-backed software changes driven from the Pi TUI and its other public entry points",
+  "description": "495 \u2014 development harness for Pi: gated, evidence-backed software changes driven from the Pi TUI and its other public entry points",
   "type": "module",
   "license": "Apache-2.0",
   "keywords": [
@@ -58,5 +58,9 @@
     "fast-check": "^4.10.2",
     "typebox": "^1.3.34",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@xynogen/pix-pretty": "^1.26.0",
+    "jiti": "^2.7.0"
   }
 }

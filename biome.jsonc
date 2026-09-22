@@ -18,5 +18,5 @@
 	"formatter": { "enabled": true, "lineWidth": 120 },
 	// Imports are grouped by architectural layer, which mirrors the one-way dependency direction; sorting them alphabetically would scatter that grouping.
 	"assist": { "actions": { "source": { "organizeImports": "off" } } },
-	"files": { "includes": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"] }
+	"files": { "includes": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "bench/**/*.ts"] }
 }

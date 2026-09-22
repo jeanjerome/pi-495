@@ -11,3 +11,17 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+--------------------------------------------------------------------------------
+Third-party software redistributed with this package
+
+@xynogen/pix-pretty — MIT — https://github.com/xynogen/pix-mono
+  Draws the comparison shown in the review: gutter, line numbers, row tints,
+  word-level emphasis and syntax colouring. Installed as a runtime dependency and
+  therefore redistributed with this package, together with its own dependencies:
+  @xynogen/pix-runtime (MIT), chalk (MIT), cli-highlight (MIT), diff (BSD-3-Clause)
+  and @ff-labs/fff-node (MIT) with its platform binaries.
+
+jiti — MIT — https://github.com/unjs/jiti
+  Loads the TypeScript sources @xynogen/pix-pretty publishes. Node refuses to
+  strip types from a file under node_modules, so the package asks for this loader
+  itself rather than relying on the host to have registered one.

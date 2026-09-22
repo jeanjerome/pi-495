@@ -21,8 +21,6 @@ export async function openReviewTui(ctx: ExtensionCommandContext, review: Review
 			selected: (s) => theme.bg("selectedBg", s),
 			dim: (s) => theme.fg("dim", s),
 			header: (s) => theme.bold(s),
-			oldBlock: (s) => theme.fg("toolDiffRemoved", s),
-			newBlock: (s) => theme.fg("toolDiffAdded", s),
 			focus: (s) => theme.bold(s),
 			warn: (s) => theme.fg("warning", s),
 		};

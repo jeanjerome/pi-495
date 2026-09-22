@@ -9,12 +9,19 @@
  *
  * It receives an immutable `ReviewSnapshot` and a read-only query; it never touches the workspace.
  */
-import { CONTENT_PAGE_LINES, flatten, type ReviewNode, type ReviewSnapshot } from "../../application/review.ts";
+import {
+	CONTENT_PAGE_LINES,
+	type ChangePage,
+	flatten,
+	type ReviewNode,
+	type ReviewSnapshot,
+} from "../../application/review.ts";
 import { renderHeader } from "./review/header.ts";
 import { handleKey, renderKeyHelp } from "./review/keymap.ts";
 import { NARROW_THRESHOLD, fit } from "./review/measure.ts";
 import { renderReader } from "./review/reader-pane.ts";
 import { renderContext } from "./review/context-pane.ts";
+import { type RenderedDiff, renderHunks } from "./review/diff-view.ts";
 import { changedFiles, currentNode, renderTree, selectPath, treeWidthNeeded, visibleRows } from "./review/tree-pane.ts";
 import {
 	EN,
@@ -70,6 +77,10 @@ export class ReviewSurface implements ReviewView {
 	private cachedLines: string[] | null = null;
 	private cachedWidth = -1;
 	private cachedRows = -1;
+	private diffs = new Map<string, RenderedDiff>();
+	private drawing = new Set<string>();
+	/** The width the last render was asked for: what a key press measures against, between renders. */
+	private lastWidth = 0;
 
 	constructor(options: SurfaceOptions) {
 		this.snapshot = options.snapshot;
@@ -91,6 +102,7 @@ export class ReviewSurface implements ReviewView {
 			styles: this.st,
 			labels: this.opts.language === "en" ? EN : FR,
 			fit: this.fitLine,
+			diff: (page) => this.diffFor(page),
 		};
 	}
 
@@ -160,6 +172,34 @@ export class ReviewSurface implements ReviewView {
 		);
 	}
 
+	/**
+	 * The change body, drawn once per path, fold and width. Drawing is asynchronous and the renderer
+	 * reads the terminal's width itself, so the width the surface was last asked for belongs to the
+	 * key: a body drawn for a wider terminal is folded where the reader no longer is.
+	 */
+	private diffFor(page: ChangePage): RenderedDiff | null {
+		const key = `${page.path}|${this.foldContext}|${this.lastWidth}`;
+		const drawn = this.diffs.get(key);
+		if (drawn) return drawn;
+		if (this.drawing.has(key)) return null;
+		this.drawing.add(key);
+		renderHunks(page, this.foldContext)
+			.then(
+				(result) => {
+					this.diffs.set(key, result);
+				},
+				(error: Error) => {
+					this.diffs.set(key, { lines: [], starts: [], error: error.message });
+				},
+			)
+			.finally(() => {
+				this.drawing.delete(key);
+				this.invalidate();
+				this.opts.requestRender();
+			});
+		return null;
+	}
+
 	private settle(key: string, page: Promise<LoadedPage>): void {
 		page
 			.then(
@@ -183,30 +223,38 @@ export class ReviewSurface implements ReviewView {
 		// the height it had before — short of the terminal, or past its last line.
 		const rows = Math.max(8, this.opts.rows());
 		if (this.cachedLines && this.cachedWidth === width && this.cachedRows === rows) return this.cachedLines;
+		this.lastWidth = width;
 		const narrow = this.isNarrow(width);
 		const ctx = this.pane();
 		const out = renderHeader(ctx, width);
 		const bodyRows = rows - 4;
 		const node = currentNode(ctx);
 		if (node) this.ensureLoaded(node, bodyRows);
-		// The split is an arrangement, not a way to hide the change: whatever the reviewer asks for with
-		// `+` and `-`, the tree keeps the columns its changed names need, up to the share a reader can
-		// spare. Below the threshold the panes alternate and the whole width is the tree's anyway.
-		// One column of the share goes to the separator, so what the tree draws in is one less than what
-		// the split asks for; the floor is compared against that drawn width, not against the share.
-		const asked = Math.max(20, Math.floor(width * this.split)) - 1;
-		const treeWidth = Math.min(Math.max(asked, treeWidthNeeded(ctx)), Math.floor(width * 0.7) - 1);
-		const tree = renderTree(ctx, narrow ? width : treeWidth, bodyRows);
-		const readerWidth = narrow ? width : width - tree.width - 1;
-		const reader = renderReader(ctx, node, readerWidth, bodyRows);
-		for (let i = 0; i < bodyRows; i++) {
-			if (narrow)
-				out.push(
-					this.narrowPane === "tree"
-						? (tree.lines[i] ?? this.fitLine("", width))
-						: (reader[i] ?? this.fitLine("", width)),
-				);
-			else out.push(`${tree.lines[i] ?? this.fitLine("", tree.width)}│${reader[i] ?? this.fitLine("", readerWidth)}`);
+		// A change is read on the whole screen. The renderer that draws it takes no width from its
+		// caller and folds its lines for the terminal's own, so a change shown beside the tree would be
+		// folded for a width it does not have. The tree steps aside while a change is open, and comes
+		// back with every other mode. Below the threshold nothing changes: the panes already alternate,
+		// and taking the reader's turn away would remove the only way to navigate.
+		const whole = !narrow && this.mode === "changes" && node !== null && node.kind !== "directory";
+		if (narrow || whole) {
+			const single =
+				whole || this.narrowPane === "reader"
+					? renderReader(ctx, node, width, bodyRows)
+					: renderTree(ctx, width, bodyRows).lines;
+			for (let i = 0; i < bodyRows; i++) out.push(single[i] ?? this.fitLine("", width));
+		} else {
+			// The split is an arrangement, not a way to hide the change: whatever the reviewer asks for
+			// with `+` and `-`, the tree keeps the columns its changed names need, up to the share a
+			// reader can spare. One column of the share goes to the separator, so what the tree draws in
+			// is one less than what the split asks for; the floor is compared against that drawn width,
+			// not against the share.
+			const asked = Math.max(20, Math.floor(width * this.split)) - 1;
+			const treeWidth = Math.min(Math.max(asked, treeWidthNeeded(ctx)), Math.floor(width * 0.7) - 1);
+			const tree = renderTree(ctx, treeWidth, bodyRows);
+			const readerWidth = width - tree.width - 1;
+			const reader = renderReader(ctx, node, readerWidth, bodyRows);
+			for (let i = 0; i < bodyRows; i++)
+				out.push(`${tree.lines[i] ?? this.fitLine("", tree.width)}│${reader[i] ?? this.fitLine("", readerWidth)}`);
 		}
 		out.push(renderContext(ctx, node, width));
 		out.push(renderKeyHelp(ctx, width, narrow));

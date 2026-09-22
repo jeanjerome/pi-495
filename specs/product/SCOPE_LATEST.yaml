@@ -64,6 +64,45 @@ in_scope:
       au-delà de Pi. La clause de `e08` sur la règle de couches est par ailleurs dépassée :
       l'interdiction d'importer un paquet Pi depuis `presentation/` a été levée, et ne demeure que
       sur le noyau des exigences et décisions, où `NFR-07` la nomme.
+    prior_art: |
+      ## Prior Art
+
+      | Besoin examiné | Candidat | Source | Verdict | Notes |
+      |---|---|---|---|---|
+      | Largeur de cellule (glyphes larges, emojis, accents combinants) | `visibleWidth`, `truncateToWidth`, `stripTerminalSequences` | `@earendil-works/pi-tui` (peer dep du dépôt) | **adopt — déjà fait** | `src/presentation/tui/review/measure.ts` les réexporte telles quelles ; son commentaire nomme la raison (« une deuxième implémentation ici se déciderait avec l'hôte sur les lignes qui comptent »). Défaut clos par `447c67e`. |
+      | Décodage clavier (flèches, Home/Fin/Suppr, Page haut/bas en séquences d'échappement) | `parseKey` | `@earendil-works/pi-tui` | **adopt — déjà fait** | `src/presentation/tui/review/keymap.ts:9`. Défaut clos par `47fac58`. |
+      | Colonnes de l'arbre gardées quel que soit le partage | — | — | **build — aucun candidat ne s'applique** | Négociation propre à 495 entre le partage demandé et les noms changés visibles (`D-33`, `SA-025`, `treeWidthNeeded` dans `tree-pane.ts`) ; elle s'appuie déjà sur `visibleLength`, donc sur `pi-tui`, pour la seule mesure. Défaut clos par `45c10a2`. |
+      | Hauteur du terminal suivie après un redimensionnement seul | — | — | **build — aucun candidat ne s'applique** | Bug de clé de cache interne à `ReviewSurface.render` (la hauteur manquait à la clé à côté de la largeur), pas une capacité qu'un paquet fournirait. Défaut clos par `b866531`. |
+      | Diff de lignes (Myers) et mise en évidence intraligne | package npm `diff` | dont dépend `pix-pretty/diff.ts` | **build — décision antérieure tenue** | `specs/adr/D-06` : dépendance de production écartée du domaine de revue par choix, pour garder exacts les segments `unchanged/old/new/intraline` que la spec exige. La réétude ne trouve pas de motif de la rouvrir. |
+      | Rendu du diff en lignes de terminal | `renderUnified` de `diff-render.ts` ; `renderDiff` de Pi | `@xynogen/pix-pretty` ; `@earendil-works/pi-coding-agent` | **adopt — `pix-pretty`, décidé en `D-56`** | Ce qui interdisait les signes et les numéros de ligne était `conception-technique.md` §5.5, un choix de rendu que `specs/RELEVE_SPECS_LATEST.md` avait déjà nommé comme tel — `UX-07` ne prescrit aucune forme et délègue « la forme de la comparaison » au TUI. La clause est levée. La gouttière de `pix-pretty` tient ce que `UX-07` exige réellement ; son moteur dessinant à la largeur du terminal, la vue des modifications prend tout l'écran. Le candidat de Pi, plus sobre mais indifférent à la largeur, est écarté au même endroit. |
+      | Dialogues d'arbitrage humain (confirmation, sélection, saisie, overlay) | `gate-overlay.ts`, `confirm.ts`, `modal-frame.ts` | `pix-pretty` | **aucun candidat retenu — besoin déjà couvert** | 495 appelle directement `ctx.ui.confirm`, `ctx.ui.select`, `ctx.ui.input`, `ctx.ui.custom` de Pi (`src/extension/command.ts:233`, `conduct.ts:66,77`, `session.ts:176`, `review-command.ts:14`). `gate-overlay.ts` nomme la porte d'autorisation d'une commande (consommé par `pix-gate`, `pix-sudo`, `pix-ssh`) : aucun rapport avec les gates G0..G6 de 495 malgré l'homonymie. |
+      | Icônes par type de fichier | `icons.ts`, `icon-catalog.ts`, `icon-persist.ts` | `pix-pretty` | **aucun candidat retenu — besoin absent** | `tree-pane.ts:71` affiche un marqueur de statut par lettre (`SYMBOL[status]`), pas une icône par extension ; rien dans la revue n'appelle ce besoin aujourd'hui. |
+      | Coloration syntaxique | `highlight.ts` (`cli-highlight`) | `pix-pretty` | **aucun candidat retenu — besoin absent** | La revue affiche du texte et des hunks, jamais du code coloré par langage. |
+
+      **`pix-pretty` lui-même : deux forks, pas un paquet.** Aucun `pix-pretty` non scopé n'existe sur
+      npm. Deux comptes GitHub publient le même monorepo `pix-mono` sous des scopes distincts :
+      `@xynogen/pix-pretty` (65 versions, publiée il y a 4 jours, dépend de son propre
+      `@xynogen/pix-runtime`) et `@dihak/pix-pretty` (4 versions, publiée il y a une semaine, tests
+      livrés dans le tarball, dépend de son propre `@dihak/pix-data`). Les deux sont MIT et déclarent
+      les mêmes peer dependencies que ce dépôt : `@earendil-works/pi-coding-agent` et
+      `@earendil-works/pi-tui`. Le jour où un besoin réel adopterait l'un des deux, le choix du scope
+      est une question distincte, avec son propre critère — pas tranchée ici faute de besoin.
+
+      **Ce que l'étude confirme plutôt qu'elle ne le découvre.** Les deux défauts que la lecture de la
+      documentation de Pi a fait corriger (largeur de cellule, décodage clavier) sont aussi les deux
+      endroits où `pix-pretty` réutilise `pi-tui` au lieu d'écrire sa propre version — la discipline
+      de `D-55` vaut donc pour le paquet tiers autant que pour 495.
+
+      **Ce que coûte une adoption, mesuré sur celle qui a été faite.** `pix-pretty` publie ses sources
+      TypeScript et aucun build, à toutes ses versions et sur ses deux forks. Trois conséquences, que
+      `D-56` porte : ses sources ne compilent pas sous les réglages de ce dépôt, donc ses déclarations
+      sont écrites à la main ; et Node refusant de typer-effacer un fichier sous `node_modules`, le
+      paquet réclame `jiti` et le charge lui-même, ce qui fait une seconde dépendance d'exécution.
+      Tenir ce point par un drapeau sur le lanceur de tests l'aurait laissé faux sous Pi, qui n'en
+      pose aucun. S'y ajoutent dix-sept mégaoctets, une
+      bibliothèque native inutilisée, et une vue qui prend tout l'écran parce que le moteur ne prend
+      aucune largeur de son appelant. Le critère « le poids qu'il ajoute et ce à quoi il nous lie »
+      n'est plus une formule : il a un prix chiffré.
 
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L

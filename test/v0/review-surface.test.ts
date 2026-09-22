@@ -104,6 +104,15 @@ function surface(rows = 20, narrowThreshold = 100, onExit = () => {}) {
 }
 const visible = (lines: string[]) => lines.map((l) => visibleLength(l));
 const tick = () => new Promise((r) => setTimeout(r, 5));
+/** Renders until the change body has arrived: the renderer that draws it is asynchronous. */
+async function drawn(s: ReviewSurface, width: number): Promise<string> {
+	for (let i = 0; i < 200; i++) {
+		const text = s.render(width).join("\n");
+		if (!text.includes("chargement…")) return text;
+		await tick();
+	}
+	throw new Error("the change body was never drawn");
+}
 
 describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)", () => {
 	it("never exceeds the width nor the terminal rows and shows textual statuses", async () => {
@@ -124,19 +133,16 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		s.handleInput("c");
 		assert.match(s.render(120).join("\n"), /README/);
 	});
-	it("renders OLD/NEW blocks without +/- prefixes, hunk markers or line numbers, preserving literal operators", async () => {
+	it("draws a change in a gutter, keeping the operators the code holds (UX-07)", async () => {
 		const { s } = surface(30);
 		s.selectPath("src/a.js");
-		s.render(140);
-		await tick();
-		const text = s.render(140).join("\n");
-		assert.match(text, /ANCIEN/);
-		assert.match(text, /NOUVEAU/);
-		assert.match(text, /x = a \+ b;/);
-		assert.match(text, /x = a - b;/);
-		assert.ok(!/^[+-]x = /m.test(text), "no patch prefixes");
-		assert.ok(!text.includes("@@"), "no hunk markers");
-		assert.ok(!/│\s*\d+\s+x = /.test(text), "no line number column");
+		const text = stripSequences(await drawn(s, 140));
+		// The comparison sits left of the separator — sign and line number — and the code right of it,
+		// so a `+` the program holds is still a character of the program.
+		assert.match(text, /[-+]\s*│.*x = a \+ b;/, "the old line keeps its literal +");
+		assert.match(text, /[-+]\s*│.*x = a - b;/, "the new line is drawn too");
+		assert.match(text, /\d+\s*[-+]\s*│/, "signs and line numbers sit in the gutter");
+		assert.ok(!text.includes("@@"), "no patch headers");
 	});
 	it("keyboard navigation keeps selection and focus, exits on q without side effects", () => {
 		let exited = 0;
@@ -165,11 +171,17 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 	it("below the width threshold alternates tree and reader with the same selection and all actions", () => {
 		const { s } = surface(16, 100);
 		s.selectPath("src/a.js");
+		s.handleInput("m");
 		const wide = s.render(120);
 		assert.ok(
 			wide.some((l) => l.includes("│")),
-			"two panes side by side",
+			"two panes side by side outside the change view",
 		);
+		s.handleInput("m");
+		s.handleInput("m");
+		s.handleInput("m");
+		s.handleInput("m");
+		assert.equal(s.render(120)[2]?.includes("Modifications"), true, "back on the change view");
 		const narrow = s.render(60);
 		assert.ok(visible(narrow).every((n) => n <= 60));
 		assert.ok(!narrow.slice(2, 12).some((l) => l.includes("│")), "one pane at a time");
@@ -184,9 +196,7 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		const { s } = surface(30);
 		s.selectPath("src/a.js");
 		s.handleInput("\t");
-		s.render(140);
-		await tick();
-		const top = s.render(140).join("\n");
+		const top = await drawn(s, 140);
 		s.handleInput("\x1b[6~");
 		const down = s.render(140).join("\n");
 		assert.notEqual(down, top, "page down moves the reader");
@@ -257,8 +267,6 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 			selected: paint("7"),
 			dim: paint("90"),
 			header: paint("1"),
-			oldBlock: paint("31"),
-			newBlock: paint("32"),
 			focus: paint("1"),
 			warn: paint("33"),
 		};
@@ -279,8 +287,7 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 			requestRender: () => {},
 		});
 		s.selectPath("src/a.js");
-		s.render(120);
-		await tick();
+		await drawn(s, 120);
 		s.invalidate();
 		const lines = s.render(120);
 		assert.deepEqual(

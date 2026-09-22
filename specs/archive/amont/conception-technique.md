@@ -220,7 +220,7 @@ Le composant `ReviewSurface` reçoit un `ReviewSnapshot` immuable et n’accède
 
 En largeur normale, `ProjectTreePane` et `FileReaderPane` sont rendus côte à côte. En dessous du seuil qualifié, le même état de sélection pilote deux vues alternées ; aucune action ne disparaît. Le composant rend au plus la hauteur visible du terminal et demande les pages suivantes au modèle de requête.
 
-Les portions modifiées sont typées `unchanged`, `old`, `new` et `intraline`, mais le présentateur affiche des blocs **ANCIEN** et **NOUVEAU**, sans préfixes `+`/`-`, marqueurs de hunk ou numéros de ligne. Les positions internes restent disponibles pour la navigation et les constats. Les caractères `+` et `-` appartenant au code ne sont jamais supprimés.
+Les portions modifiées sont typées `unchanged`, `old`, `new` et `intraline`, et le présentateur les dessine en gouttière — barre, numéro de ligne, signe et séparateur à gauche, code teinté à droite (`D-56`). Ce que la comparaison ajoute vit dans la gouttière : le signe et le numéro distinguent l'ancien du nouveau sans recourir à la couleur, et les caractères `+` et `-` appartenant au code restent des caractères du code, jamais supprimés ni confondus avec un habillage. Les positions internes restent disponibles pour la navigation et les constats. La vue des modifications occupe tout l'écran, le moteur de rendu ne prenant aucune largeur de son appelant.
 
 La première implémentation utilise `ctx.ui.custom()` sans overlay expérimental. Elle calcule sa hauteur depuis `tui.terminal.rows`, restaure le focus à la fermeture et appelle `tui.requestRender()` après une mutation de navigation. L’overlay Pi reste exclu de P0 tant que son API est annoncée expérimentale.
 

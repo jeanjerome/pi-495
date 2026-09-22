@@ -118,25 +118,34 @@ const unattributed = bundled.filter((name) => !notice.includes(name));
 if (unattributed.length > 0)
 	failures.push(`redistributed dependencies the NOTICE does not name: ${unattributed.join(", ")}`);
 
-// 5. Every external module the sources import is a declared peer, and every peer is installed and
-// permissively licensed.
+// 5. Every external module the sources import is declared, and every peer is installed and
+// permissively licensed. A peer is provided by the Pi host; a runtime dependency travels inside the
+// package and is attributed by point 4 instead. Both are declarations — what this refuses is an
+// import that neither names, because an installation would then resolve it by chance or not at all.
 const peers = Object.keys(pkg.peerDependencies ?? {});
+const declared = [...peers, ...Object.keys(pkg.dependencies ?? {})];
 const imported = new Set<string>();
 for (const file of walk(join(root, "src"), root).filter((f) => f.endsWith(".ts"))) {
 	const text = readFileSync(join(root, file), "utf8");
 	for (const line of text.split("\n")) {
 		// Only real import statements: a module specifier quoted inside a template of witness code is not one.
-		const m =
+		const specifiers: string[] = [];
+		const statement =
 			/^\s*(?:import|export)\b[^"']*from\s+["']([^"']+)["']/.exec(line) ?? /^\s*import\s+["']([^"']+)["']/.exec(line);
-		if (!m) continue;
-		const specifier = m[1]!;
-		if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
-		imported.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]!);
+		if (statement) specifiers.push(statement[1]!);
+		// A module reached by `import("…")` — loaded at the moment it is needed, or named in a type —
+		// is imported as surely as one named at the top of the file, and a scan blind to it would let a
+		// package travel undeclared.
+		for (const call of line.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) specifiers.push(call[1]!);
+		for (const specifier of specifiers) {
+			if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
+			imported.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]!);
+		}
 	}
 }
-const undeclared = [...imported].filter((name) => !peers.includes(name)).sort();
+const undeclared = [...imported].filter((name) => !declared.includes(name)).sort();
 if (undeclared.length > 0)
-	failures.push(`modules imported by src/ that no peerDependency declares: ${undeclared.join(", ")}`);
+	failures.push(`modules imported by src/ that no dependency or peerDependency declares: ${undeclared.join(", ")}`);
 const peerLicences: string[] = [];
 for (const name of peers) {
 	try {

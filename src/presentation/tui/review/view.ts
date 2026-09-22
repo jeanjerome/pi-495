@@ -7,6 +7,7 @@
  * pane writes, because scrolling is what keeps a selection on screen.
  */
 import type { ChangePage, ContentPage, PathStatus, ReviewNode, ReviewSnapshot } from "../../../application/review.ts";
+import type { RenderedDiff } from "./diff-view.ts";
 
 export interface ReviewQuery {
 	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
@@ -22,8 +23,6 @@ export interface Styles {
 	selected(s: string): string;
 	dim(s: string): string;
 	header(s: string): string;
-	oldBlock(s: string): string;
-	newBlock(s: string): string;
 	focus(s: string): string;
 	warn(s: string): string;
 }
@@ -37,8 +36,6 @@ export const PLAIN: Styles = {
 	selected: (s) => s,
 	dim: (s) => s,
 	header: (s) => s,
-	oldBlock: (s) => s,
-	newBlock: (s) => s,
 	focus: (s) => s,
 	warn: (s) => s,
 };
@@ -94,6 +91,8 @@ export interface PaneContext {
 	readonly styles: Styles;
 	readonly labels: Labels;
 	fit(text: string, width: number): string;
+	/** The change body already drawn, or nothing while it is being drawn — drawing it is asynchronous. */
+	diff(page: ChangePage): RenderedDiff | null;
 }
 
 /** The node the tree has selected, or nothing when the tree is empty. */

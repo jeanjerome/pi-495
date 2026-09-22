@@ -279,7 +279,7 @@ La colonne « Fixtures » identifie le minimum. Les scénarios `SA-*` de la spé
 | `UX-04` Décisions via Pi | `C-PI`, `C-HUM` | mode interactif et non interactif | Provenance garantie ou `decision_required` persistant ; navigation sans approbation implicite. |
 | `UX-05` Sessions Pi | `C-PI`, `C-EVD` | reload, fork, changement de projet | Programme et autorité résolus ; aucune opération dupliquée ; état reprenable. |
 | `UX-06` Arbre et statuts | `C-UIR`, revue accessibilité | `F-REVIEW` | Union des chemins, agrégation correcte, statuts lisibles sans couleur, renommage honnête. |
-| `UX-07` Lecture soignée | `C-UIR`, snapshots | modifications, indentation, `+`/`-` littéraux | Blocs ANCIEN/NOUVEAU fidèles, sans préfixes de patch, hunks ni numéros de ligne. |
+| `UX-07` Lecture soignée | `C-UIR`, snapshots | modifications, indentation, `+`/`-` littéraux | Gouttière fidèle : signe et numéro hors du code, `+`/`-` du source conservés, ancien et nouveau distingués sans couleur. |
 | `UX-08` Navigation et contexte | `C-UIR`, observation TUI | clavier, resize, constat, retour conversation | Focus visible, sélection conservée, mode étroit complet, aucun effet d’écriture. |
 | `UX-09` États identifiés et actualité | `C-CAN`, `C-UIR` | C1 consulté puis C2 produit | Référence et candidat affichés ; C1 reste figé ; C2 signalé ; bascule volontaire. |
 | `UX-10` Cas particuliers | `C-UIR`, `C-SEC` | `F-SPECIAL`, `F-HOSTILE`, `F-LARGE` | Types/métadonnées/limites honnêtes ; contenu inerte ; aucune fausse comparaison textuelle. |
