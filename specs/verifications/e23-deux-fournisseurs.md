@@ -139,7 +139,9 @@ différence touche est la lecture d'un rapport sans bloc clôturé, rien des por
 il reste que la paire compare deux exécutions de deux versions, et que
 `scripts/compare-dossiers.ts` imprime les deux empreintes sans les ranger ni parmi ce qui décide ni
 parmi ce qui est énoncé. Reconduire la campagne distante sur le `dist/` courant lèverait la réserve,
-au prix d'une seconde dépense.
+au prix d'une seconde dépense ; le propriétaire a tranché le 2026-09-23 de ne pas la reconduire et
+de laisser la réserve écrite. Elle vaut donc pour cette paire de dossiers, telle qu'elle est
+énoncée ici et dans la matrice, et rien n'attend plus son sujet.
 
 **Un seul couple, un seul cas.** Un cas de contrat minimal, trois interventions, deux fichiers
 touchés. Rien ici ne dit ce que deux fournisseurs rendent d'un changement long, d'une cible à

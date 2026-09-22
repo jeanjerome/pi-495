@@ -296,9 +296,10 @@ Scenario: deux contrats différents ne sont pas lissés
 
 ### 19. Open questions [draft]
 
-- Le moment où les deux campagnes sont conduites : elles dépensent sur le compte du propriétaire et
-  demandent une ouverture de session interactive que lui seul fait. — owner: jeanjerome, needed by:
-  2026-10-05
+Aucune. Les deux campagnes ont été conduites le 2026-09-22, après l'ouverture de session que seul
+le propriétaire fait. Le `dist/` ayant été reconstruit entre elles, leurs empreintes
+d'environnement diffèrent ; le propriétaire a tranché de ne pas reconduire la campagne distante et
+de laisser la réserve écrite au relevé et à la matrice.
 
 ### 20. References [draft]
 
