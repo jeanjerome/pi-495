@@ -202,11 +202,46 @@ export type InterventionEvent =
 			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
 	  };
 
+/** Where a capability value comes from: reported by the host, or restated by 495 (D-55). */
+export type CapabilityOrigin = "reported" | "restated";
+
+/**
+ * One of the capability kinds AGT-01 enumerates. `value` is null when nothing establishes it — an
+ * absence, never a default — and `note` then says what was looked for and not found.
+ */
+export interface CapabilityFact<T> {
+	value: T | null;
+	origin: CapabilityOrigin;
+	note: string;
+}
+
+/** The ceilings a model reports of itself. Bytes are null where the host publishes none. */
+export interface ModelLimits {
+	context_window_tokens: number;
+	max_output_tokens: number;
+	max_request_bytes: number | null;
+}
+
+/**
+ * What a model is described as being able to do (AGT-01). `available` says only that the pair is
+ * configured and its provider authenticated, so a session can open at all; what the model can then
+ * do is carried by the facts, each of which says where its value comes from.
+ */
 export interface AgentCapabilities {
 	provider_id: string;
 	model_id: string;
 	available: boolean;
 	reasons: string[];
+	/** The model calls the tools its mandate gives it. */
+	tools: CapabilityFact<boolean>;
+	streaming: CapabilityFact<boolean>;
+	cancellation: CapabilityFact<boolean>;
+	sessions: CapabilityFact<boolean>;
+	/** The thinking levels the model accepts, `off` included. */
+	thinking_levels: CapabilityFact<readonly string[]>;
+	limits: CapabilityFact<ModelLimits>;
+	/** The content kinds one turn can return. */
+	result_shape: CapabilityFact<readonly string[]>;
 }
 
 export interface InterventionHandle {

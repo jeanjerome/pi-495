@@ -10,6 +10,7 @@ import type {
 	InterventionMandate,
 	ModelSelection,
 } from "../../ports/execution.ts";
+import { PiModelDescription, type PiModelCatalogue } from "./capabilities.ts";
 import type { SupervisorMessage, WorkerConfig, WorkerMessage } from "./protocol.ts";
 
 export interface SupervisorOptions {
@@ -21,7 +22,11 @@ export interface SupervisorOptions {
 	grace_ms?: number;
 	/** Extra environment given to the worker (PATH, HOME). The ledger path is never included. */
 	env?: Record<string, string>;
-	capabilityProbe?: (model: ModelSelection) => Promise<AgentCapabilities>;
+	/**
+	 * Pi's model surface, which the host hands to the extension. Without it nothing can be consulted
+	 * about the model, and nothing is claimed of it.
+	 */
+	catalogue?: PiModelCatalogue | null;
 }
 
 function defaultWorkerCommand(): string[] {
@@ -38,8 +43,8 @@ function defaultWorkerCommand(): string[] {
 export class PiWorkerAgent implements AgentPort {
 	private readonly options: Required<
 		Pick<SupervisorOptions, "config" | "workerCommand" | "silence_timeout_ms" | "grace_ms" | "env">
-	> &
-		Pick<SupervisorOptions, "capabilityProbe">;
+	>;
+	private readonly description: PiModelDescription;
 	constructor(options: SupervisorOptions) {
 		this.options = {
 			workerCommand: defaultWorkerCommand(),
@@ -48,16 +53,11 @@ export class PiWorkerAgent implements AgentPort {
 			env: {},
 			...options,
 		};
+		this.description = new PiModelDescription(options.catalogue ?? null);
 	}
 
 	async describeCapabilities(model: ModelSelection): Promise<AgentCapabilities> {
-		if (this.options.capabilityProbe) return this.options.capabilityProbe(model);
-		return {
-			provider_id: model.provider_id,
-			model_id: model.model_id,
-			available: Boolean(model.provider_id && model.model_id),
-			reasons: [],
-		};
+		return this.description.describe(model);
 	}
 
 	async startIntervention(mandate: InterventionMandate): Promise<InterventionHandle> {

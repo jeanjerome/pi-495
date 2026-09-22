@@ -1676,3 +1676,55 @@ describe("the report an engineer reads, on a conducted change (IMP-05)", () => {
 		assert.equal(t.progress.length, before, "reading the report runs nothing");
 	});
 });
+
+describe("a profile that cannot do the work is refused before it is paid for (AGT-01, AGT-02, D-46)", () => {
+	it("an endpoint that does not call the tools it is given blocks before any intervention", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: specReport() }], calls_tools: false },
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.status, "blocked");
+		assert.equal(state.stop_reason, "capability_missing");
+		assert.match(state.stop_detail ?? "", /tool/i, state.stop_detail ?? "");
+		assert.deepEqual(state.interventions, [], "nothing was run, so nothing was paid for");
+		assert.deepEqual(t.agent.started, [], "no worker was started");
+	});
+
+	it("a thinking level the model does not accept blocks before any intervention, and is never converted", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				model: { thinking_level: "xhigh" },
+				defaultScript: { steps: [{ kind: "complete", output: specReport() }], thinking_levels: ["off", "low"] },
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.match(state.stop_detail ?? "", /xhigh/, "the refusal names the level that was asked for");
+		assert.match(state.stop_detail ?? "", /off, low/, "and the levels the model does accept");
+		assert.deepEqual(state.interventions, []);
+		assert.deepEqual(t.agent.started, [], "no session was opened with a level other than the one asked for");
+	});
+
+	it("a level the model does accept opens the intervention with that level, unchanged", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				model: { thinking_level: "low" },
+				defaultScript: { steps: [{ kind: "complete", output: specReport() }], thinking_levels: ["off", "low"] },
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 4 });
+		assert.ok(t.agent.started.length > 0, "the intervention was opened");
+		assert.equal(t.agent.started[0]?.model.thinking_level, "low");
+	});
+});

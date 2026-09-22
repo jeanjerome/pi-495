@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { GenericControlRunner } from "../adapters/execution/runner.ts";
 import { CasObjectStore } from "../adapters/object-store/cas.ts";
 import { PiWorkerAgent } from "../adapters/pi-worker/supervisor.ts";
+import type { PiModelCatalogue } from "../adapters/pi-worker/capabilities.ts";
 import { ScriptedAgent, type AgentScript } from "../adapters/pi-worker/scripted-agent.ts";
 import { readFileSync } from "node:fs";
 import type { AgentPort } from "../ports/execution.ts";
@@ -26,6 +27,8 @@ export interface RuntimeInputs {
 	pi_package_dir: string;
 	pi_agent_dir: string;
 	model: ModelSelection;
+	/** The host's model surface, from which the model retained is described before each intervention. */
+	catalogue?: PiModelCatalogue | null;
 	env?: NodeJS.ProcessEnv;
 	dataDir?: string;
 	workspacesDir?: string;
@@ -89,6 +92,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 			heartbeat_ms: 5000,
 		},
 		silence_timeout_ms: Math.max(120_000, config.policy.budgets.intervention_ms / 4),
+		catalogue: inputs.catalogue ?? null,
 	});
 	if (env.HARNESS495_SCRIPTED_AGENT) {
 		// Qualification campaigns (F-PIHOST, F-AGENTS): a deterministic agent replaces the Pi worker.

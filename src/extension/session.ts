@@ -80,6 +80,7 @@ export class ExtensionSession {
 			pi_package_dir: getPackageDir(),
 			pi_agent_dir: getAgentDir(),
 			model,
+			catalogue: ctx.modelRegistry,
 		});
 		return this.runtime;
 	}

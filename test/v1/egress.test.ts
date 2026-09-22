@@ -9,6 +9,7 @@ import { DEFAULT_POLICY, type DeclaredEgress, undeclaredEgressReason } from "../
 import { loadConfig } from "../../src/extension/config.ts";
 import type { AgentPort, InterventionEvent, ModelSelection, SandboxProfile } from "../../src/ports/execution.ts";
 import { collect, fakeWorkerAgent, mandate } from "../helpers/intervention-fixture.ts";
+import { describedAs } from "../helpers/capabilities.ts";
 
 const LOCAL: DeclaredEgress[] = [{ provider_id: "omlx", location: "on_machine" }];
 
@@ -38,12 +39,7 @@ function supervisorFor(model: ModelSelection, egress: DeclaredEgress[] = LOCAL) 
 	const agent: AgentPort = {
 		async describeCapabilities(m) {
 			probed.push(m);
-			return {
-				provider_id: m.provider_id,
-				model_id: m.model_id,
-				available: Boolean(m.provider_id && m.model_id),
-				reasons: ["model / unavailable"],
-			};
+			return describedAs(m);
 		},
 		async startIntervention(m) {
 			started.push(m.intervention_id);

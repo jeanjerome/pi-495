@@ -4,6 +4,7 @@ import { digestValue } from "../../contracts/digest.ts";
 import type {
 	AgentCapabilities,
 	AgentPort,
+	CapabilityFact,
 	InterventionEvent,
 	InterventionHandle,
 	InterventionMandate,
@@ -25,7 +26,14 @@ export interface AgentScript {
 	steps: ScriptStep[];
 	available?: boolean;
 	tokens?: number;
+	/** What a real observation would find of the endpoint: whether it calls the tools it is given. */
+	calls_tools?: boolean;
+	/** The thinking levels the simulated model accepts. */
+	thinking_levels?: string[];
 }
+
+/** Every level Pi knows, which is what a scripted model accepts unless a script narrows it. */
+const SCRIPTED_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 /**
  * Deterministic agent simulator (F-AGENTS, ADR-004 tests): replays scripted actions in the
@@ -41,11 +49,27 @@ export class ScriptedAgent implements AgentPort {
 	}
 	async describeCapabilities(model: ModelSelection): Promise<AgentCapabilities> {
 		const available = this.defaultScript.available ?? true;
+		const callsTools = this.defaultScript.calls_tools ?? true;
+		// The rule that reads this description lives in the kernel; only the observations are scripted.
+		const scripted = <T>(value: T): CapabilityFact<T> => ({ value, origin: "restated", note: "written by a script" });
 		return {
 			provider_id: model.provider_id,
 			model_id: model.model_id,
 			available,
 			reasons: available ? [] : ["scripted provider unavailable"],
+			tools: {
+				value: callsTools,
+				origin: "restated",
+				note: callsTools
+					? "the scripted endpoint calls the tools it is given"
+					: "the scripted endpoint answers without calling the tool it was given",
+			},
+			streaming: scripted(true),
+			cancellation: scripted(true),
+			sessions: scripted(true),
+			thinking_levels: scripted<readonly string[]>(this.defaultScript.thinking_levels ?? SCRIPTED_LEVELS),
+			limits: scripted({ context_window_tokens: 131072, max_output_tokens: 32768, max_request_bytes: null }),
+			result_shape: scripted<readonly string[]>(["text", "tool_call"]),
 		};
 	}
 	async startIntervention(mandate: InterventionMandate): Promise<InterventionHandle> {

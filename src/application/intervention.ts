@@ -12,6 +12,7 @@ import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { DomainError } from "../domain/errors.ts";
 import { type ActivePolicy, undeclaredEgressReason } from "../domain/policy.ts";
 import type {
+	AgentCapabilities,
 	AgentPort,
 	ContextManifest,
 	InterventionEvent,
@@ -114,12 +115,32 @@ export class InterventionSupervisor {
 				{ nextActions: ["qualify_capability"] },
 			);
 		const capabilities = await this.deps.agent.describeCapabilities(this.deps.model);
-		if (!capabilities.available)
+		const unmet = this.unmetCapabilities(capabilities);
+		if (unmet.length > 0)
 			throw new DomainError(
 				"CAPABILITY_MISSING",
-				`model ${this.deps.model.provider_id}/${this.deps.model.model_id} unavailable: ${capabilities.reasons.join("; ")}`,
+				`model ${this.deps.model.provider_id}/${this.deps.model.model_id} cannot carry this intervention: ${unmet.join("; ")}`,
 				{ nextActions: ["configure_model"] },
 			);
+	}
+
+	/**
+	 * What the described model cannot carry, read against the intervention that is about to open
+	 * (AGT-01). Every role in `TOOLS_FOR_ROLE` receives tools, so a tool-call format that is not
+	 * established refuses them all and the rule does not branch on the role. A thinking level the
+	 * model does not accept is refused rather than sent: the host would silently clamp it to the
+	 * nearest one it accepts, and the dossier would keep the level that was asked for.
+	 */
+	private unmetCapabilities(capabilities: AgentCapabilities): string[] {
+		if (!capabilities.available)
+			return capabilities.reasons.length > 0 ? capabilities.reasons : ["the model was not described as available"];
+		const unmet: string[] = [];
+		const levels = capabilities.thinking_levels.value;
+		const asked = this.deps.model.thinking_level;
+		if (levels && !levels.includes(asked))
+			unmet.push(`thinking level ${asked} is not accepted by this model (accepted: ${levels.join(", ")})`);
+		if (capabilities.tools.value !== true) unmet.push(capabilities.tools.note);
+		return unmet;
 	}
 
 	/** Cancels the intervention currently running, if any (§12.3). */
