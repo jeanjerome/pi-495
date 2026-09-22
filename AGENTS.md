@@ -16,6 +16,16 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
 - Put an arbitration to the owner in plain French, without identifiers, scores or coded vocabulary:
   state what each option costs and what it buys. Keep the coded vocabulary for the written artefact
   that records the answer, not for the question that asks for it.
+- Before asking the owner anything, ask why the question exists. A question about a mechanism the
+  goal never required is not an arbitration — it is the mechanism asking to be kept. Most questions
+  worth his time should have been settled when the goal was written; one that appears late usually
+  marks a solution that grew past its purpose. Remove the cause rather than route the question.
+- State a conclusion only once the evidence that could overturn it has been read. Reading the
+  binding documents before the scenarios that exercise them produced two opposite verdicts on the
+  same corpus in one sitting. When a pass is partial, say what is still unread and what would
+  change the answer — a provisional finding announced as a finding costs a reversal later.
+- Verify before asserting, including against the repository's own record. A plausible cause stated
+  as fact has to be retracted; the same cause checked first is worth more and costs one command.
 - Keep dependencies at their latest published version whenever Preflight stays green — a bound left
   behind is a divergence waiting to happen, and a caret on a `0.x` version silently locks the minor.
   The exception is a bound that guards a declared floor: `@types/node` tracks `engines.node`, not the
@@ -23,7 +33,11 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
 
 ## Workspace Facts
 
-- (none yet — durable facts discovered across sessions)
+- Pi ships its reference on the machine, offline, in the installed package: 31 doc pages under
+  `node_modules/@earendil-works/pi-coding-agent/docs/` and 76 working extensions under
+  `examples/extensions/`. Read them before specifying a capability or deducing a fact from outside
+  Pi (`specs/adr/D-55`). `provider-payload.ts` reports in 18 lines what a Preflight control was
+  written to guess from third-party source.
 <!-- END bigpowers:learned-preferences -->
 
 <!-- BEGIN bigpowers:project -->
