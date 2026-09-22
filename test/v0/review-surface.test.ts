@@ -102,7 +102,7 @@ function surface(rows = 20, narrowThreshold = 100, onExit = () => {}) {
 	});
 	return { s, snap, renders: () => renders };
 }
-const visible = (lines: string[]) => lines.map((l) => [...l].length);
+const visible = (lines: string[]) => lines.map((l) => visibleLength(l));
 const tick = () => new Promise((r) => setTimeout(r, 5));
 
 describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)", () => {
@@ -181,15 +181,16 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.equal(s.current()?.path, "src/a.js", "selection unchanged across views");
 	});
 	it("fit truncates by visible characters", () => {
-		assert.equal([...fit("héllo wörld", 5)].length, 5);
+		assert.equal(visibleLength(fit("héllo wörld", 5)), 5);
+		assert.equal(stripSequences(fit("héllo wörld", 5)), "héll…");
 		assert.equal(fit("ab", 4), "ab  ");
 	});
 	it("fit measures the text a theme styled, not the escape sequences it wrapped around it", () => {
 		const styled = `${ESC}[31mabc${ESC}[39m`;
 		assert.equal(visibleLength(styled), 3, "three printed characters");
 		assert.equal(visibleLength(fit(styled, 10)), 10, "padded to the announced width");
-		assert.equal(fit(styled, 2), "a…", "a line cut on its visible text");
-		assert.ok(!fit(styled, 2).includes(ESC), "no sequence leaks out of a cut");
+		assert.equal(stripSequences(fit(styled, 2)), "a…", "a line cut on its visible text");
+		assert.equal(visibleLength(fit(styled, 2)), 2, "a cut line occupies the width announced");
 		assert.equal(
 			visibleLength(`${ESC}]8;;https://example.invalid${ESC}\\link${ESC}]8;;${ESC}\\`),
 			4,

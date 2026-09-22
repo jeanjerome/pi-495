@@ -2,7 +2,15 @@
  * What a line occupies once a theme has styled it, and how a line is cut to an announced width.
  * Every pane of the surface measures through here: a pane that counted escape sequences as
  * characters would pad its lines short and move the separator between the panes on every row.
+ *
+ * The measure is Pi's. A terminal cell is not a code point — an east-asian glyph takes two, a
+ * combining mark takes none, and a joined emoji takes two however many code points it holds — so a
+ * second implementation here would disagree with the host on exactly the lines that matter and
+ * shift the separator it exists to hold. `pi-tui` is Pi's display library, and the review is
+ * measured the same way as every other surface Pi draws.
  */
+
+import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 /** Columns a tree row spends before the name: two per level, then the marker, the symbol and a space. */
 export function treeRowOverhead(depth: number): number {
@@ -22,69 +30,20 @@ export function treeRowOverhead(depth: number): number {
  */
 export const NARROW_THRESHOLD = 100;
 
-/**
- * Columns a line actually occupies once a theme has styled it. The escape sequences a style wraps
- * around a value are not printed: counting them as characters pads the line short by their length,
- * and the separator between the two panes then lands at a different column on every row — ten
- * columns of drift for a single colour, which no test on unstyled lines can see (UX-08).
- */
+/** Cells a line occupies once a theme has styled it: what is printed, not what is stored. */
 export function visibleLength(s: string): number {
-	let count = 0;
-	for (let i = 0; i < s.length; i++) {
-		const skipped = sequenceLength(s, i);
-		if (skipped > 0) {
-			i += skipped - 1;
-			continue;
-		}
-		if (s.codePointAt(i)! > 0xffff) i++;
-		count++;
-	}
-	return count;
-}
-
-/** Length of the terminal sequence starting at `i`, or 0 when nothing starts there. */
-function sequenceLength(s: string, i: number): number {
-	if (s.charCodeAt(i) !== 0x1b) return 0;
-	const next = s[i + 1];
-	if (next === "[") {
-		let j = i + 2;
-		while (j < s.length && (s.charCodeAt(j) < 0x40 || s.charCodeAt(j) > 0x7e)) j++;
-		return Math.min(j + 1, s.length) - i;
-	}
-	if (next === "]") {
-		let j = i + 2;
-		while (j < s.length && s.charCodeAt(j) !== 0x07 && !(s.charCodeAt(j) === 0x1b && s[j + 1] === "\\")) j++;
-		return Math.min(j + (s.charCodeAt(j) === 0x1b ? 2 : 1), s.length) - i;
-	}
-	return 1;
+	return visibleWidth(s);
 }
 
 /** The same line stripped of every terminal sequence: what is left is exactly what is printed. */
 export function stripSequences(s: string): string {
-	let out = "";
-	for (let i = 0; i < s.length; i++) {
-		const skipped = sequenceLength(s, i);
-		if (skipped > 0) {
-			i += skipped - 1;
-			continue;
-		}
-		out += s[i];
-	}
-	return out;
+	return stripTerminalSequences(s);
 }
 
 /**
- * Pads or cuts a line to an announced width. Cutting inside an escape sequence would leak it to the
- * terminal, so a line that must be cut is cut on its visible text and loses the styling that
- * straddled the cut. What this measures is code points, not terminal cells: a host that knows its
- * own terminal — graphemes, east-asian widths, hyperlinks — injects its measure through
- * `SurfaceOptions.fit`, and `extension/review-command.ts` passes the one Pi uses for every other
- * surface. The invariant itself stays here, so it holds whatever the host injects.
+ * Pads or cuts a line to an announced width. A line that must be cut loses the styling that
+ * straddled the cut rather than leaking a half-written escape sequence to the terminal.
  */
 export function fit(s: string, width: number): string {
-	const visible = visibleLength(s);
-	if (visible <= width) return s + " ".repeat(width - visible);
-	const chars = [...stripSequences(s)];
-	if (width <= 1) return chars.slice(0, width).join("");
-	return `${chars.slice(0, width - 1).join("")}…`;
+	return truncateToWidth(s, width, "…", true);
 }
