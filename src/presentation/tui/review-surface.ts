@@ -183,7 +183,8 @@ export class ReviewSurface implements ReviewView {
 		if (drawn) return drawn;
 		if (this.drawing.has(key)) return null;
 		this.drawing.add(key);
-		renderHunks(page, this.foldContext)
+		const labels = this.opts.language === "en" ? EN : FR;
+		renderHunks(page, this.foldContext, (hidden) => this.st.dim(`… ${hidden} ${labels.folded}`))
 			.then(
 				(result) => {
 					this.diffs.set(key, result);

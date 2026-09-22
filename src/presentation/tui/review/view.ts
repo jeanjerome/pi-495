@@ -130,6 +130,7 @@ export const FR = {
 	loading: "chargement…",
 	error: "erreur",
 	lines: "lignes",
+	folded: "ligne(s) inchangée(s)",
 };
 export const EN = {
 	...FR,
@@ -158,6 +159,7 @@ export const EN = {
 	loading: "loading…",
 	error: "error",
 	lines: "lines",
+	folded: "unchanged line(s)",
 };
 
 export type Labels = typeof FR;

@@ -144,6 +144,29 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.match(text, /\d+\s*[-+]\s*│/, "signs and line numbers sit in the gutter");
 		assert.ok(!text.includes("@@"), "no patch headers");
 	});
+	it("draws the comparison 495 computed, never one the renderer made up (UX-07)", async () => {
+		const { s } = surface(30);
+		s.selectPath("src/a.js");
+		const text = stripSequences(await drawn(s, 140));
+		// `y = 1;` is unchanged, between a changed line and an added one. A renderer handed the two
+		// sides re-pairs them its own way and answers "removed, then added again"; the record says
+		// unchanged, and a drawing that disagreed with it would be a second opinion in its clothes.
+		const rows = text.split("\n").filter((l) => l.includes("y = 1;"));
+		assert.equal(rows.length, 1, `an unchanged line is drawn once, saw ${rows.length}`);
+		assert.ok(!/[-+]\s*│.*y = 1;/.test(text), "and drawn as context, with no sign against it");
+	});
+	it("says how many lines a fold hides, and puts them back (UX-07)", async () => {
+		const { s } = surface(30);
+		s.selectPath("src/a.js");
+		const open = stripSequences(await drawn(s, 140));
+		assert.match(open, /y = 1;/, "the unchanged context is shown when nothing is folded");
+		s.handleInput("x");
+		const folded = stripSequences(await drawn(s, 140));
+		assert.match(folded, /… \d+ ligne\(s\) inchangée\(s\)/, "a fold says what it hides");
+		assert.ok(!folded.includes("y = 1;"), "the context is actually folded away");
+		s.handleInput("x");
+		assert.match(stripSequences(await drawn(s, 140)), /y = 1;/, "and the fold is reversible");
+	});
 	it("keyboard navigation keeps selection and focus, exits on q without side effects", () => {
 		let exited = 0;
 		const { s } = surface(20, 100, () => {

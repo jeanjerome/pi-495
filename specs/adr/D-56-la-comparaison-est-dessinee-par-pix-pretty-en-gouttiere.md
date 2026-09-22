@@ -37,9 +37,12 @@ d'un panneau, il perdrait la fin de chaque ligne longue. L'arbre s'efface donc p
 d'une modification et revient avec tout autre mode. Sous le seuil étroit rien ne change : les
 panneaux alternent déjà, et prendre son tour au lecteur retirerait la seule façon de naviguer.
 
-`D-06` n'est pas rouvert : le calcul maison reste la source des segments que le dossier, les constats
-et la sortie structurée portent. Le moteur re-compare les deux côtés d'un hunk pour les dessiner ;
-ce qui est opposable vient du calcul, ce qui est dessiné vient du moteur.
+`D-06` n'est pas rouvert, et le moteur ne compare rien. Les lignes qui lui sont remises sont
+construites depuis les segments du calcul maison : il les place, les numérote et les peint, et ne
+décide pas de ce qui a changé. Lui passer les deux côtés du hunk était la façon évidente de
+l'appeler, et elle est fausse — son appariement est le sien, et sur une ligne inchangée entre deux
+lignes changées il répondait « supprimée, puis rajoutée ». Un dessin qui peut contredire le dossier
+est un second avis déguisé en premier.
 
 ## Consequences
 

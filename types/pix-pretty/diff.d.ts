@@ -13,11 +13,3 @@ export interface ParsedDiff {
 	removed: number;
 	chars: number;
 }
-
-/** `baseLine` shifts the gutter numbers from snippet-relative to absolute; 0 leaves them relative. */
-export declare function parseDiff(
-	oldContent: string,
-	newContent: string,
-	ctx?: number,
-	baseLine?: number,
-): ParsedDiff;
