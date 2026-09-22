@@ -246,7 +246,7 @@ La colonne « Fixtures » identifie le minimum. Les scénarios `SA-*` de la spé
 | `VER-08` Dette, régression, instabilité | `C-QLT`, `C-EXE` | `F-LEGACY`, test alternant | Résultats base/candidat comparables ; défauts séparés ; instabilité conservée sans relance opportuniste. |
 | `DEC-01` Décisions centralisées | `C-FSM`, `C-EVD` | séquences générées et sortie agent « accepté » | Seul le noyau écrit la gate ; preuves retenues/manquantes listées ; déterminisme vérifié. |
 | `DEC-02` Feedback exploitable | `C-FSM`, revue UX | échecs multiples et sortie volumineuse | Feedback borné avec exigence, attendu, observé, localisation, preuve et action ; causes non masquées. |
-| `DEC-03` Limiter les tentatives | `C-FSM`, `C-AGT` | trois tentatives, relances techniques | Compteurs séparés et persistants ; quatrième tentative refusée sans décision. |
+| `DEC-03` Limiter les tentatives | `C-FSM`, `C-AGT` | budget de tentatives, relances techniques | Compteurs séparés et persistants ; la tentative qui dépasse le budget est refusée sans décision. |
 | `DEC-04` Détecter la stagnation | `C-FSM` | candidats identiques puis progrès réel | Mesure de progrès versionnée ; arrêt `stagnation` sans faux arrêt sur progrès observable. |
 | `DEC-05` Suspendre et reprendre | `C-FSM`, `C-EVD`, `C-PI` | crash, compaction, changement de session | Reprise au dernier point cohérent, aucun effet confirmé rejoué, incertitude réconciliée. |
 | `DEC-06` Décision et dérogation | `C-HUM`, `C-PI` | agent forgeant une approbation, rôle insuffisant | Refus des provenances invalides ; décision authentifiée, bornée, motivée et expirante si nécessaire. |
@@ -346,7 +346,7 @@ La colonne « Fixtures » identifie le minimum. Les scénarios `SA-*` de la spé
 | `NFR-01` Environnement reproductible | `C-PKG`, `C-EVD` | installation neuve, dépendance absente | Package Pi versionné, inventaire complet, diagnostic avant modèle, aucun update pendant tentative. |
 | `NFR-02` Open source et local | `C-PKG`, revue licences, `C-SEC` | réseau fermé et modèle local | SBOM/notices compatibles ; parcours et export locaux sans serveur de contrôle ni compte éditeur. |
 | `NFR-03` Cohérence transactionnelle | `C-EVD`, `C-GIT`, pannes injectées | crash avant/après chaque effet | État ancien ou nouveau cohérent ; effet incertain explicitement réconcilié ; aucun « exactly once » inventé. |
-| `NFR-04` Réactivité et ressources | `C-PERF` | `F-LARGE` | p95 état < 1 s, signal annulation < 2 s, terminaison après grâce de 10 s ; streaming et mémoire bornée. |
+| `NFR-04` Réactivité et ressources | `C-PERF` | `F-LARGE` | Les trois garanties de NFR-04 tenues au réglage en vigueur (§12) ; streaming et mémoire bornée. |
 | `NFR-05` Portabilité qualifiée | `C-PKG`, V4 | macOS arm64, Linux x86-64, contrôle OS-spécifique | Même parcours P0 ; profils d’isolation documentés ; incompatibilité diagnostiquée avant exécution. |
 | `NFR-06` Observabilité locale | `C-EVD`, `C-SEC` | exécution instrumentée, export expurgé | Logs/métriques locaux, aucun endpoint de télémétrie par défaut, coûts inconnus marqués, limites d’export. |
 | `NFR-07` Testabilité/maintenabilité | V0–V2, `C-ARC`, `C-AGT` | moteurs simulés, import Pi interdit | Corpus hors ligne sans modèle ; règle d’import échoue ; invariants testés sur séquences générées. |

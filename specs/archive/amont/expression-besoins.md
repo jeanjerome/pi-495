@@ -525,29 +525,61 @@ Le package DOIT gérer chargement, rechargement, changement de session ou de pro
 
 **Recette :** recharger l’extension ou bifurquer une conversation pendant un programme n’exécute pas deux fois un contrôle ou une intégration. La session suivante retrouve un état cohérent, ses décisions en attente et les opérations actives ou interrompues.
 
-#### UX-06 — Visualiser l’arborescence et les statuts du projet [P0]
+#### UX-06 — Voir tout ce que le candidat a touché [P0]
 
-Le TUI Pi DOIT proposer une vue intégrée à deux panneaux : arborescence des répertoires et fichiers à gauche, lecteur du fichier sélectionné à droite. L’arbre doit permettre de distinguer les fichiers intacts, ajoutés, modifiés, supprimés et renommés par une coloration et une mise en forme cohérentes, accompagnées d’un libellé ou symbole accessible sans couleur. Les répertoires doivent signaler les changements de leurs descendants. Le statut décrit une différence entre les références affichées, pas un verdict de qualité ni une attribution automatique à l’agent.
+Le relecteur DOIT pouvoir constater l’étendue exacte d’un candidat, sans jamais confondre « non
+montré » avec « inchangé ». Tout chemin de la référence ou du candidat est atteignable, y compris un
+fichier supprimé, consultable là où il se trouvait. L’état de chaque chemin — intact, ajouté,
+modifié, supprimé, renommé — se lit sans dépendre de la couleur. Un renommage incertain se présente
+comme incertain. Le périmètre affiché et ses exclusions sont explicites : un fichier ignoré, exclu ou
+illisible n’est jamais rendu comme intact. Un état agrégé sur un répertoire ne fait pas disparaître
+le détail de ses descendants. Cet état décrit une différence entre deux références, jamais une
+qualité ni un auteur.
 
-L’arbre doit représenter l’union des chemins de la référence et du candidat : un fichier supprimé reste consultable à son ancien emplacement. Un renommage indique l’ancien et le nouveau chemin et ses éventuelles modifications de contenu ; une détection incertaine ne doit pas être présentée comme certaine. Le périmètre affiché et les exclusions doivent être explicites ; les fichiers ignorés, exclus ou non lisibles ne sont pas assimilés à des fichiers intacts. Un filtre « changements uniquement » complète la vue complète sans la remplacer.
+La présentation qui porte tout cela appartient au TUI de Pi et à sa conception ; l’exigence porte sur
+ce que le relecteur peut établir, pas sur la disposition qui le lui montre.
 
-**Recette :** ouvrir un projet comportant chacune des catégories, dont un répertoire entièrement supprimé et un renommage avec modification. Tous les chemins attendus sont accessibles, les états des parents concordent avec ceux de leurs descendants et la lecture reste compréhensible sans couleur. Passer du filtre de changements à l’arbre complet rend les fichiers intacts visibles.
+**Recette :** ouvrir un projet comportant chacune des catégories, dont un répertoire entièrement
+supprimé et un renommage avec modification. Tous les chemins attendus sont accessibles, les états des
+parents concordent avec ceux de leurs descendants, et la lecture reste compréhensible sans couleur.
+Restreindre la vue aux seuls changements puis revenir à la vue complète rend les fichiers intacts
+visibles de nouveau.
 
-#### UX-07 — Lire le code et ses modifications avec un rendu soigné [P0]
+#### UX-07 — Lire le code tel qu’il est écrit [P0]
 
-Le panneau droit DOIT permettre de consulter le contenu du fichier et une représentation lisible de ses modifications. Le rendu doit utiliser une coloration syntaxique quand le langage est reconnu, des fonds ou styles distincts pour les ajouts et suppressions, et une mise en évidence des portions modifiées au sein d’une ligne lorsque cela améliore la lecture. Le contexte inchangé doit rester accessible ; tout repli de contexte est explicite et dépliable. Les anciennes et nouvelles portions doivent être identifiables par des intitulés, y compris sans couleur.
+Le relecteur DOIT pouvoir lire le contenu d’un fichier et ce qui y a changé, en retrouvant exactement
+les caractères du source. Aucun habillage de comparaison ne se confond avec le code : un `+` ou un
+`-` qui appartient au programme reste un caractère du programme. Ancien et nouveau texte sont
+distinguables sans recourir à la couleur. Le contexte inchangé reste atteignable, et tout repli est
+annoncé et réversible. Un fichier ajouté montre son contenu, un fichier supprimé montre l’ancien et
+son état, un fichier intact se montre sans décoration de changement, et un renommage sans
+modification n’invente aucun changement textuel.
 
-La présentation par défaut ne doit afficher ni préfixes de ligne `+` ou `-`, ni en-têtes ou marqueurs techniques de patch, ni numéros de ligne. Cette règle ne supprime jamais les caractères appartenant au code lui-même : opérateurs, chaînes, commentaires et indentation doivent rester fidèles. Les repères de position internes peuvent servir à ouvrir un constat sans apparaître comme une colonne de numéros. Un fichier ajouté montre son nouveau contenu ; un fichier supprimé montre son ancien contenu et son statut ; un fichier intact montre son contenu sans décoration de changement. Un renommage sans modification de contenu l’indique sans inventer un changement textuel.
+Le rendu — coloration, mise en évidence, forme de la comparaison — relève du TUI de Pi et de la
+conception d’interface, qui choisissent les moyens de tenir ce que cette exigence demande.
 
-**Recette :** comparer des fichiers avec ajout, suppression, remplacement partiel, changement d’indentation et opérateurs littéraux `+`/`-`. Le lecteur distingue ancien et nouveau texte, conserve exactement les caractères source, permet de consulter le contexte complet et n’affiche aucun habillage de diff brut ni numéro de ligne. Un langage inconnu reste lisible en texte simple.
+**Recette :** comparer des fichiers avec ajout, suppression, remplacement partiel, changement
+d’indentation et opérateurs littéraux `+`/`-`. Le lecteur distingue ancien et nouveau texte, conserve
+exactement les caractères source, et permet de consulter le contexte complet. Un langage inconnu
+reste lisible en texte simple.
 
-#### UX-08 — Naviguer et conserver le contexte de revue dans Pi [P0]
+#### UX-08 — Mener une revue sans rien engager [P0]
 
-L’utilisateur DOIT pouvoir ouvrir et fermer les répertoires, sélectionner ou rechercher un chemin, changer de panneau, faire défiler le contenu, passer au fichier changé ou à la modification suivante/précédente, changer de mode de lecture et revenir à la conversation Pi sans perdre sa sélection. Ces actions doivent être accessibles au clavier avec une aide consultable et un focus visible. La vue doit pouvoir être ouverte depuis le suivi d’un incrément, son dossier de preuves et un constat localisé. La souris peut compléter le clavier selon les capacités du terminal.
+Une revue DOIT se mener entièrement au clavier, et ne jamais rien engager. Consulter, parcourir,
+chercher, replier, quitter la vue : aucun de ces gestes ne vaut approbation, modification, staging ou
+intégration, et aucun ne touche le projet, l’index Git ou une décision. Le relecteur atteint la revue
+depuis le suivi d’un incrément, son dossier de preuves ou un constat localisé, et la quitte pour la
+conversation puis y revient sans perdre où il en était. Aucune opération de revue ne disparaît parce
+que le terminal est étroit. Les chemins longs, les accents et les caractères non latins ne décalent
+pas la sélection ni n’altèrent le code.
 
-Le partage de largeur doit être ajustable. Sur un terminal trop étroit, un mode alternant arbre et lecteur doit préserver toutes les opérations ; le seuil et le comportement seront définis puis testés en conception. Les chemins longs, accents, caractères Unicode et retours à la ligne visuels ne doivent ni décaler la sélection ni altérer le code. La navigation est une consultation : sélectionner un fichier, replier un bloc ou fermer la vue ne vaut jamais approbation, modification, staging ou intégration.
+Les gestes, leurs raccourcis, le partage de largeur et le comportement en terminal étroit relèvent de
+la conception d’interface et des capacités du TUI de Pi.
 
-**Recette :** effectuer une revue uniquement au clavier, ouvrir un fichier depuis un constat, changer de panneau, parcourir plusieurs modifications puis revenir à la conversation et à la sélection initiale. Réduire puis réagrandir le terminal sans perdre la référence comparée ou masquer une action indispensable. Aucun de ces gestes ne modifie le projet ni une décision.
+**Recette :** effectuer une revue uniquement au clavier, ouvrir un fichier depuis un constat,
+parcourir plusieurs modifications, revenir à la conversation et retrouver la sélection initiale.
+Réduire puis réagrandir le terminal sans perdre la référence comparée ni masquer une action
+indispensable. Aucun de ces gestes ne modifie le projet ni une décision.
 
 #### UX-09 — Comparer des états identifiés et signaler leur actualité [P0]
 
@@ -567,7 +599,7 @@ Les grands arbres et fichiers doivent être chargés progressivement, avec borne
 
 #### UX-11 — Exposer la même information de revue aux autres entrées Pi [P0]
 
-Le système DOIT fournir aux autres entrées Pi qualifiées les données de revue indépendamment des composants TUI : références, arborescence, statuts, anciens et nouveaux chemins, contenus ou accès paginés, portions changées, métadonnées et limites de lecture. Les clients graphiques ou interactifs utilisant Pi doivent pouvoir construire une vue équivalente selon leurs capacités. Le mode print doit fournir un résumé lisible et permettre la consultation textuelle adaptée d’un fichier demandé, sans imposer un patch brut. Les modes structurés peuvent transmettre les positions nécessaires au rendu sans imposer l’affichage de numéros de ligne.
+Le système DOIT permettre d’établir les mêmes faits sur un candidat depuis n’importe quelle entrée Pi qualifiée, sans composant visuel. Un client qui n’a pas de TUI obtient de quoi reconstruire une vue équivalente à ses propres capacités, et le mode print rend une lecture suivie plutôt qu’un patch brut. Les données de revue ne dépendent d’aucun composant d’affichage : c’est ce qui rend la comparaison indépendante de l’hôte qui la consulte.
 
 L’ouverture de la vue TUI, l’accès aux données et la consultation d’une comparaison ne doivent exiger ni application autonome, ni CLI propre au harness, ni CI. L’absence de composants visuels dans une entrée Pi ne doit pas changer la comparaison ou le verdict. Une extension communautaire peut contribuer au rendu après qualification ; le besoin ne dépend pas de la présence d’un package non qualifié.
 
@@ -847,9 +879,9 @@ L’écriture d’une décision DOIT être atomique ou récupérable. Après une
 
 ### NFR-04 — Objectifs de réactivité et de ressources [P0]
 
-Les budgets DOIVENT être configurables et appliqués. Pour la première qualification, les objectifs proposés sont : retour d’état local en moins d’une seconde au 95e percentile, émission d’un signal d’annulation en moins de deux secondes, terminaison forcée des processus contrôlés après dix secondes de grâce. Ces durées excluent un fournisseur qui ne garantit pas l’annulation de son calcul ou de sa facturation.
+Les budgets DOIVENT être configurables et appliqués. L’utilisateur garde la main : un état local se rend sans attente perceptible, une annulation demandée est émise puis honorée, et un processus contrôlé ne survit pas à sa terminaison. Une sortie volumineuse ne fait perdre aucune de ces trois garanties. Les durées qui leur donnent corps sont des valeurs de configuration, écrites au §12 et à qualifier : tenir la garantie est l’exigence, la durée n’en est que le réglage du jour. Ces garanties excluent un fournisseur qui ne garantit pas l’annulation de son calcul ou de sa facturation.
 
-**Recette :** mesurer ces délais sur une machine de référence documentée avec 10 000 événements et sans appel distant pour le test de statut. Tester des sorties volumineuses : elles sont stockées en flux et le contexte injecté respecte sa borne, sans accumulation intégrale en mémoire. Les chiffres sont des objectifs de produit proposés, pas des performances observées.
+**Recette :** mesurer ces délais sur une machine de référence documentée, sous une charge d’événements représentative et sans appel distant pour le test de statut. Tester des sorties volumineuses : elles sont stockées en flux et le contexte injecté respecte sa borne, sans accumulation intégrale en mémoire. Ce qui est mesuré est le respect du réglage en vigueur, jamais une performance promise par le document.
 
 ### NFR-05 — Portabilité qualifiée [P0]
 
@@ -1122,7 +1154,7 @@ Les jalons vérifient à la fois la valeur livrée et les objectifs de mise aux 
 
 ### 9.11 Revue visuelle d’un incrément ou du programme
 
-Depuis Pi, l’utilisateur ouvre la revue et choisit sa portée ainsi que la référence de comparaison. L’arbre à gauche montre le projet et les états des fichiers ; le panneau droit présente le fichier sélectionné, son contenu et les anciennes/nouvelles portions par mise en forme. Il peut afficher seulement les changements, revenir aux fichiers intacts, inspecter un fichier supprimé, suivre un renommage et ouvrir un constat au bon endroit. Les fichiers ajoutés par les agents, ceux modifiés avant leur intervention et les origines indéterminées restent identifiables lorsque les observations le permettent.
+Depuis Pi, l’utilisateur ouvre la revue et choisit sa portée ainsi que la référence de comparaison. Il parcourt le projet et l’état de chaque fichier, et lit le fichier retenu — son contenu comme ce qui y a changé, par mise en forme. Il peut afficher seulement les changements, revenir aux fichiers intacts, inspecter un fichier supprimé, suivre un renommage et ouvrir un constat au bon endroit. Les fichiers ajoutés par les agents, ceux modifiés avant leur intervention et les origines indéterminées restent identifiables lorsque les observations le permettent.
 
 L’utilisateur parcourt les modifications sans marqueurs de patch ni numéros de ligne, puis revient au dossier de preuves. S’il prend une décision, celle-ci concerne exclusivement la révision examinée. Si les agents ont poursuivi le travail entre-temps, Pi propose explicitement de consulter le nouveau candidat ; la revue précédente reste liée à son instantané. Un terminal étroit permet d’alterner arbre et lecteur, et un autre client Pi obtient les mêmes faits avec une présentation adaptée.
 
@@ -1176,7 +1208,7 @@ Le port moteur et le noyau demeurent testables avec des doubles hors ligne. Leur
 
 Cette matrice exprime le comportement requis, pas une promesse de widgets identiques. Les composants TUI ne doivent pas être requis en RPC, print ou JSON. Les autres entrées publiques ajoutées par une future version Pi doivent être examinées lors de sa qualification ; aucune compatibilité future n’est annoncée sans test.
 
-La vue à deux panneaux est une exigence produit à implémenter et qualifier ; elle n’est pas présentée comme une capacité déjà fournie par Pi ou par un package candidat. ADR-17 doit vérifier les points d’extension publics, le focus, le rendu, le redimensionnement et le retour à la conversation sur la version Pi retenue. Le modèle de comparaison reste séparé du moteur de rendu.
+Ce que la revue doit établir est une exigence produit ; la surface qui l’affiche s’assemble à partir de `pi-tui`, qui publie les composants de disposition, de défilement, de sélection, de clavier et de mesure de largeur, ainsi que la neutralisation des séquences terminal. Ce qui reste à écrire est le modèle de comparaison, qui demeure séparé de tout moteur de rendu. ADR-17 vérifie sur la version Pi retenue quels composants couvrent le besoin et ce qui manque, avant d’écrire ce qui manquerait.
 
 L’accès aux opérations déterministes, dont vérifier, consulter l’état et reprendre une décision, ne doit pas dépendre du bon vouloir du modèle. L’extension fournit des chemins explicites dans Pi ; une demande conversationnelle peut les compléter, sans être l’unique moyen de contrôle.
 
@@ -1236,6 +1268,7 @@ La configuration effective doit être exportable sous forme canonique, après r�
 | Corrections | Nombre maximal de nouveaux candidats par incrément. | 3 tentatives d’implémentation au total par incrément ; les préparations ont leurs budgets distincts, inclus dans le budget du programme. |
 | Incidents techniques | Relances d’une opération identique, backoff. | 2 relances maximum, sans doubler un effet incertain. |
 | Exécution | Durée d’intervention, durée par incrément, durée du programme, appels d’outils. | 20 min/intervention, 120 min/incrément, 100 appels/intervention ; budget de programme établi selon son plan et modifiable par décision. |
+| Réactivité | Retour d’état local, émission du signal d’annulation, grâce avant terminaison forcée. | 1 s au 95e percentile, 2 s, 10 s de grâce ; ces trois réglages donnent corps aux garanties de NFR-04. |
 | Délégation | Concurrence, profondeur, plafond cumulé. | Séquentiel en P0 ; en P1 : 2 simultanés, profondeur 1, 8 enfants maximum par changement. |
 | Contexte | Taille d’injection, réserve de sortie, ressources obligatoires. | Feedback 64 Kio maximum ; contexte adapté à la capacité déclarée du modèle. |
 | Modèles | Fournisseur, identifiant exact, paramètres et repli. | Aucun repli implicite ; catalogue explicite du déploiement. |
@@ -1349,7 +1382,7 @@ Une source externe peut évoluer. Lorsqu’elle justifie une décision, le dossi
 
 ### L0 — Qualification technique, sans promesse produit
 
-Valider un pi-package avec ses entrées TUI, RPC, JSON, print et SDK, puis sessions contrôlées, annulation, contexte, moteur simulé, confinement, rapport et packaging. Le prototype démontre un cycle complet depuis Pi, sans interface autonome du produit. Qualifier aussi un prototype de revue à deux panneaux avec arborescence, comparaison mise en forme, navigation clavier, redimensionnement et données exploitables depuis les autres entrées Pi. Fixer un corpus représentatif de grands arbres et fichiers ainsi que des budgets d’affichage mesurables ; vérifier l’absence de blocage de la session Pi. Livrer un rapport de qualification avec versions testées et limitations.
+Valider un pi-package avec ses entrées TUI, RPC, JSON, print et SDK, puis sessions contrôlées, annulation, contexte, moteur simulé, confinement, rapport et packaging. Le prototype démontre un cycle complet depuis Pi, sans interface autonome du produit. Qualifier aussi un prototype de revue assemblé sur les composants de `pi-tui` : parcours du projet, comparaison mise en forme, navigation clavier, largeur contrainte et données exploitables depuis les autres entrées Pi. Fixer un corpus représentatif de grands arbres et fichiers ainsi que des budgets d’affichage mesurables ; vérifier l’absence de blocage de la session Pi. Livrer un rapport de qualification avec versions testées et limitations.
 
 **Sortie :** décision argumentée sur l’intégration et la frontière d’exécution. Un échec ne réduit pas les exigences ; il conduit à adapter la solution ou à choisir un autre moteur.
 
@@ -1414,7 +1447,7 @@ Le document est exploitable pour démarrer L0 et préparer L1. Les décisions su
 | ADR-14 | Baselines architecture et qualité. | Constats par règle et composant, exceptions bornées, cibles contextualisées. | REC-33 à REC-36 ; non-régression métier. |
 | ADR-15 | Profils d’expertise et profondeur de revue. | Disciplines et risques applicables, analyses spécialisées sans nombre fixe d’agents. | REC-37 et revue de proportionnalité des décisions. |
 | ADR-16 | Adaptation des interactions aux modes Pi. | Opérations communes, composants TUI adaptés, réponses et décisions persistées dans les autres modes. | REC-38 à REC-40, provenance des approbations et absence de dépendance à un widget. |
-| ADR-17 | Réalisation de la revue arbre/lecteur dans Pi. | Vue TUI à deux panneaux, données de comparaison indépendantes, rendu ancien/nouveau mis en forme sans syntaxe de patch ; choix du composant et du mode détaillé à prototyper. | L0 : API publiques Pi, focus, raccourcis, styles accessibles, seuil de largeur, grands volumes et sorties adaptées ; REC-41 à REC-47 pour la recette produit. |
+| ADR-17 | Réalisation de la revue arbre/lecteur dans Pi. | Surface assemblée sur les composants publiés par `pi-tui`, données de comparaison indépendantes du rendu, ancien/nouveau distinguables sans syntaxe de patch ; ce que `pi-tui` ne couvre pas est établi avant d'être écrit. | L0 : API publiques Pi, focus, raccourcis, styles accessibles, seuil de largeur, grands volumes et sorties adaptées ; REC-41 à REC-47 pour la recette produit. |
 
 La liste exacte de modèles, les versions verrouillées des packages, les outils de vérification par technologie et les valeurs finales de performance sont résolus par qualification. Ils ne peuvent être déduits de leur seule présence dans un catalogue.
 

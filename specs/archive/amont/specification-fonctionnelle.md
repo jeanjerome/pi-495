@@ -342,10 +342,10 @@ Un incrément préparatoire ne vaut pas livraison fonctionnelle. Un incrément a
 
 1. L'utilisateur ouvre la revue depuis l'incrément, le dossier de preuves ou un constat.
 2. La vue affiche la portée, la référence, le candidat et l'actualité de l'instantané.
-3. L'arbre représente l'union des chemins et permet la vue complète ou « changements uniquement ».
+3. Tous les chemins des deux références sont atteignables, et la vue peut se restreindre aux seuls changements sans que les autres deviennent introuvables.
 4. L'utilisateur sélectionne un fichier et consulte son contenu ou ses portions ancienne/nouvelle.
-5. Il peut parcourir fichiers et modifications, chercher un chemin, changer de mode de lecture et ajuster la largeur.
-6. Sur terminal étroit, il alterne arbre et lecteur sans perdre sélection ni opération.
+5. Il parcourt les fichiers et les modifications, cherche un chemin et change de mode de lecture.
+6. Aucune opération ni sélection ne se perd lorsque la largeur disponible se réduit.
 7. Il revient à la conversation Pi puis rouvre la revue au même contexte.
 8. Si un candidat plus récent existe, il est signalé sans remplacer l'instantané consulté.
 
@@ -369,7 +369,7 @@ La consultation reste sans effet sur le projet, les décisions et Git.
 3. La tentative reçoit une identité distincte et ne peut modifier le protocole gelé.
 4. Le nouveau candidat invalide les observations qui dépendaient de l'ancien.
 5. Les contrôles requis sont relancés sur le nouvel objet.
-6. Après la troisième tentative d'implémentation par défaut, le changement s'arrête avec `attempts_exhausted`, sauf augmentation de budget explicitement autorisée.
+6. Le budget de tentatives épuisé, le changement s'arrête avec `attempts_exhausted`, sauf augmentation de budget explicitement autorisée.
 
 ### PF-15 — Recueillir une décision humaine
 
@@ -514,8 +514,8 @@ L'adaptateur générique de commandes fait partie du socle P0. Les intégrations
 | ID | Règle |
 | --- | --- |
 | RM-031 | Seul le noyau écrit les décisions automatiques de gate. |
-| RM-032 | Par défaut, un incrément dispose de trois tentatives d'implémentation au total. |
-| RM-033 | Une relance technique de la même opération ne consomme pas une tentative, mais reste bornée à deux relances par défaut. |
+| RM-032 | Un incrément dispose d'un nombre borné de tentatives d'implémentation, et l'épuisement de ce budget arrête le changement au lieu de le poursuivre. |
+| RM-033 | Une relance technique de la même opération ne consomme pas une tentative, mais reste bornée. |
 | RM-034 | Une augmentation de budget est une décision visible ; elle ne modifie pas rétroactivement la consommation. |
 | RM-035 | Une répétition sans progrès mesurable peut provoquer `stagnation` avant l'épuisement du nombre de tentatives. |
 | RM-036 | `FAIL` et `INDETERMINATE` bloquent tous deux le passage, mais restent distingués dans le feedback. |
@@ -559,7 +559,7 @@ L'adaptateur générique de commandes fait partie du socle P0. Les intégrations
 | RM-059 | Les statuts `intact`, `added`, `modified`, `deleted` et `renamed` sont lisibles sans dépendre de la couleur. |
 | RM-060 | Un renommage incertain est présenté comme hypothèse ou comme suppression/ajout, jamais comme certitude. |
 | RM-061 | Un fichier supprimé reste consultable dans son ancienne version et à son ancien emplacement logique. |
-| RM-062 | Le rendu par défaut n'affiche ni préfixes `+`/`-`, ni marqueurs de patch, ni colonne de numéros de ligne. |
+| RM-062 | Aucun habillage de comparaison ne peut être confondu avec le contenu du fichier lu. |
 | RM-063 | Les caractères `+` et `-` appartenant au code sont conservés intégralement. |
 | RM-064 | Une limite, troncature ou erreur de lecture interdit de qualifier le contenu d'intact sur cette seule observation. |
 | RM-065 | Une revue liée à une décision reste figée sur le candidat présenté, même si un candidat plus récent existe. |
@@ -597,20 +597,22 @@ L'adaptateur générique de commandes fait partie du socle P0. Les intégrations
 
 ### 8.10 Valeurs fonctionnelles initiales
 
-Ces valeurs sont les valeurs de départ héritées de l'expression de besoins. Elles restent configurables et doivent être qualifiées ; leur modification est versionnée.
+Les valeurs elles-mêmes sont écrites une seule fois, dans `expression-besoins.md` §12. Ce qui suit
+dit ce qui arrive quand la borne est atteinte — le comportement, qui ne change pas avec la valeur.
+Une borne franchie n'est jamais silencieuse et ne se relâche jamais d'elle-même.
 
-| Paramètre | Valeur initiale | Comportement à la limite |
-| --- | --- | --- |
-| Tentatives d'implémentation par incrément | 3 au total | Arrêt `attempts_exhausted` ou décision explicite d'extension. |
-| Relances d'un incident technique identique | 2 maximum | Blocage ; aucune relance si l'effet est incertain. |
-| Durée d'une intervention | 20 minutes | Interruption, collecte de l'état et diagnostic. |
-| Durée d'un incrément | 120 minutes | Suspension ou arrêt selon la politique adoptée. |
-| Appels d'outils par intervention | 100 | Refus du nouvel appel et clôture contrôlée de l'intervention. |
-| Feedback injecté à une correction | 64 Kio maximum | Synthèse structurée avec lien vers les preuves complètes. |
-| Concurrence en P0 | Séquentielle | Aucun second incrément producteur simultané. |
-| Délégation P1 | 2 simultanées, profondeur 1, 8 enfants maximum | Refus de la délégation supplémentaire. |
-| Intégration Git | Désactivée sans mandat | Export ou clôture acceptée sans effet Git. |
-| Réseau | Refus par défaut | Demande d'autorisation minimale ou capacité indisponible. |
+| Paramètre | Comportement à la limite |
+| --- | --- |
+| Tentatives d'implémentation par incrément | Arrêt `attempts_exhausted` ou décision explicite d'extension. |
+| Relances d'un incident technique identique | Blocage ; aucune relance si l'effet est incertain. |
+| Durée d'une intervention | Interruption, collecte de l'état et diagnostic. |
+| Durée d'un incrément | Suspension ou arrêt selon la politique adoptée. |
+| Appels d'outils par intervention | Refus du nouvel appel et clôture contrôlée de l'intervention. |
+| Feedback injecté à une correction | Synthèse structurée avec lien vers les preuves complètes. |
+| Concurrence | Aucun second incrément producteur simultané tant que la concurrence n'est pas ouverte. |
+| Délégation | Refus de la délégation supplémentaire. |
+| Intégration Git | Export ou clôture acceptée sans effet Git. |
+| Réseau | Demande d'autorisation minimale ou capacité indisponible. |
 
 Les budgets de préparation sont distincts des tentatives d'implémentation mais restent inclus dans le budget du programme. Un changement de modèle, une reprise ou une compaction ne remet aucun compteur à zéro.
 
@@ -658,18 +660,17 @@ Toute demande de décision DOIT :
 
 ## 10. Spécification fonctionnelle de la vue de revue
 
-### 10.1 Composition
+### 10.1 Ce que la vue doit permettre d'établir
 
-La vue TUI de référence comporte :
+Sans quitter la revue, le relecteur établit : quel candidat est comparé à quelle référence, et si
+l'instantané qu'il lit est encore le plus récent ; quels chemins le candidat touche et dans quel
+état chacun se trouve ; ce qui a changé dans un chemin donné, et ce que le fichier contient par
+ailleurs ; quel constat porte sur ce qu'il regarde et sur quelle preuve il s'appuie ; et quelles
+actions lui sont ouvertes. Il revient à la conversation Pi sans perdre où il en était.
 
-- un en-tête : programme, incrément, candidat, référence comparée, statut d'actualité ;
-- un panneau gauche : arborescence, recherche, filtre et états agrégés ;
-- un panneau droit : contenu, modifications ou métadonnées du chemin sélectionné ;
-- une zone de contexte : constat ouvert, preuve associée, limites de lecture ;
-- une aide des actions disponibles ;
-- un accès explicite au retour vers la conversation Pi.
-
-L'agencement à deux panneaux devient une alternance de vues sur terminal trop étroit. Ce changement de présentation ne retire aucune action fonctionnelle.
+Aucune de ces capacités ne disparaît quand le terminal se réduit. La disposition qui les porte, la
+place de chaque zone et le comportement en largeur contrainte relèvent de la conception d'interface
+et du TUI de Pi.
 
 ### 10.2 États de chemin
 
@@ -687,34 +688,24 @@ Un répertoire agrège les états de ses descendants sans perdre les détails lo
 
 ### 10.3 Modes de lecture
 
-Le lecteur propose fonctionnellement :
+Le relecteur choisit ce qu'il veut voir d'un chemin : ce qui y a changé, son contenu entier, ce que
+le système sait de lui sans pouvoir le lire comme du texte, ou ce qu'une revue lui reproche. Aucun de
+ces choix n'en rend un autre inatteignable, et passer de l'un à l'autre ne perd pas la position.
 
-1. **Modifications** : portions anciennes et nouvelles, contexte repliable, mise en évidence intraligne lorsque fiable ;
-2. **Contenu** : version complète choisie ;
-3. **Métadonnées** : type, taille, encodage, permissions, lien, sous-module, conflit et limites ;
-4. **Constats** : constats localisés et preuves associées sans modification du code.
-
-La coloration syntaxique est appliquée lorsque le langage est reconnu. Un langage inconnu reste lisible en texte brut. Les changements de fin de ligne, d'encodage, d'espaces ou de permissions sont visibles ou explicitement masqués par une option annoncée.
+Un langage reconnu est mis en forme, un langage inconnu reste lisible en texte brut. Les changements
+de fin de ligne, d'encodage, d'espaces ou de permissions sont visibles, ou masqués par une option qui
+s'annonce — jamais silencieusement absents.
 
 ### 10.4 Actions de navigation
 
-Les actions suivantes sont disponibles, indépendamment de leur raccourci final :
+Toute action de la vue est une consultation : parcourir, sélectionner, chercher, replier, changer de
+mode ou fermer ne modifie ni le projet, ni l'index Git, ni une décision, et ne vaut jamais
+approbation. Tout se mène au clavier, avec une aide consultable et un focus visible ; la souris peut
+compléter selon le terminal. L'ensemble des actions reste atteignable quelle que soit la largeur
+disponible.
 
-- ouvrir/fermer un répertoire ;
-- sélectionner et rechercher un chemin ;
-- basculer arbre complet/changements uniquement ;
-- changer le focus entre arbre et lecteur ;
-- faire défiler le contenu ;
-- aller au fichier changé suivant/précédent ;
-- aller à la modification suivante/précédente ;
-- changer de mode de lecture ;
-- déplier/replier le contexte ;
-- ajuster la largeur relative ;
-- ouvrir le fichier lié à un constat ;
-- revenir à la conversation ;
-- actualiser volontairement vers un candidat plus récent.
-
-Chaque action de consultation est purement lectrice.
+Le geste exact, son raccourci et la façon dont la vue se réorganise en largeur contrainte sont fixés
+par la conception d'interface.
 
 ### 10.5 Cas non textuels et limites
 
@@ -1009,7 +1000,7 @@ Et un renommage incertain n'est pas présenté comme certain
 Quand le lecteur affiche les modifications
 Alors les portions anciennes et nouvelles sont distinguées par intitulé et style
 Et les caractères source sont conservés exactement
-Et aucun préfixe de patch, marqueur de hunk ou numéro de ligne n'est affiché
+Et rien de l'habillage de comparaison ne peut être pris pour du contenu de fichier
 ```
 
 ### SA-024 — Naviguer au clavier sans effet
@@ -1024,10 +1015,9 @@ Et aucun fichier, index Git ou état de décision n'est modifié
 ### SA-025 — Adapter la revue à un terminal étroit
 
 ```gherkin
-Étant donné une revue en deux panneaux
+Étant donné une revue ouverte
 Quand la largeur du terminal passe sous le seuil qualifié
-Alors la vue alterne arbre et lecteur
-Et toutes les actions de navigation restent accessibles
+Alors toutes les actions de navigation restent accessibles
 Et la référence et le candidat consultés ne changent pas
 ```
 
