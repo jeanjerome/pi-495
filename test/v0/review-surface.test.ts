@@ -180,6 +180,27 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.match(reader.join("\n"), /Modifications — src\/a\.js/);
 		assert.equal(s.current()?.path, "src/a.js", "selection unchanged across views");
 	});
+	it("answers the page, home and end keys the terminal actually sends (UX-08)", async () => {
+		const { s } = surface(30);
+		s.selectPath("src/a.js");
+		s.handleInput("\t");
+		s.render(140);
+		await tick();
+		const top = s.render(140).join("\n");
+		s.handleInput("\x1b[6~");
+		const down = s.render(140).join("\n");
+		assert.notEqual(down, top, "page down moves the reader");
+		s.handleInput("\x1b[5~");
+		assert.equal(s.render(140).join("\n"), top, "page up comes back");
+		// Pi names these; the review has no action for them, so they must leave the surface as it was
+		// rather than reach the search or the tree as raw bytes.
+		const before = s.render(140).join("\n");
+		for (const key of ["\x1b[H", "\x1b[F", "\x1b[3~", "\x1b[1;5A"]) {
+			s.handleInput(key);
+			assert.equal(s.render(140).join("\n"), before, `${JSON.stringify(key)} moves nothing`);
+		}
+		assert.equal(s.current()?.path, "src/a.js", "selection survives unhandled keys");
+	});
 	it("fit truncates by visible characters", () => {
 		assert.equal(visibleLength(fit("héllo wörld", 5)), 5);
 		assert.equal(stripSequences(fit("héllo wörld", 5)), "héll…");

@@ -6,6 +6,7 @@
  * every one of them: an action that does not fit the width is shown in its compact form rather
  * than dropped from the end of the line (`specification-fonctionnelle.md` §16).
  */
+import { parseKey } from "@earendil-works/pi-tui";
 import { visibleLength } from "./measure.ts";
 import { hunkStarts } from "./reader-pane.ts";
 import { changedFiles, currentNode, selectPath, visibleRows } from "./tree-pane.ts";
@@ -19,27 +20,15 @@ export interface KeymapActions {
 	refresh(): void;
 }
 
-const KEYS: Record<string, string> = {
-	"\r": "enter",
-	"\n": "enter",
-	"\t": "tab",
-	"\x1b": "escape",
-	"\x7f": "backspace",
-	"\b": "backspace",
-	"\x1b[A": "up",
-	"\x1b[B": "down",
-	"\x1b[C": "right",
-	"\x1b[D": "left",
-	"\x1b[5~": "pageup",
-	"\x1b[6~": "pagedown",
-	"\x1bOA": "up",
-	"\x1bOB": "down",
-	"\x1bOC": "right",
-	"\x1bOD": "left",
-};
-
+/**
+ * The name Pi gives a key press. Pi decodes its own terminal — arrows, page keys, home and end,
+ * delete, and the modified forms a terminal sends for ctrl and shift — so the review answers to the
+ * same presses as every other surface Pi draws. What Pi does not name is passed through unchanged:
+ * a printable character types itself into the search, and a bracketed paste or a terminal's reply
+ * falls to the default and moves nothing.
+ */
 export function decodeKey(data: string): string {
-	return KEYS[data] ?? data;
+	return parseKey(data) ?? data;
 }
 
 /** Applies one key press to the view. Returns whether anything moved and must be drawn again. */
@@ -79,10 +68,10 @@ export function handleKey(ctx: PaneContext, data: string, actions: KeymapActions
 				view.readerScroll = 0;
 			} else view.readerScroll++;
 			break;
-		case "pageup":
+		case "pageUp":
 			view.readerScroll = Math.max(0, view.readerScroll - 20);
 			break;
-		case "pagedown":
+		case "pageDown":
 			view.readerScroll += 20;
 			break;
 		case "enter":
