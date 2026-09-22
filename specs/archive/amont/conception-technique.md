@@ -224,6 +224,44 @@ Les portions modifiées sont typées `unchanged`, `old`, `new` et `intraline`, m
 
 La première implémentation utilise `ctx.ui.custom()` sans overlay expérimental. Elle calcule sa hauteur depuis `tui.terminal.rows`, restaure le focus à la fermeture et appelle `tui.requestRender()` après une mutation de navigation. L’overlay Pi reste exclu de P0 tant que son API est annoncée expérimentale.
 
+### 5.x Ce que Pi tient déjà, et où s'y accrocher
+
+Plusieurs invariants du corpus n'ont pas à être construits : Pi les tient, et `D-55` impose de s'y
+accrocher plutôt que de les réécrire. Les règles métier restent ce qu'elles sont — ce sont des
+invariants, et un invariant ne se délègue pas. Ce qui se délègue est leur mise en œuvre. Cette table
+dit où, pour que la prochaine implémentation n'en réécrive aucune.
+
+Relevé sur la version épinglée, `@earendil-works/pi-coding-agent` et ses paquets pairs : trente-huit
+événements d'extension, trente et une pages de documentation, soixante-seize extensions d'exemple
+sous `examples/extensions/`. 495 pose aujourd'hui quatre accroches — `session_start`,
+`session_shutdown`, `session_before_fork`, `session_before_switch`.
+
+| Invariant | Surface Pi qui le tient |
+|---|---|
+| `RM-026` La compaction conserve obligations, décisions et budgets | `session_before_compact`, `session_compact`, `session_compact_failed` ; `docs/compaction.md`, `custom-compaction.ts`, `trigger-compact.ts` |
+| `RM-041`, `RM-042`, `RM-044` Permissions minimales, effets externes autorisés | `tool_call`, `tool_execution_start`, `user_bash` ; `permission-gate.ts`, `protected-paths.ts`, `confirm-destructive.ts` |
+| `RM-045`, `RM-075` Rien du dépôt cible n'est chargé automatiquement | `project_trust`, `resources_discover` ; `docs/security.md` § Project Trust, `project-trust.ts` |
+| `RM-046` Le contenu affiché est rendu inerte | `stripTerminalSequences` (`pi-tui`) |
+| `RM-022` Fournisseur et modèle explicites, aucun repli silencieux | `model_select` ; `docs/providers.md`, `docs/models.md`, `custom-provider-*` |
+| `RM-037`, `RM-040` Aucune absence de réponse ne vaut approbation | `ui_prompt_start`, `ui_prompt_end` ; `question.ts`, `questionnaire.ts`, `timed-confirm.ts` |
+| `RM-028`, `RM-029` Délégation bornée, arrêt avec le parent | `agent_start`, `agent_end`, `agent_settled` ; `examples/extensions/subagent/` |
+| `RM-021` Schéma de sortie par intervention | `structured-output.ts` |
+| Surface de revue (`UX-06` à `UX-11`) | `HStack`, `VStack`, `Container`, `ScrollView`, `SelectList`, `KeybindingsManager`, `MouseRegion`, `visibleWidth`, `truncateToWidth`, `sliceByColumn`, `fuzzyFilter` (`pi-tui`) |
+| `NFR-05` Isolation qualifiée par plateforme | `docs/containerization.md` (quatre motifs), `examples/extensions/sandbox/`, `gondolin/` |
+
+Deux endroits du code sont déjà concernés, et ne sont pas des hypothèses.
+`src/presentation/tui/review/measure.ts` calcule les colonnes qu'occupe une ligne stylée, ce que
+`visibleWidth` rend ; et `NARROW_THRESHOLD` n'a de raison d'être que parce que la surface assemble
+ses panneaux à la main au lieu de laisser un conteneur gérer la largeur. `src/adapters/sandbox/`
+porte 389 lignes de backends écrits à la main, quand l'exemple livré par Pi couvre `sandbox-exec`
+sur macOS et `bubblewrap` sur Linux en 321 lignes, par `@anthropic-ai/sandbox-runtime` — c'est-à-dire
+les trois options que la question ouverte du bac à sable hésitait à départager.
+
+Ce que 495 doit écrire lui-même est ce qui reste une fois cette table épuisée : le modèle de
+comparaison, le noyau de décision, la persistance normative et les adaptateurs de technologies
+cibles. Avant d'ajouter une ligne à cette liste, la recherche prescrite par `D-55` est conduite et
+son résultat est écrit.
+
 ## 6. Frontières de confiance et sécurité
 
 ### 6.1 Zones

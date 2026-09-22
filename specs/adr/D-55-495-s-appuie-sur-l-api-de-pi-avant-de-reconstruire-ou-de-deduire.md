@@ -1,7 +1,7 @@
 # D-55: 495 s'appuie sur l'API de Pi avant de reconstruire ou de déduire
 
 **Status:** Acceptée
-**Date:** 2026-09-22
+**Date:** 2026-09-22, second volet ajouté le même jour
 
 ## Context
 
@@ -54,13 +54,25 @@ Pi peut rapporter de l'intérieur.
 
 La recherche part de la documentation — <https://pi.dev/docs/latest>, ou le même corpus dans le
 dépôt de Pi sous `packages/coding-agent/docs/` — et se confirme dans la surface publiée par la
-version épinglée, `@earendil-works/pi-coding-agent/dist/**/*.d.ts` et les paquets pairs. Les deux
+version épinglée, `@earendil-works/pi-coding-agent/dist/**/*.d.ts` et les paquets pairs.
+
+Les trois sources sont sur la machine, dans le paquet installé, et se lisent hors ligne :
+`node_modules/@earendil-works/pi-coding-agent/docs/` porte trente et une pages, dont
+`containerization`, `compaction`, `security`, `sessions`, `providers`, `extensions` et `skills` ;
+`examples/extensions/` porte soixante-seize extensions qui marchent ; les paquets pairs
+`pi-ai`, `pi-tui` et `pi-telemetry` portent le reste. Aucune des trois ne demande de réseau. Les deux
 étapes comptent : la documentation décrit le Pi le plus récent, et une API qu'elle annonce n'est pas
 une API que ce dépôt possède. Ce qui est bâti sur une API dit contre quelle version elle a été
 confirmée.
 
 Là où les deux existent, le fait rapporté par Pi est la source, et ce que 495 redit ne vaut plus que
 comme attente. Le code dit laquelle des deux natures porte une valeur.
+
+La règle a un second volet, de même nature. Là où Pi livre déjà un paquet ou une extension qui
+répond au besoin, 495 le réutilise plutôt que d'en écrire un. Là où la réutilisation directe n'est
+pas possible, il prend la forme de celui qui existe plutôt que d'en inventer une. Dans les deux cas
+l'étude précède l'écriture, et ce qui a été étudié se dit — sans quoi la prochaine lecture devra la
+refaire.
 
 Quand aucune API ne couvre le besoin, le contournement nomme, à l'endroit où il vit, ce qui a été
 cherché et non trouvé — de sorte qu'il puisse être supprimé le jour où l'API arrive.
@@ -95,3 +107,16 @@ disparaît.
 La règle vaut au-delà de cette story. Tout endroit où 495 entretient une table, analyse un fichier
 ou relit du code tiers pour établir un fait devient un candidat à relecture sous ce critère : Pi
 le rapporte-t-il déjà ?
+
+L'écart entre ce qui a été écrit et ce qui était livré se mesure sur un cas. Le contrôle du bloc
+imposé relit le code distribué du fournisseur à l'expression régulière pour deviner ce que le modèle
+a reçu ; `examples/extensions/provider-payload.ts` fait le même travail en dix-huit lignes, en
+s'abonnant à `before_provider_request` et en lisant `event.payload` — le fait rapporté plutôt que
+déduit, et modifiable de surcroît. L'exemple était dans le paquet avant que le contrôle soit écrit.
+
+D'autres sujets du corpus sont dans la même position et n'ont pas encore été relus sous ce critère :
+le bac à sable, que `containerization.md` traite en quatre motifs avec `examples/extensions/sandbox/`
+et `gondolin/` à l'appui, alors qu'une décision ouverte hésite encore entre des backends écrits à la
+main ; la compaction, que Pi conduit et expose ; la confiance de projet, le rendu du lecteur, les
+gardes de permission, les décisions humaines et la délégation, qui ont chacun leur exemple livré.
+Ce que 495 doit écrire lui-même est ce qui reste une fois cette lecture faite, et elle ne l'est pas.
