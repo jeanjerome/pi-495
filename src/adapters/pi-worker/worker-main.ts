@@ -15,6 +15,7 @@ import { Value } from "typebox/value";
 import type { InterventionEvent, InterventionMandate, SandboxPort } from "../../ports/execution.ts";
 import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { digestValue } from "../../contracts/digest.ts";
+import { observeSessionEvent, type SessionEventRead } from "./session-observer.ts";
 import {
 	OUTPUT_SCHEMAS,
 	TOOLS_FOR_ROLE,
@@ -325,25 +326,11 @@ async function main(): Promise<void> {
 			let finalText = "";
 			let lastError: string | undefined;
 			session.subscribe((event) => {
-				if (event.type === "message_end" && event.message.role === "assistant") {
-					const msg = event.message as {
-						usage?: { totalTokens?: number };
-						content?: Array<{ type: string; text?: string }>;
-						errorMessage?: string;
-						stopReason?: string;
-					};
-					counters.tokens_known += msg.usage?.totalTokens ?? 0;
-					send({
-						type: "event",
-						event: { type: "model_event", at: now(), kind: "usage", tokens: msg.usage?.totalTokens ?? 0 },
-					});
-					const text = (msg.content ?? [])
-						.filter((x) => x.type === "text")
-						.map((x) => x.text ?? "")
-						.join("");
-					if (text.trim()) finalText = text;
-					if (msg.stopReason === "error") lastError = msg.errorMessage ?? "model error";
-				}
+				const observed = observeSessionEvent(event as unknown as SessionEventRead, now());
+				counters.tokens_known += observed.tokens;
+				for (const observation of observed.events) send({ type: "event", event: observation });
+				if (observed.text !== undefined) finalText = observed.text;
+				if (observed.error !== undefined) lastError = observed.error;
 			});
 			send({ type: "event", event: { type: "started", at: now() } });
 			// The duration budget suspends the work; it does not condemn it. The partial tree stays in

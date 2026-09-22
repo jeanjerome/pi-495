@@ -181,6 +181,21 @@ export type InterventionEvent =
 	| { type: "tool_started"; at: string; tool: string; call_id: string; args_digest: string }
 	| { type: "tool_finished"; at: string; tool: string; call_id: string; is_error: boolean; blocked: boolean }
 	| { type: "checkpointed"; at: string }
+	/**
+	 * Pi replaced an older part of the conversation with a summary to fit the window (CTX-02). What
+	 * the model holds from here on is no longer what the manifest sealed, and writing the summary
+	 * cost what `summary_tokens` says. `unwritten` names why the rewrite did not happen when it did
+	 * not: the window that forced it is still full.
+	 */
+	| {
+			type: "context_compacted";
+			at: string;
+			reason: "manual" | "threshold" | "overflow";
+			tokens_before: number | null;
+			tokens_after: number | null;
+			summary_tokens: number;
+			unwritten: string | null;
+	  }
 	/** `truncated` means the duration budget ended the session: the workspace holds unfinished work. */
 	| {
 			type: "completed";
