@@ -1,8 +1,10 @@
 /**
  * Dependency direction (conception §2.2): domain -> contracts only; application -> domain, ports,
  * contracts; adapters -> ports, contracts, domain types; extension/presentation -> application.
- * Nothing under domain/, contracts/, ports/, application/, presentation/ or export/ may import Pi
- * packages: the Pi API enters the sources through extension/ and adapters/pi-worker/ only.
+ * The kernel of requirements and decisions — domain/, contracts/, ports/, application/ and export/ —
+ * may not import Pi packages: that is what lets it be tested with no network and no real model
+ * (NFR-07), and it is the rule NFR-07 names. presentation/ is not part of that kernel and may use
+ * Pi's display library, which is a widget toolkit and not the agent API.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -24,11 +26,13 @@ const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
 	{ layer: "ports", forbidden: [/\.\.\/(application|adapters|extension|presentation|export)\//, /@earendil-works/] },
 	{ layer: "application", forbidden: [/\.\.\/(adapters|extension|presentation)\//, /@earendil-works/] },
 	{ layer: "adapters", forbidden: [/\.\.\/(extension|presentation)\//, /\.\.\/\.\.\/(extension|presentation)\//] },
-	// A view that imported Pi would tie the review to a component; what keeps the same review data
-	// readable from RPC, JSON, print and an SDK host is that no view depends on one (ADR-010, UX-11).
+	// What keeps the same review readable from RPC, JSON, print and an SDK host is that the review
+	// data does not depend on any view (ADR-010, UX-11) — and that data lives in application/ and
+	// presentation/structured/, which this rule does not reach. Forbidding Pi's widget toolkit here
+	// guarded nothing and cost the surface a hand-written copy of what pi-tui already publishes.
 	{
 		layer: "presentation",
-		forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//, /@earendil-works/],
+		forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//],
 	},
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
 ];
