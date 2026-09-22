@@ -6,6 +6,7 @@
  * on screen: the scroll follows the selection rather than the other way round.
  */
 import { flatten, neutralize, type PathStatus, type ReviewNode } from "../../../application/review.ts";
+import { treeRowOverhead, visibleLength } from "./measure.ts";
 import { SYMBOL, type PaneContext, type Selection } from "./view.ts";
 
 /** The rows the tree shows, in order: the filter and the search both apply here and nowhere else. */
@@ -35,6 +36,25 @@ export function changedFiles(ctx: PaneContext): number[] {
 	return visibleRows(ctx)
 		.map((r, i) => (r.node.kind !== "directory" && r.node.status !== "intact" ? i : -1))
 		.filter((i) => i >= 0);
+}
+
+/**
+ * Columns the tree needs so that no changed name is cut (SA-025, `D-33`).
+ *
+ * A cut name makes two files indistinguishable, and the tree is the only pane that can navigate, so
+ * this is the width below which the split stops being an arrangement and starts hiding the change.
+ * It is read off the rows the tree is about to show rather than off a measured corpus: a constant
+ * decided once holds only for the corpus it was decided on, and the reviewer can change the split.
+ * Directories are left out — an unopened directory can be opened, and its aggregate is a summary,
+ * not a name one has to read whole.
+ */
+export function treeWidthNeeded(ctx: PaneContext): number {
+	let needed = 0;
+	for (const r of visibleRows(ctx)) {
+		if (r.node.kind === "directory" || r.node.status === "intact") continue;
+		needed = Math.max(needed, treeRowOverhead(r.depth) + visibleLength(neutralize(r.node.name)));
+	}
+	return needed;
 }
 
 export function renderTree(ctx: PaneContext, width: number, height: number): { lines: string[]; width: number } {

@@ -15,7 +15,7 @@ import { handleKey, renderKeyHelp } from "./review/keymap.ts";
 import { NARROW_THRESHOLD, fit } from "./review/measure.ts";
 import { renderReader } from "./review/reader-pane.ts";
 import { renderContext } from "./review/context-pane.ts";
-import { changedFiles, currentNode, renderTree, selectPath, visibleRows } from "./review/tree-pane.ts";
+import { changedFiles, currentNode, renderTree, selectPath, treeWidthNeeded, visibleRows } from "./review/tree-pane.ts";
 import {
 	EN,
 	FR,
@@ -184,7 +184,14 @@ export class ReviewSurface implements ReviewView {
 		const bodyRows = rows - 4;
 		const node = currentNode(ctx);
 		if (node) this.ensureLoaded(node, bodyRows);
-		const tree = renderTree(ctx, narrow ? width : Math.max(20, Math.floor(width * this.split)) - 1, bodyRows);
+		// The split is an arrangement, not a way to hide the change: whatever the reviewer asks for with
+		// `+` and `-`, the tree keeps the columns its changed names need, up to the share a reader can
+		// spare. Below the threshold the panes alternate and the whole width is the tree's anyway.
+		// One column of the share goes to the separator, so what the tree draws in is one less than what
+		// the split asks for; the floor is compared against that drawn width, not against the share.
+		const asked = Math.max(20, Math.floor(width * this.split)) - 1;
+		const treeWidth = Math.min(Math.max(asked, treeWidthNeeded(ctx)), Math.floor(width * 0.7) - 1);
+		const tree = renderTree(ctx, narrow ? width : treeWidth, bodyRows);
 		const readerWidth = narrow ? width : width - tree.width - 1;
 		const reader = renderReader(ctx, node, readerWidth, bodyRows);
 		for (let i = 0; i < bodyRows; i++) {

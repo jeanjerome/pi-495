@@ -120,10 +120,16 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 			.trimEnd();
 	}
 
-	it("is the smallest width at which the tree column still shows the corpus's deepest changed name whole", () => {
+	it("stays above the width at which two panes can no longer hold a changed name whole", () => {
 		// Criterion: a name the layout cut makes two files indistinguishable, and the tree is the only
 		// pane that can navigate. `narrowThreshold: 0` keeps two panes at any width so the criterion
-		// can be measured on the split itself.
+		// can be measured on the layout itself.
+		//
+		// What this measured before: the width at which a 0.4 split happened to reach the columns the
+		// tree needs. That is no longer what decides — the tree now states its need and the split
+		// honours it at any width — so the derivation it encoded is superseded (`D-33`). What remains
+		// true, and is what the threshold owes the reviewer, is that it never sits below the width
+		// where two panes stop being able to show a name whole.
 		const needed = treeRowOverhead(REVIEW_CORPUS.max_depth) + REVIEW_CORPUS.name.p95;
 		assert.equal(needed, 36, "2*3 + 4 + 26 columns for the deepest p95 name");
 		let smallest = 0;
@@ -132,9 +138,7 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 			smallest = width;
 			break;
 		}
-		assert.equal(smallest, 93, "the 0.4 split reaches 36 tree columns at 93");
 		assert.ok(NARROW_THRESHOLD >= smallest, `${NARROW_THRESHOLD} is at or above the measured minimum ${smallest}`);
-		assert.equal(NARROW_THRESHOLD, Math.ceil(smallest / 10) * 10, "rounded up to the next ten");
 	});
 
 	it("keeps the name readable on both sides of the threshold: split above, alternating below", () => {
@@ -147,6 +151,19 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 		const narrow = surface(NARROW_THRESHOLD).render(NARROW_THRESHOLD - 1);
 		assert.ok(!narrow.slice(2, -2).some((l) => l.includes("│")), "one pane below it");
 		assert.ok(!treeRow(narrow).includes("…"), "the full width shows the name the split could not");
+	});
+
+	it("holds the name whole at every split the reviewer can choose, not only the default one", () => {
+		// The threshold is measured on the 0.4 split, but `+` and `-` move it between 0.2 and 0.7.
+		const width = NARROW_THRESHOLD + 1;
+		const s = surface(NARROW_THRESHOLD);
+		assert.ok(!treeRow(s.render(width)).includes("…"), "whole at the default split");
+		for (let i = 0; i < 4; i++) s.handleInput("-"); // 0.4 -> 0.2, the narrowest the keys allow
+		s.invalidate();
+		assert.ok(
+			!treeRow(s.render(width)).includes("…"),
+			`a split the reviewer can reach must not cut the name the threshold exists to protect: ${treeRow(s.render(width))}`,
+		);
 	});
 
 	it("names every action at every width: nothing a reviewer can do disappears from the help (§16)", () => {
