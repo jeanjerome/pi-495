@@ -209,11 +209,11 @@ out_of_scope:
 constraints:
   - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
   - >
-    Machine de référence macOS 27 arm64, Node 24.21, Pi 0.86.1 ; Linux non revendiqué. `node`
+    Machine de référence macOS 27 arm64, Node 24.21, Pi 0.87.0 ; Linux non revendiqué. `node`
     alimente `environment_digest` autant que `pi_version`, et la machine présente Node 24 par un
     épinglage qui vit hors du dépôt, dans `~/.zshenv` (`D-50`) : aucun contrôle ne le vérifie.
   - >
-    `devDependencies` suit la version de Pi que la machine de référence exécute — 0.86.1 pour les
+    `devDependencies` suit la version de Pi que la machine de référence exécute — 0.87.0 pour les
     trois paquets `@earendil-works`. Un caret sur une version 0.x verrouille le mineur : laisser la
     borne en arrière fait tourner les tests contre une version et les campagnes contre une autre,
     sans qu'aucun contrôle le refuse. `pi_version` alimente `environment_digest`, donc une montée

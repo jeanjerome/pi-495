@@ -51,7 +51,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 | Run | N/A — Pi loads the built extension; there is no standalone entry point |
 | Test | `npm test` |
 | Build | `npm run build` |
-| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule && npm run lint:provider-block` |
+| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:provider-block` |
 | Preflight | `npm run check` |
 | CI | N/A — no CI job configured; run `npm run check` locally before every commit |
 
@@ -61,7 +61,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Lint
 
-`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:capsule && npm run lint:provider-block`
+`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:distribution && npm run lint:story-format && npm run lint:provider-block`
 
 ## Build
 
@@ -75,6 +75,8 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 
 - Keep dependency direction one-way. Never import a layer listed after your own in the chain above.
 - Route the Pi API only through `extension/` or `adapters/pi-worker/`.
+- Reach for Pi's own API before rebuilding a capability or deducing a fact from outside it. 495 is a
+  Pi extension, and a fact Pi reports beats one 495 restates (`CONVENTIONS.md` § Pi is the host).
 - Give every new component a `CMP-*` id and add it to `specs/archive/amont/conception-technique.md` §4.1 in the same change.
 - Rebuild `dist/` from `src/` before every check. Never hand-edit `dist/`.
 - Attribute every redistributed dependency in `NOTICE`. Keep peer dependencies on the permissive licence allowlist.

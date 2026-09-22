@@ -1,7 +1,11 @@
 # D-54: La cohérence d'une capsule est tenue par un contrôle du dépôt, pas par celui du paquet d'outils
 
-**Status:** Acceptée
+**Status:** Acceptée, implantation portée hors de cette branche
 **Date:** 2026-09-21
+**Révisé:** 2026-09-22 — le contrôle vit sur la branche `controle-de-capsule` et n'est plus
+chaîné dans le Preflight de cette branche. La décision tient ; la porte qu'elle installe ne
+s'exerce pas ici tant que cette branche-là n'a pas été reprise. Jusque-là, rien ne refuse une
+story dite faite sans preuve, ce qui est l'état que cette décision existe pour corriger.
 
 ## Context
 
