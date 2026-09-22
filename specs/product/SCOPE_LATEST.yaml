@@ -104,6 +104,97 @@ in_scope:
       aucune largeur de son appelant. Le critère « le poids qu'il ajoute et ce à quoi il nous lie »
       n'est plus une formule : il a un prix chiffré.
 
+      ---
+
+      ## Prior Art — la frontière d'exécution
+
+      **Ce que le besoin demande, écrit avant les candidats.** `SEC-01` veut un profil explicite de
+      lecture, écriture, réseau, commandes, secrets et effets externes, l'absence de permission
+      valant refus. `SEC-02` veut une frontière effective sur les fichiers, les sous-processus et le
+      réseau, et dit que l'interception d'appels ou la seule séparation de processus ne suffisent
+      pas. `SEC-05` veut une liste explicite des variables transmises et pas de secret sur la ligne
+      de commande. `NFR-05` veut macOS Apple Silicon et Linux x86-64 qualifiés, et rien d'autre
+      annoncé avant recette. Le refus `capability_missing` suppose de la frontière qu'elle rende son
+      verdict *avant* d'exécuter : `SandboxPort.qualify` répond sans lancer de processus, et
+      `CONVENTIONS.md` interdit qu'un backend non qualifié tourne sans confinement. Le port ajoute
+      trois contraintes de forme que le besoin ne dit pas mais que le code tient : sept profils
+      (`observe` à `integrate`), un réseau en tri-état `denied | loopback | allowed`, et
+      « Never uses a shell ».
+
+      Les critères de choix sont ceux de `e24s01` : ce que le besoin demande réellement, la licence,
+      l'entretien du paquet, le poids ajouté, et ce à quoi l'adoption nous lie.
+
+      | Besoin examiné | Candidat | Source | Verdict | Notes |
+      |---|---|---|---|---|
+      | Génération d'un profil de confinement macOS | `SandboxManager.wrapWithSandbox*` | `@anthropic-ai/sandbox-runtime` | **candidat, refusé en l'état** | Mesuré ici : le profil SBPL que le dépôt génère fait 21 lignes et 883 caractères ; celui d'ASRT en fait 263 et 16 950, calqué sur la politique du bac à sable de Chrome. Deux obstacles le refusent aujourd'hui, tous deux mesurés — voir plus bas. |
+      | Confinement Linux | `bubblewrap` piloté par ASRT, avec `apply-seccomp` vendorisé pour `arm64` et `x64` | `@anthropic-ai/sandbox-runtime` | **candidat** | `BubblewrapSandbox` est écrit mais ne qualifie sur aucune machine : `NFR-05` reste la seule exigence [P0] déclarée infermable. ASRT ajoute le filtre d'appels système que le dépôt n'a pas. |
+      | Confinement Windows | `srt-win.exe` (`arm64`, `x64`) et les contrôles WFP | `@anthropic-ai/sandbox-runtime` | **besoin absent** | `NFR-05` interdit d'annoncer Windows avant recette, et aucune campagne ne le vise. La capacité existe chez le candidat ; elle ne crée pas le besoin. |
+      | Réseau en tri-état `denied / loopback / allowed` | `allowLocalBinding`, `allowUnixSockets`, `allowMachLookup` | `@anthropic-ai/sandbox-runtime` | **réutiliser, si adoption** | Le `loopback` que le dépôt écrit à la main en trois règles SBPL est un booléen de configuration chez le candidat. |
+      | Politique réseau par domaine | `allowedDomains`, `deniedDomains`, `strictAllowlist`, `deniedResolvedAddresses` | `@anthropic-ai/sandbox-runtime` | **aucun candidat dans le dépôt — capacité absente** | Le tri-état du dépôt ne sait pas autoriser un hôte et un seul. Mesuré ici sur la version installée : allowlist vide → `curl: (56) CONNECT tunnel failed, response 403` en 23 ms ; `registry.npmjs.org` autorisé → sortie 0 en 78 ms ; le même refusé explicitement → 403 en 25 ms. |
+      | Masquage des secrets transmis | `credentials.files`, `credentials.envVars`, modes `deny` et `mask` | `@anthropic-ai/sandbox-runtime` | **aucun candidat dans le dépôt — capacité absente** | Le processus confiné voit une sentinelle ; le proxy hôte substitue la vraie valeur à la sortie vers les hôtes déclarés. C'est la recette de `SEC-05` écrite comme capacité, là où le dépôt n'a que `env_allowlist`. Sur macOS le masquage de fichier dégrade en `deny`, le paquet le dit. |
+      | Verdict de qualification rendu avant toute exécution | `isSupportedPlatform()`, `checkDependencies()` | `@anthropic-ai/sandbox-runtime` | **réutiliser, si adoption** | Mesuré sur cette machine : `isSupportedPlatform` rend `true`, `checkDependencies` rend zéro erreur et zéro avertissement. C'est la donnée que `qualify()` déduit aujourd'hui de `existsSync("/usr/bin/sandbox-exec")`. |
+      | Attribution d'une violation à la commande qui l'a causée | `SandboxViolationStore`, `annotateStderrWithSandboxFailures`, étiquette de journal par commande | `@anthropic-ai/sandbox-runtime` | **aucun candidat dans le dépôt — capacité absente** | `startupIncident` distingue l'incident de confinement du test rouge en lisant les 400 premiers octets de `stderr` ; le candidat corrèle chaque violation observée à un identifiant d'invocation. |
+      | Lancement hors shell, groupe de processus, délai, bornage de sortie | — | — | **écrire — tenu, et aucun candidat ne s'applique** | `runProcess` (150 lignes) tient `shell: false`, `detached`, `SIGTERM` puis `SIGKILL` après un sursis, et la troncature à `max_output_bytes`. C'est la forme que `ProcessObservation` exige ; aucun des candidats ne la rend. |
+      | Frontière portant la session entière plutôt que le contrôle | micro-VM Gondolin ; Docker simple ; OpenShell ; Docker Sandboxes | `@earendil-works/gondolin` ; `docs/containerization.md` | **hors du besoin** | Les quatre motifs que `containerization.md` traite confinent le processus `pi`. 495 ne confine pas sa propre session : il confine les contrôles qu'il exécute, un par un, sous sept profils distincts. Un motif qui isole tout le processus ne rend pas les profils indépendants que `SEC-01` exige. |
+
+      **Les candidats, mesurés sur la machine et non sur ce qu'une page annonce.**
+      `@anthropic-ai/sandbox-runtime` est en `0.0.77`, publiée il y a quatre jours, la soixante-treizième
+      depuis octobre 2025 ; licence Apache-2.0 ; elle publie un `dist/` construit et ses `.d.ts`, donc
+      rien à réécrire à la main et aucun chargeur à réclamer — l'inverse exact de ce que `D-56` a payé.
+      Installée dans un répertoire jetable hors du dépôt : 8,8 Mo pour le paquet, 16 Mo pour l'arbre
+      de cinq paquets. `@earendil-works/gondolin` est en `0.12.0`, publiée il y a quatre mois, licence
+      Apache-2.0, 2,9 Mo annoncés par le registre et non installés ici ; elle exige Node ≥ 23.6 et
+      QEMU, **absent de cette machine**, donc elle n'est pas éprouvable ici sans installation
+      préalable. L'extension d'exemple `sandbox/` (321 lignes) épingle ASRT `0.0.26`, publiée en
+      janvier 2026 : quarante-neuf versions derrière ce que le registre sert aujourd'hui, et elle
+      remplace l'outil `bash` intégré de Pi — un besoin qui n'est pas celui de 495.
+
+      **Une estimation antérieure est corrigée.** `specs/spikes/organisation-des-quatre-chantiers.md`
+      chiffrait l'adoption à « environ 390 lignes de génération de profil en moins ». Compté sur le
+      code : les deux corps qui génèrent réellement un profil font 44 lignes — 31 pour le SBPL de
+      Seatbelt, 13 pour les arguments de bubblewrap. Les 389 lignes de `src/adapters/sandbox/`
+      comprennent aussi `runProcess` (150 lignes) et la qualification, que le candidat ne remplace
+      pas : il rend une ligne de commande, pas une `ProcessObservation` bornée, expirée et tuée par
+      groupe de processus. Le gain de code est réel mais dix fois plus petit qu'annoncé, et ce n'est
+      donc pas là qu'il faut chercher le motif d'adopter : celui-ci est la politique réseau par
+      domaine, le masquage des secrets et un `bubblewrap` entretenu ailleurs que chez nous.
+
+      **Deux obstacles refusent l'adoption aujourd'hui, et aucun n'est de principe.**
+      La licence d'abord : `node-forge`, dépendance d'ASRT, déclare `(BSD-3-Clause OR GPL-2.0)`.
+      `scripts/check-distribution.ts` n'admet une licence duale que si *chaque* branche est sur la
+      liste permissive, et `GPL-2.0` n'y est pas — `npm run lint:distribution` refuserait donc
+      l'installation. Trois issues : porter `GPL-2.0` sur la liste, qui est une décision de licence et
+      non un réglage ; obtenir du paquet qu'il déclare la branche retenue ; ou renoncer.
+      Le shell ensuite : `wrapWithSandboxArgv` ne rend pas l'argv sans shell que son nom laisse croire.
+      Mesuré ici, il rend `['/bin/bash', '-c', <18 712 caractères>]`, le troisième élément portant
+      `env …` puis `sandbox-exec -p '(version 1) …'`. `SandboxPort.run` dit « Never uses a shell » et
+      `runProcess` lance avec `shell: false` ; adopter le candidat tel quel remplacerait une exécution
+      sans shell par une ligne de bash de dix-huit mille caractères, soit exactement la voie que
+      `SEC-02` demande de confiner. L'`env` rendu à côté est l'environnement hôte complet et non une
+      liste blanche, donc `buildEnv(profile.env_allowlist, profile.env)` serait contourné et `SEC-05`
+      avec lui.
+
+      **Une contrainte de couplage, trouvée en mesurant faux.** Le proxy qui tient la politique réseau par domaine
+      tourne *dans le processus Node qui enveloppe la commande*. Un premier relevé attribuait
+      au candidat un refus réseau en huit secondes ; la cause était `spawnSync` dans la sonde, qui
+      bloque la boucle d'événements et empêche le proxy de répondre — y compris pour un domaine
+      autorisé. Relancé en asynchrone, le même refus tombe en 23 ms. `runProcess` lance déjà en
+      asynchrone, donc le dépôt satisfait la contrainte ; mais elle devient une contrainte du port et
+      non un détail d'implémentation, et elle mérite d'être écrite avant qu'un appelant la brise.
+
+      **Ce que l'étude ne tranche pas, et ce que chaque réponse coûterait.** La mesure sous
+      **Apple Container** — présent sur cette machine en 1.4.1 — reste la condition de l'arbitrage, et
+      elle ne se conduit pas pendant qu'une campagne tourne : `sandbox_backend` entre dans les faits
+      d'environnement hachés en `environment_digest` (`src/application/environment.ts`), et
+      `src/application/qualification.ts` écarte toute qualification portant un autre digest. Changer de
+      backend rend les campagnes antérieures non transférables. Les trois réponses possibles :
+      garder les 389 lignes écrites à la main ne coûte rien aujourd'hui et laisse `NFR-05` infermable
+      côté Linux ; adopter ASRT derrière `SandboxPort` gagne la politique par domaine, le masquage de
+      secrets, un `bubblewrap` entretenu ailleurs et l'attribution des violations, contre la levée
+      des deux obstacles, 16 Mo, un proxy en processus et un digest d'environnement neuf ; router
+      vers une micro-VM gagne une frontière plus forte, contre QEMU, Node ≥ 23.6 et une granularité
+      qui est la session quand le besoin est le contrôle.
+
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L
     objet: >

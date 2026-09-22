@@ -9,7 +9,7 @@ development_status:
   e23s06: backlog
   e24s01: done
   e24s02: done
-  e24s03: backlog
+  e24s03: done
   e24s04: backlog
 
 epics:
@@ -101,13 +101,17 @@ stories:
     # Deux tâches ont eu leur rouge, éprouvées par contrôle négatif : la neutralisation retirée, et
     # le paquet installé fait dériver pour de vrai. Les cinq autres sont constatées.
   e24s03:
-    status: backlog
+    status: done
     title: "L'antériorité du bac à sable est établie"
     bcps: 3
     epic: e24
-    tasks_total: 4
-    tasks_passing: 0
-    tasks_failing: 4
+    tasks_total: 5
+    tasks_passing: 5
+    tasks_failing: 0
+    risk_max: P2
+    # Les cinq commandes ont été rouges avant que le relevé soit écrit et vertes après : le cycle
+    # de D-52 est tenu. Une cinquième tâche oppose les deux obstacles que l'étude a mesurés — la
+    # licence duale de node-forge et le shell que le candidat rend.
   e24s04:
     status: backlog
     title: "L'antériorité de ce que Pi tient déjà est établie"

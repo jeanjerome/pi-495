@@ -1,12 +1,26 @@
-# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment des
-# fichiers qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes opposent au
+# relevé ce qu'il doit porter : c'est faible par nature — une expression qui cherche nos propres mots
+# dans notre propre fichier — et ça n'est pas déguisé en preuve d'exécution. Ce qui tient vraiment
+# cette story est que chaque chiffre du relevé a été mesuré sur cette machine, par une commande dont
+# la sortie est reproductible.
+#
+# Les cinq commandes ont été rouges avant que le relevé soit écrit, et vertes après : le cycle de
+# D-52 est tenu ici, ce que la capsule de e24s01 ne pouvait pas dire.
+#
+# Les commandes cherchent une affirmation, jamais un chiffre : un relevé remesuré garderait ses
+# phrases et changerait ses nombres, et une porte accrochée au nombre périmerait à la mesure
+# suivante sans que rien ait faibli.
 
 story_id: e24s03
+spec: e24s03-l-anteriorite-du-bac-a-sable-est-etablie.md
 title: "L'antériorité du bac à sable est établie"
-status: failing
+status: passing
 bcps: 3
 decision: D-55
 delta: ADDED
+risk: P2
+context: specs
+type: docs
 
 tasks:
   - id: 1
@@ -14,27 +28,40 @@ tasks:
       Le besoin réel est écrit avant les candidats : ce que SEC-01 et SEC-02 exigent d'une frontière
       d'exécution, et ce que le refus capability_missing suppose d'elle. Un candidat comparé à un
       besoin non écrit se choisit sur ses qualités, pas sur les nôtres.
-    verify: "grep -q 'Prior Art' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
-    status: failing
+    verify: "grep -qF \"Ce que le besoin demande, écrit avant les candidats\" specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
   - id: 2
     description: >
       Les candidats sont relevés sur la machine, pas sur ce qu'une page annonce : les quatre motifs
       que la documentation de containerization traite, les deux extensions d'exemple livrées, et les
       backends écrits à la main que le dépôt porte aujourd'hui. Chacun avec sa licence, son
       entretien, son poids et ce à quoi il lie.
-    verify: "grep -q 'sandbox-runtime' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
-    status: failing
+    verify: "grep -qF '@anthropic-ai/sandbox-runtime' specs/product/SCOPE_LATEST.yaml && grep -qF '@earendil-works/gondolin' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
   - id: 3
     description: >
       L'écart entre ce que le dépôt écrit à la main et ce que l'écosystème livre est chiffré — lignes
-      de génération de profil, plateformes couvertes, politique réseau par domaine que le tri-état
-      actuel n'a pas — et le relevé dit ce que l'adoption coûterait en dépendance d'exécution.
-    verify: "grep -q 'politique réseau' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
-    status: failing
+      de profil réellement générées, plateformes couvertes, politique réseau par domaine que le
+      tri-état actuel n'a pas — et le relevé dit ce que l'adoption coûterait en dépendance
+      d'exécution.
+    verify: "grep -qF 'politique réseau par domaine' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
   - id: 4
+    description: >
+      Ce qui refuserait l'adoption aujourd'hui est nommé et opposable : la licence duale de
+      node-forge n'est pas sur la liste permissive, et la commande enveloppée passe par un shell que
+      le port interdit. Un obstacle mesuré vaut mieux qu'une réserve de principe.
+    verify: "grep -qF 'BSD-3-Clause OR GPL-2.0' specs/product/SCOPE_LATEST.yaml && grep -qF 'lint:distribution' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
+  - id: 5
     description: >
       Le relevé remet la matière de l'arbitrage sans le rendre : la question de l'adaptateur derrière
       SandboxPort reste ouverte tant que la mesure sous Apple Container n'a pas répondu, et le
       relevé dit ce que chaque réponse coûterait.
-    verify: "grep -q 'Apple Container' specs/epics/e24-ce-qui-existe-deja-est-etabli-avant-d-etre-reecrit/e24s03-bac-a-sable.md"
-    status: failing
+    verify: "grep -qF 'Apple Container' specs/product/SCOPE_LATEST.yaml"
+    risk: P2
+    status: passing
