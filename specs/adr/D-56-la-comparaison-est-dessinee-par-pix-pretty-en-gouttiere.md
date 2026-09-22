@@ -55,7 +55,10 @@ réversibles le jour où il publie un build :
 
 - ses sources ne compilent pas sous les réglages de ce dépôt, donc les déclarations que le
   compilateur lit sont écrites à la main sous `types/pix-pretty/` et `tsconfig.json` les y renvoie
-  par `paths` ; rien n'avertit quand la version bouge, et le README à côté d'elles le dit ;
+  par `paths`. Une redite écrite à la main que rien ne contredit est ce que `D-55` reproche : le
+  contrôle `lint:declarations` compile donc les appels de la revue contre le paquet installé, sans
+  ce renvoi, et refuse la dérive. La comparaison est celle du compilateur, pas d'une expression
+  régulière ;
 - Node refuse de typer-effacer un fichier sous `node_modules`, donc le paquet réclame `jiti` et le
   charge lui-même — seconde dépendance d'exécution, 1,8 Mo, MIT.
 
