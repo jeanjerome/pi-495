@@ -281,18 +281,6 @@ Scenario: Un fournisseur inconnu ne déclare rien (6c)
   When  le contexte d'une intervention est construit
   Then  le manifeste porte une liste de strates imposées vide
 
-Scenario: Le texte imposé par le paquet a changé (6d)
-  Given un paquet de fournisseur dont le bloc imposé diffère du texte déclaré
-  When  le contrôle est exécuté
-  Then  il refuse
-  And   son message porte le texte relevé et le texte déclaré
-
-Scenario: Le bloc imposé n'est plus relevable dans le paquet (6e)
-  Given un paquet de fournisseur où la forme attendue ne se trouve pas
-  When  le contrôle est exécuté
-  Then  il refuse
-  And   son message dit qu'aucun bloc imposé n'a pu être relevé
-
 Scenario: La condition d'application est déclarée avec la strate (6f)
   Given un fournisseur qui n'impose son bloc que sur un chemin d'authentification particulier
   When  le contexte d'une intervention est construit
@@ -315,8 +303,10 @@ Scenario: Le dossier écrit porte la strate (§5)
 - Le contrôle ne lit pas le paquet du fournisseur installé sur la machine, seulement celui que le
   dépôt épingle. Les deux ont déjà divergé, et une campagne emploie l'installé : cette story accepte
   donc de ne pas voir cette divergence-là, en échange d'un contrôle qui ne s'esquive jamais.
-- Aucun refus à l'exécution : une intervention n'est pas arrêtée parce que le paquet diverge de la
-  déclaration. Le refus est celui de Preflight, avant que le harnais reparte.
+- Ce que le manifeste déclare n'est pas confronté ici à ce que le fournisseur a réellement mis
+  devant le modèle. Pi rapporte ce fait par `before_provider_request` ; `D-55` en fait la source, et
+  `e23s06` tranche ce qui reste opposable à l'observation. Cette story livre la déclaration et son
+  écriture au dossier, pas la confrontation — et n'arrête aucune intervention.
 - Aucune variante d'instruction selon la strate imposée. Adapter ce que 495 écrit à ce qu'un
   fournisseur a écrit au-dessus appartient au travail sur les invites, qui le porte comme axe de
   dépendance au modèle.

@@ -79,27 +79,6 @@ tasks:
 
   - id: 4
     description: >
-      Un contrôle relève le bloc imposé dans le paquet du fournisseur que le dépôt épingle et
-      refuse quand le texte, la condition d'application ou la position diffèrent de ce que la
-      déclaration affirme. Il exige exactement une occurrence : zéro veut dire que le moyen de
-      relever a été perdu, et laisser passer cette perte reviendrait à ne plus rien refuser. Son
-      message porte le texte relevé en regard du texte déclaré.
-    verify: "node --test test/v3/provider-system-block.test.ts"
-    risk: P0
-    security: medium
-    security_verify: >
-      Aucun constat nouveau sur le contrôle lui-même : il lit le code distribué du paquet, jamais
-      le fichier d'authentification ni aucun identifiant, et ne reproduit dans son message que du
-      texte déjà public.
-    status: passing
-    allure:
-      severity: critical
-      categories:
-        - "Security Review"
-        - "integration"
-
-  - id: 5
-    description: >
       La matrice de traçabilité porte CTX-02 sur la déclaration de la strate imposée et sur le
       contrôle qui la tient, en plus des instructions composées qu'elle nomme déjà. La clause sur
       les contraintes extérieures à la hiérarchie locale avait une exigence et aucun porteur.
@@ -112,7 +91,7 @@ tasks:
       categories:
         - "Traceability"
 
-  - id: 6
+  - id: 5
     description: >
       L'ensemble des contrôles passe avec le changement, la campagne de sortie déclarée comprise :
       elle affirme qu'un secret du contrôleur n'atteint pas le texte remis au modèle, et doit

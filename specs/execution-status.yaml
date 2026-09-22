@@ -30,8 +30,8 @@ stories:
     title: Le manifeste déclare la strate imposée par le fournisseur
     bcps: 3
     epic: e23
-    tasks_total: 6
-    tasks_passing: 6
+    tasks_total: 5
+    tasks_passing: 5
     tasks_failing: 0
     risk_max: P0
     security_max: medium
