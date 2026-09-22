@@ -7,81 +7,65 @@ project_cycle:
 
 active_flow: null
 active_epic_id: e23
-active_story: e23s04
+active_story: e23s05
 
 handoff:
   next_skill: null
   last_step_completed: >
-    L'instrument de comparaison existe et il est prouvé sur des dossiers réels. Les deux campagnes
-    attendent les deux gestes du propriétaire. Preflight vert : 337 tests sur 337, sept contrôles,
-    `npm run check` en 0.
+    La recette d'AGT-02 est tenue sur un parcours complet, deux fois. Les six tâches d'`e23s04`
+    passent. Preflight vert.
 
-    LA COMPARAISON SE LIT SANS OUVRIR PI. `node scripts/compare-dossiers.ts --local <dossier>
-    --distant <dossier>` ouvre chaque `state.sqlite` en lecture seule, lit le manifeste du candidat
-    et les artefacts de sortie dans le magasin d'objets, et sépare deux choses. Ce qui décide de la
-    recette — l'issue, les portes décidées et leurs verdicts, la référence sur laquelle le candidat
-    repose, les chemins qu'il a modifiés, le verdict de chaque contrôle — sort en 1 dès qu'il
-    diffère. Ce qui n'est qu'énoncé — interventions, appels d'outils, durées, jetons, tentatives, ce
-    que le schéma a refusé, ce que l'hôte a réécrit du contexte, la formulation des exigences, le
-    contenu final de chaque fichier — n'est opposé à aucun des deux : deux modèles n'écrivent pas le
-    même code, et une comparaison qui l'exigerait refuserait tous les couples de fournisseurs au
-    lieu de ceux qui se contredisent.
+    LE MÊME CAS DE CONTRAT ABOUTIT DES DEUX CÔTÉS. `~/.495-campagnes/e23-local` sur
+    `omlx/qwen3.8-27b-oq8e` et `~/.495-campagnes/e23-distant` sur `anthropic/claude-sonnet-5`,
+    chacun dans son répertoire de données, sur la même cible et la même référence
+    `sha256:78a7b98e…`. Relus par `node scripts/compare-dossiers.ts --local … --distant …`, sortie
+    0 : six portes `PASS` de part et d'autre, contrôle `unit` `PASS` des deux côtés, mêmes deux
+    chemins modifiés, et `src/greet.js` à l'empreinte identique. L'écart est énoncé sans être
+    opposé : `test/greet.test.js` fait 191 octets contre 273, et les deux spécifications ne nomment
+    pas les mêmes exigences.
 
-    PROUVÉ DES DEUX CÔTÉS. `e23s02-rev2-omlx` contre `e23s02-rev2-anthropic` : six portes PASS de
-    part et d'autre, même référence, mêmes deux chemins modifiés, contrôle `unit` PASS des deux
-    côtés, sortie 0 — et `src/greet.js` porte la même empreinte de contenu tandis que
-    `test/greet.test.js` diffère, 657 contre 316 octets, énoncé comme chemin et non comme faute.
-    Contrôle négatif contre `e23s02-rev2-negatif`, la campagne refusée avant toute intervention :
-    sortie 1 et dix divergences nommées, à commencer par l'issue et par six portes jamais décidées.
-    Sa propre commande verify reste rouge, `~/.495-campagnes/e23-local` et `e23-distant` n'existant
-    pas encore.
+    CE QUE LA PAIRE A COÛTÉ. Local 248 s, 19 appels d'outils, 55 525 jetons ; distant 60 s, 16
+    appels, 78 615 jetons. Le débit d'appels d'outils diffère d'un facteur trois et demi — 4,6
+    contre 16,0 par minute. Sous les bornes en place (20 minutes, 100 appels), la durée tombe la
+    première sur le modèle local et le nombre d'appels sur le distant : c'est le chiffre qu'`e23s05`
+    a à corriger. Zéro refus du schéma et zéro réécriture du contexte de part et d'autre.
 
-    LA CIBLE DU CAS DE CONTRAT EST PRÊTE. `~/.495-campagnes/e23s04-cible` copie la cible JS minimale
-    des campagnes précédentes : arbre propre, un commit, la même demande qu'elles ont portée — greet
-    doit rendre « Hello, <name>! » avec un point d'exclamation final. L'intégration étant désactivée,
-    aucune campagne n'écrit dans la cible, et les deux reposent donc sur la même référence.
+    LA STRATE IMPOSÉE EST EXERCÉE DANS SES DEUX CAS. `imposed_layers: []` — champ présent, vide —
+    sur le fournisseur local ; la strate OAuth avec ses quatre champs dans les trois manifestes de
+    la campagne distante, condition cette fois réellement remplie. Ce que le fournisseur a
+    réellement écrit reste non observé : c'est `e23s06`.
 
-    DEUX GESTES DU PROPRIÉTAIRE OUVRENT LA TÂCHE 2. Le premier est interactif et lui seul peut le
-    faire : `pi`, puis `/login`, puis Claude Pro/Max ; `pi auth check --provider anthropic` le
-    confirme sans imprimer de secret. Le second est la déclaration de sortie, qui n'a de valeur que
-    parce qu'une main l'écrit :
+    TROIS REFUS CONSERVÉS EN DOSSIERS COMPLETS. `e23-distant-refuse` (destination non déclarée),
+    `e23-distant-sans-auth` (fournisseur non authentifié) — zéro intervention et rien de facturé
+    pour les deux — et `e23-local-rapport-refuse` (sortie structurée refusée), qui garde le rapport
+    brut.
 
-      mkdir -p ~/.495-campagnes/e23-distant
-      printf '%s\n' '{ "policy": { "egress": [ { "provider_id": "anthropic", "location": "off_machine" } ] } }' \
-        > ~/.495-campagnes/e23-distant/config.json
+    UN DÉFAUT TROUVÉ EN ROUTE, CORRIGÉ. Le repli qui lit un objet JSON nu s'ancrait sur la dernière
+    accolade ouvrante ; sur un rapport imbriqué, cette accolade ouvre un objet intérieur et la
+    tranche ne s'analyse en rien, de sorte qu'un modèle qui avait répondu était inscrit comme
+    n'ayant pas su répondre. Rejoué sur le texte conservé : l'ancien repli ne lit rien, le nouveau
+    lit l'objet et ses neuf clés.
 
-    La campagne locale ne demande aucune configuration : la déclaration par défaut porte déjà `omlx`
-    en `on_machine`.
+    UNE RÉSERVE À TRANCHER. Les deux campagnes n'ont pas tourné sur la même version du harnais —
+    `dist/` a été reconstruit entre elles pour porter ce correctif — et leurs empreintes
+    d'environnement diffèrent, `sha256:957139c2…` contre `sha256:e7de231f…`. L'empreinte du dossier
+    local est celle que le `dist/` courant recalcule sous `seatbelt` ; la différence ne touche que
+    la lecture d'un rapport sans bloc clôturé, ni les portes ni les contrôles. Deux suites
+    possibles, et elles appartiennent au propriétaire : reconduire la campagne distante sur le
+    `dist/` courant, au prix d'une seconde dépense, ou laisser la réserve écrite au relevé et à la
+    matrice. Au passage, `scripts/compare-dossiers.ts` imprime les deux empreintes sans les ranger
+    ni parmi ce qui décide ni parmi ce qui est seulement énoncé.
 
-    LES DEUX CAMPAGNES, UNE À LA FOIS, DEPUIS LA CIBLE. Un seul pilote par changement, et jamais
-    pendant qu'une autre tourne :
+    CE QUI EST ÉCRIT. `specs/verifications/e23-deux-fournisseurs.md` porte le relevé ; la matrice
+    scinde l'ancienne ligne et donne à AGT-02 la sienne, adossée à la campagne, nommant la preuve
+    conservée — `v3/capability-probe` pour la clause de l'endpoint sans format d'appels d'outils,
+    que la campagne n'exerce pas — et portant la réserve.
 
-      cd ~/.495-campagnes/e23s04-cible
-      HARNESS495_DATA_DIR=~/.495-campagnes/e23-local pi -ne \
-        -e ~/Projets/495-pi-package/dist/extension/index.js --model omlx/qwen3.8-27b-oq8e
-      HARNESS495_DATA_DIR=~/.495-campagnes/e23-distant pi -ne \
-        -e ~/Projets/495-pi-package/dist/extension/index.js --model anthropic/claude-sonnet-5
+    RESTENT DEUX STORIES À L'EPIC. `e23s05` remesure les budgets d'intervention sur un modèle
+    frontière et lit le coût en argent que l'hôte rapporte et que 495 ignore. `e23s06` observe ce
+    que le fournisseur écrit réellement au-dessus des instructions locales, depuis la charge utile
+    que l'hôte publie.
 
-    puis, dans chacune, `/495 start greet doit rendre "Hello, <name>!" avec un point d'exclamation
-    final`. Trois à six minutes sur le modèle local. Le choix du modèle distant appartient au
-    propriétaire : le catalogue de Pi annonce 2 $ et 10 $ par million de jetons en entrée et en
-    sortie pour `claude-sonnet-5`, 1 $ et 5 $ pour `claude-haiku-4-5`, 5 $ et 25 $ pour
-    `claude-opus-5`, et la campagne locale a compté 57 516 jetons connus en tout.
-
-    CE QUE LA CAMPAGNE DISTANTE ÉPROUVERA POUR DE BON. Le chemin d'abonnement impose son propre
-    premier bloc système au-dessus des instructions locales ; jusqu'ici la strate n'était déclarée
-    que depuis le code du fournisseur, jamais rencontrée. La facturation est comptée au jeton sur
-    l'usage supplémentaire du compte, et non prélevée sur les plafonds du plan.
-
-    RESTENT QUATRE TÂCHES. Les deux campagnes, la comparaison des dossiers par la commande ci-dessus,
-    la matrice portée sur la campagne au lieu des preuves unitaires, et le relevé déposé en preuve
-    dans `specs/verifications/e23-deux-fournisseurs.md` — fichier à ne pas créer avant d'avoir la
-    mesure, sa seule existence étant ce que la tâche 5 vérifie.
-
-    UN MANQUE NOMMÉ, HORS PÉRIMÈTRE. L'hôte rapporte le coût en argent de chaque réponse, détaillé
-    par entrée, sortie et cache ; 495 n'en lit rien et ne compte que les jetons. C'est le sujet de
-    `e23s05`, qui remesure les budgets sur un modèle frontière.
-
-    TROIS DETTES CONNUES, INCHANGÉES. L'identité humaine déduite de `node:os` ne dit pas ce qui a été
-    cherché chez Pi ; l'événement de reprise déclaré que rien n'émet attend l'epic qui touche ce
+    TROIS DETTES CONNUES, INCHANGÉES. L'identité humaine déduite de `node:os` ne dit pas ce qui a
+    été cherché chez Pi ; l'événement de reprise déclaré que rien n'émet attend l'epic qui touche ce
     contrat ; la table du bloc fournisseur reste une attente que rien ne confronte jusqu'à `e23s06`.

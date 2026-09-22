@@ -4,7 +4,7 @@ development_status:
   e23s01: done
   e23s02: done
   e23s03: done
-  e23s04: in_progress
+  e23s04: done
   e23s05: backlog
   e23s06: backlog
   e24s01: done
@@ -56,13 +56,13 @@ stories:
     risk_max: P0
     security_max: medium
   e23s04:
-    status: in_progress
+    status: done
     title: Le même cas de contrat passe avec deux fournisseurs qualifiés
     bcps: 5
     epic: e23
     tasks_total: 6
-    tasks_passing: 2
-    tasks_failing: 4
+    tasks_passing: 6
+    tasks_failing: 0
     risk_max: P0
     security_max: high
   e23s05:
