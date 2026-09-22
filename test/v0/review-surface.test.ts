@@ -201,6 +201,34 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		}
 		assert.equal(s.current()?.path, "src/a.js", "selection survives unhandled keys");
 	});
+	it("follows the terminal height when only the height changed (UX-08)", () => {
+		// A terminal can be resized in height alone. The surface reads its rows at every render, so a
+		// render that answered from a cache kept under the width would draw the height it had before —
+		// short of the terminal, or past its last line.
+		let rows = 20;
+		const snap = buildSnapshot({
+			change_id: "chg_1",
+			reference,
+			manifest,
+			findings: [],
+			newer_candidate: null,
+			now: "t",
+		});
+		const s = new ReviewSurface({
+			snapshot: snap,
+			query,
+			rows: () => rows,
+			narrowThreshold: 100,
+			onExit: () => {},
+			requestRender: () => {},
+		});
+		assert.equal(s.render(120).length, 20);
+		rows = 30;
+		assert.equal(s.render(120).length, 30, "a taller terminal is filled");
+		rows = 12;
+		assert.equal(s.render(120).length, 12, "a shorter terminal is not overdrawn");
+	});
+
 	it("fit truncates by visible characters", () => {
 		assert.equal(visibleLength(fit("héllo wörld", 5)), 5);
 		assert.equal(stripSequences(fit("héllo wörld", 5)), "héll…");

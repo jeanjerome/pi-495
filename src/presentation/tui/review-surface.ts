@@ -69,6 +69,7 @@ export class ReviewSurface implements ReviewView {
 	private loading: string | null = null;
 	private cachedLines: string[] | null = null;
 	private cachedWidth = -1;
+	private cachedRows = -1;
 
 	constructor(options: SurfaceOptions) {
 		this.snapshot = options.snapshot;
@@ -111,6 +112,7 @@ export class ReviewSurface implements ReviewView {
 	invalidate(): void {
 		this.cachedLines = null;
 		this.cachedWidth = -1;
+		this.cachedRows = -1;
 	}
 
 	handleInput(data: string): void {
@@ -176,8 +178,11 @@ export class ReviewSurface implements ReviewView {
 	}
 
 	render(width: number): string[] {
-		if (this.cachedLines && this.cachedWidth === width) return this.cachedLines;
+		// The height is read at every render and belongs to the key with the width: a terminal resized
+		// in height alone keeps its width, and a cache kept under the width alone would answer with
+		// the height it had before — short of the terminal, or past its last line.
 		const rows = Math.max(8, this.opts.rows());
+		if (this.cachedLines && this.cachedWidth === width && this.cachedRows === rows) return this.cachedLines;
 		const narrow = this.isNarrow(width);
 		const ctx = this.pane();
 		const out = renderHeader(ctx, width);
@@ -207,6 +212,7 @@ export class ReviewSurface implements ReviewView {
 		out.push(renderKeyHelp(ctx, width, narrow));
 		this.cachedLines = out.slice(0, rows);
 		this.cachedWidth = width;
+		this.cachedRows = rows;
 		return this.cachedLines;
 	}
 }
