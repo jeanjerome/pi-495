@@ -5,11 +5,14 @@ project spine — stack, commands, architecture, never-do list. This file carrie
 
 ## Commit Messages
 
-Format: `<type>: <description>` — one line, no scope, space after the colon.
+Format: `<type>: <description>` — one line, in English, no scope, space after the colon.
 
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
 
 Describe the resulting behavior in technical terms. Never describe the process that produced it.
+English is the language of the history, whatever the language of the working session, of `specs/`,
+or of the file being changed. A message drafted in another language is translated before the commit
+is made, never after.
 
 - Carry no ticket, chantier, lot, or phase reference (`chantier #24`, `Lot 3`, `(P1)`, `D12`).
 - Carry no session or planning metadata (which PR, which plan, which review round).

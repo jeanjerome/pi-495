@@ -101,7 +101,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Rebuild `dist/` from `src/` before every check. Never hand-edit `dist/`.
 - Attribute every redistributed dependency in `NOTICE`. Keep peer dependencies on the permissive licence allowlist.
 - Cover every `[P0]` requirement id from `specs/archive/amont/expression-besoins.md` in `specs/archive/TRACEABILITY.md`.
-- Write commit messages as `<type>: <description>`, one line, describing the resulting behavior. Carry no ticket, chantier, lot, or phase reference. Carry no AI attribution.
+- Write commit messages in English, as `<type>: <description>`, one line, describing the resulting behavior — whatever the language of the session or of the file changed. Carry no ticket, chantier, lot, or phase reference. Carry no AI attribution.
 
 ## Never
 
