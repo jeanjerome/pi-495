@@ -44,7 +44,7 @@ La porte de `plan-work` est réputée tenue par ce contrôle. Le script du paque
 
 ## Consequences
 
-Preflight gagne un huitième contrôle, et la capsule est jugée à chaque exécution plutôt qu'au seul
+Preflight gagnait un contrôle de plus, et la capsule était jugée à chaque exécution plutôt qu'au seul
 passage de `plan-work` — un fichier de tâches édité à la main ne peut plus se désaccorder de sa
 spécification en silence.
 
