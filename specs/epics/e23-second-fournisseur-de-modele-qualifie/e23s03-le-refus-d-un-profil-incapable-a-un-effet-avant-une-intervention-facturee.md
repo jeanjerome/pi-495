@@ -338,13 +338,12 @@ Scenario: L'observation n'est conduite qu'une fois par couple (6g)
 
 ### 19. Open questions [draft]
 
-- Une requête d'observation par couple et par session est-elle le bon rythme sur un fournisseur
-  facturé, ou faut-il retenir le résultat au-delà de la session — et alors, sous quelle clé et avec
-  quelle péremption ? — owner: jeanjerome, needed by: 2026-10-05
-- Le harnais laisse l'hôte résumer la conversation quand elle devient trop longue, et n'observe rien
-  de ce que ce résumé produit. Avant la première campagne facturée : couper le résumé, l'observer et
-  l'enregistrer, ou mesurer d'abord si le cas peut seulement survenir dans le budget d'une
-  intervention ? — owner: jeanjerome, needed by: 2026-10-05
+- Le rythme de l'observation sur un fournisseur facturé — une requête par couple et par session, ou
+  un résultat retenu au-delà, et sous quelle clé ? Tranchée : elle reste liée à la session, sans clé
+  ni péremption, une durée de vie inventée avant la mesure ne pouvant pas se justifier (`D-58`).
+- La réécriture de la conversation par l'hôte, dont le harnais n'observait rien. Tranchée : ce que
+  l'hôte en rapporte est lu, ce que le résumé consomme est compté, et le dossier porte l'événement.
+  Le cas est atteignable dans le budget d'une intervention et ne s'est pas encore produit (`D-58`).
 
 ### 20. References [draft]
 

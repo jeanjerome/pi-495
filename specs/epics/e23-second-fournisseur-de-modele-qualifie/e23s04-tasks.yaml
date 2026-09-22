@@ -7,31 +7,40 @@ requirement: AGT-02
 tasks:
   - id: 1
     description: >
+      L'instrument est réparé avant de servir de preuve : ce que l'hôte rapporte de la réécriture du
+      contexte est lu, ce que le résumé consomme s'ajoute aux jetons connus, et le dossier porte
+      l'événement — motif, jetons remplacés, jetons restants, coût du résumé, ou la raison pour
+      laquelle la réécriture n'a pas eu lieu.
+    verify: "node --test test/v3/session-observation.test.ts"
+    status: passing
+  - id: 2
+    description: >
       Le même cas de contrat est conduit de bout en bout sur le modèle local, puis sur le second
       fournisseur, chacun dans son propre répertoire de données. Deux campagnes, un seul pilote par
       changement, et jamais pendant qu'une autre tourne.
-    verify: "verify-script: conduite des deux campagnes — le pas-à-pas est écrit dans la story, il demande le signal du propriétaire et consomme du quota d'abonnement"
+    verify: "verify-script: conduite des deux campagnes — le pas-à-pas est écrit dans la story, il demande le signal du propriétaire et consomme de l'usage facturé"
     status: failing
-  - id: 2
+  - id: 3
     description: >
       Les deux dossiers sont relus et comparés depuis le journal : mêmes gates franchies, même
       contrat rendu, et l'écart de chemin est énoncé là où il existe. La comparaison se lit sans
       ouvrir Pi.
     verify: "node scripts/compare-dossiers.ts --local ~/.495-campagnes/e23-local --distant ~/.495-campagnes/e23-distant"
     status: failing
-  - id: 3
+  - id: 4
     description: >
       La matrice de traçabilité porte AGT-02 sur cette campagne au lieu des preuves unitaires qui
       la tenaient, et la preuve conservée est nommée.
     verify: "npm run lint:traceability"
     status: failing
-  - id: 4
+  - id: 5
     description: >
       Le relevé de la campagne est déposé en preuve, avec le débit d'appels d'outils, les durées
-      d'intervention et ce que le schéma a refusé de part et d'autre.
+      d'intervention, les jetons consommés — réécriture du contexte comprise — et ce que le schéma a
+      refusé de part et d'autre.
     verify: "test -s specs/verifications/e23-deux-fournisseurs.md"
     status: failing
-  - id: 5
+  - id: 6
     description: "L'ensemble des contrôles passe avec le changement."
     verify: "npm run check"
-    status: failing
+    status: passing

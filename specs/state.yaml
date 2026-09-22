@@ -7,46 +7,51 @@ project_cycle:
 
 active_flow: null
 active_epic_id: e23
-active_story: e23s03
+active_story: e23s04
 
 handoff:
   next_skill: null
   last_step_completed: >
-    Le refus d'un profil incapable a un effet avant lancement (`e23s03`). La spécification de la
-    story a été écrite avec le code, et les quatre tâches sont vertes. L'epic `e23` en est à
-    `e23s04`, la première campagne qui consomme un quota d'abonnement.
+    La story `e23s04` est spécifiée et sa première tâche est verte. Les deux questions qui la
+    précédaient sont tranchées par `D-58` ; aucune n'appelait un arbitrage du propriétaire.
 
-    LE DÉFAUT ÉTAIT UNE TAUTOLOGIE. `describeCapabilities` répondait « disponible » dès que le
-    couple fournisseur-modèle n'était pas vide ; ce couple est construit depuis le modèle que Pi a
-    déjà résolu, donc la réponse ne pouvait être fausse que si aucun modèle n'était configuré. Les
-    faits qui refuseraient — couple absent du catalogue, fournisseur non authentifié — étaient lus
-    dans le worker, après lancement, et rendaient une intervention échouée. Un troisième n'était
-    jamais lu : `sdk.js:138` de `pi-coding-agent` rabat un niveau de raisonnement non supporté sur
-    le plus proche accepté, sans rien dire.
+    LE RYTHME DE L'OBSERVATION RESTE LA SESSION. Retenir le résultat au-delà demanderait une clé et
+    une péremption, donc de décider ce qui rend une qualification caduque. Le but ne l'a jamais
+    demandé : l'observation existe pour éviter qu'une intervention entière se paie une incapacité, et
+    elle y suffit dès qu'elle précède la première intervention de la session. Elle coûte environ
+    soixante jetons présentés et deux cent cinquante-six au plus rendus.
 
-    CE QUE L'HÔTE RAPPORTE EST DÉSORMAIS LA SOURCE. `src/adapters/pi-worker/capabilities.ts` lit le
-    catalogue, l'authentification, `getSupportedThinkingLevels`, la fenêtre de contexte et le
-    plafond de sortie. Chaque valeur dit si elle est rapportée ou redite ; trois sortes — streaming,
-    annulation, sessions — sont des propriétés du contrat publié pour tous, et le disent. Le
-    catalogue arrive par `ctx.modelRegistry`, que `session.ts` passe au runtime.
+    LA RÉÉCRITURE DU CONTEXTE EST LUE, PAS COUPÉE. L'hôte publie `compaction_start` et
+    `compaction_end`, et le résultat porte les jetons remplacés, ce qui reste et l'usage de la requête
+    qui a écrit le résumé. `src/adapters/pi-worker/session-observer.ts` les lit, ajoute cet usage aux
+    jetons connus et inscrit `context_compacted` au dossier — motif, jetons remplacés, jetons
+    restants, coût du résumé, ou la raison pour laquelle la réécriture n'a pas eu lieu. Prouvé contre
+    une vraie session de l'hôte dans `test/v3/session-observation.test.ts`. Couper aurait rendu le
+    harnais moins capable ; mesurer d'abord est ce que l'observation fait.
 
-    UNE SEULE SORTE N'EST RAPPORTÉE PAR RIEN. Ni `Model` de `pi-ai`, ni la définition de modèle que
-    `models.json` accepte ne portent de champ d'appels d'outils : la déclaration dit le dialecte, pas
-    ce que le serveur honore. Elle est donc observée — une requête, un outil trivial, rien du projet
-    — une fois par couple et par session (`D-57`).
+    LE CAS EST ATTEIGNABLE, PAS COURANT. Seuil de l'hôte `contexte > fenêtre − réserve`, réserve de
+    16 384 par défaut ; sur le modèle local, fenêtre de 131 072, donc réécriture au-delà de 114 688.
+    La plus longue intervention au journal porte 107 095 jetons connus.
 
-    MESURÉ SUR LA MACHINE, PAS DÉDUIT. Par le Pi installé, en session réelle : `omlx/qwen3.8-27b-oq8e`
-    disponible, l'endpoint appelle l'outil (3,4 s pour la première observation, 0 ms ensuite), niveaux
-    acceptés `off, minimal, low, medium, high` — donc `xhigh` et `max` sont refusés là où ils étaient
-    rabattus, et `medium`, le défaut de `settings.json`, passe. Aucune campagne existante n'est
-    refusée par le changement.
+    LA CAMPAGNE N'A JAMAIS EU LIEU. Les campagnes que le dossier appelle `anthropic` employaient
+    `~/.495-campagnes/e23s02-rev2-piconf/models.json`, qui déclare un fournisseur nommé `anthropic` à
+    l'adresse `http://127.0.0.1:8000/v1` — l'endpoint local sous un autre nom, ce qui était le bon
+    montage pour éprouver une table indexée sur l'identifiant du fournisseur. `~/.pi/agent/auth.json`
+    est vide : aucune requête n'a jamais quitté cette machine.
 
-    DEUX QUESTIONS RESTENT AU PROPRIÉTAIRE, DUES AVANT `e23s04`. Le rythme de l'observation sur un
-    fournisseur facturé — une requête par session, ou retenue au-delà, et alors sous quelle clé. Et
-    la compaction : le worker la laisse active sans rien observer de ce qu'elle produit, donc le
-    manifeste est scellé avant qu'un résumé remplace une partie du texte, et le compteur de jetons
-    ignore ce que ce résumé coûte. Couper, observer, ou mesurer d'abord si le cas peut survenir dans
-    le budget d'une intervention.
+    DEUX GESTES DU PROPRIÉTAIRE OUVRENT LA TÂCHE 2. Authentifier Pi auprès du fournisseur
+    d'abonnement, qui est interactif ; et déclarer la destination `off_machine` dans la configuration
+    de la campagne distante, là où les campagnes antérieures portaient `on_machine` sans mentir. À
+    savoir avant de dépenser : l'usage d'un abonnement Claude Pro/Max par un harnais tiers est compté
+    au jeton sur l'usage supplémentaire du compte, et non prélevé sur les plafonds du plan.
+
+    RESTENT QUATRE TÂCHES. Les deux campagnes, la comparaison des dossiers — `scripts/compare-dossiers.ts`
+    n'est pas écrit et sa commande est déclarée rouge —, la matrice portée sur la campagne, et le
+    relevé déposé en preuve.
+
+    UN MANQUE NOMMÉ, HORS PÉRIMÈTRE. L'hôte rapporte le coût en argent de chaque réponse, détaillé
+    par entrée, sortie et cache ; 495 n'en lit rien et ne compte que les jetons. C'est le sujet de
+    `e23s05`, qui remesure les budgets sur un modèle frontière.
 
     TROIS DETTES CONNUES, INCHANGÉES. L'identité humaine déduite de `node:os` ne dit pas ce qui a été
     cherché chez Pi ; l'événement de reprise déclaré que rien n'émet attend l'epic qui touche ce

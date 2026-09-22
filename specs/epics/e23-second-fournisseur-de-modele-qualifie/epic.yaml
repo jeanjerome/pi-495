@@ -19,7 +19,7 @@ motif: >
   servir de preuve.
 
 exigences: [AGT-01, AGT-02, CTX-02, SEC-05]
-decisions: [D-46, D-48, D-49, D-57]
+decisions: [D-46, D-48, D-49, D-57, D-58]
 
 stories:
   - id: e23s01
@@ -45,8 +45,10 @@ stories:
     delta: MODIFIED
     requirement: AGT-01
     position: >
-      Avant la campagne, qui est la première à consommer un quota d'abonnement. La clause d'AGT-01
-      n'a jamais eu d'effet tant que le modèle était gratuit.
+      Avant la campagne, qui est la première à dépenser sur un fournisseur facturé — l'usage d'un
+      abonnement Claude Pro/Max par un harnais tiers est compté au jeton sur l'usage supplémentaire
+      du compte, non prélevé sur les plafonds du plan. La clause d'AGT-01 n'a jamais eu d'effet tant
+      que le modèle était gratuit.
   - id: e23s04
     title: "Le même cas de contrat passe avec deux fournisseurs qualifiés"
     bcps: 5

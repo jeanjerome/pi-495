@@ -4,7 +4,7 @@ development_status:
   e23s01: done
   e23s02: done
   e23s03: done
-  e23s04: backlog
+  e23s04: in_progress
   e23s05: backlog
   e23s06: backlog
   e24s01: done
@@ -56,13 +56,15 @@ stories:
     risk_max: P0
     security_max: medium
   e23s04:
-    status: backlog
+    status: in_progress
     title: Le même cas de contrat passe avec deux fournisseurs qualifiés
     bcps: 5
     epic: e23
-    tasks_total: 5
-    tasks_passing: 0
-    tasks_failing: 5
+    tasks_total: 6
+    tasks_passing: 2
+    tasks_failing: 4
+    risk_max: P0
+    security_max: high
   e23s05:
     status: backlog
     title: 'Les budgets d''intervention sont remesurés sur un modèle frontière'
