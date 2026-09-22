@@ -156,12 +156,17 @@ export function extractJsonOutput(text: string): unknown | undefined {
 			/* try an earlier block */
 		}
 	}
-	const start = text.lastIndexOf("{");
-	if (start >= 0) {
+	// A bare object closing the text: the outermost brace, never the innermost. The last brace of a
+	// report opens one of its nested objects, whose slice runs past its own end and parses as
+	// nothing — so anchoring there refuses every report but a flat one, and a model that answered
+	// correctly without a fence is recorded as one that could not answer at all. Each brace is tried
+	// from the first, and only one whose slice is exactly one JSON value can win, so prose carrying a
+	// brace of its own is passed over rather than parsed.
+	for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
 		try {
 			return JSON.parse(text.slice(start));
 		} catch {
-			/* no bare json */
+			/* that brace belonged to the prose, or to an object the text does not close here */
 		}
 	}
 	return undefined;

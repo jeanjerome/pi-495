@@ -16,6 +16,16 @@ describe("structured output extraction (AGT-06)", () => {
 		assert.ok(out && typeof out === "object");
 		assert.equal(Value.Check(OUTPUT_SCHEMAS["specification-report"], out), true);
 	});
+	it("takes the outermost object of an unfenced report, not a brace nested inside it", () => {
+		// What the local model answered on the first campaign of the two-provider recipe: the whole
+		// report, well formed and schema-valid, written without a fence. Anchoring on the last brace
+		// starts inside `design` and parses nothing, so a valid report was refused as an incapable one.
+		const text =
+			'Seuls deux fichiers existent dans l\'arbre.\n\n{\n  "objective": "x",\n  "facts": [],\n  "assumptions": [],\n  "questions": [],\n  "answers": [],\n  "out_of_scope": [],\n  "risks": [],\n  "requirements": [],\n  "design": { "summary": "s", "components": [], "interfaces": [], "risks": [] }\n}';
+		const out = extractJsonOutput(text);
+		assert.ok(out && typeof out === "object", "an unfenced report is still a report");
+		assert.equal(Value.Check(OUTPUT_SCHEMAS["specification-report"], out), true);
+	});
 	it("normalizes a report with missing arrays and unknown keys without inventing content", () => {
 		const raw = { summary: "done", changed_paths: ["a"], extra: "ignored" };
 		const norm = normalizeOutput(OUTPUT_SCHEMAS["producer-report"], raw) as Record<string, unknown>;
