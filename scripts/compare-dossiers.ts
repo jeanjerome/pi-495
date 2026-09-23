@@ -9,16 +9,18 @@
  *    reference the candidate stands on, the paths that candidate changed, and the verdict of every
  *    control. A difference in any of them means the recipe is not held, and the exit code says so.
  *  - The path taken is stated and held against neither side: interventions, tool calls, durations,
- *    tokens, attempts, what the output schema refused, what the host rewrote of the context, how
- *    each requirement was worded, and what each changed file ended up containing. Two models do not
- *    write the same code, and a comparison demanding they did would refuse every pair of providers
- *    rather than the ones that actually disagree.
+ *    tokens, attempts, what the output schema refused, which interventions did not finish and how the
+ *    ledger ended them, what the host rewrote of the context, how each requirement was worded, and
+ *    what each changed file ended up containing. Two models do not write the same code, and a
+ *    comparison demanding they did would refuse every pair of providers rather than the ones that
+ *    actually disagree.
  *
  * Usage: node scripts/compare-dossiers.ts --local <dossier dir> --distant <dossier dir>
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CandidateManifest } from "../src/contracts/v1/candidate.ts";
+import type { ChangeEvent } from "../src/domain/change/events.ts";
 import type { ChangeState } from "../src/domain/change/state.ts";
 import type { InterventionEvent } from "../src/ports/execution.ts";
 import { expandHome, fail, readChange, tilde } from "./lib/dossier.ts";
@@ -30,10 +32,13 @@ interface ChangedEntry {
 	size: number;
 }
 
-interface Refusal {
+/** One intervention that did not end on an accepted report, and why. */
+interface SessionEnd {
 	role: string;
 	detail: string;
 }
+
+type Finished = Extract<ChangeEvent, { type: "intervention.finished" }>;
 
 interface Compaction {
 	role: string;
@@ -51,7 +56,8 @@ interface Dossier {
 	models: string[];
 	base_digest: string | null;
 	changed: ChangedEntry[];
-	refusals: Refusal[];
+	refusals: SessionEnd[];
+	unfinished: SessionEnd[];
 	compactions: Compaction[];
 }
 
@@ -110,15 +116,38 @@ function readDossier(label: string, root: string): Dossier {
 				size: e.size ?? 0,
 			}));
 
-		const refusals: Refusal[] = [];
+		// How a session ended is the ledger's word, not the worker's: the kernel records a session it
+		// stopped on its tool-call bound as cancelled, whatever the worker reported as it was aborted.
+		const finished = new Map(
+			(
+				db
+					.prepare(
+						"SELECT payload FROM events WHERE aggregate_kind = 'change' AND aggregate_id = ? AND type = 'intervention.finished' ORDER BY sequence",
+					)
+					.all(state.change_id) as { payload: string }[]
+			).map((row) => {
+				const event = JSON.parse(row.payload) as Finished;
+				return [event.intervention_id, event] as const;
+			}),
+		);
+		const unfinished: SessionEnd[] = state.interventions
+			.filter((i) => i.result !== "completed" && i.result !== "running")
+			.map((i) => ({
+				role: i.role,
+				detail: `${i.result}: ${finished.get(i.intervention_id)?.detail ?? "no detail recorded"}`,
+			}));
+
+		const refusals: SessionEnd[] = [];
 		const compactions: Compaction[] = [];
 		for (const row of artifacts.filter((a) => a.kind === "output")) {
 			const output = readObject(root, row.content_digest) as OutputArtifact;
 			const terminal = output.terminal;
-			if (terminal.type !== "completed") refusals.push({ role: output.role, detail: `intervention ${terminal.type}` });
-			else if (!terminal.output_valid)
+			if (
+				finished.get(output.intervention_id)?.result === "completed" &&
+				terminal.type === "completed" &&
+				!terminal.output_valid
+			)
 				refusals.push({ role: output.role, detail: "the output schema refused the report" });
-			else if (terminal.truncated === true) refusals.push({ role: output.role, detail: "a budget ended the session" });
 			for (const event of output.events)
 				if (event.type === "context_compacted")
 					compactions.push({
@@ -139,6 +168,7 @@ function readDossier(label: string, root: string): Dossier {
 			base_digest: state.candidate?.base_digest ?? null,
 			changed,
 			refusals,
+			unfinished,
 			compactions,
 		};
 	});
@@ -232,6 +262,10 @@ row("schema refusals", String(left.refusals.length), String(right.refusals.lengt
 for (const dossier of [left, right])
 	for (const refusal of dossier.refusals)
 		row(`  ${refusal.role}`, dossier === left ? refusal.detail : "", dossier === right ? refusal.detail : "");
+row("unfinished interventions", String(left.unfinished.length), String(right.unfinished.length));
+for (const dossier of [left, right])
+	for (const stop of dossier.unfinished)
+		row(`  ${stop.role}`, dossier === left ? stop.detail : "", dossier === right ? stop.detail : "");
 row("context rewrites", String(left.compactions.length), String(right.compactions.length));
 for (const dossier of [left, right])
 	for (const compaction of dossier.compactions) {
@@ -301,6 +335,7 @@ if (left.state.requirement_ids.join() !== right.state.requirement_ids.join())
 	);
 for (const dossier of [left, right]) {
 	for (const refusal of dossier.refusals) pathGaps.push(`${dossier.label}: ${refusal.role} — ${refusal.detail}`);
+	for (const stop of dossier.unfinished) pathGaps.push(`${dossier.label}: ${stop.role} — ${stop.detail}`);
 	for (const compaction of dossier.compactions)
 		pathGaps.push(
 			compaction.unwritten
