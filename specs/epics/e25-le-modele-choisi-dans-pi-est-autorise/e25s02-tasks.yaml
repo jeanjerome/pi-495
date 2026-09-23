@@ -21,9 +21,8 @@ tasks:
       L'intervention l'inscrit à son démarrage, si bien que la frontière entre deux modèles se lit
       au journal. Une intervention en cours garde le modèle avec lequel elle a démarré. Aucune
       copie n'est tenue par 495 : le contexte de Pi lit son modèle à l'appel (Pi 0.87.1). La
-      sélection est lue dans le contexte de la commande ou de l'outil qui fait avancer le
-      changement, jamais dans celui de l'ouverture de session, que Pi rend caduc quand il remplace
-      la session.
+      sélection est lue dans le contexte de la commande qui fait avancer le changement, jamais
+      gardée de l'ouverture de session, qui précède le choix fait par `/model`.
     verify: "node --test test/v3/model-select.test.ts"
     risk: P1
     security: medium

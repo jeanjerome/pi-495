@@ -11,9 +11,8 @@ import type { ExtensionSession } from "./session.ts";
 
 /**
  * The model Pi holds as selected, with its thinking level. Pi resolves both when they are read
- * (`createContext`, `core/extensions/runner.js`, Pi 0.87.1), so this is read from the context of the
- * command under way: the context of the session start is stale once Pi replaces the session, and
- * reading it then throws.
+ * (`createContext`, `core/extensions/runner.js`, Pi 0.87.1), so a model chosen by `/model` after the
+ * session started is the one this returns.
  */
 function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
 	const model = ctx.model;

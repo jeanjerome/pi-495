@@ -2,7 +2,7 @@
  * V3 — the model an intervention runs with is the one Pi holds as selected when it starts (AGT-07).
  * The selection is read once per intervention, from the context of the command that advances the
  * change: the capability check judges that reading, the start journals it and the worker is handed
- * it. The session-start context is never read again, since Pi replaces it on `new_session`.
+ * it. Nothing of the selection is kept from session start, when a later `/model` has not happened yet.
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
@@ -233,10 +233,10 @@ function catalogueWithTwoModels(agentDir: string): void {
 	);
 }
 
-describe("a session Pi replaced after 495 created its runtime (6g)", {
+describe("a session Pi replaced (6g)", {
 	skip: !piAvailable() && "pi binary not available",
 }, () => {
-	it("runs the next intervention with the model selected in the replacing session, with no stale-context error", async () => {
+	it("runs the next intervention with the model selected in the replacing session", async () => {
 		const agentDir = join(root, "agent");
 		catalogueWithTwoModels(agentDir);
 		const agentScript = join(root, "agent.json");
@@ -266,7 +266,8 @@ describe("a session Pi replaced after 495 created its runtime (6g)", {
 				(await call("first", { type: "set_model", provider: FIRST.provider_id, modelId: FIRST.model_id })).success,
 				true,
 			);
-			// Pi replaces the session and invalidates the context 495 was started with.
+			// Pi replaces the session and loads 495 again, which opens its runtime before the second
+			// model is selected (measured with Pi 0.87.1).
 			assert.equal((await call("replace", { type: "new_session" })).success, true);
 			assert.equal(
 				(await call("second", { type: "set_model", provider: SECOND.provider_id, modelId: SECOND.model_id })).success,
@@ -277,8 +278,6 @@ describe("a session Pi replaced after 495 created its runtime (6g)", {
 			await client.close();
 		}
 		const said = client.messages().map((m) => m.content);
-		const everything = [...said, client.stderr.join("")].join("\n");
-		assert.doesNotMatch(everything, /stale/i, "no read of the context Pi replaced");
 		const ledger = new SqliteLedger(join(dataDir, "state.sqlite"));
 		try {
 			const changeId = /Programme créé: \S+ \/ (\S+)/.exec(said.join("\n"))?.[1];

@@ -27,7 +27,7 @@ retiré.
 | Un niveau de réflexion changé seul est celui de l'intervention suivante (6d) | `fbb4b2e` — `off, off` au lieu de `off, high` | `eaba714` |
 | Une sélection sans fournisseur est refusée par la capacité, et aucun worker ne démarre (6e) | `fbb4b2e` — `max_steps` au lieu de `capability_missing` | `eaba714` |
 | Une session ouverte sans modèle emploie le modèle choisi avant `/495 start` (6a) | `fbb4b2e` — aucun démarrage : le changement est bloqué en `CONFIGURATION_ERROR: provider and model must be explicit` | `eaba714` |
-| Une session que Pi a remplacée lit la sélection de la session qui la remplace, sans erreur de contexte caduc (6g) | `fbb4b2e` — vrai `pi --mode rpc` : après `new_session` puis `set_model`, le démarrage inscrit `stand-in-a/first-1`, le modèle du premier démarrage | `eaba714` |
+| Une session que Pi a remplacée lit la sélection de la session qui la remplace (6g) | `fbb4b2e` — vrai `pi --mode rpc` : après `new_session` puis `set_model`, le démarrage inscrit `stand-in-a/first-1`, le modèle sélectionné quand 495 a été chargé de nouveau | `eaba714` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
 `verify-tdd-red-commit.sh` juge le dépôt de Homebrew, pas celui-ci.
@@ -37,18 +37,26 @@ fbb4b2e (test seul)      node --test test/v3/model-select.test.ts  exit=1  (6 é
 eaba714 (implémentation) node --test test/v3/model-select.test.ts  exit=0  (6 sur 6)
 ```
 
-Le cas 6g avait été établi en lisant le code de Pi. L'exécution le confirme sous une autre forme que
-prévu. Le code d'avant la story copiait le modèle en valeur à la création du runtime : il ne relisait
-jamais le contexte d'ouverture, donc aucune erreur de contexte caduc n'était levée. Le défaut
-observé est un mauvais modèle : celui de la session remplacée. L'erreur de contexte caduc est ce
-qu'aurait produit une correction qui garde le contexte d'ouverture pour le relire plus tard. Le test
-refuse les deux.
+Le cas 6g avait été établi en lisant le code de Pi : 495 aurait gardé, après `new_session`, le
+runtime et le contexte d'ouverture de la session remplacée. Une extension sonde, chargée dans un vrai
+`pi --mode rpc` le 2026-09-23, dément cette lecture (Pi 0.87.1) :
 
-## Relevé hors du cas testé
+```
+factory instance=1
+session_start instance=1 reason=startup registry=1 model=first-1
+command instance=1 registry=1 model=first-1 firstStartCtx=ok
+factory instance=2
+session_start instance=2 reason=new registry=2 model=first-1
+session_start instance=2 reason=new registry=2 model=first-1
+command instance=2 registry=2 model=second-1 firstStartCtx=ok
+```
 
-Sur `new_session`, Pi construit un `ModelRuntime` neuf pour la session qui remplace
-(`core/agent-session-services.js`, appelé sans `modelRuntime` par `main.js`, Pi 0.87.1). Le
-catalogue remis au worker Pi (`catalogue: ctx.modelRegistry`, lu à la création du runtime) reste
-celui de la première session. Le modèle est maintenant lu dans la bonne session, mais il est décrit
-par ce catalogue. Aucun test ne l'exerce : 6g passe par l'agent scripté, qui ne lit pas de catalogue.
-Aucun désaccord n'a été observé à l'exécution.
+Sur `new_session`, Pi charge une nouvelle instance de l'extension, avec un catalogue de modèles neuf
+(`createAgentSessionServices` recharge les extensions et crée un `ModelRuntime`). C'est cette
+instance qui reçoit deux fois `session_start`, les deux fois avec le catalogue de la session qui
+remplace, et son contexte d'ouverture est encore lisible quand la commande arrive. Le rouge de 6g a
+donc la même cause que 6a et 6b : la nouvelle instance ouvrait son runtime avant le `set_model` et y
+figeait le modèle. Aucune erreur de contexte caduc n'était en jeu, et le catalogue remis au worker Pi
+est celui de la session en cours : il n'y a rien à corriger de ce côté. La spécification (6g, §8,
+§14, §17, §20), la tâche 1, le commentaire de `selectedModel` et le test 6g ne reposent plus sur
+cette prémisse.

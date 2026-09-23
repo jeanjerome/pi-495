@@ -23,11 +23,15 @@ handoff:
     le modèle sélectionné quand elle démarre : `advance` reçoit un lecteur, `conduct` le lit dans le
     contexte de la commande, le runtime ne porte plus de modèle, et la vérification de capacité,
     l'inscription et le mandat reçoivent la même lecture. Preflight vert avec 395 tests. 6g est
-    confirmé par l'exécution sous une autre forme que prévu : un mauvais modèle (celui de la session
-    remplacée), pas une erreur de contexte caduc. Relevé, non testé et non corrigé : le catalogue
-    remis au worker Pi reste celui de la première session, alors que Pi en construit un neuf sur
-    `new_session`. Relevé : `specs/verifications/e25s02-cycle-rouge-vert.md`. Prochaine étape :
-    `verify-work`.
+    confirmé par l'exécution, mais sa cause n'est pas celle qu'on avait lue dans le code de Pi : une
+    extension sonde dans un vrai `pi --mode rpc` montre que `new_session` charge une nouvelle
+    instance de 495, avec un catalogue de modèles neuf, et que cette instance reçoit deux fois
+    `session_start` sans que son contexte devienne caduc. Le rouge de 6g venait du modèle figé à
+    l'ouverture, comme 6a et 6b. Le propriétaire a demandé de traiter ici le catalogue supposé
+    resté celui de la première session : la mesure montre qu'il est neuf, donc rien n'est à
+    corriger dans le code ; la spécification, la tâche 1, le commentaire de `selectedModel` et le
+    test 6g sont corrigés de la prémisse du contexte caduc. Relevé :
+    `specs/verifications/e25s02-cycle-rouge-vert.md`. Prochaine étape : `verify-work`.
 
     Étape 3 faite le 2026-09-23 : la spécification est validée par le propriétaire et versée sur
     `main` (`952172c`), la branche `modele-lu-a-chaque-intervention` part de ce commit, et la

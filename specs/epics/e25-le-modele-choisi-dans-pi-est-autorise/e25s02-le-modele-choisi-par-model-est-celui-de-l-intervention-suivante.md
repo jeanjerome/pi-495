@@ -99,11 +99,11 @@ comme non configuré ; aucun worker ne démarre.
 6f. **Modèle retrouvé à la reprise d'une session** — il est la sélection courante, et il est employé
 comme un modèle choisi par `/model`.
 
-6g. **Session remplacée sans que 495 se recrée** — le mode RPC de Pi démarre deux fois la même
-session sur `new_session`, `switch_session`, `fork` et `clone`, et 495 garde le runtime du premier
-démarrage. Pi rend caduc le contexte de la session qu'il remplace : il lève une erreur à la lecture
-de son modèle. L'intervention suivante lit donc la sélection dans le contexte de la commande ou de
-l'outil qui fait avancer le changement, jamais dans celui de l'ouverture de session.
+6g. **Session remplacée** — sur `new_session`, Pi charge de nouveau les extensions, avec un
+catalogue de modèles neuf, et démarre deux fois la nouvelle instance de 495 ; celle-ci ouvre son
+runtime au premier démarrage (mesuré avec Pi 0.87.1). Un modèle choisi ensuite dans la session qui
+remplace est celui de l'intervention suivante, comme en 6a : rien de la sélection n'est gardé de
+l'ouverture de session.
 
 ### 7. Interface elements [draft]
 
@@ -133,9 +133,8 @@ Pi donne à l'extension un contexte dont le modèle et le niveau de réflexion s
 l'appel (`createContext` dans `core/extensions/runner.js`, Pi 0.87.1). Suivre `model_select` pour en
 garder une copie ferait tenir à 495 un fait que Pi rapporte déjà, avec un second écrivain à
 synchroniser. L'annonce d'un changement de modèle, qui a besoin de l'événement, appartient à e25s03.
-Le contexte lu est celui de l'appel en cours, pas celui de l'ouverture de session : Pi invalide le
-contexte d'une session qu'il remplace ou recharge (`dispose` et `reload` dans
-`core/agent-session.js`), et le lire ensuite lève une erreur.
+Le contexte lu est celui de l'appel en cours, pas celui de l'ouverture de session : la sélection
+change après l'ouverture, par `/model`, et seul le contexte de l'appel la rend telle qu'elle est.
 
 ### 9. Integrations and boundaries [draft]
 
@@ -170,8 +169,8 @@ Not applicable — aucun réglage : le modèle est celui de Pi.
   différents, chacun égal au modèle sélectionné au démarrage.
 - Changement de modèle entre la vérification de capacité et le démarrage du worker : le modèle
   inscrit et le modèle remis au worker sont celui qui a été jugé.
-- Session remplacée après la création du runtime, contexte d'ouverture rendu caduc : 0 erreur de
-  contexte caduc à l'intervention suivante.
+- Session remplacée, puis modèle choisi dans la session qui remplace : l'intervention suivante
+  démarre avec ce modèle.
 
 ### 15. Security and compliance *NFR* [draft]
 
@@ -222,11 +221,10 @@ Scenario: Une sélection sans fournisseur reste refusée par la capacité (6e)
   Then  un refus de capacité est levé et aucun worker ne démarre
 
 Scenario: Une session remplacée lit la sélection de la session qui la remplace (6g)
-  Given un runtime créé au premier démarrage d'une session
-  And   ce contexte d'ouverture rendu caduc par Pi, qui a remplacé la session
-  When  une commande de la session de remplacement fait avancer le changement
+  Given une session remplacée par Pi, et 495 chargé de nouveau pour la session qui la remplace
+  And   un autre modèle sélectionné ensuite dans cette session
+  When  une commande de cette session fait avancer le changement
   Then  l'intervention démarre avec le modèle sélectionné dans cette session
-  And   aucune erreur de contexte caduc n'est levée
 ```
 
 ### 18. Out of scope [draft]
@@ -257,8 +255,9 @@ intervention en cours (`hors_perimetre`).
   et ses trois sources, `set`, `cycle` et `restore`.
 - `specs/adr/D-52-une-commande-verify-s-ecrit-rouge.md` — pourquoi les commandes du plan échouent au
   moment où elles sont écrites.
-- `node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js`, `dispose` et `reload` —
-  le contexte d'une session remplacée ou rechargée est rendu caduc, et sa lecture lève une erreur.
+- `node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session-services.js`,
+  `createAgentSessionServices` — sur `new_session`, Pi recharge les extensions et construit un
+  catalogue de modèles neuf.
 - `test/v3/session-start-twice.test.ts` — le runtime du premier démarrage est gardé au second.
 - Fichiers touchés : `src/extension/session.ts`, `src/extension/runtime.ts`,
   `src/extension/command.ts`, `src/extension/tool.ts`, `src/extension/conduct.ts`,
