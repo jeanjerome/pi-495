@@ -12,6 +12,16 @@ active_story: e25s01
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le premier tour de `request-review` le 2026-09-23 (A 96,6 %, B 89,7 %,
+    aucun défaut bloquant ; porte refusée pour B). Corrigés : deux commentaires qui décrivaient encore
+    le jugement de la destination, les écrits de recette et le §8 de la spec qui gardaient
+    `EgressLocation`, la lecture de `policy` dans `config.ts` depuis une seule source, un faux agent
+    nommé et des assertions de test resserrées. Le propriétaire a choisi de consigner sans trancher
+    deux défauts de `config.json`, ouverts au registre : un fichier illisible retire l'arbitrage humain
+    écrit, et une section qui n'est pas un objet s'étale dans la politique. Laissés : l'archive de
+    traçabilité et D-53, prévus par e25s04. Preflight vert avec 382 tests, changements commités. Le suivant est
+    un second tour de `request-review` avec deux relecteurs neufs.
+
     Les changements de `audit-code` et de la recette de `e25s01` sont commités le 2026-09-23, Preflight
     vert avec 382 tests juste avant. Le suivant est `request-review`, pour un second avis sur la
     branche `le-modele-choisi-est-admis`, non fusionnée.

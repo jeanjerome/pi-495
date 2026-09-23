@@ -25,3 +25,55 @@ bugs:
     risk_level: medium
     follow_ups: "decide whether max_attempts is configurable, then fix the code or the README row"
     status: open
+  - bug_id: BUG-2026-09-23T184520
+    date: "2026-09-23"
+    title: "An unreadable config.json drops the human arbitration the owner wrote"
+    severity: medium
+    priority: p2
+    scope: configuration
+    what_happened: >
+      A config.json that does not parse is ignored, and the session runs under the default policy. A
+      setting that asked for a human decision (`policy.adoption.design: human`,
+      `g5_human_acceptance: true`, `required_reviews`) is then replaced by the kernel's own default
+      until the file is fixed. The only trace is one session-open diagnostic, `config.json ignored`.
+    what_expected: >
+      A setting the owner wrote to keep a decision for a human is not lost behind a typo without the
+      owner deciding that it may be.
+    steps_to_reproduce:
+      - "Write `{\"policy\":{\"adoption\":{\"design\":\"human\"},\"g5_human_acceptance\":true}` (closing brace missing) to the data directory's config.json."
+      - "Call `loadConfig` on that directory, or open a session."
+      - "The active policy reads `adoption.design: kernel` and `g5_human_acceptance: false`, with one diagnostic."
+    root_cause: >
+      The load falls back to the default configuration on any parse error. Until the egress list was
+      removed, the same fallback also emptied that list, so every intervention was refused and the
+      loss of the other settings could not take effect. Without the list, nothing is refused.
+    evidence: >
+      Probe of loadConfig on 2026-09-23 against the branch that removes the egress list; spec e25s01 §6b
+      states the fallback without weighing the other settings.
+    risk_level: medium
+    follow_ups: "decide whether an unreadable config.json refuses every change or keeps the defaults, then fix or record the decision"
+    status: open
+  - bug_id: BUG-2026-09-23T184521
+    date: "2026-09-23"
+    title: "A config.json section that is not an object spreads its characters into the active policy"
+    severity: low
+    priority: p3
+    scope: configuration
+    what_happened: >
+      `policy`, `policy.budgets` and `policy.adoption` are spread into the active policy without checking
+      that they are objects. A string or a list puts index keys ("0", "1", …) into the policy, and no
+      field value is type-checked, so `max_attempts: "abc"` is loaded as written.
+    what_expected: >
+      A malformed section is refused or announced, and a field of the wrong type does not reach the
+      policy.
+    steps_to_reproduce:
+      - "Write `{\"policy\":\"ab\"}` to the data directory's config.json."
+      - "Call `loadConfig` on that directory."
+      - "The active policy carries the keys \"0\" and \"1\", and no diagnostic is emitted."
+    root_cause: >
+      The loader checks only that the file itself is an object; each section is spread as read. A
+      `__proto__` key becomes an ordinary own property, so the prototype is not reached.
+    evidence: "Probe of loadConfig on 2026-09-23; the same result on main."
+    risk_level: low
+    follow_ups: "treat together with the unreadable-file decision, which fixes what a malformed section does"
+    status: open

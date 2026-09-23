@@ -107,7 +107,8 @@ Le README perd son étape « Declare your model provider », et sa table de conf
 
 **Entité touchée :** la politique active perd son champ `egress`. Le type des destinations déclarées
 et la règle qui refusait une destination non déclarée disparaissent du noyau. La situation « sur la
-machine / hors d'elle » reste un type du noyau : e25s03 la lit de l'adresse du modèle.
+machine / hors d'elle » n'y garde pas de type, faute de lecteur : e25s03 l'introduit quand il la lit
+de l'adresse du modèle.
 
 **Entité créée :** aucune. Aucun identifiant de composant nouveau.
 

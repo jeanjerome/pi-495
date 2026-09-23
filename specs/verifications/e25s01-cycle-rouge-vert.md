@@ -57,8 +57,8 @@ Aucun constat nouveau sur les chemins touchés.
   La clé est retirée avant l'étalement de `policy`, donc elle ne reste pas dans la politique active.
   Les autres réglages sont lus comme avant. Un fichier illisible donne la configuration par défaut,
   comme avant, sans la liste vide qui refusait tout.
-- `src/domain/policy.ts` — il ne reste de la situation qu'un type, `EgressLocation`, que e25s03
-  lira de l'adresse du modèle. Aucune fonction ni valeur n'est exportée pour lui.
+- `src/domain/policy.ts` — la situation n'y garde aucun type. `EgressLocation`, qui n'avait plus
+  de lecteur, est retiré ; e25s03 introduit le sien quand il la lit de l'adresse du modèle.
 - `src/application/intervention.ts` — `requireCapable` juge encore le bac à sable et les capacités
   du modèle. `harness.ts` l'appelle avant d'inscrire `intervention.start`. Rien n'est engagé pour
   une intervention refusée.

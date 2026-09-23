@@ -251,7 +251,7 @@ Le seul contrôle retiré est celui que la story retire, et il est nommé plus b
 ## Hypothèses vérifiées, non supposées
 
 **Plus aucun lecteur de la liste.** `grep -rn egress src/` ne rend que la clé lue pour être
-annoncée dans `config.ts` et le type `EgressLocation`, qui ne porte aucune valeur. Aucune
+annoncée dans `config.ts`. Le type `EgressLocation` est retiré lui aussi, faute de lecteur. Aucune
 production ne lit `policy.egress`, et l'action suivante `declare_egress_destination` n'a plus
 d'émetteur ni de consommateur.
 
