@@ -10,14 +10,17 @@ active_epic_id: e25
 active_story: e25s02
 
 epic_cycle:
-  step: 7
-  completed_steps: "1,2,3,4,5,6"
+  step: 8
+  completed_steps: "1,2,3,4,5,6,7,8"
   audit_result: pass
   story_bcps: 3
 
 handoff:
-  next_skill: release-branch
+  next_skill: null
   last_step_completed: >
+    e25s02 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire, qui a
+    confirmé les trois campagnes de reprise après refus. Preflight verte sous Node 24.21.0.
+
     Étape 6 faite le 2026-09-24. Troisième tour de `request-review`, sur `git diff 8c7a569 612bd09` :
     porte passée pour les deux relecteurs, trois remarques à considérer. Deux sont reprises en
     commentaire dans `af09eeb` (la reprise d'une tentative non démarrée ne vaut qu'avant la première
@@ -28,8 +31,7 @@ handoff:
     par trois campagnes réelles : sur `af09eeb`, l'implémentation refusée pour Flash-Next reprend
     après `/model` et `/495 resume` dans l'espace déjà préparé, acceptée G0..G5 ; sur `c1ff51c`, la
     reprise ne lève rien ; sur `8c7a569`, elle aboutit mais sur une seconde copie du projet. Relevé :
-    `resume_after_refusal` dans `e25s02-verify.yaml`, en attente de la confirmation du propriétaire.
-    La fusion attend sa décision.
+    `resume_after_refusal` dans `e25s02-verify.yaml`.
 
     Étape 6 en cours le 2026-09-24. `audit-code` passe sur `952172c..ed4ca34`. Premier tour de
     `request-review` sur la même étendue : porte passée pour les deux relecteurs, aucun must-fix ni

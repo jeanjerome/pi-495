@@ -224,8 +224,11 @@ resume_after_refusal:
         The refusal is retryable and the resume completes the change, but under a new attempt
         att_muepau060e9b58bae2: the dossier holds two `ws_` artifacts and the disk two workspaces,
         ws_muepatex_6 prepared before the refusal and never used, ws_muepau06_7 created at the resume.
-  confirmed_by_owner: false
-  confirmation_note: "Awaiting the owner's confirmation."
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-23T22:58:52Z"
+  confirmation_note: >
+    Confirmed by the owner on the three campaigns above and the remaining limit: a refusal at the
+    specifying step rests on its test.
 
 gaps:
   closed: true
