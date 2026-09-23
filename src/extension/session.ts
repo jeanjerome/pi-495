@@ -202,21 +202,16 @@ export class ExtensionSession {
 		return result;
 	}
 
-	/** The one place the runtime is created, with the model selected when the session opened. */
+	/**
+	 * The one place the runtime is created. It holds no model: each intervention reads the one selected
+	 * when it starts, from the context of the command that advances the change (`conduct`).
+	 */
 	private createRuntimeAt(ctx: ExtensionContext): void {
 		try {
-			const model = ctx.model
-				? {
-						provider_id: ctx.model.provider,
-						model_id: ctx.model.id,
-						thinking_level: String(ctx.thinkingLevel ?? "off"),
-					}
-				: { provider_id: "", model_id: "", thinking_level: "off" };
 			this.harnessRuntime = createRuntime({
 				pi_version: VERSION,
 				pi_package_dir: getPackageDir(),
 				pi_agent_dir: getAgentDir(),
-				model,
 				catalogue: ctx.modelRegistry,
 			});
 		} catch (error) {

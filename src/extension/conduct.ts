@@ -5,8 +5,22 @@
  * and records nothing — an answer nobody gave is not an answer.
  */
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ModelSelection } from "../ports/execution.ts";
 import { formatDecision, formatStatus } from "../presentation/structured/text.ts";
 import type { ExtensionSession } from "./session.ts";
+
+/**
+ * The model Pi holds as selected, with its thinking level. Pi resolves both when they are read
+ * (`createContext`, `core/extensions/runner.js`, Pi 0.87.1), so this is read from the context of the
+ * command under way: the context of the session start is stale once Pi replaces the session, and
+ * reading it then throws.
+ */
+function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
+	const model = ctx.model;
+	return model
+		? { provider_id: model.provider, model_id: model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
+		: { provider_id: "", model_id: "", thinking_level: "off" };
+}
 
 export async function conduct(
 	session: ExtensionSession,
@@ -23,7 +37,9 @@ export async function conduct(
 		rt.harness.deps.onProgress = (m) => {
 			if (ctx.hasUI) ctx.ui.setStatus("495", `495 ${m}`);
 		};
-		const result = await session.withLoader(ctx, "495", async () => rt.harness.advance(changeId, { max_steps: 40 }));
+		const result = await session.withLoader(ctx, "495", async () =>
+			rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
+		);
 		session.updateFooter(ctx, result.view);
 		session.emit(
 			ctx,

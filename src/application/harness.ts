@@ -76,7 +76,6 @@ export interface HarnessDeps {
 	policy: ActivePolicy;
 	workspacePolicy: WorkspacePolicy;
 	environment: EnvironmentRef;
-	model: ModelSelection;
 	instance_id: string;
 	/** Absolute paths never readable by workers (data dir). */
 	denied_read_paths: string[];
@@ -129,8 +128,11 @@ export class Harness {
 	private readonly verification: VerificationCoordinator;
 	/** Drives one bounded agent session and reports what it observed. */
 	private readonly interventions: InterventionSupervisor;
-	/** The whole of what a phase may do. */
-	private readonly phase: PhaseContext;
+	/**
+	 * The whole of what a phase may do, but open an intervention: that needs the model selected when
+	 * it starts, which only the caller of `advance` can read.
+	 */
+	private readonly phase: Omit<PhaseContext, "runIntervention">;
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
 		const harness = this;
@@ -164,8 +166,6 @@ export class Harness {
 			progress: (message: string) => harness.progress(message),
 			language: (state: ChangeState) => harness.language(state),
 			commit: (unit: Unit, command: ChangeCommand, correlation: string) => harness.commit(unit, command, correlation),
-			runIntervention: (unit, cor, role, objective, workspacePath, extra) =>
-				harness.runIntervention(unit, cor, role, objective, workspacePath, extra),
 			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language) =>
 				harness.requestDecision(unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language),
 			feedbackSources: () => harness.feedbackSources(),
@@ -174,7 +174,6 @@ export class Harness {
 		this.interventions = new InterventionSupervisor({
 			agent: deps.agent,
 			sandbox: deps.sandbox,
-			model: deps.model,
 			policy: deps.policy,
 			now: () => harness.now(),
 			progress: (message: string) => harness.progress(message),
@@ -382,9 +381,22 @@ export class Harness {
 
 	// --- conduct loop ----------------------------------------------------------------------------
 
-	async advance(changeId: string, options: { max_steps?: number; actor?: ActorRef } = {}): Promise<AdvanceResult> {
+	/**
+	 * `readModel` returns the model Pi holds as selected, with its thinking level. It is called once as
+	 * each intervention starts, so a model selected between two interventions is the one the next runs
+	 * with (AGT-07).
+	 */
+	async advance(
+		changeId: string,
+		options: { max_steps?: number; actor?: ActorRef; readModel: () => ModelSelection },
+	): Promise<AdvanceResult> {
 		const steps: string[] = [];
 		const max = options.max_steps ?? 12;
+		const phaseContext: PhaseContext = {
+			...this.phase,
+			runIntervention: (unit, cor, role, objective, workspacePath, extra) =>
+				this.runIntervention(options.readModel, unit, cor, role, objective, workspacePath, extra),
+		};
 		let unit = this.load(changeId);
 		for (let i = 0; i < max; i++) {
 			const s = unit.state;
@@ -397,7 +409,7 @@ export class Harness {
 			try {
 				const phase = PHASES[s.phase];
 				if (!phase) return this.result(unit, steps, "blocked");
-				unit = await phase(this.phase, unit, cor);
+				unit = await phase(phaseContext, unit, cor);
 				steps.push(`${s.phase} -> ${unit.state.phase}/${unit.state.status}`);
 			} catch (error) {
 				if (error instanceof DomainError) {
@@ -446,6 +458,7 @@ export class Harness {
 	// --- interventions ---------------------------------------------------------------------------
 
 	private async runIntervention(
+		readModel: () => ModelSelection,
 		unit: Unit,
 		cor: string,
 		role: InterventionMandate["role"],
@@ -459,7 +472,10 @@ export class Harness {
 		result: "completed" | "failed" | "cancelled" | "truncated";
 		intervention_id: string;
 	}> {
-		await this.interventions.requireCapable(role);
+		// Read once: the model judged is the one journaled, declared in the context and handed to the
+		// worker, whatever is selected in Pi while the capability check awaits the model's description.
+		const model = readModel();
+		await this.interventions.requireCapable(role, model);
 		const interventionId = this.id("int");
 		const attemptId = extra.attempt_id ?? (role === "implement" || role === "prepare" ? this.id("att") : null);
 		unit = this.commit(
@@ -471,7 +487,7 @@ export class Harness {
 				intervention_id: interventionId,
 				role,
 				attempt_id: attemptId,
-				model: this.deps.model,
+				model,
 				profile_id: role,
 				profile_qualified: this.interventions.qualifiedFor(role),
 			},
@@ -503,7 +519,7 @@ export class Harness {
 			budget_bytes: 60_000,
 			// The provider is read from the same selection the supervisor hands the worker; what it
 			// imposes is declared whether or not this intervention writes (CTX-02).
-			imposed_layers: imposedLayersFor(this.deps.model.provider_id),
+			imposed_layers: imposedLayersFor(model.provider_id),
 			controls: (protocol?.content.controls ?? []).map((c) => ({
 				control_id: c.control_id,
 				command: c.command,
@@ -537,6 +553,7 @@ export class Harness {
 				prompt: ctx.prompt,
 				system_prompt: ctx.system_prompt,
 				context: ctx.manifest,
+				model,
 			},
 			() => {
 				const consumed = this.tryCommit(

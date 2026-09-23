@@ -107,7 +107,7 @@ class RecordingAgent implements AgentPort {
 }
 
 /** A supervisor whose sandbox is qualified, driven by a recording agent. */
-function supervisorFor(model: ModelSelection) {
+function supervisorFor() {
 	const agent = new RecordingAgent();
 	const supervisor = new InterventionSupervisor({
 		agent,
@@ -121,7 +121,6 @@ function supervisorFor(model: ModelSelection) {
 				reasons: [],
 			},
 		},
-		model,
 		policy: DEFAULT_POLICY,
 		now: () => "2026-09-23T00:00:00Z",
 		progress: () => {},
@@ -131,8 +130,8 @@ function supervisorFor(model: ModelSelection) {
 
 describe("what the supervisor still judges before an intervention (SEC-05)", () => {
 	it("hands a chosen provider to the worker, instead of refusing it for its destination", async () => {
-		const { supervisor, probed, started } = supervisorFor(CHOSEN);
-		await supervisor.requireCapable("implement");
+		const { supervisor, probed, started } = supervisorFor();
+		await supervisor.requireCapable("implement", CHOSEN);
 		assert.deepEqual(
 			probed.map((m) => m.provider_id),
 			[CHOSEN.provider_id],
@@ -149,6 +148,7 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 						prompt: "p",
 						system_prompt: "s",
 						context: mandate("o", process.cwd()).context,
+						model: CHOSEN,
 					},
 					() => null,
 				),
@@ -158,9 +158,9 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 	});
 
 	it("leaves a model with no provider to the capability check, not to a policy refusal", async () => {
-		const { supervisor, started } = supervisorFor({ provider_id: "", model_id: "", thinking_level: "off" });
+		const { supervisor, started } = supervisorFor();
 		await assert.rejects(
-			() => supervisor.requireCapable("implement"),
+			() => supervisor.requireCapable("implement", { provider_id: "", model_id: "", thinking_level: "off" }),
 			(error: DomainError) => {
 				assert.equal(error.code, "CAPABILITY_MISSING", "a model never configured is not a policy refusal");
 				return true;

@@ -19,15 +19,13 @@ import { GitIntegrator } from "../adapters/git/integrator.ts";
 import { describeEnvironment } from "../application/environment.ts";
 import { Harness } from "../application/harness.ts";
 import { randomIds, systemClock } from "../application/ids.ts";
-import type { ModelSelection } from "../ports/execution.ts";
 import { loadConfig, type HarnessConfig } from "./config.ts";
 
 export interface RuntimeInputs {
 	pi_version: string;
 	pi_package_dir: string;
 	pi_agent_dir: string;
-	model: ModelSelection;
-	/** The host's model surface, from which the model retained is described before each intervention. */
+	/** The host's model surface, from which the selected model is described before each intervention. */
 	catalogue?: PiModelCatalogue | null;
 	env?: NodeJS.ProcessEnv;
 	dataDir?: string;
@@ -117,7 +115,6 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		policy: config.policy,
 		workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 },
 		environment: environment.ref,
-		model: inputs.model,
 		instance_id: randomIds.next("ins"),
 		denied_read_paths: normative,
 	});

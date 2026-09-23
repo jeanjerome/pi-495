@@ -7,7 +7,8 @@ import { DomainError } from "../../domain/errors.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "../actors.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
-export async function verify(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
+/** A verification runs the frozen controls and opens no intervention. */
+export async function verify(ctx: Omit<PhaseContext, "runIntervention">, unit: Unit, cor: string): Promise<Unit> {
 	const state = unit.state;
 	if (!state.candidate || !state.protocol)
 		throw new DomainError("PRECONDITION_FAILED", "candidate and protocol required");

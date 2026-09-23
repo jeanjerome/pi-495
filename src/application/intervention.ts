@@ -28,7 +28,6 @@ import { outputSchemaFor } from "./context.ts";
 export interface InterventionDeps {
 	agent: AgentPort;
 	sandbox: SandboxSelection;
-	model: ModelSelection;
 	policy: ActivePolicy;
 	now(): string;
 	progress(message: string): void;
@@ -43,6 +42,8 @@ export interface InterventionRequest {
 	prompt: string;
 	system_prompt: string;
 	context: ContextManifest;
+	/** The model judged by `requireCapable`, which the worker is handed. */
+	model: ModelSelection;
 }
 
 export interface InterventionReport {
@@ -102,19 +103,19 @@ export class InterventionSupervisor {
 	 * Refuses, before anything is committed, when the sandbox or the model cannot carry the role. The
 	 * destination is not judged: choosing the model in Pi is what admits its provider (SEC-05).
 	 */
-	async requireCapable(role: InterventionRole): Promise<void> {
+	async requireCapable(role: InterventionRole, model: ModelSelection): Promise<void> {
 		if (!this.qualifiedFor(role))
 			throw new DomainError(
 				"CAPABILITY_MISSING",
 				`sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`,
 				{ nextActions: ["qualify_capability"] },
 			);
-		const capabilities = await this.deps.agent.describeCapabilities(this.deps.model);
-		const unmet = this.unmetCapabilities(capabilities);
+		const capabilities = await this.deps.agent.describeCapabilities(model);
+		const unmet = this.unmetCapabilities(capabilities, model);
 		if (unmet.length > 0)
 			throw new DomainError(
 				"CAPABILITY_MISSING",
-				`model ${this.deps.model.provider_id}/${this.deps.model.model_id} cannot carry this intervention: ${unmet.join("; ")}`,
+				`model ${model.provider_id}/${model.model_id} cannot carry this intervention: ${unmet.join("; ")}`,
 				{ nextActions: ["configure_model"] },
 			);
 	}
@@ -126,12 +127,12 @@ export class InterventionSupervisor {
 	 * model does not accept is refused rather than sent: the host would silently clamp it to the
 	 * nearest one it accepts, and the dossier would keep the level that was asked for.
 	 */
-	private unmetCapabilities(capabilities: AgentCapabilities): string[] {
+	private unmetCapabilities(capabilities: AgentCapabilities, model: ModelSelection): string[] {
 		if (!capabilities.available)
 			return capabilities.reasons.length > 0 ? capabilities.reasons : ["the model was not described as available"];
 		const unmet: string[] = [];
 		const levels = capabilities.thinking_levels.value;
-		const asked = this.deps.model.thinking_level;
+		const asked = model.thinking_level;
 		if (levels && !levels.includes(asked))
 			unmet.push(`thinking level ${asked} is not accepted by this model (accepted: ${levels.join(", ")})`);
 		if (capabilities.tools.value !== true) unmet.push(capabilities.tools.note);
@@ -159,14 +160,14 @@ export class InterventionSupervisor {
 			tools: TOOLS_FOR_ROLE[role],
 			profile: this.profileFor(role, request.workspace_path),
 			workspace_path: request.workspace_path,
-			model: this.deps.model,
+			model: request.model,
 			budgets: {
 				duration_ms: this.deps.policy.budgets.intervention_ms,
 				tool_calls: this.deps.policy.budgets.tool_calls_per_intervention,
 			},
 			output_schema: outputSchemaFor(role),
 		};
-		this.deps.progress(`intervention ${role} started (${this.deps.model.provider_id}/${this.deps.model.model_id})`);
+		this.deps.progress(`intervention ${role} started (${request.model.provider_id}/${request.model.model_id})`);
 		const handle = await this.deps.agent.startIntervention(mandate);
 		this.active = handle;
 		let terminal: InterventionEvent | null = null;

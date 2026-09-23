@@ -6,7 +6,7 @@ import { ScriptedAgent, type AgentScript } from "../../src/adapters/pi-worker/sc
 import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
-import { Harness, type HarnessDeps } from "../../src/application/harness.ts";
+import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
 import type { ControlExecutionPort, ModelSelection } from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
@@ -14,8 +14,23 @@ import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 
+/**
+ * A harness whose `advance` reads the test's model unless the test passes its own reader: most tests
+ * are about something else than which model Pi holds as selected.
+ */
+class HarnessWithModel extends Harness {
+	private readonly model: ModelSelection;
+	constructor(deps: HarnessDeps, model: ModelSelection) {
+		super(deps);
+		this.model = model;
+	}
+	override advance(changeId: string, options: Partial<Parameters<Harness["advance"]>[1]> = {}): Promise<AdvanceResult> {
+		return super.advance(changeId, { readModel: () => this.model, ...options });
+	}
+}
+
 export interface TestHarness {
-	harness: Harness;
+	harness: HarnessWithModel;
 	ledger: SqliteLedger;
 	objects: CasObjectStore;
 	agent: ScriptedAgent;
@@ -72,7 +87,10 @@ export interface HarnessOptions {
 	root?: string;
 	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
 	ids?: IdSource;
-	/** Overrides the scripted default, e.g. to drive a test against a provider that imposes a layer. */
+	/**
+	 * The model `advance` reads unless the test passes its own reader, e.g. to drive a test against a
+	 * provider that imposes a layer.
+	 */
 	model?: Partial<ModelSelection>;
 }
 
@@ -135,13 +153,13 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 			digest: digestValue({ test: true }),
 			profile_id: sandbox.backend.backend,
 		},
-		model: { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off", ...(options.model ?? {}) },
 		instance_id: "test",
 		denied_read_paths: [root],
 		onDecisionRequested: (r) => requested.push(r),
 		onProgress: (m) => progress.push(m),
 	};
-	return { harness: new Harness(deps), ledger, objects, agent, root, requested, progress };
+	const model = { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off", ...(options.model ?? {}) };
+	return { harness: new HarnessWithModel(deps, model), ledger, objects, agent, root, requested, progress };
 }
 
 /**
