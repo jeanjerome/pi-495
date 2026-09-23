@@ -64,6 +64,8 @@ export interface HarnessOptions {
 	policy?: PolicyOverride;
 	scripts?: Record<string, AgentScript>;
 	defaultScript?: AgentScript;
+	/** Replaces the scripted agent built from `scripts` and `defaultScript`, e.g. one that judges the model it is given. */
+	agent?: ScriptedAgent;
 	sandbox?: "unconfined" | "platform";
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
 	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
@@ -101,10 +103,12 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 				};
 	const real = new GenericControlRunner(sandbox.backend, objects);
 	const controls = options.controls ? options.controls(real) : real;
-	const agent = new ScriptedAgent(
-		options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] },
-		options.scripts ?? {},
-	);
+	const agent =
+		options.agent ??
+		new ScriptedAgent(
+			options.defaultScript ?? { steps: [{ kind: "complete", output: specReport() }] },
+			options.scripts ?? {},
+		);
 	const sources = fixedSources();
 	const ids = options.ids ?? sources.ids;
 	const requested: DecisionRequest[] = [];
