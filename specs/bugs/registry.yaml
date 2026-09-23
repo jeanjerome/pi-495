@@ -77,3 +77,33 @@ bugs:
     risk_level: low
     follow_ups: "treat together with the unreadable-file decision, which fixes what a malformed section does"
     status: open
+  - bug_id: BUG-2026-09-23T173000
+    date: "2026-09-23"
+    title: "An unreadable config.json diagnostic quotes an excerpt of the file to the session's model"
+    severity: low
+    priority: p3
+    scope: configuration
+    what_happened: >
+      A config.json that does not parse was announced as `config.json ignored: <message>`, where the
+      message was V8's JSON syntax error. That error quotes about twenty characters of the source around
+      the fault. The diagnostic is emitted by `pi.sendMessage`, and Pi converts a custom message into a
+      user message of the model's context (`convertToLlm` in `dist/core/messages.js`; `extensions.md`:
+      "Custom content stored and sent to the model"). An excerpt of the file therefore reached the
+      provider of the session's model.
+    what_expected: >
+      The diagnostic says the file is ignored and why, without reproducing any of its text.
+    steps_to_reproduce:
+      - "Write `{\"policy\":{\"egress\":[{\"provider_id\":k7f3a9}]}}` to the data directory's config.json."
+      - "Call `loadConfig` on that directory, or open a session."
+      - "The diagnostic reads `config.json ignored: Unexpected token 'k', ...\"vider_id\":k7f3a9}]}}\" is not valid JSON`."
+    root_cause: >
+      The load reported the caught error's message as is. The same code is on main; the egress-list
+      echo was bounded, this path never was.
+    evidence: >
+      test/v1/model-admitted.test.ts, "says an unreadable file is ignored without reproducing any of its
+      text", red before the fix. Cold start of the built extension on that file after the fix:
+      `495: config.json ignored: it is not valid JSON`.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: dcdd890

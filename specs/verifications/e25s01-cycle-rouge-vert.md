@@ -5,6 +5,8 @@ Conduite le 2026-09-23 sur `le-modele-choisi-est-admis`, depuis `main` à `1e7fd
 
 ## Commandes des tâches
 
+Relevées à `67740c4`.
+
 ```
 $ node --test test/v1/model-admitted.test.ts                 # tâches 1 et 3
 ℹ tests 6   ℹ pass 6   ℹ fail 0
@@ -28,8 +30,9 @@ l'environnement remis au worker et sur le texte composé pour le modèle.
 | La politique ne porte aucune liste ; une clé `policy.egress`, quelle que soit sa forme, est ignorée et annoncée sans reproduire son contenu ; un fichier illisible ne refuse plus rien | `8bf454b` — 5 échecs sur 6 | `e6492c5` |
 | Un changement atteint sa première intervention avec un fournisseur que rien ne déclare, y compris sous une liste héritée qui ne nomme que `omlx` ; le journal inscrit ce fournisseur ; `run()` joint le worker | `11da7b1` — 3 échecs sur 4, motif `policy_denied` | `e6492c5` |
 | Un modèle sans fournisseur reste un refus de capacité | **vert à l'arrivée** — garde de non-régression | — |
+| Un fichier illisible est annoncé sans rien citer du fichier | rouge observé avant correction, non commité seul (voir plus bas) | `dcdd890` |
 
-Les deux comportements rouges ont un seul commit vert. Retirer le champ `egress` de la politique
+Les deux premiers comportements rouges ont un seul commit vert. Retirer le champ `egress` de la politique
 retire du même coup la règle que le superviseur appliquait. Aucun état intermédiaire ne compile avec
 l'un sans l'autre.
 
@@ -48,6 +51,27 @@ e6492c5 (implémentation) node --test test/v1/model-admitted.test.ts  exit=0
 e6492c5 (implémentation) node --test test/v2/model-admitted.test.ts  exit=0
 ```
 
+Le diagnostic d'un fichier illisible reprenait le message de `JSON.parse`, qui cite un extrait du
+fichier, et ce diagnostic part vers le modèle de la session. Le test « says an unreadable file is
+ignored without reproducing any of its text » a été écrit d'abord et vu rouge sur l'arbre de
+`0a44577`, puis commité avec le correctif dans `dcdd890` :
+
+```
+AssertionError [ERR_ASSERTION]: a diagnostic is sent to the session's model, so an excerpt of the
+file would leave with it: config.json ignored: Unexpected token 'k', ..."vider_id":k7f3a9}]}}" is not valid JSON
+```
+
+Deux contrôles négatifs tiennent les tests resserrés à `67740c4`, par mutation injectée puis
+retirée :
+
+```
+liste d'admission rétablie sur anthropic, omlx, scripted   node --test test/v2/model-admitted.test.ts  3 échecs sur 4
+valeur d'une clé policy.egress chaîne recopiée au diagnostic  node --test test/v1/model-admitted.test.ts  1 échec sur 6
+```
+
+Le fournisseur des tests v2 était `anthropic`, que la table des strates imposées de 495 nomme : la
+première mutation laissait alors passer les 9 tests de la story.
+
 ## Revue de sécurité — tâches 1 et 2, `security: high`
 
 Aucun constat nouveau sur les chemins touchés.
@@ -56,11 +80,13 @@ Aucun constat nouveau sur les chemins touchés.
   ignorée ni son contenu, et un test le vérifie avec un nom de fournisseur qu'aucun défaut ne porte.
   La clé est retirée avant l'étalement de `policy`, donc elle ne reste pas dans la politique active.
   Les autres réglages sont lus comme avant. Un fichier illisible donne la configuration par défaut,
-  comme avant, sans la liste vide qui refusait tout.
+  comme avant, sans la liste vide qui refusait tout, et son diagnostic ne cite plus rien du fichier
+  (BUG-2026-09-23T173000, corrigé dans `dcdd890`).
 - `src/domain/policy.ts` — la situation n'y garde aucun type. `EgressLocation`, qui n'avait plus
   de lecteur, est retiré ; e25s03 introduit le sien quand il la lit de l'adresse du modèle.
 - `src/application/intervention.ts` — `requireCapable` juge encore le bac à sable et les capacités
-  du modèle. `harness.ts` l'appelle avant d'inscrire `intervention.start`. Rien n'est engagé pour
+  du modèle. `harness.ts` l'appelle avant de soumettre `intervention.start`, dont le journal inscrit
+  `intervention.started`. Rien n'est engagé pour
   une intervention refusée.
 - Environnement du worker et constructeur de contexte : non touchés. Les tests du secret sentinelle
   passent.
@@ -78,7 +104,9 @@ e25s04.
 
 ## État final
 
-`npm run build && npm run check` est vert à `3fbe0ea` avec 381 tests. L'assertion sur la politique
+`npm run build && npm run check` est vert à `67740c4` avec 382 tests. L'assertion sur la politique
 du noyau, que le type garantit déjà, est retirée, et le test des entrées Pi porte aussi le diagnostic
 d'une clé `policy.egress` ignorée. Retirer l'émission de ce diagnostic fait échouer ce test en mode
-texte.
+texte. Le fournisseur admis dans les tests v2 n'est nommé nulle part dans 495, chaque forme
+malformée de la clé est annoncée mot pour mot comme une liste, et un fichier illisible est annoncé
+sans extrait.

@@ -235,7 +235,7 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..3fbe0ea`, 22 fichiers, dont 4 de production |
+| Périmètre | `git diff 1e7fd3e..67740c4`, 22 fichiers, dont 4 de production |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
@@ -261,9 +261,19 @@ donc aucun champ `egress`, ce que `test/v1/model-admitted.test.ts` vérifie.
 
 **Le diagnostic ne reproduit rien du fichier.** C'est une chaîne constante. Il emprunte le chemin
 existant (`session.ts`, `openedAt`) : l'affichage, puis les entrées structurées au premier `/495`.
-Il n'est inscrit ni au journal ni au dossier exporté. `test/v3/pi-entries.test.ts` le vérifie dans
-les entrées texte et JSON.
-Aucun contenu fourni par le propriétaire n'y entre, quelle que soit la forme de la clé.
+Hors du mode texte, ce chemin est `pi.sendMessage`, que Pi convertit en message utilisateur du
+contexte du modèle (`convertToLlm`, `dist/core/messages.js`) : un diagnostic part donc vers le
+fournisseur de la session. Il n'est inscrit ni au journal ni au dossier exporté.
+`test/v3/pi-entries.test.ts` le vérifie dans les entrées texte et JSON. Aucun contenu fourni par le
+propriétaire n'y entre, quelle que soit la forme de la clé : `test/v1/model-admitted.test.ts` exige
+le même texte, mot pour mot, pour une liste et pour chaque forme malformée.
+
+**Un fichier illisible n'est plus cité au modèle.** Le diagnostic d'un fichier illisible reprenait
+le message de `JSON.parse`, et V8 y cite une vingtaine de caractères du fichier autour de la faute.
+Le défaut existait avant cette story, sur le même chemin vers le modèle, et le retrait de la liste
+ouvre ce chemin à tout fournisseur. Il est corrigé (BUG-2026-09-23T173000) : une erreur de syntaxe
+est annoncée « it is not valid JSON », sans extrait, ce qu'un test tient et qu'un démarrage à froid
+de l'extension construite confirme.
 
 **Les autres réglages gardent leur sens.** L'étalement de `policy`, les fusions de `budgets` et
 `adoption`, le verrou `protocol: "kernel"`, `revision` et `policy_id` sont lus comme avant. La
@@ -278,8 +288,9 @@ qui refusait tout a disparu. Un arbitrage humain écrit dans le fichier est alor
 ne le refuse : ce défaut est ouvert au registre sous BUG-2026-09-23T184520.
 
 **La vérification de capacité reste jugée avant tout engagement.** `requireCapable` juge le bac à
-sable et les capacités du modèle ; `harness.ts` l'appelle avant d'inscrire `intervention.start`. Un
-modèle sans fournisseur y reste refusé comme non configuré (`test/v2/model-admitted.test.ts`).
+sable et les capacités du modèle ; `harness.ts` l'appelle avant de soumettre `intervention.start`,
+dont le journal inscrit `intervention.started`. Un modèle sans fournisseur y reste un refus de
+capacité, pas un refus par politique (`test/v2/model-admitted.test.ts`).
 
 **Environnement du worker et constructeur de contexte non touchés.** Aucun fichier sous
 `src/adapters/pi-worker/` ni `src/application/context.ts` dans le diff. Les tests du secret sentinelle

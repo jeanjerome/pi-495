@@ -3,7 +3,7 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: 3fbe0ea
+revision: 67740c4
 
 environment:
   pi_version: "0.87.1"
@@ -19,7 +19,10 @@ phases:
       extension loaded from dist/ — `pi -ne -p --no-session -e dist/extension/index.js "/495 status"`,
       exit 0. The data directory was provisioned from nothing, and the one diagnostic reads
       "config.json ignored: Unexpected end of JSON input", with no sentence saying interventions are
-      refused (6b).
+      refused (6b). Re-run after dcdd890 on a file whose fault sits on an unquoted word, with the same
+      command: exit 0, and the one diagnostic reads "config.json ignored: it is not valid JSON" — the
+      parser's message, which quoted the word to the session's model, is no longer reported
+      (BUG-2026-09-23T173000, fixed).
   build:
     passed: true
     command: "npm run build"
@@ -32,28 +35,28 @@ phases:
     note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
   tests:
     passed: true
-    count: 381
+    count: 382
     note: >
-      381 of 381. 393 on main: 21 tests of the list and its refusal removed, 9 added. The two
+      382 of 382. 393 on main: 21 tests of the list and its refusal removed, 10 added. The two
       sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
       asserts the ignored-key diagnostic in the print and JSON entries.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T17:02:11Z"
-  ended_at: "2026-09-23T17:04:21Z"
+  started_at: "2026-09-23T17:31:15Z"
+  ended_at: "2026-09-23T17:32:45Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the tree committed as 3fbe0ea, right after
-    `npm run build`. 381 tests passing, 0 failing. No output from any other attempt is merged into
+    Single contiguous run under Node 24.21.0 on the tree committed as 67740c4, right after
+    `npm run build`. 382 tests passing, 0 failing. No output from any other attempt is merged into
     this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
-    remove a type nothing read, restructure the policy read without changing what it loads, and
-    change comments and tests.
+    remove a type nothing read, restructure the policy read without changing what it loads, stop
+    quoting the parser's message for an unreadable file, and change comments and tests.
 
 task_verify_commands:
   note: "Each task's own verify command, re-run before UAT; every one exits 0."
   results:
-    - { task: 1, command: "node --test test/v1/model-admitted.test.ts", exit_code: 0, tests: 5 }
+    - { task: 1, command: "node --test test/v1/model-admitted.test.ts", exit_code: 0, tests: 6 }
     - { task: 2, command: "node --test test/v2/model-admitted.test.ts", exit_code: 0, tests: 4 }
     - { task: 3, command: "! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts", exit_code: 0 }
     - { task: 4, command: "npm run check", exit_code: 0 }
@@ -93,8 +96,10 @@ manual:
   fiction_declared: >
     Pi was given the isolated agent directory ~/.495-campagnes/e23s02-rev2-piconf, whose models.json
     defines a provider named anthropic served by the local endpoint. What this proves is that 495
-    admits a provider it was never told about and journals it. It does not exercise a remote
-    endpoint, and nothing left the machine.
+    admits a provider its configuration never names, and journals it. 495 itself names anthropic, in
+    its table of imposed layers; a provider named nowhere in 495 is held by
+    test/v2/model-admitted.test.ts. It does not exercise a remote endpoint, and nothing left the
+    machine.
   campaigns:
     - id: "chg_muea2bmb84f3cb90ca"
       dossier: "~/.495-campagnes/e25s01-sans-config"
@@ -141,7 +146,10 @@ manual:
       passed: true
     - step: "Un fichier illisible ne refuse plus aucun fournisseur (6b)"
       expected: "Le diagnostic dit qu'il est ignoré, pas que toute intervention est refusée"
-      actual: "Démarrage à froid e25s01-illisible — « config.json ignored: Unexpected end of JSON input », rien de plus"
+      actual: >
+        Démarrage à froid e25s01-illisible — « config.json ignored: Unexpected end of JSON input », rien
+        de plus. Rejoué après dcdd890 : « config.json ignored: it is not valid JSON », sans extrait du
+        fichier.
       passed: true
     - step: "Un modèle sans fournisseur reste refusé par la capacité (6c)"
       expected: "Refus de capacité, aucun refus par politique"

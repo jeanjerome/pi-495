@@ -12,6 +12,41 @@ active_story: e25s01
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le troisième tour le 2026-09-23. Corrigés : le diagnostic d'un
+    `config.json` illisible ne cite plus le message de `JSON.parse`, qui portait un extrait du fichier
+    au modèle de la session (`dcdd890`, test vu rouge d'abord, démarrage à froid de l'extension
+    construite rejoué ; BUG-2026-09-23T173000, corrigé) ; les tests v2 admettent `acme-hosted`, que
+    rien dans 495 ne nomme, et une liste rétablie sur les fournisseurs connus les fait tomber (3
+    échecs sur 4) ; chaque forme malformée de `policy.egress` doit produire mot pour mot le diagnostic
+    d'une liste, et une valeur recopiée les fait tomber (`67740c4`) ; le titre du test du modèle sans
+    fournisseur, le commentaire de `EGRESS_NO_LONGER_READ` et `REVIEW.md` nomment le contexte du
+    modèle et `intervention.started` ; le bloc des commandes du relevé rouge-vert est ancré à
+    `67740c4` ; « never told about » ne vaut plus que pour la configuration. `e25s01-verify.yaml`,
+    `NFR-e25s01.json` et le périmètre de `REVIEW.md` sont ancrés à `67740c4`. Aucun constat écarté.
+    Preflight vert avec 382 tests, changements commités. Le suivant est un quatrième tour de
+    `request-review` (4 sur 5) avec deux relecteurs neufs.
+
+    Le troisième tour de `request-review` (3 sur 5) a été conduit le 2026-09-23 avec deux relecteurs
+    neufs, sur `0a44577` : A 93,9 %, B 92 %, aucun défaut bloquant ; porte refusée pour les deux.
+    Preflight vert avec 381 tests sur la même révision. Chaque relecteur a éprouvé les tests par
+    mutation sur une copie de l'arbre. À corriger : le fournisseur `anthropic` des tests v2 est nommé
+    dans `src/domain/imposed-layers.ts`, contrairement au commentaire de `CHOSEN`, et une liste
+    d'admission rétablie sur les fournisseurs que 495 connaît laisse passer les 9 tests de la story
+    (vérifié : aucun test v3 ne passe un autre fournisseur par le superviseur) ; la boucle des formes
+    malformées de `test/v1/model-admitted.test.ts` compte le diagnostic sans vérifier qu'il est le
+    même que pour une liste ni qu'il ne reproduit pas la valeur, et une recopie de la valeur passe ;
+    le diagnostic d'un `config.json` illisible recopie un extrait du fichier par le message d'erreur
+    de `JSON.parse`, et `pi.sendMessage` le remet au modèle de la session (`convertToLlm` convertit
+    un message `custom` en message `user`) — défaut présent sur `main`, pas encore au registre ; le
+    commentaire de `EGRESS_NO_LONGER_READ` et `REVIEW.md` omettent le contexte du modèle parmi les
+    lecteurs d'un diagnostic. À peser : le bloc « Commandes des tâches » de
+    `e25s01-cycle-rouge-vert.md` annonce 6 tests v1, 382 au total et 10 ajoutés, sans révision (5,
+    381 et 9 à `0a44577`) ; `intervention.start` nommé comme l'inscription au journal dans
+    `REVIEW.md` et le relevé rouge-vert, au lieu de `intervention.started` ; « never told about »
+    dans `e25s01-verify.yaml` ne vaut que pour la configuration ; le titre du test v2 du modèle sans
+    fournisseur dit « names it unconfigured », que seul le faux produit. Le suivant est
+    `respond-review`, puis un quatrième tour.
+
     `respond-review` a traité le second tour le 2026-09-23. Corrigés : le commentaire de
     `EGRESS_NO_LONGER_READ` et un message d'assertion ne disent plus qu'un diagnostic atteint le
     dossier ; `test/v3/pi-entries.test.ts` porte le diagnostic d'une clé `policy.egress` ignorée dans
