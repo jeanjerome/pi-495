@@ -2,7 +2,7 @@
 # Dérivé de specs/product/SCOPE_LATEST.yaml — les identifiants y font foi.
 
 release:
-  version: "0.2.0"          # version courante du package ; aucun tag git, aucune release publiée
+  version: "0.2.0"          # version courante du package, non publiée ; la 0.1.0 est sur npm et étiquetée v0.1.0
   codename: "Seconde moitié de P0"
   status: planning
   semantic_release: false   # ni CI ni semantic-release dans ce dépôt : la version est posée à la main

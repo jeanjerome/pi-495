@@ -6,18 +6,22 @@ project_cycle:
   completed_phases: []
 
 active_flow: null
-active_epic_id: e23
-active_story: e23s06
+active_epic_id: null
+active_story: null
 
 handoff:
   next_skill: null
   last_step_completed: >
-    `e23s06` EST TENUE, et avec elle l'epic `e23`. Ses huit tâches passent, et Preflight est vert sur
-    Node 24.21, avec 393 tests. Le relevé est `specs/verifications/e23s06-strate-observee.md`, la
-    décision `D-60`, et la ligne CTX-02 de la matrice porte les preuves. `main` a avancé jusqu'à
-    `strate-imposee-observee`, sans commit de fusion, et Preflight y est vert. `main` n'est pas
-    poussé : il a 36 commits d'avance sur `origin/main`. La branche `controle-du-bloc-fournisseur`
-    est supprimée ; le contrôle qu'elle portait reste dans l'historique, au commit `3b1c260`.
+    `e23` ET `e24` SONT TENUS, et aucun epic n'est engagé. Le suivant est à arbitrer : `e25` (le
+    modèle choisi dans Pi est autorisé) n'est pas séquencé par la ROADMAP, et l'ordre écrit met `e01`
+    ensuite. `main` est poussé sur `origin/main` jusqu'à `e0dc925`, qui porte le README réécrit, Pi
+    épinglé en 0.87.1 et le package en 0.2.0. La 0.1.0 est publiée sur npm et étiquetée `v0.1.0` ;
+    la 0.2.0 n'est ni publiée ni étiquetée, et sa publication revient au propriétaire (2FA).
+
+    `e23s06` a clos `e23` avec ses huit tâches passantes et Preflight vert sur Node 24.21, avec 393
+    tests. Le relevé est `specs/verifications/e23s06-strate-observee.md`, la décision `D-60`, et la
+    ligne CTX-02 de la matrice porte les preuves. La branche `controle-du-bloc-fournisseur` est
+    supprimée ; le contrôle qu'elle portait reste dans l'historique, au commit `3b1c260`.
 
     CE QUI EST ÉTABLI. Le worker observe chaque requête par `before_provider_request`, sans la
     modifier. Il sépare ce que le fournisseur a écrit autour de l'invite de l'hôte de ce que l'hôte
