@@ -40,6 +40,7 @@
     "node": ">=24.0.0"
   },
   "pi": {
+    "image": "https://raw.githubusercontent.com/jeanjerome/pi-495/main/.github/assets/banner.jpg",
     "extensions": [
       "./dist/extension/index.js"
     ]
