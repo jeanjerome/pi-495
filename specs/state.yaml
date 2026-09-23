@@ -12,6 +12,46 @@ active_story: e25s01
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le quatrième tour le 2026-09-23. Le propriétaire a tranché le même jour
+    qu'un `config.json` illisible arrête tout changement au lieu de céder aux réglages par défaut.
+    Corrigés dans `bda51c7`, tests vus rouges d'abord : `loadConfig` lève `CONFIGURATION_ERROR` sur un
+    fichier qui ne s'ouvre pas, qui n'est pas du JSON, qui n'est pas un objet, ou dont une section
+    n'en est pas un ; le runtime ne se crée pas, chaque `/495` répond par ce refus jusqu'à ce que le
+    fichier soit réparé ou retiré, et le refus ne cite ni le texte du fichier ni son chemin
+    (BUG-2026-09-23T184520, corrigé ; la part « section » de BUG-2026-09-23T184521 aussi, un champ du
+    mauvais type reste ouvert). Le test du fichier illisible vérifie le refus et son texte ; un
+    fichier sans section `policy` n'annonce rien ; un fichier `null` est nommé `null`. Démarrage à
+    froid de l'extension construite rejoué : refus, aucun journal créé. La spécification (6b et son
+    scénario), la tâche 1, `REVIEW.md` (périmètre, recherche `grep -rnw`), le relevé rouge-vert,
+    `e25s01-verify.yaml` et `NFR-e25s01.json` sont à jour ; la note de confirmation dit que les deux
+    démarrages à froid postérieurs n'ont pas été confirmés par le propriétaire. Écartés avec motif :
+    renommer `test/v1/egress.test.ts` (il tient ce qui peut sortir par le canal du modèle, et sept
+    relevés de e23 le citent par ce nom) ; le prédicat de test en double, déjà écarté au second tour.
+    Preflight vert avec 382 tests. Le suivant est le cinquième et dernier tour de `request-review`
+    (5 sur 5), avec deux relecteurs neufs, chacun sur une copie sous `$HOME` construite avant
+    Preflight.
+
+    Le quatrième tour de `request-review` (4 sur 5) a été conduit le 2026-09-23 avec deux relecteurs
+    neufs, sur `2a33e36` : A 96,9 %, B 93,75 %, aucun défaut bloquant ; porte refusée pour B.
+    Preflight vert avec 382 tests sur la même révision. Chaque relecteur a éprouvé les tests par
+    mutation sur une copie de l'arbre. À corriger, relevé par les deux : le test « says an unreadable
+    file is ignored, without claiming any intervention is refused » de
+    `test/v1/model-admitted.test.ts` ne vérifie pas ce que dit son titre, et un diagnostic qui ajoute
+    « so every intervention is refused » passe les 10 tests de la story (critère §17 6b sans
+    assertion). À corriger selon B : BUG-2026-09-23T184520 est rendu actif par cette branche — un
+    `config.json` illisible fait tourner la session sous la politique par défaut et perd les
+    arbitrages humains écrits ; B demande que le propriétaire tranche avant la fusion. À peser : une
+    erreur d'accès au fichier (`EACCES`) porte son chemin absolu au contexte du modèle ; `REVIEW.md`
+    dit que `grep -rn egress src/` ne rend que `config.ts`, alors que « non-regression » dans
+    `src/application/preparation.ts` répond aussi ; `test/v1/egress.test.ts` ne porte plus que
+    l'environnement fermé du worker ; un fichier sans section `policy` n'est couvert par aucun test du
+    « zéro diagnostic » ; un fichier `null` donne « expected an object, read object » ;
+    `confirmed_at` de `e25s01-verify.yaml` et `evaluated_at` de `NFR-e25s01.json` précèdent le
+    correctif `dcdd890` qu'ils citent. La copie `mktemp -d` proposée aux relecteurs fait échouer deux
+    tests Seatbelt (le bac à sable autorise l'écriture sous le répertoire temporaire) et n'a pas de
+    `dist/` : un tour suivant copie sous `$HOME` et construit d'abord. Le suivant est
+    `respond-review`, puis le cinquième et dernier tour.
+
     `respond-review` a traité le troisième tour le 2026-09-23. Corrigés : le diagnostic d'un
     `config.json` illisible ne cite plus le message de `JSON.parse`, qui portait un extrait du fichier
     au modèle de la session (`dcdd890`, test vu rouge d'abord, démarrage à froid de l'extension

@@ -235,23 +235,25 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..67740c4`, 22 fichiers, dont 4 de production |
+| Périmètre | `git diff 1e7fd3e..bda51c7`, 23 fichiers, dont 5 de production |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
-| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts`, `src/application/harness.ts` (un commentaire) |
+| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts`, `src/application/harness.ts` et `src/extension/session.ts` (des commentaires) |
 
 ## Verdict
 
 Aucun constat à confiance ≥ 8. La porte passe.
 
 Le changement retire du code : aucune entrée nouvelle n'est lue, aucun puits nouveau n'est atteint.
-Le seul contrôle retiré est celui que la story retire, et il est nommé plus bas.
+Le seul contrôle retiré est celui que la story retire, et il est nommé plus bas. Un contrôle est
+ajouté : un fichier de configuration illisible arrête tout changement.
 
 ## Hypothèses vérifiées, non supposées
 
-**Plus aucun lecteur de la liste.** `grep -rn egress src/` ne rend que la clé lue pour être
-annoncée dans `config.ts`. Le type `EgressLocation` est retiré lui aussi, faute de lecteur. Aucune
+**Plus aucun lecteur de la liste.** `grep -rnw egress src/` ne rend que la clé lue pour être
+annoncée dans `config.ts` (sans `-w`, le mot « non-regression » de `src/application/preparation.ts`
+répond aussi). Le type `EgressLocation` est retiré lui aussi, faute de lecteur. Aucune
 production ne lit `policy.egress`, et l'action suivante `declare_egress_destination` n'a plus
 d'émetteur ni de consommateur.
 
@@ -272,8 +274,10 @@ le même texte, mot pour mot, pour une liste et pour chaque forme malformée.
 le message de `JSON.parse`, et V8 y cite une vingtaine de caractères du fichier autour de la faute.
 Le défaut existait avant cette story, sur le même chemin vers le modèle, et le retrait de la liste
 ouvre ce chemin à tout fournisseur. Il est corrigé (BUG-2026-09-23T173000) : une erreur de syntaxe
-est annoncée « it is not valid JSON », sans extrait, ce qu'un test tient et qu'un démarrage à froid
-de l'extension construite confirme.
+est annoncée « it is not valid JSON », sans extrait. Depuis `bda51c7`, un fichier qui ne s'ouvre pas
+est annoncé « the file cannot be opened », sans le chemin absolu que portait le message d'`EACCES` ;
+une forme inattendue ne nomme que son type. Deux tests le tiennent, et un démarrage à froid de
+l'extension construite le confirme.
 
 **Les autres réglages gardent leur sens.** L'étalement de `policy`, les fusions de `budgets` et
 `adoption`, le verrou `protocol: "kernel"`, `revision` et `policy_id` sont lus comme avant. La
@@ -282,10 +286,16 @@ campagne `e25s01-egress-malforme` a appliqué `language: "en"` à côté d'une c
 configuration le lit, mais `apply.ts` initialise tout changement au défaut du noyau. Ce défaut est
 ouvert au registre sous BUG-2026-09-23T155707.
 
-**Un fichier illisible retombe sur la configuration par défaut, qui reste fermée ailleurs.**
-`allow_unconfined: false`, `integration_enabled: false`, adoption par le noyau. Seule la liste vide
-qui refusait tout a disparu. Un arbitrage humain écrit dans le fichier est alors perdu sans que rien
-ne le refuse : ce défaut est ouvert au registre sous BUG-2026-09-23T184520.
+**Un fichier illisible arrête tout changement.** Avant cette story, la liste vidée par un fichier
+illisible refusait toute intervention, par accident. Sans elle, le fichier ignoré aurait laissé la
+session sous les réglages par défaut, et un arbitrage humain écrit dans le fichier
+(`adoption.design: human`, `g5_human_acceptance`) serait passé au noyau (BUG-2026-09-23T184520). Le
+propriétaire a tranché le 2026-09-23 : `loadConfig` lève `CONFIGURATION_ERROR` sur un fichier qui ne
+s'ouvre pas, qui n'est pas du JSON, qui n'est pas un objet, ou dont une section (`policy`,
+`policy.budgets`, `policy.adoption`, `isolation`, `human_origin`) n'en est pas un. Le runtime ne se
+crée pas, et chaque `/495` répond par ce refus jusqu'à ce que le fichier soit réparé ou retiré.
+Aucun journal n'est ouvert. Une section qui n'est pas un objet ne répand donc plus ses caractères
+dans la politique ; un champ du mauvais type y entre encore (BUG-2026-09-23T184521, ouvert).
 
 **La vérification de capacité reste jugée avant tout engagement.** `requireCapable` juge le bac à
 sable et les capacités du modèle ; `harness.ts` l'appelle avant de soumettre `intervention.start`,

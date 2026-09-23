@@ -83,8 +83,13 @@ session émet un diagnostic : la clé n'est plus lue, et le modèle choisi dans 
 diagnostic ne reproduit pas son contenu. L'annonce compte parce que qui a écrit une liste pour
 restreindre les destinations doit apprendre qu'elle ne restreint plus rien.
 
-6b. **Fichier illisible** — le diagnostic existant dit qu'il est ignoré. Il ne dit plus que toute
-intervention est refusée : il n'y a plus de liste dont l'absence refuserait.
+6b. **Fichier illisible** — un fichier qui ne se lit pas, ou dont une section n'est pas un objet,
+arrête tout changement jusqu'à ce qu'il soit réparé ou retiré. Il ne cède pas la place aux réglages
+par défaut : un réglage qu'il porte peut réserver une décision à un humain, et les défauts la
+remettraient au noyau. Le refus dit ce qui ne va pas, sans citer le texte du fichier ni son chemin,
+parce qu'il atteint le contexte du modèle de la session. Décision du propriétaire du 2026-09-23 :
+avant cette story, la liste vidée par un fichier illisible bloquait tout par accident ; sans liste,
+le fichier ignoré aurait fait perdre ces arbitrages.
 
 6c. **Modèle sans fournisseur** — la vérification de capacité le refuse comme un modèle non
 configuré, comme aujourd'hui. Aucun refus par politique n'est levé.
@@ -200,11 +205,11 @@ Scenario: Une clé policy.egress malformée est ignorée comme une autre (6a)
   When  la configuration est chargée
   Then  le même diagnostic est émis, et aucune intervention n'est refusée pour autant
 
-Scenario: Un fichier illisible ne refuse plus aucun fournisseur (6b)
-  Given un fichier de configuration qui ne se lit pas
-  When  la configuration est chargée
-  Then  le diagnostic dit qu'il est ignoré
-  And   il ne dit pas que toute intervention est refusée
+Scenario: Un fichier illisible arrête tout changement au lieu de céder aux défauts (6b)
+  Given un fichier de configuration qui ne se lit pas, ou dont une section n'est pas un objet
+  When  un changement est demandé
+  Then  il est refusé comme une erreur de configuration, et aucun changement ne démarre
+  And   le refus ne cite ni le texte du fichier ni son chemin
 
 Scenario: Un modèle sans fournisseur reste refusé par la capacité (6c)
   Given une sélection de modèle dont le fournisseur est vide

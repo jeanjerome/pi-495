@@ -3,7 +3,7 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: 67740c4
+revision: bda51c7
 
 environment:
   pi_version: "0.87.1"
@@ -22,7 +22,11 @@ phases:
       refused (6b). Re-run after dcdd890 on a file whose fault sits on an unquoted word, with the same
       command: exit 0, and the one diagnostic reads "config.json ignored: it is not valid JSON" — the
       parser's message, which quoted the word to the session's model, is no longer reported
-      (BUG-2026-09-23T173000, fixed).
+      (BUG-2026-09-23T173000, fixed). Re-run after bda51c7 on a file keeping `adoption.design: human`
+      and `g5_human_acceptance: true`, closing brace missing, with "/495 start tidy greet": exit 0,
+      "495 error: CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON; no change
+      runs until it is fixed or removed", said once as the session's diagnostic and once as the
+      command's answer, and no ledger created in the data directory (BUG-2026-09-23T184520, fixed).
   build:
     passed: true
     command: "npm run build"
@@ -39,19 +43,22 @@ phases:
     note: >
       382 of 382. 393 on main: 21 tests of the list and its refusal removed, 10 added. The two
       sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
-      asserts the ignored-key diagnostic in the print and JSON entries.
+      asserts the ignored-key diagnostic, and the refusal of `/495 start` under an unreadable file, in
+      the print and JSON entries.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T17:31:15Z"
-  ended_at: "2026-09-23T17:32:45Z"
+  started_at: "2026-09-23T18:05:09Z"
+  ended_at: "2026-09-23T18:06:41Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the tree committed as 67740c4, right after
+    Single contiguous run under Node 24.21.0 on the code committed as bda51c7, right after
     `npm run build`. 382 tests passing, 0 failing. No output from any other attempt is merged into
     this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
     remove a type nothing read, restructure the policy read without changing what it loads, stop
-    quoting the parser's message for an unreadable file, and change comments and tests.
+    quoting the parser's message for an unreadable file, refuse an unreadable file instead of
+    loading the defaults, and change comments and tests. None of the three campaigns had an
+    unreadable file, so the refusal does not bear on them.
 
 task_verify_commands:
   note: "Each task's own verify command, re-run before UAT; every one exits 0."
@@ -67,8 +74,9 @@ security:
   report: "specs/security/REVIEW.md — section e25s01"
   note: >
     The change removes code and reads no new input. The removed control is the one the story
-    removes: a provider chosen in Pi is no longer refused for its destination. The worker's closed
-    environment and the context builder are untouched.
+    removes: a provider chosen in Pi is no longer refused for its destination. One control is added:
+    an unreadable config.json stops every change, so a human arbitration it holds is never handed
+    to the kernel. The worker's closed environment and the context builder are untouched.
 
 blind_spots:
   ran: false
@@ -123,8 +131,12 @@ manual:
   confirmed_by_owner: true
   confirmed_at: "2026-09-23T16:06:42Z"
   confirmation_note: >
-    Confirmed by the owner on the three campaigns above, the cold start on an unreadable file, and
-    the stated limits: nothing left the machine, and 6c rests on a test alone.
+    Confirmed by the owner at that time on the three campaigns above, the first cold start on an
+    unreadable file, and the stated limits: nothing left the machine, and 6c rests on a test alone.
+    The two later cold starts, after dcdd890 and after bda51c7, were run by the agent and are not
+    covered by that confirmation. The owner decided on 2026-09-23 the behaviour the second one shows,
+    an unreadable file stopping every change; its result has not been shown to the owner for
+    confirmation.
   steps:
     - step: "Sans configuration, le fournisseur du modèle choisi est admis (§5)"
       expected: "L'intervention démarre, le journal inscrit le fournisseur, aucun diagnostic sur le modèle"
@@ -144,12 +156,15 @@ manual:
       expected: "Même diagnostic, aucune intervention refusée"
       actual: "e25s01-egress-malforme (chaîne nue) — même diagnostic, accepté ; liste vide et objet par test"
       passed: true
-    - step: "Un fichier illisible ne refuse plus aucun fournisseur (6b)"
-      expected: "Le diagnostic dit qu'il est ignoré, pas que toute intervention est refusée"
+    - step: "Un fichier illisible arrête tout changement au lieu de céder aux défauts (6b)"
+      expected: "Refus comme erreur de configuration, aucun changement démarré, ni texte ni chemin du fichier cité"
       actual: >
-        Démarrage à froid e25s01-illisible — « config.json ignored: Unexpected end of JSON input », rien
-        de plus. Rejoué après dcdd890 : « config.json ignored: it is not valid JSON », sans extrait du
-        fichier.
+        Démarrage à froid e25s01-illisible-refuse, après bda51c7 — `/495 start` répond
+        « CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON; no change runs until it
+        is fixed or removed », aucun journal n'est créé, rien du fichier n'est cité. Les deux démarrages
+        antérieurs, sous le critère d'avant la décision du propriétaire, annonçaient le fichier ignoré :
+        « Unexpected end of JSON input », puis « it is not valid JSON » après dcdd890. Un fichier qui
+        ne s'ouvre pas, et chaque section qui n'est pas un objet, par test seulement.
       passed: true
     - step: "Un modèle sans fournisseur reste refusé par la capacité (6c)"
       expected: "Refus de capacité, aucun refus par politique"
@@ -165,7 +180,8 @@ gaps:
   note: >
     No gap between what e25s01 promises and what the campaigns show. Probing 6a surfaced a defect:
     the attempt budget is never taken from config.json. It is open in the defect registry as
-    BUG-2026-09-23T155707, until the owner decides whether max_attempts is configurable.
+    BUG-2026-09-23T155707, until the owner decides whether max_attempts is configurable. A field of
+    the wrong type in a section still reaches the policy (BUG-2026-09-23T184521, open).
 
 known_limits:
   - "No remote endpoint was reached: the anthropic provider is served locally. A real first /495 start against a hosted provider belongs to the e25s04 acceptance."

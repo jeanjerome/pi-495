@@ -2,6 +2,8 @@
   "story_id": "e25s01",
   "risk": "P0",
   "evaluated_at": "2026-09-23T16:05:00Z",
+  "revised_at": "2026-09-23",
+  "revision_note": "The reliability measure was revised after the three campaigns, for the unreadable file only: its reason stopped quoting the file at dcdd890, and the file stops every change since bda51c7. The three thresholds and the campaign measures are unchanged.",
   "threshold_source": {
     "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s01-le-fournisseur-du-modele-choisi-est-admis-sans-configuration.md",
     "section": "14. Quality attributes *NFR*",
@@ -23,7 +25,7 @@
     "reliability": {
       "verdict": "PASS",
       "threshold": "Session opened without policy.egress: 0 diagnostics about the model. Session opened with policy.egress: 1 diagnostic, without the key's content",
-      "measured": "e25s01-sans-config: 0 lines prefixed 495: on either stream. e25s01-egress-herite (list naming omlx) and e25s01-egress-malforme (a bare string): exactly 1 diagnostic each, 'config.json: policy.egress is no longer read; the model selected in Pi is used', and the word omlx appears nowhere in either session's output. An unreadable file (e25s01-illisible) gives 'config.json ignored: Unexpected end of JSON input' and no sentence claiming interventions are refused. Since dcdd890 the reason no longer quotes the parser's message, which carried an excerpt of the file to the session's model: a cold start on an unreadable file gives 'config.json ignored: it is not valid JSON'.",
+      "measured": "e25s01-sans-config: 0 lines prefixed 495: on either stream. e25s01-egress-herite (list naming omlx) and e25s01-egress-malforme (a bare string): exactly 1 diagnostic each, 'config.json: policy.egress is no longer read; the model selected in Pi is used', and the word omlx appears nowhere in either session's output. An unreadable file is no model diagnostic: since bda51c7 it stops every change, by the owner's decision, and a cold start of the built extension answers /495 start with 'config.json cannot be read: it is not valid JSON; no change runs until it is fixed or removed', quoting neither the file's text nor its path, and creates no ledger (e25s01-illisible-refuse). Before that decision it was announced as ignored, 'Unexpected end of JSON input', then 'it is not valid JSON' after dcdd890 stopped quoting the parser's message.",
       "note": "A model with no provider still refuses at the capability check; that path is held by test/v2/model-admitted.test.ts and was not exercised for real, since Pi does not produce such a selection from /model."
     },
     "operability": {

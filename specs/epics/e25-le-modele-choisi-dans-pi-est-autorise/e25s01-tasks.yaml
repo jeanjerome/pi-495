@@ -23,8 +23,9 @@ tasks:
       destinations, et la configuration perd le défaut `omlx` et la lecture de `policy.egress`. Un
       fichier qui porte encore cette clé, sous quelque forme que ce soit, se charge avec ses autres
       réglages : la clé est ignorée, et un diagnostic d'ouverture de session dit qu'elle n'est plus
-      lue et que le modèle choisi dans Pi est employé. Un fichier illisible n'a plus d'effet sur le
-      fournisseur admis.
+      lue et que le modèle choisi dans Pi est employé. Un fichier illisible, ou dont une section
+      n'est pas un objet, arrête tout changement au lieu de céder aux défauts, sans citer son texte
+      ni son chemin.
     verify: "node --test test/v1/model-admitted.test.ts"
     risk: P0
     security: high

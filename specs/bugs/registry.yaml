@@ -49,10 +49,17 @@ bugs:
       loss of the other settings could not take effect. Without the list, nothing is refused.
     evidence: >
       Probe of loadConfig on 2026-09-23 against the branch that removes the egress list; spec e25s01 §6b
-      states the fallback without weighing the other settings.
+      stated the fallback without weighing the other settings. After the fix, test/v1/model-admitted.test.ts
+      ("refuses an unreadable file instead of running under the defaults") holds the refusal, and a cold
+      start of the built extension on a file keeping `adoption.design: human`, closing brace missing,
+      answers `/495 start` with `CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON;
+      no change runs until it is fixed or removed` and creates no ledger.
     risk_level: medium
-    follow_ups: "decide whether an unreadable config.json refuses every change or keeps the defaults, then fix or record the decision"
-    status: open
+    follow_ups: >
+      none — the owner decided on 2026-09-23 that an unreadable config.json stops every change until
+      it is fixed or removed, rather than giving way to the defaults.
+    status: fixed
+    fixed_in: bda51c7
   - bug_id: BUG-2026-09-23T184521
     date: "2026-09-23"
     title: "A config.json section that is not an object spreads its characters into the active policy"
@@ -60,9 +67,10 @@ bugs:
     priority: p3
     scope: configuration
     what_happened: >
-      `policy`, `policy.budgets` and `policy.adoption` are spread into the active policy without checking
-      that they are objects. A string or a list puts index keys ("0", "1", …) into the policy, and no
-      field value is type-checked, so `max_attempts: "abc"` is loaded as written.
+      `policy`, `policy.budgets` and `policy.adoption` were spread into the active policy without checking
+      that they are objects, so a string or a list put index keys ("0", "1", …) into the policy. Since
+      bda51c7 a section that is not an object makes the file unreadable, and no change runs. No field
+      value is type-checked yet, so `max_attempts: "abc"` is still loaded as written.
     what_expected: >
       A malformed section is refused or announced, and a field of the wrong type does not reach the
       policy.
@@ -75,7 +83,7 @@ bugs:
       `__proto__` key becomes an ordinary own property, so the prototype is not reached.
     evidence: "Probe of loadConfig on 2026-09-23; the same result on main."
     risk_level: low
-    follow_ups: "treat together with the unreadable-file decision, which fixes what a malformed section does"
+    follow_ups: "sections that are not objects are refused since bda51c7; decide how a field of the wrong type is treated"
     status: open
   - bug_id: BUG-2026-09-23T173000
     date: "2026-09-23"
@@ -102,7 +110,10 @@ bugs:
     evidence: >
       test/v1/model-admitted.test.ts, "says an unreadable file is ignored without reproducing any of its
       text", red before the fix. Cold start of the built extension on that file after the fix:
-      `495: config.json ignored: it is not valid JSON`.
+      `495: config.json ignored: it is not valid JSON`. Since bda51c7 such a file is refused rather
+      than ignored, and the test that holds it, "refuses an unreadable file instead of running under
+      the defaults, without reproducing any of its text", checks the same word is absent from the
+      refusal.
     risk_level: low
     follow_ups: "none"
     status: fixed
