@@ -19,8 +19,12 @@ import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { mandate } from "../helpers/intervention-fixture.ts";
 import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
 
-/** A provider nothing in the harness names, the way a first user's model is named nowhere in 495. */
-const CHOSEN: ModelSelection = { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" };
+/**
+ * A provider nothing in 495 names, the way a first user's model is named nowhere in it. `anthropic`
+ * would not do: the table of imposed layers names it, so a list restored to the providers 495 knows
+ * would still admit it.
+ */
+const CHOSEN: ModelSelection = { provider_id: "acme-hosted", model_id: "acme-large", thinking_level: "off" };
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -48,7 +52,11 @@ describe("the provider of the model chosen in Pi, reached with no configuration 
 		const { started, stopReason } = await firstInterventionUnder(makeHarness({ model: CHOSEN }));
 		assert.notEqual(stopReason, "policy_denied", "choosing the model in Pi is what admits its provider");
 		assert.ok(started.length > 0, `no intervention was started (stopped on ${String(stopReason)})`);
-		assert.deepEqual([...new Set(started)], ["anthropic"], "the dossier says which provider the excerpts went to");
+		assert.deepEqual(
+			[...new Set(started)],
+			[CHOSEN.provider_id],
+			"the dossier says which provider the excerpts went to",
+		);
 	});
 
 	it("starts it under a configuration whose leftover list names only omlx, and announces the list", async () => {
@@ -65,7 +73,7 @@ describe("the provider of the model chosen in Pi, reached with no configuration 
 		);
 		const { started, stopReason } = await firstInterventionUnder(makeHarness({ model: CHOSEN, policy: config.policy }));
 		assert.notEqual(stopReason, "policy_denied", "a list naming only another provider restricts nothing");
-		assert.deepEqual([...new Set(started)], ["anthropic"]);
+		assert.deepEqual([...new Set(started)], [CHOSEN.provider_id]);
 	});
 });
 
@@ -127,7 +135,7 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 		await supervisor.requireCapable("implement");
 		assert.deepEqual(
 			probed.map((m) => m.provider_id),
-			["anthropic"],
+			[CHOSEN.provider_id],
 		);
 		await assert.rejects(
 			() =>
@@ -149,7 +157,7 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 		assert.deepEqual(started, ["int_1"], "the worker is reached: nothing stands between the choice and the provider");
 	});
 
-	it("leaves a model with no provider to the capability check, which names it unconfigured", async () => {
+	it("leaves a model with no provider to the capability check, not to a policy refusal", async () => {
 		const { supervisor, started } = supervisorFor({ provider_id: "", model_id: "", thinking_level: "off" });
 		await assert.rejects(
 			() => supervisor.requireCapable("implement"),

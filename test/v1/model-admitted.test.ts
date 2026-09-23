@@ -57,14 +57,14 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 	});
 
 	it("ignores a malformed policy.egress the same way, whatever its form", () => {
+		const { diagnostics: forAList } = loadConfig(configured({ egress: [{ provider_id: "omlx" }] }));
 		for (const value of [[], "omlx", { provider_id: "omlx" }, null, 5]) {
 			const { config, diagnostics } = loadConfig(configured({ egress: value }));
 			assert.equal("egress" in config.policy, false, `${JSON.stringify(value)} must not reach the policy`);
-			assert.equal(ignoredKey(diagnostics).length, 1, `${JSON.stringify(value)}: ${diagnostics.join(" | ")}`);
-			assert.equal(
-				diagnostics.length,
-				1,
-				`${JSON.stringify(value)} announces nothing else: ${diagnostics.join(" | ")}`,
+			assert.deepEqual(
+				diagnostics,
+				forAList,
+				`${JSON.stringify(value)} is announced word for word as a list is, so nothing of it is reproduced`,
 			);
 		}
 	});
