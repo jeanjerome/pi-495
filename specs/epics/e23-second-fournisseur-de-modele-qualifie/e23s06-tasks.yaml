@@ -1,58 +1,156 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests et des fichiers qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+# Le dépôt n'a pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins
+# touchés, et son absence de constat est écrite au moment où la tâche bascule.
+
 story_id: e23s06
+spec: e23s06-le-dossier-enregistre-la-strate-imposee-telle-que-le-fournisseur-l-a-ecrite.md
 title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
 status: failing
 bcps: 5
 requirement: CTX-02
+delta: MODIFIED
+risk: P1
+context: integration
+type: feat
 
 tasks:
   - id: 1
     description: >
-      Le worker pose un observateur sur l'accroche de requête que Pi expose, `before_provider_request`.
-      Le chargeur de ressources du worker sert aujourd'hui une liste d'extensions vide ; c'est là que
-      l'observateur se pose, sans fork ni modification de Pi. La tâche établit par exécution qu'un
-      gestionnaire qui ne renvoie rien laisse la requête intacte, au lieu de le supposer : 495 observe
-      une intervention, il ne la réécrit pas. Pi documente cette accroche comme un outil de
-      débogage : la tâche dit ce que 495 fait le jour où elle change ou disparaît, plutôt que de
-      supposer à un outil de débogage la stabilité qu'un dossier opposable demande.
+      Le worker ouvre sa session avec un observateur posé sur `before_provider_request`, chargé par
+      son propre chargeur de ressources, sans fork ni modification de Pi. Rien d'autre n'y entre.
+      La tâche établit par exécution qu'un observateur qui ne renvoie rien laisse la requête
+      intacte : un point d'accès de substitution reçoit le même corps avec et sans lui. Elle dit
+      aussi ce que 495 fait le jour où l'accroche change ou disparaît, puisque Pi la présente comme
+      un outil de débogage. Sur la version épinglée, la vérification de types échoue. Sur une autre
+      version installée, une session qui a reçu une réponse sans qu'aucune observation arrive est
+      inscrite comme non observée. Une erreur de l'observateur ne bloque pas la requête : l'hôte
+      l'écarte et envoie la charge inchangée (Pi 0.87.0, `ExtensionRunner.emitBeforeProviderRequest`).
     verify: "node --test test/v3/provider-request-hook.test.ts"
+    risk: P1
+    security: medium
+    security_verify: >
+      L'observateur ne renvoie jamais de valeur et ne s'abonne à aucune accroche d'en-têtes. Il ne
+      garde rien de la charge utile hors des textes système que 495 n'a pas écrits. Le chargeur de
+      ressources ne charge aucune extension du projet cible.
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "integration"
+
   - id: 2
     description: >
-      Ce que le fournisseur a écrit au-dessus des instructions de 495 est relevé dans la charge utile
-      de la requête, là où son bloc système est déjà composé, et non déduit d'une table que 495
-      entretient. Pi passe cette charge sans la typer : une forme que le relevé ne sait pas lire est
-      refusée, jamais prise pour une absence de strate — ne rien voir n'est pas voir que rien n'est
-      imposé.
+      Ce que le fournisseur a écrit autour des instructions de 495 est relevé dans la charge utile,
+      là où son bloc système est déjà composé, et non déduit de la table que 495 entretient. Deux
+      formes sont lues : les messages Anthropic, dont le système est une liste de blocs de texte, et
+      les complétions compatibles OpenAI, dont le système est le premier message. Le relevé situe
+      les instructions de 495 et range le reste au-dessus ou au-dessous. Des instructions
+      introuvables telles quelles sont un écart nommé. Pi passe la charge sans la typer : une API
+      inconnue, ou une forme inattendue, donne une observation non relevée avec sa raison, jamais
+      une liste vide.
     verify: "node --test test/v1/imposed-layers-observed.test.ts"
+    risk: P1
+    security: low
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "unit"
+
   - id: 3
     description: >
-      Le dossier porte ce qui a été observé, et un lecteur sait que c'est un fait relevé et non une
-      attente. Le manifeste de contexte est écrit avant l'intervention alors que la charge utile
-      n'existe qu'à l'émission de la requête : la tâche tranche où le fait observé s'inscrit — forme
-      du manifeste, artefact voisin, ou les deux — plutôt que de faire passer une observation pour
-      une déclaration. Le choix de l'accroche se pèse ici plutôt qu'il ne se présume :
-      `context_with_system`, apparue en 0.87.0, porte la transcription complète avec le message
-      système en tête, là où `before_provider_request` porte le corps de requête déjà sérialisé par
-      le fournisseur. La tâche dit laquelle porte le fait cherché, et pourquoi.
-    verify: "node --test test/v2/harness.test.ts"
+      Le dossier de chaque intervention porte ce qui a été observé, marqué comme un fait relevé et
+      non comme une attente. La première observation d'une intervention est inscrite, puis chaque
+      requête qui diffère de la précédente ; une session sans requête le dit. Le manifeste est écrit
+      avant l'intervention et la charge utile n'existe qu'à l'envoi : l'observation voyage donc
+      comme un événement d'intervention, sur le chemin qu'a pris la réécriture du contexte (`D-58`),
+      et le relevé de fin d'intervention la porte à côté du coût. Le choix de l'accroche est tranché
+      par lecture de Pi 0.87.0 : le bloc d'abonnement est ajouté par `buildParams` au moment de la
+      sérialisation, donc après `context_with_system`, qui ne le porte pas.
+    verify: "node --test test/v2/observed-layers-dossier.test.ts"
+    risk: P1
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "integration"
+
   - id: 4
     description: >
-      Un écart entre ce qui est observé et ce qui était déclaré est un fait visible, et non un
-      silence. La déclaration cesse d'être la source de ce que le modèle a reçu et ne vaut plus que
-      comme attente ; ce que `lint:provider-block` conserve ou perd de sa raison d'être est tranché
-      ici, avec la sur-déclaration que la condition du §6f d'e23s02 imposait faute d'observation.
-    verify: "node --test test/v3/provider-block-divergence.test.ts"
+      Un écart entre l'observé et l'attendu est un fait écrit au dossier, et non un silence. Le
+      noyau compare la liste du manifeste à l'observation et inscrit la concordance ou chaque écart
+      par son type : attendu et non observé, avec la condition déclarée à côté ; observé et non
+      attendu, avec sa position ; instructions de 495 introuvables. Un texte changé donne les deux
+      premiers, et les deux textes sont au dossier. Une observation non relevée n'est comparée à
+      rien : le dossier dit qu'elle manque. La déclaration du domaine garde sa forme, et son
+      commentaire dit qu'elle est l'attente. Aucun écart n'arrête une intervention.
+    verify: "node --test test/v2/imposed-layers-divergence.test.ts"
+    risk: P1
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "integration"
+
   - id: 5
     description: >
-      Une campagne réelle sur le chemin d'abonnement montre l'observé et le déclaré concordants, et
-      un contrôle négatif montre que l'observation sait ne pas concorder. Une liste adossée à des
-      tests ne vaut pas recette : la preuve est une exécution, et ce qui y serait feint se déclare.
-    verify: "node --test test/v3/campaign-observed-layer.test.ts"
+      La décision est consignée. L'observation est la source de ce que le modèle a reçu, et la
+      déclaration n'est plus qu'une attente. La sur-déclaration du §6f d'`e23s02` reste, puisqu'elle
+      est désormais visible comme écart. Le contrôle qui relisait le paquet du fournisseur perd sa
+      raison d'être : l'observation voit le même changement, sur la version réellement installée.
+      Sa branche n'est pas fusionnée. La décision dit aussi ce qui répond à la fragilité d'une
+      accroche que Pi présente comme un outil de débogage.
+    verify: "test -s specs/adr/D-60-la-strate-imposee-est-observee-dans-la-requete-et-la-declaration-devient-une-attente.md"
+    risk: P3
     status: failing
+    allure:
+      severity: minor
+      categories:
+        - "decision"
+
   - id: 6
+    description: >
+      Une campagne réelle sur le chemin d'abonnement montre, à chaque intervention, le bloc observé
+      et sa concordance avec l'attente. Un contrôle négatif rejoue le même cas sous un fournisseur
+      nommé `anthropic` mais servi par le modèle local, et son dossier nomme l'écart. Une liste
+      adossée à des tests ne vaut pas recette : la preuve est une exécution, et ce qui y est feint se
+      déclare. Le pas-à-pas est écrit au §5 de la story.
+    verify: "verify-script: conduite des deux campagnes — le pas-à-pas est au §5 de la story ; il demande le signal du propriétaire et consomme de l'usage facturé"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun jeton dans les deux dossiers. L'observation ne porte que des textes système du
+      fournisseur. La configuration isolée du contrôle négatif ne touche pas celle du propriétaire.
+      Aucune commande du pas-à-pas ne porte de secret.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "acceptance"
+
+  - id: 7
+    description: >
+      Le relevé est déposé en preuve : l'observation et la comparaison telles que les deux dossiers
+      les portent, relues en lecture seule, et ce que les campagnes n'établissent pas.
+    verify: "test -s specs/verifications/e23s06-strate-observee.md"
+    risk: P2
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "acceptance"
+
+  - id: 8
     description: "L'ensemble des contrôles passe avec le changement."
     verify: "npm run check"
+    risk: P0
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "preflight"

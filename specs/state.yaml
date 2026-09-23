@@ -10,38 +10,32 @@ active_epic_id: e23
 active_story: e23s06
 
 handoff:
-  next_skill: null
+  next_skill: develop-tdd
   last_step_completed: >
-    `e23s05` EST TENUE. Ses sept tâches passent, et Preflight est vert sur Node 24.21, avec 365
-    tests. Le relevé est `specs/verifications/e23s05-budgets-remesures.md`, et la matrice porte ses
-    preuves sur les lignes NFR-04 et AGT-02. La branche `borne-d-appels-et-cout` n'est ni fusionnée
-    ni poussée.
+    `e23s06` EST SPÉCIFIÉE, sur la branche `strate-imposee-observee`, ouverte depuis
+    `borne-d-appels-et-cout`. Aucune des deux n'est fusionnée ni poussée. La story est
+    `e23s06-le-dossier-enregistre-la-strate-imposee-telle-que-le-fournisseur-l-a-ecrite.md` et ses
+    huit tâches sont en `failing`. Preflight est vert sur Node 24.21, avec 365 tests.
 
-    CE QUI EST ÉTABLI. Quel que soit le rôle, la borne d'appels atteinte arrête le changement sous
-    `budget_exhausted`. Le motif nomme la borne, sa valeur et ce qui a été consommé, rien ne démarre
-    avant la relance, et la relance est inscrite au nom de qui relance. Chaque intervention porte le
-    coût que l'hôte totalise, ou un coût inconnu avec sa raison, jamais un zéro. La relecture d'un
-    dossier conservé se fait sans Pi (`scripts/measure-budgets.ts`). Trois campagnes réelles sont
-    conservées sur la même cible et la même référence : `~/.495-campagnes/e23s05-distant`, arrêtée
-    puis relancée sous le nom du noyau, avant la correction ; `e23s05-local`, sans arrêt ; et
-    `e23s05-relance-locale`, arrêtée puis relancée au nom de `jeanjerome`.
+    CE QUE LA LECTURE DE PI 0.87.0 A TRANCHÉ AVANT D'ÉCRIRE. Seule `before_provider_request` porte
+    le bloc d'abonnement. `buildParams` l'ajoute à la sérialisation, après `context_with_system`.
+    Un gestionnaire qui ne renvoie rien laisse la charge inchangée, et un gestionnaire en erreur est
+    écarté sans bloquer la requête (`ExtensionRunner.emitBeforeProviderRequest`). Le worker peut
+    charger un observateur en ligne, par `DefaultResourceLoader` et `extensionFactories`, qui
+    restent chargées sous `noExtensions`. `session-cost.test.ts` a déjà le banc voulu : un point
+    d'accès de substitution, y compris sur le chemin d'abonnement, sans rien dépenser.
 
-    CE QUI RESTE OUVERT, CONSTATÉ SANS ÊTRE CORRIGÉ.
-    1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`). Une sonde sur l'agent
-       scripté montre le reste. La spécification coupée bloque le changement comme une erreur de
-       configuration. La préparation coupée voit sa suite partielle jugée, puis une seconde
-       préparation démarre. La revue coupée laisse G5 indéterminée, et une nouvelle tentative
-       d'implémentation démarre sans le propriétaire. La fin inscrite dit partout « the workspace
-       keeps the unfinished work ». Le vrai worker coupé par la durée finit bien en `truncated`.
-    2. Sur un même cas, le modèle local a tourné à 4,6, 2,5 puis 6,1 appels par minute, de part et
-       d'autre de la bascule à 5. Le commentaire de `policy.ts` et `D-59` décrivent la seule mesure
-       à 4,6, et « sur le modèle local, la durée tombe la première » ne vaut que pour elle.
+    CE QUI RESTE OUVERT D'`e23s05`, CONSTATÉ SANS ÊTRE CORRIGÉ.
+    1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`). La spécification coupée
+       bloque le changement comme une erreur de configuration. La préparation coupée voit sa suite
+       partielle jugée, puis une seconde préparation démarre. La revue coupée laisse G5
+       indéterminée, et une nouvelle tentative d'implémentation démarre sans le propriétaire.
+    2. Sur un même cas, le modèle local a tourné à 4,6, 2,5 puis 6,1 appels par minute. Le
+       commentaire de `policy.ts` et `D-59` décrivent la seule mesure à 4,6.
     3. Une relance sans origine humaine établie (mode `-p`, ou RPC sans
        `HARNESS495_RPC_HUMAN_ACTOR`) est encore inscrite au nom du noyau.
-    4. Le journal ne garde pas les bornes en vigueur. Seul le détail d'un arrêt en porte la valeur
-       (`4/3`), et la relecture lit `config.json` tel qu'il est au moment où on la lance.
-    5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur,
-       même s'ils tenaient dans la borne. Le journal compte trois appels, le worker quatre.
+    4. Le journal ne garde pas les bornes en vigueur ; la relecture lit `config.json` tel qu'il est.
+    5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
 
-    SUITE. `e23s06`, en attente : le dossier enregistre la strate imposée telle que le fournisseur
-    l'a écrite.
+    SUITE. `develop-tdd` sur les tâches 1 à 4 d'`e23s06`, puis la décision `D-60`. La campagne de la
+    tâche 6 demande le signal du propriétaire : elle consomme de l'usage facturé.

@@ -6,7 +6,7 @@ development_status:
   e23s03: done
   e23s04: done
   e23s05: done
-  e23s06: backlog
+  e23s06: in_progress
   e24s01: done
   e24s02: done
   e24s03: done
@@ -76,13 +76,15 @@ stories:
     risk_max: P0
     security_max: high
   e23s06:
-    status: backlog
+    status: in_progress
     title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
     bcps: 5
     epic: e23
-    tasks_total: 6
+    tasks_total: 8
     tasks_passing: 0
-    tasks_failing: 6
+    tasks_failing: 8
+    risk_max: P0
+    security_max: high
   e24s01:
     status: done
     title: "L'antériorité de la surface de revue est établie"
