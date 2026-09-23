@@ -440,6 +440,44 @@ in_scope:
     motif: >
       Déclarée dans les contrats, mais exclue du constructeur de demandes de décision.
 
+  - epic: e25-le-modele-choisi-dans-pi-est-autorise
+    source: arbitrage du propriétaire, 2026-09-23
+    requirements: [SEC-05]
+    delta: MODIFIED
+    objet: >
+      Le modèle choisi dans Pi est autorisé. Le dossier enregistre le fournisseur employé et s'il est
+      sur la machine ou hors d'elle, d'après l'adresse que Pi connaît du modèle. À l'ouverture de
+      session, 495 signale un modèle hors de la machine : il prévient au lieu de bloquer.
+    avant: >
+      Une intervention dont le fournisseur n'est pas nommé dans `policy.egress` est refusée avant tout
+      envoi. Sans cette clé, la liste ne nomme que `omlx`, sur la machine. La situation de chaque
+      destination est ce que le propriétaire a écrit, et rien ne la confronte à l'adresse réelle.
+    apres: >
+      Sans liste écrite, le fournisseur du modèle choisi dans Pi est admis, et le défaut `omlx`
+      disparaît. Sa situation est lue de l'adresse que Pi tient pour ce modèle, portée au dossier et
+      annoncée à l'ouverture quand elle est hors de la machine. Une liste écrite reste possible et
+      restreint : SEC-05 demande que le système permette une politique de sorties réseau, pas qu'il
+      l'impose avant le premier usage. Une liste malformée continue de ne rien déclarer (D-53).
+    motif: >
+      Choisir un modèle avec `/model`, c'est déjà consentir à lui envoyer ce que la session contient ;
+      la liste redemande ce consentement à la même personne, dans son propre répertoire de données.
+      Elle ne borne que le canal de 495 : l'agent de Pi joint le même fournisseur dans la même
+      session. Un projet qui imposerait son modèle par `.pi/settings.json` passe déjà par la
+      confiance que Pi demande pour ce dossier. Et le défaut `omlx` est la configuration d'une seule
+      machine : tout autre utilisateur est refusé au premier `/495 start`, et le README consacre une
+      étape entière du démarrage à contourner ce refus. Pi porte l'adresse sur chaque modèle
+      (`baseUrl`) : la situation peut être observée au lieu d'être déclarée.
+    cout: >
+      Reprendre le chargement de la configuration, la règle de refus et leurs tests, et écrire la
+      décision qui remplace la déclaration obligatoire introduite par e23s01. Passer à un modèle
+      distant n'est plus un acte propre à 495 : il suffit de le choisir avec `/model`.
+    constat: >
+      Le modèle est lu une fois, à la création du runtime de la session (`src/extension/session.ts`,
+      `ensureRuntime`) ; 495 n'écoute pas `model_select`, de sorte qu'un changement par `/model` en
+      cours de session ne l'atteint pas. L'epic dit lequel des deux « le modèle choisi dans Pi »
+      désigne : celui de l'ouverture de session, ou celui qui est sélectionné au moment de
+      l'intervention.
+
 out_of_scope:
   - item: Les trois revues obligatoires restantes (chantiers/B)
     raison: depends-on-external-factor
