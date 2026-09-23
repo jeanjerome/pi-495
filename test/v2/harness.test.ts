@@ -1053,7 +1053,6 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const t = track(
 			makeHarness({
 				model: { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" },
-				policy: { egress: [{ provider_id: "anthropic", location: "off_machine" }] },
 				scripts: {
 					implement: {
 						steps: [

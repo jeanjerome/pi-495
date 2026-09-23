@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_POLICY, type ActivePolicy, type DeclaredEgress, EGRESS_LOCATIONS } from "../domain/policy.ts";
+import { DEFAULT_POLICY, type ActivePolicy } from "../domain/policy.ts";
 
 /**
  * Harness configuration, read from `<data dir>/config.json`. A project file cannot widen it
@@ -14,20 +14,8 @@ export interface HarnessConfig {
 	language: "fr" | "en";
 }
 
-/**
- * What this installation may hand excerpts and prompts to (SEC-05). The kernel declares nothing on
- * its own; the one provider configured here answers on the loopback interface, so nothing leaves
- * the machine until a destination off it is written down.
- */
-/** A provider id is a short name. Longer than this it is a payload, and it is refused as one. */
-const MAX_PROVIDER_ID = 64;
-
-const DEFAULT_EGRESS: readonly DeclaredEgress[] = Object.freeze([
-	Object.freeze({ provider_id: "omlx", location: "on_machine" }) as DeclaredEgress,
-]);
-
 const DEFAULT_CONFIG: HarnessConfig = {
-	policy: { ...DEFAULT_POLICY, egress: [...DEFAULT_EGRESS] },
+	policy: DEFAULT_POLICY,
 	isolation: { allow_unconfined: false },
 	human_origin: { rpc_actor_env: "HARNESS495_RPC_HUMAN_ACTOR" },
 	workspace_exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
@@ -35,68 +23,12 @@ const DEFAULT_CONFIG: HarnessConfig = {
 };
 
 /**
- * No destination is declared. The consequence is worded once, wherever the refusal was decided, so
- * the two paths that can reach it cannot drift apart. Each caller says its own cause first.
+ * Choosing the model in Pi is what admits its provider, so a `policy.egress` list left in the file
+ * restricts nothing, and whoever wrote one must learn so. The announcement does not reproduce the
+ * list: a diagnostic reaches the display, the structured entries and, through a block detail, the
+ * exported dossier.
  */
-function declareNothing(diagnostics: string[]): DeclaredEgress[] {
-	diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
-	return [];
-}
-
-/**
- * The declared destinations a configuration carries, or the default when it carries none.
- *
- * A malformed declaration declares nothing rather than falling back: the owner who wrote it meant
- * to narrow what may be reached, and restoring a destination they deleted would widen it behind a
- * diagnostic. What changes exposure is announced — an empty declaration and any destination off the
- * machine — so it is read at session open rather than discovered at the first refusal. A default
- * that changes nothing is not announced, whether it came from an absent key or an absent file.
- */
-function readEgress(raw: unknown, diagnostics: string[]): DeclaredEgress[] {
-	const announce = (declared: DeclaredEgress[]): DeclaredEgress[] => {
-		const away = declared.filter((d) => d.location === "off_machine").map((d) => d.provider_id);
-		if (declared.length === 0)
-			diagnostics.push("config.json: no egress destination is declared, so every intervention is refused");
-		else if (away.length > 0)
-			diagnostics.push(
-				`config.json: ${declared.length} declared destination(s), ${away.length} off this machine (${away.join(", ")})`,
-			);
-		return declared;
-	};
-	const refuse = (why: string): DeclaredEgress[] => {
-		diagnostics.push(`config.json: ${why}`);
-		return declareNothing(diagnostics);
-	};
-	/** An owner-supplied value, named for a diagnostic without spilling an arbitrary payload into it. */
-	const show = (value: unknown): string => {
-		const text = JSON.stringify(value) ?? String(value);
-		return text.length > 60 ? `${text.slice(0, 60)}…` : text;
-	};
-
-	if (raw === undefined) return [...DEFAULT_EGRESS];
-	if (!Array.isArray(raw)) return refuse(`policy.egress is ${show(raw)}, not a list of destinations`);
-	const declared: DeclaredEgress[] = [];
-	for (const [index, entry] of raw.entries()) {
-		if (typeof entry !== "object" || entry === null || Array.isArray(entry))
-			return refuse(`destination ${index} is ${show(entry)}, not an object with provider_id and location`);
-		const { provider_id, location } = entry as Partial<DeclaredEgress>;
-		if (typeof provider_id !== "string" || provider_id === "")
-			return refuse(`destination ${index} carries no provider_id`);
-		// Named by its length, not echoed: a diagnostic reaches the display, the structured entries and,
-		// through a block detail, the exported dossier.
-		if (provider_id.length > MAX_PROVIDER_ID)
-			return refuse(`destination ${index} carries a provider_id of ${provider_id.length} characters`);
-		if (location === undefined || !EGRESS_LOCATIONS.includes(location))
-			return refuse(`destination ${provider_id} does not say where it sits (${EGRESS_LOCATIONS.join(" or ")})`);
-		// A name declared twice, once on the machine and once off it, contradicts itself about the one
-		// thing the field records. Loading it quietly would leave the contradiction to be discovered.
-		const twin = declared.find((d) => d.provider_id === provider_id);
-		if (twin && twin.location !== location)
-			return refuse(`destination ${provider_id} is declared both ${twin.location} and ${location}`);
-		if (!twin) declared.push({ provider_id, location });
-	}
-	return announce(declared);
-}
+const IGNORED_EGRESS = "config.json: policy.egress is no longer read; the model selected in Pi is used";
 
 export function loadConfig(
 	dataDir: string,
@@ -108,22 +40,21 @@ export function loadConfig(
 	if (existsSync(path)) {
 		try {
 			const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-			// A file that parses but is not an object declares nothing in substance, exactly like one
-			// that does not parse: reading it as an absent configuration would restore a destination the
-			// owner may have removed in the very edit that emptied it.
 			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
 				throw new Error(`expected an object, read ${Array.isArray(parsed) ? "a list" : typeof parsed}`);
 			const raw = parsed as Partial<HarnessConfig> & {
 				policy?: Partial<ActivePolicy> & {
+					egress?: unknown;
 					budgets?: Partial<ActivePolicy["budgets"]>;
 					adoption?: Partial<ActivePolicy["adoption"]>;
 				};
 			};
+			const { egress, ...policy } = raw.policy ?? {};
+			if (egress !== undefined) diagnostics.push(IGNORED_EGRESS);
 			config = {
 				policy: {
 					...DEFAULT_POLICY,
-					...(raw.policy ?? {}),
-					egress: readEgress(raw.policy?.egress, diagnostics),
+					...policy,
 					budgets: { ...DEFAULT_POLICY.budgets, ...(raw.policy?.budgets ?? {}) },
 					adoption: { ...DEFAULT_POLICY.adoption, ...(raw.policy?.adoption ?? {}), protocol: "kernel" },
 					revision: raw.policy?.revision ?? DEFAULT_POLICY.revision,
@@ -135,10 +66,7 @@ export function loadConfig(
 				language: raw.language === "en" ? "en" : "fr",
 			};
 		} catch (error) {
-			// A file that cannot be read cannot be trusted to have declared anything. Keeping the default
-			// here would restore a destination the owner may have removed in the very edit that broke it.
 			diagnostics.push(`config.json ignored: ${(error as Error).message}`);
-			config.policy = { ...config.policy, egress: declareNothing(diagnostics) };
 		}
 	}
 	if (env.HARNESS495_ALLOW_UNCONFINED === "1") {

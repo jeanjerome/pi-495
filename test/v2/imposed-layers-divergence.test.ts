@@ -98,7 +98,6 @@ describe("a disagreement is written to the dossier and stops nothing (CTX-02, D-
 		initRepo(p);
 		const t: TestHarness = makeHarness({
 			model: { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" },
-			policy: { egress: [{ provider_id: "anthropic", location: "off_machine" }] },
 			scripts: {
 				specify: {
 					steps: [

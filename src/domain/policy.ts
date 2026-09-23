@@ -19,20 +19,11 @@ export interface Budgets {
 
 export type AdoptionRule = "kernel" | "human";
 
-/** Where a declared destination sits relative to the machine 495 runs on (SEC-05). */
-export const EGRESS_LOCATIONS = ["on_machine", "off_machine"] as const;
-export type EgressLocation = (typeof EGRESS_LOCATIONS)[number];
-
 /**
- * A destination excerpts and prompts may be handed to. `location` records what the owner declared
- * about where it sits — not what the harness measured: 495 composes neither address nor headers,
- * and a provider named here could be repointed at a remote host without it noticing. It is the
- * owner's statement of exposure, opposable to them, and no more than that.
+ * Where a model's endpoint sits relative to the machine 495 runs on (SEC-05). No configuration
+ * declares it: choosing the model in Pi is what admits its provider.
  */
-export interface DeclaredEgress {
-	provider_id: string;
-	location: EgressLocation;
-}
+export type EgressLocation = "on_machine" | "off_machine";
 
 export interface ActivePolicy {
 	policy_id: string;
@@ -46,13 +37,6 @@ export interface ActivePolicy {
 	};
 	g5_human_acceptance: boolean;
 	integration_enabled: boolean;
-	/**
-	 * Destinations excerpts and prompts may leave for (SEC-05). 495 never calls a model itself: the
-	 * worker reaches the provider Pi resolved for it, and is the one process exempt from network
-	 * confinement in order to (D-11). That exemption says what is permitted; this list says what goes
-	 * out. A provider absent from it is refused before an intervention starts.
-	 */
-	egress: DeclaredEgress[];
 	/** Frozen with the protocol at G2: how the candidate is compared to the reference (VER-08). */
 	baseline: BaselinePolicy;
 	stagnation_identical_candidates: number;
@@ -91,9 +75,6 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	adoption: { mandate: "kernel", requirements: "kernel", protocol: "kernel", design: "kernel" },
 	g5_human_acceptance: false,
 	integration_enabled: false,
-	// The kernel knows no machine, so it declares no destination. What this installation may reach is
-	// a configuration fact, and `extension/config.ts` holds it.
-	egress: [],
 	baseline: {
 		compare_to_reference: true,
 		tolerance: "no_aggravation",
@@ -103,30 +84,3 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	stagnation_identical_candidates: 2,
 	required_reviews: [],
 };
-
-/** How many declared destinations a refusal names before it counts the rest. */
-const NAMED_IN_REFUSAL = 8;
-
-/**
- * Why a destination may not be handed excerpts and prompts, or `null` when the policy declares it
- * (SEC-05). 495 never calls a model itself: the worker reaches the provider its host resolved, and
- * is the one process exempt from network confinement in order to (D-11). That exemption says what
- * is permitted; this list says what goes out.
- *
- * The comparison is exact — no pattern, no prefix, no wildcard — so it can refuse a destination it
- * does not know but can never admit one by resemblance.
- */
-export function undeclaredEgressReason(policy: ActivePolicy, providerId: string): string | null {
-	if (policy.egress.some((d) => d.provider_id === providerId)) return null;
-	if (policy.egress.length === 0)
-		return "no egress destination is declared, so no intervention may hand excerpts or prompts to a model";
-	// Naming a few is what makes the refusal actionable; naming all of them would put a whole
-	// declaration into a message that travels to the display, the structured entries and the dossier.
-	const shown = policy.egress.slice(0, NAMED_IN_REFUSAL).map((d) => d.provider_id);
-	const rest = policy.egress.length - shown.length;
-	return (
-		`${providerId} is not declared in policy.egress; declared destinations: ${shown.join(", ")}` +
-		`${rest > 0 ? `, and ${rest} more` : ""}. ` +
-		"The declaration is read once at startup, so a new one takes effect in a new session."
-	);
-}

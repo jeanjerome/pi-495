@@ -12,7 +12,7 @@ import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { type InterventionCost, unknownCost } from "../domain/change/state.ts";
 import type { ObservedLayers } from "../domain/imposed-layers.ts";
 import { DomainError } from "../domain/errors.ts";
-import { type ActivePolicy, undeclaredEgressReason } from "../domain/policy.ts";
+import type { ActivePolicy } from "../domain/policy.ts";
 import type {
 	AgentCapabilities,
 	AgentPort,
@@ -99,38 +99,10 @@ export class InterventionSupervisor {
 	}
 
 	/**
-	 * Refuses a destination the policy has not declared, without reaching it: nothing is handed to a
-	 * provider in order to find out whether it was allowed (SEC-05). Asked a second time in `run()`
-	 * as a line of defence, not as a last-mile gate: by then the intervention is journaled and the
-	 * context record written, so the second call cannot keep the journal clean — only stop the
-	 * worker. The last point before bytes leave is the adapter, which takes no policy.
-	 *
-	 * A selection carrying no provider is not an undeclared destination but a model that was never
-	 * configured. Nothing can leave for a provider that does not exist, and the capability check
-	 * names that state on its own terms; judging it here would answer a configuration question with
-	 * a policy refusal.
-	 */
-	private refuseUndeclaredDestination(): void {
-		if (!this.deps.model.provider_id) return;
-		const reason = undeclaredEgressReason(this.deps.policy, this.deps.model.provider_id);
-		if (reason === null) return;
-		// Retryable: the remedy is one line of configuration and the owner holds it, so the block must be
-		// liftable — one nobody can act on is what loses a change. The declaration is read when the
-		// runtime is built and held by reference, so a resume in the same session is judged against the
-		// policy loaded before the edit: the message says so rather than promising a resume that cannot
-		// work.
-		throw new DomainError("POLICY_DENIED", reason, {
-			retryable: true,
-			nextActions: ["declare_egress_destination", "configure_model"],
-		});
-	}
-
-	/**
-	 * Refuses, before anything is committed, when the destination, the sandbox or the model cannot
-	 * carry the role. The destination is judged first, so a refused one is never reached.
+	 * Refuses, before anything is committed, when the sandbox or the model cannot carry the role. The
+	 * destination is not judged: choosing the model in Pi is what admits its provider (SEC-05).
 	 */
 	async requireCapable(role: InterventionRole): Promise<void> {
-		this.refuseUndeclaredDestination();
 		if (!this.qualifiedFor(role))
 			throw new DomainError(
 				"CAPABILITY_MISSING",
@@ -175,7 +147,6 @@ export class InterventionSupervisor {
 
 	/** Drives one session to its terminal event and reports what it observed. */
 	async run(request: InterventionRequest, budget: ToolCallBudget): Promise<InterventionReport> {
-		this.refuseUndeclaredDestination();
 		const role = request.role;
 		const mandate: InterventionMandate = {
 			intervention_id: request.intervention_id,

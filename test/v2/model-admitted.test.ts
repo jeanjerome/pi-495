@@ -32,8 +32,8 @@ async function firstInterventionUnder(t: TestHarness): Promise<{ started: unknow
 	await t.harness.advance(change.change_id, { max_steps: 5 });
 	const started = t.ledger
 		.readChangeEvents(change.change_id)
-		.filter((e) => e.type === "intervention.start")
-		.map((e) => (e as { model?: ModelSelection }).model?.provider_id);
+		.filter((e) => e.type === "intervention.started")
+		.map((e) => (e.event as { model?: ModelSelection }).model?.provider_id);
 	return { started, stopReason: t.ledger.loadChange(change.change_id)?.state.stop_reason ?? null };
 }
 

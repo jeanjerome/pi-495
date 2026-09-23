@@ -111,10 +111,6 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 	const progress: string[] = [];
 	const policy: ActivePolicy = {
 		...DEFAULT_POLICY,
-		// The fixture drives a scripted producer that never reaches a provider, but the supervisor
-		// judges the destination it is handed, not the agent behind it: a harness configured for this
-		// model declares it, exactly as a real installation declares the provider Pi resolved.
-		egress: [{ provider_id: "scripted", location: "on_machine" }],
 		...(options.policy ?? {}),
 		budgets: { ...DEFAULT_POLICY.budgets, ...(options.policy?.budgets ?? {}) },
 		adoption: { ...DEFAULT_POLICY.adoption, ...(options.policy?.adoption ?? {}) },
