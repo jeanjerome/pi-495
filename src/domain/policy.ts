@@ -19,12 +19,6 @@ export interface Budgets {
 
 export type AdoptionRule = "kernel" | "human";
 
-/**
- * Where a model's endpoint sits relative to the machine 495 runs on (SEC-05). No configuration
- * declares it: choosing the model in Pi is what admits its provider.
- */
-export type EgressLocation = "on_machine" | "off_machine";
-
 export interface ActivePolicy {
 	policy_id: string;
 	revision: number;
