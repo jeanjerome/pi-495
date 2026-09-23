@@ -1,5 +1,5 @@
 /**
- * Composition root: builds the trusted controller with the real adapters. Started lazily on
+ * Composition root: builds the trusted controller with the real adapters. Created once, on
  * `session_start`, closed on `session_shutdown` (extensions.md: no background resources in the factory).
  */
 import { mkdirSync } from "node:fs";

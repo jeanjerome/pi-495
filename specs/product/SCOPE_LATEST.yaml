@@ -474,8 +474,8 @@ in_scope:
       distant n'est plus un acte propre à 495 : il suffit de le choisir avec `/model`.
     constat: >
       Le modèle est lu une fois, à la création du runtime de la session (`src/extension/session.ts`,
-      `ensureRuntime`) ; 495 n'écoute pas `model_select`, de sorte qu'un changement par `/model` en
-      cours de session ne l'atteint pas. L'epic dit lequel des deux « le modèle choisi dans Pi »
+      `createRuntimeAt`, appelé au `session_start`) ; 495 n'écoute pas `model_select`, de sorte qu'un
+      changement par `/model` en cours de session ne l'atteint pas. L'epic dit lequel des deux « le modèle choisi dans Pi »
       désigne : celui de l'ouverture de session, ou celui qui est sélectionné au moment de
       l'intervention.
 

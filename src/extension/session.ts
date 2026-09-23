@@ -202,12 +202,16 @@ export class ExtensionSession {
 		return result;
 	}
 
-	/** Everything the session knows at startup: the change it resumes, and what could not be honoured. */
-	openedAt(ctx: ExtensionContext): void {
-		const model = ctx.model
-			? { provider_id: ctx.model.provider, model_id: ctx.model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
-			: { provider_id: "", model_id: "", thinking_level: "off" };
+	/** The one place the runtime is created, with the model selected when the session opened. */
+	private createRuntimeAt(ctx: ExtensionContext): void {
 		try {
+			const model = ctx.model
+				? {
+						provider_id: ctx.model.provider,
+						model_id: ctx.model.id,
+						thinking_level: String(ctx.thinkingLevel ?? "off"),
+					}
+				: { provider_id: "", model_id: "", thinking_level: "off" };
 			this.harnessRuntime = createRuntime({
 				pi_version: VERSION,
 				pi_package_dir: getPackageDir(),
@@ -217,6 +221,15 @@ export class ExtensionSession {
 			});
 		} catch (error) {
 			this.runtimeFailure = error instanceof DomainError ? error : cannotCreate(error as NodeJS.ErrnoException);
+		}
+	}
+
+	/** Everything the session knows at startup: the change it resumes, and what could not be honoured. */
+	openedAt(ctx: ExtensionContext): void {
+		// Pi's RPC mode starts the same session twice on `new_session`, `switch_session`, `fork` and
+		// `clone`: the first start decides whether a runtime exists, and a second one only reads it.
+		if (!this.harnessRuntime && !this.runtimeFailure) this.createRuntimeAt(ctx);
+		if (this.runtimeFailure) {
 			// The failure is the answer of every `/495`, so it is not queued to be said once more before it.
 			if (ctx.hasUI) ctx.ui.notify(`495: ${this.runtimeFailure.message}`, "error");
 			return;
