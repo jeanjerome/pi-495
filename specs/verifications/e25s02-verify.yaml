@@ -1,10 +1,13 @@
 story_id: e25s02
-verified_at: "2026-09-23T21:43:08Z"
+verified_at: "2026-09-23T22:28:12Z"
 verifier: verify-work
 risk: P1
 risk_note: "Story P1; task 2 is P0, so the security scan and the NFR gate were run as for a P0 story."
 branch: modele-lu-a-chaque-intervention
-revision: c1ff51c
+revision: af09eeb
+revision_note: >
+  The terminal verdict and the task commands are run on af09eeb, after review. The four campaigns
+  ran the build of c1ff51c; the two behaviours review added after it rest on tests (known_limits).
 
 environment:
   pi_version: "0.87.1"
@@ -34,25 +37,26 @@ phases:
     note: "Eight controls chained in npm run check; Biome clean over 175 files, no warning line."
   tests:
     passed: true
-    count: 395
-    note: "395 of 395. 389 on main at 952172c; the 6 of test/v3/model-select.test.ts are added, none removed."
+    count: 397
+    note: >
+      397 of 397. 389 on main at 952172c; the 8 of test/v3/model-select.test.ts are added, none
+      removed, and one assertion is added to test/v2/harness.test.ts.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T21:41:20Z"
-  ended_at: "2026-09-23T21:43:08Z"
+  started_at: "2026-09-23T22:26:22Z"
+  ended_at: "2026-09-23T22:28:12Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the code committed as c1ff51c, right after
-    `npm run build`. 395 tests passing, 0 failing. No output from any other attempt is merged into
-    this block. An earlier run the same evening under the Node 26.9 of the agent's shell also exited
-    0 with 395 of 395; it is not this verdict.
+    Single contiguous run under Node 24.21.0 on the code committed as af09eeb, right after
+    `npm run build`. 397 tests passing, 0 failing, Biome clean over 175 files. No output from any
+    other attempt is merged into this block.
 
 task_verify_commands:
-  note: "Each task's own verify command, re-run under Node 24.21.0 before UAT; every one exits 0."
+  note: "Each task's own verify command, re-run under Node 24.21.0 at af09eeb; every one exits 0."
   results:
-    - { task: 1, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 6 }
-    - { task: 2, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 6 }
+    - { task: 1, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 8 }
+    - { task: 2, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 8 }
     - { task: 3, command: "npm run check", exit_code: 0 }
 
 security:
@@ -190,3 +194,8 @@ known_limits:
   - "6d (thinking level alone) and 6e (no provider) were not exercised by a campaign; their tests hold them."
   - "6f (model restored on resume) has no scenario in §17 and is exercised by neither a test nor a campaign."
   - "The model change in the accepted campaign is a change of provider name over the same weights; a change between two real models that both complete belongs to e25s04, which also takes a remote model."
+  - >
+    Two behaviours added after the campaigns rest on tests only: a change refused for its model is
+    lifted by `/495 resume` and runs with the model selected since, and a producer refused before it
+    starts is taken up in the workspace already prepared for it. No campaign ran refusal, `/model`,
+    then resume.

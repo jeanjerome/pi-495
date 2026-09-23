@@ -350,11 +350,11 @@ blocage n'existe plus.
 
 | | |
 |---|---|
-| Périmètre | `git diff 952172c..c1ff51c`, 13 fichiers, dont 6 de production |
+| Périmètre | `git diff 952172c..c1ff51c`, 13 fichiers, dont 6 de production ; puis `c1ff51c..af09eeb`, 8 fichiers de code et de test, dont 3 de production |
 | Conduite le | 2026-09-23 |
 | Branche | `modele-lu-a-chaque-intervention` |
 | Risque de la story | P1, tâche 2 en P0 (contournement de la sonde de capacité) |
-| Code de production touché | `src/application/harness.ts`, `src/application/intervention.ts`, `src/application/phases/verify.ts` (signature), `src/extension/conduct.ts`, `src/extension/runtime.ts`, `src/extension/session.ts` |
+| Code de production touché | `src/application/harness.ts`, `src/application/intervention.ts`, `src/application/phases/verify.ts` (signature), `src/extension/conduct.ts`, `src/extension/runtime.ts`, `src/extension/session.ts` ; puis `src/application/intervention.ts`, `src/application/artifacts.ts`, `src/application/phases/implement.ts` |
 
 ## Verdict
 
@@ -401,3 +401,18 @@ l'effet voulu (AGT-07) : le choix du modèle dans Pi est ce qui admet son fourni
 L'annonce d'un modèle hors de la machine appartient à e25s03 ; d'ici là, un passage d'un modèle local
 à un modèle distant entre deux interventions ne se lit qu'au journal, par différence entre deux
 `intervention.started`.
+
+## Changements de la relecture (`c1ff51c..af09eeb`)
+
+Aucun constat à confiance ≥ 8.
+
+**Le refus du modèle devient réessayable, celui du bac à sable non.** `/495 resume` lève un blocage
+dû au modèle et l'étape repasse par `requireCapable` avec la sélection lue à nouveau : la reprise ne
+contourne pas la sonde, elle la rejoue. Le refus d'un bac à sable non qualifié reste non réessayable,
+et `test/v2/harness.test.ts` le vérifie : aucune commande de la session ne qualifie un bac à sable,
+et une reprise ne peut donc pas relancer un producteur sur un bac à sable qui ne confine pas.
+
+**L'espace repris vient du journal de 495.** `unstartedAttempt` lit les artefacts `ws_` que seule
+l'étape d'implémentation écrit, sous l'acteur du noyau, dans le journal de 495. Le chemin repris ne
+vient ni du projet cible ni d'un fichier qu'un agent écrit. Aucun producteur n'a travaillé dans cet
+espace : il ne contient que la référence et la préparation adoptée.

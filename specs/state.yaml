@@ -10,13 +10,24 @@ active_epic_id: e25
 active_story: e25s02
 
 epic_cycle:
-  step: 6
-  completed_steps: "1,2,3,4,5"
+  step: 7
+  completed_steps: "1,2,3,4,5,6"
+  audit_result: pass
   story_bcps: 3
 
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   last_step_completed: >
+    Étape 6 faite le 2026-09-24. Troisième tour de `request-review`, sur `git diff 8c7a569 612bd09` :
+    porte passée pour les deux relecteurs, trois remarques à considérer. Deux sont reprises en
+    commentaire dans `af09eeb` (la reprise d'une tentative non démarrée ne vaut qu'avant la première
+    tentative, et suppose une référence et une préparation qui ne changent pas d'ici là) ; la
+    troisième, un espace de travail supprimé à la main pendant le blocage, a le même trou que la
+    reprise d'une tentative ouverte et n'est pas traitée. Relevés ancrés à `af09eeb` : Preflight
+    verte sous Node 24.21.0, 397 tests. Les campagnes restent celles de `c1ff51c` ; les deux
+    comportements ajoutés en relecture reposent sur des tests, et c'est déclaré. La fusion attend
+    la décision du propriétaire.
+
     Étape 6 en cours le 2026-09-24. `audit-code` passe sur `952172c..ed4ca34`. Premier tour de
     `request-review` sur la même étendue : porte passée pour les deux relecteurs, aucun must-fix ni
     should-fix imputable à la branche. Le relecteur B a trouvé un défaut antérieur à la branche,
