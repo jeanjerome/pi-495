@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/pi-495"><img alt="npm: pi-495" src="https://img.shields.io/npm/v/pi-495"></a>
   <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache%202.0-blue"></a>
   <a href="https://pi.dev"><img alt="Host: Pi" src="https://img.shields.io/badge/Host-Pi-blue"></a>
   <a href="#compatibility"><img alt="Runtime: Node 24+" src="https://img.shields.io/badge/Runtime-Node%2024%2B-blue"></a>
@@ -49,7 +50,15 @@ You need **Node.js 24+**, **Pi 0.87**, **Git**, and **macOS on Apple Silicon**. 
 
 ### 1. Install the extension
 
-From a directory where you keep your tools:
+From npm:
+
+```bash
+pi install npm:pi-495
+```
+
+Pi installs the package and its dependencies under its own npm directory. `pi update npm:pi-495` moves it to the latest release; install `npm:pi-495@0.1.0` instead to pin a version.
+
+From the Git repository, in a directory where you keep your tools:
 
 ```bash
 git clone https://github.com/jeanjerome/pi-495.git
@@ -60,6 +69,8 @@ pi install "$PWD"
 ```
 
 Pi registers this local directory. Keep it in place; after updating the source, reinstall dependencies and rebuild it.
+
+Install from one source only, so that a single copy of the extension loads.
 
 ### 2. Declare your model provider
 
