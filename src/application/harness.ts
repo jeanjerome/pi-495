@@ -887,9 +887,11 @@ export class Harness {
 		if (u.state.status === "paused") u = this.commit(u, { type: "change.resume", at: this.now(), actor }, cor);
 		// A block whose cause the kernel declared retryable is lifted whatever its class: the change
 		// goes back to the step that threw and redoes it. Declaring an error retryable and leaving no
-		// entry able to act on it is what loses a change on an invalid structured output.
+		// entry able to act on it is what loses a change on an invalid structured output. The block is
+		// lifted under the actor who resumed, so that what the change spends after a stop on its budget
+		// is recorded as that actor's decision.
 		else if (u.state.status === "blocked" && (u.state.stop_reason === "execution_error" || u.state.stop_retryable))
-			u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor: KERNEL_ACTOR }, cor).unit;
+			u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor }, cor).unit;
 		return this.status(changeId);
 	}
 
