@@ -1,8 +1,8 @@
 /**
  * What a provider writes above the instructions 495 composes, declared as a pure fact of the
- * domain (CTX-02, D-48, e23s02 tasks 1–2). No provider is asked and no package is read here: the
- * declaration is a lookup against what this harness has verified, checked separately by
- * `test/v3/provider-system-block.test.ts`.
+ * domain (CTX-02, D-48). No provider is asked and no package is read here: the declaration is the
+ * expectation, a lookup against what this harness once verified, and what a request actually showed
+ * is held against it by `test/v2/imposed-layers-divergence.test.ts`.
  */
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
