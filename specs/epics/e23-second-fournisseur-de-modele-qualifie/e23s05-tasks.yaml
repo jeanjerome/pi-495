@@ -8,7 +8,7 @@
 story_id: e23s05
 spec: e23s05-les-budgets-d-intervention-sont-remesures-sur-un-modele-frontiere.md
 title: "Les budgets d'intervention sont remesurés sur un modèle frontière"
-status: failing
+status: passing
 bcps: 5
 requirement: AGT-02
 delta: MODIFIED
@@ -136,7 +136,7 @@ tasks:
     description: "L'ensemble des contrôles passe avec le changement."
     verify: "npm run check"
     risk: P0
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
