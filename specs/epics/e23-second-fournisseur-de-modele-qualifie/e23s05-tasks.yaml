@@ -67,10 +67,13 @@ tasks:
     risk: P0
     security: medium
     security_verify: >
-      Aucun constat nouveau sur les chemins touchés : aucune intervention ne démarre entre l'arrêt et
-      la relance, et rien ne permet à un producteur ni à un fichier du projet cible de relever la
-      borne ou de lever l'arrêt.
-    status: failing
+      Aucun constat nouveau sur src/application/intervention.ts, src/application/harness.ts et les
+      phases clarify, implement et review. Aucune intervention ne démarre entre l'arrêt et la
+      relance : le noyau refuse de lancer une intervention sur un changement bloqué, et le premier
+      cas du test le prouve. La borne se lit dans `<répertoire de données>/config.json`, qu'un
+      fichier du projet cible ne peut pas élargir (`src/extension/config.ts`). L'arrêt n'est levé
+      que par la commande `/495` de la session du propriétaire (`src/extension/command.ts`).
+    status: passing
     allure:
       severity: critical
       categories:

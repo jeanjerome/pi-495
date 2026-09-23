@@ -10,11 +10,20 @@ active_epic_id: e23
 active_story: e23s05
 
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   last_step_completed: >
+    TÂCHE 3 D'`e23s05` TENUE, sur la branche `borne-d-appels-et-cout`. Rouge commité seul, puis
+    vert ; Preflight vert, 344 tests. Quel que soit le rôle, une intervention qui dépasse sa borne
+    d'appels arrête le changement sous `budget_exhausted`, que la relance lève. C'est le refus du
+    noyau, lu côté application (`intervention.ts`), qui décide, et non l'événement final du worker ;
+    la course du worker réel est donc tranchée par construction, mais elle n'est pas encore
+    observée. L'intervention reste inscrite `cancelled`, et son détail nomme la borne. La note de
+    reprise du producteur compte désormais aussi les arrêts sur borne et les pauses. Suite prévue :
+    tâche 2 (le coût), puis 1 et 4.
+
     `e23s05` est planifiée : la fiche est écrite au format de story, et le journal de tâches en
-    compte sept, toutes rouges, chacune avec une commande qui échoue aujourd'hui. Preflight était
-    vert avant le plan (338 tests) ; après, le format de story et la traçabilité le restent.
+    compte sept, chacune avec une commande qui échouait au moment du plan. Preflight était vert
+    avant le plan (338 tests).
 
     LA PRÉMISSE DE LA STORY EST TOMBÉE. L'epic disait qu'avec un modèle frontière, la borne cessait
     d'être le temps pour devenir la fenêtre d'abonnement. Pi dit le contraire (`providers.md:36`) :

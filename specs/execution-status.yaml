@@ -5,7 +5,7 @@ development_status:
   e23s02: done
   e23s03: done
   e23s04: done
-  e23s05: backlog
+  e23s05: in_progress
   e23s06: backlog
   e24s01: done
   e24s02: done
@@ -66,13 +66,13 @@ stories:
     risk_max: P0
     security_max: high
   e23s05:
-    status: backlog
+    status: in_progress
     title: 'Les budgets d''intervention sont remesurés sur un modèle frontière'
     bcps: 5
     epic: e23
     tasks_total: 7
-    tasks_passing: 0
-    tasks_failing: 7
+    tasks_passing: 1
+    tasks_failing: 6
     risk_max: P0
     security_max: high
   e23s06:
