@@ -1,6 +1,8 @@
 import { strict as assert } from "node:assert";
+import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { DomainError } from "../../src/domain/errors.ts";
 import { loadConfig } from "../../src/extension/config.ts";
@@ -122,5 +124,38 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		rmSync(path, { force: true });
 		symlinkSync(join(root, "moved-away", "config.json"), path);
 		refusedWithoutEcho(root, "a link whose target is gone is a file that cannot be opened, not an absent one");
+	});
+
+	it("refuses a file in a directory it cannot search, without naming where it lies", {
+		skip: process.getuid?.() === 0,
+	}, () => {
+		writeFileSync(join(root, "config.json"), "{}");
+		chmodSync(root, 0o600);
+		try {
+			refusedWithoutEcho(root, "whether the file is there cannot even be asked");
+		} finally {
+			chmodSync(root, 0o700);
+		}
+	});
+
+	it("refuses a named pipe instead of waiting for something to write to it", () => {
+		execFileSync("mkfifo", [join(root, "config.json")]);
+		// Opening a pipe blocks until a writer comes, which would hold the session's start for good;
+		// the read runs in a child so that a regression fails here instead of stalling the suite.
+		const loader = pathToFileURL(join(process.cwd(), "src", "extension", "config.ts")).href;
+		const read = spawnSync(
+			process.execPath,
+			[
+				"--input-type=module",
+				"-e",
+				`import { loadConfig } from ${JSON.stringify(loader)};
+				try { loadConfig(${JSON.stringify(root)}); console.log("loaded"); }
+				catch (error) { console.log(\`\${error.code}: \${error.message}\`); }`,
+			],
+			{ encoding: "utf8", timeout: 10_000 },
+		);
+		assert.equal(read.signal, null, "the read returned instead of waiting");
+		assert.match(read.stdout, /^CONFIGURATION_ERROR: config\.json cannot be read: /, read.stderr);
+		assert.equal(read.stdout.includes(root), false, `the path reaches the model's context: ${read.stdout}`);
 	});
 });

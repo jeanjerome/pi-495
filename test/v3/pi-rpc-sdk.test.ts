@@ -355,14 +355,22 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 
 		const opened = await runRpc(configChannel.project, configChannel.env, ["/495 status"]);
 		const saidOnce = refusals(opened);
+		const shown = opened.uiRequests.filter(
+			(r) =>
+				r.method === "notify" && r.notifyType === "error" && String(r.message).includes("config.json cannot be read"),
+		).length;
 		writeFileSync(configPath, JSON.stringify({ policy: { egress: [] } }));
 		await ask(opened, "repaired", "/495 status");
 		const afterRepair = refusals(opened);
-		const openedText = opened
-			.messages()
-			.map((m) => m.content)
-			.join("\n");
+		const seenBefore = opened.messages().length;
+		// The same process, so a failure held anywhere longer than the session would still refuse.
+		opened.send({ id: "new", type: "new_session" });
+		await opened.waitFor((e) => e.type === "response" && e.id === "new", 60_000);
+		await opened.waitQuiet();
+		await ask(opened, "next", "/495 status");
+		const all = opened.messages().map((m) => m.content);
 		await opened.close();
+		assert.equal(shown, 1, "a client with a screen is told at session start, before any `/495`");
 		assert.equal(
 			saidOnce,
 			1,
@@ -371,16 +379,28 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		// Only session start binds the session and gathers what the runtime could not honour, so a
 		// runtime created later in the same session would run without either.
 		assert.equal(afterRepair - saidOnce, 1, "the repaired file is not read before a new session");
-		assert.doesNotMatch(openedText, /policy\.egress is no longer read/);
-
-		const next = await runRpc(configChannel.project, configChannel.env, ["/495 status"]);
-		const nextText = next
-			.messages()
-			.map((m) => m.content)
-			.join("\n");
-		await next.close();
+		assert.doesNotMatch(all.slice(0, seenBefore).join("\n"), /policy\.egress is no longer read/);
+		const nextText = all.slice(seenBefore).join("\n");
 		assert.match(nextText, /policy\.egress is no longer read/, "a new session announces what the repaired file holds");
 		assert.doesNotMatch(nextText, /cannot be read/);
+	});
+
+	it("a runtime that cannot be created is refused without naming where its data lies, and says how to recover (UX-02)", async () => {
+		const failing = channel("no-data-dir");
+		// A regular file where the data directory should be: nothing under it can be created.
+		mkdirSync(join(failing.env.HARNESS495_DATA_DIR!, ".."), { recursive: true });
+		writeFileSync(failing.env.HARNESS495_DATA_DIR!, "");
+		const client = await runRpc(failing.project, failing.env, ["/495 status"]);
+		const said = client.messages().map((m) => m.content);
+		await client.close();
+		const refusal = said.find((text) => text.startsWith("495 error:")) ?? "";
+		assert.match(refusal, /no change runs until/, `the answer of the command: ${said.join(" | ")}`);
+		assert.match(refusal, /\/reload/, "the refusal holds for the session, so it says what lifts it");
+		assert.equal(
+			refusal.includes(failing.env.HARNESS495_DATA_DIR!),
+			false,
+			`the refusal reaches the model's context, and the data directory holds config.json: ${refusal}`,
+		);
 	});
 
 	it("RPC presents the harness without a terminal widget (ADR-010, §5.2)", async () => {

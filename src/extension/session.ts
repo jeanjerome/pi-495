@@ -19,6 +19,7 @@ import {
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
+import { DomainError } from "../domain/errors.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
 
 interface Binding {
@@ -27,6 +28,16 @@ interface Binding {
 }
 
 export const VERSION_495 = "0.2.0";
+
+/**
+ * A runtime that could not be created, told by its error code alone: the system's message names the
+ * data directory, which holds config.json, and the refusal reaches the context of the session's model.
+ */
+function cannotCreate(error: NodeJS.ErrnoException): Error {
+	return new Error(
+		`the 495 runtime cannot be created (${error.code ?? error.name}); no change runs until the cause is removed and Pi is reloaded (/reload) or a new session is started`,
+	);
+}
 
 export function safeUser(): string {
 	try {
@@ -91,8 +102,8 @@ export class ExtensionSession {
 				catalogue: ctx.modelRegistry,
 			});
 		} catch (error) {
-			this.runtimeFailure = error as Error;
-			throw error;
+			this.runtimeFailure = error instanceof DomainError ? error : cannotCreate(error as NodeJS.ErrnoException);
+			throw this.runtimeFailure;
 		}
 		return this.runtime;
 	}

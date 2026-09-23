@@ -188,6 +188,14 @@ describe("measure-budgets: the bounds read back from a kept dossier (AGT-02, AGT
 		assert.equal(digest(), before);
 	});
 
+	it("refuses a dossier whose configuration cannot be read, instead of projecting from the defaults", () => {
+		const root = writeDossier([spent(12, 180_000)], ["not an object"]);
+		const { status, stdout, stderr } = measure(root);
+		assert.equal(status, 2, stderr);
+		assert.match(stderr, /config\.json cannot be read/);
+		assert.doesNotMatch(stdout, /par intervention/, "no bound is printed that the dossier did not set");
+	});
+
 	it("refuses a directory that holds no dossier", () => {
 		const { status, stderr } = measure(dir);
 		assert.equal(status, 2);

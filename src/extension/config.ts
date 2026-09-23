@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync } from "node:fs";
+import { lstatSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { DomainError } from "../domain/errors.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../domain/policy.ts";
@@ -41,8 +41,23 @@ const EGRESS_NO_LONGER_READ = "config.json: policy.egress is no longer read; the
 function unreadable(reason: string): DomainError {
 	return new DomainError(
 		"CONFIGURATION_ERROR",
-		`config.json cannot be read: ${reason}; no change runs until it is fixed or removed and a new Pi session is started`,
+		`config.json cannot be read: ${reason}; no change runs until it is fixed or removed and Pi is reloaded (/reload) or a new session is started`,
 	);
+}
+
+/**
+ * Whether the file is there to be read. A link whose target is gone is a file that cannot be opened,
+ * not an absent one; anything but a regular file — a pipe would hold the session's start until
+ * something writes to it — is refused before it is opened.
+ */
+function present(path: string): boolean {
+	try {
+		if (!lstatSync(path, { throwIfNoEntry: false })) return false;
+		if (statSync(path).isFile()) return true;
+	} catch {
+		throw unreadable("the file cannot be opened");
+	}
+	throw unreadable("it is not a regular file");
 }
 
 function parseFile(path: string): unknown {
@@ -76,8 +91,7 @@ export function loadConfig(
 	const diagnostics: string[] = [];
 	const path = join(dataDir, "config.json");
 	let config: HarnessConfig = structuredClone(DEFAULT_CONFIG);
-	// A link whose target is gone is a file that cannot be opened, not an absent one.
-	if (lstatSync(path, { throwIfNoEntry: false })) {
+	if (present(path)) {
 		const raw = section<Omit<HarnessConfig, "policy"> & { policy: unknown }>(parseFile(path), "the file");
 		const { egress, budgets, adoption, ...policy } = section<
 			Omit<ActivePolicy, "budgets" | "adoption"> & { egress: unknown; budgets: unknown; adoption: unknown }
