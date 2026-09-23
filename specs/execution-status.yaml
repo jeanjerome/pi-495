@@ -1,12 +1,12 @@
 development_status:
-  e23: in_progress
+  e23: done
   e24: done
   e23s01: done
   e23s02: done
   e23s03: done
   e23s04: done
   e23s05: done
-  e23s06: in_progress
+  e23s06: done
   e24s01: done
   e24s02: done
   e24s03: done
@@ -14,7 +14,7 @@ development_status:
 
 epics:
   e23:
-    status: in_progress
+    status: done
     title: Second fournisseur de modèle qualifié
     wsjf: 12.0
     total_bcps: 23
@@ -76,13 +76,13 @@ stories:
     risk_max: P0
     security_max: high
   e23s06:
-    status: in_progress
+    status: done
     title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
     bcps: 5
     epic: e23
     tasks_total: 8
-    tasks_passing: 5
-    tasks_failing: 3
+    tasks_passing: 8
+    tasks_failing: 0
     risk_max: P0
     security_max: high
   e24s01:

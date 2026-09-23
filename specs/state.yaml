@@ -10,43 +10,33 @@ active_epic_id: e23
 active_story: e23s06
 
 handoff:
-  next_skill: develop-tdd
+  next_skill: null
   last_step_completed: >
-    `e23s06` EST À SA RECETTE, sur la branche `strate-imposee-observee`, ouverte depuis
-    `borne-d-appels-et-cout`. Aucune des deux n'est fusionnée ni poussée. Les tâches 1 à 5 passent.
-    Les tâches 6 à 8 attendent la campagne facturée. Preflight est vert sur Node 24.21, avec 393
-    tests.
+    `e23s06` EST TENUE, et avec elle l'epic `e23`. Ses huit tâches passent, et Preflight est vert sur
+    Node 24.21, avec 393 tests. Le relevé est `specs/verifications/e23s06-strate-observee.md`, la
+    décision `D-60`, et la ligne CTX-02 de la matrice porte les preuves. Les branches
+    `strate-imposee-observee` et `borne-d-appels-et-cout`, sur laquelle la première est ouverte, ne
+    sont ni fusionnées ni poussées.
 
-    CE QUI EST ÉTABLI. Le worker charge une seule extension, un observateur de
-    `before_provider_request`, hébergé par le chargeur de Pi avec toute découverte coupée. Un point
-    d'accès de substitution reçoit le même corps avec et sans lui. L'observateur demande à Pi l'invite
-    qu'il a composée (`ctx.getSystemPrompt()`) et la repère dans la charge utile. Ce qui l'entoure
-    est la part du fournisseur. Ce qu'elle contient en plus des instructions de 495 est la part de
-    l'hôte. La fin de chaque intervention porte, au journal, chaque observation qui diffère de la
-    précédente et sa comparaison avec le manifeste. `D-60` consigne la décision.
+    CE QUI EST ÉTABLI. Le worker observe chaque requête par `before_provider_request`, sans la
+    modifier. Il sépare ce que le fournisseur a écrit autour de l'invite de l'hôte de ce que l'hôte
+    a ajouté aux instructions de 495. La fin de chaque intervention porte, au journal, chaque
+    observation qui diffère de la précédente et sa comparaison avec le manifeste. Trois campagnes
+    réelles sont gardées, sur la même cible et le même `dist/` (`sha256:ede62b19…`).
+    `e23s06-distant` : sur le vrai chemin d'abonnement, le bloc d'Anthropic est observé et concorde
+    à chaque intervention, pour 0,0828 $. `e23s06-local` : rien d'imposé, et la concordance.
+    `e23s06-negatif` : un fournisseur déclaré, joint sans ce chemin, donne l'écart nommé avec sa
+    condition, et le changement va tout de même à son verdict.
 
-    UN FAIT TROUVÉ À LA PREMIÈRE EXÉCUTION. Pi termine l'invite de 495 par une section `<cwd>` qui
-    porte le chemin absolu de l'espace de travail, et il l'envoie au fournisseur à chaque requête.
-    Rien ne le disait avant. La story le rend visible au dossier et ne change pas ce que le modèle
-    reçoit : dire si ce chemin doit quitter la machine est une décision du propriétaire.
+    UN FAIT TROUVÉ, À TRANCHER PAR LE PROPRIÉTAIRE. Pi termine l'invite de 495 par une section
+    `<cwd>`, qui porte le chemin absolu de l'espace de travail, et il l'envoie au fournisseur à
+    chaque requête. Le dossier le dit désormais. Rien ne l'empêche : dire si ce chemin doit quitter
+    la machine est une décision sur les données qui sortent.
 
-    DEUX CAMPAGNES GRATUITES CONDUITES, sur `~/.495-campagnes/e23s04-cible`, avec l'extension
-    chargée depuis `dist/`. `e23s06-local` (`chg_mue0bl838bf2881f97`, `omlx`) est acceptée, G0 à G5
-    `PASS`. Ses trois interventions portent chacune une seule observation, sans rien au-dessus ni
-    au-dessous, avec la section `<cwd>` comme ajout de l'hôte et la concordance. `e23s06-negatif`
-    (`chg_mue0g30t123dbc39c5`) est le contrôle négatif : un fournisseur nommé `anthropic` servi par
-    le modèle local, via `PI_CODING_AGENT_DIR=~/.495-campagnes/e23s02-rev2-piconf`. Il est accepté
-    aussi, et ses trois interventions portent l'écart « attendu et non observé » avec la condition
-    déclarée à côté. Aucun jeton dans les deux dossiers : les six `sk-ant-oat` sont le préfixe de la
-    condition. Le script de lancement et la relecture sont dans le bloc-notes de la session, pas dans
-    le dépôt.
-
-    CE QUI RESTE OUVERT D'`e23s05`, CONSTATÉ SANS ÊTRE CORRIGÉ.
+    CE QUI RESTE OUVERT, CONSTATÉ SANS ÊTRE CORRIGÉ.
     1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`).
     2. Le débit du modèle local varie de part et d'autre de la bascule, et `D-59` ne décrit que 4,6.
     3. Une relance sans origine humaine établie est encore inscrite au nom du noyau.
     4. Le journal ne garde pas les bornes en vigueur.
     5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
-
-    SUITE. La tâche 6 demande le signal du propriétaire pour la campagne sur l'abonnement, facturée
-    au jeton. Puis le relevé de la tâche 7 et Preflight.
+    6. La branche `controle-du-bloc-fournisseur` n'a plus d'objet (`D-60`) ; elle existe encore.

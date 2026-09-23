@@ -8,7 +8,7 @@
 story_id: e23s06
 spec: e23s06-le-dossier-enregistre-la-strate-imposee-telle-que-le-fournisseur-l-a-ecrite.md
 title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
-status: failing
+status: passing
 bcps: 5
 requirement: CTX-02
 delta: MODIFIED
@@ -128,7 +128,7 @@ tasks:
       Aucun jeton dans les deux dossiers. L'observation ne porte que des textes système du
       fournisseur. La configuration isolée du contrôle négatif ne touche pas celle du propriétaire.
       Aucune commande du pas-à-pas ne porte de secret.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -141,7 +141,7 @@ tasks:
       les portent, relues en lecture seule, et ce que les campagnes n'établissent pas.
     verify: "test -s specs/verifications/e23s06-strate-observee.md"
     risk: P2
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories:
@@ -151,7 +151,7 @@ tasks:
     description: "L'ensemble des contrôles passe avec le changement."
     verify: "npm run check"
     risk: P0
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
