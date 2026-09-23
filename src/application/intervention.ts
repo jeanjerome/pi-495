@@ -101,7 +101,9 @@ export class InterventionSupervisor {
 
 	/**
 	 * Refuses, before anything is committed, when the sandbox or the model cannot carry the role. The
-	 * destination is not judged: choosing the model in Pi is what admits its provider (SEC-05).
+	 * destination is not judged: choosing the model in Pi is what admits its provider (SEC-05). The
+	 * model refusal is retryable: selecting another model in Pi fixes it within the session, and the
+	 * next intervention reads the selection again. No command of the session qualifies a sandbox.
 	 */
 	async requireCapable(role: InterventionRole, model: ModelSelection): Promise<void> {
 		if (!this.qualifiedFor(role))
@@ -116,7 +118,7 @@ export class InterventionSupervisor {
 			throw new DomainError(
 				"CAPABILITY_MISSING",
 				`model ${model.provider_id}/${model.model_id} cannot carry this intervention: ${unmet.join("; ")}`,
-				{ nextActions: ["configure_model"] },
+				{ retryable: true, nextActions: ["configure_model"] },
 			);
 	}
 
