@@ -25,7 +25,7 @@ class HarnessWithModel extends Harness {
 		this.model = model;
 	}
 	override advance(changeId: string, options: Partial<Parameters<Harness["advance"]>[1]> = {}): Promise<AdvanceResult> {
-		return super.advance(changeId, { readModel: () => this.model, ...options });
+		return super.advance(changeId, { ...options, readModel: options.readModel ?? (() => this.model) });
 	}
 }
 

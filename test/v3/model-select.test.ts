@@ -124,8 +124,19 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 		const changeId = await startChange(t, cleanup);
 		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
 		assert.equal(result.stopped_because, "capability_missing");
+		assert.deepEqual(agent.judged, [NONE], "the refusal is the model's, not the sandbox's");
 		assert.deepEqual(agent.started, []);
 		assert.deepEqual(startedWith(t.ledger, changeId), []);
+	});
+
+	it("a change refused for its model is resumed with the model selected since (6e)", async () => {
+		const t = makeHarness({ agent: new ModelJudgingAgent() });
+		const changeId = await startChange(t, cleanup);
+		await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
+		t.harness.resume(changeId, HUMAN);
+		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
+		assert.notEqual(result.stopped_because, "capability_missing", result.steps.join(" | "));
+		assert.deepEqual(startedWith(t.ledger, changeId), [FIRST]);
 	});
 });
 
