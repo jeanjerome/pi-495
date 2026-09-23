@@ -218,6 +218,11 @@ export class InterventionSupervisor {
 		// report written after the refused call is not a proposal the budget allowed.
 		if (budgetRefusal !== null) {
 			this.deps.progress(`intervention ${role} stopped by the tool call budget`);
+			// Only the producer resumes on what it left: the other roles keep nothing between two runs.
+			const onResume =
+				role === "implement"
+					? "the workspace keeps the unfinished work"
+					: `a resume runs the ${role} intervention again from the start`;
 			return {
 				result: "cancelled",
 				output: null,
@@ -226,7 +231,7 @@ export class InterventionSupervisor {
 				cost: t.cost,
 				terminal: t,
 				events: kept,
-				detail: `stopped by the tool call budget: ${budgetRefusal}; the workspace keeps the unfinished work`,
+				detail: `stopped by the tool call budget: ${budgetRefusal}; ${onResume}`,
 				budget_refusal: budgetRefusal,
 			};
 		}
