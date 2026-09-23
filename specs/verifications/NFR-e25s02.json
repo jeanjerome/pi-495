@@ -1,0 +1,39 @@
+{
+  "story_id": "e25s02",
+  "risk": "P1",
+  "risk_note": "Story P1 with task 2 in P0; the gate is run as for P0.",
+  "evaluated_at": "2026-09-23T21:43:08Z",
+  "threshold_source": {
+    "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s02-le-modele-choisi-par-model-est-celui-de-l-intervention-suivante.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "No specs/tech-architecture/e25-TEST_PLAN_LATEST.md exists; the thresholds are the four the story spec states, grouped under the gate's three dimensions."
+  },
+  "environment": {
+    "pi_version": "0.87.1",
+    "node": "24.21.0",
+    "sandbox": "seatbelt, qualified",
+    "model": "omlx/qwen3.8-27b-oq8e, omlx/Qwen3.8-Flash-Next-MLX-oQ4-MTP and omlx-b/qwen3.8-27b-oq8e (the same endpoint and weights under a second provider name), through an isolated PI_CODING_AGENT_DIR"
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "Session opened, model selected by /model, then /495 start: 0 capability refusals",
+      "measured": "Campaign e25s02-en-route (chg_muemb8qe300ab3f5ec): opened on Flash-Next, qwen3.8-27b-oq8e selected after the session was replaced, 0 refusals, accepted G0..G5 in 9 min 20 s. The negative control on main (e25s02-en-route-negatif) refuses the same sequence with capability_missing on the opening model.",
+      "note": "A session opened with no model at all is held by test/v3/model-select.test.ts only. The story reads one context property per intervention, so no latency is added on the path it touches."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "Two interventions separated by a model change: 2 starts journaled, 2 different models, each the one selected at its start. A change between the capability check and the worker start: the model journaled and handed to the worker is the one judged",
+      "measured": "e25s02-en-route: specify started under omlx/qwen3.8-27b-oq8e; prepare and implement under omlx-b/qwen3.8-27b-oq8e, selected 0.4 s after specify started. Each worker's cost line names the model it resolved: omlx for specify, omlx-b for the other two, so the running intervention kept its model. e25s02-flash-refuse: the model selected, Flash-Next, is the one judged and refused, and no worker started.",
+      "note": "The window between the capability check and the worker start is held by test/v3/model-select.test.ts; no campaign can hit it on purpose."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "Session replaced, then a model selected in the replacing session: the next intervention starts with that model",
+      "measured": "All four campaigns replace the session with new_session before selecting. On the branch, the model selected afterwards is the one employed (e25s02-en-route) or judged (e25s02-flash-refuse). On main, the model the replacing session opened on is employed or judged instead (e25s02-negatif, e25s02-en-route-negatif).",
+      "note": "The model frontier is read from the ledger by difference between two intervention.started events; no new event is journaled, as §12 states."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}

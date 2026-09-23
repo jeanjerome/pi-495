@@ -10,13 +10,25 @@ active_epic_id: e25
 active_story: e25s02
 
 epic_cycle:
-  step: 5
-  completed_steps: "1,2,3,4"
+  step: 6
+  completed_steps: "1,2,3,4,5"
   story_bcps: 3
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
+    Étape 5 faite le 2026-09-23 : `verify-work` a vérifié e25s02 sur quatre campagnes réelles en
+    `pi --mode rpc`, deux sur la branche et deux contrôles négatifs sur `main`, et le propriétaire a
+    confirmé la recette. `e25s02-en-route` est accepté G0..G5 : la spécification démarre sous
+    `omlx/qwen3.8-27b-oq8e`, choisi après le remplacement de session, et la préparation et
+    l'implémentation sous `omlx-b`, choisi pendant la spécification, qui garde son modèle. Sur
+    `main`, la même séquence est refusée sur le modèle de l'ouverture. `e25s02-flash-refuse` montre
+    que le modèle sélectionné est celui que juge la sonde de capacité. `omlx-b` est le même modèle
+    sous un second nom de fournisseur, et c'est déclaré. Preflight verte sous Node 24.21 à `c1ff51c`
+    (395 tests), aucun constat de sécurité à confiance 8 ou plus. Preuves :
+    `specs/verifications/e25s02-verify.yaml`, `NFR-e25s02.json`, section e25s02 de
+    `specs/security/REVIEW.md`. Prochaine étape : `audit-code`.
+
     Étape 4 faite le 2026-09-23 : `develop-tdd` a porté les trois tâches de e25s02 au vert. Le test
     rouge `fbb4b2e` (`test/v3/model-select.test.ts`, 6 échecs sur 6 en isolation) couvre 6a, 6b,
     §5/6c, 6d, 6e, et 6g contre un vrai `pi --mode rpc`. `eaba714` fait lire à chaque intervention

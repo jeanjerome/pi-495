@@ -345,3 +345,59 @@ refusé. Le défaut précède la story, et il est ouvert au registre sous BUG-20
 **Changements bloqués avant la story.** Un changement bloqué sous `policy_denied` au titre de sa
 destination repart, à la reprise, vers le fournisseur choisi. C'est l'effet voulu : le motif de
 blocage n'existe plus.
+
+# Revue de sécurité — e25s02, le modèle sélectionné quand l'intervention démarre
+
+| | |
+|---|---|
+| Périmètre | `git diff 952172c..c1ff51c`, 13 fichiers, dont 6 de production |
+| Conduite le | 2026-09-23 |
+| Branche | `modele-lu-a-chaque-intervention` |
+| Risque de la story | P1, tâche 2 en P0 (contournement de la sonde de capacité) |
+| Code de production touché | `src/application/harness.ts`, `src/application/intervention.ts`, `src/application/phases/verify.ts` (signature), `src/extension/conduct.ts`, `src/extension/runtime.ts`, `src/extension/session.ts` |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8. La porte passe.
+
+Le changement déplace une lecture : le modèle n'est plus lu à l'ouverture de session mais au
+démarrage de chaque intervention. Aucune entrée nouvelle n'est lue, et la sélection vient toujours de
+l'hôte, jamais d'un fichier du projet cible.
+
+## Hypothèses vérifiées, non supposées
+
+**Le modèle jugé est celui qui est joint.** `runIntervention` (`harness.ts`) appelle `readModel()`
+une seule fois et passe la même valeur à `requireCapable`, à l'événement `intervention.started`, à
+`imposedLayersFor` et à la requête remise au superviseur, dont le mandat nomme `request.model`.
+`InterventionSupervisor` ne garde plus de modèle : il ne peut pas en joindre un autre que celui de la
+requête. Un `/model` reçu pendant que `requireCapable` attend la description du modèle ne change
+donc rien à l'intervention qui démarre. `test/v3/model-select.test.ts` (§5, 6c) le vérifie, et la
+campagne `e25s02-en-route` l'a montré en situation : un `set_model` reçu pendant la spécification n'a
+pas changé son modèle, et la ligne de coût que le worker écrit à sa fin nomme encore le premier.
+
+**Le worker résout le modèle du mandat, sans repli.** `worker-main.ts` cherche
+`m.model.provider_id/m.model.model_id` dans le catalogue de Pi et refuse, sans chercher d'autre
+modèle, s'il n'y est pas configuré ou authentifié. Le fichier n'est pas dans le diff.
+
+**Un seul chemin fait avancer un changement.** `advance` n'a qu'un appelant, `conduct.ts`, et
+`readModel` y est obligatoire : le typage refuse un appel qui l'omet. L'outil `495` crée le
+changement sans le faire avancer. `verify` n'ouvre aucune intervention, et sa signature l'écrit.
+
+**Une sélection vide reste un refus de capacité.** Sans modèle dans le contexte, `selectedModel` rend
+un fournisseur et un modèle vides, que la description refuse avant tout engagement (6e, par test).
+La campagne `e25s02-flash-refuse` a montré en situation qu'un modèle sélectionné qui n'appelle pas
+l'outil est refusé en `capability_missing`, avant tout `intervention.started`.
+
+**La politique ne change pas avec le modèle.** Le runtime, et la politique qu'il a chargée à
+l'ouverture de session, ne sont pas recréés quand la sélection change.
+
+**Aucune exécution ni aucun réseau n'entre par ce changement.** Le diff de production ne porte ni
+`exec`, ni `spawn`, ni `fetch`, ni `eval`.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+**Un modèle choisi en cours de changement reçoit le contexte des interventions suivantes.** C'est
+l'effet voulu (AGT-07) : le choix du modèle dans Pi est ce qui admet son fournisseur (SEC-05, e25s01).
+L'annonce d'un modèle hors de la machine appartient à e25s03 ; d'ici là, un passage d'un modèle local
+à un modèle distant entre deux interventions ne se lit qu'au journal, par différence entre deux
+`intervention.started`.

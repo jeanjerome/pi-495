@@ -1,0 +1,192 @@
+story_id: e25s02
+verified_at: "2026-09-23T21:43:08Z"
+verifier: verify-work
+risk: P1
+risk_note: "Story P1; task 2 is P0, so the security scan and the NFR gate were run as for a P0 story."
+branch: modele-lu-a-chaque-intervention
+revision: c1ff51c
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  models: >
+    omlx/qwen3.8-27b-oq8e and omlx/Qwen3.8-Flash-Next-MLX-oQ4-MTP on the local endpoint, plus
+    omlx-b/qwen3.8-27b-oq8e — the same endpoint and the same model under a second provider name —
+    through an isolated PI_CODING_AGENT_DIR whose settings.json names the model Pi opens on.
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from dist/, rebuilt under Node 24.21.0 at c1ff51c, in four
+      fresh data directories, each through a real `pi -ne --mode rpc --no-session -e <extension>`.
+      No stale runtime or configuration: each data directory held nothing before its campaign.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check; Biome clean over 175 files, no warning line."
+  tests:
+    passed: true
+    count: 395
+    note: "395 of 395. 389 on main at 952172c; the 6 of test/v3/model-select.test.ts are added, none removed."
+
+terminal_verdict:
+  command: "npm run check"
+  exit_code: 0
+  started_at: "2026-09-23T21:41:20Z"
+  ended_at: "2026-09-23T21:43:08Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on the code committed as c1ff51c, right after
+    `npm run build`. 395 tests passing, 0 failing. No output from any other attempt is merged into
+    this block. An earlier run the same evening under the Node 26.9 of the agent's shell also exited
+    0 with 395 of 395; it is not this verdict.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 before UAT; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 6 }
+    - { task: 2, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 6 }
+    - { task: 3, command: "npm run check", exit_code: 0 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e25s02"
+  note: >
+    The model is read once per intervention, and that one reading is what the capability check
+    judges, what is journaled, what the context declares and what the mandate names. The worker
+    resolves the mandate's model with no fallback.
+
+blind_spots:
+  ran: false
+  note: >
+    check-blind-spots.sh is not run: it reads its state table with a pattern that can never match,
+    so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e23s01, e23s02 and e25s01: it looks for story identifiers in the sources,
+    which the written-content rules forbid. AGT-07 keeps its row (lint:traceability green).
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e25s02.json"
+
+manual:
+  method: >
+    Four campaigns through a real `pi --mode rpc`, driven by ~/.495-campagnes/scripts/e25s02-drive.ts,
+    each on its own data directory and its own clone of the minimal JS target, against the local
+    models under the real sandbox, then read back read-only from the SQLite ledger. The driver asks
+    Pi which model the session opened on, replaces the session (`new_session`, so Pi loads 495
+    again), selects a model (`set_model`), sends `/495 start`, and selects another model as soon as
+    the ledger holds the first `intervention.started`. Two campaigns run the branch build; two run
+    the build of main at 952172c as negative controls, with the same script.
+  fiction_declared: >
+    omlx-b is the local endpoint and the same qwen3.8-27b-oq8e model under a second provider name,
+    so that a model change reaches a campaign that can still complete: Flash-Next, the only other
+    model served, is refused by the capability probe. The frontier the journal shows is therefore a
+    change of provider name, not of model weights. The worker did run under the new name: the cost
+    line each intervention ends with is written by the worker from the model it resolved
+    (worker-main.ts), and it names omlx-b for the last two. Nothing left the machine.
+  campaigns:
+    - id: "chg_muemb8qe300ab3f5ec"
+      dossier: "~/.495-campagnes/e25s02-en-route"
+      code: "branch, c1ff51c"
+      sequence: >
+        Opened on omlx/Flash-Next; session replaced; omlx/qwen3.8-27b-oq8e selected; /495 start;
+        omlx-b/qwen3.8-27b-oq8e selected at 21:31:28.719Z, 0.4 s after the specifying intervention
+        started.
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions, 0 blocks"
+      observed: >
+        specify started 21:31:28.343Z under omlx/qwen3.8-27b-oq8e medium, and its worker's cost line
+        names omlx; prepare started 21:34:37.795Z and implement 21:39:21.596Z under
+        omlx-b/qwen3.8-27b-oq8e medium, and their cost lines name omlx-b.
+    - id: "chg_muemcj5d4225f65a79"
+      dossier: "~/.495-campagnes/e25s02-en-route-negatif"
+      code: "main, 952172c — negative control"
+      sequence: "The same as e25s02-en-route."
+      outcome: "blocked in clarifying — capability_missing, 0 interventions"
+      observed: >
+        "model omlx/Qwen3.8-Flash-Next-MLX-oQ4-MTP cannot carry this intervention: the endpoint
+        answered without calling the tool it was given". qwen3.8-27b-oq8e was selected; the code
+        before this story judged the model the session opened on.
+    - id: "chg_muema7nf41086b4d16"
+      dossier: "~/.495-campagnes/e25s02-flash-refuse"
+      code: "branch, c1ff51c"
+      sequence: >
+        Opened on omlx/qwen3.8-27b-oq8e; session replaced; omlx/Flash-Next selected; /495 start.
+      outcome: "blocked in clarifying — capability_missing, 0 interventions"
+      observed: >
+        The same refusal, naming Flash-Next: the model judged is the one selected after the session
+        was replaced, not the one it opened on. No worker started.
+    - id: "chg_muema7nf39bb1d7ecf"
+      dossier: "~/.495-campagnes/e25s02-negatif"
+      code: "main, 952172c — negative control"
+      sequence: "The same as e25s02-flash-refuse."
+      outcome: "accepted — closed, completed, G0..G5 PASS, 3 interventions"
+      observed: >
+        All three interventions started under omlx/qwen3.8-27b-oq8e, the model the session opened
+        on, although Flash-Next was selected before /495 start.
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-23T21:47:35Z"
+  confirmation_note: >
+    Confirmed by the owner on the four campaigns above and the stated limits: the accepted
+    campaign's model change is a second provider name over the same weights, nothing left the
+    machine, and 6a with no model at all, 6d and 6e with no provider rest on tests. 6f, a model
+    restored on resume, is exercised by neither a test nor a campaign; the owner was first told it
+    rested on a test, which was wrong.
+  steps:
+    - step: "Un modèle choisi après l'ouverture de session est celui de la première intervention (6a, §1)"
+      expected: "L'intervention démarre avec le modèle sélectionné, pas celui de l'ouverture"
+      actual: >
+        e25s02-en-route — ouverte sur Flash-Next, 27B choisi : la spécification démarre sous
+        omlx/qwen3.8-27b-oq8e. Le contrôle négatif sur main juge Flash-Next et refuse. Une session
+        ouverte sans aucun modèle n'a pas été produite en campagne : Pi ouvre sur le modèle par défaut
+        de settings.json ; ce cas repose sur test/v3/model-select.test.ts.
+      passed: true
+    - step: "Un changement de modèle entre deux interventions se lit au journal (6b)"
+      expected: "Deux démarrages successifs inscrivent deux modèles différents, chacun celui sélectionné à son démarrage"
+      actual: "e25s02-en-route — specify sous omlx, prepare et implement sous omlx-b ; accepté G0..G5"
+      passed: true
+    - step: "Une intervention en cours garde son modèle (6c, §5)"
+      expected: "Le modèle choisi pendant une intervention vaut pour la suivante seulement"
+      actual: >
+        e25s02-en-route — omlx-b choisi 0,4 s après le démarrage de la spécification ; elle finit
+        sous omlx, d'après la ligne de coût que son worker écrit. Le changement entre la sonde de
+        capacité et le démarrage du worker repose sur test/v3/model-select.test.ts.
+      passed: true
+    - step: "Le modèle sélectionné est celui que juge la sonde de capacité (§5, 6e)"
+      expected: "Un modèle sélectionné incapable est refusé en capability_missing, sans worker"
+      actual: >
+        e25s02-flash-refuse — Flash-Next choisi après le remplacement de session : refusé, 0
+        intervention. Sur main, la même séquence passe sous le modèle d'ouverture (e25s02-negatif).
+        Une sélection sans fournisseur repose sur le test seul.
+      passed: true
+    - step: "Une session remplacée lit la sélection de la session qui la remplace (6g)"
+      expected: "Après new_session puis /model, l'intervention démarre avec ce modèle"
+      actual: "Les quatre campagnes passent par new_session avant le choix ; les deux sur la branche emploient ou jugent le modèle choisi ensuite"
+      passed: true
+    - step: "Un niveau de réflexion changé seul est employé (6d)"
+      expected: "L'intervention suivante inscrit le nouveau niveau"
+      actual: "test/v3/model-select.test.ts seulement — aucune campagne ne change le niveau"
+      passed: true
+
+gaps:
+  closed: true
+  note: >
+    No gap between what e25s02 promises and what the campaigns show. Flash-Next's refusal is the
+    capability probe doing its job on the model selected, not a defect of this story.
+
+known_limits:
+  - "A session opened with no model at all was not produced for real; 6a rests on its test for that case."
+  - "6d (thinking level alone) and 6e (no provider) were not exercised by a campaign; their tests hold them."
+  - "6f (model restored on resume) has no scenario in §17 and is exercised by neither a test nor a campaign."
+  - "The model change in the accepted campaign is a change of provider name over the same weights; a change between two real models that both complete belongs to e25s04, which also takes a remote model."
