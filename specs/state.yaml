@@ -5,13 +5,32 @@ project_cycle:
   phase_name: discover
   completed_phases: []
 
-active_flow: null
+active_flow: build_epic
 active_epic_id: e25
-active_story: e25s01
+active_story: e25s02
+
+epic_cycle:
+  step: 3
+  completed_steps: "1,2"
+  story_bcps: 3
 
 handoff:
-  next_skill: null
+  next_skill: kickoff-branch
   last_step_completed: >
+    e25s02 ouverte le 2026-09-23, étapes 1 et 2 de `build-epic`. La spécification est écrite
+    (`e25s02-le-modele-choisi-par-model-est-celui-de-l-intervention-suivante.md`). La tâche 1 ne
+    prescrit plus l'écoute de `model_select` : dans Pi 0.87.1, le contexte remis à l'extension lit
+    `model` et `thinkingLevel` à l'appel (`createContext`, `core/extensions/runner.js`), si bien que
+    495 lit la sélection au démarrage de chaque intervention sans en tenir de copie. Elle est lue dans
+    le contexte de la commande ou de l'outil qui fait avancer le changement : celui de l'ouverture de
+    session devient caduc quand Pi remplace la session (`dispose`, `core/agent-session.js`), alors
+    que 495 garde le runtime du premier démarrage. La lecture est
+    faite une fois et passée à la vérification de capacité, au démarrage inscrit, au contexte et au
+    mandat, parce que `requireCapable` attend la description du modèle avant l'inscription : relire
+    la sélection après cette attente laisserait joindre un modèle non jugé. `model_select` reste
+    nécessaire à e25s03, pour l'annonce. Aucune modélisation de menace par epic n'a été produite
+    (étape 0), comme pour les stories précédentes. Prochaine étape : `kickoff-branch`.
+
     Sur décision du propriétaire le 2026-09-23, la relecture a changé de périmètre : une petite refonte,
     la création unique du runtime, relue par un seul relecteur neuf sur ce qu'elle change seulement.
     `e74a04a` crée le runtime à l'ouverture de session seule (`createRuntimeAt` dans `session.ts`) ;

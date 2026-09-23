@@ -15,10 +15,15 @@ type: feat
 tasks:
   - id: 1
     description: >
-      495 écoute `model_select`. Un modèle choisi par `/model`, par le cycle de modèles ou par la
-      restauration de session devient celui de l'intervention suivante. L'intervention l'inscrit à
-      son démarrage, si bien que la frontière entre deux modèles se lit au journal. Une
-      intervention en cours garde le modèle avec lequel elle a démarré.
+      495 lit le modèle que Pi tient pour sélectionné, avec son niveau de réflexion, au démarrage
+      de chaque intervention, et une seule fois. Un modèle choisi par `/model`, par le cycle de
+      modèles ou retrouvé à la reprise de session est donc celui de l'intervention suivante.
+      L'intervention l'inscrit à son démarrage, si bien que la frontière entre deux modèles se lit
+      au journal. Une intervention en cours garde le modèle avec lequel elle a démarré. Aucune
+      copie n'est tenue par 495 : le contexte de Pi lit son modèle à l'appel (Pi 0.87.1). La
+      sélection est lue dans le contexte de la commande ou de l'outil qui fait avancer le
+      changement, jamais dans celui de l'ouverture de session, que Pi rend caduc quand il remplace
+      la session.
     verify: "node --test test/v3/model-select.test.ts"
     risk: P1
     security: medium
@@ -36,8 +41,9 @@ tasks:
   - id: 2
     description: >
       La vérification de capacité juge le modèle sélectionné au démarrage de l'intervention, pas
-      celui de l'ouverture de session. Une session ouverte sans
-      modèle, puis dotée d'un modèle par `/model`, lance `/495 start` sans refus.
+      celui de l'ouverture de session, et le modèle inscrit et remis au worker est celui qui a été
+      jugé. Une session ouverte sans modèle, puis dotée d'un modèle par `/model`, lance
+      `/495 start` sans refus.
     verify: "node --test test/v3/model-select.test.ts"
     risk: P0
     security: high
