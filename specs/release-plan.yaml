@@ -173,8 +173,8 @@ epics:
     wsjf_inputs: { business_value: 7, time_criticality: 6, risk_reduction: 5, job_size: 3 }
     capsule_dir: epics/e25-le-modele-choisi-dans-pi-est-autorise
     wsjf_note: >
-      Postérieur à la ROADMAP, qui ne le séquence donc pas ; sa place est à décider par arbitrage,
-      comme celle de e23. WSJF seul le placerait après e03 et avant e09. La valeur tient au premier
+      Postérieur à la ROADMAP, qui ne le séquence donc pas. Le propriétaire l'a engagé le
+      2026-09-23, avant e01. WSJF seul le placerait après e03 et avant e09. La valeur tient au premier
       usage : tout utilisateur dont le modèle n'est pas `omlx` est refusé au premier `/495 start`.
       L'urgence tient au README, qui s'adresse désormais à des lecteurs extérieurs et documente ce
       contournement comme une étape du démarrage.

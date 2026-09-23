@@ -11,6 +11,11 @@ development_status:
   e24s02: done
   e24s03: done
   e24s04: done
+  e25: in_progress
+  e25s01: todo
+  e25s02: todo
+  e25s03: todo
+  e25s04: todo
 
 epics:
   e23:
@@ -23,6 +28,11 @@ epics:
     title: "Ce qui existe déjà est établi avant d'être réécrit"
     wsjf: 9.5
     total_bcps: 13
+  e25:
+    status: in_progress
+    title: "Le modèle choisi dans Pi est autorisé"
+    wsjf: 6.0
+    total_bcps: 14
 
 stories:
   e23s01:
@@ -133,3 +143,43 @@ stories:
     # de D-52 est tenu. Elles ont changé de cible pour un motif mesuré — le nom de fichier qu'elles
     # visaient dans la capsule tombe sous le motif de check-story-format.ts, qui aurait réclamé les
     # vingt sections du gabarit à un relevé.
+  e25s01:
+    status: todo
+    title: "Le fournisseur du modèle choisi est admis sans configuration"
+    bcps: 3
+    epic: e25
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+    risk_max: P0
+    security_max: high
+  e25s02:
+    status: todo
+    title: "Le modèle choisi par /model est celui de l'intervention suivante"
+    bcps: 3
+    epic: e25
+    tasks_total: 3
+    tasks_passing: 0
+    tasks_failing: 3
+    risk_max: P0
+    security_max: high
+  e25s03:
+    status: todo
+    title: "La situation du modèle est lue de son adresse, portée au dossier et annoncée"
+    bcps: 5
+    epic: e25
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+    risk_max: P0
+    security_max: high
+  e25s04:
+    status: todo
+    title: "La décision est écrite et la recette tenue par une exécution réelle"
+    bcps: 3
+    epic: e25
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+    risk_max: P1
+    security_max: medium

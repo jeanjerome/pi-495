@@ -1,0 +1,95 @@
+# Capsule de l'epic e25. Les stories sont en ordre d'exécution ; l'ordre est contraint,
+# pas préférentiel — le motif de chaque position est écrit en regard.
+
+id: e25
+title: "Le modèle choisi dans Pi est autorisé"
+status: in_progress
+capsule_dir: specs/epics/e25-le-modele-choisi-dans-pi-est-autorise
+
+objet: >
+  Le modèle choisi dans Pi est autorisé. Le dossier enregistre le fournisseur employé et s'il est
+  sur la machine ou hors d'elle, d'après l'adresse que Pi connaît du modèle. Quand ce modèle est hors
+  de la machine, 495 le signale sans bloquer : à l'ouverture de session, et à chaque changement par
+  `/model`. `config.json` ne porte plus aucune configuration de modèle.
+
+motif: >
+  Choisir un modèle avec `/model`, c'est déjà consentir à lui envoyer ce que la session contient. La
+  liste obligatoire demande ce consentement une seconde fois à la même personne, et ne borne que le
+  canal de 495 : l'agent de Pi joint le même fournisseur dans la même session. Le défaut `omlx`
+  est la configuration d'une seule machine : tout autre utilisateur est refusé au premier
+  `/495 start`, et le README consacre une étape du démarrage à contourner ce refus.
+
+sens_du_modele_choisi: >
+  Le cadrage laissait ouvert ce que « le modèle choisi dans Pi » désigne : celui qui est actif à
+  l'ouverture de session, ou celui qui est sélectionné quand l'intervention démarre. La réponse
+  découle du but et de l'exigence, pas d'un arbitrage. AGT-07 exige de pouvoir changer de modèle
+  entre deux interventions et d'enregistrer la frontière. Au premier usage, on ouvre Pi, on choisit
+  son modèle par `/model`, puis on lance `/495 start`. Aujourd'hui 495 lit le modèle une seule fois,
+  à l'ouverture, et emploierait donc un modèle que l'utilisateur a quitté. Retenir le modèle de
+  l'ouverture ferait échouer le parcours que l'epic existe pour débloquer. Le modèle retenu est
+  donc celui qui est sélectionné au démarrage de l'intervention.
+
+exigences: [SEC-05, AGT-07]
+decisions: [D-53, D-55, D-61]
+
+decision_du_proprietaire: >
+  2026-09-23 : il n'y a plus de configuration de modèle dans `config.json`. La liste `policy.egress`
+  est retirée, pas rendue facultative ; aucune liste écrite ne restreint plus les destinations.
+
+stories:
+  - id: e25s01
+    title: "Le fournisseur du modèle choisi est admis sans configuration"
+    bcps: 3
+    delta: MODIFIED
+    requirement: SEC-05
+    position: >
+      Première parce qu'elle est le chemin minimal qui lève le refus du premier usage : sans elle,
+      rien d'autre dans l'epic n'est atteignable par un utilisateur dont le modèle n'est pas `omlx`.
+      Elle retire la liste, le défaut, la règle de refus et l'étape du README qui les contourne. Une
+      clé `policy.egress` restée dans un fichier existant est ignorée, et un diagnostic le dit.
+  - id: e25s02
+    title: "Le modèle choisi par /model est celui de l'intervention suivante"
+    bcps: 3
+    delta: MODIFIED
+    requirement: AGT-07
+    position: >
+      Deuxième parce qu'elle achève le sens de « modèle choisi ». Sans elle, un `/model` en cours de
+      session ne change rien pour 495, qui joint un modèle que l'utilisateur a peut-être quitté. Elle précède e25s03 : l'annonce d'un modèle hors de la machine doit suivre le
+      changement, et elle ne le peut que si 495 le reçoit.
+  - id: e25s03
+    title: "La situation du modèle est lue de son adresse, portée au dossier et annoncée"
+    bcps: 5
+    delta: MODIFIED
+    requirement: SEC-05
+    position: >
+      Après les deux précédentes. Elle remplace la situation déclarée par la situation observée :
+      l'adresse que Pi tient pour le modèle choisi. Elle l'inscrit à chaque intervention et
+      l'annonce à l'ouverture comme à chaque changement de modèle.
+  - id: e25s04
+    title: "La décision est écrite et la recette tenue par une exécution réelle"
+    bcps: 3
+    delta: ADDED
+    decision: D-61
+    position: >
+      Dernière parce qu'elle éprouve le tout. Trois campagnes réelles sont conduites : le modèle
+      local sans configuration, un modèle distant choisi par `/model` en cours de session, et un
+      contrôle négatif sous un `config.json` qui porte encore une liste excluant ce modèle. D-61
+      remplace la déclaration obligatoire introduite par e23s01 et rend D-53 sans objet ; la
+      matrice porte les preuves.
+
+total_bcps: 14
+
+hors_perimetre:
+  - >
+    Aucune liste de destinations n'est rétablie sous une autre forme. Qui veut restreindre les
+    modèles joignables le fait dans Pi, qui tient leur catalogue.
+  - >
+    La section `<cwd>` que Pi ajoute à l'invite de 495 et envoie au fournisseur reste une question
+    ouverte pour le propriétaire. Elle porte sur les données qui sortent, pas sur la destination
+    admise, et cet epic ne la tranche pas.
+  - >
+    Aucun repli d'un fournisseur vers un autre n'est introduit. AGT-07 exige pour cela une politique
+    explicite ; l'epic suit le choix de l'utilisateur et n'en fait aucun à sa place.
+  - >
+    Une intervention en cours garde le modèle avec lequel elle a démarré. Un `/model` pendant
+    qu'elle tourne vaut pour la suivante.

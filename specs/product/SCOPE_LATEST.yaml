@@ -453,11 +453,12 @@ in_scope:
       envoi. Sans cette clé, la liste ne nomme que `omlx`, sur la machine. La situation de chaque
       destination est ce que le propriétaire a écrit, et rien ne la confronte à l'adresse réelle.
     apres: >
-      Sans liste écrite, le fournisseur du modèle choisi dans Pi est admis, et le défaut `omlx`
-      disparaît. Sa situation est lue de l'adresse que Pi tient pour ce modèle, portée au dossier et
-      annoncée à l'ouverture quand elle est hors de la machine. Une liste écrite reste possible et
-      restreint : SEC-05 demande que le système permette une politique de sorties réseau, pas qu'il
-      l'impose avant le premier usage. Une liste malformée continue de ne rien déclarer (D-53).
+      Le fournisseur du modèle choisi dans Pi est admis, et `config.json` ne porte plus aucune
+      configuration de modèle : `policy.egress` et le défaut `omlx` disparaissent, et une clé restée
+      dans un fichier existant est ignorée avec un diagnostic qui le dit. La situation du modèle est
+      lue de l'adresse que Pi tient pour lui, portée au dossier et annoncée quand elle est hors de la
+      machine. La politique de sorties réseau que SEC-05 demande de permettre, pour le canal modèle,
+      est le choix du modèle dans Pi : 495 ne la double plus d'une liste à lui.
     motif: >
       Choisir un modèle avec `/model`, c'est déjà consentir à lui envoyer ce que la session contient ;
       la liste redemande ce consentement à la même personne, dans son propre répertoire de données.
@@ -468,8 +469,8 @@ in_scope:
       étape entière du démarrage à contourner ce refus. Pi porte l'adresse sur chaque modèle
       (`baseUrl`) : la situation peut être observée au lieu d'être déclarée.
     cout: >
-      Reprendre le chargement de la configuration, la règle de refus et leurs tests, et écrire la
-      décision qui remplace la déclaration obligatoire introduite par e23s01. Passer à un modèle
+      Retirer la liste, son chargement, la règle de refus et leurs tests, et écrire la décision qui
+      remplace la déclaration obligatoire introduite par e23s01 et rend D-53 sans objet. Passer à un modèle
       distant n'est plus un acte propre à 495 : il suffit de le choisir avec `/model`.
     constat: >
       Le modèle est lu une fois, à la création du runtime de la session (`src/extension/session.ts`,

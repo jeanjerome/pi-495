@@ -1,0 +1,80 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des fichiers qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# verify-script: les campagnes réelles ne se rejouent pas par une commande. Leurs étapes sont
+# écrites dans la spécification de la story, et la commande vérifie que le relevé existe et porte
+# ce que chaque campagne doit établir.
+
+story_id: e25s04
+spec: e25s04-la-decision-est-ecrite-et-la-recette-tenue-par-une-execution-reelle.md
+title: "La décision est écrite et la recette tenue par une exécution réelle"
+status: failing
+bcps: 3
+decision: D-61
+delta: ADDED
+risk: P1
+context: integration
+type: docs
+
+tasks:
+  - id: 1
+    description: >
+      D-61 écrit que le modèle choisi dans Pi est admis, que `config.json` ne porte plus aucune
+      configuration de modèle, et que la situation du modèle est observée plutôt que déclarée. Elle
+      dit ce que devient la politique de sorties réseau de SEC-05 sur le canal modèle : le choix du
+      modèle dans Pi. Elle remplace la déclaration obligatoire introduite par e23s01 et rend D-53
+      sans objet.
+    verify: "test -n \"$(find specs/adr -name 'D-61-*.md')\""
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Decision"
+
+  - id: 2
+    description: >
+      verify-script: trois campagnes réelles sur le même `dist/`. Un répertoire de données sans
+      configuration avec le modèle local : admis, situé sur la machine, rien d'annoncé. Un modèle
+      distant choisi par `/model` en cours de session : admis, annoncé, situé hors de la machine au
+      journal, et la frontière entre les deux modèles lisible. Un contrôle négatif sous un
+      `config.json` qui porte encore une liste excluant le fournisseur choisi : l'intervention
+      part, la liste est annoncée comme ignorée, et rien ne l'a lue. Le relevé nomme ce qui a été
+      feint, s'il y en a.
+    verify: "grep -q 'e25s04-negatif' specs/verifications/e25s04-modele-choisi-admis.md"
+    risk: P1
+    security: medium
+    security_verify: >
+      Le relevé ne reproduit aucune adresse de fournisseur ni aucun jeton ; il cite les situations
+      lues au journal.
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "e2e"
+
+  - id: 3
+    description: >
+      La matrice porte SEC-05 et AGT-07 avec les preuves de l'epic.
+    verify: "npm run lint:traceability"
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Traceability"
+
+  - id: 4
+    description: >
+      L'ensemble des contrôles passe.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

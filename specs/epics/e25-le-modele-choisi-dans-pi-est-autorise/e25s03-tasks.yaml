@@ -1,0 +1,80 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+
+story_id: e25s03
+spec: e25s03-la-situation-du-modele-est-lue-de-son-adresse-portee-au-dossier-et-annoncee.md
+title: "La situation du modèle est lue de son adresse, portée au dossier et annoncée"
+status: failing
+bcps: 5
+requirement: SEC-05
+delta: MODIFIED
+risk: P0
+context: domain
+type: feat
+
+tasks:
+  - id: 1
+    description: >
+      La situation d'un modèle est lue de l'adresse que Pi tient pour lui (`baseUrl`). Une adresse
+      de bouclage (`localhost`, `127.0.0.0/8`, `::1`) le situe sur la machine. Toute autre adresse,
+      y compris une adresse illisible ou absente, le situe hors d'elle : l'erreur possible va vers
+      l'annonce, jamais vers le silence.
+    verify: "node --test test/v1/model-location.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/policy.ts. La lecture ne résout aucun nom et n'ouvre
+      aucune connexion ; un nom d'hôte qui ressemble au bouclage sans l'être est situé hors de la
+      machine.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "unit"
+
+  - id: 2
+    description: >
+      Chaque intervention inscrit à son démarrage la situation observée de son modèle, à côté du
+      fournisseur et de l'identifiant. L'export du dossier la montre.
+    verify: "node --test test/v2/model-location-journal.test.ts"
+    risk: P1
+    security: medium
+    security_verify: >
+      L'adresse elle-même n'est pas inscrite, seulement la situation qui en est lue : une adresse
+      peut porter un jeton ou un chemin privé, et le dossier est exportable.
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "integration"
+
+  - id: 3
+    description: >
+      Un modèle hors de la machine est annoncé, avec son fournisseur, à l'ouverture de session et
+      à chaque changement de modèle, sur toutes les entrées : l'écran le reçoit aussitôt, et les
+      entrées structurées au premier `/495` qui suit. L'annonce prévient et ne bloque rien. Un
+      modèle sur la machine n'est pas annoncé.
+    verify: "node --test test/v3/model-select.test.ts"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "integration"
+
+  - id: 4
+    description: >
+      L'ensemble des contrôles passe avec le changement.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

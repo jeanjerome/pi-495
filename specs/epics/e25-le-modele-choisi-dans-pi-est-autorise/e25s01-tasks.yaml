@@ -1,0 +1,87 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+# Le dépôt n'a pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins
+# touchés, et son absence de constat est écrite au moment où la tâche bascule.
+
+story_id: e25s01
+spec: e25s01-le-fournisseur-du-modele-choisi-est-admis-sans-configuration.md
+title: "Le fournisseur du modèle choisi est admis sans configuration"
+status: failing
+bcps: 3
+requirement: SEC-05
+delta: MODIFIED
+risk: P0
+context: domain
+type: feat
+
+tasks:
+  - id: 1
+    description: >
+      `config.json` ne porte plus de configuration de modèle. La politique active perd sa liste de
+      destinations, et la configuration perd le défaut `omlx` et la lecture de `policy.egress`. Un
+      fichier qui porte encore cette clé, sous quelque forme que ce soit, se charge avec ses autres
+      réglages : la clé est ignorée, et un diagnostic d'ouverture de session dit qu'elle n'est plus
+      lue et que le modèle choisi dans Pi est employé. Un fichier illisible n'a plus d'effet sur le
+      fournisseur admis.
+    verify: "node --test test/v1/model-admitted.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/policy.ts et src/extension/config.ts. Le diagnostic ne
+      reproduit pas le contenu de la clé ignorée ; aucun autre réglage de la politique ne change
+      de sens.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "unit"
+
+  - id: 2
+    description: >
+      Un changement piloté par le harnais passe la première intervention avec un fournisseur que
+      rien ne déclare. Le journal inscrit ce fournisseur au démarrage de l'intervention. Aucune
+      intervention n'est plus refusée au motif de sa destination. Un modèle sans fournisseur reste
+      refusé par la vérification de capacité, comme un modèle non configuré.
+    verify: "node --test test/v2/model-admitted.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/application/intervention.ts. La vérification de capacité reste
+      jugée avant tout engagement. L'environnement remis au worker reste une liste fermée, et les
+      tests du secret sentinelle de e23s01 passent inchangés.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
+  - id: 3
+    description: >
+      Le README décrit un démarrage sans étape de déclaration, et sa table de configuration ne
+      nomme plus `policy.egress`.
+    verify: "! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts"
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Documentation"
+
+  - id: 4
+    description: >
+      L'ensemble des contrôles passe avec le changement. Le harnais de test n'écrit plus de liste.
+      Les tests de la liste et de son refus sont retirés ; les tests du secret sentinelle, qui
+      tiennent la recette de SEC-05 sur le canal modèle, restent.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"
