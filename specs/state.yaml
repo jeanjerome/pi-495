@@ -24,8 +24,13 @@ handoff:
     `fix-bug` dans cette branche, test rouge `6bd0ba5`, correctif `144d371`, Preflight verte
     (396 tests). Deux remarques du premier tour sont reprises dans le commit de test : le test 6e
     vérifie que le refus vient du modèle, et le lecteur par défaut du fixture ne s'efface plus. Les
-    relevés restent ancrés à `c1ff51c` jusqu'à la fermeture de la porte. Prochaine étape : second
-    tour de `request-review`, sur `git diff ed4ca34 144d371`.
+    relevés restent ancrés à `c1ff51c` jusqu'à la fermeture de la porte. Second tour, sur
+    `git diff ed4ca34 8c7a569` : porte refusée par le relecteur B sur un défaut rendu atteignable,
+    une copie du projet laissée par chaque reprise d'une implémentation refusée pour son modèle.
+    Corrigé : test rouge `6a3e927`, correctif `91e251e`, Preflight verte (397 tests) ; le refus du
+    bac à sable est vérifié non réessayable, et la limite des dossiers bloqués avant le correctif
+    est notée au registre. Prochaine étape : troisième tour de `request-review`, sur
+    `git diff 8c7a569 91e251e`.
 
     Étape 5 faite le 2026-09-23 : `verify-work` a vérifié e25s02 sur quatre campagnes réelles en
     `pi --mode rpc`, deux sur la branche et deux contrôles négatifs sur `main`, et le propriétaire a

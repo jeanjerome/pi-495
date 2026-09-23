@@ -32,7 +32,9 @@ bugs:
       its model is resumed with the model selected since (6e)", red at 6bd0ba5 (1 failure of 7),
       green at 144d371 with Preflight green (396 tests).
     risk_level: low
-    follow_ups: "none"
+    follow_ups: >
+      a change blocked by a model refusal before the fix carries a non-retryable block in its
+      journal, and resume still does not lift it; such a change can only be cancelled
     status: fixed
     fixed_in: 144d371
   - bug_id: BUG-2026-09-23T155707

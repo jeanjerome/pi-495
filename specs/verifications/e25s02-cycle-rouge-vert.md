@@ -80,3 +80,22 @@ n'était pas déclaré réessayable, et la reprise ne lève que les blocages qui
 Le même commit de test ajoute au test 6e existant que le modèle jugé est la sélection vide, pour que
 le refus ne puisse pas venir du bac à sable, et le lecteur de modèle par défaut du fixture ne
 s'efface plus devant un `readModel: undefined`.
+
+## Défaut trouvé au second tour : une copie du projet par reprise
+
+Rendu atteignable par le refus de modèle devenu réessayable. L'étape d'implémentation crée l'espace
+de travail du producteur et l'inscrit au dossier (`ws_<tentative>`) avant la vérification de
+capacité ; refusée, elle laissait cet espace sur le disque et au dossier, et chaque reprise en
+créait un autre sous une nouvelle tentative. Elle reprend désormais la tentative dont l'espace est
+préparé et dont le producteur n'a jamais démarré.
+
+| Comportement | Rouge (test seul) | Vert |
+| --- | --- | --- |
+| Un producteur refusé pour son modèle puis repris travaille dans le seul espace préparé pour lui (6e) | `6a3e927` — trois espaces de travail au lieu d'un | `91e251e` |
+
+```
+6a3e927 (test seul)      node --test test/v3/model-select.test.ts test/v2/harness.test.ts  exit=1  (1 échec sur 38)
+91e251e (correctif)      npm run build && npm run check                                   exit=0  (397 tests)
+```
+
+Le même commit de test vérifie que le refus d'un bac à sable non qualifié reste non réessayable.
