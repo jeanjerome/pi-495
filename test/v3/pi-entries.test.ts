@@ -156,7 +156,7 @@ describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
 		for (const mode of ["print", "json"] as const) {
 			const data = join(root, `data-diag-${mode}`);
 			mkdirSync(data, { recursive: true });
-			// An unreadable configuration declares nothing rather than inheriting a destination, and says so.
+			// An unreadable configuration is ignored, and says so.
 			writeFileSync(join(data, "config.json"), "{ not json");
 			const out = runPi(mode, proj, data, "/495 status", {});
 			assert.match(out, /config\.json ignored/, `${mode} mode announces the diagnostic`);

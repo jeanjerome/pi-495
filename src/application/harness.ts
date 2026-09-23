@@ -501,8 +501,8 @@ export class Harness {
 			feedback: extra.feedback ?? null,
 			tools: TOOLS_FOR_ROLE[role],
 			budget_bytes: 60_000,
-			// The provider is read from the same selection the supervisor judges the destination
-			// against; what it imposes is declared whether or not this intervention writes (CTX-02).
+			// The provider is read from the same selection the supervisor hands the worker; what it
+			// imposes is declared whether or not this intervention writes (CTX-02).
 			imposed_layers: imposedLayersFor(this.deps.model.provider_id),
 			controls: (protocol?.content.controls ?? []).map((c) => ({
 				control_id: c.control_id,
