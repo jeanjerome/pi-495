@@ -68,6 +68,31 @@ Never use these phrases, or a close paraphrase, to wave off a reproducible failu
 | Not introduced by my changes | Bisect it or fix it anyway. A solo owner owns the whole tree. |
 | Out of scope | Invoke quick-fix or fix-bug. Scope-minimization never overrides Always Green. |
 
+## Review
+
+These rules replace the gate and the loop of the bigpowers `request-review` and `respond-review`
+skills: no percentage score, and no fresh pair re-reading the whole branch at every round. The rest
+of both skills applies. Why: `specs/adr/D-62`.
+
+1. **Place a finding before acting on it.** A defect the branch makes reachable belongs to the
+   branch, even when the faulty line predates it: fix it, or put it to the owner, in the round that
+   found it. Never register it as earlier work. A defect the branch neither introduces nor makes
+   reachable goes through the fix-or-log ladder above and does not hold the review.
+2. **Design a fix that adds a mechanism before writing it.** A new state, lifecycle or refusal names
+   where the state is created, who reads it, and how many entry points reach it. Remove a second
+   entry point rather than guard it. A question to the owner about the mechanism, rather than the
+   goal, is the sign to step back.
+3. **Review what changed since the last round.** The first round reviews the branch against `main`.
+   Each later round receives the diff since the reviewed revision, the findings already answered, and
+   the open entries of `specs/bugs/registry.yaml`, which it does not count again.
+4. **Close the gate without a percentage.** The gate passes when no finding introduced or made
+   reachable by the branch remains must-fix or should-fix, for both reviewers. A consider item never
+   holds the gate. The cap stays at five rounds; past it, the owner decides the merge.
+5. **Anchor the records once.** During review, do not move the revision, timestamps or test count of
+   `specs/verifications/` records or `specs/security/REVIEW.md` after each fix; set them when the
+   gate passes or the owner decides. Record each red in the red-green log when it is observed. A
+   record trailing the reviewed revision is not a finding.
+
 ## specs/ — the documentation surface
 
 `specs/` carries the documentation of 495, at its bigpowers location. The corpus written before the
