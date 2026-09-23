@@ -59,7 +59,8 @@ export function kernelUser(): ActorRef {
 
 export class ExtensionSession {
 	private readonly pi: ExtensionAPI;
-	private runtime: HarnessRuntime | null = null;
+	/** Created by session start alone: no command or tool creates it, they only read it through `runtime()`. */
+	private harnessRuntime: HarnessRuntime | null = null;
 	/** The change this Pi session drives; null until one is started, bound or resolved at startup. */
 	binding: Binding | null = null;
 	/** An operation is under way: a second one is refused, and a session switch or fork is cancelled. */
@@ -72,9 +73,10 @@ export class ExtensionSession {
 	 */
 	private pending: string[] = [];
 	/**
-	 * Why the runtime could not be created, kept for the rest of the session: only session start
-	 * binds the session and gathers the diagnostics, so a runtime created later — a configuration
-	 * repaired in the meantime — would run unbound and with nothing announced.
+	 * Why session start could not create the runtime, the answer of every command and of the tool for
+	 * the rest of the session. Session start also binds the session and gathers the diagnostics, so a
+	 * runtime created later — a configuration repaired in the meantime — would run unbound and with
+	 * nothing announced: none is.
 	 */
 	private runtimeFailure: Error | null = null;
 
@@ -84,28 +86,13 @@ export class ExtensionSession {
 
 	/** The language every text of this session is written in, as the runtime resolved it. */
 	lang(): "fr" | "en" {
-		return this.runtime?.config.language ?? "fr";
+		return this.harnessRuntime?.config.language ?? "fr";
 	}
 
-	ensureRuntime(ctx: ExtensionContext): HarnessRuntime {
-		if (this.runtime) return this.runtime;
-		if (this.runtimeFailure) throw this.runtimeFailure;
-		const model = ctx.model
-			? { provider_id: ctx.model.provider, model_id: ctx.model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
-			: { provider_id: "", model_id: "", thinking_level: "off" };
-		try {
-			this.runtime = createRuntime({
-				pi_version: VERSION,
-				pi_package_dir: getPackageDir(),
-				pi_agent_dir: getAgentDir(),
-				model,
-				catalogue: ctx.modelRegistry,
-			});
-		} catch (error) {
-			this.runtimeFailure = error instanceof DomainError ? error : cannotCreate(error as NodeJS.ErrnoException);
-			throw this.runtimeFailure;
-		}
-		return this.runtime;
+	/** The runtime session start created, or the reason it could not be. */
+	runtime(): HarnessRuntime {
+		if (this.harnessRuntime) return this.harnessRuntime;
+		throw this.runtimeFailure ?? new Error("the 495 runtime is not open: no Pi session has started, or it has ended");
 	}
 
 	humanOrigin(ctx: ExtensionContext): HumanOrigin | null {
@@ -121,7 +108,7 @@ export class ExtensionSession {
 			return { actor, host: "tui", session_id: sessionId, asserted_at: new Date().toISOString() };
 		}
 		if (ctx.mode === "rpc") {
-			const envName = this.runtime?.config.human_origin.rpc_actor_env ?? "HARNESS495_RPC_HUMAN_ACTOR";
+			const envName = this.harnessRuntime?.config.human_origin.rpc_actor_env ?? "HARNESS495_RPC_HUMAN_ACTOR";
 			const declared = process.env[envName];
 			if (!declared) return null;
 			const actor: ActorRef = {
@@ -163,13 +150,13 @@ export class ExtensionSession {
 		);
 	}
 
-	currentView(ctx: ExtensionContext): StatusView | null {
+	currentView(): StatusView | null {
 		if (!this.binding) return null;
-		return this.ensureRuntime(ctx).harness.status(this.binding.change_id);
+		return this.runtime().harness.status(this.binding.change_id);
 	}
 
 	resolveBinding(ctx: ExtensionContext): Binding | null {
-		const rt = this.ensureRuntime(ctx);
+		const rt = this.runtime();
 		const sid = ctx.sessionManager.getSessionId();
 		const bySession = rt.ledger.getSessionBinding(sid);
 		if (bySession?.change_id) return { program_id: bySession.program_id, change_id: bySession.change_id };
@@ -177,7 +164,7 @@ export class ExtensionSession {
 	}
 
 	bind(ctx: ExtensionContext, b: Binding): void {
-		const rt = this.ensureRuntime(ctx);
+		const rt = this.runtime();
 		this.binding = b;
 		rt.ledger.bindSession({
 			session_id: ctx.sessionManager.getSessionId(),
@@ -200,7 +187,7 @@ export class ExtensionSession {
 		const result = await ctx.ui.custom<T>((tui, theme, _kb, done) => {
 			const loader = new BorderedLoader(tui, theme, title);
 			loader.onAbort = () => {
-				void this.ensureRuntime(ctx).harness.abortCurrent("user abort");
+				void this.runtime().harness.abortCurrent("user abort");
 			};
 			work((m) => {
 				ctx.ui.setStatus("495", `495 ${m}`);
@@ -217,15 +204,32 @@ export class ExtensionSession {
 
 	/** Everything the session knows at startup: the change it resumes, and what could not be honoured. */
 	openedAt(ctx: ExtensionContext): void {
+		const model = ctx.model
+			? { provider_id: ctx.model.provider, model_id: ctx.model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
+			: { provider_id: "", model_id: "", thinking_level: "off" };
 		try {
-			const rt = this.ensureRuntime(ctx);
+			this.harnessRuntime = createRuntime({
+				pi_version: VERSION,
+				pi_package_dir: getPackageDir(),
+				pi_agent_dir: getAgentDir(),
+				model,
+				catalogue: ctx.modelRegistry,
+			});
+		} catch (error) {
+			this.runtimeFailure = error instanceof DomainError ? error : cannotCreate(error as NodeJS.ErrnoException);
+			// The failure is the answer of every `/495`, so it is not queued to be said once more before it.
+			if (ctx.hasUI) ctx.ui.notify(`495: ${this.runtimeFailure.message}`, "error");
+			return;
+		}
+		try {
+			const rt = this.runtime();
 			this.binding = this.resolveBinding(ctx);
 			if (!this.binding) {
 				const candidates = rt.ledger.findBindingsByCwd(ctx.cwd).filter((b) => b.change_id);
 				if (candidates.length === 1 && candidates[0]!.change_id)
 					this.binding = { program_id: candidates[0]!.program_id, change_id: candidates[0]!.change_id };
 			}
-			this.updateFooter(ctx, this.currentView(ctx));
+			this.updateFooter(ctx, this.currentView());
 			// A diagnostic states what the runtime could not honour — a configuration key it no longer
 			// reads, a sandbox backend that is not qualified. Announcing it only where there is a UI
 			// would leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
@@ -235,19 +239,17 @@ export class ExtensionSession {
 			this.announce(ctx);
 		} catch (error) {
 			const text = `495: ${(error as Error).message}`;
-			// A runtime that could not be created is the answer of every `/495`, so the failure is not
-			// queued to be said once more before it.
-			this.pending = this.runtime ? [text] : [];
+			this.pending = [text];
 			if (ctx.hasUI) ctx.ui.notify(text, "error");
 		}
 	}
 
 	/** The session is ending: whatever is running is aborted, and the runtime is released. */
 	async close(): Promise<void> {
-		if (this.runtime) {
-			await this.runtime.harness.abortCurrent("session shutdown").catch(() => undefined);
-			this.runtime.close();
-			this.runtime = null;
+		if (this.harnessRuntime) {
+			await this.harnessRuntime.harness.abortCurrent("session shutdown").catch(() => undefined);
+			this.harnessRuntime.close();
+			this.harnessRuntime = null;
 		}
 	}
 }

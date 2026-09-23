@@ -36,11 +36,11 @@ export function registerTool495(pi: ExtensionAPI, session: ExtensionSession): vo
 		}),
 		async execute(_id, params, _signal, _onUpdate, ctx) {
 			session.flushDiagnostics(ctx);
-			const rt = session.ensureRuntime(ctx);
+			const rt = session.runtime();
 			const say = (text: string, details: unknown = {}) => ({ content: [{ type: "text" as const, text }], details });
 			switch (params.operation) {
 				case "status": {
-					const view = session.currentView(ctx);
+					const view = session.currentView();
 					return say(view ? formatStatus(view, session.lang()) : "no program bound", { view });
 				}
 				case "list_pending_decisions":

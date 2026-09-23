@@ -43,7 +43,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 			const text = rest.join(" ").trim();
 			session.flushDiagnostics(ctx);
 			try {
-				const rt = session.ensureRuntime(ctx);
+				const rt = session.runtime();
 				switch (sub) {
 					case "start": {
 						if (!text) {
@@ -79,7 +79,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 						return;
 					}
 					case "status": {
-						const view = session.currentView(ctx);
+						const view = session.currentView();
 						session.updateFooter(ctx, view);
 						session.emit(
 							ctx,
@@ -284,7 +284,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 				session.emit(ctx, `495 error: ${msg}`, {
 					error: error instanceof DomainError ? error.toCanonical() : { message: msg },
 				});
-				session.updateFooter(ctx, session.currentView(ctx));
+				session.updateFooter(ctx, session.currentView());
 			}
 		},
 	});

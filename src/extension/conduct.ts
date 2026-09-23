@@ -13,7 +13,7 @@ export async function conduct(
 	ctx: ExtensionCommandContext,
 	changeId: string,
 ): Promise<void> {
-	const rt = session.ensureRuntime(ctx);
+	const rt = session.runtime();
 	if (session.busy) {
 		session.emit(ctx, "495: une opération est déjà en cours dans cette session.");
 		return;
@@ -44,7 +44,7 @@ export async function presentDecisions(
 	ctx: ExtensionCommandContext,
 	changeId: string,
 ): Promise<void> {
-	const rt = session.ensureRuntime(ctx);
+	const rt = session.runtime();
 	const pending = rt.harness.pendingDecisions(changeId);
 	if (pending.length === 0) {
 		session.emit(ctx, session.lang() === "fr" ? "Aucune décision en attente." : "No pending decision.");
