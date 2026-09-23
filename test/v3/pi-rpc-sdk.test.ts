@@ -211,12 +211,14 @@ async function runRpc(
 		env: { ...process.env, ...env },
 		respond,
 	});
-	for (let i = 0; i < prompts.length; i++) {
-		client.send({ id: `r${i}`, type: "prompt", message: prompts[i] });
-		await client.waitFor((e) => e.type === "response" && e.id === `r${i}`, 60_000);
-		await client.waitQuiet();
-	}
+	for (let i = 0; i < prompts.length; i++) await ask(client, `r${i}`, prompts[i]!);
 	return client;
+}
+
+async function ask(client: PiRpcClient, id: string, message: string): Promise<void> {
+	client.send({ id, type: "prompt", message });
+	await client.waitFor((e) => e.type === "response" && e.id === id, 60_000);
+	await client.waitQuiet();
 }
 
 describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () => {
@@ -341,6 +343,44 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		assert.match(text, /Décision enregistrée: hd_/);
 		// The report names the authority that answered: the identity the host declared, not the model.
 		assert.match(qualifiedMessages.at(-1)!.content, /\[humain\] alice: IH-10 accept/);
+	});
+
+	it("a configuration unreadable when the session opened stays refused for that session, and the next session reads it repaired (UX-02)", async () => {
+		const configChannel = channel("config");
+		const configPath = join(configChannel.env.HARNESS495_DATA_DIR!, "config.json");
+		mkdirSync(configChannel.env.HARNESS495_DATA_DIR!, { recursive: true });
+		writeFileSync(configPath, "{ not json");
+		const refusals = (client: PiRpcClient): number =>
+			client.messages().filter((m) => m.content.includes("config.json cannot be read")).length;
+
+		const opened = await runRpc(configChannel.project, configChannel.env, ["/495 status"]);
+		const saidOnce = refusals(opened);
+		writeFileSync(configPath, JSON.stringify({ policy: { egress: [] } }));
+		await ask(opened, "repaired", "/495 status");
+		const afterRepair = refusals(opened);
+		const openedText = opened
+			.messages()
+			.map((m) => m.content)
+			.join("\n");
+		await opened.close();
+		assert.equal(
+			saidOnce,
+			1,
+			"the refusal reaches the model's context once per command, not once more for the session",
+		);
+		// Only session start binds the session and gathers what the runtime could not honour, so a
+		// runtime created later in the same session would run without either.
+		assert.equal(afterRepair - saidOnce, 1, "the repaired file is not read before a new session");
+		assert.doesNotMatch(openedText, /policy\.egress is no longer read/);
+
+		const next = await runRpc(configChannel.project, configChannel.env, ["/495 status"]);
+		const nextText = next
+			.messages()
+			.map((m) => m.content)
+			.join("\n");
+		await next.close();
+		assert.match(nextText, /policy\.egress is no longer read/, "a new session announces what the repaired file holds");
+		assert.doesNotMatch(nextText, /cannot be read/);
 	});
 
 	it("RPC presents the harness without a terminal widget (ADR-010, §5.2)", async () => {

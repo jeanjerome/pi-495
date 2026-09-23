@@ -60,6 +60,12 @@ export class ExtensionSession {
 	 * a structured entry opens its stream after `session_start`. Each one is said once per channel.
 	 */
 	private pending: string[] = [];
+	/**
+	 * Why the runtime could not be created, kept for the rest of the session: only session start
+	 * binds the session and gathers the diagnostics, so a runtime created later — a configuration
+	 * repaired in the meantime — would run unbound and with nothing announced.
+	 */
+	private runtimeFailure: Error | null = null;
 
 	constructor(pi: ExtensionAPI) {
 		this.pi = pi;
@@ -72,16 +78,22 @@ export class ExtensionSession {
 
 	ensureRuntime(ctx: ExtensionContext): HarnessRuntime {
 		if (this.runtime) return this.runtime;
+		if (this.runtimeFailure) throw this.runtimeFailure;
 		const model = ctx.model
 			? { provider_id: ctx.model.provider, model_id: ctx.model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
 			: { provider_id: "", model_id: "", thinking_level: "off" };
-		this.runtime = createRuntime({
-			pi_version: VERSION,
-			pi_package_dir: getPackageDir(),
-			pi_agent_dir: getAgentDir(),
-			model,
-			catalogue: ctx.modelRegistry,
-		});
+		try {
+			this.runtime = createRuntime({
+				pi_version: VERSION,
+				pi_package_dir: getPackageDir(),
+				pi_agent_dir: getAgentDir(),
+				model,
+				catalogue: ctx.modelRegistry,
+			});
+		} catch (error) {
+			this.runtimeFailure = error as Error;
+			throw error;
+		}
 		return this.runtime;
 	}
 
@@ -122,8 +134,8 @@ export class ExtensionSession {
 		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.notify(text.split("\n")[0] ?? "495", "info");
 	}
 
-	announce(ctx: ExtensionContext, severity: "warning" | "error" = "warning"): void {
-		if (ctx.hasUI) for (const text of this.pending) ctx.ui.notify(text, severity);
+	announce(ctx: ExtensionContext): void {
+		if (ctx.hasUI) for (const text of this.pending) ctx.ui.notify(text, "warning");
 	}
 
 	/** Said on the first operation of the session, whatever the entry, then forgotten. */
@@ -211,8 +223,11 @@ export class ExtensionSession {
 			this.pending = rt.diagnostics.map((d) => `495: ${d}`);
 			this.announce(ctx);
 		} catch (error) {
-			this.pending = [`495: ${(error as Error).message}`];
-			this.announce(ctx, "error");
+			const text = `495: ${(error as Error).message}`;
+			// A runtime that could not be created is the answer of every `/495`, so the failure is not
+			// queued to be said once more before it.
+			this.pending = this.runtime ? [text] : [];
+			if (ctx.hasUI) ctx.ui.notify(text, "error");
 		}
 	}
 

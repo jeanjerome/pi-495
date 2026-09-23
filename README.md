@@ -231,6 +231,8 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 | `workspace_exclusions` | Build-output exclusions. Preserve dependency inputs needed to run the checks. |
 | `human_origin.rpc_actor_env` | Environment variable through which an RPC host supplies its human actor. |
 
+A `config.json` that cannot be read — not valid JSON, not an object, a section above that is not an object, or a file that cannot be opened — stops every `/495` command until it is fixed or removed and a new Pi session is started. Its settings are never replaced by the defaults, since one of them may keep a decision for a human.
+
 Defaults include three attempts, up to three continuations, 20 minutes and 100 tool calls per intervention, and two hours per increment. Human adoption, human acceptance and mandatory review roles are configurable; none is enabled by default.
 
 `HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1` and `HARNESS495_LANGUAGE=en` provide environment overrides. Start a new Pi session after changing configuration.

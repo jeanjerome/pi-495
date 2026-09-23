@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { DomainError } from "../../src/domain/errors.ts";
@@ -72,56 +72,55 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		}
 	});
 
-	it("refuses an unreadable file instead of running under the defaults, without reproducing any of its text", () => {
-		const unquoted = "k7f3a9";
-		const bodies = [
-			"{ not json",
-			`{"policy":{"adoption":{"design":"human"},"egress":[{"provider_id":${unquoted}}]}}`,
-			"[]",
-			'"omlx"',
-			"5",
-			"null",
-			'{"policy":"ab"}',
-			'{"policy":{"adoption":["human"]}}',
-			'{"policy":{"budgets":null}}',
-			'{"isolation":[true]}',
-			'{"human_origin":"HARNESS495_RPC_HUMAN_ACTOR"}',
-		];
-		for (const body of bodies) {
-			writeFileSync(join(root, "config.json"), body);
-			assert.throws(
-				() => loadConfig(root),
-				(error: unknown) => {
-					assert.ok(error instanceof DomainError, `${body}: ${String(error)}`);
-					assert.equal(error.code, "CONFIGURATION_ERROR");
-					assert.match(
-						error.message,
-						/no change runs/,
-						"a human decision the file may keep is not handed to the kernel",
-					);
-					assert.equal(
-						error.message.includes(unquoted),
-						false,
-						`the refusal is sent to the session's model, so an excerpt of the file would leave with it: ${error.message}`,
-					);
-					return true;
-				},
-				body,
-			);
-		}
-	});
-
-	it("refuses a file it cannot open without naming where it lies", () => {
-		const path = join(root, "config.json");
-		writeFileSync(path, "{}");
-		chmodSync(path, 0o000);
+	/** Refused as a configuration error, naming neither the marker the file carries nor where it lies. */
+	const refusedWithoutEcho = (marker: string, label: string): void => {
 		assert.throws(
 			() => loadConfig(root),
 			(error: unknown) => {
-				assert.ok(error instanceof DomainError && error.code === "CONFIGURATION_ERROR", String(error));
+				assert.ok(error instanceof DomainError, `${label}: ${String(error)}`);
+				assert.equal(error.code, "CONFIGURATION_ERROR");
+				assert.match(error.message, /no change runs/, "a human decision the file may keep is not handed to the kernel");
+				assert.equal(
+					error.message.includes(marker),
+					false,
+					`the refusal is sent to the session's model, so an excerpt of the file would leave with it: ${error.message}`,
+				);
 				assert.equal(error.message.includes(root), false, `the path reaches the model's context: ${error.message}`);
 				return true;
 			},
+			label,
 		);
+	};
+
+	it("refuses an unreadable file instead of running under the defaults, without reproducing any of its text", () => {
+		const marker = "k7f3a9";
+		const bodies = [
+			`{ not json ${marker}`,
+			`{"policy":{"adoption":{"design":"human"},"egress":[{"provider_id":${marker}}]}}`,
+			`["${marker}"]`,
+			`"${marker}"`,
+			"5",
+			"null",
+			`{"policy":"${marker}"}`,
+			`{"policy":{"adoption":["${marker}"]}}`,
+			`{"policy":{"budgets":"${marker}"}}`,
+			'{"policy":{"budgets":null}}',
+			`{"isolation":["${marker}"]}`,
+			`{"human_origin":"${marker}"}`,
+		];
+		for (const body of bodies) {
+			writeFileSync(join(root, "config.json"), body);
+			refusedWithoutEcho(marker, body);
+		}
+	});
+
+	it("refuses a file it cannot open, a dangling link included, without naming where it lies", () => {
+		const path = join(root, "config.json");
+		writeFileSync(path, "{}");
+		chmodSync(path, 0o000);
+		refusedWithoutEcho(root, "unreadable permissions");
+		rmSync(path, { force: true });
+		symlinkSync(join(root, "moved-away", "config.json"), path);
+		refusedWithoutEcho(root, "a link whose target is gone is a file that cannot be opened, not an absent one");
 	});
 });

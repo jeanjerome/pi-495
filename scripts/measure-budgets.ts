@@ -128,7 +128,13 @@ function readFinished(root: string): { state: ChangeState; finished: Map<string,
 
 const root = dossierArgument();
 const { state, finished } = readFinished(root);
-const { config, diagnostics } = loadConfig(root, {});
+const config = (() => {
+	try {
+		return loadConfig(root, {}).config;
+	} catch (error) {
+		return fail(`${root}: ${(error as Error).message}`);
+	}
+})();
 const bounds: Bounds = {
 	tool_calls: config.policy.budgets.tool_calls_per_intervention,
 	intervention_ms: config.policy.budgets.intervention_ms,
@@ -191,7 +197,6 @@ for (const line of table([
 	],
 ]))
 	console.log(line);
-for (const diagnostic of diagnostics.filter((d) => d.startsWith("config.json ignored"))) console.log(`  ${diagnostic}`);
 
 console.log("");
 for (const line of table([
