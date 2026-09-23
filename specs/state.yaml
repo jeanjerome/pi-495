@@ -24,9 +24,12 @@ handoff:
     tentative, et suppose une référence et une préparation qui ne changent pas d'ici là) ; la
     troisième, un espace de travail supprimé à la main pendant le blocage, a le même trou que la
     reprise d'une tentative ouverte et n'est pas traitée. Relevés ancrés à `af09eeb` : Preflight
-    verte sous Node 24.21.0, 397 tests. Les campagnes restent celles de `c1ff51c` ; les deux
-    comportements ajoutés en relecture reposent sur des tests, et c'est déclaré. La fusion attend
-    la décision du propriétaire.
+    verte sous Node 24.21.0, 397 tests. Les deux comportements ajoutés en relecture sont exercés
+    par trois campagnes réelles : sur `af09eeb`, l'implémentation refusée pour Flash-Next reprend
+    après `/model` et `/495 resume` dans l'espace déjà préparé, acceptée G0..G5 ; sur `c1ff51c`, la
+    reprise ne lève rien ; sur `8c7a569`, elle aboutit mais sur une seconde copie du projet. Relevé :
+    `resume_after_refusal` dans `e25s02-verify.yaml`, en attente de la confirmation du propriétaire.
+    La fusion attend sa décision.
 
     Étape 6 en cours le 2026-09-24. `audit-code` passe sur `952172c..ed4ca34`. Premier tour de
     `request-review` sur la même étendue : porte passée pour les deux relecteurs, aucun must-fix ni

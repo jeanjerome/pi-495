@@ -6,8 +6,10 @@ risk_note: "Story P1; task 2 is P0, so the security scan and the NFR gate were r
 branch: modele-lu-a-chaque-intervention
 revision: af09eeb
 revision_note: >
-  The terminal verdict and the task commands are run on af09eeb, after review. The four campaigns
-  ran the build of c1ff51c; the two behaviours review added after it rest on tests (known_limits).
+  The terminal verdict and the task commands are run on af09eeb, after review. The four campaigns of
+  `manual` ran the build of c1ff51c; the two behaviours review added after it are exercised by the
+  three campaigns of `resume_after_refusal`, run on the build of af09eeb and, as negative controls,
+  on c1ff51c and 8c7a569.
 
 environment:
   pi_version: "0.87.1"
@@ -183,6 +185,48 @@ manual:
       actual: "test/v3/model-select.test.ts seulement — aucune campagne ne change le niveau"
       passed: true
 
+resume_after_refusal:
+  method: >
+    Three campaigns through a real `pi --mode rpc`, driven by
+    ~/.495-campagnes/scripts/e25s02-reprise-drive.ts and run one after the other by
+    e25s02-reprise-run.sh, under Node 24.21.0 and Pi 0.87.1, each on its own data directory, its own
+    clone of the minimal JS target and its own PI_CODING_AGENT_DIR, against the local models under the
+    real sandbox, then read back read-only from the SQLite ledger. The driver replaces the session,
+    selects omlx/qwen3.8-27b-oq8e and sends `/495 start`; as soon as the ledger holds the preparing
+    intervention's start it selects omlx/Qwen3.8-Flash-Next-MLX-oQ4-MTP, so the implementing step is
+    refused after its workspace is prepared. Once the start command has reported, it selects the 27B
+    again and sends `/495 resume`. The same script runs the three builds.
+  fiction_declared: "None: the refusal is the capability probe's real verdict on Flash-Next, and nothing left the machine."
+  campaigns:
+    - id: "chg_mueovi6689ca2ec709"
+      dossier: "~/.495-campagnes/e25s02-reprise"
+      code: "branch, af09eeb"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions"
+      observed: >
+        specify and prepare under omlx/qwen3.8-27b-oq8e; implementing blocked at 22:46:35.722Z,
+        capability_missing on Flash-Next, retryable, no attempt, one `ws_att_mueozyya4086e46a99`
+        artifact and one workspace `ws_mueozyya_6`. After `/model` and `/495 resume`: status ready at
+        22:46:36.592Z, attempt att_mueozyya4086e46a99 opened and implement started under
+        omlx/qwen3.8-27b-oq8e, whose worker's cost line names that model; the frozen candidate holds
+        workspace ws_mueozyya_6. Still one `ws_` artifact and one workspace on disk.
+    - id: "chg_muep1f0n1364f1fefd"
+      dossier: "~/.495-campagnes/e25s02-reprise-negatif-c1ff51c"
+      code: "c1ff51c — negative control, before the model refusal was retryable"
+      outcome: "blocked in implementing — capability_missing, G0..G3 PASS, 0 attempts"
+      observed: >
+        The same refusal, not retryable. After `/model` and `/495 resume` the change stays blocked,
+        its detail still naming Flash-Next, and no implementing intervention starts.
+    - id: "chg_muep5drid25425fa26"
+      dossier: "~/.495-campagnes/e25s02-reprise-negatif-8c7a569"
+      code: "8c7a569 — negative control, before the prepared workspace was taken up"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1 attempt"
+      observed: >
+        The refusal is retryable and the resume completes the change, but under a new attempt
+        att_muepau060e9b58bae2: the dossier holds two `ws_` artifacts and the disk two workspaces,
+        ws_muepatex_6 prepared before the refusal and never used, ws_muepau06_7 created at the resume.
+  confirmed_by_owner: false
+  confirmation_note: "Awaiting the owner's confirmation."
+
 gaps:
   closed: true
   note: >
@@ -195,7 +239,5 @@ known_limits:
   - "6f (model restored on resume) has no scenario in §17 and is exercised by neither a test nor a campaign."
   - "The model change in the accepted campaign is a change of provider name over the same weights; a change between two real models that both complete belongs to e25s04, which also takes a remote model."
   - >
-    Two behaviours added after the campaigns rest on tests only: a change refused for its model is
-    lifted by `/495 resume` and runs with the model selected since, and a producer refused before it
-    starts is taken up in the workspace already prepared for it. No campaign ran refusal, `/model`,
-    then resume.
+    The resume after a model refusal was exercised with the refusal at the implementing step only; a
+    refusal at the specifying step, where no workspace is kept, rests on its test.
