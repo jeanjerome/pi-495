@@ -1178,6 +1178,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.phase, "implementing");
 		assert.equal(state.interventions.filter((i) => i.role === "implement").length, 0);
+		assert.equal(state.stop_retryable, false, "no command of the session qualifies a sandbox");
 	});
 
 	it("resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)", async () => {

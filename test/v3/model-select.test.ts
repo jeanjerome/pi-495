@@ -6,7 +6,7 @@
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -137,6 +137,27 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
 		assert.notEqual(result.stopped_because, "capability_missing", result.steps.join(" | "));
 		assert.deepEqual(startedWith(t.ledger, changeId), [FIRST]);
+	});
+
+	it("a producer refused for its model, then resumed, works in the one workspace prepared for it (6e)", async () => {
+		const t = makeHarness({ agent: new ModelJudgingAgent() });
+		const changeId = await startChange(t, cleanup);
+		const workspaces = (): string[] => readdirSync(join(t.root, "workspaces"));
+		await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
+		// Four steps reach the implementing one, which is refused before its producer starts.
+		await t.harness.advance(changeId, { max_steps: 4, readModel: () => NONE });
+		const prepared = workspaces();
+		for (const model of [NONE, FIRST]) {
+			t.harness.resume(changeId, HUMAN);
+			await t.harness.advance(changeId, { max_steps: 1, readModel: () => model });
+		}
+		assert.deepEqual(startedWith(t.ledger, changeId), [FIRST, FIRST]);
+		assert.deepEqual(workspaces(), prepared, "no workspace is created for a producer that never started");
+		assert.equal(
+			t.ledger.listArtifacts(changeId, "candidate").filter((a) => a.ref.artifact_id.startsWith("ws_")).length,
+			1,
+			"the dossier names one producer workspace",
+		);
 	});
 });
 
