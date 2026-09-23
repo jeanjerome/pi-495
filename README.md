@@ -36,9 +36,10 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 
 
 <details>
-<summary><strong>Why is it called 495?</strong></summary>
+<summary><strong>Why is it called Pi-495?</strong></summary>
 
-495 is the ***three-digit Kaprekar constant***: repeated application of a simple rule reaches a fixed point for eligible starting numbers. The name reflects the project's use of explicit rules and feedback to drive a change toward acceptance. [Explore the number](https://www.6174.co.uk/495).
+- **Pi** is the host. [Pi](https://pi.dev) is a minimal terminal coding harness that packages extend without forking it. It brings what 495 does not rebuild: the models you configure and authenticate, the agent session each intervention runs in, the terminal dialogues where you answer decisions, and the TUI, RPC, JSON and print modes. 495 is a Pi package, with no CLI or service of its own.
+- **495** is the ***three-digit Kaprekar constant***: repeated application of a simple rule reaches a fixed point for eligible starting numbers. The name reflects the project's use of explicit rules and feedback to drive a change toward acceptance. [Explore the number](https://www.6174.co.uk/495).
 
 </details>
 
