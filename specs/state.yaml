@@ -12,6 +12,34 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    TÂCHE 6 D'`e23s05` TENUE. Le relevé est `specs/verifications/e23s05-budgets-remesures.md`. Il
+    porte la relecture des trois dossiers, l'arrêt et la relance tels que le journal les porte, les
+    coûts, ce que la correction a changé, et ce qu'il n'établit pas. Il ne porte ni jeton ni chemin
+    absolu. Reste la tâche 7, `npm run check`, puis la vérification de la story.
+
+    CAMPAGNE DE RELANCE TENUE, `~/.495-campagnes/e23s05-relance-locale`, changement
+    `chg_mudxhdlm52dbd65d1f`, empreinte `sha256:b7b44331…`, référence `ref_78a7b98ea7fe`. Ce qui
+    était attendu a eu lieu. La spécification tombe à son quatrième appel (`4/3`), et sa fin
+    `cancelled` dit « a resume runs the specify intervention again from the start ». L'arrêt est
+    inscrit par `495-kernel` à la séquence 12. Rien ne se passe pendant 1 min 37 s. La relance, à la
+    séquence 13, est inscrite par `jeanjerome`, `human`, `tui_session`, `session`, dans l'événement
+    comme dans la colonne `actor_id` de la chaîne. L'issue est `accepted`, six `PASS`, une
+    tentative, 29 appels, et quatre coûts inconnus avec leur raison. Relue contre le dossier distant,
+    `compare-dossiers.ts` rend le même cas de contrat des deux côtés (sortie 0).
+
+    TROIS FAITS NOUVEAUX, CONSIGNÉS DANS LE RELEVÉ.
+    1. Sur le même modèle local, la même cible et la même demande, le débit d'ensemble vaut 4,6
+       appels par minute (`e23-local`), 2,5 (`e23s05-local`) et 6,1 (relance). C'est de part et
+       d'autre de la bascule à 5. Le commentaire de `policy.ts` et `D-59` décrivent la mesure à 4,6
+       et restent exacts sur elle. Mais « sur le modèle local, la durée tombe la première » ne vaut
+       que pour une conduite.
+    2. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur,
+       même s'ils tenaient dans la borne. Le journal compte 3 appels pour l'intervention arrêtée, et
+       le worker 4. Le worker finit en `failed: This operation was aborted`, et le journal inscrit
+       `cancelled`.
+    3. La paire `e23s05-local` contre `e23s05-distant` sort en 1 : `test/lint.test.js` n'est ajouté
+       que du côté distant, alors que les deux spécifications exigent pareillement « lint ok ».
+
     LES TROIS DÉFAUTS DE LA CAMPAGNE SONT CORRIGÉS. Rouge commité seul (`6acd7ed`), puis une
     correction par défaut ; Preflight vert sur Node 24.21, 365 tests.
     1. La relance lève l'arrêt au nom de celui qui relance (`harness.ts`, `resume`). `change.unblock`
