@@ -123,6 +123,22 @@ tombent chacune : la notification d'échec à l'ouverture supprimée (`pi-rpc-sd
 passait les 8 tests v3 de `cc4ae51`) ; `config.ts` rétabli à `cc4ae51` (`model-admitted` v1, 2 échecs
 sur 8) ; le refus de `scripts/measure-budgets.ts` retiré (`measure-budgets`, 1 échec sur 1).
 
+Le runtime n'est plus créé qu'à l'ouverture de session (`e74a04a`) : les commandes et l'outil le
+lisent sans le créer. La relecture de ce commit a montré que le mode RPC de Pi émet deux fois
+`session_start` sur la même extension pour `new_session`, `switch_session`, `fork` et `clone`
+(`rebindSession` appelé par `finishSessionReplacement`, puis par `rpc-mode.js`) : la seconde
+ouverture créait un second runtime et laissait le journal du premier ouvert, et une ouverture ratée
+était retentée. Le test a été écrit d'abord et vu rouge sur l'arbre de `e74a04a`, puis commité avec
+le correctif dans `5e56368` :
+
+```
+node --test test/v3/session-start-twice.test.ts   2 échecs sur 2
+  ✖ keeps the runtime of its first start, and closes it on shutdown
+      AssertionError: the second start creates no second runtime
+  ✖ keeps refusing after a failed start, even when the file is repaired before the second
+      AssertionError: Missing expected exception.
+```
+
 Deux contrôles négatifs tiennent les tests resserrés à `67740c4`, par mutation injectée puis
 retirée :
 
@@ -148,7 +164,9 @@ Aucun constat nouveau sur les chemins touchés.
   tient jusqu'à une nouvelle session, et un lien symbolique pendant est refusé (`2908ec6`). Ce qui
   n'est pas un fichier ordinaire, ou se trouve dans un répertoire qui ne se parcourt pas, est refusé
   sans son chemin, et le refus nomme `/reload` (`0b6539d`).
-- `src/extension/session.ts` — un runtime qui n'a pas pu être créé reste refusé pour la session, et
+- `src/extension/session.ts` — le runtime n'est créé qu'à la première ouverture de session
+  (`createRuntimeAt`) ; une seconde ouverture de la même session garde le runtime ou l'échec de la
+  première (`5e56368`). Un runtime qui n'a pas pu être créé reste refusé pour la session, et
   son échec n'est plus mis en attente pour être dit une seconde fois avant la réponse de la
   commande : le refus atteint le contexte du modèle une fois par commande. Depuis `0b6539d`, un échec
   qui ne vient pas de la configuration n'est dit que par son code d'erreur, sans le répertoire de
@@ -175,7 +193,7 @@ e25s04.
 
 ## État final
 
-`npm run build && npm run check` est vert à `0b6539d` avec 387 tests, sous Node 24.21.0. L'assertion sur la politique
+`npm run build && npm run check` est vert à `5e56368` avec 389 tests, sous Node 24.21.0. L'assertion sur la politique
 du noyau, que le type garantit déjà, est retirée, et le test des entrées Pi porte aussi le diagnostic
 d'une clé `policy.egress` ignorée. Retirer l'émission de ce diagnostic fait échouer ce test en mode
 texte. Le fournisseur admis dans les tests v2 n'est nommé nulle part dans 495, chaque forme

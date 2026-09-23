@@ -12,6 +12,22 @@ active_story: e25s01
 handoff:
   next_skill: null
   last_step_completed: >
+    Sur décision du propriétaire le 2026-09-23, la relecture a changé de périmètre : une petite refonte,
+    la création unique du runtime, relue par un seul relecteur neuf sur ce qu'elle change seulement.
+    `e74a04a` crée le runtime à l'ouverture de session seule (`createRuntimeAt` dans `session.ts`) ;
+    les commandes, l'outil, `conduct` et l'abandon du chargeur le lisent par `runtime()` sans pouvoir
+    le créer, et la ternaire `this.runtime ? [text] : []` devient deux captures distinctes. Premier
+    tour, porte refusée sur deux défauts à corriger : le mode RPC de Pi émet deux fois
+    `session_start` sur la même extension (`new_session`, `switch_session`, `fork`, `clone`), si bien
+    que la seconde ouverture créait un second runtime et laissait le journal du premier ouvert ; et
+    `SCOPE_LATEST.yaml` citait encore `ensureRuntime`. Corrigés dans `5e56368`, test vu rouge d'abord
+    sur `e74a04a` (`test/v3/session-start-twice.test.ts`, 2 échecs sur 2) ; le modèle est lu dans la
+    capture de la création. Second tour, sur `git diff e74a04a 5e56368` : porte passée, une seule
+    remarque à considérer (une ligne repliée de `SCOPE_LATEST.yaml` plus longue que ses voisines),
+    corrigée. Relevés ancrés à `5e56368` : `REVIEW.md`, le relevé rouge-vert, `e25s01-verify.yaml`,
+    `NFR-e25s01.json`. Preflight vert avec 389 tests sous Node 24.21.0. La fusion attend la décision
+    du propriétaire.
+
     `respond-review` a traité le sixième tour le 2026-09-23. Corrigés dans `0b6539d`, tests vus rouges
     d'abord sur `cc4ae51` : la présence de `config.json` est jugée dans un `try` (`present()` dans
     `config.ts`), si bien qu'un répertoire qui ne se parcourt pas est refusé sans le chemin, et ce qui

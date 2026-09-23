@@ -3,11 +3,12 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: 0b6539d
-revised_at: "2026-09-23T19:23:18Z"
+revision: 5e56368
+revised_at: "2026-09-23T20:23:38Z"
 revision_note: >
   verified_at and confirmed_at date the acceptance on the three campaigns; the revision and the
-  terminal verdict were moved to 0b6539d afterwards, for the unreadable-file refusal only.
+  terminal verdict were moved to 0b6539d afterwards, for the unreadable-file refusal only, then to
+  5e56368, where the runtime is created at session start alone and kept across a second start.
 
 environment:
   pi_version: "0.87.1"
@@ -37,6 +38,9 @@ phases:
       session is started"; a file that is not a regular file, or in a directory that cannot be
       searched, is refused without its path; a runtime that cannot be created for another cause is
       refused by its error code alone; and the RPC test opens the next session in the same process.
+      Since 5e56368 the runtime is created at session start alone, and a second session_start on the
+      same extension, which Pi's RPC mode emits, keeps the runtime or the failure of the first
+      (test/v3/session-start-twice.test.ts).
   build:
     passed: true
     command: "npm run build"
@@ -46,31 +50,33 @@ phases:
     note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
   lint:
     passed: true
-    note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
+    note: "Eight controls chained in npm run check; Biome clean over 174 files, no warning line."
   tests:
     passed: true
-    count: 387
+    count: 389
     note: >
-      387 of 387. 393 on main: 21 tests of the list and its refusal removed, 15 added. The two
+      389 of 389. 393 on main: 21 tests of the list and its refusal removed, 17 added. The two
       sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
       asserts the ignored-key diagnostic, and the refusal of `/495 start` under an unreadable file, in
       the print and JSON entries; test/v3/pi-rpc-sdk.test.ts, that the refusal is shown on the
       client's screen at session start and lasts until a new session reads the repaired file, and
       that a runtime failing for another cause names no path; test/v2/measure-budgets.test.ts, that
-      the budget script refuses an unreadable file.
+      the budget script refuses an unreadable file; test/v3/session-start-twice.test.ts, that a
+      session started twice keeps one runtime and one failure.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T19:21:38Z"
-  ended_at: "2026-09-23T19:23:18Z"
+  started_at: "2026-09-23T20:21:59Z"
+  ended_at: "2026-09-23T20:23:38Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the code committed as 0b6539d, right after
-    `npm run build`. 387 tests passing, 0 failing. No output from any other attempt is merged into
+    Single contiguous run under Node 24.21.0 on the code committed as 5e56368, right after
+    `npm run build`. 389 tests passing, 0 failing. No output from any other attempt is merged into
     this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
     remove a type nothing read, restructure the policy read without changing what it loads, stop
     quoting the parser's message for an unreadable file, refuse an unreadable file instead of
-    loading the defaults until a new session, and change comments and tests. None of the three campaigns had an
+    loading the defaults until a new session, create the runtime at session start alone, and
+    change comments and tests. None of the three campaigns had an
     unreadable file, so the refusal does not bear on them.
 
 task_verify_commands:

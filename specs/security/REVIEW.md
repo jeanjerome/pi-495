@@ -235,11 +235,11 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..0b6539d`, 26 fichiers, dont 5 de production et un script |
+| Périmètre | `git diff 1e7fd3e..5e56368`, 35 fichiers, dont 9 de production et un script |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
-| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts`, `src/application/harness.ts` et `src/extension/session.ts` (des commentaires) |
+| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts`, `src/application/harness.ts`, `src/extension/session.ts`, et `command.ts`, `conduct.ts`, `tool.ts`, `runtime.ts` (lecture du runtime, un commentaire) |
 
 ## Verdict
 
@@ -306,8 +306,10 @@ qui n'est pas un fichier ordinaire est refusé avant d'être ouvert (un tube nom
 l'ouverture de session jusqu'à ce qu'on y écrive). Le runtime ne se crée pas, et chaque `/495`
 répond par ce refus jusqu'à ce que le fichier soit réparé ou retiré et que Pi recharge ses
 extensions (`/reload`) ou ouvre une nouvelle session : seule l'ouverture de session lie la session à
-son changement et annonce les diagnostics, si bien qu'un runtime créé plus tard tournerait sans
-liaison et sans rien annoncer (`session.ts`, `runtimeFailure`). Le refus atteint le contexte du
+son changement et annonce les diagnostics, et c'est aussi le seul endroit qui crée le runtime
+(`session.ts`, `createRuntimeAt`). Les commandes et l'outil le lisent sans pouvoir le créer, et une
+seconde ouverture de la même session, que le mode RPC de Pi émet sur `new_session`,
+`switch_session`, `fork` et `clone`, garde le runtime ou l'échec de la première. Le refus atteint le contexte du
 modèle une fois par commande. Aucun journal n'est ouvert. Une section qui n'est pas un objet ne répand donc plus ses caractères
 dans la politique ; un champ du mauvais type y entre encore (BUG-2026-09-23T184521, ouvert).
 
