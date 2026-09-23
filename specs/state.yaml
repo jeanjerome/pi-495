@@ -12,30 +12,41 @@ active_story: e23s06
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
-    `e23s06` EST SPÉCIFIÉE, sur la branche `strate-imposee-observee`, ouverte depuis
-    `borne-d-appels-et-cout`. Aucune des deux n'est fusionnée ni poussée. La story est
-    `e23s06-le-dossier-enregistre-la-strate-imposee-telle-que-le-fournisseur-l-a-ecrite.md` et ses
-    huit tâches sont en `failing`. Preflight est vert sur Node 24.21, avec 365 tests.
+    `e23s06` EST À SA RECETTE, sur la branche `strate-imposee-observee`, ouverte depuis
+    `borne-d-appels-et-cout`. Aucune des deux n'est fusionnée ni poussée. Les tâches 1 à 5 passent.
+    Les tâches 6 à 8 attendent la campagne facturée. Preflight est vert sur Node 24.21, avec 393
+    tests.
 
-    CE QUE LA LECTURE DE PI 0.87.0 A TRANCHÉ AVANT D'ÉCRIRE. Seule `before_provider_request` porte
-    le bloc d'abonnement. `buildParams` l'ajoute à la sérialisation, après `context_with_system`.
-    Un gestionnaire qui ne renvoie rien laisse la charge inchangée, et un gestionnaire en erreur est
-    écarté sans bloquer la requête (`ExtensionRunner.emitBeforeProviderRequest`). Le worker peut
-    charger un observateur en ligne, par `DefaultResourceLoader` et `extensionFactories`, qui
-    restent chargées sous `noExtensions`. `session-cost.test.ts` a déjà le banc voulu : un point
-    d'accès de substitution, y compris sur le chemin d'abonnement, sans rien dépenser.
+    CE QUI EST ÉTABLI. Le worker charge une seule extension, un observateur de
+    `before_provider_request`, hébergé par le chargeur de Pi avec toute découverte coupée. Un point
+    d'accès de substitution reçoit le même corps avec et sans lui. L'observateur demande à Pi l'invite
+    qu'il a composée (`ctx.getSystemPrompt()`) et la repère dans la charge utile. Ce qui l'entoure
+    est la part du fournisseur. Ce qu'elle contient en plus des instructions de 495 est la part de
+    l'hôte. La fin de chaque intervention porte, au journal, chaque observation qui diffère de la
+    précédente et sa comparaison avec le manifeste. `D-60` consigne la décision.
+
+    UN FAIT TROUVÉ À LA PREMIÈRE EXÉCUTION. Pi termine l'invite de 495 par une section `<cwd>` qui
+    porte le chemin absolu de l'espace de travail, et il l'envoie au fournisseur à chaque requête.
+    Rien ne le disait avant. La story le rend visible au dossier et ne change pas ce que le modèle
+    reçoit : dire si ce chemin doit quitter la machine est une décision du propriétaire.
+
+    DEUX CAMPAGNES GRATUITES CONDUITES, sur `~/.495-campagnes/e23s04-cible`, avec l'extension
+    chargée depuis `dist/`. `e23s06-local` (`chg_mue0bl838bf2881f97`, `omlx`) est acceptée, G0 à G5
+    `PASS`. Ses trois interventions portent chacune une seule observation, sans rien au-dessus ni
+    au-dessous, avec la section `<cwd>` comme ajout de l'hôte et la concordance. `e23s06-negatif`
+    (`chg_mue0g30t123dbc39c5`) est le contrôle négatif : un fournisseur nommé `anthropic` servi par
+    le modèle local, via `PI_CODING_AGENT_DIR=~/.495-campagnes/e23s02-rev2-piconf`. Il est accepté
+    aussi, et ses trois interventions portent l'écart « attendu et non observé » avec la condition
+    déclarée à côté. Aucun jeton dans les deux dossiers : les six `sk-ant-oat` sont le préfixe de la
+    condition. Le script de lancement et la relecture sont dans le bloc-notes de la session, pas dans
+    le dépôt.
 
     CE QUI RESTE OUVERT D'`e23s05`, CONSTATÉ SANS ÊTRE CORRIGÉ.
-    1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`). La spécification coupée
-       bloque le changement comme une erreur de configuration. La préparation coupée voit sa suite
-       partielle jugée, puis une seconde préparation démarre. La revue coupée laisse G5
-       indéterminée, et une nouvelle tentative d'implémentation démarre sans le propriétaire.
-    2. Sur un même cas, le modèle local a tourné à 4,6, 2,5 puis 6,1 appels par minute. Le
-       commentaire de `policy.ts` et `D-59` décrivent la seule mesure à 4,6.
-    3. Une relance sans origine humaine établie (mode `-p`, ou RPC sans
-       `HARNESS495_RPC_HUMAN_ACTOR`) est encore inscrite au nom du noyau.
-    4. Le journal ne garde pas les bornes en vigueur ; la relecture lit `config.json` tel qu'il est.
+    1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`).
+    2. Le débit du modèle local varie de part et d'autre de la bascule, et `D-59` ne décrit que 4,6.
+    3. Une relance sans origine humaine établie est encore inscrite au nom du noyau.
+    4. Le journal ne garde pas les bornes en vigueur.
     5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
 
-    SUITE. `develop-tdd` sur les tâches 1 à 4 d'`e23s06`, puis la décision `D-60`. La campagne de la
-    tâche 6 demande le signal du propriétaire : elle consomme de l'usage facturé.
+    SUITE. La tâche 6 demande le signal du propriétaire pour la campagne sur l'abonnement, facturée
+    au jeton. Puis le relevé de la tâche 7 et Preflight.
