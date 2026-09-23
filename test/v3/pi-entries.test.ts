@@ -153,19 +153,26 @@ describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
 		const proj = join(root, "proj-diag");
 		fixtureTs(proj);
 		initRepo(proj);
-		// An unreadable configuration is ignored, and says so; a policy.egress key is no longer read, and
-		// says so too.
+		// An unreadable configuration refuses the start of a change, and says why; a policy.egress key
+		// is no longer read, and says so.
 		const cases = [
-			{ name: "unreadable", body: "{ not json", said: /config\.json ignored/ },
-			{ name: "egress", body: '{"policy":{"egress":[]}}', said: /policy\.egress is no longer read/ },
+			{ name: "unreadable", body: "{ not json", command: "/495 start tidy greet", said: /config\.json cannot be read/ },
+			{
+				name: "egress",
+				body: '{"policy":{"egress":[]}}',
+				command: "/495 status",
+				said: /policy\.egress is no longer read/,
+			},
 		];
-		for (const { name, body, said } of cases)
+		for (const { name, body, command, said } of cases)
 			for (const mode of ["print", "json"] as const) {
 				const data = join(root, `data-diag-${name}-${mode}`);
 				mkdirSync(data, { recursive: true });
 				writeFileSync(join(data, "config.json"), body);
-				const out = runPi(mode, proj, data, "/495 status", {});
+				// A scripted agent, so that a start the refusal lets through calls no model.
+				const out = runPi(mode, proj, data, command, { HARNESS495_SCRIPTED_AGENT: scriptFile(root, SPEC, RIGHT) });
 				assert.match(out, said, `${mode} mode announces the ${name} diagnostic`);
+				if (name === "unreadable") assert.doesNotMatch(out, /chg_/, `${mode} mode starts no change`);
 			}
 	});
 });

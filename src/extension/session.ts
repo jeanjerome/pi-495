@@ -54,8 +54,8 @@ export class ExtensionSession {
 	/** An operation is under way: a second one is refused, and a session switch or fork is cancelled. */
 	busy = false;
 	/**
-	 * Diagnostics waiting to be told: what the runtime could not honour, such as an ignored
-	 * configuration or a sandbox backend that is not qualified. A screen receives them as soon as
+	 * Diagnostics waiting to be told: what the runtime could not honour, such as a configuration key
+	 * it no longer reads or a sandbox backend that is not qualified. A screen receives them as soon as
 	 * the session starts; print, JSON and RPC receive them on the first `/495` that follows, because
 	 * a structured entry opens its stream after `session_start`. Each one is said once per channel.
 	 */
@@ -203,9 +203,9 @@ export class ExtensionSession {
 					this.binding = { program_id: candidates[0]!.program_id, change_id: candidates[0]!.change_id };
 			}
 			this.updateFooter(ctx, this.currentView(ctx));
-			// A diagnostic states what the runtime could not honour — an ignored configuration, a
-			// sandbox backend that is not qualified. Announcing it only where there is a UI would
-			// leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
+			// A diagnostic states what the runtime could not honour — a configuration key it no longer
+			// reads, a sandbox backend that is not qualified. Announcing it only where there is a UI
+			// would leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
 			// Held until the first command as well: a structured entry does not carry a message
 			// emitted before its stream is open.
 			this.pending = rt.diagnostics.map((d) => `495: ${d}`);
