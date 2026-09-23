@@ -12,7 +12,43 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
-    TÂCHE 5 D'`e23s05` PRÉPARÉE, PAS ENCORE CONDUITE. Preflight vert sur Node 24.21, 362 tests ;
+    TÂCHE 5 D'`e23s05` TENUE. Les deux campagnes ont tourné sur le même `dist/` : même empreinte
+    d'environnement, `sha256:54027c76…`, et même référence, `ref_78a7b98ea7fe`, `git_clean_head`.
+
+    DISTANT, `~/.495-campagnes/e23s05-distant`, changement `chg_mudvf4f122b649e452`. Borne à 3 : la
+    spécification tombe à son quatrième appel, `cancelled`, et le changement s'arrête en
+    `clarifying` sous `budget_exhausted`, réessayable, avec le détail « specify intervention: tool
+    call budget exceeded (4/3); the change waits for its owner, and a raised bound takes effect in
+    a new session ». Rien ne démarre pendant 2 min 36 s. Borne remise à 100, nouvelle session,
+    `/495 resume` : la spécification est refaite sur le même contexte, puis la préparation et
+    l'implémentation, et l'issue est `accepted`, six portes `PASS`, en une tentative. 39 appels,
+    16,9 par minute, 235 513 jetons, 0,1822 $ au tarif du catalogue de l'hôte, abonnement déclaré ;
+    la spécification arrêtée en coûte 0,0123. La course du worker est observée : l'interruption du
+    superviseur l'emporte, le worker finit `failed: This operation was aborted` avec 4 appels
+    comptés, et son coût est lu malgré l'interruption. Le modèle a lancé trois lectures d'un coup ;
+    la troisième dépassait, et les deux autres, comptées, ont fini en erreur une milliseconde après
+    le blocage. Le dossier ne garde pas le texte de ces erreurs.
+
+    LOCAL, `~/.495-campagnes/e23s05-local`, changement `chg_mudw3dq9d1b7514b3d`, sans configuration.
+    Issue `accepted` en deux tentatives : la première a échoué au contrôle `unit` en G5. Quatre
+    interventions, 31 appels, 2,5 par minute, de 1,8 à 6,2, 186 980 jetons. Les quatre coûts sont
+    inconnus, avec pour raison « the host catalogue has no rate for omlx/qwen3.8-27b-oq8e », hors
+    abonnement ; aucun zéro. Sur le même modèle et la même cible, `e23s04` avait mesuré 4,6 par
+    minute.
+
+    TROIS DÉFAUTS TROUVÉS PAR LA CAMPAGNE, NON CORRIGÉS PENDANT QU'ELLE TOURNAIT.
+    1. La relance est inscrite au nom du noyau. `/495 resume` transmet l'identité du propriétaire,
+       mais sur un changement bloqué le harnais lève le blocage sous `KERNEL_ACTOR`
+       (`harness.ts:892`), et `change.unblock` n'admet que l'autorité du noyau (`decide.ts:1171`).
+       Le journal dit quand le changement a repris, pas qui l'a relancé ; le §12 de la story promet
+       une relance attribuée au propriétaire.
+    2. La fin d'une intervention arrêtée sur la borne dit « the workspace keeps the unfinished
+       work » quel que soit le rôle (`intervention.ts:229`). C'est faux pour la spécification, que
+       la relance refait.
+    3. `compare-dossiers.ts` range cet arrêt parmi les « schema refusals », sous « intervention
+       failed » : il lit la fin rapportée par le worker, pas le `cancelled` du journal.
+
+    TÂCHE 5 D'`e23s05` PRÉPARÉE AVANT LE DÉPART. Preflight vert sur Node 24.21, 362 tests ;
     `dist/` reproduit les sources de `499a3ba`, et les deux campagnes tournent sur lui. Pi 0.87.0,
     authentifié auprès d'`anthropic` (`pi auth check` rend `ready`). Le point d'accès local
     (127.0.0.1:8000) ne répondait pas : la campagne locale attend qu'il soit relancé.

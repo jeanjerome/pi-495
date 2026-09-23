@@ -106,10 +106,13 @@ tasks:
     risk: P0
     security: high
     security_verify: >
-      La configuration de la campagne distante ne déclare que le fournisseur d'abonnement. Aucun
-      secret n'apparaît dans le dossier, dans le relevé ni sur une ligne de commande, et le jeton
-      d'abonnement n'est ni lu ni recopié par 495.
-    status: failing
+      Aucun constat. La configuration de la campagne distante ne déclare qu'`anthropic`, en
+      `off_machine`. Aucun jeton dans les deux dossiers : la seule occurrence de `sk-ant-oat` est
+      la condition que le manifeste déclare pour la strate imposée. Aucune commande du pas-à-pas ne
+      porte de secret. 495 ne lit pas le jeton : le worker passe le chemin d'`auth.json` à l'hôte
+      (`worker-main.ts:106`), qui le lit, et ce fichier est interdit en lecture aux outils confinés
+      (`runtime.ts:71`). Le relevé reste à vérifier quand il sera écrit.
+    status: passing
     allure:
       severity: critical
       categories:
