@@ -13,7 +13,7 @@ import type { PhaseContext, Unit } from "./phase.ts";
 export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const reference = await ctx.artifacts.reference(unit.state);
 	const open = unit.state.attempts.find((a) => a.result === "open");
-	const attemptId = open?.attempt_id ?? ctx.id("att");
+	const attemptId = open?.attempt_id ?? ctx.artifacts.unstartedAttempt(unit.state) ?? ctx.id("att");
 	const opened = await ctx.artifacts.workspaceOfAttempt(unit.state.change_id, attemptId);
 	let workspaceId: string;
 	let workspacePath: string;

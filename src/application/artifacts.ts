@@ -106,6 +106,21 @@ export class ArtifactRepository {
 		}
 	}
 
+	/**
+	 * The attempt whose workspace was prepared but whose producer never started: the capability check
+	 * refused it, or the step stopped between the two. Taking it up again keeps one workspace per
+	 * attempt, instead of a new copy of the project at every resume.
+	 */
+	unstartedAttempt(state: ChangeState): string | null {
+		const started = new Set(state.attempts.map((a) => a.attempt_id));
+		const prepared = this.deps.ledger
+			.listArtifacts(state.change_id, "candidate")
+			.map((a) => a.ref.artifact_id)
+			.filter((id) => id.startsWith("ws_"))
+			.map((id) => id.slice("ws_".length));
+		return prepared.filter((id) => !started.has(id)).at(-1) ?? null;
+	}
+
 	/** The workspace an attempt already opened, when the producer is resumed on its own work. */
 	async workspaceOfAttempt(
 		changeId: string,
