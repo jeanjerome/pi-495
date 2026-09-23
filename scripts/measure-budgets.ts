@@ -18,12 +18,11 @@
  * Usage: node scripts/measure-budgets.ts <dossier dir>
  */
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import type { ChangeEvent } from "../src/domain/change/events.ts";
 import type { ChangeState, InterventionCost } from "../src/domain/change/state.ts";
 import { loadConfig } from "../src/extension/config.ts";
+import { expandHome, fail, readChange, tilde } from "./lib/dossier.ts";
 
 type Finished = Extract<ChangeEvent, { type: "intervention.finished" }>;
 
@@ -45,20 +44,10 @@ interface Bounds {
 	intervention_ms: number;
 }
 
-function fail(message: string): never {
-	console.error(message);
-	process.exit(2);
-}
-
 function dossierArgument(): string {
 	const value = process.argv[2];
 	if (value === undefined || value.startsWith("--")) fail("usage: node scripts/measure-budgets.ts <dossier dir>");
-	return value.startsWith("~/") ? join(homedir(), value.slice(2)) : value;
-}
-
-/** A path under the home directory is shown the way the owner writes it. */
-function tilde(path: string): string {
-	return path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path;
+	return expandHome(value);
 }
 
 function integer(value: number): string {
@@ -120,17 +109,9 @@ function costDetail(reading: CostReading): string {
 	return `${dollars(usd)}, au tarif du catalogue de l'hôte, ${subscriptionText(subscription)}`;
 }
 
-function readDossier(root: string): { state: ChangeState; finished: Map<string, Finished> } {
-	if (!existsSync(join(root, "state.sqlite"))) fail(`${root}: no state.sqlite, so no dossier to read here`);
-	const db = new DatabaseSync(join(root, "state.sqlite"), { readOnly: true });
-	try {
-		const changes = db.prepare("SELECT change_id, state FROM changes").all() as { change_id: string; state: string }[];
-		if (changes.length !== 1)
-			fail(
-				`${root}: ${changes.length} changes in this dossier (${changes.map((c) => c.change_id).join(", ") || "none"}); ` +
-					"a campaign is one change in its own data directory",
-			);
-		const state = JSON.parse(changes[0]!.state) as ChangeState;
+/** The finished event of each intervention, which is where its cost is recorded. */
+function readFinished(root: string): { state: ChangeState; finished: Map<string, Finished> } {
+	return readChange(root, (db, state) => {
 		const rows = db
 			.prepare(
 				"SELECT payload FROM events WHERE aggregate_kind = 'change' AND aggregate_id = ? AND type = 'intervention.finished'",
@@ -142,13 +123,11 @@ function readDossier(root: string): { state: ChangeState; finished: Map<string, 
 			finished.set(event.intervention_id, event);
 		}
 		return { state, finished };
-	} finally {
-		db.close();
-	}
+	});
 }
 
 const root = dossierArgument();
-const { state, finished } = readDossier(root);
+const { state, finished } = readFinished(root);
 const { config, diagnostics } = loadConfig(root, {});
 const bounds: Bounds = {
 	tool_calls: config.policy.budgets.tool_calls_per_intervention,

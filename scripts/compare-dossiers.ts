@@ -17,12 +17,11 @@
  * Usage: node scripts/compare-dossiers.ts --local <dossier dir> --distant <dossier dir>
  */
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import type { CandidateManifest } from "../src/contracts/v1/candidate.ts";
 import type { ChangeState } from "../src/domain/change/state.ts";
 import type { InterventionEvent } from "../src/ports/execution.ts";
+import { expandHome, fail, readChange, tilde } from "./lib/dossier.ts";
 
 interface ChangedEntry {
 	path: string;
@@ -64,22 +63,12 @@ interface OutputArtifact {
 	events: InterventionEvent[];
 }
 
-function fail(message: string): never {
-	console.error(message);
-	process.exit(2);
-}
-
 function argument(name: string): string {
 	const at = process.argv.indexOf(`--${name}`);
 	const value = at >= 0 ? process.argv[at + 1] : undefined;
 	if (value === undefined || value.startsWith("--"))
 		fail("usage: node scripts/compare-dossiers.ts --local <dossier dir> --distant <dossier dir>");
-	return value.startsWith("~/") ? join(homedir(), value.slice(2)) : value;
-}
-
-/** A path under the home directory is shown the way the owner writes it. */
-function tilde(path: string): string {
-	return path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path;
+	return expandHome(value);
 }
 
 /** Thousands are separated, because these numbers are read rather than computed with. */
@@ -103,16 +92,7 @@ function readObject(root: string, digest: string): unknown {
 }
 
 function readDossier(label: string, root: string): Dossier {
-	if (!existsSync(join(root, "state.sqlite"))) fail(`${root}: no state.sqlite, so no dossier to read here`);
-	const db = new DatabaseSync(join(root, "state.sqlite"), { readOnly: true });
-	try {
-		const changes = db.prepare("SELECT change_id, state FROM changes").all() as { change_id: string; state: string }[];
-		if (changes.length !== 1)
-			fail(
-				`${root}: ${changes.length} changes in this dossier (${changes.map((c) => c.change_id).join(", ") || "none"}); ` +
-					"a campaign is one change in its own data directory",
-			);
-		const state = JSON.parse(changes[0]!.state) as ChangeState;
+	return readChange(root, (db, state) => {
 		const artifacts = db
 			.prepare("SELECT artifact_id, kind, content_digest FROM artifacts WHERE change_id = ? ORDER BY created_at")
 			.all(state.change_id) as { artifact_id: string; kind: string; content_digest: string }[];
@@ -161,9 +141,7 @@ function readDossier(label: string, root: string): Dossier {
 			refusals,
 			compactions,
 		};
-	} finally {
-		db.close();
-	}
+	});
 }
 
 const left = readDossier("local", argument("local"));
