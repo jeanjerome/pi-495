@@ -12,6 +12,47 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    TÂCHE 5 D'`e23s05` PRÉPARÉE, PAS ENCORE CONDUITE. Preflight vert sur Node 24.21, 362 tests ;
+    `dist/` reproduit les sources de `499a3ba`, et les deux campagnes tournent sur lui. Pi 0.87.0,
+    authentifié auprès d'`anthropic` (`pi auth check` rend `ready`). Le point d'accès local
+    (127.0.0.1:8000) ne répondait pas : la campagne locale attend qu'il soit relancé.
+
+    LA CIBLE EST CELLE D'`e23s04`, REMISE PROPRE. Un `.DS_Store` déposé par le Finder après ces
+    campagnes rendait la cible `git_dirty_head` : `git status` le voit, alors que le parcours de
+    l'arbre l'exclut. Il est retiré ; la référence se capture de nouveau `git_clean_head`, comme
+    `ref_78a7b98ea7fe` l'était.
+
+    LA VALEUR RETENUE, ET CE QU'ON EN ATTEND, AVANT LE DÉPART. Borne d'appels : 3 par intervention.
+    Dans les deux campagnes d'`e23s04`, aucune intervention n'a consommé moins de 4 appels. La borne
+    vaut pour tous les rôles, et la spécification ouvre le changement : c'est elle qui doit tomber,
+    à son quatrième appel. Le noyau refuse `4/3`, le changement s'arrête sous `budget_exhausted`,
+    avec un détail qui nomme le rôle, `4/3` et la relance, et aucune autre intervention ne démarre.
+    Relancée avec la borne remise à 100, la spécification est refaite, puis la préparation et
+    l'implémentation, jusqu'à l'issue. Le dossier dira aussi comment l'intervention arrêtée se
+    termine : le worker lève sa propre erreur dans l'outil pendant que le superviseur interrompt la
+    session (`worker-main.ts:142`), et `cancelled` est attendu.
+
+    CE QUE CETTE CAMPAGNE N'EXERCE PAS. La reprise du producteur dans sa tentative. Une borne unique
+    pour tous les rôles ne peut pas laisser passer la spécification et arrêter l'implémentation,
+    puisque l'implémentation consomme le moins d'appels des trois. Cette reprise reste tenue par
+    `test/v2/tool-call-budget.test.ts`.
+
+    LE PAS-À-PAS. Un seul pilote par changement ; les deux campagnes l'une après l'autre. La
+    déclaration de sortie et le relèvement de la borne sont des gestes du propriétaire :
+
+      mkdir -p ~/.495-campagnes/e23s05-distant
+      printf '%s\n' '{ "policy": { "egress": [ { "provider_id": "anthropic", "location": "off_machine" } ], "budgets": { "tool_calls_per_intervention": 3 } } }' \
+        > ~/.495-campagnes/e23s05-distant/config.json
+      cd ~/.495-campagnes/e23s04-cible
+      HARNESS495_DATA_DIR=~/.495-campagnes/e23s05-distant pi -ne \
+        -e ~/Projets/495-pi-package/dist/extension/index.js --model anthropic/claude-sonnet-5
+
+    puis `/495 start greet doit rendre "Hello, <name>!" avec un point d'exclamation final`. À
+    l'arrêt, quitter Pi ; le dossier est relu en lecture seule. Ensuite, retirer `budgets` de la
+    configuration, rouvrir Pi par la même commande, et `/495 resume` jusqu'à l'issue. La campagne
+    locale se conduit de même dans `~/.495-campagnes/e23s05-local`, sans configuration, avec
+    `--model omlx/qwen3.8-27b-oq8e`, et sans arrêt attendu.
+
     TÂCHE 4 D'`e23s05` TENUE. Preflight vert, 362 tests. `D-59` consigne la décision : quel que soit
     le rôle, la borne d'appels arrête le changement sous `budget_exhausted` et attend le
     propriétaire. La reprise automatique est écartée, la durée garde son effet, aucune borne en
