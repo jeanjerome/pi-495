@@ -55,6 +55,12 @@ export interface InterventionReport {
 	events: InterventionEvent[];
 	/** Why the session ended, when that is not simply "it finished". */
 	detail: string | null;
+	/**
+	 * The kernel's refusal of a tool call past the intervention's budget, or `null` when none was
+	 * refused. It decides whatever the session reported last: the worker applies the same bound on
+	 * its side and may end the session before the abort reaches it.
+	 */
+	budget_refusal: string | null;
 }
 
 /** Asked after each tool call: the refusal it returns ends the session. */
@@ -177,13 +183,17 @@ export class InterventionSupervisor {
 		this.active = handle;
 		let terminal: InterventionEvent | null = null;
 		let toolCalls = 0;
+		let budgetRefusal: string | null = null;
 		const events: InterventionEvent[] = [];
 		for await (const event of handle.events) {
 			events.push(event);
 			if (event.type === "tool_finished") {
 				toolCalls++;
 				const refused = budget();
-				if (refused) await handle.abort(refused.message);
+				if (refused) {
+					budgetRefusal ??= refused.message;
+					await handle.abort(refused.message);
+				}
 			}
 			if (event.type === "completed" || event.type === "failed" || event.type === "cancelled") {
 				terminal = event;
@@ -199,6 +209,22 @@ export class InterventionSupervisor {
 		};
 		// The tool calls the caller already counted one by one are not counted a second time.
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
+		const kept = events.filter((e) => e.type !== "model_event").slice(0, 500);
+		// A session the kernel stopped on its tool-call budget was aborted, whatever it reported last: a
+		// report written after the refused call is not a proposal the budget allowed.
+		if (budgetRefusal !== null) {
+			this.deps.progress(`intervention ${role} stopped by the tool call budget`);
+			return {
+				result: "cancelled",
+				output: null,
+				output_valid: false,
+				counters,
+				terminal: t,
+				events: kept,
+				detail: `stopped by the tool call budget: ${budgetRefusal}; the workspace keeps the unfinished work`,
+				budget_refusal: budgetRefusal,
+			};
+		}
 		// A session ended by the duration budget is not a proposal: the producer was still working.
 		const truncated = t.type === "completed" && t.truncated === true;
 		const result = truncated ? ("truncated" as const) : t.type;
@@ -209,13 +235,14 @@ export class InterventionSupervisor {
 			output_valid: t.type === "completed" ? t.output_valid : false,
 			counters,
 			terminal: t,
-			events: events.filter((e) => e.type !== "model_event").slice(0, 500),
+			events: kept,
 			detail:
 				t.type === "failed"
 					? t.error
 					: truncated
 						? `stopped by the ${this.deps.policy.budgets.intervention_ms} ms duration budget; the workspace keeps the unfinished work`
 						: null,
+			budget_refusal: null,
 		};
 	}
 

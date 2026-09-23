@@ -591,6 +591,22 @@ export class Harness {
 			},
 			cor,
 		);
+		// The tool-call bound is what caps spending on a provider billed per token, so reaching it waits
+		// for the owner instead of resuming on its own the way the duration bound does (D-19). Whatever
+		// the role, the change stops here; a resume lifts it.
+		if (report.budget_refusal !== null)
+			unit = this.commit(
+				unit,
+				{
+					type: "change.block",
+					at: this.now(),
+					actor: KERNEL_ACTOR,
+					reason: "budget_exhausted",
+					detail: `${role} intervention: ${report.budget_refusal}; the change waits for its owner, and a raised bound takes effect in a new session`,
+					retryable: true,
+				},
+				cor,
+			);
 		return {
 			unit,
 			output: report.output,

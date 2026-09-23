@@ -36,6 +36,7 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			const objective = specificationObjective(request, unit.state.open_questions, standing.declared);
 			const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, {});
 			unit = r.unit;
+			if (unit.state.status === "blocked") return unit;
 			if (
 				r.result !== "completed" ||
 				!r.output_valid ||

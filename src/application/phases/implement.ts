@@ -37,10 +37,11 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 	const priorFeedback = lastFeedback
 		? await ctx.artifacts.read<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null)
 		: null;
-	const truncatedBefore = unit.state.interventions.filter(
-		(i) => i.attempt_id === attemptId && i.result === "truncated",
-	).length;
-	const resume = resumeNote(truncatedBefore);
+	const ofAttempt = unit.state.interventions.filter((i) => i.attempt_id === attemptId);
+	const truncatedBefore = ofAttempt.filter((i) => i.result === "truncated").length;
+	// A producer stopped on its tool-call bound, or paused, finds its workspace as it left it once
+	// resumed, exactly like one the duration cut short, and has to be told as much.
+	const resume = resumeNote(ofAttempt.filter((i) => i.result === "truncated" || i.result === "cancelled").length);
 	const feedback = [resume, priorFeedback].filter((x): x is string => Boolean(x)).join("\n\n") || null;
 	const mandate = await ctx.artifacts.latest<Mandate>(unit.state, "mandate");
 	const objective = implementObjective(mandate?.content.objective ?? null);

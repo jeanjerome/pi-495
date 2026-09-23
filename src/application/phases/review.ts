@@ -33,6 +33,7 @@ export async function review(ctx: PhaseContext, unit: Unit, cor: string): Promis
 			{ adopted: ["mandate", "requirements", "design"] },
 		);
 		unit = r.unit;
+		if (unit.state.status === "blocked") return unit;
 		const report = r.result === "completed" && r.output_valid ? (r.output as ReviewReport) : null;
 		const reviewId = ctx.id("rev");
 		await ctx.artifacts.store(

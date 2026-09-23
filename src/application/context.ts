@@ -288,7 +288,7 @@ export function reviewObjective(reviewerRole: string, changedPaths: readonly str
  */
 export function resumeNote(interruptions: number): string | null {
 	if (interruptions <= 0) return null;
-	return `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by the duration budget, not by you (${interruptions} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.`;
+	return `# Interrupted work to finish\nThe previous intervention on this attempt was stopped by a budget or a pause before it reported itself finished, not by you (${interruptions} so far). Everything you wrote is still in the workspace. Read it before writing anything: finish what is incomplete, make the tree build, and do not start over.`;
 }
 
 // --- what the previous attempt was refused for ---------------------------------------------------
