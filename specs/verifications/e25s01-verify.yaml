@@ -3,7 +3,7 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: 2d4a615
+revision: 3fbe0ea
 
 environment:
   pi_version: "0.87.1"
@@ -32,24 +32,28 @@ phases:
     note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
   tests:
     passed: true
-    count: 382
+    count: 381
     note: >
-      382 of 382. 393 on main: 21 tests of the list and its refusal removed, 10 added. The two
-      sentinel-secret tests of test/v1/egress.test.ts pass unchanged.
+      381 of 381. 393 on main: 21 tests of the list and its refusal removed, 9 added. The two
+      sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
+      asserts the ignored-key diagnostic in the print and JSON entries.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T15:48:51Z"
-  ended_at: "2026-09-23T15:50:30Z"
+  started_at: "2026-09-23T17:02:11Z"
+  ended_at: "2026-09-23T17:04:21Z"
   note: >
-    Single contiguous run under Node 24.21.0 at 2d4a615, right after `npm run build`. 382 tests
-    passing, 0 failing. No output from any other attempt is merged into this block.
+    Single contiguous run under Node 24.21.0 on the tree committed as 3fbe0ea, right after
+    `npm run build`. 381 tests passing, 0 failing. No output from any other attempt is merged into
+    this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
+    remove a type nothing read, restructure the policy read without changing what it loads, and
+    change comments and tests.
 
 task_verify_commands:
   note: "Each task's own verify command, re-run before UAT; every one exits 0."
   results:
-    - { task: 1, command: "node --test test/v1/model-admitted.test.ts", exit_code: 0, tests: 6 }
+    - { task: 1, command: "node --test test/v1/model-admitted.test.ts", exit_code: 0, tests: 5 }
     - { task: 2, command: "node --test test/v2/model-admitted.test.ts", exit_code: 0, tests: 4 }
     - { task: 3, command: "! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts", exit_code: 0 }
     - { task: 4, command: "npm run check", exit_code: 0 }
@@ -127,8 +131,8 @@ manual:
         Diagnostic unique, sans le contenu de la clé (e25s01-egress-herite). La politique chargée ne
         porte pas de liste et applique le budget écrit, max_attempts 5 (test/v1/model-admitted.test.ts). Mais le
         changement réel s'est ouvert à 3 tentatives : la valeur lue n'atteint jamais un changement.
-        Le défaut précède la story et touche tous les fichiers de configuration, avec ou sans la
-        clé. Il est inscrit au registre des défauts (BUG-2026-09-23T155707). Un autre réglage placé
+        Le défaut touche tous les fichiers de configuration, avec ou sans la clé. Il est ouvert au
+        registre des défauts (BUG-2026-09-23T155707). Un autre réglage placé
         à côté de la clé, language, s'est bien appliqué en campagne réelle.
       passed: true
     - step: "Une clé policy.egress malformée est ignorée comme une autre (6a)"
@@ -151,9 +155,9 @@ manual:
 gaps:
   closed: true
   note: >
-    No gap between what e25s01 promises and what the campaigns show. One pre-existing defect surfaced
-    while probing 6a: the attempt budget is never taken from config.json. It predates the story and
-    lies outside what it changes, so it is logged rather than folded into this verification.
+    No gap between what e25s01 promises and what the campaigns show. Probing 6a surfaced a defect:
+    the attempt budget is never taken from config.json. It is open in the defect registry as
+    BUG-2026-09-23T155707, until the owner decides whether max_attempts is configurable.
 
 known_limits:
   - "No remote endpoint was reached: the anthropic provider is served locally. A real first /495 start against a hosted provider belongs to the e25s04 acceptance."

@@ -12,6 +12,34 @@ active_story: e25s01
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le second tour le 2026-09-23. Corrigés : le commentaire de
+    `EGRESS_NO_LONGER_READ` et un message d'assertion ne disent plus qu'un diagnostic atteint le
+    dossier ; `test/v3/pi-entries.test.ts` porte le diagnostic d'une clé `policy.egress` ignorée dans
+    les entrées texte et JSON (contrôle négatif : retirer l'émission le fait échouer) ; l'assertion
+    sur la politique du noyau, que le type garantit, est retirée ; `RefusingSandbox` devient
+    `UndrivenSandbox` ; `e25s01-verify.yaml`, `NFR-e25s01.json`, le relevé rouge-vert et le périmètre
+    de `REVIEW.md` sont ancrés à `3fbe0ea` ; les phrases qui disaient un défaut antérieur à la story
+    renvoient à sa fiche au registre. Écartés, avec motif : le prédicat de test en double (un test qui
+    écrit lui-même le libellé attendu en reste la spécification) et les tableaux par défaut partagés
+    (aucun mutateur, aucun désaccord observable). Preflight vert avec 381 tests, changements commités.
+    Le suivant est un troisième tour de `request-review` (3 sur 5) avec deux relecteurs neufs.
+
+    Le second tour de `request-review` (2 sur 5) a été conduit le 2026-09-23 avec deux relecteurs neufs,
+    sur `5ec167c` : A 96,3 %, B 91,7 %, aucun défaut bloquant ; porte refusée pour B. Preflight vert
+    avec 382 tests sur la même révision. À corriger : le commentaire de `EGRESS_NO_LONGER_READ` dans
+    `src/extension/config.ts`, et le message d'assertion de `test/v1/model-admitted.test.ts`, disent
+    qu'un diagnostic atteint le dossier exporté par un détail de blocage, ce qui est faux (vérifié :
+    rien sous `src/export/` ni `src/application/` ne lit un diagnostic de session) ;
+    `e25s01-verify.yaml` et le périmètre de `specs/security/REVIEW.md` restent ancrés à `2d4a615`,
+    avant quatre commits qui touchent le code ou les tests ; `REVIEW.md` dit d'un défaut qu'il
+    « précède cette story » sans renvoyer à BUG-2026-09-23T184521, ni à BUG-2026-09-23T155707 pour
+    `max_attempts`. À peser : `e25s01-cycle-rouge-vert.md` renvoie encore à e25s04 la campagne sans
+    configuration que la recette a tenue ; aucun test ne porte le diagnostic d'une clé ignorée dans
+    les entrées Pi (§16) ; prédicat de test dupliqué entre v1 et v2 ; `RefusingSandbox` mal nommé ;
+    un message d'assertion qui parle de l'ancien README ; une assertion que le compilateur garantit
+    déjà ; des tableaux par défaut partagés par référence (aucun mutateur aujourd'hui). Le suivant est
+    `respond-review`, puis un troisième tour.
+
     `respond-review` a traité le premier tour de `request-review` le 2026-09-23 (A 96,6 %, B 89,7 %,
     aucun défaut bloquant ; porte refusée pour B). Corrigés : deux commentaires qui décrivaient encore
     le jugement de la destination, les écrits de recette et le §8 de la spec qui gardaient

@@ -29,7 +29,7 @@
     "operability": {
       "verdict": "PASS",
       "threshold": "The diagnostic reaches every qualified Pi entry, in English like the other configuration diagnostics",
-      "measured": "In print mode the diagnostic is the first line of the session's output, before the status. It is a constant string, so the same text reaches the TUI and the structured entries through the one path in session.ts that announces every runtime diagnostic.",
+      "measured": "In print mode the diagnostic is the first line of the session's output, before the status. It is a constant string, so the same text reaches the TUI and the structured entries through the one path in session.ts that announces every runtime diagnostic. test/v3/pi-entries.test.ts asserts it in the print and JSON entries.",
       "note": "e25s01-egress-malforme also set language en, and its status came back in English: a setting next to the ignored key applied."
     }
   },

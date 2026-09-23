@@ -235,11 +235,11 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..2d4a615`, 15 fichiers, dont 3 de production |
+| Périmètre | `git diff 1e7fd3e..3fbe0ea`, 22 fichiers, dont 4 de production |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
-| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts` |
+| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts`, `src/application/harness.ts` (un commentaire) |
 
 ## Verdict
 
@@ -261,18 +261,21 @@ donc aucun champ `egress`, ce que `test/v1/model-admitted.test.ts` vérifie.
 
 **Le diagnostic ne reproduit rien du fichier.** C'est une chaîne constante. Il emprunte le chemin
 existant (`session.ts`, `openedAt`) : l'affichage, puis les entrées structurées au premier `/495`.
+Il n'est inscrit ni au journal ni au dossier exporté. `test/v3/pi-entries.test.ts` le vérifie dans
+les entrées texte et JSON.
 Aucun contenu fourni par le propriétaire n'y entre, quelle que soit la forme de la clé.
 
 **Les autres réglages gardent leur sens.** L'étalement de `policy`, les fusions de `budgets` et
 `adoption`, le verrou `protocol: "kernel"`, `revision` et `policy_id` sont lus comme avant. La
 campagne `e25s01-egress-malforme` a appliqué `language: "en"` à côté d'une clé ignorée. La campagne
 `e25s01-egress-herite` portait `budgets.max_attempts: 2`, et son changement s'est ouvert à 3 : la
-configuration le lit, mais `apply.ts` initialise tout changement au défaut du noyau. Le défaut précède
-cette story, qui ne touche pas ce chemin ; il est inscrit au registre des défauts.
+configuration le lit, mais `apply.ts` initialise tout changement au défaut du noyau. Ce défaut est
+ouvert au registre sous BUG-2026-09-23T155707.
 
 **Un fichier illisible retombe sur la configuration par défaut, qui reste fermée ailleurs.**
 `allow_unconfined: false`, `integration_enabled: false`, adoption par le noyau. Seule la liste vide
-qui refusait tout a disparu.
+qui refusait tout a disparu. Un arbitrage humain écrit dans le fichier est alors perdu sans que rien
+ne le refuse : ce défaut est ouvert au registre sous BUG-2026-09-23T184520.
 
 **La vérification de capacité reste jugée avant tout engagement.** `requireCapable` juge le bac à
 sable et les capacités du modèle ; `harness.ts` l'appelle avant d'inscrire `intervention.start`. Un
@@ -295,8 +298,8 @@ et rend D-53 sans objet. Ce n'est pas un constat : c'est la décision du propri�
 ## Observations sous le seuil de report (confiance < 8, non bloquantes)
 
 **Un `policy` qui n'est pas un objet est étalé tel quel.** Une chaîne écrite à `policy` serait étalée
-caractère par caractère dans la politique active. Le comportement précède cette story, qui ne l'a ni
-créé ni aggravé ; aucun champ ainsi introduit ne porte de nom que le noyau lise.
+caractère par caractère dans la politique active ; aucun champ ainsi introduit ne porte de nom que le
+noyau lise. Ce défaut est ouvert au registre sous BUG-2026-09-23T184521.
 
 **Changements bloqués avant la story.** Un changement bloqué sous `policy_denied` au titre de sa
 destination repart, à la reprise, vers le fournisseur choisi. C'est l'effet voulu : le motif de

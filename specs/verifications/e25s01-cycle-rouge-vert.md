@@ -71,5 +71,14 @@ appartient à e25s03, et D-61 (e25s04) consigne le retrait.
 
 ## Ce qui n'est pas établi ici
 
-Seules des exécutions scriptées sont conduites. Le premier `/495 start` réel sans fichier de
-configuration, avec un fournisseur autre que `omlx`, appartient à la recette de e25s04.
+Seules des exécutions scriptées sont conduites ici. La recette de `e25s01-verify.yaml` a tenu le
+premier `/495 start` réel sans fichier de configuration, sous un fournisseur autre que `omlx`, mais
+servi sur la machine. Aucun fournisseur distant n'a été joint : ce cas appartient à la recette de
+e25s04.
+
+## État final
+
+`npm run build && npm run check` est vert à `3fbe0ea` avec 381 tests. L'assertion sur la politique
+du noyau, que le type garantit déjà, est retirée, et le test des entrées Pi porte aussi le diagnostic
+d'une clé `policy.egress` ignorée. Retirer l'émission de ce diagnostic fait échouer ce test en mode
+texte.
