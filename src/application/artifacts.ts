@@ -109,7 +109,10 @@ export class ArtifactRepository {
 	/**
 	 * The attempt whose workspace was prepared but whose producer never started: the capability check
 	 * refused it, or the step stopped between the two. Taking it up again keeps one workspace per
-	 * attempt, instead of a new copy of the project at every resume.
+	 * attempt, instead of a new copy of the project at every resume. It applies only before the first
+	 * attempt starts: a correction opens the next attempt itself, and a started one stays open. The
+	 * copy is still the right start only because the reference and the adopted preparation cannot
+	 * change before then; wiring `artifact.revise` or `environment.change` would break that.
 	 */
 	unstartedAttempt(state: ChangeState): string | null {
 		const started = new Set(state.attempts.map((a) => a.attempt_id));
