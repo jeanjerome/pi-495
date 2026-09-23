@@ -19,7 +19,7 @@ motif: >
   servir de preuve.
 
 exigences: [AGT-01, AGT-02, CTX-02, SEC-05]
-decisions: [D-46, D-48, D-49, D-57, D-58]
+decisions: [D-46, D-48, D-49, D-57, D-58, D-59]
 
 stories:
   - id: e23s01
@@ -67,8 +67,8 @@ stories:
       d'appels tombe avant la durée ; or elle annule l'intervention là où la durée la suspend. La
       dépense se compte au jeton, et non sur une fenêtre d'abonnement : l'usage par un harnais tiers
       est facturé hors des plafonds du plan. Le 2026-09-23, le propriétaire a tranché que la borne
-      d'appels arrête le changement et attend sa relance. La story est passée de 2 à 5 points
-      quand la prémisse est tombée.
+      d'appels arrête le changement et attend sa relance (D-59). La story est passée de 2 à 5
+      points quand la prémisse est tombée.
 
   - id: e23s06
     title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"

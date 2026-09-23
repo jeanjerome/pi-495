@@ -357,6 +357,9 @@ changement s'arrête et attend.
   durée, que cette story ne change pas.
 - `specs/adr/D-46-un-second-fournisseur-de-modele-est-qualifie-avant-le-reste.md` — la prémisse de
   la fenêtre d'abonnement, corrigée ici.
+- `specs/adr/D-59-la-borne-d-appels-arrete-le-changement-et-attend-le-proprietaire.md` — la
+  décision : la borne d'appels arrête le changement et attend le propriétaire, et les valeurs par
+  défaut ne changent pas.
 - `node_modules/@earendil-works/pi-coding-agent/docs/providers.md` § Subscriptions — l'usage par un
   harnais tiers facturé au jeton, hors des plafonds du plan.
 - `node_modules/@earendil-works/pi-coding-agent/docs/models.md` § cost — un tarif absent vaut zéro.

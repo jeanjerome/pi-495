@@ -66,8 +66,25 @@ export const DEFAULT_POLICY: ActivePolicy = {
 		max_attempts: 3,
 		max_technical_retries: 2,
 		max_continuations: 3,
+		// Which of the two per-intervention bounds falls first depends on the tool-call rate, and the rate
+		// depends on the model and on the target: the two coincide at 5 calls a minute. Measured on a
+		// minimal contract case, `anthropic/claude-sonnet-5` ran 16.0 calls a minute, so its call bound
+		// falls first, after 6 min 15 s. `omlx/qwen3.8-27b-oq8e` ran 4.6 over the whole change, so its
+		// duration falls first, near 92 calls; but its specification alone ran 5.3, where the call bound
+		// falls first. No intervention of that case went past 8 calls or 2 minutes: it says which bound
+		// falls first, not which value a long change needs, so neither value moves on it.
+		// `scripts/measure-budgets.ts` reads these rates back from a kept dossier.
+		//
+		// Reached, the duration suspends the intervention, and the producer resumes on its own workspace
+		// up to `max_continuations` times without the owner.
 		intervention_ms: 20 * 60_000,
+		// Reached, the kernel starts no further intervention on the change; it cuts none that is running.
+		// Both measured changes used under 5 minutes of it, so the per-intervention bounds fall long
+		// before it, and nothing measured bears on its value.
 		increment_ms: 120 * 60_000,
+		// Reached, whatever the role, the change stops under `budget_exhausted` until its owner resumes
+		// it. On a provider billed per token each resume is new spending, so this bound waits for the
+		// owner instead of resuming on its own the way the duration does.
 		tool_calls_per_intervention: 100,
 		feedback_bytes: 64 * 1024,
 	},

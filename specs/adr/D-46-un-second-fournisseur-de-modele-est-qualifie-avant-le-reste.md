@@ -1,6 +1,6 @@
 # D-46: Un second fournisseur de modèle est qualifié avant le reste du travail ouvert
 
-**Status:** Acceptée
+**Status:** Acceptée ; la prémisse de la fenêtre d'abonnement est corrigée par `D-59`
 **Date:** 2026-09-21
 
 **Décision.** Un epic `e23` entre à l'index du travail ouvert et se joue avant `e01`. WSJF
@@ -35,3 +35,16 @@ worker est déjà exempté de confinement réseau pour joindre le fournisseur (`
 `SEC-05` y sont déjà couvertes ; l'epic renforce la preuve qui les tient. Il ne porte donc pas de
 clé `requirements` au périmètre, à la différence de `e10` ou `e22` qui ferment des exigences non
 couvertes.
+
+## Révision — aucune fenêtre d'abonnement ne borne la dépense
+
+La conséquence écrivait qu'avec un modèle frontière, la borne cesserait d'être le temps pour devenir
+la fenêtre d'abonnement. Pi dit le contraire (`providers.md` § Subscriptions). L'usage d'un
+abonnement Claude Pro ou Max par un harnais tiers est prélevé sur l'usage supplémentaire du compte
+et facturé au jeton. Il n'est pas compté sur les plafonds du plan. Sur ce chemin, ce qui borne la
+dépense, c'est ce que le propriétaire paie, et, dans le harnais, la borne d'appels. Celle-ci arrête
+désormais le changement et attend le propriétaire (`D-59`).
+
+Le chiffre de 2,5 appels d'outils par minute venait d'une autre cible. Sur celle de la campagne à
+deux fournisseurs, le même modèle local en conduit 4,6 par minute, et le modèle distant 16,0. Les
+valeurs des bornes ne changent pas : le cas mesuré n'en a atteint aucune.
