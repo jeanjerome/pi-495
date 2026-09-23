@@ -51,3 +51,22 @@ export function imposedLayersFor(providerId: string): ImposedLayer[] {
 	if (!providerId || !Object.hasOwn(IMPOSED, providerId)) return [];
 	return [IMPOSED[providerId]!];
 }
+
+/**
+ * What a provider wrote around 495's instructions in one request, read out of the payload the host
+ * handed over once the provider had built it (CTX-02, D-55). This is an **observation**, the
+ * counterpart of `ImposedLayer`'s expectation.
+ *
+ * `not_observed` carries its reason and never an empty list: not seeing is not seeing that nothing
+ * was imposed. `local_instructions_not_found` keeps the system texts unplaced, because without 495's
+ * own instructions in the request there is no above or below to put them in.
+ */
+export type ObservedLayers =
+	| {
+			readonly status: "observed";
+			readonly api: string;
+			readonly above_local_instructions: readonly string[];
+			readonly below_local_instructions: readonly string[];
+	  }
+	| { readonly status: "local_instructions_not_found"; readonly api: string; readonly system_texts: readonly string[] }
+	| { readonly status: "not_observed"; readonly reason: string };
