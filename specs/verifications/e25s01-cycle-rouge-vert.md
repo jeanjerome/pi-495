@@ -5,7 +5,7 @@ Conduite le 2026-09-23 sur `le-modele-choisi-est-admis`, depuis `main` à `1e7fd
 
 ## Commandes des tâches
 
-Relevées à `bda51c7`.
+Relevées à `2908ec6`.
 
 ```
 $ node --test test/v1/model-admitted.test.ts                 # tâches 1 et 3
@@ -15,11 +15,11 @@ $ node --test test/v2/model-admitted.test.ts                 # tâche 2
 $ ! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts
 exit=0
 $ npm run build && npm run check                             # tâche 4
-ℹ tests 382   ℹ pass 382   ℹ fail 0
+ℹ tests 383   ℹ pass 383   ℹ fail 0
 exit=0
 ```
 
-393 tests avant, 382 après : 21 tests de la liste et de son refus sont retirés, 10 sont ajoutés. Les
+393 tests avant, 383 après : 21 tests de la liste et de son refus sont retirés, 11 sont ajoutés. Les
 tests du secret sentinelle de `test/v1/egress.test.ts` restent inchangés et passent. Ils portent sur
 l'environnement remis au worker et sur le texte composé pour le modèle.
 
@@ -32,6 +32,7 @@ l'environnement remis au worker et sur le texte composé pour le modèle.
 | Un modèle sans fournisseur reste un refus de capacité | **vert à l'arrivée** — garde de non-régression | — |
 | Un fichier illisible est annoncé sans rien citer du fichier | rouge observé avant correction, non commité seul (voir plus bas) | `dcdd890` |
 | Un fichier illisible, ou dont une section n'est pas un objet, arrête tout changement, sans citer son texte ni son chemin | rouge observé avant correction, non commité seul (voir plus bas) | `bda51c7` |
+| Le refus tient jusqu'à une nouvelle session et n'est dit qu'une fois par commande ; un lien symbolique pendant est refusé ; aucun refus ne cite la valeur d'une section ni le chemin | rouge observé avant correction, non commité seul (voir plus bas) | `2908ec6` |
 
 Les deux premiers comportements rouges ont un seul commit vert. Retirer le champ `egress` de la politique
 retire du même coup la règle que le superviseur appliquait. Aucun état intermédiaire ne compile avec
@@ -78,6 +79,25 @@ Le cas v3 vu rouge ne portait pas encore l'agent scripté ni l'assertion qu'aucu
 changement n'est affiché : ils ont été ajoutés avant le correctif, pour qu'un démarrage que le refus
 laisserait passer n'appelle aucun modèle.
 
+Le cinquième tour de relecture a montré qu'après réparation du fichier en cours de session, la
+commande suivante créait le runtime sans lier la session à son changement ni annoncer ses
+diagnostics, et qu'un lien symbolique pendant passait pour un fichier absent. Le propriétaire a
+choisi que la réparation impose une nouvelle session. Les tests ont été écrits d'abord et vus rouges
+sur l'arbre de `5e43a7d`, puis commités avec le correctif dans `2908ec6` :
+
+```
+node --test test/v1/model-admitted.test.ts   1 échec sur 6
+  ✖ refuses a file it cannot open, a dangling link included, without naming where it lies
+node --test --test-name-pattern="stays refused" test/v3/pi-rpc-sdk.test.ts   1 échec sur 1
+  AssertionError: the refusal reaches the model's context once per command, not once more for the session
+    actual: 2, expected: 1
+```
+
+Trois mutations, injectées puis retirées à `2908ec6`, tombent chacune sur un test de
+`test/v1/model-admitted.test.ts` : la valeur d'une section recopiée au refus, le chemin ajouté au
+refus d'un JSON invalide, et `existsSync` rétabli pour juger la présence du fichier. Les deux
+premières passaient les tests de `5e43a7d`.
+
 Deux contrôles négatifs tiennent les tests resserrés à `67740c4`, par mutation injectée puis
 retirée :
 
@@ -99,7 +119,11 @@ Aucun constat nouveau sur les chemins touchés.
   Les autres réglages sont lus comme avant. Un fichier illisible, ou dont une section n'est pas un
   objet, lève `CONFIGURATION_ERROR` et aucun changement ne tourne ; le refus ne cite ni le texte du
   fichier (BUG-2026-09-23T173000, corrigé dans `dcdd890`) ni son chemin, et les arbitrages humains
-  qu'il porte ne passent pas au noyau (BUG-2026-09-23T184520, corrigé dans `bda51c7`).
+  qu'il porte ne passent pas au noyau (BUG-2026-09-23T184520, corrigé dans `bda51c7`). Le refus
+  tient jusqu'à une nouvelle session, et un lien symbolique pendant est refusé (`2908ec6`).
+- `src/extension/session.ts` — un runtime qui n'a pas pu être créé reste refusé pour la session, et
+  son échec n'est plus mis en attente pour être dit une seconde fois avant la réponse de la
+  commande : le refus atteint le contexte du modèle une fois par commande.
 - `src/domain/policy.ts` — la situation n'y garde aucun type. `EgressLocation`, qui n'avait plus
   de lecteur, est retiré ; e25s03 introduit le sien quand il la lit de l'adresse du modèle.
 - `src/application/intervention.ts` — `requireCapable` juge encore le bac à sable et les capacités
@@ -122,9 +146,9 @@ e25s04.
 
 ## État final
 
-`npm run build && npm run check` est vert à `bda51c7` avec 382 tests. L'assertion sur la politique
+`npm run build && npm run check` est vert à `2908ec6` avec 383 tests. L'assertion sur la politique
 du noyau, que le type garantit déjà, est retirée, et le test des entrées Pi porte aussi le diagnostic
 d'une clé `policy.egress` ignorée. Retirer l'émission de ce diagnostic fait échouer ce test en mode
 texte. Le fournisseur admis dans les tests v2 n'est nommé nulle part dans 495, chaque forme
 malformée de la clé est annoncée mot pour mot comme une liste, et un fichier illisible arrête tout
-changement par un refus qui ne cite ni son texte ni son chemin.
+changement jusqu'à une nouvelle session, par un refus qui ne cite ni son texte ni son chemin.

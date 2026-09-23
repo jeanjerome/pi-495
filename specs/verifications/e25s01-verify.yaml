@@ -3,7 +3,11 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: bda51c7
+revision: 2908ec6
+revised_at: "2026-09-23T18:44:36Z"
+revision_note: >
+  verified_at and confirmed_at date the acceptance on the three campaigns; the revision and the
+  terminal verdict were moved to 2908ec6 afterwards, for the unreadable-file refusal only.
 
 environment:
   pi_version: "0.87.1"
@@ -27,6 +31,9 @@ phases:
       "495 error: CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON; no change
       runs until it is fixed or removed", said once as the session's diagnostic and once as the
       command's answer, and no ledger created in the data directory (BUG-2026-09-23T184520, fixed).
+      Since 2908ec6 the refusal ends with "and a new Pi session is started", holds for the rest of
+      the session, and is said once per command; test/v3/pi-rpc-sdk.test.ts drives a real RPC
+      session through the repair.
   build:
     passed: true
     command: "npm run build"
@@ -39,25 +46,26 @@ phases:
     note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
   tests:
     passed: true
-    count: 382
+    count: 383
     note: >
-      382 of 382. 393 on main: 21 tests of the list and its refusal removed, 10 added. The two
+      383 of 383. 393 on main: 21 tests of the list and its refusal removed, 11 added. The two
       sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
       asserts the ignored-key diagnostic, and the refusal of `/495 start` under an unreadable file, in
-      the print and JSON entries.
+      the print and JSON entries; test/v3/pi-rpc-sdk.test.ts, that the refusal lasts until a new
+      session reads the repaired file.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T18:05:09Z"
-  ended_at: "2026-09-23T18:06:41Z"
+  started_at: "2026-09-23T18:42:59Z"
+  ended_at: "2026-09-23T18:44:36Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the code committed as bda51c7, right after
-    `npm run build`. 382 tests passing, 0 failing. No output from any other attempt is merged into
+    Single contiguous run under Node 24.21.0 on the code committed as 2908ec6, right after
+    `npm run build`. 383 tests passing, 0 failing. No output from any other attempt is merged into
     this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
     remove a type nothing read, restructure the policy read without changing what it loads, stop
     quoting the parser's message for an unreadable file, refuse an unreadable file instead of
-    loading the defaults, and change comments and tests. None of the three campaigns had an
+    loading the defaults until a new session, and change comments and tests. None of the three campaigns had an
     unreadable file, so the refusal does not bear on them.
 
 task_verify_commands:
@@ -138,7 +146,9 @@ manual:
     day the refusal after bda51c7 by running it: in a terminal, on a data directory holding a
     config.json that does not parse, `/495 start essai` answered "config.json cannot be read: it is
     not valid JSON; no change runs until it is fixed or removed". In print mode the text reaches
-    stderr, as every extension output does under `pi -p`.
+    stderr, as every extension output does under `pi -p`. At 2908ec6 the same refusal adds "and a
+    new Pi session is started"; that wording, and the refusal lasting for the session, rest on
+    tests and have not been shown to the owner.
   steps:
     - step: "Sans configuration, le fournisseur du modèle choisi est admis (§5)"
       expected: "L'intervention démarre, le journal inscrit le fournisseur, aucun diagnostic sur le modèle"
@@ -163,7 +173,9 @@ manual:
       actual: >
         Démarrage à froid e25s01-illisible-refuse, après bda51c7 — `/495 start` répond
         « CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON; no change runs until it
-        is fixed or removed », aucun journal n'est créé, rien du fichier n'est cité. Les deux démarrages
+        is fixed or removed », aucun journal n'est créé, rien du fichier n'est cité. Depuis 2908ec6 le
+        refus ajoute « and a new Pi session is started » et tient toute la session (session RPC
+        réelle, par test). Les deux démarrages
         antérieurs, sous le critère d'avant la décision du propriétaire, annonçaient le fichier ignoré :
         « Unexpected end of JSON input », puis « it is not valid JSON » après dcdd890. Un fichier qui
         ne s'ouvre pas, et chaque section qui n'est pas un objet, par test seulement.

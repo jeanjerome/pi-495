@@ -235,7 +235,7 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..bda51c7`, 23 fichiers, dont 5 de production |
+| Périmètre | `git diff 1e7fd3e..2908ec6`, 25 fichiers, dont 5 de production et un script |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
@@ -292,9 +292,13 @@ session sous les réglages par défaut, et un arbitrage humain écrit dans le fi
 (`adoption.design: human`, `g5_human_acceptance`) serait passé au noyau (BUG-2026-09-23T184520). Le
 propriétaire a tranché le 2026-09-23 : `loadConfig` lève `CONFIGURATION_ERROR` sur un fichier qui ne
 s'ouvre pas, qui n'est pas du JSON, qui n'est pas un objet, ou dont une section (`policy`,
-`policy.budgets`, `policy.adoption`, `isolation`, `human_origin`) n'en est pas un. Le runtime ne se
-crée pas, et chaque `/495` répond par ce refus jusqu'à ce que le fichier soit réparé ou retiré.
-Aucun journal n'est ouvert. Une section qui n'est pas un objet ne répand donc plus ses caractères
+`policy.budgets`, `policy.adoption`, `isolation`, `human_origin`) n'en est pas un ; un lien
+symbolique dont la cible a disparu est un fichier qui ne s'ouvre pas, pas un fichier absent. Le
+runtime ne se crée pas, et chaque `/495` répond par ce refus jusqu'à ce que le fichier soit réparé
+ou retiré et qu'une nouvelle session soit ouverte : seule l'ouverture de session lie la session à
+son changement et annonce les diagnostics, si bien qu'un runtime créé plus tard tournerait sans
+liaison et sans rien annoncer (`session.ts`, `runtimeFailure`). Le refus atteint le contexte du
+modèle une fois par commande. Aucun journal n'est ouvert. Une section qui n'est pas un objet ne répand donc plus ses caractères
 dans la politique ; un champ du mauvais type y entre encore (BUG-2026-09-23T184521, ouvert).
 
 **La vérification de capacité reste jugée avant tout engagement.** `requireCapable` juge le bac à
@@ -318,9 +322,10 @@ et rend D-53 sans objet. Ce n'est pas un constat : c'est la décision du propri�
 
 ## Observations sous le seuil de report (confiance < 8, non bloquantes)
 
-**Un `policy` qui n'est pas un objet est étalé tel quel.** Une chaîne écrite à `policy` serait étalée
-caractère par caractère dans la politique active ; aucun champ ainsi introduit ne porte de nom que le
-noyau lise. Ce défaut est ouvert au registre sous BUG-2026-09-23T184521.
+**Un champ du mauvais type entre dans la politique.** Une section qui n'est pas un objet est refusée
+depuis `bda51c7`, mais aucun champ n'est vérifié : `max_attempts: "abc"` est chargé tel quel, et
+`policy.baseline`, qui n'est pas fusionné avec son défaut, peut perdre `compare_to_reference`. Ce
+défaut est ouvert au registre sous BUG-2026-09-23T184521.
 
 **Changements bloqués avant la story.** Un changement bloqué sous `policy_denied` au titre de sa
 destination repart, à la reprise, vers le fournisseur choisi. C'est l'effet voulu : le motif de

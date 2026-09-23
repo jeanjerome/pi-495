@@ -84,7 +84,10 @@ diagnostic ne reproduit pas son contenu. L'annonce compte parce que qui a écrit
 restreindre les destinations doit apprendre qu'elle ne restreint plus rien.
 
 6b. **Fichier illisible** — un fichier qui ne se lit pas, ou dont une section n'est pas un objet,
-arrête tout changement jusqu'à ce qu'il soit réparé ou retiré. Il ne cède pas la place aux réglages
+arrête tout changement jusqu'à ce qu'il soit réparé ou retiré et qu'une nouvelle session Pi soit
+ouverte. Un lien symbolique dont la cible a disparu est un fichier qui ne s'ouvre pas, pas un
+fichier absent. Le refus tient toute la session parce que seule l'ouverture de session lie la
+session à son changement et annonce les diagnostics. Il ne cède pas la place aux réglages
 par défaut : un réglage qu'il porte peut réserver une décision à un humain, et les défauts la
 remettraient au noyau. Le refus dit ce qui ne va pas, sans citer le texte du fichier ni son chemin,
 parce qu'il atteint le contexte du modèle de la session. Décision du propriétaire du 2026-09-23 :
@@ -210,6 +213,7 @@ Scenario: Un fichier illisible arrête tout changement au lieu de céder aux dé
   When  un changement est demandé
   Then  il est refusé comme une erreur de configuration, et aucun changement ne démarre
   And   le refus ne cite ni le texte du fichier ni son chemin
+  And   le fichier réparé n'est lu qu'à l'ouverture d'une nouvelle session
 
 Scenario: Un modèle sans fournisseur reste refusé par la capacité (6c)
   Given une sélection de modèle dont le fournisseur est vide
@@ -255,6 +259,9 @@ fixe le sens de « modèle choisi » (`sens_du_modele_choisi`).
 - `specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/epic.yaml` — position de la story et
   décision du propriétaire.
 - Fichiers touchés : `src/domain/policy.ts`, `src/extension/config.ts`,
-  `src/application/intervention.ts`, `test/v1/egress.test.ts`, `test/v2/egress-refusal.test.ts`,
+  `src/extension/session.ts`, `src/application/intervention.ts`, `src/application/harness.ts`,
+  `scripts/measure-budgets.ts`, `test/v1/egress.test.ts`, `test/v1/model-admitted.test.ts`,
+  `test/v2/egress-refusal.test.ts`, `test/v2/model-admitted.test.ts`,
   `test/v2/imposed-layers-divergence.test.ts`, `test/v2/harness.test.ts`,
-  `test/helpers/harness-fixture.ts`, `README.md`.
+  `test/v3/pi-entries.test.ts`, `test/v3/pi-rpc-sdk.test.ts`, `test/helpers/harness-fixture.ts`,
+  `README.md`.

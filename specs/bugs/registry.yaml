@@ -53,7 +53,11 @@ bugs:
       ("refuses an unreadable file instead of running under the defaults") holds the refusal, and a cold
       start of the built extension on a file keeping `adoption.design: human`, closing brace missing,
       answers `/495 start` with `CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON;
-      no change runs until it is fixed or removed` and creates no ledger.
+      no change runs until it is fixed or removed` and creates no ledger. Since 2908ec6 the refusal
+      lasts until a new session is started, since a runtime created later in the same session would
+      run unbound and announce nothing, and a config.json that is a dangling link is refused rather
+      than read as absent; test/v3/pi-rpc-sdk.test.ts holds the first, test/v1/model-admitted.test.ts
+      the second.
     risk_level: medium
     follow_ups: >
       none — the owner decided on 2026-09-23 that an unreadable config.json stops every change until
@@ -70,7 +74,10 @@ bugs:
       `policy`, `policy.budgets` and `policy.adoption` were spread into the active policy without checking
       that they are objects, so a string or a list put index keys ("0", "1", …) into the policy. Since
       bda51c7 a section that is not an object makes the file unreadable, and no change runs. No field
-      value is type-checked yet, so `max_attempts: "abc"` is still loaded as written.
+      value is type-checked yet, so `max_attempts: "abc"` is still loaded as written. `policy.baseline`
+      is object-valued but is neither checked nor merged over its default: `"x"` is loaded as is, and
+      `{"tolerance":"no_aggravation"}` drops `compare_to_reference`, so the comparison with the
+      reference is skipped (`src/application/verification.ts`).
     what_expected: >
       A malformed section is refused or announced, and a field of the wrong type does not reach the
       policy.

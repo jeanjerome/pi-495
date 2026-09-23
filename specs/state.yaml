@@ -10,8 +10,42 @@ active_epic_id: e25
 active_story: e25s01
 
 handoff:
-  next_skill: request-review
+  next_skill: null
   last_step_completed: >
+    `respond-review` a traité le cinquième tour le 2026-09-23. Le propriétaire a choisi que la
+    réparation d'un `config.json` illisible impose une nouvelle session. Corrigés dans `2908ec6`,
+    tests vus rouges d'abord : un runtime qui n'a pas pu être créé reste refusé pour le reste de la
+    session (`runtimeFailure` dans `session.ts`), et son échec n'est plus dit deux fois avant la
+    réponse de la commande ; un `config.json` lien symbolique pendant est refusé (`lstatSync` au lieu
+    de `existsSync`) ; chaque corps refusé porte un marqueur, et chaque refus est vérifié sans le
+    marqueur ni le chemin (les deux mutations passées au cinquième tour tombent) ;
+    `scripts/measure-budgets.ts` rend le refus par `fail()` et ne filtre plus un préfixe disparu ; le
+    README dit qu'un fichier illisible bloque tout `/495` jusqu'à une nouvelle session. Une session
+    RPC réelle (`test/v3/pi-rpc-sdk.test.ts`) tient la règle. `REVIEW.md`, le registre (dont
+    `policy.baseline` ajouté à BUG-2026-09-23T184521), le relevé rouge-vert, la spécification (6b,
+    scénario, §20), la tâche 1, `e25s01-verify.yaml` et `NFR-e25s01.json` sont à jour. Écarté avec
+    motif : `retryable: false`, désormais exact puisque le refus n'est pas levé dans la session.
+    Preflight vert avec 383 tests sous Node 24. Plafond de relecture atteint : ces corrections n'ont
+    pas été relues par un relecteur neuf, et la fusion attend la décision du propriétaire.
+
+    Le cinquième et dernier tour de `request-review` (5 sur 5) a été conduit le 2026-09-23 avec deux
+    relecteurs neufs, sur `5e43a7d` : A 77,8 % avec un défaut bloquant, B 88,2 % sans ; porte refusée
+    pour les deux. Plafond de relecture atteint : la décision revient au propriétaire, et la branche
+    n'est pas fusionnée. Preflight vert avec 382 tests chez les deux. Relevé par les deux : après
+    réparation d'un `config.json` illisible en cours de session, la commande suivante crée le runtime
+    sans résoudre la liaison de la session ni annoncer ses diagnostics — seul `openedAt` le fait —,
+    donc `/495 status` dit la session non liée, la garde « déjà liée » de `start` est contournée, et
+    `HARNESS495_ALLOW_UNCONFINED` ou `policy.egress` ne sont jamais annoncés (A : bloquant ; B : à
+    corriger) ; un `config.json` lien symbolique pendant est lu comme absent (`existsSync` suit le
+    lien) et charge les défauts sans rien dire ; aucun test ne ferait tomber un refus qui recopie la
+    valeur d'une section, ni le chemin hors du cas `EACCES` ; `REVIEW.md` garde une observation qui dit
+    une section non-objet étalée caractère par caractère. Selon A : `scripts/measure-budgets.ts` filtre
+    un préfixe « config.json ignored » qui n'existe plus et n'attrape pas le refus. À peser : le README
+    ne dit pas qu'un fichier illisible bloque tout `/495` ; le refus est dit deux fois dans tous les
+    modes, pas seulement en texte ; `retryable: false` pour un refus que la réparation lève ;
+    `policy.baseline` échappe au contrôle de forme (antérieur) ; `verified_at` précède `bda51c7` ;
+    §20 de la spécification omet des fichiers touchés ; le nom `section()` appliqué au fichier entier.
+
     `respond-review` a traité le quatrième tour le 2026-09-23. Le propriétaire a tranché le même jour
     qu'un `config.json` illisible arrête tout changement au lieu de céder aux réglages par défaut.
     Corrigés dans `bda51c7`, tests vus rouges d'abord : `loadConfig` lève `CONFIGURATION_ERROR` sur un
