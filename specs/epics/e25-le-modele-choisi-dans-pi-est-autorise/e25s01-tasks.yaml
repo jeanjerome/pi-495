@@ -8,7 +8,7 @@
 story_id: e25s01
 spec: e25s01-le-fournisseur-du-modele-choisi-est-admis-sans-configuration.md
 title: "Le fournisseur du modèle choisi est admis sans configuration"
-status: failing
+status: passing
 bcps: 3
 requirement: SEC-05
 delta: MODIFIED
@@ -32,7 +32,7 @@ tasks:
       Aucun constat nouveau sur src/domain/policy.ts et src/extension/config.ts. Le diagnostic ne
       reproduit pas le contenu de la clé ignorée ; aucun autre réglage de la politique ne change
       de sens.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -52,7 +52,7 @@ tasks:
       Aucun constat nouveau sur src/application/intervention.ts. La vérification de capacité reste
       jugée avant tout engagement. L'environnement remis au worker reste une liste fermée, et les
       tests du secret sentinelle de e23s01 passent inchangés.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -66,7 +66,7 @@ tasks:
     verify: "! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts"
     risk: P2
     security: low
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories:
@@ -80,7 +80,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

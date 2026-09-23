@@ -10,10 +10,15 @@ active_epic_id: e25
 active_story: e25s01
 
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   last_step_completed: >
     `e25` EST ENGAGÉ sur décision du propriétaire du 2026-09-23 ; sa capsule est découpée en quatre
-    stories (14 points). `e25s01` est planifiée (spécification et tâches rouges) ; le suivant est `develop-tdd` sur elle.
+    stories (14 points). `e25s01` a ses quatre tâches passantes sur la branche
+    `le-modele-choisi-est-admis`, avec Preflight vert et 382 tests. La politique ne porte plus de liste
+    de destinations. Une clé `policy.egress` restée dans `config.json` est ignorée et annoncée à
+    l'ouverture, et le README démarre en deux étapes. Le cycle rouge-vert et la revue de sécurité sont
+    dans `specs/verifications/e25s01-cycle-rouge-vert.md`. Le suivant est `verify-work` sur elle ;
+    la branche n'est pas fusionnée.
     « Le modèle choisi dans Pi » désigne le modèle sélectionné au démarrage de l'intervention :
     AGT-07 l'exige, et le premier usage passe par `/model` avant `/495 start` (motif écrit dans la
     capsule, clé `sens_du_modele_choisi`). Le propriétaire a tranché le même jour que `config.json`
