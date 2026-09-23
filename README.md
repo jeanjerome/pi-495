@@ -72,35 +72,14 @@ Pi registers this local directory. Keep it in place; after updating the source, 
 
 Install from one source only, so that a single copy of the extension loads.
 
-### 2. Declare your model provider
-
-Configure and authenticate your model in Pi, then declare its provider in `~/.495/config.json` (or in `$HARNESS495_DATA_DIR/config.json` if you use a custom data directory).
-
-Example for a hosted model configured under Pi's `openai` provider:
-
-```json
-{
-  "language": "en",
-  "policy": {
-    "egress": [
-      { "provider_id": "openai", "location": "off_machine" }
-    ]
-  }
-}
-```
-
-Use the **exact provider ID configured in Pi**. For a local endpoint, use its provider ID and `"location": "on_machine"`. Merge these fields if the file already exists, then start a new Pi session.
-
-The current configuration defaults to the local provider `omlx` when `egress` is omitted. Other providers need an explicit declaration. `location` records your declaration; it does not inspect the endpoint's actual network location.
-
-### 3. Start a change in your project
+### 2. Start a change in your project
 
 ```bash
 cd /path/to/your-project
 pi
 ```
 
-Select your configured model in Pi, then enter:
+Configure and authenticate your model in Pi, select it with `/model`, then enter:
 
 ```text
 /495 start add a retry with backoff to the upload client
@@ -132,7 +111,7 @@ Integration is disabled by default. To allow it, set `policy.integration_enabled
 | 👀 **Human-in-the-loop review** | Inspect the file tree and candidate content in the terminal, open highlighted diffs, and record human decisions with their origin. |
 | ⏯️ **Resumable workflows** | Pause and resume a change. Bound attempts, intervention duration and tool calls; eligible interrupted producers continue on their existing workspace. |
 | 🔗 **Verifiable audit trail** | Keep artifacts, evidence and hash-chained events. Export a dossier with an offline integrity verifier that runs with Node alone. |
-| 🤖 **Local and hosted models** | Use the model selected in Pi, subject to authentication, capability checks and your provider declaration. No silent model substitution. |
+| 🤖 **Local and hosted models** | Use the model selected in Pi, subject to authentication and capability checks. No silent model substitution. |
 | 🖥️ **Pi-native surfaces** | TUI, RPC, JSON and print expose the same underlying change state. Human actions depend on the surface's ability to supply a human origin. English and French are available. |
 
 ## How it works
@@ -185,7 +164,7 @@ A [recorded qualification case](specs/verifications/e23-deux-fournisseurs.md) re
 <details>
 <summary><strong>Execution boundaries and evidence</strong></summary>
 
-- The provider declaration is an application policy keyed by provider ID, not a network destination firewall. The model worker needs network access; tools and controls have their own confinement profiles.
+- Selecting a model in Pi admits its provider; 495 keeps no list of destinations of its own. The model worker needs network access; tools and controls have their own confinement profiles.
 - Model qualification can issue a small tool-call probe, cached per provider/model pair for the session. A hosted provider may bill that request.
 - Budget controls currently cover attempts, time, continuations and tool calls; they are not a monetary spending cap.
 - `export --redact` masks recognized secret patterns. Review a dossier before sharing it; pattern matching does not guarantee that every sensitive value was removed.
@@ -243,7 +222,6 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 
 | Setting in `config.json` | Purpose |
 | --- | --- |
-| `policy.egress` | Allowed provider IDs, each declared `on_machine` or `off_machine`. |
 | `policy.budgets` | Attempts, technical retries, continuations, time limits, tool-call limits and feedback size. |
 | `policy.adoption` | Kernel or human adoption of the mandate, requirements and design; protocol adoption remains with the kernel. |
 | `policy.required_reviews` | Review roles required for acceptance. |
