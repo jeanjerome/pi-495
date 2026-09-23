@@ -8,7 +8,7 @@ import { loadConfig } from "../../src/extension/config.ts";
 /** A provider name no default carries, so finding it in a diagnostic can only mean it was echoed. */
 const PRIVATE_PROVIDER = "provider-kept-private-7f3a";
 
-describe("a configuration that carries no model setting (SEC-05)", () => {
+describe("a configuration that neither admits nor refuses a provider (SEC-05)", () => {
 	let root: string;
 	beforeEach(() => {
 		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
@@ -67,9 +67,9 @@ describe("a configuration that carries no model setting (SEC-05)", () => {
 			assert.equal("egress" in config.policy, false, `${JSON.stringify(value)} must not reach the policy`);
 			assert.equal(ignoredKey(diagnostics).length, 1, `${JSON.stringify(value)}: ${diagnostics.join(" | ")}`);
 			assert.equal(
-				diagnostics.some((d) => /refused/.test(d)),
-				false,
-				`${JSON.stringify(value)} refuses nothing: ${diagnostics.join(" | ")}`,
+				diagnostics.length,
+				1,
+				`${JSON.stringify(value)} announces nothing else: ${diagnostics.join(" | ")}`,
 			);
 		}
 	});
@@ -79,15 +79,12 @@ describe("a configuration that carries no model setting (SEC-05)", () => {
 			writeFileSync(join(root, "config.json"), body);
 			const { config, diagnostics } = loadConfig(root);
 			assert.equal("egress" in config.policy, false);
-			assert.ok(
-				diagnostics.some((d) => d.startsWith("config.json ignored")),
-				`${body}: ${diagnostics.join(" | ")}`,
-			);
 			assert.equal(
-				diagnostics.some((d) => /refused/.test(d)),
-				false,
+				diagnostics.length,
+				1,
 				`there is no list left whose absence would refuse: ${diagnostics.join(" | ")}`,
 			);
+			assert.ok(diagnostics[0]?.startsWith("config.json ignored"), `${body}: ${diagnostics.join(" | ")}`);
 		}
 	});
 });

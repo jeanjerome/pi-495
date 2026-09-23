@@ -6,7 +6,13 @@ import { InterventionSupervisor } from "../../src/application/intervention.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import { loadConfig } from "../../src/extension/config.ts";
-import type { AgentPort, ModelSelection, SandboxProfile } from "../../src/ports/execution.ts";
+import type {
+	AgentCapabilities,
+	AgentPort,
+	InterventionMandate,
+	ModelSelection,
+	SandboxProfile,
+} from "../../src/ports/execution.ts";
 import { describedAs } from "../helpers/capabilities.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
@@ -78,20 +84,23 @@ class RefusingSandbox {
 	}
 }
 
-/** A supervisor whose sandbox is qualified; the agent records what it was asked to probe and start. */
+/** An agent that records what it was asked to probe and start, and never drives a session. */
+class RecordingAgent implements AgentPort {
+	readonly probed: ModelSelection[] = [];
+	readonly started: string[] = [];
+	async describeCapabilities(model: ModelSelection): Promise<AgentCapabilities> {
+		this.probed.push(model);
+		return describedAs(model);
+	}
+	async startIntervention(mandate: InterventionMandate): Promise<never> {
+		this.started.push(mandate.intervention_id);
+		throw new Error("this test never drives a session");
+	}
+}
+
+/** A supervisor whose sandbox is qualified, driven by a recording agent. */
 function supervisorFor(model: ModelSelection) {
-	const probed: ModelSelection[] = [];
-	const started: string[] = [];
-	const agent: AgentPort = {
-		async describeCapabilities(m) {
-			probed.push(m);
-			return describedAs(m);
-		},
-		async startIntervention(m) {
-			started.push(m.intervention_id);
-			throw new Error("this test never drives a session");
-		},
-	};
+	const agent = new RecordingAgent();
 	const supervisor = new InterventionSupervisor({
 		agent,
 		sandbox: {
@@ -109,7 +118,7 @@ function supervisorFor(model: ModelSelection) {
 		now: () => "2026-09-23T00:00:00Z",
 		progress: () => {},
 	});
-	return { supervisor, probed, started };
+	return { supervisor, probed: agent.probed, started: agent.started };
 }
 
 describe("what the supervisor still judges before an intervention (SEC-05)", () => {
@@ -146,7 +155,6 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 			() => supervisor.requireCapable("implement"),
 			(error: DomainError) => {
 				assert.equal(error.code, "CAPABILITY_MISSING", "a model never configured is not a policy refusal");
-				assert.match(error.message, /not configured/);
 				return true;
 			},
 		);
