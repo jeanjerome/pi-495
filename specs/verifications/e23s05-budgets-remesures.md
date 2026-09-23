@@ -58,8 +58,10 @@ borne faisait partie d'un lot.
   les appels 3 et 4.
 
 Dans les deux cas, tous les `read` du dernier lot finissent en erreur, en moins de deux
-millisecondes, y compris ceux qui tenaient dans la borne : deux côté distant, un côté local. Le
-dossier ne garde pas le texte de ces erreurs. La spécification étant refaite depuis le début, rien
+millisecondes, y compris ceux qui tenaient dans la borne : deux côté distant, un côté local. Dès
+qu'un appel dépasse, le worker interrompt toute la session (`worker-main.ts`), et les appels encore
+en vol sont coupés. Seul l'appel refusé porte `blocked`, et il a été refusé avant de s'exécuter.
+Le dossier ne garde pas le texte de ces erreurs. La spécification étant refaite depuis le début, rien
 de ce que ces lectures auraient rendu n'était à garder. Le journal compte trois appels pour l'intervention arrêtée, car l'appel refusé n'est pas
 inscrit. Le worker en compte quatre.
 
@@ -226,10 +228,18 @@ démarré le changement : qu'une session neuve ait porté la relance se déduit 
 `HARNESS495_RPC_HUMAN_ACTOR`, la commande n'a aucune origine humaine à transmettre. La relance y
 reste inscrite au nom du noyau. Aucune campagne ne l'a exercée.
 
-**La borne de durée.** Aucune intervention n'a approché les 20 minutes. La fin d'une intervention
-tronquée par la durée garde « the workspace keeps the unfinished work » pour tous les rôles. C'est
-faux pour la spécification, dont l'espace est effacé à la fin de l'intervention. Ce défaut n'est
-pas corrigé : ce que la durée fait des rôles autres que le producteur relève de `D-19`.
+**La borne de durée, hors du producteur.** Aucune intervention réelle n'a approché les 20 minutes.
+`D-19` ne décide que pour le producteur, qui reprend de lui-même sur son espace de travail. Pour
+les trois autres rôles, rien n'est décidé. Une sonde jetable sur l'agent scripté montre que la
+borne de durée y produit le désordre que cette story a retiré à la borne d'appels :
+- la spécification coupée bloque le changement comme une erreur de configuration ;
+- la préparation coupée voit sa suite partielle jugée, puis une seconde préparation démarre d'elle-même ;
+- la revue coupée laisse G5 indéterminée, et une nouvelle tentative d'implémentation démarre sans le
+  propriétaire.
+
+Dans les trois cas, la fin inscrite dit « the workspace keeps the unfinished work ». Le vrai
+worker, coupé par la durée, finit bien `completed` avec `truncated`, la forme que l'agent scripté
+reproduit. Rien de cela n'est corrigé.
 
 **Une facture.** Le coût est le calcul de l'hôte au tarif de son catalogue. Aucun montant n'est lu
 sur ce que le fournisseur facture.

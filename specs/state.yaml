@@ -27,9 +27,12 @@ handoff:
     `e23s05-relance-locale`, arrêtée puis relancée au nom de `jeanjerome`.
 
     CE QUI RESTE OUVERT, CONSTATÉ SANS ÊTRE CORRIGÉ.
-    1. La fin d'une intervention tronquée par la durée dit « the workspace keeps the unfinished
-       work » pour tous les rôles. C'est faux pour la spécification, dont l'espace est effacé à la
-       fin de l'intervention. Ce que la durée fait des autres rôles relève de `D-19`.
+    1. La borne de durée n'a d'effet décidé que pour le producteur (`D-19`). Une sonde sur l'agent
+       scripté montre le reste. La spécification coupée bloque le changement comme une erreur de
+       configuration. La préparation coupée voit sa suite partielle jugée, puis une seconde
+       préparation démarre. La revue coupée laisse G5 indéterminée, et une nouvelle tentative
+       d'implémentation démarre sans le propriétaire. La fin inscrite dit partout « the workspace
+       keeps the unfinished work ». Le vrai worker coupé par la durée finit bien en `truncated`.
     2. Sur un même cas, le modèle local a tourné à 4,6, 2,5 puis 6,1 appels par minute, de part et
        d'autre de la bascule à 5. Le commentaire de `policy.ts` et `D-59` décrivent la seule mesure
        à 4,6, et « sur le modèle local, la durée tombe la première » ne vaut que pour elle.
