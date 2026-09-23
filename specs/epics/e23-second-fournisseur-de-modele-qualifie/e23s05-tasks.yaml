@@ -26,7 +26,7 @@ tasks:
       l'afficher nul.
     verify: "node scripts/measure-budgets.ts ~/.495-campagnes/e23-distant"
     risk: P2
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories:

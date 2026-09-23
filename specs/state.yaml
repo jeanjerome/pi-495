@@ -12,6 +12,28 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    TÂCHE 1 D'`e23s05` TENUE. Rouge commité seul, puis vert ; Preflight vert, 362 tests.
+    `node scripts/measure-budgets.ts <dossier>` relit un dossier conservé en lecture seule, sans
+    ouvrir Pi. Pour chaque intervention, il donne les appels d'outils, la durée, le débit, les jetons
+    et le coût, puis la borne qui tomberait la première à ce débit, présentée comme une projection.
+    Il donne aussi le même calcul pour l'ensemble du dossier. Un coût absent du dossier est « non
+    inscrit », un coût que l'hôte n'a pas pu totaliser est « inconnu » avec sa raison, et le total
+    ne devient « au moins » qu'avec une part connue : aucun zéro n'est jamais affiché. Les bornes
+    viennent de `config.json` tel qu'il est au moment de la relecture, par le chargeur de
+    l'extension. Le journal ne garde pas celles sous lesquelles la campagne a tourné, et la sortie le
+    dit. Le test écrit ses dossiers par le vrai journal. Sur les deux dossiers d'`e23s04`, la
+    relecture retrouve les chiffres du relevé : 16,0 appels par minute et 6 min 15 s en distant,
+    4,6 par minute et 92 appels en local. La lecture d'un dossier est désormais partagée avec
+    `compare-dossiers.ts` (`scripts/lib/dossier.ts`), dont la sortie est restée identique sur
+    quatre paires de dossiers.
+
+    UN FAIT POUR LA TÂCHE 4. La bascule est à 5 appels par minute (100 appels en 20 minutes). Le
+    débit d'ensemble du modèle local est en dessous, et la durée y tombe la première. Mais sa
+    spécification a tourné à 5,3 appels par minute : à ce débit, c'est le nombre d'appels qui tombe
+    le premier, au bout de 18 min 42 s. « Sur le modèle local, c'est la durée » vaut donc pour le
+    débit d'ensemble, pas pour chaque intervention. Le motif écrit à côté des bornes doit le dire.
+    Suite prévue : tâche 4.
+
     TÂCHE 2 D'`e23s05` TENUE, sur la branche `borne-d-appels-et-cout`. Rouge commité seul, puis
     vert ; Preflight vert, 354 tests. Chaque `intervention.finished` porte un `cost` : le total que
     l'hôte calcule pour la session (`getSessionStats()`), lu par le worker avant de fermer la
