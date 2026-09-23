@@ -6,6 +6,10 @@
  * path is the real one: the host reads an OAuth credential whose token carries the subscription
  * prefix, and the Anthropic provider, routed to the stand-in by its catalogue, writes its own block
  * above the harness instructions. Nothing leaves the machine and no quota is spent.
+ *
+ * The host adds a section of its own to the instructions it is given — Pi 0.87.0 closes every
+ * structured prompt with the session's working directory (`buildSystemPromptSections`). That part
+ * is the host's, not the provider's, and the observation keeps the two apart.
  */
 import { strict as assert } from "node:assert";
 import { createServer, type Server } from "node:http";
@@ -196,6 +200,9 @@ const reviewer = (provider_id: string, model_id: string) =>
 		},
 	});
 
+/** The section Pi closes its prompt with, naming the session's working directory. */
+const cwdSection = () => `\n\n<cwd>\n${root}\n</cwd>`;
+
 const observationsIn = (events: InterventionEvent[]): ObservedLayers[] =>
 	events.flatMap((e) => (e.type === "imposed_layers_observed" ? [e.observation] : []));
 
@@ -223,6 +230,7 @@ describe("each provider request is observed through the hook Pi publishes (CTX-0
 				api: provider === "anthropic" ? "anthropic-messages" : "openai-completions",
 				above_local_instructions: above,
 				below_local_instructions: [],
+				added_by_host: [cwdSection()],
 			});
 		});
 	}
@@ -237,6 +245,7 @@ describe("each provider request is observed through the hook Pi publishes (CTX-0
 				api: "anthropic-messages",
 				above_local_instructions: [IMPOSED],
 				below_local_instructions: [],
+				added_by_host: [cwdSection()],
 			},
 		]);
 	});
@@ -263,7 +272,13 @@ describe("each provider request is observed through the hook Pi publishes (CTX-0
 		assert.ok(!existsSync(agentMarker), "an agent-directory extension was loaded into the worker");
 		assert.ok(!existsSync(projectMarker), "a project extension was loaded into the worker");
 		assert.deepEqual(observationsIn(events), [
-			{ status: "observed", api: "openai-completions", above_local_instructions: [], below_local_instructions: [] },
+			{
+				status: "observed",
+				api: "openai-completions",
+				above_local_instructions: [],
+				below_local_instructions: [],
+				added_by_host: [cwdSection()],
+			},
 		]);
 	});
 
@@ -278,10 +293,21 @@ describe("each provider request is observed through the hook Pi publishes (CTX-0
 				},
 			},
 		);
-		assert.equal(observer.observe(hostile), undefined, "the request is left as it was built");
-		assert.equal(reported.length, 1);
-		assert.equal(reported[0]?.status, "not_observed");
-		assert.match(reported[0]?.status === "not_observed" ? reported[0].reason : "", /cannot be read/);
+		assert.equal(
+			observer.observe(hostile, () => LOCAL),
+			undefined,
+			"the request is left as it was built",
+		);
+		const request = { messages: [{ role: "system", content: LOCAL }] };
+		const hostSilent = () => {
+			throw new Error("the host's prompt cannot be read");
+		};
+		assert.equal(observer.observe(request, hostSilent), undefined);
+		assert.deepEqual(
+			reported.map((o) => o.status),
+			["not_observed", "not_observed"],
+		);
+		for (const o of reported) assert.match(o.status === "not_observed" ? o.reason : "", /cannot be read/);
 	});
 
 	it("identical requests are reported once, and a request that differs is reported again (6i)", () => {
@@ -290,10 +316,11 @@ describe("each provider request is observed through the hook Pi publishes (CTX-0
 		const request = (leading: string[]) => ({
 			messages: [...leading.map((content) => ({ role: "system", content })), { role: "user", content: "go" }],
 		});
-		observer.observe(request([LOCAL]));
-		observer.observe(request([LOCAL]));
-		observer.observe(request(["a preamble", LOCAL]));
-		observer.observe(request(["a preamble", LOCAL]));
+		const host = () => LOCAL;
+		observer.observe(request([LOCAL]), host);
+		observer.observe(request([LOCAL]), host);
+		observer.observe(request(["a preamble", LOCAL]), host);
+		observer.observe(request(["a preamble", LOCAL]), host);
 		assert.deepEqual(
 			reported.map((o) => (o.status === "observed" ? o.above_local_instructions : o.status)),
 			[[], ["a preamble"]],
