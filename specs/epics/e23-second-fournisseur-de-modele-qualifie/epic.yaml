@@ -59,13 +59,16 @@ stories:
       recette d'AGT-02 sur un parcours complet au lieu de preuves unitaires.
   - id: e23s05
     title: "Les budgets d'intervention sont remesurés sur un modèle frontière"
-    bcps: 2
+    bcps: 5
     delta: MODIFIED
     requirement: AGT-02
     position: >
-      Après la campagne, dont elle consomme la mesure. Les bornes actuelles sont
-      calibrées sur 2,5 appels d'outil par minute ; avec un modèle frontière la borne n'est plus
-      le temps mais la fenêtre d'abonnement.
+      Vient après la campagne, dont elle consomme la mesure. Sur le modèle frontière, la borne
+      d'appels tombe avant la durée ; or elle annule l'intervention là où la durée la suspend. La
+      dépense se compte au jeton, et non sur une fenêtre d'abonnement : l'usage par un harnais tiers
+      est facturé hors des plafonds du plan. Le 2026-09-23, le propriétaire a tranché que la borne
+      d'appels arrête le changement et attend sa relance. La story est passée de 2 à 5 points
+      quand la prémisse est tombée.
 
   - id: e23s06
     title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
@@ -77,7 +80,7 @@ stories:
       d'abonnement. Elle ne corrige pas e23s02, elle la remplace comme source de ce que le modèle a
       reçu — ce qui suppose que la déclaration existe et ait été éprouvée d'abord.
 
-total_bcps: 20
+total_bcps: 23
 
 hors_perimetre:
   - >

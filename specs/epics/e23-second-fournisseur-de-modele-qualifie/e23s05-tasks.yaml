@@ -1,24 +1,136 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests et des fichiers qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+# Le dépôt n'a pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins
+# touchés, et son absence de constat est écrite au moment où la tâche bascule.
+
 story_id: e23s05
+spec: e23s05-les-budgets-d-intervention-sont-remesures-sur-un-modele-frontiere.md
 title: "Les budgets d'intervention sont remesurés sur un modèle frontière"
 status: failing
-bcps: 2
+bcps: 5
 requirement: AGT-02
+delta: MODIFIED
+risk: P0
+context: domain
+type: feat
 
 tasks:
   - id: 1
     description: >
-      Le débit réel d'appels d'outils et la durée d'intervention sont relevés depuis le journal des
-      campagnes, et non estimés. La mesure se relance sur un dossier conservé.
+      La mesure se relit depuis un dossier conservé, sans ouvrir Pi. Pour chaque intervention, elle
+      donne les appels d'outils, la durée, le débit, les jetons et le coût. Elle dit aussi laquelle
+      des bornes en vigueur tombe en premier à ce débit, et le présente comme une projection. Pour
+      un dossier écrit avant que le coût soit inscrit, elle dit que le coût n'y est pas, au lieu de
+      l'afficher nul.
     verify: "node scripts/measure-budgets.ts ~/.495-campagnes/e23-distant"
+    risk: P2
     status: failing
+    allure:
+      severity: normal
+      categories:
+        - "instrument"
+
   - id: 2
     description: >
-      Les bornes par défaut portent ce que la mesure tient, et le motif de chaque borne est écrit
-      à côté d'elle. Avec un modèle frontière la borne n'est plus le temps d'intervention mais la
-      fenêtre d'abonnement : la politique dit laquelle des deux arrête un incrément.
-    verify: "node --test test/v2/verification.test.ts"
+      Le dossier porte, pour chaque intervention, le coût que l'hôte totalise pour la session, et
+      d'où il vient : un calcul au tarif du catalogue de l'hôte, qui dit aussi si le fournisseur est
+      employé par abonnement. La source est `getSessionStats()`, qui agrège toutes les entrées de la
+      session, résumés et rafraîchissements du cache compris (Pi 0.87.0,
+      `core/agent-session.d.ts`). La présence d'un abonnement se lit par
+      `modelRuntime.isUsingSubscription()`, qu'emploie le pied de page de Pi. 495 ne tient aucune
+      table de prix. Un modèle dont le catalogue porte un tarif nul, ou une session qui ne rapporte
+      aucun usage, a un coût inconnu avec sa raison, jamais un coût nul. Le test oppose la lecture à
+      une vraie session de l'hôte. La forme des contrats change : `npm run contracts` est lancé, et
+      rien n'est engagé pendant qu'une campagne tourne.
+    verify: "node --test test/v3/session-cost.test.ts"
+    risk: P1
+    security: low
     status: failing
+    allure:
+      severity: high
+      categories:
+        - "integration"
+
   - id: 3
+    description: >
+      Quel que soit le rôle, une intervention arrêtée par sa borne d'appels arrête le changement sous
+      le motif `budget_exhausted`. Le motif nomme la borne, sa valeur et ce qui a été consommé, et
+      une relance le lève. Elle n'est inscrite ni comme une erreur d'exécution, ni comme une erreur
+      de configuration, ni comme une revue invalide, et la préparation ne continue pas sur un
+      résultat partiel. Aucune intervention ne démarre avant la relance. À la relance, le producteur
+      reprend dans la même tentative, sur le même espace de travail, et il sait qu'il reprend. Une
+      relance faite sans relever la borne s'arrête de nouveau dès qu'elle est atteinte. La borne de
+      durée garde son effet : elle suspend, et l'intervention reprend d'elle-même.
+    verify: "node --test test/v2/tool-call-budget.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur les chemins touchés : aucune intervention ne démarre entre l'arrêt et
+      la relance, et rien ne permet à un producteur ni à un fichier du projet cible de relever la
+      borne ou de lever l'arrêt.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "integration"
+
+  - id: 4
+    description: >
+      La décision est consignée : la borne d'appels arrête le changement et attend le propriétaire.
+      Elle corrige la prémisse de la fenêtre d'abonnement, dans la décision qui l'avait posée et
+      dans la capsule de l'epic. Chaque borne par défaut porte, à côté d'elle, ce qu'elle arrête,
+      laquelle tombe en premier aux débits mesurés, et pourquoi sa valeur ne change pas.
+    verify: "test -s specs/adr/D-59-la-borne-d-appels-arrete-le-changement-et-attend-le-proprietaire.md"
+    risk: P3
+    status: failing
+    allure:
+      severity: minor
+      categories:
+        - "decision"
+
+  - id: 5
+    description: >
+      Une campagne réelle sur le fournisseur d'abonnement s'arrête sur une borne d'appels plus basse
+      que le cas, puis est relancée après que la borne a été relevée, jusqu'à son verdict. Le
+      dossier porte l'arrêt, la relance, le verdict, et le coût de chaque intervention. Le même cas,
+      conduit sur le modèle local, porte un coût inconnu. Une liste adossée à des tests ne vaut pas
+      recette. Le pas-à-pas est écrit au §5 de la story.
+    verify: "verify-script: conduite des deux campagnes — le pas-à-pas est au §5 de la story ; il demande le signal du propriétaire et consomme de l'usage facturé"
+    risk: P0
+    security: high
+    security_verify: >
+      La configuration de la campagne distante ne déclare que le fournisseur d'abonnement. Aucun
+      secret n'apparaît dans le dossier, dans le relevé ni sur une ligne de commande, et le jeton
+      d'abonnement n'est ni lu ni recopié par 495.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "acceptance"
+
+  - id: 6
+    description: >
+      Le relevé est déposé en preuve : la sortie de la relecture sur les dossiers des deux
+      campagnes, l'arrêt et la relance tels que le journal les porte, les coûts, et ce que le
+      relevé n'établit pas.
+    verify: "test -s specs/verifications/e23s05-budgets-remesures.md"
+    risk: P2
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "acceptance"
+
+  - id: 7
     description: "L'ensemble des contrôles passe avec le changement."
     verify: "npm run check"
+    risk: P0
     status: failing
+    allure:
+      severity: critical
+      categories:
+        - "preflight"

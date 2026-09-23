@@ -10,66 +10,53 @@ active_epic_id: e23
 active_story: e23s05
 
 handoff:
-  next_skill: null
+  next_skill: kickoff-branch
   last_step_completed: >
-    La recette d'AGT-02 est tenue sur un parcours complet, deux fois. Les six tâches d'`e23s04`
-    passent. Preflight vert.
+    `e23s05` est planifiée : la fiche est écrite au format de story, et le journal de tâches en
+    compte sept, toutes rouges, chacune avec une commande qui échoue aujourd'hui. Preflight était
+    vert avant le plan (338 tests) ; après, le format de story et la traçabilité le restent.
 
-    LE MÊME CAS DE CONTRAT ABOUTIT DES DEUX CÔTÉS. `~/.495-campagnes/e23-local` sur
-    `omlx/qwen3.8-27b-oq8e` et `~/.495-campagnes/e23-distant` sur `anthropic/claude-sonnet-5`,
-    chacun dans son répertoire de données, sur la même cible et la même référence
-    `sha256:78a7b98e…`. Relus par `node scripts/compare-dossiers.ts --local … --distant …`, sortie
-    0 : six portes `PASS` de part et d'autre, contrôle `unit` `PASS` des deux côtés, mêmes deux
-    chemins modifiés, et `src/greet.js` à l'empreinte identique. L'écart est énoncé sans être
-    opposé : `test/greet.test.js` fait 191 octets contre 273, et les deux spécifications ne nomment
-    pas les mêmes exigences.
+    LA PRÉMISSE DE LA STORY EST TOMBÉE. L'epic disait qu'avec un modèle frontière, la borne cessait
+    d'être le temps pour devenir la fenêtre d'abonnement. Pi dit le contraire (`providers.md:36`) :
+    l'usage par un harnais tiers est facturé au jeton, sur l'usage supplémentaire, hors des
+    plafonds du plan. La capsule est corrigée ; `D-46` le sera par la décision que la tâche 4
+    consigne.
 
-    CE QUE LA PAIRE A COÛTÉ. Local 248 s, 19 appels d'outils, 55 525 jetons ; distant 60 s, 16
-    appels, 78 615 jetons. Le débit d'appels d'outils diffère d'un facteur trois et demi — 4,6
-    contre 16,0 par minute. Sous les bornes en place (20 minutes, 100 appels), la durée tombe la
-    première sur le modèle local et le nombre d'appels sur le distant : c'est le chiffre qu'`e23s05`
-    a à corriger. Zéro refus du schéma et zéro réécriture du contexte de part et d'autre.
+    UN DÉFAUT SONDÉ. Avec un producteur scripté, le noyau et l'application étant réels : la borne
+    de durée suspend l'intervention (`truncated`, reprise sur l'espace de travail) ; la borne
+    d'appels l'annule (`cancelled`), et le changement est bloqué comme `execution_error`, avec pour
+    détail « producer intervention cancelled ». Lu dans le code sans être sondé : la spécification
+    lève une erreur de configuration réessayable, la préparation continue sur un résultat partiel,
+    et la revue est inscrite invalide. Le motif `budget_exhausted` est déclaré dans
+    `contracts/v1/common.ts` et rien ne l'émet. Sur le modèle distant, c'est la borne d'appels qui
+    tombe la première. Non sondé sur le worker réel : son propre contrôle
+    (`worker-main.ts:137`) lève une erreur dans l'outil pendant que le superviseur interrompt la
+    session ; la campagne de la tâche 5 dira lequel des deux l'emporte.
 
-    LA STRATE IMPOSÉE EST EXERCÉE DANS SES DEUX CAS. `imposed_layers: []` — champ présent, vide —
-    sur le fournisseur local ; la strate OAuth avec ses quatre champs dans les trois manifestes de
-    la campagne distante, condition cette fois réellement remplie. Ce que le fournisseur a
-    réellement écrit reste non observé : c'est `e23s06`.
+    UNE DÉCISION DU PROPRIÉTAIRE, 2026-09-23. Quand le nombre d'appels est atteint, le changement
+    s'arrête et attend sa relance, sous `budget_exhausted`, et rien n'est dépensé au-delà sans son
+    geste. L'autre option, que la reprise se fasse d'elle-même comme pour la durée, est écartée.
+    La durée garde son effet (`D-19`).
 
-    TROIS REFUS CONSERVÉS EN DOSSIERS COMPLETS. `e23-distant-refuse` (destination non déclarée),
-    `e23-distant-sans-auth` (fournisseur non authentifié) — zéro intervention et rien de facturé
-    pour les deux — et `e23-local-rapport-refuse` (sortie structurée refusée), qui garde le rapport
-    brut.
+    CE QUE L'HÔTE REPORTE DU COÛT. `getSessionStats()` totalise l'usage et le coût sur toutes les
+    entrées de la session, résumés et rafraîchissements du cache compris.
+    `modelRuntime.isUsingSubscription()` dit si le fournisseur est employé par abonnement. Le coût
+    est calculé au tarif du catalogue (`calculateCost`, pi-ai `models.js`), et un tarif absent vaut
+    zéro (`models.md`). Le modèle local déclare 0 partout ; son coût sera inscrit inconnu, jamais
+    nul (`NFR-06`, `AGT-07`).
 
-    UN DÉFAUT TROUVÉ EN ROUTE, CORRIGÉ. Le repli qui lit un objet JSON nu s'ancrait sur la dernière
-    accolade ouvrante ; sur un rapport imbriqué, cette accolade ouvre un objet intérieur et la
-    tranche ne s'analyse en rien, de sorte qu'un modèle qui avait répondu était inscrit comme
-    n'ayant pas su répondre. Rejoué sur le texte conservé : l'ancien repli ne lit rien, le nouveau
-    lit l'objet et ses neuf clés.
+    HORS DE LA STORY, ET ÉCRIT COMME TEL. Aucune borne en argent. Les valeurs par défaut ne
+    changent pas. La préparation relancée refait son intervention, parce qu'elle ne garde pas son
+    espace de travail.
 
-    UNE RÉSERVE TRANCHÉE ET ÉCRITE. Les deux campagnes n'ont pas tourné sur la même version du
-    harnais — `dist/` a été reconstruit entre elles pour porter ce correctif — et leurs empreintes
-    d'environnement diffèrent, `sha256:957139c2…` contre `sha256:e7de231f…`. L'empreinte du dossier
-    local est celle que le `dist/` courant recalcule sous `seatbelt` ; la différence ne touche que
-    la lecture d'un rapport sans bloc clôturé, ni les portes ni les contrôles. Le propriétaire a
-    tranché le 2026-09-23 : la campagne distante n'est pas reconduite, et la réserve reste écrite au
-    relevé, à la ligne AGT-02 de la matrice et au §19 de la story. Le sujet est clos ; ne pas le
-    rouvrir sans un fait nouveau.
+    RESTE À L'EPIC, après `e23s05` : `e23s06`, qui observe ce que le fournisseur écrit au-dessus des
+    instructions locales.
 
-    UN FAIT SUR L'INSTRUMENT, SANS QUESTION OUVERTE. `scripts/compare-dossiers.ts` imprime les deux
-    empreintes d'environnement sans les ranger ni parmi ce qui décide ni parmi ce qui est seulement
-    énoncé. Une paire produite par deux builds passe donc sans un mot. Noté, non corrigé : personne
-    n'a demandé que l'instrument en décide.
-
-    CE QUI EST ÉCRIT. `specs/verifications/e23-deux-fournisseurs.md` porte le relevé ; la matrice
-    scinde l'ancienne ligne et donne à AGT-02 la sienne, adossée à la campagne, nommant la preuve
-    conservée — `v3/capability-probe` pour la clause de l'endpoint sans format d'appels d'outils,
-    que la campagne n'exerce pas — et portant la réserve.
-
-    RESTENT DEUX STORIES À L'EPIC. `e23s05` remesure les budgets d'intervention sur un modèle
-    frontière et lit le coût en argent que l'hôte rapporte et que 495 ignore. `e23s06` observe ce
-    que le fournisseur écrit réellement au-dessus des instructions locales, depuis la charge utile
-    que l'hôte publie.
+    DÉJÀ TRANCHÉ, À NE PAS ROUVRIR SANS UN FAIT NOUVEAU. Les deux campagnes d'`e23s04` n'ont pas
+    tourné sur le même `dist/`. La campagne distante n'est pas reconduite, et la réserve reste
+    écrite au relevé, à la matrice et au §19 de la story.
 
     TROIS DETTES CONNUES, INCHANGÉES. L'identité humaine déduite de `node:os` ne dit pas ce qui a
-    été cherché chez Pi ; l'événement de reprise déclaré que rien n'émet attend l'epic qui touche ce
-    contrat ; la table du bloc fournisseur reste une attente que rien ne confronte jusqu'à `e23s06`.
+    été cherché chez Pi. L'événement de reprise déclaré n'est émis par rien, et attend l'epic qui
+    touche ce contrat. La table du bloc fournisseur reste une attente que rien ne confronte jusqu'à
+    `e23s06`.

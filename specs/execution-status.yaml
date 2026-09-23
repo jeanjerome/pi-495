@@ -17,7 +17,7 @@ epics:
     status: in_progress
     title: Second fournisseur de modèle qualifié
     wsjf: 12.0
-    total_bcps: 20
+    total_bcps: 23
   e24:
     status: done
     title: "Ce qui existe déjà est établi avant d'être réécrit"
@@ -68,11 +68,13 @@ stories:
   e23s05:
     status: backlog
     title: 'Les budgets d''intervention sont remesurés sur un modèle frontière'
-    bcps: 2
+    bcps: 5
     epic: e23
-    tasks_total: 3
+    tasks_total: 7
     tasks_passing: 0
-    tasks_failing: 3
+    tasks_failing: 7
+    risk_max: P0
+    security_max: high
   e23s06:
     status: backlog
     title: "Le dossier enregistre la strate imposée telle que le fournisseur l'a écrite"
