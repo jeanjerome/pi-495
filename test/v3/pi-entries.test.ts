@@ -153,13 +153,19 @@ describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
 		const proj = join(root, "proj-diag");
 		fixtureTs(proj);
 		initRepo(proj);
-		for (const mode of ["print", "json"] as const) {
-			const data = join(root, `data-diag-${mode}`);
-			mkdirSync(data, { recursive: true });
-			// An unreadable configuration is ignored, and says so.
-			writeFileSync(join(data, "config.json"), "{ not json");
-			const out = runPi(mode, proj, data, "/495 status", {});
-			assert.match(out, /config\.json ignored/, `${mode} mode announces the diagnostic`);
-		}
+		// An unreadable configuration is ignored, and says so; a policy.egress key is no longer read, and
+		// says so too.
+		const cases = [
+			{ name: "unreadable", body: "{ not json", said: /config\.json ignored/ },
+			{ name: "egress", body: '{"policy":{"egress":[]}}', said: /policy\.egress is no longer read/ },
+		];
+		for (const { name, body, said } of cases)
+			for (const mode of ["print", "json"] as const) {
+				const data = join(root, `data-diag-${name}-${mode}`);
+				mkdirSync(data, { recursive: true });
+				writeFileSync(join(data, "config.json"), body);
+				const out = runPi(mode, proj, data, "/495 status", {});
+				assert.match(out, said, `${mode} mode announces the ${name} diagnostic`);
+			}
 	});
 });

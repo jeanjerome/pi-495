@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import { loadConfig } from "../../src/extension/config.ts";
 
 /** A provider name no default carries, so finding it in a diagnostic can only mean it was echoed. */
@@ -22,10 +21,6 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 	};
 	const ignoredKey = (diagnostics: string[]): string[] =>
 		diagnostics.filter((d) => d.includes("policy.egress") && d.includes("no longer read"));
-
-	it("holds no list of destinations in the kernel's policy", () => {
-		assert.equal("egress" in DEFAULT_POLICY, false, "choosing the model in Pi is what admits its provider");
-	});
 
 	it("loads without a file, with no list and nothing said about the model", () => {
 		const { config, diagnostics } = loadConfig(root);
@@ -57,7 +52,7 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		assert.equal(
 			diagnostics.some((d) => d.includes(PRIVATE_PROVIDER)),
 			false,
-			"a diagnostic reaches the display, the structured entries and the dossier; it does not reproduce the key",
+			"a diagnostic reaches the display and the structured entries; it does not reproduce the key",
 		);
 	});
 

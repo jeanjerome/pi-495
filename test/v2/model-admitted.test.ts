@@ -64,7 +64,7 @@ describe("the provider of the model chosen in Pi, reached with no configuration 
 			diagnostics.join(" | "),
 		);
 		const { started, stopReason } = await firstInterventionUnder(makeHarness({ model: CHOSEN, policy: config.policy }));
-		assert.notEqual(stopReason, "policy_denied", "a list written for an earlier README restricts nothing");
+		assert.notEqual(stopReason, "policy_denied", "a list naming only another provider restricts nothing");
 		assert.deepEqual([...new Set(started)], ["anthropic"]);
 	});
 });
@@ -74,7 +74,7 @@ describe("the provider of the model chosen in Pi, reached with no configuration 
  * and the backend's name, never these methods — so throwing costs nothing and surfaces any
  * accidental use, rather than letting a silent stub stand in for a sandbox that was never run.
  */
-class RefusingSandbox {
+class UndrivenSandbox {
 	readonly backend = "test";
 	qualify(): never {
 		throw new Error("no test here drives a sandbox");
@@ -104,7 +104,7 @@ function supervisorFor(model: ModelSelection) {
 	const supervisor = new InterventionSupervisor({
 		agent,
 		sandbox: {
-			backend: new RefusingSandbox(),
+			backend: new UndrivenSandbox(),
 			qualification: {
 				backend: "test",
 				platform: "test",

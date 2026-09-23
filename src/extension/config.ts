@@ -25,8 +25,7 @@ const DEFAULT_CONFIG: HarnessConfig = {
 /**
  * Choosing the model in Pi is what admits its provider, so a `policy.egress` list left in the file
  * restricts nothing, and whoever wrote one must learn so. The announcement does not reproduce the
- * list: a diagnostic reaches the display, the structured entries and, through a block detail, the
- * exported dossier.
+ * list: a diagnostic reaches the display and the structured entries.
  */
 const EGRESS_NO_LONGER_READ = "config.json: policy.egress is no longer read; the model selected in Pi is used";
 
