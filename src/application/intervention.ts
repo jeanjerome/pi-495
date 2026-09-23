@@ -10,6 +10,7 @@
 import type { InterventionRole } from "../contracts/v1/common.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { type InterventionCost, unknownCost } from "../domain/change/state.ts";
+import type { ObservedLayers } from "../domain/imposed-layers.ts";
 import { DomainError } from "../domain/errors.ts";
 import { type ActivePolicy, undeclaredEgressReason } from "../domain/policy.ts";
 import type {
@@ -56,6 +57,8 @@ export interface InterventionReport {
 	terminal: InterventionEvent;
 	/** What the dossier keeps of the session: model chatter left out, bounded. */
 	events: InterventionEvent[];
+	/** What each request that differed showed of the layers around the harness instructions, in order. */
+	imposed_layers_observed: ObservedLayers[];
 	/** Why the session ended, when that is not simply "it finished". */
 	detail: string | null;
 	/**
@@ -64,6 +67,17 @@ export interface InterventionReport {
 	 * its side and may end the session before the abort reaches it.
 	 */
 	budget_refusal: string | null;
+}
+
+/**
+ * What the session's requests showed of the layers around the harness instructions. A session that
+ * reported no observation says why, and never reads as a request that showed nothing imposed.
+ */
+function requestsObserved(events: readonly InterventionEvent[], tokensKnown: number): ObservedLayers[] {
+	const observed = events.flatMap((e) => (e.type === "imposed_layers_observed" ? [e.observation] : []));
+	if (observed.length > 0) return observed;
+	const usage = tokensKnown > 0 ? "yet the session reported model usage" : "and the session reported no model usage";
+	return [{ status: "not_observed", reason: `no provider request reached the observer, ${usage}` }];
 }
 
 /** Asked after each tool call: the refusal it returns ends the session. */
@@ -214,6 +228,7 @@ export class InterventionSupervisor {
 		// The tool calls the caller already counted one by one are not counted a second time.
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
 		const kept = events.filter((e) => e.type !== "model_event").slice(0, 500);
+		const observed = requestsObserved(events, t.counters.tokens_known);
 		// A session the kernel stopped on its tool-call budget was aborted, whatever it reported last: a
 		// report written after the refused call is not a proposal the budget allowed.
 		if (budgetRefusal !== null) {
@@ -231,6 +246,7 @@ export class InterventionSupervisor {
 				cost: t.cost,
 				terminal: t,
 				events: kept,
+				imposed_layers_observed: observed,
 				detail: `stopped by the tool call budget: ${budgetRefusal}; ${onResume}`,
 				budget_refusal: budgetRefusal,
 			};
@@ -247,6 +263,7 @@ export class InterventionSupervisor {
 			cost: t.cost,
 			terminal: t,
 			events: kept,
+			imposed_layers_observed: observed,
 			detail:
 				t.type === "failed"
 					? t.error

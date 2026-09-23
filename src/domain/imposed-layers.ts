@@ -1,15 +1,12 @@
 /**
- * What a model provider writes above the instructions 495 composes, before any of them ever run
- * (CTX-02, D-48). A pure lookup: it asks no provider, reads no package, opens no connection — that
- * is the control's job (`scripts/check-provider-system-block.ts`), not this one's. A provider
- * absent here is one this harness has never verified, and it is declared nothing rather than
- * guessed at.
+ * What a model provider writes above the instructions 495 composes (CTX-02, D-48, D-55). A pure
+ * lookup: it asks no provider, reads no package, opens no connection. A provider absent here is one
+ * this harness has never verified, and it is declared nothing rather than guessed at.
  *
- * This table is an **expectation**, not an observation. It states what 495 has verified about a
- * provider's package, not what that provider put in front of the model on a given call. Pi
- * publishes `before_provider_request`, which hands over the request payload after the provider
- * built it; `e23s06` is open to read the imposed layer from there, at which point this table
- * becomes something an observation can be held against rather than the source (`D-55`).
+ * This table is an **expectation**, not an observation. It states what 495 once verified about a
+ * provider's package, not what that provider put in front of the model on a given call. The source
+ * of the second is the request itself: the worker reads it from the payload Pi hands to
+ * `before_provider_request`, and `compareImposedLayers` holds that observation against this table.
  */
 
 /**
@@ -75,3 +72,66 @@ export type ObservedLayers =
 	  }
 	| { readonly status: "local_instructions_not_found"; readonly api: string; readonly system_texts: readonly string[] }
 	| { readonly status: "not_observed"; readonly reason: string };
+
+/** One way the request departed from what the manifest expected. */
+export type LayerDisagreement =
+	| { readonly kind: "expected_not_observed"; readonly text: string; readonly condition: string }
+	| {
+			readonly kind: "observed_not_expected";
+			readonly position: "above_local_instructions" | "below_local_instructions";
+			readonly text: string;
+	  }
+	| { readonly kind: "local_instructions_not_found"; readonly system_texts: readonly string[] };
+
+/**
+ * An observation held against the manifest's expectation. What the host added to 495's instructions
+ * is not held against anything: the expectation speaks of providers, and the observation keeps the
+ * host's part on its own. A missing observation is `not_compared`, since there is nothing to hold.
+ */
+export type LayerComparison =
+	| { readonly verdict: "agrees" }
+	| { readonly verdict: "disagrees"; readonly disagreements: readonly LayerDisagreement[] }
+	| { readonly verdict: "not_compared" };
+
+/** What the dossier keeps of one request: the observation, and how it compares with the manifest. */
+export interface ImposedLayersRecord {
+	readonly observed_in_request: ObservedLayers;
+	readonly compared_with_manifest: LayerComparison;
+}
+
+/**
+ * A block whose text changed is named twice — the expected text not observed, the observed text not
+ * expected — so both texts reach the dossier without a third kind to pair them.
+ */
+export function compareImposedLayers(expected: readonly ImposedLayer[], observed: ObservedLayers): LayerComparison {
+	if (observed.status === "not_observed") return { verdict: "not_compared" };
+	if (observed.status === "local_instructions_not_found")
+		return {
+			verdict: "disagrees",
+			disagreements: [{ kind: "local_instructions_not_found", system_texts: observed.system_texts }],
+		};
+	const expectedTexts = new Set(expected.map((layer) => layer.text));
+	const disagreements: LayerDisagreement[] = [
+		...expected
+			.filter((layer) => !observed.above_local_instructions.includes(layer.text))
+			.map((layer) => ({ kind: "expected_not_observed" as const, text: layer.text, condition: layer.condition })),
+		...observed.above_local_instructions
+			.filter((text) => !expectedTexts.has(text))
+			.map((text) => ({ kind: "observed_not_expected" as const, position: "above_local_instructions" as const, text })),
+		...observed.below_local_instructions.map((text) => ({
+			kind: "observed_not_expected" as const,
+			position: "below_local_instructions" as const,
+			text,
+		})),
+	];
+	return disagreements.length === 0 ? { verdict: "agrees" } : { verdict: "disagrees", disagreements };
+}
+
+export function recordImposedLayers(expected: readonly ImposedLayer[], observed: ObservedLayers): ImposedLayersRecord {
+	return { observed_in_request: observed, compared_with_manifest: compareImposedLayers(expected, observed) };
+}
+
+/** The record of an intervention the kernel ended itself, before its session reported any request. */
+export function unobservedEnd(reason: string): ImposedLayersRecord {
+	return recordImposedLayers([], { status: "not_observed", reason });
+}

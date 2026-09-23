@@ -13,6 +13,7 @@ import { evaluateG5 } from "../gates/g5.ts";
 import { evaluateG2 } from "../gates/g2.ts";
 import { evaluateG4 } from "../gates/g4.ts";
 import { invalidationFor, type InvalidationCause } from "../invalidation.ts";
+import { unobservedEnd } from "../imposed-layers.ts";
 import type { ChangeCommand, CommandOf } from "./commands.ts";
 import type { ChangeEvent } from "./events.ts";
 import { apply } from "./apply.ts";
@@ -848,6 +849,7 @@ class Ctx {
 			counters: c.counters,
 			detail: c.detail,
 			cost: c.cost,
+			imposed_layers: c.imposed_layers,
 		});
 		return ok(this.events);
 	}
@@ -1139,6 +1141,7 @@ class Ctx {
 				counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 				detail: "change cancelled",
 				cost: unknownCost("the change was cancelled before the host reported the session's usage"),
+				imposed_layers: [unobservedEnd("the change was cancelled before the session reported its requests")],
 			});
 		const open = openAttempt(this.state);
 		if (open) this.emit({ type: "attempt.closed", ...this.base(), attempt_id: open.attempt_id, result: "cancelled" });

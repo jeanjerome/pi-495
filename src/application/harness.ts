@@ -18,7 +18,7 @@ import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
 import { runningIntervention, unknownCost, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
-import { imposedLayersFor } from "../domain/imposed-layers.ts";
+import { imposedLayersFor, recordImposedLayers, unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
@@ -589,6 +589,9 @@ export class Harness {
 				counters: report.counters,
 				detail: report.detail,
 				cost: report.cost,
+				imposed_layers: report.imposed_layers_observed.map((observed) =>
+					recordImposedLayers(ctx.manifest.imposed_layers, observed),
+				),
 			},
 			cor,
 		);
@@ -846,6 +849,7 @@ export class Harness {
 					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 					detail: "paused",
 					cost: unknownCost("the change was paused before the host reported the session's usage"),
+					imposed_layers: [unobservedEnd("the change was paused before the session reported its requests")],
 				},
 				this.id("cor"),
 			);
@@ -870,6 +874,7 @@ export class Harness {
 					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 					detail: "intervention was running when the session stopped; treated as failed on resume",
 					cost: unknownCost("the session stopped before the host reported its usage"),
+					imposed_layers: [unobservedEnd("the session stopped before it reported its requests")],
 				},
 				cor,
 			);

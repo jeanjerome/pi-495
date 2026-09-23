@@ -2,6 +2,7 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
 import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
+import type { ObservedLayers } from "../../domain/imposed-layers.ts";
 import type {
 	AgentCapabilities,
 	AgentPort,
@@ -17,6 +18,8 @@ export type ScriptStep =
 	| { kind: "delete"; path: string }
 	| { kind: "tool"; tool: string; blocked?: boolean; is_error?: boolean }
 	| { kind: "text"; text: string }
+	/** What a request would have shown of the layers around the harness instructions. */
+	| { kind: "observe"; observation: ObservedLayers }
 	| { kind: "complete"; output: unknown; output_valid?: boolean }
 	/** The duration budget ended the session: whatever was written stays in the workspace. */
 	| { kind: "truncate"; output?: unknown }
@@ -181,6 +184,9 @@ export class ScriptedAgent implements AgentPort {
 							break;
 						case "text":
 							yield { type: "model_event", at: new Date().toISOString(), kind: "text", text: step.text };
+							break;
+						case "observe":
+							yield { type: "imposed_layers_observed", at: new Date().toISOString(), observation: step.observation };
 							break;
 						case "complete":
 							yield {

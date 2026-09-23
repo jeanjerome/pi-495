@@ -213,6 +213,7 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 			counters: { tool_calls: 1, duration_ms: 10, tokens_known: 0, delegations: 0 },
 			detail: null,
 			cost: unknownCost("a fixture reports no host session"),
+			imposed_layers: [],
 		});
 		r.run({
 			type: "preparation.close",

@@ -361,6 +361,7 @@ export class Runner {
 			counters: { tool_calls: 3, duration_ms: 1000, tokens_known: 100, delegations: 0 },
 			detail: null,
 			cost: unknownCost("a fixture reports no host session"),
+			imposed_layers: [],
 		});
 		return this;
 	}

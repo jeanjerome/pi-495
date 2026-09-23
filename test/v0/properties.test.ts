@@ -190,6 +190,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 				counters: { tool_calls: 1, duration_ms: 5, tokens_known: 1, delegations: 0 },
 				detail: null,
 				cost: unknownCost("a fixture reports no host session"),
+				imposed_layers: [],
 			};
 		case "freeze":
 			return {

@@ -12,6 +12,7 @@ import type {
 	Verdict,
 	InterventionRole,
 } from "../../contracts/v1/common.ts";
+import type { ImposedLayersRecord } from "../imposed-layers.ts";
 import type { ArtifactKind, AttemptCounters, FrozenProtocol, GateDecisionState, InterventionCost } from "./state.ts";
 
 interface Base {
@@ -80,6 +81,11 @@ export type ChangeEvent =
 			detail: string | null;
 			/** Absent from a dossier written before the cost was recorded, which is not a zero. */
 			cost?: InterventionCost;
+			/**
+			 * What the session's requests showed around the harness instructions, each held against the
+			 * manifest's expectation. Absent from a dossier written before requests were observed.
+			 */
+			imposed_layers?: readonly ImposedLayersRecord[];
 	  })
 	| (Base & { type: "budget.consumed"; intervention_id: string; counters: AttemptCounters })
 	| (Base & { type: "budget.extended"; amount: number; decision_id: string; new_max_attempts: number })

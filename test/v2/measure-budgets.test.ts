@@ -67,6 +67,7 @@ function writeDossier(interventions: Spent[], config?: unknown): string {
 			counters: { tool_calls: s.tool_calls, duration_ms: s.duration_ms, tokens_known: s.tokens_known, delegations: 0 },
 			detail: null,
 			cost: s.cost === "not recorded" ? unknownCost("left out below") : s.cost,
+			imposed_layers: [],
 		});
 	});
 	const events: ChangeEvent[] = runner.events.map((event) => {
