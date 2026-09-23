@@ -57,9 +57,9 @@ in_scope:
       emojis et les accents combinants ; les touches Home, Fin, Suppr et les flèches modifiées
       arrivant en octets bruts ; des noms de fichier coupés dès que le relecteur réduisait le
       partage ; et la hauteur du terminal ignorée après un redimensionnement. Aucun n'aurait été vu
-      autrement. Pi embarque hors ligne trente pages de documentation et soixante-dix-sept
+      autrement. Pi embarque hors ligne trente-sept pages de documentation et soixante-dix-sept
       extensions d'exemple, et 495 pose quatre accroches sur les trente-neuf publiées — compté sur
-      `0.87.0`, la version épinglée.
+      `0.87.1`, la version épinglée.
       L'étude ne remplace pas `e08`, qui fait cesser la réimplémentation dans la revue elle-même :
       elle le précède et le déborde, puisqu'elle vaut pour toute capacité à venir et regarde
       au-delà de Pi. La clause de `e08` sur la règle de couches est par ailleurs dépassée :
@@ -510,11 +510,11 @@ out_of_scope:
 constraints:
   - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
   - >
-    Machine de référence macOS 27 arm64, Node 24.21, Pi 0.87.0 ; Linux non revendiqué. `node`
+    Machine de référence macOS 27 arm64, Node 24.21, Pi 0.87.1 ; Linux non revendiqué. `node`
     alimente `environment_digest` autant que `pi_version`, et la machine présente Node 24 par un
     épinglage qui vit hors du dépôt, dans `~/.zshenv` (`D-50`) : aucun contrôle ne le vérifie.
   - >
-    `devDependencies` suit la version de Pi que la machine de référence exécute — 0.87.0 pour les
+    `devDependencies` suit la version de Pi que la machine de référence exécute — 0.87.1 pour les
     trois paquets `@earendil-works`. Un caret sur une version 0.x verrouille le mineur : laisser la
     borne en arrière fait tourner les tests contre une version et les campagnes contre une autre,
     sans qu'aucun contrôle le refuse. `pi_version` alimente `environment_digest`, donc une montée
@@ -522,7 +522,7 @@ constraints:
     dépendances suivent la dernière version publiée tant que Preflight reste vert ; `@types/node`
     fait exception et suit le plancher de `engines`, jamais la dernière publiée (`D-50`).
   - >
-    Sur le chemin d'abonnement, Pi s'annonce au fournisseur sous `user-agent: claude-cli/2.1.251`
+    Sur le chemin d'abonnement, Pi s'annonce au fournisseur sous `user-agent: claude-cli/2.1.280`
     et `x-app: cli` ; 495 ne compose pas ces en-têtes. Ce chemin est retenu pour la qualification
     sur la machine de référence, et aucun usage au-delà n'est revendiqué tant que la question n'a
     pas été instruite.
