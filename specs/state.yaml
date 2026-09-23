@@ -14,9 +14,10 @@ handoff:
   last_step_completed: >
     `e23s06` EST TENUE, et avec elle l'epic `e23`. Ses huit tâches passent, et Preflight est vert sur
     Node 24.21, avec 393 tests. Le relevé est `specs/verifications/e23s06-strate-observee.md`, la
-    décision `D-60`, et la ligne CTX-02 de la matrice porte les preuves. Les branches
-    `strate-imposee-observee` et `borne-d-appels-et-cout`, sur laquelle la première est ouverte, ne
-    sont ni fusionnées ni poussées.
+    décision `D-60`, et la ligne CTX-02 de la matrice porte les preuves. `main` a avancé jusqu'à
+    `strate-imposee-observee`, sans commit de fusion, et Preflight y est vert. `main` n'est pas
+    poussé : il a 36 commits d'avance sur `origin/main`. La branche `controle-du-bloc-fournisseur`
+    est supprimée ; le contrôle qu'elle portait reste dans l'historique, au commit `3b1c260`.
 
     CE QUI EST ÉTABLI. Le worker observe chaque requête par `before_provider_request`, sans la
     modifier. Il sépare ce que le fournisseur a écrit autour de l'invite de l'hôte de ce que l'hôte
@@ -39,4 +40,3 @@ handoff:
     3. Une relance sans origine humaine établie est encore inscrite au nom du noyau.
     4. Le journal ne garde pas les bornes en vigueur.
     5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
-    6. La branche `controle-du-bloc-fournisseur` n'a plus d'objet (`D-60`) ; elle existe encore.
