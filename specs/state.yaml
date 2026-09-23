@@ -24,7 +24,8 @@ handoff:
     froid de l'extension construite rejoué : refus, aucun journal créé. La spécification (6b et son
     scénario), la tâche 1, `REVIEW.md` (périmètre, recherche `grep -rnw`), le relevé rouge-vert,
     `e25s01-verify.yaml` et `NFR-e25s01.json` sont à jour ; la note de confirmation dit que les deux
-    démarrages à froid postérieurs n'ont pas été confirmés par le propriétaire. Écartés avec motif :
+    démarrages à froid postérieurs à la recette ont été conduits par l'agent ; le propriétaire a
+    ensuite confirmé lui-même le refus d'un fichier illisible, en le lançant dans son terminal. Écartés avec motif :
     renommer `test/v1/egress.test.ts` (il tient ce qui peut sortir par le canal du modèle, et sept
     relevés de e23 le citent par ce nom) ; le prédicat de test en double, déjà écarté au second tour.
     Preflight vert avec 382 tests. Le suivant est le cinquième et dernier tour de `request-review`

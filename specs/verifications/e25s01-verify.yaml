@@ -133,10 +133,12 @@ manual:
   confirmation_note: >
     Confirmed by the owner at that time on the three campaigns above, the first cold start on an
     unreadable file, and the stated limits: nothing left the machine, and 6c rests on a test alone.
-    The two later cold starts, after dcdd890 and after bda51c7, were run by the agent and are not
-    covered by that confirmation. The owner decided on 2026-09-23 the behaviour the second one shows,
-    an unreadable file stopping every change; its result has not been shown to the owner for
-    confirmation.
+    The cold start after dcdd890 was run by the agent and is not covered by that confirmation. The
+    owner decided on 2026-09-23 that an unreadable file stops every change, and confirmed the same
+    day the refusal after bda51c7 by running it: in a terminal, on a data directory holding a
+    config.json that does not parse, `/495 start essai` answered "config.json cannot be read: it is
+    not valid JSON; no change runs until it is fixed or removed". In print mode the text reaches
+    stderr, as every extension output does under `pi -p`.
   steps:
     - step: "Sans configuration, le fournisseur du modèle choisi est admis (§5)"
       expected: "L'intervention démarre, le journal inscrit le fournisseur, aucun diagnostic sur le modèle"
