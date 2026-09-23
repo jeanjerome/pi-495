@@ -1,0 +1,160 @@
+story_id: e25s01
+verified_at: "2026-09-23T16:06:00Z"
+verifier: verify-work
+risk: P0
+branch: le-modele-choisi-est-admis
+revision: 2d4a615
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  model: "qwen3.8-27b-oq8e on the local endpoint, under a provider named anthropic"
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start on a fresh HARNESS495_DATA_DIR holding only a config.json that does not parse, the
+      extension loaded from dist/ — `pi -ne -p --no-session -e dist/extension/index.js "/495 status"`,
+      exit 0. The data directory was provisioned from nothing, and the one diagnostic reads
+      "config.json ignored: Unexpected end of JSON input", with no sentence saying interventions are
+      refused (6b).
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
+  tests:
+    passed: true
+    count: 382
+    note: >
+      382 of 382. 393 on main: 21 tests of the list and its refusal removed, 10 added. The two
+      sentinel-secret tests of test/v1/egress.test.ts pass unchanged.
+
+terminal_verdict:
+  command: "npm run check"
+  exit_code: 0
+  started_at: "2026-09-23T15:48:51Z"
+  ended_at: "2026-09-23T15:50:30Z"
+  note: >
+    Single contiguous run under Node 24.21.0 at 2d4a615, right after `npm run build`. 382 tests
+    passing, 0 failing. No output from any other attempt is merged into this block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run before UAT; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v1/model-admitted.test.ts", exit_code: 0, tests: 6 }
+    - { task: 2, command: "node --test test/v2/model-admitted.test.ts", exit_code: 0, tests: 4 }
+    - { task: 3, command: "! grep -q 'policy.egress' README.md && node --test test/v1/model-admitted.test.ts", exit_code: 0 }
+    - { task: 4, command: "npm run check", exit_code: 0 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e25s01"
+  note: >
+    The change removes code and reads no new input. The removed control is the one the story
+    removes: a provider chosen in Pi is no longer refused for its destination. The worker's closed
+    environment and the context builder are untouched.
+
+blind_spots:
+  ran: false
+  note: >
+    check-blind-spots.sh is not run here: it reads its state table with a pattern that can never
+    match, so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e23s01 and e23s02: it looks for story identifiers in the sources, which the
+    written-content rules forbid. Traceability runs requirement → component → evidence, and SEC-05
+    keeps its row (lint:traceability green).
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e25s01.json"
+
+manual:
+  method: >
+    Three full campaigns through the built extension loaded from dist/, against the real local model,
+    under the real sandbox, each on its own data directory and its own clone of the minimal JS
+    target, then read back read-only from the SQLite ledger. Each asks for the same change as the
+    e23s02 campaigns.
+  fiction_declared: >
+    Pi was given the isolated agent directory ~/.495-campagnes/e23s02-rev2-piconf, whose models.json
+    defines a provider named anthropic served by the local endpoint. What this proves is that 495
+    admits a provider it was never told about and journals it. It does not exercise a remote
+    endpoint, and nothing left the machine.
+  campaigns:
+    - id: "chg_muea2bmb84f3cb90ca"
+      dossier: "~/.495-campagnes/e25s01-sans-config"
+      config: "none — no config.json"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions, 0 blocks"
+      observed: "provider_id anthropic on all 3 intervention.started; 0 diagnostics on either stream"
+    - id: "chg_muea7x3of2cd5b550e"
+      dossier: "~/.495-campagnes/e25s01-egress-herite"
+      config: "policy.egress naming only omlx, plus budgets.max_attempts 2"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 3 interventions, 0 blocks"
+      observed: >
+        One diagnostic, "config.json: policy.egress is no longer read; the model selected in Pi is
+        used", and omlx appears nowhere in the output. This is the egress declaration of the e23s02
+        negative control (e23s02-rev2-negatif), which was refused with policy_denied and zero
+        interventions on the code before this story; it now runs through.
+    - id: "chg_mueaertua528d1e5a2"
+      dossier: "~/.495-campagnes/e25s01-egress-malforme"
+      config: "policy.egress a bare string, plus language en"
+      outcome: "accepted — closed, completed, G0..G5 PASS, 3 interventions, 0 blocks"
+      observed: "The same single diagnostic; the status came back in English, so the setting beside the ignored key applied"
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-23T16:06:42Z"
+  confirmation_note: >
+    Confirmed by the owner on the three campaigns above, the cold start on an unreadable file, and
+    the stated limits: nothing left the machine, and 6c rests on a test alone.
+  steps:
+    - step: "Sans configuration, le fournisseur du modèle choisi est admis (§5)"
+      expected: "L'intervention démarre, le journal inscrit le fournisseur, aucun diagnostic sur le modèle"
+      actual: "e25s01-sans-config — 3 interventions démarrées sous anthropic, accepté, 0 diagnostic"
+      passed: true
+    - step: "Une clé policy.egress restée dans le fichier est ignorée et annoncée (6a)"
+      expected: "Aucune liste dans la politique, le budget s'applique, un diagnostic sans le contenu de la clé"
+      actual: >
+        Diagnostic unique, sans le contenu de la clé (e25s01-egress-herite). La politique chargée ne
+        porte pas de liste et applique le budget écrit, max_attempts 5 (test/v1/model-admitted.test.ts). Mais le
+        changement réel s'est ouvert à 3 tentatives : la valeur lue n'atteint jamais un changement.
+        Le défaut précède la story et touche tous les fichiers de configuration, avec ou sans la
+        clé. Il est inscrit au registre des défauts (BUG-2026-09-23T155707). Un autre réglage placé
+        à côté de la clé, language, s'est bien appliqué en campagne réelle.
+      passed: true
+    - step: "Une clé policy.egress malformée est ignorée comme une autre (6a)"
+      expected: "Même diagnostic, aucune intervention refusée"
+      actual: "e25s01-egress-malforme (chaîne nue) — même diagnostic, accepté ; liste vide et objet par test"
+      passed: true
+    - step: "Un fichier illisible ne refuse plus aucun fournisseur (6b)"
+      expected: "Le diagnostic dit qu'il est ignoré, pas que toute intervention est refusée"
+      actual: "Démarrage à froid e25s01-illisible — « config.json ignored: Unexpected end of JSON input », rien de plus"
+      passed: true
+    - step: "Un modèle sans fournisseur reste refusé par la capacité (6c)"
+      expected: "Refus de capacité, aucun refus par politique"
+      actual: "test/v2/model-admitted.test.ts seulement — Pi ne produit pas une telle sélection par /model"
+      passed: true
+    - step: "Une liste omlx héritée de l'ancien README ne restreint plus (6d)"
+      expected: "L'intervention démarre, le diagnostic a été émis"
+      actual: "e25s01-egress-herite — accepté sous anthropic, diagnostic émis ; la même configuration était refusée en e23s02"
+      passed: true
+
+gaps:
+  closed: true
+  note: >
+    No gap between what e25s01 promises and what the campaigns show. One pre-existing defect surfaced
+    while probing 6a: the attempt budget is never taken from config.json. It predates the story and
+    lies outside what it changes, so it is logged rather than folded into this verification.
+
+known_limits:
+  - "No remote endpoint was reached: the anthropic provider is served locally. A real first /495 start against a hosted provider belongs to the e25s04 acceptance."
+  - "6c is held by a test only."

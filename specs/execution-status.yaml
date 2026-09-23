@@ -12,7 +12,7 @@ development_status:
   e24s03: done
   e24s04: done
   e25: in_progress
-  e25s01: in_progress
+  e25s01: done
   e25s02: todo
   e25s03: todo
   e25s04: todo
@@ -144,7 +144,7 @@ stories:
     # visaient dans la capsule tombe sous le motif de check-story-format.ts, qui aurait réclamé les
     # vingt sections du gabarit à un relevé.
   e25s01:
-    status: in_progress
+    status: done
     title: "Le fournisseur du modèle choisi est admis sans configuration"
     bcps: 3
     epic: e25

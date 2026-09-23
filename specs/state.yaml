@@ -10,8 +10,27 @@ active_epic_id: e25
 active_story: e25s01
 
 handoff:
-  next_skill: verify-work
+  next_skill: request-review
   last_step_completed: >
+    Les changements de `audit-code` et de la recette de `e25s01` sont commités le 2026-09-23, Preflight
+    vert avec 382 tests juste avant. Le suivant est `request-review`, pour un second avis sur la
+    branche `le-modele-choisi-est-admis`, non fusionnée.
+
+    `audit-code` est passé sur `e25s01` le 2026-09-23 : un seul défaut, le type `EgressLocation`
+    resté exporté dans `src/domain/policy.ts` sans aucun lecteur, que `lint:exports` ne voit pas
+    parce qu'il ne lit que les fonctions et les constantes. Il est retiré, `dist/` reconstruit,
+    Preflight vert avec 382 tests.
+
+    `e25s01` est VÉRIFIÉE et marquée faite, recette confirmée par le propriétaire le 2026-09-23 sur
+    trois campagnes réelles (`~/.495-campagnes/e25s01-*`) : sans configuration, sous une liste héritée
+    ne nommant que `omlx`, et sous une clé malformée, le fournisseur `anthropic` servi localement est
+    admis, six portes au vert, et la clé ignorée est annoncée une fois sans être recopiée. Preuve :
+    `specs/verifications/e25s01-verify.yaml` et `NFR-e25s01.json`, revue dans
+    `specs/security/REVIEW.md`. La recette a relevé un défaut antérieur, hors du périmètre de la
+    story : `policy.budgets.max_attempts` est lu mais n'atteint jamais un changement, qui s'ouvre
+    toujours à 3 tentatives, alors que le README le dit réglable (`specs/bugs/registry.yaml`,
+    BUG-2026-09-23T155707, ouvert). Le suivant est `audit-code` sur la branche, non fusionnée.
+
     `e25` EST ENGAGÉ sur décision du propriétaire du 2026-09-23 ; sa capsule est découpée en quatre
     stories (14 points). `e25s01` a ses quatre tâches passantes sur la branche
     `le-modele-choisi-est-admis`, avec Preflight vert et 382 tests. La politique ne porte plus de liste

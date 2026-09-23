@@ -1,0 +1,27 @@
+bugs:
+  - bug_id: BUG-2026-09-23T155707
+    date: "2026-09-23"
+    title: "The attempt budget written in config.json never reaches a change"
+    severity: medium
+    priority: p2
+    scope: configuration
+    what_happened: >
+      A change opens with the kernel's default of three attempts whatever `policy.budgets.max_attempts`
+      says. The configuration reads the value; the change never receives it. The other six budgets of
+      `policy.budgets` do reach the runtime.
+    what_expected: >
+      A change opens with the attempt budget the configuration sets, as the README table of
+      `policy.budgets` promises ("Attempts, technical retries, …").
+    steps_to_reproduce:
+      - "Write `{ \"policy\": { \"budgets\": { \"max_attempts\": 2 } } }` to the data directory's config.json."
+      - "Start a change with `/495 start` and let it close."
+      - "The status reads `Tentatives: 1/3`, and the change state carries `max_attempts: 3`."
+    root_cause: >
+      The change state is initialised from the kernel's default policy when the change is created, and
+      no event carries the configured value to it. Present since the first kernel.
+    evidence: >
+      Campaign ~/.495-campagnes/e25s01-egress-herite (chg_muea7x3of2cd5b550e), config.json with
+      max_attempts 2, change state read back read-only with max_attempts 3.
+    risk_level: medium
+    follow_ups: "decide whether max_attempts is configurable, then fix the code or the README row"
+    status: open

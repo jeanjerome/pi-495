@@ -230,3 +230,74 @@ d'échappement de terminal comprise. Un paquet hostile ne peut donc pas colorer 
 fuit et rien n'est rédigé aujourd'hui, mais écrire le préfixe une lettre plus loin ferait rédiger la
 condition à la sortie, et le dossier affirmerait alors une condition que personne n'a déclarée. La
 contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision se prend.
+
+# Revue de sécurité — e25s01, fournisseur du modèle choisi admis sans configuration
+
+| | |
+|---|---|
+| Périmètre | `git diff 1e7fd3e..2d4a615`, 15 fichiers, dont 3 de production |
+| Conduite le | 2026-09-23 |
+| Branche | `le-modele-choisi-est-admis` |
+| Risque de la story | P0 |
+| Code de production touché | `src/domain/policy.ts`, `src/extension/config.ts`, `src/application/intervention.ts` |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8. La porte passe.
+
+Le changement retire du code : aucune entrée nouvelle n'est lue, aucun puits nouveau n'est atteint.
+Le seul contrôle retiré est celui que la story retire, et il est nommé plus bas.
+
+## Hypothèses vérifiées, non supposées
+
+**Plus aucun lecteur de la liste.** `grep -rn egress src/` ne rend que la clé lue pour être
+annoncée dans `config.ts` et le type `EgressLocation`, qui ne porte aucune valeur. Aucune
+production ne lit `policy.egress`, et l'action suivante `declare_egress_destination` n'a plus
+d'émetteur ni de consommateur.
+
+**La clé ignorée ne reste pas dans la politique active.** `config.ts` la retire par
+déstructuration avant l'étalement de `policy`. Une politique chargée d'un fichier qui la porte n'a
+donc aucun champ `egress`, ce que `test/v1/model-admitted.test.ts` vérifie.
+
+**Le diagnostic ne reproduit rien du fichier.** C'est une chaîne constante. Il emprunte le chemin
+existant (`session.ts`, `openedAt`) : l'affichage, puis les entrées structurées au premier `/495`.
+Aucun contenu fourni par le propriétaire n'y entre, quelle que soit la forme de la clé.
+
+**Les autres réglages gardent leur sens.** L'étalement de `policy`, les fusions de `budgets` et
+`adoption`, le verrou `protocol: "kernel"`, `revision` et `policy_id` sont lus comme avant. La
+campagne `e25s01-egress-malforme` a appliqué `language: "en"` à côté d'une clé ignorée. La campagne
+`e25s01-egress-herite` portait `budgets.max_attempts: 2`, et son changement s'est ouvert à 3 : la
+configuration le lit, mais `apply.ts` initialise tout changement au défaut du noyau. Le défaut précède
+cette story, qui ne touche pas ce chemin ; il est inscrit au registre des défauts.
+
+**Un fichier illisible retombe sur la configuration par défaut, qui reste fermée ailleurs.**
+`allow_unconfined: false`, `integration_enabled: false`, adoption par le noyau. Seule la liste vide
+qui refusait tout a disparu.
+
+**La vérification de capacité reste jugée avant tout engagement.** `requireCapable` juge le bac à
+sable et les capacités du modèle ; `harness.ts` l'appelle avant d'inscrire `intervention.start`. Un
+modèle sans fournisseur y reste refusé comme non configuré (`test/v2/model-admitted.test.ts`).
+
+**Environnement du worker et constructeur de contexte non touchés.** Aucun fichier sous
+`src/adapters/pi-worker/` ni `src/application/context.ts` dans le diff. Les tests du secret sentinelle
+(`test/v1/egress.test.ts`, 2 tests) passent inchangés.
+
+**Aucune exécution ni aucun réseau n'entre par ce changement.** Le diff de production ne porte ni
+`exec`, ni `spawn`, ni `fetch`, ni `eval`.
+
+## Contrôle retiré, comme la story le prévoit
+
+Le refus d'une destination non déclarée. Un modèle distant choisi dans Pi reçoit des extraits sans
+déclaration préalable à 495. L'autorisation de la destination est désormais le choix du modèle dans
+Pi. L'annonce d'un modèle hors de la machine appartient à e25s03 ; D-61 (e25s04) consigne le retrait
+et rend D-53 sans objet. Ce n'est pas un constat : c'est la décision du propriétaire du 2026-09-23.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+**Un `policy` qui n'est pas un objet est étalé tel quel.** Une chaîne écrite à `policy` serait étalée
+caractère par caractère dans la politique active. Le comportement précède cette story, qui ne l'a ni
+créé ni aggravé ; aucun champ ainsi introduit ne porte de nom que le noyau lise.
+
+**Changements bloqués avant la story.** Un changement bloqué sous `policy_denied` au titre de sa
+destination repart, à la reprise, vers le fournisseur choisi. C'est l'effet voulu : le motif de
+blocage n'existe plus.

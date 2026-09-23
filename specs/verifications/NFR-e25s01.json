@@ -1,0 +1,38 @@
+{
+  "story_id": "e25s01",
+  "risk": "P0",
+  "evaluated_at": "2026-09-23T16:05:00Z",
+  "threshold_source": {
+    "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s01-le-fournisseur-du-modele-choisi-est-admis-sans-configuration.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "No specs/tech-architecture/e25-TEST_PLAN_LATEST.md exists; the thresholds are the three the story spec states."
+  },
+  "environment": {
+    "pi_version": "0.87.1",
+    "node": "24.21.0",
+    "sandbox": "seatbelt, qualified",
+    "model": "anthropic/qwen3.8-27b-oq8e — a provider named anthropic served by the local endpoint, through an isolated PI_CODING_AGENT_DIR"
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "First /495 start with no configuration file and a provider other than omlx: 0 refusals",
+      "measured": "Campaign e25s01-sans-config (chg_muea2bmb84f3cb90ca), no config.json in the data directory: 3 interventions started, each journalling provider_id anthropic; 0 blocks; G0..G5 PASS; accepted in 4 min 20 s. The same kept dossiers show 0 blocks under a leftover list naming only omlx (e25s01-egress-herite) and under a malformed one (e25s01-egress-malforme).",
+      "note": "The story removes a check before each intervention and adds none, so no latency is added on the path it touches."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "Session opened without policy.egress: 0 diagnostics about the model. Session opened with policy.egress: 1 diagnostic, without the key's content",
+      "measured": "e25s01-sans-config: 0 lines prefixed 495: on either stream. e25s01-egress-herite (list naming omlx) and e25s01-egress-malforme (a bare string): exactly 1 diagnostic each, 'config.json: policy.egress is no longer read; the model selected in Pi is used', and the word omlx appears nowhere in either session's output. An unreadable file (e25s01-illisible) gives 'config.json ignored: Unexpected end of JSON input' and no sentence claiming interventions are refused.",
+      "note": "A model with no provider still refuses at the capability check; that path is held by test/v2/model-admitted.test.ts and was not exercised for real, since Pi does not produce such a selection from /model."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "The diagnostic reaches every qualified Pi entry, in English like the other configuration diagnostics",
+      "measured": "In print mode the diagnostic is the first line of the session's output, before the status. It is a constant string, so the same text reaches the TUI and the structured entries through the one path in session.ts that announces every runtime diagnostic.",
+      "note": "e25s01-egress-malforme also set language en, and its status came back in English: a setting next to the ignored key applied."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}
