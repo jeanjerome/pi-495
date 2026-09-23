@@ -52,7 +52,7 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		assert.equal(
 			diagnostics.some((d) => d.includes(PRIVATE_PROVIDER)),
 			false,
-			"a diagnostic reaches the display and the structured entries; it does not reproduce the key",
+			"a diagnostic reaches the display, the structured entries and the model's context; it does not reproduce the key",
 		);
 	});
 
@@ -81,5 +81,17 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 			);
 			assert.ok(diagnostics[0]?.startsWith("config.json ignored"), `${body}: ${diagnostics.join(" | ")}`);
 		}
+	});
+
+	it("says an unreadable file is ignored without reproducing any of its text", () => {
+		const unquoted = "k7f3a9";
+		writeFileSync(join(root, "config.json"), `{"policy":{"egress":[{"provider_id":${unquoted}}]}}`);
+		const { diagnostics } = loadConfig(root);
+		assert.equal(diagnostics.length, 1, diagnostics.join(" | "));
+		assert.equal(
+			diagnostics.some((d) => d.includes(unquoted)),
+			false,
+			`a diagnostic is sent to the session's model, so an excerpt of the file would leave with it: ${diagnostics[0]}`,
+		);
 	});
 });
