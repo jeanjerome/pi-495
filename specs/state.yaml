@@ -12,6 +12,58 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    LES TROIS DÉFAUTS DE LA CAMPAGNE SONT CORRIGÉS. Rouge commité seul (`6acd7ed`), puis une
+    correction par défaut ; Preflight vert sur Node 24.21, 365 tests.
+    1. La relance lève l'arrêt au nom de celui qui relance (`harness.ts`, `resume`). `change.unblock`
+       admettait déjà un humain : `requireKernelAuthority` ne refuse qu'un agent, une sortie de
+       modèle ou un appel d'outil, et ce refus tient toujours. Le seul appelant est `/495 resume`.
+       En mode TUI, c'est le propriétaire. Sans origine humaine établie (mode `-p`, ou RPC sans
+       `HARNESS495_RPC_HUMAN_ACTOR`), la commande passe `kernelUser()`, et la relance reste inscrite
+       au nom du noyau : aucun propriétaire n'y est établi.
+    2. Seul le producteur garde son espace de travail. La fin d'une intervention arrêtée sur la
+       borne dit « the workspace keeps the unfinished work » pour `implement`, et « a resume runs
+       the <rôle> intervention again from the start » pour `specify`, `prepare` et `review`. La fin
+       tronquée par la durée garde sa formule pour tous les rôles. Elle est fausse de la même façon
+       pour la spécification, dont l'espace est effacé à la fin de l'intervention (`clarify.ts`).
+       Ce défaut-là n'est pas corrigé ici : ce que la durée fait des autres rôles relève de `D-19`.
+    3. `compare-dossiers.ts` lit la fin d'une session dans le journal, pas dans ce que le worker a
+       rapporté. Une nouvelle ligne, « unfinished interventions », porte le résultat inscrit et son
+       détail. « schema refusals » ne compte plus qu'un rapport refusé sur une session que le
+       journal dit achevée. Sur les dossiers d'`e23s05`, l'arrêt se lit désormais « cancelled:
+       stopped by the tool call budget: tool call budget exceeded (4/3) … ». Sur cinq paires de
+       dossiers conservés, les codes de sortie n'ont pas changé, et le rapport refusé
+       d'`e23-local-rapport-refuse` reste compté comme tel.
+
+    CAMPAGNE DE RELANCE PRÉPARÉE, SUR LE MODÈLE LOCAL, AVANT LE DÉPART. But : montrer, par une
+    exécution réelle, une relance inscrite au nom du propriétaire. `dist/` est reconstruit depuis
+    `e8eb02a`. Le point d'accès local répond, et la cible `~/.495-campagnes/e23s04-cible` est propre.
+    Répertoire neuf : `~/.495-campagnes/e23s05-relance-locale`, dont la configuration ne porte que
+    `budgets.tool_calls_per_intervention: 3`. La sortie reste celle par défaut, `omlx` sur la
+    machine. La spécification locale a consommé 7 appels dans `e23s05-local`.
+
+    CE QU'ON EN ATTEND. La spécification tombe à son quatrième appel. Sa fin, `cancelled`, dit « a
+    resume runs the specify intervention again from the start » et non « the workspace keeps the
+    unfinished work ». Le changement s'arrête en `clarifying` sous `budget_exhausted`, au nom du
+    noyau, et rien ne démarre. Le propriétaire retire `budgets`, rouvre Pi et tape `/495 resume`.
+    Le `status.changed` qui remet le changement en `ready` porte alors `jeanjerome`, `human`,
+    `tui_session`, et plus `495-kernel`. La spécification est refaite, puis la suite jusqu'au
+    verdict. Aucun coût n'est connu : le catalogue ne tarife pas ce modèle. La campagne n'exerce
+    ni la fin d'un producteur arrêté, ni celles de la préparation et de la revue ; les tests les
+    tiennent (`test/v2/tool-call-budget.test.ts`).
+
+    LE PAS-À-PAS. Un seul pilote par changement.
+
+      mkdir -p ~/.495-campagnes/e23s05-relance-locale
+      printf '%s\n' '{ "policy": { "budgets": { "tool_calls_per_intervention": 3 } } }' \
+        > ~/.495-campagnes/e23s05-relance-locale/config.json
+      cd ~/.495-campagnes/e23s04-cible
+      HARNESS495_DATA_DIR=~/.495-campagnes/e23s05-relance-locale pi -ne \
+        -e ~/Projets/495-pi-package/dist/extension/index.js --model omlx/qwen3.8-27b-oq8e
+
+    puis `/495 start greet doit rendre "Hello, <name>!" avec un point d'exclamation final`. À
+    l'arrêt, quitter Pi. Ensuite `rm ~/.495-campagnes/e23s05-relance-locale/config.json`, rouvrir
+    Pi par la même commande, et `/495 resume` jusqu'à l'issue.
+
     TÂCHE 5 D'`e23s05` TENUE. Les deux campagnes ont tourné sur le même `dist/` : même empreinte
     d'environnement, `sha256:54027c76…`, et même référence, `ref_78a7b98ea7fe`, `git_clean_head`.
 
