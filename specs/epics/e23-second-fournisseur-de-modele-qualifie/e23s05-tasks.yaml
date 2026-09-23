@@ -89,7 +89,7 @@ tasks:
       laquelle tombe en premier aux débits mesurés, et pourquoi sa valeur ne change pas.
     verify: "test -s specs/adr/D-59-la-borne-d-appels-arrete-le-changement-et-attend-le-proprietaire.md"
     risk: P3
-    status: failing
+    status: passing
     allure:
       severity: minor
       categories:

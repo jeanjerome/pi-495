@@ -12,6 +12,25 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    TÂCHE 4 D'`e23s05` TENUE. Preflight vert, 362 tests. `D-59` consigne la décision : quel que soit
+    le rôle, la borne d'appels arrête le changement sous `budget_exhausted` et attend le
+    propriétaire. La reprise automatique est écartée, la durée garde son effet, aucune borne en
+    argent n'est posée, et les valeurs par défaut ne changent pas. `D-46` porte une révision qui
+    corrige la prémisse de la fenêtre d'abonnement et renvoie à `D-59`, que la capsule cite aussi.
+    Chaque borne de `src/domain/policy.ts` dit, à côté d'elle, ce qu'elle arrête, laquelle tombe en
+    premier aux débits mesurés, et pourquoi sa valeur ne bouge pas. La bascule est à 5 appels par
+    minute, et la spécification locale, à 5,3, la franchit.
+
+    UN CONSTAT ÉCRIT DANS `D-59`, LU DANS LE CODE SANS ÊTRE SONDÉ. La borne d'appels ne limite la
+    dépense qu'intervention par intervention, car chaque continuation est une intervention nouvelle,
+    avec son propre compte. Un modèle facturé qui tourne sous 5 appels par minute atteint la durée
+    d'abord, et le producteur reprend alors de lui-même, jusqu'à trois fois, sans le propriétaire.
+    Aucune campagne ne l'a produit.
+
+    `dist/` a changé avec les commentaires de `policy.ts`. Les deux campagnes de la tâche 5 tournent
+    donc sur le même `dist/`, reconstruit depuis ce commit ou un suivant. Suite prévue : tâche 5,
+    qui demande le signal du propriétaire et consomme de l'usage facturé.
+
     TÂCHE 1 D'`e23s05` TENUE. Rouge commité seul, puis vert ; Preflight vert, 362 tests.
     `node scripts/measure-budgets.ts <dossier>` relit un dossier conservé en lecture seule, sans
     ouvrir Pi. Pour chaque intervention, il donne les appels d'outils, la durée, le débit, les jetons
