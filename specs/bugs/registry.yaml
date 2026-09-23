@@ -1,4 +1,40 @@
 bugs:
+  - bug_id: BUG-2026-09-24T000204
+    date: "2026-09-24"
+    title: "A change blocked because the selected model cannot carry an intervention stays blocked after /model and /495 resume"
+    severity: medium
+    priority: p2
+    scope: interventions
+    what_happened: >
+      A change whose intervention is refused because the selected model cannot carry it (no model
+      selected, a thinking level the model refuses, no tool calls) is blocked `capability_missing`,
+      not retryable. Selecting a model with `/model` and running `/495 resume` lifts nothing: the
+      next `advance` returns `capability_missing` at once, with no step. The change can only be
+      cancelled.
+    what_expected: >
+      The model refusal names something the user fixes in the session, by selecting another model.
+      `/495 resume` lifts the block, and the next intervention runs with the model selected since.
+      A sandbox that is not qualified stays refused without retry: no command of the session
+      qualifies it.
+    steps_to_reproduce:
+      - "Open a session with no model selected and run `/495 start <request>`."
+      - "The change is blocked `capability_missing: model /: cannot carry this intervention`."
+      - "Select a model with `/model`, then run `/495 resume`: the status stays blocked."
+    root_cause: >
+      `InterventionSupervisor.requireCapable` throws the model refusal without `retryable`, and
+      `Harness.resume` lifts only `execution_error` blocks and blocks declared retryable. Present
+      since the capability check was written; the model became selectable within a session with
+      the model read at each intervention start, which makes `/model` then resume the natural remedy.
+    evidence: >
+      Reproduced by a scratch test during review: `advance` with an empty selection gives
+      `capability_missing`; after `resume`, `advance` with a selectable model gives
+      `capability_missing` again, with no step. test/v3/model-select.test.ts, "a change refused for
+      its model is resumed with the model selected since (6e)", red at 6bd0ba5 (1 failure of 7),
+      green at 144d371 with Preflight green (396 tests).
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 144d371
   - bug_id: BUG-2026-09-23T155707
     date: "2026-09-23"
     title: "The attempt budget written in config.json never reaches a change"

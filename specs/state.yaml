@@ -15,8 +15,18 @@ epic_cycle:
   story_bcps: 3
 
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   last_step_completed: >
+    Étape 6 en cours le 2026-09-24. `audit-code` passe sur `952172c..ed4ca34`. Premier tour de
+    `request-review` sur la même étendue : porte passée pour les deux relecteurs, aucun must-fix ni
+    should-fix imputable à la branche. Le relecteur B a trouvé un défaut antérieur à la branche,
+    `BUG-2026-09-24T000204` : un refus de modèle ne se reprenait pas après `/model`. Corrigé par
+    `fix-bug` dans cette branche, test rouge `6bd0ba5`, correctif `144d371`, Preflight verte
+    (396 tests). Deux remarques du premier tour sont reprises dans le commit de test : le test 6e
+    vérifie que le refus vient du modèle, et le lecteur par défaut du fixture ne s'efface plus. Les
+    relevés restent ancrés à `c1ff51c` jusqu'à la fermeture de la porte. Prochaine étape : second
+    tour de `request-review`, sur `git diff ed4ca34 144d371`.
+
     Étape 5 faite le 2026-09-23 : `verify-work` a vérifié e25s02 sur quatre campagnes réelles en
     `pi --mode rpc`, deux sur la branche et deux contrôles négatifs sur `main`, et le propriétaire a
     confirmé la recette. `e25s02-en-route` est accepté G0..G5 : la spécification démarre sous

@@ -60,3 +60,23 @@ figeait le modèle. Aucune erreur de contexte caduc n'était en jeu, et le catal
 est celui de la session en cours : il n'y a rien à corriger de ce côté. La spécification (6g, §8,
 §14, §17, §20), la tâche 1, le commentaire de `selectedModel` et le test 6g ne reposent plus sur
 cette prémisse.
+
+## Défaut trouvé en relecture : un refus de modèle ne se reprend pas
+
+`BUG-2026-09-24T000204`. Un changement bloqué en `capability_missing` parce que le modèle sélectionné
+ne peut pas porter l'intervention n'était pas repris par `/495 resume` après un `/model` : le refus
+n'était pas déclaré réessayable, et la reprise ne lève que les blocages qui le sont. Le refus d'un bac
+à sable non qualifié reste non réessayable.
+
+| Comportement | Rouge (test seul) | Vert |
+| --- | --- | --- |
+| Un changement refusé pour son modèle est repris avec le modèle sélectionné depuis (6e) | `6bd0ba5` — après `resume`, `advance` rend encore `capability_missing` | `144d371` |
+
+```
+6bd0ba5 (test seul)      node --test test/v3/model-select.test.ts  exit=1  (1 échec sur 7)
+144d371 (correctif)      npm run build && npm run check            exit=0  (396 tests)
+```
+
+Le même commit de test ajoute au test 6e existant que le modèle jugé est la sélection vide, pour que
+le refus ne puisse pas venir du bac à sable, et le lecteur de modèle par défaut du fixture ne
+s'efface plus devant un `readModel: undefined`.
