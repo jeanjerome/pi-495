@@ -9,7 +9,7 @@ import type {
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
-import type { ImposedLayer } from "../domain/imposed-layers.ts";
+import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
@@ -182,6 +182,12 @@ export type InterventionEvent =
 	| { type: "tool_started"; at: string; tool: string; call_id: string; args_digest: string }
 	| { type: "tool_finished"; at: string; tool: string; call_id: string; is_error: boolean; blocked: boolean }
 	| { type: "checkpointed"; at: string }
+	/**
+	 * What the provider wrote around 495's instructions in a request, read from the payload the host
+	 * handed over once the provider had built it (CTX-02, D-55): an observation, where the manifest's
+	 * imposed layers are an expectation. Sent for the first request, then for each one that differs.
+	 */
+	| { type: "imposed_layers_observed"; at: string; observation: ObservedLayers }
 	/**
 	 * Pi replaced an older part of the conversation with a summary to fit the window (CTX-02). What
 	 * the model holds from here on is no longer what the manifest sealed, and writing the summary

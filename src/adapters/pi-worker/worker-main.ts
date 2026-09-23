@@ -1,10 +1,10 @@
 /**
  * Pi worker process entry (ADR-004, ADR-008, D-05, D-11).
  *
- * Reads one `mandate` line on stdin, creates a Pi SDK session with an explicit, empty resource
- * loader (no skills, no AGENTS.md, no project extensions), explicit tools confined to the
- * workspace, the exact model of the mandate (no fallback), and streams closed-set events as JSONL
- * on stdout. It knows nothing about the ledger.
+ * Reads one `mandate` line on stdin, creates a Pi SDK session with an explicit resource loader (no
+ * skills, no AGENTS.md, no project extensions — its one extension is the observer of each provider
+ * request), explicit tools confined to the workspace, the exact model of the mandate (no fallback),
+ * and streams closed-set events as JSONL on stdout. It knows nothing about the ledger.
  */
 import { createInterface } from "node:readline";
 import { realpath, mkdir, readFile, writeFile, access, stat, readdir } from "node:fs/promises";
@@ -17,6 +17,7 @@ import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbo
 import { digestValue } from "../../contracts/digest.ts";
 import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
 import { observeSessionEvent, readSessionCost, type SessionEventRead } from "./session-observer.ts";
+import { RequestLayerObserver, loadRequestObserver } from "./provider-request.ts";
 import {
 	OUTPUT_SCHEMAS,
 	TOOLS_FOR_ROLE,
@@ -293,8 +294,22 @@ async function main(): Promise<void> {
 					),
 				);
 			}
+			const settingsManager = pi.SettingsManager.inMemory({
+				compaction: { enabled: true },
+				retry: { enabled: true, maxRetries: 2 },
+			});
+			// What the provider writes around the instructions is read in the request it sends, not
+			// restated from a table 495 keeps (CTX-02, D-55).
+			const observer = new RequestLayerObserver(model.api, m.system_prompt, (observation) =>
+				send({ type: "event", event: { type: "imposed_layers_observed", at: now(), observation } }),
+			);
+			const extensions = await loadRequestObserver(
+				pi,
+				{ cwd: workspace, agentDir: c.pi_agent_dir, settingsManager },
+				observer,
+			);
 			const resourceLoader: import("@earendil-works/pi-coding-agent").ResourceLoader = {
-				getExtensions: () => ({ extensions: [], errors: [], runtime: pi.createExtensionRuntime() }),
+				getExtensions: () => extensions,
 				getSkills: () => ({ skills: [], diagnostics: [] }),
 				getPrompts: () => ({ prompts: [], diagnostics: [] }),
 				getThemes: () => ({ themes: [], diagnostics: [] }),
@@ -306,10 +321,6 @@ async function main(): Promise<void> {
 				extendResources: () => {},
 				reload: async () => {},
 			};
-			const settingsManager = pi.SettingsManager.inMemory({
-				compaction: { enabled: true },
-				retry: { enabled: true, maxRetries: 2 },
-			});
 			const { session } = await pi.createAgentSession({
 				cwd: workspace,
 				agentDir: c.pi_agent_dir,

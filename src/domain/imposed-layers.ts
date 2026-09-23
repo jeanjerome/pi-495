@@ -57,6 +57,10 @@ export function imposedLayersFor(providerId: string): ImposedLayer[] {
  * handed over once the provider had built it (CTX-02, D-55). This is an **observation**, the
  * counterpart of `ImposedLayer`'s expectation.
  *
+ * Above and below are relative to the system prompt the host built from 495's instructions, and
+ * what the provider wrote is what surrounds it. `added_by_host` is what that prompt holds besides
+ * 495's instructions: Pi 0.87.0 closes it with a section naming the session's working directory.
+ *
  * `not_observed` carries its reason and never an empty list: not seeing is not seeing that nothing
  * was imposed. `local_instructions_not_found` keeps the system texts unplaced, because without 495's
  * own instructions in the request there is no above or below to put them in.
@@ -67,6 +71,7 @@ export type ObservedLayers =
 			readonly api: string;
 			readonly above_local_instructions: readonly string[];
 			readonly below_local_instructions: readonly string[];
+			readonly added_by_host: readonly string[];
 	  }
 	| { readonly status: "local_instructions_not_found"; readonly api: string; readonly system_texts: readonly string[] }
 	| { readonly status: "not_observed"; readonly reason: string };
