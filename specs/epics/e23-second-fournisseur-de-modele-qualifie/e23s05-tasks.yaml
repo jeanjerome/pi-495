@@ -42,12 +42,13 @@ tasks:
       `modelRuntime.isUsingSubscription()`, qu'emploie le pied de page de Pi. 495 ne tient aucune
       table de prix. Un modèle dont le catalogue porte un tarif nul, ou une session qui ne rapporte
       aucun usage, a un coût inconnu avec sa raison, jamais un coût nul. Le test oppose la lecture à
-      une vraie session de l'hôte. La forme des contrats change : `npm run contracts` est lancé, et
-      rien n'est engagé pendant qu'une campagne tourne.
+      une vraie session de l'hôte. Ce qui change de forme, c'est l'événement de fin d'intervention et
+      le protocole du worker : aucun contrat publié ne décrit l'intervention, et `npm run contracts`
+      ne change aucun des 28 schémas. Rien n'est engagé pendant qu'une campagne tourne.
     verify: "node --test test/v3/session-cost.test.ts"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

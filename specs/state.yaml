@@ -12,14 +12,30 @@ active_story: e23s05
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
-    TÂCHE 3 D'`e23s05` TENUE, sur la branche `borne-d-appels-et-cout`. Rouge commité seul, puis
-    vert ; Preflight vert, 344 tests. Quel que soit le rôle, une intervention qui dépasse sa borne
-    d'appels arrête le changement sous `budget_exhausted`, que la relance lève. C'est le refus du
-    noyau, lu côté application (`intervention.ts`), qui décide, et non l'événement final du worker ;
-    la course du worker réel est donc tranchée par construction, mais elle n'est pas encore
-    observée. L'intervention reste inscrite `cancelled`, et son détail nomme la borne. La note de
-    reprise du producteur compte désormais aussi les arrêts sur borne et les pauses. Suite prévue :
-    tâche 2 (le coût), puis 1 et 4.
+    TÂCHE 2 D'`e23s05` TENUE, sur la branche `borne-d-appels-et-cout`. Rouge commité seul, puis
+    vert ; Preflight vert, 354 tests. Chaque `intervention.finished` porte un `cost` : le total que
+    l'hôte calcule pour la session (`getSessionStats()`), lu par le worker avant de fermer la
+    session, avec sa base (le catalogue de l'hôte) et l'emploi d'un abonnement
+    (`isUsingSubscription()`). Le coût est inconnu, avec sa raison, dans trois cas : le catalogue ne
+    porte aucun tarif pour le modèle, la session ne rapporte aucun usage, ou la fin a été synthétisée
+    sans le worker (silence, pause, reprise, annulation). Un arrêt sur la borne d'appels porte ce qui
+    a été dépensé avant lui. Le test oppose la lecture à de vraies sessions de l'hôte sur un point
+    d'accès local, puis au vrai worker ; le cas d'abonnement ne sort pas de la machine, vérifié sous
+    Seatbelt, réseau sortant interdit. Le champ est absent des dossiers écrits avant : la relecture
+    de la tâche 1 doit le dire au lieu d'afficher zéro. Suite prévue : tâche 1, puis 4.
+
+    LE PLAN SE TROMPAIT SUR LES CONTRATS. Aucun contrat publié ne décrit l'intervention, et
+    `npm run contracts` ne change aucun des 28 schémas. Ce qui change de forme, c'est l'événement du
+    journal et le protocole du worker, et, comme pour tout changement de code, l'empreinte du
+    harnais. La tâche est corrigée en ce sens.
+
+    TÂCHE 3 D'`e23s05` TENUE, avant la 2. Rouge commité seul, puis vert ; Preflight vert, 344
+    tests. Quel que soit le rôle, une intervention qui dépasse sa borne d'appels arrête le
+    changement sous `budget_exhausted`, que la relance lève. C'est le refus du noyau, lu côté
+    application (`intervention.ts`), qui décide, et non l'événement final du worker ; la course du
+    worker réel est donc tranchée par construction, mais elle n'est pas encore observée.
+    L'intervention reste inscrite `cancelled`, et son détail nomme la borne. La note de reprise du
+    producteur compte désormais aussi les arrêts sur borne et les pauses.
 
     `e23s05` est planifiée : la fiche est écrite au format de story, et le journal de tâches en
     compte sept, chacune avec une commande qui échouait au moment du plan. Preflight était vert
