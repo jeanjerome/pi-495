@@ -1,6 +1,6 @@
 {
   "name": "pi-495",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Evidence-gated harness for coding agents, inside Pi. The checks are frozen before the change exists; it is accepted on evidence, never on the agent's word.",
   "type": "module",
   "license": "Apache-2.0",
