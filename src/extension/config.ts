@@ -28,7 +28,7 @@ const DEFAULT_CONFIG: HarnessConfig = {
  * list: a diagnostic reaches the display, the structured entries and, through a block detail, the
  * exported dossier.
  */
-const IGNORED_EGRESS = "config.json: policy.egress is no longer read; the model selected in Pi is used";
+const EGRESS_NO_LONGER_READ = "config.json: policy.egress is no longer read; the model selected in Pi is used";
 
 export function loadConfig(
 	dataDir: string,
@@ -42,23 +42,23 @@ export function loadConfig(
 			const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
 			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
 				throw new Error(`expected an object, read ${Array.isArray(parsed) ? "a list" : typeof parsed}`);
-			const raw = parsed as Partial<HarnessConfig> & {
+			const raw = parsed as Partial<Omit<HarnessConfig, "policy">> & {
 				policy?: Partial<ActivePolicy> & {
 					egress?: unknown;
 					budgets?: Partial<ActivePolicy["budgets"]>;
 					adoption?: Partial<ActivePolicy["adoption"]>;
 				};
 			};
-			const { egress, ...policy } = raw.policy ?? {};
-			if (egress !== undefined) diagnostics.push(IGNORED_EGRESS);
+			const { egress, budgets, adoption, ...policy }: NonNullable<typeof raw.policy> = raw.policy ?? {};
+			if (egress !== undefined) diagnostics.push(EGRESS_NO_LONGER_READ);
 			config = {
 				policy: {
 					...DEFAULT_POLICY,
 					...policy,
-					budgets: { ...DEFAULT_POLICY.budgets, ...(raw.policy?.budgets ?? {}) },
-					adoption: { ...DEFAULT_POLICY.adoption, ...(raw.policy?.adoption ?? {}), protocol: "kernel" },
-					revision: raw.policy?.revision ?? DEFAULT_POLICY.revision,
-					policy_id: raw.policy?.policy_id ?? "config.json",
+					budgets: { ...DEFAULT_POLICY.budgets, ...budgets },
+					adoption: { ...DEFAULT_POLICY.adoption, ...adoption, protocol: "kernel" },
+					revision: policy.revision ?? DEFAULT_POLICY.revision,
+					policy_id: policy.policy_id ?? "config.json",
 				},
 				isolation: { ...DEFAULT_CONFIG.isolation, ...(raw.isolation ?? {}) },
 				human_origin: { ...DEFAULT_CONFIG.human_origin, ...(raw.human_origin ?? {}) },
