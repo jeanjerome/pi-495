@@ -35,7 +35,7 @@ tasks:
       L'observateur ne renvoie jamais de valeur et ne s'abonne à aucune accroche d'en-têtes. Il ne
       garde rien de la charge utile hors des textes système que 495 n'a pas écrits. Le chargeur de
       ressources ne charge aucune extension du projet cible.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -48,14 +48,16 @@ tasks:
       là où son bloc système est déjà composé, et non déduit de la table que 495 entretient. Deux
       formes sont lues : les messages Anthropic, dont le système est une liste de blocs de texte, et
       les complétions compatibles OpenAI, dont le système est le premier message. Le relevé situe
-      les instructions de 495 et range le reste au-dessus ou au-dessous. Des instructions
-      introuvables telles quelles sont un écart nommé. Pi passe la charge sans la typer : une API
+      l'invite que l'hôte rapporte avoir composée, et range le reste au-dessus ou au-dessous. Ce que
+      cette invite contient en plus des instructions de 495 est la part de l'hôte : Pi 0.87.0 la
+      termine par le répertoire de travail de la session. Des instructions introuvables telles
+      quelles sont un écart nommé. Pi passe la charge sans la typer : une API
       inconnue, ou une forme inattendue, donne une observation non relevée avec sa raison, jamais
       une liste vide.
     verify: "node --test test/v1/imposed-layers-observed.test.ts"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -73,7 +75,7 @@ tasks:
       sérialisation, donc après `context_with_system`, qui ne le porte pas.
     verify: "node --test test/v2/observed-layers-dossier.test.ts"
     risk: P1
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -90,7 +92,7 @@ tasks:
       commentaire dit qu'elle est l'attente. Aucun écart n'arrête une intervention.
     verify: "node --test test/v2/imposed-layers-divergence.test.ts"
     risk: P1
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -106,7 +108,7 @@ tasks:
       accroche que Pi présente comme un outil de débogage.
     verify: "test -s specs/adr/D-60-la-strate-imposee-est-observee-dans-la-requete-et-la-declaration-devient-une-attente.md"
     risk: P3
-    status: failing
+    status: passing
     allure:
       severity: minor
       categories:

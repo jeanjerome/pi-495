@@ -81,8 +81,8 @@ stories:
     bcps: 5
     epic: e23
     tasks_total: 8
-    tasks_passing: 0
-    tasks_failing: 8
+    tasks_passing: 5
+    tasks_failing: 3
     risk_max: P0
     security_max: high
   e24s01:

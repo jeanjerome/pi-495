@@ -19,7 +19,7 @@ motif: >
   servir de preuve.
 
 exigences: [AGT-01, AGT-02, CTX-02, SEC-05]
-decisions: [D-46, D-48, D-49, D-57, D-58, D-59]
+decisions: [D-46, D-48, D-49, D-55, D-57, D-58, D-59, D-60]
 
 stories:
   - id: e23s01

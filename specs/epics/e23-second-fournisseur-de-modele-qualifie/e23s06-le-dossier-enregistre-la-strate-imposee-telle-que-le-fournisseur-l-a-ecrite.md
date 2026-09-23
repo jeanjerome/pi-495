@@ -31,6 +31,13 @@ de Pi 0.87.0 dit aussi pourquoi aucune autre accroche ne suffit. Le bloc d'abonn
 le fournisseur au moment où il sérialise la requête. `context_with_system` passe plus tôt : elle
 porte la transcription de Pi, message système en tête, mais pas ce que le fournisseur y ajoute.
 
+La première exécution a montré un fait qu'aucune table ne portait. Pi ajoute lui-même une section à
+l'invite que 495 lui remet : il la termine par le répertoire de travail de la session, en chemin
+absolu (`buildSystemPromptSections`, Pi 0.87.0). Ce texte n'est ni de 495 ni du fournisseur. Pi
+rapporte l'invite qu'il a composée, au moment même de la requête, par `ctx.getSystemPrompt()`.
+L'observation s'en sert pour séparer les deux parts : ce que l'hôte a ajouté aux instructions de 495,
+et ce que le fournisseur a écrit autour de l'invite de l'hôte.
+
 Cette story fait de l'observation la source. Pour chaque intervention, le dossier porte ce que le
 fournisseur a écrit autour des instructions de 495 dans la requête réellement envoyée, et il le
 présente comme un fait relevé. La déclaration reste au manifeste, mais comme une attente. Un écart
@@ -46,8 +53,8 @@ fournisseur n'est plus dans Preflight. Un bloc déclaré à tort, ou un bloc mod
 fournisseur, reste invisible.
 
 **After:** pour chaque intervention, le dossier porte les textes que le fournisseur a écrits
-au-dessus et au-dessous des instructions de 495, relevés mot pour mot dans la requête envoyée. Ils
-sont marqués comme observés. La liste du manifeste reste, avec le statut d'attente. Chaque écart
+au-dessus et au-dessous des instructions de 495, relevés mot pour mot dans la requête envoyée, et à
+part ce que l'hôte a ajouté à ces instructions. Ils sont marqués comme observés. La liste du manifeste reste, avec le statut d'attente. Chaque écart
 entre l'attente et l'observation est nommé au dossier. Une requête que 495 ne sait pas lire, ou une
 intervention où rien n'a pu être observé, est inscrite comme non observée, avec sa raison, et jamais
 comme une absence de strate.
@@ -92,9 +99,11 @@ et non ce que 495 croyait savoir du paquet du fournisseur.
    extension du projet, ni compétence, ni fichier d'instructions.
 2. À chaque requête, l'hôte passe à l'observateur la charge utile que le fournisseur a construite.
    L'observateur la lit et ne renvoie rien. La requête part telle que le fournisseur l'a construite.
-3. L'observateur repère les instructions de 495 dans la partie système de la requête. Il relève mot
-   pour mot ce que le fournisseur a écrit au-dessus d'elles et au-dessous. Il ne garde rien d'autre
-   de la charge : ni la conversation, ni les extraits du projet, ni les résultats d'outils.
+3. L'observateur demande à l'hôte l'invite système qu'il a composée pour cette requête, et la repère
+   dans la partie système de la charge utile. Il relève mot pour mot ce que le fournisseur a écrit
+   au-dessus et au-dessous d'elle, et ce qu'elle contient en plus des instructions de 495, qui est la
+   part de l'hôte. Il ne garde rien d'autre de la charge : ni la conversation, ni les extraits du
+   projet, ni les résultats d'outils.
 4. La première observation d'une intervention est transmise au noyau. Une requête suivante n'est
    transmise que si ce qu'elle porte diffère de la précédente.
 5. Le noyau inscrit l'observation au dossier de l'intervention. Elle y est marquée comme un fait
@@ -160,6 +169,10 @@ bloquée par l'observation. L'intervention est inscrite comme non observée, ave
 6i. **Les requêtes d'une même intervention diffèrent.** Par exemple après une réécriture du
 contexte. Chaque changement est inscrit, dans l'ordre. Les requêtes identiques ne le sont pas.
 
+6j. **L'hôte ajoute sa propre section.** Pi 0.87.0 termine l'invite par le répertoire de travail de
+la session. L'observation l'inscrit mot pour mot, comme ajout de l'hôte. Elle ne la compare à aucune
+attente : la déclaration parle des fournisseurs, et la part de l'hôte se lit à part.
+
 ### 7. Interface elements [draft]
 
 ```
@@ -176,8 +189,8 @@ sans Pi depuis le journal et le magasin d'objets.
 **Entité créée : l'observation des strates imposées**, une par changement de contenu au cours d'une
 intervention. Elle a trois formes :
 
-- **relevée** — elle porte l'API lue, les textes écrits au-dessus des instructions de 495, et les
-  textes écrits au-dessous ;
+- **relevée** — elle porte l'API lue, les textes que le fournisseur a écrits au-dessus et
+  au-dessous de l'invite de l'hôte, et ce que l'hôte a ajouté aux instructions de 495 ;
 - **instructions introuvables** — elle porte l'API lue et les textes système, sans les classer ;
 - **non relevée** — elle porte la raison.
 
@@ -252,9 +265,11 @@ opposable au manifeste.
 - **Autorisation :** l'observateur ne renvoie jamais de valeur. Il ne peut donc pas réécrire une
   requête. Le producteur ne peut ni lire ni modifier l'observation.
 - **Données :** la charge utile contient la conversation entière, extraits non fiables et résultats
-  d'outils compris. Rien de cela n'est gardé. Seuls les textes système écrits par le fournisseur
-  sont inscrits, et ce sont des textes publics, distribués dans son paquet. L'export du dossier
-  applique à l'observation la même rédaction qu'au reste.
+  d'outils compris. Rien de cela n'est gardé. Seuls les textes système écrits par le fournisseur,
+  et ce que l'hôte a ajouté aux instructions de 495, sont inscrits. La part de l'hôte porte le
+  chemin absolu de l'espace de travail : c'est ce que la requête envoie au fournisseur, et le
+  dossier le dit tel quel. L'export du dossier applique à l'observation la même rédaction qu'au
+  reste.
 - **Garantie revendiquée :** le dossier dit ce que le fournisseur a écrit dans les requêtes que
   l'hôte a remises à l'observateur. Il ne dit rien des requêtes que l'hôte émet sans passer par
   l'accroche.
@@ -333,6 +348,13 @@ Scenario: Seul un changement entre deux requêtes est inscrit (6i)
   When  l'intervention se termine
   Then  le dossier porte deux observations, dans l'ordre
 
+Scenario: La section ajoutée par l'hôte est inscrite à part (6j)
+  Given une session dont l'hôte termine l'invite par le répertoire de travail
+  When  l'intervention envoie sa requête
+  Then  l'observation porte cette section comme ajout de l'hôte, mot pour mot
+  And   elle ne figure ni au-dessus ni au-dessous de l'invite de l'hôte
+  And   la comparaison avec l'attente du manifeste ne la retient pas
+
 Scenario: Une campagne réelle concorde, et le contrôle négatif ne concorde pas (§5)
   Given une campagne conduite jusqu'à son verdict sur le fournisseur d'abonnement
   And   le même cas rejoué sous un fournisseur nommé anthropic servi localement
@@ -351,6 +373,9 @@ Scenario: Une campagne réelle concorde, et le contrôle négatif ne concorde pa
   lecture de Pi 0.87.0 n'établit pas si l'écriture d'un résumé de compaction y passe. Cette story ne
   le revendique pas.
 - **Arrêter une intervention sur un écart.** Un écart est un fait du dossier, pas une porte.
+- **Retirer la section que l'hôte ajoute.** Pi envoie au fournisseur le chemin absolu de l'espace de
+  travail avec chaque invite. Cette story le rend visible au dossier ; elle ne change pas ce que le
+  modèle reçoit.
 - **Rétablir le contrôle qui relisait le paquet du fournisseur.** L'observation reprend son but, sur
   la version réellement installée. Le contrôle n'est pas remis dans Preflight, et sa branche n'est
   pas fusionnée.
