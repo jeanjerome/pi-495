@@ -41,6 +41,29 @@ function stateOf(t: TestHarness, changeId: string): ChangeState {
 	return t.ledger.loadChange(changeId)!.state;
 }
 
+/** What the ledger says about the last intervention of a role when it ended. */
+function finishedDetail(t: TestHarness, changeId: string, role: string): string {
+	const ids = new Set(
+		stateOf(t, changeId)
+			.interventions.filter((i) => i.role === role)
+			.map((i) => i.intervention_id),
+	);
+	const finished = t.ledger
+		.readChangeEvents(changeId)
+		.map((stored) => stored.event)
+		.filter((e) => e.type === "intervention.finished" && ids.has(e.intervention_id));
+	const last = finished.at(-1);
+	assert.ok(last?.type === "intervention.finished", `no ${role} intervention finished`);
+	return last.detail ?? "";
+}
+
+/** A role that keeps nothing between two runs is run again from the start, and its end says so. */
+function assertRedoneOnResume(t: TestHarness, changeId: string, role: string): void {
+	const detail = finishedDetail(t, changeId, role);
+	assert.doesNotMatch(detail, /workspace keeps/, `a stopped ${role} keeps no work for a resume: ${detail}`);
+	assert.match(detail, new RegExp(`a resume runs the ${role} intervention again`), detail);
+}
+
 function assertStoppedOnTheBound(state: ChangeState): void {
 	assert.equal(state.status, "blocked", "reaching the bound stops the change");
 	assert.equal(state.stop_reason, "budget_exhausted", `stopped as ${state.stop_reason}: ${state.stop_detail}`);
@@ -64,6 +87,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 		const implement = state.interventions.filter((i) => i.role === "implement");
 		assert.equal(implement.length, 1);
 		assert.notEqual(implement[0]!.result, "truncated", "a call bound is not the duration bound");
+		assert.match(finishedDetail(t, changeId, "implement"), /the workspace keeps the unfinished work/);
 		const again = await t.harness.advance(changeId, { max_steps: 10 });
 		assert.deepEqual(again.steps, [], "a change stopped on its bound does nothing until a resume");
 		assert.equal(stateOf(t, changeId).interventions.length, state.interventions.length);
@@ -141,6 +165,27 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 		);
 		const changeId = await startAndAdvance(t, p, "Keep greet behaviour, tidy the implementation");
 		assertStoppedOnTheBound(stateOf(t, changeId));
+		assertRedoneOnResume(t, changeId, "specify");
+	});
+
+	it("the resume that lifts the stop is recorded under the owner who gave it", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				policy: TWO_CALLS,
+				scripts: { specify: { steps: [read, read, read, { kind: "complete", output: specReport() }] } },
+			}),
+		);
+		const changeId = await startAndAdvance(t, p, "Keep greet behaviour, tidy the implementation");
+		assertStoppedOnTheBound(stateOf(t, changeId));
+		t.harness.resume(changeId, HUMAN);
+		const lifted = t.ledger
+			.readChangeEvents(changeId)
+			.map((stored) => stored.event)
+			.filter((e) => e.type === "status.changed")
+			.at(-1);
+		assert.ok(lifted?.type === "status.changed" && lifted.status === "ready", "the resume lifts the stop");
+		assert.deepEqual(lifted.actor, HUMAN, "the spending after the stop is the owner's to answer for");
 	});
 
 	it("a preparation past its bound stops the change instead of judging a partial suite", async () => {
@@ -191,6 +236,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 		assert.equal(state.interventions.filter((i) => i.role === "prepare").length, 1, "the preparation did run");
 		const judged = t.ledger.listArtifacts(changeId, "preparation").filter((a) => a.ref.artifact_id.startsWith("prep_"));
 		assert.equal(judged.length, 0, "a preparation stopped on its bound is not judged");
+		assertRedoneOnResume(t, changeId, "prepare");
 	});
 
 	it("a review past its bound stops the change instead of recording an invalid review", async () => {
@@ -214,5 +260,6 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 		assert.equal(state.interventions.filter((i) => i.role === "review").length, 1, "the review did run");
 		assertStoppedOnTheBound(state);
 		assert.equal(t.ledger.listArtifacts(changeId, "review").length, 0, "no review is recorded for a stopped reviewer");
+		assertRedoneOnResume(t, changeId, "review");
 	});
 });
