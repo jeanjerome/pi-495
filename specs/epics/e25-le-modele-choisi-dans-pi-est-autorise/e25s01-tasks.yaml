@@ -25,7 +25,8 @@ tasks:
       réglages : la clé est ignorée, et un diagnostic d'ouverture de session dit qu'elle n'est plus
       lue et que le modèle choisi dans Pi est employé. Un fichier illisible, ou dont une section
       n'est pas un objet, arrête tout changement au lieu de céder aux défauts, sans citer son texte
-      ni son chemin, jusqu'à ce qu'il soit réparé et qu'une nouvelle session soit ouverte.
+      ni son chemin, jusqu'à ce qu'il soit réparé et que Pi soit rechargé ou une nouvelle session
+      ouverte.
     verify: "node --test test/v1/model-admitted.test.ts"
     risk: P0
     security: high

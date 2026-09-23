@@ -235,7 +235,7 @@ contrainte est écrite dans la docstring de `ImposedLayer`, là où la décision
 
 | | |
 |---|---|
-| Périmètre | `git diff 1e7fd3e..2908ec6`, 25 fichiers, dont 5 de production et un script |
+| Périmètre | `git diff 1e7fd3e..0b6539d`, 26 fichiers, dont 5 de production et un script |
 | Conduite le | 2026-09-23 |
 | Branche | `le-modele-choisi-est-admis` |
 | Risque de la story | P0 |
@@ -276,8 +276,16 @@ Le défaut existait avant cette story, sur le même chemin vers le modèle, et l
 ouvre ce chemin à tout fournisseur. Il est corrigé (BUG-2026-09-23T173000) : une erreur de syntaxe
 est annoncée « it is not valid JSON », sans extrait. Depuis `bda51c7`, un fichier qui ne s'ouvre pas
 est annoncé « the file cannot be opened », sans le chemin absolu que portait le message d'`EACCES` ;
-une forme inattendue ne nomme que son type. Deux tests le tiennent, et un démarrage à froid de
-l'extension construite le confirme.
+depuis `0b6539d`, il en va de même quand le répertoire ne se laisse pas parcourir, où `lstat`
+échouait en citant le chemin. Une forme inattendue ne nomme que son type. Les tests de
+`test/v1/model-admitted.test.ts` le tiennent, et un démarrage à froid de l'extension construite le
+confirme.
+
+**Un runtime qui ne se crée pas ne nomme pas son répertoire.** Hors du fichier de configuration, la
+création du runtime échoue sur le répertoire de données (un `mkdir` refusé, par exemple), et le
+message du système porte son chemin, qui est aussi celui de `config.json`. Le défaut existait avant
+cette story. Depuis `0b6539d`, le refus ne garde que le code de l'erreur (`EACCES`, `EEXIST`…) et dit
+comment le lever ; `test/v3/pi-rpc-sdk.test.ts` le vérifie dans une session RPC réelle.
 
 **Les autres réglages gardent leur sens.** L'étalement de `policy`, les fusions de `budgets` et
 `adoption`, le verrou `protocol: "kernel"`, `revision` et `policy_id` sont lus comme avant. La
@@ -293,9 +301,11 @@ session sous les réglages par défaut, et un arbitrage humain écrit dans le fi
 propriétaire a tranché le 2026-09-23 : `loadConfig` lève `CONFIGURATION_ERROR` sur un fichier qui ne
 s'ouvre pas, qui n'est pas du JSON, qui n'est pas un objet, ou dont une section (`policy`,
 `policy.budgets`, `policy.adoption`, `isolation`, `human_origin`) n'en est pas un ; un lien
-symbolique dont la cible a disparu est un fichier qui ne s'ouvre pas, pas un fichier absent. Le
-runtime ne se crée pas, et chaque `/495` répond par ce refus jusqu'à ce que le fichier soit réparé
-ou retiré et qu'une nouvelle session soit ouverte : seule l'ouverture de session lie la session à
+symbolique dont la cible a disparu est un fichier qui ne s'ouvre pas, pas un fichier absent, et ce
+qui n'est pas un fichier ordinaire est refusé avant d'être ouvert (un tube nommé bloquait
+l'ouverture de session jusqu'à ce qu'on y écrive). Le runtime ne se crée pas, et chaque `/495`
+répond par ce refus jusqu'à ce que le fichier soit réparé ou retiré et que Pi recharge ses
+extensions (`/reload`) ou ouvre une nouvelle session : seule l'ouverture de session lie la session à
 son changement et annonce les diagnostics, si bien qu'un runtime créé plus tard tournerait sans
 liaison et sans rien annoncer (`session.ts`, `runtimeFailure`). Le refus atteint le contexte du
 modèle une fois par commande. Aucun journal n'est ouvert. Une section qui n'est pas un objet ne répand donc plus ses caractères
@@ -324,8 +334,11 @@ et rend D-53 sans objet. Ce n'est pas un constat : c'est la décision du propri�
 
 **Un champ du mauvais type entre dans la politique.** Une section qui n'est pas un objet est refusée
 depuis `bda51c7`, mais aucun champ n'est vérifié : `max_attempts: "abc"` est chargé tel quel, et
-`policy.baseline`, qui n'est pas fusionné avec son défaut, peut perdre `compare_to_reference`. Ce
-défaut est ouvert au registre sous BUG-2026-09-23T184521.
+`policy.baseline`, qui n'est pas fusionné avec son défaut, peut perdre `compare_to_reference`.
+`adoption.design: "Human"` fait adopter la conception par le noyau sans rien annoncer ;
+`integration_enabled: "false"` active l'intégration, qui attend encore une autorisation humaine ;
+`allow_unconfined: "no"` choisit le backend non confiné, jamais qualifié, et tout rôle qui écrit est
+refusé. Le défaut précède la story, et il est ouvert au registre sous BUG-2026-09-23T184521.
 
 **Changements bloqués avant la story.** Un changement bloqué sous `policy_denied` au titre de sa
 destination repart, à la reprise, vers le fournisseur choisi. C'est l'effet voulu : le motif de

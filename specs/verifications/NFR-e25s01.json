@@ -3,7 +3,7 @@
   "risk": "P0",
   "evaluated_at": "2026-09-23T16:05:00Z",
   "revised_at": "2026-09-23",
-  "revision_note": "The reliability measure was revised after the three campaigns, for the unreadable file only: its reason stopped quoting the file at dcdd890, the file stops every change since bda51c7, and since 2908ec6 until a new session is started. The three thresholds and the campaign measures are unchanged.",
+  "revision_note": "The reliability measure was revised after the three campaigns, for the unreadable file only: its reason stopped quoting the file at dcdd890, the file stops every change since bda51c7, since 2908ec6 until a new session is started, and since 0b6539d until Pi is reloaded or a new session is started, with a file that is not a regular file refused without its path. The three thresholds and the campaign measures are unchanged.",
   "threshold_source": {
     "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s01-le-fournisseur-du-modele-choisi-est-admis-sans-configuration.md",
     "section": "14. Quality attributes *NFR*",

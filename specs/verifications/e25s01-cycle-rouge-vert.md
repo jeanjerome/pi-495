@@ -33,6 +33,7 @@ l'environnement remis au worker et sur le texte composé pour le modèle.
 | Un fichier illisible est annoncé sans rien citer du fichier | rouge observé avant correction, non commité seul (voir plus bas) | `dcdd890` |
 | Un fichier illisible, ou dont une section n'est pas un objet, arrête tout changement, sans citer son texte ni son chemin | rouge observé avant correction, non commité seul (voir plus bas) | `bda51c7` |
 | Le refus tient jusqu'à une nouvelle session et n'est dit qu'une fois par commande ; un lien symbolique pendant est refusé ; aucun refus ne cite la valeur d'une section ni le chemin | rouge observé avant correction, non commité seul (voir plus bas) | `2908ec6` |
+| Ce qui n'est pas un fichier ordinaire, ou se trouve dans un répertoire qui ne se parcourt pas, est refusé sans son chemin ; un runtime qui ne se crée pas pour une autre cause est refusé par son seul code d'erreur ; chaque refus nomme `/reload` ; le script des budgets refuse un fichier illisible | rouge observé avant correction, non commité seul (voir plus bas) | `0b6539d` |
 
 Les deux premiers comportements rouges ont un seul commit vert. Retirer le champ `egress` de la politique
 retire du même coup la règle que le superviseur appliquait. Aucun état intermédiaire ne compile avec
@@ -98,6 +99,30 @@ Trois mutations, injectées puis retirées à `2908ec6`, tombent chacune sur un 
 refus d'un JSON invalide, et `existsSync` rétabli pour juger la présence du fichier. Les deux
 premières passaient les tests de `5e43a7d`.
 
+Le sixième tour de relecture a montré que `lstat` citait le chemin du fichier quand le répertoire ne
+se laisse pas parcourir, qu'un tube nommé bloquait l'ouverture de session, qu'un runtime qui ne se
+crée pas pour une autre cause restait refusé pour la session en citant le répertoire de données, et
+qu'aucun test ne voyait l'annonce du refus à l'écran. Pi recharge l'extension sur `/reload`
+(`session_start` de raison `reload`, `AgentSession.reload` dans `dist/core/agent-session.js`) : le
+refus le nomme. Les tests ont été écrits d'abord et vus rouges sur l'arbre de `cc4ae51`, puis commités
+avec le correctif dans `0b6539d` :
+
+```
+node --test test/v1/model-admitted.test.ts   2 échecs sur 8
+  ✖ refuses a file in a directory it cannot search, without naming where it lies
+      Error: EACCES: permission denied, lstat '<répertoire du test>/config.json'
+  ✖ refuses a named pipe instead of waiting for something to write to it
+      the read returned instead of waiting — actual: 'SIGTERM'
+node --test --test-name-pattern="cannot be created" test/v3/pi-rpc-sdk.test.ts   1 échec sur 1
+  495 error: EEXIST: file already exists, mkdir '<répertoire de données du test>'
+```
+
+Le test RPC du refus, vert à l'arrivée sur son nouvel énoncé, ouvre désormais la session suivante
+par `new_session` dans le même processus. Trois mutations, injectées puis retirées à `0b6539d`,
+tombent chacune : la notification d'échec à l'ouverture supprimée (`pi-rpc-sdk`, 1 échec sur 1, elle
+passait les 8 tests v3 de `cc4ae51`) ; `config.ts` rétabli à `cc4ae51` (`model-admitted` v1, 2 échecs
+sur 8) ; le refus de `scripts/measure-budgets.ts` retiré (`measure-budgets`, 1 échec sur 1).
+
 Deux contrôles négatifs tiennent les tests resserrés à `67740c4`, par mutation injectée puis
 retirée :
 
@@ -120,10 +145,14 @@ Aucun constat nouveau sur les chemins touchés.
   objet, lève `CONFIGURATION_ERROR` et aucun changement ne tourne ; le refus ne cite ni le texte du
   fichier (BUG-2026-09-23T173000, corrigé dans `dcdd890`) ni son chemin, et les arbitrages humains
   qu'il porte ne passent pas au noyau (BUG-2026-09-23T184520, corrigé dans `bda51c7`). Le refus
-  tient jusqu'à une nouvelle session, et un lien symbolique pendant est refusé (`2908ec6`).
+  tient jusqu'à une nouvelle session, et un lien symbolique pendant est refusé (`2908ec6`). Ce qui
+  n'est pas un fichier ordinaire, ou se trouve dans un répertoire qui ne se parcourt pas, est refusé
+  sans son chemin, et le refus nomme `/reload` (`0b6539d`).
 - `src/extension/session.ts` — un runtime qui n'a pas pu être créé reste refusé pour la session, et
   son échec n'est plus mis en attente pour être dit une seconde fois avant la réponse de la
-  commande : le refus atteint le contexte du modèle une fois par commande.
+  commande : le refus atteint le contexte du modèle une fois par commande. Depuis `0b6539d`, un échec
+  qui ne vient pas de la configuration n'est dit que par son code d'erreur, sans le répertoire de
+  données que le message du système nommait.
 - `src/domain/policy.ts` — la situation n'y garde aucun type. `EgressLocation`, qui n'avait plus
   de lecteur, est retiré ; e25s03 introduit le sien quand il la lit de l'adresse du modèle.
 - `src/application/intervention.ts` — `requireCapable` juge encore le bac à sable et les capacités
@@ -146,9 +175,10 @@ e25s04.
 
 ## État final
 
-`npm run build && npm run check` est vert à `2908ec6` avec 383 tests. L'assertion sur la politique
+`npm run build && npm run check` est vert à `0b6539d` avec 387 tests, sous Node 24.21.0. L'assertion sur la politique
 du noyau, que le type garantit déjà, est retirée, et le test des entrées Pi porte aussi le diagnostic
 d'une clé `policy.egress` ignorée. Retirer l'émission de ce diagnostic fait échouer ce test en mode
 texte. Le fournisseur admis dans les tests v2 n'est nommé nulle part dans 495, chaque forme
 malformée de la clé est annoncée mot pour mot comme une liste, et un fichier illisible arrête tout
-changement jusqu'à une nouvelle session, par un refus qui ne cite ni son texte ni son chemin.
+changement jusqu'au rechargement de Pi ou à une nouvelle session, par un refus qui ne cite ni son
+texte ni son chemin.

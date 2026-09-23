@@ -12,6 +12,59 @@ active_story: e25s01
 handoff:
   next_skill: null
   last_step_completed: >
+    `respond-review` a traité le sixième tour le 2026-09-23. Corrigés dans `0b6539d`, tests vus rouges
+    d'abord sur `cc4ae51` : la présence de `config.json` est jugée dans un `try` (`present()` dans
+    `config.ts`), si bien qu'un répertoire qui ne se parcourt pas est refusé sans le chemin, et ce qui
+    n'est pas un fichier ordinaire (un tube nommé bloquait l'ouverture) est refusé avant d'être
+    ouvert ; un runtime qui ne se crée pas pour une autre cause est refusé par son seul code d'erreur
+    (`cannotCreate` dans `session.ts`), sans le répertoire de données ; chaque refus nomme
+    `/reload`, vérifié dans Pi (`session_start` de raison `reload`, `AgentSession.reload`) ; le test
+    RPC vérifie la notification d'échec à l'ouverture (`uiRequests`) et ouvre la session suivante par
+    `new_session` dans le même processus ; `test/v2/measure-budgets.test.ts` tient le refus du script
+    ; la phrase du README nomme les sections vérifiées et `/495 help`. Trois mutations tombent
+    (notification retirée, `config.ts` de `cc4ae51`, refus du script retiré). Inscrit au registre, hors
+    de la story qui ne l'a pas introduit : les champs du mauvais type (BUG-2026-09-23T184521, relevé à
+    medium/p2) — `adoption.design: "Human"` fait adopter le noyau en silence, `integration_enabled:
+    "false"` active l'intégration derrière une autorisation humaine, `allow_unconfined: "no"` fait
+    refuser tout rôle qui écrit ; la façon de les traiter reste à trancher. Écartés avec motif : l'état
+    en trois cellules (`pending` est une file de textes, et `runtime`/`runtimeFailure` n'ont qu'un
+    écrivain, `ensureRuntime`) ; l'autre côté de `this.runtime ? [text] : []` (un journal qui échoue
+    après son ouverture, qu'aucune entrée publique n'atteint sans faux) ; `/495 help` refusé (le README
+    le dit) ; le libellé `existsSync` de `measure-budgets.ts` (atteint après un `loadConfig` réussi, où
+    les deux prédicats s'accordent) ; le double `session_start` de Pi sur `new_session` en RPC (propre à
+    Pi, deux notifications à l'écran, rien au modèle). `REVIEW.md`, le registre, le relevé rouge-vert,
+    la spécification (6b, scénario, §20), la tâche 1, `e25s01-verify.yaml` et `NFR-e25s01.json` sont à
+    jour. Preflight vert avec 387 tests sous Node 24.21.0. Ces corrections n'ont été relues par aucun
+    relecteur neuf, et la fusion attend la décision du propriétaire.
+
+    Un sixième tour de `request-review`, au-delà du plafond de cinq, a été conduit le 2026-09-23 sur
+    décision du propriétaire, avec deux relecteurs neufs, chacun sur une copie sous `$HOME`, sur
+    `cc4ae51` : A 60 %, B 88,9 %, aucun défaut bloquant ; porte refusée pour les deux. Preflight vert
+    avec 383 tests chez les deux. Les trois comportements de `2908ec6` (refus tenu pour la session,
+    dit une fois par commande, lien pendant refusé) font tomber leurs tests sous mutation. À corriger,
+    relevé par les deux : la notification d'échec à l'ouverture (`session.ts`, `ctx.ui.notify(text,
+    "error")`) n'est vérifiée par aucun test, et sa suppression passe `pi-rpc-sdk` et `pi-entries`
+    (`client.uiRequests` n'est pas lu). Relevé par les deux, à corriger selon A : `runtimeFailure`
+    fige pour la session tout échec de `createRuntime`, pas seulement `CONFIGURATION_ERROR` — un
+    `mkdirSync` refusé (`EACCES`) reste acquis sans dire qu'il faut une nouvelle session, et son
+    message porte au modèle le chemin absolu du répertoire de données (fuite antérieure à la branche).
+    À corriger selon A : `lstatSync` n'est pas gardé, donc `loadConfig` appelé directement sur un
+    répertoire sans droit de traversée rend `EACCES … lstat '<chemin>/config.json'`, contrairement à
+    la docstring de `unreadable()`, à `e25s01-cycle-rouge-vert.md` et à `REVIEW.md`. Relevé par les
+    deux, à corriger selon A : aucun champ scalaire n'est vérifié — `adoption.design: "Human"` fait
+    décider le noyau en silence (`decide.ts` compare à `"human"`), `integration_enabled: "false"` vaut
+    vrai ; `allow_unconfined: "no"` choisit le backend non confiné, non qualifié, donc les rôles qui
+    écrivent sont refusés en `CAPABILITY_MISSING` et un diagnostic l'annonce (vérifié dans
+    `runtime.ts` et `intervention.ts`) ; ces cas ne sont pas nommés dans BUG-2026-09-23T184521. À
+    peser : un `config.json` FIFO bloque l'ouverture sans fin (antérieur ; `lstat` permet de le
+    refuser) ; trois cellules nullables (`runtime`, `runtimeFailure`, `pending`) codent un état à
+    trois valeurs ; `scripts/measure-budgets.ts` n'a aucun test du refus et juge la présence du
+    fichier par `existsSync` ; la branche `this.runtime ? [text] : []` n'est testée que d'un côté ;
+    selon B, un `/reload` recrée l'extension (déduit de la doc de Pi, non exécuté), donc « nouvelle
+    session » est imprécis, `/495 help` est refusé aussi, et la phrase du README sur « a section that
+    is not an object » est ambiguë ; selon A, le test RPC ouvre la nouvelle session dans un nouveau
+    processus, et Pi émet deux fois `session_start` sur `new_session` en RPC.
+
     `respond-review` a traité le cinquième tour le 2026-09-23. Le propriétaire a choisi que la
     réparation d'un `config.json` illisible impose une nouvelle session. Corrigés dans `2908ec6`,
     tests vus rouges d'abord : un runtime qui n'a pas pu être créé reste refusé pour le reste de la

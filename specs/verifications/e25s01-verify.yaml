@@ -3,11 +3,11 @@ verified_at: "2026-09-23T16:06:00Z"
 verifier: verify-work
 risk: P0
 branch: le-modele-choisi-est-admis
-revision: 2908ec6
-revised_at: "2026-09-23T18:44:36Z"
+revision: 0b6539d
+revised_at: "2026-09-23T19:23:18Z"
 revision_note: >
   verified_at and confirmed_at date the acceptance on the three campaigns; the revision and the
-  terminal verdict were moved to 2908ec6 afterwards, for the unreadable-file refusal only.
+  terminal verdict were moved to 0b6539d afterwards, for the unreadable-file refusal only.
 
 environment:
   pi_version: "0.87.1"
@@ -33,7 +33,10 @@ phases:
       command's answer, and no ledger created in the data directory (BUG-2026-09-23T184520, fixed).
       Since 2908ec6 the refusal ends with "and a new Pi session is started", holds for the rest of
       the session, and is said once per command; test/v3/pi-rpc-sdk.test.ts drives a real RPC
-      session through the repair.
+      session through the repair. Since 0b6539d it ends with "and Pi is reloaded (/reload) or a new
+      session is started"; a file that is not a regular file, or in a directory that cannot be
+      searched, is refused without its path; a runtime that cannot be created for another cause is
+      refused by its error code alone; and the RPC test opens the next session in the same process.
   build:
     passed: true
     command: "npm run build"
@@ -46,22 +49,24 @@ phases:
     note: "Eight controls chained in npm run check; Biome clean over 173 files, no warning line."
   tests:
     passed: true
-    count: 383
+    count: 387
     note: >
-      383 of 383. 393 on main: 21 tests of the list and its refusal removed, 11 added. The two
+      387 of 387. 393 on main: 21 tests of the list and its refusal removed, 15 added. The two
       sentinel-secret tests of test/v1/egress.test.ts pass unchanged. test/v3/pi-entries.test.ts
       asserts the ignored-key diagnostic, and the refusal of `/495 start` under an unreadable file, in
-      the print and JSON entries; test/v3/pi-rpc-sdk.test.ts, that the refusal lasts until a new
-      session reads the repaired file.
+      the print and JSON entries; test/v3/pi-rpc-sdk.test.ts, that the refusal is shown on the
+      client's screen at session start and lasts until a new session reads the repaired file, and
+      that a runtime failing for another cause names no path; test/v2/measure-budgets.test.ts, that
+      the budget script refuses an unreadable file.
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-23T18:42:59Z"
-  ended_at: "2026-09-23T18:44:36Z"
+  started_at: "2026-09-23T19:21:38Z"
+  ended_at: "2026-09-23T19:23:18Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the code committed as 2908ec6, right after
-    `npm run build`. 383 tests passing, 0 failing. No output from any other attempt is merged into
+    Single contiguous run under Node 24.21.0 on the code committed as 0b6539d, right after
+    `npm run build`. 387 tests passing, 0 failing. No output from any other attempt is merged into
     this block. The manual campaigns below ran on the dist/ built at 2d4a615; the commits after it
     remove a type nothing read, restructure the policy read without changing what it loads, stop
     quoting the parser's message for an unreadable file, refuse an unreadable file instead of
@@ -147,8 +152,9 @@ manual:
     config.json that does not parse, `/495 start essai` answered "config.json cannot be read: it is
     not valid JSON; no change runs until it is fixed or removed". In print mode the text reaches
     stderr, as every extension output does under `pi -p`. At 2908ec6 the same refusal adds "and a
-    new Pi session is started"; that wording, and the refusal lasting for the session, rest on
-    tests and have not been shown to the owner.
+    new Pi session is started", and at 0b6539d "and Pi is reloaded (/reload) or a new session is
+    started"; that wording, and the refusal lasting for the session, rest on tests and have not been
+    shown to the owner.
   steps:
     - step: "Sans configuration, le fournisseur du modèle choisi est admis (§5)"
       expected: "L'intervention démarre, le journal inscrit le fournisseur, aucun diagnostic sur le modèle"
@@ -175,7 +181,8 @@ manual:
         « CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON; no change runs until it
         is fixed or removed », aucun journal n'est créé, rien du fichier n'est cité. Depuis 2908ec6 le
         refus ajoute « and a new Pi session is started » et tient toute la session (session RPC
-        réelle, par test). Les deux démarrages
+        réelle, par test) ; depuis 0b6539d, « and Pi is reloaded (/reload) or a new session is
+        started », et ce qui n'est pas un fichier ordinaire est refusé sans son chemin, par test. Les deux démarrages
         antérieurs, sous le critère d'avant la décision du propriétaire, annonçaient le fichier ignoré :
         « Unexpected end of JSON input », puis « it is not valid JSON » après dcdd890. Un fichier qui
         ne s'ouvre pas, et chaque section qui n'est pas un objet, par test seulement.
