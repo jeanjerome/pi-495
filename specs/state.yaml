@@ -10,13 +10,30 @@ active_epic_id: e25
 active_story: e25s02
 
 epic_cycle:
-  step: 3
-  completed_steps: "1,2"
+  step: 5
+  completed_steps: "1,2,3,4"
   story_bcps: 3
 
 handoff:
-  next_skill: kickoff-branch
+  next_skill: verify-work
   last_step_completed: >
+    Étape 4 faite le 2026-09-23 : `develop-tdd` a porté les trois tâches de e25s02 au vert. Le test
+    rouge `fbb4b2e` (`test/v3/model-select.test.ts`, 6 échecs sur 6 en isolation) couvre 6a, 6b,
+    §5/6c, 6d, 6e, et 6g contre un vrai `pi --mode rpc`. `eaba714` fait lire à chaque intervention
+    le modèle sélectionné quand elle démarre : `advance` reçoit un lecteur, `conduct` le lit dans le
+    contexte de la commande, le runtime ne porte plus de modèle, et la vérification de capacité,
+    l'inscription et le mandat reçoivent la même lecture. Preflight vert avec 395 tests. 6g est
+    confirmé par l'exécution sous une autre forme que prévu : un mauvais modèle (celui de la session
+    remplacée), pas une erreur de contexte caduc. Relevé, non testé et non corrigé : le catalogue
+    remis au worker Pi reste celui de la première session, alors que Pi en construit un neuf sur
+    `new_session`. Relevé : `specs/verifications/e25s02-cycle-rouge-vert.md`. Prochaine étape :
+    `verify-work`.
+
+    Étape 3 faite le 2026-09-23 : la spécification est validée par le propriétaire et versée sur
+    `main` (`952172c`), la branche `modele-lu-a-chaque-intervention` part de ce commit, et la
+    Preflight y est verte (389 tests, 0 échec). Prochaine étape : `develop-tdd`, en commençant par le
+    test rouge de `test/v3/model-select.test.ts`.
+
     e25s02 ouverte le 2026-09-23, étapes 1 et 2 de `build-epic`. La spécification est écrite
     (`e25s02-le-modele-choisi-par-model-est-celui-de-l-intervention-suivante.md`). La tâche 1 ne
     prescrit plus l'écoute de `model_select` : dans Pi 0.87.1, le contexte remis à l'extension lit
@@ -29,7 +46,7 @@ handoff:
     mandat, parce que `requireCapable` attend la description du modèle avant l'inscription : relire
     la sélection après cette attente laisserait joindre un modèle non jugé. `model_select` reste
     nécessaire à e25s03, pour l'annonce. Aucune modélisation de menace par epic n'a été produite
-    (étape 0), comme pour les stories précédentes. Prochaine étape : `kickoff-branch`.
+    (étape 0), comme pour les stories précédentes.
 
     Sur décision du propriétaire le 2026-09-23, la relecture a changé de périmètre : une petite refonte,
     la création unique du runtime, relue par un seul relecteur neuf sur ce qu'elle change seulement.

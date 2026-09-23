@@ -4,7 +4,7 @@
 story_id: e25s02
 spec: e25s02-le-modele-choisi-par-model-est-celui-de-l-intervention-suivante.md
 title: "Le modèle choisi par /model est celui de l'intervention suivante"
-status: failing
+status: passing
 bcps: 3
 requirement: AGT-07
 delta: MODIFIED
@@ -31,7 +31,7 @@ tasks:
       Aucun constat nouveau sur src/extension/session.ts. Le modèle reçu vient de l'hôte, jamais
       d'un fichier du projet cible, et il ne change que la sélection : la politique reste celle qui
       a été chargée.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -50,7 +50,7 @@ tasks:
     security_verify: >
       Aucun constat nouveau sur src/application/intervention.ts : un modèle changé ne contourne pas
       la sonde de capacité, qui est appliquée au modèle effectivement joint.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -63,7 +63,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
