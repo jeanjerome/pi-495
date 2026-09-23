@@ -26,6 +26,12 @@ rl.on("line", (line) => {
 	send({ type: "ready", pid: process.pid, pi_version: "fake" });
 	send({ type: "event", event: { type: "started", at: now() } });
 	const counters = { tool_calls: 1, duration_ms: 5, tokens_known: 42, delegations: 0 };
+	const cost = {
+		usd: null,
+		unknown_reason: "a fake worker opens no host session",
+		basis: "host_catalogue",
+		subscription: null,
+	};
 	switch (m.objective) {
 		case "crash":
 			process.exit(3);
@@ -38,7 +44,7 @@ rl.on("line", (line) => {
 				send({ type: "heartbeat", at: now() });
 				if (aborted) {
 					clearInterval(t);
-					send({ type: "event", event: { type: "cancelled", at: now(), counters } });
+					send({ type: "event", event: { type: "cancelled", at: now(), counters, cost } });
 					setTimeout(() => process.exit(0), 20);
 				}
 			}, 50);
@@ -47,14 +53,21 @@ rl.on("line", (line) => {
 		case "echo-env":
 			send({
 				type: "event",
-				event: { type: "completed", at: now(), output: { env: process.env }, output_valid: true, counters },
+				event: { type: "completed", at: now(), output: { env: process.env }, output_valid: true, counters, cost },
 			});
 			setTimeout(() => process.exit(0), 20);
 			break;
 		case "invalid-output":
 			send({
 				type: "event",
-				event: { type: "completed", at: now(), output: { raw: "I did it, trust me" }, output_valid: false, counters },
+				event: {
+					type: "completed",
+					at: now(),
+					output: { raw: "I did it, trust me" },
+					output_valid: false,
+					counters,
+					cost,
+				},
 			});
 			setTimeout(() => process.exit(0), 20);
 			break;
@@ -82,6 +95,7 @@ rl.on("line", (line) => {
 					output: { summary: "done", changed_paths: ["from-worker.txt"], tests_claimed: true, notes: [] },
 					output_valid: true,
 					counters,
+					cost,
 				},
 			});
 			setTimeout(() => process.exit(0), 20);

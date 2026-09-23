@@ -22,6 +22,7 @@ import {
 	openAttempt,
 	runningIntervention,
 	subjectOfChange,
+	unknownCost,
 	type ChangeState,
 	type GateDecisionState,
 } from "./state.ts";
@@ -846,6 +847,7 @@ class Ctx {
 			result: c.result,
 			counters: c.counters,
 			detail: c.detail,
+			cost: c.cost,
 		});
 		return ok(this.events);
 	}
@@ -1136,6 +1138,7 @@ class Ctx {
 				result: "cancelled",
 				counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 				detail: "change cancelled",
+				cost: unknownCost("the change was cancelled before the host reported the session's usage"),
 			});
 		const open = openAttempt(this.state);
 		if (open) this.emit({ type: "attempt.closed", ...this.base(), attempt_id: open.attempt_id, result: "cancelled" });

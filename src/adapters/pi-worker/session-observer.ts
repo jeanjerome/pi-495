@@ -9,7 +9,12 @@
  *
  * The events are read here rather than in the worker's subscriber so a test can hold them without
  * a subprocess. `compaction_start` says nothing `compaction_end` does not, and is not read.
+ *
+ * The cost is read the same way, once, when the session ends. The host totals it over every entry
+ * of the session, summaries and cache refreshes included, at the rates of its own catalogue; 495
+ * keeps no price table and only says where the amount comes from (AGT-07).
  */
+import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
 import type { InterventionEvent } from "../../ports/execution.ts";
 
 /**
@@ -92,4 +97,48 @@ export function observeSessionEvent(event: SessionEventRead, at: string): Observ
 		};
 	}
 	return nothing;
+}
+
+/** The part of the host's session this reads for the cost (pi-coding-agent 0.87.0, `getSessionStats`). */
+export interface SessionTotalsRead {
+	getSessionStats(): { tokens: { total: number }; cost: number };
+}
+
+/** The part of the host's model runtime that says how a provider is reached. */
+export interface SubscriptionRead {
+	isUsingSubscription(providerId: string): boolean;
+}
+
+interface CatalogueRates {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+}
+
+/** The catalogue entry of the session's model: its rates, per million tokens, tiers included. */
+export interface CatalogueEntryRead {
+	provider: string;
+	id: string;
+	cost: CatalogueRates & { tiers?: CatalogueRates[] };
+}
+
+/**
+ * What the session cost, as the host totals it (AGT-07). A catalogue that declares no rate is read
+ * by the host as zero everywhere, so the amount it computes is zero whatever was consumed: that is
+ * an unknown cost, never a free one (NFR-06). A session that reported no usage has nothing to
+ * price either.
+ */
+export function readSessionCost(
+	session: SessionTotalsRead,
+	runtime: SubscriptionRead,
+	model: CatalogueEntryRead,
+): InterventionCost {
+	const subscription = runtime.isUsingSubscription(model.provider);
+	const rates = [model.cost, ...(model.cost.tiers ?? [])];
+	if (!rates.some((r) => r.input > 0 || r.output > 0 || r.cacheRead > 0 || r.cacheWrite > 0))
+		return unknownCost(`the host catalogue has no rate for ${model.provider}/${model.id}`, subscription);
+	const stats = session.getSessionStats();
+	if (stats.tokens.total === 0) return unknownCost("the session reported no usage", subscription);
+	return { usd: stats.cost, unknown_reason: null, basis: "host_catalogue", subscription };
 }

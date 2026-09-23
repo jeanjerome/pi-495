@@ -9,7 +9,7 @@ import type {
 } from "../../contracts/v1/common.ts";
 import type { DecisionRequest, DecisionResponse, HumanOrigin } from "../../contracts/v1/decision.ts";
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../contracts/v1/protocol.ts";
-import type { ArtifactKind, AttemptCounters } from "./state.ts";
+import type { ArtifactKind, AttemptCounters, InterventionCost } from "./state.ts";
 
 interface Base {
 	at: string;
@@ -98,6 +98,7 @@ export type ChangeCommand =
 			result: "completed" | "failed" | "cancelled" | "truncated";
 			counters: AttemptCounters;
 			detail: string | null;
+			cost: InterventionCost;
 	  })
 	| (Base & { type: "budget.consume"; intervention_id: string; counters: AttemptCounters })
 	| (Base & { type: "candidate.freeze"; attempt_id: string; facts: CandidateFacts })

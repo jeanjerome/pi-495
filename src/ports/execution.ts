@@ -10,6 +10,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candi
 import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
+import type { InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
 
@@ -196,7 +197,10 @@ export type InterventionEvent =
 			summary_tokens: number;
 			unwritten: string | null;
 	  }
-	/** `truncated` means the duration budget ended the session: the workspace holds unfinished work. */
+	/**
+	 * `truncated` means the duration budget ended the session: the workspace holds unfinished work.
+	 * Every terminal event carries what the host totalled for the session, read before it closed.
+	 */
 	| {
 			type: "completed";
 			at: string;
@@ -204,17 +208,20 @@ export type InterventionEvent =
 			output_valid: boolean;
 			truncated?: boolean;
 			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			cost: InterventionCost;
 	  }
 	| {
 			type: "failed";
 			at: string;
 			error: string;
 			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			cost: InterventionCost;
 	  }
 	| {
 			type: "cancelled";
 			at: string;
 			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			cost: InterventionCost;
 	  };
 
 /** Where a capability value comes from: reported by the host, or restated by 495 (D-55). */

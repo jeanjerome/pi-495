@@ -1,6 +1,7 @@
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
+import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
 import type {
 	AgentCapabilities,
 	AgentPort,
@@ -26,6 +27,8 @@ export interface AgentScript {
 	steps: ScriptStep[];
 	available?: boolean;
 	tokens?: number;
+	/** What the host would total for the session; a script that declares none has an unknown cost. */
+	cost?: InterventionCost;
 	/** What a real observation would find of the endpoint: whether it calls the tools it is given. */
 	calls_tools?: boolean;
 	/** The thinking levels the simulated model accepts. */
@@ -81,6 +84,7 @@ export class ScriptedAgent implements AgentPort {
 			async *[Symbol.asyncIterator]() {
 				const started = Date.now();
 				let toolCalls = 0;
+				const cost = script.cost ?? unknownCost("a scripted agent answers without a host session");
 				const counters = () => ({
 					tool_calls: toolCalls,
 					duration_ms: Date.now() - started,
@@ -90,7 +94,7 @@ export class ScriptedAgent implements AgentPort {
 				yield { type: "started", at: new Date().toISOString() };
 				for (const step of script.steps) {
 					if (aborted) {
-						yield { type: "cancelled", at: new Date().toISOString(), counters: counters() };
+						yield { type: "cancelled", at: new Date().toISOString(), counters: counters(), cost };
 						return;
 					}
 					switch (step.kind) {
@@ -185,6 +189,7 @@ export class ScriptedAgent implements AgentPort {
 								output: step.output,
 								output_valid: step.output_valid ?? true,
 								counters: counters(),
+								cost,
 							};
 							return;
 						case "truncate":
@@ -195,14 +200,15 @@ export class ScriptedAgent implements AgentPort {
 								output_valid: false,
 								truncated: true,
 								counters: counters(),
+								cost,
 							};
 							return;
 						case "fail":
-							yield { type: "failed", at: new Date().toISOString(), error: step.error, counters: counters() };
+							yield { type: "failed", at: new Date().toISOString(), error: step.error, counters: counters(), cost };
 							return;
 						case "hang":
 							while (!aborted) await new Promise((r) => setTimeout(r, 20));
-							yield { type: "cancelled", at: new Date().toISOString(), counters: counters() };
+							yield { type: "cancelled", at: new Date().toISOString(), counters: counters(), cost };
 							return;
 					}
 				}
@@ -212,6 +218,7 @@ export class ScriptedAgent implements AgentPort {
 					output: { raw: "" },
 					output_valid: false,
 					counters: counters(),
+					cost,
 				};
 			},
 		};

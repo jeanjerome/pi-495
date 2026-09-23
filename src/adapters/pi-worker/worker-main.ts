@@ -15,7 +15,8 @@ import { Value } from "typebox/value";
 import type { InterventionEvent, InterventionMandate, SandboxPort } from "../../ports/execution.ts";
 import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { digestValue } from "../../contracts/digest.ts";
-import { observeSessionEvent, type SessionEventRead } from "./session-observer.ts";
+import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
+import { observeSessionEvent, readSessionCost, type SessionEventRead } from "./session-observer.ts";
 import {
 	OUTPUT_SCHEMAS,
 	TOOLS_FOR_ROLE,
@@ -87,6 +88,8 @@ async function main(): Promise<void> {
 	async function run(m: InterventionMandate, c: WorkerConfig): Promise<void> {
 		const started = Date.now();
 		const counters = { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 };
+		// Until a session is open the host has nothing to total; from then on its total is what is read.
+		let costOf = (): InterventionCost => unknownCost("no session was opened with the host");
 		const heartbeat = setInterval(() => send({ type: "heartbeat", at: now() }), c.heartbeat_ms).unref();
 		const finish = (event: InterventionEvent) => {
 			counters.duration_ms = Date.now() - started;
@@ -110,6 +113,7 @@ async function main(): Promise<void> {
 					at: now(),
 					error: `model ${m.model.provider_id}/${m.model.model_id} is not configured in Pi; no fallback is attempted (RM-022)`,
 					counters,
+					cost: costOf(),
 				});
 				return;
 			}
@@ -120,6 +124,7 @@ async function main(): Promise<void> {
 					at: now(),
 					error: `model ${m.model.provider_id}/${m.model.model_id} has no valid authentication in Pi`,
 					counters,
+					cost: costOf(),
 				});
 				return;
 			}
@@ -319,8 +324,9 @@ async function main(): Promise<void> {
 				settingsManager,
 			});
 			sessionRef = session;
+			costOf = () => readSessionCost(session, modelRuntime, model);
 			if (abortRequested) {
-				finish({ type: "cancelled", at: now(), counters });
+				finish({ type: "cancelled", at: now(), counters, cost: costOf() });
 				return;
 			}
 			let finalText = "";
@@ -348,9 +354,10 @@ async function main(): Promise<void> {
 			const extracted = extractJsonOutput(finalText);
 			const output = extracted === undefined ? undefined : normalizeOutput(schema, extracted);
 			const outputValid = output !== undefined && Value.Check(schema, output);
+			const cost = costOf();
 			session.dispose();
-			if (abortRequested) finish({ type: "cancelled", at: now(), counters });
-			else if (lastError && !finalText) finish({ type: "failed", at: now(), error: lastError, counters });
+			if (abortRequested) finish({ type: "cancelled", at: now(), counters, cost });
+			else if (lastError && !finalText) finish({ type: "failed", at: now(), error: lastError, counters, cost });
 			else
 				finish({
 					type: "completed",
@@ -359,9 +366,10 @@ async function main(): Promise<void> {
 					output_valid: outputValid,
 					truncated,
 					counters,
+					cost,
 				});
 		} catch (error) {
-			finish({ type: "failed", at: now(), error: (error as Error).message, counters });
+			finish({ type: "failed", at: now(), error: (error as Error).message, counters, cost: costOf() });
 		}
 	}
 }

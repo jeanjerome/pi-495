@@ -7,7 +7,7 @@ import { decide, type Decision } from "../../src/domain/change/decide.ts";
 import { apply } from "../../src/domain/change/apply.ts";
 import type { ChangeCommand, EvidenceFact } from "../../src/domain/change/commands.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
-import type { ChangeState } from "../../src/domain/change/state.ts";
+import { type ChangeState, unknownCost } from "../../src/domain/change/state.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 
 export const KERNEL: ActorRef = {
@@ -360,6 +360,7 @@ export class Runner {
 			result: "completed",
 			counters: { tool_calls: 3, duration_ms: 1000, tokens_known: 100, delegations: 0 },
 			detail: null,
+			cost: unknownCost("a fixture reports no host session"),
 		});
 		return this;
 	}

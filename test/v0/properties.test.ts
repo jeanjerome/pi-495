@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import fc from "fast-check";
 import { replay } from "../../src/domain/change/apply.ts";
 import type { ChangeCommand } from "../../src/domain/change/commands.ts";
-import type { ChangeState } from "../../src/domain/change/state.ts";
+import { type ChangeState, unknownCost } from "../../src/domain/change/state.ts";
 import { PHASES, type Phase } from "../../src/contracts/v1/common.ts";
 import {
 	Runner,
@@ -189,6 +189,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 				result: "completed",
 				counters: { tool_calls: 1, duration_ms: 5, tokens_known: 1, delegations: 0 },
 				detail: null,
+				cost: unknownCost("a fixture reports no host session"),
 			};
 		case "freeze":
 			return {

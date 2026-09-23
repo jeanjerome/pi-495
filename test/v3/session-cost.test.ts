@@ -238,7 +238,12 @@ describe("the worker reports the host's total with its last event (AGT-07)", () 
 		live.dispose();
 		const events = await collect((await worker().startIntervention(reviewer("priced"))).events);
 		assert.equal(events.at(-1)?.type, "completed");
-		assert.deepEqual(costOf(events), { usd: expected, unknown_reason: null, basis: "host_catalogue", subscription: false });
+		assert.deepEqual(costOf(events), {
+			usd: expected,
+			unknown_reason: null,
+			basis: "host_catalogue",
+			subscription: false,
+		});
 	});
 
 	it("a session on a model without a rate ends on an unknown cost", async () => {

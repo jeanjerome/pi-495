@@ -12,7 +12,7 @@ import type {
 	Verdict,
 	InterventionRole,
 } from "../../contracts/v1/common.ts";
-import type { ArtifactKind, AttemptCounters, FrozenProtocol, GateDecisionState } from "./state.ts";
+import type { ArtifactKind, AttemptCounters, FrozenProtocol, GateDecisionState, InterventionCost } from "./state.ts";
 
 interface Base {
 	at: string;
@@ -78,6 +78,8 @@ export type ChangeEvent =
 			result: "completed" | "failed" | "cancelled" | "truncated";
 			counters: AttemptCounters;
 			detail: string | null;
+			/** Absent from a dossier written before the cost was recorded, which is not a zero. */
+			cost?: InterventionCost;
 	  })
 	| (Base & { type: "budget.consumed"; intervention_id: string; counters: AttemptCounters })
 	| (Base & { type: "budget.extended"; amount: number; decision_id: string; new_max_attempts: number })

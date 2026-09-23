@@ -57,6 +57,24 @@ export interface AttemptCounters {
 	delegations: number;
 }
 
+/**
+ * What an intervention cost, as the host totals it for the session at its catalogue's rates
+ * (AGT-07). 495 holds no price table and reads no invoice, so an amount is never presented as
+ * billed. `usd` is null when the amount is not known, and `unknown_reason` then says why: a zero
+ * computed on a rate the catalogue leaves at zero is not a free intervention (NFR-06).
+ */
+export interface InterventionCost {
+	usd: number | null;
+	unknown_reason: string | null;
+	basis: "host_catalogue";
+	/** Whether the host uses the provider through a subscription; null when no session was asked. */
+	subscription: boolean | null;
+}
+
+export function unknownCost(reason: string, subscription: boolean | null = null): InterventionCost {
+	return { usd: null, unknown_reason: reason, basis: "host_catalogue", subscription };
+}
+
 export type AttemptResult = "open" | "completed" | "failed" | "cancelled" | "superseded";
 
 export interface AttemptState {

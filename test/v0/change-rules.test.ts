@@ -15,6 +15,7 @@ import {
 } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import { unknownCost } from "../../src/domain/change/state.ts";
 
 const tuiOrigin = (): HumanOrigin => ({ actor: HUMAN, host: "tui", session_id: "s1", asserted_at: tick() });
 
@@ -211,6 +212,7 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 			result: "completed",
 			counters: { tool_calls: 1, duration_ms: 10, tokens_known: 0, delegations: 0 },
 			detail: null,
+			cost: unknownCost("a fixture reports no host session"),
 		});
 		r.run({
 			type: "preparation.close",

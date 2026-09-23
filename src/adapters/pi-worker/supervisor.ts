@@ -10,6 +10,7 @@ import type {
 	InterventionMandate,
 	ModelSelection,
 } from "../../ports/execution.ts";
+import { unknownCost } from "../../domain/change/state.ts";
 import { PiModelDescription, type PiModelCatalogue } from "./capabilities.ts";
 import type { SupervisorMessage, WorkerConfig, WorkerMessage } from "./protocol.ts";
 
@@ -82,6 +83,8 @@ export class PiWorkerAgent implements AgentPort {
 			if (e.type === "completed" || e.type === "failed" || e.type === "cancelled") done = true;
 			notify?.();
 		};
+		// A session the worker could not report on leaves its total with the host, out of reach.
+		const unreported = unknownCost("the worker ended without reporting what the host totalled for the session");
 		const counters = () => ({
 			tool_calls: toolCalls,
 			duration_ms: Date.now() - startedAt,
@@ -107,6 +110,7 @@ export class PiWorkerAgent implements AgentPort {
 					at: new Date().toISOString(),
 					error: `worker silent for more than ${this.options.silence_timeout_ms} ms`,
 					counters: counters(),
+					cost: unreported,
 				});
 				killGroup("SIGTERM");
 				setTimeout(() => killGroup("SIGKILL"), this.options.grace_ms).unref();
@@ -138,6 +142,7 @@ export class PiWorkerAgent implements AgentPort {
 				at: new Date().toISOString(),
 				error: `worker spawn error: ${error.message}`,
 				counters: counters(),
+				cost: unreported,
 			}),
 		);
 		child.on("close", (code, sig) => {
@@ -148,6 +153,7 @@ export class PiWorkerAgent implements AgentPort {
 					at: new Date().toISOString(),
 					error: `worker exited (${code ?? sig}) without a terminal event${stderrChunks.length ? `: ${stderrChunks.join("").slice(-2000)}` : ""}`,
 					counters: counters(),
+					cost: unreported,
 				});
 		});
 		const message: SupervisorMessage = { type: "mandate", mandate, config: this.options.config };

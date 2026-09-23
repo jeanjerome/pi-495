@@ -9,6 +9,7 @@
  */
 import type { InterventionRole } from "../contracts/v1/common.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
+import { type InterventionCost, unknownCost } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
 import { type ActivePolicy, undeclaredEgressReason } from "../domain/policy.ts";
 import type {
@@ -49,6 +50,8 @@ export interface InterventionReport {
 	output: unknown;
 	output_valid: boolean;
 	counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+	/** What the host totalled for the session, or why that is not known. */
+	cost: InterventionCost;
 	/** The terminal event, synthesized when the session ended without producing one. */
 	terminal: InterventionEvent;
 	/** What the dossier keeps of the session: model chatter left out, bounded. */
@@ -206,6 +209,7 @@ export class InterventionSupervisor {
 			at: this.deps.now(),
 			error: "no terminal event",
 			counters: { tool_calls: toolCalls, duration_ms: 0, tokens_known: 0, delegations: 0 },
+			cost: unknownCost("the session ended without a terminal event reporting the host's total"),
 		};
 		// The tool calls the caller already counted one by one are not counted a second time.
 		const counters = { ...t.counters, tool_calls: Math.max(0, t.counters.tool_calls - toolCalls) };
@@ -219,6 +223,7 @@ export class InterventionSupervisor {
 				output: null,
 				output_valid: false,
 				counters,
+				cost: t.cost,
 				terminal: t,
 				events: kept,
 				detail: `stopped by the tool call budget: ${budgetRefusal}; the workspace keeps the unfinished work`,
@@ -234,6 +239,7 @@ export class InterventionSupervisor {
 			output: t.type === "completed" ? t.output : null,
 			output_valid: t.type === "completed" ? t.output_valid : false,
 			counters,
+			cost: t.cost,
 			terminal: t,
 			events: kept,
 			detail:

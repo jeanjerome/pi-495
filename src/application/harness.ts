@@ -16,7 +16,7 @@ import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
-import { runningIntervention, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import { runningIntervention, unknownCost, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
 import { imposedLayersFor } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
@@ -588,6 +588,7 @@ export class Harness {
 				result: report.result,
 				counters: report.counters,
 				detail: report.detail,
+				cost: report.cost,
 			},
 			cor,
 		);
@@ -844,6 +845,7 @@ export class Harness {
 					result: "cancelled",
 					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 					detail: "paused",
+					cost: unknownCost("the change was paused before the host reported the session's usage"),
 				},
 				this.id("cor"),
 			);
@@ -867,6 +869,7 @@ export class Harness {
 					result: "failed",
 					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
 					detail: "intervention was running when the session stopped; treated as failed on resume",
+					cost: unknownCost("the session stopped before the host reported its usage"),
 				},
 				cor,
 			);
