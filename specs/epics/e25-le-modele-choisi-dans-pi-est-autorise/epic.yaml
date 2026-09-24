@@ -35,6 +35,9 @@ decisions: [D-53, D-55, D-61]
 decision_du_proprietaire: >
   2026-09-23 : il n'y a plus de configuration de modèle dans `config.json`. La liste `policy.egress`
   est retirée, pas rendue facultative ; aucune liste écrite ne restreint plus les destinations.
+  2026-09-24 : `config.json` est validé contre un schéma JSON strict, et un champ inconnu n'y a pas
+  sa place. `policy.egress` en est un : une liste restée dans un fichier le fait refuser, au lieu
+  d'être ignorée et annoncée comme décidé le 2026-09-23.
 
 stories:
   - id: e25s01
@@ -65,19 +68,31 @@ stories:
       Après les deux précédentes. Elle remplace la situation déclarée par la situation observée :
       l'adresse que Pi tient pour le modèle choisi. Elle l'inscrit à chaque intervention et
       l'annonce à l'ouverture comme à chaque changement de modèle.
+  - id: e25s05
+    title: "config.json est validé par un schéma, et un champ inconnu le fait refuser"
+    bcps: 5
+    delta: MODIFIED
+    requirement: SEC-05
+    position: >
+      Avant e25s04, bien que numérotée après elle : elle a été ajoutée le 2026-09-24, quand les
+      relevés de e25s01 à e25s03 renvoyaient déjà à e25s04 pour la recette et pour D-61. Elle précède
+      la recette pour que les campagnes tournent sur le code final, et que D-61 décrive le fichier
+      tel qu'il est réellement lu. Elle remplace le diagnostic de `policy.egress` de e25s01 par un
+      refus, et ferme le défaut du champ du mauvais type chargé tel qu'écrit.
   - id: e25s04
     title: "La décision est écrite et la recette tenue par une exécution réelle"
     bcps: 3
     delta: ADDED
     decision: D-61
     position: >
-      Dernière parce qu'elle éprouve le tout. Trois campagnes réelles sont conduites : le modèle
-      local sans configuration, un modèle distant choisi par `/model` en cours de session, et un
-      contrôle négatif sous un `config.json` qui porte encore une liste excluant ce modèle. D-61
+      Dernière parce qu'elle éprouve le tout, e25s05 comprise. Trois campagnes réelles sont
+      conduites : le modèle local sans configuration, un modèle distant choisi par `/model` en cours
+      de session, et un contrôle négatif sous un `config.json` qui porte encore une liste excluant
+      ce modèle, refusé jusqu'à ce que la liste soit retirée. D-61
       remplace la déclaration obligatoire introduite par e23s01 et rend D-53 sans objet ; la
       matrice porte les preuves.
 
-total_bcps: 14
+total_bcps: 19
 
 hors_perimetre:
   - >

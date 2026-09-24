@@ -1,0 +1,81 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium ou high doit établir en plus de sa commande.
+
+story_id: e25s05
+spec: e25s05-config-json-est-valide-par-un-schema-et-un-champ-inconnu-le-refuse.md
+title: "config.json est validé par un schéma, et un champ inconnu le fait refuser"
+status: failing
+bcps: 5
+requirement: SEC-05
+delta: MODIFIED
+risk: P1
+context: integration
+type: feat
+
+tasks:
+  - id: 1
+    description: >
+      Le contrat du fichier de configuration est un schéma TypeBox fermé à chaque niveau, émis en
+      JSON Schema 2020-12 sous `contracts/v1/` avec les autres contrats. Il nomme chaque clé que la
+      lecture accepte aujourd'hui, son type et ses valeurs permises ; `policy.adoption.protocol` ne
+      peut valoir que `kernel`, et `$schema` est admis.
+    verify: "node --test test/v1/config-schema.test.ts"
+    risk: P1
+    security: medium
+    security_verify: >
+      Chaque cas du registre des défauts est refusé par le schéma : `design: "Human"`,
+      `integration_enabled: "false"`, `allow_unconfined: "no"`, `baseline: "x"`.
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "unit"
+
+  - id: 2
+    description: >
+      La lecture valide le fichier contre ce schéma avant d'en rien appliquer. Un écart le refuse
+      comme un fichier illisible, en nommant les trois premiers écarts et en comptant les autres :
+      emplacement et attendu, jamais la valeur. `policy.egress` est refusée avec son motif. Un
+      fichier valide donne la même configuration qu'avant, et `baseline` est fusionnée sur ses
+      valeurs par défaut.
+    verify: "node --test test/v1/config-schema.test.ts test/v1/model-admitted.test.ts"
+    risk: P1
+    security: high
+    security_verify: >
+      Aucun refus ne reproduit une valeur écrite dans le fichier, ni un nom de clé qui n'est pas un
+      identifiant court ; la propriété est vérifiée sur chaque forme d'écart.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "unit"
+
+  - id: 3
+    description: >
+      Dans un vrai Pi, un `config.json` qui porte une clé inconnue arrête `/495 start` sur les
+      entrées structurées, et le même fichier corrigé est accepté après `/reload`.
+    verify: "node --test test/v3/config-refused.test.ts"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "e2e"
+
+  - id: 4
+    description: >
+      Le README décrit la validation, pointe vers le schéma publié, et ne liste plus comme illisibles
+      les seules sections qui ne sont pas des objets. L'ensemble des contrôles passe.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

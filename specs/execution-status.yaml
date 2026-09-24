@@ -15,6 +15,7 @@ development_status:
   e25s01: done
   e25s02: done
   e25s03: done
+  e25s05: in_progress
   e25s04: todo
 
 epics:
@@ -32,7 +33,7 @@ epics:
     status: in_progress
     title: "Le modèle choisi dans Pi est autorisé"
     wsjf: 6.0
-    total_bcps: 14
+    total_bcps: 19
 
 stories:
   e23s01:
@@ -174,6 +175,17 @@ stories:
     tasks_passing: 4
     tasks_failing: 0
     risk_max: P0
+    security_max: high
+  e25s05:
+    status: in_progress
+    started_at: "2026-09-24T12:49:55+02:00"
+    title: "config.json est validé par un schéma, et un champ inconnu le fait refuser"
+    bcps: 5
+    epic: e25
+    tasks_total: 4
+    tasks_passing: 0
+    tasks_failing: 4
+    risk_max: P1
     security_max: high
   e25s04:
     status: todo

@@ -7,17 +7,36 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e25
-active_story: e25s03
+active_story: e25s05
 
 epic_cycle:
-  step: 8
-  completed_steps: "1,2,3,4,5,6,7,8"
-  audit_result: pass
+  step: 2
+  completed_steps: "1"
+  audit_result: null
   story_bcps: 5
 
 handoff:
   next_skill: null
   last_step_completed: >
+    e25s05 ajoutée à l'epic le 2026-09-24, et placée avant e25s04, sur décision du propriétaire :
+    `config.json` est validé contre un schéma JSON strict, et un champ inconnu le fait refuser,
+    `policy.egress` compris, qui n'est plus ignorée et annoncée. Étapes 1 et 2 de `build-epic` :
+    spécification écrite
+    (`e25s05-config-json-est-valide-par-un-schema-et-un-champ-inconnu-le-refuse.md`), quatre tâches
+    (`e25s05-tasks.yaml`), validées par le propriétaire le 2026-09-24. Le schéma est un contrat
+    TypeBox de `src/contracts/v1/`, émis sous `contracts/v1/` (ADR-006), fermé à chaque niveau ; il
+    reprend chaque clé que la lecture accepte, `baseline` est désormais fusionnée sur son défaut, et
+    `policy.adoption.protocol` n'admet que `kernel`. Le refus reprend celui du fichier illisible et
+    nomme l'emplacement de chaque écart, jamais la valeur. Il ferme le défaut du champ du mauvais
+    type ; celui du budget de tentatives reste ouvert. Aucune commande `/495 doctor` : `/reload`
+    relance la validation.
+
+    e25s04 révisée en conséquence et validée le 2026-09-24 : la recette tourne sur le
+    build qui porte e25s05 ; le contrôle négatif est refusé jusqu'au retrait de la liste, puis
+    accepté après `/reload` ; le témoin sous l'ancien code est retiré. `D-61` dit aussi la
+    validation par schéma. Les deux spécifications sont versées sur `main`. Prochaine étape :
+    `kickoff-branch` pour e25s05.
+
     e25s03 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire. Preflight
     verte sous Node 24.21.0 (426 tests).
 
