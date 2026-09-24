@@ -10,14 +10,17 @@ active_epic_id: e25
 active_story: e25s04
 
 epic_cycle:
-  step: 7
-  completed_steps: "1,2,3,4,5,6"
+  step: 8
+  completed_steps: "1,2,3,4,5,6,7,8"
   audit_result: pass
   story_bcps: 3
 
 handoff:
-  next_skill: release-branch
+  next_skill: null
   last_step_completed: >
+    e25s04 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire ; l'epic
+    e25 est terminée. Preflight verte sous Node 24.21.0 à `535ea23` (455 tests).
+
     Étape 6 rouverte puis close le 2026-09-24 pour e25s04. Après le tour 3, le propriétaire a décidé
     de corriger ici `BUG-2026-09-24T175500` : dans l'interface texte, un diagnostic en file n'est
     plus notifié une seconde fois à l'écran quand le premier `/495` le remet. Rouge `447df46`, vert

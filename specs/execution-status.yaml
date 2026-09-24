@@ -11,12 +11,12 @@ development_status:
   e24s02: done
   e24s03: done
   e24s04: done
-  e25: in_progress
+  e25: done
   e25s01: done
   e25s02: done
   e25s03: done
   e25s05: done
-  e25s04: in_progress
+  e25s04: done
 
 epics:
   e23:
@@ -30,7 +30,7 @@ epics:
     wsjf: 9.5
     total_bcps: 13
   e25:
-    status: in_progress
+    status: done
     title: "Le modèle choisi dans Pi est autorisé"
     wsjf: 6.0
     total_bcps: 19
@@ -188,7 +188,9 @@ stories:
     risk_max: P1
     security_max: high
   e25s04:
-    status: in_progress
+    status: done
+    started_at: "2026-09-24T18:50:13+02:00"
+    completed_at: "2026-09-24T20:28:31+02:00"
     title: "La décision est écrite et la recette tenue par une exécution réelle"
     bcps: 3
     epic: e25
