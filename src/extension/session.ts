@@ -249,7 +249,7 @@ export class ExtensionSession {
 	modelSelected(ctx: ExtensionContext, model: { provider: string; id: string; baseUrl?: string } | undefined): void {
 		if (this.openedSession === null) return;
 		if (!model || locateModel(model.baseUrl) === "on_machine") return;
-		const text = `495: the selected model ${model.provider}/${model.id} is reached off this machine; what 495 sends it leaves the machine`;
+		const text = `495: the model ${model.provider}/${model.id} was selected and is reached off this machine; what 495 sends it leaves the machine`;
 		this.pending.push(text);
 		if (ctx.hasUI) ctx.ui.notify(text, "warning");
 	}

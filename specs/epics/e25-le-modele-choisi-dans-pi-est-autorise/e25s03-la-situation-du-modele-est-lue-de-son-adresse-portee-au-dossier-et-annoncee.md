@@ -140,7 +140,7 @@ l'identifiant ne changent pas ; rien n'est annoncé de nouveau.
 ```
 Context: existing
 Static elements:  none
-Dynamic elements: annonce « 495: the selected model <fournisseur>/<modèle> is reached off this machine; what 495 sends it leaves the machine »
+Dynamic elements: annonce « 495: the model <fournisseur>/<modèle> was selected and is reached off this machine; what 495 sends it leaves the machine »
 ```
 
 L'annonce est une notification d'avertissement à l'écran et un message `495` sur les entrées

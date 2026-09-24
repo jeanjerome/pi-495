@@ -41,7 +41,7 @@ const SECOND: ModelSelection = {
 const NONE: ModelSelection = { provider_id: "", model_id: "", thinking_level: "off", location: "off_machine" };
 // Registered in Pi at an address off this machine; nothing calls it, and its host never resolves.
 const REMOTE = { provider: "stand-in-remote", id: "remote-1", host: "models.example.invalid" };
-const OFF_MACHINE = `${REMOTE.provider}/${REMOTE.id} is reached off this machine`;
+const OFF_MACHINE = `${REMOTE.provider}/${REMOTE.id} was selected and is reached off this machine`;
 
 let root: string;
 beforeEach(() => {
