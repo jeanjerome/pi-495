@@ -191,6 +191,10 @@ Not applicable — la validation n'a pas de réglage.
 
 - Le refus dit où corriger : chaque écart nomme son emplacement dans le fichier.
 - Le README décrit la validation et pointe vers le schéma publié.
+- Le README montre un `config.json` complet, aux valeurs par défaut : chaque clé que le schéma
+  nomme, hors `$schema`, `policy.policy_id` et `policy.revision`, qui nomment la politique sans la
+  régler. Le schéma l'accepte, et l'écrire tel quel charge la même configuration qu'un fichier vide.
+  Chaque clé de l'exemple est décrite dans le tableau des réglages.
 - Langue : le refus reste en anglais, comme les autres messages de 495.
 
 ### 17. Acceptance criteria [reviewed]
@@ -226,6 +230,13 @@ Scenario: Une section baseline partielle garde ses autres champs (6e)
   Given un config.json dont policy.baseline ne porte que tolerance
   When  la session de 495 s'ouvre
   Then  la comparaison avec la référence reste active
+
+Scenario: L'exemple du README est complet et vaut les valeurs par défaut (§16)
+  Given l'exemple de config.json que montre le README
+  When  il est lu comme un config.json
+  Then  le schéma l'accepte
+  And   il porte chaque clé que le schéma nomme, hors $schema, policy_id et revision
+  And   la configuration chargée est celle d'un fichier vide
 
 Scenario: Un fichier corrigé est accepté après /reload (§5 étape 6)
   Given une session où config.json a été refusé

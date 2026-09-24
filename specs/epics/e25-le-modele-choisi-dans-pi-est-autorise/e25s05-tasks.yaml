@@ -74,8 +74,24 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
         - "Preflight"
+
+  - id: 5
+    description: >
+      Le README montre, à la section de configuration, un `config.json` complet aux valeurs par
+      défaut. Le schéma l'accepte ; il porte chaque clé que le schéma nomme, hors `$schema`,
+      `policy.policy_id` et `policy.revision`, qui nomment la politique sans la régler ; et l'écrire
+      tel quel charge la même configuration qu'un fichier vide. Le tableau des réglages décrit chaque
+      clé de l'exemple.
+    verify: "node --test test/v1/config-schema.test.ts"
+    risk: P2
+    security: low
+    status: passing
+    allure:
+      severity: normal
+      categories:
+        - "unit"

@@ -218,24 +218,63 @@ The conversational `harness495` tool can request status, pending decisions, revi
 <details>
 <summary><strong>Configuration</strong></summary>
 
-Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, otherwise `~/.495`. Workspaces default to `~/.495/workspaces` and can be relocated with `$HARNESS495_WORKSPACES_DIR`.
+Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, otherwise `~/.495`. Workspaces default to `~/.495/workspaces`; set `$HARNESS495_WORKSPACES_DIR` to move them.
 
-| Setting in `config.json` | Purpose |
+`config.json` is optional, and so is each setting in it. The file below holds every setting at its default value. Durations are in milliseconds.
+
+```json
+{
+  "policy": {
+    "budgets": {
+      "max_attempts": 3,
+      "max_technical_retries": 2,
+      "max_continuations": 3,
+      "intervention_ms": 1200000,
+      "increment_ms": 7200000,
+      "tool_calls_per_intervention": 100,
+      "feedback_bytes": 65536
+    },
+    "adoption": {
+      "mandate": "kernel",
+      "requirements": "kernel",
+      "protocol": "kernel",
+      "design": "kernel"
+    },
+    "g5_human_acceptance": false,
+    "integration_enabled": false,
+    "baseline": {
+      "compare_to_reference": true,
+      "tolerance": "no_aggravation",
+      "instability": "confirm_then_indeterminate",
+      "max_confirmations": 1
+    },
+    "stagnation_identical_candidates": 2,
+    "required_reviews": []
+  },
+  "isolation": { "allow_unconfined": false },
+  "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
+  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
+  "language": "fr"
+}
+```
+
+| Setting | Purpose |
 | --- | --- |
-| `policy.budgets` | Attempts, technical retries, continuations, time limits, tool-call limits and feedback size. |
-| `policy.adoption` | Kernel or human adoption of the mandate, requirements and design; protocol adoption remains with the kernel. |
-| `policy.required_reviews` | Review roles required for acceptance. |
+| `policy.budgets` | Attempts, retries, continuations, time and tool-call limits, feedback size. |
+| `policy.adoption` | Who adopts the mandate, requirements and design: `kernel` or `human`. The protocol stays with the kernel. |
 | `policy.g5_human_acceptance` | Require a human acceptance decision. |
 | `policy.integration_enabled` | Permit local integration, still subject to authorization. |
-| `language` | `en` or `fr`; `fr` when absent. |
-| `workspace_exclusions` | Build-output exclusions. Preserve dependency inputs needed to run the checks. |
-| `human_origin.rpc_actor_env` | Environment variable through which an RPC host supplies its human actor. |
+| `policy.baseline` | How each control is compared with the reference. |
+| `policy.stagnation_identical_candidates` | Stop after this many identical candidates in a row; `0` disables it. |
+| `policy.required_reviews` | Review roles required for acceptance. |
+| `isolation.allow_unconfined` | Run checks without a sandbox. Leave `false`. |
+| `human_origin.rpc_actor_env` | Environment variable through which an RPC host names its human actor. |
+| `workspace_exclusions` | Build outputs left out of workspaces. Keep the inputs the checks need. |
+| `language` | `fr` or `en`. |
 
-A `config.json` that cannot be read — not valid JSON, not an object, a `policy`, `policy.budgets`, `policy.adoption`, `isolation` or `human_origin` that is not an object, or a file that cannot be opened or is not a regular file — stops every `/495` command, `/495 help` included, until it is fixed or removed and Pi is reloaded with `/reload` or a new session is started. Its settings are never replaced by the defaults, since one of them may keep a decision for a human.
+`config.json` must match its [schema](contracts/v1/harness-config.json). A file that does not, or that is not valid JSON, stops every `/495` command, and the error names the faulty settings. Fix the file, then reload Pi (`/reload`) or start a new session.
 
-Defaults include three attempts, up to three continuations, 20 minutes and 100 tool calls per intervention, and two hours per increment. Human adoption, human acceptance and mandatory review roles are configurable; none is enabled by default.
-
-`HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1` and `HARNESS495_LANGUAGE=en` provide environment overrides. Start a new Pi session after changing configuration.
+`HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1` and `HARNESS495_LANGUAGE=en` override the file. Set them before starting Pi.
 
 </details>
 

@@ -18,6 +18,22 @@ epic_cycle:
 handoff:
   next_skill: null
   last_step_completed: >
+    e25s05 tâche 5 ajoutée et passante le 2026-09-24, sur demande du propriétaire : le README montre
+    un `config.json` complet aux valeurs par défaut, hors `$schema`, `policy_id` et `revision`, et le
+    tableau décrit désormais `policy.baseline`, `policy.stagnation_identical_candidates` et
+    `isolation.allow_unconfined`. Trois tests de `test/v1/config-schema.test.ts` lisent l'exemple
+    dans le README : le schéma l'accepte, il porte chaque clé que le schéma nomme, et il charge la
+    même configuration qu'un fichier vide. Rouge relevé avant l'exemple, 3 échecs sur 3. Contrôles
+    négatifs : `max_attempts` à 4, puis une clé retirée, font chacun échouer un test. Preflight verte
+    sous Node 26.9.0 (445 tests).
+
+    e25s05 tâche 4 passante le 2026-09-24 : le README dit que `config.json` est validé contre son
+    schéma avant tout réglage, pointe vers `contracts/v1/harness-config.json`, et range le refus du
+    schéma avec le fichier illisible ; la liste des sections qui ne sont pas des objets est retirée,
+    le schéma les couvre. Le refus nomme trois écarts, compte les autres et ne reproduit aucune
+    valeur. Preflight verte sous Node 26.9.0 (442 tests). Les quatre tâches passent ; reste à
+    consigner le cycle rouge-vert de la story.
+
     e25s05 tâche 3 passante le 2026-09-24 : `test/v3/config-refused.test.ts`, dans un vrai Pi, refuse
     `/495 start` en JSON et en RPC sur une clé inconnue, puis accepte le fichier corrigé après un
     rechargement. RPC n'a pas de `/reload` : l'extension d'exemple de Pi `reload-runtime.ts` appelle

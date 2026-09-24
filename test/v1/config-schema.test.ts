@@ -257,3 +257,52 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		}
 	});
 });
+
+describe("the config.json the README shows (SEC-05)", () => {
+	let root: string;
+	beforeEach(() => {
+		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
+		root = mkdtempSync(join(process.cwd(), "test-output", "config-readme-"));
+	});
+	afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+	/** The one `json` block of the README's configuration section. */
+	const example = (): unknown => {
+		const readme = readFileSync(join(process.cwd(), "README.md"), "utf8");
+		const section = readme.slice(readme.indexOf("<summary><strong>Configuration</strong></summary>"));
+		const block = /```json\n([\s\S]*?)\n```/.exec(section.slice(0, section.indexOf("</details>")));
+		assert.ok(block, "the configuration section of the README shows no config.json");
+		return JSON.parse(block[1] ?? "");
+	};
+	/** The dotted path of every key an object schema names, down its nested objects. */
+	const named = (properties: object, at = ""): string[] =>
+		Object.entries(properties).flatMap(([key, schema]) =>
+			schema.properties ? [`${at}${key}`, ...named(schema.properties, `${at}${key}.`)] : [`${at}${key}`],
+		);
+	/** The dotted path of every key a file holds, down its nested objects. */
+	const held = (file: Record<string, unknown>, at = ""): string[] =>
+		Object.entries(file).flatMap(([key, value]) =>
+			value && typeof value === "object" && !Array.isArray(value)
+				? [`${at}${key}`, ...held(value as Record<string, unknown>, `${at}${key}.`)]
+				: [`${at}${key}`],
+		);
+	/** They name the policy without setting it; written, they would change its identity, not a default. */
+	const NAMING = ["$schema", "policy.policy_id", "policy.revision"];
+
+	it("is accepted by the schema", () => {
+		assert.equal(accepted(example()), true);
+	});
+
+	it("holds every key the schema names, the ones that name the policy aside", () => {
+		const settings = named(HarnessConfigFile.properties).filter((key) => !NAMING.includes(key));
+		assert.deepEqual(held(example() as Record<string, unknown>).sort(), settings.sort());
+	});
+
+	it("loads the configuration an empty file loads", () => {
+		const load = (file: unknown) => {
+			writeFileSync(join(root, "config.json"), JSON.stringify(file));
+			return loadConfig(root, {}).config;
+		};
+		assert.deepEqual(load(example()), load({}));
+	});
+});
