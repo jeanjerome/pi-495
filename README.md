@@ -272,7 +272,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 | `workspace_exclusions` | Build outputs left out of workspaces. Keep the inputs the checks need. |
 | `language` | `fr` or `en`. |
 
-`config.json` must match its [schema](contracts/v1/harness-config.json). A file that does not, that is not valid JSON, that cannot be opened or that is not a regular file stops every `/495` command, `/495 help` included, and the error says what is wrong: for a file that does not match, the settings at fault and what each expects. The defaults never replace it, since one of its settings may keep a decision for a human. Fix the file, then reload Pi (`/reload`) or start a new session.
+`config.json` must match its [schema](contracts/v1/harness-config.json). A file that does not, that is not valid JSON, that cannot be opened or that is not a regular file stops every `/495` command, `/495 help` included, and the error says what is wrong: for a file that does not match, where its first three deviations lie and what is expected there, and how many others there are. The defaults never replace it, since one of its settings may keep a decision for a human. Fix the file, then reload Pi (`/reload`) or start a new session.
 
 `HARNESS495_INTEGRATION=1`, `HARNESS495_HUMAN_ACCEPTANCE=1` and `HARNESS495_LANGUAGE=en` override the file. Set them before starting Pi.
 

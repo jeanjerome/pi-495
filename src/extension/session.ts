@@ -273,9 +273,9 @@ export class ExtensionSession {
 					this.binding = { program_id: candidates[0]!.program_id, change_id: candidates[0]!.change_id };
 			}
 			this.updateFooter(ctx, this.currentView());
-			// A diagnostic states what the runtime could not honour — a configuration key it no longer
-			// reads, a sandbox backend that is not qualified. Announcing it only where there is a UI
-			// would leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
+			// A diagnostic states what the runtime could not honour — the unconfined backend enabled from
+			// the environment, a sandbox backend that is not qualified. Announcing it only where there is a
+			// UI would leave print, JSON and RPC running under a limit nobody was told about (AT-12, UX-02).
 			// Held until the first command as well: a structured entry does not carry a message
 			// emitted before its stream is open.
 			this.pending = rt.diagnostics.map((d) => `495: ${d}`);
