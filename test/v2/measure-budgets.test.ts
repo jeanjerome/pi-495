@@ -54,7 +54,12 @@ function writeDossier(interventions: Spent[], config?: unknown): string {
 			intervention_id,
 			role: "implement",
 			attempt_id: "att_1",
-			model: { provider_id: "anthropic", model_id: "claude-sonnet-5", thinking_level: "medium" },
+			model: {
+				provider_id: "anthropic",
+				model_id: "claude-sonnet-5",
+				thinking_level: "medium",
+				location: "on_machine",
+			},
 			profile_id: "implement",
 			profile_qualified: true,
 		});

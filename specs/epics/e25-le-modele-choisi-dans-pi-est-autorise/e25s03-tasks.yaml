@@ -45,7 +45,7 @@ tasks:
     security_verify: >
       L'adresse elle-même n'est pas inscrite, seulement la situation qui en est lue : une adresse
       peut porter un jeton ou un chemin privé, et le dossier est exportable.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

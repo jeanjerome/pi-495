@@ -176,7 +176,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 				intervention_id: `int_${n}`,
 				role: s.phase === "preparing" ? "prepare" : "implement",
 				attempt_id: `att_${n}`,
-				model: { provider_id: "p", model_id: "m", thinking_level: "off" },
+				model: { provider_id: "p", model_id: "m", thinking_level: "off", location: "on_machine" },
 				profile_id: "implement",
 				profile_qualified: true,
 			};

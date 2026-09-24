@@ -169,7 +169,7 @@ describe("component version change and dependent qualifications (EXT-02, REC-16,
 			intervention_id: "int_x",
 			role: "implement",
 			attempt_id: "att_x",
-			model: { provider_id: "p", model_id: "m", thinking_level: "off" },
+			model: { provider_id: "p", model_id: "m", thinking_level: "off", location: "on_machine" },
 			profile_id: "implement",
 			profile_qualified: true,
 		});

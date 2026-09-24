@@ -43,7 +43,7 @@ export function mandate(objective: string, root: string, over: Partial<Intervent
 			env: {},
 		},
 		workspace_path: root,
-		model: { provider_id: "fake", model_id: "fake-1", thinking_level: "off" },
+		model: { provider_id: "fake", model_id: "fake-1", thinking_level: "off", location: "on_machine" },
 		budgets: { duration_ms: 10_000, tool_calls: 5 },
 		output_schema: "producer-report",
 		...over,

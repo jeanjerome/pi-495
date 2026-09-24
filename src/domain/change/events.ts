@@ -14,6 +14,7 @@ import type {
 } from "../../contracts/v1/common.ts";
 import type { ImposedLayersRecord } from "../imposed-layers.ts";
 import type { ArtifactKind, AttemptCounters, FrozenProtocol, GateDecisionState, InterventionCost } from "./state.ts";
+import type { ModelLocation } from "../policy.ts";
 
 interface Base {
 	at: string;
@@ -70,7 +71,13 @@ export type ChangeEvent =
 			intervention_id: string;
 			role: InterventionRole;
 			attempt_id: string | null;
-			model: { provider_id: string; model_id: string; thinking_level: string };
+			model: {
+				provider_id: string;
+				model_id: string;
+				thinking_level: string;
+				/** Absent from a dossier written before the location was recorded, which is not on this machine. */
+				location?: ModelLocation;
+			};
 			profile_id: string;
 	  })
 	| (Base & {

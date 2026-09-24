@@ -14,6 +14,7 @@ import type {
 	InterventionRole,
 } from "../../contracts/v1/common.ts";
 import type { AnsweredQuestion, Obligation } from "../../contracts/v1/protocol.ts";
+import type { ModelLocation } from "../policy.ts";
 
 export type ArtifactKind =
 	| "request"
@@ -92,7 +93,13 @@ export interface InterventionState {
 	intervention_id: string;
 	role: InterventionRole;
 	attempt_id: string | null;
-	model: { provider_id: string; model_id: string; thinking_level: string };
+	model: {
+		provider_id: string;
+		model_id: string;
+		thinking_level: string;
+		/** Absent from a dossier written before the location was recorded, which is not on this machine. */
+		location?: ModelLocation;
+	};
 	profile_id: string;
 	started_at: string;
 	ended_at: string | null;

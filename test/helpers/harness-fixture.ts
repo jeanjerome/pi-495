@@ -158,7 +158,13 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		onDecisionRequested: (r) => requested.push(r),
 		onProgress: (m) => progress.push(m),
 	};
-	const model = { provider_id: "scripted", model_id: "scripted-1", thinking_level: "off", ...(options.model ?? {}) };
+	const model: ModelSelection = {
+		provider_id: "scripted",
+		model_id: "scripted-1",
+		thinking_level: "off",
+		location: "on_machine",
+		...(options.model ?? {}),
+	};
 	return { harness: new HarnessWithModel(deps, model), ledger, objects, agent, root, requested, progress };
 }
 

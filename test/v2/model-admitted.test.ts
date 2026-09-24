@@ -24,7 +24,12 @@ import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
  * would not do: the table of imposed layers names it, so a list restored to the providers 495 knows
  * would still admit it.
  */
-const CHOSEN: ModelSelection = { provider_id: "acme-hosted", model_id: "acme-large", thinking_level: "off" };
+const CHOSEN: ModelSelection = {
+	provider_id: "acme-hosted",
+	model_id: "acme-large",
+	thinking_level: "off",
+	location: "off_machine",
+};
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -160,7 +165,13 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 	it("leaves a model with no provider to the capability check, not to a policy refusal", async () => {
 		const { supervisor, started } = supervisorFor();
 		await assert.rejects(
-			() => supervisor.requireCapable("implement", { provider_id: "", model_id: "", thinking_level: "off" }),
+			() =>
+				supervisor.requireCapable("implement", {
+					provider_id: "",
+					model_id: "",
+					thinking_level: "off",
+					location: "off_machine",
+				}),
 			(error: DomainError) => {
 				assert.equal(error.code, "CAPABILITY_MISSING", "a model never configured is not a policy refusal");
 				return true;

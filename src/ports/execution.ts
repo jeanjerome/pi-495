@@ -10,6 +10,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candi
 import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
+import type { ModelLocation } from "../domain/policy.ts";
 import type { InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
@@ -136,6 +137,8 @@ export interface ModelSelection {
 	provider_id: string;
 	model_id: string;
 	thinking_level: string;
+	/** Read from the address Pi holds for the model, which is never carried here (SEC-05). */
+	location: ModelLocation;
 }
 
 export interface ContextManifest {

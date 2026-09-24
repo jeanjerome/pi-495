@@ -5,6 +5,7 @@
  * and records nothing — an answer nobody gave is not an answer.
  */
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { locateModel } from "../domain/policy.ts";
 import type { ModelSelection } from "../ports/execution.ts";
 import { formatDecision, formatStatus } from "../presentation/structured/text.ts";
 import type { ExtensionSession } from "./session.ts";
@@ -14,11 +15,16 @@ import type { ExtensionSession } from "./session.ts";
  * (`createContext`, `core/extensions/runner.js`, Pi 0.87.1), so a model chosen by `/model` after the
  * session started is the one this returns.
  */
-function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
+export function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
 	const model = ctx.model;
 	return model
-		? { provider_id: model.provider, model_id: model.id, thinking_level: String(ctx.thinkingLevel ?? "off") }
-		: { provider_id: "", model_id: "", thinking_level: "off" };
+		? {
+				provider_id: model.provider,
+				model_id: model.id,
+				thinking_level: String(ctx.thinkingLevel ?? "off"),
+				location: locateModel(model.baseUrl),
+			}
+		: { provider_id: "", model_id: "", thinking_level: "off", location: "off_machine" };
 }
 
 export async function conduct(

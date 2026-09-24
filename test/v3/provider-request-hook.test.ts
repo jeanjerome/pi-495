@@ -188,7 +188,7 @@ const reviewer = (provider_id: string, model_id: string) =>
 		role: "review",
 		system_prompt: LOCAL,
 		tools: ["read"],
-		model: { provider_id, model_id, thinking_level: "off" },
+		model: { provider_id, model_id, thinking_level: "off", location: "on_machine" },
 		output_schema: "review-report",
 		profile: {
 			profile_id: "review",

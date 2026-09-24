@@ -11,6 +11,7 @@ import type { DecisionRequest, DecisionResponse, HumanOrigin } from "../../contr
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import type { ImposedLayersRecord } from "../imposed-layers.ts";
 import type { ArtifactKind, AttemptCounters, InterventionCost } from "./state.ts";
+import type { ModelLocation } from "../policy.ts";
 
 interface Base {
 	at: string;
@@ -89,7 +90,7 @@ export type ChangeCommand =
 			intervention_id: string;
 			role: InterventionRole;
 			attempt_id: string | null;
-			model: { provider_id: string; model_id: string; thinking_level: string };
+			model: { provider_id: string; model_id: string; thinking_level: string; location: ModelLocation };
 			profile_id: string;
 			profile_qualified: boolean;
 	  })

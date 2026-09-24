@@ -168,6 +168,7 @@ const selection = (over: Partial<ModelSelection> = {}): ModelSelection => ({
 	provider_id: "omlx",
 	model_id: "local-1",
 	thinking_level: "off",
+	location: "on_machine",
 	...over,
 });
 

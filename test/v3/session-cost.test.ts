@@ -212,7 +212,7 @@ describe("the worker reports the host's total with its last event (AGT-07)", () 
 		mandate("answer", root, {
 			role: "review",
 			tools: ["read"],
-			model: { provider_id: "omlx", model_id: modelId, thinking_level: "off" },
+			model: { provider_id: "omlx", model_id: modelId, thinking_level: "off", location: "on_machine" },
 			output_schema: "review-report",
 			profile: {
 				profile_id: "review",

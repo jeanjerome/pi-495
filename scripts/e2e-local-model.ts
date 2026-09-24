@@ -67,7 +67,8 @@ const mandate: InterventionMandate = {
 		env: {},
 	},
 	workspace_path: ws,
-	model: { provider_id: provider, model_id: modelId, thinking_level: "low" },
+	// No address is read here, and a model whose address is unknown is situated off this machine.
+	model: { provider_id: provider, model_id: modelId, thinking_level: "low", location: "off_machine" },
 	budgets: { duration_ms: 20 * 60_000, tool_calls: 40 },
 	output_schema: "producer-report",
 };

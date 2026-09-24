@@ -21,9 +21,20 @@ import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
 
-const FIRST: ModelSelection = { provider_id: "stand-in-a", model_id: "first-1", thinking_level: "off" };
-const SECOND: ModelSelection = { provider_id: "stand-in-b", model_id: "second-1", thinking_level: "off" };
-const NONE: ModelSelection = { provider_id: "", model_id: "", thinking_level: "off" };
+// Both stand-ins are registered in Pi at a loopback address, below, so they read as on this machine.
+const FIRST: ModelSelection = {
+	provider_id: "stand-in-a",
+	model_id: "first-1",
+	thinking_level: "off",
+	location: "on_machine",
+};
+const SECOND: ModelSelection = {
+	provider_id: "stand-in-b",
+	model_id: "second-1",
+	thinking_level: "off",
+	location: "on_machine",
+};
+const NONE: ModelSelection = { provider_id: "", model_id: "", thinking_level: "off", location: "off_machine" };
 
 let root: string;
 beforeEach(() => {
@@ -182,12 +193,12 @@ class FakeRpcContext {
 	readonly modelRegistry = null;
 	readonly sessionManager = { getSessionId: (): string => "session-model-select" };
 	readonly cwd: string;
-	private readonly selected: () => { provider: string; id: string } | undefined;
-	constructor(cwd: string, selected: () => { provider: string; id: string } | undefined) {
+	private readonly selected: () => { provider: string; id: string; baseUrl: string } | undefined;
+	constructor(cwd: string, selected: () => { provider: string; id: string; baseUrl: string } | undefined) {
 		this.cwd = cwd;
 		this.selected = selected;
 	}
-	get model(): { provider: string; id: string } | undefined {
+	get model(): { provider: string; id: string; baseUrl: string } | undefined {
 		return this.selected();
 	}
 }
@@ -217,10 +228,10 @@ describe("a session opened with no model selected (6a)", () => {
 		const pi = new FakePi();
 		const session = new ExtensionSession(pi as unknown as ExtensionAPI);
 		registerCommand495(pi as unknown as ExtensionAPI, session);
-		let selected: { provider: string; id: string } | undefined;
+		let selected: { provider: string; id: string; baseUrl: string } | undefined;
 		try {
 			session.openedAt(new FakeRpcContext(cwd, () => selected) as unknown as ExtensionContext);
-			selected = { provider: FIRST.provider_id, id: FIRST.model_id };
+			selected = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
 			await pi.command!(
 				"start tidy greet",
 				new FakeRpcContext(cwd, () => selected) as unknown as ExtensionCommandContext,

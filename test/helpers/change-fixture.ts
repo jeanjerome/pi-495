@@ -348,7 +348,7 @@ export class Runner {
 			intervention_id: interventionId,
 			role: "implement",
 			attempt_id: attemptId,
-			model: { provider_id: "omlx", model_id: "qwen3.8-27b-oq8e", thinking_level: "medium" },
+			model: { provider_id: "omlx", model_id: "qwen3.8-27b-oq8e", thinking_level: "medium", location: "on_machine" },
 			profile_id: "implement",
 			profile_qualified: true,
 		});
