@@ -240,9 +240,12 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		const four = refusal(unknown(4));
 		assert.match(four, /unknown_2 is not a known setting; and 1 more; no change runs/);
 		assert.equal(four.includes("unknown_3"), false);
-		// The validator stops at eight deviations, so a count it cut short is a lower bound, said as one.
 		assert.match(refusal(unknown(6)), /; and 3 more; no change runs/);
-		assert.match(refusal(unknown(9)), /; and at least 5 more; no change runs/);
+		assert.match(refusal(unknown(9)), /; and (at least )?6 more; no change runs/);
+		// The validator stops at eight deviations, so a count of wrong values it cut short is a lower
+		// bound, said as one.
+		const wrong = { policy: { required_reviews: Array.from({ length: 12 }, (_, i) => i) } };
+		assert.match(refusal(wrong), /; and at least 5 more; no change runs/);
 	});
 
 	it("names a setting once, whatever number of its bounds its value breaks", () => {

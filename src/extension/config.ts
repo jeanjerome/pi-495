@@ -121,63 +121,57 @@ interface UnknownKey {
 }
 
 /**
- * Every key the schema does not name, read from the file itself. The copy of TypeBox Pi hands the
- * extension leaves a `/` in a key unescaped, so a key read back from its pointer could be cut into
- * identifiers and cited; the pointer only finds it here.
+ * Every key the schema does not name, read from the file itself along the schema, with no cap. The
+ * copy of TypeBox Pi hands the extension leaves a `/` in a key unescaped, so a key is never read back
+ * from a validator's pointer.
  */
 function unknownKeys(schema: TSchema, value: unknown, section = "", found: UnknownKey[] = []): UnknownKey[] {
 	const properties = (schema as { properties?: Record<string, TSchema> }).properties;
 	if (!properties || typeof value !== "object" || value === null || Array.isArray(value)) return found;
 	for (const [key, held] of Object.entries(value)) {
-		const named = Object.hasOwn(properties, key) ? properties[key] : undefined;
-		if (named) unknownKeys(named, held, `${section}/${key}`, found);
+		const property = Object.hasOwn(properties, key) ? properties[key] : undefined;
+		if (property) unknownKeys(property, held, `${section}/${key}`, found);
 		else found.push({ section, key });
 	}
 	return found;
 }
 
-/**
- * The unknown key a pointer designates, taken out so that the next pointer finds another. The key the
- * pointer designates once escaped comes first: left unescaped, `/policy/budgets/x` is also the pointer
- * of a key `budgets/x` under `policy`.
- */
-function take(unnamed: UnknownKey[], pointer: string): UnknownKey | undefined {
-	const escaped = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
-	let index = unnamed.findIndex(({ section, key }) => `${section}/${escaped(key)}` === pointer);
-	if (index < 0) index = unnamed.findIndex(({ section, key }) => `${section}/${key}` === pointer);
-	return index < 0 ? undefined : unnamed.splice(index, 1)[0];
-}
-
 /** A key the schema does not name, cited only when it reads as the name of a setting. */
-function unknownKey(found: UnknownKey | undefined): string {
-	if (!found) return "the file holds a key that is not a known setting";
-	const { section, key } = found;
+function citeUnknownKey({ section, key }: UnknownKey): string {
 	if (section === "/policy" && key === "egress") return EGRESS_NO_LONGER_READ;
 	if (!SHORT_IDENTIFIER.test(key)) return `${location(section)} holds a key that is not a known setting`;
 	return `${location(`${section}/${key}`)} is not a known setting`;
 }
 
 /**
+ * Each place whose value departs from the contract, once, with what is expected there: a value can
+ * break several bounds of one place, and the values a place permits already say their type.
+ */
+function wrongValues(listed: ContractViolation[]): string[] {
+	const byPlace = new Map<string, ContractViolation[]>();
+	for (const violation of listed) {
+		// Unknown keys are read from the file: their own entries, and those of the objects holding them, are not values.
+		if (violation.keyword === "boolean" || violation.keyword === "additionalProperties") continue;
+		byPlace.set(violation.path, [...(byPlace.get(violation.path) ?? []), violation]);
+	}
+	return [...byPlace].map(([path, broken]) => {
+		const permitted = broken.filter(({ keyword }) => keyword === "enum");
+		return `${location(path)} must be ${(permitted.length > 0 ? permitted : broken).map(expectation).join(", ")}`;
+	});
+}
+
+/**
  * Where the file departs from its contract and what is expected there, never the value written: the
  * refusal reaches the context of the session's model. The first three are named, the others counted,
- * as a lower bound once the validator's cap may have cut the list.
+ * as a lower bound once the validator's cap may have cut the wrong values short.
  */
 function deviations(file: unknown): string {
 	const { listed, capped } = violations(HarnessConfigFile, file);
-	const unnamed = unknownKeys(HarnessConfigFile, file);
-	const found: string[] = [];
-	for (const violation of listed) {
-		// A key the schema does not name fails the `false` schema of `additionalProperties` on its own
-		// pointer; the object holding it then fails once more for all its keys, and that entry is the
-		// first the cap drops, so the key's own entry is the one read.
-		if (violation.keyword === "additionalProperties") continue;
-		if (violation.keyword === "boolean") found.push(unknownKey(take(unnamed, violation.path)));
-		else found.push(`${location(violation.path)} must be ${expectation(violation)}`);
-	}
-	const named = found.slice(0, 3);
-	const others = found.length - named.length;
-	if (others > 0) named.push(`and ${capped ? "at least " : ""}${others} more`);
-	return named.join("; ");
+	const every = [...unknownKeys(HarnessConfigFile, file).map(citeUnknownKey), ...wrongValues(listed)];
+	const cited = every.slice(0, 3);
+	const others = every.length - cited.length;
+	if (others > 0) cited.push(`and ${capped ? "at least " : ""}${others} more`);
+	return cited.join("; ");
 }
 
 export function loadConfig(
