@@ -1,10 +1,21 @@
 story_id: e25s05
-verified_at: "2026-09-24T16:32:00Z"
+verified_at: "2026-09-24T16:56:00Z"
 verifier: verify-work
 risk: P1
 branch: config-validee-par-un-schema
-revision: 57cd3b3
+revision: c2c4cc7
 revision_note: >
+  The review, two rounds with two reviewers each, closed its gate on 0263b18 with no must-fix or
+  should-fix left. Its first round, on 6f3010b, found one should-fix: a value breaking two bounds of
+  one setting (`null` where values are listed, `0.5` below a minimum) was counted as two
+  deviations, so past the validator's cap "and at least N more" could be false. The tests are
+  91caebc, red on that tree alone (2 failures of 22 in test/v1/config-schema.test.ts, 1 of 5 in
+  test/v3/config-refused.test.ts under Pi's copy of TypeBox); the fix is a94ef1f: unknown keys are
+  read from the file alone, with no cap, and the validator supplies only wrong values, one per place.
+  The matching of validator pointers to keys introduced by 57cd3b3 is gone with it. ecf3aba and
+  c2c4cc7 correct the README and a session comment. The terminal verdict below ran on c2c4cc7.
+
+  Before, on 57cd3b3:
   The audit of eb9676c found two defects in how a refusal names unknown keys, neither letting a file
   through nor reproducing a value. Keys that are not short identifiers under one section gave the same
   text and were counted once: four of them under `policy` were said as one deviation, with no
@@ -15,12 +26,11 @@ revision_note: >
   each deviation is kept, and a pointer is matched to the key it designates escaped before the one it
   designates unescaped. The v3 test 6e5401b adds, under Pi's copy, passes before and after the fix, as
   that copy points both keys at the same place; with the unescaped match removed from the fix, it
-  fails, and so does the earlier v3 test of a key holding `/`. The terminal verdict below ran on
-  57cd3b3. The campaigns were not replayed: the fix touches only how an unknown key is named and
-  counted in a refusal, and the four v3 tests drive the refusal through a real Pi.
+  fails, and so does the earlier v3 test of a key holding `/`. The campaigns were not replayed: the
+  fix touches only how an unknown key is named and counted in a refusal, and the v3 tests drive the
+  refusal through a real Pi.
 
   Before, on eb9676c:
-  The review of 7bd099b found a key holding `/` cited in the refusal under the copy of TypeBox Pi
   The review of 7bd099b found a key holding `/` cited in the refusal under the copy of TypeBox Pi
   hands the extension (specs/security/REVIEW.md, section e25s05). The test is 10293ed, red in a
   detached tree (1 failure of 3 in test/v3/config-refused.test.ts); the fix is eb9676c, green there
@@ -55,27 +65,28 @@ phases:
     note: "Eight controls chained in npm run check; Biome checked 180 files, no fix applied."
   tests:
     passed: true
-    count: 449
-    note: "449 of 449 on 57cd3b3; 446 of 446 on eb9676c, before the tests of the refusal's count and of a key holding `/` beside the key it points at."
+    count: 452
+    note: "452 of 452 on c2c4cc7; 449 of 449 on 57cd3b3; 446 of 446 on eb9676c."
 
 terminal_verdict:
   command: "npm run build && npm run check"
   exit_code: 0
-  started_at: "2026-09-24T16:29:27Z"
-  ended_at: "2026-09-24T16:31:46Z"
+  started_at: "2026-09-24T16:53:31Z"
+  ended_at: "2026-09-24T16:55:52Z"
   note: >
-    Single contiguous run under Node 24.21.0 on 57cd3b3, working tree clean. 449 tests passing, 0
+    Single contiguous run under Node 24.21.0 on c2c4cc7, working tree clean. 452 tests passing, 0
     failing, Biome clean over 180 files. No output from any other attempt is merged into this block.
-    On eb9676c, 13:36:22Z to 13:38:52Z, the same command exited 0 with 446 tests.
+    The same command exited 0 on 57cd3b3 (16:29:27Z to 16:31:46Z, 449 tests) and on eb9676c
+    (13:36:22Z to 13:38:52Z, 446 tests).
 
 task_verify_commands:
-  note: "Each task's own verify command, under Node 24.21.0, on 57cd3b3; every one exits 0."
+  note: "Each task's own verify command, under Node 24.21.0, on c2c4cc7; every one exits 0."
   results:
-    - { task: 1, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 20 }
-    - { task: 2, command: "node --test test/v1/config-schema.test.ts test/v1/model-admitted.test.ts", exit_code: 0, tests: 28 }
-    - { task: 3, command: "node --test test/v3/config-refused.test.ts", exit_code: 0, tests: 4 }
-    - { task: 4, command: "npm run check", exit_code: 0, tests: 449 }
-    - { task: 5, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 20 }
+    - { task: 1, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 22 }
+    - { task: 2, command: "node --test test/v1/config-schema.test.ts test/v1/model-admitted.test.ts", exit_code: 0, tests: 30 }
+    - { task: 3, command: "node --test test/v3/config-refused.test.ts", exit_code: 0, tests: 5 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 452 }
+    - { task: 5, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 22 }
 
 security:
   passed: true
@@ -90,10 +101,12 @@ security:
     pointer the key was read from. Red in a real Pi before the fix: the test added to
     test/v3/config-refused.test.ts, 1 failure of 1. After the fix, the 223-file probe gives 0 real
     leaks under either copy (40 under Pi's copy before). The 3 entries it still flags are `$schema`,
-    a key the schema names, with no value reproduced. The fix of 57cd3b3 changes only which unknown
-    key a pointer is matched to and how many deviations are counted: a key is still cited only when
-    it passes SHORT_IDENTIFIER, and the v3 tests under Pi's copy still find no part of a key holding
-    `/` in the refusal. The 223-file probe was not replayed on it.
+    a key the schema names, with no value reproduced. The fixes of 57cd3b3 and a94ef1f change only
+    how unknown keys are found and how deviations are counted: a key is still cited only when it
+    passes SHORT_IDENTIFIER, a wrong value is still said only by its place and the schema's
+    parameters, and the v3 tests under Pi's copy find no part of a key holding `/` in the refusal.
+    Both reviewers reproduced the refusal under each copy of TypeBox with no value and no
+    non-identifier key reproduced. The 223-file probe was not replayed on these fixes.
 
 blind_spots:
   ran: false
@@ -237,15 +250,20 @@ manual:
 gaps:
   closed: true
   note: >
-    Three gaps, all closed. One found by the security review, closed by 10293ed (red) and eb9676c
+    Four gaps, all closed. One found by the security review, closed by 10293ed (red) and eb9676c
     (green): a key holding `/` was cited under Pi's copy of TypeBox. Two found by the audit of
     eb9676c, closed by 6e5401b (red) and 57cd3b3 (green): keys with no identifier under one section
     were counted as one deviation, and a key holding `/` could take the place of the unknown key it
-    points at once left unescaped, which was then never named.
+    points at once left unescaped, which was then never named. One found by the first review round,
+    closed by 91caebc (red) and a94ef1f (green): a value breaking two bounds of one setting was
+    counted as two deviations.
 
 known_limits:
   - "The TUI is not driven: the screen channel measured is the notify request Pi's RPC mode forwards."
   - "The two full campaigns ran on 7bd099b, before the fix; only the refusal runs were replayed on it."
-  - "Only two v3 tests put a key holding `/` before 495 under Pi's copy of TypeBox; the unit tests run under the repository's 1.3.34."
+  - "Only three v3 tests put a key holding `/` or `~` before 495 under Pi's copy of TypeBox; the unit tests run under the repository's 1.3.34."
+  - "Unknown keys come first in the refusal, so several of them can push a wrong value past the first three, where it is counted but not named."
+  - "`at least` is said whenever the validator reached its cap, even when every entry it cut was an unknown key, which is counted exactly: nine unknown keys give `and at least 6 more` where 6 is exact."
+  - "Every `boolean` entry of the validator is read as an unknown key, since the only `false` subschemas of the contract are its `additionalProperties`; a contract that gained another would need the refusal revisited."
   - "Keys with no identifier under one section are each said, so the refusal repeats the same text for each of them among the first three."
   - "The published package loaded by `pi install` was not run; its peer typebox resolves to Pi's copy, the path the src/ run exercises."

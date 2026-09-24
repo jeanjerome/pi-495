@@ -10,14 +10,23 @@ active_epic_id: e25
 active_story: e25s05
 
 epic_cycle:
-  step: 6
-  completed_steps: "1,2,3,4,5"
+  step: 7
+  completed_steps: "1,2,3,4,5,6"
   audit_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   last_step_completed: >
+    Étape 6, relecture close le 2026-09-24 : A et B passent le tour 2 sur `6f3010b..0263b18`, sans
+    point à corriger. Trois remarques : deux reprises dans `c2c4cc7` (le README dit que le refus nomme
+    les trois premiers écarts et compte les autres ; un commentaire de session citait encore une clé
+    de configuration ignorée, que la branche avait rendue fausse). La troisième, un repli si la liste
+    des écarts était vide, est laissée : le contrat n'a pas d'autre schéma `false` que ses
+    `additionalProperties`, et la limite est déclarée dans `e25s05-verify.yaml`. Relevés ancrés à
+    `c2c4cc7` : `e25s05-verify.yaml`, `REVIEW.md` (« Reprise en relecture »), l'audit. Preflight verte
+    sous Node 24.21.0, 16:53:31Z à 16:55:52Z, 452 tests. Prochaine étape : `release-branch`.
+
     Étape 6, relecture, tour 1 sur `main...6f3010b` le 2026-09-24 : A et B échouent sur le même point
     à corriger, introduit par la branche. Une valeur qui enfreint deux bornes d'un réglage (`null`
     sur une liste de valeurs permises, `0.5` sous un minimum) comptait pour deux écarts, et au-delà

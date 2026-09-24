@@ -122,3 +122,10 @@ de la clé `sk-q8v2x7/token`.
 ## Verdict
 
 PASS après correction. Suite : `request-review`.
+
+## Révision relue
+
+La relecture passe à `0263b18`, en deux tours. Le premier a remplacé le rapprochement des pointeurs
+décrit plus haut : les clés inconnues sont lues dans le fichier seul, et le validateur ne donne plus
+qu'une valeur fausse par emplacement (`91caebc`, `a94ef1f`). `take()` n'existe plus. Preflight est
+verte à `c2c4cc7` sous Node 24.21.0, avec 452 tests.

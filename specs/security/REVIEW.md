@@ -719,3 +719,21 @@ Preuves :
 - **Non rejoué.** La sonde de 223 fichiers. La correction ne touche ni la condition de citation ni
   le texte d'une valeur. Deux tests v3 exercent désormais la copie de Pi sur une clé qui contient
   `/`.
+
+## Reprise en relecture
+
+Tests `91caebc`, correction `a94ef1f`. La relecture de `6f3010b` a trouvé, chez ses deux relecteurs,
+un point à corriger : une valeur qui enfreint deux bornes d'un réglage (`null` là où des valeurs sont
+permises, `0.5` sous un minimum) comptait pour deux écarts, et au-delà du plafond du validateur
+« and at least N more » pouvait être faux. Le refus lit désormais les clés inconnues dans le fichier
+seul, le long du schéma et sans plafond ; le validateur ne donne plus que les valeurs fausses, une
+par emplacement. `take()`, décrit ci-dessus, disparaît : aucun pointeur du validateur n'est plus
+rapproché d'une clé, sous aucune copie de TypeBox.
+
+La propriété de sécurité ne change pas. Une clé n'est citée que si elle passe `SHORT_IDENTIFIER`.
+Une valeur fausse n'est dite que par son emplacement, fait de clés que le schéma nomme et de
+positions de liste, et par les paramètres du schéma. Les deux relecteurs ont rejoué le refus sous
+chaque copie de TypeBox, dont `policy.egress` portant une URL, `design: "Human"`, `__proto__` et des
+clés à `/` et `~` : aucune valeur ni aucune clé non citable n'y apparaît. Un nouveau test v3,
+`{"policy":{"a~1b":1,"a/b":1}}` dans un vrai Pi, était rouge avant la correction (la seconde clé
+était dite sous « the file ») et passe après. La sonde de 223 fichiers n'a pas été rejouée.
