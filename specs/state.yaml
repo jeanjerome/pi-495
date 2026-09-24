@@ -10,14 +10,17 @@ active_epic_id: e25
 active_story: e25s03
 
 epic_cycle:
-  step: 6
-  completed_steps: "1,2,3,4,5"
+  step: 8
+  completed_steps: "1,2,3,4,5,6,7,8"
   audit_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: release-branch
+  next_skill: null
   last_step_completed: >
+    e25s03 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire. Preflight
+    verte sous Node 24.21.0 (426 tests).
+
     Relevés ancrés le 2026-09-24 sur `c17215f`, la révision relue : Preflight verte sous Node
     24.21.0 (426 tests, 10:28 à 10:30 UTC), commandes des tâches rejouées (tâche 3 : 13 tests).
     `e25s03-verify.yaml`, `NFR-e25s03.json`, `AUDIT-e25-e25s03.md` et la section e25s03 de
@@ -25,7 +28,7 @@ handoff:
     comportements changés en relecture ne reposent que sur des tests. Le premier est le choix d'une
     extension chargée avant 495, dit une fois par l'ouverture (`0bf0707`, mesuré dans un vrai
     `pi --mode rpc`). Le second est le libellé « was selected » (`8083cd0`). L'auto-revue note que sa
-    dépendance d'ordre a été contredite puis corrigée. Prochaine étape : livrer.
+    dépendance d'ordre a été contredite puis corrigée.
 
     Étape 6, relecture close le 2026-09-24 : A et B passent les tours 2 à 4, sans point à corriger.
     Tour 2 sur `4a70a09..545a661` : le garde avant l'ouverture ne perd aucune sélection réelle (Pi
