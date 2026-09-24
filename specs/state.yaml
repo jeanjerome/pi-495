@@ -27,6 +27,10 @@ handoff:
     tentatives écrit dans `config.json` n'atteint jamais un changement. Le suivant dans l'ordre écrit
     est `e01`. Les branches versées de l'epic sont supprimées.
 
+    pi-495 0.2.0 publiée sur npm le 2026-09-24 par le propriétaire (2FA), depuis `3d30ffe` : empreinte
+    `d53c9d44d0edd027f28ee343a8c45d9ff42804a8` identique à la simulation, 345 fichiers ; étiquette
+    `v0.2.0` créée et poussée avec `main`.
+
     e25s04 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire ; l'epic
     e25 est terminée. Preflight verte sous Node 24.21.0 à `535ea23` (455 tests).
 
