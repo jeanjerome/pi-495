@@ -93,14 +93,15 @@ Le fichier porte, dans l'ancienne forme, une liste qui ne nomme qu'un fournisseu
 Les trois répertoires de données, hors espaces de travail des candidats et hors sorties du pilote,
 ont été fouillés, ainsi que tout ce que Pi a reçu de 495 à l'écran et sur l'entrée structurée. Les
 valeurs cherchées sont l'adresse du modèle local et sa clé, l'adresse d'Anthropic, le jeton d'accès
-et le jeton de renouvellement de l'abonnement, et le nom témoin. Les quatre premières ont été lues
-dans la configuration du propriétaire et ne sont écrites ni ici ni dans les sorties du pilote. Aucune
+et le jeton de renouvellement de l'abonnement, et le nom témoin. L'adresse et la clé du modèle local,
+et les deux jetons, ont été lus dans la configuration du propriétaire ; aucune de ces valeurs n'est
+écrite ici ni dans les sorties du pilote. Aucune
 occurrence, dans aucune des trois campagnes.
 
 Le chemin personnel du propriétaire n'a pas été cherché dans les dossiers, et il y est : les chemins
 absolus des espaces de travail figurent au journal, dans le magasin d'objets et dans l'export. C'est
-le même chemin que la section `<cwd>` envoie au fournisseur (voir plus bas). Le nom témoin, qui n'est pas un secret, n'apparaît que
-dans ce relevé et dans la sortie du pilote du contrôle négatif, qui recopie le fichier refusé.
+le même chemin que la section `<cwd>` envoie au fournisseur (voir plus bas). Le nom témoin, qui n'est pas un secret, n'apparaît dans les
+dossiers que dans la sortie du pilote du contrôle négatif, qui recopie le fichier refusé.
 
 Le préfixe `sk-ant-oat` apparaît dans quatre fichiers du dossier distant : deux manifestes, et leur
 copie dans l'export. C'est la condition que le manifeste déclare pour le bloc imposé, pas un jeton.
@@ -122,16 +123,20 @@ défaut après la campagne distante. La commande RPC `set_model` ne persiste pas
   elle pointe vers le même `dist/extension/index.js` que le `-e` explicite.
 
 - **L'interface texte n'est pas pilotée.** L'écran mesuré est l'avertissement `notify` que le mode
-  RPC de Pi transmet, qui est l'appel que reçoit l'interface texte. Mais dans l'interface texte, 495
-  double aussi chaque message de l'entrée structurée d'une notice à l'écran
-  (`src/extension/session.ts`, `emit`) : l'annonce mise en attente y serait donc dite une seconde
-  fois, en notice d'information, avec la réponse de la commande suivante. Ce comportement vient de
-  e25s03, que cette recette ne change pas.
+  RPC de Pi transmet, qui est l'appel que reçoit l'interface texte.
 
 Rien d'autre n'est feint : le modèle local et le modèle Anthropic sont réels, le second joint par
 l'abonnement du propriétaire, et la Seatbelt confine les contrôles.
 
 ## Ce que ce relevé n'établit pas
+
+- **Dans l'interface texte, l'annonce serait dite deux fois à l'écran.** 495 y double chaque message
+  de l'entrée structurée d'une notice d'information (`src/extension/session.ts`, `emit`), et
+  l'annonce mise en attente passe par ce chemin au `/495` suivant : un avertissement au choix du
+  modèle, puis la même phrase en information. La spécification de e25s03 veut une annonce par canal.
+  C'est un défaut, consigné comme `BUG-2026-09-24T175500` dans `specs/bugs/registry.yaml`. Il est
+  établi par une sonde du code sous un faux contexte en mode `tui`, pas dans un vrai terminal, et
+  touche aussi tout diagnostic d'ouverture.
 
 - **La ligne de coût ne nomme pas le modèle Anthropic** (voir la campagne distante). Le modèle joint
   est établi par la strate observée dans la requête.

@@ -1,4 +1,41 @@
 bugs:
+  - bug_id: BUG-2026-09-24T175500
+    date: "2026-09-24"
+    title: "In the TUI, an off-machine model announcement and every opening diagnostic reach the screen twice"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      In the TUI, a pending diagnostic is said on the screen as soon as it arises: `announce` notifies
+      the opening diagnostics as warnings, and `modelSelected` notifies an off-machine model as a
+      warning. The first `/495` that follows, or the first call of the tool, runs `flushDiagnostics`,
+      which hands each pending text to `emit`. In the TUI, `emit` also notifies every structured
+      message as an info notice. The same text is therefore said twice on the screen, once as a
+      warning and once as an info notice, besides the message in the conversation.
+    what_expected: >
+      Each announcement is said once per channel (e25s03 spec, §5 step 8; the `pending` comment in
+      `src/extension/session.ts`): once on the screen, once on the structured entry.
+    steps_to_reproduce:
+      - "Open Pi in the TUI with 495 loaded and a local model selected."
+      - "Select a model whose address is not a loopback with `/model`: one warning notice."
+      - "Run `/495 status`: the same text is notified again, as an info notice."
+    root_cause: >
+      `emit` doubles every message with an info notice when `ctx.mode` is `tui` (since a61d217), and
+      the diagnostic queue, flushed through `emit` on the first operation (since d46e0d9), was written
+      for entries without a screen. The TUI is the one mode that has both. e25s03 routed the
+      off-machine announcement through the same queue.
+    evidence: >
+      Not seen in a real TUI: no campaign drives it, and the RPC runs of e25s03 and e25s04 measure the
+      notify channel RPC forwards, where `emit` does not notify. Probed on the code with
+      ExtensionSession under a fake context in `tui` mode (hasUI true): after `modelSelected` with a
+      non-loopback model, one warning notice; after `flushDiagnostics`, the same text again as an info
+      notice, and one message. Pi 0.87.1 sets `mode: "tui"` in the interactive context
+      (`interactive-mode.js`).
+    risk_level: low
+    follow_ups: >
+      decide whether a diagnostic already said on the screen is skipped by `emit`'s notice in the TUI;
+      found during the acceptance of the model selected in Pi, which changes no behaviour
+    status: open
   - bug_id: BUG-2026-09-24T000204
     date: "2026-09-24"
     title: "A change blocked because the selected model cannot carry an intervention stays blocked after /model and /495 resume"

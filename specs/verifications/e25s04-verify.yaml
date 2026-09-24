@@ -57,7 +57,9 @@ security:
     Task 2's security_verify is established: the record reproduces no provider address and no token.
     The files the branch changes were searched for the local model's address and key, the
     Anthropic address, the subscription's access and refresh tokens, read from the owner's
-    configuration without being printed, and the owner's home path: 0 hits. The three data
+    configuration without being printed, and the owner's home path: 0 hits in the lines the branch
+    adds. One hit predates the branch: the local model's loopback address, cited by the e25s01 section
+    of specs/security/REVIEW.md. The three data
     directories were searched for the addresses, the key, the tokens and the witness name: 0 hits
     outside the driver's own output. They do carry the owner's home path, in the absolute paths of
     their workspaces, which were not searched for.
@@ -94,25 +96,32 @@ manual:
         "policy.egress is no longer read"; no change created. The key removed and Pi reloaded, the
         change is created after the reload and accepted, G0..G5 PASS, with no refusal. The witness
         name is nowhere in the data directory nor in what Pi received.
+  defects_found:
+    - >
+      BUG-2026-09-24T175500 (specs/bugs/registry.yaml), open: in the TUI, `emit` doubles every
+      structured message with an info notice, so the queued off-machine announcement, already said as
+      a warning, is said again on the screen with the next `/495`; every opening diagnostic likewise.
+      This contradicts e25s03 §5 step 8, "une fois par canal". Probed on the code under a fake context
+      in tui mode, not seen in a real TUI. The story does not close until it is fixed or decided by the
+      owner (spec 6c).
   deviations:
     - >
       The specification expected the cost line of the Anthropic interventions to name the model. The
       cost line names a model only when its cost is unknown; the model reached is established by the
       imposed layer observed in the request instead. The specification (§12, §14, §17) is corrected
-      to say so.
+      to say so after the owner confirmed the acceptance; the owner is told of the corrected criterion
+      when the review closes.
   agt_07:
     note: >
       AGT-07 is [P1] and has no row in the archived matrix, which carries [P0] requirements only.
       Its evidence: the model is read at each intervention and the boundary journaled (e25s04-distant:
       specify under omlx, prepare and implement under anthropic/claude-sonnet-5), the cost recorded
       when known and marked unknown otherwise (the three dossiers), and no fallback from one provider
-      to another exists (stated in D-61; nothing in src/ selects a model 495 was not handed).
+      to another exists (a model Pi does not know fails the intervention, "no fallback is attempted",
+      src/adapters/pi-worker/worker-main.ts).
       Tests: test/v3/model-select.test.ts, test/v3/session-cost.test.ts, test/v2/measure-budgets.test.ts.
   feigned:
     - "`/model` is the RPC command `set_model`, which calls the same `session.setModel`."
     - "`/reload` is Pi's example command `/reload-runtime`, which calls the same `session.reload()`."
     - "The extension is loaded through the owner's package entry, which points at the same dist/ file as the explicit -e."
-    - >
-      The TUI is not driven: the screen measured is the notify warning Pi's RPC mode forwards. In the
-      TUI, `emit` also notifies each structured message, so the queued announcement would be said a
-      second time, as an info notice, with the reply to the next command.
+    - "The TUI is not driven: the screen measured is the notify warning Pi's RPC mode forwards."
