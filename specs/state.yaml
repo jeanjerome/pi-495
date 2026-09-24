@@ -18,6 +18,21 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    Étape 6, relecture, tour 1 sur `main...6f3010b` le 2026-09-24 : A et B échouent sur le même point
+    à corriger, introduit par la branche. Une valeur qui enfreint deux bornes d'un réglage (`null`
+    sur une liste de valeurs permises, `0.5` sous un minimum) comptait pour deux écarts, et au-delà
+    du plafond du validateur « at least N more » pouvait être faux. Rouge `91caebc`, observé sur ce
+    seul arbre : 2 échecs sur 22 dans `test/v1/config-schema.test.ts`, 1 sur 5 dans
+    `test/v3/config-refused.test.ts` sous la copie de TypeBox de Pi. Vert `a94ef1f` : les clés
+    inconnues sont lues du fichier seul, sans plafond, et le validateur ne donne plus que les valeurs
+    fausses, une par emplacement ; `take()` disparaît, ce qui règle aussi deux remarques (compte
+    lâche quand plusieurs sections portent une clé inconnue, section fausse pour deux clés à `~` et
+    `/` sous la copie de Pi) et les noms confus. Remarque reprise : le README redit qu'un fichier
+    qu'on ne peut ouvrir ou qui n'est pas un fichier ordinaire arrête tout `/495` (`ecf3aba`, vérifié
+    dans un vrai Pi pour `/495 help`). Remarque laissée : le test du compte suppose le plafond de 8,
+    mesuré à l'exécution. Preflight verte sous Node 24.21.0 (452 tests). Tour 2 : relire
+    `6f3010b..ecf3aba`.
+
     Étape 6 en cours le 2026-09-24. `audit-code` passe sur `770c7a9..57cd3b3`
     (`specs/verifications/AUDIT-e25-e25s05.md`) après deux corrections du nommage des clés inconnues
     dans un refus, sans valeur reproduite ni fichier admis : plusieurs clés non citables d'une section
