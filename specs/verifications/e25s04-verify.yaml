@@ -3,8 +3,19 @@ verified_at: "2026-09-24T17:30:42Z"
 verifier: verify-work
 risk: P1
 branch: modele-choisi-admis
-revision: c96a05d
+revision: a888f48
 revision_note: >
+  The review, three rounds with two reviewers each, closed its gate on a888f48 with no must-fix or
+  should-fix left. Round 1 on c439559: D-61 said the cost line names the model reached, which the
+  code does not do (must-fix, both reviewers); the security claims said the owner's home path was
+  absent from the dossiers, where workspace paths carry it; D-46 and D-57 still promised a
+  destination judged before a request leaves; an AGT-07 row was added to the archived [P0] matrix.
+  All fixed in 73a7068, amended to 80ea142 for its subject. Round 2: the no-secret claim had widened
+  to a file holding a pre-existing loopback address, and a commit subject cited decision ids; fixed.
+  The TUI double notice, which the branch neither introduces nor makes reachable, is logged as
+  BUG-2026-09-24T175500. Round 3 passed with two consider items, both applied.
+
+  Before, on c96a05d:
   The branch changes no production code: src/, contracts/, dist/ and package.json are those of main
   at 3b64971. It writes D-61, marks D-53 moot, updates the traceability matrix, and records three
   real runs in specs/verifications/e25s04-modele-choisi-admis.md. The runs used the dist/ built at
@@ -38,8 +49,9 @@ phases:
 terminal_verdict:
   command: "npm run build && npm run check"
   exit_code: 0
-  ended_at: "2026-09-24T17:30:42Z"
-  note: "Under Node 24.21.0 on the tree that became 72b5640; exit 0 again on c96a05d. 452 tests passing, 0 failing."
+  started_at: "2026-09-24T17:57:13Z"
+  ended_at: "2026-09-24T17:59:33Z"
+  note: "Single run under Node 24.21.0 on a888f48, working tree clean. 452 tests passing, 0 failing. The same command exited 0 on 72b5640 (17:30:42Z) and c96a05d."
 
 task_verify_commands:
   note: "Each task's own verify command, under Node 24.21.0; every one exits 0."

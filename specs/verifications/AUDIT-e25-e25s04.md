@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Périmètre | `git diff main...HEAD` (`3b64971..b30a6d4`), 9 fichiers, tous sous `specs/` ; aucun code de production, aucun test, aucun contrat |
+| Périmètre | `git diff main...HEAD` (`3b64971..b30a6d4`, puis la relecture jusqu'à `a888f48`), tous sous `specs/` ; aucun code de production, aucun test, aucun contrat |
 | Conduite le | 2026-09-24 (UTC) |
 | Branche | `modele-choisi-admis` |
 | Mode | `--gate` |
