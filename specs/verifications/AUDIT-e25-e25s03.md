@@ -98,6 +98,11 @@ Aucun comportement ne change.
   `openRuntimeAt` avant `modelSelected`. Un `model_select` reçu avant `session_start` serait effacé.
   Pi 0.87.1 n'en émet pas : `setModel` et le cycle suivent l'ouverture. Aucun comportement observable
   ne le contredit, donc rien n'est changé.
+  *Contredit par la relecture, et corrigé.* Une extension chargée avant 495 qui choisit un modèle
+  dans son propre `session_start` émet `model_select` avant l'ouverture de 495 (`preset.ts` des
+  exemples de Pi). L'annonce était alors dite deux fois à l'écran. Depuis `0bf0707`, un choix reçu
+  avant l'ouverture n'est pas dit, et l'ouverture lit le modèle de `ctx.model`. La file ne dépend
+  plus de l'ordre des événements.
 
 ## Style
 
@@ -117,3 +122,9 @@ Aucun comportement ne change.
 ## Verdict
 
 PASS. Suite : `request-review`.
+
+## Révision relue
+
+La relecture passe à `c17215f`. Preflight y est verte sous Node 24.21.0, avec 426 tests, le
+2026-09-24 à 10:30 UTC. `test/v3/model-select.test.ts` porte désormais 5 tests de l'annonce, dont
+celui du flux 6l.

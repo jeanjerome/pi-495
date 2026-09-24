@@ -1,12 +1,19 @@
 story_id: e25s03
-verified_at: "2026-09-24T08:42:11Z"
+verified_at: "2026-09-24T10:30:26Z"
 verifier: verify-work
 risk: P0
 branch: situation-du-modele-lue-de-son-adresse
-revision: 0816d28
+revision: c17215f
 revision_note: >
-  The code is that of db1173c; 0816d28 only records the tasks as passing. The campaigns, the entry
-  checks and the terminal verdict all ran the build of that code under Node 24.21.0.
+  c17215f is the revision the review passed. The terminal verdict and the task commands ran on the
+  build of its code under Node 24.21.0, from 5b44328, which differs from it by specs/state.yaml
+  alone. The four campaigns and the print and JSON entries ran the build of db1173c, before review.
+  Review changed two behaviours after db1173c, and no campaign ran either. A model an extension
+  loaded before 495 selects in its own session_start is said once, by the opening (0bf0707): a test
+  measures it in a real `pi --mode rpc`, with a second extension that selects the model, and no
+  campaign did. The announcement now reads "the model <provider>/<id> was selected and is reached
+  off this machine" (8083cd0): the campaigns saw the text before it, "the selected model
+  <provider>/<id> is reached off this machine".
 
 environment:
   pi_version: "0.87.1"
@@ -35,25 +42,28 @@ phases:
     note: "Eight controls chained in npm run check; Biome checked 177 files, no fix applied."
   tests:
     passed: true
-    count: 425
-    note: "425 of 425. 397 on main at fadf8f1."
+    count: 426
+    note: >
+      426 of 426. 397 on main at fadf8f1. 425 when the campaigns ran; the one added since is the
+      test of a model an extension loaded before 495 selects as the session opens (6l).
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-24T08:40:04Z"
-  ended_at: "2026-09-24T08:42:11Z"
+  started_at: "2026-09-24T10:28:16Z"
+  ended_at: "2026-09-24T10:30:26Z"
   note: >
-    Single contiguous run under Node 24.21.0 at 0816d28, after the campaigns. 425 tests passing, 0
-    failing. No output from any other attempt is merged into this block.
+    Single contiguous run under Node 24.21.0 on the code of c17215f, right after `npm run build`.
+    426 tests passing, 0 failing, Biome clean over 177 files. No output from any other attempt is
+    merged into this block.
 
 task_verify_commands:
-  note: "Each task's own verify command, re-run under Node 24.21.0 at 0816d28; every one exits 0."
+  note: "Each task's own verify command, re-run under Node 24.21.0 on the code of c17215f; every one exits 0."
   results:
     - { task: 1, command: "node --test test/v1/model-location.test.ts", exit_code: 0, tests: 19 }
     - { task: 2, command: "node --test test/v2/model-location-journal.test.ts", exit_code: 0, tests: 5 }
-    - { task: 3, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 12 }
-    - { task: 4, command: "npm run check", exit_code: 0, tests: 425 }
+    - { task: 3, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 13 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 426 }
 
 security:
   passed: true
@@ -201,3 +211,10 @@ known_limits:
   - "6i (runtime refused), 6j (dossier written before this story, read by this code) and a model restored from a session file (6e) rest on their tests."
   - "6k (the same model selected again) and 6h (no model at opening) are exercised by neither a test nor a run."
   - "§15's limit, an address redefined by another extension of the session, is not measured."
+  - >
+    6l, a model an extension loaded before 495 selects as the session opens, is held by a test only:
+    it runs a real `pi --mode rpc` with that extension and counts one screen warning and one
+    announcement, but no model answers and no change is started. No campaign ran the fix (0bf0707).
+  - >
+    The announcement text the campaigns counted is the one before 8083cd0. The wording that says
+    "was selected" is checked by the tests of test/v3/model-select.test.ts, not by a campaign.

@@ -1,8 +1,8 @@
 {
   "story_id": "e25s03",
   "risk": "P0",
-  "evaluated_at": "2026-09-24T08:42:11Z",
-  "revision_note": "Measured on the build of db1173c; Preflight green at 0816d28, which only records the tasks as passing.",
+  "evaluated_at": "2026-09-24T10:30:26Z",
+  "revision_note": "The thresholds are measured by the campaigns on the build of db1173c. Preflight is green on the code of c17215f, the revision the review passed, with 426 tests. The two behaviours review added after db1173c, a model an extension loaded before 495 selects as the session opens said once by the opening (0bf0707) and the announcement's 'was selected' wording (8083cd0), are held by tests, not by a campaign.",
   "threshold_source": {
     "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s03-la-situation-du-modele-est-lue-de-son-adresse-portee-au-dossier-et-annoncee.md",
     "section": "14. Quality attributes *NFR*",
@@ -31,7 +31,7 @@
       "verdict": "PASS",
       "threshold": "Opening then a change to a remote model: 1 announcement per remote model and per channel. Local model: 0 announcements",
       "measured": "e25s03-ouverture: 1 screen warning per session opened, although Pi's RPC mode starts the replacing session twice, and 1 announcement at the first /495, none at the second. e25s03-aller: 2 remote selections, 2 warnings and 2 announcements; opening and return on omlx, 0. Print and JSON entries: 1 announcement each. main: 0 everywhere.",
-      "note": "The TUI itself is not driven; the screen channel measured is the notify warning of the RPC mode."
+      "note": "The TUI itself is not driven; the screen channel measured is the notify warning of the RPC mode. A model an extension loaded before 495 selects as the session opens gives 1 warning and 1 announcement in the test of 6l, in a real pi --mode rpc; no campaign measured it."
     }
   },
   "verdict": "GO",

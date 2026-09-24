@@ -18,6 +18,15 @@ epic_cycle:
 handoff:
   next_skill: release-branch
   last_step_completed: >
+    Relevés ancrés le 2026-09-24 sur `c17215f`, la révision relue : Preflight verte sous Node
+    24.21.0 (426 tests, 10:28 à 10:30 UTC), commandes des tâches rejouées (tâche 3 : 13 tests).
+    `e25s03-verify.yaml`, `NFR-e25s03.json`, `AUDIT-e25-e25s03.md` et la section e25s03 de
+    `specs/security/REVIEW.md` disent que les campagnes ont tourné sur `db1173c`. Les deux
+    comportements changés en relecture ne reposent que sur des tests. Le premier est le choix d'une
+    extension chargée avant 495, dit une fois par l'ouverture (`0bf0707`, mesuré dans un vrai
+    `pi --mode rpc`). Le second est le libellé « was selected » (`8083cd0`). L'auto-revue note que sa
+    dépendance d'ordre a été contredite puis corrigée. Prochaine étape : livrer.
+
     Étape 6, relecture close le 2026-09-24 : A et B passent les tours 2 à 4, sans point à corriger.
     Tour 2 sur `4a70a09..545a661` : le garde avant l'ouverture ne perd aucune sélection réelle (Pi
     0.87.1 lu), le test de l'extension chargée avant 495 échoue sans lui (2 pour 1). Deux remarques

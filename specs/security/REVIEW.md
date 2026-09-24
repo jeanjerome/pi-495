@@ -421,8 +421,8 @@ espace : il ne contient que la référence et la préparation adoptée.
 
 | | |
 |---|---|
-| Périmètre | `git diff fadf8f1..0816d28` (`main...HEAD`), 26 fichiers, dont 8 de production et un script de banc ; le code est celui de `db1173c`, `0816d28` ne touche que des relevés |
-| Conduite le | 2026-09-24 |
+| Périmètre | `git diff fadf8f1..0816d28` (`main...HEAD`), 26 fichiers, dont 8 de production et un script de banc ; le code est celui de `db1173c`, `0816d28` ne touche que des relevés. Relu ensuite sur le code de `c17215f`, la révision que la relecture passe (voir la dernière section) |
+| Conduite le | 2026-09-24 ; relu à `c17215f` le même jour |
 | Branche | `situation-du-modele-lue-de-son-adresse` |
 | Risque de la story | P0, tâche 1 classée `security: high`, tâche 2 `security: medium` |
 | Code de production touché | `src/domain/policy.ts`, `src/ports/execution.ts`, `src/domain/change/commands.ts`, `src/domain/change/events.ts`, `src/domain/change/state.ts`, `src/extension/conduct.ts`, `src/extension/session.ts`, `src/extension/index.ts` ; `scripts/e2e-local-model.ts` hors production |
@@ -474,7 +474,7 @@ lit les deux côtés, donc un désaccord d'analyse entre la règle et le client 
 machine un modèle que le client joint ailleurs.
 
 **L'adresse n'atteint ni le journal, ni l'état, ni l'export, ni l'annonce (`security_verify` de la
-tâche 2).** `baseUrl` n'est lu qu'en deux endroits, `conduct.ts:25` et `session.ts:247`, chaque fois
+tâche 2).** `baseUrl` n'est lu qu'en deux endroits, `conduct.ts:25` et `session.ts:253`, chaque fois
 comme argument de `locateModel`. `selectedModel` construit `ModelSelection` champ par champ, avec
 quatre clés, et c'est cet objet que `runIntervention` (`harness.ts:477`) passe tel quel à
 `intervention.start`. Aucune copie de `ctx.model` n'est faite. Le texte de l'annonce ne porte que
@@ -509,3 +509,19 @@ nom vient de sa propre configuration, pas du projet cible.
 **La situation est lue du catalogue de la session, le worker lit le sien.** C'est la limite que la
 spec déclare au §15. Une extension de la session qui redéfinit l'adresse d'un fournisseur ferait lire
 à 495 une adresse que le worker ne joint pas. Rien dans le diff n'y touche.
+
+## Relu à `c17215f`
+
+La relecture a changé deux comportements après `db1173c`. Aucun n'ajoute de lecture de l'adresse ni
+de canal, et le verdict reste le même.
+
+- **Un choix reçu avant l'ouverture de 495 n'est pas dit (`0bf0707`).** `modelSelected` rend la main
+  tant que la session n'est pas ouverte (`session.ts:252`). L'ouverture lit alors le modèle actif dans
+  `ctx.model` et le juge avec la même fonction. Un modèle distant choisi avant l'ouverture, et encore
+  actif à celle-ci, est donc annoncé une fois, et non perdu. Un test le mesure dans un vrai
+  `pi --mode rpc`, avec une seconde extension qui choisit le modèle. Aucune campagne ne l'a exécuté.
+- **L'annonce dit « was selected » (`8083cd0`).** Le texte porte toujours `model.provider` et
+  `model.id`, et rien d'autre du modèle.
+
+`baseUrl` n'est toujours lu qu'aux deux endroits cités plus haut. Les références de ligne de cette
+revue sont celles de `c17215f`. Preflight y est verte sous Node 24.21.0, avec 426 tests.
