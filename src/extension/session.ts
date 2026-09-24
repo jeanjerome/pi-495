@@ -20,6 +20,7 @@ import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
 import { DomainError } from "../domain/errors.ts";
+import { locateModel } from "../domain/policy.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
 
 interface Binding {
@@ -219,8 +220,29 @@ export class ExtensionSession {
 		}
 	}
 
-	/** Everything the session knows at startup: the change it resumes, and what could not be honoured. */
+	/**
+	 * Everything the session knows at startup: the change it resumes, what could not be honoured, and
+	 * where the model Pi opened it with sits. A model restored with the session is resolved before
+	 * `session_start` and never passes through `model_select` (Pi 0.87.1), so it is judged here.
+	 */
 	openedAt(ctx: ExtensionContext): void {
+		this.openRuntimeAt(ctx);
+		this.modelSelected(ctx, ctx.model);
+	}
+
+	/**
+	 * A model reached off this machine is said like a diagnostic, whether or not the runtime exists:
+	 * where Pi sends what 495 hands it is a fact of Pi. Its address is never said, since it may carry
+	 * a token or a private path. A model on this machine is not announced.
+	 */
+	modelSelected(ctx: ExtensionContext, model: { provider: string; id: string; baseUrl?: string } | undefined): void {
+		if (!model || locateModel(model.baseUrl) === "on_machine") return;
+		const text = `495: the selected model ${model.provider}/${model.id} is reached off this machine; what 495 sends it leaves the machine`;
+		this.pending.push(text);
+		if (ctx.hasUI) ctx.ui.notify(text, "warning");
+	}
+
+	private openRuntimeAt(ctx: ExtensionContext): void {
 		// Pi's RPC mode starts the same session twice on `new_session`, `switch_session`, `fork` and
 		// `clone`: the first start decides whether a runtime exists, and a second one only reads it.
 		if (!this.harnessRuntime && !this.runtimeFailure) this.createRuntimeAt(ctx);

@@ -16,6 +16,7 @@ export default function harness495(pi: ExtensionAPI): void {
 	const session = new ExtensionSession(pi);
 
 	pi.on("session_start", async (_event, ctx) => session.openedAt(ctx));
+	pi.on("model_select", async (event, ctx) => session.modelSelected(ctx, event.model));
 	pi.on("session_shutdown", async () => session.close());
 	pi.on("session_before_switch", async () => (session.busy ? { cancel: true } : undefined));
 	pi.on("session_before_fork", async () => (session.busy ? { cancel: true } : undefined));
