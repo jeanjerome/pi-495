@@ -115,7 +115,8 @@ manual:
       `emit` doubled every structured message with an info notice, so the queued off-machine
       announcement, already said as a warning, was said again on the screen with the next `/495`, and
       every opening diagnostic likewise. Red 447df46 (2 failures of 2 in
-      test/v3/model-select.test.ts), green 3a9ef82. Seen in Pi's real terminal interface through a
+      test/v3/model-select.test.ts), green 3a9ef82; a third test for an ordinary opening diagnostic,
+      red on a888f48's code, green at 4591fe8. Seen in Pi's real terminal interface through a
       pseudo-terminal and a notice-recording probe extension (~/.495-campagnes/e25s04-tui): warning
       then info before the fix, warning alone after. The RPC campaigns ran before the fix, which does
       not touch the channel they measure.

@@ -742,16 +742,19 @@ clés à `/` et `~` : aucune valeur ni aucune clé non citable n'y apparaît. Un
 
 | | |
 |---|---|
-| Périmètre | `git diff main...HEAD`, aucun fichier de production |
+| Périmètre | `git diff main...HEAD` ; un fichier de production, `src/extension/session.ts`, par la correction décidée en relecture |
 | Révision relue | `c96a05d`, puis la relecture jusqu'à `a888f48` |
 | Conduite le | 2026-09-24 |
 | Branche | `modele-choisi-admis` |
 | Risque de la story | P1, tâche 2 classée `security: medium` |
-| Code de production touché | aucun : `src/`, `contracts/`, `dist/` et `package.json` sont ceux de `main` |
+| Code de production touché | `src/extension/session.ts` (`3a9ef82`) : la file des diagnostics ne notifie plus l'écran une seconde fois ; `contracts/` et `package.json` sont ceux de `main` |
 
 ## Verdict
 
-Aucun constat. Le `security_verify` de la tâche 2 est établi : le relevé ne reproduit aucune adresse
+Aucun constat. Le correctif ne change ni ce qui est dit ni à qui : chaque diagnostic atteint
+toujours l'écran une fois et l'entrée structurée une fois, et aucun texte nouveau n'est émis. Aucun
+diagnostic ne cesse d'être montré, car chaque texte mis en file est notifié à l'écran au moment où il
+y entre. Le `security_verify` de la tâche 2 est établi : le relevé ne reproduit aucune adresse
 de fournisseur ni aucun jeton, et cite les situations lues au journal.
 
 ## Hypothèses vérifiées, non supposées

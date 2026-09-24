@@ -138,14 +138,22 @@ spécification de l'annonce veut une annonce par canal.
 
 Le défaut est consigné comme `BUG-2026-09-24T175500`, et le propriétaire a décidé de le corriger
 avec cette story. La file se vide désormais sur l'entrée structurée seule, puisqu'un écran a été
-prévenu quand le texte y est entré. Rouge `447df46`, vert `3a9ef82`.
+prévenu quand le texte y est entré. Rouge `447df46`, vert `3a9ef82` ; un troisième test, pour un
+diagnostic d'ouverture ordinaire, est rouge sur le code d'avant et vert sur la branche (`4591fe8`).
+Dans l'interface texte, le message de la conversation demeure : il est l'entrée structurée, et la
+notice est l'écran.
 
 Il a été observé dans la vraie interface texte, pilotée par un pseudo-terminal
 (`~/.495-campagnes/e25s04-tui`). Une extension de sonde chargée avant 495 relève chaque notice que
 l'écran reçoit. La session s'ouvre sur un modèle déclaré à une adresse hors de la machine, dans une
-configuration de Pi isolée, et aucune requête ne lui est envoyée ; puis `/495 status`. Sur le build
-d'avant le correctif : un avertissement, puis la même phrase en information. Sur le build corrigé :
-l'avertissement seul. Les trois campagnes RPC ont tourné avant le correctif, qui ne touche pas le
+configuration de Pi isolée, et aucune requête ne lui est envoyée ; puis `/495 status` deux fois. Sur
+le build d'avant le correctif (`a888f48`) : un avertissement, la même phrase en information, puis les
+deux réponses de `/495 status`. Sur le build corrigé : l'avertissement seul, puis les deux réponses.
+Un premier passage du banc avait tapé la commande trop vite : l'autocomplétion l'avait avalée, et
+`/495` avait répondu par l'aide, une seule fois. La conclusion était la même, puisque tout `/495`
+vide la file, mais la commande n'était pas celle écrite ; le banc tape désormais caractère par
+caractère et ferme la liste de complétion avant d'envoyer. Ses deux passages sont gardés
+(`avant-1.log`, `apres-1.log`, puis `avant.log`, `apres.log`). Les trois campagnes RPC ont tourné avant le correctif, qui ne touche pas le
 canal qu'elles mesurent : en RPC, `emit` n'ajoute aucune notice.
 
 ## Ce que ce relevé n'établit pas

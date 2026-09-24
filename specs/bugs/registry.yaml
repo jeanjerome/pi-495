@@ -29,13 +29,16 @@ bugs:
       Seen in Pi's real terminal interface, driven through a pseudo-terminal
       (~/.495-campagnes/e25s04-tui): a probe extension loaded before 495 records every notice Pi's
       screen receives; opened on a model declared at a non-loopback address in an isolated Pi
-      configuration, then `/495 status`: one warning, then the same text as an info notice, on the
-      build of the code before the fix; one warning alone on the fixed build. First probed on the code with
+      configuration, then `/495 status` twice: one warning, the same text as an info notice, then the
+      two replies, on the build of a888f48 before the fix; the warning alone, then the two replies, on
+      the fixed build. A first pass typed too fast and ran `/495` once with help as its reply; it is
+      kept as avant-1.log and apres-1.log. First probed on the code with
       ExtensionSession under a fake context in `tui` mode (hasUI true): after `modelSelected` with a
       non-loopback model, one warning notice; after `flushDiagnostics`, the same text again as an info
       notice, and one message. test/v3/model-select.test.ts, two tests under "on the screen of Pi's
       terminal interface", red at 447df46 (2 failures of 2), green at 3a9ef82 with Preflight green
-      (454 tests). Pi 0.87.1 sets `mode: "tui"` in the interactive context
+      (454 tests); a third, for an ordinary opening diagnostic, red on the code of a888f48 and green
+      at 4591fe8. Pi 0.87.1 sets `mode: "tui"` in the interactive context
       (`interactive-mode.js`).
     risk_level: low
     follow_ups: >
