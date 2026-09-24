@@ -216,7 +216,7 @@ class FakeRpcContext {
 	}
 }
 
-describe("a session opened with no model selected (6a)", () => {
+describe("a session opened with no model selected (AGT-07, 6a)", () => {
 	const saved: Record<string, string | undefined> = {};
 	const env = (name: string, value: string): void => {
 		if (!(name in saved)) saved[name] = process.env[name];
@@ -259,7 +259,7 @@ describe("a session opened with no model selected (6a)", () => {
 	});
 });
 
-describe("a session whose runtime could not be created (6i)", () => {
+describe("a session whose runtime could not be created (SEC-05, 6i)", () => {
 	const saved: Record<string, string | undefined> = {};
 	afterEach(() => {
 		for (const [name, value] of Object.entries(saved)) {
@@ -373,7 +373,7 @@ function warned(client: PiRpcClient): string[] {
 		.filter((m) => m.includes("off this machine"));
 }
 
-describe("a session Pi replaced (6g)", {
+describe("a session Pi replaced (AGT-07, 6g)", {
 	skip: !piAvailable() && "pi binary not available",
 }, () => {
 	it("runs the next intervention with the model selected in the replacing session", async () => {
@@ -459,6 +459,7 @@ describe("a model reached off this machine (SEC-05)", {
 		try {
 			assert.equal(await model("opened"), `${REMOTE.provider}/${REMOTE.id}`);
 			before = warned(client).length;
+			assert.equal(before, 1, `the first session is told once: ${warned(client).join(" | ")}`);
 			// `new_session` binds the extensions of the new session twice (`rpc-mode.js`, Pi 0.87.1).
 			assert.equal((await call(client, "replace", { type: "new_session" })).success, true);
 			assert.equal(

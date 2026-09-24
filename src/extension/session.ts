@@ -229,8 +229,7 @@ export class ExtensionSession {
 	 */
 	openedAt(ctx: ExtensionContext): void {
 		// Pi's RPC mode starts the same session twice on `new_session`, `switch_session`, `fork` and
-		// `clone` (`rpc-mode.js`, Pi 0.87.1): the second start would tell the screen everything again,
-		// and replace the queue a structured entry has not read yet.
+		// `clone` (`rpc-mode.js`, Pi 0.87.1): the second start would tell the screen everything again.
 		const sessionId = ctx.sessionManager.getSessionId();
 		if (sessionId === this.openedSession) return;
 		this.openedSession = sessionId;
