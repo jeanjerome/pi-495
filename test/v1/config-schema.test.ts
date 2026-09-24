@@ -245,6 +245,28 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		assert.match(refusal(unknown(9)), /; and at least 5 more; no change runs/);
 	});
 
+	it("names a setting once, whatever number of its bounds its value breaks", () => {
+		assert.match(refusal({ language: null }), /: language must be fr or en; no change runs/);
+		assert.match(
+			refusal({ policy: { budgets: { max_attempts: 0.5 } } }),
+			/: policy\.budgets\.max_attempts must be a whole number, at least 1; no change runs/,
+		);
+		assert.match(
+			refusal({ policy: { adoption: { mandate: 5, requirements: 5, design: 5 } } }),
+			/: (policy\.adoption\.\w+ must be kernel or human; ){3}no change runs/,
+		);
+	});
+
+	it("counts every unknown key the file holds, whichever sections hold them", () => {
+		const file = {
+			policy: { budgets: { u1: 1 }, adoption: { u2: 1 }, baseline: { u3: 1 }, u4: 1 },
+			isolation: { u5: 1 },
+			human_origin: { u6: 1 },
+			u7: 1,
+		};
+		assert.match(refusal(file), /; and (at least )?4 more; no change runs/);
+	});
+
 	it("counts each key it does not cite as a deviation of its own", () => {
 		assert.match(
 			refusal({ policy: { "a b": 1, "c d": 2, "e f": 3, "g h": 4 } }),

@@ -182,6 +182,14 @@ describe("config.json refused by its contract in a real Pi (SEC-05)", { skip }, 
 		assert.equal(text.includes("budgets/"), false, `a key holding a slash is cited: ${text}`);
 	});
 
+	it("keys whose pointers the same copy cannot tell apart are each said under their own section", () => {
+		const json = channel("tilde", JSON.stringify({ policy: { "a~1b": 1, "a/b": 1 } }));
+		const text = runJson(json.project, json.env, REQUEST)
+			.map((s) => s.content)
+			.join("\n");
+		assert.match(text, /: (policy holds a key that is not a known setting; ){2}no change runs/);
+	});
+
 	it("an unknown key stops /495 start over RPC, and the same file repaired is read after a reload", async () => {
 		const rpc = channel("rpc", REFUSED);
 		const client = new PiRpcClient({
