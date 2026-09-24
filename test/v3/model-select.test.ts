@@ -473,6 +473,42 @@ describe("a model reached off this machine (SEC-05)", {
 		assert.equal(warned(client).length - before, 1, warned(client).join(" | "));
 	});
 
+	it("is announced once when an extension loaded before 495 selects it as the session opens", async () => {
+		const cwd = project();
+		// Pi runs `session_start` handlers in load order, so this `model_select` reaches 495 before its own.
+		const selector = join(root, "selector.ts");
+		writeFileSync(
+			selector,
+			`export default function (pi) {
+	pi.on("session_start", async (_event, ctx) => {
+		const model = ctx.modelRegistry.find(${JSON.stringify(REMOTE.provider)}, ${JSON.stringify(REMOTE.id)});
+		if (model) await pi.setModel(model);
+	});
+}
+`,
+		);
+		const { client } = rpcPi(cwd, [
+			"--no-session",
+			"--model",
+			`${FIRST.provider_id}/${FIRST.model_id}`,
+			"-e",
+			selector,
+		]);
+		try {
+			const state = (await call(client, "state", { type: "get_state" })).data as {
+				model?: { provider: string; id: string };
+			};
+			assert.equal(`${state.model?.provider}/${state.model?.id}`, `${REMOTE.provider}/${REMOTE.id}`);
+			await call(client, "status", { type: "prompt", message: "/495 status" });
+		} finally {
+			await client.close();
+			rmSync(cwd, { recursive: true, force: true });
+		}
+		const said = client.messages().map((m) => m.content);
+		assert.equal(warned(client).filter((w) => w.includes(OFF_MACHINE)).length, 1, warned(client).join(" | "));
+		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
+	});
+
 	it("is announced when the session opens on it, restored from the session file (6e)", async () => {
 		const cwd = project();
 		// Pi writes a session file only once the model has answered, and restores a model only from a
