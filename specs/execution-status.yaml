@@ -14,7 +14,7 @@ development_status:
   e25: in_progress
   e25s01: done
   e25s02: done
-  e25s03: todo
+  e25s03: in_progress
   e25s04: todo
 
 epics:
@@ -165,7 +165,8 @@ stories:
     risk_max: P0
     security_max: high
   e25s03:
-    status: todo
+    status: in_progress
+    started_at: "2026-09-24T09:22:13+02:00"
     title: "La situation du modèle est lue de son adresse, portée au dossier et annoncée"
     bcps: 5
     epic: e25

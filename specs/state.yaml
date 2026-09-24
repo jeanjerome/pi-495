@@ -7,17 +7,30 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e25
-active_story: e25s02
+active_story: e25s03
 
 epic_cycle:
-  step: 8
-  completed_steps: "1,2,3,4,5,6,7,8"
-  audit_result: pass
-  story_bcps: 3
+  step: 3
+  completed_steps: "1,2"
+  audit_result: null
+  story_bcps: 5
 
 handoff:
   next_skill: null
   last_step_completed: >
+    e25s03 ouverte le 2026-09-24, étapes 1 et 2 de `build-epic`. La spécification est écrite
+    (`e25s03-la-situation-du-modele-est-lue-de-son-adresse-portee-au-dossier-et-annoncee.md`) et
+    a été validée par le propriétaire le 2026-09-24. La situation est lue du nom d'hôte de `Model.baseUrl`, sans
+    résolution : `localhost`, `127.0.0.0/8` et `::1` sont sur la machine, tout le reste hors d'elle.
+    Elle est portée par `ModelSelection`, donc lue dans la même lecture que le modèle jugé, et
+    inscrite au démarrage de l'intervention sans l'adresse. L'annonce passe par la file des
+    diagnostics d'ouverture, alimentée à `session_start` et à `model_select`. Lu dans le code de Pi
+    0.87.1 : `model_select` n'est émis que pour `set` et `cycle`, jamais pour un modèle restauré,
+    que `createAgentSession` résout avant `session_start` ; le worker résout le modèle depuis
+    `models.json` sans les autres extensions de la session, limite notée au §15. Aucune modélisation
+    de menace par epic (étape 0) ni rapport d'impact, comme pour les stories précédentes.
+    Prochaine étape : `kickoff-branch`.
+
     e25s02 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire, qui a
     confirmé les trois campagnes de reprise après refus. Preflight verte sous Node 24.21.0.
 
