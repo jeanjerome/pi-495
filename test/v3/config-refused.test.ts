@@ -158,6 +158,18 @@ describe("config.json refused by its contract in a real Pi (SEC-05)", { skip }, 
 		);
 	});
 
+	// Pi hands the extension its own copy of TypeBox, whose pointers may leave a `/` in a key unescaped:
+	// a key read back from the pointer would then be cut into identifiers and cited.
+	it("a key holding a slash is not cited, under the copy of TypeBox Pi hands the extension", () => {
+		const secret = "sk-q8v2x7";
+		const json = channel("slash", JSON.stringify({ [`${secret}/token`]: 1, policy: { "zq8v2/key": 1 } }));
+		const text = runJson(json.project, json.env, REQUEST)
+			.map((s) => s.content)
+			.join("\n");
+		assert.match(text, /: the file holds a key that is not a known setting; policy holds a key that is not a known/);
+		assert.equal(text.includes("q8v2"), false, `a key is cited: ${text}`);
+	});
+
 	it("an unknown key stops /495 start over RPC, and the same file repaired is read after a reload", async () => {
 		const rpc = channel("rpc", REFUSED);
 		const client = new PiRpcClient({

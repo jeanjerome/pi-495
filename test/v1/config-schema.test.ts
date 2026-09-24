@@ -192,12 +192,13 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 	});
 
 	it("names an unknown key only when it is a short identifier, and its section otherwise", () => {
-		for (const key of ["two words", "é", "k".repeat(41), "a.b", ""]) {
+		for (const key of ["two words", "é", "k".repeat(41), "a.b", "zq/key", "zq/", "a~1b", ""]) {
 			const said = refusal({ policy: { [key]: true } });
 			assert.match(said, /: policy holds a key that is not a known setting;/, JSON.stringify(key));
 			if (key) assert.equal(said.includes(key), false, `${JSON.stringify(key)} is echoed: ${said}`);
 		}
 		assert.match(refusal({ "not a key": 1 }), /: the file holds a key that is not a known setting;/);
+		assert.match(refusal({ "policy/egress": ["x"] }), /: the file holds a key that is not a known setting;/);
 		assert.match(refusal({ policy: { ["k".repeat(40)]: 1 } }), new RegExp(`: policy\\.${"k".repeat(40)} is not`));
 	});
 
