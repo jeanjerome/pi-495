@@ -50,8 +50,8 @@ porter un jeton ou un chemin privé. Un modèle sur la machine n'est pas annonc�
 
 **Sur le canal modèle, la politique de sorties réseau de `SEC-05` est le choix du modèle dans
 Pi.** Il n'existe plus de seconde autorisation. Le reste de `SEC-05` ne change pas : la liste fermée
-des variables d'environnement remises au worker (`PATH`, `HOME`, `TMPDIR`), l'expurgation de
-l'export, et l'absence de secret sur une ligne de commande.
+des variables d'environnement remises au worker (`PATH`, `HOME`, `TMPDIR`), et l'expurgation de
+l'export.
 
 ## Motif
 

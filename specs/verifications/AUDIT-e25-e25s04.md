@@ -1,0 +1,63 @@
+# Auto-revue — e25s04, la décision du modèle admis et sa recette
+
+| | |
+|---|---|
+| Périmètre | `git diff main...HEAD` (`3b64971..b30a6d4`), 9 fichiers, tous sous `specs/` ; aucun code de production, aucun test, aucun contrat |
+| Conduite le | 2026-09-24 (UTC) |
+| Branche | `modele-choisi-admis` |
+| Mode | `--gate` |
+| Preflight au moment de la revue | vert sous Node 24.21.0 — `npm run build && npm run check`, sortie 0, 452 tests |
+
+La branche n'écrit que des textes : `D-61`, le statut de `D-53`, la matrice de traçabilité, le relevé
+des campagnes, le relevé de vérification, la section de revue de sécurité et le suivi. L'audit porte
+donc sur la justesse de ce que ces textes affirment du code et des campagnes.
+
+## Ce que cette revue a corrigé avant son rapport
+
+- **`D-61` affirmait une garantie non vérifiée.** Elle rangeait « l'absence de secret sur une ligne
+  de commande » parmi ce qui reste de SEC-05. C'est une phrase de l'exigence, pas un comportement
+  relu dans le code pour cette story, et la spécification ne la cite pas. Retirée ; restent la liste
+  fermée de l'environnement du worker, relue dans `src/adapters/pi-worker/supervisor.ts` (aucun
+  appelant de production ne passe d'`env` supplémentaire), et l'expurgation de l'export.
+- **Le relevé mêlait deux périmètres dans une phrase de coût.** 0,0758 $ couvre les deux
+  interventions Anthropic, et les 20 appels et 89 229 jetons les trois. La phrase les sépare.
+
+## Affirmations relues contre le code
+
+| Affirmation | Où elle est tenue |
+|---|---|
+| Seul le bouclage situe un modèle sur la machine ; l'incertitude le situe hors d'elle | `src/domain/policy.ts`, `locateModel` |
+| Le modèle est lu au démarrage de chaque intervention | `src/extension/conduct.ts`, `selectedModel` |
+| L'annonce nomme le modèle, jamais l'adresse, et se tait pour un modèle local | `src/extension/session.ts`, `modelSelected` |
+| Aucune intervention n'est refusée pour sa destination | `src/application/intervention.ts` ; aucune autre lecture de `egress` dans `src/` que le refus du fichier |
+| `policy.egress` fait refuser le fichier, avec son motif | `src/extension/config.ts`, `EGRESS_NO_LONGER_READ` ; observé en campagne |
+| Les variables remises au worker sont `PATH`, `HOME`, `TMPDIR` | `src/adapters/pi-worker/supervisor.ts` |
+| La ligne de coût ne nomme le modèle que si le coût est inconnu | `src/adapters/pi-worker/session-observer.ts`, `readSessionCost` ; observé dans les trois dossiers |
+| `set_model` ne persiste pas le choix | `rpc-mode.js` et `agent-session.js`, Pi 0.87.1 ; `settings.json` relu après la campagne |
+
+## Checklist
+
+| Section | Verdict | Motif |
+|---|---|---|
+| Supply Chain & Security | PASS | Aucune dépendance ajoutée. Les 7 fichiers de la branche, fouillés pour les adresses, les jetons et le chemin personnel du propriétaire : 0 occurrence. |
+| Provenance & Metadata | PASS | Le relevé et le relevé de vérification citent les révisions (`698da99`, `3b64971`, `c96a05d`) et `D-60`, `D-61`. |
+| Law of Demeter | PASS | Sans objet : aucun code. |
+| CONVENTIONS.md Compliance | PASS | Tout est sous `specs/` ; aucun appel `gh`. `specs/archive/TRACEABILITY.md` est modifié parce que `lint:traceability` le lit et que la spécification le nomme, comme les stories précédentes. Les messages de commit sont en anglais, sur une ligne, sans référence de story. |
+| Scope | PASS | Les fichiers touchés sont ceux que la spécification liste (§20), plus les relevés et le suivi. Aucun comportement nouveau. |
+| Boy Scout Rule | PASS | La ligne SEC-05 de la matrice décrivait encore la liste et son refus ; elle décrit l'état d'arrivée. |
+| Types and Safety | PASS | Sans objet : aucun code. |
+| Test Coverage | PASS | Aucune fonction nouvelle. La recette est tenue par trois exécutions réelles, confirmées par le propriétaire. |
+| SOLID and Heuristics | PASS | Sans objet : aucun code. |
+| Code Style | PASS | Sans objet : aucun code. |
+
+## Laissé, et pourquoi
+
+- **Le pilote des campagnes lit mal `gate.decided`** : son champ n'est pas celui qu'il attend, et la
+  ligne s'affiche `gate undefined`. Les portes sont lues dans le compte rendu de `/495 status`, que
+  le relevé cite. Le pilote est hors du dépôt, sous `~/.495-campagnes/scripts/`.
+
+## Ce que j'ai failli sauter
+
+J'étais tenté de marquer les sections de code « sans objet » sans relire les textes : une branche
+sans code paraît sans risque. La relecture des affirmations contre le code a trouvé la garantie non
+vérifiée de `D-61`.

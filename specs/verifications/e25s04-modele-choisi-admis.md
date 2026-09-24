@@ -64,8 +64,8 @@ d'intervention, celui de la spécification.
   bloc que le fournisseur impose sur le chemin d'abonnement (`D-60`). La spécification de la story
   attendait que la ligne de coût nomme le modèle ; ce n'est pas ce que le code écrit, et ce relevé
   s'appuie sur l'observation de la requête à la place.
-- **Coût :** 0,0758 $ au tarif du catalogue de l'hôte pour 20 appels d'outils et 89 229 jetons sur
-  les trois interventions, relu par `node scripts/measure-budgets.ts ~/.495-campagnes/e25s04-distant`
+- **Coût :** 0,0758 $ au tarif du catalogue de l'hôte pour les deux interventions Anthropic ; les
+  trois interventions ont fait 20 appels d'outils et 89 229 jetons. Relu par `node scripts/measure-budgets.ts ~/.495-campagnes/e25s04-distant`
   (sortie 0). Aucun montant n'est lu sur une facture.
 - **Verdict :** accepté en 2 min 3 s.
 
