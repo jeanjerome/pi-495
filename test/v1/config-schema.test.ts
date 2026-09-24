@@ -1,11 +1,13 @@
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { HarnessConfigFile } from "../../src/contracts/v1/config.ts";
 import { check } from "../../src/contracts/validate.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
+import { loadConfig } from "../../src/extension/config.ts";
 
 const accepted = (file: unknown): boolean => check(HarnessConfigFile, file);
 
@@ -105,5 +107,151 @@ describe("the contract of config.json (SEC-05)", () => {
 		const published = JSON.parse(readFileSync(join(process.cwd(), "contracts", "v1", "harness-config.json"), "utf8"));
 		assert.equal(published.$schema, "https://json-schema.org/draft/2020-12/schema");
 		assert.equal(published.additionalProperties, false);
+	});
+});
+
+describe("the reading of config.json against its contract (SEC-05)", () => {
+	let root: string;
+	beforeEach(() => {
+		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
+		root = mkdtempSync(join(process.cwd(), "test-output", "config-schema-"));
+	});
+	afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+	const written = (file: unknown): string => {
+		writeFileSync(join(root, "config.json"), JSON.stringify(file));
+		return root;
+	};
+	/** The refusal of a file the contract does not accept: it stops every change, as an unreadable one does. */
+	const refusal = (file: unknown): string => {
+		try {
+			loadConfig(written(file), {});
+		} catch (error) {
+			assert.ok(error instanceof DomainError, String(error));
+			assert.equal(error.code, "CONFIGURATION_ERROR");
+			assert.match(error.message, /^config\.json cannot be read: /);
+			assert.match(error.message, /no change runs until it is fixed or removed/);
+			return error.message;
+		}
+		assert.fail(`${JSON.stringify(file)} was loaded`);
+	};
+
+	it("loads a file that holds every key as the reader loaded it before, and announces nothing (6f)", () => {
+		const { config, diagnostics } = loadConfig(
+			written({
+				$schema: "https://example.invalid/harness-config.json",
+				policy: {
+					policy_id: "owner",
+					revision: 4,
+					budgets: { max_attempts: 5, feedback_bytes: 0 },
+					adoption: { design: "human", protocol: "kernel" },
+					g5_human_acceptance: true,
+					integration_enabled: true,
+					stagnation_identical_candidates: 0,
+					required_reviews: ["security"],
+				},
+				isolation: { allow_unconfined: true },
+				human_origin: { rpc_actor_env: "OWNER_ACTOR" },
+				workspace_exclusions: ["out/"],
+				language: "en",
+			}),
+			{},
+		);
+		assert.deepEqual(diagnostics, []);
+		assert.deepEqual(config, {
+			policy: {
+				...DEFAULT_POLICY,
+				policy_id: "owner",
+				revision: 4,
+				budgets: { ...DEFAULT_POLICY.budgets, max_attempts: 5, feedback_bytes: 0 },
+				adoption: { ...DEFAULT_POLICY.adoption, design: "human" },
+				g5_human_acceptance: true,
+				integration_enabled: true,
+				stagnation_identical_candidates: 0,
+				required_reviews: ["security"],
+			},
+			isolation: { allow_unconfined: true },
+			human_origin: { rpc_actor_env: "OWNER_ACTOR" },
+			workspace_exclusions: ["out/"],
+			language: "en",
+		});
+	});
+
+	it("merges a baseline written in part over the default comparison, which stays on (6e)", () => {
+		const { config } = loadConfig(written({ policy: { baseline: { tolerance: "block_any" } } }), {});
+		assert.deepEqual(config.policy.baseline, { ...DEFAULT_POLICY.baseline, tolerance: "block_any" });
+	});
+
+	it("refuses an unknown key at any level, naming where it lies (6b)", () => {
+		assert.match(refusal({ policy: { adoptoin: { design: "human" } } }), /: policy\.adoptoin is not a known setting;/);
+		assert.match(refusal({ polcy: {} }), /: polcy is not a known setting;/);
+		assert.match(
+			refusal({ policy: { baseline: { strict: true } } }),
+			/: policy\.baseline\.strict is not a known setting;/,
+		);
+	});
+
+	it("names an unknown key only when it is a short identifier, and its section otherwise", () => {
+		for (const key of ["two words", "é", "k".repeat(41), "a.b", ""]) {
+			const said = refusal({ policy: { [key]: true } });
+			assert.match(said, /: policy holds a key that is not a known setting;/, JSON.stringify(key));
+			if (key) assert.equal(said.includes(key), false, `${JSON.stringify(key)} is echoed: ${said}`);
+		}
+		assert.match(refusal({ "not a key": 1 }), /: the file holds a key that is not a known setting;/);
+		assert.match(refusal({ policy: { ["k".repeat(40)]: 1 } }), new RegExp(`: policy\\.${"k".repeat(40)} is not`));
+	});
+
+	it("refuses a value of the wrong type or outside those permitted, naming what is expected (6c, 6d)", () => {
+		const expected: [unknown, string][] = [
+			[{ policy: { adoption: { design: "Human" } } }, "policy.adoption.design must be kernel or human"],
+			[{ policy: { adoption: { protocol: "human" } } }, "policy.adoption.protocol must be kernel"],
+			[{ policy: { integration_enabled: "false" } }, "policy.integration_enabled must be a boolean"],
+			[{ isolation: { allow_unconfined: "no" } }, "isolation.allow_unconfined must be a boolean"],
+			[{ policy: { baseline: "x" } }, "policy.baseline must be an object"],
+			[{ policy: { budgets: { max_attempts: 0 } } }, "policy.budgets.max_attempts must be at least 1"],
+			[{ policy: { budgets: { max_attempts: 2.5 } } }, "policy.budgets.max_attempts must be a whole number"],
+			[{ policy: { required_reviews: "security" } }, "policy.required_reviews must be a list"],
+			[{ human_origin: { rpc_actor_env: "" } }, "human_origin.rpc_actor_env must be at least 1 character long"],
+			[{ language: "de" }, "language must be fr or en"],
+			[[], "the file must be an object"],
+		];
+		for (const [file, said] of expected) assert.ok(refusal(file).includes(`: ${said};`), `${said}: ${refusal(file)}`);
+		assert.equal(refusal({ policy: { adoption: { design: "Human" } } }).includes("Human"), false);
+	});
+
+	it("names the first three deviations and counts the others", () => {
+		const unknown = (count: number): Record<string, number> =>
+			Object.fromEntries(Array.from({ length: count }, (_, i) => [`unknown_${i}`, i]));
+		const three = refusal(unknown(3));
+		assert.match(three, /: unknown_0 is not a known setting; unknown_1 is not a known setting; unknown_2 is not/);
+		assert.doesNotMatch(three, /more/);
+		const four = refusal(unknown(4));
+		assert.match(four, /unknown_2 is not a known setting; and 1 more; no change runs/);
+		assert.equal(four.includes("unknown_3"), false);
+		assert.match(refusal(unknown(9)), /; and 6 more; no change runs/);
+	});
+
+	it("reproduces no value the file holds, whatever the form of the deviation", () => {
+		const marker = "q8v2x7";
+		const deviations: unknown[] = [
+			{ policy: { adoptoin: marker } },
+			{ [`${marker} key`]: 1 },
+			{ policy: { [`${marker}${"k".repeat(40)}`]: 1 } },
+			{ polcy: { [marker]: marker } },
+			{ policy: { adoption: { design: marker } } },
+			{ policy: { integration_enabled: marker } },
+			{ policy: { baseline: marker } },
+			{ policy: { budgets: { max_attempts: marker } } },
+			{ policy: { policy_id: marker.repeat(40) } },
+			{ policy: { required_reviews: [marker, 7] } },
+			{ workspace_exclusions: marker },
+			{ language: marker },
+			[marker],
+		];
+		for (const file of deviations) {
+			const said = refusal(file);
+			assert.equal(said.includes(marker), false, `${JSON.stringify(file)} is echoed: ${said}`);
+			assert.equal(said.includes(root), false, `the path reaches the model's context: ${said}`);
+		}
 	});
 });

@@ -153,24 +153,34 @@ describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
 		const proj = join(root, "proj-diag");
 		fixtureTs(proj);
 		initRepo(proj);
-		// An unreadable configuration refuses the start of a change, and says why; a policy.egress key
-		// is no longer read, and says so.
+		// An unreadable configuration refuses the start of a change, and says why; the unconfined
+		// backend enabled from the environment refuses nothing, and says so.
 		const cases = [
-			{ name: "unreadable", body: "{ not json", command: "/495 start tidy greet", said: /config\.json cannot be read/ },
 			{
-				name: "egress",
-				body: '{"policy":{"egress":[]}}',
+				name: "unreadable",
+				body: "{ not json",
+				command: "/495 start tidy greet",
+				env: {},
+				said: /config\.json cannot be read/,
+			},
+			{
+				name: "unconfined",
+				body: "{}",
 				command: "/495 status",
-				said: /policy\.egress is no longer read/,
+				env: { HARNESS495_ALLOW_UNCONFINED: "1" },
+				said: /the unconfined backend is enabled/,
 			},
 		];
-		for (const { name, body, command, said } of cases)
+		for (const { name, body, command, env, said } of cases)
 			for (const mode of ["print", "json"] as const) {
 				const data = join(root, `data-diag-${name}-${mode}`);
 				mkdirSync(data, { recursive: true });
 				writeFileSync(join(data, "config.json"), body);
 				// A scripted agent, so that a start the refusal lets through calls no model.
-				const out = runPi(mode, proj, data, command, { HARNESS495_SCRIPTED_AGENT: scriptFile(root, SPEC, RIGHT) });
+				const out = runPi(mode, proj, data, command, {
+					...env,
+					HARNESS495_SCRIPTED_AGENT: scriptFile(root, SPEC, RIGHT),
+				});
 				assert.match(out, said, `${mode} mode announces the ${name} diagnostic`);
 				if (name === "unreadable") assert.doesNotMatch(out, /chg_/, `${mode} mode starts no change`);
 			}

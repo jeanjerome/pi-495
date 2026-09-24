@@ -1,11 +1,9 @@
 import { strict as assert } from "node:assert";
-import { rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { rmSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
 import { InterventionSupervisor } from "../../src/application/intervention.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
-import { loadConfig } from "../../src/extension/config.ts";
 import type {
 	AgentCapabilities,
 	AgentPort,
@@ -62,23 +60,6 @@ describe("the provider of the model chosen in Pi, reached with no configuration 
 			[CHOSEN.provider_id],
 			"the dossier says which provider the excerpts went to",
 		);
-	});
-
-	it("starts it under a configuration whose leftover list names only omlx, and announces the list", async () => {
-		const dataDir = tempDir("495-config-");
-		cleanups.push(dataDir);
-		writeFileSync(
-			join(dataDir, "config.json"),
-			JSON.stringify({ policy: { egress: [{ provider_id: "omlx", location: "on_machine" }] } }),
-		);
-		const { config, diagnostics } = loadConfig(dataDir);
-		assert.ok(
-			diagnostics.some((d) => d.includes("policy.egress") && d.includes("no longer read")),
-			diagnostics.join(" | "),
-		);
-		const { started, stopReason } = await firstInterventionUnder(makeHarness({ model: CHOSEN, policy: config.policy }));
-		assert.notEqual(stopReason, "policy_denied", "a list naming only another provider restricts nothing");
-		assert.deepEqual([...new Set(started)], [CHOSEN.provider_id]);
 	});
 });
 

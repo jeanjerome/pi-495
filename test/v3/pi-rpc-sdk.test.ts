@@ -359,7 +359,7 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 			(r) =>
 				r.method === "notify" && r.notifyType === "error" && String(r.message).includes("config.json cannot be read"),
 		).length;
-		writeFileSync(configPath, JSON.stringify({ policy: { egress: [] } }));
+		writeFileSync(configPath, JSON.stringify({ language: "en" }));
 		await ask(opened, "repaired", "/495 status");
 		const afterRepair = refusals(opened);
 		const seenBefore = opened.messages().length;
@@ -379,9 +379,9 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		// Only session start binds the session and gathers what the runtime could not honour, so a
 		// runtime created later in the same session would run without either.
 		assert.equal(afterRepair - saidOnce, 1, "the repaired file is not read before a new session");
-		assert.doesNotMatch(all.slice(0, seenBefore).join("\n"), /policy\.egress is no longer read/);
+		assert.doesNotMatch(all.slice(0, seenBefore).join("\n"), /no change recorded/);
 		const nextText = all.slice(seenBefore).join("\n");
-		assert.match(nextText, /policy\.egress is no longer read/, "a new session announces what the repaired file holds");
+		assert.match(nextText, /no change recorded/, "a new session runs under the repaired file");
 		assert.doesNotMatch(nextText, /cannot be read/);
 	});
 

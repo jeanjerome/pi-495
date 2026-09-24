@@ -22,8 +22,6 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		writeFileSync(join(root, "config.json"), JSON.stringify({ policy }));
 		return root;
 	};
-	const ignoredKey = (diagnostics: string[]): string[] =>
-		diagnostics.filter((d) => d.includes("policy.egress") && d.includes("no longer read"));
 
 	it("loads without a file, with no list and nothing said about the model", () => {
 		const { config, diagnostics } = loadConfig(root);
@@ -39,39 +37,50 @@ describe("a configuration that neither admits nor refuses a provider (SEC-05)", 
 		assert.deepEqual(loadConfig(root).diagnostics, [], "a file with no policy section has nothing to announce either");
 	});
 
-	it("ignores a policy.egress left in the file, applies the rest, and says so without echoing it", () => {
-		const { config, diagnostics } = loadConfig(
-			configured({
-				egress: [{ provider_id: PRIVATE_PROVIDER, location: "off_machine" }],
-				budgets: { max_attempts: 5 },
-			}),
-		);
-		assert.equal("egress" in config.policy, false, "a key that is no longer read must not ride along in the policy");
-		assert.equal(config.policy.budgets.max_attempts, 5, "the other settings of the file still apply");
-		assert.equal(
-			ignoredKey(diagnostics).length,
-			1,
-			`whoever wrote the list must learn it restricts nothing: ${diagnostics.join(" | ")}`,
-		);
-		assert.match(ignoredKey(diagnostics)[0] ?? "", /model selected in Pi/, "the diagnostic says what is used instead");
-		assert.equal(
-			diagnostics.some((d) => d.includes(PRIVATE_PROVIDER)),
-			false,
-			"a diagnostic reaches the display, the structured entries and the model's context; it does not reproduce the key",
+	it("refuses a file that still holds policy.egress, says why, and reproduces none of it (6a)", () => {
+		assert.throws(
+			() =>
+				loadConfig(
+					configured({
+						egress: [{ provider_id: PRIVATE_PROVIDER, location: "off_machine" }],
+						budgets: { max_attempts: 5 },
+					}),
+				),
+			(error: unknown) => {
+				assert.ok(error instanceof DomainError, String(error));
+				assert.equal(error.code, "CONFIGURATION_ERROR");
+				assert.match(
+					error.message,
+					/: policy\.egress is no longer read, since the model selected in Pi is used; no change runs/,
+					"whoever wrote the list must learn it restricts nothing, before any change runs under the rest of the file",
+				);
+				assert.equal(
+					error.message.includes(PRIVATE_PROVIDER),
+					false,
+					"the refusal reaches the display, the structured entries and the model's context; it does not reproduce the list",
+				);
+				return true;
+			},
 		);
 	});
 
-	it("ignores a malformed policy.egress the same way, whatever its form", () => {
-		const { diagnostics: forAList } = loadConfig(configured({ egress: [{ provider_id: "omlx" }] }));
-		for (const value of [[], "omlx", { provider_id: "omlx" }, null, 5]) {
-			const { config, diagnostics } = loadConfig(configured({ egress: value }));
-			assert.equal("egress" in config.policy, false, `${JSON.stringify(value)} must not reach the policy`);
-			assert.deepEqual(
-				diagnostics,
+	it("refuses a malformed policy.egress the same way, whatever its form", () => {
+		const refusalOf = (egress: unknown): string => {
+			try {
+				loadConfig(configured({ egress }));
+			} catch (error) {
+				return String((error as Error).message);
+			}
+			return "loaded";
+		};
+		const forAList = refusalOf([{ provider_id: "omlx" }]);
+		assert.match(forAList, /policy\.egress is no longer read/);
+		for (const value of [[], "omlx", { provider_id: "omlx" }, null, 5])
+			assert.equal(
+				refusalOf(value),
 				forAList,
-				`${JSON.stringify(value)} is announced word for word as a list is, so nothing of it is reproduced`,
+				`${JSON.stringify(value)} is refused word for word as a list is, so nothing of it is reproduced`,
 			);
-		}
 	});
 
 	/** Refused as a configuration error, naming neither the marker the file carries nor where it lies. */
