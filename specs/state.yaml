@@ -16,8 +16,21 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   last_step_completed: >
+    Étape 6, relecture close le 2026-09-24 : A et B passent les tours 2 à 4, sans point à corriger.
+    Tour 2 sur `4a70a09..545a661` : le garde avant l'ouverture ne perd aucune sélection réelle (Pi
+    0.87.1 lu), le test de l'extension chargée avant 495 échoue sans lui (2 pour 1). Deux remarques
+    intégrées à la demande du propriétaire : le champ `openedSession` dit qu'il retient l'annonce
+    jusqu'à l'ouverture, et la spec porte le flux 6l, qui étiquette ce test (`bc61789`, `fefeeac`).
+    Tour 3 : 6l disait à tort que 495 n'envoie rien au modèle remplacé, alors que son outil est
+    déclaré dès le chargement ; réécrit (`c17215f`). Tour 4 sur ce seul paragraphe : passe. Remarques
+    laissées : 6h et l'étape 6 disent « ouverture de session » sans dire que c'est celle de 495 ;
+    une sélection non attendue dans `session_start` passe par l'étape 7, annoncée une fois ; le test
+    du double démarrage RPC ne porte pas de flux. `8083cd0` seul : Preflight verte (426 tests), sous
+    `$HOME`. Preflight verte à `c17215f` (426 tests). Prochaine étape : ancrer les relevés de
+    `specs/verifications/` et `specs/security/REVIEW.md` sur la révision relue, puis livrer.
+
     Étape 6, relecture, tour 1 sur `fadf8f1...4a70a09` le 2026-09-24 : A échoue sur un point à
     corriger, B passe ; aucun point bloquant. Le point, trouvé par les deux : une extension chargée
     avant 495 qui choisit un modèle distant dans son `session_start` fait dire l'annonce deux fois à
