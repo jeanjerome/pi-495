@@ -18,6 +18,19 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    Étape 6, relecture, tour 1 sur `fadf8f1...4a70a09` le 2026-09-24 : A échoue sur un point à
+    corriger, B passe ; aucun point bloquant. Le point, trouvé par les deux : une extension chargée
+    avant 495 qui choisit un modèle distant dans son `session_start` fait dire l'annonce deux fois à
+    l'écran, parce que `model_select` arrive avant l'ouverture de 495 (`preset.ts` des exemples de
+    Pi le fait). Rouge `f9a5b25` dans un vrai `pi --mode rpc` (2 avertissements pour 1), vert
+    `0bf0707` : un choix reçu avant l'ouverture n'est pas dit, l'ouverture le lit de `ctx.model`.
+    La file remplacée à l'ouverture ne dépend plus de l'ordre des événements. Trois remarques
+    traitées à la demande du propriétaire : l'annonce dit « was selected », qui reste vrai quand un
+    autre modèle a été choisi depuis (`8083cd0`, spec §7 alignée) ; le commentaire du double
+    démarrage ne promet plus la file gardée, et son test vérifie la première annonce ; les étiquettes
+    de cas de `model-select.test.ts` nomment leur exigence (`f3fbeb7`). Preflight verte (426 tests).
+    Prochaine étape : tour 2 sur `4a70a09..HEAD`.
+
     Étape 6 en cours le 2026-09-24. `audit-code` passe sur `fadf8f1..ca712bb`
     (`specs/verifications/AUDIT-e25-e25s03.md`). Seul correctif : le commentaire du champ `location`
     se lisait à contresens (`ca712bb`), Preflight verte (425 tests). Trois points laissés et motivés :
