@@ -131,21 +131,29 @@ export class ExtensionSession {
 	}
 
 	emit(ctx: ExtensionContext, text: string, details?: unknown): void {
+		this.record(ctx, text, details);
+		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.notify(text.split("\n")[0] ?? "495", "info");
+	}
+
+	/** The structured channel alone: the message, or standard output in print mode. */
+	private record(ctx: ExtensionContext, text: string, details?: unknown): void {
 		if (ctx.mode === "print") {
 			process.stdout.write(`${text}\n`);
 			return;
 		}
 		this.pi.sendMessage({ customType: "495", content: text, display: true, details: details ?? {} });
-		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.notify(text.split("\n")[0] ?? "495", "info");
 	}
 
 	announce(ctx: ExtensionContext): void {
 		if (ctx.hasUI) for (const text of this.pending) ctx.ui.notify(text, "warning");
 	}
 
-	/** Said on the first operation of the session, whatever the entry, then forgotten. */
+	/**
+	 * Said on the first operation of the session, whatever the entry, then forgotten. A screen was
+	 * already told each of them when it was queued, so only the structured channel receives it here.
+	 */
 	flushDiagnostics(ctx: ExtensionContext): void {
-		for (const text of this.pending.splice(0)) this.emit(ctx, text, { diagnostic: text });
+		for (const text of this.pending.splice(0)) this.record(ctx, text, { diagnostic: text });
 	}
 
 	updateFooter(ctx: ExtensionContext, view: StatusView | null): void {
