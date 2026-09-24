@@ -297,6 +297,90 @@ describe("a session whose runtime could not be created (SEC-05, 6i)", () => {
 	});
 });
 
+/** Pi's context in its terminal interface, whose screen notices are recorded. */
+class FakeTuiContext {
+	readonly mode = "tui";
+	readonly hasUI = true;
+	readonly thinkingLevel = "off";
+	readonly modelRegistry = null;
+	readonly sessionManager = { getSessionId: (): string => "session-model-select-tui" };
+	readonly cwd: string;
+	readonly ui: { notify: (text: string) => void; setStatus: () => void };
+	private readonly selected: () => { provider: string; id: string; baseUrl: string } | undefined;
+	constructor(
+		cwd: string,
+		selected: () => { provider: string; id: string; baseUrl: string } | undefined,
+		notices: string[],
+	) {
+		this.cwd = cwd;
+		this.selected = selected;
+		this.ui = { notify: (text) => notices.push(text), setStatus: () => undefined };
+	}
+	get model(): { provider: string; id: string; baseUrl: string } | undefined {
+		return this.selected();
+	}
+}
+
+describe("a model reached off this machine, on the screen of Pi's terminal interface (SEC-05)", () => {
+	const saved: Record<string, string | undefined> = {};
+	afterEach(() => {
+		for (const [name, value] of Object.entries(saved)) {
+			if (value === undefined) delete process.env[name];
+			else process.env[name] = value;
+			delete saved[name];
+		}
+	});
+
+	async function screenAndMessages(
+		opening: { provider: string; id: string; baseUrl: string },
+		selectedLater: { provider: string; id: string; baseUrl: string } | null,
+	): Promise<{ notices: string[]; said: string[] }> {
+		saved.HARNESS495_DATA_DIR = process.env.HARNESS495_DATA_DIR;
+		process.env.HARNESS495_DATA_DIR = join(root, "data");
+		const cwd = project();
+		const pi = new FakePi();
+		harness495(pi as unknown as ExtensionAPI);
+		const notices: string[] = [];
+		let selected = opening;
+		const ctx = new FakeTuiContext(cwd, () => selected, notices);
+		try {
+			await pi.hooks.get("session_start")!(
+				{ type: "session_start", reason: "startup" },
+				ctx as unknown as ExtensionContext,
+			);
+			if (selectedLater) {
+				selected = selectedLater;
+				await pi.hooks.get("model_select")!(
+					{ type: "model_select", model: selectedLater, source: "set" },
+					ctx as unknown as ExtensionContext,
+				);
+			}
+			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
+			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
+			return { notices, said: pi.said };
+		} finally {
+			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	}
+
+	const remote = { provider: REMOTE.provider, id: REMOTE.id, baseUrl: `https://${REMOTE.host}/v1` };
+	const local = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
+
+	it("is said once on the screen and once in the conversation when /model selects it", async () => {
+		const { notices, said } = await screenAndMessages(local, remote);
+		const shown = notices.filter((n) => n.includes(OFF_MACHINE));
+		assert.equal(shown.length, 1, notices.join(" | "));
+		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
+	});
+
+	it("is said once on the screen and once in the conversation when the session opens on it", async () => {
+		const { notices, said } = await screenAndMessages(remote, null);
+		assert.equal(notices.filter((n) => n.includes(OFF_MACHINE)).length, 1, notices.join(" | "));
+		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
+	});
+});
+
 const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 function piAvailable(): boolean {
 	try {
