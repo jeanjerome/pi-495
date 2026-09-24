@@ -58,7 +58,7 @@ security:
     The files the branch changes were searched for the local model's address and key, the
     Anthropic address, the subscription's access and refresh tokens, read from the owner's
     configuration without being printed, and the owner's home path: 0 hits in the lines the branch
-    adds. One hit predates the branch: the local model's loopback address, cited by the e25s01 section
+    adds. One hit predates the branch: the local model's loopback address, cited by the e25s03 section
     of specs/security/REVIEW.md. The three data
     directories were searched for the addresses, the key, the tokens and the witness name: 0 hits
     outside the driver's own output. They do carry the owner's home path, in the absolute paths of

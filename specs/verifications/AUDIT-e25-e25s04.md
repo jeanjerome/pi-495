@@ -39,7 +39,7 @@ donc sur la justesse de ce que ces textes affirment du code et des campagnes.
 
 | Section | Verdict | Motif |
 |---|---|---|
-| Supply Chain & Security | PASS | Aucune dépendance ajoutée. Les fichiers de la branche, fouillés pour les adresses, les jetons et le chemin personnel du propriétaire : 0 occurrence dans les lignes ajoutées ; une seule, antérieure, dans `specs/security/REVIEW.md` (l'adresse de bouclage du modèle local, citée par la revue de e25s01). |
+| Supply Chain & Security | PASS | Aucune dépendance ajoutée. Les fichiers de la branche, fouillés pour les adresses, les jetons et le chemin personnel du propriétaire : 0 occurrence dans les lignes ajoutées ; une seule, antérieure, dans `specs/security/REVIEW.md` (l'adresse de bouclage du modèle local, citée par la revue de e25s03). |
 | Provenance & Metadata | PASS | Le relevé et le relevé de vérification citent les révisions (`698da99`, `3b64971`, `c96a05d`) et `D-60`, `D-61`. |
 | Law of Demeter | PASS | Sans objet : aucun code. |
 | CONVENTIONS.md Compliance | PASS | Tout est sous `specs/` ; aucun appel `gh`. `specs/archive/TRACEABILITY.md` n'est modifié que sur des lignes existantes, SEC-05 et AGT-02, que `lint:traceability` lit et que la branche rendait fausses ; AGT-07, `[P1]`, n'y est pas ajoutée. Les messages de commit sont en anglais, sur une ligne, sans référence de story. |

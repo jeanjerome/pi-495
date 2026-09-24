@@ -761,7 +761,7 @@ de fournisseur ni aucun jeton, et cite les situations lues au journal.
   l'adresse et la clé du modèle local, l'adresse d'Anthropic, les deux jetons de l'abonnement et le
   chemin personnel du propriétaire. Les valeurs de sa configuration de Pi ont été lues sans être
   affichées. Une seule occurrence, antérieure à la branche : l'adresse de bouclage du modèle local,
-  citée par la revue de e25s01 plus haut dans ce fichier. Aucune dans ce que la branche ajoute.
+  citée par la revue de e25s03 plus haut dans ce fichier. Aucune dans ce que la branche ajoute.
 - **Les dossiers des campagnes ne portent ni adresse ni jeton.** Les adresses, la clé, les jetons et
   le nom témoin ont été cherchés dans les trois répertoires de données, export compris, et dans ce
   que Pi a reçu de 495. Aucune occurrence hors des sorties du pilote. Le chemin personnel du
