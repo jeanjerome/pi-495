@@ -737,3 +737,39 @@ chaque copie de TypeBox, dont `policy.egress` portant une URL, `design: "Human"`
 clés à `/` et `~` : aucune valeur ni aucune clé non citable n'y apparaît. Un nouveau test v3,
 `{"policy":{"a~1b":1,"a/b":1}}` dans un vrai Pi, était rouge avant la correction (la seconde clé
 était dite sous « the file ») et passe après. La sonde de 223 fichiers n'a pas été rejouée.
+
+# Revue de sécurité — e25s04, la décision du modèle admis et sa recette
+
+| | |
+|---|---|
+| Périmètre | `git diff main...HEAD`, 7 fichiers, aucun de production |
+| Révision relue | `c96a05d` |
+| Conduite le | 2026-09-24 |
+| Branche | `modele-choisi-admis` |
+| Risque de la story | P1, tâche 2 classée `security: medium` |
+| Code de production touché | aucun : `src/`, `contracts/`, `dist/` et `package.json` sont ceux de `main` |
+
+## Verdict
+
+Aucun constat. Le `security_verify` de la tâche 2 est établi : le relevé ne reproduit aucune adresse
+de fournisseur ni aucun jeton, et cite les situations lues au journal.
+
+## Hypothèses vérifiées, non supposées
+
+- **Les fichiers de la branche ne portent aucun secret.** Les sept fichiers ont été fouillés pour
+  l'adresse et la clé du modèle local, l'adresse d'Anthropic, les deux jetons de l'abonnement et le
+  chemin personnel du propriétaire. Ces valeurs ont été lues dans sa configuration de Pi sans être
+  affichées. Aucune occurrence.
+- **Les dossiers des campagnes non plus.** Les mêmes valeurs et le nom témoin ont été cherchés dans
+  les trois répertoires de données, export compris, et dans ce que Pi a reçu de 495. Aucune
+  occurrence. Le préfixe `sk-ant-oat` des manifestes du dossier distant est la condition déclarée du
+  bloc imposé, pas un jeton.
+- **La configuration du propriétaire n'est pas modifiée.** `set_model` ne persiste pas le choix, et
+  `settings.json` garde son modèle par défaut après la campagne distante.
+
+## Ce qui est parti hors de la machine
+
+La campagne distante a envoyé à Anthropic les extraits de la cible JS minimale, qui ne porte aucune
+donnée privée, et la section `<cwd>` que Pi ajoute à l'invite, avec le chemin absolu de l'espace de
+travail. Cette section reste la question ouverte que `D-61` reprend.
+

@@ -1,0 +1,103 @@
+story_id: e25s04
+verified_at: "2026-09-24T17:30:42Z"
+verifier: verify-work
+risk: P1
+branch: modele-choisi-admis
+revision: c96a05d
+revision_note: >
+  The branch changes no production code: src/, contracts/, dist/ and package.json are those of main
+  at 3b64971. It writes D-61, marks D-53 moot, updates the traceability matrix, and records three
+  real runs in specs/verifications/e25s04-modele-choisi-admis.md. The runs used the dist/ built at
+  698da99, byte-identical in its sources to main.
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  pi_configuration: "the owner's own, no PI_CODING_AGENT_DIR; default model omlx/qwen3.8-27b-oq8e"
+  environment_digest: "sha256:d2dc09529ebb30cbc91f0c6b91682591e89dab500c758b6b476a72f07316b928, the same in the three dossiers"
+
+phases:
+  smoke:
+    passed: true
+    note: "Cold start of the built extension from dist/ in a fresh data directory for each run, through a real `pi -ne --mode rpc --no-session`."
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check."
+  lint:
+    passed: true
+    note: "The eight controls chained in npm run check; lint:traceability reports 85 + 8 [P0] requirements present."
+  tests:
+    passed: true
+    count: 452
+
+terminal_verdict:
+  command: "npm run build && npm run check"
+  exit_code: 0
+  ended_at: "2026-09-24T17:30:42Z"
+  note: "Under Node 24.21.0 on the tree that became 72b5640; exit 0 again on c96a05d. 452 tests passing, 0 failing."
+
+task_verify_commands:
+  note: "Each task's own verify command, under Node 24.21.0; every one exits 0."
+  results:
+    - { task: 1, command: "test -n \"$(find specs/adr -name 'D-61-*.md')\"", exit_code: 0 }
+    - { task: 2, command: "grep -q 'e25s04-negatif' specs/verifications/e25s04-modele-choisi-admis.md", exit_code: 0 }
+    - { task: 3, command: "npm run lint:traceability", exit_code: 0 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 452 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e25s04"
+  note: >
+    Task 2's security_verify is established: the record reproduces no provider address and no token.
+    The seven files the branch changes were searched for the local model's address and key, the
+    Anthropic address, the subscription's access and refresh tokens, read from the owner's
+    configuration without being printed, and the owner's home path: 0 hits. The three data
+    directories were searched for the same values and the witness name: 0 hits.
+
+blind_spots:
+  ran: false
+  note: "Same derogation as e25s05: check-blind-spots.sh cannot match its state table, so its verdict is not evidence."
+
+completeness_critic:
+  ran: false
+  note: "Same derogation as e25s01 to e25s05: it looks for story identifiers in the sources, which the written-content rules forbid."
+
+manual:
+  method: >
+    Three runs through a real `pi --mode rpc` under the owner's Pi configuration, driven by
+    ~/.495-campagnes/scripts/e25s04-drive.ts and run one after the other by e25s04-run.sh, each on its
+    own data directory and its own clone of the minimal JS target. The screen is read from the
+    `notify` requests Pi's RPC mode forwards, the structured entry from the `495` messages, and the
+    dossier read-only from SQLite, the object store and the export.
+  confirmed_by: "owner, 2026-09-24"
+  runs:
+    - id: "e25s04-local"
+      observed: "Accepted, G0..G5 PASS. Three starts journaled omlx/qwen3.8-27b-oq8e on_machine. No notice on the screen, no model message on the structured entry."
+    - id: "e25s04-distant"
+      observed: >
+        anthropic/claude-sonnet-5 selected 1 s after specify started. One warning on the screen at the
+        selection, the same announcement once on the structured entry, without the address. specify
+        journaled omlx on_machine; prepare and implement anthropic/claude-sonnet-5 off_machine, their
+        requests observed as anthropic-messages carrying the subscription block. Accepted, G0..G5
+        PASS; 0.0758 USD at the host catalogue's rates, through the subscription.
+    - id: "e25s04-negatif"
+      observed: >
+        A policy.egress list naming only temoin-liste-e25s04 is refused at opening and on each /495,
+        "policy.egress is no longer read"; no change created. The key removed and Pi reloaded, the
+        change is created after the reload and accepted, G0..G5 PASS, with no refusal. The witness
+        name is nowhere in the data directory nor in what Pi received.
+  deviations:
+    - >
+      The specification expected the cost line of the Anthropic interventions to name the model. The
+      cost line names a model only when its cost is unknown; the model reached is established by the
+      imposed layer observed in the request instead.
+  feigned:
+    - "`/model` is the RPC command `set_model`, which calls the same `session.setModel`."
+    - "`/reload` is Pi's example command `/reload-runtime`, which calls the same `session.reload()`."
+    - "The extension is loaded through the owner's package entry, which points at the same dist/ file as the explicit -e."
