@@ -18,6 +18,15 @@ epic_cycle:
 handoff:
   next_skill: null
   last_step_completed: >
+    e25s05 tâche 3 passante le 2026-09-24 : `test/v3/config-refused.test.ts`, dans un vrai Pi, refuse
+    `/495 start` en JSON et en RPC sur une clé inconnue, puis accepte le fichier corrigé après un
+    rechargement. RPC n'a pas de `/reload` : l'extension d'exemple de Pi `reload-runtime.ts` appelle
+    `ctx.reload()`, le même `session.reload()` que le `/reload` interactif. Aucun code de production :
+    les tâches 1 et 2 portaient le comportement, le test est vert à son premier commit. Rouge relevé
+    par arbre détaché sur `4b611a2`, avant la validation : 2 échecs sur 2, un changement entier
+    accepté malgré la clé inconnue. Contrôle négatif sans le rechargement : le fichier corrigé reste
+    refusé. Reste la tâche 4.
+
     e25s05 ajoutée à l'epic le 2026-09-24, et placée avant e25s04, sur décision du propriétaire :
     `config.json` est validé contre un schéma JSON strict, et un champ inconnu le fait refuser,
     `policy.egress` compris, qui n'est plus ignorée et annoncée. Étapes 1 et 2 de `build-epic` :

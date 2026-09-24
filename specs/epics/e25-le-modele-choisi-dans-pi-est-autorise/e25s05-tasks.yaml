@@ -61,7 +61,7 @@ tasks:
     verify: "node --test test/v3/config-refused.test.ts"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
