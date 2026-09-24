@@ -1,12 +1,14 @@
 import { lstatSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { HarnessConfigFile } from "../contracts/v1/config.ts";
+import { check, type ContractViolation, violations } from "../contracts/validate.ts";
 import { DomainError } from "../domain/errors.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../domain/policy.ts";
 
 /**
  * Harness configuration, read from `<data dir>/config.json`. A project file cannot widen it
- * (§12: a project cannot enlarge a higher policy). Missing file means the default policy; an
- * unreadable one refuses.
+ * (§12: a project cannot enlarge a higher policy). Missing file means the default policy; one that
+ * cannot be read, or that its contract (`contracts/v1/harness-config.json`) does not accept, refuses.
  */
 export interface HarnessConfig {
 	policy: ActivePolicy;
@@ -26,11 +28,24 @@ const DEFAULT_CONFIG: HarnessConfig = {
 
 /**
  * Choosing the model in Pi is what admits its provider, so a `policy.egress` list left in the file
- * restricts nothing, and whoever wrote one must learn so. The announcement does not reproduce the
- * list: a diagnostic reaches the display, the structured entries and the context of the session's
- * model.
+ * restricts nothing, and whoever wrote one must learn why the file is refused.
  */
-const EGRESS_NO_LONGER_READ = "config.json: policy.egress is no longer read; the model selected in Pi is used";
+const EGRESS_NO_LONGER_READ = "policy.egress is no longer read, since the model selected in Pi is used";
+
+/**
+ * A key is written by the owner and its refusal reaches the context of the session's model, so it is
+ * cited only when it reads as the name of a setting.
+ */
+const SHORT_IDENTIFIER = /^[A-Za-z0-9_-]{1,40}$/;
+
+const TYPE_NAMES: Record<string, string> = {
+	boolean: "a boolean",
+	object: "an object",
+	array: "a list",
+	string: "a string",
+	integer: "a whole number",
+	number: "a number",
+};
 
 /**
  * A file that cannot be read stops every change instead of giving way to the defaults: a setting it
@@ -74,14 +89,60 @@ function parseFile(path: string): unknown {
 	}
 }
 
-/** A section is spread over its defaults, so anything but an object would put stray keys in them. */
-function section<T extends object>(value: unknown, name: string): Partial<T> {
-	if (value === undefined) return {};
-	if (typeof value !== "object" || value === null || Array.isArray(value)) {
-		const read = value === null ? "null" : Array.isArray(value) ? "a list" : typeof value;
-		throw unreadable(`${name} is ${read}, not an object`);
+/** `/policy/adoption` reads `policy.adoption`. Its segments are keys the schema names, or list positions. */
+function location(pointer: string): string {
+	return pointer === "" ? "the file" : pointer.slice(1).replaceAll("/", ".");
+}
+
+/** What the schema expects where a value departs from it, read from the schema's own parameters. */
+function expectation({ keyword, params }: ContractViolation): string {
+	switch (keyword) {
+		case "type":
+			return TYPE_NAMES[String(params.type)] ?? String(params.type);
+		case "enum": {
+			const values = (params.allowedValues as string[]).map(String);
+			return values.length > 1 ? `${values.slice(0, -1).join(", ")} or ${values.at(-1)}` : String(values[0]);
+		}
+		case "minimum":
+			return `at least ${params.limit}`;
+		case "minLength":
+			return `at least ${params.limit} character${params.limit === 1 ? "" : "s"} long`;
+		case "maxLength":
+			return `at most ${params.limit} characters long`;
+		default:
+			return "as contracts/v1/harness-config.json describes";
 	}
-	return value as Partial<T>;
+}
+
+/** A key the schema does not name, read from its own pointer; one that needs escaping is no identifier. */
+function unknownKey(pointer: string): string {
+	if (pointer === "/policy/egress") return EGRESS_NO_LONGER_READ;
+	const at = pointer.lastIndexOf("/");
+	if (!SHORT_IDENTIFIER.test(pointer.slice(at + 1)))
+		return `${location(pointer.slice(0, at))} holds a key that is not a known setting`;
+	return `${location(pointer)} is not a known setting`;
+}
+
+/**
+ * Where the file departs from its contract and what is expected there, never the value written: the
+ * refusal reaches the context of the session's model. The first three are named, the others counted,
+ * as a lower bound once the validator's cap may have cut the list.
+ */
+function deviations(file: unknown): string {
+	const { listed, capped } = violations(HarnessConfigFile, file);
+	const found = new Set<string>();
+	for (const violation of listed) {
+		// A key the schema does not name fails the `false` schema of `additionalProperties` on its own
+		// pointer; the object holding it then fails once more for all its keys, and that entry is the
+		// first the cap drops, so the key's own entry is the one read.
+		if (violation.keyword === "additionalProperties") continue;
+		if (violation.keyword === "boolean") found.add(unknownKey(violation.path));
+		else found.add(`${location(violation.path)} must be ${expectation(violation)}`);
+	}
+	const named = [...found].slice(0, 3);
+	const others = found.size - named.length;
+	if (others > 0) named.push(`and ${capped ? "at least " : ""}${others} more`);
+	return named.join("; ");
 }
 
 export function loadConfig(
@@ -92,31 +153,22 @@ export function loadConfig(
 	const path = join(dataDir, "config.json");
 	let config: HarnessConfig = structuredClone(DEFAULT_CONFIG);
 	if (present(path)) {
-		const raw = section<Omit<HarnessConfig, "policy"> & { policy: unknown }>(parseFile(path), "the file");
-		const { egress, budgets, adoption, ...policy } = section<
-			Omit<ActivePolicy, "budgets" | "adoption"> & { egress: unknown; budgets: unknown; adoption: unknown }
-		>(raw.policy, "policy");
-		if (egress !== undefined) diagnostics.push(EGRESS_NO_LONGER_READ);
+		const file = parseFile(path);
+		if (!check(HarnessConfigFile, file)) throw unreadable(deviations(file));
+		const { budgets, adoption, baseline, ...policy } = file.policy ?? {};
 		config = {
 			policy: {
 				...DEFAULT_POLICY,
 				...policy,
-				budgets: { ...DEFAULT_POLICY.budgets, ...section<ActivePolicy["budgets"]>(budgets, "policy.budgets") },
-				adoption: {
-					...DEFAULT_POLICY.adoption,
-					...section<ActivePolicy["adoption"]>(adoption, "policy.adoption"),
-					protocol: "kernel",
-				},
-				revision: policy.revision ?? DEFAULT_POLICY.revision,
+				budgets: { ...DEFAULT_POLICY.budgets, ...budgets },
+				adoption: { ...DEFAULT_POLICY.adoption, ...adoption },
+				baseline: { ...DEFAULT_POLICY.baseline, ...baseline },
 				policy_id: policy.policy_id ?? "config.json",
 			},
-			isolation: { ...DEFAULT_CONFIG.isolation, ...section<HarnessConfig["isolation"]>(raw.isolation, "isolation") },
-			human_origin: {
-				...DEFAULT_CONFIG.human_origin,
-				...section<HarnessConfig["human_origin"]>(raw.human_origin, "human_origin"),
-			},
-			workspace_exclusions: raw.workspace_exclusions ?? DEFAULT_CONFIG.workspace_exclusions,
-			language: raw.language === "en" ? "en" : "fr",
+			isolation: { ...DEFAULT_CONFIG.isolation, ...file.isolation },
+			human_origin: { ...DEFAULT_CONFIG.human_origin, ...file.human_origin },
+			workspace_exclusions: file.workspace_exclusions ?? DEFAULT_CONFIG.workspace_exclusions,
+			language: file.language ?? DEFAULT_CONFIG.language,
 		};
 	}
 	if (env.HARNESS495_ALLOW_UNCONFINED === "1") {

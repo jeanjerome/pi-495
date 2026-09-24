@@ -47,7 +47,7 @@ tasks:
     security_verify: >
       Aucun refus ne reproduit une valeur écrite dans le fichier, ni un nom de clé qui n'est pas un
       identifiant court ; la propriété est vérifiée sur chaque forme d'écart.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
