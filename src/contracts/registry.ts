@@ -11,6 +11,7 @@ import {
 	SubjectRef,
 } from "./v1/common.ts";
 import { CandidateManifest, ReferenceSnapshot } from "./v1/candidate.ts";
+import { HarnessConfigFile } from "./v1/config.ts";
 import { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "./v1/decision.ts";
 import { BaselineComparison, Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
 import { OperationRequest, OperationResult } from "./v1/operation.ts";
@@ -54,4 +55,5 @@ export const CONTRACTS: Record<string, TSchema> = {
 	requirements: RequirementsDocument,
 	mandate: Mandate,
 	design: Design,
+	"harness-config": HarnessConfigFile,
 };

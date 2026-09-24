@@ -27,7 +27,7 @@ tasks:
     security_verify: >
       Chaque cas du registre des défauts est refusé par le schéma : `design: "Human"`,
       `integration_enabled: "false"`, `allow_unconfined: "no"`, `baseline: "x"`.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:

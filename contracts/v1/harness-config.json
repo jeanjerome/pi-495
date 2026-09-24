@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "budgets": {
+          "type": "object",
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_technical_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_continuations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "intervention_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "increment_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "tool_calls_per_intervention": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "feedback_bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "adoption": {
+          "type": "object",
+          "properties": {
+            "mandate": {
+              "type": "string",
+              "enum": [
+                "kernel",
+                "human"
+              ]
+            },
+            "requirements": {
+              "type": "string",
+              "enum": [
+                "kernel",
+                "human"
+              ]
+            },
+            "protocol": {
+              "type": "string",
+              "enum": [
+                "kernel"
+              ]
+            },
+            "design": {
+              "type": "string",
+              "enum": [
+                "kernel",
+                "human"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "g5_human_acceptance": {
+          "type": "boolean"
+        },
+        "integration_enabled": {
+          "type": "boolean"
+        },
+        "baseline": {
+          "type": "object",
+          "properties": {
+            "compare_to_reference": {
+              "type": "boolean"
+            },
+            "tolerance": {
+              "type": "string",
+              "enum": [
+                "no_aggravation",
+                "block_any"
+              ]
+            },
+            "instability": {
+              "type": "string",
+              "enum": [
+                "confirm_then_indeterminate",
+                "none"
+              ]
+            },
+            "max_confirmations": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "stagnation_identical_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_reviews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "isolation": {
+      "type": "object",
+      "properties": {
+        "allow_unconfined": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "human_origin": {
+      "type": "object",
+      "properties": {
+        "rpc_actor_env": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "workspace_exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en"
+      ]
+    }
+  },
+  "$id": "urn:495:contract:harness-config:1",
+  "additionalProperties": false
+}
