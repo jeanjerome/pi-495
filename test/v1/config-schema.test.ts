@@ -228,7 +228,9 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		const four = refusal(unknown(4));
 		assert.match(four, /unknown_2 is not a known setting; and 1 more; no change runs/);
 		assert.equal(four.includes("unknown_3"), false);
-		assert.match(refusal(unknown(9)), /; and 6 more; no change runs/);
+		// The validator stops at eight deviations, so a count it cut short is a lower bound, said as one.
+		assert.match(refusal(unknown(6)), /; and 3 more; no change runs/);
+		assert.match(refusal(unknown(9)), /; and at least 5 more; no change runs/);
 	});
 
 	it("reproduces no value the file holds, whatever the form of the deviation", () => {
