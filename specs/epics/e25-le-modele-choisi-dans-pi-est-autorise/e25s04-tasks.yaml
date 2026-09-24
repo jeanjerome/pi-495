@@ -8,7 +8,7 @@
 story_id: e25s04
 spec: e25s04-la-decision-est-ecrite-et-la-recette-tenue-par-une-execution-reelle.md
 title: "La décision est écrite et la recette tenue par une exécution réelle"
-status: failing
+status: passing
 bcps: 3
 decision: D-61
 delta: ADDED
@@ -49,7 +49,7 @@ tasks:
     security_verify: >
       Le relevé ne reproduit aucune adresse de fournisseur ni aucun jeton ; il cite les situations
       lues au journal.
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
@@ -74,7 +74,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
