@@ -28,7 +28,7 @@ tasks:
       Aucun constat nouveau sur src/domain/policy.ts. La lecture ne résout aucun nom et n'ouvre
       aucune connexion ; un nom d'hôte qui ressemble au bouclage sans l'être est situé hors de la
       machine.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:

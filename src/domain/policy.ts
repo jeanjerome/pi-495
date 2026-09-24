@@ -19,6 +19,25 @@ export interface Budgets {
 
 export type AdoptionRule = "kernel" | "human";
 
+/** Where a model sits relative to the machine 495 runs on (SEC-05), read from its address. */
+export type ModelLocation = "on_machine" | "off_machine";
+
+/**
+ * Reads the host of the address Pi holds for a model, without resolving it. Only `localhost`,
+ * `127.0.0.0/8` and `::1` are on this machine; an address that is absent or unreadable, or a name
+ * that merely looks like loopback, is off it, so a doubt is announced rather than kept silent. The
+ * URL parser normalizes IPv4 shorthands such as `127.1` before the host is read.
+ */
+export function locateModel(baseUrl: string | undefined): ModelLocation {
+	let host: string;
+	try {
+		host = new URL(baseUrl ?? "").hostname;
+	} catch {
+		return "off_machine";
+	}
+	return host === "localhost" || host === "[::1]" || /^127(?:\.\d{1,3}){3}$/.test(host) ? "on_machine" : "off_machine";
+}
+
 export interface ActivePolicy {
 	policy_id: string;
 	revision: number;
