@@ -525,3 +525,162 @@ de canal, et le verdict reste le même.
 
 `baseUrl` n'est toujours lu qu'aux deux endroits cités plus haut. Les références de ligne de cette
 revue sont celles de `c17215f`. Preflight y est verte sous Node 24.21.0, avec 426 tests.
+
+# Revue de sécurité — e25s05, config.json validé par un schéma
+
+| | |
+|---|---|
+| Périmètre | `git diff 770c7a9..7bd099b` (`main...HEAD`), 16 fichiers, dont 5 de production et le contrat émis |
+| Révision relue | `7bd099b` |
+| Conduite le | 2026-09-24 |
+| Branche | `config-validee-par-un-schema` |
+| Risque de la story | P1, tâche 1 classée `security: medium`, tâche 2 `security: high` |
+| Code de production touché | `src/contracts/v1/config.ts`, `src/contracts/validate.ts`, `src/contracts/registry.ts`, `src/extension/config.ts`, `src/extension/session.ts` (un commentaire) ; `contracts/v1/harness-config.json` émis |
+
+## Verdict
+
+Un constat à confiance ≥ 8, de sévérité moyenne. À `7bd099b`, la porte ne passe pas : le
+`security_verify` de la tâche 2 est réfuté dans un vrai Pi. Le constat est corrigé (voir « Correction
+du constat »), et la porte passe sur le code corrigé.
+
+Le refus d'un fichier que le schéma rejette arrête bien tout changement, sur toutes les formes
+d'écart essayées, et il ne reproduit aucune valeur écrite. Mais sous la copie de TypeBox que Pi
+fournit à l'extension, une clé inconnue qui contient `/` est citée, réécrite avec des points, alors
+qu'elle n'est pas un identifiant court. Les tests passent parce qu'ils tournent sous la copie du
+dépôt, qui échappe le pointeur.
+
+## Constat à confiance ≥ 8
+
+**`src/extension/config.ts:93` et `:118` — moyenne — exposition de données (CWE-200).** Confiance 9.
+
+- **Ce qui se passe.** `unknownKey` retrouve le nom d'une clé inconnue en coupant `instancePath` au
+  dernier `/`, et `location` remplace chaque `/` par un point. Les deux supposent un pointeur JSON
+  échappé (`/` écrit `~1`). TypeBox 1.3.34, celle du dépôt, échappe : la clé `a/b~c` donne
+  `/a~1b~0c`. TypeBox 1.3.27, celle que le chargeur d'extensions de Pi 0.87.1 aliase sous `typebox`,
+  n'échappe pas : la même clé donne `/a/b~c`. Sous Pi, une clé `X/y` dont le dernier segment `y` est
+  un identifiant court est donc citée en entier, sous la forme `X.y`. Une clé `X/` fait citer `X`
+  comme une section.
+- **Preuve dans un vrai Pi.** `pi --version` 0.87.1, `pi -ne --mode json --no-session -e
+  src/extension/index.ts "/495 status"`, avec un `config.json` qui porte
+  `{"sk-ant-api03-SECRET/token":1}`. Le message `495` rendu :
+  `495 error: CONFIGURATION_ERROR: config.json cannot be read: sk-ant-api03-SECRET.token is not a known setting; no change runs until it is fixed or removed and Pi is reloaded (/reload) or a new session is started`.
+- **Scénario.** Le propriétaire colle par erreur, comme nom de clé, un texte qui contient `/` : une
+  URL avec son jeton, un chemin privé, un secret suivi d'un suffixe. Le refus porte ce texte à
+  l'écran, sur les entrées structurées et dans le contexte du modèle de la session, qui peut être
+  distant. La spec l'interdit (§15, 6b).
+- **Effet de bord.** Le même défaut fait nommer un réglage connu à la place de la clé écrite :
+  `{"policy/egress":[…]}` à la racine rend le motif de `policy.egress`, et
+  `{"policy":{"adoption/design":…}}` rend `policy.adoption.design is not a known setting`.
+- **Correction.** Ne pas lire le nom de la clé dans le pointeur. Le parent d'une clé inconnue est
+  toujours un objet que le schéma nomme, et ses segments sont des clés connues. Lire le nom dans
+  l'objet réel à cet emplacement, par exemple dans `params.additionalProperties` de l'entrée que
+  TypeBox émet pour le parent, ou en listant les clés propres de l'objet qui ne sont pas dans
+  `properties`. Citer la clé seulement si elle passe `SHORT_IDENTIFIER`, sinon dire « holds a key ».
+  Ajouter à `test/v1/config-schema.test.ts` une clé qui contient `/`, et faire tourner ce test sous la
+  copie de TypeBox de Pi.
+
+## Hypothèses vérifiées, non supposées
+
+**Les quatre cas du registre sont refusés par le schéma (`security_verify` de la tâche 1,
+établi).** Une sonde lance `node` directement sur `src/contracts/v1/config.ts`, deux fois : une fois
+sous la copie de TypeBox du dépôt (1.3.34) et une fois sous celle de Pi (1.3.27), par un crochet de
+résolution de module qui reproduit l'alias du chargeur de Pi. `design: "Human"`,
+`integration_enabled: "false"`, `allow_unconfined: "no"` et `baseline: "x"` sont refusés par
+`check` et par `Value.Check` : 4 sur 4 sous chaque copie.
+
+**Le refus bloque, et ne reproduit aucune valeur (`security_verify` de la tâche 2, réfuté pour les
+clés).** La même sonde écrit 223 fichiers dans un répertoire de données et appelle `loadConfig`.
+Chaque valeur et chaque clé qui n'est pas un identifiant porte un marqueur, et les nombres sont
+choisis pour être reconnaissables. Formes couvertes : type à chaque niveau (racine, sections, listes
+et leurs éléments, entier flottant, `1e400`), `enum` (`design`, `mandate`, `protocol`, `language`,
+`tolerance`, `instability`), `minimum`, `minLength`, `maxLength`, `$schema` de mauvais type, chaînes
+de 120 000 caractères, clé inconnue identifiant à chaque niveau, 17 formes de clé non identifiant à
+chacune des 7 sections (espace, point, deux-points, `/` au début, au milieu, doublé ou final, `~0`, `~1`, `~`, `é`, émoji, caractère invisible, saut de
+ligne, 52 caractères, clé vide), `policy.egress` avec entrées, en chaîne et à la racine, 30 écarts
+pour le compte, racine liste, chaîne, nombre, `null` et booléen, clés de prototype.
+
+| Copie de TypeBox | Refusés en `CONFIGURATION_ERROR` | Sans fuite | Avec fuite |
+|---|---|---|---|
+| 1.3.34 (dépôt, tests) | 223 / 223 | 223 | 0 |
+| 1.3.27 (Pi 0.87.1) | 223 / 223 | 183 | 40, toutes des clés qui contiennent `/` |
+
+(La sonde signale aussi trois cas `$schema must be a string` ; ce sont de faux positifs, `$schema`
+étant une clé du schéma.) Aucune valeur n'est reproduite sous l'une ou l'autre copie. `expectation`
+ne lit que des paramètres du schéma (`type`, `allowedValues`, `limit`), et les deux copies les
+nomment de la même façon. Un mot-clé qu'elle ne connaît pas rend un texte fixe. Le message de
+TypeBox n'est jamais repris. Le pointeur d'un écart de type ou de valeur ne traverse que des clés que
+le schéma nomme et des positions de liste, puisque la valeur `false` de `additionalProperties` ne
+descend pas dans une clé inconnue.
+
+**Aucune pollution de prototype.** `__proto__`, `constructor`, `toString`, `hasOwnProperty`,
+`valueOf`, `__defineGetter__`, `isPrototypeOf` et `propertyIsEnumerable`, placés à la racine, sous
+`policy`, sous `isolation` (avec `{"allow_unconfined": true}` pour valeur) et sous `adoption`, sont
+tous refusés comme clés inconnues sous les deux copies. `JSON.parse` en fait des propriétés propres,
+et la fusion par décomposition ne reçoit qu'un fichier que le schéma a accepté.
+`Object.prototype` reste vide après les 223 appels.
+
+**Les refus d'accès au fichier sont inchangés.** `unreadable`, `present` et `parseFile` sont
+identiques à ceux de `main` (comparaison textuelle). La sonde les exerce : fichier absent, défauts ;
+lien brisé et mode `000`, `the file cannot be opened` ; répertoire et tube nommé,
+`it is not a regular file` ; JSON invalide qui porte un secret, `it is not valid JSON`, sans le
+secret.
+
+**Un fichier valide n'élargit rien que la lecture précédente n'acceptait déjà.** Avant la story,
+toute valeur passait. Le schéma ne rend acceptable aucune valeur qui ne l'était pas. Le seul contrôle
+de code retiré, `protocol: "kernel"` forcé après fusion, est remplacé par `Closed(["kernel"])` :
+`protocol: "human"` est refusé sous les deux copies. Le contrat émis ferme ses sept objets
+(`additionalProperties: false` à la racine, `policy`, `budgets`, `adoption`, `baseline`,
+`isolation`, `human_origin`).
+
+**Le plafond de `Value.Errors` est mesuré sous chaque copie.** `LISTED_AT_MOST`
+(`src/contracts/validate.ts:17`) vaut 8 sous 1.3.34 comme sous 1.3.27. Sur 30 clés inconnues, le
+refus nomme trois écarts puis `and at least 5 more`, sans valeur. Le compte est une borne basse ; il
+ne porte rien du fichier.
+
+**Une erreur imprévue ne fuit pas non plus.** Une exception autre que `DomainError` levée pendant la
+lecture est rendue par `cannotCreate` (`src/extension/session.ts:36`), qui ne cite que son code.
+Aucune des 223 entrées n'en a produit.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+**Les tests ne tournent pas sous la copie de TypeBox qui s'exécute dans Pi.** `package.json` borne
+`typebox` à `^1.3.34` en développement, et Pi 0.87.1 fournit 1.3.27. Le constat ci-dessus vient de
+cet écart. D'autres différences de comportement entre les deux copies passeraient de la même façon.
+`test/v3/config-refused.test.ts` tourne dans un vrai Pi, mais avec une clé identifiant.
+
+**Des écarts distincts peuvent se confondre dans le compte.** Deux clés non identifiant sous la même
+section donnent le même texte, qui n'est compté qu'une fois. Le compte reste une borne basse, sans
+effet sur le refus.
+
+**`human_origin.rpc_actor_env` accepte le nom de n'importe quelle variable d'environnement.** Une
+variable toujours présente, `HOME` par exemple, attribuerait une origine humaine à tout client RPC.
+Ce comportement précède la story, qui ne fait que typer la clé.
+
+**Aucune borne haute sur les budgets.** `max_attempts`, `feedback_bytes` ou `increment_ms` acceptent
+tout entier. C'est le réglage du propriétaire, déjà accepté avant la story.
+
+## Correction du constat
+
+Test `10293ed`, correction `eb9676c`.
+
+`unknownKey` ne lit plus le nom de la clé dans le pointeur. `unknownKeys` parcourt le fichier le long
+du schéma et relève chaque clé qu'il ne nomme pas, avec la section qui la porte, sous ses deux
+écritures de pointeur, échappée et brute. Le pointeur d'un écart ne sert plus qu'à retrouver cette
+entrée, quelle que soit la copie de TypeBox qui l'a produit. La clé n'est citée que si elle passe
+`SHORT_IDENTIFIER`, qui exclut `/` et `~` ; sinon le refus dit « holds a key » sous sa section. Une
+clé `policy/egress` écrite à la racine n'a plus le motif de `policy.egress`.
+
+- **Rouge dans un vrai Pi, avant la correction.** Le test ajouté à `test/v3/config-refused.test.ts`
+  écrit `{"sk-q8v2x7/token":1,"policy":{"zq8v2/key":1}}` et lance `/495 start` en JSON sur
+  `src/extension/index.ts`. Refus rendu : `sk-q8v2x7.token is not a known setting; policy.zq8v2.key
+  is not a known setting`. 1 échec sur 1.
+- **Vert après.** Le même test passe, 3 sur 3 dans le fichier ; `test/v1/config-schema.test.ts`
+  ajoute `zq/key`, `zq/`, `a~1b` et `policy/egress` à la racine, 26 sur 26 avec
+  `test/v1/model-admitted.test.ts`.
+- **La sonde de 223 fichiers, rejouée.** Sous la copie de Pi (1.3.27) comme sous celle du dépôt
+  (1.3.34) : 223 refus sur 223, 0 fuite réelle. Les 3 entrées signalées restent les faux positifs de
+  `$schema`, une clé que le schéma nomme, sans valeur reproduite. Avant la correction, 40 fuites sous
+  la copie de Pi.
+
+Le `security_verify` de la tâche 2 est établi. L'écart entre les copies de TypeBox reste une
+observation : seul un test v3 exerce la copie de Pi.

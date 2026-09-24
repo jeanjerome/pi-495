@@ -1,0 +1,229 @@
+story_id: e25s05
+verified_at: "2026-09-24T13:56:00Z"
+verifier: verify-work
+risk: P1
+branch: config-validee-par-un-schema
+revision: eb9676c
+revision_note: >
+  The review of 7bd099b found a key holding `/` cited in the refusal under the copy of TypeBox Pi
+  hands the extension (specs/security/REVIEW.md, section e25s05). The test is 10293ed, red in a
+  detached tree (1 failure of 3 in test/v3/config-refused.test.ts); the fix is eb9676c, green there
+  (21 of 21 with test/v1/config-schema.test.ts): src/extension/config.ts reads an unknown key from the
+  file along the schema instead of from the validator's pointer. The terminal verdict below ran on the
+  working tree that became eb9676c. The campaigns ran on the build of 7bd099b, before the fix; the refusal runs
+  were replayed on the fixed build (the `-corrige` runs), and the two full campaigns were not, since
+  the fix touches only how an unknown key is named in a refusal.
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  typebox: "1.3.34 in the repository; 1.3.27 is the copy Pi's loader aliases for an extension loaded from src/"
+  model: "omlx/qwen3.8-27b-oq8e at http://127.0.0.1:8000/v1, through an isolated PI_CODING_AGENT_DIR"
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from dist/, rebuilt under Node 24.21.0, in a fresh data
+      directory for each run, each through a real `pi -ne --mode rpc --no-session -e <extension>`.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check; Biome checked 180 files, no fix applied."
+  tests:
+    passed: true
+    count: 446
+    note: "446 of 446 on the working tree committed as eb9676c; 445 of 445 on 7bd099b, before the test of a key holding `/`."
+
+terminal_verdict:
+  command: "npm run build && npm run check"
+  exit_code: 0
+  started_at: "2026-09-24T13:36:22Z"
+  ended_at: "2026-09-24T13:38:52Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on the working tree committed as eb9676c. 446 tests
+    passing, 0 failing, Biome clean over 180 files. No output from any other attempt is merged into
+    this block. A run on 7bd099b alone, 13:24:52Z to 13:27:10Z, also exited 0 with 445 tests.
+
+task_verify_commands:
+  note: "Each task's own verify command, under Node 24.21.0, on the working tree committed as eb9676c; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 18 }
+    - { task: 2, command: "node --test test/v1/config-schema.test.ts test/v1/model-admitted.test.ts", exit_code: 0, tests: 26 }
+    - { task: 3, command: "node --test test/v3/config-refused.test.ts", exit_code: 0, tests: 3 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 446 }
+    - { task: 5, command: "node --test test/v1/config-schema.test.ts", exit_code: 0, tests: 18 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 1
+  findings_open: 0
+  report: "specs/security/REVIEW.md — section e25s05"
+  note: >
+    Task 1's security_verify is established: the four registry cases are refused by the schema, 4 of
+    4 under each copy of TypeBox. Task 2's was refuted at 7bd099b and is established on the fix. Under
+    Pi's copy, an unknown key holding `/` was cited, rewritten with dots
+    (`sk-ant-api03-SECRET.token is not a known setting`), because that copy does not escape the
+    pointer the key was read from. Red in a real Pi before the fix: the test added to
+    test/v3/config-refused.test.ts, 1 failure of 1. After the fix, the 223-file probe gives 0 real
+    leaks under either copy (40 under Pi's copy before). The 3 entries it still flags are `$schema`,
+    a key the schema names, with no value reproduced.
+
+blind_spots:
+  ran: false
+  note: >
+    check-blind-spots.sh is not run: it reads its state table with a pattern that can never match,
+    so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e23s01, e23s02, e25s01, e25s02 and e25s03: it looks for story identifiers in
+    the sources, which the written-content rules forbid. SEC-05 keeps its row (lint:traceability green).
+
+manual:
+  method: >
+    Runs through a real `pi --mode rpc`, driven by ~/.495-campagnes/scripts/e25s05-drive.ts and run
+    one after the other by e25s05-run.sh, each on its own data directory holding the config.json of
+    its case, its own clone of the minimal JS target, and an isolated PI_CODING_AGENT_DIR with the local
+    model. Each sends `/495 status`, `/495 start`, then `/495 status`. The screen is read from the
+    `notify` requests Pi's RPC mode forwards, the structured entry from the `495` messages, and the
+    dossier read-only from SQLite and the object store. The written values of the file are then
+    searched in what Pi received and in every file of the data directory but config.json. The same
+    files and driver ran on the build of main at 770c7a9 as negative controls. The file is repaired
+    through Pi's example command `/reload-runtime`, which calls `ctx.reload()`, the same
+    `session.reload()` as the interactive `/reload`.
+  runs:
+    - id: "e25s05-egress"
+      code: "branch, 7bd099b"
+      config: '{"policy":{"egress":["egress-entree-privee","api.secret-host.example"]}}'
+      observed: >
+        Refused at opening on the screen, and answered by the same refusal on each /495: "policy.egress
+        is no longer read, since the model selected in Pi is used". No state.sqlite, so no change. The
+        two entries are absent from everything Pi received.
+    - id: "e25s05-egress-negatif"
+      code: "main, 770c7a9 — negative control"
+      observed: "A warning that policy.egress is no longer read; /495 start runs to accepted."
+    - id: "e25s05-human"
+      code: "branch, 7bd099b"
+      config: '{"policy":{"adoption":{"design":"Human"}}}'
+      observed: >
+        Refused: "policy.adoption.design must be kernel or human". No change. `Human` absent from
+        everything Pi received.
+    - id: "e25s05-human-negatif"
+      code: "main, 770c7a9 — negative control"
+      observed: >
+        0 notices; accepted, G3 design adopted by the kernel, 0 decisions requested. The needle
+        `Human` is found in the dossier only in 495's own prompts ("Human-facing text must be written
+        in French"), not as the written value.
+    - id: "e25s05-registre"
+      code: "branch, 7bd099b"
+      config: >
+        {"policy":{"adoption":{"design":"Human"},"integration_enabled":"false","baseline":"x"},
+        "isolation":{"allow_unconfined":"no","clé secrète du propriétaire":true}}
+      observed: >
+        Refused: "policy.adoption.design must be kernel or human; policy.integration_enabled must be
+        a boolean; policy.baseline must be an object; and 2 more". No change. Neither `Human` nor the
+        key is reproduced.
+    - id: "e25s05-registre-negatif"
+      code: "main, 770c7a9 — negative control"
+      observed: >
+        `allow_unconfined: "no"` is read as true: the screen warns that the unconfined backend is not
+        qualified, and the change is blocked in preparing with capability_missing.
+    - id: "e25s05-inconnue"
+      code: "branch, 7bd099b"
+      config: '{"policy":{"adoptoin":{"design":"human"}}}, then the README example'
+      observed: >
+        Refused at opening and on /495 status and /495 start: "policy.adoptoin is not a known setting".
+        The file replaced by the README example, /reload-runtime, then /495 start: chg_mufkhgq3c0056b1154
+        accepted, G0..G5 PASS, 1/3 attempts, 4 min 15 s; 0 notices and 0 diagnostics after the reload;
+        G0..G3 adopted by the kernel; frozen baseline equal to the default policy; 1 reference pass.
+    - id: "e25s05-inconnue-negatif"
+      code: "main, 770c7a9 — negative control"
+      observed: >
+        0 notices; accepted, G3 design adopted by the kernel, 0 decisions requested: the design the
+        owner meant to keep for a human goes to the kernel without a word.
+    - id: "e25s05-baseline"
+      code: "branch, 7bd099b"
+      config: '{"policy":{"baseline":{"tolerance":"no_aggravation"}}}'
+      observed: >
+        Accepted, chg_mufkn2rc69d5a3799b. Frozen protocol baseline: compare_to_reference true, the
+        three other fields at their defaults; 1 reference pass recorded.
+    - id: "e25s05-baseline-negatif"
+      code: "main, 770c7a9 — negative control"
+      observed: >
+        Accepted, but the frozen baseline is {"tolerance":"no_aggravation"} alone, and no reference
+        pass is recorded: the comparison is dropped.
+  replayed_on_fix:
+    note: >
+      The same driver on the build of the fixed working tree, runs without a model. `slash` holds
+      {"sk-q8v2x7/token":1,"policy":{"zq8v2/key":1,"adoption/design":"x"},"policy/egress":["egress-entree-privee"]}.
+    results:
+      - { run: "e25s05-egress-corrige", observed: "the same refusal as e25s05-egress, entries not reproduced" }
+      - { run: "e25s05-human-corrige", observed: "the same refusal as e25s05-human, Human not reproduced" }
+      - { run: "e25s05-registre-corrige", observed: "the same refusal as e25s05-registre, and 2 more, nothing reproduced" }
+      - run: "e25s05-slash-src-corrige"
+        observed: >
+          Loaded from src/, under Pi's copy of TypeBox: "the file holds a key that is not a known
+          setting; policy holds a key that is not a known setting". `q8v2` and the egress entry absent.
+          The same file before the fix, by `pi --mode json` on src/: "sk-ant-api03-SECRET.token is not
+          a known setting" for the key of the review.
+      - { run: "e25s05-slash-dist-corrige", observed: "the same refusal from dist/" }
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-24T13:59:00Z"
+  confirmation_note: >
+    Confirmed by the owner on the runs above, the negative controls, the replays on the fix and the
+    known limits.
+  steps:
+    - step: "Un fichier valide est chargé comme avant (6f)"
+      expected: "Même configuration, aucun diagnostic"
+      actual: "e25s05-inconnue après /reload-runtime — exemple du README, 0 avis, 0 diagnostic, accepted, politique par défaut au dossier"
+      passed: true
+    - step: "Une clé inconnue fait refuser le fichier (6b)"
+      expected: "Aucun changement ; le refus nomme policy.adoptoin"
+      actual: "e25s05-inconnue — refus à l'ouverture et sur chaque /495, aucun changement ; main démarre et adopte G3 par le noyau"
+      passed: true
+    - step: "policy.egress fait refuser le fichier, avec son motif (6a)"
+      expected: "Aucun changement ; le motif ; aucune entrée reproduite"
+      actual: "e25s05-egress — refus avec le motif, aucune entrée dans ce que Pi a reçu ; main avertit puis accepte"
+      passed: true
+    - step: "Une valeur invalide fait refuser le fichier sans être reproduite (6c)"
+      expected: "Nomme policy.adoption.design et kernel ou human ; ne contient pas Human"
+      actual: "e25s05-human et e25s05-registre — conformes ; main charge Human et allow_unconfined \"no\" comme vrai"
+      passed: true
+    - step: "Une section baseline partielle garde ses autres champs (6e)"
+      expected: "La comparaison avec la référence reste active"
+      actual: "e25s05-baseline — compare_to_reference true, une passe de référence ; main n'en fait aucune"
+      passed: true
+    - step: "L'exemple du README est complet et vaut les valeurs par défaut (§16)"
+      expected: "Accepté par le schéma, chaque clé, configuration d'un fichier vide"
+      actual: "Tests de test/v1/config-schema.test.ts ; en campagne, l'exemple charge sans diagnostic et fige la politique de comparaison par défaut"
+      passed: true
+    - step: "Un fichier corrigé est accepté après /reload (§5 étape 6)"
+      expected: "Un changement peut démarrer"
+      actual: "e25s05-inconnue — après /reload-runtime, changement accepted, G0..G5 PASS"
+      passed: true
+    - step: "Une clé qui n'est pas un identifiant court n'est pas citée (6b, §15)"
+      expected: "« holds a key » sous sa section, rien de la clé"
+      actual: "Réfuté à 7bd099b sous la copie de TypeBox de Pi ; conforme sur le correctif (e25s05-slash-src-corrige)"
+      passed: true
+
+gaps:
+  closed: true
+  note: >
+    One gap, found by the security review and closed by 10293ed (red) and eb9676c (green): a key
+    holding `/` was cited under Pi's copy of TypeBox.
+
+known_limits:
+  - "The TUI is not driven: the screen channel measured is the notify request Pi's RPC mode forwards."
+  - "The two full campaigns ran on 7bd099b, before the fix; only the refusal runs were replayed on it."
+  - "Only one v3 test runs 495 under Pi's copy of TypeBox; the unit tests run under the repository's 1.3.34."
+  - "Two deviations that give the same text are counted once, so four unknown keys with no identifier under two sections are said as two deviations with no remainder."
+  - "The published package loaded by `pi install` was not run; its peer typebox resolves to Pi's copy, the path the src/ run exercises."

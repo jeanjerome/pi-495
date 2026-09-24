@@ -10,14 +10,28 @@ active_epic_id: e25
 active_story: e25s05
 
 epic_cycle:
-  step: 5
-  completed_steps: "1,2,3,4"
+  step: 6
+  completed_steps: "1,2,3,4,5"
   audit_result: null
   story_bcps: 5
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
+    Étape 5 faite le 2026-09-24, `verify-work` : recette confirmée par le propriétaire. Preflight
+    verte sous Node 24.21.0 sur le code de `eb9676c` (446 tests). `security-review` : un constat à
+    confiance ≥ 8, corrigé — sous la copie de TypeBox que Pi fournit à l'extension (1.3.27), le
+    pointeur d'une clé inconnue n'échappe pas `/`, et une clé `X/y` était citée `X.y`. Test rouge
+    `10293ed` dans un vrai Pi, correction `eb9676c` : la clé est lue dans le fichier le long du schéma.
+    Sonde de 223 fichiers : 40 fuites avant, 0 après, sous les deux copies. Recette en vrai
+    `pi --mode rpc` (`~/.495-campagnes/e25s05-*`) : egress, `Human`, les quatre cas du registre et une
+    clé inconnue refusés sans valeur reproduite ; le fichier corrigé par l'exemple du README et
+    `/reload-runtime` mène un changement à accepted ; une `baseline` partielle garde la comparaison.
+    Contrôles négatifs sur `770c7a9` : la conception passe au noyau sans un mot, `allow_unconfined:
+    "no"` est lu vrai, la comparaison est abandonnée. Les deux campagnes complètes ont tourné avant la
+    correction ; les refus ont été rejoués dessus. Preuves : `specs/verifications/e25s05-verify.yaml`.
+    Prochaine étape : `audit-code`.
+
     Étape 4 faite le 2026-09-24 : les cinq tâches de e25s05 passent, Preflight verte sous Node
     26.9.0 (445 tests). Chaque rouge a été rejoué par arbre de travail détaché, avec ses seuls tests :
     tâche 1, rouge `cee3829` (le contrat manque, le fichier de test entier échoue), vert `41d3806`
