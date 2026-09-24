@@ -12,12 +12,19 @@ active_story: e25s03
 epic_cycle:
   step: 6
   completed_steps: "1,2,3,4,5"
-  audit_result: null
+  audit_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   last_step_completed: >
+    Étape 6 en cours le 2026-09-24. `audit-code` passe sur `fadf8f1..ca712bb`
+    (`specs/verifications/AUDIT-e25-e25s03.md`). Seul correctif : le commentaire du champ `location`
+    se lisait à contresens (`ca712bb`), Preflight verte (425 tests). Trois points laissés et motivés :
+    la forme du modèle écrite en ligne à trois endroits du domaine, la file des diagnostics remplacée
+    à l'ouverture (sûre tant que `model_select` suit `session_start`), et 6h et 6k sans test.
+    Prochaine étape : `request-review` sur `git diff main...HEAD`.
+
     Étape 5 faite le 2026-09-24, `verify-work` : recette confirmée par le propriétaire. Preflight
     verte à `0816d28` sous Node 24.21.0 (425 tests). `security-review` : aucun
     constat à confiance ≥ 8, les `security_verify` des tâches 1 et 2 établis (`specs/security/REVIEW.md`,
