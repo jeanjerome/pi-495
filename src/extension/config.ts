@@ -1,5 +1,6 @@
 import { lstatSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import type { TSchema } from "typebox";
 import { HarnessConfigFile } from "../contracts/v1/config.ts";
 import { check, type ContractViolation, violations } from "../contracts/validate.ts";
 import { DomainError } from "../domain/errors.ts";
@@ -114,13 +115,44 @@ function expectation({ keyword, params }: ContractViolation): string {
 	}
 }
 
-/** A key the schema does not name, read from its own pointer; one that needs escaping is no identifier. */
-function unknownKey(pointer: string): string {
-	if (pointer === "/policy/egress") return EGRESS_NO_LONGER_READ;
-	const at = pointer.lastIndexOf("/");
-	if (!SHORT_IDENTIFIER.test(pointer.slice(at + 1)))
-		return `${location(pointer.slice(0, at))} holds a key that is not a known setting`;
-	return `${location(pointer)} is not a known setting`;
+interface UnknownKey {
+	section: string;
+	key: string;
+}
+
+/**
+ * Every key the schema does not name, read from the file itself, under the pointer the validator may
+ * give it. The copy of TypeBox Pi hands the extension leaves a `/` in a key unescaped, so a key read
+ * back from its pointer could be cut into identifiers and cited; the pointer only finds it here.
+ */
+function unknownKeys(
+	schema: TSchema,
+	value: unknown,
+	section = "",
+	found = new Map<string, UnknownKey[]>(),
+): Map<string, UnknownKey[]> {
+	const properties = (schema as { properties?: Record<string, TSchema> }).properties;
+	if (!properties || typeof value !== "object" || value === null || Array.isArray(value)) return found;
+	for (const [key, held] of Object.entries(value)) {
+		const named = Object.hasOwn(properties, key) ? properties[key] : undefined;
+		if (named) {
+			unknownKeys(named, held, `${section}/${key}`, found);
+			continue;
+		}
+		const escaped = key.replaceAll("~", "~0").replaceAll("/", "~1");
+		for (const pointer of new Set([`${section}/${key}`, `${section}/${escaped}`]))
+			found.set(pointer, [...(found.get(pointer) ?? []), { section, key }]);
+	}
+	return found;
+}
+
+/** A key the schema does not name, cited only when it reads as the name of a setting. */
+function unknownKey(unknown: UnknownKey | undefined): string {
+	if (!unknown) return "the file holds a key that is not a known setting";
+	const { section, key } = unknown;
+	if (section === "/policy" && key === "egress") return EGRESS_NO_LONGER_READ;
+	if (!SHORT_IDENTIFIER.test(key)) return `${location(section)} holds a key that is not a known setting`;
+	return `${location(`${section}/${key}`)} is not a known setting`;
 }
 
 /**
@@ -130,13 +162,14 @@ function unknownKey(pointer: string): string {
  */
 function deviations(file: unknown): string {
 	const { listed, capped } = violations(HarnessConfigFile, file);
+	const unknown = unknownKeys(HarnessConfigFile, file);
 	const found = new Set<string>();
 	for (const violation of listed) {
 		// A key the schema does not name fails the `false` schema of `additionalProperties` on its own
 		// pointer; the object holding it then fails once more for all its keys, and that entry is the
 		// first the cap drops, so the key's own entry is the one read.
 		if (violation.keyword === "additionalProperties") continue;
-		if (violation.keyword === "boolean") found.add(unknownKey(violation.path));
+		if (violation.keyword === "boolean") found.add(unknownKey(unknown.get(violation.path)?.shift()));
 		else found.add(`${location(violation.path)} must be ${expectation(violation)}`);
 	}
 	const named = [...found].slice(0, 3);
