@@ -95,7 +95,8 @@ manual:
         A policy.egress list naming only temoin-liste-e25s04 is refused at opening and on each /495,
         "policy.egress is no longer read"; no change created. The key removed and Pi reloaded, the
         change is created after the reload and accepted, G0..G5 PASS, with no refusal. The witness
-        name is nowhere in the data directory nor in what Pi received.
+        name is nowhere in the data directory, outside the driver's own output, nor in what Pi
+        received.
   defects_found:
     - >
       BUG-2026-09-24T175500 (specs/bugs/registry.yaml), open: in the TUI, `emit` doubles every
