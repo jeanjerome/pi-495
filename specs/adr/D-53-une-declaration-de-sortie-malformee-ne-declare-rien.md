@@ -1,6 +1,6 @@
 # D-53: Une déclaration de sortie malformée ne déclare rien, et la destination est jugée deux fois
 
-**Status:** Acceptée
+**Status:** Acceptée ; rendue sans objet par `D-61`
 **Date:** 2026-09-21
 
 ## Contexte
