@@ -379,9 +379,9 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () =>
 		// Only session start binds the session and gathers what the runtime could not honour, so a
 		// runtime created later in the same session would run without either.
 		assert.equal(afterRepair - saidOnce, 1, "the repaired file is not read before a new session");
-		assert.doesNotMatch(all.slice(0, seenBefore).join("\n"), /no change recorded/);
+		assert.doesNotMatch(all.slice(0, seenBefore).join("\n"), /No program bound/);
 		const nextText = all.slice(seenBefore).join("\n");
-		assert.match(nextText, /no change recorded/, "a new session runs under the repaired file");
+		assert.match(nextText, /No program bound/, "a new session runs under the repaired file");
 		assert.doesNotMatch(nextText, /cannot be read/);
 	});
 
