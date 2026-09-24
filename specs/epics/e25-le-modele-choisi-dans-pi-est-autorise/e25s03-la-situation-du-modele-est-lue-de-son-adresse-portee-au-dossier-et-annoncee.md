@@ -135,6 +135,12 @@ comme absente, jamais comme « sur la machine ».
 6k. **Même modèle sélectionné à nouveau** — Pi n'émet pas `model_select` quand le fournisseur et
 l'identifiant ne changent pas ; rien n'est annoncé de nouveau.
 
+6l. **Modèle choisi par une autre extension pendant l'ouverture** — une extension chargée avant 495
+qui sélectionne un modèle dans son propre `session_start` le fait avant l'ouverture de la session de
+495. Cette sélection n'est pas jugée à l'étape 7 : l'ouverture lit le modèle actif à ce moment et le
+juge à l'étape 6. Le modèle est donc annoncé une fois, par l'ouverture. Un modèle remplacé avant
+l'ouverture n'est pas annoncé : 495 ne lui envoie rien.
+
 ### 7. Interface elements [draft]
 
 ```

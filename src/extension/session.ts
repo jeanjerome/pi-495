@@ -80,7 +80,10 @@ export class ExtensionSession {
 	 * nothing announced: none is.
 	 */
 	private runtimeFailure: Error | null = null;
-	/** The Pi session this one was opened for, so that a second start of it is not a second opening. */
+	/**
+	 * The Pi session this one was opened for, so that a second start of it is not a second opening.
+	 * Until it is set, a selected model is not said: the opening sets it, then says the model it reads.
+	 */
 	private openedSession: string | null = null;
 
 	constructor(pi: ExtensionAPI) {
