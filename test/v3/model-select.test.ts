@@ -474,7 +474,7 @@ describe("a model reached off this machine (SEC-05)", {
 		assert.equal(warned(client).length - before, 1, warned(client).join(" | "));
 	});
 
-	it("is announced once when an extension loaded before 495 selects it as the session opens", async () => {
+	it("is announced once when an extension loaded before 495 selects it as the session opens (6l)", async () => {
 		const cwd = project();
 		// Pi runs `session_start` handlers in load order, so this `model_select` reaches 495 before its own.
 		const selector = join(root, "selector.ts");
