@@ -7,17 +7,33 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e25
-active_story: e25s05
+active_story: e25s04
 
 epic_cycle:
-  step: 8
-  completed_steps: "1,2,3,4,5,6,7,8"
-  audit_result: pass
-  story_bcps: 5
+  step: 5
+  completed_steps: "1,2,3,4"
+  audit_result: null
+  story_bcps: 3
 
 handoff:
-  next_skill: null
+  next_skill: verify-work
   last_step_completed: >
+    Étape 4 faite le 2026-09-24 pour e25s04, sur la branche `modele-choisi-admis` : les quatre tâches
+    passent. `D-61` écrite, `D-53` porte qu'elle est rendue sans objet (`698da99`). La matrice trace
+    SEC-05 au modèle choisi, à sa situation observée et au contrat de `config.json`, et ajoute AGT-07
+    (`30591b6`). Trois campagnes réelles sur le build `698da99` (sources de `main`), configuration de
+    Pi du propriétaire, Node 24.21.0, Pi 0.87.1, de 17:16 à 17:27 UTC : local accepté sans annonce,
+    trois démarrages `on_machine` ; distant accepté, specify sous omlx `on_machine`, prepare et
+    implement sous `anthropic/claude-sonnet-5` `off_machine`, une annonce à l'écran et une sur
+    l'entrée structurée, 0,0758 $ par abonnement ; négatif refusé (« policy.egress is no longer
+    read »), puis accepté après retrait et rechargement, témoin absent partout. Aucune adresse ni
+    aucun jeton dans les dossiers. Écart à la spécification, déclaré dans le relevé : la ligne de
+    coût ne nomme pas le modèle Anthropic (elle ne nomme le modèle que quand le coût est inconnu) ; le
+    modèle joint est établi par la strate observée dans la requête. Relevé :
+    `specs/verifications/e25s04-modele-choisi-admis.md` (`72b5640`). Preflight verte sous Node
+    24.21.0 à 17:30 UTC (452 tests). Prochaine étape : `verify-work`, recette à confirmer par le
+    propriétaire.
+
     e25s05 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire. Preflight
     verte sous Node 24.21.0 (452 tests).
 

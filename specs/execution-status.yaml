@@ -16,7 +16,7 @@ development_status:
   e25s02: done
   e25s03: done
   e25s05: done
-  e25s04: todo
+  e25s04: in_progress
 
 epics:
   e23:
@@ -188,12 +188,12 @@ stories:
     risk_max: P1
     security_max: high
   e25s04:
-    status: todo
+    status: in_progress
     title: "La décision est écrite et la recette tenue par une exécution réelle"
     bcps: 3
     epic: e25
     tasks_total: 4
-    tasks_passing: 0
-    tasks_failing: 4
+    tasks_passing: 4
+    tasks_failing: 0
     risk_max: P1
     security_max: medium
