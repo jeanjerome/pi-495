@@ -446,6 +446,33 @@ describe("a model reached off this machine (SEC-05)", {
 			assert.ok(!text.includes(REMOTE.host), `the address is never said: ${text}`);
 	});
 
+	it("is announced once to the screen when a session opens on it, although Pi's RPC mode starts that session twice", async () => {
+		const cwd = project();
+		const { client } = rpcPi(cwd, ["--no-session", "--model", `${REMOTE.provider}/${REMOTE.id}`]);
+		const model = async (id: string): Promise<string> => {
+			const state = (await call(client, id, { type: "get_state" })).data as {
+				model?: { provider: string; id: string };
+			};
+			return `${state.model?.provider}/${state.model?.id}`;
+		};
+		let before = 0;
+		try {
+			assert.equal(await model("opened"), `${REMOTE.provider}/${REMOTE.id}`);
+			before = warned(client).length;
+			// `new_session` binds the extensions of the new session twice (`rpc-mode.js`, Pi 0.87.1).
+			assert.equal((await call(client, "replace", { type: "new_session" })).success, true);
+			assert.equal(
+				await model("replaced"),
+				`${REMOTE.provider}/${REMOTE.id}`,
+				"the new session opens on the same model",
+			);
+		} finally {
+			await client.close();
+			rmSync(cwd, { recursive: true, force: true });
+		}
+		assert.equal(warned(client).length - before, 1, warned(client).join(" | "));
+	});
+
 	it("is announced when the session opens on it, restored from the session file (6e)", async () => {
 		const cwd = project();
 		// Pi writes a session file only once the model has answered, and restores a model only from a
