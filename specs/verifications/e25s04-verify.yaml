@@ -111,12 +111,14 @@ manual:
         received.
   defects_found:
     - >
-      BUG-2026-09-24T175500 (specs/bugs/registry.yaml), open: in the TUI, `emit` doubles every
-      structured message with an info notice, so the queued off-machine announcement, already said as
-      a warning, is said again on the screen with the next `/495`; every opening diagnostic likewise.
-      This contradicts e25s03 §5 step 8, "une fois par canal". Probed on the code under a fake context
-      in tui mode, not seen in a real TUI. The story does not close until it is fixed or decided by the
-      owner (spec 6c).
+      BUG-2026-09-24T175500 (specs/bugs/registry.yaml), fixed by the owner's decision: in the TUI,
+      `emit` doubled every structured message with an info notice, so the queued off-machine
+      announcement, already said as a warning, was said again on the screen with the next `/495`, and
+      every opening diagnostic likewise. Red 447df46 (2 failures of 2 in
+      test/v3/model-select.test.ts), green 3a9ef82. Seen in Pi's real terminal interface through a
+      pseudo-terminal and a notice-recording probe extension (~/.495-campagnes/e25s04-tui): warning
+      then info before the fix, warning alone after. The RPC campaigns ran before the fix, which does
+      not touch the channel they measure.
   deviations:
     - >
       The specification expected the cost line of the Anthropic interventions to name the model. The

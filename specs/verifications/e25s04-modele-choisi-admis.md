@@ -128,15 +128,27 @@ défaut après la campagne distante. La commande RPC `set_model` ne persiste pas
 Rien d'autre n'est feint : le modèle local et le modèle Anthropic sont réels, le second joint par
 l'abonnement du propriétaire, et la Seatbelt confine les contrôles.
 
-## Ce que ce relevé n'établit pas
+## Un défaut trouvé, et corrigé
 
-- **Dans l'interface texte, l'annonce serait dite deux fois à l'écran.** 495 y double chaque message
-  de l'entrée structurée d'une notice d'information (`src/extension/session.ts`, `emit`), et
-  l'annonce mise en attente passe par ce chemin au `/495` suivant : un avertissement au choix du
-  modèle, puis la même phrase en information. La spécification de e25s03 veut une annonce par canal.
-  C'est un défaut, consigné comme `BUG-2026-09-24T175500` dans `specs/bugs/registry.yaml`. Il est
-  établi par une sonde du code sous un faux contexte en mode `tui`, pas dans un vrai terminal, et
-  touche aussi tout diagnostic d'ouverture.
+Dans l'interface texte de Pi, l'annonce d'un modèle hors de la machine était dite deux fois à
+l'écran : un avertissement au choix du modèle, puis la même phrase en information au `/495` suivant.
+Tout diagnostic d'ouverture l'était de la même façon. 495 double chaque message de l'entrée
+structurée d'une notice dans l'interface texte, et la file des diagnostics passait par ce chemin. La
+spécification de l'annonce veut une annonce par canal.
+
+Le défaut est consigné comme `BUG-2026-09-24T175500`, et le propriétaire a décidé de le corriger
+avec cette story. La file se vide désormais sur l'entrée structurée seule, puisqu'un écran a été
+prévenu quand le texte y est entré. Rouge `447df46`, vert `3a9ef82`.
+
+Il a été observé dans la vraie interface texte, pilotée par un pseudo-terminal
+(`~/.495-campagnes/e25s04-tui`). Une extension de sonde chargée avant 495 relève chaque notice que
+l'écran reçoit. La session s'ouvre sur un modèle déclaré à une adresse hors de la machine, dans une
+configuration de Pi isolée, et aucune requête ne lui est envoyée ; puis `/495 status`. Sur le build
+d'avant le correctif : un avertissement, puis la même phrase en information. Sur le build corrigé :
+l'avertissement seul. Les trois campagnes RPC ont tourné avant le correctif, qui ne touche pas le
+canal qu'elles mesurent : en RPC, `emit` n'ajoute aucune notice.
+
+## Ce que ce relevé n'établit pas
 
 - **La ligne de coût ne nomme pas le modèle Anthropic** (voir la campagne distante). Le modèle joint
   est établi par la strate observée dans la requête.

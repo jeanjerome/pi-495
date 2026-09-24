@@ -26,16 +26,24 @@ bugs:
       for entries without a screen. The TUI is the one mode that has both. The off-machine
       announcement goes through the same queue.
     evidence: >
-      Not seen in a real TUI: no campaign drives it, and the RPC runs measure the notify channel RPC
-      forwards, where `emit` does not notify. Probed on the code with
+      Seen in Pi's real terminal interface, driven through a pseudo-terminal
+      (~/.495-campagnes/e25s04-tui): a probe extension loaded before 495 records every notice Pi's
+      screen receives; opened on a model declared at a non-loopback address in an isolated Pi
+      configuration, then `/495 status`: one warning, then the same text as an info notice, on the
+      build of the code before the fix; one warning alone on the fixed build. First probed on the code with
       ExtensionSession under a fake context in `tui` mode (hasUI true): after `modelSelected` with a
       non-loopback model, one warning notice; after `flushDiagnostics`, the same text again as an info
-      notice, and one message. Pi 0.87.1 sets `mode: "tui"` in the interactive context
+      notice, and one message. test/v3/model-select.test.ts, two tests under "on the screen of Pi's
+      terminal interface", red at 447df46 (2 failures of 2), green at 3a9ef82 with Preflight green
+      (454 tests). Pi 0.87.1 sets `mode: "tui"` in the interactive context
       (`interactive-mode.js`).
     risk_level: low
     follow_ups: >
-      decide whether a diagnostic already said on the screen is skipped by `emit`'s notice in the TUI
-    status: open
+      the owner decided to fix it with the acceptance of the admitted model; a diagnostic is now
+      delivered by the first operation on the structured channel alone, since a screen was told when it
+      was queued
+    status: fixed
+    fixed_in: 3a9ef82
   - bug_id: BUG-2026-09-24T000204
     date: "2026-09-24"
     title: "A change blocked because the selected model cannot carry an intervention stays blocked after /model and /495 resume"
