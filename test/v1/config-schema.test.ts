@@ -202,6 +202,17 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		assert.match(refusal({ policy: { ["k".repeat(40)]: 1 } }), new RegExp(`: policy\\.${"k".repeat(40)} is not`));
 	});
 
+	it("names an unknown key that a key holding a slash would point at, written after it or before", () => {
+		for (const policy of [
+			{ "budgets/x": 1, budgets: { x: 1 } },
+			{ budgets: { x: 1 }, "budgets/x": 1 },
+		]) {
+			const said = refusal({ policy });
+			assert.match(said, /policy\.budgets\.x is not a known setting/, said);
+			assert.match(said, /policy holds a key that is not a known setting/, said);
+		}
+	});
+
 	it("refuses a value of the wrong type or outside those permitted, naming what is expected (6c, 6d)", () => {
 		const expected: [unknown, string][] = [
 			[{ policy: { adoption: { design: "Human" } } }, "policy.adoption.design must be kernel or human"],
@@ -232,6 +243,13 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		// The validator stops at eight deviations, so a count it cut short is a lower bound, said as one.
 		assert.match(refusal(unknown(6)), /; and 3 more; no change runs/);
 		assert.match(refusal(unknown(9)), /; and at least 5 more; no change runs/);
+	});
+
+	it("counts each key it does not cite as a deviation of its own", () => {
+		assert.match(
+			refusal({ policy: { "a b": 1, "c d": 2, "e f": 3, "g h": 4 } }),
+			/: (policy holds a key that is not a known setting; ){3}and 1 more; no change runs/,
+		);
 	});
 
 	it("reproduces no value the file holds, whatever the form of the deviation", () => {

@@ -170,6 +170,18 @@ describe("config.json refused by its contract in a real Pi (SEC-05)", { skip }, 
 		assert.equal(text.includes("q8v2"), false, `a key is cited: ${text}`);
 	});
 
+	// The same copy points a key holding a slash at the place of a key it would nest under, so the
+	// pointer alone cannot tell the two apart.
+	it("an unknown key a key holding a slash points at is still named, under the copy of TypeBox Pi hands the extension", () => {
+		const json = channel("nested", JSON.stringify({ policy: { "budgets/zq8v2": 1, budgets: { zq8v2: 1 } } }));
+		const text = runJson(json.project, json.env, REQUEST)
+			.map((s) => s.content)
+			.join("\n");
+		assert.match(text, /policy\.budgets\.zq8v2 is not a known setting/);
+		assert.match(text, /policy holds a key that is not a known setting/);
+		assert.equal(text.includes("budgets/"), false, `a key holding a slash is cited: ${text}`);
+	});
+
 	it("an unknown key stops /495 start over RPC, and the same file repaired is read after a reload", async () => {
 		const rpc = channel("rpc", REFUSED);
 		const client = new PiRpcClient({
