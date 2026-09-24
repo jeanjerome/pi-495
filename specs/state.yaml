@@ -5,9 +5,9 @@ project_cycle:
   phase_name: discover
   completed_phases: []
 
-active_flow: build_epic
-active_epic_id: e25
-active_story: e25s04
+active_flow: null
+active_epic_id: null
+active_story: null
 
 epic_cycle:
   step: 8
@@ -18,6 +18,15 @@ epic_cycle:
 handoff:
   next_skill: null
   last_step_completed: >
+    `e25` EST TENU, et aucun epic n'est engagé. Ses cinq stories sont versées sur `main`, poussé sur
+    `origin/main` jusqu'à `88c6422`. Le modèle choisi dans Pi est admis sans configuration (`D-61`),
+    lu à chaque intervention, situé par son adresse et annoncé quand il est hors de la machine ;
+    `config.json` est validé par un schéma strict. Recette tenue par trois campagnes réelles, dont une
+    par l'abonnement Anthropic (`specs/verifications/e25s04-modele-choisi-admis.md`). Preflight verte
+    sous Node 24.21.0, 455 tests. Défaut encore ouvert : `BUG-2026-09-23T155707`, le budget de
+    tentatives écrit dans `config.json` n'atteint jamais un changement. Le suivant dans l'ordre écrit
+    est `e01`. Les branches versées de l'epic sont supprimées.
+
     e25s04 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire ; l'epic
     e25 est terminée. Preflight verte sous Node 24.21.0 à `535ea23` (455 tests).
 
