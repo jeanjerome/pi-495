@@ -1,0 +1,39 @@
+{
+  "story_id": "e25s03",
+  "risk": "P0",
+  "evaluated_at": "2026-09-24T08:42:11Z",
+  "revision_note": "Measured on the build of db1173c; Preflight green at 0816d28, which only records the tasks as passing.",
+  "threshold_source": {
+    "file": "specs/epics/e25-le-modele-choisi-dans-pi-est-autorise/e25s03-la-situation-du-modele-est-lue-de-son-adresse-portee-au-dossier-et-annoncee.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "No specs/tech-architecture/e25-TEST_PLAN_LATEST.md exists; the thresholds are the five the story spec states, grouped under the gate's three dimensions."
+  },
+  "environment": {
+    "pi_version": "0.87.1",
+    "node": "24.21.0",
+    "sandbox": "seatbelt, qualified",
+    "model": "omlx/qwen3.8-27b-oq8e at 127.0.0.1, and the same endpoint under the provider name omlx-loin at 127.0.0.1.nip.io, a public name resolving to loopback, through an isolated PI_CODING_AGENT_DIR"
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "Reading the location: 0 name resolutions, 0 connections opened",
+      "measured": "The security review's probe replaced dns.lookup and net.connect with counters and read 33 addresses through locateModel: 0 and 0. In e25s03-aller, omlx-loin's name resolves to loopback and is still situated off_machine, so the location comes from the name, not from a lookup.",
+      "note": "The reading is one URL parse per intervention start and per model selection."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "Loopback address: 100 % on this machine; any other: 100 % off it. An intervention started: 1 location journaled, equal to that of the model judged",
+      "measured": "test/v1/model-location.test.ts (19 tests) and the 33-address probe: every loopback spelling on_machine, every other address off_machine, missing and unreadable included. e25s03-aller (chg_muf9uekzd5216449d6): 3 starts, 3 locations, each that of the model the start journals — off_machine for omlx-loin, on_machine for omlx. The negative control on main journals no location.",
+      "note": "Three spellings that do reach this machine (`localhost.`, `[::ffff:127.0.0.1]`, `0.0.0.0`) are situated off it, as the spec admits only localhost, 127.0.0.0/8 and ::1; the error is an extra announcement, never a missing one."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "Opening then a change to a remote model: 1 announcement per remote model and per channel. Local model: 0 announcements",
+      "measured": "e25s03-ouverture: 1 screen warning per session opened, although Pi's RPC mode starts the replacing session twice, and 1 announcement at the first /495, none at the second. e25s03-aller: 2 remote selections, 2 warnings and 2 announcements; opening and return on omlx, 0. Print and JSON entries: 1 announcement each. main: 0 everywhere.",
+      "note": "The TUI itself is not driven; the screen channel measured is the notify warning of the RPC mode."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}

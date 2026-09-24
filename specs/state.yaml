@@ -10,14 +10,24 @@ active_epic_id: e25
 active_story: e25s03
 
 epic_cycle:
-  step: 5
-  completed_steps: "1,2,3,4"
+  step: 6
+  completed_steps: "1,2,3,4,5"
   audit_result: null
   story_bcps: 5
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
+    Étape 5 faite le 2026-09-24, `verify-work` : recette confirmée par le propriétaire. Preflight
+    verte à `0816d28` sous Node 24.21.0 (425 tests). `security-review` : aucun
+    constat à confiance ≥ 8, les `security_verify` des tâches 1 et 2 établis (`specs/security/REVIEW.md`,
+    section e25s03). Quatre exécutions réelles dans `pi --mode rpc` (`~/.495-campagnes/e25s03-*`) :
+    `omlx-loin` est le point local nommé `127.0.0.1.nip.io`, fiction déclarée. Campagne acceptée G0..G5,
+    démarrages inscrits off_machine puis on_machine, deux annonces, aucune au retour local, adresse
+    absente du dossier ; contrôles négatifs sur `fadf8f1` sans annonce ni situation. Print et JSON
+    disent l'annonce une fois. Preuves : `specs/verifications/e25s03-verify.yaml`, `NFR-e25s03.json`
+    (GO). Prochaine étape : `audit-code`.
+
     Étape 4 faite le 2026-09-24 : les quatre tâches de e25s03 passent, Preflight verte (425 tests,
     Node 26.9.0). Tâche 3 verte `299626c` : `model_select` écouté dans `src/extension/index.ts`,
     `ExtensionSession.modelSelected` met l'annonce dans la file des diagnostics d'ouverture, et

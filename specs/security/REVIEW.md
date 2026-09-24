@@ -416,3 +416,96 @@ et une reprise ne peut donc pas relancer un producteur sur un bac à sable qui n
 l'étape d'implémentation écrit, sous l'acteur du noyau, dans le journal de 495. Le chemin repris ne
 vient ni du projet cible ni d'un fichier qu'un agent écrit. Aucun producteur n'a travaillé dans cet
 espace : il ne contient que la référence et la préparation adoptée.
+
+# Revue de sécurité — e25s03, la situation du modèle lue de son adresse
+
+| | |
+|---|---|
+| Périmètre | `git diff fadf8f1..0816d28` (`main...HEAD`), 26 fichiers, dont 8 de production et un script de banc ; le code est celui de `db1173c`, `0816d28` ne touche que des relevés |
+| Conduite le | 2026-09-24 |
+| Branche | `situation-du-modele-lue-de-son-adresse` |
+| Risque de la story | P0, tâche 1 classée `security: high`, tâche 2 `security: medium` |
+| Code de production touché | `src/domain/policy.ts`, `src/ports/execution.ts`, `src/domain/change/commands.ts`, `src/domain/change/events.ts`, `src/domain/change/state.ts`, `src/extension/conduct.ts`, `src/extension/session.ts`, `src/extension/index.ts` ; `scripts/e2e-local-model.ts` hors production |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8. La porte passe.
+
+Le changement ajoute une lecture et un message. La lecture prend l'adresse que Pi tient pour le
+modèle et n'en garde qu'un mot, `on_machine` ou `off_machine`. Le message nomme le fournisseur et le
+modèle. Rien n'est exécuté, rien n'est résolu, aucune connexion n'est ouverte, et l'adresse ne
+sort pas de la fonction qui la lit.
+
+## Hypothèses vérifiées, non supposées
+
+**La lecture ne résout aucun nom et n'ouvre aucune connexion (`security_verify` de la tâche 1).**
+`locateModel` (`src/domain/policy.ts:31`) n'appelle que `new URL(...).hostname` et compare le
+résultat à `localhost`, `[::1]` et `127.x.x.x`. Le module n'importe ni `node:dns`, ni `node:net`, ni
+`fetch`. Une sonde a remplacé `dns.lookup` et `net.connect` par des compteurs, puis a lu les 33
+adresses du tableau ci-dessous : `dns.lookup calls: 0, net.connect calls: 0`.
+
+**Un nom qui imite le bouclage est hors de la machine.** Sonde sur le code de `db1173c`, par
+`node` directement sur `src/domain/policy.ts` :
+
+| Adresse | Hôte lu par `URL` | Situation |
+|---|---|---|
+| `http://127.0.0.1:8000/v1`, `http://localhost:1234`, `http://[::1]:8080` | tels quels | `on_machine` |
+| `http://127.1`, `http://0x7f.1`, `http://2130706433`, `http://0177.0.0.1` | `127.0.0.1` | `on_machine` |
+| `http://127.255.255.255`, `ws://127.0.0.1` | tels quels | `on_machine` |
+| `http://LOCALHOST`, `http://ⓛocalhost` | `localhost` | `on_machine` |
+| `http://[0:0:0:0:0:0:0:1]` | `[::1]` | `on_machine` |
+| `http://localhost.` | `localhost.` | `off_machine` |
+| `http://[::ffff:127.0.0.1]` | `[::ffff:7f00:1]` | `off_machine` |
+| `http://127.0.0.1.nip.io`, `http://localhost.example.com` | tels quels | `off_machine` |
+| `http://127.0.0.1@evil.com`, `http://evil.com#@127.0.0.1`, `http://evil.com\@127.0.0.1`, `http://[::1]@evil.com` | `evil.com` | `off_machine` |
+| `http://127.0.0.1%2e.evil.com` | `127.0.0.1..evil.com` | `off_machine` |
+| `http://0.0.0.0:8000`, `http://[::]:8000`, `http://128.0.0.1`, `https://api.example.com` | tels quels | `off_machine` |
+| `file:///tmp/x`, `file://localhost/tmp` | vide | `off_machine` |
+| absente, vide, `garbage`, `//127.0.0.1`, `127.0.0.1:8000`, `http://localhost%00.evil.com` | illisible | `off_machine` |
+
+Chaque forme qui passe pour locale est une écriture de l'hôte de bouclage lui-même, après la
+normalisation de l'analyseur d'URL. Les formes d'information d'utilisateur (`user@host`) et de
+fragment sont lues sur l'hôte réel, qui est `evil.com`.
+
+**L'hôte lu est celui que le client joint.** Le client OpenAI que Pi emploie construit l'URL de la
+requête par `new URL(baseURL + path)` (`node_modules/openai/client.js:285`), avec un chemin qui
+commence par `/`. Ajouter un chemin après l'autorité ne change pas l'hôte. Le même analyseur WHATWG
+lit les deux côtés, donc un désaccord d'analyse entre la règle et le client ne peut pas situer sur la
+machine un modèle que le client joint ailleurs.
+
+**L'adresse n'atteint ni le journal, ni l'état, ni l'export, ni l'annonce (`security_verify` de la
+tâche 2).** `baseUrl` n'est lu qu'en deux endroits, `conduct.ts:25` et `session.ts:247`, chaque fois
+comme argument de `locateModel`. `selectedModel` construit `ModelSelection` champ par champ, avec
+quatre clés, et c'est cet objet que `runIntervention` (`harness.ts:477`) passe tel quel à
+`intervention.start`. Aucune copie de `ctx.model` n'est faite. Le texte de l'annonce ne porte que
+`model.provider` et `model.id`. `test/v2/model-location-journal.test.ts:93` cherche une adresse
+sentinelle dans tout le journal et dans chaque objet du magasin, sans la trouver.
+`test/v3/model-select.test.ts:292` et `:446` vérifient que l'annonce ne contient pas l'hôte, avec une
+adresse qui porte `?key=not-a-secret`.
+
+**Le défaut va vers l'annonce.** Une sélection vide donne `location: "off_machine"`
+(`conduct.ts:27`). Un événement ancien sans `location` reste sans valeur : le champ est facultatif et
+aucun code ne le remplace par `on_machine` (6j).
+
+**Aucune exécution ni aucun réseau n'entre par ce changement.** Le diff de production ne porte ni
+`exec`, ni `spawn`, ni `fetch`, ni `eval`, ni lecture de fichier.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+**Trois formes de bouclage sont situées hors de la machine.** `http://localhost.` (nom absolu),
+`http://[::ffff:127.0.0.1]` (IPv4 dans IPv6) et `http://0.0.0.0` atteignent la machine, mais la règle
+ne les admet pas. La spec n'admet que `localhost`, `127.0.0.0/8` et `::1` (§5, 6g). L'erreur produit une
+annonce de trop, jamais une annonce qui manque.
+
+**`localhost` est admis sans résolution.** Le client, lui, le résout par le système. Un fichier
+`/etc/hosts` qui envoie `localhost` ailleurs ferait situer sur la machine un modèle qui ne l'est pas.
+C'est la configuration de la machine elle-même, que la spec a choisi de ne pas lire (§5 : aucune
+résolution).
+
+**Un identifiant de modèle est dit tel que Pi le tient.** L'annonce cite `provider/id` du catalogue.
+Si un utilisateur donne à un modèle un identifiant qui contient une adresse, l'annonce la répète. Ce
+nom vient de sa propre configuration, pas du projet cible.
+
+**La situation est lue du catalogue de la session, le worker lit le sien.** C'est la limite que la
+spec déclare au §15. Une extension de la session qui redéfinit l'adresse d'un fournisseur ferait lire
+à 495 une adresse que le worker ne joint pas. Rien dans le diff n'y touche.

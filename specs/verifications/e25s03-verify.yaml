@@ -1,0 +1,203 @@
+story_id: e25s03
+verified_at: "2026-09-24T08:42:11Z"
+verifier: verify-work
+risk: P0
+branch: situation-du-modele-lue-de-son-adresse
+revision: 0816d28
+revision_note: >
+  The code is that of db1173c; 0816d28 only records the tasks as passing. The campaigns, the entry
+  checks and the terminal verdict all ran the build of that code under Node 24.21.0.
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  models: >
+    omlx/qwen3.8-27b-oq8e and omlx/Qwen3.8-Flash-Next-MLX-oQ4-MTP at http://127.0.0.1:8000/v1, and the
+    same two models under the provider name omlx-loin at http://127.0.0.1.nip.io:8000/v1, through an
+    isolated PI_CODING_AGENT_DIR per campaign.
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from dist/, rebuilt under Node 24.21.0, in a fresh data
+      directory for each campaign, each through a real `pi -ne --mode rpc --no-session -e <extension>`.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check; Biome checked 177 files, no fix applied."
+  tests:
+    passed: true
+    count: 425
+    note: "425 of 425. 397 on main at fadf8f1."
+
+terminal_verdict:
+  command: "npm run check"
+  exit_code: 0
+  started_at: "2026-09-24T08:40:04Z"
+  ended_at: "2026-09-24T08:42:11Z"
+  note: >
+    Single contiguous run under Node 24.21.0 at 0816d28, after the campaigns. 425 tests passing, 0
+    failing. No output from any other attempt is merged into this block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 0816d28; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v1/model-location.test.ts", exit_code: 0, tests: 19 }
+    - { task: 2, command: "node --test test/v2/model-location-journal.test.ts", exit_code: 0, tests: 5 }
+    - { task: 3, command: "node --test test/v3/model-select.test.ts", exit_code: 0, tests: 12 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 425 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e25s03"
+  note: >
+    Task 1's security_verify is established: locateModel reads the host with the URL parser and
+    compares strings, with 0 name resolutions and 0 connections over 33 addresses; every address it
+    situates on this machine is a spelling of the loopback host itself. Task 2's is established: the
+    address is read in two places, each time as the argument of locateModel, and reaches neither the
+    journal, the state, the export nor the announcement. The campaigns below confirm it on real
+    dossiers.
+
+blind_spots:
+  ran: false
+  note: >
+    check-blind-spots.sh is not run: it reads its state table with a pattern that can never match,
+    so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e23s01, e23s02, e25s01 and e25s02: it looks for story identifiers in the
+    sources, which the written-content rules forbid. SEC-05 keeps its row (lint:traceability green).
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e25s03.json"
+
+manual:
+  method: >
+    Four runs through a real `pi --mode rpc`, driven by ~/.495-campagnes/scripts/e25s03-drive.ts and
+    run one after the other by e25s03-run.sh, each on its own data directory, its own clone of the
+    minimal JS target and its own PI_CODING_AGENT_DIR, then read back read-only from the SQLite
+    ledger and the export. The screen is read from the `notify` warnings Pi's RPC mode forwards, and
+    the structured entry from the `495` messages. Two runs use the branch build; two use the build
+    of main at fadf8f1 as negative controls, with the same script. Every data directory, database
+    and export included, is then searched for `nip.io`, `:8000` and the API key.
+  fiction_declared: >
+    omlx-loin is the local endpoint reached by a public name, 127.0.0.1.nip.io, which DNS resolves to
+    127.0.0.1. 495 reads the name, not what it resolves to, so it situates omlx-loin off this
+    machine, as §5 says it must. Nothing left the machine. What this shows is that 495 reads,
+    journals and announces the situation from the address Pi holds. It does not show a model that
+    is really remote: that acceptance belongs to e25s04. The worker did reach the model under
+    omlx-loin: the cost line of the specifying intervention's end, which the worker writes from the
+    model it resolved, names omlx-loin/qwen3.8-27b-oq8e.
+  campaigns:
+    - id: "chg_muf9uekzd5216449d6"
+      dossier: "~/.495-campagnes/e25s03-aller"
+      code: "branch, db1173c"
+      sequence: >
+        Opened on omlx/qwen3.8-27b-oq8e; session replaced; omlx-loin/Flash-Next then
+        omlx-loin/qwen3.8-27b-oq8e selected; /495 start; omlx/qwen3.8-27b-oq8e selected back 1 s after
+        the specifying intervention started; /495 export; /495 status.
+      outcome: "accepted — closed, completed, G0..G5 PASS, 1/3 attempts, 3 interventions, 3 min 48 s"
+      observed: >
+        Opening and replacement: 0 screen notices. Each of the two omlx-loin selections: 1 screen
+        warning naming that model, without its address. Return to omlx: 0 notices. The response to
+        /495 start opens with the two announcements, in order, then the status. /495 export and
+        /495 status after it: no announcement. Journal: specify omlx-loin off_machine, prepare and
+        implement omlx on_machine. The export's events.jsonl and state.json hold 1 off_machine and 2
+        on_machine. `nip.io`, `:8000` and the key: absent from the whole data directory.
+    - id: "chg_muf9zifgc0c19487c5"
+      dossier: "~/.495-campagnes/e25s03-aller-negatif"
+      code: "main, fadf8f1 — negative control"
+      sequence: "The same as e25s03-aller."
+      outcome: "accepted — closed, completed, G0..G5 PASS, 5 min 48 s"
+      observed: >
+        0 screen notices and 0 announcements over the whole run, although the specifying
+        intervention ran under omlx-loin. The three intervention starts carry no location.
+    - id: "none — no change is started"
+      dossier: "~/.495-campagnes/e25s03-ouverture"
+      code: "branch, db1173c"
+      sequence: "Opened on omlx-loin/qwen3.8-27b-oq8e (the settings default); session replaced; /495 status twice."
+      observed: >
+        1 screen warning at opening; 1 more after new_session, for the replacing session, although
+        Pi's RPC mode starts it twice. The first /495 status is answered with the announcement, once,
+        then the status; the second with the status alone.
+    - id: "none — no change is started"
+      dossier: "~/.495-campagnes/e25s03-ouverture-negatif"
+      code: "main, fadf8f1 — negative control"
+      sequence: "The same as e25s03-ouverture."
+      observed: "0 screen notices, 0 announcements."
+  entries:
+    note: >
+      The same opening on omlx-loin, then `/495 status`, through `pi -ne --no-session -p` and
+      `pi -ne --no-session --mode json`, with the same PI_CODING_AGENT_DIR as e25s03-ouverture.
+      A first attempt passed `--mode json -p` as one unsplit zsh argument and printed nothing to
+      count; the rerun with separate arguments is the one recorded.
+    results:
+      - { entry: print, code: "branch", announcements: 1 }
+      - { entry: json, code: "branch", announcements: 1, form: "one 495 custom message, before the status" }
+      - { entry: print, code: "main, fadf8f1", announcements: 0 }
+      - { entry: json, code: "main, fadf8f1", announcements: 0 }
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-24T08:59:14Z"
+  confirmation_note: >
+    Confirmed by the owner on the four runs above, the print and JSON entries, the declared fiction
+    and the known limits.
+  steps:
+    - step: "Une adresse de bouclage situe le modèle sur la machine (§5)"
+      expected: "omlx, joint à 127.0.0.1, est sur la machine"
+      actual: "e25s03-aller — prepare et implement inscrits on_machine sous omlx ; aucune annonce au retour vers omlx"
+      passed: true
+    - step: "Toute autre adresse situe le modèle hors de la machine (6f, 6g)"
+      expected: "Un nom qui se résout en bouclage sans en être un est hors de la machine, sans résolution"
+      actual: >
+        e25s03-aller — omlx-loin, à 127.0.0.1.nip.io, inscrit off_machine et annoncé. Adresse
+        absente, vide ou illisible : test/v1/model-location.test.ts et la sonde de la revue de
+        sécurité, pas une campagne.
+      passed: true
+    - step: "Le démarrage d'une intervention inscrit la situation de son modèle (§5, 6a)"
+      expected: "location à côté du fournisseur et du modèle, sans l'adresse"
+      actual: "e25s03-aller — trois démarrages, chacun avec location ; nip.io, :8000 et la clé absents du dossier et de l'export"
+      passed: true
+    - step: "Un changement de modèle se lit au journal et à l'export (6b)"
+      expected: "Deux situations différentes, l'export les montre"
+      actual: "e25s03-aller — off_machine puis on_machine ; l'export porte les deux"
+      passed: true
+    - step: "Un modèle distant actif à l'ouverture est annoncé (§5, 6e)"
+      expected: "L'écran aussitôt, l'entrée structurée au premier /495"
+      actual: >
+        e25s03-ouverture — un avertissement à l'écran par session ouverte, même démarrée deux fois ;
+        l'annonce une fois au premier /495 status, pas au second. Print et JSON la disent une fois.
+        Un modèle restauré depuis un fichier de session : test/v3/model-select.test.ts seulement.
+      passed: true
+    - step: "Un changement vers un modèle distant est annoncé (6b, 6c)"
+      expected: "L'annonce nomme ce modèle, sans son adresse ; rien n'est bloqué"
+      actual: >
+        e25s03-aller — Flash-Next puis 27B sous omlx-loin : deux avertissements, deux annonces ;
+        la campagne va jusqu'à accepted.
+      passed: true
+    - step: "Un modèle local n'est pas annoncé (6a, 6d)"
+      expected: "Aucune annonce"
+      actual: "e25s03-aller — ouverture et retour sur omlx : 0 avertissement ; aucune annonce de levée"
+      passed: true
+
+gaps:
+  closed: true
+  note: "No gap between what e25s03 promises and what the runs show."
+
+known_limits:
+  - "The off-machine model is the local endpoint under a public name that resolves to loopback; a model really remote is e25s04's acceptance."
+  - "The TUI is not driven: the screen channel measured is the notify warning Pi's RPC mode forwards, which is the call a TUI receives."
+  - "6i (runtime refused), 6j (dossier written before this story, read by this code) and a model restored from a session file (6e) rest on their tests."
+  - "6k (the same model selected again) and 6h (no model at opening) are exercised by neither a test nor a run."
+  - "§15's limit, an address redefined by another extension of the session, is not measured."
