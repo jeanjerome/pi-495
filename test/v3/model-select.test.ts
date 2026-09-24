@@ -3,6 +3,9 @@
  * The selection is read once per intervention, from the context of the command that advances the
  * change: the capability check judges that reading, the start journals it and the worker is handed
  * it. Nothing of the selection is kept from session start, when a later `/model` has not happened yet.
+ *
+ * A model reached off this machine is announced when the session opens and each time one is selected
+ * (SEC-05): a screen is told at once, a structured entry on its first `/495`. Nothing is blocked.
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
@@ -13,6 +16,7 @@ import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@e
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { ScriptedAgent } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { registerCommand495 } from "../../src/extension/command.ts";
+import harness495 from "../../src/extension/index.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import type { AgentCapabilities, ModelSelection } from "../../src/ports/execution.ts";
 import { describedAs } from "../helpers/capabilities.ts";
@@ -35,6 +39,9 @@ const SECOND: ModelSelection = {
 	location: "on_machine",
 };
 const NONE: ModelSelection = { provider_id: "", model_id: "", thinking_level: "off", location: "off_machine" };
+// Registered in Pi at an address off this machine; nothing calls it, and its host never resolves.
+const REMOTE = { provider: "stand-in-remote", id: "remote-1", host: "models.example.invalid" };
+const OFF_MACHINE = `${REMOTE.provider}/${REMOTE.id} is reached off this machine`;
 
 let root: string;
 beforeEach(() => {
@@ -172,13 +179,19 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 	});
 });
 
-/** The part of Pi's extension API the `/495` command reaches, recording what it is told. */
+/** The part of Pi's extension API 495 reaches, recording what it is told and the hooks it listens on. */
 class FakePi {
 	command: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | null = null;
+	readonly hooks = new Map<string, (event: unknown, ctx: ExtensionContext) => Promise<unknown>>();
 	readonly said: string[] = [];
 	registerCommand(_name: string, options: { handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> }) {
 		this.command = options.handler;
 	}
+	on(event: string, handler: (event: unknown, ctx: ExtensionContext) => Promise<unknown>): void {
+		this.hooks.set(event, handler);
+	}
+	registerTool(): void {}
+	registerMessageRenderer(): void {}
 	sendMessage(message: { content: string }): void {
 		this.said.push(message.content);
 	}
@@ -246,6 +259,44 @@ describe("a session opened with no model selected (6a)", () => {
 	});
 });
 
+describe("a session whose runtime could not be created (6i)", () => {
+	const saved: Record<string, string | undefined> = {};
+	afterEach(() => {
+		for (const [name, value] of Object.entries(saved)) {
+			if (value === undefined) delete process.env[name];
+			else process.env[name] = value;
+			delete saved[name];
+		}
+	});
+
+	it("still announces a model off this machine, with the refusal of the first /495", async () => {
+		const dataDir = join(root, "data");
+		mkdirSync(dataDir, { recursive: true });
+		writeFileSync(join(dataDir, "config.json"), "{ not json");
+		saved.HARNESS495_DATA_DIR = process.env.HARNESS495_DATA_DIR;
+		process.env.HARNESS495_DATA_DIR = dataDir;
+		const cwd = project();
+		const pi = new FakePi();
+		harness495(pi as unknown as ExtensionAPI);
+		const selected = { provider: REMOTE.provider, id: REMOTE.id, baseUrl: `https://${REMOTE.host}/v1` };
+		const ctx = new FakeRpcContext(cwd, () => selected);
+		try {
+			await pi.hooks.get("session_start")!(
+				{ type: "session_start", reason: "startup" },
+				ctx as unknown as ExtensionContext,
+			);
+			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
+			const said = pi.said.join(" | ");
+			assert.match(said, /config\.json cannot be read/, said);
+			assert.equal(pi.said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said);
+			assert.doesNotMatch(said, new RegExp(REMOTE.host.replaceAll(".", "\\.")), "the address is never said");
+		} finally {
+			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	});
+});
+
 const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 function piAvailable(): boolean {
 	try {
@@ -256,11 +307,14 @@ function piAvailable(): boolean {
 	}
 }
 
-/** Two models Pi can select; nothing listens at their address, and the scripted agent never calls them. */
-function catalogueWithTwoModels(agentDir: string): void {
+/**
+ * Three models Pi can select: two at a loopback address, one off this machine. Nothing listens at
+ * any of them, and the scripted agent never calls them.
+ */
+function catalogue(agentDir: string): void {
 	mkdirSync(agentDir, { recursive: true });
-	const provider = (id: string) => ({
-		baseUrl: "http://127.0.0.1:9/v1",
+	const provider = (id: string, baseUrl: string) => ({
+		baseUrl,
 		api: "openai-completions",
 		apiKey: "not-a-secret-nothing-listens",
 		models: [{ id, reasoning: false, contextWindow: 8192, maxTokens: 1024 }],
@@ -269,54 +323,77 @@ function catalogueWithTwoModels(agentDir: string): void {
 		join(agentDir, "models.json"),
 		JSON.stringify({
 			providers: {
-				[FIRST.provider_id]: provider(FIRST.model_id),
-				[SECOND.provider_id]: provider(SECOND.model_id),
+				[FIRST.provider_id]: provider(FIRST.model_id, "http://127.0.0.1:9/v1"),
+				[SECOND.provider_id]: provider(SECOND.model_id, "http://127.0.0.1:9/v1"),
+				[REMOTE.provider]: provider(REMOTE.id, `https://${REMOTE.host}/v1?key=not-a-secret`),
 			},
 		}),
 	);
+}
+
+/** Pi in RPC mode with 495 loaded, the catalogue above, and a scripted agent that fails once started. */
+function rpcPi(cwd: string, args: string[]): { client: PiRpcClient; dataDir: string } {
+	const agentDir = join(root, "agent");
+	catalogue(agentDir);
+	const agentScript = join(root, "agent.json");
+	writeFileSync(agentScript, JSON.stringify({ default: { steps: [{ kind: "fail", error: "stop here" }] } }));
+	const dataDir = join(root, "data");
+	const client = new PiRpcClient({
+		bin: PI,
+		args: ["-ne", "--mode", "rpc", ...args, "-e", join(process.cwd(), "src", "extension", "index.ts")],
+		cwd,
+		env: {
+			...process.env,
+			PI_CODING_AGENT_DIR: agentDir,
+			HARNESS495_DATA_DIR: dataDir,
+			HARNESS495_SCRIPTED_AGENT: agentScript,
+			...(process.platform !== "darwin" ? { HARNESS495_ALLOW_UNCONFINED: "1" } : {}),
+		},
+	});
+	return { client, dataDir };
+}
+
+/** Sends one RPC command and waits for its response and for the stream to fall quiet. */
+async function call(
+	client: PiRpcClient,
+	id: string,
+	command: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+	client.send({ id, ...command });
+	const response = await client.waitFor((e) => e.type === "response" && e.id === id, 60_000);
+	await client.waitQuiet();
+	return response as Record<string, unknown>;
+}
+
+/** What 495 warned the screen of about a model off this machine, in order. */
+function warned(client: PiRpcClient): string[] {
+	return client.uiRequests
+		.filter((r) => r.method === "notify" && r.notifyType === "warning")
+		.map((r) => String(r.message))
+		.filter((m) => m.includes("off this machine"));
 }
 
 describe("a session Pi replaced (6g)", {
 	skip: !piAvailable() && "pi binary not available",
 }, () => {
 	it("runs the next intervention with the model selected in the replacing session", async () => {
-		const agentDir = join(root, "agent");
-		catalogueWithTwoModels(agentDir);
-		const agentScript = join(root, "agent.json");
-		writeFileSync(agentScript, JSON.stringify({ default: { steps: [{ kind: "fail", error: "stop here" }] } }));
-		const dataDir = join(root, "data");
 		const cwd = project();
-		const client = new PiRpcClient({
-			bin: PI,
-			args: ["-ne", "--mode", "rpc", "--no-session", "-e", join(process.cwd(), "src", "extension", "index.ts")],
-			cwd,
-			env: {
-				...process.env,
-				PI_CODING_AGENT_DIR: agentDir,
-				HARNESS495_DATA_DIR: dataDir,
-				HARNESS495_SCRIPTED_AGENT: agentScript,
-				...(process.platform !== "darwin" ? { HARNESS495_ALLOW_UNCONFINED: "1" } : {}),
-			},
-		});
-		const call = async (id: string, command: Record<string, unknown>): Promise<Record<string, unknown>> => {
-			client.send({ id, ...command });
-			const response = await client.waitFor((e) => e.type === "response" && e.id === id, 60_000);
-			await client.waitQuiet();
-			return response as Record<string, unknown>;
-		};
+		const { client, dataDir } = rpcPi(cwd, ["--no-session"]);
 		try {
 			assert.equal(
-				(await call("first", { type: "set_model", provider: FIRST.provider_id, modelId: FIRST.model_id })).success,
+				(await call(client, "first", { type: "set_model", provider: FIRST.provider_id, modelId: FIRST.model_id }))
+					.success,
 				true,
 			);
 			// Pi replaces the session and loads 495 again, which opens its runtime before the second
 			// model is selected (measured with Pi 0.87.1).
-			assert.equal((await call("replace", { type: "new_session" })).success, true);
+			assert.equal((await call(client, "replace", { type: "new_session" })).success, true);
 			assert.equal(
-				(await call("second", { type: "set_model", provider: SECOND.provider_id, modelId: SECOND.model_id })).success,
+				(await call(client, "second", { type: "set_model", provider: SECOND.provider_id, modelId: SECOND.model_id }))
+					.success,
 				true,
 			);
-			await call("start", { type: "prompt", message: "/495 start tidy greet" });
+			await call(client, "start", { type: "prompt", message: "/495 start tidy greet" });
 		} finally {
 			await client.close();
 		}
@@ -330,5 +407,91 @@ describe("a session Pi replaced (6g)", {
 			ledger.close();
 			rmSync(cwd, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("a model reached off this machine (SEC-05)", {
+	skip: !piAvailable() && "pi binary not available",
+}, () => {
+	it("is announced when /model selects it, by name and without its address, and a model on this machine is not (6a, 6b, 6d)", async () => {
+		const cwd = project();
+		const { client } = rpcPi(cwd, ["--no-session"]);
+		const select = async (id: string, provider: string, modelId: string): Promise<void> => {
+			assert.equal((await call(client, id, { type: "set_model", provider, modelId })).success, true);
+		};
+		try {
+			await select("local", FIRST.provider_id, FIRST.model_id);
+			assert.deepEqual(warned(client), [], "a model on this machine is not announced");
+			await select("remote", REMOTE.provider, REMOTE.id);
+			assert.equal(
+				warned(client).filter((w) => w.includes(OFF_MACHINE)).length,
+				1,
+				"a screen is told as soon as the model is selected, before any /495",
+			);
+			await select("back", SECOND.provider_id, SECOND.model_id);
+			const status = await call(client, "status", { type: "prompt", message: "/495 status" });
+			assert.equal(status.success, true, "the announcement blocks no command");
+		} finally {
+			await client.close();
+			rmSync(cwd, { recursive: true, force: true });
+		}
+		const said = client.messages().map((m) => m.content);
+		assert.equal(warned(client).length, 1, "returning to a model on this machine announces nothing");
+		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
+		assert.ok(
+			said.some((m) => !m.includes("off this machine")),
+			`/495 status still answers: ${said.join(" | ")}`,
+		);
+		for (const text of [...warned(client), ...said])
+			assert.ok(!text.includes(REMOTE.host), `the address is never said: ${text}`);
+	});
+
+	it("is announced when the session opens on it, restored from the session file (6e)", async () => {
+		const cwd = project();
+		// Pi writes a session file only once the model has answered, and restores a model only from a
+		// session that holds a message: the file is written here, as Pi would have left it.
+		const sessionFile = join(root, "restored.jsonl");
+		const at = new Date().toISOString();
+		const entries = [
+			{ type: "session", version: 3, id: "model-select-restored", timestamp: at, cwd },
+			{
+				type: "message",
+				id: "a0000001",
+				parentId: null,
+				timestamp: at,
+				message: { role: "user", content: [{ type: "text", text: "hello" }], timestamp: Date.now() },
+			},
+			{
+				type: "model_change",
+				id: "a0000002",
+				parentId: "a0000001",
+				timestamp: at,
+				provider: REMOTE.provider,
+				modelId: REMOTE.id,
+			},
+		];
+		writeFileSync(sessionFile, `${entries.map((e) => JSON.stringify(e)).join("\n")}\n`);
+		const { client } = rpcPi(cwd, ["--session", sessionFile]);
+		try {
+			const state = (await call(client, "state", { type: "get_state" })).data as {
+				model?: { provider: string; id: string };
+			};
+			assert.deepEqual(
+				{ provider: state.model?.provider, id: state.model?.id },
+				{ provider: REMOTE.provider, id: REMOTE.id },
+				"Pi restored the model of the session file",
+			);
+			assert.equal(
+				warned(client).filter((w) => w.includes(OFF_MACHINE)).length,
+				1,
+				"a screen is told as soon as the session opens",
+			);
+			await call(client, "status", { type: "prompt", message: "/495 status" });
+		} finally {
+			await client.close();
+			rmSync(cwd, { recursive: true, force: true });
+		}
+		const said = client.messages().map((m) => m.content);
+		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
 	});
 });
