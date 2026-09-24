@@ -650,7 +650,7 @@ cet écart. D'autres différences de comportement entre les deux copies passerai
 
 **Des écarts distincts peuvent se confondre dans le compte.** Deux clés non identifiant sous la même
 section donnent le même texte, qui n'est compté qu'une fois. Le compte reste une borne basse, sans
-effet sur le refus.
+effet sur le refus. Corrigé par `57cd3b3` (voir « Correction de deux défauts du nommage »).
 
 **`human_origin.rpc_actor_env` accepte le nom de n'importe quelle variable d'environnement.** Une
 variable toujours présente, `HOME` par exemple, attribuerait une origine humaine à tout client RPC.
@@ -684,3 +684,38 @@ clé `policy/egress` écrite à la racine n'a plus le motif de `policy.egress`.
 
 Le `security_verify` de la tâche 2 est établi. L'écart entre les copies de TypeBox reste une
 observation : seul un test v3 exerce la copie de Pi.
+
+## Correction de deux défauts du nommage
+
+Tests `6e5401b`, correction `57cd3b3`. L'audit de `eb9676c` a relevé deux défauts dans la façon dont
+un refus nomme les clés inconnues. Aucun ne laisse passer un fichier, aucun ne reproduit une valeur.
+
+- **Le compte confondait les clés non citables.** L'observation ci-dessus, mesurée : quatre clés non
+  identifiant sous `policy` donnaient `policy holds a key that is not a known setting`, sans reste.
+  La liste des écarts ne fusionne plus les textes identiques. Le validateur ne rend jamais deux
+  écarts au même pointeur sous le même mot-clé, donc la fusion ne retirait que ces doublons-là. Le
+  refus dit désormais trois fois le même texte, puis `and 1 more`.
+- **Une clé qui contient `/` pouvait prendre la place d'une clé inconnue.** La correction de
+  `eb9676c` range chaque clé inconnue sous ses deux pointeurs, échappé et brut. Le pointeur brut de
+  `budgets/x` sous `policy` est `/policy/budgets/x`, celui d'une clé `x` sous `policy.budgets`. Sous
+  la copie du dépôt, qui échappe, `{"policy":{"budgets/x":1,"budgets":{"x":1}}}` rendait `policy
+  holds a key…` seul : la clé `x` n'était jamais nommée, et l'ordre des clés dans le fichier
+  décidait du résultat. `take` cherche désormais la clé dont le pointeur échappé est celui de
+  l'écart, et ne prend le pointeur brut qu'à défaut, pour la copie de Pi. Une clé citable n'a qu'une
+  écriture de pointeur, puisque `SHORT_IDENTIFIER` exclut `/` et `~` : ce repli ne peut attribuer à
+  une clé citable que l'écart d'une clé qui existe dans le fichier, jamais faire citer une clé qui
+  contient `/`.
+
+Preuves :
+
+- **Rouge dans un arbre détaché à `6e5401b`.** `test/v1/config-schema.test.ts`, 2 échecs sur 20 :
+  les deux nouveaux tests.
+- **Vert à `57cd3b3`.** 20 sur 20, et 28 sur 28 avec `test/v1/model-admitted.test.ts`, sous
+  Node 24.21.0. Preflight verte, 449 tests.
+- **Sous la copie de Pi.** Le test v3 ajouté écrit `{"policy":{"budgets/zq8v2":1,"budgets":{"zq8v2":1}}}`
+  et lance `/495 start` en JSON. Il passe avant et après la correction, puisque cette copie donne
+  le même pointeur aux deux clés. Sans le repli sur le pointeur brut, il échoue, comme le test v3
+  de la clé `sk-q8v2x7/token` : c'est ce repli qui garde la copie de Pi.
+- **Non rejoué.** La sonde de 223 fichiers. La correction ne touche ni la condition de citation ni
+  le texte d'une valeur. Deux tests v3 exercent désormais la copie de Pi sur une clé qui contient
+  `/`.

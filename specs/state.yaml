@@ -12,12 +12,22 @@ active_story: e25s05
 epic_cycle:
   step: 6
   completed_steps: "1,2,3,4,5"
-  audit_result: null
+  audit_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   last_step_completed: >
+    Étape 6 en cours le 2026-09-24. `audit-code` passe sur `770c7a9..57cd3b3`
+    (`specs/verifications/AUDIT-e25-e25s05.md`) après deux corrections du nommage des clés inconnues
+    dans un refus, sans valeur reproduite ni fichier admis : plusieurs clés non citables d'une section
+    comptaient pour un seul écart, et une clé qui contient `/` masquait, sous la copie de TypeBox du
+    dépôt, la clé inconnue que son pointeur brut désigne. Rouge `6e5401b` rejoué dans un arbre
+    détaché (2 échecs sur 20), vert `57cd3b3`. Le test v3 ajouté sous la copie de Pi échoue sans le
+    repli sur le pointeur brut. Preflight verte sous Node 24.21.0 à `57cd3b3` (449 tests). Relevés
+    mis à jour : `specs/verifications/e25s05-verify.yaml`, `specs/security/REVIEW.md`. Prochaine
+    étape : `request-review` sur `git diff main...HEAD`.
+
     Étape 5 faite le 2026-09-24, `verify-work` : recette confirmée par le propriétaire. Preflight
     verte sous Node 24.21.0 sur le code de `eb9676c` (446 tests). `security-review` : un constat à
     confiance ≥ 8, corrigé — sous la copie de TypeBox que Pi fournit à l'extension (1.3.27), le
