@@ -80,6 +80,8 @@ export class ExtensionSession {
 	 * nothing announced: none is.
 	 */
 	private runtimeFailure: Error | null = null;
+	/** The Pi session this one was opened for, so that a second start of it is not a second opening. */
+	private openedSession: string | null = null;
 
 	constructor(pi: ExtensionAPI) {
 		this.pi = pi;
@@ -226,6 +228,12 @@ export class ExtensionSession {
 	 * `session_start` and never passes through `model_select` (Pi 0.87.1), so it is judged here.
 	 */
 	openedAt(ctx: ExtensionContext): void {
+		// Pi's RPC mode starts the same session twice on `new_session`, `switch_session`, `fork` and
+		// `clone` (`rpc-mode.js`, Pi 0.87.1): the second start would tell the screen everything again,
+		// and replace the queue a structured entry has not read yet.
+		const sessionId = ctx.sessionManager.getSessionId();
+		if (sessionId === this.openedSession) return;
+		this.openedSession = sessionId;
 		this.openRuntimeAt(ctx);
 		this.modelSelected(ctx, ctx.model);
 	}
@@ -243,8 +251,6 @@ export class ExtensionSession {
 	}
 
 	private openRuntimeAt(ctx: ExtensionContext): void {
-		// Pi's RPC mode starts the same session twice on `new_session`, `switch_session`, `fork` and
-		// `clone`: the first start decides whether a runtime exists, and a second one only reads it.
 		if (!this.harnessRuntime && !this.runtimeFailure) this.createRuntimeAt(ctx);
 		if (this.runtimeFailure) {
 			// The failure is the answer of every `/495`, so it is not queued to be said once more before it.
