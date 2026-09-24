@@ -242,8 +242,12 @@ export class ExtensionSession {
 	 * A model reached off this machine is said like a diagnostic, whether or not the runtime exists:
 	 * where Pi sends what 495 hands it is a fact of Pi. Its address is never said, since it may carry
 	 * a token or a private path. A model on this machine is not announced.
+	 *
+	 * A model an extension loaded before 495 selects in its own `session_start` reaches 495 before its
+	 * session opens. The opening reads it from `ctx.model` and says it then, so it is not said here.
 	 */
 	modelSelected(ctx: ExtensionContext, model: { provider: string; id: string; baseUrl?: string } | undefined): void {
+		if (this.openedSession === null) return;
 		if (!model || locateModel(model.baseUrl) === "on_machine") return;
 		const text = `495: the selected model ${model.provider}/${model.id} is reached off this machine; what 495 sends it leaves the machine`;
 		this.pending.push(text);
