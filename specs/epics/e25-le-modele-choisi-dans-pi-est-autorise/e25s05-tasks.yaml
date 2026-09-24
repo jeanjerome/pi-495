@@ -6,7 +6,7 @@
 story_id: e25s05
 spec: e25s05-config-json-est-valide-par-un-schema-et-un-champ-inconnu-le-refuse.md
 title: "config.json est validé par un schéma, et un champ inconnu le fait refuser"
-status: failing
+status: passing
 bcps: 5
 requirement: SEC-05
 delta: MODIFIED

@@ -10,14 +10,26 @@ active_epic_id: e25
 active_story: e25s05
 
 epic_cycle:
-  step: 2
-  completed_steps: "1"
+  step: 5
+  completed_steps: "1,2,3,4"
   audit_result: null
   story_bcps: 5
 
 handoff:
-  next_skill: null
+  next_skill: verify-work
   last_step_completed: >
+    Étape 4 faite le 2026-09-24 : les cinq tâches de e25s05 passent, Preflight verte sous Node
+    26.9.0 (445 tests). Chaque rouge a été rejoué par arbre de travail détaché, avec ses seuls tests :
+    tâche 1, rouge `cee3829` (le contrat manque, le fichier de test entier échoue), vert `41d3806`
+    (8 sur 8) ; tâche 2, rouge `6db4a4f` et `0c55ae7` (9 échecs sur 35), `4b611a2` (8 sur 35), vert
+    `c290f69` (35 sur 35) ; tâche 3, `test/v3/config-refused.test.ts` de `6dba049` posé sur
+    `4b611a2`, 2 échecs sur 2, vert `6dba049` ; tâches 4 et 5, un seul commit `dff241e`, les trois
+    tests de l'exemple posés sur `6dba049`, 3 échecs sur 18, puis 18 sur 18. `4b611a2` ne retire un
+    échec qu'en corrigeant le texte qu'attendait un test de `test/v3/pi-rpc-sdk.test.ts`
+    (`No program bound`) : ce test couvre le refus d'un fichier illisible, qui existait avant la
+    validation. Les `security_verify` des tâches 1 et 2 restent à établir par `security-review` à
+    l'étape 5. Prochaine étape : `verify-work`.
+
     e25s05 tâche 5 ajoutée et passante le 2026-09-24, sur demande du propriétaire : le README montre
     un `config.json` complet aux valeurs par défaut, hors `$schema`, `policy_id` et `revision`, et le
     tableau décrit désormais `policy.baseline`, `policy.stagnation_identical_candidates` et
