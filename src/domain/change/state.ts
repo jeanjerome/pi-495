@@ -97,7 +97,7 @@ export interface InterventionState {
 		provider_id: string;
 		model_id: string;
 		thinking_level: string;
-		/** Absent from a dossier written before the location was recorded, which is not on this machine. */
+		/** Absent from a dossier written before the location was recorded, and then never read as on this machine. */
 		location?: ModelLocation;
 	};
 	profile_id: string;
