@@ -743,7 +743,7 @@ clés à `/` et `~` : aucune valeur ni aucune clé non citable n'y apparaît. Un
 | | |
 |---|---|
 | Périmètre | `git diff main...HEAD` ; un fichier de production, `src/extension/session.ts`, par la correction décidée en relecture |
-| Révision relue | `c96a05d`, puis la relecture jusqu'à `a888f48` |
+| Révision relue | `c96a05d`, puis la relecture jusqu'à `535ea23` |
 | Conduite le | 2026-09-24 |
 | Branche | `modele-choisi-admis` |
 | Risque de la story | P1, tâche 2 classée `security: medium` |

@@ -18,6 +18,17 @@ epic_cycle:
 handoff:
   next_skill: release-branch
   last_step_completed: >
+    Étape 6 rouverte puis close le 2026-09-24 pour e25s04. Après le tour 3, le propriétaire a décidé
+    de corriger ici `BUG-2026-09-24T175500` : dans l'interface texte, un diagnostic en file n'est
+    plus notifié une seconde fois à l'écran quand le premier `/495` le remet. Rouge `447df46`, vert
+    `3a9ef82`, troisième cas `4591fe8` (rouges tous trois sur le code de `a888f48`). Observé dans la
+    vraie interface texte par pseudo-terminal (`~/.495-campagnes/e25s04-tui`) : avertissement puis
+    information avant, avertissement seul après. Tours 4 et 5 : A et B trouvent le correctif juste ;
+    l'audit et la revue de sécurité le couvrent, le banc est rejoué avec les commandes qu'il nomme
+    (`535ea23`). A et B passent le tour 5, plafond atteint sans point ouvert. Relevés ancrés à
+    `535ea23`, Preflight verte sous Node 24.21.0, 18:21:59Z à 18:24:21Z, 455 tests. Prochaine étape :
+    verser sur `main`, sur décision du propriétaire.
+
     Étape 6 close le 2026-09-24 pour e25s04 : `audit-code` passe (`AUDIT-e25-e25s04.md`), la
     relecture A et B passe au tour 3 sur `a888f48`. Tour 1 : `D-61` disait que la ligne de coût nomme
     le modèle joint (à corriger, les deux), les dossiers portent le chemin personnel que la revue de

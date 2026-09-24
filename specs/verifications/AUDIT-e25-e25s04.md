@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Périmètre | `git diff main...HEAD` (`3b64971..b30a6d4`, puis la relecture jusqu'à `a888f48`) sous `specs/` ; puis, sur décision du propriétaire, la correction d'un défaut trouvé en relecture : `src/extension/session.ts` et trois tests de `test/v3/model-select.test.ts` (`447df46`, `3a9ef82`, `4591fe8`) ; aucun contrat |
+| Périmètre | `git diff main...HEAD` (`3b64971..b30a6d4`, puis la relecture jusqu'à `535ea23`) sous `specs/` ; puis, sur décision du propriétaire, la correction d'un défaut trouvé en relecture : `src/extension/session.ts` et trois tests de `test/v3/model-select.test.ts` (`447df46`, `3a9ef82`, `4591fe8`) ; aucun contrat |
 | Conduite le | 2026-09-24 (UTC) |
 | Branche | `modele-choisi-admis` |
 | Mode | `--gate` |
-| Preflight au moment de la revue | vert sous Node 24.21.0 — `npm run build && npm run check`, sortie 0, 452 tests |
+| Preflight au moment de la revue | vert sous Node 24.21.0 à `535ea23` — `npm run build && npm run check`, sortie 0, 455 tests, de 18:21:59Z à 18:24:21Z |
 
 La branche écrit d'abord des textes : `D-61`, le statut de `D-53`, la matrice de traçabilité, le relevé
 des campagnes, le relevé de vérification, la section de revue de sécurité et le suivi. L'audit porte

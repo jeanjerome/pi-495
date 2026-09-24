@@ -3,10 +3,16 @@ verified_at: "2026-09-24T17:30:42Z"
 verifier: verify-work
 risk: P1
 branch: modele-choisi-admis
-revision: a888f48
+revision: 535ea23
 revision_note: >
-  The review, three rounds with two reviewers each, closed its gate on a888f48 with no must-fix or
-  should-fix left. Round 1 on c439559: D-61 said the cost line names the model reached, which the
+  The review, five rounds with two reviewers each, closed its gate on 535ea23 with no must-fix or
+  should-fix left. Rounds 4 and 5 reviewed the fix of BUG-2026-09-24T175500, decided by the owner
+  after round 3: both reviewers found the fix sound and asked for the audit and security review to
+  cover it, and for the terminal-interface observation to be replayed with the commands it names;
+  done in 535ea23. The RPC campaigns ran before the fix, which does not touch the channel they
+  measure.
+
+  Round 1 to 3, closed on a888f48: Round 1 on c439559: D-61 said the cost line names the model reached, which the
   code does not do (must-fix, both reviewers); the security claims said the owner's home path was
   absent from the dossiers, where workspace paths carry it; D-46 and D-57 still promised a
   destination judged before a request leaves; an AGT-07 row was added to the archived [P0] matrix.
@@ -44,14 +50,14 @@ phases:
     note: "The eight controls chained in npm run check; lint:traceability reports 85 + 8 [P0] requirements present."
   tests:
     passed: true
-    count: 452
+    count: 455
 
 terminal_verdict:
   command: "npm run build && npm run check"
   exit_code: 0
-  started_at: "2026-09-24T17:57:13Z"
-  ended_at: "2026-09-24T17:59:33Z"
-  note: "Single run under Node 24.21.0 on a888f48, working tree clean. 452 tests passing, 0 failing. The same command exited 0 on 72b5640 (17:30:42Z) and c96a05d."
+  started_at: "2026-09-24T18:21:59Z"
+  ended_at: "2026-09-24T18:24:21Z"
+  note: "Single run under Node 24.21.0 on 535ea23, working tree clean. 455 tests passing, 0 failing. The same command exited 0 on a888f48 (452 tests), 72b5640 and c96a05d."
 
 task_verify_commands:
   note: "Each task's own verify command, under Node 24.21.0; every one exits 0."
@@ -59,7 +65,7 @@ task_verify_commands:
     - { task: 1, command: "test -n \"$(find specs/adr -name 'D-61-*.md')\"", exit_code: 0 }
     - { task: 2, command: "grep -q 'e25s04-negatif' specs/verifications/e25s04-modele-choisi-admis.md", exit_code: 0 }
     - { task: 3, command: "npm run lint:traceability", exit_code: 0 }
-    - { task: 4, command: "npm run check", exit_code: 0, tests: 452 }
+    - { task: 4, command: "npm run check", exit_code: 0, tests: 455 }
 
 security:
   passed: true
@@ -117,8 +123,11 @@ manual:
       every opening diagnostic likewise. Red 447df46 (2 failures of 2 in
       test/v3/model-select.test.ts), green 3a9ef82; a third test for an ordinary opening diagnostic,
       red on a888f48's code, green at 4591fe8. Seen in Pi's real terminal interface through a
-      pseudo-terminal and a notice-recording probe extension (~/.495-campagnes/e25s04-tui): warning
-      then info before the fix, warning alone after. The RPC campaigns ran before the fix, which does
+      pseudo-terminal and a notice-recording probe extension (~/.495-campagnes/e25s04-tui), opened
+      on a non-loopback model, then `/495 status` twice: warning, the same text as info, then the two
+      replies on a888f48's build; warning alone, then the two replies, on the branch's build. A first
+      pass typed too fast and ran `/495` once, answered with help; it is kept as avant-1.log and
+      apres-1.log. The RPC campaigns ran before the fix, which does
       not touch the channel they measure.
   deviations:
     - >
