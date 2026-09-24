@@ -121,35 +121,37 @@ interface UnknownKey {
 }
 
 /**
- * Every key the schema does not name, read from the file itself, under the pointer the validator may
- * give it. The copy of TypeBox Pi hands the extension leaves a `/` in a key unescaped, so a key read
- * back from its pointer could be cut into identifiers and cited; the pointer only finds it here.
+ * Every key the schema does not name, read from the file itself. The copy of TypeBox Pi hands the
+ * extension leaves a `/` in a key unescaped, so a key read back from its pointer could be cut into
+ * identifiers and cited; the pointer only finds it here.
  */
-function unknownKeys(
-	schema: TSchema,
-	value: unknown,
-	section = "",
-	found = new Map<string, UnknownKey[]>(),
-): Map<string, UnknownKey[]> {
+function unknownKeys(schema: TSchema, value: unknown, section = "", found: UnknownKey[] = []): UnknownKey[] {
 	const properties = (schema as { properties?: Record<string, TSchema> }).properties;
 	if (!properties || typeof value !== "object" || value === null || Array.isArray(value)) return found;
 	for (const [key, held] of Object.entries(value)) {
 		const named = Object.hasOwn(properties, key) ? properties[key] : undefined;
-		if (named) {
-			unknownKeys(named, held, `${section}/${key}`, found);
-			continue;
-		}
-		const escaped = key.replaceAll("~", "~0").replaceAll("/", "~1");
-		for (const pointer of new Set([`${section}/${key}`, `${section}/${escaped}`]))
-			found.set(pointer, [...(found.get(pointer) ?? []), { section, key }]);
+		if (named) unknownKeys(named, held, `${section}/${key}`, found);
+		else found.push({ section, key });
 	}
 	return found;
 }
 
+/**
+ * The unknown key a pointer designates, taken out so that the next pointer finds another. The key the
+ * pointer designates once escaped comes first: left unescaped, `/policy/budgets/x` is also the pointer
+ * of a key `budgets/x` under `policy`.
+ */
+function take(unnamed: UnknownKey[], pointer: string): UnknownKey | undefined {
+	const escaped = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
+	let index = unnamed.findIndex(({ section, key }) => `${section}/${escaped(key)}` === pointer);
+	if (index < 0) index = unnamed.findIndex(({ section, key }) => `${section}/${key}` === pointer);
+	return index < 0 ? undefined : unnamed.splice(index, 1)[0];
+}
+
 /** A key the schema does not name, cited only when it reads as the name of a setting. */
-function unknownKey(unknown: UnknownKey | undefined): string {
-	if (!unknown) return "the file holds a key that is not a known setting";
-	const { section, key } = unknown;
+function unknownKey(found: UnknownKey | undefined): string {
+	if (!found) return "the file holds a key that is not a known setting";
+	const { section, key } = found;
 	if (section === "/policy" && key === "egress") return EGRESS_NO_LONGER_READ;
 	if (!SHORT_IDENTIFIER.test(key)) return `${location(section)} holds a key that is not a known setting`;
 	return `${location(`${section}/${key}`)} is not a known setting`;
@@ -162,18 +164,18 @@ function unknownKey(unknown: UnknownKey | undefined): string {
  */
 function deviations(file: unknown): string {
 	const { listed, capped } = violations(HarnessConfigFile, file);
-	const unknown = unknownKeys(HarnessConfigFile, file);
-	const found = new Set<string>();
+	const unnamed = unknownKeys(HarnessConfigFile, file);
+	const found: string[] = [];
 	for (const violation of listed) {
 		// A key the schema does not name fails the `false` schema of `additionalProperties` on its own
 		// pointer; the object holding it then fails once more for all its keys, and that entry is the
 		// first the cap drops, so the key's own entry is the one read.
 		if (violation.keyword === "additionalProperties") continue;
-		if (violation.keyword === "boolean") found.add(unknownKey(unknown.get(violation.path)?.shift()));
-		else found.add(`${location(violation.path)} must be ${expectation(violation)}`);
+		if (violation.keyword === "boolean") found.push(unknownKey(take(unnamed, violation.path)));
+		else found.push(`${location(violation.path)} must be ${expectation(violation)}`);
 	}
-	const named = [...found].slice(0, 3);
-	const others = found.size - named.length;
+	const named = found.slice(0, 3);
+	const others = found.length - named.length;
 	if (others > 0) named.push(`and ${capped ? "at least " : ""}${others} more`);
 	return named.join("; ");
 }
