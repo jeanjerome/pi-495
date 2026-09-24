@@ -379,6 +379,15 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 		assert.equal(notices.filter((n) => n.includes(OFF_MACHINE)).length, 1, notices.join(" | "));
 		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
 	});
+
+	it("shares its channel with every opening diagnostic, each said once on the screen and once in the conversation", async () => {
+		saved.HARNESS495_ALLOW_UNCONFINED = process.env.HARNESS495_ALLOW_UNCONFINED;
+		process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+		const unconfined = "the unconfined backend is enabled";
+		const { notices, said } = await screenAndMessages(local, null);
+		assert.equal(notices.filter((n) => n.includes(unconfined)).length, 1, notices.join(" | "));
+		assert.equal(said.filter((m) => m.includes(unconfined)).length, 1, said.join(" | "));
+	});
 });
 
 const PI = process.env.HARNESS495_PI_BIN ?? "pi";
