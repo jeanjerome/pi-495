@@ -742,7 +742,7 @@ clés à `/` et `~` : aucune valeur ni aucune clé non citable n'y apparaît. Un
 
 | | |
 |---|---|
-| Périmètre | `git diff main...HEAD`, 7 fichiers, aucun de production |
+| Périmètre | `git diff main...HEAD`, aucun fichier de production |
 | Révision relue | `c96a05d` |
 | Conduite le | 2026-09-24 |
 | Branche | `modele-choisi-admis` |
@@ -756,13 +756,15 @@ de fournisseur ni aucun jeton, et cite les situations lues au journal.
 
 ## Hypothèses vérifiées, non supposées
 
-- **Les fichiers de la branche ne portent aucun secret.** Les sept fichiers ont été fouillés pour
+- **Les fichiers de la branche ne portent aucun secret.** Les fichiers ont été fouillés pour
   l'adresse et la clé du modèle local, l'adresse d'Anthropic, les deux jetons de l'abonnement et le
   chemin personnel du propriétaire. Ces valeurs ont été lues dans sa configuration de Pi sans être
   affichées. Aucune occurrence.
-- **Les dossiers des campagnes non plus.** Les mêmes valeurs et le nom témoin ont été cherchés dans
-  les trois répertoires de données, export compris, et dans ce que Pi a reçu de 495. Aucune
-  occurrence. Le préfixe `sk-ant-oat` des manifestes du dossier distant est la condition déclarée du
+- **Les dossiers des campagnes ne portent ni adresse ni jeton.** Les adresses, la clé, les jetons et
+  le nom témoin ont été cherchés dans les trois répertoires de données, export compris, et dans ce
+  que Pi a reçu de 495. Aucune occurrence hors des sorties du pilote. Le chemin personnel du
+  propriétaire n'y a pas été cherché, et il y figure, dans les chemins absolus des espaces de
+  travail. Le préfixe `sk-ant-oat` des manifestes du dossier distant est la condition déclarée du
   bloc imposé, pas un jeton.
 - **La configuration du propriétaire n'est pas modifiée.** `set_model` ne persiste pas le choix, et
   `settings.json` garde son modèle par défaut après la campagne distante.

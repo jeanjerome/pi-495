@@ -1,6 +1,6 @@
 # D-46: Un second fournisseur de modèle est qualifié avant le reste du travail ouvert
 
-**Status:** Acceptée ; la prémisse de la fenêtre d'abonnement est corrigée par `D-59`
+**Status:** Acceptée ; la prémisse de la fenêtre d'abonnement est corrigée par `D-59` ; la déclaration de la sortie sous `SEC-05` est remplacée par `D-61`
 **Date:** 2026-09-21
 
 **Décision.** Un epic `e23` entre à l'index du travail ouvert et se joue avant `e01`. WSJF

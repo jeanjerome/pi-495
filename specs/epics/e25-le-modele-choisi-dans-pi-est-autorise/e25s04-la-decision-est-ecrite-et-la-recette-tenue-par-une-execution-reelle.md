@@ -107,7 +107,9 @@ modèle réellement distant leur sont renvoyées.
    témoin.
 8. Le relevé `specs/verifications/e25s04-modele-choisi-admis.md` est écrit : par campagne, ce qui a
    été observé, à l'écran, sur l'entrée structurée et au journal, et ce qui a été feint.
-9. La matrice de traçabilité porte SEC-05 et AGT-07 avec les preuves de l'epic.
+9. La matrice de traçabilité porte SEC-05 avec les preuves de l'epic. AGT-07, `[P1]`, n'a pas de
+   ligne dans la matrice archivée, qui ne porte que les exigences `[P0]` ; ses preuves sont dans le
+   relevé de vérification.
 
 Interruption point: entre les étapes 2 et 3 — la décision est écrite, aucune campagne n'a tourné.
 Les campagnes 4 à 6 tournent l'une après l'autre : un seul serveur de modèle local les sert.
@@ -161,9 +163,10 @@ Not applicable — les annonces observées existent déjà ; la story n'en ajout
 ### 12. Audit and logging [draft]
 
 **Entité auditée :** l'intervention, dans chaque dossier de campagne. Le relevé cite, par
-intervention, le fournisseur, le modèle et la situation inscrits à son démarrage, et la ligne de
-coût de sa fin, que le worker écrit à partir du modèle qu'il a résolu : c'est elle qui prouve quel
-modèle a réellement été joint. Les dossiers restent sous `~/.495-campagnes/`, hors du dépôt.
+intervention, le fournisseur, le modèle et la situation inscrits à son démarrage, et, à sa fin,
+l'API et la strate imposée observées dans la requête que le worker a envoyée (`D-60`) : c'est elle
+qui prouve quel fournisseur a réellement été joint. La ligne de coût ne nomme le modèle que lorsque
+le coût est inconnu. Les dossiers restent sous `~/.495-campagnes/`, hors du dépôt.
 
 ### 13. Solution variabilities [reviewed]
 
@@ -175,8 +178,8 @@ Not applicable — aucun réglage.
   « sur la machine » ; changement accepté.
 - `e25s04-distant` : 1 annonce à la sélection du modèle distant, à l'écran comme sur l'entrée
   structurée ; au journal, le premier démarrage porte `omlx` sur la machine et chacun des suivants
-  `anthropic` hors d'elle ; les lignes de coût des interventions qui suivent nomment
-  `anthropic/claude-sonnet-5` ; changement accepté.
+  `anthropic` hors d'elle ; les requêtes des interventions qui suivent sont
+  observées en API `anthropic-messages`, avec le bloc du chemin d'abonnement ; changement accepté.
 - `e25s04-negatif` : le premier `/495 start` est refusé, et le refus dit que `policy.egress` n'est
   plus lue ; 0 changement ouvert avant le retrait de la clé. Après le retrait et `/reload` :
   0 refus, changement accepté. Le nom témoin apparaît 0 fois dans le journal, le magasin d'objets,
@@ -223,7 +226,7 @@ Scenario: Un modèle réellement distant choisi en cours de session est admis et
   When  un modèle Anthropic est sélectionné après le premier démarrage d'intervention
   Then  il est annoncé une fois, sans son adresse
   And   les démarrages suivants inscrivent anthropic hors de la machine
-  And   leurs lignes de coût nomment le modèle Anthropic
+  And   leurs requêtes sont observées comme celles du fournisseur Anthropic
   And   le changement est accepté
 
 Scenario: Une liste restée dans config.json est refusée, puis rien ne la lit (§5 étape 6)

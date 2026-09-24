@@ -55,10 +55,12 @@ security:
   report: "specs/security/REVIEW.md — section e25s04"
   note: >
     Task 2's security_verify is established: the record reproduces no provider address and no token.
-    The seven files the branch changes were searched for the local model's address and key, the
+    The files the branch changes were searched for the local model's address and key, the
     Anthropic address, the subscription's access and refresh tokens, read from the owner's
     configuration without being printed, and the owner's home path: 0 hits. The three data
-    directories were searched for the same values and the witness name: 0 hits.
+    directories were searched for the addresses, the key, the tokens and the witness name: 0 hits
+    outside the driver's own output. They do carry the owner's home path, in the absolute paths of
+    their workspaces, which were not searched for.
 
 blind_spots:
   ran: false
@@ -81,7 +83,7 @@ manual:
       observed: "Accepted, G0..G5 PASS. Three starts journaled omlx/qwen3.8-27b-oq8e on_machine. No notice on the screen, no model message on the structured entry."
     - id: "e25s04-distant"
       observed: >
-        anthropic/claude-sonnet-5 selected 1 s after specify started. One warning on the screen at the
+        anthropic/claude-sonnet-5 selected under half a second after specify started. One warning on the screen at the
         selection, the same announcement once on the structured entry, without the address. specify
         journaled omlx on_machine; prepare and implement anthropic/claude-sonnet-5 off_machine, their
         requests observed as anthropic-messages carrying the subscription block. Accepted, G0..G5
@@ -96,8 +98,21 @@ manual:
     - >
       The specification expected the cost line of the Anthropic interventions to name the model. The
       cost line names a model only when its cost is unknown; the model reached is established by the
-      imposed layer observed in the request instead.
+      imposed layer observed in the request instead. The specification (§12, §14, §17) is corrected
+      to say so.
+  agt_07:
+    note: >
+      AGT-07 is [P1] and has no row in the archived matrix, which carries [P0] requirements only.
+      Its evidence: the model is read at each intervention and the boundary journaled (e25s04-distant:
+      specify under omlx, prepare and implement under anthropic/claude-sonnet-5), the cost recorded
+      when known and marked unknown otherwise (the three dossiers), and no fallback from one provider
+      to another exists (stated in D-61; nothing in src/ selects a model 495 was not handed).
+      Tests: test/v3/model-select.test.ts, test/v3/session-cost.test.ts, test/v2/measure-budgets.test.ts.
   feigned:
     - "`/model` is the RPC command `set_model`, which calls the same `session.setModel`."
     - "`/reload` is Pi's example command `/reload-runtime`, which calls the same `session.reload()`."
     - "The extension is loaded through the owner's package entry, which points at the same dist/ file as the explicit -e."
+    - >
+      The TUI is not driven: the screen measured is the notify warning Pi's RPC mode forwards. In the
+      TUI, `emit` also notifies each structured message, so the queued announcement would be said a
+      second time, as an info notice, with the reply to the next command.

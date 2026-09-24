@@ -1,6 +1,6 @@
 # D-57: Le format d'appels d'outils est observé, une fois par couple et par session
 
-**Status:** Acceptée
+**Status:** Acceptée ; le jugement de la destination avant l'observation est rendu sans objet par `D-61`
 **Date:** 2026-09-22
 
 ## Context

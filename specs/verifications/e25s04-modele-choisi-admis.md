@@ -33,13 +33,13 @@ Le répertoire de données ne porte pas de `config.json`.
   `medium`, situation `on_machine`. Les trois lignes de coût disent le coût inconnu, parce que le
   catalogue de l'hôte n'a pas de tarif pour `omlx/qwen3.8-27b-oq8e`, hors abonnement. La strate
   observée dans chaque requête est `openai-completions`, sans bloc imposé.
-- **Verdict :** accepté en 4 min 28 s.
+- **Verdict :** accepté en 4 min 25 s au journal, de la création du programme à l'issue.
 
 ## e25s04-distant — un modèle Anthropic choisi en cours de session
 
 Le répertoire de données ne porte pas de `config.json`. La session s'ouvre sur le modèle local.
-`anthropic/claude-sonnet-5` est choisi 1 s après que le journal porte le premier démarrage
-d'intervention, celui de la spécification.
+`anthropic/claude-sonnet-5` est choisi moins d'une demi-seconde après que le journal porte le
+premier démarrage d'intervention, celui de la spécification (17:25:05.086).
 
 - **Écran :** une seule notice, un avertissement émis au moment du choix : « 495: the model
   anthropic/claude-sonnet-5 was selected and is reached off this machine; what 495 sends it leaves
@@ -67,7 +67,7 @@ d'intervention, celui de la spécification.
 - **Coût :** 0,0758 $ au tarif du catalogue de l'hôte pour les deux interventions Anthropic ; les
   trois interventions ont fait 20 appels d'outils et 89 229 jetons. Relu par `node scripts/measure-budgets.ts ~/.495-campagnes/e25s04-distant`
   (sortie 0). Aucun montant n'est lu sur une facture.
-- **Verdict :** accepté en 2 min 3 s.
+- **Verdict :** accepté en 2 min 0 s au journal.
 
 ## e25s04-negatif — une liste restée dans `config.json`
 
@@ -83,19 +83,24 @@ Le fichier porte, dans l'ancienne forme, une liste qui ne nomme qu'un fournisseu
   changement n'a été ouvert sous la liste.
 - **Après le retrait :** aucune notice à l'écran, aucun refus au journal (aucun événement de type
   `*refused*`). Les trois démarrages inscrivent `omlx/qwen3.8-27b-oq8e` `on_machine`. Accepté en
-  3 min 50 s.
+  3 min 47 s au journal.
 - **Le nom témoin** n'apparaît dans aucun fichier du répertoire de données — journal, magasin
   d'objets, fichiers de journal, export — ni dans ce que Pi a reçu de 495, à l'écran comme sur
-  l'entrée structurée.
+  l'entrée structurée. Seules les sorties du pilote, qui recopient le fichier refusé, le portent.
 
 ## Adresses et jetons
 
 Les trois répertoires de données, hors espaces de travail des candidats et hors sorties du pilote,
 ont été fouillés, ainsi que tout ce que Pi a reçu de 495 à l'écran et sur l'entrée structurée. Les
-valeurs cherchées ont été lues dans la configuration du propriétaire et ne sont écrites ni ici ni
-dans les sorties du pilote : l'adresse du modèle local et sa clé, l'adresse d'Anthropic, le jeton
-d'accès et le jeton de renouvellement de l'abonnement, et le nom témoin. Aucune occurrence, dans
-aucune des trois campagnes.
+valeurs cherchées sont l'adresse du modèle local et sa clé, l'adresse d'Anthropic, le jeton d'accès
+et le jeton de renouvellement de l'abonnement, et le nom témoin. Les quatre premières ont été lues
+dans la configuration du propriétaire et ne sont écrites ni ici ni dans les sorties du pilote. Aucune
+occurrence, dans aucune des trois campagnes.
+
+Le chemin personnel du propriétaire n'a pas été cherché dans les dossiers, et il y est : les chemins
+absolus des espaces de travail figurent au journal, dans le magasin d'objets et dans l'export. C'est
+le même chemin que la section `<cwd>` envoie au fournisseur (voir plus bas). Le nom témoin, qui n'est pas un secret, n'apparaît que
+dans ce relevé et dans la sortie du pilote du contrôle négatif, qui recopie le fichier refusé.
 
 Le préfixe `sk-ant-oat` apparaît dans quatre fichiers du dossier distant : deux manifestes, et leur
 copie dans l'export. C'est la condition que le manifeste déclare pour le bloc imposé, pas un jeton.
@@ -115,6 +120,13 @@ défaut après la campagne distante. La commande RPC `set_model` ne persiste pas
 - **L'extension est chargée par l'entrée de paquet du propriétaire.** Sa configuration de Pi déclare
   le dépôt comme paquet, et Pi le charge malgré `-ne`. Une seule commande `495` est enregistrée, et
   elle pointe vers le même `dist/extension/index.js` que le `-e` explicite.
+
+- **L'interface texte n'est pas pilotée.** L'écran mesuré est l'avertissement `notify` que le mode
+  RPC de Pi transmet, qui est l'appel que reçoit l'interface texte. Mais dans l'interface texte, 495
+  double aussi chaque message de l'entrée structurée d'une notice à l'écran
+  (`src/extension/session.ts`, `emit`) : l'annonce mise en attente y serait donc dite une seconde
+  fois, en notice d'information, avec la réponse de la commande suivante. Ce comportement vient de
+  e25s03, que cette recette ne change pas.
 
 Rien d'autre n'est feint : le modèle local et le modèle Anthropic sont réels, le second joint par
 l'abonnement du propriétaire, et la Seatbelt confine les contrôles.

@@ -58,7 +58,8 @@ tasks:
 
   - id: 3
     description: >
-      La matrice porte SEC-05 et AGT-07 avec les preuves de l'epic.
+      La matrice porte SEC-05 avec les preuves de l'epic ; AGT-07, `[P1]`, est tracée dans le
+      relevé de vérification, la matrice archivée ne portant que les exigences `[P0]`.
     verify: "npm run lint:traceability"
     risk: P2
     security: low

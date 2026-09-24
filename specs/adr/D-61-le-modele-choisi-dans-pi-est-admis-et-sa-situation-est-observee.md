@@ -1,6 +1,7 @@
 # D-61: Le modèle choisi dans Pi est admis, et sa situation est observée
 
-**Status:** Acceptée ; remplace la déclaration obligatoire des destinations, rend `D-53` sans objet
+**Status:** Acceptée ; remplace la déclaration obligatoire des destinations, rend `D-53` sans objet,
+ainsi que le jugement de la destination que `D-57` pose avant l'observation du format d'appels
 **Date:** 2026-09-24
 
 ## Contexte
@@ -78,8 +79,9 @@ pas élargir une liste de destinations ; c'est de ne pas remettre au noyau un ar
 fichier réservait peut-être à un humain.
 
 Ce qu'un modèle distant reçoit sort de la machine sans autre déclaration que son choix dans Pi. Le
-dossier en garde la trace : la situation de chaque intervention au journal, et le modèle réellement
-joint dans la ligne de coût de sa fin, que le worker écrit à partir du modèle qu'il a résolu.
+dossier en garde la trace : le fournisseur, le modèle et la situation de chaque intervention, inscrits
+à son démarrage, et, à sa fin, l'API et la strate imposée observées dans la requête que le worker a
+réellement envoyée (`D-60`). La ligne de coût ne nomme le modèle que lorsque le coût est inconnu.
 
 Trois limites restent :
 

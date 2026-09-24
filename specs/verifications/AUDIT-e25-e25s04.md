@@ -39,10 +39,10 @@ donc sur la justesse de ce que ces textes affirment du code et des campagnes.
 
 | Section | Verdict | Motif |
 |---|---|---|
-| Supply Chain & Security | PASS | Aucune dépendance ajoutée. Les 7 fichiers de la branche, fouillés pour les adresses, les jetons et le chemin personnel du propriétaire : 0 occurrence. |
+| Supply Chain & Security | PASS | Aucune dépendance ajoutée. Les fichiers de la branche, fouillés pour les adresses, les jetons et le chemin personnel du propriétaire : 0 occurrence. |
 | Provenance & Metadata | PASS | Le relevé et le relevé de vérification citent les révisions (`698da99`, `3b64971`, `c96a05d`) et `D-60`, `D-61`. |
 | Law of Demeter | PASS | Sans objet : aucun code. |
-| CONVENTIONS.md Compliance | PASS | Tout est sous `specs/` ; aucun appel `gh`. `specs/archive/TRACEABILITY.md` est modifié parce que `lint:traceability` le lit et que la spécification le nomme, comme les stories précédentes. Les messages de commit sont en anglais, sur une ligne, sans référence de story. |
+| CONVENTIONS.md Compliance | PASS | Tout est sous `specs/` ; aucun appel `gh`. `specs/archive/TRACEABILITY.md` n'est modifié que sur des lignes existantes, SEC-05 et AGT-02, que `lint:traceability` lit et que la branche rendait fausses ; AGT-07, `[P1]`, n'y est pas ajoutée. Les messages de commit sont en anglais, sur une ligne, sans référence de story. |
 | Scope | PASS | Les fichiers touchés sont ceux que la spécification liste (§20), plus les relevés et le suivi. Aucun comportement nouveau. |
 | Boy Scout Rule | PASS | La ligne SEC-05 de la matrice décrivait encore la liste et son refus ; elle décrit l'état d'arrivée. |
 | Types and Safety | PASS | Sans objet : aucun code. |
