@@ -6,7 +6,7 @@
 story_id: e25s03
 spec: e25s03-la-situation-du-modele-est-lue-de-son-adresse-portee-au-dossier-et-annoncee.md
 title: "La situation du modèle est lue de son adresse, portée au dossier et annoncée"
-status: failing
+status: passing
 bcps: 5
 requirement: SEC-05
 delta: MODIFIED
@@ -73,7 +73,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
