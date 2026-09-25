@@ -1,6 +1,6 @@
 development_status:
   e01: in_progress
-  e01s01: in_progress
+  e01s01: done
   e01s02: backlog
   e01s03: backlog
   e01s04: backlog
@@ -48,11 +48,16 @@ epics:
 
 stories:
   e01s01:
-    status: in_progress
+    status: done
     title: Un rapport qui défait une liaison sans rien demander rouvre la spécification
     bcps: 3
     epic: e01
     started_at: "2026-09-25T17:07:59+02:00"
+    tasks_total: 3
+    tasks_passing: 3
+    tasks_failing: 0
+    risk_max: P0
+    security_max: low
   e23s01:
     status: done
     title: La sortie de données vers le fournisseur est déclarée

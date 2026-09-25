@@ -1,0 +1,175 @@
+story_id: e01s01
+verified_at: "2026-09-25T15:52:00Z"
+verifier: verify-work
+risk: P1
+risk_note: "Story P1; task 1 is P0, so the security scan and the NFR gate were run as for a P0 story."
+branch: rapport-rouvre-la-specification
+revision: 8a7c8dd
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  model: "omlx/qwen3.8-27b-oq8e, medium, on the local endpoint"
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from dist/, rebuilt under Node 24.21.0 at 8a7c8dd, through a
+      real `pi -ne --mode rpc --no-session -e <extension>` on a copied data directory.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check; Biome clean over 182 files, no fixes applied."
+  tests:
+    passed: true
+    count: 469
+    note: >
+      469 of 469. 465 on main at bdebd23; the 4 of test/v2/specification-reopening.test.ts are added,
+      none removed, and one test of test/v2/harness.test.ts changes its expectation (4 specify
+      interventions instead of 3).
+
+terminal_verdict:
+  command: "npm run check"
+  exit_code: 0
+  started_at: "2026-09-25T15:32:56Z"
+  ended_at: "2026-09-25T15:35:22Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on the code committed as 8a7c8dd, right after
+    `npm run build`. 469 tests passing, 0 failing. No output from any other attempt is merged into
+    this block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 8a7c8dd; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 4 }
+    - { task: 2, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 4 }
+    - { task: 3, command: "npm run check", exit_code: 0 }
+
+negative_control_tests:
+  code: "bdebd23 (main before the story), with the two test files of ada5ada"
+  where: "~/.495-campagnes/builds/e01s01-avant-bdebd23"
+  results:
+    - command: "node --test test/v2/specification-reopening.test.ts"
+      exit_code: 1
+      observed: "3 of 4 fail (6a, 6b, 6c); 6e passes, the behaviour held already. 6a: clarifying -> specifying/ready, G1 refuses q1."
+    - command: 'node --test --test-name-pattern="stops carrying a declaration" test/v2/harness.test.ts'
+      exit_code: 1
+      observed: "3 specify interventions instead of 4"
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e01s01"
+
+blind_spots:
+  ran: false
+  note: >
+    Same derogation as e25s02: check-blind-spots.sh reads its state table with a pattern that can
+    never match, so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e23s01, e23s02, e25s01 and e25s02: it looks for story identifiers in the
+    sources, which the written-content rules forbid. BES-02 keeps its row (lint:traceability green).
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e01s01.json"
+
+report_judged:
+  method: >
+    The three specification reports of ~/.495-campagnes/java-flashnext-L2, read read-only from its
+    ledger and object store, judged by specificationStanding from each build.
+  results:
+    - code: "branch, dist at 8a7c8dd"
+      observed: "report dia_mu8m4cqjce00c7bf75 (event 183) asks nothing; ignored [Q1], reopen true, settled false"
+    - code: "bdebd23 — negative control"
+      observed: "the same report: ignored [], reopen false, settled true"
+
+manual:
+  method: >
+    The change of java-flashnext-L2, lost at G1 on 2026-09-19, resumed in a real `pi --mode rpc`,
+    driven by ~/.495-campagnes/scripts/e01s01-drive.ts: set_model omlx/qwen3.8-27b-oq8e, then
+    `/495 resume`, in the change's own target (simple-demo-hexagonal-architecture, clean at its
+    reference head d66382a), under the real sandbox. The ledger is read read-only until G1 is
+    decided, a human decision is requested, or the change blocks; the driver then stops Pi. Each
+    run works on its own copy of the dossier, made by ~/.495-campagnes/scripts/e01s01-couper.mjs.
+    The same driver and the same cut run the branch build and the build of bdebd23.
+  fiction_declared: >
+    The dossier is cut right after event 183, the report that lost Q1's binding: events 184..195 and
+    the mandate and the two requirements documents they proposed are removed, and the projection is
+    rebuilt from the remaining events. That is the state a session leaves when it stops between the
+    report and the mandate, the interruption point of §5; no session actually stopped there, since
+    on 2026-09-19 the old kernel went straight on to G1. The reports before the cut were written by
+    Flash-Next, which the capability probe refused in the e25s02 campaigns; the reopened report is written by
+    qwen3.8-27b-oq8e. Nothing left the machine. The original dossier is untouched.
+  campaigns:
+    - dossier: "~/.495-campagnes/e01s01-reprise"
+      change: chg_mu8k6f3k537d7f5266
+      code: "branch, 8a7c8dd"
+      outcome: "G0 PASS, G1 PASS; stopped by the driver once the change entered preparing"
+      observed: >
+        /495 resume at 15:40:16Z; #184 specify started under omlx/qwen3.8-27b-oq8e medium, its
+        request (ctx_muh4nm4ib806901138) marks Q1 "[to declare in `answers`]" and Q2..Q5 "already
+        declared" with the requirements carrying them. The intervention completed at 15:48:20Z
+        (475 s, 17 tool calls). Its report dia_muh4xstta452cdaf13 asks nothing and declares Q1
+        observable, bound to REQ-REFUSE-TOO-LONG-CREATE, REQ-422-BODY-FORMAT and
+        REQ-ACCEPT-OBSERVABLE; it was not reopened again. G0 PASS (#207), G1 PASS (#212), and the
+        adopted requirements rqs_muh4xsu904b0a8379f carry Q1 through Q7, Q1 with the answer "422
+        avec le message 'Name cannot be longer than 50 characters'". REQ-422-BODY-FORMAT's criterion
+        is the exact comparison of the 422 body with that string. Six specify interventions on the
+        change: one reopening.
+    - dossier: "~/.495-campagnes/e01s01-reprise-negatif"
+      change: chg_mu8k6f3k537d7f5266
+      code: "bdebd23 — negative control"
+      outcome: "blocked in specifying — execution_error, G0 PASS, G1 FAIL, no intervention"
+      observed: >
+        /495 resume at 15:40:06Z; no specify intervention. The mandate is proposed from report 183
+        and adopted at G0; its digest sha256:5eb34219… is that of the mandate of 2026-09-19. G1
+        refuses: "material answer Q1 fixes an observable contract that no requirement carries (next:
+        revise_requirements)" — the loss of the original campaign.
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-25T16:05:44Z"
+  confirmation_note: >
+    Confirmed by the owner on the two campaigns above and the stated limits: the cut of the dossier
+    is a fiction, 6b, 6c and 6e rest on their tests, and what the frozen protocol requires belongs
+    to e01s05.
+  steps:
+    - step: "Un rapport rouvert qui renomme l'exigence porteuse sans rien demander est rouvert (6a)"
+      expected: "Une nouvelle intervention de spécification, dont la demande dit que Q1 est à déclarer, et un rapport qui la déclare mène au-delà de G1"
+      actual: "e01s01-reprise — une intervention specify, Q1 « to declare », le rapport lie Q1 à trois exigences obligatoires, G1 PASS"
+      passed: true
+    - step: "Le même cas sur le code d'avant s'arrête à G1 (contrôle négatif)"
+      expected: "Aucune intervention de spécification après le rapport qui perd la liaison, G1 refuse Q1"
+      actual: "e01s01-reprise-negatif — aucune intervention, mandat identique à celui du 2026-09-19, G1 FAIL sur Q1"
+      passed: true
+    - step: "Un rapport rouvert qui ne gagne rien n'est pas rouvert (6b)"
+      expected: "Pas de nouvelle intervention, G1 refuse la réponse perdue en la nommant, rien d'adopté"
+      actual: "test/v2/specification-reopening.test.ts seulement — le modèle a déclaré Q1 au premier essai"
+      passed: true
+    - step: "Des rapports qui oscillent ne relancent pas sans fin (6c)"
+      expected: "Plus de réouverture après le premier rapport qui ne porte que des réponses déjà portées"
+      actual: "test/v2/specification-reopening.test.ts seulement"
+      passed: true
+    - step: "Une réponse déclarée non observable n'est pas comptée comme perdue (6e)"
+      expected: "Pas de réouverture pour cette réponse"
+      actual: "test/v2/specification-reopening.test.ts seulement ; le comportement tenait déjà avant la story"
+      passed: true
+
+gaps:
+  closed: true
+  note: "No gap between what e01s01 promises and what the campaign and the tests show."
+
+known_limits:
+  - "The resumed dossier is cut after event 183; no session really stopped there (fiction_declared)."
+  - "6b, 6c and 6e are not exercised by a real model: the model declared Q1 at the first reopening. Their tests hold them."
+  - "The campaign stops once G1 has passed: whether the frozen protocol and the executed controls carry the 422 decided belongs to e01s05."

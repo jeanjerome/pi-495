@@ -780,3 +780,45 @@ La campagne distante a envoyé à Anthropic les extraits de la cible JS minimale
 donnée privée, et la section `<cwd>` que Pi ajoute à l'invite, avec le chemin absolu de l'espace de
 travail. Cette section reste la question ouverte que `D-61` reprend.
 
+
+# Revue de sécurité — e01s01, un rapport qui défait une liaison rouvre la spécification
+
+| | |
+|---|---|
+| Périmètre | `git diff main...HEAD -- src/` |
+| Révision relue | `8a7c8dd` |
+| Conduite le | 2026-09-25 |
+| Branche | `rapport-rouvre-la-specification` |
+| Risque de la story | P1, tâche 1 classée P0, `security: low` |
+| Code de production touché | `src/domain/change/state.ts` (le prédicat de réouverture et sa borne), `src/application/phases/clarify.ts` (le jugement du rapport qu'une réouverture vient d'obtenir) |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8/10. Le gate n'est pas bloqué. La story traite M2 du modèle de menace
+de l'epic, un déni de service sur le changement, sans toucher au juge : G1 reste le seul à adopter
+les exigences, et son refus reste fermé.
+
+## Hypothèses vérifiées, non supposées
+
+- **La réouverture n'adopte rien.** La boucle de `clarify` ne fait qu'écrire un rapport de plus et
+  le proposer comme diagnostic. Elle ne lie ni ne délie aucune réponse. Le mandat est proposé à G0
+  après la boucle, comme avant, et les exigences passent toujours par G1. Le test 6b le montre : un
+  rapport qui perd une réponse sans rien gagner va à G1, qui le refuse, et rien n'est adopté.
+- **La boucle est bornée par les réponses enregistrées (M7).** Elle ne relance que si le rapport
+  obtenu porte une réponse qu'aucun rapport antérieur ne portait. `priorDiagnostics` rend tous les
+  diagnostics sauf le dernier (`src/application/artifacts.ts:83`), donc le rapport juste proposé
+  entre dans l'union dès le tour suivant. Sans réponse humaine entre deux tours, l'union ne peut
+  croître qu'autant de fois qu'il y a de réponses matérielles enregistrées. Le budget d'incrément
+  borne en plus chaque intervention. Le test 6c exerce un modèle qui oscille.
+- **Un rapport qui pose une question matérielle nouvelle sort de la boucle.** La question passe
+  d'abord par IH-01, comme avant. Aucune décision humaine n'est contournée.
+- **Une intervention bloquée arrête la boucle.** `writeSpecification` ne rend aucun rapport quand le
+  changement est bloqué, et `clarify` rend alors l'unité telle quelle.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+- **Un diagnostic illisible sort de l'union (confiance 3/10, faible).** `priorDiagnostics` écarte en
+  silence un rapport antérieur que le magasin d'objets ne rend pas (`.catch(() => null)`). L'union
+  des réponses déjà portées en devient plus petite, et un rapport peut compter comme un progrès alors
+  qu'il ne l'est pas. Ce comportement est antérieur à la branche, et le budget d'incrément reste une
+  borne. Un magasin d'objets altéré est de toute façon hors du modèle de menace de l'epic.

@@ -1,0 +1,37 @@
+{
+  "story_id": "e01s01",
+  "risk": "P1",
+  "risk_note": "Story P1 with task 1 in P0; the gate is run as for P0.",
+  "evaluated_at": "2026-09-25T15:36:02Z",
+  "threshold_source": {
+    "file": "specs/epics/e01-reponse-humaine-atteint-les-exigences/e01s01-un-rapport-qui-defait-une-liaison-sans-rien-demander-rouvre-la-specification.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "No specs/tech-architecture/e01-TEST_PLAN_LATEST.md exists; the thresholds are the three the story spec states, grouped under the gate's three dimensions."
+  },
+  "environment": {
+    "node": "24.21.0",
+    "model": "none: the scripted agent of test/v2 writes the reports; the real reports of ~/.495-campagnes/java-flashnext-L2 are judged by the built kernel, read-only"
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "Reopenings in a row with no human answer between them: at most one per recorded material answer, each one carrying an answer no earlier report carried",
+      "measured": "test/v2/specification-reopening.test.ts 6c: reports that take one answer back and lose the other in turn stop being reopened at the first one that carries only answers an earlier report carried; 6b: a reopened report that gains nothing is not reopened. Both fail on the code before the story (bdebd23).",
+      "note": "Each reopening is one specify intervention; the bound is what limits their cost (threat M7). No campaign measures it with a real model: the real campaign belongs to e01s05."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "Recorded material answer carried by no report, in a mandate proposed at G0 while the bound did not stop the reopening: 0",
+      "measured": "6a: the reopened report that renames the requirement Q1 was bound to and asks nothing is reopened, the request names the answer to declare, and the change passes G1. On the real report 183 of java-flashnext-L2 (dia_mu8m4cqjce00c7bf75), the built kernel returns ignored [Q1], reopen true; the kernel before the story returns ignored [], settled true, which is how that change was lost at G1.",
+      "note": "The real report is judged by specificationStanding alone; no model rewrites it under the new code."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "Requirements document adopted at G1 that loses an answer: 0; G1's refusal stays closed",
+      "measured": "6b and 6c: the report that loses an answer and gains nothing goes to G1, which refuses it naming the lost answer, and nothing is adopted. The progress message 'specification reopened by <n> material answer(s): <ids>' now also names an answer lost by a report that did not ask for it.",
+      "note": "No new event is journaled, as §12 states."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false
+}

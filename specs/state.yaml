@@ -10,14 +10,26 @@ active_epic_id: e01
 active_story: e01s01
 
 epic_cycle:
-  step: 5
-  completed_steps: "0,1,2,3,4"
+  step: 6
+  completed_steps: "0,1,2,3,4,5"
   audit_result: null
   story_bcps: 3
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
+    Étape 5 faite le 2026-09-25 : `verify-work` a vérifié e01s01, et le propriétaire a confirmé la
+    recette. Le changement perdu de `java-flashnext-L2` est repris dans un vrai `pi --mode rpc`, avec
+    `omlx/qwen3.8-27b-oq8e` et le bac à sable réel, sur une copie du dossier coupée juste après le
+    rapport qui perdait la liaison de Q1 (fiction déclarée). Sur la branche (`e01s01-reprise`), la
+    spécification est rouverte une fois, et sa demande marque Q1 « à déclarer ». Le rapport lie Q1 à
+    trois exigences obligatoires, G0 et G1 passent, et le document adopté porte Q1 à Q7. Sur
+    `bdebd23` (`e01s01-reprise-negatif`), rien n'est relancé : le mandat est identique à celui du
+    2026-09-19, et G1 refuse Q1. 6b, 6c et 6e reposent sur leurs tests. Preflight verte sous Node
+    24.21.0 à `8a7c8dd` (469 tests), aucun constat de sécurité à confiance 8 ou plus. Preuves :
+    `specs/verifications/e01s01-verify.yaml`, `NFR-e01s01.json`, section e01s01 de
+    `specs/security/REVIEW.md`. Prochaine étape : `audit-code`.
+
     develop-tdd fait le 2026-09-25 sur `rapport-rouvre-la-specification` : rouge `60c2c34` (test
     seul, 3 échecs sur 4 en isolation, et le test de `harness.test.ts` à 3 interventions au lieu
     de 4), vert `ada5ada`. La réouverture retient toute réponse matérielle que le rapport ne porte
