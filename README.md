@@ -280,15 +280,9 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 
 ## Contributing
 
-Early feedback is especially useful on real Maven and Node projects: the request, the command used, the observed stop reason and the expected behavior help make a report actionable. Review exported content before attaching it to an [issue](https://github.com/jeanjerome/pi-495/issues).
+Early feedback is especially useful on real Maven and Node projects: the request, the command used, the observed stop reason and the expected behavior help make a report actionable. Ask questions and suggest ideas in [Discussions](https://github.com/jeanjerome/pi-495/discussions); report defects with a [bug report](https://github.com/jeanjerome/pi-495/issues/new?template=bug_report.yml).
 
-```bash
-npm ci
-npm run build
-npm run check
-```
-
-Read [CONVENTIONS.md](CONVENTIONS.md) and [AGENTS.md](AGENTS.md) before contributing. The [specification index](specs/README.md) links the architecture, decisions and qualification records; [contracts/v1](contracts/v1) contains the JSON schemas used at boundaries.
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) explains how to build, check and propose a change. Report a vulnerability privately, as the [security policy](.github/SECURITY.md) describes. Everyone who takes part follows the [code of conduct](.github/CODE_OF_CONDUCT.md).
 
 ## License
 

@@ -1,0 +1,52 @@
+name: Bug report
+description: Pi-495 stopped, refused or accepted something it should not have.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A vulnerability goes to a [private security report](https://github.com/jeanjerome/pi-495/security/advisories/new), not here.
+  - type: input
+    id: request
+    attributes:
+      label: Request
+      description: The change you asked for.
+      placeholder: /495 start add a retry with backoff to the upload client
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target project
+      options:
+        - Java / Maven
+        - Node
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened
+      description: The command you ran, and the stop reason or message 495 showed. `/495 status` shows the phase and the next action.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Pi-495, Pi (`pi --version`), Node.js (`node --version`) and OS.
+      placeholder: pi-495 0.2.0, Pi 0.87.1, Node 24.12.0, macOS 27.0
+    validations:
+      required: true
+  - type: textarea
+    id: dossier
+    attributes:
+      label: Dossier excerpt (optional)
+      description: Export with `/495 export --redact` and review it before attaching. Redaction is pattern-based and does not guarantee that every sensitive value was removed.

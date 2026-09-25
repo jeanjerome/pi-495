@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question
+    url: https://github.com/jeanjerome/pi-495/discussions/categories/q-a
+    about: Ask how something works.
+  - name: Idea
+    url: https://github.com/jeanjerome/pi-495/discussions/categories/ideas
+    about: Suggest a capability or a change of behavior.
+  - name: Vulnerability
+    url: https://github.com/jeanjerome/pi-495/security/advisories/new
+    about: Report it privately, never in a public issue.
