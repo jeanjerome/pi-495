@@ -28,7 +28,7 @@ interface Binding {
 	change_id: string;
 }
 
-export const VERSION_495 = "0.2.0";
+export const VERSION_495 = "0.2.1";
 
 /**
  * A runtime that could not be created, told by its error code alone: the system's message names the
