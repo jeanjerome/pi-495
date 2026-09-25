@@ -388,7 +388,7 @@ export interface SpecificationStanding {
 	declared: Map<string, AnswerDeclaration>;
 	/** The recorded material answers the report says nothing about. */
 	ignored: OpenQuestion[];
-	/** The report must be written again: it ignores an answer and carries one no earlier report carried. */
+	/** The report must be written again: it ignores an answer and carries one no report since the resumption carried. */
 	reopen: boolean;
 	/** Every material question is answered and the report accounts for it: this report stands. */
 	settled: boolean;
@@ -400,27 +400,33 @@ export interface SpecificationStanding {
  * A report written before a material answer cannot carry it, and reusing it is how a recorded human
  * decision reaches nothing: the answer is put back into the request and the specification is redone.
  * What bounds the reopening is progress, not a count — the report a reopening produced must account
- * for an answer no report before it on the change did. Measured against the previous report alone,
- * reports that take one answer back and lose another in turn would each count as progress and be
- * reopened without end; measured against all of them, reopenings without a human answer between
- * them number at most the recorded answers. A report that gives the same ground back is G1's
- * business, and a change is never held by a specification that will not say what it did with an
- * answer.
+ * for an answer no report since the clarification resumed did. `resumedOn` is the number of priors
+ * written before the report the clarification resumed on: that report was written before the answer
+ * that resumed it and is judged on the answers alone, and the reports after it are the reopenings
+ * without a human answer between them. Measured against the previous report alone, reports that
+ * take one answer back and lose another in turn would each count as progress and be reopened without
+ * end; measured against every report since the resumption, the reopenings number at most the
+ * recorded answers. Measured against every report of the change, an answer given after a report that
+ * gained nothing would reach no rewriting. A report that gives the same ground back is G1's business,
+ * and a change is never held by a specification that will not say what it did with an answer.
  */
 export function specificationStanding(
 	state: ChangeState,
 	report: SpecificationReportView | null,
 	priors: SpecificationReportView[],
+	resumedOn: number,
 ): SpecificationStanding {
 	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
 	const declared = declarationsOfReport(priors, report);
 	const ignored = answersTheReportIgnores(state, declared);
 	const before = new Set(
-		priors.flatMap((prior, i) => answersTheReportCarries(state, declarationsOfReport(priors.slice(0, i), prior))),
+		priors.flatMap((prior, i) =>
+			i < resumedOn ? [] : answersTheReportCarries(state, declarationsOfReport(priors.slice(0, i), prior)),
+		),
 	);
 	const reopen =
 		ignored.length > 0 &&
-		(priors.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+		(priors.length <= resumedOn || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
 	return {
 		declared,
 		ignored,

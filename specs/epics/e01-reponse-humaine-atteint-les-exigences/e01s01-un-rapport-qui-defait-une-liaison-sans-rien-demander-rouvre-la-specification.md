@@ -41,9 +41,10 @@ relancée que si le rapport porte une réponse que **le rapport précédent** ne
 **After:** la spécification est rouverte quand un rapport ne porte pas une réponse matérielle
 enregistrée, **qu'il ait posé la question ou non** : ce sont les réponses que G1 refuse. Le rapport
 qu'une réouverture vient de produire est jugé de la même façon avant que le mandat ne soit proposé.
-Une réouverture n'est relancée que si le rapport porte une réponse **qu'aucun rapport antérieur du
-changement ne portait**. Sinon le rapport va à G1, qui le refuse en nommant la réponse perdue, comme
-aujourd'hui.
+Le rapport trouvé à la reprise a été écrit avant la réponse qui la déclenche : il est rouvert dès
+qu'il en perd une. Un rapport écrit depuis la reprise n'est rouvert que s'il porte une réponse
+**qu'aucun rapport écrit depuis la reprise, celui qu'elle a trouvé compris, ne portait**. Sinon le
+rapport va à G1, qui le refuse en nommant la réponse perdue, comme aujourd'hui.
 
 ### 2. Value statement [draft]
 
@@ -76,8 +77,9 @@ reprenant ou qu'elle vienne de l'obtenir.
    hérite des rapports antérieurs tant qu'elles tiennent encore (D-39).
 3. Le noyau relève les réponses matérielles enregistrées que ce rapport ne porte pas, que le rapport
    ait posé la question ou non.
-4. Si une telle réponse existe et que le rapport porte une réponse qu'aucun rapport antérieur ne
-   portait, la spécification est rouverte : une nouvelle intervention `specify` reçoit la demande,
+4. Si une telle réponse existe, et que le rapport est celui trouvé à la reprise ou porte une réponse
+   qu'aucun rapport écrit depuis la reprise, celui qu'elle a trouvé compris, ne portait, la
+   spécification est rouverte : une nouvelle intervention `specify` reçoit la demande,
    qui indique pour chaque réponse si elle est déjà déclarée ou encore à déclarer.
 5. Le rapport obtenu est enregistré.
 6. S'il pose une question matérielle nouvelle, elle est posée par IH-01, et le jugement reprend à
@@ -85,7 +87,7 @@ reprenant ou qu'elle vienne de l'obtenir.
 7. Sinon, le noyau juge le rapport obtenu comme à l'étape 2, avant de proposer le mandat. S'il doit
    être rouvert, le parcours reprend à l'étape 4.
 8. Un rapport qui porte toutes les réponses enregistrées, ou qui n'a rien gagné sur les rapports
-   antérieurs, devient la base du mandat proposé à G0.
+   écrits depuis la reprise, devient la base du mandat proposé à G0.
 
 Interruption point: entre les étapes 5 et 7. Le rapport est enregistré, mais le mandat n'est pas
 encore proposé. Une reprise juge ce rapport comme à l'étape 2.
@@ -132,8 +134,9 @@ Aucun élément nouveau.
 changements :
 - la liste des réponses ignorées retient toute réponse matérielle enregistrée que le rapport ne
   porte pas ;
-- la progression se mesure contre tous les rapports antérieurs du changement, pas seulement le
-  précédent.
+- la progression se mesure contre tous les rapports écrits depuis la dernière reprise de la
+  clarification, pas seulement le précédent. Mesurée contre tous les rapports du changement, une
+  réponse donnée après un rapport qui n'a rien gagné n'atteindrait aucune réécriture.
 
 **Entité créée :** aucune. Aucun identifiant de composant nouveau, aucun événement nouveau.
 
@@ -175,7 +178,8 @@ Not applicable. Aucun réglage : la borne ne dépend que des réponses enregistr
 - Réponse matérielle enregistrée qu'aucun rapport ne porte, dans un mandat proposé à G0 sans que la
   borne ait arrêté la réouverture : 0.
 - Réouvertures consécutives sans réponse humaine entre elles : au plus une par réponse matérielle
-  enregistrée. Chaque réouverture doit porter une réponse qu'aucun rapport antérieur ne portait.
+  enregistrée. Chaque réouverture doit porter une réponse qu'aucun rapport écrit depuis la reprise
+  ne portait.
 - Document d'exigences adopté à G1 qui perd une réponse : 0. Le refus de G1 reste fermé.
 
 ### 15. Security and compliance *NFR* [draft]
@@ -227,6 +231,13 @@ Scenario: Des rapports qui oscillent ne relancent pas sans fin (6c)
   When  le changement avance sans réponse humaine nouvelle
   Then  la spécification n'est plus rouverte après le premier rapport qui ne porte que des réponses déjà portées par un rapport antérieur
   And   le changement s'arrête à G1
+
+Scenario: Une réponse donnée après un rapport qui n'a rien gagné atteint une réécriture (6f)
+  Given un rapport rouvert qui reprend une réponse, en perd une autre, et pose une question matérielle nouvelle
+  When  le changement avance
+  Then  la question est posée d'abord
+  And   après la réponse, une nouvelle intervention de spécification est demandée
+  And   un rapport qui porte toutes les réponses mène le changement au-delà de G1
 
 Scenario: Une réponse déclarée non observable n'est pas comptée comme perdue (6e)
   Given un rapport qui déclare une réponse enregistrée non observable
