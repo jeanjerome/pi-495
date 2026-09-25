@@ -184,6 +184,8 @@ class FakePi {
 	command: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | null = null;
 	readonly hooks = new Map<string, (event: unknown, ctx: ExtensionContext) => Promise<unknown>>();
 	readonly said: string[] = [];
+	/** The messages Pi's terminal interface draws in the conversation: those sent with `display`. */
+	readonly displayed: string[] = [];
 	registerCommand(_name: string, options: { handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> }) {
 		this.command = options.handler;
 	}
@@ -192,8 +194,9 @@ class FakePi {
 	}
 	registerTool(): void {}
 	registerMessageRenderer(): void {}
-	sendMessage(message: { content: string }): void {
+	sendMessage(message: { content: string; display?: boolean }): void {
 		this.said.push(message.content);
+		if (message.display) this.displayed.push(message.content);
 	}
 	appendEntry(): void {}
 }
@@ -334,7 +337,7 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 	async function screenAndMessages(
 		opening: { provider: string; id: string; baseUrl: string },
 		selectedLater: { provider: string; id: string; baseUrl: string } | null,
-	): Promise<{ notices: string[]; said: string[] }> {
+	): Promise<{ screen: string[]; said: string[] }> {
 		saved.HARNESS495_DATA_DIR = process.env.HARNESS495_DATA_DIR;
 		process.env.HARNESS495_DATA_DIR = join(root, "data");
 		const cwd = project();
@@ -357,7 +360,7 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 			}
 			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
 			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
-			return { notices, said: pi.said };
+			return { screen: [...notices, ...pi.displayed], said: pi.said };
 		} finally {
 			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
 			rmSync(cwd, { recursive: true, force: true });
@@ -368,15 +371,14 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 	const local = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
 
 	it("is said once on the screen and once in the conversation when /model selects it", async () => {
-		const { notices, said } = await screenAndMessages(local, remote);
-		const shown = notices.filter((n) => n.includes(OFF_MACHINE));
-		assert.equal(shown.length, 1, notices.join(" | "));
+		const { screen, said } = await screenAndMessages(local, remote);
+		assert.equal(screen.filter((n) => n.includes(OFF_MACHINE)).length, 1, screen.join(" | "));
 		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
 	});
 
 	it("is said once on the screen and once in the conversation when the session opens on it", async () => {
-		const { notices, said } = await screenAndMessages(remote, null);
-		assert.equal(notices.filter((n) => n.includes(OFF_MACHINE)).length, 1, notices.join(" | "));
+		const { screen, said } = await screenAndMessages(remote, null);
+		assert.equal(screen.filter((n) => n.includes(OFF_MACHINE)).length, 1, screen.join(" | "));
 		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));
 	});
 
@@ -384,9 +386,17 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 		saved.HARNESS495_ALLOW_UNCONFINED = process.env.HARNESS495_ALLOW_UNCONFINED;
 		process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 		const unconfined = "the unconfined backend is enabled";
-		const { notices, said } = await screenAndMessages(local, null);
-		assert.equal(notices.filter((n) => n.includes(unconfined)).length, 1, notices.join(" | "));
+		const { screen, said } = await screenAndMessages(local, null);
+		assert.equal(screen.filter((n) => n.includes(unconfined)).length, 1, screen.join(" | "));
 		assert.equal(said.filter((m) => m.includes(unconfined)).length, 1, said.join(" | "));
+	});
+
+	it("leaves each reply of a /495 command drawn once on the screen", async () => {
+		const { screen, said } = await screenAndMessages(local, null);
+		const firstLine = (text: string): string => text.split("\n")[0]!;
+		const reply = firstLine(said.at(-1)!);
+		const replies = said.filter((m) => firstLine(m) === reply).length;
+		assert.equal(screen.filter((n) => firstLine(n) === reply).length, replies, screen.join(" | "));
 	});
 });
 

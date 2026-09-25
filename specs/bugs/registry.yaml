@@ -1,4 +1,40 @@
 bugs:
+  - bug_id: BUG-2026-09-25T103000
+    date: "2026-09-25"
+    title: "In the TUI, every 495 message and every opening diagnostic is drawn twice on the screen"
+    severity: low
+    priority: p2
+    scope: presentation
+    what_happened: >
+      In Pi's terminal interface, each reply of a /495 command appears twice: once as a message box in
+      the conversation, once as an info notice under it. An opening diagnostic, the off-machine model
+      announcement included, appears as a warning notice when it arises, then again as a message box at
+      the first /495.
+    what_expected: >
+      Each text is drawn once on the screen, and a diagnostic reaches the structured entry once, as the
+      off-machine announcement of e25s03 requires.
+    steps_to_reproduce:
+      - "Open Pi in the TUI with 495 loaded and an off-machine model selected."
+      - "Run `/495 status`: the warning seen at opening is drawn again as a box, and the reply is drawn as a box and as a notice."
+    root_cause: >
+      A message sent with `display: true` is drawn in the conversation by Pi's terminal interface
+      (docs/message-types.md: `display` controls terminal rendering). `emit` added a notice to every
+      such message, and `flushDiagnostics` sent every queued diagnostic with `display: true` although
+      the screen had been told when it was queued. The fix of BUG-2026-09-24T175500 counted notices
+      only, through a probe on `ctx.ui.notify`, and took the drawn message for a channel off the
+      screen.
+    evidence: >
+      Seen in a vhs recording of Pi 0.87.1 in the TUI with 495 loaded
+      (~/.495-campagnes/demo-readme-bench/f2.png): the off-machine warning, then the same text in a
+      "Custom · 495" box, then the /495 status reply in a box and again as a notice.
+      test/v3/model-select.test.ts, four tests under "on the screen of Pi's terminal interface" that
+      count notices and displayed messages together: red before the fix (2 !== 1 three times, 4 !== 2),
+      green after it, Preflight green (456 tests).
+    risk_level: low
+    follow_ups: >
+      a message 495 emits is drawn once, by Pi, with no notice; a diagnostic already announced on a
+      screen is kept in the session with `display: false`
+    status: fixed
   - bug_id: BUG-2026-09-24T175500
     date: "2026-09-24"
     title: "In the TUI, an off-machine model announcement and every opening diagnostic reach the screen twice"
