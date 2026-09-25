@@ -1728,3 +1728,29 @@ describe("a profile that cannot do the work is refused before it is paid for (AG
 		assert.equal(t.agent.started[0]?.model.thinking_level, "low");
 	});
 });
+
+describe("the language a change was started in", () => {
+	it("is the one the first intervention is told to write in, before a mandate records it", async () => {
+		const p = project();
+		const t = track(makeHarness());
+		const prompts: { role: string; system: string }[] = [];
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			prompts.push({ role: m.role, system: m.system_prompt });
+			return original(m);
+		};
+		const { change } = await t.harness.start({
+			project_path: p,
+			request_text: "Keep greet behaviour, tidy the implementation",
+			actor: HUMAN,
+			language: "en",
+		});
+		await t.harness.advance(change.change_id);
+		assert.equal(prompts[0]?.role, "specify", prompts.map((x) => x.role).join(" | "));
+		assert.match(prompts[0]!.system, /Human-facing text must be written in English\./);
+		assert.ok(
+			prompts.every((x) => x.system.includes("written in English")),
+			prompts.map((x) => x.role).join(" | "),
+		);
+	});
+});

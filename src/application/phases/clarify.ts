@@ -7,7 +7,7 @@ import type { Mandate } from "../../contracts/v1/protocol.ts";
 import { OUTPUT_SCHEMAS } from "../../contracts/v1/reports.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
 import { validate } from "../../contracts/validate.ts";
-import { specificationStanding, subjectOfChange } from "../../domain/change/state.ts";
+import { requestedLanguage, specificationStanding, subjectOfChange } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { specificationObjective } from "../context.ts";
@@ -65,8 +65,7 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			cor,
 		);
 	}
-	const langQ = unit.state.open_questions.find((q) => q.id === "language");
-	const language = (langQ?.question.split(":")[1] as "fr" | "en" | undefined) ?? "fr";
+	const language = requestedLanguage(unit.state) ?? "fr";
 	const material = report.questions.filter(
 		(q) => q.material && !unit.state.open_questions.some((s) => s.id === q.id && s.answer !== null),
 	);

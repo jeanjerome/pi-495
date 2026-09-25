@@ -269,6 +269,12 @@ export function runningIntervention(state: ChangeState): InterventionState | nul
 	return state.interventions.find((i) => i.result === "running") ?? null;
 }
 
+/** The language the change was started in, as its opening recorded it before any mandate exists. */
+export function requestedLanguage(state: ChangeState): "fr" | "en" | null {
+	const asked = state.open_questions.find((q) => q.id === "language")?.question.split(":")[1];
+	return asked === "fr" || asked === "en" ? asked : null;
+}
+
 /** What a specification report says it did with one material answer: the binding, not the text. */
 export interface AnswerDeclaration {
 	question_id: string;

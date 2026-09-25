@@ -16,7 +16,13 @@ import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
-import { runningIntervention, unknownCost, type ArtifactKind, type ChangeState } from "../domain/change/state.ts";
+import {
+	requestedLanguage,
+	runningIntervention,
+	unknownCost,
+	type ArtifactKind,
+	type ChangeState,
+} from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
 import { imposedLayersFor, recordImposedLayers, unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
@@ -246,8 +252,9 @@ export class Harness {
 		};
 	}
 
+	/** The mandate's language once G0 recorded it, and the one the change was started in before. */
 	private language(state: ChangeState): "fr" | "en" {
-		return state.mandate?.language ?? "fr";
+		return state.mandate?.language ?? requestedLanguage(state) ?? "fr";
 	}
 
 	// --- program creation (PF-01) ----------------------------------------------------------------
