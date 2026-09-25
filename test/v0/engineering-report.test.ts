@@ -236,7 +236,7 @@ describe("engineering report: observations, judgments and residual risks (IMP-05
 		assert.equal(report.observations.length, 0, "a decision is never an observation");
 	});
 
-	it("renders the three sections in order, in the language of the change", () => {
+	it("renders what was asked, then the three sections in order, in the language of the change", () => {
 		const r = new Runner().toDeciding(c).g5();
 		const text = formatReport(
 			engineeringReport(
@@ -247,9 +247,64 @@ describe("engineering report: observations, judgments and residual risks (IMP-05
 			"fr",
 		);
 		const sections = text.split("\n").filter((line) => line.startsWith("## "));
-		assert.deepEqual(sections, ["## Observations mécaniques", "## Jugements", "## Risques résiduels"]);
+		assert.deepEqual(sections, ["## Exigences", "## Observations mécaniques", "## Jugements", "## Risques résiduels"]);
 		assert.ok(text.indexOf("## Observations mécaniques") < text.indexOf("## Jugements"));
 		assert.ok(text.indexOf("## Jugements") < text.indexOf("## Risques résiduels"));
 		assert.match(formatReport(engineeringReport(r.s, [], null), "en"), /## Residual risks/);
+	});
+});
+
+describe("engineering report: what was asked (IMP-05)", () => {
+	const requirement = (requirement_id: string, statement: string) => ({
+		requirement_id,
+		statement,
+		category: "functional",
+		mandatory: true,
+		criterion: "a control observes it",
+		source: "request",
+		contract_family: null,
+		satisfied_by_reference: false,
+	});
+
+	it("states each adopted requirement with the verdicts its controls gave the candidate", () => {
+		const r = new Runner().toDeciding(c).g5();
+		const doc = {
+			change_id: r.s.change_id,
+			requirements: [
+				requirement("R1", "greet ends with an exclamation mark"),
+				requirement("R2", "the code stays lint-clean"),
+			],
+			answers: [],
+			assumptions: [],
+			contract_families: {},
+		};
+		const report = engineeringReport(
+			r.s,
+			r.s.evidence.map((e) => stored(e)),
+			protocol(),
+			doc,
+		);
+		assert.deepEqual(
+			report.requirements.map(
+				(q) => `${q.requirement_id}: ${q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(",")}`,
+			),
+			["R1: unit=PASS", "R2: lint=PASS"],
+		);
+		const text = formatReport(report, "en");
+		assert.match(
+			text,
+			/## Requirements\n {2}R1: greet ends with an exclamation mark — unit=PASS\n {2}R2: the code stays lint-clean — lint=PASS/,
+		);
+		assert.ok(
+			text.indexOf("## Requirements") < text.indexOf("## Mechanical observations"),
+			"what was asked comes first",
+		);
+	});
+
+	it("says none when no requirements were adopted", () => {
+		const r = new Runner().toDeciding(c);
+		const report = engineeringReport(r.s, [], null, null);
+		assert.deepEqual(report.requirements, []);
+		assert.match(formatReport(report, "en"), /## Requirements\n {2}none/);
 	});
 });

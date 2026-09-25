@@ -10,8 +10,8 @@
  */
 import type { Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { Protocol } from "../contracts/v1/protocol.ts";
-import type { ChangeState } from "../domain/change/state.ts";
+import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
+import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
 
 /** Measured: a control ran on a subject and answered. No interpretation is carried here. */
 export interface MechanicalObservation {
@@ -44,11 +44,20 @@ export interface ResidualRisk {
 	statement: string;
 }
 
+/** Asked: an adopted requirement, and what the controls covering it answered on the candidate. */
+export interface RequirementLine {
+	requirement_id: string;
+	statement: string;
+	mandatory: boolean;
+	controls: { control_id: string; verdict: EvidenceEntry["verdict"] }[];
+}
+
 export interface EngineeringReport {
 	schema_version: 1;
 	change_id: string;
 	outcome: Outcome;
 	candidate: { candidate_id: string; manifest_digest: string } | null;
+	requirements: RequirementLine[];
 	observations: MechanicalObservation[];
 	judgments: Judgment[];
 	residual_risks: ResidualRisk[];
@@ -63,8 +72,20 @@ export function engineeringReport(
 	state: ChangeState,
 	evidence: readonly Evidence[],
 	protocol: Protocol | null,
+	requirements: RequirementsDocument | null = null,
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
+	const onCandidateEntries = state.evidence.filter(
+		(e) => e.valid && state.candidate !== null && e.subject_digest === state.candidate.manifest_digest,
+	);
+	const asked: RequirementLine[] = (requirements?.requirements ?? []).map((q) => ({
+		requirement_id: q.requirement_id,
+		statement: q.statement,
+		mandatory: q.mandatory,
+		controls: onCandidateEntries
+			.filter((e) => e.requirement_ids.includes(q.requirement_id))
+			.map((e) => ({ control_id: e.control_id, verdict: e.verdict })),
+	}));
 	const observations: MechanicalObservation[] = evidence.map((e) => ({
 		evidence_id: e.evidence_id,
 		control_id: e.control_id,
@@ -197,6 +218,7 @@ export function engineeringReport(
 		candidate: state.candidate
 			? { candidate_id: state.candidate.candidate_id, manifest_digest: state.candidate.manifest_digest }
 			: null,
+		requirements: asked,
 		observations,
 		judgments,
 		residual_risks: risks,

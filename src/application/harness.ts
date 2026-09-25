@@ -11,7 +11,7 @@ import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, SubjectRef } fr
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { Protocol } from "../contracts/v1/protocol.ts";
+import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
 import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
@@ -383,7 +383,15 @@ export class Harness {
 		const loaded = this.deps.ledger.loadChange(changeId);
 		if (!loaded) throw new DomainError("UNKNOWN_REFERENCE", `change ${changeId} not found`);
 		const protocol = await this.artifacts.latest<Protocol>(loaded.state, "protocol").catch(() => null);
-		return engineeringReport(loaded.state, this.deps.ledger.listEvidence(changeId), protocol?.content ?? null);
+		const requirements = await this.artifacts
+			.latest<RequirementsDocument>(loaded.state, "requirements")
+			.catch(() => null);
+		return engineeringReport(
+			loaded.state,
+			this.deps.ledger.listEvidence(changeId),
+			protocol?.content ?? null,
+			requirements?.content ?? null,
+		);
 	}
 
 	// --- conduct loop ----------------------------------------------------------------------------

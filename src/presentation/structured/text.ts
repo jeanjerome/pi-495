@@ -103,6 +103,7 @@ export function formatDecision(req: DecisionRequest): string {
 const R = {
 	fr: {
 		title: "Rapport",
+		requirements: "Exigences",
 		observations: "Observations mécaniques",
 		judgments: "Jugements",
 		risks: "Risques résiduels",
@@ -113,6 +114,7 @@ const R = {
 	},
 	en: {
 		title: "Report",
+		requirements: "Requirements",
 		observations: "Mechanical observations",
 		judgments: "Judgments",
 		risks: "Residual risks",
@@ -124,14 +126,20 @@ const R = {
 };
 
 /**
- * The three natures in three sections, in this order and never merged: what was measured, what was
- * concluded from it, and what remains unestablished (IMP-05).
+ * What was asked, then the three natures in three sections, in this order and never merged: what
+ * was measured, what was concluded from it, and what remains unestablished (IMP-05).
  */
 export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"): string {
 	const t = R[lang];
 	const lines = [`${t.title} ${report.change_id} — ${t.outcome}: ${report.outcome}`];
 	if (report.candidate)
 		lines.push(`${t.candidate}: ${report.candidate.candidate_id} ${report.candidate.manifest_digest.slice(0, 23)}`);
+	lines.push("", `## ${t.requirements}`);
+	if (report.requirements.length === 0) lines.push(`  ${t.none}`);
+	for (const q of report.requirements)
+		lines.push(
+			`  ${q.requirement_id}: ${q.statement}${q.controls.length ? ` — ${q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(", ")}` : ""}`,
+		);
 	lines.push("", `## ${t.observations}`);
 	if (report.observations.length === 0) lines.push(`  ${t.none}`);
 	for (const o of report.observations)
