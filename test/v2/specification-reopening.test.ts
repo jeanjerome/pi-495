@@ -194,6 +194,45 @@ describe("a specification report is judged against every recorded material answe
 		);
 	});
 
+	it("asks the new material question of a reopened report first, and reopens that report on the answer even when it carries nothing an earlier report did not (6f)", async () => {
+		const QA = { id: "q-a", question: "A ?", material: true };
+		const QB = { id: "q-b", question: "B ?", material: true };
+		const QC = { id: "q-c", question: "C ?", material: true };
+		const RA = requirement("R-A");
+		const RB = requirement("R-B");
+		const RC = requirement("R-C");
+		const binds = (...ids: [string, string][]) =>
+			ids.map(([question_id, r]) => ({ question_id, observable: true, requirement_ids: [r] }));
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: [RA] }),
+			specReport({ questions: [QB], answers: binds([QA.id, RA.requirement_id]), requirements: [RA, RB] }),
+			specReport({ questions: [], answers: binds([QB.id, RB.requirement_id]), requirements: [RB] }),
+			// Takes A back, loses B, and asks C: nothing it carries is new to the reports before it.
+			specReport({ questions: [QC], answers: binds([QA.id, RA.requirement_id]), requirements: [RA] }),
+			specReport({
+				questions: [],
+				answers: binds([QA.id, RA.requirement_id], [QB.id, RB.requirement_id], [QC.id, RC.requirement_id]),
+				requirements: [RA, RB, RC],
+			}),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const answerPending = answerer(t, change.change_id);
+		for (const asked of [QA, QB, QC]) {
+			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+			assert.equal(t.requested.at(-1)!.question, asked.question);
+			answerPending();
+		}
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 5, "the report written before C was answered is written again");
+		assert.ok(objectives[4]!.includes(`Q ${QC.id}: ${QC.question} -> réponse à ${QC.question}`), objectives[4]);
+		assert.ok(
+			t.progress.includes(`specification reopened by 2 material answer(s): ${QB.id}, ${QC.id}`),
+			t.progress.join(" | "),
+		);
+	});
+
 	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [
