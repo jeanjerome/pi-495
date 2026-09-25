@@ -890,7 +890,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		);
 	});
 
-	it("stops carrying a declaration as soon as the report drops the requirement that held it, and G1 refuses the answer nothing binds (RM-011)", async () => {
+	it("stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and G1 refuses the answer nothing binds when the next one gains nothing (RM-011)", async () => {
 		const p = project();
 		const t = track(makeHarness());
 		const { calls } = rounds(t, [
@@ -934,7 +934,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		answerPending();
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
-		assert.equal(calls(), 3);
+		assert.equal(calls(), 4, "the report that lost QA is written again once, and the next one gains nothing");
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.gates.G1?.verdict, "FAIL");
 		assert.ok(
