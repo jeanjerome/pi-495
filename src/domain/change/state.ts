@@ -379,7 +379,6 @@ export function subjectOfChange(state: ChangeState): SubjectRef {
 
 /** What the reopening rule reads of a specification report. */
 export interface SpecificationReportView {
-	questions: { id: string }[];
 	requirements: { requirement_id: string; mandatory: boolean }[];
 	answers: AnswerDeclaration[];
 }

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { initRepo, fixtureTs, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
@@ -29,8 +29,6 @@ const origin = (): HumanOrigin => ({
 	session_id: "s1",
 	asserted_at: "2026-09-25T12:00:00.000Z",
 });
-const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
-const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
 type Requirement = ReturnType<typeof specReport>["requirements"][number];
 const requirement = (requirement_id: string, mandatory = true): Requirement => ({
@@ -48,34 +46,6 @@ const Q7 = { id: "q7", question: "la mise à jour suit-elle la même règle ?", 
 const MESSAGE = requirement("REQ-422-MESSAGE");
 const BODY = requirement("REQ-422-BODY-FORMAT");
 const UPDATE = requirement("REQ-UPDATE");
-
-/** Plays one specification report per round and keeps the objective each one was written from. */
-function rounds(
-	t: TestHarness,
-	reports: ReturnType<typeof specReport>[],
-): { objectives: string[]; calls: () => number } {
-	const objectives: string[] = [];
-	let calls = 0;
-	const original = t.agent.startIntervention.bind(t.agent);
-	t.agent.startIntervention = async (m) => {
-		if (m.role === "specify") {
-			calls++;
-			objectives.push(m.objective);
-			t.agent.scripts.set("specify", {
-				steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }],
-			});
-		}
-		if (m.role === "implement")
-			t.agent.scripts.set("implement", {
-				steps: [
-					{ kind: "write", path: "src/greet.js", content: RIGHT },
-					{ kind: "complete", output: report(["src/greet.js"]) },
-				],
-			});
-		return original(m);
-	};
-	return { objectives, calls: () => calls };
-}
 
 /** Answers every question put to the human since the last call, as the owner would through IH-01. */
 function answerer(t: TestHarness, changeId: string): () => void {
@@ -138,7 +108,7 @@ async function throughTwoRounds(t: TestHarness): Promise<string> {
 describe("a specification report is judged against every recorded material answer, the report a reopening produced included (BES-02, RM-010, RM-011)", () => {
 	it("reopens a report that renames the requirement an answer was bound to without asking anything, and the answer reaches the requirements adopted at G1 (6a)", async () => {
 		const t = track(makeHarness());
-		const { objectives, calls } = rounds(t, [
+		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
 			BINDS_Q1,
 			RENAMES_MESSAGE,
@@ -172,7 +142,7 @@ describe("a specification report is judged against every recorded material answe
 
 	it("does not reopen a report that loses an answer and carries nothing an earlier report did not, and G1 refuses the lost answer (6b)", async () => {
 		const t = track(makeHarness());
-		const { calls } = rounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, RENAMES_MESSAGE]);
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, RENAMES_MESSAGE]);
 		const changeId = await throughTwoRounds(t);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
@@ -202,7 +172,7 @@ describe("a specification report is judged against every recorded material answe
 			requirements: [RB],
 		});
 		const t = track(makeHarness());
-		const { calls } = rounds(t, [
+		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA, QB], answers: [], requirements: [RA, RB] }),
 			carriesA,
 			carriesB,
@@ -226,7 +196,7 @@ describe("a specification report is judged against every recorded material answe
 
 	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {
 		const t = track(makeHarness());
-		const { calls } = rounds(t, [
+		const { calls } = specificationRounds(t, [
 			ASKS_Q1,
 			specReport({
 				questions: [],

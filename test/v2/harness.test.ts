@@ -2,7 +2,13 @@ import { strict as assert } from "node:assert";
 import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, reopenHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import {
+	makeHarness,
+	reopenHarness,
+	specificationRounds,
+	specReport,
+	type TestHarness,
+} from "../helpers/harness-fixture.ts";
 import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 import type { ContextManifest } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
@@ -795,38 +801,10 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	const QA = { id: "q-status", question: "400 ou 422 ?", material: true };
 	const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
 
-	/** Plays one specification report per round and keeps the objective each one was written from. */
-	function rounds(
-		t: TestHarness,
-		reports: ReturnType<typeof specReport>[],
-	): { objectives: string[]; calls: () => number } {
-		const objectives: string[] = [];
-		let calls = 0;
-		const original = t.agent.startIntervention.bind(t.agent);
-		t.agent.startIntervention = async (m) => {
-			if (m.role === "specify") {
-				calls++;
-				objectives.push(m.objective);
-				t.agent.scripts.set("specify", {
-					steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }],
-				});
-			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
-			return original(m);
-		};
-		return { objectives, calls: () => calls };
-	}
-
 	it("carries an answer declaration from one report to the next, and asks the reopened report only for the answer it has not declared (RM-010)", async () => {
 		const p = project();
 		const t = track(makeHarness());
-		const { objectives, calls } = rounds(t, [
+		const { objectives, calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
 			specReport({
 				questions: [QA, QB],
@@ -893,7 +871,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	it("stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and G1 refuses the answer nothing binds when the next one gains nothing (RM-011)", async () => {
 		const p = project();
 		const t = track(makeHarness());
-		const { calls } = rounds(t, [
+		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
 			specReport({
 				questions: [QA, QB],

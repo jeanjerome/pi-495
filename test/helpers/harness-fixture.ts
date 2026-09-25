@@ -70,6 +70,40 @@ export function specReport(over: Partial<SpecificationReport> = {}): Specificati
 
 export const GOOD_GREET = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 
+/**
+ * Plays one specification report per round, the last one again once they run out, and keeps the
+ * objective each one was written from. Every implementation writes GOOD_GREET.
+ */
+export function specificationRounds(
+	t: TestHarness,
+	reports: SpecificationReport[],
+): { objectives: string[]; calls: () => number } {
+	const objectives: string[] = [];
+	let calls = 0;
+	const original = t.agent.startIntervention.bind(t.agent);
+	t.agent.startIntervention = async (m) => {
+		if (m.role === "specify") {
+			calls++;
+			objectives.push(m.objective);
+			t.agent.scripts.set("specify", {
+				steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }],
+			});
+		}
+		if (m.role === "implement")
+			t.agent.scripts.set("implement", {
+				steps: [
+					{ kind: "write", path: "src/greet.js", content: GOOD_GREET },
+					{
+						kind: "complete",
+						output: { summary: "done", changed_paths: ["src/greet.js"], tests_claimed: true, notes: [] },
+					},
+				],
+			});
+		return original(m);
+	};
+	return { objectives, calls: () => calls };
+}
+
 export type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & {
 	budgets?: Partial<ActivePolicy["budgets"]>;
 	adoption?: Partial<ActivePolicy["adoption"]>;
