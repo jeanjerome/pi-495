@@ -4,8 +4,9 @@
 
 id: e26
 title: "Pi-495 est essayé par ceux qu'il sert"
-status: dormant
+status: active
 kind: parallel
+activated_on: 2026-09-25   # J1 ; J4 tombe le 2026-09-28
 capsule_dir: specs/epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert
 
 objet: >
@@ -47,6 +48,11 @@ decisions_du_proprietaire: >
   porte sur Pi-495 seul ; le dépôt 495 est privé, il n'y a donc pas deux dépôts publics qui se
   partageraient l'attention.
 
+  2026-09-25, à la publication de pi-495 0.2.1 : le chantier est activé. La star n'est demandée
+  qu'en second, après l'essai, et seulement sur LinkedIn, Bluesky et Mastodon. LinkedIn se publie en
+  français, pour le réseau du propriétaire. L'angle F (le harnais, après le prompt et les skills)
+  s'ajoute et prend la place de C sur LinkedIn à J6.
+
 etat_releve_le_2026_09_25: >
   Relevé par `gh api` et l'API de téléchargements de npm. 0 star. Discussions désactivées. Vingt
   topics posés, le maximum. Aucun aperçu social personnalisé : GitHub génère le sien, alors que la
@@ -55,3 +61,11 @@ etat_releve_le_2026_09_25: >
   création du dépôt le 2026-09-17 : une vue, d'un visiteur, et 483 clones de 146 clones uniques,
   dès le jour de la création. Les clones ne viennent donc pas de visiteurs, et plan.md ne les compte
   pas comme des essais.
+
+etat_releve_a_l_activation: >
+  2026-09-25, par `gh api` et l'API de téléchargements de npm. 0 star, 0 fork. Une vue d'un
+  visiteur sur quatorze jours, aucun référent. Discussions activées avec les quatre catégories, et
+  « What would make you trust an AI-generated change? » ouverte (discussion 1). Aperçu social
+  personnalisé, dépôt épinglé sur le profil, démonstration en tête du README : J2 et J3 sont tenus.
+  pi-495 0.2.1 publiée ; l'API de téléchargements répond encore « package not found », `T` ne se
+  relève donc pas encore. La ligne de base est à peu près nulle.

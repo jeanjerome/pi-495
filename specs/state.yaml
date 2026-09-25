@@ -18,10 +18,11 @@ epic_cycle:
 handoff:
   next_skill: null
   last_step_completed: >
-    Chantier de communication `e26` ajouté le 2026-09-25, dormant : il court en parallèle des epics
-    d'implémentation, hors de leur ordre, et seul le propriétaire l'active, à un moment clé. Son plan
-    et son journal de mesures sont dans sa capsule. Il ne change rien à l'ordre écrit : le suivant
-    reste `e01`.
+    Chantier de communication `e26` activé le 2026-09-25 par le propriétaire, à la publication de la
+    0.2.1 (J1). Les cinq messages de l'exploration sont rédigés dans
+    `specs/epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert/campagnes/exploration.md` ; le premier se
+    publie à J4, le 2026-09-28, et s'inscrit dans `growth.csv` avant de partir. Il ne change rien à
+    l'ordre écrit : le suivant reste `e01`.
 
     `e25` EST TENU, et aucun epic n'est engagé. Ses cinq stories sont versées sur `main`, poussé sur
     `origin/main` jusqu'à `88c6422`. Le modèle choisi dans Pi est admis sans configuration (`D-61`),

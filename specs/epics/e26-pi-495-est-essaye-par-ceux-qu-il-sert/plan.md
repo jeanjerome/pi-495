@@ -72,8 +72,24 @@ On ne republie pas trente fois « I've built Pi-495 ». On teste des hypothèses
 | C — Evidence | *From request to verified change, with evidence at every gate.* |
 | D — Model independence | *The model produces the change. The model doesn't decide whether the change is accepted.* |
 | E — Local models | *Can a local model produce trustworthy changes if the harness — rather than the model — decides acceptance?* |
+| F — Harness | *First we tuned prompts, then we packaged skills and context. The layer left is the harness — the part that decides whether the agent's work is accepted.* |
 
-L'angle E est taillé pour r/LocalLLaMA.
+L'angle E est taillé pour r/LocalLLaMA. L'angle F parle du métier plutôt que du problème d'un
+utilisateur : il peut rapporter de l'attention sans essais, et `Q` le dira.
+
+Chaque message :
+
+- appelle d'abord à **essayer** Pi-495 sur un petit changement et à dire où il s'arrête ; un essai et
+  un retour pèsent plus qu'une star dans `Q` ;
+- ne demande une star qu'en second, et seulement sur LinkedIn, Bluesky et Mastodon ; jamais sur
+  Reddit ni sur Hacker News, dont Show HN interdit toute demande de vote ;
+- dit ce qu'il faut pour essayer — macOS sur Apple Silicon, une cible Maven ou `node --test` — pour
+  que les visiteurs qu'il amène puissent essayer, et que `Q` juge le message et non la plateforme ;
+- présente ce qui est planifié comme planifié.
+
+LinkedIn se publie en français, pour le réseau du propriétaire ; les autres canaux en anglais. La
+langue varie donc avec le canal : un écart de `Q` entre LinkedIn et un autre canal ne se lit pas
+comme un effet du canal seul.
 
 ## 5. Phases
 
@@ -99,7 +115,7 @@ Chaque canal est testé ; aucun n'est préféré d'avance.
 | Jour | Canal | Angle |
 |---|---|---|
 | J4 | Écosystème Pi | B — Freeze |
-| J6 | LinkedIn | C — Evidence |
+| J6 | LinkedIn | F — Harness |
 | J8 | r/LocalLLaMA | E — Local models |
 | J10 | Bluesky et Mastodon | A — Trust |
 | J12 | une communauté de génie logiciel pertinente | D — Model independence |

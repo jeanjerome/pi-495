@@ -184,7 +184,7 @@ epics:
 parallel:
   - id: e26
     title: "Pi-495 est essayé par ceux qu'il sert"
-    status: dormant
+    status: active
     capsule_dir: epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert
     note: >
       Chantier de communication, ajouté par le propriétaire le 2026-09-25. Sans WSJF : il ne concourt
