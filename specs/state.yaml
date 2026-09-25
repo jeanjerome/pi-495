@@ -10,14 +10,28 @@ active_epic_id: e01
 active_story: e01s01
 
 epic_cycle:
-  step: 3
-  completed_steps: "0,1,2"
+  step: 5
+  completed_steps: "0,1,2,3,4"
   audit_result: null
   story_bcps: 3
 
 handoff:
-  next_skill: kickoff-branch
+  next_skill: verify-work
   last_step_completed: >
+    develop-tdd fait le 2026-09-25 sur `rapport-rouvre-la-specification` : rouge `60c2c34` (test
+    seul, 3 échecs sur 4 en isolation, et le test de `harness.test.ts` à 3 interventions au lieu
+    de 4), vert `ada5ada`. La réouverture retient toute réponse matérielle que le rapport ne porte
+    pas, `clarify` juge le rapport qu'il vient d'obtenir, et la borne se mesure contre tous les
+    rapports antérieurs. Les trois tâches de `e01s01-tasks.yaml` sont `passing`. Preflight verte
+    sous Node 24.21.0, 469 tests. Journal : `specs/verifications/e01s01-cycle-rouge-vert.md`.
+    Aucun script de vérification manuelle dans la capsule ; la campagne réelle relève d'e01s05.
+    Prochaine étape : verify-work.
+
+    Kickoff fait le 2026-09-25 : planification de e01 versée sur `main` (`bdebd23`), branche
+    `rapport-rouvre-la-specification` créée depuis ce point. Preflight verte sous Node 24.21.0,
+    465 tests, `dist/` reconstruit à l'identique. Prochaine étape : develop-tdd sur
+    `test/v2/specification-reopening.test.ts`.
+
     Étape 2 faite le 2026-09-25 : spécification de e01s01 écrite
     (`e01s01-un-rapport-qui-defait-une-liaison-sans-rien-demander-rouvre-la-specification.md`,
     `e01s01-tasks.yaml`, trois tâches en `failing`), format tenu par `lint:story-format`. Le relevé
