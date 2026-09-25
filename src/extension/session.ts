@@ -19,6 +19,7 @@ import {
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
+import { formatConsumption } from "../presentation/structured/text.ts";
 import { DomainError } from "../domain/errors.ts";
 import { locateModel } from "../domain/policy.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
@@ -163,10 +164,24 @@ export class ExtensionSession {
 	updateFooter(ctx: ExtensionContext, view: StatusView | null): void {
 		if (!ctx.hasUI) return;
 		const c = view?.change;
-		ctx.ui.setStatus(
-			"495",
-			c ? `495 ${c.phase}/${c.status}${c.pending_decisions.length ? " ⏸decision" : ""}` : "495 —",
-		);
+		this.footer(ctx, c ? `495 ${c.phase}/${c.status}${c.pending_decisions.length ? " ⏸decision" : ""}` : "495 —", view);
+	}
+
+	/** A progress message in the footer, beside what the bound change has consumed so far. */
+	showProgress(ctx: ExtensionContext, message: string): void {
+		if (!ctx.hasUI) return;
+		let view: StatusView | null = null;
+		try {
+			view = this.currentView();
+		} catch {
+			view = null;
+		}
+		this.footer(ctx, `495 ${message}`, view);
+	}
+
+	private footer(ctx: ExtensionContext, head: string, view: StatusView | null): void {
+		const used = view?.change ? formatConsumption(view.change.consumption, this.lang()) : "";
+		ctx.ui.setStatus("495", used ? `${head} · ${used}` : head);
 	}
 
 	currentView(): StatusView | null {
@@ -209,7 +224,7 @@ export class ExtensionSession {
 				void this.runtime().harness.abortCurrent("user abort");
 			};
 			work((m) => {
-				ctx.ui.setStatus("495", `495 ${m}`);
+				this.showProgress(ctx, m);
 				tui.requestRender();
 			}).then(done, (e: Error) => {
 				failure = e;

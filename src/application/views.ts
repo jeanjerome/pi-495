@@ -27,10 +27,30 @@ export interface StatusView {
 		last_intervention: { role: string; result: string; tool_calls: number; duration_ms: number } | null;
 		/** Interventions of the open attempt stopped by the duration budget and resumed since. */
 		continuations: number;
+		consumption: Consumption;
 		next_action: string;
 		updated_at: string;
 	} | null;
 	limits: string[];
+}
+
+/**
+ * What the change's interventions have used: the tokens the host reported, and the sum of the amounts
+ * it put on them at its catalogue's rates. `usd` is null when it put none; it is never an invoice.
+ */
+export interface Consumption {
+	tokens: number;
+	usd: number | null;
+	subscription: boolean;
+}
+
+function consumptionOf(s: ChangeState): Consumption {
+	const priced = s.interventions.flatMap((i) => (i.cost?.usd != null ? [i.cost] : []));
+	return {
+		tokens: s.interventions.reduce((sum, i) => sum + i.counters.tokens_known, 0),
+		usd: priced.length ? priced.reduce((sum, c) => sum + c.usd!, 0) : null,
+		subscription: s.interventions.some((i) => i.cost?.subscription === true),
+	};
 }
 
 function nextActionOf(s: ChangeState): string {
@@ -134,6 +154,7 @@ export function statusView(
 					continuations: last?.attempt_id
 						? change.interventions.filter((i) => i.attempt_id === last.attempt_id && i.result === "truncated").length
 						: 0,
+					consumption: consumptionOf(change),
 					next_action: nextActionOf(change),
 					updated_at: change.updated_at,
 				}

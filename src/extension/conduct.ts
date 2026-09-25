@@ -39,9 +39,7 @@ export async function conduct(
 	}
 	session.busy = true;
 	try {
-		rt.harness.deps.onProgress = (m) => {
-			if (ctx.hasUI) ctx.ui.setStatus("495", `495 ${m}`);
-		};
+		rt.harness.deps.onProgress = (m) => session.showProgress(ctx, m);
 		const result = await session.withLoader(ctx, "495", async () =>
 			rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
 		);

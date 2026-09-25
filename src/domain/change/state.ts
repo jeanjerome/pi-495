@@ -105,6 +105,8 @@ export interface InterventionState {
 	ended_at: string | null;
 	result: "running" | "completed" | "failed" | "cancelled" | "truncated";
 	counters: AttemptCounters;
+	/** What the host put on the intervention once it finished; absent while it runs and in an older dossier. */
+	cost?: InterventionCost;
 }
 
 export interface EvidenceEntry {

@@ -179,7 +179,13 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 		case "intervention.finished":
 			s.interventions = s.interventions.map((i) =>
 				i.intervention_id === event.intervention_id
-					? { ...i, result: event.result, ended_at: event.at, counters: addCounters(i.counters, event.counters) }
+					? {
+							...i,
+							result: event.result,
+							ended_at: event.at,
+							counters: addCounters(i.counters, event.counters),
+							...(event.cost ? { cost: event.cost } : {}),
+						}
 					: i,
 			);
 			s.status = "ready";

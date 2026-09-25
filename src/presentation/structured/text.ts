@@ -1,6 +1,6 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { EngineeringReport } from "../../application/report.ts";
-import type { StatusView } from "../../application/views.ts";
+import type { Consumption, StatusView } from "../../application/views.ts";
 
 const L = {
 	fr: {
@@ -154,4 +154,26 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 	if (report.residual_risks.length === 0) lines.push(`  ${t.none}`);
 	for (const r of report.residual_risks) lines.push(`  ${r.code}: ${r.statement}`);
 	return lines.join("\n");
+}
+
+/** Tokens as a reader counts them: exact under a thousand, then in thousands with one decimal. */
+function tokenCount(tokens: number, lang: "fr" | "en"): string {
+	if (tokens < 1000) return String(tokens);
+	const k = (tokens / 1000).toFixed(1);
+	return lang === "fr" ? `${k.replace(".", ",")} k` : `${k}k`;
+}
+
+/**
+ * One line for a status bar: the tokens used, then the host's amount marked as an estimate, since
+ * 495 reads no invoice. Empty before any intervention has used a token.
+ */
+export function formatConsumption(c: Consumption, lang: "fr" | "en" = "fr"): string {
+	if (c.tokens === 0 && c.usd === null) return "";
+	const parts = [`${tokenCount(c.tokens, lang)} ${lang === "fr" ? "jetons" : "tokens"}`];
+	if (c.usd !== null) {
+		const amount = c.usd.toFixed(2);
+		const sub = c.subscription ? (lang === "fr" ? " (abonnement)" : " (sub)") : "";
+		parts.push(lang === "fr" ? `~${amount.replace(".", ",")} $${sub}` : `~$${amount}${sub}`);
+	}
+	return parts.join(" · ");
 }
