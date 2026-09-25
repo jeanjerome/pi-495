@@ -12,12 +12,18 @@ active_story: e01s01
 epic_cycle:
   step: 6
   completed_steps: "0,1,2,3,4,5"
-  audit_result: null
+  audit_result: pass
   story_bcps: 3
 
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   last_step_completed: >
+    `audit-code` fait le 2026-09-25 pour e01s01 : PASS après correction (`4892a6d`). Le champ
+    `questions` de `SpecificationReportView`, que la règle de réouverture ne lit plus, est retiré.
+    Le `rounds` copié d'une suite à l'autre devient `specificationRounds` dans
+    `test/helpers/harness-fixture.ts`. Preflight verte à `4892a6d` sous Node 26.9.0, 469 tests.
+    Rapport : `specs/verifications/AUDIT-e01-e01s01.md`. Prochaine étape : `request-review`.
+
     Étape 5 faite le 2026-09-25 : `verify-work` a vérifié e01s01, et le propriétaire a confirmé la
     recette. Le changement perdu de `java-flashnext-L2` est repris dans un vrai `pi --mode rpc`, avec
     `omlx/qwen3.8-27b-oq8e` et le bac à sable réel, sur une copie du dossier coupée juste après le
