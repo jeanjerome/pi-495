@@ -41,6 +41,7 @@
   },
   "pi": {
     "image": "https://raw.githubusercontent.com/jeanjerome/pi-495/main/.github/assets/banner.jpg",
+    "video": "https://github.com/jeanjerome/pi-495/raw/refs/heads/main/.github/assets/demo.mp4",
     "extensions": [
       "./dist/extension/index.js"
     ]
