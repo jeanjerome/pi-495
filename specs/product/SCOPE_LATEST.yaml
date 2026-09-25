@@ -479,6 +479,20 @@ in_scope:
       modèle choisi dans Pi » désigne : celui de l'ouverture de session, ou celui qui est sélectionné
       au moment de l'intervention.
 
+  - epic: e26-pi-495-est-essaye-par-ceux-qu-il-sert
+    source: décision du propriétaire, 2026-09-25
+    requirements: []
+    delta: ADDED
+    objet: >
+      Chantier de communication mené en parallèle des chantiers d'implémentation, hors de leur ordre,
+      et activé par le propriétaire à des moments clés. Les développeurs qui ont le problème que
+      Pi-495 résout le trouvent, l'essaient et le disent ; chaque campagne est une expérience mesurée,
+      qui apprend quelle audience, quel problème, quelle preuve, quelle forme et quel canal font
+      essayer Pi-495.
+    motif: >
+      Pi-495 est installable et publié sur npm, et personne ne le connaît : 0 star et un seul visiteur
+      depuis la création du dépôt, relevés le 2026-09-25.
+
 out_of_scope:
   - item: Les trois revues obligatoires restantes (chantiers/B)
     raison: depends-on-external-factor

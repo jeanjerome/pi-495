@@ -18,6 +18,11 @@ epic_cycle:
 handoff:
   next_skill: null
   last_step_completed: >
+    Chantier de communication `e26` ajouté le 2026-09-25, dormant : il court en parallèle des epics
+    d'implémentation, hors de leur ordre, et seul le propriétaire l'active, à un moment clé. Son plan
+    et son journal de mesures sont dans sa capsule. Il ne change rien à l'ordre écrit : le suivant
+    reste `e01`.
+
     `e25` EST TENU, et aucun epic n'est engagé. Ses cinq stories sont versées sur `main`, poussé sur
     `origin/main` jusqu'à `88c6422`. Le modèle choisi dans Pi est admis sans configuration (`D-61`),
     lu à chaque intervention, situé par son adresse et annoncé quand il est hors de la machine ;

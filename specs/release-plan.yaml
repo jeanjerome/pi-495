@@ -22,7 +22,7 @@ ordering:
 capsules:
   status: partial
   note: >
-    Deux capsules existent, e23 et e24 ; les vingt et un autres répertoires capsule_dir restent des
+    Quatre capsules existent, e23, e24, e25 et e26 ; les autres répertoires capsule_dir restent des
     emplacements prévus. Une capsule s'écrit au moment d'attaquer son epic, pas pour les 22
     d'avance. Celle de e24 fait exception et le dit : elle a été écrite après ses deux premières
     stories, sur un travail déjà livré. Le gabarit qui manquait à leur écriture est désormais sous
@@ -178,6 +178,17 @@ epics:
       usage : tout utilisateur dont le modèle n'est pas `omlx` est refusé au premier `/495 start`.
       L'urgence tient au README, qui s'adresse désormais à des lecteurs extérieurs et documente ce
       contournement comme une étape du démarrage.
+
+# Chantiers menés en parallèle de la liste ordonnée ci-dessus. Ils n'y prennent pas de rang : ils ne
+# livrent pas de capacité, et le propriétaire les active à des moments clés de l'avancement.
+parallel:
+  - id: e26
+    title: "Pi-495 est essayé par ceux qu'il sert"
+    status: dormant
+    capsule_dir: epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert
+    note: >
+      Chantier de communication, ajouté par le propriétaire le 2026-09-25. Sans WSJF : il ne concourt
+      pas avec les epics d'implémentation, il se nourrit des preuves que leurs recettes produisent.
 
 bugs:
   total: 0

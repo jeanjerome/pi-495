@@ -1,0 +1,57 @@
+# Capsule de l'epic e26. Chantier de communication, mené en parallèle des chantiers
+# d'implémentation et hors de leur ordre d'exécution. Il n'a pas de story : ce qu'il produit est
+# une suite de campagnes, mesurées une à une dans growth.csv, selon plan.md.
+
+id: e26
+title: "Pi-495 est essayé par ceux qu'il sert"
+status: dormant
+kind: parallel
+capsule_dir: specs/epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert
+
+objet: >
+  Les développeurs qui ont le problème que Pi-495 résout le trouvent, l'essaient et le disent. Le
+  chantier apprend, campagne par campagne, quelle audience intéresser, avec quel problème, quelle
+  preuve, sous quelle forme et sur quel canal. À la fin de la première boucle, cette combinaison est
+  connue et la croissance devient reproductible.
+
+motif: >
+  Pi-495 est installable, publié sur npm et documenté, et personne ne le connaît. Ne rien dire le
+  laisse invisible. Tout dire partout, sans mesurer, produit un compteur sans apprendre ce qui l'a
+  fait bouger.
+
+regle: >
+  Une nouvelle star n'autorise aucune action. Un nouvel utilisateur qui essaie Pi-495, si. Le
+  chantier sert un vrai projet open source, pas un compteur GitHub.
+
+activation: >
+  Le chantier dort par défaut. Le propriétaire l'active à un moment clé de l'avancement ; il reprend
+  alors à la phase de plan.md où il s'était arrêté. Les jours de plan.md se comptent à partir de
+  l'activation, pas depuis une date. Entre deux moments clés, aucune campagne n'est lancée.
+
+moments_cles: >
+  Un moment clé est une preuve nouvelle, et c'est une recette d'un chantier d'implémentation qui la
+  produit. Chaque vague a besoin d'une preuve qu'elle n'a pas encore montrée (plan.md §8). Plusieurs
+  existent déjà dans specs/verifications/ : une exécution réelle enregistrée de bout en bout, le même
+  protocole appliqué à un modèle local et à un modèle hébergé (e23, e25s04), et le refus d'un
+  changement par un contrôle négatif. Une publication npm en est un autre.
+
+partage_des_roles: >
+  L'agent relève les mesures, prépare les messages, calcule les indicateurs et tient growth.csv. Le
+  propriétaire publie sous son identité, sur chaque canal, et répond aux personnes. Un réglage du
+  dépôt visible de l'extérieur (Discussions, aperçu social, épinglage) se fait avec son accord.
+
+decisions_du_proprietaire: >
+  2026-09-25 : le chantier est ajouté, en parallèle des chantiers d'implémentation, et activé par le
+  propriétaire aux moments clés. Il est public, dans pi-495, mesures comprises : un visiteur peut lire
+  qu'il fait partie d'une expérience d'acquisition, et les règles qui choisissent les messages. Il
+  porte sur Pi-495 seul ; le dépôt 495 est privé, il n'y a donc pas deux dépôts publics qui se
+  partageraient l'attention.
+
+etat_releve_le_2026_09_25: >
+  Relevé par `gh api` et l'API de téléchargements de npm. 0 star. Discussions désactivées. Vingt
+  topics posés, le maximum. Aucun aperçu social personnalisé : GitHub génère le sien, alors que la
+  bannière du README existe (`.github/assets/banner.jpg`). pi-495 0.2.0 publiée sur npm, mais l'API
+  de téléchargements répond encore « package not found », deux jours après la publication. Depuis la
+  création du dépôt le 2026-09-17 : une vue, d'un visiteur, et 483 clones de 146 clones uniques,
+  dès le jour de la création. Les clones ne viennent donc pas de visiteurs, et plan.md ne les compte
+  pas comme des essais.
