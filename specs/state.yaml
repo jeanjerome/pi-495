@@ -18,6 +18,18 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le premier tour de `request-review` le 2026-09-25. Les deux relecteurs
+    avaient relevé le même should-fix : la progression se mesurait contre tous les rapports du
+    changement, si bien qu'une réponse donnée après un rapport qui n'avait rien gagné n'atteignait
+    aucune réécriture, et le changement finissait `blocked` à G1. Rouge `5720678` (test 6f seul),
+    vert `5364797` : la progression se mesure contre les rapports écrits depuis la reprise de la
+    clarification, et le rapport trouvé à la reprise est rouvert dès qu'il perd une réponse. Spec
+    alignée (§1, §5, §8, §14, scénario 6f). Preflight verte à `5364797` sous Node 26.9.0, 470
+    tests. Remarques consider laissées ouvertes : tests de 6d et d'une intervention bloquée au
+    milieu de la boucle, reprise après interruption entre l'écriture du rapport et l'ouverture de sa
+    question, `SpecificationReportView` de même forme que `DeclaringReport`. Prochaine étape :
+    deuxième tour de `request-review`, sur `git diff a1bffc5 HEAD`.
+
     `audit-code` fait le 2026-09-25 pour e01s01 : PASS après correction (`4892a6d`). Le champ
     `questions` de `SpecificationReportView`, que la règle de réouverture ne lit plus, est retiré.
     Le `rounds` copié d'une suite à l'autre devient `specificationRounds` dans

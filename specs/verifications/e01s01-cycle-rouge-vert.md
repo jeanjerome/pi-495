@@ -28,6 +28,7 @@ ne gagne rien (4 interventions `specify` au lieu de 3).
 | Un rapport rouvert qui ne gagne rien n'est pas rouvert, et G1 refuse la réponse perdue en la nommant (6b) | `60c2c34` — 3 interventions `specify` au lieu de 4 : le rapport qui perd `q1` n'est jamais jugé | `ada5ada` |
 | Des rapports qui oscillent cessent d'être rouverts au premier qui ne porte que des réponses déjà portées (6c) | `60c2c34` — 2 interventions au lieu de 4 : le rapport rouvert va à G1 sans être jugé | `ada5ada` |
 | Le rapport qui abandonne l'exigence d'une déclaration est rouvert une fois (`harness.test.ts`) | `60c2c34` — 3 interventions au lieu de 4 | `ada5ada` |
+| Une réponse donnée après un rapport qui n'a rien gagné atteint une réécriture, et la question nouvelle est posée d'abord (6f) | `5720678` — `blocked` au lieu de `closed` : G1 refuse `q-b` et `q-c` après 4 interventions, le rapport écrit avant la réponse à `q-c` n'est jamais rouvert | `5364797` |
 | Une réponse déclarée non observable n'est pas comptée comme perdue (6e) | vert dès `60c2c34` : le comportement tenait déjà, le test le fixe | `ada5ada` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
@@ -37,6 +38,8 @@ L'isolation est contrôlée à la main, par arbre de travail détaché. Le scrip
 60c2c34 (test seul)      node --test test/v2/specification-reopening.test.ts   exit=1  (3 échecs sur 4)
 60c2c34 (test seul)      node --test --test-name-pattern="stops carrying a declaration" test/v2/harness.test.ts   exit=1  (3 au lieu de 4)
 ada5ada (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (4 sur 4)
+5720678 (test seul)      node --test --test-name-pattern="6f" test/v2/specification-reopening.test.ts   exit=1  (blocked au lieu de closed)
+5364797 (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (5 sur 5)
 ```
 
 ## Ce qui a changé
@@ -44,9 +47,12 @@ ada5ada (implémentation) node --test test/v2/specification-reopening.test.ts   
 - `answersTheReportIgnores` (`src/domain/change/state.ts`) retient toute réponse matérielle
   enregistrée que le rapport ne porte pas, qu'il ait posé la question ou non : le prédicat de
   réouverture est celui de G1.
-- La borne de progression se mesure contre l'union des réponses portées par tous les rapports
-  antérieurs du changement. Chaque réouverture sans réponse humaine entre deux doit donc ajouter une
-  réponse à cette union, ce qui en limite le nombre aux réponses enregistrées (§14).
+- La borne de progression se mesure contre l'union des réponses portées par les rapports écrits
+  depuis la reprise de la clarification, celui qu'elle a trouvé compris. Ce rapport a été écrit avant
+  la réponse qui a déclenché la reprise : il est rouvert dès qu'il en perd une. Chaque réouverture
+  suivante doit ajouter une réponse à cette union, ce qui en limite le nombre aux réponses
+  enregistrées (§14). Mesurée sur tous les rapports du changement, la borne laissait une réponse
+  donnée après un rapport qui n'avait rien gagné sans aucune réécriture (6f).
 - `clarify` (`src/application/phases/clarify.ts`) juge le rapport qu'il vient d'obtenir tant que ce
   rapport ne pose pas de question matérielle nouvelle, et relance la spécification tant que la
   réouverture l'exige. L'écriture d'un rapport est extraite dans `writeSpecification`.
