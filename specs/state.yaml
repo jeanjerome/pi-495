@@ -36,6 +36,13 @@ handoff:
     `d53c9d44d0edd027f28ee343a8c45d9ff42804a8` identique à la simulation, 345 fichiers ; étiquette
     `v0.2.0` créée et poussée avec `main`.
 
+    pi-495 0.2.1 publiée sur npm le 2026-09-25 par le propriétaire (2FA), depuis `68cf582` : empreinte
+    `267d922bf957e6f8299b12508ac38d658377d591` identique à la simulation, 345 fichiers ; étiquette
+    `v0.2.1` et release GitHub créées et poussées. Elle ajoute la consommation dans la barre du bas, la
+    section des exigences au rapport et la démonstration du README (reprise en `pi.video`), et corrige
+    la langue de la première intervention, les messages affichés deux fois dans l'interface texte et
+    la traduction de l'écran de revue. Preflight verte sous Node 24.21.0 à `68cf582` (465 tests).
+
     e25s04 versée sur `main` le 2026-09-24 par avance rapide, sur décision du propriétaire ; l'epic
     e25 est terminée. Preflight verte sous Node 24.21.0 à `535ea23` (455 tests).
 

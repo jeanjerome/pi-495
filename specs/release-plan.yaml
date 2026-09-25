@@ -2,7 +2,7 @@
 # Dérivé de specs/product/SCOPE_LATEST.yaml — les identifiants y font foi.
 
 release:
-  version: "0.2.0"          # version courante du package, publiée sur npm le 2026-09-24 et étiquetée v0.2.0 ; la 0.1.0 est étiquetée v0.1.0
+  version: "0.2.1"          # version courante du package, publiée sur npm le 2026-09-25 et étiquetée v0.2.1 ; la 0.2.0 et la 0.1.0 sont étiquetées v0.2.0 et v0.1.0
   codename: "Seconde moitié de P0"
   status: planning
   semantic_release: false   # ni CI ni semantic-release dans ce dépôt : la version est posée à la main
