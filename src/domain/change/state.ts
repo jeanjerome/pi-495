@@ -328,18 +328,14 @@ export function declarationsOfReport(
 }
 
 /**
- * The material answers a specification report was written without. A report that asked the question
- * and declares nothing about its answer — neither itself nor by what it inherits — is the report of
- * before the decision, whatever its text says; a report that declares the answer, even to say it
- * fixes nothing observable, carries it.
+ * The material answers a specification report was written without: the ones it declares nothing
+ * about, neither itself nor by what it inherits, whether it asked the question or not. These are the
+ * answers G1 refuses, so a report that renamed the requirement an earlier one bound an answer to is
+ * judged here as it will be there. A report that declares the answer, even to say it fixes nothing
+ * observable, carries it.
  */
-function answersTheReportIgnores(
-	state: ChangeState,
-	report: { questions: { id: string }[] },
-	declared: Map<string, AnswerDeclaration>,
-): OpenQuestion[] {
-	const asked = new Set(report.questions.map((q) => q.id));
-	return state.open_questions.filter((q) => q.material && q.answer !== null && asked.has(q.id) && !declared.has(q.id));
+function answersTheReportIgnores(state: ChangeState, declared: Map<string, AnswerDeclaration>): OpenQuestion[] {
+	return state.open_questions.filter((q) => q.material && q.answer !== null && !declared.has(q.id));
 }
 
 /**
@@ -393,7 +389,7 @@ export interface SpecificationStanding {
 	declared: Map<string, AnswerDeclaration>;
 	/** The recorded material answers the report says nothing about. */
 	ignored: OpenQuestion[];
-	/** The report must be written again: it ignores an answer, and the round before it progressed. */
+	/** The report must be written again: it ignores an answer and carries one no earlier report carried. */
 	reopen: boolean;
 	/** Every material question is answered and the report accounts for it: this report stands. */
 	settled: boolean;
@@ -405,7 +401,10 @@ export interface SpecificationStanding {
  * A report written before a material answer cannot carry it, and reusing it is how a recorded human
  * decision reaches nothing: the answer is put back into the request and the specification is redone.
  * What bounds the reopening is progress, not a count — the report a reopening produced must account
- * for an answer the one before it did not. A report that gives the same ground back is G1's
+ * for an answer no report before it on the change did. Measured against the previous report alone,
+ * reports that take one answer back and lose another in turn would each count as progress and be
+ * reopened without end; measured against all of them, reopenings without a human answer between
+ * them number at most the recorded answers. A report that gives the same ground back is G1's
  * business, and a change is never held by a specification that will not say what it did with an
  * answer.
  */
@@ -416,13 +415,13 @@ export function specificationStanding(
 ): SpecificationStanding {
 	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
 	const declared = declarationsOfReport(priors, report);
-	const ignored = answersTheReportIgnores(state, report, declared);
-	const previous = priors[priors.length - 1] ?? null;
+	const ignored = answersTheReportIgnores(state, declared);
 	const before = new Set(
-		previous ? answersTheReportCarries(state, declarationsOfReport(priors.slice(0, -1), previous)) : [],
+		priors.flatMap((prior, i) => answersTheReportCarries(state, declarationsOfReport(priors.slice(0, i), prior))),
 	);
 	const reopen =
-		ignored.length > 0 && (previous === null || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+		ignored.length > 0 &&
+		(priors.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
 	return {
 		declared,
 		ignored,
