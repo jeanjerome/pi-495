@@ -26,6 +26,11 @@ automates, mais leur débit régulier tombe dans la ligne de base du §2.
 GitHub ne garde le trafic que quatorze jours. Les mesures se relèvent à chaque activation, au
 lancement de chaque campagne et 48 h après, avant que la fenêtre ne les efface.
 
+npm publie ses téléchargements avec plusieurs jours de retard : le 2026-09-25, l'API s'arrêtait au
+2026-09-21, et répondait « package not found » pour un paquet publié après cette date. À 48 h, `T`
+n'est donc pas encore connu. Le relevé de 48 h note `V`, `S`, `C` et `I` ; `T` se relève dès que
+l'API couvre la fin de la fenêtre, et `Q` ne se calcule qu'ensuite.
+
 L'indicateur :
 
 $$Q = 100 \times \frac{S + 2T + 5I}{V}$$
