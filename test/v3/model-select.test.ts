@@ -9,7 +9,7 @@
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -409,6 +409,52 @@ function piAvailable(): boolean {
 		return false;
 	}
 }
+
+describe("the help /495 gives when it is called with no known operation", () => {
+	const saved: Record<string, string | undefined> = {};
+	afterEach(() => {
+		for (const [name, value] of Object.entries(saved)) {
+			if (value === undefined) delete process.env[name];
+			else process.env[name] = value;
+			delete saved[name];
+		}
+	});
+
+	async function help(language: "fr" | "en"): Promise<string> {
+		for (const name of ["HARNESS495_DATA_DIR", "HARNESS495_LANGUAGE"])
+			if (!(name in saved)) saved[name] = process.env[name];
+		process.env.HARNESS495_DATA_DIR = join(root, "data");
+		process.env.HARNESS495_LANGUAGE = language;
+		const cwd = project();
+		const pi = new FakePi();
+		harness495(pi as unknown as ExtensionAPI);
+		const local = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
+		const ctx = new FakeTuiContext(cwd, () => local, []);
+		try {
+			await pi.hooks.get("session_start")!(
+				{ type: "session_start", reason: "startup" },
+				ctx as unknown as ExtensionContext,
+			);
+			await pi.command!("", ctx as unknown as ExtensionCommandContext);
+			return pi.said.at(-1)!;
+		} finally {
+			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	}
+
+	const version = (JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as { version: string })
+		.version;
+
+	it("names the harness and the version of the package", async () => {
+		assert.equal((await help("en")).split("\n")[0], `495 — the spec-driven agentic harness — v${version}`);
+	});
+
+	it("names the request in the language of the session", async () => {
+		assert.match(await help("en"), /\/495 start <request> · status/);
+		assert.match(await help("fr"), /\/495 start <demande> · status/);
+	});
+});
 
 /**
  * Three models Pi can select: two at a loopback address, one off this machine. Nothing listens at

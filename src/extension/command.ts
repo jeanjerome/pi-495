@@ -276,7 +276,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 					default:
 						session.emit(
 							ctx,
-							`495 ${VERSION_495}\n/495 start <demande> · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`,
+							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`,
 						);
 				}
 			} catch (error) {
