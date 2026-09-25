@@ -73,7 +73,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 | Build | `npm run build` |
 | Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format` |
 | Preflight | `npm run check` |
-| CI | N/A — no CI job configured; run `npm run check` locally before every commit |
+| CI | N/A — no CI job configured; before every commit, run the checks the changed files call for (`CONVENTIONS.md` § Always Green) |
 
 ## Test
 

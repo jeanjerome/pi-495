@@ -42,6 +42,19 @@ forward work — not "green enough for this task."
 **Preflight** is `npm run check` — typecheck, test, and the `lint:*` scripts chained together.
 Preflight MUST pass before a kickoff, develop, or verify phase advances.
 
+Before a commit, run what can refuse the change, and nothing that cannot:
+
+| The change touches | Run |
+|--------------------|-----|
+| `src/`, `test/`, `scripts/`, `bench/`, `contracts/`, `README.md`, `NOTICE`, `LICENSE`, `package.json`, `package-lock.json`, a `tsconfig*.json` or `biome.json` | full Preflight, `npm run check` |
+| a story spec `specs/epics/*/eNNsNN-*.md`, or `specs/references/countable-story-format.md` | `npm run lint:story-format` |
+| `specs/archive/amont/conception-technique.md` | `npm run lint:architecture` |
+| `specs/archive/amont/expression-besoins.md` or `specs/archive/TRACEABILITY.md` | `npm run lint:traceability` |
+| only files no control reads — the rest of `specs/`, `CONVENTIONS.md`, `AGENTS.md` | nothing |
+
+`README.md` is in the first row because it ships in the package and a test reads its configuration
+example. A change that spans several rows runs each row's command, and full Preflight covers them all.
+
 ## Discovered Defects
 
 Treat any reproducible gate failure found during unrelated work as a discovered defect, not
