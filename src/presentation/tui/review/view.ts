@@ -53,17 +53,6 @@ export const SYMBOL: Record<PathStatus, string> = {
 	special: "S",
 	unknown: "?",
 };
-export const LABEL: Record<PathStatus, string> = {
-	intact: "intact",
-	added: "ajouté",
-	modified: "modifié",
-	deleted: "supprimé",
-	renamed: "renommé",
-	"renamed?": "renommé?",
-	special: "spécial",
-	unknown: "inconnu",
-};
-
 /** A page the surface loaded, or why it could not be loaded. */
 export type LoadedPage = ChangePage | ContentPage | { error: string };
 
@@ -131,6 +120,16 @@ export const FR = {
 	error: "erreur",
 	lines: "lignes",
 	folded: "ligne(s) inchangée(s)",
+	statuses: {
+		intact: "intact",
+		added: "ajouté",
+		modified: "modifié",
+		deleted: "supprimé",
+		renamed: "renommé",
+		"renamed?": "renommé?",
+		special: "spécial",
+		unknown: "inconnu",
+	} as Record<PathStatus, string>,
 };
 export const EN = {
 	...FR,
@@ -160,6 +159,16 @@ export const EN = {
 	error: "error",
 	lines: "lines",
 	folded: "unchanged line(s)",
+	statuses: {
+		intact: "unchanged",
+		added: "added",
+		modified: "modified",
+		deleted: "deleted",
+		renamed: "renamed",
+		"renamed?": "renamed?",
+		special: "special",
+		unknown: "unknown",
+	} as Record<PathStatus, string>,
 };
 
 export type Labels = typeof FR;

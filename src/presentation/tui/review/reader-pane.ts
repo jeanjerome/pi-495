@@ -8,8 +8,8 @@
  * and the body says so until it arrives.
  * The last line says how far into the body the reader sits when it does not all fit.
  */
-import { neutralize, type ChangePage, type ContentPage } from "../../../application/review.ts";
-import { LABEL, type PaneContext, type Selection } from "./view.ts";
+import { neutralize, type ChangePage, type ContentPage, type PathStatus } from "../../../application/review.ts";
+import type { PaneContext, Selection } from "./view.ts";
 
 export function renderReader(ctx: PaneContext, node: Selection, width: number, height: number): string[] {
 	const L = ctx.labels;
@@ -21,9 +21,9 @@ export function renderReader(ctx: PaneContext, node: Selection, width: number, h
 	if (!node) body.push(L.noSelection);
 	else if (node.kind === "directory") {
 		body.push(`${L.directory} ${node.path || "/"}`);
-		for (const [k, v] of Object.entries(node.aggregate)) body.push(`  ${LABEL[k as keyof typeof LABEL]}: ${v}`);
+		for (const [k, v] of Object.entries(node.aggregate)) body.push(`  ${L.statuses[k as PathStatus]}: ${v}`);
 	} else if (view.mode === "metadata") {
-		body.push(`${L.status}: ${LABEL[node.status]}`, `${L.kind}: ${node.kind}`, `${L.path}: ${node.path}`);
+		body.push(`${L.status}: ${L.statuses[node.status]}`, `${L.kind}: ${node.kind}`, `${L.path}: ${node.path}`);
 		if (node.old_path) body.push(`${L.from}: ${node.old_path}`);
 		const page = ctx.pages.get(`changes:${node.path}`);
 		if (page && "metadata" in page)

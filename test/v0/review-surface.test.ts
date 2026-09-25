@@ -93,7 +93,7 @@ const query = {
 		};
 	},
 };
-function surface(rows = 20, narrowThreshold = 100, onExit = () => {}) {
+function surface(rows = 20, narrowThreshold = 100, onExit = () => {}, language: "fr" | "en" = "fr") {
 	const snap = buildSnapshot({
 		change_id: "chg_1",
 		reference,
@@ -109,6 +109,7 @@ function surface(rows = 20, narrowThreshold = 100, onExit = () => {}) {
 		rows: () => rows,
 		narrowThreshold,
 		onExit,
+		language,
 		requestRender: () => {
 			renders++;
 		},
@@ -146,6 +147,18 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		s.handleInput("c");
 		assert.match(s.render(120).join("\n"), /README/);
 	});
+	it("names each path status in the language of the surface (UX-06)", () => {
+		const { s } = surface(20, 100, () => {}, "en");
+		const shown = [s.render(120).join("\n")];
+		for (const key of ["down", "down", "down"]) {
+			s.handleInput(key);
+			shown.push(s.render(120).join("\n"));
+		}
+		const text = shown.join("\n");
+		assert.match(text, /modified/);
+		assert.doesNotMatch(text, /ajouté|modifié|supprimé|renommé|spécial|inconnu/);
+	});
+
 	it("draws a change in a gutter, keeping the operators the code holds (UX-07)", async () => {
 		const { s } = surface(30);
 		s.selectPath("src/a.js");
