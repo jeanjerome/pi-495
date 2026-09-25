@@ -1,4 +1,10 @@
 development_status:
+  e01: in_progress
+  e01s01: in_progress
+  e01s02: backlog
+  e01s03: backlog
+  e01s04: backlog
+  e01s05: backlog
   e23: done
   e24: done
   e23s01: done
@@ -19,6 +25,11 @@ development_status:
   e25s04: done
 
 epics:
+  e01:
+    status: in_progress
+    title: "Une réponse humaine atteint les exigences"
+    wsjf: 5.2
+    total_bcps: 23
   e23:
     status: done
     title: Second fournisseur de modèle qualifié
@@ -36,6 +47,12 @@ epics:
     total_bcps: 19
 
 stories:
+  e01s01:
+    status: in_progress
+    title: Un rapport qui défait une liaison sans rien demander rouvre la spécification
+    bcps: 3
+    epic: e01
+    started_at: "2026-09-25T17:07:59+02:00"
   e23s01:
     status: done
     title: La sortie de données vers le fournisseur est déclarée

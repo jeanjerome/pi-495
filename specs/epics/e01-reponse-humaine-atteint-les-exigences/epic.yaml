@@ -1,0 +1,147 @@
+# Capsule de l'epic e01. Les stories sont en ordre d'exécution ; l'ordre est contraint,
+# pas préférentiel — le motif de chaque position est écrit en regard.
+
+id: e01
+title: "Une réponse humaine atteint les exigences"
+status: in_progress
+capsule_dir: specs/epics/e01-reponse-humaine-atteint-les-exigences
+source: specs/archive/chantiers/L-reponse-humaine-sans-effet.md
+
+objet: >
+  Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport
+  qui défait une liaison sans poser de question dispose d'un recours. L'humain garde la main sur ce
+  qu'il a répondu : il peut révoquer une réponse donnée par erreur, et déclarer qu'une question n'est
+  plus matérielle pour faire décider avec ce qui est acquis. Une réponse humaine ne cesse de lier que
+  par une décision humaine.
+
+motif: >
+  Un changement accepté rendait 400 là où son propriétaire avait décidé 422, et le protocole gelé
+  exigeait ce 400. La discrimination établit que l'oracle distingue le comportement nouveau de
+  l'ancien, jamais qu'il distingue le bon contrat du mauvais. Ce défaut ne fait échouer aucun
+  parcours : il en fait réussir un qui ne devrait pas.
+
+decision_du_proprietaire: >
+  2026-09-25 : la révocation d'une réponse et la clôture d'une question qui n'est plus matérielle
+  entrent dans l'epic. La première parce que l'epic en aggrave le besoin : une réponse qui atteint
+  désormais le protocole gelé et les contrôles y porte aussi une faute de saisie, sans rien pour la
+  reprendre, et aucun autre epic ne s'en chargeait. La seconde parce qu'elle donne à l'arrêt d'une
+  spécification qui ne progresse plus une issue qui ne dépend pas du modèle : sans elle, cet arrêt
+  n'offre que relancer ou abandonner.
+  2026-09-25, après le modèle de menace (`specs/security/epics/e01/THREAT_MODEL.md`, M1) : la
+  déclaration « non observable » d'une réponse par le rapport de spécification cesse de suffire à
+  G1, et e01s03 la couvre. Aujourd'hui elle soustrait la réponse à toute obligation sans que personne
+  la relise, et un modèle l'a déjà prise pour passer G1 (D-37). Avec la clôture humaine, elle serait
+  devenue une seconde voie vers le même effet, sans signature.
+
+etat_a_l_ouverture: >
+  Établi le 2026-09-25 dans le code et le dossier, pas repris de la fiche. Le noyau tient déjà la
+  première moitié de l'objet : une réponse matérielle rouvre la spécification, le document des
+  exigences porte un bloc `answers`, G1 refuse une réponse absente, altérée ou portée par aucune
+  exigence obligatoire, et IH-02 est construite (D-37). Le noyau reporte lui-même les liaisons qu'un
+  rapport antérieur a déclarées (D-39). Quatre choses restent ouvertes.
+
+  La première est un écart entre deux prédicats, toujours présent dans
+  `src/domain/change/state.ts`, `answersTheReportIgnores`. G1 refuse toute réponse matérielle
+  qu'aucune exigence ne porte. La réouverture, elle, ne retient que les réponses aux questions que le
+  rapport a lui-même posées. Un rapport qui renomme l'exigence porteuse sans rien demander fait donc
+  tomber la liaison héritée sans rouvrir la spécification ; G1 refuse, `revise_requirements` n'a
+  aucun constructeur, et chaque reprise repropose le même document. Observé sur
+  `~/.495-campagnes/java-flashnext-L2`, événements 190 à 195 : le changement est perdu. La borne de
+  progression ferme la même impasse par un autre chemin : quand un rapport rouvert n'a rien gagné,
+  `clarify` le tient pour établi et le porte jusqu'au refus de G1.
+
+  La deuxième est la révocation. `decision.revoke` n'est atteignable par aucune méthode
+  d'`application/` ni aucune sous-commande `/495`. Et le noyau lui-même ne la rend pas opérante pour
+  une réponse : l'invalidation `authorization_revoked` ne retire aucune gate pour IH-01, la question
+  reste répondue dans `open_questions`, et le mandat comme les exigences adoptés sur la foi de la
+  réponse restent adoptés. Brancher une commande ne suffit donc pas.
+
+  La troisième est la clôture. IH-01 n'offre que « répondre » et « abandonner le changement ».
+  Rien ne permet de déclarer qu'une question n'est plus matérielle.
+
+  La quatrième est une absence de preuve. Aucune campagne réelle n'a franchi G1 avec une réponse
+  matérielle depuis D-37. Que le protocole gelé à G2 et les contrôles exécutés portent le contrat
+  décidé n'a jamais été mesuré.
+
+exigences: [BES-02, DEC-06]
+interactions: [IH-01, IH-02]
+decisions: [D-37, D-39]
+
+stories:
+  - id: e01s01
+    title: "Un rapport qui défait une liaison sans rien demander rouvre la spécification"
+    bcps: 3
+    delta: MODIFIED
+    requirement: BES-02
+    position: >
+      Première parce qu'elle ferme le cas observé. La réouverture juge désormais les mêmes réponses
+      que G1 : toute réponse matérielle enregistrée que le rapport ne porte pas, qu'il ait posé la
+      question ou non. Elle juge aussi le rapport qu'elle vient d'obtenir : sur
+      `java-flashnext-L2`, le rapport qui perd la liaison est lui-même issu d'une réouverture et ne
+      pose aucune question, si bien qu'il n'était jamais comparé aux réponses avant G1. La borne de
+      progression continue de borner la réouverture, et se mesure désormais contre tous les
+      rapports antérieurs : sans humain entre deux relances, une comparaison au seul précédent
+      laisserait un modèle qui oscille relancer sans fin. Un test déterministe de `test/v2` rejoue
+      le cas de `java-flashnext-L2` et échoue sur le code actuel.
+  - id: e01s02
+    title: "Une spécification qui ne progresse plus arrête le changement avec un recours"
+    bcps: 5
+    delta: MODIFIED
+    requirement: BES-02
+    position: >
+      Après e01s01, parce qu'elle traite ce qui reste quand la réouverture n'a plus le droit de
+      relancer : un rapport rouvert qui ne porte toujours pas une réponse, sans avoir rien gagné sur
+      le précédent. Aujourd'hui ce rapport est tenu pour établi, conduit jusqu'à G1, refusé, et
+      reproposé à l'identique à chaque reprise. Le changement doit s'arrêter avant G0, en nommant la
+      réponse perdue, et la reprise doit produire une nouvelle spécification plutôt que le même
+      document. G1 cesse de nommer une action qu'aucune commande ne tient.
+  - id: e01s03
+    title: "Seul l'humain déclare qu'une question n'est plus matérielle ou qu'une réponse ne fixe rien d'observable"
+    bcps: 5
+    delta: ADDED
+    requirement: BES-02
+    position: >
+      Après e01s02, parce qu'elle ajoute une issue à l'arrêt que celle-ci installe, et qu'elle en
+      reprend donc la forme. Elle vaut aussi devant la question elle-même, avant toute réponse : IH-01
+      offre une troisième issue à côté de « répondre » et « abandonner ». La clôture est une décision
+      humaine enregistrée, portée au mandat, et G1 cesse d'exiger qu'une exigence porte cette
+      question. Une question close n'est pas une question oubliée : le dossier dit qui l'a close.
+      La même story retire au rapport de spécification le pouvoir de délier seul une réponse : sa
+      déclaration « non observable » devient une proposition, qui demande à l'humain de confirmer ou
+      de refuser, et G1 ne dispense une réponse de toute exigence que sur cette confirmation. Les deux
+      voies n'en font qu'une : la clôture humaine est le seul point d'entrée.
+  - id: e01s04
+    title: "Une réponse donnée par erreur se révoque, et ce qui en découlait n'est plus adopté"
+    bcps: 5
+    delta: ADDED
+    requirement: DEC-06
+    position: >
+      Après e01s03, parce qu'une révocation remet une question ouverte, et que cette question doit
+      alors retrouver toutes ses issues, la clôture comprise. Une réponse révoquée ne lie plus rien :
+      la question est reposée, et ce qui a été adopté sur sa foi cesse de l'être. Le noyau sait
+      enregistrer une révocation mais ne la rend pas opérante pour une réponse ; la story dit ce
+      qu'elle défait, jusqu'où, et à quelles phases elle est admise. Une sous-commande `/495` la rend
+      atteignable.
+  - id: e01s05
+    title: "La décision est écrite et la recette tenue par une exécution réelle"
+    bcps: 5
+    delta: ADDED
+    position: >
+      Dernière parce qu'elle éprouve le tout. Une décision écrit l'alignement des deux prédicats, le
+      recours, la clôture et la révocation. Une campagne réelle sur la cible Maven conduit une
+      réponse matérielle qui contredit le premier rapport au-delà de G1, jusqu'au protocole gelé, et
+      le relevé dit si l'obligation et le contrôle portent le contrat décidé. La clôture et la
+      révocation sont exercées dans Pi. Un contrôle négatif rejoue sur le code d'avant l'epic ce que
+      l'epic corrige. Ce qui est feint se déclare.
+
+total_bcps: 23
+
+hors_perimetre:
+  - >
+    `artifact.revise` reste inutilisé. D-37 l'a écarté : réviser fidèlement une exigence, c'est
+    réécrire une phrase que personne ne relit.
+  - >
+    Seules les réponses à une question matérielle se révoquent ici. Les autres décisions humaines —
+    adoptions, dérogations, autorisations d'intégration — restent irrévocables depuis Pi.
+  - >
+    IH-04, l'arbitrage de vérifiabilité, relève de e22.

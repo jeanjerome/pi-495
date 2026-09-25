@@ -22,7 +22,7 @@ ordering:
 capsules:
   status: partial
   note: >
-    Quatre capsules existent, e23, e24, e25 et e26 ; les autres répertoires capsule_dir restent des
+    Cinq capsules existent, e01, e23, e24, e25 et e26 ; les autres répertoires capsule_dir restent des
     emplacements prévus. Une capsule s'écrit au moment d'attaquer son epic, pas pour les 22
     d'avance. Celle de e24 fait exception et le dit : elle a été écrite après ses deux premières
     stories, sur un travail déjà livré. Le gabarit qui manquait à leur écriture est désormais sous
@@ -50,9 +50,13 @@ epics:
       sont un jugement et non une mesure ; le motif les tient.
   - id: e01
     title: "Une réponse humaine atteint les exigences"
-    wsjf: 8.67
-    wsjf_inputs: { business_value: 8, time_criticality: 8, risk_reduction: 10, job_size: 3 }
+    wsjf: 5.2
+    wsjf_inputs: { business_value: 8, time_criticality: 8, risk_reduction: 10, job_size: 5 }
     capsule_dir: epics/e01-reponse-humaine-atteint-les-exigences
+    wsjf_note: >
+      job_size passe de 3 à 5 parce que l'objet de l'epic a grandi : le propriétaire y a fait entrer
+      le 2026-09-25 la révocation d'une réponse, la clôture d'une question qui n'est plus
+      matérielle, et la confirmation humaine d'une réponse que le rapport dit non observable. Sa position ne change pas : elle tient à la ROADMAP §5, pas au score.
   - id: e02
     title: "Une sortie refusée garde une issue"
     wsjf: 10.5

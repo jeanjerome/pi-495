@@ -304,7 +304,7 @@ in_scope:
   - epic: e01-reponse-humaine-atteint-les-exigences
     source: chantiers/L
     objet: >
-      Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport qui défait une liaison sans poser de question dispose d'un recours.
+      Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport qui défait une liaison sans poser de question dispose d'un recours. L'humain garde la main sur ce qu'il a répondu : il peut révoquer une réponse donnée par erreur, et déclarer qu'une question n'est plus matérielle. Une réponse humaine ne cesse de lier que par une décision humaine.
     motif: >
       Un changement accepté rend 400 là où son propriétaire avait décidé 422, et le protocole gelé exige ce 400. La discrimination établit que l'oracle distingue le comportement nouveau de l'ancien, jamais qu'il distingue le bon contrat du mauvais.
 

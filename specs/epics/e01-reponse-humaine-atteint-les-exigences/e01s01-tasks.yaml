@@ -1,0 +1,67 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+
+story_id: e01s01
+spec: e01s01-un-rapport-qui-defait-une-liaison-sans-rien-demander-rouvre-la-specification.md
+title: "Un rapport qui défait une liaison sans rien demander rouvre la spécification"
+status: failing
+bcps: 3
+requirement: BES-02
+delta: MODIFIED
+risk: P1
+context: domain
+type: fix
+
+tasks:
+  - id: 1
+    description: >
+      La spécification est rouverte pour toute réponse matérielle enregistrée que le rapport ne
+      porte pas, qu'il ait posé la question ou non : la réouverture juge les réponses que G1
+      refuse. Le rapport qu'une réouverture vient de produire est jugé avant que le mandat ne soit
+      proposé, sauf s'il pose une question matérielle nouvelle, qui passe d'abord par IH-01. Le
+      test rejoue le cas de `java-flashnext-L2` : une réponse liée à une exigence obligatoire, un
+      rapport rouvert qui renomme cette exigence, porte les nouvelles réponses et ne pose aucune
+      question. Une nouvelle intervention de spécification est demandée, sa demande dit la réponse
+      à déclarer, et un rapport qui la déclare mène le changement au-delà de G1. Le même test,
+      rejoué sur le code d'avant, s'arrête à G1 sans nouvelle intervention. Le test existant où un
+      rapport abandonne l'exigence qui tenait une déclaration (`test/v2/harness.test.ts`) décrit le
+      comportement modifié : ce rapport est rouvert une fois, puis refusé à G1 quand le suivant ne
+      gagne rien.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P0
+    security: low
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "domain"
+        - "BES-02"
+
+  - id: 2
+    description: >
+      Une réouverture n'est relancée que si le rapport porte une réponse qu'aucun rapport antérieur
+      du changement ne portait. Un rapport rouvert qui ne gagne rien va à G1, qui le refuse en
+      nommant la réponse perdue, et rien n'est adopté. Des rapports qui reprennent une réponse et
+      en perdent une autre, tour à tour, cessent d'être rouverts au premier qui ne porte que des
+      réponses déjà portées. Une réponse déclarée non observable n'est pas comptée comme perdue.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "domain"
+        - "BES-02"
+
+  - id: 3
+    description: >
+      L'ensemble des contrôles passe avec le changement.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

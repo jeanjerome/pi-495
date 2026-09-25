@@ -5,19 +5,57 @@ project_cycle:
   phase_name: discover
   completed_phases: []
 
-active_flow: null
-active_epic_id: null
-active_story: null
+active_flow: build_epic
+active_epic_id: e01
+active_story: e01s01
 
 epic_cycle:
-  step: 8
-  completed_steps: "1,2,3,4,5,6,7,8"
-  audit_result: pass
+  step: 3
+  completed_steps: "0,1,2"
+  audit_result: null
   story_bcps: 3
 
 handoff:
-  next_skill: null
+  next_skill: kickoff-branch
   last_step_completed: >
+    Étape 2 faite le 2026-09-25 : spécification de e01s01 écrite
+    (`e01s01-un-rapport-qui-defait-une-liaison-sans-rien-demander-rouvre-la-specification.md`,
+    `e01s01-tasks.yaml`, trois tâches en `failing`), format tenu par `lint:story-format`. Le relevé
+    de `java-flashnext-L2` a corrigé la capsule sur deux points, reportés dans sa position de
+    e01s01. D'abord, le rapport 183 qui perd Q1 est issu d'une réouverture et ne pose aucune
+    question, et `clarify` ne juge jamais le rapport qu'elle vient d'obtenir. Aligner le prédicat
+    seul n'aurait donc rien rouvert. Ensuite, une fois ce jugement ajouté, la borne comparée au seul
+    rapport précédent laisse un modèle qui oscille relancer sans fin. Elle se mesure donc contre
+    tous les rapports antérieurs. Le test existant « stops carrying a declaration… » de
+    `test/v2/harness.test.ts` change d'attendu : une réouverture de plus avant le refus de G1.
+    Prochaine étape : kickoff-branch, puis develop-tdd sur
+    `test/v2/specification-reopening.test.ts`.
+
+    Étape 1 faite le 2026-09-25 : e01s01 confirmée comme story de départ, démarrée à 2026-09-25T17:07:59+02:00.
+    Point de départ vérifié : `main` à `02e86ef`, propre hors des fichiers de planification de e01 ;
+    aucun fichier de `src/`, `test/` ou `scripts/` n'a changé depuis `68cf582`, dernière Preflight
+    verte (Node 24.21.0, 465 tests), que kickoff-branch rejouera. Un seul défaut ouvert,
+    `BUG-2026-09-23T155707` (budget de tentatives), sans effet sur e01s01. Le défaut que la story
+    corrige est présent : `answersTheReportIgnores` filtre encore sur `asked.has(q.id)`
+    (`src/domain/change/state.ts:342`).
+
+    Étape 0 faite le 2026-09-25 : modèle de menace de e01 écrit
+    (`specs/security/epics/e01/THREAT_MODEL.md`), risque moyen, sept menaces. Une reste sans story :
+    M1, le modèle qui déclare une réponse humaine « non observable » la soustrait à toute obligation
+    à G1 (`decide.ts:426`). Le propriétaire l'a fait entrer dans e01s03 le même jour (5 BCP, epic à
+    23) : la déclaration du rapport devient une proposition que l'humain confirme.
+
+    e01 ENGAGÉ le 2026-09-25. Capsule écrite (`specs/epics/e01-reponse-humaine-atteint-les-exigences/epic.yaml`),
+    cinq stories, 23 BCP, aucune spécification encore : elles s'écrivent une à une (D-54). Le
+    propriétaire y a fait entrer le même jour la révocation d'une réponse donnée par erreur et la
+    clôture d'une question qui n'est plus matérielle (e01s03, e01s04). L'état à
+    l'ouverture est établi dans le code : D-37 et D-39 tiennent déjà la réponse jusqu'au document de
+    G1 ; restent l'écart entre le prédicat de réouverture et celui de G1 (`answersTheReportIgnores`
+    ne retient que les questions que le rapport a posées), l'impasse quand la borne de progression
+    refuse de relancer, une révocation que le noyau enregistre sans la rendre opérante pour une
+    réponse, et l'absence de toute campagne réelle au-delà de G1. Prochaine étape :
+    modèle de menace de l'epic, puis spécification de e01s01.
+
     Chantier de communication `e26` activé le 2026-09-25 par le propriétaire, à la publication de la
     0.2.1 (J1). Les cinq messages de l'exploration sont rédigés dans
     `specs/epics/e26-pi-495-est-essaye-par-ceux-qu-il-sert/campagnes/exploration.md` ; le premier se
@@ -656,3 +694,6 @@ handoff:
     3. Une relance sans origine humaine établie est encore inscrite au nom du noyau.
     4. Le journal ne garde pas les bornes en vigueur.
     5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
+
+metrics:
+  story_start: "2026-09-25T17:07:59+02:00"
