@@ -65,7 +65,7 @@ export async function specify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		throw new DomainError(
 			"PRECONDITION_FAILED",
 			`requirements rejected at G1: ${unit.state.gates.G1.reasons.join("; ")}`,
-			{ nextActions: ["revise_requirements"] },
+			{ nextActions: [unit.state.gates.G1.next_action] },
 		);
 	return requestAdoption(ctx, unit, cor, "G1", "requirements", ref, ctx.language(unit.state));
 }

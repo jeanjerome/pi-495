@@ -447,6 +447,8 @@ class Ctx {
 			requirements: c.requirements_ref.content_digest,
 			mandate: this.state.adopted.mandate?.ref.content_digest ?? "",
 		};
+		// Past G0 no phase goes back to the specification, so the refusal names the one way out a
+		// command holds: abandoning the change.
 		if (reasons.length > 0) {
 			this.emit({
 				type: "gate.decided",
@@ -461,7 +463,7 @@ class Ctx {
 					evidence_missing: [],
 					fail_requirements: [],
 					indeterminate_requirements: [],
-					next_action: "revise_requirements",
+					next_action: "cancel",
 				}),
 			});
 			return ok(this.events);
