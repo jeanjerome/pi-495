@@ -95,6 +95,12 @@ const RENAMES_MESSAGE = specReport({
 	],
 	requirements: [BODY, UPDATE],
 });
+// What report 183 should have been: Q1 bound to the requirement that replaced the one it was bound to.
+const BINDS_Q1_TO_BODY = specReport({
+	questions: [],
+	answers: [{ question_id: Q1.id, observable: true, requirement_ids: [BODY.requirement_id] }],
+	requirements: [BODY, UPDATE],
+});
 
 /** Starts the change and answers the questions of the first two rounds. */
 async function throughTwoRounds(t: TestHarness): Promise<string> {
@@ -114,16 +120,7 @@ async function throughTwoRounds(t: TestHarness): Promise<string> {
 describe("a specification report is judged against every recorded material answer, the report a reopening produced included (BES-02, RM-010, RM-011)", () => {
 	it("reopens a report that renames the requirement an answer was bound to without asking anything, and the answer reaches the requirements adopted at G1 (6a)", async () => {
 		const t = track(makeHarness());
-		const { objectives, calls } = specificationRounds(t, [
-			ASKS_Q1,
-			BINDS_Q1,
-			RENAMES_MESSAGE,
-			specReport({
-				questions: [],
-				answers: [{ question_id: Q1.id, observable: true, requirement_ids: [BODY.requirement_id] }],
-				requirements: [BODY, UPDATE],
-			}),
-		]);
+		const { objectives, calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, BINDS_Q1_TO_BODY]);
 		const changeId = await throughTwoRounds(t);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
@@ -341,5 +338,68 @@ describe("a specification report is judged against every recorded material answe
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
 		assert.equal(calls(), 2);
+	});
+});
+
+describe("a change stopped because its specification no longer progresses is resumed into a rewriting, or abandoned (BES-02, RM-010, RM-011)", () => {
+	/** Takes the change of 6b to its stop: Q1 is lost by a reopened report and by the one after it. */
+	async function stopped(t: TestHarness, calls: () => number): Promise<string> {
+		const changeId = await throughTwoRounds(t);
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 4);
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
+		return changeId;
+	}
+
+	it("writes the specification again on resume, asks it to declare the lost answer, and a report that declares it takes the change past G1", async () => {
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			BINDS_Q1,
+			RENAMES_MESSAGE,
+			RENAMES_MESSAGE,
+			BINDS_Q1_TO_BODY,
+		]);
+		const changeId = await stopped(t, calls);
+		assert.equal(t.harness.resume(changeId, HUMAN).change?.status, "ready");
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 5, "the resume obtains one rewriting of the report that lost Q1");
+		assert.ok(
+			objectives[4]!.includes(`Q ${Q1.id}: ${Q1.question} -> réponse à ${Q1.question} [to declare in \`answers\`]`),
+			objectives[4],
+		);
+		const state = t.ledger.loadChange(changeId)!.state;
+		const adopted = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
+		assert.deepEqual(adopted.content.answers.find((a) => a.question_id === Q1.id)?.requirement_ids, [
+			BODY.requirement_id,
+		]);
+	});
+
+	it("stops the change again after a single rewriting when the report a resume obtained gains nothing, at each resume (6a)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
+		const changeId = await stopped(t, calls);
+		for (const expected of [5, 6]) {
+			assert.equal(t.harness.resume(changeId, HUMAN).change?.status, "ready");
+			const last = await t.harness.advance(changeId, { max_steps: 30 });
+			assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+			assert.equal(calls(), expected, "one specification intervention per resume");
+			await assertStoppedBeforeG0(t, changeId, [Q1.id]);
+		}
+	});
+
+	it("closes a stopped change as abandoned on cancel, without any intervention (6b)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
+		const changeId = await stopped(t, calls);
+		const view = t.harness.cancel(changeId, HUMAN, "la spécification perd la réponse à q1");
+		assert.equal(view.change?.outcome, "abandoned");
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.status, "cancelled");
+		assert.equal(state.phase, "closed");
+		await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(calls(), 4, "no specification is written after the change is abandoned");
 	});
 });
