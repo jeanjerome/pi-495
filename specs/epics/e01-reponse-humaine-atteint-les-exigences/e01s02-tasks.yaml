@@ -1,0 +1,115 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée medium doit établir en plus de sa commande. Le dépôt n'a
+# pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins touchés, et
+# son absence de constat est écrite au moment où la tâche bascule.
+
+story_id: e01s02
+spec: e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md
+title: "Une spécification qui ne progresse plus arrête le changement avec un recours"
+status: failing
+bcps: 5
+requirement: BES-02
+delta: MODIFIED
+risk: P1
+context: domain
+type: fix
+
+tasks:
+  - id: 1
+    description: >
+      Un rapport qui ne porte pas une réponse matérielle enregistrée, et que la borne de progression
+      interdit de rouvrir, arrête le changement en clarification : stagnation levable par une
+      reprise, dont le détail nomme chaque réponse perdue, l'issue de la reprise et celle de
+      l'abandon. Aucun mandat n'est proposé, G0 n'est pas évalué, aucune adoption n'est demandée.
+      Le rapport qui pose une question matérielle encore sans réponse la pose d'abord, comme
+      aujourd'hui. Les tests qui attendaient le refus de G1 après la borne attendent l'arrêt avant
+      G0 : 6b, 6c, 6g, 6h et 6j de `test/v2/specification-reopening.test.ts`, et le report d'une
+      déclaration dont l'exigence disparaît dans `test/v2/harness.test.ts`. Le cas principal,
+      rejoué sur le code d'avant, propose un mandat et s'arrête au refus de G1.
+    verify: "node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/application/phases/clarify.ts et src/domain/change/state.ts :
+      l'arrêt ne lie ni ne délie aucune réponse, et aucun document qui perd une réponse n'est
+      proposé à G0 ni adopté à G1.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 2
+    description: >
+      La reprise d'un changement arrêté pour stagnation fait réécrire la spécification : la borne de
+      progression se mesure depuis la dernière réponse matérielle ou la dernière levée d'un arrêt,
+      lues dans l'ordre du journal. La demande de l'intervention dit la réponse à déclarer, et un
+      rapport qui la déclare mène le changement au-delà de G1. Un rapport obtenu après la reprise
+      qui perd encore la réponse sans rien gagner arrête de nouveau le changement, après une seule
+      intervention. L'abandon d'un changement arrêté le clôt comme abandonné sans intervention.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P0
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/application/artifacts.ts et src/application/harness.ts : seule
+      une reprise lève l'arrêt, un acteur agent, une sortie de modèle ou un appel d'outil ne le lève
+      pas, et chaque reprise ne relance qu'une réécriture avant que la borne ne s'applique de
+      nouveau.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 3
+    description: >
+      Une réponse n'est portée par un rapport que si sa déclaration tient dans les exigences de ce
+      rapport, qu'elle lui soit propre ou héritée : une réponse observable nomme des exigences qu'il
+      porte, dont une obligatoire au moins. Une déclaration qui nomme une exigence absente, ou
+      seulement des exigences facultatives, laisse la réponse non portée : le rapport est rouvert si
+      la borne le permet, et le changement s'arrête sinon. La mesure de progrès lit le même
+      prédicat.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "domain"
+        - "BES-02"
+
+  - id: 4
+    description: >
+      Un refus de G1 nomme l'abandon (`cancel`) comme action suivante, dans la décision de gate et
+      dans le détail de l'arrêt : passé G0, les phases ne reviennent plus en arrière, et c'est la
+      seule issue qu'une sous-commande `/495` tienne. `revise_requirements` n'est plus nommée. Le
+      test conduit jusqu'à G1 un rapport qui porte toutes les réponses et deux exigences de même
+      identifiant.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P2
+    security: low
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "domain"
+        - "BES-02"
+
+  - id: 5
+    description: >
+      L'ensemble des contrôles passe avec le changement.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

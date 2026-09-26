@@ -7,17 +7,49 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e01
-active_story: e01s01
+active_story: e01s02
 
 epic_cycle:
-  step: 8
-  completed_steps: "0,1,2,3,4,5,6,7,8"
-  audit_result: pass
-  story_bcps: 3
+  step: 3
+  completed_steps: "0,1,2"
+  story_bcps: 5
 
 handoff:
-  next_skill: null
+  next_skill: kickoff-branch
   last_step_completed: >
+    Étape 2 faite le 2026-09-26 : spécification de e01s02 écrite
+    (`e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md`,
+    `e01s02-tasks.yaml`, cinq tâches en `failing`), format tenu par `lint:story-format`. Relevé du
+    code qui fixe la forme du recours : après G0 les phases ne reviennent jamais en arrière, donc la
+    réécriture n'est possible qu'en clarification ; `/495 resume` lève déjà un arrêt levable et
+    `/495 cancel` clôt comme abandonné ; le motif d'arrêt `stagnation` et le code `STAGNATION`
+    existent sans servir à la spécification ; seul `resume` émet `change.unblock`, refusé à un
+    agent, une sortie de modèle et un appel d'outil. D'où : l'arrêt est une stagnation levable en
+    clarification, la borne de progression repart de la dernière réponse ou de la dernière levée
+    d'un arrêt, et un refus de G1 nomme `cancel`. Deux points ajoutés à la capsule, écrits dans la
+    story : une déclaration propre au rapport qui nomme une exigence absente ou aucune obligatoire
+    ne porte plus la réponse (le prédicat de G1, qui menait sinon au même refus sans issue) ; les
+    défauts de structure que G1 refuse ne sont pas jugés avant G0, seul le nom de leur issue
+    change (§18). Rayon d'impact : `specificationStanding` n'a qu'un appelant (`clarify`),
+    `specificationHistory` en a deux (`clarify`, et `priorDiagnostics` par `specify`, dont la
+    somme des deux moitiés ne change pas) ; aucun contrat, événement ni composant nouveau. Les
+    tests 6b, 6c, 6g, 6h, 6j et le report d'une déclaration de `harness.test.ts` changent d'attendu.
+    Prochaine étape : kickoff-branch, puis develop-tdd sur `test/v2/specification-reopening.test.ts`.
+
+    Étape 1 faite le 2026-09-26 : e01s02 confirmée, démarrée à 2026-09-26T13:51:00+02:00. L'étape 0
+    tient déjà : le modèle de menace de e01 couvre e01s02 par M2 (le refus de G1 reste fermé ; le
+    recours relance ou arrête, il n'adopte jamais un document qui perd une réponse) et M7 (chaque
+    reprise relance une intervention, déclenchée par un humain). Point de départ vérifié : `main` à
+    `9b87f95`, propre ; aucun fichier de `src/`, `test/` ou `scripts/` n'a changé depuis `07f4c38`,
+    dernière Preflight verte (Node 24.21.0, 474 tests), que kickoff-branch rejouera. Un seul défaut
+    ouvert, `BUG-2026-09-23T155707` (budget de tentatives), sans effet sur e01s02 sinon qu'il ne
+    borne pas les reprises (M7). Le défaut que la story corrige est présent :
+    `specificationStanding` rend `settled` dès que `reopen` est faux, même quand `ignored` n'est pas
+    vide (`src/domain/change/state.ts:446`), et `clarify` porte alors ce rapport jusqu'au mandat
+    (`src/application/phases/clarify.ts:33`). G1 le refuse avec `revise_requirements`
+    (`src/domain/change/decide.ts:464`, `src/application/phases/specify.ts:68`), action qu'aucune
+    commande ne tient. Prochaine étape : plan-work, spécification de e01s02.
+
     e01s01 versée sur `main` le 2026-09-26 par avance rapide, sur décision du propriétaire.
     Preflight verte sur `main` sous Node 24.21.0, 11:41:05Z à 11:43:34Z, 474 tests. Couverture
     mesurée dans un arbre détaché : 96,64 % de lignes (94,99 % sur `main` avant), 100 % pour
