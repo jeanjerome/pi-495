@@ -15,6 +15,7 @@ import type { ContextManifest } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
@@ -1174,6 +1175,37 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.equal(result.view.change?.outcome, "accepted");
 		assert.equal((await t.ledger.verifyIntegrity()).ok, true);
+	});
+
+	it("refuses to pause a change blocked by a step that failed while its intervention ran, which keeps its stop", async () => {
+		const t = track(makeHarness());
+		t.agent.startIntervention = async () => {
+			throw new DomainError("EVIDENCE_MISSING", "the adopted report is gone");
+		};
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const blocked = await t.harness.advance(change.change_id);
+		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
+		assert.throws(
+			() => t.harness.pause(change.change_id, HUMAN),
+			(e: { code?: string }) => e.code === "PRECONDITION_FAILED",
+		);
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.status, "blocked");
+		assert.equal(state.stop_reason, "execution_error");
+		assert.ok(state.stop_detail?.startsWith("EVIDENCE_MISSING"), state.stop_detail ?? "");
+		assert.ok(state.interventions.every((i) => i.result !== "running"));
+	});
+
+	it("does not lift on resume a stop no resume lifts, when the step failed while its intervention ran", async () => {
+		const t = track(makeHarness());
+		t.agent.startIntervention = async () => {
+			throw new DomainError("CAPABILITY_MISSING", "the selected model cannot call tools");
+		};
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const blocked = await t.harness.advance(change.change_id);
+		assert.equal(blocked.stopped_because, "capability_missing", blocked.steps.join(" | "));
+		assert.equal(t.harness.resume(change.change_id, HUMAN).change?.status, "blocked");
+		assert.equal(t.ledger.loadChange(change.change_id)!.state.stop_reason, "capability_missing");
 	});
 
 	// Which files an intervention must read is not the harness's to guess: it holds the request and

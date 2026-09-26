@@ -1246,4 +1246,26 @@ describe("pause, resume, cancel (PF-17, RM-056)", () => {
 		assert.equal(r.s.stop_detail, detail);
 		assert.equal(r.s.stop_retryable, true);
 	});
+
+	it("ends the running intervention when it blocks a change, so a pause is still refused and the stop kept", () => {
+		const r = new Runner().toImplementing();
+		r.run({
+			type: "intervention.start",
+			at: tick(),
+			actor: KERNEL,
+			intervention_id: "i",
+			role: "implement",
+			attempt_id: "a",
+			model: { provider_id: "p", model_id: "m", thinking_level: "off", location: "on_machine" },
+			profile_id: "implement",
+			profile_qualified: true,
+		});
+		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "capability_missing", detail: "no sandbox" });
+		assert.equal(r.s.interventions[0]?.result, "failed");
+		assert.equal(r.s.attempts[0]?.result, "open", "the attempt outlives the stop");
+		r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		assert.equal(r.s.status, "blocked");
+		assert.equal(r.s.stop_reason, "capability_missing");
+		assert.equal(r.s.stop_detail, "no sandbox");
+	});
 });
