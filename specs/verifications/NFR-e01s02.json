@@ -2,7 +2,7 @@
   "story_id": "e01s02",
   "risk": "P1",
   "risk_note": "Story P1 with tasks 1 and 2 in P0; the gate is run as for P0.",
-  "evaluated_at": "2026-09-26T13:32:22Z",
+  "evaluated_at": "2026-09-26T16:24:46Z",
   "threshold_source": {
     "file": "specs/epics/e01-reponse-humaine-atteint-les-exigences/e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md",
     "section": "14. Quality attributes *NFR*",
@@ -17,7 +17,7 @@
     "performance": {
       "verdict": "PASS",
       "threshold": "Specification interventions between two human acts, an answer or a resume: at most one more than the recorded material answers. Resume of a stagnation stop that produces no specification intervention: 0.",
-      "measured": "Test 6a of test/v2/specification-reopening.test.ts: two resumes, one specify intervention each, then the stop again. Campaign e01s02-reprise: /495 resume lifts the stop under jeanjerome/human/rpc_qualified and exactly one specify intervention runs under omlx/qwen3.8-27b-oq8e (406 s); its report declares Q1 and the change passes G0 and G1. On the code before the story (e01s02-reprise-negatif), the same resume produces no intervention and G1 refuses the same document again.",
+      "measured": "Test 6a of test/v2/specification-reopening.test.ts, at 31e81ba and again at 9105a57 under Node 24.21.0: two resumes, one specify intervention each, then the stop again. At 9105a57, 6c also holds that a change paused during a rewriting stays paused, so its resume ends the pause and the bound stays measured from the latest answer (5 specify interventions, not 6). Campaign e01s02-reprise: /495 resume lifts the stop under jeanjerome/human/rpc_qualified and exactly one specify intervention runs under omlx/qwen3.8-27b-oq8e (406 s); its report declares Q1 and the change passes G0 and G1. On the code before the story (e01s02-reprise-negatif), the same resume produces no intervention and G1 refuses the same document again.",
       "note": "Each resume costs one billed or long intervention; only a human triggers it (threat M7)."
     },
     "reliability": {
@@ -35,5 +35,5 @@
   },
   "verdict": "GO",
   "blocked": false,
-  "revision": "31e81ba"
+  "revision": "9105a57"
 }

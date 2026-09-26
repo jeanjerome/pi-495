@@ -15,8 +15,21 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   last_step_completed: >
+    Tour 5 de `request-review` de e01s02 le 2026-09-26, sur `git diff e85b112 9105a57` : les deux
+    relecteurs passent, sans point à corriger ; la revue est close à `9105a57`. Leurs mutations
+    (règle réduite à `stop_retryable`, actions inversées, vides ou en trop, autre code, reprise qui
+    ignore la règle) échouent toutes au test du refus de la pause. Laissé : `e25s02-cycle-rouge-vert.md:68`
+    dit que la reprise ne lève que les blocages réessayables et tait `execution_error`, ligne
+    antérieure à la branche. Enregistrements ancrés à `9105a57` (CONVENTIONS.md § Review, règle 5) :
+    `e01s02-verify.yaml`, `NFR-e01s02.json`, les commandes des tâches du journal rouge-vert, et la
+    section e01s02 de `specs/security/REVIEW.md`, relue sur `git diff 31e81ba 9105a57 -- src/`.
+    `npm run build && npm run check` sous Node 24.21.0, 16:22:14Z à 16:24:46Z : sortie 0, 490 tests,
+    `dist/` inchangé. Le jugement des rapports n'a changé que dans ses commentaires : les rapports
+    réels #100 et #187 ne sont pas jugés de nouveau. La mise en route et les sept campagnes restent
+    celles de `31e81ba`, ce que l'enregistrement déclare. Prochaine étape : `release-branch`.
+
     `respond-review` a traité le tour 4 de `request-review` de e01s02 le 2026-09-26, sur
     `2c33b93..e85b112`. B passe, A échoue sur un point à corriger : le relevé et ce suivi disaient
     « non levable » l'erreur d'exécution qu'une reprise lève ; le mot est « non réessayable », celui

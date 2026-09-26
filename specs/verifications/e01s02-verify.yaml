@@ -4,7 +4,17 @@ verifier: verify-work
 risk: P1
 risk_note: "Story P1; tasks 1 and 2 are P0, so the security scan and the NFR gate were run as for a P0 story."
 branch: specification-arretee-avant-g0
-revision: 31e81ba
+revision: 9105a57
+anchored_at: "2026-09-26T16:24:46Z"
+anchor_note: >
+  The review closed at 9105a57; the record is anchored there, where the build, the checks and the task
+  commands were run again under Node 24.21.0. Since 31e81ba, src/ changed only in how a change is
+  stopped, paused and resumed: a block ends the running intervention, a blocked change refuses a
+  pause and names the resume that lifts its stop, a step that fails on the revision conflict its own
+  pause causes leaves the change paused, and the resume reads the same rule as the refused pause
+  (resumeLiftsStop). How a specification report is judged changed only in its comments, so the real
+  reports #100 and #187 were not judged again. The smoke start and the seven campaigns were run at
+  31e81ba and not again.
 
 environment:
   pi_version: "0.87.1"
@@ -16,7 +26,8 @@ phases:
   smoke:
     passed: true
     note: >
-      Cold start of the built extension from ~/.495-campagnes/builds/e01s02-31e81ba/dist (git archive
+      Run at 31e81ba, not again at 9105a57. Cold start of the built extension from
+      ~/.495-campagnes/builds/e01s02-31e81ba/dist (git archive
       of 31e81ba, built under Node 24.21.0) in a real `pi -ne --mode rpc --no-session -e <extension>`,
       once per campaign, each on its own copy of the dossier.
   build:
@@ -31,30 +42,32 @@ phases:
     note: "Eight controls chained in npm run check."
   tests:
     passed: true
-    count: 482
+    count: 490
     note: >
-      474 on main at 38bf5a3; 8 added (5 in test/v2/specification-reopening.test.ts, 3 in
-      test/v0/change-rules.test.ts), none removed. Eight existing tests change their expectation: 6b,
+      474 on main at 38bf5a3; 482 at 31e81ba, 8 added (5 in test/v2/specification-reopening.test.ts,
+      3 in test/v0/change-rules.test.ts), none removed. The review added 8 more (2 in
+      test/v0/change-rules.test.ts, 3 in test/v2/specification-reopening.test.ts, 3 in
+      test/v2/harness.test.ts), none removed. Eight existing tests change their expectation: 6b,
       6c, 6g, 6h and 6j of specification-reopening, and three of test/v2/harness.test.ts (the answer
       ignored twice, the declaration whose requirement disappears, the answer bound to R1-trimee).
 
 terminal_verdict:
   command: "npm run check"
   exit_code: 0
-  started_at: "2026-09-26T13:29:50Z"
-  ended_at: "2026-09-26T13:32:22Z"
+  started_at: "2026-09-26T16:22:14Z"
+  ended_at: "2026-09-26T16:24:46Z"
   note: >
-    Single contiguous run under Node 24.21.0 on the code committed as 31e81ba, right after
-    `npm run build`, which left dist/ unchanged. 482 tests passing, 0 failing. No output from any other
+    Single contiguous run under Node 24.21.0 on the code committed as 9105a57, right after
+    `npm run build`, which left dist/ unchanged. 490 tests passing, 0 failing. No output from any other
     attempt is merged into this block.
 
 task_verify_commands:
-  note: "Each task's own verify command, re-run under Node 24.21.0 at 31e81ba; every one exits 0."
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 9105a57; every one exits 0."
   results:
-    - { task: 1, command: "node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts", exit_code: 0, tests: 46 }
-    - { task: 2, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
-    - { task: 3, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
-    - { task: 4, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
+    - { task: 1, command: "node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts", exit_code: 0, tests: 52 }
+    - { task: 2, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 18 }
+    - { task: 3, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 18 }
+    - { task: 4, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 18 }
     - { task: 5, command: "npm run check", exit_code: 0 }
 
 red_green: "specs/verifications/e01s02-cycle-rouge-vert.md"
@@ -218,4 +231,5 @@ known_limits:
   - "6a, 6c and 6d are not exercised by a real model: the model declared Q1 at the resume. Their tests hold them."
   - "6e is shown on real reports judged by the built kernel, not on a campaign that reopens on them."
   - "The resume campaign stops once G1 has passed: whether the frozen protocol and the executed controls carry the 422 decided belongs to e01s05."
+  - "The smoke start and the seven campaigns ran at 31e81ba; at 9105a57 only the build, the checks and the task commands were run again. The pause and resume rules the review changed are held by their tests only."
   - "In RPC mode without HARNESS495_RPC_HUMAN_ACTOR, /495 resume lifts the stop under the kernel actor (specs/security/REVIEW.md, e01s02, observation below the threshold); the campaigns declare the human."

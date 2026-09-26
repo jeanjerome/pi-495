@@ -844,11 +844,11 @@ les exigences, et son refus reste fermé.
 | | |
 |---|---|
 | Périmètre | `git diff main...HEAD -- src/` |
-| Révision relue | `31e81ba` |
-| Conduite le | 2026-09-26 |
+| Révision relue | `9105a57` (d'abord `31e81ba`) |
+| Conduite le | 2026-09-26, reprise le même jour sur `git diff 31e81ba 9105a57 -- src/` |
 | Branche | `specification-arretee-avant-g0` |
 | Risque de la story | P1, tâches 1 et 2 classées P0 et `security: medium` |
-| Code de production touché | `src/domain/change/state.ts` (la situation `stalled`, la déclaration propre jugée par `declarationHolds`), `src/application/phases/clarify.ts` (l'arrêt avant le mandat), `src/application/artifacts.ts` (la coupure de l'historique à la dernière levée d'un arrêt), `src/domain/change/decide.ts` et `src/application/phases/specify.ts` (l'action nommée par un refus de G1) |
+| Code de production touché | `src/domain/change/state.ts` (la situation `stalled`, la déclaration propre jugée par `declarationHolds`), `src/application/phases/clarify.ts` (l'arrêt avant le mandat), `src/application/artifacts.ts` (la coupure de l'historique à la dernière levée d'un arrêt), `src/domain/change/decide.ts` et `src/application/phases/specify.ts` (l'action nommée par un refus de G1), `src/domain/change/decide.ts` et `src/application/harness.ts` (l'arrêt termine l'intervention en cours, un changement bloqué refuse la pause, un pas qui échoue sur le conflit de révision de sa propre pause laisse le changement en pause) |
 
 ## Verdict
 
@@ -880,6 +880,21 @@ exigences, et son refus reste fermé.
   propre qui ne tient pas dans les exigences du rapport compte comme absente. Cela ne peut produire
   qu'une réouverture, bornée par la même mesure de progrès, ou un arrêt. Aucun chemin n'adopte une
   réponse que G1 refuserait.
+- **Une pause n'est plus une seconde levée d'un arrêt.** Avant la branche, `/495 pause` acceptait un
+  changement bloqué et remplaçait son arrêt par la pause ; la reprise rendait ensuite le changement
+  `ready` par `change.resume`, sans passer par `changeUnblock` ni par sa règle. Un arrêt qu'aucune
+  reprise ne lève se levait ainsi (BUG-2026-09-26T142500, BUG-2026-09-26T145000, présents sur
+  `main`). `changePause` refuse désormais un changement bloqué, et nomme `resume` seulement quand
+  `resumeLiftsStop` le lève, la règle que `harness.resume` applique aussi. Le seul passage de
+  `blocked` à `ready` par une reprise reste `change.unblock`.
+- **Un arrêt ne laisse aucune intervention en cours.** `block` termine l'intervention `running` dans
+  la décision de l'arrêt, avec le résultat `failed` et un coût déclaré inconnu, comme l'abandon
+  (`decide.ts:1169`) et la pause (`harness.ts:889`) le font déjà. La fin tardive de cette
+  intervention ne peut donc plus rendre `ready` un changement bloqué.
+- **Rester en pause sous un pas qui échoue exige une pause déjà écrite.** `harness.ts` ne rend
+  `paused` que si le dernier état du changement est `paused` et que l'erreur est `REVISION_CONFLICT`.
+  Toute autre erreur bloque le changement, comme avant. Le statut `paused` n'est écrit que par
+  `changePause`, que seule la commande `/495 pause` atteint.
 - **Le refus de G1 reste fermé.** Seule l'action nommée change (`cancel`). La reprise d'un refus de
   G1 rejoue G1 sur le même document, sans intervention (`e01s02-refus-g1`).
 
@@ -892,6 +907,12 @@ exigences, et son refus reste fermé.
   branche et vaut pour toute reprise ; l'hôte RPC est le programme de l'opérateur, pas le modèle.
   Il contredit pourtant la lettre du §3 de la story (« Seul un humain lève un arrêt ») dès que
   l'hôte ne déclare personne. L'abandon, lui, exige une provenance humaine.
+- **La pause et sa reprise ne demandent pas l'autorité du noyau (confiance 2/10, faible).**
+  `changePause` et `changeResume` n'appellent pas `requireKernelAuthority`, à la différence de
+  `changeUnblock`. Ce comportement précède la branche. Aucun agent ne les atteint : l'outil
+  `harness495` n'expose que `status`, `list_pending_decisions` et `start`, et seule la commande
+  `/495` émet la pause et la reprise. La branche réduit ce que ce chemin permet : il ne lève plus un
+  arrêt.
 - **Les identifiants de question écrits par le modèle atteignent le détail de l'arrêt (confiance
   3/10, faible).** `Identifier` n'impose qu'une longueur de 1 à 200 caractères, et le détail de
   l'arrêt nomme les réponses perdues par leur identifiant. Les mêmes identifiants apparaissaient
