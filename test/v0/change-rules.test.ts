@@ -1240,7 +1240,8 @@ describe("pause, resume, cancel (PF-17, RM-056)", () => {
 		const r = new Runner().create();
 		const detail = "the specification loses material answer(s) q1";
 		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "stagnation", detail, retryable: true });
-		r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		const refused = r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		assert.deepEqual(refused.nextActions, ["resume", "cancel"]);
 		assert.equal(r.s.status, "blocked");
 		assert.equal(r.s.stop_reason, "stagnation");
 		assert.equal(r.s.stop_detail, detail);
@@ -1263,7 +1264,8 @@ describe("pause, resume, cancel (PF-17, RM-056)", () => {
 		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "capability_missing", detail: "no sandbox" });
 		assert.equal(r.s.interventions[0]?.result, "failed");
 		assert.equal(r.s.attempts[0]?.result, "open", "the attempt outlives the stop");
-		r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		const refused = r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		assert.deepEqual(refused.nextActions, ["cancel"], "a resume does not lift a missing capability");
 		assert.equal(r.s.status, "blocked");
 		assert.equal(r.s.stop_reason, "capability_missing");
 		assert.equal(r.s.stop_detail, "no sandbox");
