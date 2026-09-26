@@ -259,6 +259,20 @@ Scenario: Ce que porte le rapport sur lequel la dernière réponse a été donn�
   Then  la spécification n'est rouverte qu'une fois
   And   G1 refuse la réponse perdue en la nommant
 
+Scenario: Le rapport sur lequel la dernière réponse a été donnée est réécrit dès qu'il en ignore une (6i)
+  Given un rapport rouvert qui ne porte aucune réponse et pose une question matérielle nouvelle
+  When  la question reçoit sa réponse et le changement avance
+  Then  une nouvelle intervention de spécification est demandée
+  And   sa demande indique la réponse à cette question
+  And   un rapport qui porte toutes les réponses mène le changement au-delà de G1
+
+Scenario: Ce que ce rapport hérite d'un rapport plus ancien compte comme déjà porté (6j)
+  Given un rapport qui garde l'exigence d'une réponse sans la redéclarer et pose une question matérielle nouvelle
+  And   un rapport rouvert sur la réponse à cette question qui redéclare la première et perd la nouvelle
+  When  le changement avance
+  Then  la spécification n'est rouverte qu'une fois
+  And   G1 refuse la réponse perdue en la nommant
+
 Scenario: Une réponse déclarée non observable n'est pas comptée comme perdue (6e)
   Given un rapport qui déclare une réponse enregistrée non observable
   When  le changement avance

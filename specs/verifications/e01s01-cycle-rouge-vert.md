@@ -31,6 +31,8 @@ ne gagne rien (4 interventions `specify` au lieu de 3).
 | Une réponse donnée après un rapport qui n'a rien gagné atteint une réécriture, et la question nouvelle est posée d'abord (6f) | `5720678` — `blocked` au lieu de `closed` : G1 refuse `q-b` et `q-c` après 4 interventions, le rapport écrit avant la réponse à `q-c` n'est jamais rouvert | `5364797` |
 | Adopter le mandat ne rouvre pas le rapport adopté, et G1 refuse la réponse perdue (6g) | `0a24b24` — `decision_required` au lieu de `blocked` : chaque adoption rouvre le rapport adopté et redemande le mandat | `9cc312a` |
 | Ce que porte le rapport sur lequel la dernière réponse a été donnée compte comme déjà porté (6h) | vert dès `0a24b24` : le comportement tenait déjà, le test le fixe ; il échoue quand ce rapport est retiré de la mesure (mutation `i < resumedOn` en `i <= resumedOn`) | `9cc312a` |
+| Le rapport sur lequel la dernière réponse a été donnée est réécrit dès qu'il en ignore une, même quand ce n'est pas le premier rapport et qu'il n'en porte aucune (6i) | vert dès `6339f36`, sur le code de `9cc312a` : le test fixe le comportement ; il échoue, `blocked` au lieu de `closed`, quand la réécriture forcée est réservée au premier rapport (`history.sinceLastAnswer.length === 0` en `priors.length === 0`) ou quand la coupure recule d'un rapport (`writtenBeforeLastAnswer - 1` en `- 2`) | `9cc312a` |
+| Ce que le rapport sur lequel la dernière réponse a été donnée hérite d'un rapport plus ancien compte comme déjà porté (6j) | vert dès `6339f36`, sur le code de `9cc312a` : le test fixe le comportement ; il échoue, 5 interventions au lieu de 4, quand l'héritage de `before` s'arrête à la coupure (`priors.slice(0, history.earlier.length + i)` en `history.sinceLastAnswer.slice(0, i)`) | `9cc312a` |
 | Une réponse déclarée non observable n'est pas comptée comme perdue (6e) | vert dès `60c2c34` : le comportement tenait déjà, le test le fixe | `ada5ada` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
@@ -44,6 +46,11 @@ ada5ada (implémentation) node --test test/v2/specification-reopening.test.ts   
 5364797 (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (5 sur 5)
 0a24b24 (test seul)      node --test test/v2/specification-reopening.test.ts   exit=1  (6g : decision_required au lieu de blocked)
 9cc312a (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (7 sur 7)
+6339f36 (mutation 6i-1)  node --test --test-name-pattern="6i|6j" test/v2/specification-reopening.test.ts   exit=1  (6i : blocked au lieu de closed)
+6339f36 (mutation 6i-2)  node --test --test-name-pattern="6i|6j" test/v2/specification-reopening.test.ts   exit=1  (6i : blocked au lieu de closed)
+6339f36 (mutation 6j)    node --test --test-name-pattern="6i|6j" test/v2/specification-reopening.test.ts   exit=1  (6j : 5 interventions au lieu de 4)
+62f96b5 (mêmes mutations) node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (38 sur 38 pour chacune : la suite d'avant ne les voyait pas)
+6339f36 (implémentation) node --test --test-name-pattern="6i|6j" test/v2/specification-reopening.test.ts   exit=0  (2 sur 2)
 ```
 
 ## Ce qui a changé

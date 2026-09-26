@@ -18,6 +18,20 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    Troisième tour de `request-review` le 2026-09-26, sur `git diff 2b6206d HEAD` : les deux
+    relecteurs passent, sans must-fix ni should-fix ; le gate est franchi à `62f96b5`. Sur décision
+    du propriétaire, les deux trous de test relevés en consider sont comblés (`6339f36`). 6i : le
+    rapport sur lequel la dernière réponse a été donnée est réécrit dès qu'il en ignore une, même
+    quand ce n'est pas le premier. 6j : ce qu'il hérite d'un rapport plus ancien compte comme déjà
+    porté. Les deux tests fixent un comportement qui tenait ; chacun échoue sous la mutation qu'il
+    vise, et ces trois mutations passaient la suite d'avant. Consider laissés ouverts : filtre
+    `material.has` de `specificationHistory` non testable faute de réponse non matérielle, rapport
+    illisible qui décale la coupure d'un rapport (tolérance antérieure), `priorDiagnostics` qui lit
+    le journal pour recoller les deux moitiés, type de retour répétant `SpecificationHistory`.
+    Preflight verte à `6339f36` sous Node 26.9.0, 474 tests. Prochaine étape : ancrer les
+    enregistrements de `specs/verifications/` et `specs/security/REVIEW.md` (CONVENTIONS.md
+    § Review, règle 5), puis `release-branch`.
+
     `respond-review` a traité le deuxième tour de `request-review` le 2026-09-26. Must-fix (A) : la
     borne repartait à chaque entrée dans `clarify`, si bien qu'une adoption humaine du mandat
     rouvrait sans fin le rapport adopté, et qu'un refus de G0 payait une intervention par tour. Rouge
