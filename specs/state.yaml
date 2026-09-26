@@ -10,14 +10,21 @@ active_epic_id: e01
 active_story: e01s01
 
 epic_cycle:
-  step: 6
-  completed_steps: "0,1,2,3,4,5"
+  step: 8
+  completed_steps: "0,1,2,3,4,5,6,7,8"
   audit_result: pass
   story_bcps: 3
 
 handoff:
-  next_skill: request-review
+  next_skill: null
   last_step_completed: >
+    e01s01 versée sur `main` le 2026-09-26 par avance rapide, sur décision du propriétaire.
+    Preflight verte sur `main` sous Node 24.21.0, 11:41:05Z à 11:43:34Z, 474 tests. Couverture
+    mesurée dans un arbre détaché : 96,64 % de lignes (94,99 % sur `main` avant), 100 % pour
+    `state.ts`, `artifacts.ts` et `clarify.ts`. Traçabilité : `lint:traceability` vert, matrice
+    générique non tenue (même dérogation que les stories précédentes). Epic e01 en cours : e01s02 à
+    e01s05 restent à faire, la capsule n'est pas archivée. `main` n'est pas poussée.
+
     Enregistrements ancrés le 2026-09-26 à `07f4c38` (CONVENTIONS.md § Review, règle 5) :
     `e01s01-verify.yaml`, `NFR-e01s01.json`, les commandes des tâches du journal rouge-vert, et la
     section e01s01 de `specs/security/REVIEW.md`, relue sur `git diff 8a7c8dd 07f4c38 -- src/`.
