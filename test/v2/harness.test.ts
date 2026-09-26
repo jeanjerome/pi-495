@@ -1208,6 +1208,18 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(t.ledger.loadChange(change.change_id)!.state.stop_reason, "capability_missing");
 	});
 
+	it("records a failure that is not the pause's own conflict, even when the change is paused under the step", async () => {
+		const t = track(makeHarness());
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		t.agent.startIntervention = async () => {
+			t.harness.pause(change.change_id, HUMAN);
+			throw new DomainError("CAPABILITY_MISSING", "the selected model cannot call tools");
+		};
+		const stopped = await t.harness.advance(change.change_id);
+		assert.equal(stopped.stopped_because, "capability_missing", stopped.steps.join(" | "));
+		assert.equal(t.ledger.loadChange(change.change_id)!.state.stop_reason, "capability_missing");
+	});
+
 	// Which files an intervention must read is not the harness's to guess: it holds the request and
 	// nothing else, while the model holds the tree and the tools to search it. Measured on a real
 	// tree, a selection scoring the request's words against the paths matched nothing on a French
