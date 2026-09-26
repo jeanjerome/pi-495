@@ -786,11 +786,11 @@ travail. Cette section reste la question ouverte que `D-61` reprend.
 | | |
 |---|---|
 | Périmètre | `git diff main...HEAD -- src/` |
-| Révision relue | `8a7c8dd` |
-| Conduite le | 2026-09-25 |
+| Révision relue | `07f4c38` (d'abord `8a7c8dd`) |
+| Conduite le | 2026-09-25, reprise le 2026-09-26 sur `git diff 8a7c8dd 07f4c38 -- src/` |
 | Branche | `rapport-rouvre-la-specification` |
 | Risque de la story | P1, tâche 1 classée P0, `security: low` |
-| Code de production touché | `src/domain/change/state.ts` (le prédicat de réouverture et sa borne), `src/application/phases/clarify.ts` (le jugement du rapport qu'une réouverture vient d'obtenir) |
+| Code de production touché | `src/domain/change/state.ts` (le prédicat de réouverture et sa borne), `src/application/phases/clarify.ts` (le jugement du rapport qu'une réouverture vient d'obtenir), `src/application/artifacts.ts` (l'historique des rapports, coupé à la dernière réponse matérielle) |
 
 ## Verdict
 
@@ -804,12 +804,23 @@ les exigences, et son refus reste fermé.
   le proposer comme diagnostic. Elle ne lie ni ne délie aucune réponse. Le mandat est proposé à G0
   après la boucle, comme avant, et les exigences passent toujours par G1. Le test 6b le montre : un
   rapport qui perd une réponse sans rien gagner va à G1, qui le refuse, et rien n'est adopté.
-- **La boucle est bornée par les réponses enregistrées (M7).** Elle ne relance que si le rapport
-  obtenu porte une réponse qu'aucun rapport antérieur ne portait. `priorDiagnostics` rend tous les
-  diagnostics sauf le dernier (`src/application/artifacts.ts:83`), donc le rapport juste proposé
-  entre dans l'union dès le tour suivant. Sans réponse humaine entre deux tours, l'union ne peut
-  croître qu'autant de fois qu'il y a de réponses matérielles enregistrées. Le budget d'incrément
-  borne en plus chaque intervention. Le test 6c exerce un modèle qui oscille.
+- **La boucle est bornée par les réponses enregistrées (M7).** `specificationHistory`
+  (`src/application/artifacts.ts:91`) rend les rapports antérieurs au rapport courant, coupés à la
+  dernière réponse matérielle que le journal du changement enregistre. Le rapport sur lequel cette
+  réponse a été donnée est réécrit une fois s'il en ignore une. Chaque réécriture suivante doit
+  porter une réponse qu'aucun rapport écrit depuis ne portait, et cette union ne croît qu'autant de
+  fois qu'il y a de réponses matérielles enregistrées. Sans réponse humaine entre deux tours, les
+  réécritures sont donc au plus une de plus que ces réponses. Le budget d'incrément borne en plus
+  chaque intervention. Les tests 6c (modèle qui oscille), 6h et 6j (ce que porte le rapport sur
+  lequel la réponse a été donnée compte comme déjà porté) l'exercent.
+- **Adopter le mandat ou échouer à G0 ne relance rien.** Ces deux chemins font revenir le changement
+  en clarification sans enregistrer de réponse. La coupure de l'historique ne bouge pas, et le
+  rapport déjà jugé reçoit le même verdict. Avant `9cc312a`, la borne repartait à chaque entrée dans
+  `clarify` : une adoption humaine rouvrait sans fin le rapport adopté, et chaque refus de G0 coûtait
+  une intervention. Le test 6g couvre l'adoption.
+- **L'historique ne lit que le journal du changement.** `specificationHistory` parcourt les
+  événements du changement déjà écrits par le noyau. Il n'ajoute aucun événement, aucun état et
+  aucune entrée externe. Un journal écrit avant ce changement se lit de la même façon.
 - **Un rapport qui pose une question matérielle nouvelle sort de la boucle.** La question passe
   d'abord par IH-01, comme avant. Aucune décision humaine n'est contournée.
 - **Une intervention bloquée arrête la boucle.** `writeSpecification` ne rend aucun rapport quand le
@@ -817,8 +828,13 @@ les exigences, et son refus reste fermé.
 
 ## Observations sous le seuil de report (confiance < 8, non bloquantes)
 
-- **Un diagnostic illisible sort de l'union (confiance 3/10, faible).** `priorDiagnostics` écarte en
-  silence un rapport antérieur que le magasin d'objets ne rend pas (`.catch(() => null)`). L'union
-  des réponses déjà portées en devient plus petite, et un rapport peut compter comme un progrès alors
-  qu'il ne l'est pas. Ce comportement est antérieur à la branche, et le budget d'incrément reste une
+- **Un diagnostic illisible sort de l'union (confiance 3/10, faible).** `specificationHistory` écarte
+  en silence un rapport antérieur que le magasin d'objets ne rend pas (`.catch(() => null)`). Si ce
+  rapport est celui sur lequel la dernière réponse a été donnée, le suivant prend sa place et peut
+  être réécrit une fois de plus. L'union des réponses déjà portées en devient plus petite, et un
+  rapport peut compter comme un progrès alors qu'il ne l'est pas. Ce comportement est antérieur à la branche, et le budget d'incrément reste une
   borne. Un magasin d'objets altéré est de toute façon hors du modèle de menace de l'epic.
+- **Le journal est relu à chaque jugement (confiance 2/10, faible).** `specificationHistory` parcourt
+  tous les événements du changement à l'entrée de `clarify`, puis à chaque tour de la boucle, et
+  `priorDiagnostics` le fait encore pour la demande de spécification. Le coût croît avec la longueur du journal, mais il reste
+  négligeable à côté de l'intervention de modèle que chaque tour paie.

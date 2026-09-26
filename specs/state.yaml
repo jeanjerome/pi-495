@@ -18,6 +18,15 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    Enregistrements ancrés le 2026-09-26 à `07f4c38` (CONVENTIONS.md § Review, règle 5) :
+    `e01s01-verify.yaml`, `NFR-e01s01.json`, les commandes des tâches du journal rouge-vert, et la
+    section e01s01 de `specs/security/REVIEW.md`, relue sur `git diff 8a7c8dd 07f4c38 -- src/`.
+    `npm run build && npm run check` sous Node 24.21.0 : sortie 0, 474 tests, `dist/` inchangé. Le
+    rapport 183 de `java-flashnext-L2`, jugé à `07f4c38` sur une copie coupée du dossier, donne
+    toujours ignored [Q1], reopen true. La mise en route et les deux campagnes restent celles de
+    `8a7c8dd`, ce que l'enregistrement déclare. L'auto-revue (`AUDIT-e01-e01s01.md`) reste datée de
+    `4892a6d` : elle n'a pas été refaite. Prochaine étape : `release-branch`.
+
     Troisième tour de `request-review` le 2026-09-26, sur `git diff 2b6206d HEAD` : les deux
     relecteurs passent, sans must-fix ni should-fix ; le gate est franchi à `62f96b5`. Sur décision
     du propriétaire, les deux trous de test relevés en consider sont comblés (`6339f36`). 6i : le

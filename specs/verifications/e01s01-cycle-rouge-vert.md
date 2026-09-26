@@ -5,17 +5,17 @@ vert sous Node 24.21.0, 465 tests).
 
 ## Commandes des tâches
 
-Relevées à `ada5ada`.
+Relevées à `07f4c38`, sous Node 24.21.0, le 2026-09-26.
 
 ```
 $ node --test test/v2/specification-reopening.test.ts        # tâches 1 et 2
-ℹ tests 4   ℹ pass 4   ℹ fail 0
+ℹ tests 9   ℹ pass 9   ℹ fail 0
 $ npm run build && npm run check                             # tâche 3
-ℹ tests 469   ℹ pass 469   ℹ fail 0
+ℹ tests 474   ℹ pass 474   ℹ fail 0
 exit=0
 ```
 
-465 tests avant, 469 après : les 4 de `test/v2/specification-reopening.test.ts` sont ajoutés, aucun
+465 tests avant, 474 après : les 9 de `test/v2/specification-reopening.test.ts` sont ajoutés, aucun
 n'est retiré. Un test existant change d'attendu : dans `test/v2/harness.test.ts`, le rapport qui
 abandonne l'exigence portant une déclaration est rouvert une fois, puis refusé à G1 quand le suivant
 ne gagne rien (4 interventions `specify` au lieu de 3).
