@@ -84,9 +84,11 @@ export class ArtifactRepository {
 	}
 
 	/**
-	 * The same reports, split where the latest material answer was recorded. Only the ledger's order
-	 * tells which reports that answer followed: a clarification is entered again after an adoption or
-	 * a refusal at G0 as well as after an answer.
+	 * The same reports, split where the latest material answer was recorded or the latest stop was
+	 * lifted, whichever came last: each is a human act the rewritings that follow are bounded from, so a
+	 * resume obtains a rewriting of the report the change stopped on. Only the ledger's order tells
+	 * which reports that act followed: a clarification is entered again after an adoption or a refusal
+	 * at G0 as well as after an answer.
 	 */
 	async specificationHistory(
 		state: ChangeState,
@@ -94,10 +96,15 @@ export class ArtifactRepository {
 		const material = new Set(state.open_questions.filter((q) => q.material).map((q) => q.id));
 		let written = 0;
 		let writtenBeforeLastAnswer = 0;
+		let blocked = false;
 		for (const { event } of this.deps.ledger.readChangeEvents(state.change_id)) {
 			if ((event.type === "artifact.proposed" || event.type === "artifact.revised") && event.kind === "diagnostic")
 				written++;
 			else if (event.type === "question.answered" && material.has(event.id)) writtenBeforeLastAnswer = written;
+			else if (event.type === "status.changed") {
+				if (blocked && event.status === "ready") writtenBeforeLastAnswer = written;
+				blocked = event.status === "blocked";
+			}
 		}
 		const priors = (state.proposals.diagnostic ?? []).slice(0, -1);
 		const answeredOn = Math.max(0, writtenBeforeLastAnswer - 1);
