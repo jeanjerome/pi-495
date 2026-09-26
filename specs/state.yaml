@@ -17,6 +17,12 @@ epic_cycle:
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    Tâche 4 de e01s02 passée le 2026-09-26 : rouge `e5f0f28` (test seul, 1 échec sur 15), vert
+    `b34547a` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 482 tests.
+    Un refus de G1 nomme `cancel` dans la décision de gate et dans le détail de l'arrêt ;
+    `revise_requirements` n'apparaît plus dans `src/`. Prochaine étape : tâche 5 (`npm run check`,
+    déjà vert à `b34547a`), puis verify-work.
+
     Tâche 3 de e01s02 passée le 2026-09-26 : rouge `292b904` (test seul, 3 échecs sur 85), vert
     `931a7fb` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 481 tests.
     La déclaration propre d'un rapport ne porte une réponse que si elle tient dans ses exigences,

@@ -95,7 +95,7 @@ tasks:
     verify: "node --test test/v2/specification-reopening.test.ts"
     risk: P2
     security: low
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories:
