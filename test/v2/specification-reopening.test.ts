@@ -479,3 +479,36 @@ describe("a declaration carries an answer only when it holds in the requirements
 		assert.equal(calls(), 3);
 	});
 });
+
+describe("a refusal at G1 names the only way out a command holds once the mandate is adopted (BES-02)", () => {
+	it("names cancel, and nowhere revise_requirements, when G1 refuses a report that carries every answer and repeats a requirement id (6f)", async () => {
+		const t = track(makeHarness());
+		specificationRounds(t, [
+			ASKS_Q1,
+			specReport({
+				questions: [],
+				answers: [{ question_id: Q1.id, observable: true, requirement_ids: [MESSAGE.requirement_id] }],
+				requirements: [MESSAGE, MESSAGE, UPDATE],
+			}),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerer(t, change.change_id)();
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.gates.G1?.verdict, "FAIL");
+		assert.ok(
+			state.gates.G1!.reasons.some((r) => r.includes(`duplicate requirement id ${MESSAGE.requirement_id}`)),
+			state.gates.G1!.reasons.join(" | "),
+		);
+		assert.equal(state.gates.G1!.next_action, "cancel");
+		assert.ok(state.stop_detail?.includes("cancel"), state.stop_detail ?? "");
+		const shown = [state.gates.G1!.next_action, state.stop_detail, last.view.change?.next_action, ...last.steps];
+		assert.equal(
+			shown.some((s) => s?.includes("revise_requirements")),
+			false,
+			shown.join(" | "),
+		);
+	});
+});
