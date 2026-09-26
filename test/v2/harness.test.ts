@@ -687,7 +687,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	// Observed on java-flashnext-L: the specification bound a decision to `r-threshold-trimmed` while
 	// declaring `r-threshold-trimbed`. The answer reads as carried and is carried by nothing.
-	it("refuses at G1 an answer bound to a requirement the document does not carry, and accepts a non-mandatory one named beside a mandatory one (RM-011)", async () => {
+	it("does not count an answer bound to a requirement the report does not carry as carried, and counts one bound to a non-mandatory requirement beside a mandatory one (RM-011)", async () => {
 		const p = project();
 		const Q = { id: "q-seuil", question: "chaîne brute ou trimée ?", material: true };
 		const requirements = [
@@ -755,19 +755,18 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		);
 		const blocked = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
-		const reasons = t.ledger.loadChange(change.change_id)!.state.gates.G1!.reasons;
-		assert.ok(
-			reasons.some((r) => r.includes("R1-trimee") && r.includes("does not carry")),
-			reasons.join(" | "),
-		);
-		assert.ok(
-			reasons.some((r) => r.includes("no mandatory requirement carries")),
-			reasons.join(" | "),
-		);
-		assert.equal(
-			reasons.some((r) => r.includes("R2")),
-			false,
-			"naming a non-mandatory requirement is not itself a reason",
+		assert.equal(calls, 2, "the rewriting that binds the answer to R1-trimee gains nothing");
+		await assertStoppedBeforeG0(t, change.change_id, [Q.id]);
+
+		t.harness.resume(change.change_id, HUMAN);
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const adopted = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
+		assert.deepEqual(
+			adopted.content.answers.find((a) => a.question_id === Q.id)?.requirement_ids,
+			["R1", "R2"],
+			"naming a non-mandatory requirement beside a mandatory one binds the answer",
 		);
 	});
 

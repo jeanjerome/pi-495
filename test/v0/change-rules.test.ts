@@ -7,6 +7,7 @@ import {
 	mandate,
 	protocol,
 	ref,
+	requirements,
 	tick,
 	AGENT,
 	HUMAN,
@@ -124,6 +125,86 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 			},
 			"POLICY_DENIED",
 		);
+	});
+
+	it("G1 refuses an answer bound to a requirement the document does not carry or to no mandatory one, and accepts a non-mandatory one named beside a mandatory one (RM-011)", () => {
+		const answered = (requirementIds: string[]) => {
+			const r = new Runner().create();
+			r.run({
+				type: "question.open",
+				at: tick(),
+				actor: KERNEL,
+				id: "q1",
+				question: "chaîne brute ou trimée ?",
+				material: true,
+				decision_id: "dec_q1",
+			});
+			const presented = r.s.revision;
+			r.run({
+				type: "decision.request",
+				at: tick(),
+				actor: KERNEL,
+				request: {
+					decision_id: "dec_q1",
+					change_id: "chg_1",
+					interaction: "IH-01",
+					subject: { kind: "change", id: "chg_1", revision: presented, digest: r.s.reference.digest },
+					question: "chaîne brute ou trimée ?",
+					facts: [],
+					recommendation: null,
+					options: [{ id: "a", label: "A", effect: "", risky: false }],
+					required_authority: "requester",
+					allow_free_text: true,
+					requested_at: tick(),
+					expires_at: null,
+					language: "fr",
+				},
+			});
+			r.run({
+				type: "decision.answer",
+				at: tick(),
+				actor: HUMAN,
+				human_decision_id: "hd_q1",
+				response: {
+					decision_id: "dec_q1",
+					option_id: null,
+					free_text: "trimée",
+					reason: null,
+					subject_revision: presented,
+					scope: null,
+					expires_at: null,
+				},
+				origin: tuiOrigin(),
+			});
+			const doc = requirements();
+			doc.requirements.push({ ...doc.requirements[1]!, requirement_id: "R3", mandatory: false });
+			doc.answers = [
+				{
+					question_id: "q1",
+					question: "chaîne brute ou trimée ?",
+					answer: "trimée",
+					observable: true,
+					requirement_ids: requirementIds,
+				},
+			];
+			return r.g0().g1(doc).s.gates.G1!;
+		};
+		const refused = answered(["R1-trimee", "R3"]);
+		assert.equal(refused.verdict, "FAIL");
+		assert.ok(
+			refused.reasons.some((x) => x.includes("R1-trimee") && x.includes("does not carry")),
+			refused.reasons.join(" | "),
+		);
+		assert.ok(
+			refused.reasons.some((x) => x.includes("no mandatory requirement carries")),
+			refused.reasons.join(" | "),
+		);
+		assert.equal(
+			refused.reasons.some((x) => x.includes("R3")),
+			false,
+			"naming a non-mandatory requirement is not itself a reason",
+		);
+		assert.equal(answered(["R1", "R3"]).verdict, "PASS");
 	});
 
 	it("an agent, a model output or a tool call cannot lift a stop a resume lifts (RM-031)", () => {

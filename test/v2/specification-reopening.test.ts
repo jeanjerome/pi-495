@@ -403,3 +403,79 @@ describe("a change stopped because its specification no longer progresses is res
 		assert.equal(calls(), 4, "no specification is written after the change is abandoned");
 	});
 });
+
+describe("a declaration carries an answer only when it holds in the requirements of the report that makes it (BES-02, RM-011)", () => {
+	const OPTIONAL = requirement("REQ-OPTIONAL", false);
+	const binds = (question_id: string, ...requirement_ids: string[]) => ({
+		question_id,
+		observable: true,
+		requirement_ids,
+	});
+
+	/** Answers Q1 on the first report, then Q6 on the second, and advances to wherever the change stops. */
+	async function throughQ1AndQ6(t: TestHarness): Promise<{ changeId: string; stoppedBecause: string }> {
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const answerPending = answerer(t, change.change_id);
+		for (const asked of [Q1, Q6]) {
+			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+			assert.equal(t.requested.at(-1)!.question, asked.question);
+			answerPending();
+		}
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		return { changeId: change.change_id, stoppedBecause: last.stopped_because };
+	}
+
+	it("reopens a report whose declaration names a requirement it does not carry, and stops the change before G0 when the next one gains nothing (6e)", async () => {
+		const t = track(makeHarness());
+		const toAbsent = binds(Q1.id, "REQ-ABSENT");
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			specReport({ questions: [Q1, Q6], answers: [toAbsent], requirements: [MESSAGE, UPDATE] }),
+			specReport({
+				questions: [],
+				answers: [toAbsent, binds(Q6.id, MESSAGE.requirement_id)],
+				requirements: [MESSAGE, UPDATE],
+			}),
+		]);
+		const { changeId, stoppedBecause } = await throughQ1AndQ6(t);
+		assert.equal(stoppedBecause, "blocked");
+		assert.ok(
+			t.progress.includes(`specification reopened by 2 material answer(s): ${Q1.id}, ${Q6.id}`),
+			t.progress.join(" | "),
+		);
+		assert.ok(
+			objectives[2]!.includes(`Q ${Q1.id}: ${Q1.question} -> réponse à ${Q1.question} [to declare in \`answers\`]`),
+			objectives[2],
+		);
+		assert.equal(calls(), 4, "the third report carries Q6, the fourth nothing new");
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
+	});
+
+	it("reopens a report whose declaration names only a non-mandatory requirement, and a report that binds the answer to a mandatory one takes the change past G1 (6e)", async () => {
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			specReport({
+				questions: [Q1, Q6],
+				answers: [binds(Q1.id, OPTIONAL.requirement_id)],
+				requirements: [MESSAGE, OPTIONAL],
+			}),
+			specReport({
+				questions: [],
+				answers: [binds(Q1.id, MESSAGE.requirement_id, OPTIONAL.requirement_id), binds(Q6.id, MESSAGE.requirement_id)],
+				requirements: [MESSAGE, OPTIONAL],
+			}),
+		]);
+		const { stoppedBecause } = await throughQ1AndQ6(t);
+		assert.equal(stoppedBecause, "closed");
+		assert.ok(
+			t.progress.includes(`specification reopened by 2 material answer(s): ${Q1.id}, ${Q6.id}`),
+			t.progress.join(" | "),
+		);
+		assert.ok(
+			objectives[2]!.includes(`Q ${Q1.id}: ${Q1.question} -> réponse à ${Q1.question} [to declare in \`answers\`]`),
+			objectives[2],
+		);
+		assert.equal(calls(), 3);
+	});
+});
