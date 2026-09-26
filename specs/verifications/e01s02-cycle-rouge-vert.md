@@ -73,6 +73,9 @@ identifiant d'exigence atteint G1, qui le refuse. Aucun n'est retiré ni ne chan
 | Une déclaration propre au rapport qui ne tient pas dans ses exigences efface la liaison valide qu'il hérite : le rapport est rouvert pour la réponse, puis le changement s'arrête avant G0 (6e) | vert dès `cddf2c8` : le comportement tenait déjà, le test le fixe ; il échoue quand `else declared.delete` est retiré de `declarationsOfReport` | `cddf2c8` |
 | Un changement mis en pause pendant une réécriture, comme le fait `/495 pause` (session interrompue, puis pause), reste en pause, et sa reprise laisse la borne mesurée depuis la dernière réponse (6c) | `bcdeb0b` — `blocked` au lieu de `paused` : le pas interrompu échoue sur `REVISION_CONFLICT` et le noyau bloque le changement par-dessus la pause ; la reprise lève ce blocage, compté comme un acte humain, et paie une réécriture de plus (6 interventions au lieu de 5) | `bc55ce2` |
 | Un changement bloqué refuse la pause et garde son arrêt, son détail et sa levée par une reprise ; la reprise d'un arrêt pour stagnation obtient encore une réécriture (`change-rules.test.ts`, 6a) | `0d67f46` — la pause est acceptée : l'arrêt perd son motif, et une reprise ne le lève plus (BUG-2026-09-26T142500, défaut présent sur `main`) | `6d5a3e3` |
+| Le noyau termine l'intervention en cours quand il bloque un changement : la pause reste refusée et l'arrêt gardé, et une reprise ne rend pas `ready` un arrêt qu'aucune reprise ne lève (`change-rules.test.ts`, deux tests de `harness.test.ts`) | `287123c` — l'intervention reste `running` sous l'arrêt : `/495 pause` la termine, le changement repasse `ready` et la pause efface l'arrêt ; `/495 resume` rend `ready` un arrêt `capability_missing` (BUG-2026-09-26T142500 rouverte, BUG-2026-09-26T145000, défauts présents sur `main`) | `d6b0bd5` |
+| Un échec autre que le conflit de révision causé par la pause bloque encore un changement mis en pause sous son pas (`harness.test.ts`) | `9dd736a` — `paused` au lieu de `capability_missing` : l'erreur n'est inscrite que dans les étapes | `4437873` |
+| Le refus de mettre en pause un changement bloqué nomme `resume` quand une reprise lève l'arrêt, et `cancel` toujours (`change-rules.test.ts`) | `03f9878` — aucune action suivante | `751c2d1` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
 `verify-tdd-red-commit.sh` juge le dépôt du paquet bigpowers, pas celui-ci.
@@ -96,6 +99,12 @@ bc55ce2 (implémentation) node --test test/v2/specification-reopening.test.ts te
 bc55ce2 (mutation)       node --test --test-name-pattern="does not count a pause" test/v2/specification-reopening.test.ts   exit=1  (sans blocked && dans specificationHistory)
 0d67f46 (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts   exit=1  (2 échecs sur 59)
 6d5a3e3 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (90 sur 90)
+287123c (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=1  (3 échecs sur 93)
+d6b0bd5 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (93 sur 93)
+9dd736a (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=1  (1 échec sur 94)
+4437873 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (94 sur 94)
+03f9878 (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=1  (2 échecs sur 94)
+751c2d1 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (94 sur 94)
 ```
 
 `6180916` renomme `sinceLastAnswer` en `sinceLastHumanAct` : la coupure est aussi une reprise.
@@ -129,6 +138,16 @@ Refactorisation sans effet sur les tests, Preflight verte à 478 tests.
 - `changePause` (`src/domain/change/decide.ts`) refuse un changement bloqué. Avant, la pause
   remplaçait l'arrêt : sa reprise rendait un blocage sans motif, sans détail et non levable, et il ne
   restait que l'abandon (BUG-2026-09-26T142500).
+- `block` (`src/domain/change/decide.ts`) termine l'intervention en cours, en échec, dans la même
+  décision que l'arrêt. Avant, un pas qui échouait pendant son intervention laissait le changement
+  bloqué avec une intervention `running` ; `/495 pause` et `/495 resume` la terminaient,
+  `intervention.finished` rendait le changement `ready`, et l'arrêt disparaissait sans que le noyau
+  l'ait levé (BUG-2026-09-26T142500 rouverte, BUG-2026-09-26T145000).
+- La boucle d'avance du harnais ne rend `paused` que sur le conflit de révision que cause la pause ;
+  tout autre échec bloque le changement.
+- `resumeLiftsStop` (`src/domain/change/state.ts`) porte la règle de levée par une reprise, que lisent
+  `harness.resume` et le refus de la pause. Ce refus nomme `resume` quand une reprise lève l'arrêt,
+  et `cancel` toujours.
 
 ## Revue de sécurité de la tâche 1
 

@@ -17,6 +17,22 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le tour 2 de `request-review` de e01s02 le 2026-09-26, sur
+    `f2a52cd..aefa6b7`. Le point à corriger de B : la garde de `changePause` se contournait sur un
+    changement bloqué pendant que son intervention tournait, car `/495 pause` la terminait et
+    `intervention.finished` rendait le changement `ready`. BUG-2026-09-26T142500, notée corrigée à
+    tort, est rouverte ; la même cause faisait lever par `/495 resume` un arrêt qu'aucune reprise ne
+    lève (BUG-2026-09-26T145000, sur `main`). Correctif à la source : `block` termine l'intervention
+    en cours dans la décision de l'arrêt (rouge `287123c`, vert `d6b0bd5`). Retenus aussi : `paused`
+    seulement sur le conflit de révision de la pause (`9dd736a`, `4437873`), et le refus de la pause
+    nomme `resume` quand une reprise lève l'arrêt et `cancel` toujours, par la règle `resumeLiftsStop`
+    que lit aussi `harness.resume` (`03f9878`, `751c2d1`). Isolation par arbre détaché ; Preflight
+    verte sous Node 26.9.0, 14:58:41Z à 15:02:10Z, 490 tests. Laissés : un journal déjà écrit avec un
+    changement bloqué et une intervention `running` reste exposé ; la vue (`views.ts`) ne dit « resume
+    retries it » que pour un arrêt levable et tait `execution_error` ; une pause refusée pour un effet
+    en vol inscrit encore la fin de l'intervention (sur `main`). Prochaine étape : tour 3 de
+    `request-review` sur `git diff aefa6b7 HEAD`.
+
     `fix-bug` a corrigé BUG-2026-09-26T142500 le 2026-09-26 : un changement bloqué refuse la pause,
     qui effaçait son arrêt (motif, détail, levée par une reprise). Rouge `0d67f46` (2 échecs sur 59),
     vert `6d5a3e3`, isolation par arbre détaché ; Preflight verte sous Node 26.9.0, 14:30:43Z à
