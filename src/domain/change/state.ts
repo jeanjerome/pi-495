@@ -383,12 +383,24 @@ export interface SpecificationReportView {
 	answers: AnswerDeclaration[];
 }
 
+/**
+ * The specification reports of a change but the current one, oldest first, split where the latest
+ * material answer was recorded. `sinceLastAnswer` opens on the report that answer was given on, and
+ * holds after it the reports written without a human answer between them; it is empty when the
+ * current report is the one the answer was given on. `earlier` holds the reports superseded before
+ * it. Both are read for what a report inherits.
+ */
+export interface SpecificationHistory {
+	earlier: SpecificationReportView[];
+	sinceLastAnswer: SpecificationReportView[];
+}
+
 export interface SpecificationStanding {
 	/** What the report says about each answered material question, the inherited ones included. */
 	declared: Map<string, AnswerDeclaration>;
 	/** The recorded material answers the report says nothing about. */
 	ignored: OpenQuestion[];
-	/** The report must be written again: it ignores an answer and carries one no report since the resumption carried. */
+	/** The report must be written again: it ignores an answer and carries one no report since the latest answer carried. */
 	reopen: boolean;
 	/** Every material question is answered and the report accounts for it: this report stands. */
 	settled: boolean;
@@ -399,34 +411,34 @@ export interface SpecificationStanding {
  *
  * A report written before a material answer cannot carry it, and reusing it is how a recorded human
  * decision reaches nothing: the answer is put back into the request and the specification is redone.
- * What bounds the reopening is progress, not a count — the report a reopening produced must account
- * for an answer no report since the clarification resumed did. `resumedOn` is the number of priors
- * written before the report the clarification resumed on: that report was written before the answer
- * that resumed it and is judged on the answers alone, and the reports after it are the reopenings
- * without a human answer between them. Measured against the previous report alone, reports that
- * take one answer back and lose another in turn would each count as progress and be reopened without
- * end; measured against every report since the resumption, the reopenings number at most the
- * recorded answers. Measured against every report of the change, an answer given after a report that
- * gained nothing would reach no rewriting. A report that gives the same ground back is G1's business,
+ * The report the latest answer was given on is therefore written again as soon as it ignores one.
+ * What bounds the rewritings after it is progress, not a count — each must account for an answer no
+ * report since the latest answer did, that report included. Measured against the previous report
+ * alone, reports that take one answer back and lose another in turn would each count as progress and
+ * be reopened without end; measured against every report since the latest answer, the rewritings
+ * without a human answer between them number at most one more than the recorded answers. Measured
+ * against every report of the change, an answer given after a report that gained nothing would reach
+ * no rewriting; measured from the moment the clarification is entered, adopting a mandate or failing
+ * G0 would reopen the same report again. A report that gives the same ground back is G1's business,
  * and a change is never held by a specification that will not say what it did with an answer.
  */
 export function specificationStanding(
 	state: ChangeState,
 	report: SpecificationReportView | null,
-	priors: SpecificationReportView[],
-	resumedOn: number,
+	history: SpecificationHistory,
 ): SpecificationStanding {
 	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
+	const priors = [...history.earlier, ...history.sinceLastAnswer];
 	const declared = declarationsOfReport(priors, report);
 	const ignored = answersTheReportIgnores(state, declared);
 	const before = new Set(
-		priors.flatMap((prior, i) =>
-			i < resumedOn ? [] : answersTheReportCarries(state, declarationsOfReport(priors.slice(0, i), prior)),
+		history.sinceLastAnswer.flatMap((prior, i) =>
+			answersTheReportCarries(state, declarationsOfReport(priors.slice(0, history.earlier.length + i), prior)),
 		),
 	);
 	const reopen =
 		ignored.length > 0 &&
-		(priors.length <= resumedOn || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+		(history.sinceLastAnswer.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
 	return {
 		declared,
 		ignored,

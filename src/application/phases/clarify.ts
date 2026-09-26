@@ -25,9 +25,11 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	const request = await ctx.artifacts.read<string>(unit.state.request);
 	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 	let report: SpecificationReport;
-	const priors = await ctx.artifacts.priorDiagnostics(unit.state);
-	const resumedOn = priors.length;
-	let standing = specificationStanding(unit.state, spec?.content ?? null, priors, resumedOn);
+	let standing = specificationStanding(
+		unit.state,
+		spec?.content ?? null,
+		await ctx.artifacts.specificationHistory(unit.state),
+	);
 	if (spec && standing.settled) {
 		report = spec.content;
 	} else {
@@ -43,7 +45,7 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			if (!written.report) return unit;
 			report = written.report;
 			if (questionsToAsk(unit, report).length > 0) break;
-			standing = specificationStanding(unit.state, report, await ctx.artifacts.priorDiagnostics(unit.state), resumedOn);
+			standing = specificationStanding(unit.state, report, await ctx.artifacts.specificationHistory(unit.state));
 		} while (standing.reopen);
 	}
 	const language = requestedLanguage(unit.state) ?? "fr";

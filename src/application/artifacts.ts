@@ -79,10 +79,39 @@ export class ArtifactRepository {
 
 	/** Every specification report of this change but the current one, oldest first. */
 	async priorDiagnostics(state: ChangeState): Promise<SpecificationReport[]> {
+		const history = await this.specificationHistory(state);
+		return [...history.earlier, ...history.sinceLastAnswer];
+	}
+
+	/**
+	 * The same reports, split where the latest material answer was recorded. Only the ledger's order
+	 * tells which reports that answer followed: a clarification is entered again after an adoption or
+	 * a refusal at G0 as well as after an answer.
+	 */
+	async specificationHistory(
+		state: ChangeState,
+	): Promise<{ earlier: SpecificationReport[]; sinceLastAnswer: SpecificationReport[] }> {
+		const material = new Set(state.open_questions.filter((q) => q.material).map((q) => q.id));
+		let written = 0;
+		let writtenBeforeLastAnswer = 0;
+		for (const { event } of this.deps.ledger.readChangeEvents(state.change_id)) {
+			if ((event.type === "artifact.proposed" || event.type === "artifact.revised") && event.kind === "diagnostic")
+				written++;
+			else if (event.type === "question.answered" && material.has(event.id)) writtenBeforeLastAnswer = written;
+		}
+		const priors = (state.proposals.diagnostic ?? []).slice(0, -1);
+		const answeredOn = Math.max(0, writtenBeforeLastAnswer - 1);
+		return {
+			earlier: await this.readReports(priors.slice(0, answeredOn)),
+			sinceLastAnswer: await this.readReports(priors.slice(answeredOn)),
+		};
+	}
+
+	private async readReports(refs: ArtifactRef[]): Promise<SpecificationReport[]> {
 		const out: SpecificationReport[] = [];
-		for (const ref of (state.proposals.diagnostic ?? []).slice(0, -1)) {
-			const prior = await this.read<SpecificationReport>(ref).catch(() => null);
-			if (prior) out.push(prior);
+		for (const ref of refs) {
+			const report = await this.read<SpecificationReport>(ref).catch(() => null);
+			if (report) out.push(report);
 		}
 		return out;
 	}
