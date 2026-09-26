@@ -402,8 +402,10 @@ export interface SpecificationStanding {
 	ignored: OpenQuestion[];
 	/** The report must be written again: it ignores an answer and carries one no report since the latest answer carried. */
 	reopen: boolean;
-	/** Every material question is answered and the report accounts for it: this report stands. */
+	/** Every material question is answered and the report carries every answer: this report stands. */
 	settled: boolean;
+	/** Every material question is answered, the report loses one and may not be written again: the change stops. */
+	stalled: boolean;
 }
 
 /**
@@ -419,15 +421,16 @@ export interface SpecificationStanding {
  * without a human answer between them number at most one more than the recorded answers. Measured
  * against every report of the change, an answer given after a report that gained nothing would reach
  * no rewriting; measured from the moment the clarification is entered, adopting a mandate or failing
- * G0 would reopen the same report again. A report that gives the same ground back is G1's business,
- * and a change is never held by a specification that will not say what it did with an answer.
+ * G0 would reopen the same report again. A report that gives the same ground back stalls: no mandate
+ * built on it is proposed, since G1 would refuse the answer it lost and, past G0, no phase goes back
+ * to the specification.
  */
 export function specificationStanding(
 	state: ChangeState,
 	report: SpecificationReportView | null,
 	history: SpecificationHistory,
 ): SpecificationStanding {
-	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false };
+	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false, stalled: false };
 	const priors = [...history.earlier, ...history.sinceLastAnswer];
 	const declared = declarationsOfReport(priors, report);
 	const ignored = answersTheReportIgnores(state, declared);
@@ -439,10 +442,12 @@ export function specificationStanding(
 	const reopen =
 		ignored.length > 0 &&
 		(history.sinceLastAnswer.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+	const final = !reopen && state.open_questions.every((q) => !q.material || q.answer !== null);
 	return {
 		declared,
 		ignored,
 		reopen,
-		settled: !reopen && state.open_questions.every((q) => !q.material || q.answer !== null),
+		settled: final && ignored.length === 0,
+		stalled: final && ignored.length > 0,
 	};
 }

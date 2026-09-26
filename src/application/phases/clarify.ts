@@ -30,7 +30,7 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		spec?.content ?? null,
 		await ctx.artifacts.specificationHistory(unit.state),
 	);
-	if (spec && standing.settled) {
+	if (spec && (standing.settled || standing.stalled)) {
 		report = spec.content;
 	} else {
 		// The report a reopening produced is judged before the mandate is proposed: one that asks
@@ -81,6 +81,21 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		}
 		return unit;
 	}
+	// A mandate built on a report that lost an answer would reach G1 only to be refused there, and no
+	// phase comes back to the specification past G0: the owner decides here, while it still can be.
+	if (standing.stalled)
+		return ctx.commit(
+			unit,
+			{
+				type: "change.block",
+				at: ctx.now(),
+				actor: KERNEL_ACTOR,
+				reason: "stagnation",
+				detail: `the specification loses material answer(s) ${standing.ignored.map((q) => q.id).join(", ")} and its latest rewriting carries none an earlier report did not; resume rewrites the specification, cancel abandons the change`,
+				retryable: true,
+			},
+			cor,
+		);
 	const mandate: Mandate = {
 		change_id: unit.state.change_id,
 		objective: report.objective,
