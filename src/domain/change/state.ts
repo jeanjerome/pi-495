@@ -400,7 +400,7 @@ export interface SpecificationStanding {
 	declared: Map<string, AnswerDeclaration>;
 	/** The recorded material answers the report says nothing about. */
 	ignored: OpenQuestion[];
-	/** The report must be written again: it ignores an answer and carries one no report since the latest answer carried. */
+	/** The report must be written again: it ignores an answer and carries one no report since the latest human act carried. */
 	reopen: boolean;
 	/** Every material question is answered and the report carries every answer: this report stands. */
 	settled: boolean;
@@ -413,12 +413,12 @@ export interface SpecificationStanding {
  *
  * A report written before a material answer cannot carry it, and reusing it is how a recorded human
  * decision reaches nothing: the answer is put back into the request and the specification is redone.
- * The report the latest answer was given on is therefore written again as soon as it ignores one.
+ * The report the latest human act was given on is therefore written again as soon as it ignores one.
  * What bounds the rewritings after it is progress, not a count — each must account for an answer no
- * report since the latest answer did, that report included. Measured against the previous report
+ * report since the latest human act did, that report included. Measured against the previous report
  * alone, reports that take one answer back and lose another in turn would each count as progress and
- * be reopened without end; measured against every report since the latest answer, the rewritings
- * without a human answer between them number at most one more than the recorded answers. Measured
+ * be reopened without end; measured against every report since the latest human act, the rewritings
+ * without a human act between them number at most one more than the recorded answers. Measured
  * against every report of the change, an answer given after a report that gained nothing would reach
  * no rewriting; measured from the moment the clarification is entered, adopting a mandate or failing
  * G0 would reopen the same report again. A report that gives the same ground back stalls: no mandate
