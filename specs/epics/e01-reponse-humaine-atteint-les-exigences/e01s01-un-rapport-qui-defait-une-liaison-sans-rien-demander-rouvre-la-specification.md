@@ -41,10 +41,11 @@ relancée que si le rapport porte une réponse que **le rapport précédent** ne
 **After:** la spécification est rouverte quand un rapport ne porte pas une réponse matérielle
 enregistrée, **qu'il ait posé la question ou non** : ce sont les réponses que G1 refuse. Le rapport
 qu'une réouverture vient de produire est jugé de la même façon avant que le mandat ne soit proposé.
-Le rapport trouvé à la reprise a été écrit avant la réponse qui la déclenche : il est rouvert dès
-qu'il en perd une. Un rapport écrit depuis la reprise n'est rouvert que s'il porte une réponse
-**qu'aucun rapport écrit depuis la reprise, celui qu'elle a trouvé compris, ne portait**. Sinon le
-rapport va à G1, qui le refuse en nommant la réponse perdue, comme aujourd'hui.
+Le rapport sur lequel la dernière réponse humaine a été donnée a été écrit avant elle : il est
+rouvert dès qu'il en perd une. Un rapport écrit depuis n'est rouvert que s'il porte une réponse
+**qu'aucun rapport écrit depuis la dernière réponse, celui-là compris, ne portait**. Sinon le rapport
+va à G1, qui le refuse en nommant la réponse perdue, comme aujourd'hui. Adopter le mandat ou le voir
+refusé à G0 n'est pas une réponse : la clarification qui reprend alors ne rouvre pas le même rapport.
 
 ### 2. Value statement [draft]
 
@@ -77,9 +78,9 @@ reprenant ou qu'elle vienne de l'obtenir.
    hérite des rapports antérieurs tant qu'elles tiennent encore (D-39).
 3. Le noyau relève les réponses matérielles enregistrées que ce rapport ne porte pas, que le rapport
    ait posé la question ou non.
-4. Si une telle réponse existe, et que le rapport est celui trouvé à la reprise ou porte une réponse
-   qu'aucun rapport écrit depuis la reprise, celui qu'elle a trouvé compris, ne portait, la
-   spécification est rouverte : une nouvelle intervention `specify` reçoit la demande,
+4. Si une telle réponse existe, et que le rapport est celui sur lequel la dernière réponse a été
+   donnée, ou porte une réponse qu'aucun rapport écrit depuis cette réponse, celui-là compris, ne
+   portait, la spécification est rouverte : une nouvelle intervention `specify` reçoit la demande,
    qui indique pour chaque réponse si elle est déjà déclarée ou encore à déclarer.
 5. Le rapport obtenu est enregistré.
 6. S'il pose une question matérielle nouvelle, elle est posée par IH-01, et le jugement reprend à
@@ -87,7 +88,7 @@ reprenant ou qu'elle vienne de l'obtenir.
 7. Sinon, le noyau juge le rapport obtenu comme à l'étape 2, avant de proposer le mandat. S'il doit
    être rouvert, le parcours reprend à l'étape 4.
 8. Un rapport qui porte toutes les réponses enregistrées, ou qui n'a rien gagné sur les rapports
-   écrits depuis la reprise, devient la base du mandat proposé à G0.
+   écrits depuis la dernière réponse, devient la base du mandat proposé à G0.
 
 Interruption point: entre les étapes 5 et 7. Le rapport est enregistré, mais le mandat n'est pas
 encore proposé. Une reprise juge ce rapport comme à l'étape 2.
@@ -134,9 +135,12 @@ Aucun élément nouveau.
 changements :
 - la liste des réponses ignorées retient toute réponse matérielle enregistrée que le rapport ne
   porte pas ;
-- la progression se mesure contre tous les rapports écrits depuis la dernière reprise de la
-  clarification, pas seulement le précédent. Mesurée contre tous les rapports du changement, une
-  réponse donnée après un rapport qui n'a rien gagné n'atteindrait aucune réécriture.
+- la progression se mesure contre tous les rapports écrits depuis la dernière réponse matérielle,
+  celui sur lequel elle a été donnée compris, pas seulement le précédent. Mesurée contre tous les
+  rapports du changement, une réponse donnée après un rapport qui n'a rien gagné n'atteindrait
+  aucune réécriture. Mesurée depuis l'entrée en clarification, une adoption du mandat ou un refus de
+  G0 rouvrirait le même rapport à chaque fois. L'ordre des rapports et des réponses est lu dans le
+  journal du changement.
 
 **Entité créée :** aucune. Aucun identifiant de composant nouveau, aucun événement nouveau.
 
@@ -177,9 +181,11 @@ Not applicable. Aucun réglage : la borne ne dépend que des réponses enregistr
 
 - Réponse matérielle enregistrée qu'aucun rapport ne porte, dans un mandat proposé à G0 sans que la
   borne ait arrêté la réouverture : 0.
-- Réouvertures consécutives sans réponse humaine entre elles : au plus une par réponse matérielle
-  enregistrée. Chaque réouverture doit porter une réponse qu'aucun rapport écrit depuis la reprise
-  ne portait.
+- Réouvertures consécutives sans réponse humaine entre elles : au plus une de plus que les réponses
+  matérielles enregistrées. Le rapport sur lequel la dernière réponse a été donnée est rouvert dès
+  qu'il en perd une ; chaque réouverture suivante doit porter une réponse qu'aucun rapport écrit
+  depuis cette réponse, celui-là compris, ne portait. Une adoption du mandat ou un refus de G0 n'en
+  ajoute aucune.
 - Document d'exigences adopté à G1 qui perd une réponse : 0. Le refus de G1 reste fermé.
 
 ### 15. Security and compliance *NFR* [draft]
@@ -238,6 +244,20 @@ Scenario: Une réponse donnée après un rapport qui n'a rien gagné atteint une
   Then  la question est posée d'abord
   And   après la réponse, une nouvelle intervention de spécification est demandée
   And   un rapport qui porte toutes les réponses mène le changement au-delà de G1
+
+Scenario: Adopter le mandat ne rouvre pas le rapport adopté (6g)
+  Given l'adoption du mandat demandée à un humain
+  And   un rapport rouvert qui perd une réponse et ne porte que des réponses déjà portées
+  When  l'humain adopte le mandat et le changement avance
+  Then  aucune intervention de spécification n'est demandée pour lui
+  And   G1 refuse la réponse perdue en la nommant
+
+Scenario: Ce que porte le rapport sur lequel la dernière réponse a été donnée compte comme déjà porté (6h)
+  Given un rapport qui porte une réponse et pose une question matérielle nouvelle
+  And   un rapport rouvert sur la réponse à cette question qui ne porte que la première
+  When  le changement avance
+  Then  la spécification n'est rouverte qu'une fois
+  And   G1 refuse la réponse perdue en la nommant
 
 Scenario: Une réponse déclarée non observable n'est pas comptée comme perdue (6e)
   Given un rapport qui déclare une réponse enregistrée non observable

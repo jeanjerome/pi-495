@@ -18,6 +18,17 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le deuxième tour de `request-review` le 2026-09-26. Must-fix (A) : la
+    borne repartait à chaque entrée dans `clarify`, si bien qu'une adoption humaine du mandat
+    rouvrait sans fin le rapport adopté, et qu'un refus de G0 payait une intervention par tour. Rouge
+    `0a24b24` (6g), vert `9cc312a` : la progression se mesure depuis la dernière réponse matérielle,
+    dont l'ordre est lu dans le journal du changement (`specificationHistory`), et l'historique est
+    passé partagé en deux plutôt qu'avec un compte. 6h fixe la règle « celui-là compris » (mutation
+    vérifiée). Should-fix (B) : la borne de §14 et du commentaire était fausse d'un ; elle vaut une de
+    plus que les réponses enregistrées. Spec alignée (§1, §5, §8, §14, scénarios 6g et 6h).
+    Preflight verte à `9cc312a` sous Node 26.9.0, 472 tests. Prochaine étape : troisième tour de
+    `request-review`, sur `git diff 2b6206d HEAD`.
+
     `respond-review` a traité le premier tour de `request-review` le 2026-09-25. Les deux relecteurs
     avaient relevé le même should-fix : la progression se mesurait contre tous les rapports du
     changement, si bien qu'une réponse donnée après un rapport qui n'avait rien gagné n'atteignait
