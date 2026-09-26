@@ -309,21 +309,21 @@ function declarationHolds(
  * make the report redeclare the whole history of the decisions taken, which is what grows it at each
  * round until its output is refused (`chantiers/F`); the kernel recorded those answers and read those
  * declarations, so it carries them itself and asks the next report only for what it has not already
- * said. An inherited declaration is dropped as soon as the report stops carrying the requirements it
- * names: it would then bind nothing, and the answer counts as undeclared again.
+ * said. A declaration, inherited or the report's own, counts only while it holds in the requirements
+ * of the report, as G1 judges it: one that names a requirement the report does not carry, or no
+ * mandatory one, binds nothing, and the answer counts as undeclared again.
  */
 export function declarationsOfReport(
 	priors: DeclaringReport[],
 	report: DeclaringReport,
 ): Map<string, AnswerDeclaration> {
 	const declared = new Map<string, AnswerDeclaration>();
-	for (const prior of priors) {
-		for (const a of prior.answers) {
+	for (const r of [...priors, report]) {
+		for (const a of r.answers) {
 			if (declarationHolds(a, report.requirements)) declared.set(a.question_id, a);
 			else declared.delete(a.question_id);
 		}
 	}
-	for (const a of report.answers) declared.set(a.question_id, a);
 	return declared;
 }
 
@@ -331,8 +331,8 @@ export function declarationsOfReport(
  * The material answers a specification report was written without: the ones it declares nothing
  * about, neither itself nor by what it inherits, whether it asked the question or not. These are the
  * answers G1 refuses, so a report that renamed the requirement an earlier one bound an answer to is
- * judged here as it will be there. A report that declares the answer, even to say it fixes nothing
- * observable, carries it.
+ * judged here as it will be there. A report whose declaration of the answer holds in its requirements,
+ * or says the answer fixes nothing observable, carries it.
  */
 function answersTheReportIgnores(state: ChangeState, declared: Map<string, AnswerDeclaration>): OpenQuestion[] {
 	return state.open_questions.filter((q) => q.material && q.answer !== null && !declared.has(q.id));
