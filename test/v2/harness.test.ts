@@ -1185,11 +1185,10 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		const blocked = await t.harness.advance(change.change_id);
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
-		assert.throws(
-			() => t.harness.pause(change.change_id, HUMAN),
-			(e: { code?: string; nextActions?: readonly string[] }) =>
-				e.code === "PRECONDITION_FAILED" && JSON.stringify(e.nextActions) === JSON.stringify(["resume", "cancel"]),
-		);
+		assert.throws(() => t.harness.pause(change.change_id, HUMAN), {
+			code: "PRECONDITION_FAILED",
+			nextActions: ["resume", "cancel"],
+		});
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.status, "blocked");
 		assert.equal(state.stop_reason, "execution_error");
