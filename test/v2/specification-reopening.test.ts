@@ -233,6 +233,67 @@ describe("a specification report is judged against every recorded material answe
 		);
 	});
 
+	it("does not reopen a report again when a human adopts its mandate, and G1 refuses the answer it lost (6g)", async () => {
+		const t = track(makeHarness({ policy: { adoption: { mandate: "human" } } }));
+		const renames = Array.from({ length: 6 }, (_, i) => ({ ...RENAMES_MESSAGE, objective: `objectif ${i}` }));
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, ...renames]);
+		const changeId = await throughTwoRounds(t);
+		assert.equal((await t.harness.advance(changeId, { max_steps: 30 })).stopped_because, "decision_required");
+		const adoption = t.requested.at(-1)!;
+		assert.equal(adoption.interaction, "IH-02");
+		const done = t.harness.answerDecision(
+			changeId,
+			{
+				decision_id: adoption.decision_id,
+				option_id: "adopt",
+				free_text: null,
+				reason: null,
+				subject_revision: adoption.subject.revision,
+				scope: null,
+				expires_at: null,
+			},
+			origin(),
+		);
+		assert.equal(done.error, null);
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 4, "an adoption is not an answer: the report it adopted is not written again");
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.gates.G1?.verdict, "FAIL");
+		assert.ok(
+			state.gates.G1!.reasons.some((r) => r.includes(Q1.id)),
+			state.gates.G1!.reasons.join(" | "),
+		);
+	});
+
+	it("counts what the report the latest answer was given on carries as already carried (6h)", async () => {
+		const QA = { id: "q-a", question: "A ?", material: true };
+		const QC = { id: "q-c", question: "C ?", material: true };
+		const RA = requirement("R-A");
+		const bindsA = { question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] };
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: [RA] }),
+			specReport({ questions: [QC], answers: [bindsA], requirements: [RA] }),
+			// Carries A, which the report C was answered on already carried, and still loses C.
+			specReport({ questions: [], answers: [bindsA], requirements: [RA] }),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const answerPending = answerer(t, change.change_id);
+		for (let round = 0; round < 2; round++) {
+			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+			answerPending();
+		}
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 3, "reopened once for C, then not again: A was already carried");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.ok(
+			state.gates.G1!.reasons.some((r) => r.includes(QC.id)),
+			state.gates.G1!.reasons.join(" | "),
+		);
+	});
+
 	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [
