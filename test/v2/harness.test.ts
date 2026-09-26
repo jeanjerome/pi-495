@@ -1177,7 +1177,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal((await t.ledger.verifyIntegrity()).ok, true);
 	});
 
-	it("refuses to pause a change blocked by a step that failed while its intervention ran, which keeps its stop", async () => {
+	it("refuses to pause a change blocked by a step that failed while its intervention ran, keeps its stop and names the resume that lifts it", async () => {
 		const t = track(makeHarness());
 		t.agent.startIntervention = async () => {
 			throw new DomainError("EVIDENCE_MISSING", "the adopted report is gone");
@@ -1187,13 +1187,16 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
 		assert.throws(
 			() => t.harness.pause(change.change_id, HUMAN),
-			(e: { code?: string }) => e.code === "PRECONDITION_FAILED",
+			(e: { code?: string; nextActions?: readonly string[] }) =>
+				e.code === "PRECONDITION_FAILED" && JSON.stringify(e.nextActions) === JSON.stringify(["resume", "cancel"]),
 		);
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.status, "blocked");
 		assert.equal(state.stop_reason, "execution_error");
+		assert.equal(state.stop_retryable, false, "a resume lifts the execution error for itself, not as a retryable stop");
 		assert.ok(state.stop_detail?.startsWith("EVIDENCE_MISSING"), state.stop_detail ?? "");
 		assert.ok(state.interventions.every((i) => i.result !== "running"));
+		assert.equal(t.harness.resume(change.change_id, HUMAN).change?.status, "ready");
 	});
 
 	it("does not lift on resume a stop no resume lifts, when the step failed while its intervention ran", async () => {
