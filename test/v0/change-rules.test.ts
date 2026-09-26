@@ -1235,4 +1235,15 @@ describe("pause, resume, cancel (PF-17, RM-056)", () => {
 		assert.equal(r.s.attempts[0]?.result, "cancelled");
 		assert.equal(r.s.adopted.protocol?.ref.artifact_id, "prt_1", "dossier kept");
 	});
+
+	it("refuses to pause a blocked change, which keeps its stop, its detail and its retryability", () => {
+		const r = new Runner().create();
+		const detail = "the specification loses material answer(s) q1";
+		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "stagnation", detail, retryable: true });
+		r.expectError({ type: "change.pause", at: tick(), actor: HUMAN }, "PRECONDITION_FAILED");
+		assert.equal(r.s.status, "blocked");
+		assert.equal(r.s.stop_reason, "stagnation");
+		assert.equal(r.s.stop_detail, detail);
+		assert.equal(r.s.stop_retryable, true);
+	});
 });

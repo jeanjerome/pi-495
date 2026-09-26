@@ -440,6 +440,21 @@ describe("a change stopped because its specification no longer progresses is res
 		}
 	});
 
+	it("refuses to pause a stopped change, whose stop a resume still lifts into a rewriting (6a)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
+		const changeId = await stopped(t, calls);
+		assert.throws(
+			() => t.harness.pause(changeId, HUMAN),
+			(e: { code?: string }) => e.code === "PRECONDITION_FAILED",
+		);
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
+		assert.equal(t.harness.resume(changeId, HUMAN).change?.status, "ready");
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 5, "the resume obtains one rewriting of the report that lost Q1");
+	});
+
 	it("closes a stopped change as abandoned on cancel, without any intervention (6b)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
