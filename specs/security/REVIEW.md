@@ -838,3 +838,62 @@ les exigences, et son refus reste fermé.
   tous les événements du changement à l'entrée de `clarify`, puis à chaque tour de la boucle, et
   `priorDiagnostics` le fait encore pour la demande de spécification. Le coût croît avec la longueur du journal, mais il reste
   négligeable à côté de l'intervention de modèle que chaque tour paie.
+
+# Revue de sécurité — e01s02, une spécification qui ne progresse plus arrête le changement
+
+| | |
+|---|---|
+| Périmètre | `git diff main...HEAD -- src/` |
+| Révision relue | `31e81ba` |
+| Conduite le | 2026-09-26 |
+| Branche | `specification-arretee-avant-g0` |
+| Risque de la story | P1, tâches 1 et 2 classées P0 et `security: medium` |
+| Code de production touché | `src/domain/change/state.ts` (la situation `stalled`, la déclaration propre jugée par `declarationHolds`), `src/application/phases/clarify.ts` (l'arrêt avant le mandat), `src/application/artifacts.ts` (la coupure de l'historique à la dernière levée d'un arrêt), `src/domain/change/decide.ts` et `src/application/phases/specify.ts` (l'action nommée par un refus de G1) |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8/10. Le gate n'est pas bloqué. La story traite M2 et M7 du modèle de
+menace de l'epic. Le recours relance ou arrête, il n'adopte rien. G1 reste le seul juge des
+exigences, et son refus reste fermé.
+
+## Hypothèses vérifiées, non supposées
+
+- **Aucun document qui perd une réponse n'atteint G0 (M2).** `clarify` est le seul endroit qui
+  évalue G0 (`src/application/phases/clarify.ts`, seul `gate.evaluate` G0 de `src/application` et
+  `src/extension`). Un rapport `stalled` y mène à `change.block` avant la construction du mandat. La
+  campagne `e01s02-arret` le montre sur le vrai dossier : aucun mandat, aucune porte, et le contrôle
+  négatif `e01s02-arret-negatif` propose le mandat de la campagne perdue.
+- **L'arrêt ne lie ni ne délie aucune réponse.** Il n'émet que `status.changed`. Les réponses
+  enregistrées et les rapports proposés restent tels quels.
+- **Seul un humain lève l'arrêt en clarification (M7).** En phase `clarifying`, le seul passage de
+  `blocked` à `ready` est `change.unblock`. Les autres levées (nouvelle vérification, extension du
+  budget de tentatives, réconciliation d'un effet) exigent une phase ou un arrêt postérieurs à G0.
+  `changeUnblock` est refusé à un agent, à une sortie de modèle et à un appel d'outil
+  (`requireKernelAuthority`, test de `test/v0/change-rules.test.ts` ajouté à `0afe199`, tué par la
+  mutation qui retire ce contrôle). L'outil `harness495` exposé au modèle n'a que `status`,
+  `list_pending_decisions` et `start` : ni reprise ni abandon.
+- **Chaque reprise ne paie qu'une intervention avant que la borne ne s'applique.** La coupure se
+  déplace à la levée. Le rapport sur lequel l'arrêt a été levé est réécrit une fois ; la réécriture
+  suivante doit porter une réponse nouvelle, sinon le changement s'arrête de nouveau (test 6a, deux
+  reprises, une intervention chacune). Le budget d'incrément borne en plus chaque intervention.
+- **Le jugement plus strict d'une déclaration ne peut que relancer ou arrêter.** Une déclaration
+  propre qui ne tient pas dans les exigences du rapport compte comme absente. Cela ne peut produire
+  qu'une réouverture, bornée par la même mesure de progrès, ou un arrêt. Aucun chemin n'adopte une
+  réponse que G1 refuserait.
+- **Le refus de G1 reste fermé.** Seule l'action nommée change (`cancel`). La reprise d'un refus de
+  G1 rejoue G1 sur le même document, sans intervention (`e01s02-refus-g1`).
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+- **En mode RPC sans acteur déclaré, la reprise se fait sous l'acteur noyau (confiance 4/10,
+  faible).** `/495 resume` passe `humanOrigin(ctx)?.actor ?? kernelUser()`
+  (`src/extension/command.ts:100`) : un hôte RPC qui ne déclare pas `HARNESS495_RPC_HUMAN_ACTOR`
+  lève l'arrêt au nom du noyau, et la levée paie alors une intervention. Ce comportement précède la
+  branche et vaut pour toute reprise ; l'hôte RPC est le programme de l'opérateur, pas le modèle.
+  Il contredit pourtant la lettre du §3 de la story (« Seul un humain lève un arrêt ») dès que
+  l'hôte ne déclare personne. L'abandon, lui, exige une provenance humaine.
+- **Les identifiants de question écrits par le modèle atteignent le détail de l'arrêt (confiance
+  3/10, faible).** `Identifier` n'impose qu'une longueur de 1 à 200 caractères, et le détail de
+  l'arrêt nomme les réponses perdues par leur identifiant. Les mêmes identifiants apparaissaient
+  déjà dans les motifs de G1 et dans le message de réouverture : la branche ajoute un endroit où ils
+  s'affichent, pas une classe de données nouvelle. Aucun texte de réponse n'y figure.

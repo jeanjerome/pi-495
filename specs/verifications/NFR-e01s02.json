@@ -1,0 +1,39 @@
+{
+  "story_id": "e01s02",
+  "risk": "P1",
+  "risk_note": "Story P1 with tasks 1 and 2 in P0; the gate is run as for P0.",
+  "evaluated_at": "2026-09-26T13:32:22Z",
+  "threshold_source": {
+    "file": "specs/epics/e01-reponse-humaine-atteint-les-exigences/e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md",
+    "section": "14. Quality attributes *NFR*",
+    "note": "No specs/tech-architecture/e01-TEST_PLAN_LATEST.md exists; the five thresholds the story spec states are grouped under the gate's three dimensions."
+  },
+  "environment": {
+    "node": "24.21.0 for the builds, the campaigns and the terminal verdict; the Preflight was also green under 26.9.0 at 66b6941",
+    "pi_version": "0.87.1",
+    "model": "omlx/qwen3.8-27b-oq8e for the resume campaign; the scripted agent (HARNESS495_SCRIPTED_AGENT) for the rewriting that gains nothing, which returns report 183 of java-flashnext-L2 verbatim"
+  },
+  "dimensions": {
+    "performance": {
+      "verdict": "PASS",
+      "threshold": "Specification interventions between two human acts, an answer or a resume: at most one more than the recorded material answers. Resume of a stagnation stop that produces no specification intervention: 0.",
+      "measured": "Test 6a of test/v2/specification-reopening.test.ts: two resumes, one specify intervention each, then the stop again. Campaign e01s02-reprise: /495 resume lifts the stop under jeanjerome/human/rpc_qualified and exactly one specify intervention runs under omlx/qwen3.8-27b-oq8e (406 s); its report declares Q1 and the change passes G0 and G1. On the code before the story (e01s02-reprise-negatif), the same resume produces no intervention and G1 refuses the same document again.",
+      "note": "Each resume costs one billed or long intervention; only a human triggers it (threat M7)."
+    },
+    "reliability": {
+      "verdict": "PASS",
+      "threshold": "Mandate proposed at G0 from a report that does not carry a recorded material answer: 0. Requirements document adopted at G1 that loses an answer: 0.",
+      "measured": "Campaign e01s02-arret, on java-flashnext-L2 cut after report 183: the rewriting returns report 183, the change stops in clarifying (stagnation, retryable, naming Q1, resume and cancel), with no mandate and no gate evaluated. Negative control e01s02-arret-negatif on 38bf5a3: the mandate sha256:5eb34219… of the lost campaign is proposed and adopted at G0, and G1 refuses Q1. The real reports #100 and #187 of java-flashnext-L, whose own declarations name only an optional requirement or an absent one, are not counted as carrying their answer by the branch build, and are counted by 38bf5a3.",
+      "note": "The rewriting that gains nothing is scripted: no real model lost Q1 a second time."
+    },
+    "operability": {
+      "verdict": "PASS",
+      "threshold": "G1 refusal naming an action no /495 subcommand holds: 0.",
+      "measured": "Campaign e01s02-refus-g1, the uncut java-flashnext-L2 resumed on the branch: G1 FAIL with next_action cancel, and the stop detail ends in (next: cancel). Negative control e01s02-refus-g1-negatif on 38bf5a3: revise_requirements. /495 status shows the stagnation stop with its detail and 'resume retries it'. Campaign e01s02-abandon: /495 cancel, confirmed, closes the stopped change as abandoned with no intervention.",
+      "note": "No new event is journaled: the stop is a status.changed with the existing reason stagnation, as §8 and §12 state."
+    }
+  },
+  "verdict": "GO",
+  "blocked": false,
+  "revision": "31e81ba"
+}

@@ -1,0 +1,216 @@
+story_id: e01s02
+verified_at: "2026-09-26T13:32:22Z"
+verifier: verify-work
+risk: P1
+risk_note: "Story P1; tasks 1 and 2 are P0, so the security scan and the NFR gate were run as for a P0 story."
+branch: specification-arretee-avant-g0
+revision: 31e81ba
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  model: "omlx/qwen3.8-27b-oq8e on the local endpoint, for the resume campaign"
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from ~/.495-campagnes/builds/e01s02-31e81ba/dist (git archive
+      of 31e81ba, built under Node 24.21.0) in a real `pi -ne --mode rpc --no-session -e <extension>`,
+      once per campaign, each on its own copy of the dossier.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check."
+  tests:
+    passed: true
+    count: 482
+    note: >
+      474 on main at 38bf5a3; 8 added (5 in test/v2/specification-reopening.test.ts, 3 in
+      test/v0/change-rules.test.ts), none removed. Eight existing tests change their expectation: 6b,
+      6c, 6g, 6h and 6j of specification-reopening, and three of test/v2/harness.test.ts (the answer
+      ignored twice, the declaration whose requirement disappears, the answer bound to R1-trimee).
+
+terminal_verdict:
+  command: "npm run check"
+  exit_code: 0
+  started_at: "2026-09-26T13:29:50Z"
+  ended_at: "2026-09-26T13:32:22Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on the code committed as 31e81ba, right after
+    `npm run build`, which left dist/ unchanged. 482 tests passing, 0 failing. No output from any other
+    attempt is merged into this block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 31e81ba; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts", exit_code: 0, tests: 46 }
+    - { task: 2, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
+    - { task: 3, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
+    - { task: 4, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 15 }
+    - { task: 5, command: "npm run check", exit_code: 0 }
+
+red_green: "specs/verifications/e01s02-cycle-rouge-vert.md"
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e01s02"
+
+blind_spots:
+  ran: false
+  note: >
+    Same derogation as e01s01: check-blind-spots.sh reads its state table with a pattern that can
+    never match, so it reports 0 findings whatever the capsule holds. Its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e01s01: it looks for story identifiers in the sources, which the
+    written-content rules forbid. BES-02 keeps its row (lint:traceability green).
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e01s02.json"
+
+manual:
+  method: >
+    Each campaign is a real `pi --mode rpc` loading a built extension, in the change's own target
+    (simple-demo-hexagonal-architecture, clean at its reference head d66382a), under the real
+    sandbox, driven by ~/.495-campagnes/scripts/e01s02-drive.ts: it sends one /495 command, reads the
+    ledger read-only until G1 is decided, a decision is requested, or the change blocks, closes or is
+    cancelled, then asks /495 status and stops Pi. HARNESS495_RPC_HUMAN_ACTOR=jeanjerome declares the
+    human who resumes or cancels. Every run works on its own copy of the dossier of
+    java-flashnext-L2, the change lost at G1 on 2026-09-19; the original dossier is untouched.
+  fiction_declared: >
+    Two fictions, stated here and in the handoff. (1) As for e01s01, the dossier is cut right after
+    event 183, the report that lost Q1's binding (~/.495-campagnes/scripts/e01s01-couper.mjs): no
+    session actually stopped there. (2) The rewriting that reopening obtains is scripted: under
+    HARNESS495_SCRIPTED_AGENT the specify intervention returns report 183 verbatim
+    (~/.495-campagnes/scripts/e01s02-rapport-183.json), so that it loses Q1 and gains nothing. No
+    real model lost Q1 a second time: in e01s01 the local model declared it at the first reopening.
+    The scripted intervention still records the selected model omlx/qwen3.8-27b-oq8e in
+    intervention.started, though no model was called. The resume campaign then calls the real model.
+    Nothing left the machine.
+  campaigns:
+    - dossier: "~/.495-campagnes/e01s02-arret"
+      code: "branch, 31e81ba, scripted rewriting"
+      command: "/495 resume"
+      outcome: "blocked in clarifying — stagnation, retryable, no mandate, no gate"
+      observed: >
+        #184..#187 one specify intervention (scripted), #188 its report, byte-identical to report 183
+        (sha256:b7c0b952…). #189 status.changed blocked, stagnation, retryable, "the specification
+        loses material answer(s) Q1 and its latest rewriting carries none an earlier report did not;
+        resume rewrites the specification, cancel abandons the change". /495 status: "Phase:
+        clarifying  Statut: blocked", "Gates: aucun", next action ending "— resume retries it".
+    - dossier: "~/.495-campagnes/e01s02-arret-negatif"
+      code: "38bf5a3 — negative control, the same scripted rewriting"
+      command: "/495 resume"
+      outcome: "blocked in specifying — execution_error, G0 PASS, G1 FAIL"
+      observed: >
+        The same scripted report, then #189 mandate sha256:5eb34219… — the mandate of the lost
+        campaign of 2026-09-19 — proposed and adopted at G0, and #195 G1 FAIL "material answer Q1
+        fixes an observable contract that no requirement carries", next revise_requirements.
+    - dossier: "~/.495-campagnes/e01s02-reprise"
+      code: "branch, 31e81ba, real model"
+      command: "/495 resume, on a copy of e01s02-arret after its stop"
+      outcome: "G0 PASS, G1 PASS; stopped by the driver once G1 was decided"
+      observed: >
+        #190 status.changed ready by jeanjerome/human/rpc_qualified. #191 one specify intervention
+        under omlx/qwen3.8-27b-oq8e; its request (ctx sha256:22f4a27e…) marks Q1 "[to declare in
+        `answers`]" and Q2..Q7 "already declared". It completed in 406 s, 72 648 tokens known. Its
+        report dia_muifeqy5377ad4651c asks nothing and declares Q1 observable, bound to
+        REQ-422-BODY-FORMAT and REQ-LIMIT-COVERS-CREATE-AND-UPDATE, both mandatory and carried. G0
+        PASS (#219), G1 PASS (#224); the adopted requirements rqs_muifeqylb8590dd6e0 carry Q1 through
+        Q7, Q1 with the answer "422 avec le message 'Name cannot be longer than 50 characters'". One
+        specify intervention since the resume. The prepare intervention (#232) had just started when
+        the driver stopped Pi; it is left running in that copy.
+    - dossier: "~/.495-campagnes/e01s02-reprise-negatif"
+      code: "38bf5a3 — negative control, a copy of e01s02-arret-negatif after its refusal"
+      command: "/495 resume"
+      outcome: "blocked in specifying — the same refusal, no intervention"
+      observed: >
+        #197 ready by jeanjerome, #198 the same requirements document (sha256:7fad1744…), #199 G1
+        FAIL on Q1, next revise_requirements. The resume replays the refusal; the change stays lost.
+    - dossier: "~/.495-campagnes/e01s02-abandon"
+      code: "branch, 31e81ba"
+      command: "/495 cancel la spécification perd la réponse à Q1, on a copy of e01s02-arret after its stop"
+      outcome: "closed, cancelled, abandoned — no intervention"
+      observed: >
+        The confirmation dialog "Annuler le changement ? Le dossier est conservé." answered yes by the
+        driver; #190 outcome abandoned, #191 status cancelled user_cancelled, #192 phase closed, all by
+        jeanjerome/human/rpc_qualified. /495 status: "done: abandoned".
+    - dossier: "~/.495-campagnes/e01s02-refus-g1"
+      code: "branch, 31e81ba, the uncut dossier of java-flashnext-L2"
+      command: "/495 resume"
+      outcome: "blocked in specifying — G1 FAIL naming cancel"
+      observed: >
+        #198 G1 FAIL next=cancel; #199 the stop detail ends in "(next: cancel)". No intervention.
+    - dossier: "~/.495-campagnes/e01s02-refus-g1-negatif"
+      code: "38bf5a3 — negative control"
+      command: "/495 resume"
+      outcome: "blocked in specifying — G1 FAIL naming revise_requirements"
+  reports_judged:
+    method: >
+      The real specification reports #100 and #187 of ~/.495-campagnes/java-flashnext-L, whose own
+      declarations bind an answer to only an optional requirement (#100, q-schema-alignment) or to a
+      requirement the report does not carry (#187, q-threshold-semantics, r-threshold-trimmed), judged
+      read-only by declarationsOfReport from each build, every earlier report of the dossier as priors
+      (~/.495-campagnes/scripts/e01s02-juger.mjs).
+    results:
+      - code: "branch, 31e81ba"
+        observed: "q-schema-alignment (#100) and q-threshold-semantics (#187) not counted; every other declaration counted"
+      - code: "38bf5a3 — negative control"
+        observed: "every declaration counted, those two included"
+  confirmed_by_owner: false
+  steps:
+    - step: "Un rapport rouvert qui perd encore une réponse sans rien gagner arrête le changement avant G0 (§17, scénario principal)"
+      expected: "Stagnation levable en clarification, qui nomme Q1, resume et cancel ; aucun mandat, G0 non évalué"
+      actual: "e01s02-arret — arrêt en clarification, détail qui nomme Q1, resume et cancel, aucun mandat, aucune porte"
+      passed: true
+    - step: "Le même cas sur le code d'avant atteint G1 (contrôle négatif)"
+      expected: "Un mandat est proposé, G1 refuse la réponse perdue"
+      actual: "e01s02-arret-negatif — le mandat de la campagne perdue est adopté à G0, G1 refuse Q1 (revise_requirements)"
+      passed: true
+    - step: "La reprise fait réécrire la spécification (étapes 6 à 8)"
+      expected: "Une intervention de spécification, dont la demande dit Q1 à déclarer, et un rapport qui la déclare mène au-delà de G1"
+      actual: "e01s02-reprise — une intervention du modèle réel, Q1 « to declare », le rapport lie Q1 à deux exigences obligatoires, G0 et G1 PASS"
+      passed: true
+    - step: "L'abandon clôt le changement arrêté (6b)"
+      expected: "Clos comme abandonné, aucune intervention"
+      actual: "e01s02-abandon — abandoned, cancelled, closed, aucune intervention"
+      passed: true
+    - step: "Un refus de G1 nomme l'abandon (6f)"
+      expected: "cancel nommé dans la décision de G1 et l'arrêt, revise_requirements nulle part"
+      actual: "e01s02-refus-g1 — next=cancel ; le contrôle négatif nomme revise_requirements"
+      passed: true
+    - step: "Une déclaration qui nomme une exigence absente ou aucune obligatoire ne porte pas la réponse (6e)"
+      expected: "La réponse n'est pas comptée comme portée"
+      actual: "Rapports réels #100 et #187 de java-flashnext-L jugés par le noyau construit : non comptées sur la branche, comptées avant ; la réouverture et l'arrêt qui en suivent reposent sur les tests"
+      passed: true
+    - step: "Une reprise qui obtient un rapport sans progrès arrête de nouveau le changement (6a)"
+      expected: "Une seule intervention depuis la reprise, puis l'arrêt"
+      actual: "test/v2/specification-reopening.test.ts seulement — le modèle réel a déclaré Q1 à la reprise"
+      passed: true
+    - step: "Des rapports qui oscillent arrêtent le changement avant G0 (6c) ; aucune adoption demandée (6d)"
+      expected: "Arrêt en clarification, G0 non évalué, aucune adoption demandée"
+      actual: "test/v2/specification-reopening.test.ts seulement"
+      passed: true
+
+gaps:
+  closed: true
+  note: "No gap between what e01s02 promises and what the campaigns and the tests show."
+
+known_limits:
+  - "The dossier is cut after event 183, and the rewriting that loses Q1 again is scripted (fiction_declared)."
+  - "6a, 6c and 6d are not exercised by a real model: the model declared Q1 at the resume. Their tests hold them."
+  - "6e is shown on real reports judged by the built kernel, not on a campaign that reopens on them."
+  - "The resume campaign stops once G1 has passed: whether the frozen protocol and the executed controls carry the 422 decided belongs to e01s05."
+  - "In RPC mode without HARNESS495_RPC_HUMAN_ACTOR, /495 resume lifts the stop under the kernel actor (specs/security/REVIEW.md, e01s02, observation below the threshold); the campaigns declare the human."

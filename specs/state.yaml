@@ -15,8 +15,19 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   last_step_completed: >
+    verify-work de e01s02 conduit le 2026-09-26 à `31e81ba`, en attente de la confirmation du
+    propriétaire. Preflight verte sous Node 24.21.0, 13:29:50Z à 13:32:22Z, 482 tests. Sept campagnes
+    dans un vrai `pi --mode rpc` sur des copies de `java-flashnext-L2` : l'arrêt avant G0
+    (`e01s02-arret`) et son contrôle négatif sur `38bf5a3` (mandat de la campagne perdue, G1 FAIL) ;
+    la reprise avec le modèle local (`e01s02-reprise`, une intervention, Q1 déclarée, G0 et G1 PASS)
+    et son contrôle négatif (même refus rejoué) ; l'abandon ; le refus de G1 qui nomme `cancel` et son
+    contrôle négatif. Rapports réels #100 et #187 de `java-flashnext-L` jugés pour la tâche 3.
+    Fictions déclarées : le dossier coupé après l'événement 183, et la réécriture qui perd encore Q1
+    simulée par l'agent scripté. Relevés : `e01s02-verify.yaml`, `NFR-e01s02.json`, section e01s02
+    de `specs/security/REVIEW.md`. Après confirmation : `execution-status.yaml`, puis audit-code.
+
     Tâche 5 de e01s02 passée le 2026-09-26 : `npm run build && npm run check` sous Node 26.9.0 à
     `66b6941`, 13:03:18Z à 13:06:35Z, sortie 0, 482 tests ; les cinq tâches et la story sont en
     `passing`. Prochaine étape : verify-work, avec une campagne réelle dans Pi et son contrôle
