@@ -186,6 +186,56 @@ describe("a specification report is judged against every recorded material answe
 		await assertStoppedBeforeG0(t, change.change_id, [QB.id]);
 	});
 
+	it("does not count a pause and its resume as a human act: the rewritings after them stay bounded from the latest answer (6c)", async () => {
+		const QA = { id: "q-a", question: "A ?", material: true };
+		const QB = { id: "q-b", question: "B ?", material: true };
+		const RA = requirement("R-A");
+		const RB = requirement("R-B");
+		const carriesA = specReport({
+			questions: [],
+			answers: [{ question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] }],
+			requirements: [RA],
+		});
+		const carriesB = specReport({
+			questions: [],
+			answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
+			requirements: [RB],
+		});
+		const t = track(makeHarness());
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		// The fourth run is paused as `/495 pause` does it: the running session is aborted, then the
+		// change is paused.
+		const start = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role !== "specify" || calls() !== 4) return start(m);
+			t.agent.scripts.set("specify", { steps: [{ kind: "hang" }] });
+			const handle = await start(m);
+			setTimeout(async () => {
+				await t.harness.abortCurrent("pause");
+				t.harness.pause(change.change_id, HUMAN);
+			});
+			return handle;
+		};
+		const { calls } = specificationRounds(t, [
+			specReport({ questions: [QA, QB], answers: [], requirements: [RA, RB] }),
+			carriesA,
+			carriesB,
+			// Never written: the fourth run is the one paused.
+			carriesB,
+			carriesA,
+			carriesB,
+		]);
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerer(t, change.change_id)();
+		const paused = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(paused.stopped_because, "paused", paused.steps.join(" | "));
+		assert.equal(t.harness.resume(change.change_id, HUMAN).change?.status, "ready");
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 5, "the report written after the resume carries only A, which the second already carried");
+		await assertStoppedBeforeG0(t, change.change_id, [QB.id]);
+	});
+
 	it("asks the new material question of a reopened report first, and reopens that report on the answer even when it carries nothing an earlier report did not (6f)", async () => {
 		const QA = { id: "q-a", question: "A ?", material: true };
 		const QB = { id: "q-b", question: "B ?", material: true };
