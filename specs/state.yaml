@@ -17,6 +17,11 @@ epic_cycle:
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    Tâche 5 de e01s02 passée le 2026-09-26 : `npm run build && npm run check` sous Node 26.9.0 à
+    `66b6941`, 13:03:18Z à 13:06:35Z, sortie 0, 482 tests ; les cinq tâches et la story sont en
+    `passing`. Prochaine étape : verify-work, avec une campagne réelle dans Pi et son contrôle
+    négatif sur `38bf5a3`.
+
     Tâche 4 de e01s02 passée le 2026-09-26 : rouge `e5f0f28` (test seul, 1 échec sur 15), vert
     `b34547a` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 482 tests.
     Un refus de G1 nomme `cancel` dans la décision de gate et dans le détail de l'arrêt ;

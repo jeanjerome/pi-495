@@ -8,7 +8,7 @@
 story_id: e01s02
 spec: e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md
 title: "Une spécification qui ne progresse plus arrête le changement avec un recours"
-status: failing
+status: passing
 bcps: 5
 requirement: BES-02
 delta: MODIFIED
@@ -108,7 +108,7 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
