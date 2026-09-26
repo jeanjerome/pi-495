@@ -140,6 +140,20 @@ class Ctx {
 		this.emit({ type: "phase.entered", ...this.base(), phase, status, reason });
 	}
 	block(reason: StopReason, detail: string, retryable = false): void {
+		// A stop leaves nothing running: ending the intervention later, on a pause or a resume, would
+		// hand the change back ready and erase the stop without the kernel ever lifting it.
+		const running = runningIntervention(this.state);
+		if (running)
+			this.emit({
+				type: "intervention.finished",
+				...this.base(),
+				intervention_id: running.intervention_id,
+				result: "failed",
+				counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
+				detail: `change blocked: ${reason}`,
+				cost: unknownCost("the change was blocked before the host reported the session's usage"),
+				imposed_layers: [unobservedEnd("the change was blocked before the session reported its requests")],
+			});
 		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail, retryable });
 	}
 	gateDecision(partial: Omit<GateDecisionState, "decided_at" | "state_revision">): GateDecisionState {
