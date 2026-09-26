@@ -169,7 +169,12 @@ manual:
         observed: "q-schema-alignment (#100) and q-threshold-semantics (#187) not counted; every other declaration counted"
       - code: "38bf5a3 — negative control"
         observed: "every declaration counted, those two included"
-  confirmed_by_owner: false
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-26T13:37:14Z"
+  confirmation_note: >
+    Confirmed by the owner on the seven campaigns above and the stated limits: the cut of the dossier
+    and the scripted rewriting are fictions, 6a, 6c and 6d rest on their tests, 6e is shown on real
+    reports judged by the built kernel, and what the frozen protocol requires belongs to e01s05.
   steps:
     - step: "Un rapport rouvert qui perd encore une réponse sans rien gagner arrête le changement avant G0 (§17, scénario principal)"
       expected: "Stagnation levable en clarification, qui nomme Q1, resume et cancel ; aucun mandat, G0 non évalué"

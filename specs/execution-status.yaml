@@ -1,7 +1,7 @@
 development_status:
   e01: in_progress
   e01s01: done
-  e01s02: in_progress
+  e01s02: done
   e01s03: backlog
   e01s04: backlog
   e01s05: backlog
@@ -59,11 +59,16 @@ stories:
     risk_max: P0
     security_max: low
   e01s02:
-    status: in_progress
+    status: done
     title: Une spécification qui ne progresse plus arrête le changement avec un recours
     bcps: 5
     epic: e01
     started_at: "2026-09-26T13:51:00+02:00"
+    tasks_total: 5
+    tasks_passing: 5
+    tasks_failing: 0
+    risk_max: P0
+    security_max: medium
   e23s01:
     status: done
     title: La sortie de données vers le fournisseur est déclarée

@@ -10,13 +10,17 @@ active_epic_id: e01
 active_story: e01s02
 
 epic_cycle:
-  step: 4
-  completed_steps: "0,1,2,3"
+  step: 6
+  completed_steps: "0,1,2,3,4,5"
   story_bcps: 5
 
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   last_step_completed: >
+    Recette de e01s02 confirmée par le propriétaire le 2026-09-26 à 13:37:14Z, sur les sept
+    campagnes et les limites déclarées ; e01s02 passe à `done` dans `execution-status.yaml`.
+    Prochaine étape : audit-code sur `git diff main...HEAD`.
+
     verify-work de e01s02 conduit le 2026-09-26 à `31e81ba`, en attente de la confirmation du
     propriétaire. Preflight verte sous Node 24.21.0, 13:29:50Z à 13:32:22Z, 482 tests. Sept campagnes
     dans un vrai `pi --mode rpc` sur des copies de `java-flashnext-L2` : l'arrêt avant G0
