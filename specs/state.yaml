@@ -17,6 +17,16 @@ epic_cycle:
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    Tâche 2 de e01s02 passée le 2026-09-26 : rouge `1fc82ff` (test seul, 2 échecs sur 12), vert
+    `4f17bd3`, refactorisation `6180916` (`sinceLastAnswer` devient `sinceLastHumanAct`) ; isolation
+    contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 478 tests. La borne de progression
+    se coupe à la dernière réponse matérielle ou à la dernière levée d'un arrêt : la reprise obtient
+    une réécriture, dont la demande dit la réponse à déclarer, puis la borne s'applique. L'abandon
+    tenait déjà ; `0afe199` fixe qu'un agent, une sortie de modèle ou un appel d'outil ne lève pas
+    l'arrêt (tué par la mutation qui retire `requireKernelAuthority` de `changeUnblock`). Prochaine
+    étape : develop-tdd, tâche 3 (une déclaration ne porte une réponse que si elle tient dans les
+    exigences du rapport).
+
     Tâche 1 de e01s02 passée le 2026-09-26 : rouge `103ce48` (test seul, 7 échecs sur 40), vert
     `8852a2b` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 474 tests.
     Un rapport qui perd une réponse et que la borne interdit de rouvrir arrête le changement en

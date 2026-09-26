@@ -59,7 +59,7 @@ tasks:
       une reprise lève l'arrêt, un acteur agent, une sortie de modèle ou un appel d'outil ne le lève
       pas, et chaque reprise ne relance qu'une réécriture avant que la borne ne s'applique de
       nouveau.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
