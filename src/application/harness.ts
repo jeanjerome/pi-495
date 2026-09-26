@@ -433,6 +433,10 @@ export class Harness {
 					// the block against it loses the optimistic-concurrency race and the change silently
 					// reappears ready, redoing the work that just failed.
 					const current = this.deps.ledger.loadChange(changeId) ?? unit;
+					// A pause aborts the running session and commits under the step, which then fails: the
+					// pause is the latest act on the change, and blocking over it would hand the resume a
+					// stop to lift instead of a pause to end.
+					if (current.state.status === "paused") return this.result(current, steps, "paused");
 					// The action the error names is of no use to anyone unless the block records that it can
 					// be retried and says so where the operator reads the change.
 					const detail = `${error.code}: ${error.message}${error.nextActions.length > 0 ? ` (next: ${error.nextActions.join(", ")})` : ""}`;
