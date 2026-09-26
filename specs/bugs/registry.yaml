@@ -1,4 +1,39 @@
 bugs:
+  - bug_id: BUG-2026-09-26T142500
+    date: "2026-09-26"
+    title: "Pausing a stopped change erases its stop, and a resume can no longer lift it"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      A change blocked on a stop a resume lifts (a stalled specification, an execution error) accepted
+      `/495 pause`. On resume it came back `blocked` with no stop reason, no detail and no longer
+      retryable: a second resume lifted nothing, the names of the lost answers were gone, and cancel
+      was the only way out left.
+    what_expected: >
+      A stopped change keeps its stop, its detail and its ways out whatever the operator does before
+      lifting it.
+    steps_to_reproduce:
+      - "Take a change to the stop before G0 of a specification that no longer progresses."
+      - "Run `/495 pause`, then `/495 resume` twice."
+      - "The change stays `blocked` with `stop_reason` null and `stop_retryable` false, and `advance` writes nothing."
+    root_cause: >
+      `changePause` (`src/domain/change/decide.ts`) accepted any active change, blocked ones included.
+      It saved only the status in the resume point, and its `status.changed` event cleared the stop
+      reason, detail and retryability. `changeResume` restored `blocked` without them, and
+      `harness.resume` lifts a block only when its reason is `execution_error` or it is retryable. The
+      same code is on main for every stop a resume lifts; a stalled specification relies on that
+      resume for its recourse.
+    evidence: >
+      test/v0/change-rules.test.ts, "refuses to pause a blocked change, which keeps its stop, its detail
+      and its retryability", and test/v2/specification-reopening.test.ts, "refuses to pause a stopped
+      change, whose stop a resume still lifts into a rewriting (6a)": red at 0d67f46 (2 failures out
+      of 59, the pause accepted), green at 6d5a3e3, both in a detached worktree. Preflight green under
+      Node 26.9.0, 486 tests.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 6d5a3e3
   - bug_id: BUG-2026-09-25T103000
     date: "2026-09-25"
     title: "In the TUI, every 495 message and every opening diagnostic is drawn twice on the screen"

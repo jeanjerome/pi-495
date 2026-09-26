@@ -72,6 +72,7 @@ identifiant d'exigence atteint G1, qui le refuse. Aucun n'est retiré ni ne chan
 | Un agent, une sortie de modèle ou un appel d'outil ne lève pas un arrêt qu'une reprise lève (`change-rules.test.ts`) | vert dès `0afe199`, sur le code de `4f17bd3` : le comportement tenait déjà, le test le fixe ; il échoue quand `requireKernelAuthority` est retiré de `changeUnblock` | `0afe199` |
 | Une déclaration propre au rapport qui ne tient pas dans ses exigences efface la liaison valide qu'il hérite : le rapport est rouvert pour la réponse, puis le changement s'arrête avant G0 (6e) | vert dès `cddf2c8` : le comportement tenait déjà, le test le fixe ; il échoue quand `else declared.delete` est retiré de `declarationsOfReport` | `cddf2c8` |
 | Un changement mis en pause pendant une réécriture, comme le fait `/495 pause` (session interrompue, puis pause), reste en pause, et sa reprise laisse la borne mesurée depuis la dernière réponse (6c) | `bcdeb0b` — `blocked` au lieu de `paused` : le pas interrompu échoue sur `REVISION_CONFLICT` et le noyau bloque le changement par-dessus la pause ; la reprise lève ce blocage, compté comme un acte humain, et paie une réécriture de plus (6 interventions au lieu de 5) | `bc55ce2` |
+| Un changement bloqué refuse la pause et garde son arrêt, son détail et sa levée par une reprise ; la reprise d'un arrêt pour stagnation obtient encore une réécriture (`change-rules.test.ts`, 6a) | `0d67f46` — la pause est acceptée : l'arrêt perd son motif, et une reprise ne le lève plus (BUG-2026-09-26T142500, défaut présent sur `main`) | `6d5a3e3` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
 `verify-tdd-red-commit.sh` juge le dépôt du paquet bigpowers, pas celui-ci.
@@ -93,6 +94,8 @@ cddf2c8 (test)           node --test test/v2/specification-reopening.test.ts   e
 bcdeb0b (test seul)      node --test test/v2/specification-reopening.test.ts   exit=1  (1 échec sur 17)
 bc55ce2 (implémentation) node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (48 sur 48)
 bc55ce2 (mutation)       node --test --test-name-pattern="does not count a pause" test/v2/specification-reopening.test.ts   exit=1  (sans blocked && dans specificationHistory)
+0d67f46 (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts   exit=1  (2 échecs sur 59)
+6d5a3e3 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (90 sur 90)
 ```
 
 `6180916` renomme `sinceLastAnswer` en `sinceLastHumanAct` : la coupure est aussi une reprise.
@@ -123,6 +126,9 @@ Refactorisation sans effet sur les tests, Preflight verte à 478 tests.
   en cours puis met le changement en pause ; le pas interrompu échoue alors sur un conflit de
   révision. Avant, le noyau posait un blocage `execution_error` par-dessus la pause, et la reprise
   levait ce blocage, que `specificationHistory` compte comme un acte humain.
+- `changePause` (`src/domain/change/decide.ts`) refuse un changement bloqué. Avant, la pause
+  remplaçait l'arrêt : sa reprise rendait un blocage sans motif, sans détail et non levable, et il ne
+  restait que l'abandon (BUG-2026-09-26T142500).
 
 ## Revue de sécurité de la tâche 1
 
