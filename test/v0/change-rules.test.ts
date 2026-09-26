@@ -125,6 +125,27 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 			"POLICY_DENIED",
 		);
 	});
+
+	it("an agent, a model output or a tool call cannot lift a stop a resume lifts (RM-031)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "change.block",
+			at: tick(),
+			actor: KERNEL,
+			reason: "stagnation",
+			detail: "the specification loses material answer(s) q1",
+			retryable: true,
+		});
+		for (const actor of [
+			AGENT,
+			{ ...HUMAN, origin: "model_output" as const },
+			{ ...HUMAN, origin: "tool_call" as const },
+		])
+			r.expectError({ type: "change.unblock", at: tick(), actor }, "POLICY_DENIED");
+		assert.equal(r.s.status, "blocked");
+		r.run({ type: "change.unblock", at: tick(), actor: HUMAN });
+		assert.equal(r.s.status, "ready");
+	});
 });
 
 describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
