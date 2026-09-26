@@ -10,13 +10,24 @@ active_epic_id: e01
 active_story: e01s02
 
 epic_cycle:
-  step: 6
-  completed_steps: "0,1,2,3,4,5"
+  step: 8
+  completed_steps: "0,1,2,3,4,5,6,7,8"
   story_bcps: 5
 
 handoff:
-  next_skill: release-branch
+  next_skill: null
   last_step_completed: >
+    e01s02 versée sur `main` le 2026-09-26 par avance rapide, à `520b053`. Preflight verte sur ce
+    commit sous Node 26.9.0, 16:45:27Z à 16:48:47Z, 490 tests, `dist/` inchangé. Couverture mesurée
+    dans un arbre détaché : 98,36 % de lignes, 76,88 % de branches (96,64 % de lignes après e01s01) ;
+    100 % de lignes pour `state.ts`, `decide.ts`, `artifacts.ts`, `clarify.ts` et `specify.ts`,
+    97,57 % pour `harness.ts`. Les trois échecs de la mesure sont ceux de l'instrument et de
+    l'emplacement (`egress`, `sandbox`, `control-runner`). Revue de sécurité : section e01s02 à
+    `9105a57`, aucun constat à confiance ≥ 8, `src/` inchangé depuis. Traçabilité :
+    `lint:traceability` vert, matrice générique non tenue (même dérogation que les stories
+    précédentes). Epic e01 en cours : e01s03 à e01s05 restent à faire, la capsule n'est pas
+    archivée. `main` n'est pas poussée.
+
     Tour 5 de `request-review` de e01s02 le 2026-09-26, sur `git diff e85b112 9105a57` : les deux
     relecteurs passent, sans point à corriger ; la revue est close à `9105a57`. Leurs mutations
     (règle réduite à `stop_retryable`, actions inversées, vides ou en trop, autre code, reprise qui
