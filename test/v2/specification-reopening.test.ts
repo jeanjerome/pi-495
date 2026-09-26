@@ -294,6 +294,72 @@ describe("a specification report is judged against every recorded material answe
 		);
 	});
 
+	it("writes again the report the latest answer was given on when it ignores an answer, even when it is not the first report and carries none (6i)", async () => {
+		const QA = { id: "q-a", question: "A ?", material: true };
+		const QB = { id: "q-b", question: "B ?", material: true };
+		const RA = requirement("R-A");
+		const RB = requirement("R-B");
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: [RA] }),
+			// Written again for A, it declares nothing and asks B: B is answered on it.
+			specReport({ questions: [QB], answers: [], requirements: [RB] }),
+			specReport({
+				questions: [],
+				answers: [
+					{ question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] },
+					{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] },
+				],
+				requirements: [RA, RB],
+			}),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const answerPending = answerer(t, change.change_id);
+		for (const asked of [QA, QB]) {
+			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+			assert.equal(t.requested.at(-1)!.question, asked.question);
+			answerPending();
+		}
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 3, "the report B was answered on is written again");
+		assert.ok(objectives[2]!.includes(`Q ${QB.id}: ${QB.question} -> réponse à ${QB.question}`), objectives[2]);
+	});
+
+	it("counts what the report the latest answer was given on inherits from an earlier report as already carried (6j)", async () => {
+		const QA = { id: "q-a", question: "A ?", material: true };
+		const QB = { id: "q-b", question: "B ?", material: true };
+		const QC = { id: "q-c", question: "C ?", material: true };
+		const RA = requirement("R-A");
+		const RB = requirement("R-B");
+		const bindsA = { question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] };
+		const bindsB = { question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] };
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [
+			specReport({ questions: [QA], answers: [], requirements: [RA] }),
+			specReport({ questions: [QB], answers: [bindsA], requirements: [RA] }),
+			// Keeps R-A without restating A: it carries A by inheritance, and C is answered on it.
+			specReport({ questions: [QC], answers: [bindsB], requirements: [RA, RB] }),
+			// Restates A, keeps B, and still loses C.
+			specReport({ questions: [], answers: [bindsA], requirements: [RA, RB] }),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const answerPending = answerer(t, change.change_id);
+		for (const asked of [QA, QB, QC]) {
+			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+			assert.equal(t.requested.at(-1)!.question, asked.question);
+			answerPending();
+		}
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		assert.equal(calls(), 4, "reopened once for C, then not again: A was already carried");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.ok(
+			state.gates.G1!.reasons.some((r) => r.includes(QC.id)),
+			state.gates.G1!.reasons.join(" | "),
+		);
+	});
+
 	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [
