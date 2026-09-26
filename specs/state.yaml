@@ -17,10 +17,20 @@ epic_cycle:
 handoff:
   next_skill: request-review
   last_step_completed: >
+    `respond-review` a traité le tour 4 de `request-review` de e01s02 le 2026-09-26, sur
+    `2c33b93..e85b112`. B passe, A échoue sur un point à corriger : le relevé et ce suivi disaient
+    « non levable » l'erreur d'exécution qu'une reprise lève ; le mot est « non réessayable », celui
+    de D-38 pour `stop_retryable`. Retenu aussi, relevé par A et B : le refus de la pause est comparé
+    par un objet passé à `assert.throws`, qui affiche les actions attendues et reçues quand il échoue,
+    au lieu d'un prédicat sur `JSON.stringify`. Sous la mutation qui ne garde que `stop_retryable`
+    dans `resumeLiftsStop`, le test échoue encore (exit 1) et nomme `resume` manquant. Preflight
+    verte sous Node 26.9.0, 16:11:40Z à 16:14:59Z, 490 tests. Prochaine
+    étape : tour 5 de `request-review`, le dernier, sur `git diff e85b112 HEAD`.
+
     `respond-review` a traité le tour 3 de `request-review` de e01s02 le 2026-09-26, sur
     `aefa6b7..9a0ebe5`. A passe, B échoue sur un point à corriger : la branche `execution_error` de
     `resumeLiftsStop` n'était pas testée, et la retirer passait toute la suite. `54ce26f` fixe qu'un
-    changement arrêté par une erreur d'exécution non levable refuse la pause en nommant `resume` et
+    changement arrêté par une erreur d'exécution non réessayable refuse la pause en nommant `resume` et
     `cancel`, et que la reprise lève l'arrêt ; le test échoue sous cette mutation. Le message de
     `9a0ebe5`, qui nommait le tour de revue, est reformulé en `2c33b93` (même arbre). Consider
     laissés : la fin d'intervention au coût inconnu écrite en quatre endroits (`block`,
