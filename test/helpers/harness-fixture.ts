@@ -1,3 +1,4 @@
+import { strict as assert } from "node:assert";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
@@ -102,6 +103,29 @@ export function specificationRounds(
 		return original(m);
 	};
 	return { objectives, calls: () => calls };
+}
+
+/**
+ * The change stopped in clarification because its specification loses the given answers and can no
+ * longer be reopened: a stagnation a resume lifts, naming each lost answer and both ways out, with no
+ * mandate proposed, no gate evaluated and no adoption asked for.
+ */
+export async function assertStoppedBeforeG0(t: TestHarness, changeId: string, lost: string[]): Promise<void> {
+	const state = t.ledger.loadChange(changeId)!.state;
+	assert.equal(state.status, "blocked");
+	assert.equal(state.phase, "clarifying");
+	assert.equal(state.stop_reason, "stagnation", state.stop_detail ?? "");
+	assert.equal(state.stop_retryable, true, "a resume lifts the stop");
+	for (const id of [...lost, "resume", "cancel"])
+		assert.ok(state.stop_detail?.includes(id), `${id} is not named in: ${state.stop_detail}`);
+	assert.equal(state.gates.G0, undefined, "G0 is not evaluated");
+	assert.equal(state.gates.G1, undefined, "G1 is not evaluated");
+	assert.equal(await t.harness.artifacts.latest(state, "mandate"), null, "no mandate is proposed");
+	assert.equal(
+		t.requested.some((r) => r.interaction === "IH-02"),
+		false,
+		"no adoption is asked for",
+	);
 }
 
 export type PolicyOverride = Partial<Omit<ActivePolicy, "budgets" | "adoption">> & {

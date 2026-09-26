@@ -1,7 +1,13 @@
 import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import {
+	assertStoppedBeforeG0,
+	makeHarness,
+	specificationRounds,
+	specReport,
+	type TestHarness,
+} from "../helpers/harness-fixture.ts";
 import { initRepo, fixtureTs, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
@@ -140,23 +146,17 @@ describe("a specification report is judged against every recorded material answe
 		);
 	});
 
-	it("does not reopen a report that loses an answer and carries nothing an earlier report did not, and G1 refuses the lost answer (6b)", async () => {
+	it("does not reopen a report that loses an answer and carries nothing an earlier report did not, and stops the change before G0, naming the lost answer (6b)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, RENAMES_MESSAGE]);
 		const changeId = await throughTwoRounds(t);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
 		assert.equal(calls(), 4, "reopened once for Q1, then not again: the second report gained nothing");
-		const state = t.ledger.loadChange(changeId)!.state;
-		assert.equal(state.gates.G1?.verdict, "FAIL");
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(Q1.id) && r.includes("no requirement carries")),
-			state.gates.G1!.reasons.join(" | "),
-		);
-		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
 	});
 
-	it("stops reopening reports that take one answer back and lose the other in turn, and the change stops at G1 (6c)", async () => {
+	it("stops reopening reports that take one answer back and lose the other in turn, and the change stops before G0 (6c)", async () => {
 		const QA = { id: "q-a", question: "A ?", material: true };
 		const QB = { id: "q-b", question: "B ?", material: true };
 		const RA = requirement("R-A");
@@ -186,12 +186,7 @@ describe("a specification report is judged against every recorded material answe
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
 		assert.equal(calls(), 4, "the fourth report carries only A, which the second already carried");
-		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.gates.G1?.verdict, "FAIL");
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(QB.id)),
-			state.gates.G1!.reasons.join(" | "),
-		);
+		await assertStoppedBeforeG0(t, change.change_id, [QB.id]);
 	});
 
 	it("asks the new material question of a reopened report first, and reopens that report on the answer even when it carries nothing an earlier report did not (6f)", async () => {
@@ -233,37 +228,15 @@ describe("a specification report is judged against every recorded material answe
 		);
 	});
 
-	it("does not reopen a report again when a human adopts its mandate, and G1 refuses the answer it lost (6g)", async () => {
+	it("asks no human to adopt the mandate of a report that loses an answer, and stops the change before G0 (6g)", async () => {
 		const t = track(makeHarness({ policy: { adoption: { mandate: "human" } } }));
 		const renames = Array.from({ length: 6 }, (_, i) => ({ ...RENAMES_MESSAGE, objective: `objectif ${i}` }));
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, ...renames]);
 		const changeId = await throughTwoRounds(t);
-		assert.equal((await t.harness.advance(changeId, { max_steps: 30 })).stopped_because, "decision_required");
-		const adoption = t.requested.at(-1)!;
-		assert.equal(adoption.interaction, "IH-02");
-		const done = t.harness.answerDecision(
-			changeId,
-			{
-				decision_id: adoption.decision_id,
-				option_id: "adopt",
-				free_text: null,
-				reason: null,
-				subject_revision: adoption.subject.revision,
-				scope: null,
-				expires_at: null,
-			},
-			origin(),
-		);
-		assert.equal(done.error, null);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
-		assert.equal(calls(), 4, "an adoption is not an answer: the report it adopted is not written again");
-		const state = t.ledger.loadChange(changeId)!.state;
-		assert.equal(state.gates.G1?.verdict, "FAIL");
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(Q1.id)),
-			state.gates.G1!.reasons.join(" | "),
-		);
+		assert.equal(calls(), 4, "reopened once for Q1, then not again: the second report gained nothing");
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
 	});
 
 	it("counts what the report the latest answer was given on carries as already carried (6h)", async () => {
@@ -287,11 +260,7 @@ describe("a specification report is judged against every recorded material answe
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
 		assert.equal(calls(), 3, "reopened once for C, then not again: A was already carried");
-		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(QC.id)),
-			state.gates.G1!.reasons.join(" | "),
-		);
+		await assertStoppedBeforeG0(t, change.change_id, [QC.id]);
 	});
 
 	it("writes again the report the latest answer was given on when it ignores an answer, even when it is not the first report and carries none (6i)", async () => {
@@ -353,11 +322,7 @@ describe("a specification report is judged against every recorded material answe
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
 		assert.equal(calls(), 4, "reopened once for C, then not again: A was already carried");
-		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(QC.id)),
-			state.gates.G1!.reasons.join(" | "),
-		);
+		await assertStoppedBeforeG0(t, change.change_id, [QC.id]);
 	});
 
 	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {

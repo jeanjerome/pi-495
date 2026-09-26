@@ -3,6 +3,7 @@ import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import {
+	assertStoppedBeforeG0,
 	makeHarness,
 	reopenHarness,
 	specificationRounds,
@@ -541,7 +542,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(mandate.content.open_questions.find((q) => q.id === QUESTION.id)?.answer, ANSWER);
 	});
 
-	it("a specification that keeps ignoring a recorded answer stops the change at G1, naming the question (RM-011)", async () => {
+	it("a specification that keeps ignoring a recorded answer stops the change before G0, naming the question (RM-011)", async () => {
 		const p = project();
 		let calls = 0;
 		const t = track(makeHarness());
@@ -578,16 +579,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(
 			calls,
 			2,
-			"a reopening that gives the same report back is not reopened again: that is the gate's business, not another intervention's",
+			"a reopening that gives the same report back is not reopened again: the change stops for a human instead",
 		);
-		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.gates.G1?.verdict, "FAIL");
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(QUESTION.id)),
-			state.gates.G1!.reasons.join(" | "),
-		);
-		assert.ok(state.stop_detail?.includes("observable contract that no requirement carries"), state.stop_detail ?? "");
-		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+		await assertStoppedBeforeG0(t, change.change_id, [QUESTION.id]);
 	});
 
 	// Measured on the java-flashnext-L campaign: a real specification asks new material questions at
@@ -868,7 +862,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		);
 	});
 
-	it("stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and G1 refuses the answer nothing binds when the next one gains nothing (RM-011)", async () => {
+	it("stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and stops the change before G0 when the next one gains nothing (RM-011)", async () => {
 		const p = project();
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [
@@ -913,13 +907,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
 		assert.equal(calls(), 4, "the report that lost QA is written again once, and the next one gains nothing");
-		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.gates.G1?.verdict, "FAIL");
-		assert.ok(
-			state.gates.G1!.reasons.some((r) => r.includes(QA.id) && r.includes("no requirement carries")),
-			state.gates.G1!.reasons.join(" | "),
-		);
-		assert.equal(state.adopted.requirements, undefined, "nothing is adopted at G1");
+		await assertStoppedBeforeG0(t, change.change_id, [QA.id]);
 	});
 
 	// The first campaign lost five changes this way: the kernel declared the error retryable and named
