@@ -254,6 +254,11 @@ export function isActive(state: ChangeState): boolean {
 	return state.phase !== "closed" && state.status !== "cancelled" && state.status !== "completed";
 }
 
+/** A resume lifts an execution error and any stop whose cause the kernel declared retryable. */
+export function resumeLiftsStop(state: ChangeState): boolean {
+	return state.status === "blocked" && (state.stop_reason === "execution_error" || state.stop_retryable);
+}
+
 export function currentAttempt(state: ChangeState): AttemptState | null {
 	for (let i = state.attempts.length - 1; i >= 0; i--) {
 		const a = state.attempts[i]!;

@@ -18,6 +18,7 @@ import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
 import {
 	requestedLanguage,
+	resumeLiftsStop,
 	runningIntervention,
 	unknownCost,
 	type ArtifactKind,
@@ -932,7 +933,7 @@ export class Harness {
 		// entry able to act on it is what loses a change on an invalid structured output. The block is
 		// lifted under the actor who resumed, so that what the change spends after a stop on its budget
 		// is recorded as that actor's decision.
-		else if (u.state.status === "blocked" && (u.state.stop_reason === "execution_error" || u.state.stop_retryable))
+		else if (resumeLiftsStop(u.state))
 			u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor }, cor).unit;
 		return this.status(changeId);
 	}
