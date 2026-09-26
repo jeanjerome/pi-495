@@ -10,13 +10,29 @@ active_epic_id: e01
 active_story: e01s02
 
 epic_cycle:
-  step: 3
-  completed_steps: "0,1,2"
+  step: 4
+  completed_steps: "0,1,2,3"
   story_bcps: 5
 
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   last_step_completed: >
+    Tâche 1 de e01s02 passée le 2026-09-26 : rouge `103ce48` (test seul, 7 échecs sur 40), vert
+    `8852a2b` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 474 tests.
+    Un rapport qui perd une réponse et que la borne interdit de rouvrir arrête le changement en
+    clarification (stagnation levable, détail qui nomme la réponse, `resume` et `cancel`) ; aucun
+    mandat n'est proposé. Un septième test change d'attendu, que le plan ne nommait pas :
+    `harness.test.ts`, la spécification qui ignore toujours une réponse (RM-011). Journal :
+    `specs/verifications/e01s02-cycle-rouge-vert.md`. Prochaine étape : develop-tdd, tâche 2 (la
+    reprise réécrit la spécification). À la lecture du code, non exécuté : une reprise lève l'arrêt,
+    et la borne, qui ne voit pas la reprise, arrête de nouveau le changement sans intervention.
+
+    Kickoff fait le 2026-09-26 : spécification de e01s02 versée sur `main` (`38bf5a3`), branche
+    `specification-arretee-avant-g0` créée depuis ce point, `main` à jour avec `origin/main` avant
+    ce commit. Preflight verte sous Node 26.9.0, 12:01:37Z à 12:04:50Z, 474 tests, `dist/`
+    reconstruit à l'identique. Aucun verrou de story : `specs/agent-locks.yaml` n'existe pas.
+    Prochaine étape : develop-tdd sur `test/v2/specification-reopening.test.ts`, tâche 1.
+
     Étape 2 faite le 2026-09-26 : spécification de e01s02 écrite
     (`e01s02-une-specification-qui-ne-progresse-plus-arrete-le-changement-avec-un-recours.md`,
     `e01s02-tasks.yaml`, cinq tâches en `failing`), format tenu par `lint:story-format`. Relevé du

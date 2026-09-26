@@ -35,7 +35,7 @@ tasks:
       Aucun constat nouveau sur src/application/phases/clarify.ts et src/domain/change/state.ts :
       l'arrêt ne lie ni ne délie aucune réponse, et aucun document qui perd une réponse n'est
       proposé à G0 ni adopté à G1.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
