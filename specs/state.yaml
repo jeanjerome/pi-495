@@ -15,8 +15,21 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: audit-code
+  next_skill: fix-bug
   last_step_completed: >
+    `respond-review` a traité le premier tour de `request-review` de e01s02 le 2026-09-26, sur
+    `main...f2a52cd`. Le point à corriger de B (la condition `blocked &&` de `specificationHistory`
+    sans test) cachait un défaut que la branche rend atteignable : une pause pendant une réécriture,
+    faite comme `/495 pause`, était écrasée par un blocage `execution_error`, et la reprise, en le
+    levant, relançait la borne (6 interventions au lieu de 5). Rouge `bcdeb0b`, vert `bc55ce2` : le
+    pas qui échoue sous une pause rend `paused`. L'effacement d'une liaison héritée par une
+    déclaration propre qui ne tient pas est fixé par `cddf2c8` (tue la mutation), et les
+    commentaires de `state.ts` nomment le dernier acte humain (`098f66d`). Preflight verte sous Node
+    26.9.0, 14:14:56Z à 14:18:24Z, 484 tests. Laissés : le test de secours de `clarify.ts:33`, la
+    reprise sans humain déclaré (déjà notée dans `specs/security/REVIEW.md`), le verdict unique.
+    Prochaine étape : `fix-bug` pour la pause d'un changement déjà arrêté, qui efface son arrêt
+    (défaut antérieur à la branche), puis le tour 2 de `request-review` sur `git diff f2a52cd HEAD`.
+
     Recette de e01s02 confirmée par le propriétaire le 2026-09-26 à 13:37:14Z, sur les sept
     campagnes et les limites déclarées ; e01s02 passe à `done` dans `execution-status.yaml`.
     Prochaine étape : audit-code sur `git diff main...HEAD`.

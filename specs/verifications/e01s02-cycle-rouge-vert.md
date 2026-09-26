@@ -70,6 +70,8 @@ identifiant d'exigence atteint G1, qui le refuse. Aucun n'est retiré ni ne chan
 | G1 refuse une réponse liée à une exigence absente ou à aucune obligatoire, et accepte une facultative nommée à côté d'une obligatoire (`change-rules.test.ts`) | vert dès `292b904` : la règle tenait, le test la reprend du test de `harness.test.ts` ; il échoue quand le motif « does not carry » est reformulé | `292b904` |
 | Un refus de G1 nomme `cancel` dans la décision de gate et dans le détail de l'arrêt, et `revise_requirements` n'est nommée ni là, ni dans l'action affichée, ni dans les étapes (6f) | `e5f0f28` — l'action de la décision de G1 est `revise_requirements` au lieu de `cancel` | `b34547a` |
 | Un agent, une sortie de modèle ou un appel d'outil ne lève pas un arrêt qu'une reprise lève (`change-rules.test.ts`) | vert dès `0afe199`, sur le code de `4f17bd3` : le comportement tenait déjà, le test le fixe ; il échoue quand `requireKernelAuthority` est retiré de `changeUnblock` | `0afe199` |
+| Une déclaration propre au rapport qui ne tient pas dans ses exigences efface la liaison valide qu'il hérite : le rapport est rouvert pour la réponse, puis le changement s'arrête avant G0 (6e) | vert dès `cddf2c8` : le comportement tenait déjà, le test le fixe ; il échoue quand `else declared.delete` est retiré de `declarationsOfReport` | `cddf2c8` |
+| Un changement mis en pause pendant une réécriture, comme le fait `/495 pause` (session interrompue, puis pause), reste en pause, et sa reprise laisse la borne mesurée depuis la dernière réponse (6c) | `bcdeb0b` — `blocked` au lieu de `paused` : le pas interrompu échoue sur `REVISION_CONFLICT` et le noyau bloque le changement par-dessus la pause ; la reprise lève ce blocage, compté comme un acte humain, et paie une réécriture de plus (6 interventions au lieu de 5) | `bc55ce2` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
 `verify-tdd-red-commit.sh` juge le dépôt du paquet bigpowers, pas celui-ci.
@@ -86,6 +88,11 @@ L'isolation est contrôlée à la main, par arbre de travail détaché. Le scrip
 931a7fb (mutation)       node --test --test-name-pattern="G1 refuses an answer bound" test/v0/change-rules.test.ts   exit=1  (motif reformulé)
 e5f0f28 (test seul)      node --test test/v2/specification-reopening.test.ts   exit=1  (1 échec sur 15)
 b34547a (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (15 sur 15)
+cddf2c8 (mutation)       node --test --test-name-pattern="own declaration names a requirement" test/v2/specification-reopening.test.ts   exit=1  (sans else declared.delete)
+cddf2c8 (test)           node --test test/v2/specification-reopening.test.ts   exit=0  (16 sur 16)
+bcdeb0b (test seul)      node --test test/v2/specification-reopening.test.ts   exit=1  (1 échec sur 17)
+bc55ce2 (implémentation) node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (48 sur 48)
+bc55ce2 (mutation)       node --test --test-name-pattern="does not count a pause" test/v2/specification-reopening.test.ts   exit=1  (sans blocked && dans specificationHistory)
 ```
 
 `6180916` renomme `sinceLastAnswer` en `sinceLastHumanAct` : la coupure est aussi une reprise.
@@ -111,6 +118,11 @@ Refactorisation sans effet sur les tests, Preflight verte à 478 tests.
   aucune phase ne revient à la spécification, et l'abandon est la seule issue qu'une sous-commande
   `/495` tienne. `specify` (`src/application/phases/specify.ts`) reprend l'action de la décision de
   G1 dans l'erreur qui arrête le changement, au lieu d'en écrire une seconde.
+- La boucle d'avance du harnais (`src/application/harness.ts`) rend `paused` quand le pas qui échoue
+  trouve le changement déjà mis en pause, au lieu de le bloquer. `/495 pause` interrompt la session
+  en cours puis met le changement en pause ; le pas interrompu échoue alors sur un conflit de
+  révision. Avant, le noyau posait un blocage `execution_error` par-dessus la pause, et la reprise
+  levait ce blocage, que `specificationHistory` compte comme un acte humain.
 
 ## Revue de sécurité de la tâche 1
 
