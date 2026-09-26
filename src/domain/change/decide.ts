@@ -1100,6 +1100,13 @@ class Ctx {
 	changePause(): Decision {
 		this.requireActive();
 		if (this.state.status === "paused") return ok(this.events);
+		// A blocked change runs nothing to suspend, and the pause would replace its stop: the reason, the
+		// detail naming its ways out and whether a resume lifts it would be lost.
+		if (this.state.status === "blocked")
+			this.fail(
+				"PRECONDITION_FAILED",
+				`change is blocked: ${this.state.stop_reason ?? "unknown"}; nothing runs to pause`,
+			);
 		if (runningIntervention(this.state))
 			this.fail("PRECONDITION_FAILED", "stop the running intervention before pausing");
 		if (
