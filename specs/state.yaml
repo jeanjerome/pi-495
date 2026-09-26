@@ -7,16 +7,22 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e01
-active_story: e01s02
+active_story: e01s03
 
 epic_cycle:
-  step: 8
-  completed_steps: "0,1,2,3,4,5,6,7,8"
+  step: 0
+  completed_steps: ""
   story_bcps: 5
 
 handoff:
-  next_skill: null
+  next_skill: plan-work
   last_step_completed: >
+    `survey-context` le 2026-09-26 sur `main` à `fe28595`, poussée : `origin/main` au même commit.
+    Arbre propre. e01s03 est la story suivante, dans l'ordre contraint de la capsule ; ni sa
+    spécification ni ses tâches ne sont écrites. Reste ouvert au registre BUG-2026-09-23T155707 (le
+    budget de tentatives de config.json n'atteint pas le changement), sans branche, en attente de
+    décider si `max_attempts` est configurable. Prochaine étape : `plan-work` pour e01s03.
+
     e01s02 versée sur `main` le 2026-09-26 par avance rapide, à `520b053`. Preflight verte sur ce
     commit sous Node 26.9.0, 16:45:27Z à 16:48:47Z, 490 tests, `dist/` inchangé. Couverture mesurée
     dans un arbre détaché : 98,36 % de lignes, 76,88 % de branches (96,64 % de lignes après e01s01) ;
@@ -26,7 +32,7 @@ handoff:
     `9105a57`, aucun constat à confiance ≥ 8, `src/` inchangé depuis. Traçabilité :
     `lint:traceability` vert, matrice générique non tenue (même dérogation que les stories
     précédentes). Epic e01 en cours : e01s03 à e01s05 restent à faire, la capsule n'est pas
-    archivée. `main` n'est pas poussée.
+    archivée. `main` poussée par le propriétaire, `origin/main` à `fe28595`.
 
     Tour 5 de `request-review` de e01s02 le 2026-09-26, sur `git diff e85b112 9105a57` : les deux
     relecteurs passent, sans point à corriger ; la revue est close à `9105a57`. Leurs mutations
@@ -955,4 +961,4 @@ handoff:
     5. Les appels lancés dans le même lot que celui qui dépasse la borne finissent aussi en erreur.
 
 metrics:
-  story_start: "2026-09-25T17:07:59+02:00"
+  story_start: "2026-09-26T19:03:12+02:00"
