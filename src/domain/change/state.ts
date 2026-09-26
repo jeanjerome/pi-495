@@ -384,15 +384,15 @@ export interface SpecificationReportView {
 }
 
 /**
- * The specification reports of a change but the current one, oldest first, split where the latest
- * material answer was recorded. `sinceLastAnswer` opens on the report that answer was given on, and
- * holds after it the reports written without a human answer between them; it is empty when the
- * current report is the one the answer was given on. `earlier` holds the reports superseded before
- * it. Both are read for what a report inherits.
+ * The specification reports of a change but the current one, oldest first, split at the latest human
+ * act: a material answer recorded, or a stop lifted by a resume. `sinceLastHumanAct` opens on the
+ * report that act was given on, and holds after it the reports written without a human act between
+ * them; it is empty when the current report is the one the act was given on. `earlier` holds the
+ * reports superseded before it. Both are read for what a report inherits.
  */
 export interface SpecificationHistory {
 	earlier: SpecificationReportView[];
-	sinceLastAnswer: SpecificationReportView[];
+	sinceLastHumanAct: SpecificationReportView[];
 }
 
 export interface SpecificationStanding {
@@ -423,7 +423,8 @@ export interface SpecificationStanding {
  * no rewriting; measured from the moment the clarification is entered, adopting a mandate or failing
  * G0 would reopen the same report again. A report that gives the same ground back stalls: no mandate
  * built on it is proposed, since G1 would refuse the answer it lost and, past G0, no phase goes back
- * to the specification.
+ * to the specification. A resume that lifts the stop counts as a human act like an answer: the
+ * report the change stopped on is written again once, and the bound applies from there.
  */
 export function specificationStanding(
 	state: ChangeState,
@@ -431,17 +432,17 @@ export function specificationStanding(
 	history: SpecificationHistory,
 ): SpecificationStanding {
 	if (!report) return { declared: new Map(), ignored: [], reopen: false, settled: false, stalled: false };
-	const priors = [...history.earlier, ...history.sinceLastAnswer];
+	const priors = [...history.earlier, ...history.sinceLastHumanAct];
 	const declared = declarationsOfReport(priors, report);
 	const ignored = answersTheReportIgnores(state, declared);
 	const before = new Set(
-		history.sinceLastAnswer.flatMap((prior, i) =>
+		history.sinceLastHumanAct.flatMap((prior, i) =>
 			answersTheReportCarries(state, declarationsOfReport(priors.slice(0, history.earlier.length + i), prior)),
 		),
 	);
 	const reopen =
 		ignored.length > 0 &&
-		(history.sinceLastAnswer.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
+		(history.sinceLastHumanAct.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
 	const final = !reopen && state.open_questions.every((q) => !q.material || q.answer !== null);
 	return {
 		declared,
