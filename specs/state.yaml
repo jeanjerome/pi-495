@@ -17,6 +17,14 @@ epic_cycle:
 handoff:
   next_skill: develop-tdd
   last_step_completed: >
+    Tâche 3 de e01s02 passée le 2026-09-26 : rouge `292b904` (test seul, 3 échecs sur 85), vert
+    `931a7fb` ; isolation contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 481 tests.
+    La déclaration propre d'un rapport ne porte une réponse que si elle tient dans ses exigences,
+    comme ses déclarations héritées et comme G1 en juge. Le test `R1-trimee` de `harness.test.ts`
+    s'arrête désormais avant G0 et la reprise le mène à sa clôture ; les motifs de refus de G1 qu'il
+    fixait sont repris par un test de règle dans `change-rules.test.ts`. Prochaine étape :
+    develop-tdd, tâche 4 (un refus de G1 nomme `cancel` au lieu de `revise_requirements`).
+
     Tâche 2 de e01s02 passée le 2026-09-26 : rouge `1fc82ff` (test seul, 2 échecs sur 12), vert
     `4f17bd3`, refactorisation `6180916` (`sinceLastAnswer` devient `sinceLastHumanAct`) ; isolation
     contrôlée par arbre détaché, Preflight verte sous Node 26.9.0, 478 tests. La borne de progression

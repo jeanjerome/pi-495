@@ -5,7 +5,8 @@ verte sous Node 26.9.0, 474 tests).
 
 ## Commandes des tâches
 
-Tâche 1 relevée à `8852a2b`, tâche 2 à `6180916`, sous Node 26.9.0, le 2026-09-26.
+Tâche 1 relevée à `8852a2b`, tâche 2 à `6180916`, tâche 3 à `931a7fb`, sous Node 26.9.0, le
+2026-09-26.
 
 ```
 $ node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts   # tâche 1, à 8852a2b
@@ -17,6 +18,11 @@ $ node --test test/v2/specification-reopening.test.ts                           
 ℹ tests 12   ℹ pass 12   ℹ fail 0
 $ npm run build && npm run check                                                # à 6180916
 ℹ tests 478   ℹ pass 478   ℹ fail 0
+exit=0
+$ node --test test/v2/specification-reopening.test.ts                           # tâche 3, à 931a7fb
+ℹ tests 14   ℹ pass 14   ℹ fail 0
+$ npm run build && npm run check                                                # à 931a7fb
+ℹ tests 481   ℹ pass 481   ℹ fail 0
 exit=0
 ```
 
@@ -32,6 +38,15 @@ Tâche 2 : 474 tests avant, 478 après. Trois tests sont ajoutés à
 `test/v2/specification-reopening.test.ts` (la reprise, la reprise sans progrès, l'abandon) et un à
 `test/v0/change-rules.test.ts` (qui peut lever un arrêt). Aucun n'est retiré.
 
+Tâche 3 : 478 tests avant, 481 après. Deux tests sont ajoutés à
+`test/v2/specification-reopening.test.ts` (exigence absente, exigence facultative seule) et un à
+`test/v0/change-rules.test.ts`. Le test de `harness.test.ts` qui lie une réponse à `R1-trimee`
+change d'attendu : le changement s'arrête avant G0, et la reprise obtient le rapport qui lie la
+réponse à `R1` et `R2` et mène le changement à sa clôture. Il fixait les motifs de refus de G1
+(« does not carry », « no mandatory requirement carries »), que la conduite du changement
+n'atteint plus : le test de règle ajouté à `change-rules.test.ts` les fixe désormais sur G1 seul,
+qui reste le juge des exigences.
+
 ## Cycle rouge-vert
 
 | Comportement | Rouge (test seul) | Vert |
@@ -41,6 +56,9 @@ Tâche 2 : 474 tests avant, 478 après. Trois tests sont ajoutés à
 | La reprise fait réécrire la spécification, la demande dit la réponse à déclarer, et un rapport qui la déclare mène le changement au-delà de G1 | `1fc82ff` — `blocked` au lieu de `closed` : la reprise lève l'arrêt, et la borne, qui ne voit pas la reprise, arrête de nouveau le changement sans intervention | `4f17bd3` |
 | Une reprise qui obtient un rapport sans progrès arrête de nouveau le changement après une seule intervention, à chaque reprise (6a) | `1fc82ff` — 4 interventions `specify` au lieu de 5 : aucune après la reprise | `4f17bd3` |
 | L'abandon d'un changement arrêté le clôt comme abandonné sans intervention (6b) | vert dès `1fc82ff` : le comportement tenait déjà, le test le fixe | `4f17bd3` |
+| Une déclaration propre au rapport qui nomme une exigence absente laisse la réponse non portée : le rapport est rouvert pour elle, puis le changement s'arrête avant G0 quand le suivant ne gagne rien (6e, et `R1-trimee` dans `harness.test.ts`) | `292b904` — rouvert pour `q6` seule au lieu de `q1, q6`, et `R1-trimee` va jusqu'au refus de G1 (phase `specifying`) | `931a7fb` |
+| Une déclaration propre au rapport qui ne nomme qu'une exigence facultative laisse la réponse non portée (6e) | `292b904` — rouvert pour `q6` seule au lieu de `q1, q6` | `931a7fb` |
+| G1 refuse une réponse liée à une exigence absente ou à aucune obligatoire, et accepte une facultative nommée à côté d'une obligatoire (`change-rules.test.ts`) | vert dès `292b904` : la règle tenait, le test la reprend du test de `harness.test.ts` ; il échoue quand le motif « does not carry » est reformulé | `292b904` |
 | Un agent, une sortie de modèle ou un appel d'outil ne lève pas un arrêt qu'une reprise lève (`change-rules.test.ts`) | vert dès `0afe199`, sur le code de `4f17bd3` : le comportement tenait déjà, le test le fixe ; il échoue quand `requireKernelAuthority` est retiré de `changeUnblock` | `0afe199` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
@@ -53,6 +71,9 @@ L'isolation est contrôlée à la main, par arbre de travail détaché. Le scrip
 4f17bd3 (implémentation) node --test test/v2/specification-reopening.test.ts   exit=0  (12 sur 12)
 0afe199 (mutation)       node --test --test-name-pattern="cannot lift a stop" test/v0/change-rules.test.ts   exit=1  (sans requireKernelAuthority)
 0afe199 (test)           node --test --test-name-pattern="cannot lift a stop" test/v0/change-rules.test.ts   exit=0
+292b904 (test seul)      node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts test/v0/change-rules.test.ts   exit=1  (3 échecs sur 85)
+931a7fb (implémentation) node --test test/v2/specification-reopening.test.ts test/v2/harness.test.ts test/v0/change-rules.test.ts   exit=0  (85 sur 85)
+931a7fb (mutation)       node --test --test-name-pattern="G1 refuses an answer bound" test/v0/change-rules.test.ts   exit=1  (motif reformulé)
 ```
 
 `6180916` renomme `sinceLastAnswer` en `sinceLastHumanAct` : la coupure est aussi une reprise.
@@ -70,6 +91,10 @@ Refactorisation sans effet sur les tests, Preflight verte à 478 tests.
   matérielle ou à la dernière levée d'un arrêt, la plus récente des deux dans le journal. Une levée
   est un passage de `blocked` à `ready` ; une pause et sa reprise n'en sont pas. Le rapport sur
   lequel l'arrêt a été levé est donc réécrit s'il ignore une réponse, et la borne s'applique ensuite.
+- `declarationsOfReport` (`src/domain/change/state.ts`) juge la déclaration propre du rapport par
+  `declarationHolds`, comme ses déclarations héritées. Avant, elle comptait sans examen. La
+  réouverture, la mesure de progrès, la demande de l'intervention suivante et le document
+  d'exigences lisent tous cette fonction.
 
 ## Revue de sécurité de la tâche 1
 
