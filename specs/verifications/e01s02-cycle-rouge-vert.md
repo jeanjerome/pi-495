@@ -76,6 +76,7 @@ identifiant d'exigence atteint G1, qui le refuse. Aucun n'est retiré ni ne chan
 | Le noyau termine l'intervention en cours quand il bloque un changement : la pause reste refusée et l'arrêt gardé, et une reprise ne rend pas `ready` un arrêt qu'aucune reprise ne lève (`change-rules.test.ts`, deux tests de `harness.test.ts`) | `287123c` — l'intervention reste `running` sous l'arrêt : `/495 pause` la termine, le changement repasse `ready` et la pause efface l'arrêt ; `/495 resume` rend `ready` un arrêt `capability_missing` (BUG-2026-09-26T142500 rouverte, BUG-2026-09-26T145000, défauts présents sur `main`) | `d6b0bd5` |
 | Un échec autre que le conflit de révision causé par la pause bloque encore un changement mis en pause sous son pas (`harness.test.ts`) | `9dd736a` — `paused` au lieu de `capability_missing` : l'erreur n'est inscrite que dans les étapes | `4437873` |
 | Le refus de mettre en pause un changement bloqué nomme `resume` quand une reprise lève l'arrêt, et `cancel` toujours (`change-rules.test.ts`) | `03f9878` — aucune action suivante | `751c2d1` |
+| Le refus de mettre en pause un changement arrêté par une erreur d'exécution non levable nomme `resume` et `cancel`, et la reprise lève l'arrêt (`harness.test.ts`) | vert dès `54ce26f` : le comportement tenait déjà, le test le fixe ; il échoue quand `resumeLiftsStop` ne garde que `stop_retryable` | `54ce26f` |
 
 L'isolation est contrôlée à la main, par arbre de travail détaché. Le script
 `verify-tdd-red-commit.sh` juge le dépôt du paquet bigpowers, pas celui-ci.
@@ -105,6 +106,7 @@ d6b0bd5 (implémentation) node --test test/v0/change-rules.test.ts test/v2/speci
 4437873 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (94 sur 94)
 03f9878 (test seul)      node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=1  (2 échecs sur 94)
 751c2d1 (implémentation) node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts   exit=0  (94 sur 94)
+54ce26f (mutation)       node --test --test-name-pattern="names the resume that lifts it" test/v2/harness.test.ts   exit=1  (sans execution_error dans resumeLiftsStop)
 ```
 
 `6180916` renomme `sinceLastAnswer` en `sinceLastHumanAct` : la coupure est aussi une reprise.
