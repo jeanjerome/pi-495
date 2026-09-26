@@ -451,6 +451,33 @@ describe("a declaration carries an answer only when it holds in the requirements
 		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
 	});
 
+	it("reopens a report whose own declaration names a requirement it does not carry, although an earlier report bound the answer to one it keeps, and stops the change before G0 when the next one gains nothing (6e)", async () => {
+		const t = track(makeHarness());
+		const rebindsToAbsent = specReport({
+			questions: [],
+			answers: [binds(Q1.id, "REQ-ABSENT"), binds(Q6.id, MESSAGE.requirement_id)],
+			requirements: [MESSAGE, UPDATE],
+		});
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			specReport({
+				questions: [Q1, Q6],
+				answers: [binds(Q1.id, MESSAGE.requirement_id)],
+				requirements: [MESSAGE, UPDATE],
+			}),
+			rebindsToAbsent,
+			rebindsToAbsent,
+		]);
+		const { changeId, stoppedBecause } = await throughQ1AndQ6(t);
+		assert.equal(stoppedBecause, "blocked");
+		assert.ok(
+			objectives[3]!.includes(`Q ${Q1.id}: ${Q1.question} -> réponse à ${Q1.question} [to declare in \`answers\`]`),
+			objectives[3],
+		);
+		assert.equal(calls(), 4, "the binding the third report inherits does not stand against its own");
+		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
+	});
+
 	it("reopens a report whose declaration names only a non-mandatory requirement, and a report that binds the answer to a mandatory one takes the change past G1 (6e)", async () => {
 		const t = track(makeHarness());
 		const { objectives, calls } = specificationRounds(t, [
