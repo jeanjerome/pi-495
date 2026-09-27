@@ -120,6 +120,11 @@ of both skills applies. Why: `specs/adr/D-62`.
    as introduced by the branch when it is, and is fixed after the gate: such a fix widens the next
    round and needs a review of its own. This is the owner's standing answer, under rule 1, for a
    consider item. Why: `specs/adr/D-65`.
+7. **Close a text-only finding without reviewers.** A finding whose fix changes only text — a
+   comment, a sentence of the story or of a record, a test title — is fixed by the response like any
+   other. When every finding still holding the gate is text-only, the next round is the coordinator
+   alone: it checks each fix against its finding, and the gate passes if they hold. Why:
+   `specs/adr/D-67`.
 
 ## Cycle order
 
