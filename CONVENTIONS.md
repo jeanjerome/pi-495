@@ -25,7 +25,9 @@ cannot be read back`.
 ## Git & GitHub Operations
 
 - Route non-trivial work through a feature branch or worktree (`kickoff-branch`). Merge to `main`
-  with a clean, descriptive commit.
+  with a clean, descriptive commit: a branch lands as one squashed commit whose message follows
+  § Commit Messages. Keep the branch after it lands, since the red-green log and the review record
+  cite its commits (`specs/adr/D-66`).
 - Prefer `gh` over the GitHub web UI when scripting repository operations.
 - Never push to `main` from an automated flow without an explicit human decision.
 - Never call the GitHub REST API directly (curl, fetch). Use `gh`.
@@ -110,7 +112,8 @@ of both skills applies. Why: `specs/adr/D-62`.
 5. **Anchor the records once.** During review, do not move the revision, timestamps or test count of
    `specs/verifications/` records or `specs/security/REVIEW.md` after each fix; set them when the
    gate passes or the owner decides. Record each red in the red-green log when it is observed. A
-   record trailing the reviewed revision is not a finding.
+   record trailing the reviewed revision is not a finding, nor is the subject of a commit on the
+   branch, which never reaches `main` (`specs/adr/D-66`).
 6. **Fix in the round only what adds no behavior.** A consider item whose fix adds no behavior — a
    missing test, a record put right, dead code removed — is fixed in the round that found it. One
    whose fix would add a refusal, a state or a mechanism goes to `specs/bugs/registry.yaml`, named
