@@ -2,6 +2,8 @@
 
 **Status:** Acceptée
 **Date:** 2026-09-21
+**Révisé:** 2026-09-27 — l'épinglage de `~/.zshenv` ne tenait pas dans un shell de connexion, où
+`brew shellenv` remet Node 26 en tête ; `~/.zprofile` l'épingle de nouveau après lui.
 
 **Décision.** `engines.node` reste `>=24.0.0` et `@types/node` reste borné à `^24`, alors que trois
 versions de Node sont installées sur la machine. C'est la machine qui est alignée sur le plancher et
