@@ -111,6 +111,12 @@ of both skills applies. Why: `specs/adr/D-62`.
    `specs/verifications/` records or `specs/security/REVIEW.md` after each fix; set them when the
    gate passes or the owner decides. Record each red in the red-green log when it is observed. A
    record trailing the reviewed revision is not a finding.
+6. **Fix in the round only what adds no behavior.** A consider item whose fix adds no behavior — a
+   missing test, a record put right, dead code removed — is fixed in the round that found it. One
+   whose fix would add a refusal, a state or a mechanism goes to `specs/bugs/registry.yaml`, named
+   as introduced by the branch when it is, and is fixed after the gate: such a fix widens the next
+   round and needs a review of its own. This is the owner's standing answer, under rule 1, for a
+   consider item. Why: `specs/adr/D-65`.
 
 ## Cycle order
 
