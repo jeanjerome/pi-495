@@ -1,0 +1,143 @@
+# Toute tâche naît failing et ne bascule qu'après une sortie en 0 (D-52). Les commandes nomment
+# des tests qui n'existent pas encore : leur échec est la cible, pas un défaut du plan.
+#
+# security_verify: ce qu'une tâche classée high doit établir en plus de sa commande. Le dépôt n'a
+# pas d'analyseur automatique ; la vérification est conduite à la main sur les chemins touchés, et
+# son absence de constat est écrite au moment où la tâche bascule.
+
+story_id: e01s03
+spec: e01s03-seul-l-humain-declare-qu-une-question-n-est-plus-materielle.md
+title: "Seul l'humain déclare qu'une question n'est plus matérielle ou qu'une réponse ne fixe rien d'observable"
+status: failing
+bcps: 5
+requirement: BES-02
+delta: ADDED
+risk: P0
+context: domain
+type: feat
+
+tasks:
+  - id: 1
+    description: >
+      IH-01 offre trois issues, en français et en anglais : répondre, clore la question parce
+      qu'elle n'est plus matérielle, abandonner ; la clôture est marquée risquée. Choisir de clore
+      inscrit la décision, puis la clôture de la question sous l'acteur qui l'a donnée, sans y
+      inscrire de réponse. La question close n'est plus posée ; le rapport qui l'avait posée n'est
+      pas réécrit et, s'il porte toutes les autres réponses, fonde le mandat sans intervention. Le
+      mandat porte la question comme close, avec l'acteur, même quand le rapport qui le fonde ne la
+      pose plus ; G0 ne la compte pas comme ouverte ; G1 n'exige d'aucune exigence qu'elle la porte.
+      Le test de `test/v2/harness.test.ts` qui lit les options d'IH-01 attend les trois.
+    verify: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/change/decide.ts, src/application/decisions.ts et
+      src/application/phases/clarify.ts : une clôture portée par une sortie de modèle ou un appel
+      d'outil est refusée comme toute décision, et une question close n'est dispensée qu'après une
+      décision humaine inscrite.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 2
+    description: >
+      Devant l'arrêt d'une spécification qui ne progresse plus, une commande du noyau clôt une
+      question matérielle du changement. Sa provenance est vérifiée par la fonction qu'emploie la
+      réponse à une décision, tirée de celle-ci et écrite une seule fois : acteur humain, origine
+      humaine, authentification autre que `none` ; un agent, une sortie de modèle, un appel d'outil
+      ou une origine `print` ou `json` sont refusés. La clôture est refusée, en le disant, pour une
+      question inconnue, non matérielle ou déjà close, hors de la clarification, tant qu'une
+      intervention tourne ou tant qu'une décision attend le propriétaire. Après la clôture,
+      l'arrêt est levé par la levée existante, sous le même acteur, et la clarification continue :
+      le rapport arrêté fonde le mandat s'il porte toutes les autres réponses, sans intervention ;
+      sinon la spécification est réécrite une fois pour ce qui reste perdu, et la demande dit la
+      question close. Le détail de l'arrêt nomme `close` à côté de `resume` et `cancel` ; les tests
+      d'e01s02 qui lisent ce détail suivent.
+    verify: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/change/decide.ts et src/application/harness.ts : la
+      clôture et la réponse à une décision passent par la même vérification de provenance, aucune
+      autre copie n'en existe, et la levée de l'arrêt qui suit une clôture est celle que la reprise
+      emploie, refusée à un agent, une sortie de modèle et un appel d'outil.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 3
+    description: >
+      La déclaration `observable: false` d'une réponse ne porte celle-ci que si sa question est
+      close ; sinon la réponse compte comme non portée, pour la réouverture comme pour la mesure de
+      progrès. Un rapport réécrit qui déclare « 422 » non observable arrête le changement en
+      clarification, et l'arrêt dit que le rapport propose que la réponse ne fixe rien
+      d'observable ; le même déroulé, rejoué sur le code d'avant la story, passe G1 sans qu'aucune
+      exigence ne porte « 422 ». Clore la question devant cet arrêt mène le changement au-delà de
+      G1, et le document des exigences recopie la réponse comme ne fixant rien d'observable ;
+      reprendre fait réécrire la spécification, dont la demande dit la réponse à déclarer. Passer
+      d'une liaison refusée à `observable: false` n'est pas un progrès. G1 refuse, en la nommant,
+      une réponse matérielle déclarée non observable dont la question n'est pas close. La consigne
+      du rôle `specify` dit que `false` est une proposition que le propriétaire tranche. Le test 6e
+      de `test/v2/specification-reopening.test.ts` attend l'arrêt au lieu de la clôture du
+      changement ; celui de `test/v2/harness.test.ts` qui déclarait QB non observable la lie à une
+      exigence obligatoire, pour garder ce qu'il éprouve, la réouverture bornée par le progrès.
+    verify: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/change/state.ts, src/domain/change/decide.ts,
+      src/application/phases/specify.ts et src/application/context.ts : aucune sortie de modèle ne
+      dispense plus une réponse humaine de toute exigence, et le document des exigences ne porte
+      `observable: false` que pour une question close par un humain.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 4
+    description: >
+      `/495 close <question>` clôt une question depuis Pi, sur le modèle de `/495 cancel` : liaison
+      exigée, provenance humaine exigée, confirmation dans le TUI qui dit que la réponse ne liera
+      plus aucune exigence, puis la conduite reprend comme après `/495 resume`. En mode `print` ou
+      `json`, la sortie dit qu'une provenance humaine est exigée et rien n'est inscrit ; une
+      confirmation refusée n'inscrit rien et laisse le changement arrêté ; une clôture refusée par
+      le noyau affiche son code et son motif. L'outil `harness495`, dont aucun test ne fixait la
+      surface, est épinglé à ses opérations de lecture et de démarrage : aucune ne décide, n'adopte
+      ni ne clôt.
+    verify: "node --test test/v3/question-closure.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/extension/command.ts et src/extension/tool.ts : la clôture n'est
+      atteignable que par une sous-commande humaine, jamais par l'outil exposé au modèle, et une
+      session sans humain qualifié n'inscrit rien.
+    status: failing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "extension"
+        - "BES-02"
+
+  - id: 5
+    description: >
+      L'ensemble des contrôles passe avec le changement.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"

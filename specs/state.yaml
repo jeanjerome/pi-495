@@ -10,13 +10,44 @@ active_epic_id: e01
 active_story: e01s03
 
 epic_cycle:
-  step: 0
-  completed_steps: ""
+  step: 3
+  completed_steps: "0,1,2"
   story_bcps: 5
 
 handoff:
-  next_skill: plan-work
+  next_skill: kickoff-branch
   last_step_completed: >
+    `plan-work` de e01s03 le 2026-09-27 sur `main` à `32380c7` : story démarrée à
+    2026-09-27T13:53:52+02:00, spécification écrite
+    (`e01s03-seul-l-humain-declare-qu-une-question-n-est-plus-materielle.md`, `e01s03-tasks.yaml`,
+    cinq tâches en `failing`), format tenu par `lint:story-format` (18 stories). L'étape 0 tient
+    déjà : le modèle de menace de e01 couvre e01s03 par M1 et M3, porte `high`. Relevé du code qui
+    fixe la forme : l'arrêt d'e01s02 ne se lève que par une commande `/495`, donc la clôture devant
+    l'arrêt en est une, `/495 close <question>`, sur le modèle de `/495 cancel` qui double déjà
+    l'abandon d'IH-01 ; la borne de progression lit déjà une levée d'arrêt comme un acte humain,
+    donc une clôture qui lève l'arrêt réécrit au plus une fois ce qui reste perdu ; le rapport qui a
+    rouvert la spécification sur une réponse ne peut pas porter celle-ci, donc une proposition
+    `observable: false` n'apparaît qu'après une réécriture et la borne l'arrête sans relance de
+    plus. D'où : une seule règle, `observable: false` ne porte une réponse que pour une question
+    close ; la proposition atteint le propriétaire par l'arrêt existant, dont la clôture confirme
+    et la reprise refuse ; aucune décision, aucun motif d'arrêt, aucun schéma nouveau ; une commande
+    et un événement de clôture, deux points d'entrée (option d'IH-01, `/495 close`) et une seule
+    vérification de provenance, tirée de la réponse à une décision. Rayon d'impact :
+    `open_questions` n'est lu que par six fichiers (`state.ts`, `decide.ts`, `apply.ts`,
+    `clarify.ts`, `artifacts.ts`, `contracts/v1/protocol.ts`) ; `decisionAnswer` n'a qu'un
+    appelant, `harness.answerDecision`. Trois faits relevés en chemin : aucun test n'épingle la
+    surface de l'outil `harness495`, contrairement à ce que laisse lire le modèle de menace (M3),
+    et la tâche 4 l'écrit ; le mandat ne porte que les questions du rapport courant, si bien
+    qu'une question close ailleurs doit y être ajoutée (tâche 1) ; le choix d'une option d'IH-01
+    s'inscrit aujourd'hui comme réponse dont le texte est l'identifiant de l'option, ce que fait
+    déjà `abandon`, et que la clôture ne doit pas faire. Deux tests changent d'attendu : le 6e de
+    `specification-reopening.test.ts` (ligne 375) et celui de `harness.test.ts` qui déclarait QB
+    non observable (ligne 591). La porte 4a de `plan-work` n'est pas passée : son script juge le
+    dépôt où il est installé, pas 495 ; la cohérence story-tâches a été vérifiée à la main (onze
+    branches du §6 toutes citées au §17, cinq tâches avec commande, risque et état `failing`).
+    `bp-timing.sh` n'est pas lancé : il réécrirait `state.yaml` par `yaml.dump`. Prochaine étape :
+    kickoff-branch, puis develop-tdd, tâche 1, sur `test/v0/change-rules.test.ts`.
+
     `survey-context` le 2026-09-26 sur `main` à `fe28595`, poussée : `origin/main` au même commit.
     Arbre propre. e01s03 est la story suivante, dans l'ordre contraint de la capsule ; ni sa
     spécification ni ses tâches ne sont écrites. Reste ouvert au registre BUG-2026-09-23T155707 (le
