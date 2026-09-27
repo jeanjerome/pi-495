@@ -10,21 +10,24 @@ active_epic_id: e01
 active_story: e01s04
 
 epic_cycle:
-  step: 0
-  completed_steps: ""
+  step: 3
+  completed_steps: "0,1,2"
   story_bcps: 5
 
 handoff:
-  next_skill: plan-work
+  next_skill: kickoff-branch
   last_step_completed: >
-    `survey-context` le 2026-09-28 sur `main` à `aa1efec`, égale à `origin/main`, arbre propre :
-    e01s03 est versée en `307901e` et poussée. Dernière Preflight verte : `aa1efec`, sous Node
-    24.21.0 (`specs/verifications/e01s04-preflight-de-depart.md`). e01s04, la révocation d'une
-    réponse, suit dans l'ordre contraint de la capsule ; ni sa spécification ni ses tâches ne sont
-    écrites, et le modèle de menace de e01 lui confie M3 à M6. Quatre bogues restent ouverts au
-    registre, sans branche. Deux touchent ce qu'e01s04 va toucher, et `plan-work` les lit avant
-    d'écrire les tâches : BUG-2026-09-27T170000 (une décision refusée n'atteint jamais le journal)
-    et BUG-2026-09-27T220000 (`/495 verify` prend le verrou `busy` sans le lire). Prochaine étape :
-    `plan-work` pour e01s04.
+    `plan-work` de e01s04 le 2026-09-28 sur `main` : spécification et cinq tâches `failing` écrites
+    (`e01s04-une-reponse-donnee-par-erreur-se-revoque-et-ce-qui-en-decoulait-n-est-plus-adopte.md`,
+    `e01s04-tasks.yaml`), format tenu par `lint:story-format`, cohérence story-tâches vérifiée à la
+    main (le script de la porte 4a juge un autre dépôt). La révocation désigne la question, couvre
+    la clôture, est admise jusqu'à la décision en retirant les décisions en attente, repose la
+    question dans la même décision du noyau, et remplace `decision.revoke` ; la spécification est
+    réécrite après la nouvelle résolution. Les tâches se font dans l'ordre : le rouge de la tâche 3
+    n'existe qu'une fois la tâche 2 verte. Restent ouverts au registre, sans branche,
+    BUG-2026-09-27T170000 et BUG-2026-09-27T220000, que la story ne change pas (§18). Dernière
+    Preflight verte : `aa1efec`, sous Node 24.21.0 (`specs/verifications/e01s04-preflight-de-depart.md`) ;
+    aucun fichier qu'elle juge n'a changé depuis. Prochaine étape : kickoff-branch, puis
+    develop-tdd, tâche 1, sur `test/v0/change-rules.test.ts`.
 metrics:
   story_start: "2026-09-28T00:50:16+02:00"
