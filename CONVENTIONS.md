@@ -160,6 +160,11 @@ skill, what is left open, the revision of the last green Preflight. Each step re
 than adding to it. Git, the commit messages and `specs/verifications/` keep the history; a handoff
 that carries it is read again, whole, by every session.
 
+Evidence is written once, in the record of the step that produced it: the revision, times, digests
+and test counts of a Preflight or a campaign go to `specs/verifications/`, those of a review round
+to its review record. The handoff, a commit message, the security review or another record name the
+revision and point to that record rather than copy it. A copy drifts from the code it describes.
+
 ## Code Style
 
 - One thing per function, one responsibility per module (SRP).
