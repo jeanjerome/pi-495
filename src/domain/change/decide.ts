@@ -7,6 +7,7 @@
  * observations are provided as facts inside the command (AT-01, AT-02, ADR-003).
  */
 import type { ActorRef, Phase, StopReason } from "../../contracts/v1/common.ts";
+import type { HumanOrigin } from "../../contracts/v1/decision.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
 import { evaluateG5 } from "../gates/g5.ts";
@@ -20,6 +21,7 @@ import { apply } from "./apply.ts";
 import {
 	currentAttempt,
 	isActive,
+	isQuestionClosed,
 	openAttempt,
 	resumeLiftsStop,
 	runningIntervention,
@@ -137,6 +139,25 @@ class Ctx {
 				`actor ${this.actor.actor_id} (${this.actor.actor_type}/${this.actor.origin}) cannot write normative state`,
 			);
 	}
+	/**
+	 * The provenance a human decision requires (ADR-014), written once and reused wherever a human act
+	 * must be told apart from a model output or a tool call: a qualified human origin — human actor,
+	 * human origin, authentication beyond `none` — verified by the host adapter rather than trusted from
+	 * content, and never carried by a model output or a tool call at the executing actor. Answering a
+	 * decision and closing a question (BES-02) are both gated by it, so a second, weaker copy is not
+	 * written for either.
+	 */
+	humanProvenanceIssue(origin: HumanOrigin): string | null {
+		if (
+			origin.actor.actor_type !== "human" ||
+			!HUMAN_ORIGINS.has(origin.actor.origin) ||
+			origin.actor.authentication_level === "none"
+		)
+			return `decision provenance ${origin.actor.actor_type}/${origin.actor.origin}/${origin.actor.authentication_level} is not a qualified human origin`;
+		if (this.actor.origin === "model_output" || this.actor.origin === "tool_call")
+			return "a decision cannot be carried by a model output or a tool call";
+		return null;
+	}
 	enter(phase: Phase, reason: string, status: "ready" | "running" | "completed" = "ready"): void {
 		this.emit({ type: "phase.entered", ...this.base(), phase, status, reason });
 	}
@@ -183,6 +204,8 @@ class Ctx {
 				return this.questionOpen(c);
 			case "question.answer":
 				return this.questionAnswer(c);
+			case "question.close":
+				return this.questionClose(c);
 			case "gate.evaluate":
 				return this.gate(c);
 			case "preparation.open":
@@ -299,6 +322,30 @@ class Ctx {
 		return ok(this.events);
 	}
 
+	/**
+	 * Closes a material question from the stop a stalled specification causes (BES-02), on the same
+	 * provenance check IH-01's close option applies. Refused, naming why, for a question unknown, not
+	 * material or already closed, outside clarification, while an intervention runs or a decision is
+	 * pending — the pending decision is then the way, since IH-01 offers the close of its own question.
+	 * The stop it lifts is the one a resume lifts, under the same actor, so the specification is not
+	 * asked to declare an answer no longer owed.
+	 */
+	questionClose(c: CommandOf<"question.close">): Decision {
+		this.requirePhase("clarifying");
+		const issue = this.humanProvenanceIssue(c.origin);
+		if (issue) this.fail("INVALID_PROVENANCE", issue);
+		const q = this.state.open_questions.find((x) => x.id === c.id);
+		if (!q) this.fail("UNKNOWN_REFERENCE", `question ${c.id} does not exist`);
+		if (!q.material) this.fail("PRECONDITION_FAILED", `question ${c.id} is not material`);
+		if (isQuestionClosed(q)) this.fail("PRECONDITION_FAILED", `question ${c.id} is already closed`);
+		if (runningIntervention(this.state)) this.fail("PRECONDITION_FAILED", "an intervention is running");
+		if (this.state.pending_decisions.length > 0)
+			this.fail("PRECONDITION_FAILED", "a decision is pending; close it there (IH-01)", ["decide"]);
+		this.emit({ type: "question.closed", ...this.base(), actor: c.origin.actor, id: c.id, human_decision_id: null });
+		if (resumeLiftsStop(this.state)) this.changeUnblock();
+		return ok(this.events);
+	}
+
 	// --- gates ---------------------------------------------------------------------------------
 
 	gate(c: Extract<ChangeCommand, { type: "gate.evaluate" }>): Decision {
@@ -330,13 +377,15 @@ class Ctx {
 		const reasons: string[] = [];
 		if (!c.mandate.objective.trim()) reasons.push("objective is empty");
 		const materialOpen = [
-			...this.state.open_questions.filter((q) => q.material && q.answer === null).map((q) => q.id),
+			...this.state.open_questions
+				.filter((q) => q.material && q.answer === null && !isQuestionClosed(q))
+				.map((q) => q.id),
 			...c.mandate.open_questions
 				.filter(
 					(q) =>
 						q.material &&
 						q.answer === null &&
-						!this.state.open_questions.some((s) => s.id === q.id && s.answer !== null),
+						!this.state.open_questions.some((s) => s.id === q.id && (s.answer !== null || isQuestionClosed(s))),
 				)
 				.map((q) => q.id),
 		];
@@ -431,14 +480,24 @@ class Ctx {
 		// would be lost between the ledger that records it and the artifact that binds the producer.
 		const carried = new Map(c.requirements.answers.map((a) => [a.question_id, a] as const));
 		for (const q of this.state.open_questions) {
-			if (!q.material || q.answer === null) continue;
+			// A closed question is owed nothing further (BES-02): only the owner may close one, and once
+			// closed no requirement need carry its answer.
+			if (!q.material || q.answer === null || isQuestionClosed(q)) continue;
 			const a = carried.get(q.id);
 			if (!a) {
 				reasons.push(`material answer ${q.id} is absent from the requirements`);
 				continue;
 			}
 			if (a.answer !== q.answer) reasons.push(`material answer ${q.id} differs from the recorded decision`);
-			if (!a.observable) continue;
+			if (!a.observable) {
+				// Declaring nothing observable is a proposal the owner decides, not a decision the
+				// specification may take on its own (BES-02, D-37): G1 refuses it from any producer, but
+				// conduct's own — `answersOf` — never builds one here, since `declarationHolds` discards
+				// such a proposal before it can bind and `answersOf` writes `observable: true` for every
+				// open, answered question regardless. This guards a document `answersOf` did not write.
+				reasons.push(`material answer ${q.id} is declared to fix nothing observable, but its question is not closed`);
+				continue;
+			}
 			if (a.requirement_ids.length === 0) {
 				reasons.push(`material answer ${q.id} fixes an observable contract that no requirement carries`);
 				continue;
@@ -1240,13 +1299,8 @@ class Ctx {
 		};
 		if (!pending) return rejectWith(`decision ${c.response.decision_id} is not pending`, "UNKNOWN_REFERENCE");
 		const origin = c.origin.actor;
-		if (origin.actor_type !== "human" || !HUMAN_ORIGINS.has(origin.origin) || origin.authentication_level === "none")
-			return rejectWith(
-				`decision provenance ${origin.actor_type}/${origin.origin}/${origin.authentication_level} is not a qualified human origin`,
-				"INVALID_PROVENANCE",
-			);
-		if (this.actor.origin === "model_output" || this.actor.origin === "tool_call")
-			return rejectWith("a decision cannot be carried by a model output or a tool call", "INVALID_PROVENANCE");
+		const provenanceIssue = this.humanProvenanceIssue(c.origin);
+		if (provenanceIssue) return rejectWith(provenanceIssue, "INVALID_PROVENANCE");
 		if (pending.expires_at && c.at > pending.expires_at)
 			return rejectWith(`decision ${pending.decision_id} expired at ${pending.expires_at}`, "DECISION_EXPIRED");
 		if (c.response.subject_revision !== pending.subject.revision)
@@ -1278,7 +1332,15 @@ class Ctx {
 		switch (pending.interaction) {
 			case "IH-01": {
 				const q = this.state.open_questions.find((x) => x.decision_id === pending.decision_id);
-				if (q)
+				if (q && c.response.option_id === "close")
+					this.emit({
+						type: "question.closed",
+						...this.base(),
+						actor: origin,
+						id: q.id,
+						human_decision_id: c.human_decision_id,
+					});
+				else if (q)
 					this.emit({
 						type: "question.answered",
 						...this.base(),

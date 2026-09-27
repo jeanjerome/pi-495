@@ -19,6 +19,12 @@ const T = {
 					risky: false,
 				},
 				{
+					id: "close",
+					label: "Clore : la question n'est plus matérielle",
+					effect: "La question est close ; sa réponse ne liera plus aucune exigence.",
+					risky: true,
+				},
+				{
 					id: "abandon",
 					label: "Abandonner le changement",
 					effect: "Le changement est clôturé comme abandonné, le dossier est conservé.",
@@ -138,6 +144,12 @@ const T = {
 					label: "Answer (free text)",
 					effect: "The answer becomes a recorded decision on this revision.",
 					risky: false,
+				},
+				{
+					id: "close",
+					label: "Close: the question is no longer material",
+					effect: "The question is closed; its answer will no longer bind any requirement.",
+					risky: true,
 				},
 				{
 					id: "abandon",

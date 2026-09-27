@@ -870,8 +870,9 @@ exigences, et son refus reste fermé.
   budget de tentatives, réconciliation d'un effet) exigent une phase ou un arrêt postérieurs à G0.
   `changeUnblock` est refusé à un agent, à une sortie de modèle et à un appel d'outil
   (`requireKernelAuthority`, test de `test/v0/change-rules.test.ts` ajouté à `0afe199`, tué par la
-  mutation qui retire ce contrôle). L'outil `harness495` exposé au modèle n'a que `status`,
-  `list_pending_decisions` et `start` : ni reprise ni abandon.
+  mutation qui retire ce contrôle). L'outil `harness495` exposé au modèle n'a que sept opérations
+  (`status`, `list_pending_decisions`, `start`, `verify`, `review_summary`, `report`, `export`) : ni
+  reprise ni abandon, bien que `verify` relance une vérification et que `export` écrive un dossier.
 - **Chaque reprise ne paie qu'une intervention avant que la borne ne s'applique.** La coupure se
   déplace à la levée. Le rapport sur lequel l'arrêt a été levé est réécrit une fois ; la réécriture
   suivante doit porter une réponse nouvelle, sinon le changement s'arrête de nouveau (test 6a, deux
@@ -910,11 +911,138 @@ exigences, et son refus reste fermé.
 - **La pause et sa reprise ne demandent pas l'autorité du noyau (confiance 2/10, faible).**
   `changePause` et `changeResume` n'appellent pas `requireKernelAuthority`, à la différence de
   `changeUnblock`. Ce comportement précède la branche. Aucun agent ne les atteint : l'outil
-  `harness495` n'expose que `status`, `list_pending_decisions` et `start`, et seule la commande
-  `/495` émet la pause et la reprise. La branche réduit ce que ce chemin permet : il ne lève plus un
-  arrêt.
+  `harness495` n'expose ni pause ni reprise parmi ses sept opérations, et seule la commande `/495`
+  émet la pause et la reprise. La branche réduit ce que ce chemin permet : il ne lève plus un arrêt.
 - **Les identifiants de question écrits par le modèle atteignent le détail de l'arrêt (confiance
   3/10, faible).** `Identifier` n'impose qu'une longueur de 1 à 200 caractères, et le détail de
   l'arrêt nomme les réponses perdues par leur identifiant. Les mêmes identifiants apparaissaient
   déjà dans les motifs de G1 et dans le message de réouverture : la branche ajoute un endroit où ils
   s'affichent, pas une classe de données nouvelle. Aucun texte de réponse n'y figure.
+
+# Revue de sécurité — e01s03, seul l'humain clôt une question matérielle
+
+| | |
+|---|---|
+| Périmètre | `git diff 8e7d931...ea1bd1d -- src/ contracts/` |
+| Révision relue | `ea1bd1d` |
+| Conduite le | 2026-09-27, étape 5 de `verify-work` |
+| Branche | `seul-l-humain-clot-une-question` |
+| Risque de la story | P0, quatre tâches `security: high` |
+| Code de production touché | `src/domain/change/decide.ts` (la commande `question.close`, la provenance d'une décision tirée en `humanProvenanceIssue`, l'option `close` d'IH-01, le refus de G1 d'une réponse déclarée non observable dont la question n'est pas close), `src/domain/change/state.ts` (`declarationHolds` ne tient `observable: false` que pour une question close), `src/domain/change/apply.ts`, `events.ts`, `commands.ts`, `src/application/phases/clarify.ts`, `specify.ts`, `src/application/context.ts`, `decisions.ts`, `harness.ts`, `src/extension/command.ts` (`/495 close`), `src/contracts/v1/protocol.ts` (`closed_by` au mandat) |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8/10. Le gate n'est pas bloqué. La story traite M1 et M3 du modèle de
+menace de l'epic. La déclaration « non observable » du modèle ne dispense plus seule une réponse de
+toute exigence, et la clôture n'a qu'un chemin, humain.
+
+## Hypothèses vérifiées, non supposées
+
+- **Une sortie de modèle ne dispense plus une réponse (M1).** `declarationHolds` refuse toute
+  déclaration `observable: false`, et ce seul prédicat tient la réouverture, la mesure de progrès et
+  le document des exigences (`declarationsOfReport`) : une proposition non observable, même nommant
+  une exigence obligatoire, ne peut ni être tenue pour liée ni faire cesser le blocage de la
+  spécification (`change-rules.test.ts`). `gateG1` porte encore une lecture de
+  `observable` à son propre site (`decide.ts`), mais elle n'est plus atteignable depuis la conduite :
+  `answersOf` écrit `observable: true` pour toute réponse non close quel que soit ce que `declared`
+  contient, depuis que la copie de la valeur réelle en a été retirée — `declarationHolds` est donc le
+  seul rempart, pas le premier de deux. La campagne `e01s03-non-observable` le montre sur le vrai
+  dossier : le rapport qui propose « 422 » non observable arrête le changement avant G0 ; le contrôle
+  négatif `e01s03-non-observable-negatif`, sur `8e7d931`, adopte à G1 le document qui porte « 422 »
+  `observable: false`, sans exigence.
+- **Une seule vérification de provenance (M3).** `humanProvenanceIssue` est écrite une fois et
+  appelée par `decisionAnswer` et `questionClose` ; aucune autre copie n'existe dans `src/`. Elle
+  refuse un acteur non humain, une origine hors de `HUMAN_ORIGINS`, une authentification `none`, et un
+  exécutant `model_output` ou `tool_call`. La levée de l'arrêt qui suit une clôture est
+  `changeUnblock`, sous l'acteur humain de la clôture.
+- **Aucun chemin de modèle vers la clôture.** L'outil `harness495` n'expose que sept opérations
+  (`status`, `list_pending_decisions`, `start`, `verify`, `review_summary`, `report`, `export`),
+  aucune qui décide, adopte ou clôt — `verify` relance une vérification et `export` écrit un dossier,
+  mais ni l'une ni l'autre ne franchit une porte ; `test/v3/question-closure.test.ts` épingle
+  désormais cette surface. La clôture n'est atteignable que par l'option `close` d'une décision IH-01
+  ou par `/495 close`, qui
+  exige `humanOrigin` : en mode `print` et `json`, et en RPC sans acteur déclaré, la commande le dit et
+  n'inscrit rien (campagnes `e01s03-arret-print`, `-json`, `-sans-humain`).
+- **La clôture ne juge pas un rapport en cours (M6).** `questionClose` est refusée tant qu'une
+  intervention tourne ou qu'une décision attend, et hors de la clarification
+  (`e01s03-hors-d-atteinte-decision`, `e01s03-apres-g1-clore`).
+- **Une clôture ne coûte aucune intervention quand le reste est porté (M7).** Sur le vrai dossier,
+  clore Q1 devant l'arrêt, ou Q6 et Q7 depuis IH-01, mène à G1 sans intervention de spécification.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+- **L'option d'une réponse n'est pas comparée aux options présentées (confiance 5/10, faible).**
+  `decisionAnswer` accepte toute `option_id` ; seule la provenance, la révision et l'empreinte du
+  sujet sont vérifiées. Une décision IH-01 demandée avant la branche, qui n'offrait que « répondre »
+  et « abandonner », accepte donc `close` d'un hôte SDK qui l'enverrait. Ce comportement précède la
+  branche et vaut pour toute interaction ; l'effet reste celui d'un humain qualifié, pas d'un
+  modèle, et l'interface de Pi ne propose que les options de la demande.
+- **Le mandat et le document des exigences ne montrent pas une clôture faite devant l'arrêt
+  (confiance 6/10, intégrité de la trace).** Ce n'est pas une élévation de droit : la clôture reste
+  inscrite au journal sous l'acteur humain. Mais les deux artefacts adoptés sont alors identiques à
+  ceux qu'adopte `main` sans clôture. Relevé comme écart de recette (écarts 1 et 2 de
+  `specs/verifications/e01s03-verify.yaml`), pas comme constat de sécurité. Fermé à `63e05b3` :
+  voir la section suivante.
+
+## Relu à `63e05b3`
+
+Périmètre : `git diff ea1bd1d 63e05b3 -- src/`, qui ne touche que `src/application/phases/clarify.ts`
+(le mandat ajoute les questions closes que le rapport qui le fonde ne pose pas) et
+`src/domain/change/state.ts` (`answersOf` recopie une question close `observable: false`, sans
+exigence). Aucun constat à confiance ≥ 8/10.
+
+- **Seul un acte humain fait entrer une question au mandat comme close.** Le filtre ajouté lit
+  `closed_at` dans l'état du changement, que seul l'événement `question.closed` écrit ; celui-ci
+  n'est émis que par `questionClose` et par l'option `close` de `decisionAnswer`, tous deux derrière
+  `humanProvenanceIssue`. La question, la réponse et `closed_by` viennent du journal, jamais du
+  rapport. Une question que le rapport pose et qui est close n'apparaît qu'une fois
+  (`askedByReport`) ; le mandat d'IH-01 est identique octet pour octet à celui de `ea1bd1d`
+  (`e01s03-v2-ih01-clore`, sha256:fed5da28…).
+- **Le mandat ne dispense rien à G0.** `gateG0` juge une question ouverte d'après l'état du
+  changement (`closed_at`, `answer`), pas d'après le champ `closed_by` du mandat. Un mandat qui
+  porterait `closed_by` pour une question que le journal ne tient pas close échouerait encore à G0.
+- **`observable: false` au document des exigences ne vaut toujours que pour une question close.**
+  `answersOf` ne prend la branche nouvelle que si `closed_at` n'est pas null ; une question ouverte
+  garde la déclaration qui tient dans le rapport, sinon `observable: true` sans exigence, que G1
+  refuse. Une liaison qu'un rapport garde pour une question close n'est plus recopiée : c'est ce que
+  la confirmation annonce au propriétaire (« sa réponse ne liera plus aucune exigence »), et
+  l'exigence elle-même reste au document avec son obligation.
+- **Sur le vrai dossier.** Après `/495 close Q1` devant l'arrêt, le mandat adopté porte Q1 avec
+  `closed_by: jeanjerome` (sha256:c836a17a…) et le document des exigences la recopie
+  `observable: false`, `requirement_ids: []` (sha256:a07aedf5…) ; la même campagne sur `ea1bd1d`
+  adopte encore les artefacts sans trace de la clôture (sha256:5eb34219…, sha256:7fad1744…).
+
+## Relu à `50a7eb1`
+
+Périmètre : `git diff 63e05b3 50a7eb1 -- src/ contracts/`, onze fichiers, ce que la relecture a
+changé : la lecture d'une question écrite avant que la clôture existe, la mesure du progrès une fois
+une question close, l'acteur d'une clôture, et `/495 close` qui tient la session occupée pendant sa
+confirmation. Relu à la main, puis rejoué dans un vrai Pi sur `709063b`, dont `src/` est celui de
+`50a7eb1`. Aucun constat à confiance ≥ 8/10.
+
+- **Un dossier écrit avant la clôture ne dispense plus rien (M1).** La section précédente disait que
+  seul l'événement `question.closed` écrit `closed_at`. C'était vrai de l'écriture, pas de la
+  lecture : un dossier de `main` ou de la 0.2.1 n'a pas le champ, `JSON.parse` le rend `undefined`,
+  et `closed_at !== null` comptait alors chaque question comme close. `isQuestionClosed` n'admet plus
+  qu'une chaîne, et chaque site le lit. Sur `e01s02-arret`, dossier écrit sans clôture,
+  `20a8614` adopte à G1 les sept réponses, « 422 » compris, sans aucune exigence et avec
+  `closed_by: null` au mandat ; la tête s'arrête sur Q1 comme `main`, sans porte
+  (`e01s03-v3-legataire-reprise-*`).
+- **Une proposition « non observable » ne tient jamais seule.** `declarationHolds` rend `false`
+  pour toute déclaration `observable: false`, que la question soit close ou non ; une question close
+  est lue par `isQuestionClosed` et non par ce que le rapport déclare. `answersOf` écrit
+  `observable: true` pour toute question ouverte : seule une clôture inscrite fait écrire `false` au
+  document des exigences.
+- **La mesure du progrès ne se nourrit plus d'une question close (M7).** `answersTheReportCarries`
+  écarte les questions closes : clore l'une de deux réponses perdues n'achète qu'une réécriture, même
+  quand celle-ci lie la question close à une exigence obligatoire (une intervention sur la tête, deux
+  sur `20a8614`, `e01s03-v3-deux-perdues-lie-q1-clore*`).
+- **Qui clôt est celui dont la provenance est vérifiée (M3).** `question.closed` porte désormais
+  l'acteur de l'origine passée à `humanProvenanceIssue`, dans `questionClose` comme dans l'option
+  `close` d'IH-01, et non un acteur fourni à côté ; `closeQuestion` ne reçoit plus d'acteur séparé.
+  Le schéma du mandat n'admet plus `closed_by: null`.
+- **`/495 close` ne court plus contre une conduite en cours (M6).** La commande pose `busy` avant de
+  vérifier l'origine et de demander la confirmation, le relâche dans un `finally`, puis appelle
+  `conduct`, qui le reprend dans la même tâche synchrone : aucune autre commande ne s'intercale. Les
+  refus sans humain, en `print`, en `json` et à la confirmation refusée n'inscrivent toujours rien
+  (`e01s03-v3-arret-sans-humain`, `-print`, `-json`, `-renonce`).

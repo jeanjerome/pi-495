@@ -49,6 +49,24 @@ export interface OpenQuestion {
 	/** When the answer was recorded: a specification that ended before it cannot carry it. */
 	answered_at: string | null;
 	decision_id: string | null;
+	/**
+	 * When the owner declared the question no longer material; null while it is open or answered.
+	 * Absent from a dossier written before this field existed — read with `isQuestionClosed`, never
+	 * compared to `null` directly, so such a dossier reads as open, not closed.
+	 */
+	closed_at?: string | null;
+	/** Who closed the question. Never a model or an agent (RM-024): closing is a human decision. Absent from a dossier written before this field existed. */
+	closed_by?: ActorRef | null;
+}
+
+/**
+ * Whether the owner has closed a question (RM-024: only the owner closes, and only a record closes
+ * it). The one predicate every site reads instead of comparing `closed_at` to `null`: a dossier
+ * written before this field existed carries no `closed_at` at all, and `JSON.parse` then hands back
+ * `undefined`, which `!== null` would count as closed.
+ */
+export function isQuestionClosed(q: { closed_at?: string | null }): boolean {
+	return typeof q.closed_at === "string";
 }
 
 export interface AttemptCounters {
@@ -283,7 +301,7 @@ export function requestedLanguage(state: ChangeState): "fr" | "en" | null {
 }
 
 /** What a specification report says it did with one material answer: the binding, not the text. */
-export interface AnswerDeclaration {
+interface AnswerDeclaration {
 	question_id: string;
 	observable: boolean;
 	requirement_ids: string[];
@@ -297,13 +315,17 @@ interface DeclaringReport {
 /**
  * Whether a declaration still binds in a given set of requirements: an observable answer is carried
  * by requirements the document holds, one of them mandatory at least, since G2 freezes an obligation
- * only for those. A declaration that fixes nothing observable binds nothing and always holds.
+ * only for those. A declaration that fixes nothing observable is a proposal, not a decision (BES-02),
+ * and never holds on its own: `answersOf` and `answersTheReportIgnores` read a closed question's
+ * resolution directly off `isQuestionClosed`, not off this map, so a proposal binds nothing here
+ * whether the question is open or closed — for an open one, the reopening rule below then treats it
+ * as a lost answer until the specification binds it again or the owner closes the question.
  */
 function declarationHolds(
 	a: AnswerDeclaration,
 	requirements: { requirement_id: string; mandatory: boolean }[],
 ): boolean {
-	if (!a.observable) return true;
+	if (!a.observable) return false;
 	const named = a.requirement_ids.map((rid) => requirements.find((r) => r.requirement_id === rid));
 	return named.length > 0 && named.every((r) => r !== undefined) && named.some((r) => r?.mandatory);
 }
@@ -316,16 +338,14 @@ function declarationHolds(
  * declarations, so it carries them itself and asks the next report only for what it has not already
  * said. A declaration, inherited or the report's own, counts only while it holds in the requirements
  * of the report, as G1 judges it: one that names a requirement the report does not carry, or no
- * mandatory one, binds nothing, and the answer counts as undeclared again.
+ * mandatory one, binds nothing, and the answer counts as undeclared again; so does one that declares
+ * the answer fixes nothing observable.
  */
-export function declarationsOfReport(
-	priors: DeclaringReport[],
-	report: DeclaringReport,
-): Map<string, AnswerDeclaration> {
-	const declared = new Map<string, AnswerDeclaration>();
+export function declarationsOfReport(priors: DeclaringReport[], report: DeclaringReport): Map<string, string[]> {
+	const declared = new Map<string, string[]>();
 	for (const r of [...priors, report]) {
 		for (const a of r.answers) {
-			if (declarationHolds(a, report.requirements)) declared.set(a.question_id, a);
+			if (declarationHolds(a, report.requirements)) declared.set(a.question_id, a.requirement_ids);
 			else declared.delete(a.question_id);
 		}
 	}
@@ -336,19 +356,30 @@ export function declarationsOfReport(
  * The material answers a specification report was written without: the ones it declares nothing
  * about, neither itself nor by what it inherits, whether it asked the question or not. These are the
  * answers G1 refuses, so a report that renamed the requirement an earlier one bound an answer to is
- * judged here as it will be there. A report whose declaration of the answer holds in its requirements,
- * or says the answer fixes nothing observable, carries it.
+ * judged here as it will be there. A report carries an answer only when its declaration holds in its
+ * requirements (`declarationHolds`); one that instead declares the answer fixes nothing observable
+ * never holds, so it never carries the answer either — the question stays here, ignored, until the
+ * owner closes it. A question the owner closes is owed nothing further: closing it after its answer
+ * is lost is as final as declaring the answer (BES-02).
  */
-function answersTheReportIgnores(state: ChangeState, declared: Map<string, AnswerDeclaration>): OpenQuestion[] {
-	return state.open_questions.filter((q) => q.material && q.answer !== null && !declared.has(q.id));
+function answersTheReportIgnores(state: ChangeState, declared: Map<string, string[]>): OpenQuestion[] {
+	return state.open_questions.filter(
+		(q) => q.material && q.answer !== null && !isQuestionClosed(q) && !declared.has(q.id),
+	);
 }
 
 /**
  * The answered material questions a specification report accounts for. Used to tell a reopening
- * that took an answer into account from one that gave the same report back.
+ * that took an answer into account from one that gave the same report back. A question the owner has
+ * since closed is excluded: it was resolved once, by the close, so a report that still declares it
+ * (its own declaration, or one inherited from before the close) carries no fresh progress for it. A
+ * report that still loses another answer is judged on that other answer alone, and stalls rather than
+ * being reopened once more for a question that needs no further rewriting (BES-02).
  */
-function answersTheReportCarries(state: ChangeState, declared: Map<string, AnswerDeclaration>): string[] {
-	const answered = new Set(state.open_questions.filter((q) => q.material && q.answer !== null).map((q) => q.id));
+function answersTheReportCarries(state: ChangeState, declared: Map<string, string[]>): string[] {
+	const answered = new Set(
+		state.open_questions.filter((q) => q.material && q.answer !== null && !isQuestionClosed(q)).map((q) => q.id),
+	);
 	return [...declared.keys()].filter((id) => answered.has(id));
 }
 
@@ -356,19 +387,33 @@ function answersTheReportCarries(state: ChangeState, declared: Map<string, Answe
  * The recorded material answers, as the requirements document carries them: question and answer are
  * copied from the ledger, the binding to the requirements comes from the report. An answer no report
  * of this change says anything about is held observable and carried by nothing, so silence is refused
- * at G1 instead of passing for a declaration that the answer fixes nothing (ADR-013, fail closed).
+ * at G1 instead of passing for a declaration that the answer fixes nothing (ADR-013, fail closed). A
+ * question the owner has closed is copied as fixing nothing observable and bound to no requirement,
+ * whatever a report still declares of it: closing is what the confirmation of BES-02 tells the owner
+ * it does ("its answer will bind no requirement any more"), and only the owner may dispense an answer.
  */
-export function answersOf(state: ChangeState, declared: Map<string, AnswerDeclaration>): AnsweredQuestion[] {
+export function answersOf(state: ChangeState, declared: Map<string, string[]>): AnsweredQuestion[] {
 	return state.open_questions
 		.filter((q) => q.material && q.answer !== null)
 		.map((q) => {
-			const d = declared.get(q.id);
+			if (isQuestionClosed(q)) {
+				return {
+					question_id: q.id,
+					question: q.question,
+					answer: q.answer as string,
+					observable: false,
+					requirement_ids: [],
+				};
+			}
+			// `declared` only ever names requirement ids for a binding `declarationHolds` accepted, which
+			// is always observable by construction; silence (no entry for `q.id`) is held observable too,
+			// per this function's own fail-closed rule above.
 			return {
 				question_id: q.id,
 				question: q.question,
 				answer: q.answer as string,
-				observable: d?.observable ?? true,
-				requirement_ids: d?.requirement_ids ?? [],
+				observable: true,
+				requirement_ids: declared.get(q.id) ?? [],
 			};
 		});
 }
@@ -401,15 +446,15 @@ export interface SpecificationHistory {
 }
 
 export interface SpecificationStanding {
-	/** What the report says about each answered material question, the inherited ones included. */
-	declared: Map<string, AnswerDeclaration>;
+	/** The requirement ids bound to each answered material question, the inherited bindings included. */
+	declared: Map<string, string[]>;
 	/** The recorded material answers the report says nothing about. */
 	ignored: OpenQuestion[];
 	/** The report must be written again: it ignores an answer and carries one no report since the latest human act carried. */
 	reopen: boolean;
-	/** Every material question is answered and the report carries every answer: this report stands. */
+	/** Every material question is resolved (answered or closed) and the report carries every answer: this report stands. */
 	settled: boolean;
-	/** Every material question is answered, the report loses one and may not be written again: the change stops. */
+	/** Every material question is resolved, the report loses an answer and may not be written again: the change stops. */
 	stalled: boolean;
 }
 
@@ -429,7 +474,9 @@ export interface SpecificationStanding {
  * G0 would reopen the same report again. A report that gives the same ground back stalls: no mandate
  * built on it is proposed, since G1 would refuse the answer it lost and, past G0, no phase goes back
  * to the specification. A resume that lifts the stop counts as a human act like an answer: the
- * report the change stopped on is written again once, and the bound applies from there.
+ * report the change stopped on is written again once, and the bound applies from there. A question
+ * the owner closes needs no answer to be resolved: only the owner can close a question (RM-024), so
+ * closing it is as final as answering it, and no rewriting is owed for it.
  */
 export function specificationStanding(
 	state: ChangeState,
@@ -448,7 +495,7 @@ export function specificationStanding(
 	const reopen =
 		ignored.length > 0 &&
 		(history.sinceLastHumanAct.length === 0 || answersTheReportCarries(state, declared).some((id) => !before.has(id)));
-	const final = !reopen && state.open_questions.every((q) => !q.material || q.answer !== null);
+	const final = !reopen && state.open_questions.every((q) => !q.material || q.answer !== null || isQuestionClosed(q));
 	return {
 		declared,
 		ignored,

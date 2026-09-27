@@ -942,4 +942,23 @@ export class Harness {
 		this.commit(this.load(changeId), { type: "change.cancel", at: this.now(), actor, reason }, this.id("cor"));
 		return this.status(changeId);
 	}
+
+	/**
+	 * Closes a material question from the stop a stalled specification causes (BES-02), on the same
+	 * provenance check as a decision. The stop it lifts, when it holds one, is the one `resume` lifts,
+	 * under the same actor; the caller conducts the change onward, as after a resume. The actor is the
+	 * origin's, as for a decision, so whoever closes is the one whose provenance is checked.
+	 */
+	closeQuestion(
+		changeId: string,
+		questionId: string,
+		origin: HumanOrigin,
+	): { view: StatusView; error: DomainError | null } {
+		const res = this.tryCommit(
+			this.load(changeId),
+			{ type: "question.close", at: this.now(), actor: origin.actor, id: questionId, origin },
+			this.id("cor"),
+		);
+		return { view: this.status(changeId), error: res.error };
+	}
 }

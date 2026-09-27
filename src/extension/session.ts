@@ -97,6 +97,13 @@ export class ExtensionSession {
 		return this.harnessRuntime?.config.language ?? "fr";
 	}
 
+	/** What every site that finds `busy` already set tells the user, in the session's language. */
+	busyRefusal(): string {
+		return this.lang() === "fr"
+			? "495: une opération est déjà en cours dans cette session."
+			: "495: an operation is already running in this session.";
+	}
+
 	/** The runtime session start created, or the reason it could not be. */
 	runtime(): HarnessRuntime {
 		if (this.harnessRuntime) return this.harnessRuntime;

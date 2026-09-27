@@ -116,7 +116,7 @@ export async function assertStoppedBeforeG0(t: TestHarness, changeId: string, lo
 	assert.equal(state.phase, "clarifying");
 	assert.equal(state.stop_reason, "stagnation", state.stop_detail ?? "");
 	assert.equal(state.stop_retryable, true, "a resume lifts the stop");
-	for (const id of [...lost, "resume", "cancel"])
+	for (const id of [...lost, "resume", "close", "cancel"])
 		assert.ok(state.stop_detail?.includes(id), `${id} is not named in: ${state.stop_detail}`);
 	assert.equal(state.gates.G0, undefined, "G0 is not evaluated");
 	assert.equal(state.gates.G1, undefined, "G1 is not evaluated");

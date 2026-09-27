@@ -71,6 +71,9 @@
                 "type": "null"
               }
             ]
+          },
+          "closed_by": {
+            "type": "string"
           }
         },
         "additionalProperties": false

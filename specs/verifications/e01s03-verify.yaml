@@ -1,0 +1,315 @@
+story_id: e01s03
+verified_at: "2026-09-27T22:05:30Z"
+verifier: verify-work
+risk: P0
+risk_note: "Story and its behaviour tasks are P0, security high: the security scan and the NFR gate were run."
+branch: seul-l-humain-clot-une-question
+revision: 709063b
+code_revision: 50a7eb1
+result: PASS
+result_note: >
+  Targeted verification of the story on the head of the branch, after the review the owner closed
+  after its fourth round. The owner's confirmation of 2026-09-27T15:21:52Z covered 63e05b3, and the
+  review changed eleven production files since (git diff 63e05b3 50a7eb1 -- src contracts): how a
+  question written before closure existed is read, how progress is measured once a question is
+  closed, the actor of a closure, and /495 close holding the session busy through its confirmation.
+  Preflight, every task's command and the security scan pass at the head. The three campaigns the
+  owner asked for pass in a real Pi: a closure at the stop reaches the adopted mandate and G1, as it
+  did at 63e05b3, whose controls on ea1bd1d and 8e7d931 were not re-run; closing one of two lost
+  answers buys one rewriting only, where 20a8614 spends two; a dossier written by a version without
+  closure reads its questions as open and behaves as on main, where 20a8614 read them all as closed.
+  Every other scripted campaign of the previous verification was replayed at the head and holds.
+  Confirmed by the owner on 2026-09-27T22:12:45Z.
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  model: "none called: every intervention is scripted or refused by the scripted agent (fiction_declared)"
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from ~/.495-campagnes/builds/e01s03-709063b/dist (git archive
+      of 709063b, whose src/ is identical to 50a7eb1, node_modules linked to the repository's, built
+      under Node 24.21.0) in a real `pi -ne --mode rpc --no-session -e <extension>`, once per
+      campaign, each on its own copy of a dossier. `get_commands` names that build as the source of
+      /495 in every campaign, the 20a8614 build in the three negative controls, and the 8e7d931 build
+      (main) in the reference run of the third campaign.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+    note: "dist/ rebuilt identical to the committed tree: git status clean afterwards."
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check, lint:story-format included."
+  tests:
+    passed: true
+    count: 531
+    note: "513 at 63e05b3; 531 at 50a7eb1, the tests the review added."
+
+terminal_verdict:
+  command: "npm run build && npm run check"
+  exit_code: 0
+  started_at: "2026-09-27T21:52:51Z"
+  ended_at: "2026-09-27T21:55:32Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on 709063b: `npm run build` exit 0, then
+    `npm run check` exit 0, both codes captured directly, not through a pipe. 531 tests passing,
+    0 failing, 0 skipped. dist/ unchanged afterwards. No output from any other attempt is merged into
+    this block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 709063b; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts", exit_code: 0, tests: 125 }
+    - { task: 2, command: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts", exit_code: 0, tests: 89 }
+    - { task: 3, command: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts test/v2/harness.test.ts", exit_code: 0, tests: 125 }
+    - { task: 4, command: "node --test test/v3/question-closure.test.ts", exit_code: 0, tests: 10 }
+    - { task: 5, command: "npm run check", exit_code: 0, note: "the terminal verdict above" }
+    - { task: 6, command: "node --test test/v2/specification-reopening.test.ts", exit_code: 0, tests: 24 }
+    - { task: 7, command: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts", exit_code: 0, tests: 89 }
+    - { task: 8, command: "npm run check", exit_code: 0, note: "the terminal verdict above" }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e01s03, then « Relu à 63e05b3 » and « Relu à 50a7eb1 »"
+
+blind_spots:
+  ran: false
+  note: >
+    Same derogation as e01s01 and e01s02: check-blind-spots.sh reads its state table with a pattern
+    that can never match, and judges the repository it is installed in, so its verdict is not
+    evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e01s01 and e01s02: it looks for story identifiers in the sources, which the
+    written-content rules forbid. BES-02 keeps its row (lint:traceability green).
+
+okf_wiki_lint:
+  ran: false
+  note: "Neither specs/skills-wiki/ nor specs/conventions-wiki/ exists in this repository."
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e01s03.json"
+  note: "GO on the four thresholds of §14, re-measured on the campaigns at 709063b."
+
+manual:
+  method: >
+    Each campaign is a real `pi --mode rpc` loading a built extension, in the change's own target
+    (simple-demo-hexagonal-architecture), under the real sandbox, driven by
+    ~/.495-campagnes/scripts/e01s03-drive.ts through e01s03-run.sh: it lists the source of /495,
+    sends each /495 command in turn, answers the dialogs as the campaign says (E01S03_SELECT,
+    E01S03_CONFIRM), reads the ledger read-only until the command returns or G1 is decided, then asks
+    /495 status and stops Pi. HARNESS495_RPC_HUMAN_ACTOR=jeanjerome declares the human, except in
+    e01s03-v3-arret-sans-humain. The print and JSON campaigns run `pi -ne --no-session -p` and
+    `--mode json -p` directly. Artifacts are read from the object store
+    (~/.495-campagnes/scripts/e01s03-artefact.mjs); questions and end states from the projection
+    (e01s03-questions.mjs, e01s03-etat.mjs). Every dossier of this verification is prefixed
+    e01s03-v3-; those of 63e05b3 (e01s03-v2-) and ea1bd1d are kept beside them.
+  fiction_declared: >
+    (1) The dossiers of java-flashnext-L2 are cut right after a specification report, after #96 or
+    after #183; no session actually stopped there. The stops the first two campaigns lift
+    (e01s03-arret, e01s03-deux-perdues) were written by the ea1bd1d build; the head writes the same
+    stop, with the same detail, in e01s03-v3-legataire-reprise-709063b and e01s03-v3-non-observable.
+    (2) Every specify rewriting is scripted (HARNESS495_SCRIPTED_AGENT): report 183 verbatim
+    (e01s02-rapport-183.json), report 183 declaring Q1 observable false
+    (e01s03-rapport-183-q1-non-observable.json), or, new for the second campaign, report 183 binding
+    Q2 to a requirement it does not carry and Q1, closed, to its mandatory REQ-422-BODY-FORMAT
+    (e01s03-rapport-183-perd-q2-lie-q1.json). The scripted interventions still record the selected
+    model omlx/qwen3.8-27b-oq8e in intervention.started, though no model was called. (3) Where no
+    intervention is expected, e01s03-aucune-intervention.json fails any that starts; the prepare
+    interventions past G1 fail at once for that reason. (4) The dossier of the third campaign,
+    e01s02-arret, was written by the e01s02-31e81ba build, on main after 0.2.1 and before closure
+    existed: its questions carry no closed_at and no closed_by, as 0.2.1 writes them. Nothing left the
+    machine.
+  campaigns:
+    - dossier: "~/.495-campagnes/e01s03-v3-arret-clore"
+      campaign: "1 — the closure at the stop"
+      code: "head, 709063b, a copy of e01s03-arret (stopped at #189 on Q1)"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "G0 PASS, G1 PASS; no specify intervention; the mandate carries Q1 closed by jeanjerome, the requirements copy it non observable"
+      observed: >
+        Confirmation "Clore la question Q1 ? Elle n'est plus matérielle ; sa réponse ne liera plus
+        aucune exigence." #190 question.closed Q1, no human decision, by
+        jeanjerome/human/rpc_qualified/host_qualified; #191 status ready by the same actor; conduct
+        resumes at once: #192 mandate mnd_mukd2av907c4362c6b, sha256:c836a17a…, whose open_questions
+        carry exactly Q1, its recorded answer "422 avec le message 'Name cannot be longer than 50
+        characters'" and closed_by jeanjerome; G0 PASS (#193); #197 requirements
+        rqs_mukd2avh23a2609c3b, sha256:a07aedf5…, Q1 observable false with requirement_ids [], Q2 to
+        Q7 observable true, each bound to requirements of report 183; G1 PASS (#198). Both digests are
+        those adopted at 63e05b3.
+    - dossier: "~/.495-campagnes/e01s03-v3-deux-perdues-lie-q1-clore"
+      campaign: "2 — the measure of progress"
+      code: "head, 709063b, a copy of e01s03-deux-perdues (stopped at #189 on Q1 and Q2)"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "exactly one specify intervention, then stopped again on Q2 alone"
+      observed: >
+        #190 question.closed Q1 by jeanjerome, #191 ready. #192 one specify intervention, whose
+        request (ctx sha256:463e2cde…) says "Q Q1: … -> closed by the owner: no longer material,
+        nothing to declare" and "Q Q2: … -> La limite s'applique à la création et à la mise à jour.
+        [to declare in `answers`]". The rewriting (#196, sha256:5a121f77…) binds Q1, closed, to the
+        mandatory REQ-422-BODY-FORMAT it carries, and still binds Q2 to REQ-LIMIT-COVERS-CREATE-ONLY,
+        which it does not carry. #197 stagnation: "the specification loses material answer(s) Q2 and
+        its latest rewriting carries none an earlier report did not". A second /495 close Q1 on that
+        stop (e01s03-v3-deja-close): "PRECONDITION_FAILED: question Q1 is already closed", nothing
+        recorded.
+    - dossier: "~/.495-campagnes/e01s03-v3-deux-perdues-lie-q1-clore-20a8614"
+      campaign: "2 — negative control"
+      code: "20a8614, the same copy and the same scripted rewriting"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "two specify interventions before the stop on Q2"
+      observed: >
+        The same #190 and #191, then two specify interventions (#192, #197) on the same request
+        (sha256:463e2cde…), each returning the same rewriting (sha256:5a121f77…): the first binding of
+        the closed Q1 is counted as progress, so the report is reopened once more before #202 stops on
+        Q2. The head spends one rewriting where 20a8614 spends two.
+    - dossier: "~/.495-campagnes/e01s03-v3-legataire-reprise-709063b"
+      campaign: "3 — a dossier written without closure, resumed"
+      code: "head, 709063b, a copy of e01s02-arret (stopped at #189 on Q1 by the e01s02 build), report 183 scripted"
+      commands: "/495 resume"
+      outcome: "stopped again on Q1 — stagnation, no mandate, no gate; every question still without closed_at"
+      observed: >
+        #190 ready by jeanjerome. #191 one specify intervention returning report 183
+        (sha256:b7c0b952…). #196 stagnation "the specification loses material answer(s) Q1 and its
+        latest rewriting carries none an earlier report did not; resume rewrites the specification,
+        close <question> closes a question that is no longer material, cancel abandons the change".
+    - dossier: "~/.495-campagnes/e01s03-v3-legataire-reprise-8e7d931"
+      campaign: "3 — reference on main"
+      code: "8e7d931 (main), the same copy and the same scripted rewriting"
+      commands: "/495 resume"
+      outcome: "the same: one specify intervention, the same report, stopped on Q1 at #196, no gate"
+      observed: "The detail differs by the close option only, which main does not have."
+    - dossier: "~/.495-campagnes/e01s03-v3-legataire-reprise-20a8614"
+      campaign: "3 — negative control"
+      code: "20a8614, the same copy and the same scripted rewriting"
+      commands: "/495 resume"
+      outcome: "G0 PASS, G1 PASS with no rewriting; every answer adopted as fixing nothing observable"
+      observed: >
+        #190 ready, then at once #191 mandate sha256:12f9fef8…, whose open_questions carry language
+        and Q1 to Q7, each closed_by null; G0 PASS (#192); #196 requirements sha256:1046efea…, Q1 to
+        Q7 all observable false with requirement_ids []; G1 PASS (#197). No question was ever closed:
+        20a8614 reads each missing closed_at as a closure, so '422' reaches G1 bound to nothing.
+    - dossier: "~/.495-campagnes/e01s03-v3-legataire-clore-709063b"
+      campaign: "3 — the same dossier, closed at the stop"
+      code: "head, 709063b, a copy of e01s02-arret"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "the closure is accepted; G0 PASS, G1 PASS; the same mandate and requirements as the first campaign"
+      observed: >
+        #190 question.closed Q1 by jeanjerome; mandate sha256:c836a17a… (Q1 closed_by jeanjerome);
+        requirements sha256:a07aedf5…; G1 PASS (#198). In the projection Q1 alone carries a closure;
+        Q2 to Q7 still carry no closed_at.
+    - dossier: "~/.495-campagnes/e01s03-v3-legataire-clore-20a8614"
+      campaign: "3 — negative control of the closure"
+      code: "20a8614, a copy of e01s02-arret"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "\"495 error: PRECONDITION_FAILED: question Q1 is already closed\" — nothing recorded, still at #189"
+    - dossier: "~/.495-campagnes/e01s03-v3-ih01-clore"
+      campaign: "replay"
+      code: "head, 709063b, cut after #96"
+      commands: "/495 resume (IH-01 answered close, twice), /495 resume"
+      outcome: "G0 PASS, G1 PASS; no specify intervention"
+      observed: >
+        Each IH-01 dialog offers answer, "close — Clore : la question n'est plus matérielle ⚠" and
+        abandon. #101/#103 decision.recorded option close, #102/#104 question.closed Q6 and Q7 with
+        their human decision, all by jeanjerome/human/rpc_qualified/host_qualified. Mandate
+        sha256:fed5da28…, byte-identical to 63e05b3's and ea1bd1d's; G0 PASS (#106), G1 PASS (#111).
+    - dossier: "~/.495-campagnes/e01s03-v3-hors-d-atteinte-decision"
+      campaign: "replay"
+      code: "head, 709063b, cut after #96"
+      commands: "/495 resume (IH-01 answered later), /495 close Q9, /495 close language, /495 close Q6"
+      outcome: "three refusals, nothing recorded after #100"
+      observed: >
+        "UNKNOWN_REFERENCE: question Q9 does not exist"; "PRECONDITION_FAILED: question language is
+        not material"; "PRECONDITION_FAILED: a decision is pending; close it there (IH-01)".
+    - dossier: "~/.495-campagnes/e01s03-v3-non-observable"
+      campaign: "replay"
+      code: "head, 709063b, cut after #183, report 183 declaring Q1 observable false scripted"
+      commands: "/495 resume"
+      outcome: "blocked in clarifying — stagnation, no mandate, no gate"
+      observed: >
+        #188 the rewriting (sha256:d6640256…); #189 "the specification loses material answer(s) Q1
+        (the report proposes that answer fixes nothing observable) and its latest rewriting carries
+        none an earlier report did not; resume …, close <question> …, cancel …".
+    - dossier: "~/.495-campagnes/e01s03-v3-non-observable-clore"
+      campaign: "replay"
+      code: "head, 709063b, a copy of e01s03-v3-non-observable"
+      commands: "/495 close Q1 (confirmed)"
+      outcome: "G0 PASS, G1 PASS; no specify intervention; mandate sha256:c836a17a…, requirements sha256:a07aedf5…"
+    - dossier: "~/.495-campagnes/e01s03-v3-non-observable-reprise-demande"
+      campaign: "replay, request only"
+      code: "head, 709063b, a copy of e01s03-v3-non-observable, no model"
+      commands: "/495 resume"
+      outcome: "the request of 6e is byte-identical to the one the real model answered at 63e05b3"
+      observed: >
+        #192 context sha256:f12643fd…, the request e01s03-v2-non-observable-reprise sent the real model
+        at 63e05b3. The scripted agent then fails the intervention (#194), so no report is written:
+        what the model answers is not re-measured.
+    - dossier: "~/.495-campagnes/e01s03-v3-arret-renonce"
+      campaign: "replay"
+      code: "head, 709063b, a copy of e01s03-arret"
+      commands: "/495 close Q1 (confirmation refused)"
+      outcome: "the confirmation is put, nothing recorded, still blocked at #189"
+    - dossier: "~/.495-campagnes/e01s03-v3-arret-sans-humain"
+      campaign: "replay"
+      code: "head, 709063b, a copy of e01s03-arret, HARNESS495_RPC_HUMAN_ACTOR empty"
+      commands: "/495 close Q1"
+      outcome: "\"La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).\" — nothing recorded, still at #189"
+    - dossier: "~/.495-campagnes/e01s03-v3-arret-print and e01s03-v3-arret-json"
+      campaign: "replay"
+      code: "head, 709063b, copies of e01s03-arret"
+      commands: "pi -p \"/495 close Q1\"; pi --mode json -p \"/495 close Q1\""
+      outcome: "the same sentence, on stderr in print mode and on stdout in JSON mode, exit 0, nothing recorded after #189"
+    - dossier: "~/.495-campagnes/e01s03-v3-apres-g1-clore"
+      campaign: "replay"
+      code: "head, 709063b, a copy of e01s03-v3-arret-clore, past G1"
+      commands: "/495 close Q2 (confirmed)"
+      outcome: "\"495 error: INVALID_TRANSITION: operation question.close is not allowed in phase verification_design\" — nothing recorded, still at #223"
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-27T22:12:45Z"
+  confirmation_note: >
+    Confirmed by the owner on the targeted campaigns at 709063b and the stated limits: the real
+    model's answer after the owner refuses the proposal (6e) is not measured again, its request
+    being byte-identical to the one it answered at 63e05b3, and the first campaign's negative
+    control is not replayed. The answer typed in the resumed verification session never reached
+    it; the owner gave it again directly. The confirmation of 2026-09-27T15:21:52Z covered 63e05b3
+    only.
+  steps:
+    - step: "La clôture devant l'arrêt atteint le mandat adopté et G1 (6a, sur la tête)"
+      expected: "Q1 close sous le nom du propriétaire, aucune intervention, mandat qui porte Q1 closed_by le propriétaire, G0 PASS, conduite qui repart jusqu'à G1"
+      actual: "e01s03-v3-arret-clore — tout cela, avec les empreintes adoptées à 63e05b3"
+      passed: true
+    - step: "Clore une réponse parmi deux perdues n'achète qu'une réécriture (6b, mesure du progrès)"
+      expected: "Une seule intervention ; une réécriture qui lie la question close et perd encore l'autre n'est pas un progrès ; arrêt sur l'autre réponse"
+      actual: "e01s03-v3-deux-perdues-lie-q1-clore — une intervention, arrêt sur Q2 seule ; sur 20a8614, deux interventions"
+      passed: true
+    - step: "Un dossier écrit sans clôture se lit ouvert et se comporte comme sur main"
+      expected: "Ses questions se lisent ouvertes ; la reprise s'arrête comme sur main ; la clôture y est acceptée"
+      actual: "e01s03-v3-legataire-reprise-709063b et -8e7d931 — même arrêt sur Q1, aucune porte ; e01s03-v3-legataire-clore-709063b — clôture acceptée, G1 PASS ; sur 20a8614, G0 et G1 PASS avec « 422 » lié à rien, et la clôture refusée « already closed »"
+      passed: true
+    - step: "Les autres scénarios scriptés tiennent sur la tête (1 à 5, 6a, 6c, 6d, 6h en RPC, 6i, 6j, 6k)"
+      expected: "Ce qu'ils montraient à 63e05b3"
+      actual: "Onze rejeux conformes, mêmes empreintes de mandat et d'exigences là où elles étaient relevées"
+      passed: true
+
+gaps:
+  closed: true
+  count: 0
+  note: >
+    The two gaps found at ea1bd1d were closed at 63e05b3 and stay closed at the head (first campaign
+    and its replays). The targeted campaigns found no new gap.
+
+known_limits:
+  - "The dossier is cut after report #96 or #183, and every rewriting is scripted (fiction_declared)."
+  - "6e was not re-run with the real model: the head sends it the request the model answered at 63e05b3, byte for byte, but what a model answers is not deterministic."
+  - "6g, the refusals by an agent, a model output or a tool call, the refusal while an intervention runs, the busy refusal of /495 close, and IH-01 in English rest on their tests."
+  - "Campaigns that pass G1 continue into preparation, whose interventions the scripted agent fails: what the frozen protocol does with a closed question belongs to e01s05."

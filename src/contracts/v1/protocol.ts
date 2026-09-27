@@ -217,8 +217,10 @@ export type Requirement = Static<typeof Requirement>;
 
 /**
  * A material question, the answer a human recorded for it, and the requirements that carry it. The
- * question and the answer are copied from the ledger, never from a model; only the binding to the
- * requirements and the `observable` declaration come from the specification.
+ * question and the answer are copied from the ledger, never from a model; the binding to the
+ * requirements comes from the specification, but `observable` comes from the question's closure
+ * state alone — true while it is open, false once the owner closes it — never from what the
+ * specification declares.
  */
 export const AnsweredQuestion = Type.Object(
 	{
@@ -260,6 +262,8 @@ export const Mandate = Type.Object(
 					question: Type.String(),
 					material: Type.Boolean(),
 					answer: Type.Union([Type.String(), Type.Null()]),
+					/** The actor who closed the question; absent unless the owner closed it, and then never null (BES-02, RM-024). */
+					closed_by: Type.Optional(Type.String()),
 				},
 				{ additionalProperties: false },
 			),

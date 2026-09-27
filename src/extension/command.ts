@@ -24,6 +24,7 @@ const SUBCOMMANDS = [
 	"integrate",
 	"export",
 	"pause",
+	"close",
 	"cancel",
 	"bind",
 	"unbind",
@@ -33,7 +34,7 @@ const SUBCOMMANDS = [
 export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession): void {
 	pi.registerCommand("495", {
 		description:
-			"495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|cancel|bind|unbind",
+			"495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|close|cancel|bind|unbind",
 		getArgumentCompletions: (prefix) => {
 			const items = SUBCOMMANDS.filter((s) => s.startsWith(prefix.trim())).map((s) => ({ value: s, label: s }));
 			return items.length ? items : null;
@@ -213,6 +214,60 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 						);
 						return;
 					}
+					case "close": {
+						if (!session.binding) {
+							session.emit(ctx, "no binding");
+							return;
+						}
+						if (!text) {
+							session.emit(ctx, "usage: /495 close <question>");
+							return;
+						}
+						if (session.busy) {
+							session.emit(ctx, session.busyRefusal());
+							return;
+						}
+						const changeId = session.binding.change_id;
+						// Busy from here to the write: a conduct running concurrently commits between two of its
+						// own steps, and a close landing in that gap either loses a race to REVISION_CONFLICT, or
+						// lands between the end of an intervention and the artifact it paid for, losing that
+						// artifact instead. Released before `conduct` below, which manages the flag itself for
+						// the rest of the drive.
+						session.busy = true;
+						try {
+							const origin = session.humanOrigin(ctx);
+							if (!origin) {
+								session.emit(
+									ctx,
+									session.lang() === "fr"
+										? "La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié)."
+										: "Closing a question requires a human origin.",
+								);
+								return;
+							}
+							if (
+								ctx.hasUI &&
+								!(await ctx.ui.confirm(
+									"495",
+									session.lang() === "fr"
+										? `Clore la question ${text} ? Elle n'est plus matérielle ; sa réponse ne liera plus aucune exigence.`
+										: `Close question ${text}? It is no longer material; its answer will no longer bind any requirement.`,
+								))
+							)
+								return;
+							const closed = rt.harness.closeQuestion(changeId, text, origin);
+							if (closed.error) {
+								session.emit(ctx, `495 error: ${closed.error.code}: ${closed.error.message}`, {
+									error: closed.error.toCanonical(),
+								});
+								return;
+							}
+						} finally {
+							session.busy = false;
+						}
+						await conduct(session, ctx, changeId);
+						return;
+					}
 					case "cancel": {
 						if (!session.binding) {
 							session.emit(ctx, "no binding");
@@ -276,7 +331,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 					default:
 						session.emit(
 							ctx,
-							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · cancel · bind [change_id] · unbind`,
+							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · cancel · bind [change_id] · unbind`,
 						);
 				}
 			} catch (error) {

@@ -15,10 +15,66 @@ import {
 	ENV,
 } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import type { ActorRef } from "../../src/contracts/v1/common.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
-import { unknownCost } from "../../src/domain/change/state.ts";
+import { Mandate as MandateSchema } from "../../src/contracts/v1/protocol.ts";
+import type { Mandate } from "../../src/contracts/v1/protocol.ts";
+import { validate } from "../../src/contracts/validate.ts";
+import { answersOf, isQuestionClosed, specificationStanding, unknownCost } from "../../src/domain/change/state.ts";
 
 const tuiOrigin = (): HumanOrigin => ({ actor: HUMAN, host: "tui", session_id: "s1", asserted_at: tick() });
+
+/** Opens a material question and records a human answer for it, without going through IH-01. */
+function answerMaterialQuestion(r: Runner, id: string, question: string, answer = "422"): void {
+	r.run({ type: "question.open", at: tick(), actor: KERNEL, id, question, material: true, decision_id: null });
+	r.run({ type: "question.answer", at: tick(), actor: HUMAN, id, answer, human_decision_id: null });
+}
+
+/** Opens a material question and closes it through IH-01, as the owner would by choosing "close". */
+function closeMaterialQuestion(r: Runner, id: string, question: string): void {
+	r.run({ type: "question.open", at: tick(), actor: KERNEL, id, question, material: true, decision_id: `dec_${id}` });
+	const presented = r.s.revision;
+	r.run({
+		type: "decision.request",
+		at: tick(),
+		actor: KERNEL,
+		request: {
+			decision_id: `dec_${id}`,
+			change_id: "chg_1",
+			interaction: "IH-01",
+			subject: { kind: "change", id: "chg_1", revision: presented, digest: r.s.reference.digest },
+			question,
+			facts: [],
+			recommendation: null,
+			options: [
+				{ id: "answer", label: "A", effect: "", risky: false },
+				{ id: "close", label: "C", effect: "", risky: true },
+				{ id: "abandon", label: "B", effect: "", risky: true },
+			],
+			required_authority: "requester",
+			allow_free_text: true,
+			requested_at: tick(),
+			expires_at: null,
+			language: "fr",
+		},
+	});
+	r.run({
+		type: "decision.answer",
+		at: tick(),
+		actor: HUMAN,
+		human_decision_id: `hd_${id}`,
+		response: {
+			decision_id: `dec_${id}`,
+			option_id: "close",
+			free_text: null,
+			reason: null,
+			subject_revision: presented,
+			scope: null,
+			expires_at: null,
+		},
+		origin: tuiOrigin(),
+	});
+}
 
 describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 	it("a material question blocks G0 with decision_required and persists the question", () => {
@@ -207,6 +263,184 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		assert.equal(answered(["R1", "R3"]).verdict, "PASS");
 	});
 
+	it("G1 refuses a material answer declared to fix nothing observable while its question is not closed, naming it, and requires nothing of one that is closed (BES-02, D-37)", () => {
+		const openAndAnswer = (): Runner => {
+			const r = new Runner().create();
+			answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+			return r;
+		};
+		const declaresNonObservable = () => {
+			const doc = requirements();
+			doc.answers = [
+				{ question_id: "q1", question: "422 ou 400 ?", answer: "422", observable: false, requirement_ids: [] },
+			];
+			return doc;
+		};
+		const open = openAndAnswer();
+		const refused = open.g0().g1(declaresNonObservable()).s.gates.G1!;
+		assert.equal(refused.verdict, "FAIL");
+		assert.ok(
+			refused.reasons.some((x) => x.includes("q1") && x.includes("fix nothing observable") && x.includes("not closed")),
+			refused.reasons.join(" | "),
+		);
+		const closed = openAndAnswer();
+		closed.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+		const pass = closed.g0().g1(declaresNonObservable()).s.gates.G1!;
+		assert.equal(pass.verdict, "PASS", pass.reasons.join(" | "));
+	});
+
+	it("passing from a refused binding to a declaration that fixes nothing observable is not progress: the reopening stalls naming the answer, unless the question is closed (6f)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+		const requirementsList = [{ requirement_id: "R1", mandatory: true }];
+		const boundToNothing = {
+			requirements: requirementsList,
+			answers: [{ question_id: "q1", observable: true, requirement_ids: ["R-missing"] }],
+		};
+		const declaresNonObservable = {
+			requirements: requirementsList,
+			answers: [{ question_id: "q1", observable: false, requirement_ids: [] }],
+		};
+		const first = specificationStanding(r.s, boundToNothing, { earlier: [], sinceLastHumanAct: [] });
+		assert.equal(first.reopen, true, "the first report gains nothing bound; one rewriting is still owed");
+		const second = specificationStanding(r.s, declaresNonObservable, {
+			earlier: [],
+			sinceLastHumanAct: [boundToNothing],
+		});
+		assert.equal(
+			second.stalled,
+			true,
+			"swapping a refused binding for an unclosed declaration that fixes nothing observable is not progress",
+		);
+		assert.deepEqual(
+			second.ignored.map((q) => q.id),
+			["q1"],
+		);
+	});
+
+	it("naming a mandatory requirement does not turn a declaration that fixes nothing observable into a binding (BES-02, M1)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+		const report = {
+			requirements: [{ requirement_id: "R1", mandatory: true }],
+			answers: [{ question_id: "q1", observable: false, requirement_ids: ["R1"] }],
+		};
+		const standing = specificationStanding(r.s, report, { earlier: [], sinceLastHumanAct: [] });
+		assert.equal(
+			standing.declared.has("q1"),
+			false,
+			"a proposal to fix nothing observable is never declared bound (M1)",
+		);
+		assert.deepEqual(
+			standing.ignored.map((q) => q.id),
+			["q1"],
+			"a proposal stays ignored, not bound, whatever mandatory requirement it names (M1)",
+		);
+	});
+
+	it("a rewritten report's proposal erases the binding an earlier report gave a mandatory requirement (6c, M1)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+		const requirementsList = [{ requirement_id: "R1", mandatory: true }];
+		const boundToR1 = {
+			requirements: requirementsList,
+			answers: [{ question_id: "q1", observable: true, requirement_ids: ["R1"] }],
+		};
+		const proposesNonObservable = {
+			requirements: requirementsList,
+			answers: [{ question_id: "q1", observable: false, requirement_ids: [] }],
+		};
+		const standing = specificationStanding(r.s, proposesNonObservable, {
+			earlier: [boundToR1],
+			sinceLastHumanAct: [],
+		});
+		assert.equal(
+			standing.declared.has("q1"),
+			false,
+			"a later proposal to fix nothing observable erases the binding it inherits, not just one it would have gained",
+		);
+		assert.deepEqual(
+			standing.ignored.map((q) => q.id),
+			["q1"],
+		);
+	});
+
+	it("choosing close on IH-01 closes the question under the actor instead of recording an answer (BES-02)", () => {
+		const r = new Runner().create();
+		closeMaterialQuestion(r, "q1", "Quelle règle d'acceptation ?");
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(q.answer, null, "closing does not record an answer");
+		assert.equal(q.closed_by?.actor_id, HUMAN.actor_id);
+		assert.ok(q.closed_at);
+		assert.equal(r.s.status, "ready");
+	});
+
+	it("a decision carried by a model output or a tool call cannot close a question (BES-02, RM-031)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: "dec_q1",
+		});
+		const presented = r.s.revision;
+		r.run({
+			type: "decision.request",
+			at: tick(),
+			actor: KERNEL,
+			request: {
+				decision_id: "dec_q1",
+				change_id: "chg_1",
+				interaction: "IH-01",
+				subject: { kind: "change", id: "chg_1", revision: presented, digest: r.s.reference.digest },
+				question: "?",
+				facts: [],
+				recommendation: null,
+				options: [{ id: "close", label: "C", effect: "", risky: true }],
+				required_authority: "requester",
+				allow_free_text: true,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+		});
+		const forged: ActorRef = { ...HUMAN, actor_type: "agent", origin: "model_output", authentication_level: "none" };
+		r.expectError(
+			{
+				type: "decision.answer",
+				at: tick(),
+				actor: forged,
+				human_decision_id: "hd_q1",
+				response: {
+					decision_id: "dec_q1",
+					option_id: "close",
+					free_text: null,
+					reason: null,
+					subject_revision: presented,
+					scope: null,
+					expires_at: null,
+				},
+				origin: { actor: forged, host: "tui", session_id: "s1", asserted_at: tick() },
+			},
+			"INVALID_PROVENANCE",
+		);
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(q.closed_at, null);
+		assert.equal(q.material, true);
+	});
+
+	it("G0 does not count a closed material question as open, whether the mandate still lists it or not (BES-02)", () => {
+		const r = new Runner().create();
+		closeMaterialQuestion(r, "q1", "?");
+		const m = mandate({ open_questions: [{ id: "q1", question: "?", material: true, answer: null }] });
+		r.g0(m);
+		assert.equal(r.s.gates.G0?.verdict, "PASS", r.s.gates.G0?.reasons.join(" | "));
+		assert.equal(r.s.phase, "specifying");
+	});
+
 	it("an agent, a model output or a tool call cannot lift a stop a resume lifts (RM-031)", () => {
 		const r = new Runner().create();
 		r.run({
@@ -226,6 +460,453 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		assert.equal(r.s.status, "blocked");
 		r.run({ type: "change.unblock", at: tick(), actor: HUMAN });
 		assert.equal(r.s.status, "ready");
+	});
+
+	it("a kernel close command closes a material question and lifts a stagnation stop, like a resume (BES-02)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({
+			type: "change.block",
+			at: tick(),
+			actor: KERNEL,
+			reason: "stagnation",
+			detail:
+				"the specification loses material answer(s) q1; resume rewrites the specification, close <question> closes a question that is no longer material, cancel abandons the change",
+			retryable: true,
+		});
+		r.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.ok(q.closed_at);
+		assert.equal(q.closed_by?.actor_id, HUMAN.actor_id);
+		assert.equal(q.answer, null, "closing does not record an answer");
+		assert.equal(r.s.status, "ready", "the stop is lifted like a resume lifts it");
+	});
+
+	it("a question from a dossier written before closed_at existed reads as open, not closed (BES-02, M1)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "400 ou 422 ?");
+		// `SqliteLedger.loadChange` hands back `JSON.parse(row.state)` as is: a row written before
+		// `closed_at`/`closed_by` existed carries neither key, not one set to `null`.
+		const legacy = legacyState(r.s, "q1");
+		const q = legacy.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(isQuestionClosed(q), false, "a question with no closed_at key at all reads as open");
+		const answer = answersOf(legacy, new Map())[0];
+		assert.equal(
+			answer?.observable,
+			true,
+			"the answer stays held observable; a missing closed_at must not silently dispense it from every requirement (M1)",
+		);
+	});
+
+	/** A copy of `state` with `closed_at`/`closed_by` stripped off the named question, as
+	 * `SqliteLedger.loadChange` hands back a row written before the two fields existed: neither key at
+	 * all, not one set to `null`. */
+	function legacyState<T extends { open_questions: { id: string }[] }>(state: T, id: string): T {
+		const legacy = JSON.parse(JSON.stringify(state)) as T;
+		const q = legacy.open_questions.find((x) => x.id === id)!;
+		delete (q as { closed_at?: unknown }).closed_at;
+		delete (q as { closed_by?: unknown }).closed_by;
+		return legacy;
+	}
+
+	function stripClosedFields(r: Runner, id: string): void {
+		r.state = legacyState(r.s, id);
+	}
+
+	it("a legacy material question with no closed_at key still blocks G0, not read as already closed (BES-02, M1)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "400 ou 422 ?",
+			material: true,
+			decision_id: null,
+		});
+		stripClosedFields(r, "q1");
+		const g0 = r.g0().s.gates.G0!;
+		assert.equal(g0.verdict, "FAIL");
+		assert.ok(
+			g0.reasons.some((x) => x.includes("material question open: q1")),
+			g0.reasons.join(" | "),
+		);
+	});
+
+	it("a legacy material answer with no closed_at key still needs a binding at G1, not read as already closed (BES-02, M1)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "400 ou 422 ?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({ type: "question.answer", at: tick(), actor: HUMAN, id: "q1", answer: "422", human_decision_id: null });
+		stripClosedFields(r, "q1");
+		// `requirements()` binds nothing to q1: its default `answers` fixture is empty, and declares no
+		// question at all.
+		const g1 = r.g0().g1(requirements()).s.gates.G1!;
+		assert.equal(g1.verdict, "FAIL");
+		assert.ok(
+			g1.reasons.some((x) => x.includes("q1") && x.includes("absent from the requirements")),
+			g1.reasons.join(" | "),
+		);
+	});
+
+	it("specificationStanding does not read a legacy, unanswered question with no closed_at key as resolved (BES-02, M1)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "400 ou 422 ?",
+			material: true,
+			decision_id: null,
+		});
+		const legacy = legacyState(r.s, "q1");
+		const report = { requirements: [{ requirement_id: "R1", mandatory: true }], answers: [] };
+		const standing = specificationStanding(legacy, report, { earlier: [], sinceLastHumanAct: [] });
+		assert.equal(
+			standing.settled,
+			false,
+			"q1 is neither answered nor actually closed; a missing closed_at must not read as resolved (M1)",
+		);
+		assert.equal(standing.stalled, false);
+	});
+
+	it("specificationStanding still owes a binding for a legacy, answered question with no closed_at key (BES-02, M1)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "400 ou 422 ?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({ type: "question.answer", at: tick(), actor: HUMAN, id: "q1", answer: "422", human_decision_id: null });
+		const legacy = legacyState(r.s, "q1");
+		// Says nothing of q1: its `answers` array is empty, naming no question at all.
+		const report = { requirements: [{ requirement_id: "R1", mandatory: true }], answers: [] };
+		const standing = specificationStanding(legacy, report, { earlier: [], sinceLastHumanAct: [] });
+		assert.deepEqual(
+			standing.ignored.map((x) => x.id),
+			["q1"],
+			"a legacy question with no closed_at key still owes a binding, not a free pass (M1)",
+		);
+	});
+
+	it("closes a question under the verified human origin, not under the command's own executing actor (BES-02, RM-024)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({ type: "question.close", at: tick(), actor: KERNEL, id: "q1", origin: tuiOrigin() });
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(
+			q.closed_by?.actor_id,
+			HUMAN.actor_id,
+			"closed_by is the verified human origin the provenance check reads, not the kernel that carried the command",
+		);
+	});
+
+	it("closes a question via IH-01 under the verified human origin, not under decision.answer's own executing actor (BES-02, RM-024)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: "dec_q1",
+		});
+		const presented = r.s.revision;
+		r.run({
+			type: "decision.request",
+			at: tick(),
+			actor: KERNEL,
+			request: {
+				decision_id: "dec_q1",
+				change_id: "chg_1",
+				interaction: "IH-01",
+				subject: { kind: "change", id: "chg_1", revision: presented, digest: r.s.reference.digest },
+				question: "?",
+				facts: [],
+				recommendation: null,
+				options: [{ id: "close", label: "C", effect: "", risky: true }],
+				required_authority: "requester",
+				allow_free_text: true,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+		});
+		r.run({
+			type: "decision.answer",
+			at: tick(),
+			// The command is carried by the kernel, on the human's behalf; the verified origin is what
+			// must land in closed_by, not this executing actor.
+			actor: KERNEL,
+			human_decision_id: "hd_q1",
+			response: {
+				decision_id: "dec_q1",
+				option_id: "close",
+				free_text: null,
+				reason: null,
+				subject_revision: presented,
+				scope: null,
+				expires_at: null,
+			},
+			origin: tuiOrigin(),
+		});
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(
+			q.closed_by?.actor_id,
+			HUMAN.actor_id,
+			"closed_by is the verified origin decision.answer carries, not the actor that executed the command",
+		);
+	});
+
+	it("records the human decision that closed a question via IH-01, so the exported dossier traces it (BES-02, §12)", () => {
+		const r = new Runner().create();
+		closeMaterialQuestion(r, "q1", "Quelle règle d'acceptation ?");
+		assert.ok(
+			r.events.some((e) => e.type === "question.closed" && e.human_decision_id === "hd_q1"),
+			"the closure names the same human_decision_id decision.recorded carries for the chosen option (§12)",
+		);
+	});
+
+	it("the mandate contract refuses closed_by: null; a closed question's actor is never absent, never null (BES-02, RM-024)", () => {
+		const withNullClosedBy = {
+			...mandate({
+				open_questions: [{ id: "q1", question: "?", material: true, answer: null }],
+			}),
+			open_questions: [{ id: "q1", question: "?", material: true, answer: null, closed_by: null }],
+		} as unknown as Mandate;
+		assert.throws(() => validate(MandateSchema, withNullClosedBy, "mandate"), /closed_by/);
+		const absent: Mandate = mandate({ open_questions: [{ id: "q1", question: "?", material: true, answer: null }] });
+		assert.doesNotThrow(
+			() => validate(MandateSchema, absent, "mandate"),
+			"absent stays valid for a question still open",
+		);
+	});
+
+	it("a close command leaves in place a stop a resume does not lift (BES-02)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({
+			type: "change.block",
+			at: tick(),
+			actor: KERNEL,
+			reason: "policy_denied",
+			detail: "an unrelated stop the closure does not answer",
+			retryable: false,
+		});
+		r.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.ok(q.closed_at, "the question is closed regardless");
+		assert.equal(r.s.status, "blocked", "a stop a resume would not lift is not lifted by the closure either");
+		assert.equal(r.s.stop_reason, "policy_denied");
+	});
+
+	it("a close command outside clarification, on an unknown, non-material or already closed question is refused, naming why (BES-02)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q2",
+			question: "?",
+			material: false,
+			decision_id: null,
+		});
+		r.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "unknown", origin: tuiOrigin() },
+			"UNKNOWN_REFERENCE",
+		);
+		r.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "q2", origin: tuiOrigin() },
+			"PRECONDITION_FAILED",
+		);
+		r.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+		r.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() },
+			"PRECONDITION_FAILED",
+		);
+		r.g0(mandate({ open_questions: [{ id: "q1", question: "?", material: true, answer: null }] }));
+		assert.equal(r.s.phase, "specifying");
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q3",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		r.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "q3", origin: tuiOrigin() },
+			"INVALID_TRANSITION",
+		);
+	});
+
+	it("a close command is refused while an intervention runs or a decision is pending, naming the way out (BES-02)", () => {
+		const running = new Runner().create();
+		running.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		running.run({
+			type: "intervention.start",
+			at: tick(),
+			actor: KERNEL,
+			intervention_id: "int_s",
+			role: "specify",
+			attempt_id: null,
+			model: { provider_id: "omlx", model_id: "m", thinking_level: "off", location: "on_machine" },
+			profile_id: "specify",
+			profile_qualified: true,
+		});
+		running.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() },
+			"PRECONDITION_FAILED",
+		);
+
+		const pending = new Runner().create();
+		pending.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		pending.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q2",
+			question: "?",
+			material: true,
+			decision_id: "dec_q2",
+		});
+		pending.run({
+			type: "decision.request",
+			at: tick(),
+			actor: KERNEL,
+			request: {
+				decision_id: "dec_q2",
+				change_id: "chg_1",
+				interaction: "IH-01",
+				subject: { kind: "change", id: "chg_1", revision: pending.s.revision, digest: pending.s.reference.digest },
+				question: "?",
+				facts: [],
+				recommendation: null,
+				options: [
+					{ id: "answer", label: "A", effect: "", risky: false },
+					{ id: "close", label: "C", effect: "", risky: true },
+				],
+				required_authority: "requester",
+				allow_free_text: true,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+		});
+		const err = pending.expectError(
+			{ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() },
+			"PRECONDITION_FAILED",
+		);
+		assert.match(err.message, /pending/);
+	});
+
+	it("a close command carried by an agent, a model output, a tool call or an unauthenticated origin is refused (BES-02, RM-031)", () => {
+		const r = new Runner().create();
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		const forgedOrigins: HumanOrigin[] = [
+			{ actor: AGENT, host: "tui", session_id: "s1", asserted_at: tick() },
+			{ actor: { ...HUMAN, origin: "model_output" }, host: "tui", session_id: "s1", asserted_at: tick() },
+			{ actor: { ...HUMAN, origin: "tool_call" }, host: "tui", session_id: "s1", asserted_at: tick() },
+			{ actor: { ...HUMAN, authentication_level: "none" }, host: "tui", session_id: "s1", asserted_at: tick() },
+		];
+		for (const origin of forgedOrigins)
+			r.expectError({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin }, "INVALID_PROVENANCE");
+		const q = r.s.open_questions.find((x) => x.id === "q1")!;
+		assert.equal(q.closed_at, null);
+	});
+
+	it("answersOf copies a closed question's answer as fixing nothing observable and bound to nothing, whatever the report declares (BES-02)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+		r.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+
+		const undeclared = answersOf(r.s, new Map());
+		assert.equal(undeclared.length, 1);
+		assert.equal(undeclared[0]!.observable, false);
+		assert.deepEqual(undeclared[0]!.requirement_ids, []);
+
+		const stillLinked = answersOf(r.s, new Map([["q1", ["R1"]]]));
+		assert.equal(stillLinked[0]!.observable, false, "closing dispenses the answer whatever the report still declares");
+		assert.deepEqual(stillLinked[0]!.requirement_ids, []);
+	});
+
+	it("answersOf leaves an answered, unclosed question's binding to the report's declaration, as before (BES-02)", () => {
+		const r = new Runner().create();
+		answerMaterialQuestion(r, "q1", "422 ou 400 ?");
+		const undeclared = answersOf(r.s, new Map());
+		assert.equal(undeclared[0]!.observable, true);
+		assert.deepEqual(undeclared[0]!.requirement_ids, []);
 	});
 });
 

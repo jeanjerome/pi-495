@@ -386,10 +386,12 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(first.stopped_because, "decision_required");
 		const req = t.requested[0]!;
 		assert.equal(req.interaction, "IH-01");
-		assert.ok(
-			req.options.some((o) => o.id === "abandon"),
-			"explicit refusal is always possible",
+		assert.deepEqual(
+			req.options.map((o) => o.id),
+			["answer", "close", "abandon"],
+			"the owner can answer, close the question as no longer material, or abandon the change",
 		);
+		assert.equal(req.options.find((o) => o.id === "close")?.risky, true, "closing is marked risky, like abandoning");
 		const forged = t.harness.answerDecision(
 			change.change_id,
 			{
@@ -621,7 +623,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 				questions: [QA, QB],
 				answers: [
 					{ question_id: QA.id, observable: true, requirement_ids: ["R1", "R2"] },
-					{ question_id: QB.id, observable: false, requirement_ids: [] },
+					{ question_id: QB.id, observable: true, requirement_ids: ["R1"] },
 				],
 			}),
 		];
@@ -681,7 +683,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			adopted.content.answers.map((a) => [a.question_id, a.observable, a.requirement_ids]),
 			[
 				[QA.id, true, ["R1", "R2"]],
-				[QB.id, false, []],
+				[QB.id, true, ["R1"]],
 			],
 		);
 	});
@@ -1762,6 +1764,57 @@ describe("the language a change was started in", () => {
 		assert.ok(
 			prompts.every((x) => x.system.includes("written in English")),
 			prompts.map((x) => x.role).join(" | "),
+		);
+	});
+
+	it("also offers the close option among IH-01's three issues in English (BES-02)", async () => {
+		const p = project();
+		const t = track(
+			makeHarness({
+				scripts: {
+					specify: {
+						steps: [
+							{
+								kind: "complete",
+								output: specReport({ questions: [{ id: "q1", question: "Which rule?", material: true }] }),
+							},
+						],
+					},
+				},
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN, language: "en" });
+		await t.harness.advance(change.change_id);
+		const req = t.requested[0]!;
+		assert.equal(req.interaction, "IH-01");
+		assert.deepEqual(
+			req.options.map((o) => o.id),
+			["answer", "close", "abandon"],
+		);
+		assert.match(req.options.find((o) => o.id === "close")!.label, /close/i);
+		assert.equal(
+			req.options.find((o) => o.id === "close")?.risky,
+			true,
+			"closing is marked risky in English too, like abandoning",
+		);
+	});
+});
+
+describe("what the specify role is told about a declaration that fixes nothing observable (BES-02)", () => {
+	it("is instructed that observable: false is a proposal the owner confirms or refuses, not a decision it makes on its own", async () => {
+		const p = project();
+		const t = track(makeHarness());
+		let specifySystemPrompt = "";
+		const original = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = async (m) => {
+			if (m.role === "specify" && !specifySystemPrompt) specifySystemPrompt = m.system_prompt;
+			return original(m);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		await t.harness.advance(change.change_id);
+		assert.match(
+			specifySystemPrompt,
+			/Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it\./,
 		);
 	});
 });

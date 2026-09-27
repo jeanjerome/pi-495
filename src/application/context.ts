@@ -15,7 +15,7 @@
 import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { AnswerDeclaration, ChangeState } from "../domain/change/state.ts";
+import { type ChangeState, isQuestionClosed } from "../domain/change/state.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
 import type { ContextManifest } from "../ports/execution.ts";
 
@@ -135,7 +135,7 @@ export function buildContext(input: ContextInput): {
 				: input.role === "prepare"
 					? "You are preparing verification means (tests, fixtures, configuration). You cannot adopt your own proposal."
 					: input.role === "specify"
-						? "You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it."
+						? "You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it. Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it."
 						: "You observe the project: distinguish observations from interpretations and list what is missing. Do not execute build or install scripts.",
 		`Human-facing text must be written in ${input.language === "fr" ? "French" : "English"}.`,
 		// The kernel reads this block and nothing else; a model that does not know what its absence
@@ -241,18 +241,16 @@ export function buildContext(input: ContextInput): {
  */
 export function specificationObjective(
 	request: string,
-	questions: readonly { id: string; question: string; answer: string | null }[],
-	declared: ReadonlyMap<string, AnswerDeclaration>,
+	questions: readonly { id: string; question: string; answer: string | null; closed_at?: string | null }[],
+	declared: ReadonlyMap<string, string[]>,
 ): string {
 	const answered = questions
-		.filter((q) => q.answer !== null && q.id !== "language")
+		.filter((q) => (q.answer !== null || isQuestionClosed(q)) && q.id !== "language")
 		.map((q) => {
+			if (isQuestionClosed(q))
+				return `Q ${q.id}: ${q.question} -> closed by the owner: no longer material, nothing to declare`;
 			const d = declared.get(q.id);
-			const standing = !d
-				? "to declare in `answers`"
-				: d.observable
-					? `already declared, carried by ${d.requirement_ids.join(", ")}`
-					: "already declared as fixing nothing observable";
+			const standing = d ? `already declared, carried by ${d.join(", ")}` : "to declare in `answers`";
 			return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
 		});
 	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;

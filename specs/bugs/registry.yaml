@@ -338,3 +338,124 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: dcdd890
+  - bug_id: BUG-2026-09-27T170000
+    date: "2026-09-27"
+    title: "A rejected decision is never written to the ledger, although the reducer emits the event for it"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      `decisionAnswer` (`src/domain/change/decide.ts`) computes a `decision.rejected` event for every
+      way it refuses an answer (unknown decision, expired, wrong revision, invalid provenance, no
+      option or free text) and calls `this.emit(...)` on it before returning `reject(error)`. `reject`
+      constructs `{ ok: false, error }`, with no `events` field: the event `emit` pushed is discarded
+      with it. `Harness.commit` (`src/application/harness.ts`) throws `d.error` as soon as `d.ok` is
+      false, never inspecting or appending anything the reducer emitted on that path. No
+      `decision.rejected` event has ever reached a ledger, on this branch or before it.
+    what_expected: >
+      A decision the kernel refuses is inscribed as rejected, the way §12 of the question-closure story
+      states a provenance-refused closure is: "the decision stays refused in the journal, like any
+      refused decision." The phrasing presumes an existing, general guarantee that does not hold for
+      any refusal.
+    steps_to_reproduce:
+      - "Open a material question and request an IH-01 decision on it."
+      - "Answer it with a forged provenance (an agent, a model output, or an unauthenticated origin)."
+      - "The command is refused with INVALID_PROVENANCE; the ledger carries no `decision.rejected` event for it, at any revision."
+    root_cause: >
+      `reject()` (`src/domain/change/decide.ts:76`) returns the `Decision` union's `ok: false` arm,
+      which the type defines with an `error` field only, no `events`. `Ctx.emit` pushes onto
+      `this.events` regardless of the outcome, but nothing reads `this.events` on the rejected path:
+      `decide()` never reaches its `return ok(this.events)`, and `Harness.commit` throws before
+      touching `d` beyond `d.ok` and `d.error`. The event is real state kept only in the temporary
+      `Ctx` instance, discarded with it.
+    evidence: >
+      Read during the round-1 review of e01s03 (`specs/verifications/e01s03-relecture.md`, P1):
+      `decide.ts:1288` emits `decision.rejected`; `reject()` at `decide.ts:76` drops it; `harness.ts`'s
+      `commit` (~`src/application/harness.ts:214`) throws on `!d.ok` without ever appending an event
+      from that branch. Not yet reproduced against a running ledger.
+    risk_level: medium
+    follow_ups: >
+      Decide whether `decision.rejected` should carry through `reject()` (a `Decision` shape that keeps
+      `events` on both arms, appended before the caller throws) or whether the event and every place
+      that predicates on it should be removed as dead; fix through fix-bug with TDD, and correct or
+      remove the §12 claim of the question-closure story either way.
+    status: open
+  - bug_id: BUG-2026-09-27T170100
+    date: "2026-09-27"
+    title: "G1 accepts a mandatory requirement's satisfied_by_reference claim without evidence, before G2/G5 are known to catch a false one"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      A material answer bound to a mandatory requirement passes G1 (`gateG1`, `src/domain/change/decide.ts`)
+      as soon as the requirement is named, is mandatory, and the binding is observable — G1 never reads
+      `satisfied_by_reference`. A specification report can mark a brand-new, never-implemented
+      requirement `satisfied_by_reference: true` (a claim reserved for behaviour the project already
+      honours, per the `specify` role's own instructions) and still clear G1 unchallenged.
+    what_expected: >
+      A material answer resolved only by a false `satisfied_by_reference` claim should not clear a gate
+      on the model's word alone — some control downstream must be known to catch it, or G1 itself must
+      refuse it.
+    steps_to_reproduce:
+      - "Write a specification report whose mandatory requirement is marked `satisfied_by_reference: true` for behaviour the reference tree does not have, with a material answer bound to it."
+      - "Advance the change through G1: `gateG1` names no reason and passes."
+      - "Whether `preparation.ts`'s discrimination against the reference (feeding G2) or G5's evidence review would still catch the false claim before integration was not traced in this pass."
+    root_cause: >
+      `satisfied_by_reference` is read by `preparation.ts` (`~line 116`) to flag a requirement as
+      `undiscriminated` when the reference tree fails to exercise it, feeding a later gate's evidence —
+      but `gateG1` (`~decide.ts:505-515`) never consults it before passing the requirements document, so
+      a false claim is not refused at the gate meant to bind an answer to a real obligation; whether it
+      is refused later depends on control paths this pass did not trace to a verdict.
+    evidence: >
+      Read during the round-1 review of e01s03 (`specs/verifications/e01s03-relecture.md`, P2):
+      `gateG1`'s mandatory-answer loop names no check on `satisfied_by_reference`; `preparation.ts:116-126`
+      is the only reader found, and it is proved only by the tests that already pass, not by a new
+      failing one exercising a false claim. G2 and G5's own handling of the case was not traced.
+    risk_level: medium
+    follow_ups: >
+      Trace G2 (`preparation`-derived evidence) and G5 for whether a mandatory `satisfied_by_reference`
+      claim the reference does not support is caught anywhere before integration; write a red test for
+      the gap found, then fix through fix-bug with TDD.
+    status: open
+  - bug_id: BUG-2026-09-27T220000
+    date: "2026-09-27"
+    title: "/495 verify sets and clears busy without reading it first, so it can drop another operation's hold"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `/495 verify` (`src/extension/command.ts`, the `verify` case) sets `session.busy = true`
+      unconditionally and clears it in its own `finally`. Every other site that touches the flag —
+      `conduct`, `/495 close`, the conversational tool — checks `if (session.busy)` first and refuses
+      instead of taking it over. A `verify` started while another operation already holds `busy`
+      (`conduct` awaiting an IH-01 decision through `presentDecisions`, or `/495 close` awaiting its
+      confirmation) would clear the flag under that other holder as soon as it returns, before the
+      holder's own dialog is answered.
+    what_expected: >
+      A second operation that finds `busy` already set is refused, as `conduct`, `/495 close` and the
+      conversational tool already are, rather than taking the flag over and releasing it under the
+      first holder.
+    steps_to_reproduce:
+      - "Reach a change stopped on a pending IH-01 decision, or a /495 close awaiting its confirmation, over one RPC connection (`session.busy` true, a dialog await pending)."
+      - "Dispatch /495 verify as a second command on the same session while that await is still pending."
+      - "verify's own `finally` clears `busy` as soon as it returns, before the first operation's dialog is answered."
+    root_cause: >
+      `case \"verify\"` (`command.ts`, ~lines 105-121) is the only busy-touching site with no guard.
+      The same shared, unguarded flag already covered `conduct`'s own hold during `presentDecisions`
+      before this branch; the branch adds one more long-held window, `/495 close`'s confirmation, to an
+      already-reachable race, rather than making a previously unreachable one reachable (rule 1).
+    evidence: >
+      `command.ts:110-119` sets and clears `busy` with no guard; `conduct.ts:36-40` and
+      `command.ts:226,236` both guard first. Confirmed against Pi 0.87.1's own source, not executed:
+      the RPC mode launches every received line without awaiting it (`void handleInputLine(line)`,
+      `dist/modes/rpc/rpc-mode.js:647`), the `prompt` case launches `session.prompt` the same way
+      (`:302`), and `AgentSession.prompt` runs an extension command immediately, with no lock
+      (`dist/core/agent-session.js:1216-1224`). Two `/495` commands sent on one RPC connection can
+      therefore overlap while one is mid-await.
+    risk_level: low
+    follow_ups: >
+      Reproduce against a running Pi RPC session (probe, then a red test) to confirm the overlap read
+      in Pi's source actually drops another operation's hold; then give `verify` the same guard
+      `conduct` and `/495 close` already have. Sized as a quick-fix once reproduced — do not fix ahead
+      of a red test.
+    status: open

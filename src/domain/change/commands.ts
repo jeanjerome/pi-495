@@ -60,6 +60,7 @@ export type ChangeCommand =
 	| (Base & { type: "artifact.propose"; kind: ArtifactKind; ref: ArtifactRef })
 	| (Base & { type: "question.open"; id: string; question: string; material: boolean; decision_id: string | null })
 	| (Base & { type: "question.answer"; id: string; answer: string; human_decision_id: string | null })
+	| (Base & { type: "question.close"; id: string; origin: HumanOrigin })
 	| (Base & { type: "gate.evaluate"; gate: "G0"; mandate_ref: ArtifactRef; mandate: Mandate })
 	| (Base & {
 			type: "gate.evaluate";

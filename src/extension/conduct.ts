@@ -34,7 +34,7 @@ export async function conduct(
 ): Promise<void> {
 	const rt = session.runtime();
 	if (session.busy) {
-		session.emit(ctx, "495: une opération est déjà en cours dans cette session.");
+		session.emit(ctx, session.busyRefusal());
 		return;
 	}
 	session.busy = true;

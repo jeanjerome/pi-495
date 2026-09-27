@@ -8,7 +8,7 @@
 story_id: e01s03
 spec: e01s03-seul-l-humain-declare-qu-une-question-n-est-plus-materielle.md
 title: "Seul l'humain déclare qu'une question n'est plus matérielle ou qu'une réponse ne fixe rien d'observable"
-status: failing
+status: passing
 bcps: 5
 requirement: BES-02
 delta: ADDED
@@ -35,7 +35,7 @@ tasks:
       src/application/phases/clarify.ts : une clôture portée par une sortie de modèle ou un appel
       d'outil est refusée comme toute décision, et une question close n'est dispensée qu'après une
       décision humaine inscrite.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -65,7 +65,7 @@ tasks:
       clôture et la réponse à une décision passent par la même vérification de provenance, aucune
       autre copie n'en existe, et la levée de l'arrêt qui suit une clôture est celle que la reprise
       emploie, refusée à un agent, une sortie de modèle et un appel d'outil.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -97,7 +97,7 @@ tasks:
       src/application/phases/specify.ts et src/application/context.ts : aucune sortie de modèle ne
       dispense plus une réponse humaine de toute exigence, et le document des exigences ne porte
       `observable: false` que pour une question close par un humain.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -122,7 +122,7 @@ tasks:
       Aucun constat nouveau sur src/extension/command.ts et src/extension/tool.ts : la clôture n'est
       atteignable que par une sous-commande humaine, jamais par l'outil exposé au modèle, et une
       session sans humain qualifié n'inscrit rien.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -136,7 +136,82 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
+    allure:
+      severity: high
+      categories:
+        - "Preflight"
+
+  # Tâches 6 à 8 : les deux écarts que verify-work a relevés à `ea1bd1d`
+  # (`specs/verifications/e01s03-verify.yaml`, gaps). Chacune a été sondée rouge dans le banc
+  # de `test/v2/specification-reopening.test.ts` avant d'être écrite : mandat à
+  # `open_questions: []` et Q1 recopiée `observable: true` après `/495 close` devant l'arrêt.
+  # À la différence des tâches 1 à 4, les commandes de 6 et 7 nomment des fichiers qui existent et
+  # passent aujourd'hui : les assertions qui les rendent rouges s'ajoutent aux tests de 6a, 6d et
+  # des étapes 1 à 5, qui ne comptaient que les interventions. Leur rouge se prouve par le commit
+  # de test seul, rejoué dans un arbre détaché sur `ea1bd1d`, et non par la commande d'aujourd'hui.
+
+  - id: 6
+    description: >
+      Le mandat porte toute question matérielle close, avec l'acteur qui l'a close, même quand le
+      rapport qui le fonde ne la pose pas : aux questions de ce rapport s'ajoutent, dans l'ordre du
+      journal, les questions closes qu'il ne pose pas, chacune avec sa question et sa réponse telles
+      que le journal les tient (la réponse vaut null quand la clôture vient d'IH-01). Une question
+      posée par le rapport et close n'y figure qu'une fois ; une question répondue et non close que
+      le rapport ne pose pas n'y est pas ajoutée, comme aujourd'hui. G0 ne compte aucune d'elles
+      comme ouverte. Tenu dans `test/v2/specification-reopening.test.ts` : après `/495 close` de Q1
+      devant l'arrêt (6a), le mandat proposé porte exactement Q1, avec la réponse enregistrée et
+      `closed_by` l'humain, et G0 passe ; après la clôture qui confirme la proposition « non
+      observable » (6d), le mandat porte Q1 close ; après la clôture d'IH-01 (étapes 1 à 5), la
+      question n'y figure qu'une fois. Les deux premiers échouent sur `ea1bd1d`, où le mandat a
+      `open_questions: []`.
+    verify: "node --test test/v2/specification-reopening.test.ts"
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - "domain"
+        - "BES-02"
+
+  - id: 7
+    description: >
+      Le document des exigences recopie la réponse d'une question close comme ne fixant rien
+      d'observable et liée à aucune exigence, quoi que dise le rapport : c'est ce que la
+      confirmation de la clôture annonce au propriétaire (« sa réponse ne liera plus aucune
+      exigence »). Une question répondue et non close garde la règle d'aujourd'hui : la
+      déclaration qui tient dans le rapport, sinon observable et portée par rien, que G1 refuse.
+      `observable: false` n'y vaut donc toujours que pour une question close par un humain. Tenu
+      dans `test/v0/change-rules.test.ts`, au niveau de la fonction qui recopie les réponses : une
+      question répondue puis close, sans déclaration qui tienne, est recopiée `observable: false`,
+      `requirement_ids: []` ; la même, qu'un rapport lie encore à une exigence obligatoire, aussi ;
+      une question répondue non close sans déclaration reste `observable: true`,
+      `requirement_ids: []`. Et dans `test/v2/specification-reopening.test.ts` : après `/495 close`
+      de Q1 devant l'arrêt (6a), le document adopté à G1 recopie « réponse à … » ainsi. Les deux
+      premiers cas et celui de 6a échouent sur `ea1bd1d`, qui recopie `observable: true`.
+    verify: "node --test test/v0/change-rules.test.ts test/v2/specification-reopening.test.ts"
+    risk: P1
+    security: medium
+    security_verify: >
+      Aucun constat nouveau sur src/domain/change/state.ts et src/application/phases/specify.ts :
+      le document des exigences ne porte `observable: false` que pour une question qu'un humain a
+      close, et aucune déclaration du rapport ne l'y fait porter pour une question ouverte.
+    status: passing
+    allure:
+      severity: high
+      categories:
+        - "Security Review"
+        - "domain"
+        - "BES-02"
+
+  - id: 8
+    description: >
+      L'ensemble des contrôles passe avec les deux écarts fermés.
+    verify: "npm run check"
+    risk: P1
+    security: low
+    status: passing
     allure:
       severity: high
       categories:

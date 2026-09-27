@@ -117,12 +117,19 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 					answer: null,
 					answered_at: null,
 					decision_id: event.decision_id,
+					closed_at: null,
+					closed_by: null,
 				},
 			];
 			return s;
 		case "question.answered":
 			s.open_questions = s.open_questions.map((q) =>
 				q.id === event.id ? { ...q, answer: event.answer, answered_at: event.at } : q,
+			);
+			return s;
+		case "question.closed":
+			s.open_questions = s.open_questions.map((q) =>
+				q.id === event.id ? { ...q, closed_at: event.at, closed_by: event.actor } : q,
 			);
 			return s;
 		case "gate.decided":

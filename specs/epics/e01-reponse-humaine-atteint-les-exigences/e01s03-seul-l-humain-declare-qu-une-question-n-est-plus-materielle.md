@@ -136,8 +136,9 @@ liaison que G1 refuserait à `observable: false`. Ce n'est pas un progrès : la 
 portée, et le changement s'arrête au lieu d'aller à G1 (le cas de D-37).
 
 6g. **Document d'exigences qui déclare non observable une réponse dont la question n'est pas
-close** : G1 le refuse en nommant la réponse. Aucun chemin de la clarification n'y mène plus ; le
-refus reste le dernier rempart.
+close** : G1 refuse un tel document, quel qu'en soit l'auteur, en nommant la réponse. La conduite
+n'en construit plus aucun : `declarationHolds` écarte la proposition avant que G1 ne soit atteint,
+et le cas s'arrête en clarification comme au 6f.
 
 6h. **Clôture par autre chose qu'un humain qualifié** : une clôture portée par un agent, une sortie
 de modèle, un appel d'outil ou une origine non authentifiée est refusée, par la même vérification
@@ -197,9 +198,11 @@ levée existante.
 **Arrêt :** motif existant `stagnation`, levable par une reprise ; son détail nomme la clôture et la
 proposition. Aucun motif nouveau.
 
-**Contrats :** aucun schéma changé. Le document des exigences garde son champ `observable`, qui ne
-vaut plus `false` que pour une question close par un humain. Le rapport de spécification garde le
-sien, qui devient une proposition.
+**Contrats :** le mandat gagne un seul champ, facultatif : `closed_by`, l'acteur qui a clos la
+question, que l'étape 4 exige et que son schéma fermé n'admettait pas. Aucun autre schéma ne change.
+Le document des exigences garde son champ `observable`, qui ne vaut plus `false` que pour une
+question close par un humain. Le rapport de spécification garde le sien, qui devient une
+proposition.
 
 **Entité créée :** aucune. Aucun identifiant de composant nouveau.
 
@@ -298,7 +301,8 @@ Scenario: Le propriétaire clôt la réponse perdue devant l'arrêt (6a)
   When  le propriétaire clôt la question par /495 close
   Then  la clôture est inscrite sous son nom
   And   aucune intervention de spécification n'est lancée
-  And   le rapport arrêté devient la base du mandat, qui porte la question close
+  And   le rapport arrêté devient la base du mandat, qui porte la question close avec l'acteur, bien que ce rapport ne la pose pas
+  And   le document des exigences recopie la réponse comme ne fixant rien d'observable, liée à aucune exigence
   And   le changement passe G1
 
 Scenario: L'arrêt nomme la clôture parmi ses issues (6a)
@@ -330,6 +334,7 @@ Scenario: Le propriétaire confirme la proposition en closant la question (6d)
   When  le propriétaire clôt la question
   Then  le changement passe G1 sans qu'aucune exigence ne porte la réponse
   And   le document des exigences la recopie comme ne fixant rien d'observable
+  And   le mandat porte la question close, avec l'acteur
 
 Scenario: Le propriétaire refuse la proposition en reprenant le changement (6e)
   Given un changement arrêté sur une réponse que le rapport propose non observable

@@ -9,7 +9,8 @@ import { OUTPUT_SCHEMAS } from "../../contracts/v1/reports.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
 import { validate } from "../../contracts/validate.ts";
 import {
-	type AnswerDeclaration,
+	isQuestionClosed,
+	type OpenQuestion,
 	requestedLanguage,
 	specificationStanding,
 	subjectOfChange,
@@ -83,7 +84,15 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	}
 	// A mandate built on a report that lost an answer would reach G1 only to be refused there, and no
 	// phase comes back to the specification past G0: the owner decides here, while it still can be.
-	if (standing.stalled)
+	if (standing.stalled) {
+		// A report that proposes an answer fixes nothing observable has not lost it by accident: it is
+		// asking the owner to confirm the proposal, not merely restating a binding it dropped (BES-02).
+		const lost = standing.ignored
+			.map((q) => {
+				const proposed = report.answers.find((a) => a.question_id === q.id && !a.observable);
+				return proposed ? `${q.id} (the report proposes that answer fixes nothing observable)` : q.id;
+			})
+			.join(", ");
 		return ctx.commit(
 			unit,
 			{
@@ -91,24 +100,19 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 				at: ctx.now(),
 				actor: KERNEL_ACTOR,
 				reason: "stagnation",
-				detail: `the specification loses material answer(s) ${standing.ignored.map((q) => q.id).join(", ")} and its latest rewriting carries none an earlier report did not; resume rewrites the specification, cancel abandons the change`,
+				detail: `the specification loses material answer(s) ${lost} and its latest rewriting carries none an earlier report did not; resume rewrites the specification, close <question> closes a question that is no longer material, cancel abandons the change`,
 				retryable: true,
 			},
 			cor,
 		);
+	}
 	const mandate: Mandate = {
 		change_id: unit.state.change_id,
 		objective: report.objective,
 		scope: report.requirements.map((r) => r.requirement_id),
 		out_of_scope: report.out_of_scope,
 		assumptions: report.assumptions,
-		open_questions: report.questions.map((q) => ({
-			id: q.id,
-			question: q.question,
-			material: q.material,
-			answer:
-				unit.state.open_questions.find((s) => s.id === q.id)?.answer ?? (q.material ? null : "non-material, left open"),
-		})),
+		open_questions: mandateQuestions(unit, report),
 		allowed_paths: [],
 		integration: ctx.policy.integration_enabled ? "local_branch" : "disabled",
 		language,
@@ -134,10 +138,32 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	return requestAdoption(ctx, unit, cor, "G0", "mandate", mandateRef, language);
 }
 
-/** The material questions of a report the human has not answered yet. */
+/**
+ * The questions the mandate carries: the report's, with the answer the ledger records, then every
+ * question the owner closed that the report does not pose any more, in journal order (BES-02). A
+ * closed question keeps its actor either way: a closed question is not a forgotten one, and the
+ * report staying silent about it is not the mandate forgetting it.
+ */
+function mandateQuestions(unit: Unit, report: SpecificationReport): Mandate["open_questions"] {
+	const closedFields = (s: OpenQuestion) =>
+		isQuestionClosed(s) && s.closed_by ? { closed_by: s.closed_by.actor_id } : {};
+	const asked = report.questions.map((q) => {
+		const s = unit.state.open_questions.find((x) => x.id === q.id);
+		const answer = s?.answer ?? (q.material ? null : "non-material, left open");
+		return { id: q.id, question: q.question, material: q.material, answer, ...(s ? closedFields(s) : {}) };
+	});
+	const askedIds = new Set(report.questions.map((q) => q.id));
+	const closedUnasked = unit.state.open_questions
+		.filter((s) => isQuestionClosed(s) && !askedIds.has(s.id))
+		.map((s) => ({ id: s.id, question: s.question, material: s.material, answer: s.answer, ...closedFields(s) }));
+	return [...asked, ...closedUnasked];
+}
+
+/** The material questions of a report the human has not resolved yet: neither answered nor closed. */
 function questionsToAsk(unit: Unit, report: SpecificationReport): SpecificationReport["questions"] {
 	return report.questions.filter(
-		(q) => q.material && !unit.state.open_questions.some((s) => s.id === q.id && s.answer !== null),
+		(q) =>
+			q.material && !unit.state.open_questions.some((s) => s.id === q.id && (s.answer !== null || isQuestionClosed(s))),
 	);
 }
 
@@ -151,7 +177,7 @@ async function writeSpecification(
 	cor: string,
 	reference: ReferenceSnapshot,
 	request: string,
-	declared: Map<string, AnswerDeclaration>,
+	declared: Map<string, string[]>,
 ): Promise<{ unit: Unit; report: SpecificationReport | null }> {
 	let report: SpecificationReport;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);

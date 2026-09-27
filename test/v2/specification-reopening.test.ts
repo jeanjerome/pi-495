@@ -11,7 +11,7 @@ import {
 import { initRepo, fixtureTs, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
-import type { RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
+import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -100,6 +100,29 @@ const BINDS_Q1_TO_BODY = specReport({
 	questions: [],
 	answers: [{ question_id: Q1.id, observable: true, requirement_ids: [BODY.requirement_id] }],
 	requirements: [BODY, UPDATE],
+});
+// A report that drops both Q1 and Q6, carrying only Q7: closing one of the two lost answers still
+// leaves the other owed.
+const LOSES_Q1_AND_Q6 = specReport({
+	questions: [],
+	answers: [{ question_id: Q7.id, observable: true, requirement_ids: [UPDATE.requirement_id] }],
+	requirements: [UPDATE],
+});
+// Proposes that Q1 (closed by the owner) fixes nothing observable, and still says nothing of Q6: the
+// declaration a closed question keeps drawing must not read as a fresh answer carried on top of the
+// one rewriting its close already owes.
+const PROPOSES_NOTHING_FOR_CLOSED_Q1 = specReport({
+	questions: [],
+	answers: [{ question_id: Q1.id, observable: false, requirement_ids: [] }],
+	requirements: [UPDATE],
+});
+// Binds Q1 (closed by the owner) observably to a requirement it actually holds, instead of declaring
+// it fixes nothing: the exclusion of a closed question from the measure of progress must hold for this
+// case too, not only for a declaration `declarationHolds` would have discarded anyway.
+const BINDS_CLOSED_Q1_TO_UPDATE = specReport({
+	questions: [],
+	answers: [{ question_id: Q1.id, observable: true, requirement_ids: [UPDATE.requirement_id] }],
+	requirements: [UPDATE],
 });
 
 /** Starts the change and answers the questions of the first two rounds. */
@@ -372,7 +395,7 @@ describe("a specification report is judged against every recorded material answe
 		await assertStoppedBeforeG0(t, change.change_id, [QC.id]);
 	});
 
-	it("does not count an answer the report declares as fixing nothing observable as lost (6e)", async () => {
+	it("a report that declares an answer fixes nothing observable stops the change instead of passing it silently, and closing the question confirms it past G1 without any exigence (6c, 6d)", async () => {
 		const t = track(makeHarness());
 		const { calls } = specificationRounds(t, [
 			ASKS_Q1,
@@ -385,9 +408,49 @@ describe("a specification report is judged against every recorded material answe
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerer(t, change.change_id)();
+		const stop = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(stop.stopped_because, "blocked", stop.steps.join(" | "));
+		const blocked = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(blocked.stop_reason, "stagnation");
+		assert.ok(blocked.stop_detail?.includes("fixes nothing observable"), blocked.stop_detail ?? "");
+		assert.equal(await t.harness.artifacts.latest(blocked, "mandate"), null, "no mandate is proposed");
+		const res = t.harness.closeQuestion(change.change_id, Q1.id, origin());
+		assert.equal(res.error, null);
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
-		assert.equal(calls(), 2);
+		assert.equal(calls(), 2, "closing the question confirms the proposal without a further rewriting");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const mandateArtifact = (await t.harness.artifacts.latest<Mandate>(state, "mandate"))!;
+		assert.equal(mandateArtifact.content.open_questions.find((q) => q.id === Q1.id)?.closed_by, HUMAN.actor_id);
+	});
+
+	it("refusing the proposal by resuming instead of closing rewrites the specification, which binds the answer past G1 (6e)", async () => {
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			specReport({
+				questions: [],
+				answers: [{ question_id: Q1.id, observable: false, requirement_ids: [] }],
+				requirements: [UPDATE],
+			}),
+			specReport({
+				questions: [],
+				answers: [{ question_id: Q1.id, observable: true, requirement_ids: [UPDATE.requirement_id] }],
+				requirements: [UPDATE],
+			}),
+		]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
+		answerer(t, change.change_id)();
+		assert.equal((await t.harness.advance(change.change_id, { max_steps: 30 })).stopped_because, "blocked");
+		assert.equal(t.harness.resume(change.change_id, HUMAN).change?.status, "ready");
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 3, "the resume obtains one rewriting that declares the answer");
+		assert.ok(
+			objectives[2]!.includes(`Q ${Q1.id}: ${Q1.question} -> réponse à ${Q1.question} [to declare in \`answers\`]`),
+			objectives[2],
+		);
 	});
 });
 
@@ -466,6 +529,121 @@ describe("a change stopped because its specification no longer progresses is res
 		assert.equal(state.phase, "closed");
 		await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(calls(), 4, "no specification is written after the change is abandoned");
+	});
+
+	it("closes the lost question at the stop instead of resuming it, and the change proceeds without a further specification intervention (6a)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
+		const changeId = await stopped(t, calls);
+		const res = t.harness.closeQuestion(changeId, Q1.id, origin());
+		assert.equal(res.error, null);
+		assert.equal(res.view.change?.status, "ready");
+		const closed = t.ledger.loadChange(changeId)!.state;
+		const q1 = closed.open_questions.find((q) => q.id === Q1.id)!;
+		assert.ok(q1.closed_at);
+		assert.equal(q1.closed_by?.actor_id, HUMAN.actor_id);
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(
+			calls(),
+			4,
+			"the report the change stopped on founds the mandate; no rewriting is owed for a closed question",
+		);
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		const state = t.ledger.loadChange(changeId)!.state;
+		const mandateArtifact = (await t.harness.artifacts.latest<Mandate>(state, "mandate"))!;
+		assert.deepEqual(
+			mandateArtifact.content.open_questions.map((q) => q.id),
+			[Q1.id],
+			"RENAMES_MESSAGE poses nothing; the mandate still carries the closed question the journal holds",
+		);
+		assert.equal(mandateArtifact.content.open_questions[0]?.answer, q1.answer);
+		assert.equal(mandateArtifact.content.open_questions[0]?.closed_by, HUMAN.actor_id);
+		const requirementsArtifact = (await t.harness.artifacts.latest<RequirementsDocument>(state, "requirements"))!;
+		const q1Answer = requirementsArtifact.content.answers.find((a) => a.question_id === Q1.id);
+		assert.equal(q1Answer?.observable, false, "closing the question dispenses its answer from every requirement");
+		assert.deepEqual(q1Answer?.requirement_ids, []);
+	});
+
+	it("closes one of two lost answers, and the specification is rewritten once more for the other, whose declaration the close is named beside (6b)", async () => {
+		const t = track(makeHarness());
+		const { objectives, calls } = specificationRounds(t, [
+			ASKS_Q1,
+			BINDS_Q1,
+			LOSES_Q1_AND_Q6,
+			LOSES_Q1_AND_Q6,
+			RENAMES_MESSAGE,
+		]);
+		const changeId = await throughTwoRounds(t);
+		const first = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(first.stopped_because, "blocked", first.steps.join(" | "));
+		assert.equal(calls(), 4);
+		await assertStoppedBeforeG0(t, changeId, [Q1.id, Q6.id]);
+		const res = t.harness.closeQuestion(changeId, Q1.id, origin());
+		assert.equal(res.error, null);
+		assert.equal(res.view.change?.status, "ready");
+		await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(calls(), 5, "closing one of two lost answers rewrites the specification once more for the other");
+		assert.ok(objectives[4]!.includes(`Q ${Q1.id}: ${Q1.question} -> closed by the owner`), objectives[4]);
+		assert.ok(
+			objectives[4]!.includes(`Q ${Q6.id}: ${Q6.question} -> réponse à ${Q6.question} [to declare in \`answers\`]`),
+			objectives[4],
+		);
+	});
+
+	it("does not read a closed question's declaration as progress on top of the rewriting its close already owes, while another lost answer is still owed (BES-02)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [
+			ASKS_Q1,
+			BINDS_Q1,
+			LOSES_Q1_AND_Q6,
+			LOSES_Q1_AND_Q6,
+			PROPOSES_NOTHING_FOR_CLOSED_Q1,
+		]);
+		const changeId = await throughTwoRounds(t);
+		const first = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(first.stopped_because, "blocked", first.steps.join(" | "));
+		assert.equal(calls(), 4);
+		await assertStoppedBeforeG0(t, changeId, [Q1.id, Q6.id]);
+		const res = t.harness.closeQuestion(changeId, Q1.id, origin());
+		assert.equal(res.error, null);
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(
+			calls(),
+			5,
+			"the close owes one rewriting; the proposal it keeps making for the now-closed Q1 is not a fresh answer carried, so the still-lost Q6 stalls the change instead of buying a second, needless rewriting",
+		);
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.stop_reason, "stagnation");
+		assert.ok(state.stop_detail?.includes(Q6.id), state.stop_detail ?? "");
+	});
+
+	it("does not read a closed question's observable binding as progress either, while another lost answer is still owed (BES-02)", async () => {
+		const t = track(makeHarness());
+		const { calls } = specificationRounds(t, [
+			ASKS_Q1,
+			BINDS_Q1,
+			LOSES_Q1_AND_Q6,
+			LOSES_Q1_AND_Q6,
+			BINDS_CLOSED_Q1_TO_UPDATE,
+		]);
+		const changeId = await throughTwoRounds(t);
+		const first = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(first.stopped_because, "blocked", first.steps.join(" | "));
+		assert.equal(calls(), 4);
+		await assertStoppedBeforeG0(t, changeId, [Q1.id, Q6.id]);
+		const res = t.harness.closeQuestion(changeId, Q1.id, origin());
+		assert.equal(res.error, null);
+		const last = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(
+			calls(),
+			5,
+			"the close owes one rewriting; binding the now-closed Q1 again is not fresh progress either, so the still-lost Q6 stalls the change instead of buying a second, needless rewriting",
+		);
+		assert.equal(last.stopped_because, "blocked", last.steps.join(" | "));
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.stop_reason, "stagnation");
+		assert.ok(state.stop_detail?.includes(Q6.id), state.stop_detail ?? "");
 	});
 });
 
@@ -602,5 +780,48 @@ describe("a refusal at G1 names the only way out a command holds once the mandat
 			false,
 			shown.join(" | "),
 		);
+	});
+});
+
+describe("the owner closes a material question through IH-01 instead of answering it (BES-02)", () => {
+	it("does not reopen the report that posed the closed question, and the mandate carries it closed with the owner (étapes 1 à 5)", async () => {
+		const t = track(makeHarness());
+		const Q = { id: "q-scope", question: "faut-il aussi la mise à jour ?", material: true };
+		const { calls } = specificationRounds(t, [specReport({ questions: [Q], answers: [] })]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const first = await t.harness.advance(change.change_id);
+		assert.equal(first.stopped_because, "decision_required");
+		const req = t.requested[0]!;
+		assert.equal(req.interaction, "IH-01");
+		const closed = t.harness.answerDecision(
+			change.change_id,
+			{
+				decision_id: req.decision_id,
+				option_id: "close",
+				free_text: null,
+				reason: null,
+				subject_revision: req.subject.revision,
+				scope: null,
+				expires_at: null,
+			},
+			origin(),
+		);
+		assert.equal(closed.error, null);
+		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(last.stopped_because, "closed", last.steps.join(" | "));
+		assert.equal(calls(), 1, "the report that posed the closed question is not written again");
+
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const q = state.open_questions.find((x) => x.id === Q.id)!;
+		assert.equal(q.answer, null, "closing records no answer");
+		assert.equal(q.closed_by?.actor_id, HUMAN.actor_id);
+		const mandateArtifact = (await t.harness.artifacts.latest<Mandate>(state, "mandate"))!;
+		assert.equal(mandateArtifact.content.open_questions.find((x) => x.id === Q.id)?.closed_by, HUMAN.actor_id);
+		assert.equal(
+			mandateArtifact.content.open_questions.filter((x) => x.id === Q.id).length,
+			1,
+			"a question the report poses and the owner closes is carried once, not once as asked and once as closed",
+		);
+		assert.equal(state.gates.G0?.verdict, "PASS", state.gates.G0?.reasons.join(" | "));
 	});
 });

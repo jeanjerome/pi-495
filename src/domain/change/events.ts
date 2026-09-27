@@ -62,6 +62,7 @@ export type ChangeEvent =
 	| (Base & { type: "protocol.frozen"; protocol: FrozenProtocol })
 	| (Base & { type: "question.opened"; id: string; question: string; material: boolean; decision_id: string | null })
 	| (Base & { type: "question.answered"; id: string; answer: string; human_decision_id: string | null })
+	| (Base & { type: "question.closed"; id: string; human_decision_id: string | null })
 	| (Base & { type: "gate.decided"; decision: GateDecisionState })
 	| (Base & { type: "gate.invalidated"; gate: GateId; reason: string })
 	| (Base & { type: "attempt.opened"; attempt_id: string; index: number })
