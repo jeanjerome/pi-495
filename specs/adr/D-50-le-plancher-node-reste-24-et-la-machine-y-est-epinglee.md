@@ -5,8 +5,10 @@
 
 **Décision.** `engines.node` reste `>=24.0.0` et `@types/node` reste borné à `^24`, alors que trois
 versions de Node sont installées sur la machine. C'est la machine qui est alignée sur le plancher et
-non le plancher sur la machine : `~/.zshenv` épingle `/opt/homebrew/opt/node@24/bin`, de sorte que
-tout shell zsh — interactif ou non — résout Node 24.21.
+non le plancher sur la machine : `~/.zshenv` épingle `/opt/homebrew/opt/node@24/bin` pour tout shell
+zsh, et `~/.zprofile` l'épingle de nouveau après `brew shellenv`, qui remet `/opt/homebrew/bin` en
+tête dans tout shell de connexion. Tout shell zsh — de connexion ou non, interactif ou non — résout
+ainsi Node 24.21.
 
 **Motif.** `node: process.version` alimente `EnvironmentFacts`, donc `environment_digest`
 (`src/application/environment.ts:127`), au même titre que `pi_version`. Or la version que la machine
@@ -24,8 +26,9 @@ code ; il aurait cessé de le faire sans qu'aucun contrôle le signale.
 **Conséquence.** Les deux bornes sont couplées : `@types/node` suit le plancher de `engines`, jamais
 la dernière version publiée. Les monter suppose de monter `engines` d'abord, ce qui restreint qui
 peut installer le paquet. `/opt/homebrew/bin/node` sert un Node 26.9 et l'emporte partout où
-l'épinglage de `.zshenv` est contourné — c'est le cas dans le shell d'outil de Claude Code, où il
-faut préfixer `PATH` à la main lorsque la version de Node compte pour ce qui est mesuré.
+l'épinglage est contourné. Le shell d'outil de Claude Code ne relit que `~/.zshrc`, par-dessus le
+`PATH` du processus qui a lancé `claude` : il résout Node 24 quand ce processus vient d'un shell de
+connexion épinglé, et Node 26 quand il a hérité d'un `PATH` où `brew shellenv` a eu le dernier mot.
 
 **Limite.** L'épinglage vit hors du dépôt, dans la configuration de shell du propriétaire. Aucun
 contrôle de Preflight ne le vérifie, et une machine neuve ne l'hérite pas : c'est une condition
