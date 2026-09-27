@@ -55,6 +55,10 @@ Before a commit, run what can refuse the change, and nothing that cannot:
 `README.md` is in the first row because it ships in the package and a test reads its configuration
 example. A change that spans several rows runs each row's command, and full Preflight covers them all.
 
+A green Preflight holds until a file of the first row changes. While `git diff --name-only <revision>`
+lists none of them, cite that run — its revision and time — rather than run it again, whether a phase
+starts or a commit follows. Only a run under Node 24, the declared floor, counts (`specs/adr/D-50`).
+
 ## Discovered Defects
 
 Treat any reproducible gate failure found during unrelated work as a discovered defect, not
@@ -97,7 +101,9 @@ of both skills applies. Why: `specs/adr/D-62`.
    goal, is the sign to step back.
 3. **Review what changed since the last round.** The first round reviews the branch against `main`.
    Each later round receives the diff since the reviewed revision, the findings already answered, and
-   the open entries of `specs/bugs/registry.yaml`, which it does not count again.
+   the open entries of `specs/bugs/registry.yaml`, which it does not count again. Every round
+   receives the Preflight of the reviewed revision: a reviewer does not run it again, and runs only
+   the tests its probes and mutations need.
 4. **Close the gate without a percentage.** The gate passes when no finding introduced or made
    reachable by the branch remains must-fix or should-fix, for both reviewers. A consider item never
    holds the gate. The cap stays at five rounds; past it, the owner decides the merge.
@@ -133,6 +139,11 @@ A file a skill regenerates is never a place to hand-write something that must la
 rewrites `tech-stack.md` whole, `build-epic` regenerates `TRACEABILITY_LATEST.md`, `scope-work`
 rewrites `SCOPE_LATEST.yaml`. Durable hand-written content belongs in `specs/adr/`, `specs/epics/`,
 `specs/bugs/BUG-*.md` or `specs/archive/`.
+
+The handoff in `specs/state.yaml` tells the next session what it needs, in a few lines: the next
+skill, what is left open, the revision of the last green Preflight. Each step replaces it rather
+than adding to it. Git, the commit messages and `specs/verifications/` keep the history; a handoff
+that carries it is read again, whole, by every session.
 
 ## Code Style
 
