@@ -112,6 +112,15 @@ of both skills applies. Why: `specs/adr/D-62`.
    gate passes or the owner decides. Record each red in the red-green log when it is observed. A
    record trailing the reviewed revision is not a finding.
 
+## Cycle order
+
+This order replaces the one of the bigpowers `build-epic` skill once `develop-tdd` is done:
+`audit-code`, then `request-review` and `respond-review` until the gate passes, then `verify-work`
+and the owner's acceptance, then `commit-message` and `release-branch`. The acceptance thus covers
+the code that ships. A gap the acceptance run finds goes back to `develop-tdd`, then to one review
+round on the diff since the reviewed revision, then to `verify-work`. Each step writes this next
+skill in the handoff, whatever its own skill names. Why: `specs/adr/D-64`.
+
 ## specs/ — the documentation surface
 
 `specs/` carries the documentation of 495, at its bigpowers location. The corpus written before the

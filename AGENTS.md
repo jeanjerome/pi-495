@@ -116,6 +116,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 ## Agent Rules
 
 - **Workflow Mandate:** Use bigpowers skills (`plan-work`, `develop-tdd`, `orchestrate-project`) for new planning and delivery work.
+- **Cycle order:** after `develop-tdd` come `audit-code`, the review until its gate passes, then `verify-work` and the owner's acceptance, then `commit-message` and `release-branch` (CONVENTIONS.md § Cycle order, `specs/adr/D-64`).
 - **`specs/` is the documentation surface:** new normative content goes there, in its bigpowers location. The corpus written earlier is archived under `specs/archive/` — `specs/archive/amont/` for the normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md`, `RISQUES-L0.md` and `chantiers/` for implementation tracking. Archived means nothing new is written there; two Preflight controls still read it, and only keep their power to refuse because they do.
 - **Always Green:** Preflight (`npm run check`) must be green before forward work.
 - **Review:** `request-review` and `respond-review` follow CONVENTIONS.md § Review, which replaces their score gate and their whole-branch loop (`specs/adr/D-62`).
