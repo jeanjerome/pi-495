@@ -7,23 +7,24 @@ project_cycle:
 
 active_flow: build_epic
 active_epic_id: e01
-active_story: e01s03
+active_story: e01s04
 
 epic_cycle:
-  step: 6
-  completed_steps: "0,1,2,3,4,5"
-  audit_result: pass
+  step: 0
+  completed_steps: ""
   story_bcps: 5
 
 handoff:
-  next_skill: survey-context
+  next_skill: plan-work
   last_step_completed: >
-    e01s03 livrée : recette ciblée acceptée par le propriétaire le 2026-09-27 à 22:12:45Z, sur
-    `709063b` (code à `50a7eb1`), sous Node 24.21.0 ; dernière Preflight verte : `709063b`,
-    531 tests. Preuve : `specs/verifications/e01s03-verify.yaml`. La branche
-    `seul-l-humain-clot-une-question` arrive sur `main` en un seul commit écrasé et reste en place,
-    parce que le journal rouge-vert et le relevé de relecture citent ses commits ; le push reste à
-    la décision du propriétaire. Prochaine étape : la story suivante de e01, choisie par
-    `survey-context`.
+    `survey-context` le 2026-09-28 sur `main` à `aa1efec`, égale à `origin/main`, arbre propre :
+    e01s03 est versée en `307901e` et poussée. Dernière Preflight verte : `aa1efec`, sous Node
+    24.21.0 (`specs/verifications/e01s04-preflight-de-depart.md`). e01s04, la révocation d'une
+    réponse, suit dans l'ordre contraint de la capsule ; ni sa spécification ni ses tâches ne sont
+    écrites, et le modèle de menace de e01 lui confie M3 à M6. Quatre bogues restent ouverts au
+    registre, sans branche. Deux touchent ce qu'e01s04 va toucher, et `plan-work` les lit avant
+    d'écrire les tâches : BUG-2026-09-27T170000 (une décision refusée n'atteint jamais le journal)
+    et BUG-2026-09-27T220000 (`/495 verify` prend le verrou `busy` sans le lire). Prochaine étape :
+    `plan-work` pour e01s04.
 metrics:
-  story_start: "2026-09-26T19:03:12+02:00"
+  story_start: "2026-09-28T00:50:16+02:00"
