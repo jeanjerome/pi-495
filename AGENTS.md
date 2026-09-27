@@ -120,6 +120,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - **`specs/` is the documentation surface:** new normative content goes there, in its bigpowers location. The corpus written earlier is archived under `specs/archive/` — `specs/archive/amont/` for the normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md`, `RISQUES-L0.md` and `chantiers/` for implementation tracking. Archived means nothing new is written there; two Preflight controls still read it, and only keep their power to refuse because they do.
 - **Always Green:** Preflight (`npm run check`) must be green before forward work.
 - **Review:** `request-review` and `respond-review` follow CONVENTIONS.md § Review, which replaces their score gate and their whole-branch loop (`specs/adr/D-62`).
+- **Red before code:** a task says what its test asserts in the words of the story and why that fails today; `develop-tdd` writes the test first and sees it fail on that assertion before the code (CONVENTIONS.md § Tests, `specs/adr/D-63`).
 - Read CONVENTIONS.md and the relevant `specs/` file before writing code.
 - Write the minimum code that solves the stated problem.
 - Run tests after every change. Show evidence before declaring done.

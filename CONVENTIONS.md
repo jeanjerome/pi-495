@@ -203,6 +203,21 @@ revision and point to that record rather than copy it. A copy drifts from the co
 - Assert only through the public interface — return values, contracts, view state. Never assert on
   private state.
 
+### Red before code
+
+- A task ends by saying where its test holds it, what that test asserts in the words of the story —
+  an artefact, an event, a refusal, a message — and what the code does today that makes the
+  assertion fail (`specs/adr/D-63`). A count or the absence of an error holds a promise only when
+  the story states it.
+- Write that test first, and see it fail on that assertion before any line of the code it pins. A
+  missing file, an import or type error, or a red obtained by setting aside code already written is
+  not that red.
+- Record the failing message in the story's red-green log,
+  `specs/verifications/<story>-cycle-rouge-vert.md`, when it is observed. Every new test fails by
+  itself at its test-only commit: read which tests fail, not only the exit code.
+- `verify-tdd-red-commit.sh` judges the bigpowers repository, not this one. Replay a red in a
+  detached worktree at the test-only commit, with `node_modules` linked.
+
 ## Dependencies
 
 - Inject a dependency through a constructor or parameter. Never reach for a global or a bare import.
