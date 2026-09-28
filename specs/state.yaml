@@ -17,19 +17,21 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: survey-context
+  next_skill: fix-bug
   last_step_completed: >
-    e01s04 est versée sur `main` en `45b676c`, un seul commit écrasé, fait à la main sans
-    `land-branch.sh` ; la branche `une-reponse-donnee-par-erreur-se-revoque` est gardée
-    (`specs/verifications/e01s04-release.yaml`). `main` n'est pas poussée : elle devance
-    `origin/main` de quatre commits, et le push revient au propriétaire. Dernière Preflight verte :
-    `3f18021`, sous Node 24.21.0 (`specs/verifications/e01s04-verify.yaml`) ; depuis, seuls des
-    fichiers de `specs/` qu'aucun contrôle ne lit ont changé, et l'arbre de `45b676c` est celui de la
-    tête de branche.
+    `survey-context` le 2026-09-28 sur `main` à `092aae4`, arbre propre. e01s04 est versée en
+    `45b676c` ; `main` devance `origin/main` de quatre commits, et le push revient au propriétaire.
+    Dernière Preflight verte : `3f18021`, sous Node 24.21.0 (`specs/verifications/e01s04-verify.yaml`) ;
+    elle tient, `git diff --name-only 3f18021` ne listant que des fichiers de `specs/` qu'aucun
+    contrôle ne lit.
 
-    Reste ouvert : e01s05, au carnet. Au registre, introduits par e01s04 et à corriger maintenant
-    qu'elle est versée : BUG-2026-09-28T013000, BUG-2026-09-28T025000 et BUG-2026-09-28T025100. Hors
-    de cette story : BUG-2026-09-23T155707, BUG-2026-09-27T170000, BUG-2026-09-27T170100,
-    BUG-2026-09-27T220000 et BUG-2026-09-28T013100.
+    Prochaine étape : `fix-bug` sur les trois bogues introduits par e01s04, avant `plan-work` pour
+    e01s05, dont la recette exerce la révocation dans Pi et doit porter sur le code corrigé. D'abord
+    BUG-2026-09-28T013000 et BUG-2026-09-28T025000, qui touchent ce que la révocation admet et défait
+    dans le noyau, puis BUG-2026-09-28T025100, qui change le contrat du protocole. Aucun n'a de fiche
+    `BUG-*.md` ni de test rouge, et chaque correctif demande sa propre relecture (CONVENTIONS.md
+    § Review, règle 6). Hors de e01, restent ouverts au registre : BUG-2026-09-23T155707,
+    BUG-2026-09-27T170000 et BUG-2026-09-27T170100 (moyens), BUG-2026-09-27T220000 et
+    BUG-2026-09-28T013100.
 metrics:
-  story_start: "2026-09-28T00:50:16+02:00"
+  story_start: "2026-09-28T07:56:10+02:00"
