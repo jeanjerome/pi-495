@@ -1,72 +1,99 @@
 /**
- * Structural contract of a story spec (specs/references/countable-story-format.md: twenty sections,
- * fixed names, fixed order). `plan-work` writes one `.md` story spec per story inside an epic
- * capsule, in a format written and maintained outside this repository. The bigpowers package
- * installed under `.claude/skills/` ships the procedures without the documents they cite, so that
- * format exists on this machine only as the pinned copy this control reads.
+ * Structural contract of a story (cycle/format-de-story.md): a three-line header, five sections
+ * with fixed names and order, promises written as scenarios, and tasks that each say what holds
+ * them. The section names are not restated here: they are read from the format, so a story and the
+ * format it claims to follow cannot drift apart without one of the two being edited.
  *
- * Reading the copy is what gives the control its power to refuse. The twenty section names are not
- * restated here: they are extracted from the document itself, so a story and the format it claims
- * to follow cannot drift apart without one of the two being edited.
- *
- * A section is present when its heading appears verbatim, at its rank, carrying an approval state —
- * `[draft]`, `[reviewed]` or `[locked]`. Sections 14 to 16 carry `*NFR*` as part of their name, so
- * a story that drops the tag reads as a story that renamed the section. The header block and the
- * Fibonacci sizing are part of the format but are not checked here.
+ * A story marked `versée` is history and is not judged: nothing new is written in it.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const formatPath = "specs/references/countable-story-format.md";
-const epicsPath = "specs/epics";
+const formatPath = "cycle/format-de-story.md";
+const storiesPath = "specs/stories";
 
-/** `e23s01-qualifier-un-second-fournisseur.md` — a story spec inside an epic capsule. */
+/** `e01s05-la-decision-est-ecrite.md` — a story file. */
 const STORY_FILE = /^e\d+s\d+-.+\.md$/;
-/** `### 5. Main flow and business logic` — the rank of a section, then its name. */
-const SECTION = /^### (\d+)\. (.+)$/;
-/** The approval state a story adds to a section name, which the format itself does not carry. */
-const APPROVAL = /\s*\[(?:draft|reviewed|locked)\]\s*$/;
+/** `## 2. Promesses` — the rank of a section, then its name. */
+const SECTION = /^## (\d+)\. (.+)$/;
+/** `### Tâche 1 — Le noyau repose la question` — one task. */
+const TASK = /^### Tâche (\d+) — .+$/;
+const STATUSES = ["à faire", "en cours", "versée"];
+const TASK_LINES = ["Vérifie :", "Tient :", "Rouge :"];
 
 const failures: string[] = [];
 
 interface Section {
 	rank: number;
 	name: string;
+	body: string[];
 }
 
-/**
- * Headings inside a fenced block belong to the worked example, which reproduces the twenty sections
- * as a story would carry them; counting those would read forty sections in a document that has
- * twenty. A story's own fenced blocks — Gherkin scenarios, interface element lists — are skipped
- * for the same reason.
- */
+/** Headings inside a fenced block belong to the format's example, or to a story's Gherkin. */
 function sections(markdown: string): Section[] {
 	const found: Section[] = [];
 	let fenced = false;
 	for (const line of markdown.split("\n")) {
-		if (line.startsWith("```")) {
-			fenced = !fenced;
-			continue;
-		}
+		if (line.startsWith("```")) fenced = !fenced;
 		if (fenced) continue;
 		const m = SECTION.exec(line);
-		if (m) found.push({ rank: Number(m[1]), name: m[2]!.trim() });
+		if (m) found.push({ rank: Number(m[1]), name: m[2]!.trim(), body: [] });
+		else found.at(-1)?.body.push(line);
 	}
 	return found;
 }
 
-/** Story specs of every capsule but the archive, which holds epics that are closed. */
-function storySpecs(): string[] {
-	if (!existsSync(join(root, epicsPath))) return [];
-	const specs: string[] = [];
-	for (const capsule of readdirSync(join(root, epicsPath), { withFileTypes: true })) {
-		if (!capsule.isDirectory() || capsule.name === "archive") continue;
-		for (const entry of readdirSync(join(root, epicsPath, capsule.name))) {
-			if (STORY_FILE.test(entry)) specs.push(join(epicsPath, capsule.name, entry));
+/** A header line, read before the first section only. */
+function header(markdown: string, key: string): string | null {
+	const preamble = markdown.split("\n## ")[0]!;
+	const m = new RegExp(`^${key} : (.+)$`, "m").exec(preamble);
+	return m ? m[1]!.trim() : null;
+}
+
+function storyFiles(): string[] {
+	if (!existsSync(join(root, storiesPath))) return [];
+	const files: string[] = [];
+	const walk = (dir: string): void => {
+		for (const entry of readdirSync(dir)) {
+			const path = join(dir, entry);
+			if (statSync(path).isDirectory()) walk(path);
+			else if (STORY_FILE.test(entry)) files.push(path.slice(root.length + 1));
 		}
+	};
+	walk(join(root, storiesPath));
+	return files.sort();
+}
+
+/** Every task carries the three lines that say what holds it; a manual check stands for `Vérifie :`. */
+function checkTasks(story: string, body: string[]): void {
+	let task: string | null = null;
+	let seen: string[] = [];
+	let count = 0;
+	const close = (): void => {
+		if (task === null) return;
+		for (const label of TASK_LINES) {
+			if (!seen.includes(label)) failures.push(`${story}: ${task} carries no line "- ${label}"`);
+		}
+	};
+	for (const line of body) {
+		const m = TASK.exec(line);
+		if (m) {
+			close();
+			count += 1;
+			task = `tâche ${m[1]}`;
+			seen = [];
+			if (Number(m[1]) !== count) failures.push(`${story}: ${task} read where tâche ${count} was expected`);
+			continue;
+		}
+		if (line.startsWith("- Vérifie à la main :")) seen.push("Vérifie :");
+		const label = TASK_LINES.find((l) => line.startsWith(`- ${l}`));
+		if (label) seen.push(label);
 	}
-	return specs.sort();
+	close();
+	if (count === 0 && !body.some((l) => l.startsWith("Sans objet"))) {
+		failures.push(`${story}: no task, and not "Sans objet"`);
+	}
 }
 
 if (!existsSync(join(root, formatPath))) {
@@ -75,40 +102,51 @@ if (!existsSync(join(root, formatPath))) {
 }
 
 const reference = sections(readFileSync(join(root, formatPath), "utf8"));
-if (reference.length !== 20 || reference.some((s, i) => s.rank !== i + 1)) {
+if (reference.length !== 5 || reference.some((s, i) => s.rank !== i + 1)) {
 	failures.push(
-		`${formatPath} no longer reads as twenty sections ranked 1 to 20: ${reference.map((s) => s.rank).join(", ")}`,
+		`${formatPath} no longer reads as five sections ranked 1 to 5: ${reference.map((s) => s.rank).join(", ")}`,
 	);
 }
 
-const specs = storySpecs();
-for (const spec of specs) {
-	const found = sections(readFileSync(join(root, spec), "utf8"));
+const stories = storyFiles();
+let judged = 0;
+for (const story of stories) {
+	const markdown = readFileSync(join(root, story), "utf8");
+	const status = header(markdown, "Statut");
+	if (status === "versée") continue;
+	judged += 1;
+	if (status === null || !STATUSES.includes(status)) {
+		failures.push(`${story}: Statut is ${status ?? "missing"}, not one of ${STATUSES.join(", ")}`);
+	}
+	const id = story.split("/").at(-1)!.split("-")[0]!;
+	const epic = id.split("s")[0]!;
+	if (header(markdown, "Story") !== id) failures.push(`${story}: header "Story : ${id}" is missing`);
+	if (header(markdown, "Epic") !== epic) failures.push(`${story}: header "Epic : ${epic}" is missing`);
+	const found = sections(markdown);
 	let aligned = true;
 	for (const [i, expected] of reference.entries()) {
 		const actual = found[i];
 		if (!actual) {
-			failures.push(`${spec}: section ${expected.rank}. ${expected.name} is missing`);
+			failures.push(`${story}: section ${expected.rank}. ${expected.name} is missing`);
 			aligned = false;
 			break;
 		}
-		const name = actual.name.replace(APPROVAL, "");
-		if (actual.rank !== expected.rank || name !== expected.name) {
-			// The order is fixed, so every section past a divergence is read against the wrong one:
-			// reporting them all would bury the single edit that puts the story back in step.
+		if (actual.rank !== expected.rank || actual.name !== expected.name) {
+			// The order is fixed, so every section past a divergence is read against the wrong one.
 			failures.push(
-				`${spec}: section ${expected.rank}. ${expected.name} expected at rank ${i + 1}, read ${actual.rank}. ${name}`,
+				`${story}: section ${expected.rank}. ${expected.name} expected at rank ${i + 1}, read ${actual.rank}. ${actual.name}`,
 			);
 			aligned = false;
 			break;
 		}
-		if (!APPROVAL.test(actual.name)) {
-			failures.push(`${spec}: section ${expected.rank}. ${expected.name} carries no approval state`);
-		}
 	}
-	if (aligned && found.length > reference.length) {
-		failures.push(`${spec}: ${found.length - reference.length} section(s) beyond the twenty the format declares`);
+	if (!aligned) continue;
+	if (found.length > reference.length) {
+		failures.push(`${story}: ${found.length - reference.length} section(s) beyond the five the format declares`);
 	}
+	if (!found[1]!.body.some((l) => l.startsWith("Scenario:")))
+		failures.push(`${story}: no promise written as a Scenario`);
+	checkTasks(story, found[3]!.body);
 }
 
 if (failures.length > 0) {
@@ -116,5 +154,5 @@ if (failures.length > 0) {
 	process.exit(1);
 }
 console.log(
-	`story format held: ${reference.length} sections read from ${formatPath}, ${specs.length} story spec(s) checked`,
+	`story format held: ${reference.length} sections read from ${formatPath}, ${judged} story(ies) judged, ${stories.length - judged} versée(s)`,
 );

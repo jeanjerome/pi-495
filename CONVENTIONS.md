@@ -1,194 +1,25 @@
 # Conventions
 
-Shared rules for every AI agent working on 495. `AGENTS.md` (symlinked as `CLAUDE.md`) carries the
-project spine — stack, commands, architecture, never-do list. This file carries the deeper doctrine.
+The standards the code of 495 meets. `AGENTS.md` (symlinked as `CLAUDE.md`) carries the project
+spine — stack, commands, architecture, never-do list. How a change is made — the six steps, the
+review, the acceptance run, the landing, the commit messages — is `cycle/README.md`.
 
-## Commit Messages
+## Preflight
 
-Format: `<type>: <description>` — one line, in English, no scope, space after the colon.
+**Preflight** is `npm run check`: typecheck, the test suite and the `lint:*` scripts chained
+together, under Node 24, the declared floor (`specs/adr/D-50`). It is green before any forward work,
+not "green enough for this task". A defect costs roughly 1× to fix in development, 10× in
+integration, 100× in production: fix a red gate now.
 
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
-
-Describe the resulting behavior in technical terms. Never describe the process that produced it.
-English is the language of the history, whatever the language of the working session, of `specs/`,
-or of the file being changed. A message drafted in another language is translated before the commit
-is made, never after.
-
-- Carry no ticket, chantier, lot, or phase reference (`chantier #24`, `Lot 3`, `(P1)`, `D12`).
-- Carry no session or planning metadata (which PR, which plan, which review round).
-- Carry no AI attribution. Carry no `Co-Authored-By` trailer.
-
-Example: instead of `fix: rsync+restart exposes no live image query (design 6.8)`, write
-`fix: a generic rsync+restart deploy exposes no live image query, so the running image digest
-cannot be read back`.
-
-## Git & GitHub Operations
-
-- Route non-trivial work through a feature branch or worktree (`kickoff-branch`). Merge to `main`
-  with a clean, descriptive commit: a branch lands as one squashed commit whose message follows
-  § Commit Messages. Keep the branch after it lands, since the red-green log and the review record
-  cite its commits (`specs/adr/D-66`).
-- Prefer `gh` over the GitHub web UI when scripting repository operations.
-- Never push to `main` from an automated flow without an explicit human decision.
-- Never call the GitHub REST API directly (curl, fetch). Use `gh`.
-- Never create GitHub issues from automated workflows. Produce a local file in `specs/bugs/` instead.
-
-## Always Green / Shift Left
-
-A solo developer owns the whole codebase. **Always Green** means Preflight is green before any
-forward work — not "green enough for this task."
-
-**Shift Left (1-10-100):** a defect costs roughly 1× to fix in development, 10× in integration,
-100× in production (IBM Systems Sciences Institute; CloudQA benchmarks). Fix a red gate now.
-
-**Preflight** is `npm run check` — typecheck, test, and the `lint:*` scripts chained together.
-Preflight MUST pass before a kickoff, develop, or verify phase advances.
-
-Before a commit, run what can refuse the change, and nothing that cannot:
-
-| The change touches | Run |
-|--------------------|-----|
-| `src/`, `test/`, `scripts/`, `bench/`, `contracts/`, `README.md`, `NOTICE`, `LICENSE`, `package.json`, `package-lock.json`, a `tsconfig*.json` or `biome.json` | full Preflight, `npm run check` |
-| a story spec `specs/epics/*/eNNsNN-*.md`, or `specs/references/countable-story-format.md` | `npm run lint:story-format` |
-| `specs/archive/amont/conception-technique.md` | `npm run lint:architecture` |
-| `specs/archive/amont/expression-besoins.md` or `specs/archive/TRACEABILITY.md` | `npm run lint:traceability` |
-| only files no control reads — the rest of `specs/`, `CONVENTIONS.md`, `AGENTS.md` | nothing |
-
-`README.md` is in the first row because it ships in the package and a test reads its configuration
-example. A change that spans several rows runs each row's command, and full Preflight covers them all.
-
-A green Preflight holds until a file of the first row changes. While `git diff --name-only <revision>`
-lists none of them, cite that run — its revision and time — rather than run it again, whether a phase
-starts or a commit follows. Only a run under Node 24, the declared floor, counts (`specs/adr/D-50`).
-
-## Discovered Defects
-
-Treat any reproducible gate failure found during unrelated work as a discovered defect, not
-background noise.
-
-**fix-or-log ladder:**
-
-1. **quick-fix** — a trivial, data-only, single-file fix within guardrails.
-2. **fix-bug** — when quick-fix guardrails abort, or the failure needs investigation
-   (`specs/bugs/BUG-*.md` + TDD).
-3. **Log** — only when reproduction stays blocked after a good-faith attempt. Write a bug spec and
-   stop forward work on the original task until triaged.
-
-Ship a discovered fix in the same change as the original work, in a separate commit.
-
-### Banned dismissive phrases
-
-Never use these phrases, or a close paraphrase, to wave off a reproducible failure:
-
-| Banned phrase | Do this instead |
-|---------------|------------------|
-| Pre-existing / pre-existing issue | Run fix-or-log. If truly unrelated, prove it with a passing repro after revert. |
-| Unrelated to this session | Same — a session boundary does not waive Always Green. |
-| Not introduced by my changes | Bisect it or fix it anyway. A solo owner owns the whole tree. |
-| Out of scope | Invoke quick-fix or fix-bug. Scope-minimization never overrides Always Green. |
-
-## Review
-
-These rules replace the gate and the loop of the bigpowers `request-review` and `respond-review`
-skills, and what `request-review` sends its reviewers to look for: no percentage score, no fresh
-pair re-reading the whole branch at every round, and no search beyond what the branch promises. The
-rest of both skills applies. Why: `specs/adr/D-62`.
-
-1. **Place a finding before acting on it.** A defect the branch makes reachable belongs to the
-   branch, even when the faulty line predates it: fix it, or put it to the owner, in the round that
-   found it. Never register it as earlier work. A defect the branch neither introduces nor makes
-   reachable goes through the fix-or-log ladder above and does not hold the review; the fix the
-   ladder calls for is made on the branch after the gate (§ Cycle order).
-2. **Design a fix that adds a mechanism before writing it.** A new state, lifecycle or refusal names
-   where the state is created, who reads it, and how many entry points reach it. Remove a second
-   entry point rather than guard it. A question to the owner about the mechanism, rather than the
-   goal, is the sign to step back.
-3. **Review what changed since the last round.** The first round reviews the branch against `main`.
-   Each later round receives the diff since the reviewed revision, the findings already answered, and
-   the open entries of `specs/bugs/registry.yaml`, which it does not count again. Every round
-   receives the Preflight of the reviewed revision: a reviewer does not run it again, and runs only
-   the tests its probes and mutations need.
-4. **Close the gate without a percentage.** The gate passes when no finding introduced or made
-   reachable by the branch remains must-fix or should-fix, for both reviewers. A consider item never
-   holds the gate. The cap stays at five rounds; past it, the owner decides the merge.
-5. **Anchor the records once.** During review, do not move the revision, timestamps or test count of
-   `specs/verifications/` records or `specs/security/REVIEW.md` after each fix; set them when the
-   gate passes or the owner decides. Record each red in the red-green log when it is observed. A
-   record trailing the reviewed revision is not a finding, nor is the subject of a commit on the
-   branch, which never reaches `main` (`specs/adr/D-66`).
-6. **Fix in the round only what adds no behavior.** A consider item whose fix adds no behavior — a
-   missing test, a record put right, dead code removed — is fixed in the round that found it. One
-   whose fix would add a refusal, a state or a mechanism goes to `specs/bugs/registry.yaml`, named
-   as introduced by the branch when it is, and is fixed on the branch after the gate (§ Cycle
-   order): such a fix widens the next round and needs a review of its own. This is the owner's
-   standing answer, under rule 1, for a consider item. Why: `specs/adr/D-65`.
-7. **Close a text-only finding without reviewers.** A finding whose fix changes only text — a
-   comment, a sentence of the story or of a record, a test title — is fixed by the response like any
-   other. When every finding still holding the gate is text-only, the next round is the coordinator
-   alone: it checks each fix against its finding, and the gate passes if they hold. Why:
-   `specs/adr/D-67`.
-8. **Review what the branch promises.** The brief lists the promises in the words of their spec: for
-   a story, the scenarios of its § Acceptance criteria and the measures of its § Security and
-   compliance; for a bug branch, the Acceptance Criteria of each bug file; for a fix made after the
-   gate, the expected behavior its registry entry states. For each promise, a reviewer reports
-   whether the code keeps it and whether a test holds it, which a mutation of a line that keeps it
-   must break. A promise the code does not keep is must-fix; one that no test holds is should-fix. A
-   later round checks the same promises on its diff, and each finding answered. The brief sends the
-   reviewers nowhere else: it proposes no scenario, state or interleaving of its own, and leaves
-   conventions, design and smells to `audit-code`, which runs before. A finding met outside the
-   promises is still placed and categorized under rule 1. Why: `specs/adr/D-68`.
-
-## Cycle order
-
-This order replaces the one of the bigpowers `build-epic` skill once `develop-tdd` is done:
-`audit-code`, then `request-review` and `respond-review` until the gate passes, then `verify-work`
-and the owner's acceptance, then `commit-message` and `release-branch`. The acceptance thus covers
-the code that ships. A gap the acceptance run finds goes back to `develop-tdd`, then to one review
-round on the diff since the reviewed revision, then to `verify-work`. What the review registers to
-fix after its gate — a consider item under § Review rule 6, or a defect predating the branch that
-the fix-or-log ladder fixes — goes the same way before `verify-work`: `develop-tdd` on its registry
-entry, then one review round on its diff, which counts toward the cap of five rounds. What that
-round registers goes the same way in turn. A branch thus lands with none of the defects its review
-registered still open, unless the owner decides the merge past the cap. Each step writes this next
-skill in the handoff, whatever its own skill names. Why: `specs/adr/D-64`, `specs/adr/D-69`.
-
-## specs/ — the documentation surface
-
-`specs/` carries the documentation of 495, at its bigpowers location. The corpus written before the
-switch is archived under `specs/archive/`, in its original layout: `specs/archive/amont/` holds the
-normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md` and
-`RISQUES-L0.md` track implementation, `specs/archive/chantiers/` tracks open work, and
-`specs/archive/revues/` holds the six mandatory reviews.
-
-Archived means nothing new is written there. It does not mean inert: two Preflight controls read
-that corpus and only keep their power to refuse because it is hand-maintained.
-
-| File | Owns |
-|------|------|
-| `specs/state.yaml` | Active session, handoff, `workflow_mode: solo-git` |
-| `specs/release-plan.yaml` | bigpowers-tracked epic ordering |
-| `specs/execution-status.yaml` | bigpowers story/epic status |
-| `specs/bugs/registry.yaml` | Bug intake queue, generated |
-| `specs/bugs/BUG-*.md` | Bug RCA + fix plan (`investigate-bug`) |
-| `specs/verifications/` | Verify-work evidence, audit reports |
-| `specs/adr/ADR-*.md` | One architecture decision per file |
-| `specs/tech-architecture/tech-stack.md` | Stack, layering and observed conventions, derived from the code by `map-codebase` |
-| `specs/archive/` | The corpus written before the switch, read by two Preflight controls |
-
-A file a skill regenerates is never a place to hand-write something that must last: `map-codebase`
-rewrites `tech-stack.md` whole, `build-epic` regenerates `TRACEABILITY_LATEST.md`, `scope-work`
-rewrites `SCOPE_LATEST.yaml`. Durable hand-written content belongs in `specs/adr/`, `specs/epics/`,
-`specs/bugs/BUG-*.md` or `specs/archive/`.
-
-The handoff in `specs/state.yaml` tells the next session what it needs, in a few lines: the next
-skill, what is left open, the revision of the last green Preflight. Each step replaces it rather
-than adding to it. Git, the commit messages and `specs/verifications/` keep the history; a handoff
-that carries it is read again, whole, by every session.
-
-Evidence is written once, in the record of the step that produced it: the revision, times, digests
-and test counts of a Preflight or a campaign go to `specs/verifications/`, those of a review round
-to its review record. The handoff, a commit message, the security review or another record name the
-revision and point to that record rather than copy it. A copy drifts from the code it describes.
+| Control | Refuses |
+|---------|---------|
+| `lint:code` | what Biome refuses (`specs/adr/D-42`, `D-43`) |
+| `lint:layers` | an import against the direction of `AGENTS.md` § Architecture |
+| `lint:architecture` | a `CMP-*` id claimed in `src/` without a row in `specs/archive/amont/conception-technique.md` §4.1, or an import cycle |
+| `lint:exports` | an export nothing reads outside its module (`specs/adr/D-44`) |
+| `lint:traceability` | a `[P0]` requirement of `specs/archive/amont/expression-besoins.md` absent from `specs/archive/TRACEABILITY.md` |
+| `lint:declarations`, `lint:distribution` | a published surface that drifts from `src/` |
+| `lint:story-format` | a story of `specs/stories/` that departs from `cycle/format-de-story.md` |
 
 ## Code Style
 
@@ -201,6 +32,9 @@ revision and point to that record rather than copy it. A copy drifts from the co
 - Throw an exception instead of returning an error code or a boolean sentinel.
 - Delete dead code. Never comment it out — git history already holds it.
 - Boy Scout Rule: leave every file you touch at least as clean as you found it.
+- Write the minimum code that solves the stated problem. No preventive abstraction, no unused
+  configuration layer. Inspect what the dependencies already do before adding a package or writing
+  a capability a maintained library provides.
 
 ## Comments
 
@@ -208,6 +42,8 @@ revision and point to that record rather than copy it. A copy drifts from the co
 - Write why, never what. The code already says what it does.
 - Never write an obvious comment that restates the code.
 - Never leave commented-out code. Delete it and rely on git history.
+- Describe the behavior of the code, never the process that produced it: no ticket, story, review
+  round or session reference in a comment.
 
 ## Tests (F.I.R.S.T)
 
@@ -219,50 +55,36 @@ revision and point to that record rather than copy it. A copy drifts from the co
 - Test every boundary condition: empty input, maximum, minimum, and the off-by-one case.
 - Assert only through the public interface — return values, contracts, view state. Never assert on
   private state.
-
-### Red before code
-
-- A task ends by saying where its test holds it, what that test asserts in the words of the story —
-  an artefact, an event, a refusal, a message — and what the code does today that makes the
-  assertion fail (`specs/adr/D-63`). A count or the absence of an error holds a promise only when
-  the story states it.
-- Write that test first, and see it fail on that assertion before any line of the code it pins. A
-  missing file, an import or type error, or a red obtained by setting aside code already written is
-  not that red.
-- Record the failing message in the story's red-green log,
-  `specs/verifications/<story>-cycle-rouge-vert.md`, when it is observed. Every new test fails by
-  itself at its test-only commit: read which tests fail, not only the exit code.
-- `verify-tdd-red-commit.sh` judges the bigpowers repository, not this one. Replay a red in a
-  detached worktree at the test-only commit, with `node_modules` linked.
+- A test is written before the code it pins, and fails on the assertion the story states before
+  that code exists (`cycle/README.md` § Les six pas).
 
 ## Dependencies
 
 - Inject a dependency through a constructor or parameter. Never reach for a global or a bare import.
 - Wrap a third-party library behind a project-owned port (see `src/ports/`).
+- Keep a dependency at its latest published version whenever Preflight stays green; a caret on a
+  `0.x` version silently locks the minor. `@types/node` tracks `engines.node`, not the newest
+  release (`specs/adr/D-50`).
 
 ## Pi is the host, not one dependency among others
 
 495 is an extension of Pi. Pi is what keeps 495 from rebuilding what already exists, and what lets
 it state a fact instead of inferring one. Reach for Pi's own API first — before writing the
-capability, and before deducing from the outside what Pi can report from the inside.
+capability, and before deducing from the outside what Pi can report from the inside
+(`specs/adr/D-55`).
 
 - **Look for the API before building.** A hook, an event, a runtime or a typed result Pi already
   publishes beats a table 495 maintains, a file 495 parses, or a fact 495 reads out of a package's
   code.
 - **Read the documentation the pinned package ships.** It is already on disk, at the exact version
-  installed, with no tag to get wrong: `node_modules/@earendil-works/pi-coding-agent/docs/`, and
-  `extensions.md` there carries the event list. Prefer it to any URL. The same corpus is tagged on
-  the web — `https://github.com/earendil-works/pi/blob/v<pinned>/packages/coding-agent/docs/` — and
-  <https://pi.dev/docs/latest> tracks the newest Pi, so it shows what is coming, not what this
-  repository has. The difference is not theoretical: read against `latest` while pinned at 0.86.1,
-  `context_with_system` and `agent_before_settle` both looked available, and neither existed. Reading
-  the packaged copy would not have raised the question at all.
-- **Confirm in the pinned surface before building on it.** The tagged docs say what that release
-  documents; `@earendil-works/pi-coding-agent/dist/**/*.d.ts` and the peer packages say what it
-  ships. What is built on an API names the version it was confirmed against.
+  installed: `node_modules/@earendil-works/pi-coding-agent/docs/`, and `extensions.md` there carries
+  the event list. Prefer it to any URL: <https://pi.dev/docs/latest> tracks the newest Pi, not the
+  one this repository has.
+- **Confirm in the pinned surface before building on it.** `@earendil-works/pi-coding-agent/dist/**/*.d.ts`
+  and the peer packages say what the release ships. What is built on an API names the version it
+  was confirmed against.
 - **Prefer an observed fact to a restated one.** What Pi hands over was measured; what 495 restates
-  is believed, and drifts the day the host changes. Where both exist, the observed one is the source
-  and the restated one is at most an expectation. Say in the code which of the two a value is.
+  is believed, and drifts the day the host changes. Say in the code which of the two a value is.
 - **A workaround names what it replaces.** When no API covers the need, write where the workaround
   lives what was looked for and not found, so it can be deleted the day it arrives.
 - **Leaning on Pi never bends the layering.** The Pi API is reached through `extension/` or
@@ -270,12 +92,13 @@ capability, and before deducing from the outside what Pi can report from the ins
 
 ## Structure
 
-- Follow the layering already declared in `AGENTS.md` § Architecture.
+- Follow the layering declared in `AGENTS.md` § Architecture.
 - Keep paths predictable: one adapter per external system, one port per capability.
 
 ## Formatting
 
-- Lint and format with Biome (`npm run lint:code`) and type with `tsc --noEmit`. No style debates beyond that.
+- Lint and format with Biome (`npm run lint:code`) and type with `tsc --noEmit`. No style debates
+  beyond that.
 - The formatter runs at 120 columns. Import order is not machine-sorted: imports are grouped by the
   architectural layer they come from, which is how the one-way dependency direction stays readable.
 

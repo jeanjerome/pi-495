@@ -7,7 +7,7 @@
 claude-cli/2.1.251` et `x-app: cli`, avec les betas `claude-code-20250219` et `oauth-2025-04-20`.
 495 ne compose aucun de ces en-têtes. Le chemin est retenu pour la qualification **sur la machine de
 référence**, et aucun usage au-delà n'est revendiqué tant que la question n'a pas été instruite. La
-restriction est portée aux contraintes de `specs/product/SCOPE_LATEST.yaml`.
+restriction est portée aux contraintes de `specs/plan.yaml`.
 
 **Motif.** 495 ne route l'API Pi que par `extension/` et `adapters/pi-worker/`, et n'appelle jamais
 un modèle lui-même : il reçoit `ctx.model` et Pi le résout depuis son propre `models.json`

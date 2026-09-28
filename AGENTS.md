@@ -1,16 +1,13 @@
 # 495 (pi-495) — AI Agents
 
-> **Multi-agent context** — This file is the canonical project context for **Cline**, **Aider**, **OpenCode**, **Codex CLI**, and other AGENTS.md-native tools. Claude Code and Cursor read it via the `CLAUDE.md` symlink.
+> This file is the project context for every AI agent; Claude Code reads it via the `CLAUDE.md` symlink.
 
-Read CONVENTIONS.md before any GitHub or git operation.
+`CONVENTIONS.md` carries the standards the code meets. `cycle/README.md` carries how a change is made. Read both before writing code, and `cycle/README.md` before any git operation.
 
-<!-- BEGIN bigpowers:context-routing -->
-## Context Routing
+## Where things are
 
-Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/README.md` indexes the documentation map; the corpus written before the switch is archived under `specs/archive/` in its original layout.
-<!-- END bigpowers:context-routing -->
+`specs/` is the project: what remains to do (`specs/plan.yaml`), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), and the corpus written before the switch, archived under `specs/archive/` in its original layout and still read by two Preflight controls. `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
 
-<!-- BEGIN bigpowers:learned-preferences -->
 ## Learned User Preferences
 
 - Put an arbitration to the owner in plain French, without identifiers, scores or coded vocabulary:
@@ -44,9 +41,7 @@ Load subdirectory context by file glob — no sub-AGENTS.md exists yet. `specs/R
   `examples/extensions/`. Read them before specifying a capability or deducing a fact from outside
   Pi (`specs/adr/D-55`). `provider-payload.ts` reports in 18 lines what a Preflight control was
   written to guess from third-party source.
-<!-- END bigpowers:learned-preferences -->
 
-<!-- BEGIN bigpowers:project -->
 ## Project
 
 495 drives a software change from Pi through gated, evidence-backed phases.
@@ -111,17 +106,23 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, `presentation/`, or `export/`.
 - Never claim a `CMP-*` component id in `src/` without a matching row in `specs/archive/amont/conception-technique.md` §4.1.
 - Never let an unqualified sandbox backend run unconfined. Refuse with `capability_missing` instead.
-- Never run `bigpowers init` in this repository. It replaces `scripts/` with a symlink to the package tree, which would remove every Preflight control. A script a skill cites by `bash scripts/…` is reached at `$(npm root -g)/bigpowers/scripts/…` instead.
 
 ## Agent Rules
 
-- **Workflow Mandate:** Use bigpowers skills (`plan-work`, `develop-tdd`, `orchestrate-project`) for new planning and delivery work.
-- **Cycle order:** after `develop-tdd` come `audit-code`, the review until its gate passes, then the fixes that review registered, each reviewed once on its diff, then `verify-work` and the owner's acceptance, then `commit-message` and `release-branch` (CONVENTIONS.md § Cycle order, `specs/adr/D-64`, `specs/adr/D-69`).
-- **`specs/` is the documentation surface:** new normative content goes there, in its bigpowers location. The corpus written earlier is archived under `specs/archive/` — `specs/archive/amont/` for the normative documents, `specs/archive/STATUS.md`, `TRACEABILITY.md`, `DECISIONS.md`, `RISQUES-L0.md` and `chantiers/` for implementation tracking. Archived means nothing new is written there; two Preflight controls still read it, and only keep their power to refuse because they do.
-- **Always Green:** Preflight (`npm run check`) must be green before forward work.
-- **Review:** `request-review` and `respond-review` follow CONVENTIONS.md § Review, which replaces their score gate, their whole-branch loop (`specs/adr/D-62`) and what the reviewers look for: the promises of the story or of the bug files (`specs/adr/D-68`).
-- **Red before code:** a task says what its test asserts in the words of the story and why that fails today; `develop-tdd` writes the test first and sees it fail on that assertion before the code (CONVENTIONS.md § Tests, `specs/adr/D-63`).
-- Read CONVENTIONS.md and the relevant `specs/` file before writing code.
+- **The cycle:** a change goes through the six steps of `cycle/README.md` — story, red-green,
+  self-review, review, acceptance run, landing — driven by the tool of `cycle/`; a step the tool does
+  not cover yet is done by hand, in that order and under those rules.
+- **Red before code:** a task says what its test asserts in the words of the story and why that
+  fails today; the test is written first and seen failing on that assertion before the code.
+- **Review:** two reviewers, two rounds at most, on the promises of the story; what the second
+  round leaves goes to `specs/bugs/registry.yaml`, except a promise the code does not keep, which
+  the owner decides.
+- **Acceptance run:** a real execution in a real Pi, with a negative control; a list backed by tests
+  is not one.
+- **Always Green:** Preflight (`npm run check`) is green before forward work and before every
+  commit that touches what it checks.
+- **Records:** the story, a product decision, a registry entry and the plan are written by hand;
+  every red, Preflight, review round and acceptance is observed and written once by the tool.
 - Write the minimum code that solves the stated problem.
 - Run tests after every change. Show evidence before declaring done.
 
@@ -134,4 +135,3 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 2. **Prefer mature, maintained libraries.** DO NOT rewrite a capability a maintained library provides without a documented reason.
 3. **Copy validated patterns.** DO study how established products solve the same problem before inventing a new approach.
 4. **Keep the simplest working implementation.** DO write the least code that satisfies the stated requirement. NEVER add preventive abstraction or unused config layers.
-<!-- END bigpowers:project -->

@@ -1,0 +1,349 @@
+# Le travail ouvert de 495, dans l'ordre où il se fait. L'ordre est une décision, pas un score :
+# là où il surprend, `position` dit pourquoi. Le texte normatif des exigences reste dans
+# specs/archive/amont/expression-besoins.md ; ce fichier ne le restitue pas.
+#
+# Un epic est `versé` quand toutes ses stories le sont, `en cours` quand une story l'est, sinon
+# `à faire`. Les stories d'un epic en cours sont sous specs/stories/<epic>/ ; celles d'un epic versé
+# avant le cycle actuel n'ont pas de fichier, leur comportement est tenu par la suite de tests.
+
+# Ce qui tient tout le travail ouvert, quel que soit l'epic.
+contraintes:
+  - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
+  - >
+    Machine de référence macOS arm64, Node 24, Pi 0.87.1 ; Linux non revendiqué. `node` alimente
+    `environment_digest` autant que `pi_version`, et la machine présente Node 24 par un épinglage qui vit
+    hors du dépôt, dans `~/.zshenv` (`D-50`) : aucun contrôle ne le vérifie.
+  - >
+    `devDependencies` suit la version de Pi que la machine de référence exécute, pour les trois paquets
+    `@earendil-works`. Un caret sur une version 0.x verrouille le mineur. `pi_version` alimente
+    `environment_digest`, donc une montée de version de la machine invalide le protocole gelé de tout
+    changement en vol. Les autres dépendances suivent la dernière version publiée tant que Preflight
+    reste vert ; `@types/node` fait exception et suit le plancher de `engines` (`D-50`).
+  - >
+    Sur le chemin d'abonnement, Pi s'annonce au fournisseur sous `user-agent: claude-cli/…` et
+    `x-app: cli` ; 495 ne compose pas ces en-têtes. Ce chemin est retenu pour la qualification sur la
+    machine de référence, et aucun usage au-delà n'est revendiqué tant que la question n'a pas été
+    instruite (`D-49`).
+  - "Les travaux touchant au protocole gelé changent `environment_digest` et invalident le protocole d'un cycle en cours : ne pas les engager pendant qu'une campagne tourne."
+  - Tout composant nouveau réclame un identifiant `CMP-*` inscrit au catalogue dans le même changement.
+  - Une exigence devenue couverte s'inscrit dans la matrice de traçabilité, qui refuse une absence silencieuse.
+
+epics:
+  - id: e23
+    title: "Second fournisseur de modèle qualifié"
+    status: versé
+    source: spikes/organisation-des-quatre-chantiers
+    objet: >
+      Un second fournisseur de modèle est qualifié par le chemin d'abonnement que Pi expose déjà : la
+      recette « le même cas de contrat passe avec deux fournisseurs qualifiés » est tenue sur un
+      parcours complet et non plus par des preuves unitaires, le refus d'un profil incompatible avant
+      une intervention facturée reçoit un effet, les budgets d'intervention sont remesurés sur un modèle
+      frontière, la sortie de données vers le fournisseur est déclarée, et le bloc système que le
+      fournisseur impose au-dessus des instructions locales est porté au manifeste de contexte comme
+      contrainte extérieure.
+    motif: >
+      Aucun code n'est à écrire pour joindre le fournisseur : Pi consomme déjà un abonnement par jeton
+      OAuth présenté en Bearer, sans frapper de clé d'API. Ce qui reste est ce que le harnais doit
+      porter en conséquence. Tant que le modèle local est le seul témoin, une instruction mauvaise ne se
+      distingue pas d'un modèle incapable, et les campagnes des epics suivants héritent de cette
+      confusion.
+    position: >
+      Score le plus élevé de l'index, et la ROADMAP §5 lui est antérieure. Placé en tête non parce qu'il
+      prime en gravité sur e01, mais parce qu'il répare le témoin sous la campagne de e01 elle-même.
+      Décision en specs/adr/D-46.
+
+  - id: e24
+    title: "Ce qui existe déjà est établi avant d'être réécrit"
+    status: versé
+    source: specs/adr/D-55
+    objet: >
+      Avant qu'une capacité soit écrite, ce qui y répond déjà est établi et comparé : l'API et les
+      paquets de Pi, les paquets construits pour Pi par d'autres, et ce qui existe hors de cet
+      écosystème. L'étude cherche les candidats plutôt que d'en valider un — `pix-pretty`, du monorepo
+      `pix-mono`, est un point de départ nommé et non une réponse : sous licence MIT, il publie `diff`,
+      `diff-render`, `highlight`, `renderers`, `icons`, des vues d'arbre et des cadres modaux, et il est
+      consommé par `pix-read`, `pix-bash` et `pix-edit`. L'epic livre, pour chaque besoin examiné, le
+      candidat retenu ou l'absence de candidat, et la raison : réutiliser, s'inspirer de la forme, ou
+      écrire — avec ce qui a été cherché et non trouvé quand on écrit. Les critères de choix sont dits
+      avant d'être appliqués : ce que le besoin demande réellement, la licence, l'entretien du paquet,
+      le poids qu'il ajoute, et ce à quoi il nous lie.
+    motif: >
+      Le coût de ne pas regarder est mesuré, pas supposé. Quatre défauts d'une seule surface ont été
+      trouvés en lisant ce que Pi publiait déjà : un alignement faux sur les glyphes larges, les emojis
+      et les accents combinants ; les touches Home, Fin, Suppr et les flèches modifiées arrivant en
+      octets bruts ; des noms de fichier coupés dès que le relecteur réduisait le partage ; et la
+      hauteur du terminal ignorée après un redimensionnement. Aucun n'aurait été vu autrement. Pi
+      embarque hors ligne trente-sept pages de documentation et soixante-dix-sept extensions d'exemple,
+      et 495 pose quatre accroches sur les trente-neuf publiées — compté sur `0.87.1`, la version
+      épinglée. L'étude ne remplace pas `e08`, qui fait cesser la réimplémentation dans la revue
+      elle-même : elle le précède et le déborde, puisqu'elle vaut pour toute capacité à venir et regarde
+      au-delà de Pi. La clause de `e08` sur la règle de couches est par ailleurs dépassée :
+      l'interdiction d'importer un paquet Pi depuis `presentation/` a été levée, et ne demeure que sur
+      le noyau des exigences et décisions, où `NFR-07` la nomme.
+    position: >
+      Le score est élevé pour un travail qui ne livre aucune capacité : ce qu'il livre est le droit
+      d'écrire le reste. Il est placé après e23 parce que e23 est engagé, et avant tout travail de
+      surface. Sa taille est celle d'une étude, pas d'une implémentation. Les valeurs portées ici sont
+      un jugement et non une mesure ; le motif les tient.
+
+  - id: e01
+    title: "Une réponse humaine atteint les exigences"
+    status: en cours
+    source: chantiers/L
+    objet: >
+      Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport
+      qui défait une liaison sans poser de question dispose d'un recours. L'humain garde la main sur ce
+      qu'il a répondu : il peut révoquer une réponse donnée par erreur, et déclarer qu'une question
+      n'est plus matérielle. Une réponse humaine ne cesse de lier que par une décision humaine.
+    motif: >
+      Un changement accepté rend 400 là où son propriétaire avait décidé 422, et le protocole gelé exige
+      ce 400. La discrimination établit que l'oracle distingue le comportement nouveau de l'ancien,
+      jamais qu'il distingue le bon contrat du mauvais.
+    position: >
+      job_size passe de 3 à 5 parce que l'objet de l'epic a grandi : le propriétaire y a fait entrer le
+      2026-09-25 la révocation d'une réponse, la clôture d'une question qui n'est plus matérielle, et la
+      confirmation humaine d'une réponse que le rapport dit non observable. Sa position ne change pas :
+      elle tient à la ROADMAP §5, pas au score.
+    stories:
+      - { id: e01s01, status: "versée", title: "Un rapport qui défait une liaison sans rien demander rouvre la spécification" }
+      - { id: e01s02, status: "versée", title: "Une spécification qui ne progresse plus arrête le changement avec un recours" }
+      - { id: e01s03, status: "versée", title: "Seul l'humain déclare qu'une question n'est plus matérielle ou qu'une réponse ne fixe rien d'observable" }
+      - { id: e01s04, status: "versée", title: "Une réponse donnée par erreur se révoque, et ce qui en découlait n'est plus adopté" }
+      - { id: e01s05, status: "à faire", title: "La décision est écrite et la recette tenue par une exécution réelle" }
+
+  - id: e02
+    title: "Une sortie refusée garde une issue"
+    status: à faire
+    source: chantiers/F
+    objet: >
+      Une sortie d'intervention structurée mais refusée laisse au changement une issue, et un rapport
+      complet et valide n'est plus perdu parce que la recherche part de la fin.
+    motif: >
+      A tué deux lancements sur quatre.
+
+  - id: e03
+    title: "Le mandat est cohérent avec sa vérification"
+    status: à faire
+    source: chantiers/J
+    objet: >
+      Le mandat n'interdit plus au producteur la vérification qu'il lui ordonne de conduire.
+    motif: >
+      Symptôme de e04 ; aujourd'hui seule une exclusion de workspace invisible depuis le prompt sauve le
+      cas qui passe par Maven.
+
+  - id: e04
+    title: "Clarté des instructions d'intervention"
+    status: à faire
+    source: chantiers/K
+    objet: >
+      Les instructions portées à un producteur sont découpées et sélectionnées par rôle, au lieu d'un
+      bloc unique ; la sélection tient compte de la phase en cours autant que du rôle, et des capacités
+      déclarées du modèle, jamais de son nom ; les skills, modèles de prompts et références
+      documentaires qu'elle assemble sont des ressources versionnées.
+    motif: >
+      Trois campagnes montrent qu'elles se contredisent ou se noient. Cause de e03. Le découpage par
+      rôle, la dépendance à la phase et la dépendance au modèle visent un seul et même constructeur :
+      les séparer produirait deux plans qui éditent la même fonction. L'axe modèle reste sans objet tant
+      qu'un seul fournisseur est qualifié.
+    position: >
+      WSJF seul le placerait après e09 ; la ROADMAP le tient pour la cause de e03, et sa position ne
+      change pas. job_size passe de 5 à 7 parce que l'objet de l'epic a grandi — dépendance à la phase,
+      dépendance au modèle, et CTX-03 sorti du différé — et non pour déplacer un rang. Décision en
+      specs/adr/D-47.
+
+  - id: e05
+    title: "Commande de test d'une cible Node"
+    status: à faire
+    source: chantiers/E
+    objet: >
+      Une cible Node voit sa commande de test lue depuis ce qu'elle déclare, et une copie de travail
+      conserve ce dont ses dépendances ont besoin.
+    motif: >
+      Une cible en vitest ne passe pas ; aucune capacité n'est opposable sur une cible Node.
+
+  - id: e06
+    title: "Inventaire des cas particuliers d'un arbre"
+    status: à faire
+    source: chantiers/H
+    objet: >
+      L'inventaire d'un arbre traite le sous-module et le fichier spécial, et la revue ne dépend plus
+      d'un workspace que rien ne réclame.
+
+  - id: e07
+    title: "Lisibilité d'un changement arrêté"
+    status: à faire
+    source: chantiers/G
+    objet: >
+      L'état d'un changement, arrêté ou abouti, est lisible : une cause énoncée une fois, une
+      notification sur la ligne décisive, des risques résiduels qui portent sur le candidat.
+
+  - id: e08
+    title: "La revue s'appuie sur ce que Pi rend"
+    status: à faire
+    source: chantiers/I
+    objet: >
+      La revue cesse de réimplémenter ce que Pi rend déjà, sans affaiblir la règle de couches qui garde
+      le modèle de revue indépendant du rendu.
+
+  - id: e09
+    title: "État d'arrêt et session conductrice"
+    status: à faire
+    source: chantiers/M
+    objet: >
+      Clore une intervention ne rend plus prêt un changement bloqué, et une seule session conduit un
+      changement donné.
+    position: >
+      WSJF seul le placerait avant e05 ; la ROADMAP ne le range pas dans sa séquence.
+
+  - id: e10
+    title: "Référentiel de qualité d'une cible"
+    status: à faire
+    source: chantiers/N
+    objet: >
+      Le noyau sait dire ce que vaut une cible sur la qualité : conventions, seuils et contrôles définis
+      par technologie et composant, existant mesuré avec les écarts localisés et les périmètres séparés,
+      remise aux standards traduite en incréments priorisés, et conformité démontrée dans le seul
+      périmètre réellement contrôlé.
+    motif: >
+      Les quatre ne sont pas livrables séparément : mesurer un existant suppose un référentiel adopté,
+      et démontrer une remise en conformité suppose la baseline qui lui sert de point de départ.
+
+  - id: e11
+    title: "Architecture cible d'une cible"
+    status: à faire
+    source: chantiers/N
+    objet: >
+      Le noyau sait dire ce que vaut l'architecture d'une cible : diagnostic de l'architecture
+      réellement présente avec ses angles morts déclarés, recommandation argumentée par les contraintes
+      et non par un style, et migration traduite en étapes avec contrats de transition et retour
+      arrière.
+    motif: >
+      Même chaîne : recommander une cible suppose le diagnostic de l'existant, et planifier une
+      migration suppose la cible adoptée.
+
+  - id: e12
+    title: "Cartographie des contrôles existants"
+    status: à faire
+    objet: >
+      La cartographie des contrôles d'une cible porte les assertions qu'ils tiennent réellement, au-delà
+      de l'échelle de capacité à quatre niveaux déjà livrée.
+    motif: >
+      L'instabilité relève de VER-08, livré. Ce qui reste est la part assertions.
+
+  - id: e13
+    title: "Tests de caractérisation d'un existant"
+    status: à faire
+    objet: >
+      Un existant peu testé reçoit des tests de caractérisation et des jeux de référence avant
+      transformation, en distinguant comportement observé et comportement voulu, sans consacrer un
+      défaut existant comme exigence.
+
+  - id: e14
+    title: "Capacité de vérification par incrément"
+    status: à faire
+    objet: >
+      À chaque incrément, la couverture nécessaire est complétée et les contrôles nouveaux ou modifiés
+      sont qualifiés avant de servir d'autorité d'acceptation, avec isolation des données de test et un
+      corpus de contre-exemples réutilisables.
+
+  - id: e15
+    title: "Besoin de connaissance identifié"
+    status: à faire
+    objet: >
+      Une phase documentaire se déclenche sur une technologie nouvelle, un changement de version, un
+      manque de références ou des erreurs d'API ; les questions à résoudre sont enregistrées et le moyen
+      justifié, sans prétendre mesurer ce qu'un modèle connaît.
+
+  - id: e16
+    title: "Corpus officiel versionné"
+    status: à faire
+    objet: >
+      La documentation correspondant aux versions utilisées est récupérée avec son origine, sa version,
+      sa date, son empreinte et ses droits ; les références communautaires sont distinguées et une
+      documentation indisponible ou ambiguë reste signalée.
+
+  - id: e17
+    title: "Utilisation de la documentation vérifiée"
+    status: à faire
+    objet: >
+      Un choix technique se rattache à ses sources, et les usages d'API importants sont confrontés à des
+      exemples exécutables, au compilateur, au typage ou à des tests de contrat.
+    motif: >
+      Une citation ne prouve pas que le code produit est correct.
+
+  - id: e18
+    title: "Disciplines applicables examinées"
+    status: à faire
+    objet: >
+      Pour un changement significatif, les disciplines à examiner sont déterminées, et chacune est
+      traitée, déclarée non applicable avec motif, ou signalée comme restant à instruire.
+
+  - id: e19
+    title: "Choix argumentés avec proportionnalité"
+    status: à faire
+    objet: >
+      Une décision importante porte ses contraintes, alternatives raisonnables, bénéfices, coûts,
+      risques et moyens de validation ; un choix local réversible reçoit une justification courte.
+    motif: >
+      Ni la sophistication ni le nombre d'agents ne constituent un critère d'expertise.
+
+  - id: e20
+    title: "Expertises mobilisées et vérifiées"
+    status: à faire
+    objet: >
+      Un risque est associé au moyen d'analyse qui lui convient — règle automatique, documentation
+      officielle, expérimentation, revue spécialisée ou décision humaine — et les désaccords comme les
+      zones non maîtrisées sont explicités.
+    motif: >
+      Un rôle nommé « senior » ne garantit aucune compétence.
+
+  - id: e21
+    title: "Qualité de la démarche évaluée"
+    status: à faire
+    objet: >
+      Les recommandations et réalisations sont confrontées à des critères adoptés et à des cas de
+      référence ; défauts, décisions contestées et reprises sont mesurés.
+    motif: >
+      Aucune équivalence avec une équipe senior ne se revendique sur des prompts de rôle ou des
+      contrôles verts.
+
+  - id: e22
+    title: "Arbitrage de vérifiabilité"
+    status: à faire
+    objet: >
+      Un oracle insuffisant ouvre une demande de décision humaine portant l'obligation, la lacune, les
+      options et le risque, avec pour issues préparer, assigner une revue humaine ou réviser l'exigence.
+    motif: >
+      Déclarée dans les contrats, mais exclue du constructeur de demandes de décision.
+    position: >
+      WSJF le placerait deuxième ; il est petit et empêche un verdict faux, mais la ROADMAP ne l'a pas
+      séquencé.
+
+  - id: e25
+    title: "Le modèle choisi dans Pi est autorisé"
+    status: versé
+    source: arbitrage du propriétaire, 2026-09-23
+    objet: >
+      Le modèle choisi dans Pi est autorisé. Le dossier enregistre le fournisseur employé et s'il est
+      sur la machine ou hors d'elle, d'après l'adresse que Pi connaît du modèle. À l'ouverture de
+      session, 495 signale un modèle hors de la machine : il prévient au lieu de bloquer.
+    motif: >
+      Choisir un modèle avec `/model`, c'est déjà consentir à lui envoyer ce que la session contient ;
+      la liste redemande ce consentement à la même personne, dans son propre répertoire de données. Elle
+      ne borne que le canal de 495 : l'agent de Pi joint le même fournisseur dans la même session. Un
+      projet qui imposerait son modèle par `.pi/settings.json` passe déjà par la confiance que Pi
+      demande pour ce dossier. Et le défaut `omlx` est la configuration d'une seule machine : tout autre
+      utilisateur est refusé au premier `/495 start`, et le README consacre une étape entière du
+      démarrage à contourner ce refus. Pi porte l'adresse sur chaque modèle (`baseUrl`) : la situation
+      peut être observée au lieu d'être déclarée.
+    position: >
+      Postérieur à la ROADMAP, qui ne le séquence donc pas. Le propriétaire l'a engagé le 2026-09-23,
+      avant e01. WSJF seul le placerait après e03 et avant e09. La valeur tient au premier usage : tout
+      utilisateur dont le modèle n'est pas `omlx` est refusé au premier `/495 start`. L'urgence tient au
+      README, qui s'adresse désormais à des lecteurs extérieurs et documente ce contournement comme une
+      étape du démarrage.
+
+# Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
+# activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
+# specs/communication/.
+communication: specs/communication

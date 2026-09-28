@@ -194,7 +194,7 @@ The direction is a broader engineering workflow: understand an existing codebase
 
 **Further qualification and deferred work:** Linux execution, additional advanced testing methods such as property-based testing and fuzzing, and indexed documentation retrieval with corpus maintenance. These require further work and qualification; no release date is implied.
 
-See the [product scope](specs/product/SCOPE_LATEST.yaml), [release plan](specs/release-plan.yaml) and [execution status](specs/execution-status.yaml) for the detailed boundaries and progress.
+See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and progress.
 
 ## Reference
 
