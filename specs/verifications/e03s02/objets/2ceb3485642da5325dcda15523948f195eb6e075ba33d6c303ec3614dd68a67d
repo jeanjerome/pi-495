@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le producteur d'une première préparation reçoit la consigne de vérification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/preparation.test.ts",
+    "ligne": 463,
+    "constat": "Le scénario Maven-avant-gel est tenu par le code (sondé de bout en bout : campagne sur fixtureMavenHexagonal + JaCoCo coupée à la réception du contexte de prepare, aucun protocole gelé, la consigne porte `mvn -B -q -o test` (maven-test) puis coverage et structure avec ce qu'ils lisent, sans ` -e `, en 217 ms et sans JDK). Mais aucun test commité ne l'exerce dans ses propres termes : la forme Maven est tenue par un appel direct à buildContext et par une campagne à protocole gelé, l'acheminement avant gel seulement sur Node. Toute mutation d'une ligne du chemin est néanmoins attrapée par l'un des deux, donc la promesse est tenue ; la sonde pourrait devenir ce test au prix d'une copie du test Node avec la fixture Maven.",
+    "mutation": "context.ts : filtre runsNothing inversé → « on a Maven reactor with JaCoCo… » échoue sur « prepare is asked to run mvn -B -q -o test » et le test Node échoue sur « names the command of the unit control » ; prepare.ts : `controls: detected.controls` retiré → seul le test Node échoue, sur « is told the detected control commands »."
+   }
+  ],
+  "resume": "Relecteur A, tour 1, e03s02 à 7963a05. Les trois promesses sont tenues par le code et par un test. Scénario 1 : sondé par une campagne Maven+JaCoCo réelle coupée avant tout gel, la consigne demande `mvn -B -q -o test` et nomme coverage et structure comme lectures sans commande ; la forme est tenue par le test e03s01 (mutation du filtre runsNothing → rouge) et l'acheminement avant gel par le nouveau test Node (mutations prepare.ts sans `controls`, harness.ts ignorant `extra.controls` → rouge sur « is told the detected control commands »). Scénario 2 : même test, la commande vient de detectStack (`--test --test-reporter=tap` (unit)). Scénario 3 : ajouter specify aux rôles consignés dans context.ts → rouge sur « the specification producer, which only reads, is told no verification instruction ». Un seul constat à peser : le scénario Maven-avant-gel n'a pas de test dans ses propres termes, bien que toute mutation d'une ligne soit attrapée. Aucun bloquant, rien à corriger."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le producteur d'une première préparation reçoit la consigne de vérification",
+    "categorie": "a_corriger",
+    "placement": "rendu_atteignable",
+    "fichier": "test/v2/preparation.test.ts",
+    "ligne": 382,
+    "constat": "Le Then promet que la consigne demande au producteur de lancer `mvn -B -q -o test` avant de répondre ; le test Maven cité par la story n'assert que la présence de la commande dans la phrase « The kernel will judge your work by running, without you », et aucun test du dépôt ne cherche « Run it yourself before you answer » (grep vide sur test/). La phrase précède la branche (src/application/context.ts:164), mais la branche est la première à la faire atteindre une première préparation et à la promettre pour elle ; une assertion sur cette phrase dans le test Maven suffit.",
+    "mutation": "Suppression de la phrase « Run it yourself before you answer and keep working until it gets past compilation: … » dans src/application/context.ts:164 : test/v2/preparation.test.ts et test/v1 restent verts (seuls les deux tests Seatbelt échouent, et ils échouent à l'identique sur la révision propre, environnement de session)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La consigne vient des contrôles que le noyau a détectés sur la cible",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/answer-revocation.test.ts",
+    "ligne": 565,
+    "constat": "La branche retourne l'assertion de ce test et son commentaire dit que le protocole gelé avant la révocation n'est pas lu pour la préparation reconstruite ; la nouvelle assertion ne distingue pas les deux sources, car le protocole gelé sur la cible Node porte le même contrôle unit que la détection. Hors des promesses de la story (tous les Given disent « aucun protocole gelé »), donc à peser seulement.",
+    "mutation": "Inversion de la précédence dans src/application/harness.ts:551 (`protocol?.content.controls ?? extra.controls ?? []`) : test/v2/preparation.test.ts et test/v2/answer-revocation.test.ts restent verts (36/36)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une intervention qui ne fait que lire ne reçoit toujours aucune consigne de vérification",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/context.ts",
+    "ligne": 158,
+    "constat": "Le code tient la promesse (sonde : buildContext avec les contrôles détectés en main et le rôle specify, review ou observe ne produit aucune consigne). Le test de la story l'assert sur la campagne, où specify reçoit une liste de contrôles vide parce qu'aucun protocole n'est gelé ; la garde de rôle, seule ligne qui tienne la promesse quand des contrôles sont en main, n'est épinglée par aucun test. La branche ouvre une seconde source de contrôles (`extra.controls`) qu'une phase peut tendre à n'importe quel rôle, ce qui ne laisse plus que cette garde. Une assertion de niveau buildContext sur un rôle lecteur avec des contrôles non vides l'épinglerait.",
+    "mutation": "Retrait de la condition de rôle dans src/application/context.ts:158 (`if ((input.controls?.length ?? 0) > 0)`) : `npm test` complet reste vert (628 passent, les 2 échecs sont les tests Seatbelt qui échouent aussi sur la révision propre)."
+   }
+  ],
+  "resume": "Les trois scénarios sont tenus par le code : sondé sur une cible Maven hexagonale avec JaCoCo (première préparation, aucun protocole gelé), la consigne nomme `mvn -B -q -o test` à lancer, coverage et structure avec ce qu'ils lisent et sans commande `-e` ; sur la cible Node, le test de la story tient l'acheminement (retirer `controls: detected.controls` dans prepare.ts le fait échouer, ainsi que le test de révocation) ; la forme des lectures est tenue par les tests Maven (M3 et M5 rouges) ; specify ne reçoit rien, y compris avec des contrôles en main. Un constat à corriger : la moitié « avant de répondre » du Then du scénario 1 n'est assertée par aucun test, la phrase « Run it yourself before you answer » se supprime sans qu'un test bougisse ; correction d'une assertion dans le test Maven. Deux constats à peser : la précédence protocole/contrôles tendus n'est pas distinguée par le test de révocation retourné, et la garde de rôle de buildContext n'est épinglée que par le minutage de la campagne. Les deux tests Seatbelt échouent dans cet environnement de session à la révision propre comme sous mutation, sans rapport avec la branche."
+ }
+]
