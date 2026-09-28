@@ -90,8 +90,9 @@ Never use these phrases, or a close paraphrase, to wave off a reproducible failu
 ## Review
 
 These rules replace the gate and the loop of the bigpowers `request-review` and `respond-review`
-skills: no percentage score, and no fresh pair re-reading the whole branch at every round. The rest
-of both skills applies. Why: `specs/adr/D-62`.
+skills, and what `request-review` sends its reviewers to look for: no percentage score, no fresh
+pair re-reading the whole branch at every round, and no search beyond what the branch promises. The
+rest of both skills applies. Why: `specs/adr/D-62`.
 
 1. **Place a finding before acting on it.** A defect the branch makes reachable belongs to the
    branch, even when the faulty line predates it: fix it, or put it to the owner, in the round that
@@ -125,6 +126,15 @@ of both skills applies. Why: `specs/adr/D-62`.
    other. When every finding still holding the gate is text-only, the next round is the coordinator
    alone: it checks each fix against its finding, and the gate passes if they hold. Why:
    `specs/adr/D-67`.
+8. **Review what the branch promises.** The brief lists the promises in the words of their spec: for
+   a story, the scenarios of its § Acceptance criteria and the measures of its § Security and
+   compliance; for a bug branch, the Acceptance Criteria of each bug file. For each promise, a
+   reviewer reports whether the code keeps it and whether a test holds it, which a mutation of a line
+   that keeps it must break. A promise the code does not keep is must-fix; one that no test holds is
+   should-fix. A later round checks the same promises on its diff, and each finding answered. The
+   brief sends the reviewers nowhere else: it proposes no scenario, state or interleaving of its own,
+   and leaves conventions, design and smells to `audit-code`, which runs before. A finding met
+   outside the promises is still placed and categorized under rule 1. Why: `specs/adr/D-68`.
 
 ## Cycle order
 
