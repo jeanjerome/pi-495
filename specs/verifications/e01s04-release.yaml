@@ -4,10 +4,21 @@ checker: release-branch
 branch: une-reponse-donnee-par-erreur-se-revoque
 revision: b9b73e8
 code_revision: ca15d89
-result: READY
+result: LANDED
 result_note: >
-  The pre-merge gates hold on the head of the branch. Landing it on main as one squashed commit is the
-  owner's act: the landing script of the skill pushes main, and no push is made from an unattended step.
+  The pre-merge gates hold on the head of the branch, which lands on main as one squashed commit.
+
+landing:
+  commit: 45b676c
+  landed_at: "2026-09-28"
+  from: e1027a6
+  onto: a62a844
+  method: >
+    git merge --squash then git commit on main, by hand: the landing script of the skill pushes main
+    and deletes the branch, and neither is done here. The commit's tree equals the branch head's, and
+    the branch is kept (specs/adr/D-66).
+  pushed: false
+  push_note: "At the landing, main is three commits ahead of origin/main; pushing it is the owner's decision."
 
 preflight:
   cited: true

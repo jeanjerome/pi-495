@@ -10,28 +10,26 @@ active_epic_id: e01
 active_story: e01s04
 
 epic_cycle:
-  step: 6
-  completed_steps: "0,1,2,3,4,5"
+  step: 7
+  completed_steps: "0,1,2,3,4,5,6"
   audit_result: pass
   review_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: release-branch
+  next_skill: survey-context
   last_step_completed: >
-    Contrôles d'avant fusion d'e01s04 tenus sur la tête de branche : couverture, sécurité,
-    traçabilité, commits, diff (`specs/verifications/e01s04-release.yaml`). Dernière Preflight verte :
-    `3f18021`, sous Node 24 (`specs/verifications/e01s04-verify.yaml`) ; depuis, seuls des fichiers
-    de `specs/` qu'aucun contrôle ne lit ont changé.
+    e01s04 est versée sur `main` en `45b676c`, un seul commit écrasé, fait à la main sans
+    `land-branch.sh` ; la branche `une-reponse-donnee-par-erreur-se-revoque` est gardée
+    (`specs/verifications/e01s04-release.yaml`). `main` n'est pas poussée : elle devance
+    `origin/main` de quatre commits, et le push revient au propriétaire. Dernière Preflight verte :
+    `3f18021`, sous Node 24.21.0 (`specs/verifications/e01s04-verify.yaml`) ; depuis, seuls des
+    fichiers de `specs/` qu'aucun contrôle ne lit ont changé, et l'arbre de `45b676c` est celui de la
+    tête de branche.
 
-    Reste ouvert : la fusion écrasée sur `main`, branche gardée, avec pour message sur une ligne
-    `feat: /495 revoke withdraws the owner's answer to a material question, or its close, until the
-    candidate is accepted, so the question is asked again, nothing adopted on the revoked resolution
-    stays adopted, and the requirements and the frozen protocol are rebuilt on the new one`. Elle
-    revient au propriétaire, sans `land-branch.sh`, qui pousse `main` ; le push reste à sa décision.
-    Au registre, introduits par la branche et à corriger après la fusion : BUG-2026-09-28T013000,
-    BUG-2026-09-28T025000 et BUG-2026-09-28T025100. Restent ouverts hors de cette story :
-    BUG-2026-09-23T155707, BUG-2026-09-27T170000, BUG-2026-09-27T170100, BUG-2026-09-27T220000 et
-    BUG-2026-09-28T013100.
+    Reste ouvert : e01s05, au carnet. Au registre, introduits par e01s04 et à corriger maintenant
+    qu'elle est versée : BUG-2026-09-28T013000, BUG-2026-09-28T025000 et BUG-2026-09-28T025100. Hors
+    de cette story : BUG-2026-09-23T155707, BUG-2026-09-27T170000, BUG-2026-09-27T170100,
+    BUG-2026-09-27T220000 et BUG-2026-09-28T013100.
 metrics:
   story_start: "2026-09-28T00:50:16+02:00"
