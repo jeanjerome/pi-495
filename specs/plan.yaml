@@ -113,13 +113,19 @@ epics:
 
   - id: e02
     title: "Une sortie refusée garde une issue"
-    status: à faire
+    status: versé
     source: chantiers/F
     objet: >
       Une sortie d'intervention structurée mais refusée laisse au changement une issue, et un rapport
       complet et valide n'est plus perdu parce que la recherche part de la fin.
     motif: >
       A tué deux lancements sur quatre.
+    position: >
+      Versé sans story : le code tenait déjà l'objet quand le plan l'a repris. Un blocage réessayable
+      est levé par resume depuis `e71b2f6` (`D-38`, `test/v2/harness.test.ts`), éprouvé en campagne
+      sur `java-flashnext-L2` ; un rapport sans bloc est lu depuis sa première accolade depuis
+      `03f24c6` (`test/v0/reports.test.ts`). Aucune campagne réelle n'a encore lu un rapport sans bloc
+      depuis ce correctif.
 
   - id: e03
     title: "Le mandat est cohérent avec sa vérification"
