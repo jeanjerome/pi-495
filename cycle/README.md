@@ -113,6 +113,7 @@ dossier du pas qui l'a produite ; ailleurs on la cite. Une copie dérive du code
 
 `npm run cycle -- <story>` conduit les pas qui restent, dans l'ordre, jusqu'à ce qu'un pas ait
 besoin du propriétaire ou bloque ; `npm run cycle -- <story> etat` dit où elle en est ;
+`npm run cycle -- <story> suivre` suit, depuis un autre terminal, la story qui tourne ;
 `npm run cycle -- <story> accepte [note]` inscrit l'accord après la recette ;
 `npm run cycle -- <story> ecart "<ce qui manque>"` la renvoie au rouge-vert pour l'écart nommé, avec
 un seul tour de relecture sur son diff. Le dossier vit sous `~/.495/cycle/<story>/` pendant la story
@@ -124,7 +125,9 @@ texte de l'agent, appel d'outil, commit, total de tests ou appel en échec, pré
 deux relecteurs tournent ensemble ; chaque contrôle dit quand il part et comment il finit ; chaque pas
 se ferme sur son issue, sa durée, son coût et ses commits. Le titre du terminal nomme le pas en cours
 et depuis combien de temps rien ne s'est affiché. Un son et une notification disent qu'un pas attend
-le propriétaire, qu'il bloque ou que la story est versée (`CYCLE_495_SON` change le son). Rien de cet
+le propriétaire, qu'il bloque ou que la story est versée (`CYCLE_495_SON` change le son). Les mêmes
+lignes vont dans `en-direct.log`, dans le dossier de la story, que `npm run cycle -- <story> suivre`
+suit depuis un autre terminal jusqu'à Ctrl-C ; un nouveau lancement vide ce fichier. Rien de cet
 affichage n'est une preuve : le journal et les transcriptions gardées le sont.
 
 L'outil dépend de 495 et jamais l'inverse. Il reprend du noyau le magasin d'objets, où vont les

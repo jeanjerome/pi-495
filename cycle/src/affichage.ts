@@ -3,17 +3,67 @@
  * line that places it among the six, each session streams one line per event — the agent's text,
  * each tool call, each commit, the test totals a run prints, a failed call — each control says when
  * it starts and how it ended, and each step closes on its outcome, duration, cost and commits. The
- * terminal title names the step and how long nothing has been written. None of it is a record: the
- * journal and the stored transcripts are.
+ * terminal title names the step and how long nothing has been written. The same lines go to a file
+ * of the story's dossier, which `cycle <story> suivre` follows from another terminal. None of it is a
+ * record: the journal and the stored transcripts are.
  */
 import { spawn } from "node:child_process";
-import { styleText } from "node:util";
+import { appendFileSync, closeSync, existsSync, openSync, readSync, statSync, writeFileSync } from "node:fs";
+import { stripVTControlCharacters, styleText } from "node:util";
 import type { Commit } from "./git.ts";
 import { type Evenement, PAS, type Pas } from "./journal.ts";
 
 type Style = Parameters<typeof styleText>[0];
 
-const s = (style: Style, texte: string): string => styleText(style, texte);
+// Styled whatever the stream: the file another terminal follows keeps the colours, and each
+// reader strips them when its own output is not a terminal.
+const s = (style: Style, texte: string): string => styleText(style, texte, { validateStream: false });
+
+function pourCeTerminal(texte: string): string {
+	return process.stdout.isTTY && !process.env.NO_COLOR ? texte : stripVTControlCharacters(texte);
+}
+
+/** The display of a run: on this terminal, and in a file another terminal can follow. */
+export class Sortie {
+	private readonly fichier: string;
+
+	constructor(fichier: string) {
+		this.fichier = fichier;
+		writeFileSync(fichier, "");
+	}
+
+	ecrire(texte: string): void {
+		console.log(pourCeTerminal(texte));
+		appendFileSync(this.fichier, `${texte}\n`);
+	}
+}
+
+/**
+ * Follows, from another terminal, the file a run writes: what is already there, then each line as it
+ * is added, until Ctrl-C. A new run empties the file, and the reading starts again from its top.
+ */
+export async function suivre(fichier: string, story: string): Promise<never> {
+	console.log(pourCeTerminal(s("gray", `Suivi de ${story} — ${fichier} — Ctrl-C pour quitter`)));
+	if (!existsSync(fichier)) console.log(pourCeTerminal(s("gray", "  aucun cycle lancé pour l'instant, en attente…")));
+	let lu = 0;
+	const lire = (): void => {
+		const taille = existsSync(fichier) ? statSync(fichier).size : 0;
+		if (taille < lu) lu = 0;
+		if (taille === lu) return;
+		const tampon = Buffer.alloc(taille - lu);
+		const fd = openSync(fichier, "r");
+		readSync(fd, tampon, 0, tampon.length, lu);
+		closeSync(fd);
+		// Only whole lines: a line the run is still writing is read on the next pass.
+		const fin = tampon.lastIndexOf(0x0a);
+		if (fin < 0) return;
+		lu += fin + 1;
+		process.stdout.write(pourCeTerminal(tampon.subarray(0, fin + 1).toString("utf8")));
+	};
+	lire();
+	setInterval(lire, 500);
+	return new Promise<never>(() => {});
+}
 
 const APROPOS: Record<Pas, string> = {
 	story: "branche et base verte",
