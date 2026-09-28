@@ -73,14 +73,23 @@ it, the change is `verifying` with outcome `pending` after the fallback and `cla
 `pending` after the revocation; probe 2 is `deciding`, G5 FAIL, outcome `pending`. The rest of the
 suite passes. Confirmed: two roots, one per symptom.
 
-Risk: Low. G5 is invalidated with an accepted outcome only after G5 passed, that is in an integration;
-the outcome `integrated` is never touched.
+Risk: Low. On the paths the extension drives, G5 is invalidated with an accepted outcome only after G5
+passed, that is in an integration; the outcome `integrated` is never touched. The kernel also accepts
+`environment.change` and `evidence.invalidate` on a closed change, and both invalidate G5, so a closed
+accepted change they reached would say `pending`; no code of the extension emits either command
+(BUG-2026-09-28T103000).
 
 ## Fix approach
 
 - The plan a revocation shares with a revised mandate keeps IH-12 valid, as it keeps IH-07.
 - Invalidating G5 sets an `accepted` outcome back to `pending`, in the state the event derives, as a
-  revised artifact already does. A journal already written derives the same correction on replay.
+  revised artifact already does.
+
+Not covered: a change that fell back from its integration under a build before the fix keeps
+`accepted` in its stored state, since the ledger applies each new event to the state it stored and
+never replays the journal on its own. The report and the exported dossier read that stored state. A
+replay of the same journal derives `pending`, so the ledger's integrity check would report that
+change as differing from its replay; no path of the extension runs that check.
 
 ## TDD Fix Plan
 
@@ -110,4 +119,4 @@ the outcome `integrated` is never touched.
 
 ## Resolution
 
-<!-- filled in by validate-fix -->
+Fixed on the branch `reprise-de-verification-et-revocation` (`04e4450`, `1f36ec6`): a revocation or a revised mandate keeps the owner's reconciliation of a Git effect valid, and an integration fallback withdraws the accepted outcome. Held by `test/v0/change-rules.test.ts`; not exercised in a real Pi. Accepted by the owner on 2026-09-28.

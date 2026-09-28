@@ -122,9 +122,17 @@ class Ctx {
 		if (!isActive(this.state))
 			this.fail("INVALID_TRANSITION", `change is ${this.state.status} in phase ${this.state.phase}`);
 	}
+	/** The `/495` subcommands that lead out of the change's stop: the resume only where it lifts it. */
+	waysOutOfStop(): string[] {
+		return resumeLiftsStop(this.state) ? ["resume", "cancel"] : ["cancel"];
+	}
 	requireNotBlocked(): void {
 		if (this.state.status === "blocked")
-			this.fail("PRECONDITION_FAILED", `change is blocked: ${this.state.stop_reason ?? "unknown"}`, ["unblock"]);
+			this.fail(
+				"PRECONDITION_FAILED",
+				`change is blocked: ${this.state.stop_reason ?? "unknown"}`,
+				this.waysOutOfStop(),
+			);
 		if (this.state.status === "decision_required")
 			this.fail(
 				"DECISION_REQUIRED",
@@ -164,7 +172,9 @@ class Ctx {
 	}
 	block(reason: StopReason, detail: string, retryable = false): void {
 		// A stop leaves nothing running: ending the intervention later, on a pause or a resume, would
-		// hand the change back ready and erase the stop without the kernel ever lifting it.
+		// hand the change back ready and erase the stop without the kernel ever lifting it, and a
+		// verification left open would have the resume run it again, lifting any stop with it.
+		this.closeOpenVerification();
 		const running = runningIntervention(this.state);
 		if (running)
 			this.emit({
@@ -178,6 +188,21 @@ class Ctx {
 				imposed_layers: [unobservedEnd("the change was blocked before the session reported its requests")],
 			});
 		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail, retryable });
+	}
+	/**
+	 * A verification has no external effect, and one a pause, a block, a revocation or a rerun stops can
+	 * no longer record its evidence, since its next commit loses to them: closing its operation leaves no
+	 * work in progress to refuse a revocation on, and lets the next verification of the change open its
+	 * own once the change runs again.
+	 */
+	closeOpenVerification(): void {
+		if (this.state.operation?.kind === "verification")
+			this.emit({
+				type: "operation.closed",
+				...this.base(),
+				operation_id: this.state.operation.operation_id,
+				interrupted: true,
+			});
 	}
 	gateDecision(partial: Omit<GateDecisionState, "decided_at" | "state_revision">): GateDecisionState {
 		return { ...partial, decided_at: this.at, state_revision: this.state.revision };
@@ -373,6 +398,9 @@ class Ctx {
 		});
 		if (resolvedBy)
 			this.emit({ type: "decision.revoked", ...this.base(), human_decision_id: resolvedBy.human_decision_id, reason });
+		// The only operation `requireRevocable` lets through: a verification an earlier build left open
+		// on a blocked change.
+		this.closeOpenVerification();
 		// An attempt left open works in a workspace prepared and written for the revoked resolution: the
 		// rebuilt change opens an attempt of its own, on a workspace prepared for what it is asked then.
 		const open = openAttempt(this.state);
@@ -397,7 +425,12 @@ class Ctx {
 	 * The question whose resolution the owner may revoke. Refused, naming why, for a question unknown,
 	 * not material or unresolved, a change no longer active, a candidate accepted — by the owner's
 	 * IH-10, or by G5 on entering the integration — and while an intervention or an operation runs,
-	 * since what it writes would rest on the revoked resolution (M6).
+	 * since what it writes would rest on the revoked resolution (M6). That refusal names the pause:
+	 * within a session it is met only once nothing of that session runs, so what it finds open was cut
+	 * short or runs elsewhere, and the pause stops it, ending an intervention and closing a
+	 * verification. A blocked change runs nothing, since the block ends both; a verification a build
+	 * before this kernel left open with its block is closed by the revocation, as the pause the
+	 * blocked change refuses cannot close it.
 	 */
 	requireRevocable(c: CommandOf<"question.revoke">): OpenQuestion {
 		this.requireActive();
@@ -413,10 +446,10 @@ class Ctx {
 				"cancel",
 			]);
 		const running = runningIntervention(this.state);
-		if (running) this.fail("OPERATION_ACTIVE", `intervention ${running.intervention_id} is running`);
+		if (running) this.fail("OPERATION_ACTIVE", `intervention ${running.intervention_id} is running`, ["pause"]);
 		const operation = this.state.operation;
-		if (operation)
-			this.fail("OPERATION_ACTIVE", `${operation.kind} operation ${operation.operation_id} is in progress`);
+		if (operation && !(this.state.status === "blocked" && operation.kind === "verification"))
+			this.fail("OPERATION_ACTIVE", `${operation.kind} operation ${operation.operation_id} is in progress`, ["pause"]);
 		return q;
 	}
 
@@ -943,13 +976,12 @@ class Ctx {
 			this.fail("INVALID_TRANSITION", `role ${c.role} is not allowed in phase ${this.state.phase}`);
 		if (!c.profile_qualified)
 			this.fail("CAPABILITY_MISSING", `execution profile ${c.profile_id} is not qualified on this platform`, [
-				"qualify_capability",
-				"revise_mandate",
+				"cancel",
 			]);
 		if (!c.model.provider_id || !c.model.model_id)
 			this.fail("CONFIGURATION_ERROR", "provider and model must be explicit (RM-022)");
 		if (this.state.budgets.increment_ms_used >= this.policy.budgets.increment_ms)
-			this.fail("BUDGET_EXHAUSTED", "increment duration budget exhausted", ["request_decision:IH-07"]);
+			this.fail("BUDGET_EXHAUSTED", "increment duration budget exhausted");
 		let attemptId: string | null = c.attempt_id;
 		if (c.role === "implement") {
 			if (!this.state.protocol)
@@ -1015,10 +1047,9 @@ class Ctx {
 			this.fail(
 				"BUDGET_EXHAUSTED",
 				`tool call budget exceeded (${after.counters.tool_calls}/${this.policy.budgets.tool_calls_per_intervention})`,
-				["abort_intervention"],
 			);
 		if (after.counters.duration_ms > this.policy.budgets.intervention_ms)
-			this.fail("BUDGET_EXHAUSTED", `intervention duration budget exceeded`, ["abort_intervention"]);
+			this.fail("BUDGET_EXHAUSTED", `intervention duration budget exceeded`);
 		return ok(this.events);
 	}
 
@@ -1142,8 +1173,7 @@ class Ctx {
 		this.requirePhase("deciding", "reviewing", "verifying");
 		this.requireKernelAuthority();
 		if (this.state.status === "paused") this.requireNotBlocked();
-		if (this.state.operation && this.state.operation.kind === "verification")
-			this.emit({ type: "operation.closed", ...this.base(), operation_id: this.state.operation.operation_id });
+		this.closeOpenVerification();
 		if (this.state.gates.G5) this.emit({ type: "gate.invalidated", ...this.base(), gate: "G5", reason: c.reason });
 		if (this.state.status === "blocked")
 			this.emit({ type: "status.changed", ...this.base(), status: "ready", stop_reason: null, detail: null });
@@ -1247,7 +1277,12 @@ class Ctx {
 
 	changePause(): Decision {
 		this.requireActive();
-		if (this.state.status === "paused") return ok(this.events);
+		// A pause a build before this kernel wrote left the verification it suspended open: pausing again
+		// closes it, so a revocation refused on it is met by the pause it names.
+		if (this.state.status === "paused") {
+			this.closeOpenVerification();
+			return ok(this.events);
+		}
 		// A blocked change runs nothing to suspend, since the block ended its intervention, and the pause
 		// would replace its stop: the reason, the detail naming its ways out and whether a resume lifts it
 		// would be lost.
@@ -1255,7 +1290,7 @@ class Ctx {
 			this.fail(
 				"PRECONDITION_FAILED",
 				`change is blocked: ${this.state.stop_reason ?? "unknown"}; nothing runs to pause`,
-				resumeLiftsStop(this.state) ? ["resume", "cancel"] : ["cancel"],
+				this.waysOutOfStop(),
 			);
 		if (runningIntervention(this.state))
 			this.fail("PRECONDITION_FAILED", "stop the running intervention before pausing");
@@ -1264,6 +1299,7 @@ class Ctx {
 			(this.state.operation.effect_state === "started" || this.state.operation.effect_state === "uncertain")
 		)
 			this.fail("EFFECT_UNCERTAIN", "an external effect is in flight; reconcile before pausing");
+		this.closeOpenVerification();
 		this.emit({ type: "resume_point.saved", ...this.base(), phase: this.state.phase, status: this.state.status });
 		this.emit({ type: "status.changed", ...this.base(), status: "paused", stop_reason: null, detail: null });
 		return ok(this.events);
@@ -1338,7 +1374,17 @@ class Ctx {
 			this.fail("ATTEMPTS_EXHAUSTED", "attempt budget is still exhausted; a budget extension (IH-07) is required");
 		if (this.state.operation?.effect_state === "uncertain")
 			this.fail("EFFECT_UNCERTAIN", "reconcile the uncertain effect first (IH-12)");
-		this.emit({ type: "status.changed", ...this.base(), status: "ready", stop_reason: null, detail: null });
+		// A block written over a pending decision leaves it pending: lifting the stop hands the change back
+		// to that decision, as the end of a pause does, rather than to the step that raised it.
+		if (this.state.pending_decisions.length > 0)
+			this.emit({
+				type: "status.changed",
+				...this.base(),
+				status: "decision_required",
+				stop_reason: "decision_pending",
+				detail: null,
+			});
+		else this.emit({ type: "status.changed", ...this.base(), status: "ready", stop_reason: null, detail: null });
 		return ok(this.events);
 	}
 
@@ -1367,7 +1413,6 @@ class Ctx {
 				new DomainError(code, reason, {
 					subject: subjectOfChange(this.state),
 					phase: this.state.phase,
-					nextActions: ["request_decision"],
 				}),
 			);
 		};
@@ -1557,7 +1602,7 @@ class Ctx {
 		if (g5.evaluated.candidate !== this.state.candidate.manifest_digest)
 			this.fail("EVIDENCE_STALE", "G5 evaluated another candidate");
 		if (!this.state.integration_authorization_id)
-			this.fail("DECISION_REQUIRED", "integration requires a valid IH-11 authorization", ["request_decision:IH-11"]);
+			this.fail("DECISION_REQUIRED", "integration requires a valid IH-11 authorization");
 		const auth = this.state.human_decisions.find(
 			(d) => d.human_decision_id === this.state.integration_authorization_id,
 		);

@@ -110,15 +110,15 @@ export class InterventionSupervisor {
 			throw new DomainError(
 				"CAPABILITY_MISSING",
 				`sandbox backend ${this.deps.sandbox.backend.backend} is not qualified: ${this.deps.sandbox.qualification.reasons.join("; ")}`,
-				{ nextActions: ["qualify_capability"] },
+				{ nextActions: ["cancel"] },
 			);
 		const capabilities = await this.deps.agent.describeCapabilities(model);
 		const unmet = this.unmetCapabilities(capabilities, model);
 		if (unmet.length > 0)
 			throw new DomainError(
 				"CAPABILITY_MISSING",
-				`model ${model.provider_id}/${model.model_id} cannot carry this intervention: ${unmet.join("; ")}`,
-				{ retryable: true, nextActions: ["configure_model"] },
+				`model ${model.provider_id}/${model.model_id} cannot carry this intervention: ${unmet.join("; ")}; select another model with /model`,
+				{ retryable: true, nextActions: ["resume", "cancel"] },
 			);
 	}
 

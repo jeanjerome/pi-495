@@ -451,14 +451,18 @@ bugs:
       `dist/modes/rpc/rpc-mode.js:647`), the `prompt` case launches `session.prompt` the same way
       (`:302`), and `AgentSession.prompt` runs an extension command immediately, with no lock
       (`dist/core/agent-session.js:1216-1224`). Two `/495` commands sent on one RPC connection can
-      therefore overlap while one is mid-await.
+      therefore overlap while one is mid-await. Reproduced through the command in RPC mode by the
+      review of the branch that reruns a verification cut short (record
+      `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 2, R2-2):
+      `/495 verify`, refused by the kernel while a conduct holds the session, leaves `busy` false, and
+      a `/495 resume` asked next passes the refusal that branch gives it and is inscribed.
+      test/v3/resume.test.ts, "stays refused after a /495 verify refused while another operation holds
+      the session, which keeps its hold": red at 45cce76, green at c06ad23, both in a detached
+      worktree.
     risk_level: low
-    follow_ups: >
-      Reproduce against a running Pi RPC session (probe, then a red test) to confirm the overlap read
-      in Pi's source actually drops another operation's hold; then give `verify` the same guard
-      `conduct` and `/495 close` already have. Sized as a quick-fix once reproduced — do not fix ahead
-      of a red test.
-    status: open
+    follow_ups: "none"
+    status: fixed
+    fixed_in: c06ad23
   - bug_id: BUG-2026-09-28T013000
     date: "2026-09-28"
     title: "A change paused while its verification ran cannot have a question's resolution revoked, though nothing runs"
@@ -495,7 +499,8 @@ bugs:
     follow_ups: >
       The pause closes the verification operation it suspends, and the revocation's refusal names the
       pause; red tests and order in the bug file, after BUG-2026-09-28T081300's first cycle.
-    status: open
+    status: fixed
+    fixed_in: ded5f28
   - bug_id: BUG-2026-09-28T013100
     date: "2026-09-28"
     title: "The engineering report lists requirements refused at G1 as the change's requirements"
@@ -567,7 +572,8 @@ bugs:
     follow_ups: >
       Keep IH-12 out of the plan the revocation shares with the mandate revision, as IH-07 is, and set
       an accepted outcome back to pending where G5 is invalidated rather than in the revocation alone.
-    status: open
+    status: fixed
+    fixed_in: 04e4450, 1f36ec6
   - bug_id: BUG-2026-09-28T025100
     date: "2026-09-28"
     title: "The prepared suite is written as a free-text note of every control's qualification, found again by its prefix and read as a reason the control is not qualified"
@@ -602,7 +608,8 @@ bugs:
     follow_ups: >
       Remove the note rather than add a field to the protocol contract, which would hold a second copy
       of what the preparation artifact holds.
-    status: open
+    status: fixed
+    fixed_in: 8993a85
   - bug_id: BUG-2026-09-28T081300
     date: "2026-09-28"
     title: "A verification cut short by a pause or by the end of its session is never run again, so the change can only be cancelled"
@@ -634,5 +641,442 @@ bugs:
     file: specs/bugs/BUG-2026-09-28T081300-interrupted-verification-never-runs-again.md
     follow_ups: >
       A change a build before the fix paused during its verification keeps its operation open, and its
-      resume stays refused; cancel remains its way out.
+      resume stays refused until it is paused again, which closes that verification. One such a build
+      blocked during its verification has its resume lift any stop (BUG-2026-09-28T113000).
+    status: fixed
+    fixed_in: c258255, 897ff02
+  - bug_id: BUG-2026-09-28T103000
+    date: "2026-09-28"
+    title: "environment.change and evidence.invalidate accept a closed change, and invalidating G5 there says a closed accepted change pending"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      The kernel accepts `environment.change` and `evidence.invalidate` without requiring an active
+      change (`src/domain/change/decide.ts`), and both invalidate G5. Since invalidating G5 sets an
+      accepted outcome back to pending, a change closed `completed` and accepted comes out `pending`,
+      where main kept `accepted`. No code of the extension emits either command. The reset of the
+      outcome is introduced by the branch that reruns a verification cut short; the missing check of an
+      active change predates it.
+    what_expected: >
+      A closed change keeps its outcome: a command that invalidates a gate is refused once the change is
+      closed.
+    steps_to_reproduce:
+      - "At the kernel, take a change to `closed completed` with outcome `accepted`."
+      - "Run `environment.change`, or `evidence.invalidate` on one of its evidence: the outcome is `pending`."
+    root_cause: >
+      `environmentChange` and `evidenceInvalidate` do not require an active change, unlike every other
+      command that changes a gate.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
+      R1-6 and P4: kernel probes K5 (reviewer A) and K3 (reviewer B), `closed/completed` with outcome
+      `pending`.
+    risk_level: low
+    follow_ups: >
+      Require an active change for both commands, with a red kernel test on a closed accepted change.
+      The fix adds a refusal, so it follows the review gate.
+    status: open
+  - bug_id: BUG-2026-09-28T103100
+    date: "2026-09-28"
+    title: "The engineering report lists as valid the candidate observations of a verification pass the kernel never recorded"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `engineeringReport` (`src/application/report.ts`) takes a stored observation as valid unless the
+      kernel recorded it invalid (`?? true`). A pass the pause suspended, or one a technical rerun set
+      aside, stores its observations without the kernel recording them. The report of a change accepted
+      on the pass run again lists them beside the recorded ones, all valid:
+      `unit INDETERMINATE valid true evd_0035` beside `unit PASS evd_0040`, where only `evd_0040` and
+      `evd_0041` are recorded. Made reachable once more by the branch that reruns a verification cut
+      short; a technical rerun gives the same shape on main.
+    what_expected: >
+      The report tells an observation on the candidate the kernel recorded from one it never recorded.
+    steps_to_reproduce:
+      - "Pause a change while its first control runs on the candidate, resume it, and conduct it to its acceptance."
+      - "Run `/495 report`: the observations of the suspended pass are listed as valid."
+    root_cause: >
+      The default covers the qualification observations on the reference, which the kernel does not
+      record either, and takes in the candidate observations of a pass cut short with them.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
+      R1-7: probe P5 of reviewers A and B.
+    risk_level: low
+    follow_ups: >
+      Mark an observation on the candidate that the kernel never recorded as not recorded, with a red
+      test on the paused path. The fix adds a behavior, so it follows the review gate.
+    status: open
+  - bug_id: BUG-2026-09-28T103200
+    date: "2026-09-28"
+    title: "The next action a kernel refusal names reaches only the structured channel, never the text a screen shows"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `/495` shows a kernel refusal as `495 error: CODE: message` (`src/extension/command.ts`, the
+      command's catch and `actOnQuestion`). The next actions travel only in the details, which an RPC or
+      JSON host reads. On a screen, a revocation refused while a verification is open does not say that
+      the pause is the way on. The display predates the branch that reruns a verification cut short,
+      which gives the revocation's refusal its next actions.
+    what_expected: >
+      The text of a refusal names its next actions, as the detail of a block already does
+      (`(next: …)`).
+    steps_to_reproduce:
+      - "In the TUI, take a change whose verification is open, and run `/495 revoke q1`."
+      - "The screen shows `495 error: OPERATION_ACTIVE: …` and no next action."
+    root_cause: >
+      The text of the refusal is built from its code and message alone.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
+      R1-8, read in `command.ts` by the coordinator.
+    risk_level: low
+    follow_ups: >
+      Append `(next: …)` to the refusal text when it carries next actions, with a red test on a
+      `/495 revoke` refused. The fix adds a behavior, so it follows the review gate.
+    status: open
+  - bug_id: BUG-2026-09-28T103300
+    date: "2026-09-28"
+    title: "Two changes on the same candidate content collide on the verification key when they start their verification at the same revision"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The verification key is `verify:<candidate digest>:<revision>`
+      (`src/application/phases/verify.ts`). The ledger is shared by every change of the machine
+      (`~/.495/state.sqlite`) and the manifest digest follows from the content, so two changes on the
+      same content that start their verification at the same revision derive the same key: the second
+      is refused `OPERATION_ACTIVE` by the ledger and blocked. On main the collision, at `:0`, blocked
+      for good; the branch that reruns a verification cut short narrows it to equal revisions, and a
+      resume lifts it.
+    what_expected: >
+      One change's verification never refuses another's.
+    steps_to_reproduce:
+      - "Take two changes on the same project content to their verification at the same revision."
+      - "The second verification is refused by the key the first one holds."
+    root_cause: >
+      The key names the work but not the change it belongs to.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
+      P1: probes P4 (reviewer A) and P3 (reviewer B).
+    risk_level: low
+    follow_ups: >
+      Name the change in the key, with a red test of two changes on the same content.
+    status: open
+  - bug_id: BUG-2026-09-28T103400
+    date: "2026-09-28"
+    title: "An integration run again after the owner confirmed its Git effect not applied is refused for good by its reused key"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      After an IH-12 reconciliation `confirm_not_applied`, the kernel accepts a new preparation of the
+      integration, but the ledger refuses its key `integrate:<digest>:<before>`
+      (`src/adapters/git/integrator.ts`), already held: the destination head has not moved, since the
+      effect was not applied, so the key is the same. Every later attempt is refused the same way.
+    what_expected: >
+      An integration the owner confirmed not applied can be run again.
+    steps_to_reproduce:
+      - "Take an integration to an uncertain effect, and answer IH-12 `confirm_not_applied`."
+      - "Prepare the integration again: the ledger refuses the reused key."
+    root_cause: >
+      The key names the candidate and the destination head, which a reconciliation that found nothing
+      applied leaves unchanged.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
+      P2: kernel and ledger probe K6 (reviewer A).
+    risk_level: low
+    follow_ups: >
+      Decide what tells the new attempt apart in the key, then a red test from a `confirm_not_applied`.
+    status: open
+  - bug_id: BUG-2026-09-28T113000
+    date: "2026-09-28"
+    title: "A verification an earlier build left open on a stopped change makes its resume lift any stop, or refuse itself on a paused change"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `harness.resume` (`src/application/harness.ts`) runs an open verification again before it looks at
+      the change's stop: it commits `verification.rerun`, which hands a blocked change back `ready`
+      whatever its stop (`src/domain/change/decide.ts`), a missing capability, an invalid configuration
+      or a policy refusal included, and which the kernel refuses on a paused change, naming the resume.
+      In this build the block and the pause close the verification they stop, so only a journal an
+      earlier build wrote holds that state: a change it blocked, or paused, while its controls ran.
+    what_expected: >
+      A resume lifts only an execution error or a stop the kernel declared retryable, as
+      BUG-2026-09-26T145000 settled, and ends a pause, whatever a build before this one left open.
+    steps_to_reproduce:
+      - "Read back a journal an earlier build wrote: a change blocked `configuration_error` while its verification is open."
+      - "Run `/495 resume`: the change is `ready` and verifies again."
+      - "Read back a journal an earlier build wrote: a change paused while its verification is open. Run `/495 resume`: refused, `change is paused`, naming the resume."
+    root_cause: >
+      The resume's branch for an interrupted verification comes before its branches for a pause and a
+      stop, and `verificationRerun` lifts any block. The code is on main and in 0.2.1. The branch that
+      reruns a verification cut short closes the verification at the block and at the pause, which
+      keeps the state out of this build's journals: red at d62fc53, green at 897ff02, for a step that
+      fails while the controls run.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 2,
+      P-A1 (probe A2-P1 of reviewer A, with `CONFIGURATION_ERROR`) and P-A2 (probe A2-P2 of reviewer
+      A). The paused case is declared in BUG-2026-09-28T081300, "Not covered", with its way out: a
+      second pause closes the verification, after which the resume verifies again.
+    risk_level: low
+    follow_ups: >
+      Let the resume close a verification left open on a stopped change before it judges the stop,
+      with a red test on each journal of an earlier build. The fix adds a behavior, so it follows the
+      review gate.
+    status: open
+  - bug_id: BUG-2026-09-28T130000
+    date: "2026-09-28"
+    title: "With two live sessions, a revocation is overwritten by the other session's block, and the resume then reruns the specification without presenting the question again"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Two live sessions conduct the same change. One of them closes the other's verification, is refused
+      or loses, and blocks the change; the owner revokes the answer to Q1 there, which is accepted:
+      `clarifying decision_required`, IH-01 pending. The other session's record then loses on the
+      revision, and its block overwrites the decision: `clarifying blocked execution_error`, IH-01 still
+      pending. A resume hands the change back `clarifying ready`, and each conduct reruns the
+      specification until the step budget stops it (`max_steps`), IH-01 never presented.
+    what_expected: >
+      A block written by a session that lost to a later act does not overwrite that act, and a change
+      with a pending decision comes back to that decision when its stop is lifted.
+    steps_to_reproduce:
+      - "Open two harnesses on the same ledger, and conduct one change to its verification in the first."
+      - "In the second, resume the change (`harness.resume`, then `advance`) while the first one's controls run: the second is refused by the key the first holds and blocks the change."
+      - "Revoke Q1 in the second: accepted, IH-01 pending. Let the first finish: its record loses, and its block leaves `clarifying blocked execution_error`."
+      - "Resume, then `advance`: the specification reruns until `max_steps`, and IH-01 is never presented."
+    root_cause: >
+      Three reads compose. The error branch of `advance` (`src/application/harness.ts`) yields only to a
+      paused change on `REVISION_CONFLICT`, so it blocks over whatever a later writer did.
+      `change.unblock` (`src/domain/change/decide.ts`) hands the change back `ready` even when a
+      decision is pending. The specification skips a question already open
+      (`src/application/phases/clarify.ts`), so nothing presents IH-01 again. Reachable on main: a
+      coordinator probe on the `src/` of `fa7d370` reaches the same state through the second session's
+      resume.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      B3-1 and A3-P1: probes of reviewers A and B on 82ff627, and the coordinator's probe on main
+      (`REVISION_CONFLICT`, revision 59 against 48 expected; eight `clarifying -> clarifying/ready`
+      steps). Declared in BUG-2026-09-28T081300, "Not covered".
+      test/v2/answer-revocation.test.ts, "a revoked change blocked over its question asked again comes
+      back to that question once its stop is lifted": red at f17f5a6, green at 89d6ecf; "a block
+      written by a session whose record lost to the owner's revocation does not overwrite it": red at
+      fad0ad9, green at 4532f55; both in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 4532f55
+  - bug_id: BUG-2026-09-28T130100
+    date: "2026-09-28"
+    title: "A refusal on a blocked change names `unblock`, which no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `requireNotBlocked` (`src/domain/change/decide.ts`) refuses a blocked change with the next action
+      `unblock`. No `/495` subcommand is called so: `/495 verify` on a change blocked during its
+      verification answers `next: unblock`, where `resume` lifts a stop a resume may lift and `cancel`
+      is the only way out of any other.
+    what_expected: >
+      A refusal names only actions the operator can take, as the pause's refusal of a blocked change
+      does (`resume` and `cancel`, or `cancel` alone).
+    steps_to_reproduce:
+      - "Take a change blocked in `verifying`, and run `/495 verify`."
+      - "The refusal names `unblock` as its next action."
+    root_cause: >
+      The next action names the kernel command, not the subcommand that reaches it. Present before the
+      branch that reruns a verification cut short.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      P3-1 (reviewer B), read in `decide.ts` by the coordinator.
+      test/v3/resume.test.ts, "`/495 verify` on a change blocked in its verification names the resume
+      and the cancel, or the cancel alone": red at a23a019, green at 3a6da04, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 3a6da04
+  - bug_id: BUG-2026-09-28T130200
+    date: "2026-09-28"
+    title: "/495 close and /495 revoke release the session between the act and its conduct, so a command started in that gap passes and the act's conduct is refused as busy"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `actOnQuestion` (`src/extension/command.ts`) releases the session once the act is inscribed, and
+      `conduct` takes it again a few microtasks later. A `/495` command started in that gap finds the
+      session free and passes; the conduct of the act is then refused as busy, and the change is left
+      where the act put it. Introduced by the branch that reruns a verification cut short: before it,
+      the release and the conduct's own check followed each other in the same synchronous turn.
+    what_expected: >
+      The act and the conduct that follows it hold the session as one operation.
+    steps_to_reproduce:
+      - "Run `/495 close q1` or `/495 revoke q1`, and start another `/495` command from a microtask queued three deep after the act is inscribed."
+      - "The other command passes, and the act's conduct is refused with the busy message."
+    root_cause: >
+      The act holds the session through `session.hold`, which releases it before `conduct` holds it
+      again. Not reachable through Pi, on reading: in RPC mode the handler is called synchronously from
+      the standard input callback (`rpc-mode.js:646`, `agent-session.js:1207-1224`), and the TUI queues
+      its input.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      R3-7: probe P-gap of reviewer B, from a microtask; `git show 5c32195` read by the coordinator.
+      test/v3/question-closure.test.ts, "holds the session from the confirmation through the conduct
+      of the closure, as one operation (BES-02)", which replaces the test that pinned the release
+      before the conduct: red at 11a7225, green at 521e91b, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 521e91b
+  - bug_id: BUG-2026-09-28T130300
+    date: "2026-09-28"
+    title: "The operations table records as succeeded a verification a pause or a block closed"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The ledger projects `operation.closed` onto the operations table by turning a `running` operation
+      into `succeeded` (`src/adapters/storage-sqlite/ledger.ts`). A verification the pause or the block
+      closes recorded no evidence, yet its row says it succeeded. Nothing in `src/` reads that status;
+      only a direct SQLite read of the dossier sees it. Introduced by the branch that reruns a
+      verification cut short, whose pause and block close the verification they stop.
+    what_expected: >
+      A verification closed without its record is not said to have succeeded.
+    steps_to_reproduce:
+      - "Pause a change while its controls run on the candidate."
+      - "Read its verification in the `operations` table: `succeeded`."
+    root_cause: >
+      `operation.closed` carries no outcome, and the projection takes every close of a running
+      operation for a success.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      R3-8 (reviewer B), read in `ledger.ts` by the coordinator.
+      test/v2/ledger.test.ts, "does not record as succeeded a verification the pause or the block
+      closes before its record": red at f0e74e8, green at 6dada98, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 6dada98
+  - bug_id: BUG-2026-09-28T143500
+    date: "2026-09-28"
+    title: "Refusals and blocks outside the blocked-change refusal name next actions no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      Several failures name as next action a kernel or internal action the operator cannot take:
+      `qualify_capability` (`src/application/intervention.ts`, sandbox not qualified; and
+      `src/domain/change/decide.ts`, profile not qualified), `configure_model`
+      (`src/application/intervention.ts`, model that cannot carry an intervention),
+      `abort_intervention` (`decide.ts`, `budgetConsume`) and `request_decision` (`decide.ts`,
+      `decisionAnswer` rejected). When such a failure stops a step, the harness appends
+      `(next: …)` to the block detail, which `/495 status` prints after the stop reason. The path from
+      `abort_intervention` and `request_decision` to the operator is not established.
+    what_expected: >
+      A refusal names only actions the operator can take, as the refusal of a blocked change does
+      since BUG-2026-09-28T130100.
+    steps_to_reproduce:
+      - "Run a change whose sandbox backend is not qualified, and read `/495 status`."
+      - "The stop detail ends with `(next: qualify_capability)`."
+    root_cause: >
+      The next action names a kernel command or an internal step, not the subcommand or the Pi action
+      that reaches it. Present before the branch that reruns a verification cut short, and made
+      reachable by nothing on it.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 4,
+      B4-4 (reviewer B, found by grep), read in `decide.ts`, `intervention.ts`, `harness.ts` and
+      `src/presentation/structured/text.ts` by the coordinator. Not reproduced in a live session.
+      `abort_intervention` reaches only the supervisor, which reads the message of a budget refusal, and
+      `request_decision` only the conduct, which prints the code and the reason of a refused answer.
+      test/v2/harness.test.ts, "an unqualified sandbox blocks before any producing intervention, and the
+      status names the cancel as its only way out" and "lifts a block the kernel declared retryable,
+      which the status names with the cancel", and test/v3/model-select.test.ts, "a change refused for
+      its model names Pi's model selection, then the resume or the cancel, and no kernel command": red
+      at 40dc901, green at 37626c6, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 37626c6
+  - bug_id: BUG-2026-09-28T163300
+    date: "2026-09-28"
+    title: "Four stops that name only the cancel, and the removal of IH-07 from the exhausted increment budget, have no test"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The stops raised at `src/application/phases/verification-design.ts` (no detectable control, a
+      protocol that does not freeze, a preparation that cannot run) and `src/application/verification.ts`
+      name `cancel` as the only way out, and the exhausted increment duration budget in
+      `src/domain/change/decide.ts` no longer names `request_decision:IH-07`. Mutations that put the
+      former names back, or name `resume, cancel`, survive the whole suite.
+    what_expected: >
+      A test holds each of these five lines: putting a former name back, or naming a resume no
+      resume lifts, fails a test that reads the stop as `/495 status` shows it.
+    steps_to_reproduce:
+      - "Replace `cancel` by `prepare_capabilities` at `verification-design.ts:79` and run `npm test`."
+      - "The suite passes."
+    root_cause: >
+      The fix of BUG-2026-09-28T143500 changed seven stops and tested three; the four others and the
+      removal at `decide.ts:984` were left to the reviewers' mutations. Left open by the sixth review
+      round of the branch that reruns a verification cut short, past the cap, under the rule that what
+      the last round leaves goes to the registry.
+    evidence: >
+      Review record of the branch, round 6, R6-1 and R6-2: mutations M9 to M12 and M14 of reviewer A,
+      M11 to M14, M16, M21 and M22 of reviewer B survive at 37626c6. `test/v2/preparation.test.ts:168`
+      already reaches the stop of a protocol that does not freeze and reads only its first word.
+    risk_level: low
+    follow_ups: "what the exhausted-budget test asserts depends on BUG-2026-09-28T163400"
+    status: open
+  - bug_id: BUG-2026-09-28T163400
+    date: "2026-09-28"
+    title: "The exhausted increment duration budget names no way out, and a resume in the same session loops on it"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `BUDGET_EXHAUSTED` on the increment duration becomes an `execution_error` stop
+      (`src/application/harness.ts`), which a resume always lifts: `/495 status` reads `blocked:
+      execution_error — BUDGET_EXHAUSTED: increment duration budget exhausted` with no action,
+      `/495 resume` returns `ready`, and the next step blocks on the same refusal. IH-07 extends the
+      attempts, not the duration.
+    what_expected: >
+      The stop says what lifts it: a raised `policy.budgets.increment_ms` in the configuration,
+      which takes effect in a new session, as the tool-call bound's stop already says.
+    steps_to_reproduce:
+      - "Run a change with `policy.budgets.increment_ms: 0`."
+      - "`/495 advance` blocks on BUDGET_EXHAUSTED; `/495 resume` returns ready; the next advance blocks again."
+    root_cause: >
+      The loop predates the branch that reruns a verification cut short; that branch removed the
+      only indication the stop carried, `request_decision:IH-07`, which was wrong.
+    evidence: >
+      Review record of the branch, round 6, R6-3, probe of reviewer B with `increment_ms: 0` at 37626c6.
+    risk_level: low
+    follow_ups: "none"
+    status: open
+  - bug_id: BUG-2026-09-28T163500
+    date: "2026-09-28"
+    title: "A phase refusal names `expected_phase:<phase>` in its structured details, which no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `requirePhase` in `src/domain/change/decide.ts` refuses with `next_actions:
+      ['expected_phase:clarifying']`, which `/495 close` and `/495 revoke` carry in the structured
+      details of their message, the channel an RPC client reads. The text line does not show it.
+    what_expected: >
+      A refusal names only actions the operator can take, in its structured details as in its text.
+    steps_to_reproduce:
+      - "Ask `/495 close q1` on a change in `specifying`."
+      - "The message details carry `next_actions: ['expected_phase:clarifying']`."
+    root_cause: >
+      Present since f48dddf, before the branch that reruns a verification cut short, and reachable
+      independently of it.
+    evidence: >
+      Review record of the branch, round 6, R6-5, reproduced by reviewer A at 37626c6.
+    risk_level: low
+    follow_ups: >
+      R6-6 of the same round: the actions of a stop come from the error, not from the stop's resume
+      rule; a non-retryable error whose code is none of CAPABILITY_MISSING, CONFIGURATION_ERROR or
+      POLICY_DENIED gives a stop a resume lifts that may name only `cancel`; no site of the branch is
+      in that case.
     status: open

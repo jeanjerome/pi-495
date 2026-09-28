@@ -20,7 +20,9 @@ import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decisi
 import { Mandate as MandateSchema } from "../../src/contracts/v1/protocol.ts";
 import type { Mandate } from "../../src/contracts/v1/protocol.ts";
 import { validate } from "../../src/contracts/validate.ts";
+import { apply } from "../../src/domain/change/apply.ts";
 import type { Decision } from "../../src/domain/change/decide.ts";
+import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { answersOf, isQuestionClosed, specificationStanding, unknownCost } from "../../src/domain/change/state.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 
@@ -120,6 +122,54 @@ function revokeResolution(r: Runner, id: string, decisionId: string, origin: Hum
 		origin,
 		request: ih01Request(r, decisionId, question),
 	});
+}
+
+/**
+ * From a change implemented under a mandate that integrates on a local branch: the candidate `c1`
+ * frozen, verified and accepted by G5 into the integration, the owner's IH-11 recorded under `hd_i`,
+ * and the integration prepared under `op_i`.
+ */
+function integrationPrepared(r: Runner): ReturnType<typeof candidate> {
+	const c = candidate("c1");
+	r.freeze(c)
+		.verify([
+			evidence({ control_id: "unit", subject_digest: c.manifest_digest }),
+			evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+		])
+		.g5();
+	assert.equal(r.s.phase, "integrating");
+	ownerDecides(
+		r,
+		{
+			decision_id: "dec_i",
+			change_id: "chg_1",
+			interaction: "IH-11",
+			subject: { kind: "candidate", id: c.candidate_id, revision: 1, digest: c.manifest_digest },
+			question: "?",
+			facts: [],
+			recommendation: null,
+			options: [{ id: "integrate", label: "", effect: "", risky: true }],
+			required_authority: "change_owner",
+			allow_free_text: false,
+			requested_at: tick(),
+			expires_at: null,
+			language: "fr",
+		},
+		"integrate",
+		null,
+		"hd_i",
+	);
+	r.run({
+		type: "integration.prepare",
+		at: tick(),
+		actor: KERNEL,
+		operation_id: "op_i",
+		idempotency_key: "k",
+		destination: "main",
+		destination_before: "a".repeat(40),
+		plan_digest: digestValue("plan"),
+	});
+	return c;
 }
 
 describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
@@ -983,6 +1033,37 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 			.g3();
 	}
 
+	/** Events a build before this kernel wrote, applied as its journal is read back. */
+	function readBack(r: Runner, events: ChangeEvent[]): void {
+		for (const event of events) {
+			r.state = apply(r.state, event);
+			r.events.push(event);
+		}
+	}
+
+	/** The pause as a build before this kernel wrote it: the change paused, and the verification it suspended left open. */
+	function pausedByAnEarlierBuild(r: Runner): void {
+		readBack(r, [
+			{ type: "resume_point.saved", at: tick(), actor: HUMAN, phase: r.s.phase, status: r.s.status },
+			{ type: "status.changed", at: tick(), actor: HUMAN, status: "paused", stop_reason: null, detail: null },
+		]);
+	}
+
+	/** The block as a build before this kernel wrote it: the change blocked, and the verification it stopped left open. */
+	function blockedByAnEarlierBuild(r: Runner): void {
+		readBack(r, [
+			{
+				type: "status.changed",
+				at: tick(),
+				actor: KERNEL,
+				status: "blocked",
+				stop_reason: "execution_error",
+				detail: "REVISION_CONFLICT",
+				retryable: true,
+			},
+		]);
+	}
+
 	/** Q1 answered "400" and Q2 answered, the mandate adopted by the owner (IH-02), the candidate verified and IH-10 pending. */
 	function awaitingAcceptance(): Runner {
 		const r = new Runner({ g5_human_acceptance: true, adoption: { mandate: "human" } }).create();
@@ -1281,6 +1362,148 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		assert.equal(r.s.status, "decision_required", "the resume presents the question asked again");
 	});
 
+	it("a change paused while its verification ran has its answer revoked, and stays paused", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
+		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.status, "paused", "the owner's pause holds across the revocation");
+		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
+		assert.equal(r.s.operation, null, "no operation is left open");
+	});
+
+	it("a change whose session ended during its verification is revocable once paused", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		// The conduct that ran the controls ended with its session: nothing completed the verification.
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		const beforeThePause = revokeResolution(r, "q1", "dec_q1_again");
+		assert.equal(beforeThePause.ok ? "accepted" : beforeThePause.error.code, "OPERATION_ACTIVE");
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
+		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.status, "paused");
+	});
+
+	it("a revocation refused while a verification or an intervention is open names the pause that stops it", () => {
+		const verifying = answeredToImplementing(new Runner()).implement();
+		verifying.freeze(candidate("c1"));
+		verifying.run({
+			type: "verification.start",
+			at: tick(),
+			actor: KERNEL,
+			operation_id: "op_v1",
+			idempotency_key: "k_v1",
+		});
+		const producing = answeredToImplementing(new Runner());
+		producing.run({
+			type: "intervention.start",
+			at: tick(),
+			actor: KERNEL,
+			intervention_id: "int_1",
+			role: "implement",
+			attempt_id: "att_1",
+			model: { provider_id: "omlx", model_id: "qwen3.8-27b-oq8e", thinking_level: "medium", location: "on_machine" },
+			profile_id: "implement",
+			profile_qualified: true,
+		});
+
+		for (const [open, r] of [
+			["verification", verifying],
+			["intervention", producing],
+		] as const) {
+			const refused = revokeResolution(r, "q1", "dec_q1_again");
+			assert.equal(refused.ok ? "accepted" : refused.error.code, "OPERATION_ACTIVE", `${open} open`);
+			assert.deepEqual(refused.ok ? null : refused.error.nextActions, ["pause"], `${open} open`);
+		}
+	});
+
+	it("a change blocked during its verification has its answer revoked, since the block leaves no verification open", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		// A session whose record loses on the revision to another live session's write blocks the change
+		// while its verification is open.
+		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "execution_error", detail: "REVISION_CONFLICT" });
+		assert.equal(r.s.operation, null, "the block closes the verification it stops");
+
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
+		assert.equal(r.s.phase, "clarifying");
+		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
+		assert.equal(r.s.operation, null, "no operation is left open");
+	});
+
+	it("a change an earlier build blocked during its verification has its answer revoked, and the verification left open closed", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		blockedByAnEarlierBuild(r);
+		assert.equal(r.s.operation?.operation_id, "op_v1");
+
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
+		assert.equal(r.s.phase, "clarifying");
+		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
+		assert.equal(r.s.operation, null, "the revocation closes the verification the earlier build left open");
+	});
+
+	it("a change an earlier build paused during its verification has that verification closed by a pause, and its answer is then revoked", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		pausedByAnEarlierBuild(r);
+		const refused = revokeResolution(r, "q1", "dec_q1_again");
+		assert.deepEqual(refused.ok ? null : [refused.error.code, refused.error.nextActions], [
+			"OPERATION_ACTIVE",
+			["pause"],
+		]);
+
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		assert.equal(r.s.operation, null, "the pause closes the verification the earlier build left open");
+		assert.equal(r.s.status, "paused");
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
+		assert.equal(r.s.status, "paused", "the owner's pause holds across the revocation");
+	});
+
+	it("a change an earlier build paused during its verification resumes once paused again, with no verification open, and verifies again", () => {
+		const r = answeredToImplementing(new Runner()).implement();
+		r.freeze(candidate("c1"));
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k_v1" });
+		pausedByAnEarlierBuild(r);
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
+
+		assert.deepEqual([r.s.phase, r.s.status, r.s.operation], ["verifying", "ready", null]);
+		r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v2", idempotency_key: "k_v2" });
+		assert.equal(r.s.operation?.operation_id, "op_v2", "the verification runs again");
+	});
+
+	it("a change paused twice while the owner's acceptance waits resumes on that decision, since the second pause keeps the resume point", () => {
+		const r = awaitingAcceptance();
+		assert.equal(r.s.status, "decision_required");
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
+
+		assert.equal(r.s.status, "decision_required");
+		assert.deepEqual(pending(r), [["IH-10", "dec_a"]]);
+	});
+
 	it("the attempt opened on a revoked answer is closed, so the change rebuilt on the new answer implements in an attempt of its own", () => {
 		const r = answeredToImplementing(new Runner()).implement("int_1", "att_1");
 		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "execution_error", detail: "producer failed" });
@@ -1438,6 +1661,79 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		assert.equal(r.s.phase, "clarifying");
 		assert.equal(isValid(r, "hd_b"), true, "the budget extension is not said revoked");
 		assert.equal(r.s.budgets.max_attempts, 4, "and its effect holds");
+	});
+
+	/**
+	 * Q1 answered through IH-01, G5 passed into a mandated integration, the owner's IH-11 recorded, the
+	 * Git effect answered not applied through IH-12 (`hd_r`), then the destination advanced with a
+	 * combined tree that differs: the change falls back to verifying.
+	 */
+	function fellBackFromIntegration(): Runner {
+		const r = answeredToImplementing(
+			new Runner({ integration_enabled: true }),
+			mandate({ integration: "local_branch" }),
+		).implement();
+		integrationPrepared(r);
+		for (const effect_state of ["started", "uncertain"] as const)
+			r.run({
+				type: "integration.effect",
+				at: tick(),
+				actor: KERNEL,
+				operation_id: "op_i",
+				effect_state,
+				detail: effect_state === "uncertain" ? "process died" : null,
+				decision_id: effect_state === "uncertain" ? "dec_r" : null,
+			});
+		ownerAnswers(r, "dec_r", "confirm_not_applied", null, "hd_r");
+		r.run({
+			type: "integration.destination_advanced",
+			at: tick(),
+			actor: KERNEL,
+			destination_before: "c".repeat(40),
+			combined_changed: true,
+		});
+		assert.deepEqual([r.s.phase, r.s.status], ["verifying", "ready"]);
+		assert.equal(isValid(r, "hd_r"), true, "the fallback keeps the reconciliation valid");
+		return r;
+	}
+	const revokedEvents = (r: Runner, from: number, humanDecisionId: string) =>
+		r.events.slice(from).filter((e) => e.type === "decision.revoked" && e.human_decision_id === humanDecisionId);
+
+	it("a revocation after an integration fallback keeps the reconciliation of the Git effect valid (M5)", () => {
+		const r = fellBackFromIntegration();
+		const from = r.events.length;
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.equal(isValid(r, "hd_r"), true, "the IH-12 reconciliation is not said revoked");
+		assert.deepEqual(revokedEvents(r, from, "hd_r"), [], "no decision.revoked names it");
+	});
+
+	it("a revision of the mandate after an integration fallback keeps the reconciliation of the Git effect valid too (M5)", () => {
+		const r = fellBackFromIntegration();
+		const from = r.events.length;
+
+		r.run({
+			type: "artifact.revise",
+			at: tick(),
+			actor: KERNEL,
+			kind: "mandate",
+			ref: ref("mdt_1", { v: 2 }, 2),
+			reason: "objective restated",
+		});
+
+		assert.equal(r.s.phase, "clarifying");
+		assert.equal(isValid(r, "hd_r"), true, "the IH-12 reconciliation is not said revoked");
+		assert.deepEqual(revokedEvents(r, from, "hd_r"), [], "no decision.revoked names it");
+	});
+
+	it("a change taken back to clarification by a revocation after an integration fallback holds a pending outcome", () => {
+		const r = fellBackFromIntegration();
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.outcome, "pending");
 	});
 });
 
@@ -2202,60 +2498,7 @@ describe("integration effects (SA-020, SA-021, RM-054, RM-055, NFR-03)", () => {
 			.g2()
 			.g3()
 			.implement();
-		const c = candidate("c1");
-		r.freeze(c)
-			.verify([
-				evidence({ control_id: "unit", subject_digest: c.manifest_digest }),
-				evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
-			])
-			.g5();
-		r.run({
-			type: "decision.request",
-			at: tick(),
-			actor: KERNEL,
-			request: {
-				decision_id: "dec_i",
-				change_id: "chg_1",
-				interaction: "IH-11",
-				subject: { kind: "candidate", id: c.candidate_id, revision: 1, digest: c.manifest_digest },
-				question: "?",
-				facts: [],
-				recommendation: null,
-				options: [{ id: "integrate", label: "", effect: "", risky: true }],
-				required_authority: "change_owner",
-				allow_free_text: false,
-				requested_at: tick(),
-				expires_at: null,
-				language: "fr",
-			},
-		});
-		r.run({
-			type: "decision.answer",
-			at: tick(),
-			actor: HUMAN,
-			human_decision_id: "hd_i",
-			response: {
-				decision_id: "dec_i",
-				option_id: "integrate",
-				free_text: null,
-				reason: null,
-				subject_revision: 1,
-				scope: null,
-				expires_at: null,
-			},
-			origin: tuiOrigin(),
-		});
-		r.run({
-			type: "integration.prepare",
-			at: tick(),
-			actor: KERNEL,
-			operation_id: "op_i",
-			idempotency_key: "k",
-			destination: "main",
-			destination_before: "a".repeat(40),
-			plan_digest: digestValue("plan"),
-		});
-		return { r, c };
+		return { r, c: integrationPrepared(r) };
 	}
 	it("an uncertain effect blocks until reconciliation and is never retried", () => {
 		const { r, c } = toIntegrating();
@@ -2372,26 +2615,36 @@ describe("integration effects (SA-020, SA-021, RM-054, RM-055, NFR-03)", () => {
 		assert.ok(r.s.evidence.every((e) => !e.valid));
 		assert.equal(r.s.human_decisions.find((d) => d.human_decision_id === "hd_i")?.valid, false);
 	});
-	it("G6 fails when the applied tree differs from the accepted candidate (RM-053)", () => {
-		const { r } = toIntegrating();
+	it("a destination that advanced with a different combined tree withdraws the accepted outcome, and a failed re-verification is not said accepted", () => {
+		const { r, c } = toIntegrating();
+		assert.equal(r.s.outcome, "accepted", "G5 accepted the candidate");
 		r.run({
-			type: "integration.effect",
+			type: "integration.destination_advanced",
 			at: tick(),
 			actor: KERNEL,
-			operation_id: "op_i",
-			effect_state: "started",
-			detail: null,
-			decision_id: null,
+			destination_before: "c".repeat(40),
+			combined_changed: true,
 		});
-		r.run({
-			type: "integration.effect",
-			at: tick(),
-			actor: KERNEL,
-			operation_id: "op_i",
-			effect_state: "confirmed",
-			detail: null,
-			decision_id: null,
-		});
+		assert.equal(r.s.outcome, "pending", "the fallback withdraws the acceptance");
+		r.verify([
+			evidence({ control_id: "unit", subject_digest: c.manifest_digest, verdict: "FAIL" }),
+			evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+		]).g5();
+		assert.equal(r.s.gates.G5?.verdict, "FAIL");
+		assert.equal(r.s.outcome, "pending", "a failed re-verification is not said accepted");
+	});
+	/** The integration applied, confirmed, and judged by G6 on a tree other than the accepted candidate's. */
+	function appliedAnotherTree(r: Runner): void {
+		for (const effect_state of ["started", "confirmed"] as const)
+			r.run({
+				type: "integration.effect",
+				at: tick(),
+				actor: KERNEL,
+				operation_id: "op_i",
+				effect_state,
+				detail: null,
+				decision_id: null,
+			});
 		r.run({
 			type: "gate.evaluate",
 			gate: "G6",
@@ -2401,8 +2654,46 @@ describe("integration effects (SA-020, SA-021, RM-054, RM-055, NFR-03)", () => {
 			applied_digest: candidate("other").manifest_digest,
 			receipt_digest: digestValue("r"),
 		});
+	}
+	it("G6 fails when the applied tree differs from the accepted candidate (RM-053)", () => {
+		const { r } = toIntegrating();
+		appliedAnotherTree(r);
 		assert.equal(r.s.gates.G6?.verdict, "FAIL");
 		assert.equal(r.s.stop_reason, "integration_conflict");
+	});
+	it("a destination that advanced with the same combined tree after G6 failed invalidates G6 alone, and the accepted outcome stays with G5", () => {
+		const { r } = toIntegrating();
+		appliedAnotherTree(r);
+		assert.equal(r.s.outcome, "accepted", "G5 accepted the candidate");
+		r.run({
+			type: "integration.destination_advanced",
+			at: tick(),
+			actor: KERNEL,
+			destination_before: "c".repeat(40),
+			combined_changed: false,
+		});
+		assert.equal(r.s.gates.G6, undefined, "G6 is invalidated");
+		assert.equal(r.s.gates.G5?.verdict, "PASS", "G5 still holds");
+		assert.equal(r.s.outcome, "accepted", "the acceptance goes only with G5");
+	});
+	it("a pause between an integration's preparation and the start of its effect leaves the integration open, so the resume finds what it prepared", () => {
+		const { r } = toIntegrating();
+		assert.deepEqual([r.s.operation?.operation_id, r.s.operation?.effect_state], ["op_i", "prepared"]);
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+		assert.equal(r.s.status, "paused");
+		assert.deepEqual(
+			[r.s.operation?.operation_id, r.s.operation?.effect_state],
+			["op_i", "prepared"],
+			"the pause closes only a verification",
+		);
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+		assert.deepEqual(
+			[r.s.operation?.operation_id, r.s.operation?.effect_state],
+			["op_i", "prepared"],
+			"a second pause closes only a verification too",
+		);
+		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
+		assert.equal(r.s.operation?.operation_id, "op_i", "the resume finds the integration it prepared");
 	});
 });
 

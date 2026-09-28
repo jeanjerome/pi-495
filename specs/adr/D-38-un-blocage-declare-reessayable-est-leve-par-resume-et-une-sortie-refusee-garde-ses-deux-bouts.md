@@ -44,3 +44,9 @@ borne les reprises d'une *opération* à effet externe, pas celles d'une interve
 `retryable` est absent de tout changement d'état qui n'est pas un blocage, et des blocages écrits
 avant cette décision : il est lu comme faux plutôt qu'exigé d'un journal rejoué. Le texte conservé
 d'une sortie refusée est plus long qu'avant d'une ligne, celle qui nomme la coupe.
+
+**Révision du 2026-09-28.** Les actions que le détail nomme sont celles que l'opérateur peut prendre :
+la reprise et l'annulation, ou l'annulation seule. Le détail de l'exemple ci-dessus se lit désormais
+`(next: resume, cancel)`. `retry_specification` était une étape du noyau qu'aucune sous-commande de
+`/495` n'offre. Le détail garde les actions de l'erreur plutôt que celles que l'arrêt déduirait : la
+reprise lève l'arrêt d'un refus à G1, mais le même refus revient, et seule l'étape qui échoue le sait.

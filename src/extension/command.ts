@@ -10,7 +10,7 @@ import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import { DomainError } from "../domain/errors.ts";
 import { formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
-import { conduct, presentDecisions } from "./conduct.ts";
+import { conduct, drive, presentDecisions } from "./conduct.ts";
 import { openReviewTui } from "./review-command.ts";
 import { type ExtensionSession, VERSION_495, kernelUser, safeUser } from "./session.ts";
 
@@ -100,8 +100,10 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 							session.emit(ctx, "no binding");
 							return;
 						}
-						rt.harness.resume(session.binding.change_id, session.humanOrigin(ctx)?.actor ?? kernelUser());
-						await conduct(session, ctx, session.binding.change_id);
+						const changeId = session.binding.change_id;
+						await conduct(session, ctx, changeId, () =>
+							rt.harness.resume(changeId, session.humanOrigin(ctx)?.actor ?? kernelUser()),
+						);
 						return;
 					}
 					case "verify": {
@@ -109,16 +111,12 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 							session.emit(ctx, "no binding");
 							return;
 						}
-						session.busy = true;
-						try {
-							const result = await session.withLoader(ctx, "495 verify", async () =>
-								rt.harness.verify(session.binding!.change_id),
-							);
+						const changeId = session.binding.change_id;
+						await session.hold(ctx, async () => {
+							const result = await session.withLoader(ctx, "495 verify", async () => rt.harness.verify(changeId));
 							session.emit(ctx, formatStatus(result.view, session.lang()), { view: result.view });
 							session.updateFooter(ctx, result.view);
-						} finally {
-							session.busy = false;
-						}
+						});
 						return;
 					}
 					case "decide": {
@@ -350,32 +348,24 @@ async function actOnQuestion(
 		session.emit(ctx, act.usage);
 		return;
 	}
-	if (session.busy) {
-		session.emit(ctx, session.busyRefusal());
-		return;
-	}
 	const changeId = session.binding.change_id;
-	// Busy from here to the write: a conduct running concurrently commits between two of its own steps,
-	// and an act landing in that gap either loses a race to REVISION_CONFLICT, or lands between the end
-	// of an intervention and the artifact it paid for, losing that artifact instead. Released before
-	// `conduct` below, which manages the flag itself for the rest of the drive.
-	session.busy = true;
-	try {
+	// Held from here to the end of the conduct that follows the act: a conduct running concurrently commits
+	// between two of its own steps, and an act landing in that gap either loses a race to
+	// REVISION_CONFLICT, or lands between the end of an intervention and the artifact it paid for, losing
+	// that artifact instead; a command started between the act and its conduct would find the session
+	// free and have the act's conduct refused.
+	await session.hold(ctx, async () => {
 		const origin = session.humanOrigin(ctx);
 		if (!origin) {
 			session.emit(ctx, act.noOrigin[session.lang()]);
 			return;
 		}
 		if (ctx.hasUI && !(await ctx.ui.confirm("495", act.confirmation(question)[session.lang()]))) return;
-		const inscribed = act.inscribe(changeId, question, origin);
-		if (inscribed.error) {
-			session.emit(ctx, `495 error: ${inscribed.error.code}: ${inscribed.error.message}`, {
-				error: inscribed.error.toCanonical(),
-			});
+		const { error } = act.inscribe(changeId, question, origin);
+		if (error) {
+			session.emit(ctx, `495 error: ${error.code}: ${error.message}`, { error: error.toCanonical() });
 			return;
 		}
-	} finally {
-		session.busy = false;
-	}
-	await conduct(session, ctx, changeId);
+		await drive(session, ctx, changeId);
+	});
 }

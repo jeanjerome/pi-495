@@ -74,8 +74,10 @@ reaches the decision after `resume`, probe 2 resumes to `verifying ready` with n
 verifies again, and the whole suite passes but for the three tests of BUG-2026-09-28T025100 that the
 same patch changed on purpose (575 of 578 with the probes). One root per path, confirmed.
 
-Risk: Low. The key keeps its purpose — two sessions reading the same change at the same revision derive
-the same key — and the pause only closes an operation that has no external effect.
+Risk: Low. The key no longer refuses anything within a change: a second session that read the same
+revision is refused by the ledger's revision check before the key is read, and one that read a later
+revision derives another key. The pause and the block only close a verification, which has no external
+effect.
 
 ## Fix approach
 
@@ -85,10 +87,38 @@ the same key — and the pause only closes an operation that has no external eff
 - The pause closes the verification operation it suspends, as it ends an intervention it suspends
   (shared with BUG-2026-09-28T013000). The resume then ends the pause and conducts the change, which
   runs the verification again.
+- `/495 resume` is refused while another 495 operation holds the session: accepted while the controls
+  the pause suspended still run, it would end the pause under them, and their next commit would block
+  the change it resumed. The resume is inscribed under the hold the conduct takes. `/495 verify` goes
+  through the same hold: it used to release the session under another holder, which let a resume
+  through (BUG-2026-09-27T220000).
+- The block closes the verification it stops, as the pause does. A session whose record loses on the
+  revision, to a second live session's write, blocks the change while its controls run; no failure of
+  one session is known to, and the tests stand for one with a control runner that throws, which its
+  port says never happens. The resume then lifts only a stop a resume may lift, where a verification
+  left open would have had the resume run it again, lifting any stop.
 
-Not covered: a change that a build before the fix paused during its verification keeps its operation
-open, and its resume stays refused with `change is paused`; cancelling it stays its way out. Covering it
-needs a test on a journal written by the earlier build.
+Not covered:
+
+- A change that a build before the fix paused during its verification keeps its operation open, and
+  its resume stays refused with `change is paused`, naming the resume. Pausing it again closes that
+  verification (BUG-2026-09-28T013000), after which it resumes and verifies again. One that such a
+  build blocked during its verification keeps its operation open too, and its resume lifts the stop
+  whatever it is (BUG-2026-09-28T113000).
+- A second live session that resumes the change while the first one's controls run closes the first
+  one's verification and runs the controls again in the same workspace, both passes at once. When the
+  first pass commits first, its record loses and it blocks the change, which closes the second pass's
+  verification, whose record loses too: the change is left `blocked execution_error` with no
+  verification open, and a resume verifies it again. When the second pass commits first, it records
+  and the change goes on to its decision; the first pass's record loses, and it blocks the change
+  where the second left it, unless the second left it stopped — on a decision, paused, blocked or
+  closed —, where it returns on that stop instead. A revocation accepted in one session while the
+  other's controls run thus holds: the other session's record loses, and it returns on the question
+  asked again (BUG-2026-09-28T130000). Refusing the second session needs a lease between sessions,
+  which the story does not presume.
+- The report lists the observations of the pass the pause suspended as valid, beside those the kernel
+  recorded from the pass run again, as it already does after a technical rerun
+  (BUG-2026-09-28T103100).
 
 ## TDD Fix Plan
 
@@ -124,4 +154,4 @@ reach the reused key, so the key must be fixed first.
 
 ## Resolution
 
-<!-- filled in by validate-fix -->
+Fixed on the branch `reprise-de-verification-et-revocation` (`c258255`, `897ff02`): a verification derives its idempotency key from the revision it starts from, and a pause, a block, a revocation or a rerun closes the verification it stops, so a resume runs it again on the same frozen candidate. Shown in a real Pi on 2026-09-28: Pi killed while the candidate's controls ran, then `/495 resume` reruns the verification and reaches the acceptance at the branch head, and blocks on `OPERATION_ACTIVE` with no way out on the build before it (`~/.495-campagnes/reprise-a1-coupe-*`, `reprise-a2-reprise-*`). Accepted by the owner the same day.

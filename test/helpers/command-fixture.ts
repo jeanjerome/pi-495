@@ -55,6 +55,8 @@ export const ASKS_Q1 = {
 export class FakePi {
 	command: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | null = null;
 	readonly said: string[] = [];
+	/** The structured details handed with each message, in the order of `said`. */
+	readonly details: unknown[] = [];
 	/** What `/495` says of itself in Pi's command list. */
 	description = "";
 	registerCommand(
@@ -68,8 +70,9 @@ export class FakePi {
 	registerTool(_def: unknown): void {}
 	registerMessageRenderer(): void {}
 	on(): void {}
-	sendMessage(message: { content: string }): void {
+	sendMessage(message: { content: string; details?: unknown }): void {
 		this.said.push(message.content);
+		this.details.push(message.details);
 	}
 	appendEntry(): void {}
 }
@@ -92,9 +95,9 @@ export class FakeContext {
 	confirmations = 0;
 	/** The message of each confirmation put to the owner, in order. */
 	readonly confirmed: string[] = [];
-	/** Set by a test that needs to observe session state at the moment a confirmation is put, before
-	 * the fake answers it. */
-	onConfirm: (() => void) | null = null;
+	/** Set by a test that needs to observe session state, or to act, at the moment a confirmation is
+	 * put, before the fake answers it. */
+	onConfirm: (() => void | Promise<void>) | null = null;
 	readonly ui: {
 		select: (q: string, opts: string[]) => Promise<string | null>;
 		input: (prompt: string) => Promise<string | null>;
@@ -119,7 +122,7 @@ export class FakeContext {
 			confirm: async (_title, message) => {
 				this.confirmed.push(message);
 				this.confirmations++;
-				this.onConfirm?.();
+				await this.onConfirm?.();
 				return this.confirmAnswer;
 			},
 			notify: () => undefined,

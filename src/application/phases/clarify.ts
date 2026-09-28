@@ -190,7 +190,7 @@ async function writeSpecification(
 			throw new DomainError(
 				"CONFIGURATION_ERROR",
 				`specification intervention ${r.result}${r.result === "completed" ? " with an invalid structured output" : ""}`,
-				{ retryable: true, nextActions: ["retry_specification"] },
+				{ retryable: true, nextActions: ["resume", "cancel"] },
 			);
 		}
 		report = r.output as SpecificationReport;

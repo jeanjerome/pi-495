@@ -8,8 +8,10 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { Evidence } from "../../src/contracts/v1/evidence.ts";
 import { Runner, candidate, tick, HUMAN, KERNEL, ENV } from "../helpers/change-fixture.ts";
+import type { ChangeCommand } from "../../src/domain/change/commands.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { replay } from "../../src/domain/change/apply.ts";
+import type { OperationKind } from "../../src/domain/change/state.ts";
 
 let dir: string;
 beforeEach(() => {
@@ -274,7 +276,7 @@ describe("Pi session lifecycle: reload, fork, and operations that must not run t
 		const receipt = ledger.appendChange("chg_1", 0, r.events, { correlation_id: "cor_s1" });
 		return { revision: receipt.revision, digest: r.s.candidate!.manifest_digest };
 	}
-	const opened = (operationId: string, key: string, kind: string): ChangeEvent => ({
+	const opened = (operationId: string, key: string, kind: OperationKind): ChangeEvent => ({
 		type: "operation.opened",
 		at: tick(),
 		actor: KERNEL,
@@ -288,9 +290,9 @@ describe("Pi session lifecycle: reload, fork, and operations that must not run t
 		const first = new SqliteLedger(path);
 		const { revision, digest } = frozen(first);
 		first.bindSession({ session_id: "s1", cwd: "/p", program_id: "prg_1", change_id: "chg_1", bound_at: "t" });
-		// The key names the work, not the session: the same candidate and the same evidence count give
-		// the same key in whichever session recomputes it.
-		const key = `verify:${digest}:0`;
+		// The key names the work, not the session: the candidate and the revision its verification starts
+		// from. Once an operation holds it, an append under it is refused whichever handle makes it.
+		const key = `verify:${digest}:${revision}`;
 		const afterOpen = first.appendChange("chg_1", revision, [opened("op_v1", key, "verification")], {
 			correlation_id: "cor_s1",
 		});
@@ -384,6 +386,42 @@ describe("Pi session lifecycle: reload, fork, and operations that must not run t
 			/already holds the idempotency key/,
 		);
 		assert.equal((ledger.db.prepare("SELECT COUNT(*) AS n FROM operations").get() as { n: number }).n, 1);
+		ledger.close();
+	});
+
+	it("does not record as succeeded a verification the pause or the block closes before its record", () => {
+		const stops: ChangeCommand[] = [
+			{ type: "change.pause", at: tick(), actor: HUMAN },
+			{ type: "change.block", at: tick(), actor: KERNEL, reason: "execution_error", detail: "REVISION_CONFLICT" },
+		];
+		for (const stop of stops) {
+			const ledger = new SqliteLedger(join(dir, `${stop.type}.sqlite`));
+			const r = new Runner();
+			r.toImplementing().implement().freeze(candidate("c1"));
+			r.run({ type: "verification.start", at: tick(), actor: KERNEL, operation_id: "op_v1", idempotency_key: "k1" });
+			r.run(stop);
+			ledger.appendChange("chg_1", 0, r.events, { correlation_id: "cor_s1" });
+			assert.equal(r.s.operation, null, `${stop.type} closes the verification`);
+			assert.equal(
+				ledger.getOperation("op_v1")?.status,
+				"cancelled",
+				`the verification ${stop.type} closed recorded no evidence, so it did not succeed`,
+			);
+			ledger.close();
+		}
+	});
+
+	it("records as succeeded a verification carried to its record", () => {
+		const ledger = new SqliteLedger(join(dir, "complete.sqlite"));
+		const r = new Runner();
+		r.toDeciding(candidate("c1"));
+		ledger.appendChange("chg_1", 0, r.events, { correlation_id: "cor_s1" });
+		assert.equal(r.s.operation, null, "the verification is closed");
+		assert.equal(
+			ledger.getOperation("op_v1")?.status,
+			"succeeded",
+			"the verification recorded its evidence before it closed",
+		);
 		ledger.close();
 	});
 

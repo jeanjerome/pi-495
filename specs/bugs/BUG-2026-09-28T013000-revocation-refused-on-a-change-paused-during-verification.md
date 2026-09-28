@@ -73,9 +73,19 @@ returns `paused`, as it already does today.
 
 - The pause closes the verification operation it suspends (one change, shared with
   BUG-2026-09-28T081300).
-- The revocation's refusal while an intervention runs or an operation is open names `pause` as the
-  next action: within a session the refusal is only met when nothing of that session runs, and pausing
-  is what stops the change in both remaining cases.
+- The revocation's refusal while an intervention runs or an operation is open names `pause`: within a
+  session the refusal is only met when nothing of that session runs, and the pause stops what it
+  finds. It closes a verification it suspends, and closes one a build before the fix left open on a
+  change already paused.
+- A blocked change runs nothing: the block ends a running intervention and closes the verification it
+  stops, so its resolution is revoked. A verification a build before the fix left open with its block
+  is closed by the revocation itself, since the pause refuses a blocked change. Naming the resume
+  there instead would lead away from the revocation: the resume runs the verification again, and
+  under the default automatic acceptance G5 can close the change on the answer the owner wanted to
+  revoke.
+- The next action reaches an RPC or JSON host, in the refusal's details. The text a screen shows is
+  `495 error: CODE: message`, without it, as for every kernel refusal `/495` shows
+  (BUG-2026-09-28T103200).
 
 ## TDD Fix Plan
 
@@ -108,9 +118,10 @@ held by the same change to the pause.
 
 - [ ] A change paused during its verification has its resolution revoked, and stays paused.
 - [ ] A change whose session ended during its verification is revocable once paused.
+- [ ] A change blocked during its verification has its resolution revoked.
 - [ ] The refusal while something is open names the pause.
 - [ ] All new tests pass; Preflight (`npm run check`) is green under Node 24.
 
 ## Resolution
 
-<!-- filled in by validate-fix -->
+Fixed on the branch `reprise-de-verification-et-revocation` (`ded5f28`): pausing a change closes the verification it suspends, so a paused change runs nothing and its answer can be revoked; the resume runs the verification again. Shown in a real Pi on 2026-09-28: a revocation asked while the change was paused during its controls is accepted at the branch head and refused by the build before it (`~/.495-campagnes/reprise-b-pause-revoque-*`). Accepted by the owner the same day.

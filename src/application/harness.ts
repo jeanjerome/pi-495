@@ -113,6 +113,15 @@ export interface AdvanceResult {
 		| "capability_missing";
 }
 
+/** Why a conduct stops on the change as it stands, or null while it has a step to run. */
+function stopOf(s: ChangeState): AdvanceResult["stopped_because"] | null {
+	if (s.phase === "closed") return s.status === "cancelled" ? "cancelled" : "closed";
+	if (s.status === "decision_required") return "decision_required";
+	if (s.status === "blocked") return s.stop_reason === "capability_missing" ? "capability_missing" : "blocked";
+	if (s.status === "paused") return "paused";
+	return null;
+}
+
 /** The phase a change is in decides what runs next; this table is the whole of that order. */
 const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string) => Promise<Unit>>> = {
 	intake: clarify,
@@ -417,11 +426,8 @@ export class Harness {
 		let unit = this.load(changeId);
 		for (let i = 0; i < max; i++) {
 			const s = unit.state;
-			if (s.phase === "closed") return this.result(unit, steps, s.status === "cancelled" ? "cancelled" : "closed");
-			if (s.status === "decision_required") return this.result(unit, steps, "decision_required");
-			if (s.status === "blocked")
-				return this.result(unit, steps, s.stop_reason === "capability_missing" ? "capability_missing" : "blocked");
-			if (s.status === "paused") return this.result(unit, steps, "paused");
+			const stop = stopOf(s);
+			if (stop) return this.result(unit, steps, stop);
 			const cor = this.id("cor");
 			try {
 				const phase = PHASES[s.phase];
@@ -435,11 +441,12 @@ export class Harness {
 					// the block against it loses the optimistic-concurrency race and the change silently
 					// reappears ready, redoing the work that just failed.
 					const current = this.deps.ledger.loadChange(changeId) ?? unit;
-					// A pause aborts the running session and commits under the step, whose next commit then
-					// conflicts: the pause is the latest act on the change, and blocking over it would hand the
-					// resume a stop to lift instead of a pause to end. Any other failure is the step's own.
-					if (current.state.status === "paused" && error.code === "REVISION_CONFLICT")
-						return this.result(current, steps, "paused");
+					// A pause, or what another live session writes — its block, then a revocation — commits under
+					// the step, whose next commit then conflicts: that act is the latest on the change, and
+					// blocking over it would replace the pause, the decision or the stop it left with this step's
+					// failure. Any other failure is the step's own.
+					const stopped = error.code === "REVISION_CONFLICT" ? stopOf(current.state) : null;
+					if (stopped) return this.result(current, steps, stopped);
 					// The action the error names is of no use to anyone unless the block records that it can
 					// be retried and says so where the operator reads the change.
 					const detail = `${error.code}: ${error.message}${error.nextActions.length > 0 ? ` (next: ${error.nextActions.join(", ")})` : ""}`;

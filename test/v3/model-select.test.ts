@@ -23,6 +23,7 @@ import { describedAs } from "../helpers/capabilities.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import { formatStatus } from "../../src/presentation/structured/text.ts";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
 
 // Both stand-ins are registered in Pi at a loopback address, below, so they read as on this machine.
@@ -145,6 +146,17 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 		assert.deepEqual(agent.judged, [NONE], "the refusal is the model's, not the sandbox's");
 		assert.deepEqual(agent.started, []);
 		assert.deepEqual(startedWith(t.ledger, changeId), []);
+	});
+
+	it("a change refused for its model names Pi's model selection, then the resume or the cancel, and no kernel command (6e)", async () => {
+		const t = makeHarness({ agent: new ModelJudgingAgent() });
+		const changeId = await startChange(t, cleanup);
+		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
+		assert.equal(result.stopped_because, "capability_missing");
+		const read = formatStatus(result.view, "en");
+		assert.doesNotMatch(read, /configure_model/, "the status names no kernel command as an action");
+		assert.match(read, /cannot carry this intervention: .*; select another model with \/model/, read);
+		assert.match(read, /^Next action: blocked: .* \(next: resume, cancel\) — resume retries it$/m, read);
 	});
 
 	it("a change refused for its model is resumed with the model selected since (6e)", async () => {

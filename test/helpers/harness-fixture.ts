@@ -8,7 +8,7 @@ import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/bac
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
-import type { ControlExecutionPort, ModelSelection } from "../../src/ports/execution.ts";
+import type { ControlExecutionPort, ControlInvocation, ModelSelection } from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -152,6 +152,53 @@ export interface HarnessOptions {
 	model?: Partial<ModelSelection>;
 	/** Opens the ledger at the given path, e.g. one whose storage fails where a test needs it to. */
 	ledger?: (path: string) => SqliteLedger;
+}
+
+/**
+ * The real control runner, with `act` written on the change as the first control starts on the
+ * candidate — the owner's pause, or what another live session writes. No signal stops a control, so
+ * the pass runs on, and its next commit loses to that act.
+ */
+export class ActsOnFirstCandidateRun implements ControlExecutionPort {
+	private readonly real: ControlExecutionPort;
+	private readonly act: () => void;
+	private acted = false;
+	constructor(real: ControlExecutionPort, act: () => void) {
+		this.real = real;
+		this.act = act;
+	}
+	runControl(invocation: ControlInvocation, signal?: AbortSignal): ReturnType<ControlExecutionPort["runControl"]> {
+		if (invocation.subject.kind === "candidate" && !this.acted) {
+			this.acted = true;
+			this.act();
+		}
+		return this.real.runControl(invocation, signal);
+	}
+}
+
+/**
+ * The real control runner, throwing `error` as the first control starts on the candidate. It breaks
+ * the port's contract, under which a run always resolves, to stand for a failure between the opening
+ * of the verification and its record: a plain error ends the conduct as a session killed while the
+ * controls ran would, leaving the verification open, and a domain error fails the step, which blocks
+ * the change. No domain error of one session is known to fail that step; the block it stands for comes
+ * from a second live session, whose write makes this session's record lose on the revision.
+ */
+export class ThrowsOnFirstCandidateRun implements ControlExecutionPort {
+	private readonly real: ControlExecutionPort;
+	private readonly error: Error;
+	private thrown = false;
+	constructor(real: ControlExecutionPort, error: Error) {
+		this.real = real;
+		this.error = error;
+	}
+	runControl(invocation: ControlInvocation, signal?: AbortSignal): ReturnType<ControlExecutionPort["runControl"]> {
+		if (invocation.subject.kind === "candidate" && !this.thrown) {
+			this.thrown = true;
+			return Promise.reject(this.error);
+		}
+		return this.real.runControl(invocation, signal);
+	}
 }
 
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */

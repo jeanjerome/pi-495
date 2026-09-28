@@ -156,6 +156,32 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		}
 	});
 
+	it("conducts nothing when the revocation is declined or refused, on a change a conduct would advance", async () => {
+		const { pi, session, ctx, changeId } = await stalledOnQ1(root, cwd, SESSION);
+		try {
+			const rt = session.runtime();
+			// The stop lifted without a conduct: the change is ready, and a conduct would run its
+			// specification again.
+			rt.harness.resume(changeId, session.humanOrigin(ctx as unknown as ExtensionCommandContext)!.actor);
+			const ready = rt.ledger.loadChange(changeId)!;
+			assert.deepEqual([ready.state.phase, ready.state.status], ["clarifying", "ready"]);
+
+			const declining = new FakeContext(cwd, "rpc", SESSION, false);
+			await pi.command!("revoke q1", declining as unknown as ExtensionCommandContext);
+			assert.equal(declining.confirmations, 1, "the revocation is put to the owner, who declines it");
+			assert.equal(rt.ledger.loadChange(changeId)!.revision, ready.revision, "a declined revocation conducts nothing");
+
+			await pi.command!("revoke not-a-question", ctx as unknown as ExtensionCommandContext);
+			assert.ok(
+				pi.said.some((m) => m.includes("495 error: UNKNOWN_REFERENCE")),
+				pi.said.join(" | "),
+			);
+			assert.equal(rt.ledger.loadChange(changeId)!.revision, ready.revision, "a refused revocation conducts nothing");
+		} finally {
+			await session.close();
+		}
+	});
+
 	it("displays the code and the reason of a revocation the kernel refuses (6h)", async () => {
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd, SESSION);
 		try {

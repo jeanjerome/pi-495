@@ -79,7 +79,6 @@ export interface QualifyInput {
 		/** Test cases the witnesses contribute, which exercise the runner and not the project. */
 		tests: number;
 	};
-	prepared: PreparationRecord | null;
 	requirement_refs: RequirementRef[];
 	/** Protocols already proposed for this change: a sensor qualified there is not qualified again. */
 	prior_protocol_refs: readonly { artifact_id: string; revision: number }[];
@@ -117,21 +116,6 @@ export interface VerificationOutcome {
 	candidate_moved: boolean;
 }
 
-const PREPARED_SUITE = "prepared suite on the bare reference:";
-
-/**
- * What a qualification notes of the prepared suite judged beside it. Only the suite judged now: one a
- * qualification taken up from an earlier protocol was noted beside is not the change's any more.
- */
-function withPreparedSuite(notes: readonly string[], prepared: PreparationRecord | null): string[] {
-	const kept = notes.filter((note) => !note.startsWith(PREPARED_SUITE));
-	if (!prepared) return kept;
-	return [
-		...kept,
-		`${PREPARED_SUITE} ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
-	];
-}
-
 /** Writes the files a witness workspace carries on top of the reference. */
 async function writeWitness(workspacePath: string, files: Record<string, string>): Promise<void> {
 	for (const [rel, content] of Object.entries(files)) {
@@ -159,7 +143,7 @@ export class VerificationCoordinator {
 			throw new DomainError(
 				"CONFIGURATION_ERROR",
 				`controls declare a cycle of reports: ${ordering.cycles.join(", ")}`,
-				{ nextActions: ["prepare_capabilities"] },
+				{ nextActions: ["cancel"] },
 			);
 		return ordering.ordered;
 	}
@@ -167,10 +151,12 @@ export class VerificationCoordinator {
 	/**
 	 * Qualifies every control on the reference (§11.3, VER-05, PRE-03): a positive witness must PASS,
 	 * a negative one must FAIL and a broken runner must give INDETERMINATE. The witnesses qualify the
-	 * sensor mechanism; a prepared discriminant suite is judged separately and only noted here.
+	 * sensor mechanism; a prepared discriminant suite is judged separately and recorded by the
+	 * preparation, not noted here, since a qualification's notes are read as the reasons its control is
+	 * not qualified.
 	 */
 	async qualify(input: QualifyInput): Promise<QualificationOutcome> {
-		const { positive, reference, prepared } = input;
+		const { positive, reference } = input;
 		const negative = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
 		try {
 			const sharedNegativeFiles = { ...input.witnesses.positive, ...input.witnesses.negative };
@@ -195,7 +181,7 @@ export class VerificationCoordinator {
 				const reusable = await this.establishedQualification(input.prior_protocol_refs, control);
 				if (reusable) {
 					this.deps.progress(`control ${control.control_id} keeps its qualification`);
-					qualifications[control.control_id] = { ...reusable, notes: withPreparedSuite(reusable.notes, prepared) };
+					qualifications[control.control_id] = reusable;
 					this.countReferenceCases(
 						observed,
 						control,
@@ -252,10 +238,6 @@ export class VerificationCoordinator {
 					qualifications[control.control_id]!.notes.push(
 						`qualification evidence: positive=${evidenceIds.positive}, negative=${evidenceIds.negative}, incident=${evidenceIds.incident}`,
 					);
-				qualifications[control.control_id]!.notes = withPreparedSuite(
-					qualifications[control.control_id]!.notes,
-					prepared,
-				);
 			}
 			// Levels 2 and 3 of the scale are read off a run the qualification pays for anyway: the
 			// positive witness runs the reference suite next to its own case, so what the reference

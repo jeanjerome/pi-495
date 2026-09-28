@@ -35,16 +35,18 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 	const candidateDecisions = state.human_decisions
 		.filter((d) => d.valid && (d.interaction === "IH-10" || d.interaction === "IH-11" || d.interaction === "IH-08"))
 		.map((d) => d.human_decision_id);
-	// Everything from G0 on, and every human decision but the answers to the questions and the budget
-	// extensions: an extension raises the attempt budget, which the change spends whatever its mandate,
-	// so revoking it would say revoked a decision whose effect holds.
+	// Everything from G0 on, and every human decision but the answers to the questions, the budget
+	// extensions and the reconciliations of a Git effect: an extension raises the attempt budget, which
+	// the change spends whatever its mandate, and a reconciliation records whether an effect was applied,
+	// which an integration fallback leaves standing. Revoking either would say revoked a decision whose
+	// effect holds.
 	const fromMandate = (reason: string): InvalidationPlan => ({
 		reason,
 		gates: from("G0"),
 		evidence: allEvidence,
 		reviews: allReviews,
 		human_decisions: state.human_decisions
-			.filter((d) => d.valid && d.interaction !== "IH-01" && d.interaction !== "IH-07")
+			.filter((d) => d.valid && d.interaction !== "IH-01" && d.interaction !== "IH-07" && d.interaction !== "IH-12")
 			.map((d) => d.human_decision_id),
 		rollback_phase: "clarifying",
 	});

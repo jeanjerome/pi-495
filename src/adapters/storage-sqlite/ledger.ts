@@ -231,9 +231,11 @@ export class SqliteLedger implements LedgerPort {
 
 	/**
 	 * Effectful operations are recorded in the same transaction as the events that open them, under
-	 * a key unique across the whole database. Two sessions reading the same change — a reloaded
-	 * extension, a forked conversation — derive the same key for the same control run or the same
-	 * integration, and the second one is refused here rather than executing the effect twice.
+	 * a key unique across the whole database. An integration's key names the candidate and the
+	 * destination head it starts from: a second integration of the same candidate onto the same head —
+	 * from a reloaded extension, a forked conversation — is refused here rather than applying the
+	 * effect twice. A verification's key names the revision it starts from, so a second session that
+	 * read the same revision is refused by the revision check before its key is read.
 	 */
 	private projectOperation(changeId: string, event: ChangeEvent): void {
 		if (event.type === "operation.opened") {
@@ -280,7 +282,7 @@ export class SqliteLedger implements LedgerPort {
 			if (current)
 				this.upsertOperation({
 					...current,
-					status: current.status === "running" ? "succeeded" : current.status,
+					status: current.status !== "running" ? current.status : event.interrupted ? "cancelled" : "succeeded",
 					updated_at: event.at,
 				});
 		}

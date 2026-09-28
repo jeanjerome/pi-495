@@ -13,7 +13,14 @@ import type {
 	InterventionRole,
 } from "../../contracts/v1/common.ts";
 import type { ImposedLayersRecord } from "../imposed-layers.ts";
-import type { ArtifactKind, AttemptCounters, FrozenProtocol, GateDecisionState, InterventionCost } from "./state.ts";
+import type {
+	ArtifactKind,
+	AttemptCounters,
+	FrozenProtocol,
+	GateDecisionState,
+	InterventionCost,
+	OperationKind,
+} from "./state.ts";
 import type { ModelLocation } from "../policy.ts";
 
 interface Base {
@@ -148,14 +155,15 @@ export type ChangeEvent =
 	| (Base & { type: "decision.revoked"; human_decision_id: string; reason: string })
 	| (Base & { type: "decision.withdrawn"; decision_id: string; reason: string })
 	| (Base & { type: "feedback.produced"; attempt_id: string; digest: string; bytes: number; truncated: boolean })
-	| (Base & { type: "operation.opened"; operation_id: string; kind: string; idempotency_key: string })
+	| (Base & { type: "operation.opened"; operation_id: string; kind: OperationKind; idempotency_key: string })
 	| (Base & {
 			type: "operation.effect";
 			operation_id: string;
 			effect_state: "prepared" | "started" | "confirmed" | "failed" | "uncertain" | "reconciled";
 			detail: string | null;
 	  })
-	| (Base & { type: "operation.closed"; operation_id: string })
+	/** `interrupted`: the operation was stopped before its outcome was recorded; absent from a journal written before it. */
+	| (Base & { type: "operation.closed"; operation_id: string; interrupted?: true })
 	| (Base & { type: "operation.retried"; operation_key: string; count: number })
 	| (Base & {
 			type: "integration.prepared";

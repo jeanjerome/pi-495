@@ -5,6 +5,8 @@ import { afterEach, describe, it } from "node:test";
 import {
 	assertStoppedBeforeG0,
 	makeHarness,
+	ActsOnFirstCandidateRun,
+	ThrowsOnFirstCandidateRun,
 	reopenHarness,
 	specificationRounds,
 	specReport,
@@ -15,7 +17,9 @@ import type { ContextManifest } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
+import { formatStatus } from "../../src/presentation/structured/text.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
@@ -914,7 +918,8 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	// The first campaign lost five changes this way: the kernel declared the error retryable and named
 	// `retry_specification`, `resume` only lifted `execution_error`, and nothing could take the action.
-	it("lifts a block the kernel declared retryable, and the change redoes the step that threw (DEC-05)", async () => {
+	// The stop now names the subcommands that lead out of it, and no step of the kernel.
+	it("lifts a block the kernel declared retryable, which the status names with the cancel, and the change redoes the step that threw (DEC-05)", async () => {
 		const p = project();
 		let calls = 0;
 		const t = track(makeHarness());
@@ -953,8 +958,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.stop_reason, "configuration_error");
 		assert.equal(state.stop_retryable, true);
-		assert.ok(state.stop_detail?.includes("retry_specification"), state.stop_detail ?? "");
-		assert.ok(blocked.view.change?.next_action.includes("resume"), blocked.view.change?.next_action ?? "");
+		const read = formatStatus(blocked.view, "en");
+		assert.doesNotMatch(read, /retry_specification/, "the status names no step of the kernel as an action");
+		assert.match(read, /^Next action: blocked: .* \(next: resume, cancel\) — resume retries it$/m, read);
 
 		const resumed = t.harness.resume(change.change_id, HUMAN);
 		assert.equal(resumed.change?.status, "ready", resumed.change?.next_action ?? "");
@@ -1132,7 +1138,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(state.adopted.mandate, undefined);
 	});
 
-	it("an unqualified sandbox blocks before any producing intervention (capability_missing, ADR-013)", async () => {
+	it("an unqualified sandbox blocks before any producing intervention, and the status names the cancel as its only way out (capability_missing, ADR-013)", async () => {
 		const p = project();
 		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } } }));
 		t.harness.deps.sandbox.qualification = {
@@ -1147,6 +1153,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(state.phase, "implementing");
 		assert.equal(state.interventions.filter((i) => i.role === "implement").length, 0);
 		assert.equal(state.stop_retryable, false, "no command of the session qualifies a sandbox");
+		const read = formatStatus(result.view, "en");
+		assert.doesNotMatch(read, /qualify_capability|revise_mandate/, "the status names no kernel command as an action");
+		assert.match(read, /^Next action: blocked: .* \(next: cancel\)$/m, "the cancel alone leads out of this stop");
 	});
 
 	it("resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)", async () => {
@@ -1212,6 +1221,36 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(t.ledger.loadChange(change.change_id)!.state.stop_reason, "capability_missing");
 	});
 
+	it("does not lift on resume a stop no resume lifts, when the step failed while its controls ran", async () => {
+		const t = track(
+			makeHarness({
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+				controls: (real) =>
+					new ThrowsOnFirstCandidateRun(
+						real,
+						new DomainError("CONFIGURATION_ERROR", "the control's toolchain is gone"),
+					),
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const blocked = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
+		assert.equal(t.ledger.loadChange(change.change_id)!.state.phase, "verifying");
+
+		t.harness.resume(change.change_id, HUMAN);
+
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.deepEqual([state.status, state.stop_reason], ["blocked", "configuration_error"], "the stop stays in place");
+		assert.equal(state.operation, null, "no verification is left open");
+	});
+
 	it("records a failure that is not the pause's own conflict, even when the change is paused under the step", async () => {
 		const t = track(makeHarness());
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
@@ -1222,6 +1261,131 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const stopped = await t.harness.advance(change.change_id);
 		assert.equal(stopped.stopped_because, "capability_missing", stopped.steps.join(" | "));
 		assert.equal(t.ledger.loadChange(change.change_id)!.state.stop_reason, "capability_missing");
+	});
+
+	it("a verification cut short by the end of its session is run again after a resume, and the change reaches its decision", async () => {
+		const t = track(
+			makeHarness({
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+				// The first control run on the candidate ends the conduct as a killed session would: nothing
+				// is recorded, and the verification is left open in the ledger.
+				controls: (real) => new ThrowsOnFirstCandidateRun(real, new Error("the session ended while the controls ran")),
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		await assert.rejects(t.harness.advance(change.change_id, { max_steps: 30 }), /the session ended/);
+		const cutShort = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(cutShort.phase, "verifying");
+		assert.equal(cutShort.operation?.kind, "verification");
+		t.harness.resume(change.change_id, HUMAN);
+		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		const view = result.view.change!;
+		assert.equal(view.outcome, "accepted");
+		assert.ok(view.evidence.length > 0 && view.evidence.every((e) => e.valid && e.verdict === "PASS"));
+		assert.ok(
+			t.ledger
+				.listEvidence(change.change_id)
+				.some((e) => e.subject.kind === "candidate" && e.subject.digest === view.candidate!.manifest_digest),
+			"the evidence is on the frozen candidate",
+		);
+	});
+
+	it("a change paused during its verification is resumed and its verification is run again", async () => {
+		let changeId = "";
+		const t = track(
+			makeHarness({
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+				controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		changeId = change.change_id;
+		const stopped = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(stopped.stopped_because, "paused", stopped.steps.join(" | "));
+		assert.equal(t.ledger.loadChange(changeId)!.state.phase, "verifying");
+
+		assert.doesNotThrow(() => t.harness.resume(changeId, HUMAN), "the resume is accepted");
+		const result = await t.harness.advance(changeId, { max_steps: 30 });
+
+		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
+		assert.equal(result.view.change!.outcome, "accepted");
+		// The pass the pause suspended stores its observations too: only the journal tells which pass the
+		// kernel recorded.
+		const journal = t.ledger.readChangeEvents(changeId).map(({ event }) => event);
+		const verifications = journal.flatMap((e, i) =>
+			e.type === "operation.opened" && e.kind === "verification" ? [i] : [],
+		);
+		const recorded = journal.flatMap((e, i) => (e.type === "evidence.recorded" ? [i] : []));
+		assert.equal(verifications.length, 2, "the resume opens a second verification");
+		const [suspended, rerun] = verifications as [number, number];
+		assert.deepEqual(
+			recorded.filter((i) => i > suspended && i < rerun),
+			[],
+			"the suspended pass records nothing",
+		);
+		assert.ok(
+			recorded.some((i) => i > rerun),
+			"the verification run again records the evidence G5 reads",
+		);
+	});
+
+	it("a session whose record loses to another session's block keeps that block and its reason", async () => {
+		let changeId = "";
+		const t = track(
+			makeHarness({
+				scripts: {
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: RIGHT },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+				controls: (real) =>
+					new ActsOnFirstCandidateRun(real, () => {
+						// Another live session blocks the change on a stop no resume lifts; this session's controls
+						// run on, and its record loses on the revision.
+						t.harness.commit(
+							t.ledger.loadChange(changeId)!,
+							{
+								type: "change.block",
+								at: new Date().toISOString(),
+								actor: KERNEL_ACTOR,
+								reason: "configuration_error",
+								detail: "CONFIGURATION_ERROR: the control's toolchain is gone",
+							},
+							"cor_other_session",
+						);
+					}),
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		changeId = change.change_id;
+
+		const conducted = await t.harness.advance(changeId, { max_steps: 30 });
+
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.deepEqual(
+			[state.phase, state.status, state.stop_reason],
+			["verifying", "blocked", "configuration_error"],
+			`the other session's block is the latest act on the change: ${conducted.steps.join(" | ")}`,
+		);
+		assert.equal(conducted.stopped_because, "blocked");
 	});
 
 	// Which files an intervention must read is not the harness's to guess: it holds the request and

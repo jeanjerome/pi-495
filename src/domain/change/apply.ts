@@ -167,6 +167,9 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			const gates = { ...s.gates };
 			delete gates[event.gate];
 			s.gates = gates;
+			// Only G5 passing says a change accepted, so the acceptance goes with it: an integration
+			// fallback invalidates G5 and would otherwise leave every later state saying accepted.
+			if (event.gate === "G5" && s.outcome === "accepted") s.outcome = "pending";
 			return s;
 		}
 		case "attempt.opened":

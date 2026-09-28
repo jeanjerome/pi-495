@@ -2,14 +2,24 @@ import { strict as assert } from "node:assert";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import {
+	ActsOnFirstCandidateRun,
+	ThrowsOnFirstCandidateRun,
+	makeHarness,
+	specificationRounds,
+	specReport,
+	type TestHarness,
+} from "../helpers/harness-fixture.ts";
 import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { initRepo, fixtureTs, fixtureTsWithoutTests, tempDir, SHOUT_IMPL, SHOUT_TEST } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
+import type { ArtifactRef } from "../../src/contracts/v1/common.ts";
 import type { DecisionRequest, HumanDecision, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Mandate, Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
+import { KERNEL_ACTOR } from "../../src/application/actors.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 
 const cleanups: string[] = [];
@@ -240,6 +250,135 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 			["IH-10"],
 			"the acceptance is still presented to the owner",
 		);
+	});
+
+	it("the owner revokes an answer on a change paused during its verification", async () => {
+		let changeId = "";
+		const t = track(
+			makeHarness({
+				policy: { g5_human_acceptance: true },
+				controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
+			}),
+		);
+		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		changeId = change.change_id;
+		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
+		resolvePresented(t, changeId, "answer", "400");
+		const conducted = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(conducted.stopped_because, "paused", conducted.steps.join(" | "));
+
+		const revoked = t.harness.revokeQuestion(changeId, Q1.id, origin());
+
+		assert.equal(revoked.error ? `${revoked.error.code} ${revoked.error.message}` : "accepted", "accepted");
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.deepEqual([state.phase, state.status], ["clarifying", "paused"], "the owner's pause holds");
+		assert.equal(state.operation, null, "no operation is left open");
+	});
+
+	it("the owner revokes an answer on a change a step blocked while its controls ran", async () => {
+		const t = track(
+			makeHarness({
+				controls: (real) =>
+					new ThrowsOnFirstCandidateRun(
+						real,
+						new DomainError("EVIDENCE_MISSING", "the report the control wrote is gone"),
+					),
+			}),
+		);
+		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const changeId = change.change_id;
+		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
+		resolvePresented(t, changeId, "answer", "400");
+		const conducted = await t.harness.advance(changeId, { max_steps: 30 });
+		assert.equal(conducted.stopped_because, "blocked", conducted.steps.join(" | "));
+
+		const revoked = t.harness.revokeQuestion(changeId, Q1.id, origin());
+
+		assert.equal(revoked.error ? `${revoked.error.code} ${revoked.error.message}` : "accepted", "accepted");
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.phase, "clarifying");
+		assert.deepEqual(
+			t.harness.pendingDecisions(changeId).map((d) => d.interaction),
+			["IH-01"],
+			"Q1 is asked again",
+		);
+		assert.equal(state.operation, null, "no operation is left open");
+	});
+
+	it("a block written by a session whose record lost to the owner's revocation does not overwrite it", async () => {
+		let changeId = "";
+		const t = track(
+			makeHarness({
+				controls: (real) =>
+					new ActsOnFirstCandidateRun(real, () => {
+						// Another live session blocks the change, which closes this session's verification, and the
+						// owner revokes Q1 there; this session's controls run on, and its record loses on the revision.
+						t.harness.commit(
+							t.ledger.loadChange(changeId)!,
+							{
+								type: "change.block",
+								at: new Date().toISOString(),
+								actor: KERNEL_ACTOR,
+								reason: "execution_error",
+								detail: "OPERATION_ACTIVE: another session holds the verification",
+							},
+							"cor_other_session",
+						);
+						revoke(t, changeId, Q1.id);
+					}),
+			}),
+		);
+		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
+		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		changeId = change.change_id;
+		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
+		resolvePresented(t, changeId, "answer", "400");
+
+		const conducted = await t.harness.advance(changeId, { max_steps: 30 });
+
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.deepEqual(
+			[state.phase, state.status],
+			["clarifying", "decision_required"],
+			`the revocation is the latest act on the change: ${conducted.steps.join(" | ")}`,
+		);
+		assert.deepEqual(
+			t.harness.pendingDecisions(changeId).map((d) => d.interaction),
+			["IH-01"],
+			"Q1 waits for the owner",
+		);
+		assert.equal(conducted.stopped_because, "decision_required");
+	});
+
+	it("a revoked change blocked over its question asked again comes back to that question once its stop is lifted", async () => {
+		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const { changeId } = await awaitingAcceptance(t);
+		revoke(t, changeId, Q1.id);
+		// The block a losing conduct wrote over the decision before a harness yielded to it.
+		t.harness.commit(
+			t.ledger.loadChange(changeId)!,
+			{
+				type: "change.block",
+				at: new Date().toISOString(),
+				actor: KERNEL_ACTOR,
+				reason: "execution_error",
+				detail: "REVISION_CONFLICT: revision 59, expected 48",
+			},
+			"cor_losing_session",
+		);
+
+		t.harness.resume(changeId, HUMAN);
+		const result = await t.harness.advance(changeId, { max_steps: 5 });
+
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		assert.deepEqual(
+			t.harness.pendingDecisions(changeId).map((d) => d.interaction),
+			["IH-01"],
+			"Q1 is presented again",
+		);
+		assert.deepEqual(result.steps, [], "no specification runs while Q1 waits for the owner");
 	});
 });
 
@@ -487,30 +626,36 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 		);
 	});
 
-	it("a qualification taken up by the rebuilt change notes the prepared suite of the rebuilt change alone", async () => {
+	it("a qualification taken up by the rebuilt change notes no prepared suite, and the rebuilt change holds the preparation it made", async () => {
 		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT],
 			projectPath: project(fixtureTsWithoutTests),
 		});
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 1, "qualified afresh beside the suite prepared");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "qualified afresh beside the suite prepared");
+		const firstPreparation = adoptedPreparationRef(t, changeId);
+		assert.ok(firstPreparation, "the first build adopted a preparation");
 
 		revoke(t, changeId, Q1.id);
 		resolvePresented(t, changeId, "answer", "422");
 		const rebuilt = await t.harness.advance(changeId, { max_steps: 40 });
 
 		assert.equal(rebuilt.stopped_because, "decision_required", rebuilt.steps.join(" | "));
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 1, "taken up beside the suite prepared again");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "taken up beside the suite prepared again");
+		const rebuiltPreparation = adoptedPreparationRef(t, changeId);
+		assert.ok(rebuiltPreparation, "the rebuilt change adopted a preparation");
+		assert.notDeepEqual(rebuiltPreparation, firstPreparation, "the rebuilt change holds the preparation it made");
 	});
 
-	it("a qualification taken up by a change rebuilt without a preparation notes no prepared suite, though its first build had one", async () => {
+	it("a qualification taken up by a change rebuilt without a preparation notes no prepared suite, and the rebuilt change holds none, though its first build had one", async () => {
 		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT, BINDS_Q1_TO_422],
 		});
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 1, "qualified afresh beside the suite prepared");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "qualified afresh beside the suite prepared");
+		assert.ok(adoptedPreparationRef(t, changeId), "the first build adopted a preparation");
 
 		revoke(t, changeId, Q1.id);
 		resolvePresented(t, changeId, "answer", "422");
@@ -518,14 +663,16 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 
 		assert.equal(rebuilt.stopped_because, "decision_required", rebuilt.steps.join(" | "));
 		assert.equal(t.agent.started.filter((m) => m.role === "prepare").length, 1, "the rebuilt change prepares nothing");
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 0, "taken up with no suite prepared");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "taken up with no suite prepared");
+		assert.equal(adoptedPreparationRef(t, changeId), null, "the rebuilt change holds no preparation");
 	});
 
-	it("a qualification taken up by a change rebuilt with a preparation notes its prepared suite, though its first build had none", async () => {
+	it("a qualification taken up by a change rebuilt with a preparation notes no prepared suite, and the rebuilt change holds the preparation it made, though its first build had none", async () => {
 		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, { reports: [POSES_Q1, BINDS_Q1_TO_400, BINDS_Q1_TO_SHOUT] });
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 0, "qualified afresh with no suite prepared");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "qualified afresh with no suite prepared");
+		assert.equal(adoptedPreparationRef(t, changeId), null, "the first build adopted no preparation");
 
 		revoke(t, changeId, Q1.id);
 		resolvePresented(t, changeId, "answer", "422");
@@ -537,26 +684,27 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 			1,
 			"the rebuilt change prepares its tests",
 		);
-		assertPreparedSuiteNoted(await preparedSuiteNotes(t, changeId), 1, "taken up beside the suite prepared");
+		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "taken up beside the suite prepared");
+		assert.ok(adoptedPreparationRef(t, changeId), "the rebuilt change holds the preparation it made");
 	});
 });
 
-/** The notes of the prepared suite on each control of the protocol the change holds frozen, by control. */
-async function preparedSuiteNotes(t: TestHarness, changeId: string): Promise<Record<string, string[]>> {
+/**
+ * Every note of the frozen protocol's qualifications that speaks of a prepared suite: the preparation
+ * records the suite, and a qualification says only what its witnesses answered.
+ */
+async function preparedSuiteNotes(t: TestHarness, changeId: string): Promise<string[]> {
 	const state = t.ledger.loadChange(changeId)!.state;
 	const frozen = await t.harness.artifacts.read<Protocol>(state.adopted.protocol!.ref);
-	return Object.fromEntries(
-		Object.entries(frozen.qualifications).map(([controlId, q]) => [
-			controlId,
-			q.notes.filter((note) => note.startsWith("prepared suite on the bare reference")),
-		]),
+	assert.ok(Object.keys(frozen.qualifications).length > 0, "the protocol qualifies at least one control");
+	return Object.entries(frozen.qualifications).flatMap(([controlId, q]) =>
+		q.notes.filter((note) => note.includes("prepared suite")).map((note) => `${controlId}: ${note}`),
 	);
 }
 
-function assertPreparedSuiteNoted(notes: Record<string, string[]>, expected: number, qualification: string): void {
-	assert.ok(Object.keys(notes).length > 0, "the protocol qualifies at least one control");
-	for (const [controlId, noted] of Object.entries(notes))
-		assert.equal(noted.length, expected, `${controlId}, ${qualification}: ${noted.join(" | ")}`);
+/** The reference of the preparation the change holds adopted, or null. */
+function adoptedPreparationRef(t: TestHarness, changeId: string): ArtifactRef | null {
+	return t.ledger.loadChange(changeId)!.state.adopted.preparation?.ref ?? null;
 }
 
 describe("the change rebuilt after a revocation spends on the same attempt budget, and asks its owner once it is spent (DEC-06, §18)", () => {

@@ -129,7 +129,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		}
 	});
 
-	it("holds busy from the confirmation through the write, and releases it before conduct (BES-02)", async () => {
+	it("holds the session from the confirmation through the conduct of the closure, as one operation (BES-02)", async () => {
 		const cwd = project();
 		const { pi, session, ctx, changeId } = await stalledOnQ1(root, cwd);
 		try {
@@ -137,15 +137,39 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			ctx.onConfirm = () => {
 				busyDuringConfirm = session.busy;
 			};
+			// A command started from any microtask between the closure's write and its conduct finds the
+			// session as each sample does.
+			const busyAfterWrite: boolean[] = [];
+			const harness = session.runtime().harness;
+			const closeQuestion = harness.closeQuestion.bind(harness);
+			harness.closeQuestion = (...args) => {
+				const closed = closeQuestion(...args);
+				const sample = (depth: number): void => {
+					busyAfterWrite.push(session.busy);
+					if (depth < 10) queueMicrotask(() => sample(depth + 1));
+				};
+				queueMicrotask(() => sample(1));
+				return closed;
+			};
+			// However late the conduct starts, the kernel's advance it runs finds the session held.
+			const busyInAdvance: boolean[] = [];
+			const advance = harness.advance.bind(harness);
+			harness.advance = (...args) => {
+				busyInAdvance.push(session.busy);
+				return advance(...args);
+			};
+
 			await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+
 			assert.equal(busyDuringConfirm, true, "busy is held while the confirmation is put to the owner");
-			// `conduct` itself refuses busy at its own entry (`conduct.ts`): if it ran while `close` still
-			// held the flag, this is the message it would have said instead of advancing.
-			assert.ok(
-				!pi.said.some((m) => m === session.busyRefusal()),
-				"conduct is not itself refused as busy, so busy was released before it started",
+			assert.deepEqual(
+				busyAfterWrite,
+				Array(10).fill(true),
+				"no microtask between the closure's write and its conduct finds the session free",
 			);
-			assert.equal(session.busy, false, "busy is released once the closure inscribes, before conduct runs");
+			assert.deepEqual(busyInAdvance, [true], "the conduct of the closure runs within the hold");
+			assert.ok(!pi.said.some((m) => m === session.busyRefusal()), "the conduct of the closure is not refused as busy");
+			assert.equal(session.busy, false, "the session is released once the conduct ends");
 			const state = session.runtime().ledger.loadChange(changeId)!.state;
 			assert.ok(state.open_questions.find((q) => q.id === "q1")?.closed_at, "the closure still inscribes");
 		} finally {

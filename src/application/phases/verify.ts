@@ -20,6 +20,10 @@ export async function verify(ctx: Omit<PhaseContext, "runIntervention">, unit: U
 	if (!protocol) throw new DomainError("EVIDENCE_MISSING", "protocol document missing");
 	const reference = await ctx.artifacts.reference(state);
 	const opId = ctx.id("op");
+	// The key names the revision the verification starts from, so a verification cut short and closed by
+	// a resume or a pause runs again from the later revision that closing it recorded. It refuses nothing
+	// within a change: a second session that read the same revision is refused by the ledger's revision
+	// check before the key is read, and one that read a later revision derives another key.
 	unit = ctx.commit(
 		unit,
 		{
@@ -27,7 +31,7 @@ export async function verify(ctx: Omit<PhaseContext, "runIntervention">, unit: U
 			at: ctx.now(),
 			actor: KERNEL_ACTOR,
 			operation_id: opId,
-			idempotency_key: `verify:${state.candidate.manifest_digest}:${state.evidence.length}`,
+			idempotency_key: `verify:${state.candidate.manifest_digest}:${state.revision}`,
 		},
 		cor,
 	);

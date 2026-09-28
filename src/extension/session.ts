@@ -104,6 +104,26 @@ export class ExtensionSession {
 			: "495: an operation is already running in this session.";
 	}
 
+	/**
+	 * Runs `work` as the operation under way in this session, or refuses it while another holds the
+	 * session. Every `/495` subcommand that holds the session reads and takes the flag here, with no
+	 * `await` between the two, so no holder releases one it did not take. The tool's `verify` reads and
+	 * takes it itself, since its refusal is the tool's result rather than a message of the session, and
+	 * releases only the hold it took.
+	 */
+	async hold(ctx: ExtensionContext, work: () => Promise<void>): Promise<void> {
+		if (this.busy) {
+			this.emit(ctx, this.busyRefusal());
+			return;
+		}
+		this.busy = true;
+		try {
+			await work();
+		} finally {
+			this.busy = false;
+		}
+	}
+
 	/** The runtime session start created, or the reason it could not be. */
 	runtime(): HarnessRuntime {
 		if (this.harnessRuntime) return this.harnessRuntime;

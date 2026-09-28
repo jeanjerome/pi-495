@@ -239,10 +239,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 						if (!ids.has(d))
 							throw new DomainError("UNKNOWN_REFERENCE", `increment ${inc.increment_id} depends on unknown ${d}`);
 				const cycle = findCycle(command.increments);
-				if (cycle)
-					throw new DomainError("CYCLE_DETECTED", `dependency cycle: ${cycle.join(" -> ")} (RM-006)`, {
-						nextActions: ["revise_trajectory"],
-					});
+				if (cycle) throw new DomainError("CYCLE_DETECTED", `dependency cycle: ${cycle.join(" -> ")} (RM-006)`);
 				for (const inc of state.increments) {
 					if ((inc.status === "accepted" || inc.status === "integrated") && !ids.has(inc.increment_id))
 						throw new DomainError(

@@ -27,35 +27,43 @@ export function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
 		: { provider_id: "", model_id: "", thinking_level: "off", location: "off_machine" };
 }
 
+/**
+ * Advances the change while holding the session. `inscribe` is written under the same hold before the
+ * first step: an act the conduct follows, such as a resume, is refused with it while another operation
+ * holds the session, instead of ending a pause or closing a verification under steps still running.
+ */
 export async function conduct(
 	session: ExtensionSession,
 	ctx: ExtensionCommandContext,
 	changeId: string,
+	inscribe: () => void = () => {},
 ): Promise<void> {
+	await session.hold(ctx, async () => {
+		inscribe();
+		await drive(session, ctx, changeId);
+	});
+}
+
+/**
+ * Advances the change under the hold its caller already took, so an act and the conduct that follows
+ * it are one operation of the session: a command started between them is refused as busy.
+ */
+export async function drive(session: ExtensionSession, ctx: ExtensionCommandContext, changeId: string): Promise<void> {
 	const rt = session.runtime();
-	if (session.busy) {
-		session.emit(ctx, session.busyRefusal());
-		return;
-	}
-	session.busy = true;
-	try {
-		rt.harness.deps.onProgress = (m) => session.showProgress(ctx, m);
-		const result = await session.withLoader(ctx, "495", async () =>
-			rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
-		);
-		session.updateFooter(ctx, result.view);
-		session.emit(
-			ctx,
-			`${formatStatus(result.view, session.lang())}\n${result.steps.length ? `\n${result.steps.join("\n")}` : ""}`,
-			{
-				view: result.view,
-				stopped_because: result.stopped_because,
-			},
-		);
-		if (result.stopped_because === "decision_required") await presentDecisions(session, ctx, changeId);
-	} finally {
-		session.busy = false;
-	}
+	rt.harness.deps.onProgress = (m) => session.showProgress(ctx, m);
+	const result = await session.withLoader(ctx, "495", async () =>
+		rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
+	);
+	session.updateFooter(ctx, result.view);
+	session.emit(
+		ctx,
+		`${formatStatus(result.view, session.lang())}\n${result.steps.length ? `\n${result.steps.join("\n")}` : ""}`,
+		{
+			view: result.view,
+			stopped_because: result.stopped_because,
+		},
+	);
+	if (result.stopped_because === "decision_required") await presentDecisions(session, ctx, changeId);
 }
 
 export async function presentDecisions(

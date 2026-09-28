@@ -130,6 +130,55 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(existsSync(join(p, "test")), false, "project untouched");
 		assert.equal(readFileSync(join(p, "src", "greet.js"), "utf8").includes("shout"), false);
 	});
+
+	it("the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it", async () => {
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: {
+					prepare: {
+						steps: [
+							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+							{ kind: "complete", output: report(["test/shout.test.js"]) },
+						],
+					},
+				},
+				// Every witness of the unit control answers FAIL, so its qualification fails beside a
+				// prepared suite that does what it must.
+				controls: (real) => ({
+					runControl: async (invocation, signal) => {
+						const run = await real.runControl(invocation, signal);
+						if (invocation.protocol.protocol_id !== "qualification" || invocation.control.control_id !== "unit")
+							return run;
+						return { ...run, evidence: { ...run.evidence, verdict: "FAIL" as const } };
+					},
+				}),
+			}),
+		);
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+
+		const stopped = await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		assert.equal(stopped.stopped_because, "capability_missing", stopped.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.match(state.stop_detail ?? "", /unit: /, "the stop names the control that is not qualified");
+		assert.doesNotMatch(state.stop_detail ?? "", /prepared suite/);
+		const unqualified = (await t.harness.report(change.change_id)).residual_risks.filter(
+			(risk) => risk.code === "control_not_qualified" && risk.statement.startsWith("control unit is not qualified"),
+		);
+		assert.equal(unqualified.length, 1, "the report says the unit control is not qualified");
+		assert.doesNotMatch(unqualified[0]!.statement, /prepared suite/);
+		const preparation = await t.harness.artifacts.read<PreparationRecord>(state.adopted.preparation!.ref);
+		assert.deepEqual(
+			[preparation.on_reference, preparation.discriminant],
+			["FAIL", true],
+			"the adopted preparation records the suite on the reference",
+		);
+	});
 	it("a producer that implements the feature inside the preparation, or writes outside test/, is refused and the change stays honest", async () => {
 		const p = projectWithoutTests();
 		const t = track(

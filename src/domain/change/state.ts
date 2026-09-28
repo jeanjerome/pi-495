@@ -187,9 +187,12 @@ export interface HumanDecisionEntry {
 	recorded_at: string;
 }
 
+/** The two works the kernel holds an operation open for: running the frozen controls, and integrating. */
+export type OperationKind = "verification" | "integration";
+
 export interface OperationState {
 	operation_id: string;
-	kind: string;
+	kind: OperationKind;
 	idempotency_key: string;
 	effect_state: "none" | "prepared" | "started" | "confirmed" | "failed" | "uncertain" | "reconciled";
 	started_at: string;

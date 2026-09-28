@@ -34,7 +34,7 @@ async function openPreparation(
 		throw new DomainError(
 			"CAPABILITY_MISSING",
 			`no discriminant test could be prepared after two preparation interventions: ${diagnosis.notes.join("; ")}`,
-			{ nextActions: ["prepare_capabilities", "assign_human_decision"] },
+			{ nextActions: ["cancel"] },
 		);
 	const objective = preparationMandateObjective(
 		detection.stack,
@@ -76,7 +76,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const detection = detectStack(handle.path, refs);
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {
-				nextActions: ["prepare_capabilities"],
+				nextActions: ["cancel"],
 			});
 		const ordered = ctx.verification.orderOf(detection.controls);
 		const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis =>
@@ -105,7 +105,6 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 				own_negative: detection.own_negative_witness,
 				tests: detection.witness_tests,
 			},
-			prepared,
 			requirement_refs: refs,
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 		});
@@ -150,7 +149,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			throw new DomainError(
 				"CAPABILITY_MISSING",
 				`protocol not frozen: ${[...new Set([...g2.reasons, ...unqualified])].join("; ")}`,
-				{ nextActions: ["prepare_capabilities", "fix_reference_tests"] },
+				{ nextActions: ["cancel"] },
 			);
 		}
 		return unit;
