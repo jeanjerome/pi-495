@@ -1,0 +1,109 @@
+TAP version 13
+# Subtest: preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+    # Subtest: opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+    ok 1 - opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+      ---
+      duration_ms: 657.500416
+      type: 'test'
+      ...
+    # Subtest: the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+    ok 2 - the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+      ---
+      duration_ms: 442.152959
+      type: 'test'
+      ...
+    # Subtest: a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+    ok 3 - a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+      ---
+      duration_ms: 649.032125
+      type: 'test'
+      ...
+    # Subtest: what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+    ok 4 - what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+      ---
+      duration_ms: 637.095708
+      type: 'test'
+      ...
+    # Subtest: a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+    ok 5 - a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+      ---
+      duration_ms: 220.120791
+      type: 'test'
+      ...
+    # Subtest: the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+    ok 6 - the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+      ---
+      duration_ms: 0.178875
+      type: 'test'
+      ...
+    # Subtest: on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+    not ok 7 - on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+      ---
+      duration_ms: 9.5135
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-wwUUQI/test/v2/preparation.test.ts:347:2'
+      failureType: 'testCodeFailure'
+      error: 'prepare is never asked to run node -e, the empty trigger of a control that reads a report or the code: The kernel will judge your work by running, without you: `mvn -B -q -o test` in the workspace root (maven-test); `/opt/homebrew/Cellar/node@24/24.21.0/bin/node -e ` in the workspace root (coverage); `/opt/homebrew/Cellar/node@24/24.21.0/bin/node -e ` in the workspace root (structure). Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'The kernel will judge your work by running, without you: `mvn -B -q -o test` in the workspace root (maven-test); `/opt/homebrew/Cellar/node@24/24.21.0/bin/node -e ` in the workspace root (coverage); `/opt/homebrew/Cellar/node@24/24.21.0/bin/node -e ` in the workspace root (structure). Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.'
+      operator: 'doesNotMatch'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-wwUUQI/test/v2/preparation.test.ts:384:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: derives explicit test roots from a Maven reactor and refuses production writes
+    ok 8 - derives explicit test roots from a Maven reactor and refuses production writes
+      ---
+      duration_ms: 75.816542
+      type: 'test'
+      ...
+    # Subtest: closes a persisted single-module mandate before resuming on a Maven reactor
+    ok 9 - closes a persisted single-module mandate before resuming on a Maven reactor
+      ---
+      duration_ms: 167.454833
+      type: 'test'
+      ...
+    # Subtest: distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+    ok 10 - distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+      ---
+      duration_ms: 0.236792
+      type: 'test'
+      ...
+    # Subtest: opens a preparation on a target that already has tests when the request adds behaviour
+    ok 11 - opens a preparation on a target that already has tests when the request adds behaviour
+      ---
+      duration_ms: 828.127667
+      type: 'test'
+      ...
+    # Subtest: a prepared suite that already passes on the reference is not adopted as discriminant
+    ok 12 - a prepared suite that already passes on the reference is not adopted as discriminant
+      ---
+      duration_ms: 405.643958
+      type: 'test'
+      ...
+    1..12
+not ok 1 - preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+  ---
+  duration_ms: 4093.797167
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-wwUUQI/test/v2/preparation.test.ts:72:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 12
+# suites 1
+# pass 11
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4261.097375

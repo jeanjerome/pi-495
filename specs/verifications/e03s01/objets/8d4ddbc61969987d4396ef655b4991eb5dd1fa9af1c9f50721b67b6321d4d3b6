@@ -1,0 +1,127 @@
+TAP version 13
+# Subtest: preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+    # Subtest: opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+    ok 1 - opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+      ---
+      duration_ms: 649.289292
+      type: 'test'
+      ...
+    # Subtest: the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+    ok 2 - the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+      ---
+      duration_ms: 430.396667
+      type: 'test'
+      ...
+    # Subtest: a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+    not ok 3 - a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+      ---
+      duration_ms: 372.504666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-k1fdZ8/test/v2/preparation.test.ts:182:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the prepared suite is adopted as discriminant on this first try: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> preparing/ready | preparing -> verification_design/ready | verification_design -> preparing/ready | preparing -> verification_design/ready | verification_design: CAPABILITY_MISSING no discriminant test could be prepared after two preparation interventions: no test file under the test roots of this node target; R1 asks for behaviour the reference does not have: no control that passes on the reference can detect its absence
+        
+        2 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 2
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-k1fdZ8/test/v2/preparation.test.ts:207:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+    not ok 4 - what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+      ---
+      duration_ms: 381.2325
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-k1fdZ8/test/v2/preparation.test.ts:233:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the test is judged on the reference without the implementation, and adopted because it fails there: change outside the preparation mandate refused: src/greet.js | prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)
+        + actual - expected
+        
+          [
+        +   'PASS',
+        +   false,
+        +   false
+        -   'FAIL',
+        -   true,
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'FAIL'
+        1: true
+        2: true
+      actual:
+        0: 'PASS'
+        1: false
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-k1fdZ8/test/v2/preparation.test.ts:269:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+    ok 5 - a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+      ---
+      duration_ms: 218.029667
+      type: 'test'
+      ...
+    # Subtest: derives explicit test roots from a Maven reactor and refuses production writes
+    ok 6 - derives explicit test roots from a Maven reactor and refuses production writes
+      ---
+      duration_ms: 79.3255
+      type: 'test'
+      ...
+    # Subtest: closes a persisted single-module mandate before resuming on a Maven reactor
+    ok 7 - closes a persisted single-module mandate before resuming on a Maven reactor
+      ---
+      duration_ms: 166.759417
+      type: 'test'
+      ...
+    # Subtest: distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+    ok 8 - distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+      ---
+      duration_ms: 0.209583
+      type: 'test'
+      ...
+    # Subtest: opens a preparation on a target that already has tests when the request adds behaviour
+    ok 9 - opens a preparation on a target that already has tests when the request adds behaviour
+      ---
+      duration_ms: 811.268084
+      type: 'test'
+      ...
+    # Subtest: a prepared suite that already passes on the reference is not adopted as discriminant
+    ok 10 - a prepared suite that already passes on the reference is not adopted as discriminant
+      ---
+      duration_ms: 379.072958
+      type: 'test'
+      ...
+    1..10
+not ok 1 - preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+  ---
+  duration_ms: 3488.97
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-k1fdZ8/test/v2/preparation.test.ts:69:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 8
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3653.811459

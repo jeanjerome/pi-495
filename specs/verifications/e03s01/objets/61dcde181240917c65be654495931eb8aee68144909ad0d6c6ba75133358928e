@@ -1,0 +1,103 @@
+TAP version 13
+# Subtest: preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+    # Subtest: opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+    ok 1 - opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+      ---
+      duration_ms: 679.53425
+      type: 'test'
+      ...
+    # Subtest: the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+    ok 2 - the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+      ---
+      duration_ms: 439.550541
+      type: 'test'
+      ...
+    # Subtest: a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+    ok 3 - a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+      ---
+      duration_ms: 641.027541
+      type: 'test'
+      ...
+    # Subtest: what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+    ok 4 - what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+      ---
+      duration_ms: 633.964791
+      type: 'test'
+      ...
+    # Subtest: a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+    ok 5 - a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+      ---
+      duration_ms: 216.295958
+      type: 'test'
+      ...
+    # Subtest: the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+    not ok 6 - the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+      ---
+      duration_ms: 0.3955
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0yC1t6/test/v2/preparation.test.ts:331:2'
+      failureType: 'testCodeFailure'
+      error: 'the producer reads that only files under the test roots are retained: Write automated tests for the adopted requirements in the target technology (maven); only files under src/test/, domain/src/test/ may be created or modified. The controls already on this target cannot decide R1: for those, a test that passes on the tree as it stands proves nothing.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'Write automated tests for the adopted requirements in the target technology (maven); only files under src/test/, domain/src/test/ may be created or modified. The controls already on this target cannot decide R1: for those, a test that passes on the tree as it stands proves nothing.'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0yC1t6/test/v2/preparation.test.ts:333:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: derives explicit test roots from a Maven reactor and refuses production writes
+    ok 7 - derives explicit test roots from a Maven reactor and refuses production writes
+      ---
+      duration_ms: 81.741458
+      type: 'test'
+      ...
+    # Subtest: closes a persisted single-module mandate before resuming on a Maven reactor
+    ok 8 - closes a persisted single-module mandate before resuming on a Maven reactor
+      ---
+      duration_ms: 164.437042
+      type: 'test'
+      ...
+    # Subtest: distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+    ok 9 - distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+      ---
+      duration_ms: 0.208459
+      type: 'test'
+      ...
+    # Subtest: opens a preparation on a target that already has tests when the request adds behaviour
+    ok 10 - opens a preparation on a target that already has tests when the request adds behaviour
+      ---
+      duration_ms: 830.738125
+      type: 'test'
+      ...
+    # Subtest: a prepared suite that already passes on the reference is not adopted as discriminant
+    ok 11 - a prepared suite that already passes on the reference is not adopted as discriminant
+      ---
+      duration_ms: 394.719333
+      type: 'test'
+      ...
+    1..11
+not ok 1 - preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+  ---
+  duration_ms: 4083.51125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0yC1t6/test/v2/preparation.test.ts:70:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 11
+# suites 1
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4248.223583

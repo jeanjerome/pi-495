@@ -1,0 +1,95 @@
+TAP version 13
+# Subtest: preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+    # Subtest: opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+    ok 1 - opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+      ---
+      duration_ms: 658.07825
+      type: 'test'
+      ...
+    # Subtest: the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+    ok 2 - the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+      ---
+      duration_ms: 444.9145
+      type: 'test'
+      ...
+    # Subtest: a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+    ok 3 - a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+      ---
+      duration_ms: 637.860625
+      type: 'test'
+      ...
+    # Subtest: what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+    ok 4 - what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+      ---
+      duration_ms: 641.765166
+      type: 'test'
+      ...
+    # Subtest: a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+    ok 5 - a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate
+      ---
+      duration_ms: 214.2715
+      type: 'test'
+      ...
+    # Subtest: the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+    ok 6 - the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+      ---
+      duration_ms: 0.174834
+      type: 'test'
+      ...
+    # Subtest: on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+    ok 7 - on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+      ---
+      duration_ms: 9.130291
+      type: 'test'
+      ...
+    # Subtest: a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not
+    ok 8 - a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not
+      ---
+      duration_ms: 640.231333
+      type: 'test'
+      ...
+    # Subtest: derives explicit test roots from a Maven reactor and refuses production writes
+    ok 9 - derives explicit test roots from a Maven reactor and refuses production writes
+      ---
+      duration_ms: 74.777708
+      type: 'test'
+      ...
+    # Subtest: closes a persisted single-module mandate before resuming on a Maven reactor
+    ok 10 - closes a persisted single-module mandate before resuming on a Maven reactor
+      ---
+      duration_ms: 163.94125
+      type: 'test'
+      ...
+    # Subtest: distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+    ok 11 - distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+      ---
+      duration_ms: 0.215208
+      type: 'test'
+      ...
+    # Subtest: opens a preparation on a target that already has tests when the request adds behaviour
+    ok 12 - opens a preparation on a target that already has tests when the request adds behaviour
+      ---
+      duration_ms: 825.337958
+      type: 'test'
+      ...
+    # Subtest: a prepared suite that already passes on the reference is not adopted as discriminant
+    ok 13 - a prepared suite that already passes on the reference is not adopted as discriminant
+      ---
+      duration_ms: 397.91975
+      type: 'test'
+      ...
+    1..13
+ok 1 - preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+  ---
+  duration_ms: 4709.55225
+  type: 'suite'
+  ...
+1..1
+# tests 13
+# suites 1
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4875.418667

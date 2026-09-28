@@ -2,7 +2,7 @@
 
 Story : e03s01
 Epic : e03
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une préparation qui écrit hors de ses racines en plus de tests valides est adoptée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/preparation.test.ts",
+    "ligne": 185,
+    "constat": "Le Given dit « une cible Maven » mais le test qui tient le scénario (celui que la tâche 1 nomme) conduit la campagne sur la fixture Node sans tests ; la rétention et le jugement sur la référence nue sont les mêmes quelle que soit la stack, et la part Maven (racines du réacteur, écriture de production laissée hors des fichiers retenus) est tenue par le test unitaire sur preparedFilesFrom. La promesse est tenue ; seule la lettre du Given diverge du test, et la recette scriptée sur Maven la couvrira.",
+    "mutation": "Aucune : le constat porte sur l'écart entre le Given et la fixture, pas sur une ligne de code."
+   }
+  ],
+  "resume": "Les sept promesses de e03s01 sont tenues par le code et, pour les six testables, par un test que la mutation d'une ligne fait échouer. Mutations essayées, toutes attrapées : qualification exigeant out_of_scope vide (sc.1, 2 tests rouges) ; note sans « not retained » (sc.1) ; jugement sur l'arbre du producteur au lieu de la copie nue (sc.2) ; fichiers hors racines retenus (sc.2, 4 tests rouges dont l'arbre reçu par implement) ; suppression de la note « no test file was produced » (sc.3) ; suppression de la note nommant les chemins hors mandat (sc.3, retour au producteur) ; objectif redisant « may be created or modified » (sc.4) ; retrait du filtre runsNothing, runsNothing toujours faux, lectures non nommées, lectures sans leur titre, déclencheur vide changé dans maven.ts (sc.5, 5 mutations) ; allowlist ancienne pour tous les rôles, BASE_ENV pour tous les rôles (sc.6). D-71 existe, est « Acceptée ; révise D-14 », et porte les trois décisions avec leur motif (sc.7). Toutes les commandes de contrôle des stacks utilisent BASE_ENV, donc le profil des rôles qui écrivent est bien celui des contrôles. Un seul constat, à peser : le Given du premier scénario nomme Maven alors que son test tourne sur la fixture Node. Arbre revenu propre après chaque mutation."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un contrôle qui ne lance rien n'est pas présenté comme une commande",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/harness.ts",
+    "ligne": 552,
+    "constat": "Le test qui tient la promesse appelle buildContext directement avec les contrôles détectés ; la ligne du harnais qui passe désormais les contrôles entiers, titre compris, au bâtisseur n'est tenue par aucun test : vider le titre à ce passage rend « coverage () » au producteur sans qu'un test le voie. Le type Pick exige le champ, ce qui borne le risque à un titre vide ou faux, pas absent.",
+    "mutation": "harness.ts : `controls: (protocol?.content.controls ?? []).map((c) => ({ ...c, title: \"\" }))` ; suite entière : 626 tests passent, les 2 seuls échecs (Seatbelt) sont identiques sur l'arbre intact."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une préparation qui écrit hors de ses racines en plus de tests valides est adoptée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/preparation.test.ts",
+    "ligne": 185,
+    "constat": "Le Given nomme une cible Maven ; le test de bout en bout qui tient le Then tourne sur la fixture Node sans test. Le chemin de code est le même pour toute pile et la partie propre à Maven (racines du réacteur, écriture de production laissée hors des fichiers retenus) est tenue au niveau unitaire par le test du réacteur ; .verify-scratch/ n'est pas dans les exclusions du manifeste, donc apparaît bien hors mandat sur Maven aussi. Reste que l'adoption dès le premier essai n'est observée sur Maven que par la recette.",
+    "mutation": "aucune : le constat porte sur l'écart entre le Given et la fixture, pas sur une ligne de code."
+   }
+  ],
+  "resume": "Les sept promesses sont tenues par le code et, pour les six testables, par un test qui échoue sous mutation. Mutations essayées et toutes détectées : retour au refus sur out_of_scope (M1a), note sans « not retained » (M1b), entrée hors racine versée dans les fichiers retenus (M1c, fait aussi tomber les scénarios 2 et 3 : l'implémentation entrerait dans l'arbre remis), jugement sur l'arbre du producteur au lieu de la copie nue (M2a), suppression de la note « no test file was produced » (M3a) et de la note des chemins hors mandat (M3b), retour de l'objectif à « may be created or modified » (M4a), runsNothing toujours faux (M5a), lecture nommée sans son titre (M5b), profil des rôles qui écrivent ramené à l'ancien (M6a) et profil des rôles qui lisent élargi (M6b). D-71 porte les trois décisions, leur motif et le statut Acceptée ; D-14 n'est pas annoté, ce qui suit le motif de D-70 sur D-38. Deux constats à peser seulement : le passage du titre par le harnais n'est tenu par aucun test (B1-1), et le premier scénario annonce Maven quand son test de bout en bout tourne sur Node (B1-2). Deux tests Seatbelt échouent dans cette session sur l'arbre intact comme sous mutation : c'est le bac à sable de la session, sans rapport avec la branche. Arbre restauré, rien commité."
+ }
+]
