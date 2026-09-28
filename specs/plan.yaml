@@ -136,6 +136,8 @@ epics:
     motif: >
       Symptôme de e04 ; aujourd'hui seule une exclusion de workspace invisible depuis le prompt sauve le
       cas qui passe par Maven.
+    stories:
+      - { id: e03s01, status: "à faire", title: "Le producteur se vérifie comme le noyau le juge, sans perdre sa préparation" }
 
   - id: e04
     title: "Clarté des instructions d'intervention"
