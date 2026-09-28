@@ -5,9 +5,14 @@ project_cycle:
   phase_name: discover
   completed_phases: []
 
-active_flow: build_epic
+active_flow: fix_bug
 active_epic_id: e01
 active_story: e01s04
+
+bug_cycle:
+  current_step: 3
+  completed_steps: "1,2"
+  bugs: [BUG-2026-09-28T081300, BUG-2026-09-28T013000, BUG-2026-09-28T025000, BUG-2026-09-28T025100]
 
 epic_cycle:
   step: 7
@@ -17,21 +22,23 @@ epic_cycle:
   story_bcps: 5
 
 handoff:
-  next_skill: fix-bug
+  next_skill: kickoff-branch
   last_step_completed: >
-    `survey-context` le 2026-09-28 sur `main` à `092aae4`, arbre propre. e01s04 est versée en
-    `45b676c` ; `main` devance `origin/main` de quatre commits, et le push revient au propriétaire.
-    Dernière Preflight verte : `3f18021`, sous Node 24.21.0 (`specs/verifications/e01s04-verify.yaml`) ;
-    elle tient, `git diff --name-only 3f18021` ne listant que des fichiers de `specs/` qu'aucun
-    contrôle ne lit.
+    `fix-bug`, étapes 1 et 2, le 2026-09-28 sur `main` : quatre fiches `specs/bugs/BUG-*.md`, chacune
+    reproduite par une sonde jetable puis confirmée par un correctif provisoire (suite entière 575/578
+    avec les sondes, les trois échecs étant les tests de la note que BUG-2026-09-28T025100 retire
+    exprès). Aux trois bogues d'e01s04 s'ajoute BUG-2026-09-28T081300, antérieur et moyen : une
+    vérification interrompue par une pause ou par la fin de la session n'est plus jamais relancée.
 
-    Prochaine étape : `fix-bug` sur les trois bogues introduits par e01s04, avant `plan-work` pour
-    e01s05, dont la recette exerce la révocation dans Pi et doit porter sur le code corrigé. D'abord
-    BUG-2026-09-28T013000 et BUG-2026-09-28T025000, qui touchent ce que la révocation admet et défait
-    dans le noyau, puis BUG-2026-09-28T025100, qui change le contrat du protocole. Aucun n'a de fiche
-    `BUG-*.md` ni de test rouge, et chaque correctif demande sa propre relecture (CONVENTIONS.md
-    § Review, règle 6). Hors de e01, restent ouverts au registre : BUG-2026-09-23T155707,
-    BUG-2026-09-27T170000 et BUG-2026-09-27T170100 (moyens), BUG-2026-09-27T220000 et
-    BUG-2026-09-28T013100.
+    Prochaine étape : `kickoff-branch`, une branche pour les quatre, puis `develop-tdd` dans l'ordre
+    que les fiches fixent : 081300 cycle 1 (la clé d'idempotence), puis le rouge de 081300 cycle 2
+    avec celui de 013000 cycle 1 (un seul vert, la pause qui ferme la vérification), 013000 cycle 2,
+    025000, 025100. Ensuite `audit-code`, une relecture propre (CONVENTIONS.md § Review, règle 6),
+    `verify-work` et l'acceptation du propriétaire, `commit-message`, `release-branch`.
+
+    Dernière Preflight verte : `3f18021`, sous Node 24.21.0 (`specs/verifications/e01s04-verify.yaml`) ;
+    elle tient, `git diff --name-only 3f18021` ne listant que `specs/`. `main` devance `origin/main`,
+    le push revient au propriétaire. Restent ouverts hors de ce cycle : BUG-2026-09-23T155707,
+    BUG-2026-09-27T170000, BUG-2026-09-27T170100, BUG-2026-09-27T220000, BUG-2026-09-28T013100.
 metrics:
   story_start: "2026-09-28T07:56:10+02:00"

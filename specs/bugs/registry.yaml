@@ -480,17 +480,21 @@ bugs:
       - "Take a change with an answered material question to its verification, and pause it while the verification operation is open."
       - "Run `/495 revoke q1`: it is refused with OPERATION_ACTIVE, verification operation in progress."
     root_cause: >
-      `requireRevocable` reads an open operation as work in progress, and a pause leaves the
-      verification operation open. Reported by a reviewer's probe on the branch; the premise is read in
-      the code, not yet reproduced by a test.
+      The pause ends a running intervention but leaves a running verification's operation open, and
+      `requireRevocable` refuses any open operation. The kernel cannot tell a verification a session left
+      open from one another session runs, so a change whose session ended is paused first, as one whose
+      intervention was cut short already is.
     evidence: >
-      `decide.ts` `changePause` closes no operation; `requireRevocable` fails `OPERATION_ACTIVE` on any
-      `state.operation`. Review record `specs/verifications/e01s04-relecture.md`, round 1, R1-7.
+      Reproduced by throwaway probes on 8f683d9, at the kernel (pause after `verification.start`, then
+      `question.revoke`: OPERATION_ACTIVE) and through the harness (a control runner that pauses the
+      change during its verification: `verifying paused`, operation open, revocation refused). A pause
+      closing the verification operation, as a temporary patch, makes both accepted. Review record
+      `specs/verifications/e01s04-relecture.md`, round 1, R1-7.
     risk_level: low
+    file: specs/bugs/BUG-2026-09-28T013000-revocation-refused-on-a-change-paused-during-verification.md
     follow_ups: >
-      Reproduce with a red test, then decide where the fix lives: the pause closing the verification
-      operation it suspends, or the revocation reading an operation of a paused change as suspended.
-      Either changes a refusal and needs a review round of its own (CONVENTIONS.md § Review, rule 6).
+      The pause closes the verification operation it suspends, and the revocation's refusal names the
+      pause; red tests and order in the bug file, after BUG-2026-09-28T081300's first cycle.
     status: open
   - bug_id: BUG-2026-09-28T013100
     date: "2026-09-28"
@@ -547,20 +551,26 @@ bugs:
     root_cause: >
       The plan of the mandate revision was kept for the revocation on the ground that IH-12 only
       follows an acceptance, after which a revocation is refused; the integration fallback withdraws
-      that acceptance without undoing the reconciliation. `question.revoked` does not reset the
-      outcome.
+      that acceptance without undoing the reconciliation. The outcome is stale from the fallback, not
+      from the revocation: invalidating G5 drops the gate and leaves `accepted`, so a change back in
+      `verifying` says accepted, one whose re-verification fails at G5 too, and a revocation carries it
+      on. That part predates the branch.
     evidence: >
-      Reviewer probe PA6, at the kernel; premise read in the code. Review record
+      Reproduced by throwaway kernel probes on 8f683d9: after the fallback, `verifying ready accepted`
+      with IH-12 valid; after `question.revoke`, `clarifying accepted` and a `decision.revoked` naming
+      the IH-12 decision; after the fallback and a failed re-verification, `deciding`, G5 FAIL,
+      `accepted`. IH-12 kept out of the shared plan and G5's invalidation resetting the outcome, as a
+      temporary patch, give IH-12 valid and `pending` in all three. Review record
       `specs/verifications/e01s04-relecture.md`, round 2, R2-3.
     risk_level: low
+    file: specs/bugs/BUG-2026-09-28T025000-revocation-after-integration-fallback.md
     follow_ups: >
-      Red test at the kernel first. Keep IH-12 out of the plan the revocation shares with the mandate
-      revision, as IH-07 is, and reset the outcome to `pending` in `question.revoked`. Both change a
-      behavior and need a review round of their own (CONVENTIONS.md § Review, rule 6).
+      Keep IH-12 out of the plan the revocation shares with the mandate revision, as IH-07 is, and set
+      an accepted outcome back to pending where G5 is invalidated rather than in the revocation alone.
     status: open
   - bug_id: BUG-2026-09-28T025100
     date: "2026-09-28"
-    title: "The prepared suite a qualification was judged beside is a free-text note, found again by its prefix"
+    title: "The prepared suite is written as a free-text note of every control's qualification, found again by its prefix and read as a reason the control is not qualified"
     severity: low
     priority: p3
     scope: application
@@ -572,18 +582,57 @@ bugs:
       otherwise would be kept beside the new one. Introduced by the branch that adds `/495 revoke`,
       with the fix of the note doubled at every take-up.
     what_expected: >
-      The prepared suite a qualification was judged beside is a field of the qualification, which a
-      take-up replaces as a whole.
+      The reasons a control is not qualified are what its witnesses answered, and the prepared suite is
+      recorded once, by the preparation artifact that already carries its verdict.
     steps_to_reproduce:
       - "Read `withPreparedSuite`: the suite is matched by the text of its note."
     root_cause: >
-      The qualification of the protocol contract records the prepared suite only in its free-text
-      notes.
+      The verification coordinator notes the prepared suite in every qualification it writes or takes
+      up, although the preparation artifact records its verdict, and the two readers of a
+      qualification's notes, the G2 refusal and the report, take them as reasons the control is not
+      qualified. The note predates the branch (bdd0566); its prefix match is the branch's.
     evidence: >
+      Reproduced by a throwaway harness probe on 8f683d9: the preparation scenario with the `unit`
+      control failing its qualification; the stop detail and the report end the reasons of `control
+      unit is not qualified` with `prepared suite on the bare reference: FAIL (discriminant)`. With the
+      note removed, as a temporary patch, only the three take-up tests that count the note fail.
       Review record `specs/verifications/e01s04-relecture.md`, round 2, R2-10.
     risk_level: low
+    file: specs/bugs/BUG-2026-09-28T025100-prepared-suite-noted-in-each-qualification.md
     follow_ups: >
-      Give the qualification a field for the prepared suite, which changes the protocol contract
-      (`src/contracts/`, `npm run contracts`), after the review gate and with a review round of its
-      own (CONVENTIONS.md § Review, rule 6).
+      Remove the note rather than add a field to the protocol contract, which would hold a second copy
+      of what the preparation artifact holds.
+    status: open
+  - bug_id: BUG-2026-09-28T081300
+    date: "2026-09-28"
+    title: "A verification cut short by a pause or by the end of its session is never run again, so the change can only be cancelled"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      A session that ends while the frozen controls run leaves the change `verifying running` with its
+      verification operation open. `/495 resume` closes it as interrupted, and the next verification is
+      refused by the ledger, `OPERATION_ACTIVE: operation <op> already holds the idempotency key
+      verify:<candidate>:0`, which blocks the change `execution_error`; each resume lifts it into the
+      same refusal. A change paused while its controls run fails its resume at once with
+      `PRECONDITION_FAILED: change is paused`. Cancelling is the only way left in both cases.
+    what_expected: >
+      A verification cut short is run again once the change is resumed, on the same frozen candidate.
+    steps_to_reproduce:
+      - "Kill the session while the controls of a verification run (or throw from the control runner), then `/495 resume`: the change is blocked on the reused idempotency key."
+      - "Pause the change while the controls of a verification run, then `/495 resume`: refused, change is paused."
+    root_cause: >
+      A verification's idempotency key is the candidate and the count of evidence, which a run cut
+      short does not change, and the ledger refuses a key once used (since bd7c5be). The pause leaves
+      the verification operation open, and the resume re-runs it before ending the pause, which the
+      kernel refuses on a paused change (since the first kernel). Both predate the revocation branch.
+    evidence: >
+      Found while reproducing BUG-2026-09-28T013000. Throwaway harness probes on 8f683d9, one per
+      path, with the results above. A key naming the revision the verification starts from, and a
+      pause closing the verification operation, as a temporary patch, make both reach the decision.
+    risk_level: low
+    file: specs/bugs/BUG-2026-09-28T081300-interrupted-verification-never-runs-again.md
+    follow_ups: >
+      A change a build before the fix paused during its verification keeps its operation open, and its
+      resume stays refused; cancel remains its way out.
     status: open
