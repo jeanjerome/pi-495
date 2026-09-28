@@ -13,6 +13,7 @@ import { digestBytes } from "../contracts/digest.ts";
 import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { ArtifactRef } from "../contracts/v1/common.ts";
 import type { SpecificationReport } from "../contracts/v1/reports.ts";
+import type { ChangeEvent } from "../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
@@ -23,6 +24,17 @@ export interface ArtifactDeps {
 	ledger: LedgerPort;
 	objects: ObjectStorePort;
 	now(): string;
+}
+
+/** The workspace prepared for an attempt, and the adopted preparation written into it. */
+export interface PreparedWorkspace {
+	workspace_id: string;
+	path: string;
+	/**
+	 * Absent from a workspace recorded before the preparation was written down with it, which is never
+	 * taken up again: what it holds is not known.
+	 */
+	preparation_id?: string | null;
 }
 
 export class ArtifactRepository {
@@ -62,10 +74,17 @@ export class ArtifactRepository {
 		return (stored.object.media_type.startsWith("application/json") ? JSON.parse(text) : text) as T;
 	}
 
-	/** The adopted revision of this kind, or the last one proposed when none is adopted yet. */
+	/**
+	 * The adopted revision of this kind, or the last one proposed when none is adopted yet. A proposal
+	 * written before the owner revoked a question's resolution was written on its faith, so it is not
+	 * the change's any more (DEC-06); the reference is the tree the change was opened on, recorded
+	 * before any question. That cut reads the whole ledger, so it is taken only when nothing of the
+	 * kind is adopted: an intervention reads several kinds, on a ledger every tool call lengthens.
+	 */
 	async latest<T>(state: ChangeState, kind: ArtifactKind): Promise<{ ref: ArtifactRef; content: T } | null> {
-		const adopted = state.adopted[kind];
-		const ref = adopted?.ref ?? state.proposals[kind]?.at(-1);
+		const ref =
+			state.adopted[kind]?.ref ??
+			(kind === "reference" ? (state.proposals.reference ?? []) : this.proposedSinceRevocation(state, kind)).at(-1);
 		if (!ref) return null;
 		return { ref, content: await this.read<T>(ref) };
 	}
@@ -88,30 +107,60 @@ export class ArtifactRepository {
 	 * lifted, whichever came last: each is a human act the rewritings that follow are bounded from, so a
 	 * resume obtains a rewriting of the report the change stopped on. Only the ledger's order tells
 	 * which reports that act followed: a clarification is entered again after an adoption or a refusal
-	 * at G0 as well as after an answer.
+	 * at G0 as well as after an answer. The reports written before the latest revocation are left out,
+	 * and nothing they declared is inherited (DEC-06).
 	 */
 	async specificationHistory(
 		state: ChangeState,
 	): Promise<{ earlier: SpecificationReport[]; sinceLastHumanAct: SpecificationReport[] }> {
-		const material = new Set(state.open_questions.filter((q) => q.material).map((q) => q.id));
-		let written = 0;
-		let writtenBeforeLastAct = 0;
-		let blocked = false;
-		for (const { event } of this.deps.ledger.readChangeEvents(state.change_id)) {
-			if ((event.type === "artifact.proposed" || event.type === "artifact.revised") && event.kind === "diagnostic")
-				written++;
-			else if (event.type === "question.answered" && material.has(event.id)) writtenBeforeLastAct = written;
-			else if (event.type === "status.changed") {
-				if (blocked && event.status === "ready") writtenBeforeLastAct = written;
-				blocked = event.status === "blocked";
-			}
-		}
-		const priors = (state.proposals.diagnostic ?? []).slice(0, -1);
-		const actedOn = Math.max(0, writtenBeforeLastAct - 1);
+		const proposed = state.proposals.diagnostic ?? [];
+		const writtenBeforeRevocation = proposed.length - this.proposedSinceRevocation(state, "diagnostic").length;
+		const priors = proposed.slice(0, -1);
+		const actedOn = Math.max(writtenBeforeRevocation, this.writtenBeforeLastAct(state) - 1);
 		return {
-			earlier: await this.readReports(priors.slice(0, actedOn)),
+			earlier: await this.readReports(priors.slice(writtenBeforeRevocation, actedOn)),
 			sinceLastHumanAct: await this.readReports(priors.slice(actedOn)),
 		};
+	}
+
+	/** How many specification reports were written before the latest human act, in the ledger's order. */
+	private writtenBeforeLastAct(state: ChangeState): number {
+		const material = new Set(state.open_questions.filter((q) => q.material).map((q) => q.id));
+		let blocked = false;
+		return this.writtenBeforeLast(state, "diagnostic", (event) => {
+			if (event.type === "question.answered") return material.has(event.id);
+			if (event.type !== "status.changed") return false;
+			const lifted = blocked && event.status === "ready";
+			blocked = event.status === "blocked";
+			return lifted;
+		});
+	}
+
+	/**
+	 * The proposals of `kind` written since the owner last revoked a question's resolution, oldest
+	 * first, and every one when nothing was revoked. What was proposed before was written on the faith
+	 * of the revoked resolution, so no step takes it up again (DEC-06).
+	 */
+	proposedSinceRevocation(state: ChangeState, kind: ArtifactKind): ArtifactRef[] {
+		const written = this.writtenBeforeLast(state, kind, (event) => event.type === "question.revoked");
+		return (state.proposals[kind] ?? []).slice(written);
+	}
+
+	/**
+	 * How many proposals of `kind` were written before the last event `marks` holds. Only the ledger's
+	 * order tells which proposals an event followed: the state keeps the proposals, not what came
+	 * between them. `marks` is called once for every other event, in the ledger's order, and never for
+	 * a proposal of `kind`, so it may keep what it saw of the events before: `writtenBeforeLastAct`
+	 * relies on that to tell a stop lifted from a status merely set.
+	 */
+	private writtenBeforeLast(state: ChangeState, kind: ArtifactKind, marks: (event: ChangeEvent) => boolean): number {
+		let written = 0;
+		let writtenBefore = 0;
+		for (const { event } of this.deps.ledger.readChangeEvents(state.change_id)) {
+			if ((event.type === "artifact.proposed" || event.type === "artifact.revised") && event.kind === kind) written++;
+			else if (marks(event)) writtenBefore = written;
+		}
+		return writtenBefore;
 	}
 
 	private async readReports(refs: ArtifactRef[]): Promise<SpecificationReport[]> {
@@ -147,28 +196,30 @@ export class ArtifactRepository {
 	 * refused it, or the step stopped between the two. Taking it up again keeps one workspace per
 	 * attempt, instead of a new copy of the project at every resume. It applies only before the first
 	 * attempt starts: a correction opens the next attempt itself, and a started one stays open. The
-	 * copy is still the right start only because the reference and the adopted preparation cannot
-	 * change before then; wiring `artifact.revise` or `environment.change` would break that.
+	 * copy is the right start only while it holds the preparation adopted now: the reference cannot
+	 * change, but a revocation withdraws the adoption, and the change rebuilt after it adopts a
+	 * preparation of its own (DEC-06).
 	 */
-	unstartedAttempt(state: ChangeState): string | null {
+	async unstartedAttempt(state: ChangeState): Promise<string | null> {
 		const started = new Set(state.attempts.map((a) => a.attempt_id));
-		const prepared = this.deps.ledger
+		const unstarted = this.deps.ledger
 			.listArtifacts(state.change_id, "candidate")
-			.map((a) => a.ref.artifact_id)
-			.filter((id) => id.startsWith("ws_"))
-			.map((id) => id.slice("ws_".length));
-		return prepared.filter((id) => !started.has(id)).at(-1) ?? null;
+			.filter((a) => a.ref.artifact_id.startsWith("ws_") && !started.has(a.ref.artifact_id.slice("ws_".length)))
+			.at(-1);
+		if (!unstarted) return null;
+		const workspace = await this.read<PreparedWorkspace>(unstarted.ref);
+		const adopted = await this.adoptedPreparation(state);
+		return workspace.preparation_id === (adopted?.preparation_id ?? null)
+			? unstarted.ref.artifact_id.slice("ws_".length)
+			: null;
 	}
 
 	/** The workspace an attempt already opened, when the producer is resumed on its own work. */
-	async workspaceOfAttempt(
-		changeId: string,
-		attemptId: string,
-	): Promise<{ workspace_id: string; path: string } | null> {
+	async workspaceOfAttempt(changeId: string, attemptId: string): Promise<PreparedWorkspace | null> {
 		const opened = this.deps.ledger
 			.listArtifacts(changeId, "candidate")
 			.find((a) => a.ref.artifact_id === `ws_${attemptId}`);
-		return opened ? await this.read<{ workspace_id: string; path: string }>(opened.ref) : null;
+		return opened ? await this.read<PreparedWorkspace>(opened.ref) : null;
 	}
 
 	/** Makes sure the bytes of each file are in the store, reading them back from the tree if not. */

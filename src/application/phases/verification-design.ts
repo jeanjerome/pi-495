@@ -16,7 +16,8 @@ import type { PhaseContext, Unit } from "./phase.ts";
 /**
  * Opens the bounded preparation mandate the diagnosis calls for (SA-008). Two refused rounds are
  * enough: a third spends the same budget on the same gap, and the change stops on a missing
- * capability instead.
+ * capability instead. The rounds are counted since the latest revocation: the change rebuilt after
+ * it prepares for requirements of its own (DEC-06).
  */
 async function openPreparation(
 	ctx: PhaseContext,
@@ -26,7 +27,9 @@ async function openPreparation(
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
 ): Promise<Unit> {
-	const alreadyTried = (unit.state.proposals.preparation ?? []).filter((a) => a.artifact_id.startsWith("prep_")).length;
+	const alreadyTried = ctx.artifacts
+		.proposedSinceRevocation(unit.state, "preparation")
+		.filter((a) => a.artifact_id.startsWith("prep_")).length;
 	if (alreadyTried >= 2)
 		throw new DomainError(
 			"CAPABILITY_MISSING",

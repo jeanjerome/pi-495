@@ -1,0 +1,86 @@
+story_id: e01s04
+checked_at: "2026-09-28T05:46:58Z"
+checker: release-branch
+branch: une-reponse-donnee-par-erreur-se-revoque
+revision: b9b73e8
+code_revision: ca15d89
+result: READY
+result_note: >
+  The pre-merge gates hold on the head of the branch. Landing it on main as one squashed commit is the
+  owner's act: the landing script of the skill pushes main, and no push is made from an unattended step.
+
+preflight:
+  cited: true
+  revision: 3f18021
+  evidence: "specs/verifications/e01s04-verify.yaml — terminal_verdict, under Node 24.21.0, 567 tests"
+  note: >
+    `git diff --name-only 3f18021 b9b73e8` lists only specs/execution-status.yaml, specs/security/REVIEW.md,
+    specs/state.yaml and two files of specs/verifications/, which no control reads.
+
+commits:
+  count: 36
+  conventional: true
+  ai_attribution: none
+  command: >
+    git log main..HEAD --oneline against the Conventional Commits pattern of the skill, and
+    git log main..HEAD --format=%B searched for co-authored-by: no match for either.
+
+coverage:
+  measured_at: "2026-09-28"
+  revision: b9b73e8
+  node: "24.21.0"
+  command: "node --test --experimental-test-coverage --test-concurrency=1 'test/**/*.test.ts'"
+  where: >
+    A detached worktree under ~/.495-campagnes, node_modules linked to the repository's, removed
+    afterwards. Measured inside the repository's own directory, the instrument loses the coverage of
+    some child processes.
+  tests: { total: 567, pass: 566, fail: 1 }
+  failure_note: >
+    test/v1/egress.test.ts, "hands it a closed set of variables", finds NODE_V8_COVERAGE in the worker's
+    environment: Node adds it to every child process while coverage is collected. It passes in the
+    Preflight cited above.
+  lines:
+    src: "97.44% (20202/20733)"
+    domain: "99.56% (4762/4783)"
+    application: "99.61% (6376/6401)"
+    domain_and_application: "99.59% (11138/11184)"
+    adapters: "96.23% (4952/5146)"
+    extension: "79.01% (1088/1377)"
+    presentation: "99.84% (1265/1267)"
+    contracts: "100.00% (1443/1443)"
+    export: "100.00% (316/316)"
+  branches_all_files: "77.88%"
+  thresholds: "overall >= 80%, business logic (domain and application) >= 95%: both met"
+  method_note: >
+    Per-layer figures are the table reporter's line percentages weighted by each file's line count;
+    the totals equal the line counts of the lcov report. The lcov reporter's hit counts are not used:
+    on the same run it marks unexecuted the constructor and the imports of src/domain/change/decide.ts,
+    which every kernel test runs, and gives that file 46% where the table gives 99.35% with 11
+    uncovered lines out of 1700.
+
+security:
+  report: "specs/security/REVIEW.md — section e01s04"
+  scope: "git diff a62a844...3f18021 -- src/ contracts/, whose src/ is the head's"
+  findings_at_or_above_confidence_8: 0
+  exceptions: none
+
+traceability:
+  gate_trace: WAIVED
+  note: >
+    specs/traceability-matrix.json and specs/blind-spots.json date from 2026-09-21 and name no e01
+    story; the bigpowers scripts that write them judge the repository they are installed in. The
+    refutation was made by hand instead: each of the seven tasks names its test file, and each file
+    exists at the head and passed its task's command at 3f18021; the verification, NFR, audit, review
+    and red-green records of the story exist; lint:traceability passes in the Preflight cited above;
+    the owner's acceptance is recorded in specs/verifications/e01s04-verify.yaml. No gap found.
+
+diff_review:
+  files: 35
+  secrets: none
+  note: >
+    The added lines of src/ and test/ carry no key, token, password, private key or home path; dist/
+    is not tracked. Outside src/ and test/, the branch changes README.md and specs/ only.
+
+epic_archive:
+  archived: false
+  note: "e01s05 is still in the backlog, so the e01 capsule stays in place."

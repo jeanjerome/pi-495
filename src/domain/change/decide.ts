@@ -29,6 +29,7 @@ import {
 	unknownCost,
 	type ChangeState,
 	type GateDecisionState,
+	type OpenQuestion,
 } from "./state.ts";
 import { PHASE_FOR_ROLE } from "./commands.ts";
 
@@ -144,8 +145,8 @@ class Ctx {
 	 * must be told apart from a model output or a tool call: a qualified human origin — human actor,
 	 * human origin, authentication beyond `none` — verified by the host adapter rather than trusted from
 	 * content, and never carried by a model output or a tool call at the executing actor. Answering a
-	 * decision and closing a question (BES-02) are both gated by it, so a second, weaker copy is not
-	 * written for either.
+	 * decision, closing a question (BES-02) and revoking a question's resolution (DEC-06) are all gated
+	 * by it, so a second, weaker copy is not written for any.
 	 */
 	humanProvenanceIssue(origin: HumanOrigin): string | null {
 		if (
@@ -206,6 +207,8 @@ class Ctx {
 				return this.questionAnswer(c);
 			case "question.close":
 				return this.questionClose(c);
+			case "question.revoke":
+				return this.questionRevoke(c);
 			case "gate.evaluate":
 				return this.gate(c);
 			case "preparation.open":
@@ -250,8 +253,6 @@ class Ctx {
 				return this.decisionRequest(c);
 			case "decision.answer":
 				return this.decisionAnswer(c);
-			case "decision.revoke":
-				return this.decisionRevoke(c);
 			case "artifact.revise":
 				return this.artifactRevise(c);
 			case "environment.change":
@@ -344,6 +345,79 @@ class Ctx {
 		this.emit({ type: "question.closed", ...this.base(), actor: c.origin.actor, id: c.id, human_decision_id: null });
 		if (resumeLiftsStop(this.state)) this.changeUnblock();
 		return ok(this.events);
+	}
+
+	/**
+	 * Revokes the owner's resolution of a material question — an answer, or a close given through
+	 * IH-01 or `question.close` — and asks it again, in one decision (DEC-06). The question designates
+	 * what is revoked, never a decision id a caller supplies: the IH-01 decision revoked is the one the
+	 * kernel tied to the question when it asked it (M4). What G0 adopted on the faith of the
+	 * resolution goes as a revised mandate takes it, and so do the decisions pending on it but the
+	 * other questions' IH-01, and the attempt opened on it. A pause holds: it is the owner's to lift,
+	 * so the question asked again waits for the resume, as any decision on a paused change does.
+	 */
+	questionRevoke(c: CommandOf<"question.revoke">): Decision {
+		const q = this.requireRevocable(c);
+		const paused = this.state.status === "paused";
+		const reason = `resolution of question ${q.id} revoked by the owner`;
+		const resolvedBy = this.state.human_decisions.find(
+			(d) => d.valid && d.interaction === "IH-01" && d.decision_id === q.decision_id,
+		);
+		this.emit({
+			type: "question.revoked",
+			...this.base(),
+			actor: c.origin.actor,
+			id: q.id,
+			human_decision_id: resolvedBy?.human_decision_id ?? null,
+			decision_id: c.request.decision_id,
+		});
+		if (resolvedBy)
+			this.emit({ type: "decision.revoked", ...this.base(), human_decision_id: resolvedBy.human_decision_id, reason });
+		// An attempt left open works in a workspace prepared and written for the revoked resolution: the
+		// rebuilt change opens an attempt of its own, on a workspace prepared for what it is asked then.
+		const open = openAttempt(this.state);
+		if (open) this.emit({ type: "attempt.closed", ...this.base(), attempt_id: open.attempt_id, result: "superseded" });
+		this.invalidate({ kind: "resolution_revoked", question_id: q.id });
+		for (const d of this.state.pending_decisions.filter((p) => p.interaction !== "IH-01"))
+			this.emit({ type: "decision.withdrawn", ...this.base(), decision_id: d.decision_id, reason });
+		this.enter("clarifying", reason);
+		this.emit({
+			type: "decision.requested",
+			...this.base(),
+			decision_id: c.request.decision_id,
+			interaction: c.request.interaction,
+			subject: c.request.subject,
+			expires_at: c.request.expires_at,
+		});
+		if (paused) this.changePause();
+		return ok(this.events);
+	}
+
+	/**
+	 * The question whose resolution the owner may revoke. Refused, naming why, for a question unknown,
+	 * not material or unresolved, a change no longer active, a candidate accepted — by the owner's
+	 * IH-10, or by G5 on entering the integration — and while an intervention or an operation runs,
+	 * since what it writes would rest on the revoked resolution (M6).
+	 */
+	requireRevocable(c: CommandOf<"question.revoke">): OpenQuestion {
+		this.requireActive();
+		const issue = this.humanProvenanceIssue(c.origin);
+		if (issue) this.fail("INVALID_PROVENANCE", issue);
+		const q = this.state.open_questions.find((x) => x.id === c.id);
+		if (!q) this.fail("UNKNOWN_REFERENCE", `question ${c.id} does not exist`);
+		if (!q.material) this.fail("PRECONDITION_FAILED", `question ${c.id} is not material`);
+		if (q.answer === null && !isQuestionClosed(q))
+			this.fail("PRECONDITION_FAILED", `question ${c.id} is neither answered nor closed`);
+		if (this.state.phase === "integrating" || this.state.acceptance_decision_id)
+			this.fail("INVALID_TRANSITION", "the candidate is accepted; only cancelling the change sets it aside", [
+				"cancel",
+			]);
+		const running = runningIntervention(this.state);
+		if (running) this.fail("OPERATION_ACTIVE", `intervention ${running.intervention_id} is running`);
+		const operation = this.state.operation;
+		if (operation)
+			this.fail("OPERATION_ACTIVE", `${operation.kind} operation ${operation.operation_id} is in progress`);
+		return q;
 	}
 
 	// --- gates ---------------------------------------------------------------------------------
@@ -1392,19 +1466,6 @@ class Ctx {
 			default:
 				break;
 		}
-		return ok(this.events);
-	}
-
-	decisionRevoke(c: CommandOf<"decision.revoke">): Decision {
-		const d = this.state.human_decisions.find((x) => x.human_decision_id === c.human_decision_id);
-		if (!d) this.fail("UNKNOWN_REFERENCE", `human decision ${c.human_decision_id} does not exist`);
-		if (!HUMAN_ORIGINS.has(this.actor.origin)) this.fail("INVALID_PROVENANCE", "revocation requires human provenance");
-		this.emit({ type: "decision.revoked", ...this.base(), human_decision_id: c.human_decision_id, reason: c.reason });
-		this.invalidate({
-			kind: "authorization_revoked",
-			human_decision_id: c.human_decision_id,
-			interaction: d.interaction,
-		});
 		return ok(this.events);
 	}
 

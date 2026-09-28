@@ -61,6 +61,13 @@ export type ChangeCommand =
 	| (Base & { type: "question.open"; id: string; question: string; material: boolean; decision_id: string | null })
 	| (Base & { type: "question.answer"; id: string; answer: string; human_decision_id: string | null })
 	| (Base & { type: "question.close"; id: string; origin: HumanOrigin })
+	| (Base & {
+			type: "question.revoke";
+			id: string;
+			origin: HumanOrigin;
+			/** The IH-01 request that asks the question again, inscribed in the same decision as the revocation. */
+			request: DecisionRequest & { interaction: "IH-01" };
+	  })
 	| (Base & { type: "gate.evaluate"; gate: "G0"; mandate_ref: ArtifactRef; mandate: Mandate })
 	| (Base & {
 			type: "gate.evaluate";
@@ -132,7 +139,6 @@ export type ChangeCommand =
 	| (Base & { type: "change.unblock" })
 	| (Base & { type: "decision.request"; request: DecisionRequest })
 	| (Base & { type: "decision.answer"; human_decision_id: string; response: DecisionResponse; origin: HumanOrigin })
-	| (Base & { type: "decision.revoke"; human_decision_id: string; reason: string })
 	| (Base & { type: "artifact.revise"; kind: ArtifactKind; ref: ArtifactRef; reason: string })
 	| (Base & { type: "environment.change"; digest: string })
 	| (Base & { type: "evidence.invalidate"; evidence_id: string; reason: string })

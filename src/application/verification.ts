@@ -117,6 +117,21 @@ export interface VerificationOutcome {
 	candidate_moved: boolean;
 }
 
+const PREPARED_SUITE = "prepared suite on the bare reference:";
+
+/**
+ * What a qualification notes of the prepared suite judged beside it. Only the suite judged now: one a
+ * qualification taken up from an earlier protocol was noted beside is not the change's any more.
+ */
+function withPreparedSuite(notes: readonly string[], prepared: PreparationRecord | null): string[] {
+	const kept = notes.filter((note) => !note.startsWith(PREPARED_SUITE));
+	if (!prepared) return kept;
+	return [
+		...kept,
+		`${PREPARED_SUITE} ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
+	];
+}
+
 /** Writes the files a witness workspace carries on top of the reference. */
 async function writeWitness(workspacePath: string, files: Record<string, string>): Promise<void> {
 	for (const [rel, content] of Object.entries(files)) {
@@ -180,7 +195,7 @@ export class VerificationCoordinator {
 				const reusable = await this.establishedQualification(input.prior_protocol_refs, control);
 				if (reusable) {
 					this.deps.progress(`control ${control.control_id} keeps its qualification`);
-					qualifications[control.control_id] = reusable;
+					qualifications[control.control_id] = { ...reusable, notes: withPreparedSuite(reusable.notes, prepared) };
 					this.countReferenceCases(
 						observed,
 						control,
@@ -189,10 +204,6 @@ export class VerificationCoordinator {
 							? (this.deps.ledger.getEvidence(reusable.evidence_ids.positive)?.facts ?? null)
 							: null,
 					);
-					if (prepared)
-						qualifications[control.control_id]!.notes.push(
-							`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
-						);
 					continue;
 				}
 				this.deps.progress(`qualifying control ${control.control_id}`);
@@ -241,10 +252,10 @@ export class VerificationCoordinator {
 					qualifications[control.control_id]!.notes.push(
 						`qualification evidence: positive=${evidenceIds.positive}, negative=${evidenceIds.negative}, incident=${evidenceIds.incident}`,
 					);
-				if (prepared)
-					qualifications[control.control_id]!.notes.push(
-						`prepared suite on the bare reference: ${prepared.on_reference} (${prepared.discriminant ? "discriminant" : "not discriminant"})`,
-					);
+				qualifications[control.control_id]!.notes = withPreparedSuite(
+					qualifications[control.control_id]!.notes,
+					prepared,
+				);
 			}
 			// Levels 2 and 3 of the scale are read off a run the qualification pays for anyway: the
 			// positive witness runs the reference suite next to its own case, so what the reference

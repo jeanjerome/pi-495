@@ -10,24 +10,28 @@ active_epic_id: e01
 active_story: e01s04
 
 epic_cycle:
-  step: 3
-  completed_steps: "0,1,2"
+  step: 6
+  completed_steps: "0,1,2,3,4,5"
+  audit_result: pass
+  review_result: pass
   story_bcps: 5
 
 handoff:
-  next_skill: kickoff-branch
+  next_skill: release-branch
   last_step_completed: >
-    `plan-work` de e01s04 le 2026-09-28 sur `main` : spécification et cinq tâches `failing` écrites
-    (`e01s04-une-reponse-donnee-par-erreur-se-revoque-et-ce-qui-en-decoulait-n-est-plus-adopte.md`,
-    `e01s04-tasks.yaml`), format tenu par `lint:story-format`, cohérence story-tâches vérifiée à la
-    main (le script de la porte 4a juge un autre dépôt). La révocation désigne la question, couvre
-    la clôture, est admise jusqu'à la décision en retirant les décisions en attente, repose la
-    question dans la même décision du noyau, et remplace `decision.revoke` ; la spécification est
-    réécrite après la nouvelle résolution. Les tâches se font dans l'ordre : le rouge de la tâche 3
-    n'existe qu'une fois la tâche 2 verte. Restent ouverts au registre, sans branche,
-    BUG-2026-09-27T170000 et BUG-2026-09-27T220000, que la story ne change pas (§18). Dernière
-    Preflight verte : `aa1efec`, sous Node 24.21.0 (`specs/verifications/e01s04-preflight-de-depart.md`) ;
-    aucun fichier qu'elle juge n'a changé depuis. Prochaine étape : kickoff-branch, puis
-    develop-tdd, tâche 1, sur `test/v0/change-rules.test.ts`.
+    Contrôles d'avant fusion d'e01s04 tenus sur la tête de branche : couverture, sécurité,
+    traçabilité, commits, diff (`specs/verifications/e01s04-release.yaml`). Dernière Preflight verte :
+    `3f18021`, sous Node 24 (`specs/verifications/e01s04-verify.yaml`) ; depuis, seuls des fichiers
+    de `specs/` qu'aucun contrôle ne lit ont changé.
+
+    Reste ouvert : la fusion écrasée sur `main`, branche gardée, avec pour message sur une ligne
+    `feat: /495 revoke withdraws the owner's answer to a material question, or its close, until the
+    candidate is accepted, so the question is asked again, nothing adopted on the revoked resolution
+    stays adopted, and the requirements and the frozen protocol are rebuilt on the new one`. Elle
+    revient au propriétaire, sans `land-branch.sh`, qui pousse `main` ; le push reste à sa décision.
+    Au registre, introduits par la branche et à corriger après la fusion : BUG-2026-09-28T013000,
+    BUG-2026-09-28T025000 et BUG-2026-09-28T025100. Restent ouverts hors de cette story :
+    BUG-2026-09-23T155707, BUG-2026-09-27T170000, BUG-2026-09-27T170100, BUG-2026-09-27T220000 et
+    BUG-2026-09-28T013100.
 metrics:
   story_start: "2026-09-28T00:50:16+02:00"

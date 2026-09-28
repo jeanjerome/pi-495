@@ -52,6 +52,27 @@ export function fixtureTs(root: string): void {
 	});
 }
 
+/** F-TS without any test: greet exists, shout does not. */
+export function fixtureTsWithoutTests(root: string): void {
+	writeFiles(root, {
+		"package.json": JSON.stringify({
+			name: "f-notests",
+			version: "1.0.0",
+			type: "module",
+			scripts: { test: "node --test" },
+		}),
+		"src/greet.js": "export function greet(name) {\n  return `Hello, ${name}`;\n}\n",
+		"README.md": "# no tests yet\n",
+	});
+}
+
+/** The test a preparation writes for shout on F-TS without tests: it fails on the reference, where shout is absent. */
+export const SHOUT_TEST =
+	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet, shout } from "../src/greet.js";\n\ntest("shout upper-cases the greeting", () => {\n  assert.equal(shout("x"), "HELLO, X");\n});\ntest("greet unchanged", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n';
+/** The implementation of shout that makes SHOUT_TEST pass. */
+export const SHOUT_IMPL =
+	"export function greet(name) {\n  return `Hello, ${name}`;\n}\nexport function shout(name) {\n  return greet(name).toUpperCase();\n}\n";
+
 export function initRepo(root: string, commit = true): void {
 	gitCmd(root, ["init", "-q", "-b", "main"]);
 	if (commit) {

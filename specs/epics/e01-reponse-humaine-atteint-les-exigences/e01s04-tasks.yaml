@@ -17,7 +17,7 @@
 story_id: e01s04
 spec: e01s04-une-reponse-donnee-par-erreur-se-revoque-et-ce-qui-en-decoulait-n-est-plus-adopte.md
 title: "Une réponse donnée par erreur se révoque, et ce qui en découlait n'est plus adopté"
-status: failing
+status: passing
 bcps: 5
 requirement: DEC-06
 delta: ADDED
@@ -82,7 +82,7 @@ tasks:
       associée à la question, jamais une décision désignée par l'appelant (M4). Aucune gate,
       adoption ou décision en attente hors IH-01 ne survit à la décision qui inscrit la révocation
       (M5), et une intervention qui tourne la refuse (M6).
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -118,7 +118,7 @@ tasks:
       question est inscrite dans la même décision que la révocation. Le dossier exporté ne dit
       révoquée qu'une décision que l'état tient pour révoquée, et n'en dit aucune valide qui l'ait
       été.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -158,7 +158,7 @@ tasks:
       nouvelle réponse, et aucun rapport écrit sur la foi de la réponse révoquée ne fonde un mandat
       ou des exigences après elle. Les bornes de réécriture d'e01s01 et e01s02 restent tenues :
       specification-reopening.test.ts passe inchangé.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -199,7 +199,7 @@ tasks:
       n'est atteignable que par une sous-commande humaine, jamais par l'outil exposé au modèle. Une
       session sans humain qualifié n'inscrit rien. `/495 revoke` lit le verrou de session avant de
       le prendre, et le rend avant la conduite.
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories:
@@ -213,8 +213,76 @@ tasks:
     verify: "npm run check"
     risk: P1
     security: low
-    status: failing
+    status: passing
     allure:
       severity: high
       categories:
         - "Preflight"
+
+  - id: 6
+    description: >
+      Une révocation laisse en pause un changement en pause : Q1 reposée attend la reprise, qui la
+      présente. Elle close la tentative restée ouverte, dont l'espace de travail a été préparé et
+      écrit pour la résolution révoquée : le changement reconstruit ouvre une tentative à lui.
+      Tenu dans `test/v0/change-rules.test.ts`, en deux cas.
+      (a) Q1 répondue, le changement passé G3 puis mis en pause : après la révocation, il est
+      `paused` en clarification, IH-01 attend pour Q1, et sa reprise le rend `decision_required`.
+      (b) Q1 répondue, un producteur démarré puis le changement arrêté : après la révocation, la
+      tentative `att_1` est `superseded` ; reconstruit sur « 422 », le producteur suivant travaille
+      dans `att_2`.
+      Trouvé à l'auto-revue. Aujourd'hui la révocation entre en clarification en `ready`, puis la
+      demande IH-01 met le changement en `decision_required` : la pause est perdue, et la réponse
+      du propriétaire lance la réécriture qu'elle retenait. La tentative reste `open`, et le noyau
+      inscrit le producteur reconstruit sous `att_1`. (a) échoue sur `decision_required` au lieu
+      de `paused`, (b) sur `open` au lieu de `superseded`.
+    verify: "node --test test/v0/change-rules.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/domain/change/decide.ts et src/domain/change/apply.ts. La
+      révocation garde son unique vérification de provenance et ses refus ; la pause est reprise par
+      la commande de pause du noyau, sans état nouveau.
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "domain"
+        - "DEC-06"
+
+  - id: 7
+    description: >
+      Le changement reconstruit après une révocation ne reprend rien de ce qui a été construit
+      avant elle. Le retour d'une correction ne va qu'à la tentative que cette correction ouvre. Les
+      préparations écrites avant la dernière révocation ne comptent pas dans les deux tours, et
+      aucune n'est dite refusée à la préparation qui suit. L'espace de travail préparé pour un
+      producteur qui n'a pas démarré porte la préparation qui y a été écrite, et n'est repris que si
+      elle est encore celle adoptée.
+      Tenu dans `test/v2/answer-revocation.test.ts`, en trois cas :
+      - un premier candidat corrigé avant la révocation : le producteur reconstruit sur « 422 » ne
+        reçoit aucun retour, là où la correction recevait le sien ;
+      - une cible sans tests, dont la préparation est adoptée, révoquée deux fois : chaque
+        préparation reconstruite n'apprend aucun refus, et le changement attend de nouveau son
+        acceptation ;
+      - un producteur refusé pour son modèle après que son espace de travail a été préparé, puis la
+        révocation : le producteur reconstruit travaille dans un autre espace de travail.
+      Trouvé à l'auto-revue. Aujourd'hui le producteur reconstruit reçoit le dernier retour de
+      correction, mesuré sur REQ-400 ; la préparation reconstruite apprend que « la préparation
+      précédente a été refusée », alors qu'elle a été adoptée ; à la deuxième révocation, le
+      changement s'arrête en `capability_missing` après « deux interventions de préparation » ; et
+      le producteur reconstruit reprend l'espace de travail préparé avant la révocation. Le test
+      échoue sur chacun de ces points, le deuxième cas d'abord sur le refus annoncé.
+    verify: "node --test test/v2/answer-revocation.test.ts test/v2/preparation.test.ts test/v3/model-select.test.ts"
+    risk: P0
+    security: high
+    security_verify: >
+      Aucun constat nouveau sur src/application/artifacts.ts et src/application/phases/{implement,prepare,verification-design}.ts.
+      Rien de ce qu'un modèle reçoit n'est tiré d'avant la dernière révocation, hors ce que la
+      qualification des contrôles réutilise sur la même référence et le même environnement.
+    status: passing
+    allure:
+      severity: critical
+      categories:
+        - "Security Review"
+        - "application"
+        - "DEC-06"

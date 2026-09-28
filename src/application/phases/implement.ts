@@ -6,15 +6,17 @@ import type { Mandate } from "../../contracts/v1/protocol.ts";
 import type { ProducerReport } from "../../contracts/v1/reports.ts";
 import { protectedPathsChanged } from "../../domain/gates/g4.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
+import type { PreparedWorkspace } from "../artifacts.ts";
 import { implementObjective, resumeNote } from "../context.ts";
 import { mirrorsProductionResource } from "../target.ts";
-import type { PhaseContext, Unit } from "./phase.ts";
+import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
 
 export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const reference = await ctx.artifacts.reference(unit.state);
 	const open = unit.state.attempts.find((a) => a.result === "open");
-	const attemptId = open?.attempt_id ?? ctx.artifacts.unstartedAttempt(unit.state) ?? ctx.id("att");
+	const attemptId = open?.attempt_id ?? (await ctx.artifacts.unstartedAttempt(unit.state)) ?? ctx.id("att");
 	const opened = await ctx.artifacts.workspaceOfAttempt(unit.state.change_id, attemptId);
+	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
 	let workspaceId: string;
 	let workspacePath: string;
 	if (opened) {
@@ -24,16 +26,19 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		const h = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 		workspaceId = h.workspace_id;
 		workspacePath = h.path;
-		await ctx.artifacts.materializePrepared(await ctx.artifacts.adoptedPreparation(unit.state), h.path);
-		await ctx.artifacts.store(
-			"candidate",
-			unit.state.change_id,
-			`ws_${attemptId}`,
-			{ workspace_id: h.workspace_id, path: h.path },
-			KERNEL_ACTOR.actor_id,
-		);
+		await ctx.artifacts.materializePrepared(prepared, h.path);
+		const workspace: PreparedWorkspace = {
+			workspace_id: h.workspace_id,
+			path: h.path,
+			preparation_id: prepared?.preparation_id ?? null,
+		};
+		await ctx.artifacts.store("candidate", unit.state.change_id, `ws_${attemptId}`, workspace, KERNEL_ACTOR.actor_id);
 	}
-	const lastFeedback = unit.state.feedback.at(-1);
+	// A correction opens the attempt that follows the one it judged, and hands it that attempt's
+	// feedback. An attempt opened afresh, the first or the first after a revocation, is handed none:
+	// what was measured before a revocation was measured against the revoked resolution.
+	const judged = open ? unit.state.attempts[unit.state.attempts.indexOf(open) - 1] : undefined;
+	const lastFeedback = judged ? unit.state.feedback.findLast((f) => f.attempt_id === judged.attempt_id) : undefined;
 	const priorFeedback = lastFeedback
 		? await ctx.artifacts.read<string>({ artifact_id: `fb_${lastFeedback.attempt_id}`, revision: 1 }).catch(() => null)
 		: null;
@@ -51,7 +56,11 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		attempt_id: attemptId,
 	});
 	unit = r.unit;
-	if (unit.state.status === "blocked") return unit;
+	// A change rebuilt after a revocation opens its first attempt on the budget the earlier builds
+	// spent (§18): the kernel refuses it once none is left, and only the owner can extend it. A kernel
+	// stop always states its detail.
+	if (unit.state.status === "blocked")
+		return requestBudgetExtensionIfExhausted(ctx, unit, cor, [unit.state.stop_detail!]);
 	if (r.result === "cancelled")
 		return ctx.commit(
 			unit,
@@ -133,7 +142,6 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef },
 		cor,
 	);
-	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
 	const scope = protectedPathsChanged(
 		manifest,
 		unit.state.protocol?.protected_paths ?? [],

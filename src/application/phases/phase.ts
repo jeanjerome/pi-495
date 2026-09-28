@@ -10,7 +10,7 @@
 import type { ArtifactRef, HumanInteraction, SubjectRef } from "../../contracts/v1/common.ts";
 import type { Evidence } from "../../contracts/v1/evidence.ts";
 import type { ChangeCommand } from "../../domain/change/commands.ts";
-import type { ArtifactKind, ChangeState } from "../../domain/change/state.ts";
+import { subjectOfChange, type ArtifactKind, type ChangeState } from "../../domain/change/state.ts";
 import type { ActivePolicy } from "../../domain/policy.ts";
 import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
 import type { ArtifactRepository } from "../artifacts.ts";
@@ -102,4 +102,31 @@ export async function requestAdoption(
 		digest: ref.content_digest,
 	};
 	return ctx.requestDecision(unit, cor, "IH-02", subject, decided.reasons, null, kind, undefined, language);
+}
+
+/**
+ * Once the kernel stopped the change because no attempt is left, whether a correction or a first
+ * attempt asked for it, the owner is asked to extend the budget (IH-07): the circuit breaker refuses
+ * the attempt and leaves the decision to a human, instead of a stop only a cancellation ends. Any
+ * other state is handed back as it is.
+ */
+export async function requestBudgetExtensionIfExhausted(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	facts: string[],
+): Promise<Unit> {
+	const { budgets, status, stop_reason } = unit.state;
+	if (status !== "blocked" || stop_reason !== "attempts_exhausted") return unit;
+	return ctx.requestDecision(
+		unit,
+		cor,
+		"IH-07",
+		subjectOfChange(unit.state),
+		facts,
+		"stop",
+		`${budgets.attempts_used}/${budgets.max_attempts}`,
+		undefined,
+		ctx.language(unit.state),
+	);
 }

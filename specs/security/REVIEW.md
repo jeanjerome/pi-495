@@ -1046,3 +1046,78 @@ confirmation. Relu à la main, puis rejoué dans un vrai Pi sur `709063b`, dont 
   `conduct`, qui le reprend dans la même tâche synchrone : aucune autre commande ne s'intercale. Les
   refus sans humain, en `print`, en `json` et à la confirmation refusée n'inscrivent toujours rien
   (`e01s03-v3-arret-sans-humain`, `-print`, `-json`, `-renonce`).
+
+# Revue de sécurité — e01s04, une réponse donnée par erreur se révoque
+
+| | |
+|---|---|
+| Périmètre | `git diff a62a844...3f18021 -- src/ contracts/` |
+| Révision relue | `3f18021`, dont `src/` est celui de `ca15d89` |
+| Conduite le | 2026-09-28, étape 5 de `verify-work` |
+| Branche | `une-reponse-donnee-par-erreur-se-revoque` |
+| Risque de la story | P0, six tâches `security: high` |
+| Code de production touché | `src/domain/change/decide.ts` (la commande `question.revoke` et ses refus, le retrait de `decision.revoke`), `apply.ts` (la question reposée, rien d'adopté hors la demande, un retrait de décision en attente), `events.ts`, `commands.ts`, `src/domain/invalidation.ts` (la cause `resolution_revoked` à la place d'`authorization_revoked`), `src/application/artifacts.ts` (la coupure des propositions à la dernière révocation, l'espace de travail préparé repris seulement sur la préparation adoptée), `harness.ts` (`revokeQuestion`), `phases/implement.ts`, `prepare.ts`, `phase.ts`, `decide.ts`, `verification-design.ts`, `src/application/verification.ts`, `src/export/export-service.ts` (le drapeau `revoked` lu dans l'état), `src/extension/command.ts` (`/495 revoke`). `contracts/` ne change pas. |
+
+## Verdict
+
+Aucun constat à confiance ≥ 8/10. Le gate n'est pas bloqué. La story traite M3, M4, M5 et M6 du
+modèle de menace de l'epic. Le noyau n'a plus qu'une révocation, derrière la vérification de
+provenance de la réponse et de la clôture, et son effet est tenu dans la décision qui l'inscrit.
+
+## Hypothèses vérifiées, non supposées
+
+- **Une seule vérification de provenance, et plus de copie faible (M3).** `decisionRevoke`, qui ne
+  lisait que l'origine de l'acteur, est retirée avec la commande `decision.revoke` et la cause
+  `authorization_revoked`. `decision.revoked` n'est plus émis que par l'invalidation et par
+  `questionRevoke` (`decide.ts:194`, `decide.ts:375`). `requireRevocable` appelle
+  `humanProvenanceIssue`, la fonction de `decisionAnswer` et de `questionClose`, avant de lire la
+  question. L'outil `harness495` de la construction chargée expose sept opérations, aucune ne
+  révoque (`dist/extension/tool.js`). En `print`, en `json` et en RPC sans acteur déclaré,
+  `/495 revoke` dit « La révocation exige une provenance humaine » et n'inscrit rien
+  (`e01s04-l-print`, `e01s04-l-json`, `e01s04-k-sans-humain`). Les refus d'un agent, d'une sortie de
+  modèle et d'un appel d'outil sont tenus par `test/v0/change-rules.test.ts`.
+- **La décision révoquée est celle que le noyau a liée à la question (M4).** L'appelant ne désigne
+  que la question. La décision révoquée est l'IH-01 valide qui répond à la demande dont
+  l'identifiant est `decision_id` sur la question, identifiant que le noyau écrit en posant la
+  question, puis en la reposant. Une réponse ne peut donc pas être défaite par une décision d'une
+  autre question : sur le vrai dossier, la décision de Q2 reste valide après la révocation de Q1
+  (`e01s04-b-revoque`, export compris). La demande qui repose la question est construite par le
+  harnais, avec un identifiant neuf.
+- **Rien d'adopté ne survit à la révocation (M5).** L'application de `question.revoked` ne garde
+  adoptée que la demande d'origine, immuable depuis la création du changement. Elle vide le
+  protocole gelé, le mandat, les identifiants d'exigences et le candidat. L'invalidation retire G0 et
+  les gates suivantes, les preuves et les relectures, et révoque les décisions valides hors IH-01 et
+  IH-07. Les décisions en attente hors IH-01 sont retirées dans la même décision. Mesuré sur les six
+  dossiers révoqués : aucune gate, aucune adoption hors la demande, aucune décision en attente hors
+  IH-01. Le rapport dit « (revoked) » de l'IH-01 et de l'IH-02 révoquées, l'index exporté les dit
+  `revoked: true` et la décision de Q2 `revoked: false`.
+- **Pas de révocation pendant qu'une chose tourne (M6).** `requireRevocable` refuse une intervention
+  qui tourne et une opération ouverte, en `OPERATION_ACTIVE`. `/495 revoke` lit `busy` avant de le
+  poser, et le rend avant `conduct` (`command.ts`, `actOnQuestion`), comme `/495 close`. Ces deux
+  refus reposent sur leurs tests : une campagne RPC ne sait pas faire tourner deux commandes à la
+  fois.
+- **Une demande rangée avant un refus ne se répond pas.** `revokeQuestion` range la demande IH-01
+  avant la décision du noyau. Refusée, la révocation laisse une demande qu'aucune décision en attente
+  ne nomme ; `decisionAnswer` refuse toute réponse à une demande qui n'est pas en attente
+  (`decide.ts:1374`). Les refus des campagnes n'inscrivent rien au journal
+  (`e01s04-h-autre-en-attente`, `e01s04-m-annule`, `e01s04-n-accepte`).
+- **Aucun rapport d'avant la révocation ne fonde la suite.** `proposedSinceRevocation` écarte les
+  propositions écrites avant le dernier `question.revoked`, que le journal seul ordonne ; `latest`
+  ne l'applique qu'à un genre que rien n'adopte, et jamais à la référence. Après « 422 », la demande
+  envoyée au modèle ne porte plus « 400 », et les exigences adoptées à G1 lient Q1 à REQ-422
+  (`e01s04-c-422`, et au vrai modèle `e01s04-r4-vrai-modele`). Le contrôle négatif sur `e86ae15`,
+  sans la coupure, adopte à G1 « 422 » lié à REQ-400 sans aucune réécriture.
+- **Une révocation ne coûte aucune intervention (M7).** Le script qui fait échouer toute
+  intervention n'en a vu démarrer aucune entre `question.revoked` et la fin de `/495 revoke`, sur
+  aucun des six dossiers révoqués.
+
+## Observations sous le seuil de report (confiance < 8, non bloquantes)
+
+- **Le noyau ne vérifie pas que l'identifiant de la demande qui repose la question est neuf
+  (confiance 4/10, faible).** `questionRevoke` inscrit `decision.requested` avec l'identifiant que
+  l'appelant fournit. Le seul appelant est `Harness.revokeQuestion`, qui le tire de sa source
+  d'identifiants ; aucun contenu de modèle ne l'atteint.
+- **Après un repli d'intégration, une révocation dit révoquée la réconciliation de l'effet Git, dont
+  l'effet tient (confiance 5/10, intégrité de la trace).** Ce n'est pas une élévation de droit :
+  l'acte reste humain et vérifié. Introduit par la branche, au registre sous
+  `BUG-2026-09-28T025000`, à corriger après la porte (`CONVENTIONS.md` § Review, règle 6).

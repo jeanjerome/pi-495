@@ -22,9 +22,9 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	}>(unit.state, "preparation");
 	if (!mandateArt) throw new DomainError("EVIDENCE_MISSING", "preparation mandate missing");
 	const mandate = mandateArt.content;
-	const previousRef = [...(unit.state.proposals.preparation ?? [])]
-		.reverse()
-		.find((ref) => ref.artifact_id.startsWith("prep_"));
+	const previousRef = ctx.artifacts
+		.proposedSinceRevocation(unit.state, "preparation")
+		.findLast((ref) => ref.artifact_id.startsWith("prep_"));
 	const previous = previousRef ? await ctx.artifacts.read<PreparationRecord>(previousRef) : null;
 	const feedback = previous
 		? `The previous preparation was refused. Keep every change inside the allowed paths.\n${previous.notes.map((note) => `- ${note}`).join("\n")}`

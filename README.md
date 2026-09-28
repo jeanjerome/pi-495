@@ -213,6 +213,8 @@ See the [product scope](specs/product/SCOPE_LATEST.yaml), [release plan](specs/r
 | `/495 integrate` | Request authorized local integration after acceptance. |
 | `/495 export [--redact]` | Export the dossier and its integrity verifier. |
 | `/495 pause` | Pause the current work. |
+| `/495 close <question>` | Declare a material question no longer material when the specification stops without its answer. |
+| `/495 revoke <question>` | Revoke your answer to a material question, or its close, until the candidate is accepted: the question is asked again and nothing adopted since stays adopted. |
 | `/495 cancel` | Cancel the change while retaining its dossier. |
 | `/495 bind [change_id]` | List open changes or bind the session to one. |
 | `/495 unbind` | Release the session binding. |

@@ -1,0 +1,318 @@
+story_id: e01s04
+verified_at: "2026-09-28T03:30:19Z"
+verifier: verify-work
+risk: P0
+risk_note: "Story and its behaviour tasks are P0, security high: the security scan and the NFR gate were run."
+branch: une-reponse-donnee-par-erreur-se-revoque
+revision: 3f18021
+code_revision: ca15d89
+result: PASS
+result_note: >
+  Verification of the story on the head of the branch, after the review gate passed. 3f18021 changes
+  only specs/ since ca15d89, whose src/ it carries. Preflight, every task's command and the security
+  scan pass at the head. In a real Pi, the owner revokes an answer while the acceptance waits, and
+  nothing adopted since G0 survives; the new answer is written into the specification again, reaches
+  the requirements adopted at G1 and the protocol frozen at G2, with the scripted reports of the tests
+  and with the local model. The closure of the question asked again, the revocation of a closure given
+  through IH-01 or /495 close, the revocation at a stalled-specification stop, beside another pending
+  question and on a paused change hold, and each refusal the campaigns can reach records nothing.
+  Negative controls: main has no /495 revoke, and a build without the specification cut adopts '422'
+  bound to the requirement written for '400'. Confirmed by the owner on 2026-09-28T05:33:41Z.
+
+environment:
+  pi_version: "0.87.1"
+  node: "24.21.0"
+  sandbox: "seatbelt, qualified"
+  model: >
+    The scripted agent (HARNESS495_SCRIPTED_AGENT) in every campaign but e01s04-r-vrai-modele to -r4,
+    where omlx/qwen3.8-27b-oq8e is called for the rewriting, the preparation and the implementation
+    that follow the new answer (fiction_declared).
+
+phases:
+  smoke:
+    passed: true
+    note: >
+      Cold start of the built extension from ~/.495-campagnes/builds/e01s04-3f18021/dist (git archive of
+      3f18021, node_modules linked to the repository's, built under Node 24.21.0; its dist/ is identical
+      file for file to the repository's) in a real `pi -ne --mode rpc --no-session -e <extension>`, once
+      per campaign, each on its own copy of a dossier. `get_commands` names that build as the source of
+      /495 in every campaign on the head, the a62a844 build (main) in the first negative control and the
+      e86ae15 build in the second.
+  build:
+    passed: true
+    command: "npm run build"
+    exit_code: 0
+    note: "dist/ rebuilt identical to the committed tree: git status clean afterwards."
+  typecheck:
+    passed: true
+    note: "Runs inside npm run check (tsc -p tsconfig.json --noEmit)."
+  lint:
+    passed: true
+    note: "Eight controls chained in npm run check, lint:story-format included."
+  tests:
+    passed: true
+    count: 567
+
+terminal_verdict:
+  command: "npm run build && npm run check"
+  exit_code: 0
+  started_at: "2026-09-28T02:54:24Z"
+  ended_at: "2026-09-28T02:57:26Z"
+  note: >
+    Single contiguous run under Node 24.21.0 on 3f18021: `npm run build` exit 0, then `npm run check`
+    exit 0, both codes captured directly, not through a pipe. 567 tests in 124 suites passing, 0
+    failing, 0 skipped. dist/ unchanged afterwards. No output from any other attempt is merged into this
+    block.
+
+task_verify_commands:
+  note: "Each task's own verify command, re-run under Node 24.21.0 at 3f18021; every one exits 0."
+  results:
+    - { task: 1, command: "node --test test/v0/change-rules.test.ts", exit_code: 0, tests: 77 }
+    - { task: 2, command: "node --test test/v2/answer-revocation.test.ts", exit_code: 0, tests: 17 }
+    - { task: 3, command: "node --test test/v2/answer-revocation.test.ts test/v2/specification-reopening.test.ts", exit_code: 0, tests: 41 }
+    - { task: 4, command: "node --test test/v3/answer-revocation.test.ts test/v3/question-closure.test.ts", exit_code: 0, tests: 17 }
+    - { task: 5, command: "npm run check", exit_code: 0, note: "the terminal verdict above" }
+    - { task: 6, command: "node --test test/v0/change-rules.test.ts", exit_code: 0, tests: 77 }
+    - { task: 7, command: "node --test test/v2/answer-revocation.test.ts test/v2/preparation.test.ts test/v3/model-select.test.ts", exit_code: 0, tests: 43 }
+
+security:
+  passed: true
+  findings_at_or_above_confidence_8: 0
+  report: "specs/security/REVIEW.md — section e01s04"
+
+blind_spots:
+  ran: false
+  note: >
+    Same derogation as e01s01 to e01s03: check-blind-spots.sh reads its state table with a pattern that
+    can never match, and judges the repository it is installed in, so its verdict is not evidence.
+
+completeness_critic:
+  ran: false
+  note: >
+    Same derogation as e01s01 to e01s03: it looks for story identifiers in the sources, which the
+    written-content rules forbid. DEC-06 keeps its row (lint:traceability green).
+
+okf_wiki_lint:
+  ran: false
+  note: "Neither specs/skills-wiki/ nor specs/conventions-wiki/ exists in this repository."
+
+nfr_gate:
+  verdict: GO
+  evidence: "specs/verifications/NFR-e01s04.json"
+  note: "GO on the six thresholds of §14, measured on the campaigns at 3f18021."
+
+manual:
+  method: >
+    Each campaign is a real `pi --mode rpc` loading a built extension, driven by
+    ~/.495-campagnes/scripts/e01s04-drive.ts through e01s04-run.sh (both derived from their e01s03
+    counterparts): it lists the source of /495, sends each /495 command in turn, answers the dialogs
+    from queues (E01S04_SELECT, E01S04_INPUT, E01S04_CONFIRM), reads the ledger read-only until each
+    command's response has come and the ledger falls quiet, then asks /495 status and stops Pi.
+    HARNESS495_RPC_HUMAN_ACTOR=jeanjerome declares the human, except in e01s04-k-sans-humain. The print
+    and JSON campaigns run `pi -ne --no-session -p` and `--mode json -p` directly. The new change runs
+    in ~/.495-campagnes/e01s04-cible, a copy of cible-fts (greet.js, node --test, a lint script), under
+    a data directory whose config.json asks a human adoption of the mandate, and with
+    HARNESS495_HUMAN_ACCEPTANCE=1. The Java campaigns run in simple-demo-hexagonal-architecture under
+    the policy their dossiers were written with. States are read from the projection
+    (e01s04-etat.mjs), artifacts from the object store (e01s03-artefact.mjs). Every campaign runs on a
+    fresh copy of the dossier it starts from, kept under ~/.495-campagnes/e01s04-*.
+  fiction_declared: >
+    (1) In every campaign but the real-model one, the specification reports and the implementation are
+    scripted on the shapes of test/v2/answer-revocation.test.ts (e01s04-scripts.mjs writes them): a
+    report posing Q1 (status of an invalid input) and Q2 (maximum length), one binding Q1 to REQ-400,
+    one binding it to REQ-422, one silent on Q1; the implementation writes a status function returning
+    400, or 422 after the new answer. Their requirements are declared satisfied by the reference, so
+    the controls those campaigns run (unit, lint, under the real sandbox) cannot tell 400 from 422.
+    (2) Where no intervention is expected, e01s03-aucune-intervention.json fails any that starts. (3)
+    The scripted interventions record the model Pi selects, omlx/qwen3.8-27b-oq8e, in
+    intervention.started, though no model is called. (4) The three Java dossiers are the e01s03 copies
+    of java-flashnext-L2: e01s03-arret and e01s03-modele-coupe-96 are cut after a specification report,
+    e01s03-v3-arret-clore carries a closure made by /495 close in the e01s03 verification. (5) The
+    real-model campaign starts from e01s04-b-revoque, a dossier the scripted agent built up to the
+    revocation. Nothing left the machine.
+  campaigns:
+    - dossier: "~/.495-campagnes/e01s04-a1-repondu, then e01s04-a2-ih10"
+      campaign: "setup — '400' answered, the change conducted to the acceptance"
+      code: "head, 3f18021"
+      commands: "/495 start …, IH-01 Q1 '400' and Q2 '50'; /495 resume (IH-02 adopted); /495 resume (IH-10 later)"
+      outcome: "G0 to G4 PASS, G5 INDETERMINATE, IH-10 pending at #63; requirements bind q1 to REQ-400, protocol frozen on REQ-400 and REQ-LONGUEUR"
+      observed: >
+        Requirements rqs_mukny5pd7bdda92c06 (sha256:aef945e8…), protocol prt_mukny5ybe0675d2687
+        (sha256:7fc615e2…), candidate cand_84f4bc560814, unit and lint PASS under seatbelt.
+    - dossier: "~/.495-campagnes/e01s04-b-revoque"
+      campaign: "1 — the revocation while the acceptance waits (steps 1 to 5, 6d, §12)"
+      code: "head, 3f18021, a copy of e01s04-a2-ih10"
+      commands: "/495 revoke q1 (confirmed; IH-01 later), /495 report, /495 export"
+      outcome: "q1 asked again through IH-01 with answer, close and abandon; nothing adopted but the request; no gate; clarifying; no intervention"
+      observed: >
+        Confirmation "Révoquer ce que vous avez décidé de la question q1 ? Elle vous sera reposée, et le
+        mandat, les exigences et tout ce qui a été adopté depuis ne le seront plus." #64
+        question.revoked q1 by jeanjerome/human/rpc_qualified/host_qualified, asked again under
+        dec_muknypdy9a29aea751; #65 the IH-01 answer hd_muknxq0bb876a9e3f8 revoked; #66..#71 G0 to G5
+        invalidated; #72, #73 both pieces of evidence invalidated; #74 the IH-02 adoption revoked; #75
+        IH-10 withdrawn; #76 clarifying; #77 IH-01 requested. The answer to Q2 and its decision stay
+        valid. The report says "(revoked)" of the IH-01 answer to Q1 and of the IH-02 adoption; the
+        exported decisions index says revoked true of both and false of Q2's answer, and the export's
+        own verify.mjs passes (78 files).
+    - dossier: "~/.495-campagnes/e01s04-b-revoque-a62a844"
+      campaign: "1 — negative control"
+      code: "a62a844 (main), the same copy"
+      commands: "/495 revoke q1"
+      outcome: "the help line, which names no revoke; nothing recorded, still at #63 with IH-10 pending and q1 answered '400'"
+    - dossier: "~/.495-campagnes/e01s04-c-422"
+      campaign: "2 — the new answer reaches the requirements and the protocol (step 6)"
+      code: "head, 3f18021, a copy of e01s04-b-revoque, report binding q1 to REQ-422 scripted"
+      commands: "/495 resume (IH-01 answered '422'), /495 resume (IH-02 adopted), /495 resume (IH-10 later)"
+      outcome: "one specify intervention after '422'; G1 adopts q1 bound to REQ-422; protocol frozen on REQ-422 and REQ-LONGUEUR; a new attempt and candidate; IH-10 again"
+      observed: >
+        #80 specify, request ctx sha256:5ee469a1… reading "Q q1: Quel statut renvoyer pour une saisie
+        invalide ? -> 422 [to declare in `answers`]" and "Q q2: … -> 50 [to declare in `answers`]",
+        with no '400'. Requirements rqs_muko06e7de8767e583 (sha256:38631a8a…) answers q1 '422' ->
+        REQ-422; protocol prt_muko06ff8a49184cd3 (sha256:f0b8c5f0…); attempt att_muko06fte18612ff54,
+        candidate cand_bd16e4308da9; IH-10 at #125.
+    - dossier: "~/.495-campagnes/e01s04-c-422-e86ae15"
+      campaign: "2 — negative control"
+      code: "e86ae15 (the harness revocation without the specification cut), the same copy and script"
+      commands: "the same three"
+      outcome: "no specify intervention; G1 adopts '422' bound to REQ-400"
+      observed: >
+        After '422' the mandate proposed (#80) has the digest of the one adopted before the revocation,
+        sha256:45f16489…: the report binding q1 to REQ-400 is taken up. Requirements
+        rqs_muko0uf0ed328bf26c (sha256:3e0ce2ea…) answer q1 '422' -> REQ-400, "Une saisie invalide est
+        refusée avec le statut 400", G1 PASS (#90). G2 then fails on "protocol environment digest
+        differs from the current environment" (#95), in a dossier written by another build; this
+        control measures G1 only.
+    - dossier: "~/.495-campagnes/e01s04-r-vrai-modele, -r2, -r3, -r4"
+      campaign: "2 — the same, with the local model"
+      code: "head, 3f18021, a copy of e01s04-b-revoque, no scripted agent"
+      commands: "/495 resume (IH-01 '422'), /495 resume (the model asks q-blancs); -r2: /495 resume (q-blancs answered), /495 resume (invalid output); -r3: /495 resume (IH-02 adopted); -r4: /495 resume (IH-10 later)"
+      outcome: "the model binds q1 to a requirement of 422; G1 and G2 PASS; the rebuilt candidate returns 422 in a new workspace; IH-10 at #191"
+      observed: >
+        #80 specify with the same request as the scripted campaign (ctx sha256:5ee469a1…). The model's
+        report binds q1 to r-statut-422 and asks a new material question, q-blancs (whether a name made
+        of blanks is an empty name), answered by jeanjerome. Its next rewriting returned an invalid
+        structured output (#110, configuration_error, retryable); /495 resume obtained a valid one
+        (#123). Requirements rqs_mukomqn717b4cb7301 (sha256:5571fb7e…) bind q1 '422' to r-statut-422,
+        "Toute saisie invalide (vide, blancs uniquement, trop longue) produit une erreur portant le
+        statut 422"; G1 PASS (#134). A real prepare intervention wrote test/greet-validation.test.js,
+        which asserts status 422; protocol prt_mukorfga6109aca903 (sha256:2b0a60f1…) with four
+        mandatory obligations, r-statut-422 among them; G2 PASS (#159). The implementation, in workspace
+        ws_mukorfgn_5, throws errors with status 422, where the workspace of the revoked build
+        (ws_mukny5yn_4) returned 400; unit and lint PASS on candidate cand_046446269c2a.
+    - dossier: "~/.495-campagnes/e01s04-d-clore-reposee"
+      campaign: "3 — closing the question asked again (6b)"
+      code: "head, 3f18021, a copy of e01s04-b-revoque, report silent on q1 scripted"
+      commands: "/495 resume (IH-01 close), /495 resume (IH-02 adopted), /495 resume (IH-10 later)"
+      outcome: "one specify intervention whose request says q1 closed; the mandate carries q1 closed by jeanjerome; G0 to G4 PASS; IH-10"
+      observed: >
+        #79 question.closed q1 under hd_muko28x208544984d8 by jeanjerome. #80 specify, request "Q q1: …
+        -> closed by the owner: no longer material, nothing to declare". Mandate sha256:ae36654e…,
+        open_questions q1 closed_by jeanjerome; requirements sha256:bd36e246…; protocol frozen on
+        REQ-LONGUEUR alone. The implementation wrote the same tree as before the revocation
+        (cand_84f4bc560814), and G4 passed on it with no stagnation.
+    - dossier: "~/.495-campagnes/e01s04-e-revoque-cloture"
+      campaign: "4 — revoking a closure given through IH-01 (6a)"
+      code: "head, 3f18021, a copy of e01s04-d-clore-reposee"
+      commands: "/495 revoke q1 (confirmed; IH-01 later)"
+      outcome: "q1 no longer closed and asked again; the closing decision and the adoption revoked; IH-10 withdrawn; no gate; no intervention"
+      observed: "#126 question.revoked q1 revoking hd_muko28x208544984d8 (the close); #127 decision.revoked; #128..#133 G0 to G5 invalidated; #136 IH-02 revoked; #137 IH-10 withdrawn; #139 IH-01 requested."
+    - dossier: "~/.495-campagnes/e01s04-f-cloture-495close"
+      campaign: "4 — revoking a closure given by /495 close (6a), past G1"
+      code: "head, 3f18021, a copy of e01s03-v3-arret-clore (Java)"
+      commands: "/495 revoke Q1 (confirmed; IH-01 later)"
+      outcome: "Q1 neither answered nor closed, asked again; G0 and G1 withdrawn; the adopted preparation no longer adopted; no intervention"
+      observed: >
+        Q1 had been answered through IH-01, then closed by /495 close with no decision. #224
+        question.revoked Q1 revokes the IH-01 decision tied to Q1, hd_mu8kmemyb2f72ae488, the answer's;
+        #226, #227 G0 and G1 invalidated; #228 clarifying; #229 IH-01 requested. Nothing adopted but the
+        request.
+    - dossier: "~/.495-campagnes/e01s04-g-arret-stagnation"
+      campaign: "5 — revoking at a stalled-specification stop (6c)"
+      code: "head, 3f18021, a copy of e01s03-arret (Java, blocked on stagnation over Q1)"
+      commands: "/495 revoke Q1 (confirmed; IH-01 later)"
+      outcome: "the stop is lifted, Q1 asked again, no intervention"
+      observed: "#190 question.revoked Q1, #191 hd_mu8kmemyb2f72ae488 revoked, #192 clarifying, #193 IH-01 requested; status decision_required, no longer blocked; six interventions before and after."
+    - dossier: "~/.495-campagnes/e01s04-h-autre-en-attente"
+      campaign: "6 — another question pending (6e), and scope refusals (6h)"
+      code: "head, 3f18021, a copy of e01s03-modele-coupe-96 (Java, cut after the report posing Q6 and Q7)"
+      commands: "/495 resume (Q6, Q7 later), /495 revoke Q9, /495 revoke language, /495 revoke Q6, /495 revoke Q1 (each confirmed)"
+      outcome: "three refusals recording nothing, then IH-01 pending for Q6, Q7 and Q1"
+      observed: >
+        "UNKNOWN_REFERENCE: question Q9 does not exist"; "PRECONDITION_FAILED: question language is not
+        material"; "PRECONDITION_FAILED: question Q6 is neither answered nor closed"; nothing recorded
+        after #100. Then #101 question.revoked Q1, #104 IH-01 requested; the three IH-01 are presented
+        in turn.
+    - dossier: "~/.495-campagnes/e01s04-i-pause"
+      campaign: "7 — a paused change stays paused (6j)"
+      code: "head, 3f18021, a copy of e01s04-a2-ih10"
+      commands: "/495 pause, /495 revoke q1 (confirmed), /495 resume (IH-01 later)"
+      outcome: "paused in clarifying with IH-01 pending and nothing presented; the resume presents q1"
+      observed: "#65 paused; #66 question.revoked … #79 IH-01 requested, #80 resume_point.saved, #81 paused; no dialog. /495 resume: #82 decision_required, q1 presented with its three options."
+    - dossier: "~/.495-campagnes/e01s04-j-renonce, -k-sans-humain, -l-print, -l-json, -m-annule, -n-accepte"
+      campaign: "8 — refusals that record nothing (6f, 6g, 6h, 6i)"
+      code: "head, 3f18021, copies of e01s04-a2-ih10"
+      commands: "/495 revoke q1"
+      outcome: "nothing recorded in any of the six"
+      observed: >
+        Refused confirmation: still #63. RPC without a declared actor, print mode, JSON mode: "La
+        révocation exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié)." (on stderr in print
+        mode, on stdout in JSON mode, exit 0), still #63. After /495 cancel: "INVALID_TRANSITION: change
+        is cancelled in phase closed", still #66. After IH-10 accepted: "INVALID_TRANSITION: the
+        candidate is accepted; only cancelling the change sets it aside", still #64. The harness495 tool
+        of the loaded build offers status, start, verify, list_pending_decisions, review_summary,
+        report and export, no revocation.
+  confirmed_by_owner: true
+  confirmed_at: "2026-09-28T05:33:41Z"
+  confirmation_note: >
+    Confirmed by the owner on the campaigns at 3f18021 and the stated limits: the exclusion of a
+    preparation or a correction feedback from before a revocation, and the refusals while something
+    runs, rest on their tests; the full campaign on the Maven target belongs to e01s05.
+  steps:
+    - step: "Révoquer une réponse reporte la question et ne laisse rien d'adopté (étapes 1 à 5)"
+      expected: "Révocation inscrite sous le nom du propriétaire, décision IH-01 révoquée, Q1 reposée avec ses trois issues, IH-10 retirée, gates retirées, rien d'adopté, clarification, aucune intervention"
+      actual: "e01s04-b-revoque — tout cela ; sur main, /495 revoke n'existe pas et rien n'est inscrit"
+      passed: true
+    - step: "La nouvelle réponse atteint les exigences et le protocole (étape 6)"
+      expected: "Une réécriture dont la demande porte « 422 », des exigences adoptées à G1 qui lient « 422 » à une exigence écrite après, un protocole gelé de nouveau sur elles"
+      actual: "e01s04-c-422 (scripté) et e01s04-r4-vrai-modele (modèle local) — tout cela ; sur e86ae15, aucune réécriture et « 422 » adopté lié à REQ-400"
+      passed: true
+    - step: "Révoquer une clôture rouvre la question (6a)"
+      expected: "Q1 n'est plus close et IH-01 la repose ; la décision IH-01 de clôture est révoquée quand la clôture en venait"
+      actual: "e01s04-e-revoque-cloture (clôture par IH-01) et e01s04-f-cloture-495close (clôture par /495 close)"
+      passed: true
+    - step: "Clore la question reposée réécrit la spécification (6b)"
+      expected: "Une réécriture dont la demande dit Q1 close ; le mandat porte Q1 close avec l'acteur"
+      actual: "e01s04-d-clore-reposee"
+      passed: true
+    - step: "Révoquer devant l'arrêt d'une spécification qui ne progresse plus (6c)"
+      expected: "L'arrêt est levé, IH-01 repose Q1, aucune intervention"
+      actual: "e01s04-g-arret-stagnation"
+      passed: true
+    - step: "Les décisions qui dépendaient de la réponse cessent, les autres réponses restent (6d)"
+      expected: "IH-10 retirée, l'adoption révoquée ; la réponse à Q2 reste valide"
+      actual: "e01s04-b-revoque, export compris"
+      passed: true
+    - step: "Une autre question en attente le reste (6e)"
+      expected: "IH-01 en attente pour la question déjà posée et pour Q1"
+      actual: "e01s04-h-autre-en-attente — Q6, Q7 et Q1"
+      passed: true
+    - step: "Refus sans humain qualifié, en print et en json, hors d'atteinte, à la confirmation (6f à 6i)"
+      expected: "Chaque refus dit pourquoi et n'inscrit rien ; l'outil exposé au modèle n'offre aucune révocation"
+      actual: "e01s04-h-autre-en-attente, -j-renonce, -k-sans-humain, -l-print, -l-json, -m-annule, -n-accepte ; outil à sept opérations"
+      passed: true
+    - step: "Un changement en pause le reste (6j)"
+      expected: "En pause après la révocation, Q1 reposée présentée à la reprise"
+      actual: "e01s04-i-pause"
+      passed: true
+
+gaps:
+  closed: true
+  count: 0
+  note: "No campaign found a behaviour that departs from the story."
+
+known_limits:
+  - "Every campaign but e01s04-r-vrai-modele to -r4 scripts its reports and implementation, and their requirements are satisfied by the reference, so their controls cannot tell 400 from 422 (fiction_declared); the real-model campaign does, through the test it prepared."
+  - "No campaign held a preparation or a correction feedback from before a revocation: that the rebuilt change takes up neither, counts its preparation rounds from the revocation and asks IH-07 when no attempt is left rests on test/v2/answer-revocation.test.ts."
+  - "The refusals by an agent, a model output or a tool call, while an intervention or a verification runs, while another 495 operation holds the session, and once G5 enters the integration rest on their tests; so does a budget extension that survives the revocation."
+  - "In e01s04-d-clore-reposee the rebuilt candidate has the tree of the one frozen before the revocation and G4 passes with no stagnation; no control was run for this, so it is an observation, not a measure."
+  - "The real campaign on the Maven target, with the clause that the frozen protocol and the executed controls carry the decided contract, belongs to e01s05."

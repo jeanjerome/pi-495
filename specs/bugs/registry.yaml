@@ -459,3 +459,131 @@ bugs:
       `conduct` and `/495 close` already have. Sized as a quick-fix once reproduced — do not fix ahead
       of a red test.
     status: open
+  - bug_id: BUG-2026-09-28T013000
+    date: "2026-09-28"
+    title: "A change paused while its verification ran cannot have a question's resolution revoked, though nothing runs"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      A change paused during its verification keeps the verification operation open: `changePause`
+      (`src/domain/change/decide.ts`) refuses only a running intervention and an external effect in
+      flight, and the pause closes no operation. `/495 revoke` is then refused with `OPERATION_ACTIVE`
+      by `requireRevocable`, although nothing runs. The owner's only way on is `/495 resume`, which
+      runs the verification again; under the default automatic acceptance G5 can then close the change
+      on the answer the owner wanted to revoke. An abrupt end of the session that leaves the operation
+      open gives the same refusal. Introduced by the branch that adds `/495 revoke`.
+    what_expected: >
+      A revocation is refused only while something runs whose output would rest on the revoked
+      resolution: a paused change, or one whose session ended, runs nothing.
+    steps_to_reproduce:
+      - "Take a change with an answered material question to its verification, and pause it while the verification operation is open."
+      - "Run `/495 revoke q1`: it is refused with OPERATION_ACTIVE, verification operation in progress."
+    root_cause: >
+      `requireRevocable` reads an open operation as work in progress, and a pause leaves the
+      verification operation open. Reported by a reviewer's probe on the branch; the premise is read in
+      the code, not yet reproduced by a test.
+    evidence: >
+      `decide.ts` `changePause` closes no operation; `requireRevocable` fails `OPERATION_ACTIVE` on any
+      `state.operation`. Review record `specs/verifications/e01s04-relecture.md`, round 1, R1-7.
+    risk_level: low
+    follow_ups: >
+      Reproduce with a red test, then decide where the fix lives: the pause closing the verification
+      operation it suspends, or the revocation reading an operation of a paused change as suspended.
+      Either changes a refusal and needs a review round of its own (CONVENTIONS.md § Review, rule 6).
+    status: open
+  - bug_id: BUG-2026-09-28T013100
+    date: "2026-09-28"
+    title: "The engineering report lists requirements refused at G1 as the change's requirements"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `Harness.report` reads the requirements and the protocol through `ArtifactRepository.latest`,
+      which falls back on the last proposal when nothing is adopted. After a refusal at G1 the report
+      lists under Requirements a document G1 refused, although `RequirementLine`
+      (`src/application/report.ts`) is defined as an adopted requirement. The part a revocation made
+      reachable is fixed: nothing proposed before a revocation is served any more.
+    what_expected: >
+      The report lists the requirements adopted at G1, and none while none is adopted.
+    steps_to_reproduce:
+      - "Take a change whose requirements G1 refuses."
+      - "Run `/495 report`: the refused requirements are listed as the change's."
+    root_cause: >
+      The report asks for the latest requirements rather than the adopted ones. Present on main before
+      the revocation branch.
+    evidence: >
+      `src/application/harness.ts` `report` reads `latest(state, "requirements")`;
+      `src/application/report.ts` documents `RequirementLine` as an adopted requirement. Review record
+      `specs/verifications/e01s04-relecture.md`, round 1, P1.
+    risk_level: low
+    follow_ups: >
+      Decide what the report shows before G1 adopts anything, then read the adoption alone, with a red
+      test on a refusal at G1.
+    status: open
+  - bug_id: BUG-2026-09-28T025000
+    date: "2026-09-28"
+    title: "After an integration fallback, a revocation says revoked the reconciliation of the Git effect, whose effect holds, and leaves the outcome accepted"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      When the destination advances and the combined tree differs, the invalidation for
+      `destination_advanced` (`src/domain/invalidation.ts`) revokes IH-10, IH-11 and IH-08 and brings
+      the change back to `verifying`. Revoking IH-10 clears `acceptance_decision_id`, so
+      `requireRevocable` admits a revocation again. The plan the revocation shares with the mandate
+      revision revokes every valid decision but IH-01 and IH-07, IH-12 included, although the
+      reconciliation of the uncertain Git effect it recorded still holds. The same path carries
+      `outcome: "accepted"` into clarification, where a revised artifact would set it back to `pending`
+      (`src/domain/change/apply.ts`). Introduced by the branch that adds `/495 revoke`: before it,
+      nothing reached that plan after an integration.
+    what_expected: >
+      A revocation says revoked only a decision whose effect it undoes, and a change back in
+      clarification holds no accepted outcome.
+    steps_to_reproduce:
+      - "Take a change to G6 with IH-10, IH-11 and an IH-12 reconciliation recorded and valid."
+      - "Record that the destination advanced with a combined tree that differs: the change is `verifying ready`, outcome `accepted`."
+      - "Revoke the answer to a material question: the change is `clarifying`, outcome `accepted`, and the IH-12 decision is revoked."
+    root_cause: >
+      The plan of the mandate revision was kept for the revocation on the ground that IH-12 only
+      follows an acceptance, after which a revocation is refused; the integration fallback withdraws
+      that acceptance without undoing the reconciliation. `question.revoked` does not reset the
+      outcome.
+    evidence: >
+      Reviewer probe PA6, at the kernel; premise read in the code. Review record
+      `specs/verifications/e01s04-relecture.md`, round 2, R2-3.
+    risk_level: low
+    follow_ups: >
+      Red test at the kernel first. Keep IH-12 out of the plan the revocation shares with the mandate
+      revision, as IH-07 is, and reset the outcome to `pending` in `question.revoked`. Both change a
+      behavior and need a review round of their own (CONVENTIONS.md § Review, rule 6).
+    status: open
+  - bug_id: BUG-2026-09-28T025100
+    date: "2026-09-28"
+    title: "The prepared suite a qualification was judged beside is a free-text note, found again by its prefix"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A qualification taken up from an earlier protocol replaces the note of the prepared suite judged
+      beside it: `withPreparedSuite` (`src/application/verification.ts`) drops every note that starts
+      with "prepared suite on the bare reference:" and writes the one judged now. No other note starts
+      with that prefix today, but nothing keeps one from doing so, and a note of the suite worded
+      otherwise would be kept beside the new one. Introduced by the branch that adds `/495 revoke`,
+      with the fix of the note doubled at every take-up.
+    what_expected: >
+      The prepared suite a qualification was judged beside is a field of the qualification, which a
+      take-up replaces as a whole.
+    steps_to_reproduce:
+      - "Read `withPreparedSuite`: the suite is matched by the text of its note."
+    root_cause: >
+      The qualification of the protocol contract records the prepared suite only in its free-text
+      notes.
+    evidence: >
+      Review record `specs/verifications/e01s04-relecture.md`, round 2, R2-10.
+    risk_level: low
+    follow_ups: >
+      Give the qualification a field for the prepared suite, which changes the protocol contract
+      (`src/contracts/`, `npm run contracts`), after the review gate and with a review round of its
+      own (CONVENTIONS.md § Review, rule 6).
+    status: open

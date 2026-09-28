@@ -4,8 +4,9 @@
  * every subcommand reaches the application controller through the session it is handed.
  */
 import { join } from "node:path";
-import { VERSION, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { VERSION, type ExtensionAPI, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { ActorRef } from "../contracts/v1/common.ts";
+import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import { DomainError } from "../domain/errors.ts";
 import { formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
@@ -25,6 +26,7 @@ const SUBCOMMANDS = [
 	"export",
 	"pause",
 	"close",
+	"revoke",
 	"cancel",
 	"bind",
 	"unbind",
@@ -34,7 +36,7 @@ const SUBCOMMANDS = [
 export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession): void {
 	pi.registerCommand("495", {
 		description:
-			"495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|close|cancel|bind|unbind",
+			"495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|close|revoke|cancel|bind|unbind",
 		getArgumentCompletions: (prefix) => {
 			const items = SUBCOMMANDS.filter((s) => s.startsWith(prefix.trim())).map((s) => ({ value: s, label: s }));
 			return items.length ? items : null;
@@ -214,60 +216,34 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 						);
 						return;
 					}
-					case "close": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						if (!text) {
-							session.emit(ctx, "usage: /495 close <question>");
-							return;
-						}
-						if (session.busy) {
-							session.emit(ctx, session.busyRefusal());
-							return;
-						}
-						const changeId = session.binding.change_id;
-						// Busy from here to the write: a conduct running concurrently commits between two of its
-						// own steps, and a close landing in that gap either loses a race to REVISION_CONFLICT, or
-						// lands between the end of an intervention and the artifact it paid for, losing that
-						// artifact instead. Released before `conduct` below, which manages the flag itself for
-						// the rest of the drive.
-						session.busy = true;
-						try {
-							const origin = session.humanOrigin(ctx);
-							if (!origin) {
-								session.emit(
-									ctx,
-									session.lang() === "fr"
-										? "La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié)."
-										: "Closing a question requires a human origin.",
-								);
-								return;
-							}
-							if (
-								ctx.hasUI &&
-								!(await ctx.ui.confirm(
-									"495",
-									session.lang() === "fr"
-										? `Clore la question ${text} ? Elle n'est plus matérielle ; sa réponse ne liera plus aucune exigence.`
-										: `Close question ${text}? It is no longer material; its answer will no longer bind any requirement.`,
-								))
-							)
-								return;
-							const closed = rt.harness.closeQuestion(changeId, text, origin);
-							if (closed.error) {
-								session.emit(ctx, `495 error: ${closed.error.code}: ${closed.error.message}`, {
-									error: closed.error.toCanonical(),
-								});
-								return;
-							}
-						} finally {
-							session.busy = false;
-						}
-						await conduct(session, ctx, changeId);
+					case "close":
+						await actOnQuestion(session, ctx, text, {
+							usage: "usage: /495 close <question>",
+							noOrigin: {
+								fr: "La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
+								en: "Closing a question requires a human origin.",
+							},
+							confirmation: (question) => ({
+								fr: `Clore la question ${question} ? Elle n'est plus matérielle ; sa réponse ne liera plus aucune exigence.`,
+								en: `Close question ${question}? It is no longer material; its answer will no longer bind any requirement.`,
+							}),
+							inscribe: (changeId, question, origin) => rt.harness.closeQuestion(changeId, question, origin),
+						});
 						return;
-					}
+					case "revoke":
+						await actOnQuestion(session, ctx, text, {
+							usage: "usage: /495 revoke <question>",
+							noOrigin: {
+								fr: "La révocation exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
+								en: "Revoking a question's resolution requires a human origin.",
+							},
+							confirmation: (question) => ({
+								fr: `Révoquer ce que vous avez décidé de la question ${question} ? Elle vous sera reposée, et le mandat, les exigences et tout ce qui a été adopté depuis ne le seront plus.`,
+								en: `Revoke what you decided on question ${question}? It will be asked again, and the mandate, the requirements and everything adopted since will no longer be adopted.`,
+							}),
+							inscribe: (changeId, question, origin) => rt.harness.revokeQuestion(changeId, question, origin),
+						});
+						return;
 					case "cancel": {
 						if (!session.binding) {
 							session.emit(ctx, "no binding");
@@ -331,7 +307,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 					default:
 						session.emit(
 							ctx,
-							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · cancel · bind [change_id] · unbind`,
+							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
 						);
 				}
 			} catch (error) {
@@ -343,4 +319,63 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 			}
 		},
 	});
+}
+
+/** An owner's act on one material question: what it says, what it confirms, and how it is inscribed. */
+interface QuestionAct {
+	usage: string;
+	/** What the session says when it cannot authenticate its human. */
+	noOrigin: Record<"fr" | "en", string>;
+	/** The confirmation put to the owner on a dialog-capable session: what the act undoes. */
+	confirmation: (question: string) => Record<"fr" | "en", string>;
+	inscribe: (changeId: string, question: string, origin: HumanOrigin) => { error: DomainError | null };
+}
+
+/**
+ * `/495 close` and `/495 revoke`: a binding, a question and a free session required, a human origin
+ * required, the act confirmed on a dialog-capable session, then the change conducted onward. A
+ * refusal of the kernel is displayed with its code and reason, and nothing else happens.
+ */
+async function actOnQuestion(
+	session: ExtensionSession,
+	ctx: ExtensionCommandContext,
+	question: string,
+	act: QuestionAct,
+): Promise<void> {
+	if (!session.binding) {
+		session.emit(ctx, "no binding");
+		return;
+	}
+	if (!question) {
+		session.emit(ctx, act.usage);
+		return;
+	}
+	if (session.busy) {
+		session.emit(ctx, session.busyRefusal());
+		return;
+	}
+	const changeId = session.binding.change_id;
+	// Busy from here to the write: a conduct running concurrently commits between two of its own steps,
+	// and an act landing in that gap either loses a race to REVISION_CONFLICT, or lands between the end
+	// of an intervention and the artifact it paid for, losing that artifact instead. Released before
+	// `conduct` below, which manages the flag itself for the rest of the drive.
+	session.busy = true;
+	try {
+		const origin = session.humanOrigin(ctx);
+		if (!origin) {
+			session.emit(ctx, act.noOrigin[session.lang()]);
+			return;
+		}
+		if (ctx.hasUI && !(await ctx.ui.confirm("495", act.confirmation(question)[session.lang()]))) return;
+		const inscribed = act.inscribe(changeId, question, origin);
+		if (inscribed.error) {
+			session.emit(ctx, `495 error: ${inscribed.error.code}: ${inscribed.error.message}`, {
+				error: inscribed.error.toCanonical(),
+			});
+			return;
+		}
+	} finally {
+		session.busy = false;
+	}
+	await conduct(session, ctx, changeId);
 }

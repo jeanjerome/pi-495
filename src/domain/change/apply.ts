@@ -132,6 +132,34 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 				q.id === event.id ? { ...q, closed_at: event.at, closed_by: event.actor } : q,
 			);
 			return s;
+		case "question.revoked":
+			// The question is posed again, unresolved, under the request the revocation carries, and
+			// nothing adopted on the faith of its resolution stays adopted (DEC-06). The original request
+			// stays: it is adopted when the change is created, before any question, and is immutable
+			// (RM-001). The rebuilt change is judged on its own candidates: one frozen before counts
+			// neither toward a stagnation nor toward the technical retries of its verification. The
+			// attempts it spent stay spent (§18).
+			s.open_questions = s.open_questions.map((q) =>
+				q.id === event.id
+					? {
+							...q,
+							answer: null,
+							answered_at: null,
+							closed_at: null,
+							closed_by: null,
+							decision_id: event.decision_id,
+						}
+					: q,
+			);
+			s.adopted = s.adopted.request ? { request: s.adopted.request } : {};
+			s.protocol = null;
+			s.mandate = null;
+			s.requirement_ids = [];
+			s.mandatory_requirement_ids = [];
+			s.candidate = null;
+			s.candidate_history = [];
+			s.budgets = { ...s.budgets, retries: {} };
+			return s;
 		case "gate.decided":
 			s.gates = { ...s.gates, [event.decision.gate]: event.decision };
 			return s;
@@ -277,7 +305,6 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			s.stop_detail = event.interaction;
 			return s;
 		case "decision.recorded":
-			s.pending_decisions = s.pending_decisions.filter((d) => d.decision_id !== event.decision_id);
 			s.human_decisions = [
 				...s.human_decisions,
 				{
@@ -296,12 +323,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 				s.acceptance_decision_id = event.human_decision_id;
 			if (event.interaction === "IH-11" && event.option_id === "integrate")
 				s.integration_authorization_id = event.human_decision_id;
-			if (s.pending_decisions.length === 0 && s.status === "decision_required") {
-				s.status = "ready";
-				s.stop_reason = null;
-				s.stop_detail = null;
-			}
-			return s;
+			return settlePending(s, event.decision_id);
 		case "decision.rejected":
 			return s;
 		case "decision.revoked":
@@ -311,6 +333,8 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			if (s.acceptance_decision_id === event.human_decision_id) s.acceptance_decision_id = null;
 			if (s.integration_authorization_id === event.human_decision_id) s.integration_authorization_id = null;
 			return s;
+		case "decision.withdrawn":
+			return settlePending(s, event.decision_id);
 		case "feedback.produced":
 			s.feedback = [...s.feedback, { attempt_id: event.attempt_id, digest: event.digest, bytes: event.bytes }];
 			return s;
@@ -394,6 +418,17 @@ function addCounters(
 		tokens_known: a.tokens_known + b.tokens_known,
 		delegations: a.delegations + b.delegations,
 	};
+}
+
+/** Settles a pending decision, recorded or withdrawn: a change that waited on it alone is ready again. */
+function settlePending(s: ChangeState, decisionId: string): ChangeState {
+	s.pending_decisions = s.pending_decisions.filter((d) => d.decision_id !== decisionId);
+	if (s.pending_decisions.length === 0 && s.status === "decision_required") {
+		s.status = "ready";
+		s.stop_reason = null;
+		s.stop_detail = null;
+	}
+	return s;
 }
 
 function addCountersToAttempt(

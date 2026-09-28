@@ -1,0 +1,174 @@
+/**
+ * The Pi host a `/495` subcommand runs in, faked down to what session.ts, command.ts and conduct.ts
+ * read, and a change stopped in clarification because its specification loses the answer to Q1.
+ */
+import { strict as assert } from "node:assert";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { registerCommand495 } from "../../src/extension/command.ts";
+import { ExtensionSession } from "../../src/extension/session.ts";
+import { fixtureTs, initRepo, tempDir } from "./fixtures.ts";
+
+export const RPC_ACTOR = "owner-1";
+
+/** The environment a command test sets for the harness runtime, saved and restored around each test. */
+export const HARNESS_ENV = [
+	"HARNESS495_DATA_DIR",
+	"HARNESS495_SCRIPTED_AGENT",
+	"HARNESS495_ALLOW_UNCONFINED",
+	"HARNESS495_RPC_HUMAN_ACTOR",
+	"HARNESS495_LANGUAGE",
+] as const;
+
+export function commandProject(prefix: string): string {
+	const path = tempDir(prefix);
+	fixtureTs(path);
+	initRepo(path);
+	return path;
+}
+
+/** A report that only ever asks Q1, and never declares it: replayed identically on every round, it
+ * never carries the answer the owner gives, so the change stalls on it once, as a specification that
+ * loses an answer does — no second, distinct script is needed to reach that stop. */
+export const ASKS_Q1 = {
+	objective: "x",
+	facts: [],
+	assumptions: [],
+	questions: [{ id: "q1", question: "422 ou 400 ?", material: true }],
+	answers: [],
+	out_of_scope: [],
+	risks: [],
+	requirements: [
+		{
+			requirement_id: "R1",
+			statement: "le refus est exposé",
+			mandatory: true,
+			criterion: "le scénario le vérifie",
+			category: "interface",
+			satisfied_by_reference: true,
+		},
+	],
+	design: { summary: "x", components: [], interfaces: [], risks: [] },
+};
+
+export class FakePi {
+	command: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | null = null;
+	readonly said: string[] = [];
+	/** What `/495` says of itself in Pi's command list. */
+	description = "";
+	registerCommand(
+		_name: string,
+		options: { description?: string; handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> },
+	) {
+		this.description = options.description ?? "";
+		this.command = options.handler;
+	}
+
+	registerTool(_def: unknown): void {}
+	registerMessageRenderer(): void {}
+	on(): void {}
+	sendMessage(message: { content: string }): void {
+		this.said.push(message.content);
+	}
+	appendEntry(): void {}
+}
+
+/**
+ * Pi's context: only what session.ts, command.ts and conduct.ts actually read. `rpc` is used for the
+ * dialog-capable cases instead of `tui`, so the confirmation and the decision it exercises are real
+ * (`hasUI` is true in both, per Pi's own contract) without pulling in the terminal's own rendering
+ * primitives, which nothing here needs to draw.
+ */
+export class FakeContext {
+	readonly mode: "rpc" | "json" | "print";
+	readonly hasUI: boolean;
+	readonly thinkingLevel = "off";
+	readonly modelRegistry = null;
+	readonly model = { provider: "stand-in", id: "scripted-1", baseUrl: "http://127.0.0.1:9/v1" };
+	readonly cwd: string;
+	readonly sessionManager: { getSessionId: () => string };
+	readonly confirmAnswer: boolean;
+	confirmations = 0;
+	/** The message of each confirmation put to the owner, in order. */
+	readonly confirmed: string[] = [];
+	/** Set by a test that needs to observe session state at the moment a confirmation is put, before
+	 * the fake answers it. */
+	onConfirm: (() => void) | null = null;
+	readonly ui: {
+		select: (q: string, opts: string[]) => Promise<string | null>;
+		input: (prompt: string) => Promise<string | null>;
+		confirm: (title: string, message: string) => Promise<boolean>;
+		notify: (text: string, level?: string) => void;
+		setStatus: (id: string, text: string) => void;
+	};
+	/** Each selection put to the owner, with the options offered, in order. */
+	readonly selections: { question: string; options: string[] }[] = [];
+	constructor(cwd: string, mode: "rpc" | "json" | "print", sessionId: string, confirmAnswer = true) {
+		this.cwd = cwd;
+		this.mode = mode;
+		this.hasUI = mode === "rpc";
+		this.sessionManager = { getSessionId: () => sessionId };
+		this.confirmAnswer = confirmAnswer;
+		this.ui = {
+			select: async (question, opts) => {
+				this.selections.push({ question, options: opts });
+				return opts[0] ?? null;
+			},
+			input: async () => "réponse à la question",
+			confirm: async (_title, message) => {
+				this.confirmed.push(message);
+				this.confirmations++;
+				this.onConfirm?.();
+				return this.confirmAnswer;
+			},
+			notify: () => undefined,
+			setStatus: () => undefined,
+		};
+	}
+}
+
+/** Starts a change whose only material question is asked, answered, then lost by the report that
+ * never declared it: the change stalls in clarification for stagnation, naming q1. */
+export async function stalledOnQ1(
+	dataDir: string,
+	cwd: string,
+	sessionId = "s-question-closure",
+): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
+	const agentScript = join(dataDir, "agent.json");
+	writeFileSync(
+		agentScript,
+		JSON.stringify({
+			default: { steps: [{ kind: "fail", error: "not reached" }] },
+			roles: { specify: { steps: [{ kind: "complete", output: ASKS_Q1 }] } },
+		}),
+	);
+	process.env.HARNESS495_DATA_DIR = join(dataDir, "data");
+	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
+	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
+	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	const pi = new FakePi();
+	const session = new ExtensionSession(pi as unknown as ExtensionAPI);
+	registerCommand495(pi as unknown as ExtensionAPI, session);
+	const ctx = new FakeContext(cwd, "rpc", sessionId);
+	session.openedAt(ctx as unknown as ExtensionContext);
+	// `start` conducts the change itself (`conduct` -> `advance` then `presentDecisions`): the fake UI
+	// already answers Q1 there, so no separate `/495 decide` is needed. What it does not do is drive
+	// `advance` again on the answer just given; `resume` does, reaching the round that loses it.
+	await pi.command!("start x", ctx as unknown as ExtensionCommandContext);
+	if (!session.binding) throw new Error(`start did not bind: ${pi.said.join(" | ")}`);
+	const changeId = session.binding.change_id;
+	assert.ok(
+		session
+			.runtime()
+			.ledger.loadChange(changeId)!
+			.state.open_questions.find((q) => q.id === "q1")?.answer,
+		pi.said.join(" | "),
+	);
+	await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+	const state = session.runtime().ledger.loadChange(changeId)!.state;
+	assert.equal(state.status, "blocked", pi.said.join(" | "));
+	assert.equal(state.stop_reason, "stagnation", pi.said.join(" | "));
+	assert.ok(state.stop_detail?.includes("q1"), state.stop_detail ?? "");
+	return { pi, session, ctx, changeId };
+}

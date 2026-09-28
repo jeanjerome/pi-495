@@ -16,11 +16,13 @@ import {
 } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ActorRef } from "../../src/contracts/v1/common.ts";
-import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { Mandate as MandateSchema } from "../../src/contracts/v1/protocol.ts";
 import type { Mandate } from "../../src/contracts/v1/protocol.ts";
 import { validate } from "../../src/contracts/validate.ts";
+import type { Decision } from "../../src/domain/change/decide.ts";
 import { answersOf, isQuestionClosed, specificationStanding, unknownCost } from "../../src/domain/change/state.ts";
+import type { DomainError } from "../../src/domain/errors.ts";
 
 const tuiOrigin = (): HumanOrigin => ({ actor: HUMAN, host: "tui", session_id: "s1", asserted_at: tick() });
 
@@ -30,49 +32,93 @@ function answerMaterialQuestion(r: Runner, id: string, question: string, answer 
 	r.run({ type: "question.answer", at: tick(), actor: HUMAN, id, answer, human_decision_id: null });
 }
 
-/** Opens a material question and closes it through IH-01, as the owner would by choosing "close". */
-function closeMaterialQuestion(r: Runner, id: string, question: string): void {
-	r.run({ type: "question.open", at: tick(), actor: KERNEL, id, question, material: true, decision_id: `dec_${id}` });
-	const presented = r.s.revision;
-	r.run({
-		type: "decision.request",
-		at: tick(),
-		actor: KERNEL,
-		request: {
-			decision_id: `dec_${id}`,
-			change_id: "chg_1",
-			interaction: "IH-01",
-			subject: { kind: "change", id: "chg_1", revision: presented, digest: r.s.reference.digest },
-			question,
-			facts: [],
-			recommendation: null,
-			options: [
-				{ id: "answer", label: "A", effect: "", risky: false },
-				{ id: "close", label: "C", effect: "", risky: true },
-				{ id: "abandon", label: "B", effect: "", risky: true },
-			],
-			required_authority: "requester",
-			allow_free_text: true,
-			requested_at: tick(),
-			expires_at: null,
-			language: "fr",
-		},
-	});
+/** The IH-01 request that puts a material question to the owner, with its three outcomes. */
+function ih01Request(r: Runner, decisionId: string, question: string): DecisionRequest & { interaction: "IH-01" } {
+	return {
+		decision_id: decisionId,
+		change_id: "chg_1",
+		interaction: "IH-01",
+		subject: { kind: "change", id: "chg_1", revision: r.s.revision, digest: r.s.reference.digest },
+		question,
+		facts: [],
+		recommendation: null,
+		options: [
+			{ id: "answer", label: "A", effect: "", risky: false },
+			{ id: "close", label: "C", effect: "", risky: true },
+			{ id: "abandon", label: "B", effect: "", risky: true },
+		],
+		required_authority: "requester",
+		allow_free_text: true,
+		requested_at: tick(),
+		expires_at: null,
+		language: "fr",
+	};
+}
+
+/** Puts `request` to the owner and records their choice under `humanDecisionId`. */
+function ownerDecides(
+	r: Runner,
+	request: DecisionRequest,
+	optionId: string,
+	freeText: string | null,
+	humanDecisionId: string,
+): void {
+	r.run({ type: "decision.request", at: tick(), actor: KERNEL, request });
+	ownerAnswers(r, request.decision_id, optionId, freeText, humanDecisionId);
+}
+
+/** Records the owner's choice on the pending decision `decisionId`, under `humanDecisionId`. */
+function ownerAnswers(
+	r: Runner,
+	decisionId: string,
+	optionId: string,
+	freeText: string | null,
+	humanDecisionId: string,
+): void {
+	const pending = r.s.pending_decisions.find((d) => d.decision_id === decisionId)!;
 	r.run({
 		type: "decision.answer",
 		at: tick(),
 		actor: HUMAN,
-		human_decision_id: `hd_${id}`,
+		human_decision_id: humanDecisionId,
 		response: {
-			decision_id: `dec_${id}`,
-			option_id: "close",
-			free_text: null,
+			decision_id: decisionId,
+			option_id: optionId,
+			free_text: freeText,
 			reason: null,
-			subject_revision: presented,
+			subject_revision: pending.subject.revision,
 			scope: null,
 			expires_at: null,
 		},
 		origin: tuiOrigin(),
+	});
+}
+
+/** Opens a material question and closes it through IH-01, as the owner would by choosing "close". */
+function closeMaterialQuestion(r: Runner, id: string, question: string): void {
+	r.run({ type: "question.open", at: tick(), actor: KERNEL, id, question, material: true, decision_id: `dec_${id}` });
+	ownerDecides(r, ih01Request(r, `dec_${id}`, question), "close", null, `hd_${id}`);
+}
+
+/** Opens a material question and answers it through IH-01 under `hd_<id>`, as the owner would by typing the answer. */
+function answerThroughDecision(r: Runner, id: string, question: string, answer: string): void {
+	r.run({ type: "question.open", at: tick(), actor: KERNEL, id, question, material: true, decision_id: `dec_${id}` });
+	ownerDecides(r, ih01Request(r, `dec_${id}`, question), "answer", answer, `hd_${id}`);
+}
+
+/**
+ * The owner revokes their resolution of material question `id`, the command carrying the IH-01
+ * request that asks it again under `decisionId`.
+ */
+function revokeResolution(r: Runner, id: string, decisionId: string, origin: HumanOrigin = tuiOrigin()): Decision {
+	const question = r.s.open_questions.find((x) => x.id === id)?.question ?? "?";
+	return r.try({
+		type: "question.revoke",
+		at: tick(),
+		actor: origin.actor,
+		id,
+		origin,
+		request: ih01Request(r, decisionId, question),
 	});
 }
 
@@ -907,6 +953,491 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		const undeclared = answersOf(r.s, new Map());
 		assert.equal(undeclared[0]!.observable, true);
 		assert.deepEqual(undeclared[0]!.requirement_ids, []);
+	});
+});
+
+describe("revoking the resolution of a material question (DEC-06)", () => {
+	const Q1 = "Quel statut pour une saisie invalide ?";
+	const Q2 = "Quelle longueur maximale ?";
+
+	const question = (r: Runner, id: string) => r.s.open_questions.find((q) => q.id === id)!;
+	const isValid = (r: Runner, humanDecisionId: string) =>
+		r.s.human_decisions.find((d) => d.human_decision_id === humanDecisionId)?.valid;
+	const pending = (r: Runner) => r.s.pending_decisions.map((d) => [d.interaction, d.decision_id]);
+	const bound = (id: string, text: string, answer: string, requirementId: string) => ({
+		question_id: id,
+		question: text,
+		answer,
+		observable: true,
+		requirement_ids: [requirementId],
+	});
+
+	/** Q1 answered "400" through IH-01 and carried by R1, up to a change that passed G3. */
+	function answeredToImplementing(runner: Runner, m: Mandate = mandate()): Runner {
+		const r = runner.create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		return r
+			.g0(m)
+			.g1(requirements({ answers: [bound("q1", Q1, "400", "R1")] }))
+			.g2()
+			.g3();
+	}
+
+	/** Q1 answered "400" and Q2 answered, the mandate adopted by the owner (IH-02), the candidate verified and IH-10 pending. */
+	function awaitingAcceptance(): Runner {
+		const r = new Runner({ g5_human_acceptance: true, adoption: { mandate: "human" } }).create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		answerThroughDecision(r, "q2", Q2, "64");
+		const m = mandate();
+		r.g0(m);
+		ownerDecides(
+			r,
+			{
+				decision_id: "dec_m",
+				change_id: "chg_1",
+				interaction: "IH-02",
+				subject: { kind: "artifact", id: "mnd_1", revision: 1, digest: digestValue(m) },
+				question: "Adopter le mandat ?",
+				facts: [],
+				recommendation: null,
+				options: [
+					{ id: "adopt", label: "Adopter", effect: "", risky: false },
+					{ id: "refuse", label: "Refuser", effect: "", risky: false },
+				],
+				required_authority: "change_owner",
+				allow_free_text: false,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+			"adopt",
+			null,
+			"hd_m",
+		);
+		r.g0(m)
+			.g1(requirements({ answers: [bound("q1", Q1, "400", "R1"), bound("q2", Q2, "64", "R2")] }))
+			.g2()
+			.g3()
+			.implement();
+		const c = candidate("c1");
+		r.freeze(c)
+			.verify([
+				evidence({ control_id: "unit", subject_digest: c.manifest_digest }),
+				evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+			])
+			.g5();
+		r.run({
+			type: "decision.request",
+			at: tick(),
+			actor: KERNEL,
+			request: {
+				decision_id: "dec_a",
+				change_id: "chg_1",
+				interaction: "IH-10",
+				subject: { kind: "candidate", id: c.candidate_id, revision: 1, digest: c.manifest_digest },
+				question: "Accepter ?",
+				facts: [],
+				recommendation: null,
+				options: [
+					{ id: "accept", label: "Accepter", effect: "", risky: false },
+					{ id: "refuse", label: "Refuser", effect: "", risky: false },
+				],
+				required_authority: "change_owner",
+				allow_free_text: false,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+		});
+		return r;
+	}
+
+	it("revoking an answer asks the question again and leaves nothing adopted since G0, under the owner's name (steps 1 to 5)", () => {
+		const r = awaitingAcceptance();
+		assert.equal(r.s.phase, "deciding");
+		assert.deepEqual(pending(r), [["IH-10", "dec_a"]]);
+		const gatesBefore = Object.keys(r.s.gates).sort();
+		const from = r.events.length;
+
+		const revoked = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(revoked.ok, true, "the owner's revocation is accepted");
+		assert.equal(question(r, "q1").answer, null, "Q1 has no answer any more");
+		assert.equal(question(r, "q1").answered_at, null, "nor the time it was answered");
+		assert.equal(isValid(r, "hd_m"), false, "the owner's adoption of the mandate is revoked");
+		assert.equal(isValid(r, "hd_q1"), false, "the IH-01 decision that answered Q1 is revoked");
+		assert.equal(isValid(r, "hd_q2"), true, "the answer to Q2 stays recorded and valid");
+		assert.equal(question(r, "q2").answer, "64");
+		assert.deepEqual(Object.keys(r.s.gates), [], "G0 and every later gate are withdrawn");
+		const withdrawn = r.events.slice(from).flatMap((e) => (e.type === "gate.invalidated" ? [e.gate] : []));
+		assert.deepEqual(withdrawn.sort(), gatesBefore, "each withdrawn gate is inscribed");
+		// The original request is adopted when the change is created, before G0, and is immutable (RM-001).
+		assert.deepEqual(Object.keys(r.s.adopted), ["request"], "no artifact adopted since G0 stays adopted");
+		assert.equal(r.s.protocol, null, "the protocol is no longer frozen");
+		assert.deepEqual(
+			[r.s.mandate, r.s.requirement_ids, r.s.mandatory_requirement_ids],
+			[null, [], []],
+			"the mandate and the requirements G0 and G1 adopted are no longer the change's",
+		);
+		assert.ok(
+			r.s.evidence.every((e) => !e.valid),
+			"the evidence gathered on the faith of the answer is invalidated",
+		);
+		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-10 is withdrawn and an IH-01 asks Q1 again");
+		assert.equal(question(r, "q1").decision_id, "dec_q1_again");
+		assert.equal(r.s.phase, "clarifying");
+		const inscribed = r.events.slice(from).find((e) => e.type === "question.revoked");
+		assert.equal(inscribed?.actor.actor_id, HUMAN.actor_id, "the revocation is inscribed under the owner's name");
+		assert.equal(
+			inscribed?.type === "question.revoked" && inscribed.human_decision_id,
+			"hd_q1",
+			"the revocation names the IH-01 decision it revokes",
+		);
+	});
+
+	it("revoking a close reopens the question, and revokes the IH-01 decision when the close came from it (6a)", () => {
+		const throughDecision = new Runner().create();
+		closeMaterialQuestion(throughDecision, "q1", Q1);
+		assert.equal(revokeResolution(throughDecision, "q1", "dec_q1_again").ok, true);
+		const reopened = question(throughDecision, "q1");
+		assert.equal(isQuestionClosed(reopened), false, "Q1 is no longer closed");
+		assert.equal(reopened.closed_by, null, "the actor who closed Q1 is withdrawn with the close");
+		assert.equal(isValid(throughDecision, "hd_q1"), false, "the IH-01 decision that closed Q1 is revoked");
+		assert.deepEqual(pending(throughDecision), [["IH-01", "dec_q1_again"]]);
+
+		const throughCommand = new Runner().create();
+		throughCommand.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q1",
+			question: Q1,
+			material: true,
+			decision_id: null,
+		});
+		throughCommand.run({ type: "question.close", at: tick(), actor: HUMAN, id: "q1", origin: tuiOrigin() });
+		const from = throughCommand.events.length;
+		assert.equal(revokeResolution(throughCommand, "q1", "dec_q1_again").ok, true);
+		assert.equal(isQuestionClosed(question(throughCommand, "q1")), false, "a close without a decision reopens too");
+		assert.deepEqual(pending(throughCommand), [["IH-01", "dec_q1_again"]]);
+		const inscribed = throughCommand.events.slice(from).find((e) => e.type === "question.revoked");
+		assert.equal(
+			inscribed?.type === "question.revoked" ? inscribed.human_decision_id : "not inscribed",
+			null,
+			"a revocation of a close given without a decision names none",
+		);
+	});
+
+	it("a revocation carried by an agent, a model output, a tool call or an unauthenticated origin is refused for its provenance, and nothing is inscribed (6f)", () => {
+		const r = new Runner().create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		const forgedOrigins: HumanOrigin[] = [
+			{
+				actor: { ...AGENT, origin: "tui_session", authentication_level: "session" },
+				host: "tui",
+				session_id: "s1",
+				asserted_at: tick(),
+			},
+			{ actor: { ...HUMAN, origin: "model_output" }, host: "tui", session_id: "s1", asserted_at: tick() },
+			{ actor: { ...HUMAN, origin: "tool_call" }, host: "tui", session_id: "s1", asserted_at: tick() },
+			{ actor: { ...HUMAN, authentication_level: "none" }, host: "tui", session_id: "s1", asserted_at: tick() },
+		];
+		const from = r.events.length;
+		for (const origin of forgedOrigins) {
+			const refused = revokeResolution(r, "q1", "dec_q1_again", origin);
+			const { actor } = origin;
+			assert.equal(
+				refused.ok ? "accepted" : refused.error.code,
+				"INVALID_PROVENANCE",
+				`a revocation from ${actor.actor_type}/${actor.origin}/${actor.authentication_level} is refused for its provenance`,
+			);
+		}
+		assert.equal(r.events.length, from, "nothing is inscribed");
+		assert.equal(question(r, "q1").answer, "400", "Q1 stays answered");
+		assert.equal(isValid(r, "hd_q1"), true);
+	});
+
+	it("a revocation out of reach is refused naming why, nothing is inscribed and Q1 stays answered (6h)", () => {
+		const refusedFor = (r: Runner, id: string, code: DomainError["code"], cause: RegExp): void => {
+			const from = r.events.length;
+			const refused = revokeResolution(r, id, "dec_again");
+			assert.equal(refused.ok, false, `a revocation of ${id} is refused (${cause})`);
+			if (refused.ok) return;
+			assert.equal(refused.error.code, code, refused.error.message);
+			assert.match(refused.error.message, cause);
+			assert.equal(r.events.length, from, "nothing is inscribed");
+			assert.equal(question(r, "q1").answer, "400", "Q1 stays answered");
+		};
+
+		const cancelled = new Runner().create();
+		answerThroughDecision(cancelled, "q1", Q1, "400");
+		cancelled.run({ type: "change.cancel", at: tick(), actor: HUMAN, reason: "abandoned" });
+		refusedFor(cancelled, "q1", "INVALID_TRANSITION", /cancelled/);
+
+		const integrating = answeredToImplementing(
+			new Runner({ integration_enabled: true }),
+			mandate({ integration: "local_branch" }),
+		).implement();
+		const c = candidate("c1");
+		integrating
+			.freeze(c)
+			.verify([
+				evidence({ control_id: "unit", subject_digest: c.manifest_digest }),
+				evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+			]);
+		integrating.run({
+			type: "gate.evaluate",
+			gate: "G5",
+			at: tick(),
+			actor: KERNEL,
+			decision_id: null,
+		});
+		assert.equal(integrating.s.phase, "integrating");
+		refusedFor(integrating, "q1", "INVALID_TRANSITION", /candidate is accepted/);
+
+		const running = new Runner().create();
+		answerThroughDecision(running, "q1", Q1, "400");
+		running.run({
+			type: "intervention.start",
+			at: tick(),
+			actor: KERNEL,
+			intervention_id: "int_s",
+			role: "specify",
+			attempt_id: null,
+			model: { provider_id: "omlx", model_id: "m", thinking_level: "off", location: "on_machine" },
+			profile_id: "specify",
+			profile_qualified: true,
+		});
+		refusedFor(running, "q1", "OPERATION_ACTIVE", /intervention int_s is running/);
+
+		const verifying = answeredToImplementing(new Runner()).implement();
+		verifying.freeze(candidate("c2"));
+		verifying.run({
+			type: "verification.start",
+			at: tick(),
+			actor: KERNEL,
+			operation_id: "op_v1",
+			idempotency_key: "k",
+		});
+		refusedFor(verifying, "q1", "OPERATION_ACTIVE", /verification operation op_v1 is in progress/);
+
+		const r = new Runner().create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q2",
+			question: Q2,
+			material: false,
+			decision_id: null,
+		});
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q3",
+			question: "?",
+			material: true,
+			decision_id: null,
+		});
+		refusedFor(r, "q9", "UNKNOWN_REFERENCE", /question q9 does not exist/);
+		refusedFor(r, "q2", "PRECONDITION_FAILED", /question q2 is not material/);
+		refusedFor(r, "q3", "PRECONDITION_FAILED", /question q3 is neither answered nor closed/);
+	});
+
+	it("an IH-01 pending for another question stays pending beside the one that asks Q1 again (6e)", () => {
+		const r = new Runner().create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		r.run({
+			type: "question.open",
+			at: tick(),
+			actor: KERNEL,
+			id: "q2",
+			question: Q2,
+			material: true,
+			decision_id: "dec_q2",
+		});
+		r.run({ type: "decision.request", at: tick(), actor: KERNEL, request: ih01Request(r, "dec_q2", Q2) });
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.deepEqual(pending(r), [
+			["IH-01", "dec_q2"],
+			["IH-01", "dec_q1_again"],
+		]);
+	});
+
+	it("a paused change stays paused once its answer is revoked, and its resume presents the question asked again", () => {
+		const r = answeredToImplementing(new Runner());
+		r.run({ type: "change.pause", at: tick(), actor: HUMAN });
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.equal(r.s.status, "paused", "the owner's pause holds across the revocation");
+		assert.equal(r.s.phase, "clarifying");
+		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]]);
+		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
+		assert.equal(r.s.status, "decision_required", "the resume presents the question asked again");
+	});
+
+	it("the attempt opened on a revoked answer is closed, so the change rebuilt on the new answer implements in an attempt of its own", () => {
+		const r = answeredToImplementing(new Runner()).implement("int_1", "att_1");
+		r.run({ type: "change.block", at: tick(), actor: KERNEL, reason: "execution_error", detail: "producer failed" });
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.equal(
+			r.s.attempts.find((a) => a.attempt_id === "att_1")?.result,
+			"superseded",
+			"the attempt opened on the revoked answer is closed",
+		);
+		ownerAnswers(r, "dec_q1_again", "answer", "422", "hd_q1_again");
+		r.g0()
+			.g1(requirements({ answers: [bound("q1", Q1, "422", "R1")] }))
+			.g2()
+			.g3()
+			.implement("int_2", "att_2");
+		assert.equal(
+			r.s.interventions.find((i) => i.intervention_id === "int_2")?.attempt_id,
+			"att_2",
+			"the producer of the rebuilt change works in an attempt of its own",
+		);
+	});
+
+	it("a revocation is refused once the owner accepted the candidate, before the change is integrating (6h)", () => {
+		const r = awaitingAcceptance();
+		ownerAnswers(r, "dec_a", "accept", null, "hd_a");
+		assert.notEqual(r.s.phase, "integrating", "the acceptance is recorded before any integration");
+		const from = r.events.length;
+
+		const refused = revokeResolution(r, "q1", "dec_q1_again");
+
+		assert.equal(refused.ok ? "accepted" : refused.error.code, "INVALID_TRANSITION", "the revocation is refused");
+		assert.match(refused.ok ? "" : refused.error.message, /candidate is accepted/);
+		assert.equal(r.events.length, from, "nothing is inscribed");
+		assert.equal(question(r, "q1").answer, "400", "Q1 stays answered");
+	});
+
+	it("the revocation revokes the IH-01 decision the kernel tied to the question revoked, whichever was answered first (M4)", () => {
+		const r = new Runner().create();
+		answerThroughDecision(r, "q1", Q1, "400");
+		answerThroughDecision(r, "q2", Q2, "64");
+
+		assert.equal(revokeResolution(r, "q2", "dec_q2_again").ok, true);
+
+		assert.equal(isValid(r, "hd_q2"), false, "the decision that answered Q2 is revoked");
+		assert.equal(isValid(r, "hd_q1"), true, "the decision that answered Q1 stays valid");
+		assert.equal(question(r, "q1").answer, "400", "Q1 stays answered");
+	});
+
+	it("the change rebuilt after a revocation is judged on its own candidates: one built before is neither a stagnation nor a spent retry", () => {
+		const r = answeredToImplementing(new Runner()).implement("int_1", "att_1");
+		const failing = (c: ReturnType<typeof candidate>) => [
+			evidence({ control_id: "unit", subject_digest: c.manifest_digest, verdict: "FAIL" }),
+			evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+		];
+		const before = candidate("c1");
+		r.freeze(before).verify(failing(before)).g5();
+		const retry = `verify:${before.manifest_digest}`;
+		for (const _ of [1, 2]) r.run({ type: "operation.fail", at: tick(), actor: KERNEL, operation_key: retry });
+		assert.notEqual(r.s.status, "blocked", "two technical retries are within the budget");
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+		ownerAnswers(r, "dec_q1_again", "answer", "422", "hd_q1_again");
+		r.g0()
+			.g1(requirements({ answers: [bound("q1", Q1, "422", "R1")] }))
+			.g2()
+			.g3()
+			.implement("int_2", "att_2");
+		const rebuilt = candidate("c1");
+		r.freeze(rebuilt).verify(failing(rebuilt)).g5();
+
+		r.run({ type: "correction.authorize", at: tick(), actor: KERNEL, attempt_id: "att_3", feedback: null });
+		assert.equal(
+			r.s.stop_reason,
+			null,
+			`the first candidate of the rebuilt change is corrected, not judged a stagnation: ${r.s.stop_detail}`,
+		);
+		assert.equal(r.s.phase, "implementing");
+		r.run({ type: "operation.fail", at: tick(), actor: KERNEL, operation_key: retry });
+		assert.notEqual(
+			r.s.status,
+			"blocked",
+			`a verification of the rebuilt change is retried as a first one: ${r.s.stop_detail}`,
+		);
+	});
+
+	/** Three attempts spent, each refused at G5, and a fourth granted by the owner's budget extension `hd_b`. */
+	function extensionGranted(): Runner {
+		const r = answeredToImplementing(new Runner()).implement("int_1", "att_1");
+		for (const n of [1, 2, 3]) {
+			if (n > 1) {
+				r.run({ type: "correction.authorize", at: tick(), actor: KERNEL, attempt_id: `att_${n}`, feedback: null });
+				r.implement(`int_${n}`, `att_${n}`);
+			}
+			const c = candidate(`c${n}`);
+			r.freeze(c)
+				.verify([
+					evidence({ control_id: "unit", subject_digest: c.manifest_digest, verdict: "FAIL" }),
+					evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+				])
+				.g5();
+		}
+		r.run({ type: "correction.authorize", at: tick(), actor: KERNEL, attempt_id: "att_4", feedback: null });
+		assert.equal(r.s.stop_reason, "attempts_exhausted");
+		ownerDecides(
+			r,
+			{
+				decision_id: "dec_b",
+				change_id: "chg_1",
+				interaction: "IH-07",
+				subject: { kind: "change", id: "chg_1", revision: r.s.revision, digest: r.s.candidate!.manifest_digest },
+				question: "Étendre ?",
+				facts: [],
+				recommendation: null,
+				options: [
+					{ id: "extend", label: "Étendre", effect: "+n", risky: false },
+					{ id: "stop", label: "Arrêter", effect: "", risky: false },
+				],
+				required_authority: "change_owner",
+				allow_free_text: true,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+			"extend",
+			"1",
+			"hd_b",
+		);
+		assert.equal(r.s.budgets.max_attempts, 4);
+		return r;
+	}
+
+	it("a budget extension the owner granted survives a revocation, since the rebuilt change spends on the same budget (§18, M5)", () => {
+		const r = extensionGranted();
+
+		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
+
+		assert.equal(isValid(r, "hd_b"), true, "the budget extension is not said revoked");
+		assert.equal(r.s.budgets.max_attempts, 4, "and its effect holds");
+	});
+
+	it("a budget extension survives a revision of the mandate, which undoes the rest as a revocation does (M5)", () => {
+		const r = extensionGranted();
+
+		r.run({
+			type: "artifact.revise",
+			at: tick(),
+			actor: KERNEL,
+			kind: "mandate",
+			ref: ref("mdt_1", { v: 2 }, 2),
+			reason: "objective restated",
+		});
+
+		assert.equal(r.s.phase, "clarifying");
+		assert.equal(isValid(r, "hd_b"), true, "the budget extension is not said revoked");
+		assert.equal(r.s.budgets.max_attempts, 4, "and its effect holds");
 	});
 });
 

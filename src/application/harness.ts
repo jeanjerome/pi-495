@@ -20,6 +20,7 @@ import {
 	requestedLanguage,
 	resumeLiftsStop,
 	runningIntervention,
+	subjectOfChange,
 	unknownCost,
 	type ArtifactKind,
 	type ChangeState,
@@ -959,6 +960,47 @@ export class Harness {
 			{ type: "question.close", at: this.now(), actor: origin.actor, id: questionId, origin },
 			this.id("cor"),
 		);
+		return { view: this.status(changeId), error: res.error };
+	}
+
+	/**
+	 * Revokes the owner's resolution of a material question and asks it again (DEC-06), on the
+	 * provenance the host adapter verified. The IH-01 request is built as clarification builds it, in
+	 * the language the change was started in and on the tree the change was opened on, since the
+	 * revocation withdraws the candidate, and the kernel inscribes it with the revocation. It is
+	 * stored for presentation first, as every request is: a revocation the kernel refuses leaves a
+	 * request no pending decision names, which nothing presents, whereas one stored after the
+	 * revocation could fail and leave the question pending with nothing to present or answer. No
+	 * intervention runs: the caller conducts the change onward, which presents the question again.
+	 */
+	revokeQuestion(
+		changeId: string,
+		questionId: string,
+		origin: HumanOrigin,
+	): { view: StatusView; error: DomainError | null } {
+		const unit = this.load(changeId);
+		const question = unit.state.open_questions.find((q) => q.id === questionId);
+		const request = {
+			...buildDecisionRequest({
+				decision_id: this.id("dec"),
+				change_id: changeId,
+				interaction: "IH-01",
+				subject: { ...subjectOfChange(unit.state), digest: unit.state.reference.digest },
+				language: requestedLanguage(unit.state) ?? "fr",
+				facts: [],
+				recommendation: null,
+				arg: question?.question ?? questionId,
+				requested_at: this.now(),
+			}),
+			interaction: "IH-01" as const,
+		};
+		this.deps.ledger.putDecisionRequest(request);
+		const res = this.tryCommit(
+			unit,
+			{ type: "question.revoke", at: this.now(), actor: origin.actor, id: questionId, origin, request },
+			this.id("cor"),
+		);
+		if (!res.error) this.deps.onDecisionRequested?.(request);
 		return { view: this.status(changeId), error: res.error };
 	}
 }

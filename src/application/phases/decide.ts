@@ -5,10 +5,9 @@
 import { digestBytes } from "../../contracts/digest.ts";
 import type { SubjectRef } from "../../contracts/v1/common.ts";
 import { retryCanDiffer } from "../../domain/baseline.ts";
-import { subjectOfChange } from "../../domain/change/state.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
-import type { PhaseContext, Unit } from "./phase.ts";
+import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
 
 async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
 	const state = unit.state;
@@ -34,20 +33,7 @@ async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: st
 		},
 		cor,
 	);
-	if (next.state.status === "blocked" && next.state.stop_reason === "attempts_exhausted") {
-		return ctx.requestDecision(
-			next,
-			cor,
-			"IH-07",
-			subjectOfChange(next.state),
-			[why],
-			"stop",
-			`${next.state.budgets.attempts_used}/${next.state.budgets.max_attempts}`,
-			undefined,
-			ctx.language(next.state),
-		);
-	}
-	return next;
+	return requestBudgetExtensionIfExhausted(ctx, next, cor, [why]);
 }
 
 export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {

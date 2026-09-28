@@ -95,8 +95,10 @@ As a propriétaire d'un changement, I want révoquer la réponse ou la clôture 
    - le mandat, les exigences, le protocole, la préparation et la conception ne sont plus adoptés,
      et le protocole n'est plus gelé ;
    - les preuves et les relectures sont invalidées ;
-   - les décisions humaines enregistrées, hors réponses aux questions, sont révoquées ;
+   - les décisions humaines enregistrées, hors réponses aux questions et extensions de budget, sont
+     révoquées ;
    - les décisions en attente, hors questions, sont retirées ;
+   - la tentative restée ouverte est close ;
    - le changement revient en clarification.
 5. Q1 est reposée telle que le journal la tient, par IH-01 et ses trois issues : répondre, clore,
    abandonner. La révocation ne lance aucune intervention.
@@ -127,8 +129,10 @@ l'arrêt et repose Q1.
 
 6d. **Décisions en attente et décisions enregistrées** : une acceptation (IH-10), une adoption
 (IH-02) ou une extension de budget (IH-07) attend le propriétaire. Elle est retirée : son sujet
-n'existe plus. Les décisions enregistrées autres que les réponses aux questions sont révoquées.
-Les réponses aux autres questions matérielles restent enregistrées et valides.
+n'existe plus. Les décisions enregistrées autres que les réponses aux questions et les extensions de
+budget sont révoquées. Les réponses aux autres questions matérielles restent enregistrées et valides,
+et une extension de budget déjà accordée aussi : le changement reconstruit dépense sur le même budget
+(§18).
 
 6e. **Une autre question attend sa réponse** : IH-01 est en attente pour Q2 quand Q1 est révoquée.
 La décision de Q2 reste en attente, et Q1 est reposée à côté d'elle.
@@ -144,12 +148,15 @@ le dit et n'inscrit rien.
 inscrit, dans ces cas :
 - une question inconnue, non matérielle, ou ni répondue ni close ;
 - un changement clos ou annulé ;
-- un candidat accepté, dès que le changement est en intégration ;
+- un candidat accepté, par le propriétaire (IH-10) ou par G5 en entrant en intégration ;
 - une intervention ou une vérification qui tourne ;
 - une autre opération 495 qui tient la session.
 
 6i. **Révocation abandonnée à la confirmation** : dans le TUI, le propriétaire refuse la
 confirmation. Rien n'est inscrit, et le changement reste tel qu'il était.
+
+6j. **Révocation d'un changement en pause** : la révocation défait ce que disent les étapes 4 et 5,
+et la pause tient. Q1 reposée attend la reprise, comme toute décision d'un changement en pause.
 
 ### 7. Interface elements [draft]
 
@@ -191,13 +198,17 @@ autres que celles d'une question. Le noyau n'a plus qu'une révocation.
 §6.4, invalidation conservative) :
 - G0 et suivantes ;
 - toutes les preuves et relectures valides ;
-- toutes les décisions humaines valides hors IH-01 ;
+- toutes les décisions humaines valides hors IH-01 et IH-07 : une extension de budget relève le
+  budget que le changement dépense quel que soit son mandat, et la dire révoquée dirait révoquée une
+  décision dont l'effet tient ;
 - le retour en clarification.
 
 À cela s'ajoutent :
 - le retrait de l'adoption de tout artefact adopté ;
 - le protocole gelé ;
-- le retrait des décisions en attente hors IH-01.
+- le retrait des décisions en attente hors IH-01 ;
+- la clôture de la tentative restée ouverte, dont l'espace de travail a été préparé et écrit pour la
+  résolution révoquée.
 
 **Où l'état naît, qui le lit.**
 - La résolution retirée naît dans l'application de l'événement de révocation. La clarification, G0,
@@ -206,6 +217,18 @@ autres que celles d'une question. Le noyau n'a plus qu'une révocation.
   révocation sont lus dans le journal, là où l'historique de la spécification lit déjà quels
   rapports ont suivi le dernier acte humain. La clarification ne les reprend pas comme rapport
   courant, et ni elle ni la spécification n'en héritent.
+- La même coupure vaut pour toute proposition. Une étape, le rapport ou la consigne d'une
+  intervention qui lit la dernière proposition d'un genre non adopté ne lit que celles écrites depuis
+  la dernière révocation. Les préparations écrites avant ne comptent pas dans les deux tours de
+  préparation, et aucune n'est dite refusée à la préparation qui suit.
+- Le candidat gelé avant la révocation n'est plus celui du changement, et le changement reconstruit
+  n'est jugé que sur les siens : un candidat d'avant ne compte ni pour la stagnation ni pour les
+  relances techniques de sa vérification.
+- Le retour d'une correction ne va qu'à la tentative que cette correction ouvre. Une tentative
+  ouverte après une révocation ne reçoit donc rien de ce qui a été mesuré avant elle.
+- L'espace de travail préparé pour un producteur qui n'a pas démarré porte la préparation qui y a
+  été écrite. Il n'est repris que si cette préparation est encore celle adoptée, ou si aucune ne l'est
+  ni ne l'était : c'est alors une copie intacte de la référence.
 
 **Contrats :** aucun schéma ne change. La décision exportée garde son champ `revoked`, qui dit
 désormais ce que l'état tient.
@@ -259,6 +282,9 @@ Not applicable. Aucun réglage : la révocation ne dépend que de la décision d
 - Artefact adopté, gate retirée ou décision en attente qui subsiste après une révocation, hors
   décisions IH-01 d'autres questions : 0.
 - Rapport de spécification écrit avant une révocation, repris ou hérité après elle : 0.
+- Préparation, retour de correction, candidat ou espace de travail préparé d'avant une révocation,
+  repris par le changement reconstruit après elle : 0, hors un espace sans préparation, copie intacte
+  de la référence.
 - Révocation inscrite sans humain qualifié : 0.
 - Intervention lancée par la révocation elle-même : 0.
 - Décision que l'état tient pour révoquée et que le dossier exporté dit non révoquée : 0.
@@ -290,7 +316,7 @@ Not applicable. Aucun réglage : la révocation ne dépend que de la décision d
 
 - La confirmation dit ce que la révocation défait avant qu'elle ne soit inscrite.
 - Le propriétaire n'a pas à relancer quoi que ce soit : la question reposée lui est présentée dès la
-  révocation inscrite.
+  révocation inscrite. Un changement en pause la présente à sa reprise.
 - Langue : la confirmation et la question reposée suivent la langue de la session, en français et en
   anglais ; les refus du noyau sont en anglais, comme les autres.
 
@@ -336,7 +362,7 @@ Scenario: Révoquer devant l'arrêt d'une spécification qui ne progresse plus (
 Scenario: Les décisions qui dépendaient de la réponse cessent, les autres réponses restent (6d)
   Given des réponses à Q1 et Q2, et une décision IH-10 en attente
   When  le propriétaire révoque la réponse à Q1
-  Then  IH-10 est retirée et les décisions enregistrées autres que les réponses aux questions sont révoquées
+  Then  IH-10 est retirée et les décisions enregistrées autres que les réponses aux questions et les extensions de budget sont révoquées
   And   la réponse à Q2 et sa décision IH-01 restent enregistrées et valides
 
 Scenario: Une autre question en attente le reste (6e)
@@ -362,7 +388,7 @@ Scenario: /495 revoke est refusée en mode print ou json (6g)
   And   rien n'est inscrit
 
 Scenario: /495 revoke est refusée hors d'atteinte (6h)
-  Given une question inconnue, non matérielle ou ni répondue ni close, un changement clos, annulé ou en intégration, une intervention ou une vérification qui tourne, ou une autre opération 495 qui tient la session
+  Given une question inconnue, non matérielle ou ni répondue ni close, un changement clos ou annulé, un candidat accepté par le propriétaire (IH-10) ou en intégration, une intervention ou une vérification qui tourne, ou une autre opération 495 qui tient la session
   When  une révocation est demandée
   Then  elle est refusée en disant pourquoi
   And   rien n'est inscrit
@@ -371,6 +397,19 @@ Scenario: Renoncer à la confirmation n'inscrit rien (6i)
   Given une session TUI liée à un changement dont Q1 est répondue
   When  le propriétaire lance /495 revoke Q1 puis refuse la confirmation
   Then  rien n'est inscrit et le changement reste tel qu'il était
+
+Scenario: Un changement en pause le reste après la révocation (6j)
+  Given un changement en pause dont Q1 est répondue
+  When  le propriétaire révoque la réponse à Q1
+  Then  le changement reste en pause et une décision IH-01 repose Q1
+  And   sa reprise présente Q1 reposée
+
+Scenario: Le changement reconstruit ne reprend rien de ce qui a été construit avant la révocation (§8)
+  Given une réponse à Q1 révoquée après une préparation adoptée, une correction, ou un espace de travail préparé pour un producteur qui n'a pas démarré
+  When  le changement est reconstruit sur la nouvelle réponse
+  Then  la tentative restée ouverte est close, et le producteur ne travaille dans aucun espace de travail préparé avec une préparation que la révocation a retirée
+  And   il ne reçoit aucun retour mesuré avant la révocation
+  And   la préparation n'apprend aucun refus d'avant la révocation, et ses deux tours comptent depuis elle
 
 Scenario: Le dossier dit révoquée la décision révoquée (§12)
   Given une réponse à Q1 révoquée
@@ -384,11 +423,13 @@ Scenario: Le dossier dit révoquée la décision révoquée (§12)
 - Les autres décisions humaines restent irrévocables depuis Pi : adoptions, dérogations,
   acceptations, autorisations d'intégration (capsule, hors périmètre). Une révocation d'une question
   les révoque par invalidation, jamais sur désignation.
-- Une réponse ne se révoque plus une fois le candidat accepté. En intégration, le propriétaire décline
-  l'intégration ou annule le changement ; clos, le changement ne rouvre pas.
+- Une réponse ne se révoque plus une fois le candidat accepté. Décliner l'intégration garde
+  l'acceptation : seule l'annulation écarte le changement, et le refus le dit. Clos, le changement ne
+  rouvre pas.
 - Une révocation ne porte pas de motif écrit, pas plus qu'une clôture (e01s03).
 - Une révocation ne rend pas le budget de tentatives : le changement reconstruit dépense sur le même
-  budget.
+  budget. Quand il n'en reste plus, une extension (IH-07) est demandée au propriétaire avant la
+  première tentative du changement reconstruit.
 - Révoquer une révocation : la nouvelle résolution de la question reposée en tient lieu.
 - Ce qu'une décision refusée laisse au journal (`BUG-2026-09-27T170000`) et le verrou de session que
   `/495 verify` prend sans le lire (`BUG-2026-09-27T220000`) restent ouverts. `/495 revoke` lit ce
@@ -436,5 +477,8 @@ précédentes fixent le reste :
 - `specs/bugs/registry.yaml` : `BUG-2026-09-27T170000`, `BUG-2026-09-27T220000`.
 - Fichiers touchés : `src/domain/change/commands.ts`, `src/domain/change/events.ts`,
   `src/domain/change/decide.ts`, `src/domain/change/apply.ts`, `src/domain/invalidation.ts`,
-  `src/application/artifacts.ts`, `src/application/phases/clarify.ts`, `src/application/harness.ts`,
+  `src/application/artifacts.ts`, `src/application/phases/verification-design.ts`,
+  `src/application/phases/prepare.ts`,
+  `src/application/phases/implement.ts`, `src/application/phases/phase.ts`,
+  `src/application/phases/decide.ts`, `src/application/verification.ts`, `src/application/harness.ts`,
   `src/export/export-service.ts`, `src/extension/command.ts`.

@@ -150,13 +150,15 @@ export interface HarnessOptions {
 	 * provider that imposes a layer.
 	 */
 	model?: Partial<ModelSelection>;
+	/** Opens the ledger at the given path, e.g. one whose storage fails where a test needs it to. */
+	ledger?: (path: string) => SqliteLedger;
 }
 
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
 export function makeHarness(options: HarnessOptions = {}): TestHarness {
 	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
 	const root = options.root ?? mkdtempSync(join(process.cwd(), "test-output", "harness-"));
-	const ledger = new SqliteLedger(join(root, "state.sqlite"));
+	const ledger = (options.ledger ?? ((path: string) => new SqliteLedger(path)))(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
 	const workspace = new GitWorkspace(join(root, "workspaces"));
 	const sandbox =

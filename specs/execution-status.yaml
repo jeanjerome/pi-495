@@ -3,7 +3,7 @@ development_status:
   e01s01: done
   e01s02: done
   e01s03: done
-  e01s04: in_progress
+  e01s04: done
   e01s05: backlog
   e23: done
   e24: done
@@ -81,11 +81,16 @@ stories:
     risk_max: P0
     security_max: high
   e01s04:
-    status: in_progress
+    status: done
     title: Une réponse donnée par erreur se révoque, et ce qui en découlait n'est plus adopté
     bcps: 5
     epic: e01
     started_at: "2026-09-28T00:50:16+02:00"
+    tasks_total: 7
+    tasks_passing: 7
+    tasks_failing: 0
+    risk_max: P0
+    security_max: high
   e23s01:
     status: done
     title: La sortie de données vers le fournisseur est déclarée

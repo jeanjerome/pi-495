@@ -1,4 +1,4 @@
-import type { GateId, HumanInteraction, Phase } from "../contracts/v1/common.ts";
+import type { GateId, Phase } from "../contracts/v1/common.ts";
 import type { ArtifactKind, ChangeState } from "./change/state.ts";
 
 export type InvalidationCause =
@@ -7,7 +7,7 @@ export type InvalidationCause =
 	| { kind: "environment_changed" }
 	| { kind: "destination_advanced"; combined_changed: boolean }
 	| { kind: "evidence_lost"; evidence_id: string }
-	| { kind: "authorization_revoked"; human_decision_id: string; interaction: HumanInteraction };
+	| { kind: "resolution_revoked"; question_id: string };
 
 export interface InvalidationPlan {
 	reason: string;
@@ -35,20 +35,24 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 	const candidateDecisions = state.human_decisions
 		.filter((d) => d.valid && (d.interaction === "IH-10" || d.interaction === "IH-11" || d.interaction === "IH-08"))
 		.map((d) => d.human_decision_id);
+	// Everything from G0 on, and every human decision but the answers to the questions and the budget
+	// extensions: an extension raises the attempt budget, which the change spends whatever its mandate,
+	// so revoking it would say revoked a decision whose effect holds.
+	const fromMandate = (reason: string): InvalidationPlan => ({
+		reason,
+		gates: from("G0"),
+		evidence: allEvidence,
+		reviews: allReviews,
+		human_decisions: state.human_decisions
+			.filter((d) => d.valid && d.interaction !== "IH-01" && d.interaction !== "IH-07")
+			.map((d) => d.human_decision_id),
+		rollback_phase: "clarifying",
+	});
 	switch (cause.kind) {
 		case "artifact_revised":
 			switch (cause.artifact) {
 				case "mandate":
-					return {
-						reason: "mandate revised",
-						gates: from("G0"),
-						evidence: allEvidence,
-						reviews: allReviews,
-						human_decisions: state.human_decisions
-							.filter((d) => d.valid && d.interaction !== "IH-01")
-							.map((d) => d.human_decision_id),
-						rollback_phase: "clarifying",
-					};
+					return fromMandate("mandate revised");
 				case "requirements":
 					return {
 						reason: "requirements revised (RM-010, SA-034)",
@@ -134,20 +138,9 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 				rollback_phase: null,
 			};
 		}
-		case "authorization_revoked":
-			return {
-				reason: `authorization ${cause.human_decision_id} revoked`,
-				gates:
-					cause.interaction === "IH-11"
-						? ["G6"]
-						: cause.interaction === "IH-10" || cause.interaction === "IH-08"
-							? from("G5")
-							: [],
-				evidence: [],
-				reviews: [],
-				human_decisions: [],
-				rollback_phase: null,
-			};
+		// A resolution revoked undoes what G0 adopted on its faith, as a mandate revised does (DEC-06).
+		case "resolution_revoked":
+			return fromMandate(`resolution of question ${cause.question_id} revoked`);
 		default: {
 			const never: never = cause;
 			throw new Error(`unknown cause ${JSON.stringify(never)}`);

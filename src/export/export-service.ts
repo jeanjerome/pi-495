@@ -190,7 +190,12 @@ export async function exportChange(
 		add(`changes/${state.change_id}/evidence/${ev.evidence_id}.json`, json(ev));
 		for (const att of ev.artifacts) objectDigests.add(att.ref.digest);
 	}
-	const decisions = ledger.listHumanDecisions(state.change_id);
+	// The record is written when the decision is answered; whether it still binds is what the state
+	// holds now, since a revocation or an invalidation only ever changes the current validity.
+	const decisions = ledger.listHumanDecisions(state.change_id).map((d) => ({
+		...d,
+		revoked: state.human_decisions.find((h) => h.human_decision_id === d.human_decision_id)?.valid === false,
+	}));
 	add(
 		`changes/${state.change_id}/decisions/index.json`,
 		json({

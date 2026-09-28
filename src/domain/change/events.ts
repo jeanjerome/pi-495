@@ -63,6 +63,12 @@ export type ChangeEvent =
 	| (Base & { type: "question.opened"; id: string; question: string; material: boolean; decision_id: string | null })
 	| (Base & { type: "question.answered"; id: string; answer: string; human_decision_id: string | null })
 	| (Base & { type: "question.closed"; id: string; human_decision_id: string | null })
+	/**
+	 * The owner revoked the resolution of a material question, under the actor who gave the
+	 * revocation: `human_decision_id` is the IH-01 decision it revokes, null for a close given without
+	 * one, and `decision_id` the IH-01 request that asks the question again.
+	 */
+	| (Base & { type: "question.revoked"; id: string; human_decision_id: string | null; decision_id: string })
 	| (Base & { type: "gate.decided"; decision: GateDecisionState })
 	| (Base & { type: "gate.invalidated"; gate: GateId; reason: string })
 	| (Base & { type: "attempt.opened"; attempt_id: string; index: number })
@@ -140,6 +146,7 @@ export type ChangeEvent =
 	  })
 	| (Base & { type: "decision.rejected"; decision_id: string; reason: string })
 	| (Base & { type: "decision.revoked"; human_decision_id: string; reason: string })
+	| (Base & { type: "decision.withdrawn"; decision_id: string; reason: string })
 	| (Base & { type: "feedback.produced"; attempt_id: string; digest: string; bytes: number; truncated: boolean })
 	| (Base & { type: "operation.opened"; operation_id: string; kind: string; idempotency_key: string })
 	| (Base & {

@@ -3,7 +3,16 @@ import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir, writeFiles, fixtureMavenMultiModule } from "../helpers/fixtures.ts";
+import {
+	fixtureTs,
+	fixtureTsWithoutTests,
+	initRepo,
+	tempDir,
+	writeFiles,
+	fixtureMavenMultiModule,
+	SHOUT_IMPL,
+	SHOUT_TEST,
+} from "../helpers/fixtures.ts";
 import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
 import { detectStack } from "../../src/application/target.ts";
 import {
@@ -28,24 +37,11 @@ function track(t: TestHarness): TestHarness {
 function projectWithoutTests(): string {
 	const p = tempDir("495-notests-");
 	cleanups.push(p);
-	writeFiles(p, {
-		"package.json": JSON.stringify({
-			name: "f-notests",
-			version: "1.0.0",
-			type: "module",
-			scripts: { test: "node --test" },
-		}),
-		"src/greet.js": "export function greet(name) {\n  return `Hello, ${name}`;\n}\n",
-		"README.md": "# no tests yet\n",
-	});
+	fixtureTsWithoutTests(p);
 	initRepo(p);
 	return p;
 }
 
-const SHOUT_TEST =
-	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet, shout } from "../src/greet.js";\n\ntest("shout upper-cases the greeting", () => {\n  assert.equal(shout("x"), "HELLO, X");\n});\ntest("greet unchanged", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n';
-const SHOUT_IMPL =
-	"export function greet(name) {\n  return `Hello, ${name}`;\n}\nexport function shout(name) {\n  return greet(name).toUpperCase();\n}\n";
 const spec = specReport({
 	objective: "add shout(name) returning the greeting in upper case",
 	requirements: [

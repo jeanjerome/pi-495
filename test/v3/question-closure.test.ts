@@ -6,16 +6,21 @@
  * decides, adopts or closes.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { registerTool495 } from "../../src/extension/tool.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
-
-const RPC_ACTOR = "owner-1";
+import {
+	FakeContext,
+	FakePi,
+	HARNESS_ENV,
+	RPC_ACTOR,
+	commandProject,
+	stalledOnQ1,
+} from "../helpers/command-fixture.ts";
 
 let root: string;
 beforeEach(() => {
@@ -25,152 +30,13 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function project(): string {
-	const path = tempDir("495-question-closure-");
-	fixtureTs(path);
-	initRepo(path);
-	return path;
-}
-
-/** A report that only ever asks Q1, and never declares it: replayed identically on every round, it
- * never carries the answer the owner gives, so the change stalls on it once, exactly as e01s02
- * already pins for a lost answer — no second, distinct script is needed to reach that stop. */
-const ASKS_Q1 = {
-	objective: "x",
-	facts: [],
-	assumptions: [],
-	questions: [{ id: "q1", question: "422 ou 400 ?", material: true }],
-	answers: [],
-	out_of_scope: [],
-	risks: [],
-	requirements: [
-		{
-			requirement_id: "R1",
-			statement: "le refus est exposé",
-			mandatory: true,
-			criterion: "le scénario le vérifie",
-			category: "interface",
-			satisfied_by_reference: true,
-		},
-	],
-	design: { summary: "x", components: [], interfaces: [], risks: [] },
-};
-
-class FakePi {
-	command: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | null = null;
-	readonly said: string[] = [];
-	registerCommand(_name: string, options: { handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> }) {
-		this.command = options.handler;
-	}
-	registerTool(_def: unknown): void {}
-	registerMessageRenderer(): void {}
-	on(): void {}
-	sendMessage(message: { content: string }): void {
-		this.said.push(message.content);
-	}
-	appendEntry(): void {}
-}
-
-/**
- * Pi's context: only what session.ts, command.ts and conduct.ts actually read. `rpc` is used for the
- * dialog-capable cases instead of `tui`, so the confirmation and the decision it exercises are real
- * (`hasUI` is true in both, per Pi's own contract) without pulling in the terminal's own rendering
- * primitives, which nothing here needs to draw.
- */
-class FakeContext {
-	readonly mode: "rpc" | "json";
-	readonly hasUI: boolean;
-	readonly thinkingLevel = "off";
-	readonly modelRegistry = null;
-	readonly model = { provider: "stand-in", id: "scripted-1", baseUrl: "http://127.0.0.1:9/v1" };
-	readonly cwd: string;
-	readonly sessionManager: { getSessionId: () => string };
-	readonly confirmAnswer: boolean;
-	confirmations = 0;
-	/** Set by a test that needs to observe session state at the moment a confirmation is put, before
-	 * the fake answers it. */
-	onConfirm: (() => void) | null = null;
-	readonly ui: {
-		select: (q: string, opts: string[]) => Promise<string | null>;
-		input: (prompt: string) => Promise<string | null>;
-		confirm: (title: string, message: string) => Promise<boolean>;
-		notify: (text: string, level?: string) => void;
-		setStatus: (id: string, text: string) => void;
-	};
-	constructor(cwd: string, mode: "rpc" | "json", sessionId: string, confirmAnswer = true) {
-		this.cwd = cwd;
-		this.mode = mode;
-		this.hasUI = mode === "rpc";
-		this.sessionManager = { getSessionId: () => sessionId };
-		this.confirmAnswer = confirmAnswer;
-		this.ui = {
-			select: async (_q, opts) => opts[0] ?? null,
-			input: async () => "réponse à la question",
-			confirm: async () => {
-				this.confirmations++;
-				this.onConfirm?.();
-				return this.confirmAnswer;
-			},
-			notify: () => undefined,
-			setStatus: () => undefined,
-		};
-	}
-}
-
-/** Starts a change whose only material question is asked, answered, then lost by the report that
- * never declared it: the change stalls in clarification for stagnation, naming q1. */
-async function stalledOnQ1(
-	dataDir: string,
-	cwd: string,
-): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
-	const agentScript = join(dataDir, "agent.json");
-	writeFileSync(
-		agentScript,
-		JSON.stringify({
-			default: { steps: [{ kind: "fail", error: "not reached" }] },
-			roles: { specify: { steps: [{ kind: "complete", output: ASKS_Q1 }] } },
-		}),
-	);
-	process.env.HARNESS495_DATA_DIR = join(dataDir, "data");
-	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
-	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
-	const pi = new FakePi();
-	const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-	registerCommand495(pi as unknown as ExtensionAPI, session);
-	const ctx = new FakeContext(cwd, "rpc", "s-question-closure");
-	session.openedAt(ctx as unknown as ExtensionContext);
-	// `start` conducts the change itself (`conduct` -> `advance` then `presentDecisions`): the fake UI
-	// already answers Q1 there, so no separate `/495 decide` is needed. What it does not do is drive
-	// `advance` again on the answer just given; `resume` does, reaching the round that loses it.
-	await pi.command!("start x", ctx as unknown as ExtensionCommandContext);
-	if (!session.binding) throw new Error(`start did not bind: ${pi.said.join(" | ")}`);
-	const changeId = session.binding.change_id;
-	assert.ok(
-		session
-			.runtime()
-			.ledger.loadChange(changeId)!
-			.state.open_questions.find((q) => q.id === "q1")?.answer,
-		pi.said.join(" | "),
-	);
-	await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
-	const state = session.runtime().ledger.loadChange(changeId)!.state;
-	assert.equal(state.status, "blocked", pi.said.join(" | "));
-	assert.equal(state.stop_reason, "stagnation", pi.said.join(" | "));
-	assert.ok(state.stop_detail?.includes("q1"), state.stop_detail ?? "");
-	return { pi, session, ctx, changeId };
+	return commandProject("495-question-closure-");
 }
 
 describe("`/495 close <question>` closes a material question from the stop of a stalled specification (BES-02)", () => {
 	const saved: Record<string, string | undefined> = {};
 	beforeEach(() => {
-		for (const name of [
-			"HARNESS495_DATA_DIR",
-			"HARNESS495_SCRIPTED_AGENT",
-			"HARNESS495_ALLOW_UNCONFINED",
-			"HARNESS495_RPC_HUMAN_ACTOR",
-			"HARNESS495_LANGUAGE",
-		])
-			saved[name] = process.env[name];
+		for (const name of HARNESS_ENV) saved[name] = process.env[name];
 	});
 	afterEach(() => {
 		for (const [name, value] of Object.entries(saved)) {
