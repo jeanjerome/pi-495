@@ -88,7 +88,7 @@ epics:
 
   - id: e01
     title: "Une réponse humaine atteint les exigences"
-    status: en cours
+    status: versé
     source: chantiers/L
     objet: >
       Une réponse humaine à une question matérielle atteint l'artefact que la gate adopte, et un rapport
@@ -109,7 +109,7 @@ epics:
       - { id: e01s02, status: "versée", title: "Une spécification qui ne progresse plus arrête le changement avec un recours" }
       - { id: e01s03, status: "versée", title: "Seul l'humain déclare qu'une question n'est plus matérielle ou qu'une réponse ne fixe rien d'observable" }
       - { id: e01s04, status: "versée", title: "Une réponse donnée par erreur se révoque, et ce qui en découlait n'est plus adopté" }
-      - { id: e01s05, status: "à faire", title: "La décision est écrite et la recette tenue par une exécution réelle" }
+      - { id: e01s05, status: "versée", title: "La décision est écrite et la recette tenue par une exécution réelle" }
 
   - id: e02
     title: "Une sortie refusée garde une issue"
