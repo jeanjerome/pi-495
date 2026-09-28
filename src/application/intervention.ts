@@ -24,6 +24,7 @@ import type {
 	SandboxSelection,
 } from "../ports/execution.ts";
 import { outputSchemaFor } from "./context.ts";
+import { BASE_ENV } from "./stacks/stack.ts";
 
 export interface InterventionDeps {
 	agent: AgentPort;
@@ -248,15 +249,19 @@ export class InterventionSupervisor {
 		};
 	}
 
-	/** The permissions a role runs under: only a role that writes is given a writable path. */
+	/**
+	 * The permissions a role runs under: only a role that writes is given a writable path, and only
+	 * it reads the environment the controls read, so that what it runs to check itself is what the
+	 * kernel will run — the same JDK, the same locale, the same Maven options.
+	 */
 	private profileFor(role: InterventionMandate["role"], workspacePath: string): SandboxProfile {
-		const writes = role === "implement" || role === "prepare" ? [workspacePath] : [];
+		const writes = role === "implement" || role === "prepare";
 		return {
 			profile_id: role,
 			read_paths: [workspacePath],
-			write_paths: writes,
+			write_paths: writes ? [workspacePath] : [],
 			network: "denied",
-			env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"],
+			env_allowlist: writes ? [...BASE_ENV] : ["PATH", "HOME", "TMPDIR", "LANG"],
 			env: {},
 		};
 	}

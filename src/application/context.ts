@@ -15,9 +15,11 @@
 import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
+import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import { type ChangeState, isQuestionClosed } from "../domain/change/state.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
 import type { ContextManifest } from "../ports/execution.ts";
+import { runsNothing } from "./stacks/stack.ts";
 
 export interface ContextInput {
 	role: InterventionRole;
@@ -28,8 +30,8 @@ export interface ContextInput {
 	feedback: string | null;
 	tools: string[];
 	budget_bytes: number;
-	/** Frozen controls the kernel will run on the candidate, so the producer can run them first. */
-	controls?: { control_id: string; command: string[]; cwd: string }[];
+	/** Frozen controls the kernel will oppose to the candidate, so the producer can run first those that run. */
+	controls?: readonly Pick<ControlDefinition, "control_id" | "command" | "cwd" | "title">[];
 	/** Frozen architecture boundaries the candidate will be judged against (ARC-04). */
 	boundaries?: string[];
 	/**
@@ -145,14 +147,26 @@ export function buildContext(input: ContextInput): {
 	];
 	// A producer that never runs the control it is judged by hands over a tree that may not even
 	// build; the kernel would then reject it without the model ever seeing why.
+	// A control that runs nothing — its parser reads a report another control left, or the code —
+	// is named with what it reads: handed as a command, its empty trigger is a command to nowhere.
 	if ((input.role === "implement" || input.role === "prepare") && (input.controls?.length ?? 0) > 0) {
 		const commands = input
-			.controls!.map(
-				(c) => `\`${c.command.join(" ")}\` in ${c.cwd === "." ? "the workspace root" : c.cwd} (${c.control_id})`,
-			)
+			.controls!.filter((c) => !runsNothing(c.command))
+			.map((c) => `\`${c.command.join(" ")}\` in ${c.cwd === "." ? "the workspace root" : c.cwd} (${c.control_id})`)
+			.join("; ");
+		const readings = input
+			.controls!.filter((c) => runsNothing(c.command))
+			.map((c) => `${c.control_id} (${c.title})`)
 			.join("; ");
 		trusted.push(
-			`The kernel will judge your work by running, without you: ${commands}. Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.`,
+			[
+				commands
+					? `The kernel will judge your work by running, without you: ${commands}. Run it yourself before you answer and keep working until it gets past compilation: a tree that does not build is rejected whatever your report claims. Work offline — the network is denied.`
+					: "The kernel will judge your work without you.",
+				readings ? `It also reads your tree without running anything, for: ${readings}.` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
 		);
 	}
 	// The architecture the producer is judged against is told to it before it writes, and checked on
@@ -256,13 +270,13 @@ export function specificationObjective(
 	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
 }
 
-/** The mandate a bounded preparation is opened on: what is missing, and where it may be written. */
+/** The mandate a bounded preparation is opened on: what is missing, and what of its work is retained. */
 export function preparationMandateObjective(
 	stack: string,
 	allowedPaths: readonly string[],
 	undiscriminated: readonly string[],
 ): string {
-	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} may be created or modified. The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
+	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} are retained, and whatever you write elsewhere to check yourself is ignored. The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
 }
 
 /** What the preparing intervention is asked, on top of the mandate it was opened on. */

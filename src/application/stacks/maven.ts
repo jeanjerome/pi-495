@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { SCOPE_PLACEHOLDER, type ControlDefinition, type StructureRule } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, type StackDetection } from "./stack.ts";
+import { BASE_ENV, emptyTrigger, type StackDetection } from "./stack.ts";
 
 export function detectMavenStack(
 	projectPath: string,
@@ -54,7 +54,7 @@ export function detectMavenStack(
 			control_id: "coverage",
 			version: "1",
 			title: "introduced-line coverage, read from the JaCoCo report of mvn test",
-			command: [nodeBinary, "-e", ""],
+			command: emptyTrigger(nodeBinary),
 			cwd: ".",
 			env_allowlist: BASE_ENV,
 			env: {},
@@ -80,7 +80,7 @@ export function detectMavenStack(
 			control_id: "structure",
 			version: "1",
 			title: "frozen architecture boundaries, read from the Java declarations",
-			command: [nodeBinary, "-e", ""],
+			command: emptyTrigger(nodeBinary),
 			cwd: ".",
 			env_allowlist: BASE_ENV,
 			env: {},

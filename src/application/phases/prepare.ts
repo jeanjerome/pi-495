@@ -27,7 +27,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		.findLast((ref) => ref.artifact_id.startsWith("prep_"));
 	const previous = previousRef ? await ctx.artifacts.read<PreparationRecord>(previousRef) : null;
 	const feedback = previous
-		? `The previous preparation was refused. Keep every change inside the allowed paths.\n${previous.notes.map((note) => `- ${note}`).join("\n")}`
+		? `The previous preparation was refused. Only files under the allowed paths are retained; what was written elsewhere was ignored.\n${previous.notes.map((note) => `- ${note}`).join("\n")}`
 		: null;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
@@ -87,32 +87,40 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		const notes: string[] = [];
 		if (r.result !== "completed") notes.push(`preparation intervention ${r.result}`);
 		const manifest = await ctx.workspace.snapshotCandidate(handle, reference, ctx.workspacePolicy);
-		const { files, out_of_scope } = preparedFilesFrom(manifest, mandate.allowed_paths);
-		for (const p of out_of_scope) notes.push(`change outside the preparation mandate refused: ${p}`);
+		const { files, out_of_scope, refused } = preparedFilesFrom(manifest, mandate.allowed_paths);
+		for (const p of out_of_scope) notes.push(`written outside the preparation mandate, not retained: ${p}`);
+		for (const p of refused) notes.push(`change under the preparation roots refused: ${p}`);
 		if (files.length === 0) notes.push("no test file was produced");
-		// loadability and discriminance against the bare reference
+		await ctx.artifacts.ensureBytes(handle.path, files);
+		// Loadability and discriminance are judged on the bare reference plus the retained files, never
+		// on the producer's tree: a feature it wrote beside its tests would make them pass there.
 		let onReference: PreparationRecord["on_reference"] = "NOT_RUN";
 		let loadable = false;
 		const sensor = detected.controls[0];
 		if (files.length > 0 && sensor) {
-			const judged = await ctx.verification.judgePreparedSuite({
-				control: sensor,
-				reference,
-				manifest,
-				workspace_id: handle.workspace_id,
-				workspace_path: handle.path,
-			});
-			onReference = judged.on_reference;
-			loadable = judged.loadable;
-			notes.push(...judged.notes);
+			const bare = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
+			try {
+				await ctx.artifacts.materializePrepared({ files }, bare.path);
+				const judged = await ctx.verification.judgePreparedSuite({
+					control: sensor,
+					reference,
+					manifest: await ctx.workspace.snapshotCandidate(bare, reference, ctx.workspacePolicy),
+					workspace_id: bare.workspace_id,
+					workspace_path: bare.path,
+				});
+				onReference = judged.on_reference;
+				loadable = judged.loadable;
+				notes.push(...judged.notes);
+			} finally {
+				await ctx.workspace.closeWorkspace(bare.workspace_id, "delete");
+			}
 		}
-		await ctx.artifacts.ensureBytes(handle.path, files);
 		const discriminant = onReference === "FAIL";
 		if (!discriminant && onReference === "PASS")
 			notes.push(
 				"prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)",
 			);
-		const qualified = out_of_scope.length === 0 && files.length > 0 && loadable && discriminant;
+		const qualified = refused.length === 0 && files.length > 0 && loadable && discriminant;
 		const record: PreparationRecord = {
 			preparation_id: ctx.id("prep"),
 			objective: mandate.objective,

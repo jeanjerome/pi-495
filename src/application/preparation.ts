@@ -26,12 +26,19 @@ export interface PreparationRecord {
 	notes: string[];
 }
 
+/**
+ * What a preparation retains: the files written under its roots. What it wrote elsewhere — a work
+ * log, a script, the feature itself — is named and left out, never refused: the mandate bounds what
+ * is retained, not what a producer may write to check itself. A deletion or a non-file entry under
+ * a root is refused, since nothing of it can be retained.
+ */
 export function preparedFilesFrom(
 	manifest: CandidateManifest,
 	allowed: string[],
-): { files: PreparedFile[]; out_of_scope: string[] } {
+): { files: PreparedFile[]; out_of_scope: string[]; refused: string[] } {
 	const files: PreparedFile[] = [];
 	const out: string[] = [];
+	const refused: string[] = [];
 	for (const e of manifest.entries) {
 		if (e.baseline_state === "unchanged") continue;
 		const inScope = allowed.some((a) => e.path.startsWith(a));
@@ -40,12 +47,12 @@ export function preparedFilesFrom(
 			continue;
 		}
 		if (e.baseline_state === "deleted" || e.kind !== "file" || !e.content_digest) {
-			out.push(`${e.path} (${e.baseline_state})`);
+			refused.push(`${e.path} (${e.baseline_state})`);
 			continue;
 		}
 		files.push({ path: e.path, digest: e.content_digest, size_bytes: e.size });
 	}
-	return { files, out_of_scope: out };
+	return { files, out_of_scope: out, refused };
 }
 
 /** Level 1 of the PRE-01 scale: a file named like a test, which says nothing about it ever running. */

@@ -178,8 +178,8 @@ export class ArtifactRepository {
 		return a?.content.qualified ? a.content : null;
 	}
 
-	/** Writes the adopted prepared files back into a workspace, from the store and not from a tree. */
-	async materializePrepared(prepared: PreparationRecord | null, workspacePath: string): Promise<void> {
+	/** Writes prepared files into a workspace, from the store and not from a tree. */
+	async materializePrepared(prepared: Pick<PreparationRecord, "files"> | null, workspacePath: string): Promise<void> {
 		if (!prepared) return;
 		for (const f of prepared.files) {
 			const bytes = await this.deps.objects.get(f.digest);

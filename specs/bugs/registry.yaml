@@ -1080,3 +1080,40 @@ bugs:
       POLICY_DENIED gives a stop a resume lifts that may name only `cancel`; no site of the branch is
       in that case.
     status: open
+  - bug_id: BUG-2026-09-28T222200
+    date: "2026-09-28"
+    title: "A preparation opened on a target without tests hands its producer no control to run, because the protocol is frozen after it"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `designVerification` (`src/application/phases/verification-design.ts`) opens the preparation
+      before it freezes the protocol, on both routes that lead to it: before the qualification and
+      after it. The harness builds the producer's context from the latest protocol artifact
+      (`src/application/harness.ts`), which does not exist yet, so the `prepare` producer's
+      instructions carry no line on what the kernel will run: neither the test command of the target
+      (`mvn -B -q -o test`) nor the controls that read a report or the code. Only a preparation
+      reopened after a protocol was already frozen, as after an environment change, receives them.
+    what_expected: >
+      The producer of a preparation is told, like the producer of a candidate, which command the
+      kernel will run its tests with and which controls read its tree without running anything, so it
+      can verify itself as the kernel will judge it.
+    steps_to_reproduce:
+      - "Take a Maven target with JaCoCo and no test, and a requirement the reference does not satisfy."
+      - "Advance the change into `preparing`; read the `prepare` intervention's context."
+      - "Its trusted instructions carry no `The kernel will judge your work` line."
+    root_cause: >
+      The preparation is opened to spare the qualification of sensors that would have to be qualified
+      again after it, so no protocol exists when the preparation's producer starts; the detected
+      controls are known at that point but are not handed to it. Present on main (b9321a3).
+    evidence: >
+      Observed while writing a harness-level test on 5d4b2cc: a campaign on the Maven hexagonal fixture
+      with JaCoCo, cut after the `prepare` intervention started, found no `The kernel will judge your
+      work` instruction in the context the scripted agent received; the same reading of
+      `designVerification` shows both `openPreparation` calls before `freeze`.
+    risk_level: low
+    follow_ups: >
+      Hand the detected controls to the preparation's producer, or freeze the protocol before the
+      preparation; which one is a product decision, since the preparation's roots also change what the
+      protocol protects.
+    status: open

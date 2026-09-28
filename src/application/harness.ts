@@ -549,11 +549,7 @@ export class Harness {
 			// The provider is read from the same selection the supervisor hands the worker; what it
 			// imposes is declared whether or not this intervention writes (CTX-02).
 			imposed_layers: imposedLayersFor(model.provider_id),
-			controls: (protocol?.content.controls ?? []).map((c) => ({
-				control_id: c.control_id,
-				command: c.command,
-				cwd: c.cwd,
-			})),
+			controls: protocol?.content.controls ?? [],
 			boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)),
 		});
 		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or

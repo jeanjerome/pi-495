@@ -29,3 +29,16 @@ export interface StackDetection {
 
 /** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */
 export const BASE_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME", "MAVEN_OPTS"];
+
+/**
+ * The command of a control that runs nothing: its parser reads a report another control left, or
+ * the code itself. Spawning the Node binary on an empty program keeps one runner for every control.
+ */
+export function emptyTrigger(nodeBinary: string): string[] {
+	return [nodeBinary, "-e", ""];
+}
+
+/** Whether a control's command is the empty trigger, so the producer is not asked to run it. */
+export function runsNothing(command: readonly string[]): boolean {
+	return command.length === 3 && command[1] === "-e" && command[2] === "";
+}

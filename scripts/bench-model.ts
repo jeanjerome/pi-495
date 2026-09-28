@@ -188,8 +188,13 @@ function contextFor(role: "specify" | "implement"): { system: string; user: stri
 		tools: TOOLS_FOR_ROLE[role],
 		budget_bytes: 60_000,
 		controls: [
-			{ control_id: "maven-test", command: ["mvn", "-B", "-q", "-o", "test"], cwd: "." },
-			{ control_id: "coverage", command: ["node", "-e", ""], cwd: "." },
+			{ control_id: "maven-test", title: "mvn test (Surefire)", command: ["mvn", "-B", "-q", "-o", "test"], cwd: "." },
+			{
+				control_id: "coverage",
+				title: "introduced-line coverage, read from the JaCoCo report of mvn test",
+				command: ["node", "-e", ""],
+				cwd: ".",
+			},
 		],
 		boundaries: ["le module simple-domain ne déclare aucune dépendance sur simple-infrastructure"],
 		// Read from the provider this bench was pointed at, like every other caller: the manifest
