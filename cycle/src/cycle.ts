@@ -122,9 +122,17 @@ function ecartEnCours(ctx: Contexte): string {
 async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 	const b = base(ctx);
 	const depuis = revision(ctx.root);
+	const deja = commitsEntre(ctx.root, b)
+		.map((c) => `- ${c.sha.slice(0, 7)} ${c.sujet}`)
+		.join("\n");
 	const texte =
-		invite("rouge-vert", { id: ctx.story.id, branche: brancheCourante(ctx.root), base: b, story: storyMarkdown(ctx) }) +
-		ecartEnCours(ctx);
+		invite("rouge-vert", {
+			id: ctx.story.id,
+			branche: brancheCourante(ctx.root),
+			base: b,
+			deja,
+			story: storyMarkdown(ctx),
+		}) + ecartEnCours(ctx);
 	await session(ctx, "rouge-vert", "rouge-vert", texte, {
 		type: "object",
 		properties: {
@@ -146,9 +154,9 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 		},
 		required: ["status", "taches", "resume"],
 	});
-	const commits = commitsEntre(ctx.root, depuis);
-	if (commits.length === 0) throw new Blocage("the red-green session committed nothing");
-	for (const c of commits.filter(estCommitDeTestSeul)) {
+	if (commitsEntre(ctx.root, depuis).length === 0) throw new Blocage("the red-green session committed nothing");
+	// Every test-only commit of the branch, so one left by an interrupted pass is replayed too.
+	for (const c of commitsEntre(ctx.root, b).filter(estCommitDeTestSeul)) {
 		const command = commandeDuCommit(ctx, c.fichiers);
 		if (!command) continue;
 		const preuve = await controle(ctx, "rouge-vert", command, c.sha);

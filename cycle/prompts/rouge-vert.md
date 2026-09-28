@@ -1,6 +1,13 @@
 Pas 2 du cycle, le rouge-vert, pour la story {{id}} sur la branche `{{branche}}` (base `{{base}}`).
 La story est ci-dessous ; ses tâches se font dans l'ordre, une par une.
 
+La branche porte déjà ces commits depuis la base :
+
+{{deja}}
+
+Un commit de tâche parmi eux vient d'un passage interrompu : reprends à la première tâche qu'ils ne
+tiennent pas, et regarde ce que ce passage a laissé hors du dépôt avant de le refaire.
+
 Pour chaque tâche :
 1. Écris d'abord le test que la ligne `Tient :` nomme, avec l'assertion dans les mots de la story.
 2. Lance la commande `Vérifie :` et lis le rouge : le test doit échouer sur cette assertion, comme la
