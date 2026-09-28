@@ -560,10 +560,12 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 				/previous preparation was refused/,
 				`the preparation of the change rebuilt on ${answer} is told of no refusal`,
 			);
-			assert.doesNotMatch(
+			// The rebuilt change is told what its own detection produced, as a first preparation is; the
+			// protocol frozen before the revocation is not read for it.
+			assert.match(
 				preparation.system_prompt,
-				/The kernel will judge your work by running/,
-				`the preparation of the change rebuilt on ${answer} is judged by no control frozen before the revocation`,
+				/The kernel will judge your work by running, without you: `[^`]* --test --test-reporter=tap` in the workspace root \(unit\)/,
+				`the preparation of the change rebuilt on ${answer} is told the controls detected on its target`,
 			);
 			assert.equal(
 				conducted.stopped_because,

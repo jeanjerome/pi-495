@@ -22,7 +22,6 @@ import {
 	runningIntervention,
 	subjectOfChange,
 	unknownCost,
-	type ArtifactKind,
 	type ChangeState,
 } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
@@ -48,7 +47,7 @@ import { decide as decidePhase } from "./phases/decide.ts";
 import { design } from "./phases/design.ts";
 import { implement } from "./phases/implement.ts";
 import { integrate } from "./phases/integrate.ts";
-import type { PhaseContext, Unit } from "./phases/phase.ts";
+import type { InterventionOptions, PhaseContext, Unit } from "./phases/phase.ts";
 import { prepare } from "./phases/prepare.ts";
 import { review } from "./phases/review.ts";
 import { specify } from "./phases/specify.ts";
@@ -493,7 +492,7 @@ export class Harness {
 		role: InterventionMandate["role"],
 		objective: string,
 		workspacePath: string,
-		extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null },
+		extra: InterventionOptions,
 	): Promise<{
 		unit: Unit;
 		output: unknown;
@@ -549,7 +548,9 @@ export class Harness {
 			// The provider is read from the same selection the supervisor hands the worker; what it
 			// imposes is declared whether or not this intervention writes (CTX-02).
 			imposed_layers: imposedLayersFor(model.provider_id),
-			controls: protocol?.content.controls ?? [],
+			// A preparation opens before any protocol is frozen: the controls it is judged by are the ones
+			// its phase detected on the target, and the latest protocol is read only when none is handed.
+			controls: extra.controls ?? protocol?.content.controls ?? [],
 			boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)),
 		});
 		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or

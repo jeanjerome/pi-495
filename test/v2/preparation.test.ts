@@ -382,6 +382,11 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 				/`mvn -B -q -o test` in the workspace root \(maven-test\)/,
 				`${role} is asked to run mvn -B -q -o test`,
 			);
+			assert.match(
+				instruction,
+				/Run it yourself before you answer/,
+				`${role} is asked to run it before answering, not only told what the kernel runs: ${instruction}`,
+			);
 			assert.doesNotMatch(
 				instruction,
 				/ -e /,
@@ -392,6 +397,32 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 				instruction,
 				/structure[^;.]*read from the Java declarations/,
 				`${role} is told what structure reads`,
+			);
+		}
+	});
+	it("a role that only reads is told no verification instruction even when the detected controls are handed to it", () => {
+		const p = tempDir("495-maven-reader-");
+		cleanups.push(p);
+		fixtureMavenHexagonal(p);
+		const detected = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
+		assert.ok(detected.controls.length > 0, "the reactor yields controls to hand over");
+		for (const role of ["specify", "review", "observe"] as const) {
+			const built = buildContext({
+				role,
+				objective: "read the address",
+				language: "en",
+				adopted: [],
+				untrusted: [],
+				feedback: null,
+				tools: [],
+				budget_bytes: 10_000,
+				imposed_layers: [],
+				controls: detected.controls,
+			});
+			assert.equal(
+				built.manifest.trusted_instructions.some((i) => i.includes("The kernel will judge your work")),
+				false,
+				`${role}, which only reads, is told no verification instruction: ${built.manifest.trusted_instructions.join(" | ")}`,
 			);
 		}
 	});
@@ -459,6 +490,107 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			/structure \(frozen architecture boundaries, read from the Java declarations\)/,
 			`the frozen structure control is named with what it reads: ${instruction}`,
 		);
+	});
+	it("on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none", async () => {
+		const p = projectWithoutTests();
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: {
+					prepare: {
+						steps: [
+							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+							{ kind: "complete", output: report(["test/shout.test.js"]) },
+						],
+					},
+				},
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		// The campaign is cut as soon as the preparation producer has received its context: what it is
+		// told then comes from the detection alone, no protocol having been frozen yet.
+		for (let step = 0; step < 12 && !t.agent.started.some((m) => m.role === "prepare"); step++)
+			await t.harness.advance(change.change_id, { max_steps: 1 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const preparation = t.agent.started.find((m) => m.role === "prepare");
+		assert.ok(
+			preparation,
+			`the preparation started: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, roles: t.agent.started.map((m) => m.role) })}`,
+		);
+		assert.ok(!state.adopted.protocol, "no protocol is frozen when the preparation producer receives its context");
+		const unit = detectStack(p, [{ requirement_id: "R1", revision: 1 }]).controls.find((c) => c.control_id === "unit")!;
+		const instruction = preparation.context.trusted_instructions.find((i) =>
+			i.includes("The kernel will judge your work"),
+		);
+		assert.ok(
+			instruction,
+			"the preparation producer is told the detected control commands the kernel will judge it by",
+		);
+		assert.ok(
+			instruction.includes(`\`${unit.command.join(" ")}\` in the workspace root (unit)`),
+			`the instruction names the command of the unit control the detection produced: ${instruction}`,
+		);
+		const specification = t.agent.started.find((m) => m.role === "specify");
+		assert.ok(specification, "the specification intervention ran before the preparation");
+		assert.equal(
+			specification.context.trusted_instructions.some((i) => i.includes("The kernel will judge your work")),
+			false,
+			"the specification producer, which only reads, is told no verification instruction",
+		);
+	});
+	it("on a Maven reactor with JaCoCo and no test, the preparation producer is asked to run mvn -B -q -o test before it answers and told what coverage and structure read, before any protocol is frozen", async () => {
+		const p = tempDir("495-maven-first-preparation-");
+		cleanups.push(p);
+		fixtureMavenHexagonal(p);
+		const pom = readFileSync(join(p, "pom.xml"), "utf8");
+		writeFileSync(
+			join(p, "pom.xml"),
+			pom.replace("</project>", `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n</project>`),
+		);
+		initRepo(p);
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+			}),
+		);
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		// The campaign is cut as soon as the preparation producer has received its context: no control
+		// of the reactor is run, so no JDK is needed, and no protocol has been frozen yet.
+		for (let step = 0; step < 12 && !t.agent.started.some((m) => m.role === "prepare"); step++)
+			await t.harness.advance(change.change_id, { max_steps: 1 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const preparation = t.agent.started.find((m) => m.role === "prepare");
+		assert.ok(
+			preparation,
+			`the preparation started: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, roles: t.agent.started.map((m) => m.role) })}`,
+		);
+		assert.ok(!state.adopted.protocol, "no protocol is frozen when the preparation producer receives its context");
+		const instruction = preparation.context.trusted_instructions.find((i) =>
+			i.includes("The kernel will judge your work"),
+		);
+		assert.ok(instruction, "the first preparation producer is told what the kernel runs");
+		assert.match(
+			instruction,
+			/`mvn -B -q -o test` in the workspace root \(maven-test\)/,
+			`the first preparation producer is told the kernel runs mvn -B -q -o test: ${instruction}`,
+		);
+		assert.match(
+			instruction,
+			/Run it yourself before you answer/,
+			`the first preparation producer is asked to run it before answering: ${instruction}`,
+		);
+		assert.match(
+			instruction,
+			/coverage \(introduced-line coverage, read from the JaCoCo report of mvn test\)/,
+			`coverage is named with what it reads: ${instruction}`,
+		);
+		assert.match(
+			instruction,
+			/structure \(frozen architecture boundaries, read from the Java declarations\)/,
+			`structure is named with what it reads: ${instruction}`,
+		);
+		assert.doesNotMatch(instruction, / -e /, `neither coverage nor structure is lent a command to run: ${instruction}`);
 	});
 	it("a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not", async () => {
 		const p = projectWithoutTests();

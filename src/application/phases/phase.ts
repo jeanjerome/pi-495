@@ -9,6 +9,7 @@
  */
 import type { ArtifactRef, HumanInteraction, SubjectRef } from "../../contracts/v1/common.ts";
 import type { Evidence } from "../../contracts/v1/evidence.ts";
+import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
 import type { ChangeCommand } from "../../domain/change/commands.ts";
 import { subjectOfChange, type ArtifactKind, type ChangeState } from "../../domain/change/state.ts";
 import type { ActivePolicy } from "../../domain/policy.ts";
@@ -21,6 +22,15 @@ import type { VerificationCoordinator } from "../verification.ts";
 export interface Unit {
 	state: ChangeState;
 	revision: number;
+}
+
+/** What an intervention is handed beyond its role, its objective and its workspace. */
+export interface InterventionOptions {
+	adopted?: ArtifactKind[];
+	feedback?: string | null;
+	attempt_id?: string | null;
+	/** The controls this intervention is judged by, when they are not those of the latest protocol. */
+	controls?: readonly ControlDefinition[];
 }
 
 /** What one bounded agent session left behind, and the change as it stands after it. */
@@ -59,7 +69,7 @@ export interface PhaseContext {
 		role: InterventionMandate["role"],
 		objective: string,
 		workspacePath: string,
-		extra: { adopted?: ArtifactKind[]; feedback?: string | null; attempt_id?: string | null },
+		extra: InterventionOptions,
 	): Promise<InterventionOutcome>;
 	/** Puts a decision to the human and stops the change on it. */
 	requestDecision(

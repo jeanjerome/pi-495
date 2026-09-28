@@ -80,7 +80,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			"prepare",
 			preparationObjective(mandate.objective, mandate.requirement_ids),
 			handle.path,
-			{ adopted: ["mandate", "requirements"], feedback },
+			{ adopted: ["mandate", "requirements"], feedback, controls: detected.controls },
 		);
 		unit = r.unit;
 		if (unit.state.status === "blocked") return unit;
