@@ -34,6 +34,10 @@ export interface Contexte {
 	cible: string;
 	preflight: Controle;
 	claude?: string;
+	/** Each line a session streams, with the session's name, for whoever watches the story run. */
+	suivi?: (nom: string, ligne: string) => void;
+	/** Told when a control starts, since only its end reaches the journal. */
+	annonce?: (texte: string) => void;
 }
 
 export type Issue =
@@ -62,7 +66,13 @@ async function session(
 	cwd = ctx.root,
 ): Promise<Session> {
 	const s = await lancerSession(
-		{ invite: texte, schema, cwd, ...(ctx.claude ? { claude: ctx.claude } : {}) },
+		{
+			invite: texte,
+			schema,
+			cwd,
+			...(ctx.claude ? { claude: ctx.claude } : {}),
+			...(ctx.suivi ? { suivi: (ligne: string) => ctx.suivi?.(nom, ligne) } : {}),
+		},
 		ctx.journal,
 	);
 	ctx.journal.inscrire(pas, "session", {
@@ -80,6 +90,7 @@ async function session(
 }
 
 async function controle(ctx: Contexte, pas: Pas, c: Controle, sha?: string): Promise<Preuve> {
+	ctx.annonce?.(`${c.id} à ${(sha ?? revision(ctx.root)).slice(0, 7)}…`);
 	const preuve = sha
 		? await ctx.executeur.executerA(c, ctx.root, sha, ctx.story.id)
 		: await ctx.executeur.executer(c, ctx.root, ctx.story.id);

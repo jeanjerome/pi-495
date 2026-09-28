@@ -118,6 +118,15 @@ besoin du propriétaire ou bloque ; `npm run cycle -- <story> etat` dit où elle
 un seul tour de relecture sur son diff. Le dossier vit sous `~/.495/cycle/<story>/` pendant la story
 (`CYCLE_495_DIR` le déplace).
 
+Pendant qu'elle tourne, la commande montre au terminal où en est la story : chaque pas s'ouvre sur
+sa place parmi les six, avec le temps et le coût déjà engagés ; chaque session déroule une ligne par
+texte de l'agent, appel d'outil, commit, total de tests ou appel en échec, préfixée de son nom quand
+deux relecteurs tournent ensemble ; chaque contrôle dit quand il part et comment il finit ; chaque pas
+se ferme sur son issue, sa durée, son coût et ses commits. Le titre du terminal nomme le pas en cours
+et depuis combien de temps rien ne s'est affiché. Un son et une notification disent qu'un pas attend
+le propriétaire, qu'il bloque ou que la story est versée (`CYCLE_495_SON` change le son). Rien de cet
+affichage n'est une preuve : le journal et les transcriptions gardées le sont.
+
 L'outil dépend de 495 et jamais l'inverse. Il reprend du noyau le magasin d'objets, où vont les
 transcriptions, les sorties des contrôles et les rapports des relecteurs ; l'exécuteur de contrôles
 et ses lecteurs de rapports, par lesquels passent Preflight, la commande de chaque tâche et le rejeu

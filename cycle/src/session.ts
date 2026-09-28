@@ -1,7 +1,7 @@
 /**
  * One Claude Code session for one step that needs a model: a prompt in, a structured answer out,
- * the whole transcript kept in the object store. Nobody reads the session live: it runs unattended,
- * in the foreground, and ends when its turn ends.
+ * the whole transcript kept in the object store. The session runs unattended, in the foreground, and
+ * ends when its turn ends; the owner may watch its stream, line by line, but cannot answer it.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -26,10 +26,12 @@ export interface Demande {
 	cwd: string;
 	/** The binary to run; a test substitutes a script that speaks the same stream. */
 	claude?: string;
+	/** Each line of the stream as it arrives, for whoever watches the session run. */
+	suivi?: (ligne: string) => void;
 	timeout_ms?: number;
 }
 
-export const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody reads it live and no
+export const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody answers it live and no
 question tool exists. Read cycle/README.md, CONVENTIONS.md and AGENTS.md first. Carry the step named
 in the prompt to its end and return the structured output the prompt asks for; the next step runs in
 another session. Never push to a remote. Run every command and sub-agent in the foreground and read
@@ -101,7 +103,14 @@ export async function lancerSession(demande: Demande, journal: Journal): Promise
 		});
 		const chunks: Buffer[] = [];
 		const errs: Buffer[] = [];
-		child.stdout.on("data", (c: Buffer) => chunks.push(c));
+		let reste = "";
+		child.stdout.on("data", (c: Buffer) => {
+			chunks.push(c);
+			if (!demande.suivi) return;
+			const lignes = (reste + c.toString("utf8")).split("\n");
+			reste = lignes.pop() ?? "";
+			for (const ligne of lignes) demande.suivi(ligne);
+		});
 		child.stderr.on("data", (c: Buffer) => errs.push(c));
 		const timer = demande.timeout_ms ? setTimeout(() => child.kill("SIGTERM"), demande.timeout_ms) : null;
 		child.on("error", reject);

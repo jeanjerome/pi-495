@@ -32,6 +32,8 @@ export class Journal {
 	readonly dir: string;
 	readonly objets: CasObjectStore;
 	private readonly fichier: string;
+	/** Told each event as it is written, for whoever watches the story run. */
+	observateur: ((e: Evenement) => void) | null = null;
 
 	constructor(story: string, racine: string = racineCycle()) {
 		this.story = story;
@@ -44,6 +46,7 @@ export class Journal {
 	inscrire(pas: Pas, genre: string, detail: Record<string, unknown> = {}): Evenement {
 		const evenement: Evenement = { at: new Date().toISOString(), pas, genre, ...detail };
 		appendFileSync(this.fichier, `${JSON.stringify(evenement)}\n`);
+		this.observateur?.(evenement);
 		return evenement;
 	}
 

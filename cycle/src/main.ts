@@ -7,15 +7,22 @@
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
+import {
+	Titre,
+	annonce,
+	cloture,
+	duree,
+	etiquetee,
+	ligneDuJournal,
+	lignesDuFlux,
+	ouverture,
+	sonner,
+} from "./affichage.ts";
 import { PREFLIGHT, Executeur } from "./controls.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
-import { Journal, racineCycle } from "./journal.ts";
+import { commitsEntre, revision } from "./git.ts";
+import { Journal, type Pas, racineCycle } from "./journal.ts";
 import { lireStory } from "./story.ts";
-
-function duree(ms: number): string {
-	const s = Math.round(ms / 1000);
-	return s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s` : `${s} s`;
-}
 
 function contexte(id: string): Contexte {
 	const root = process.cwd();
@@ -77,23 +84,58 @@ async function main(argv: string[]): Promise<number> {
 		rouvrir(ctx, reste.join(" "));
 		console.log(`${id} : rouverte au rouge-vert.`);
 	}
+	// What the owner sees while the story runs: each session's stream, each journal event, each
+	// control as it starts, and the terminal title on the step with how long nothing was shown.
+	const titre = new Titre();
+	const lancement = Date.now();
+	let depense = 0;
+	let courant: Pas | null = null;
+	ctx.journal.observateur = (e) => {
+		titre.activite();
+		if (e.genre === "session") depense += Number(e.cout_usd);
+		const ligne = ligneDuJournal(e);
+		if (ligne) console.log(ligne);
+	};
+	ctx.suivi = (nom, brut) => {
+		titre.activite();
+		for (const ligne of lignesDuFlux(brut, ctx.root)) console.log(nom === courant ? ligne : etiquetee(nom, ligne));
+	};
+	ctx.annonce = (texte) => {
+		titre.activite();
+		console.log(annonce(texte));
+	};
+	process.on("SIGINT", () => {
+		titre.arreter();
+		console.log(`\nCycle interrompu. \`npm run cycle -- ${id}\` reprend au pas en cours.`);
+		process.exit(130);
+	});
 	for (;;) {
 		const pas = ctx.journal.prochainPas();
 		if (!pas) {
-			console.log(`${id} : versée. Le push de ${ctx.cible} est à vous.`);
+			titre.arreter();
+			sonner(`${id} est versée`);
+			console.log(`\n${id} : versée. Le push de ${ctx.cible} est à vous.`);
 			return 0;
 		}
 		const started = Date.now();
-		console.log(`▶ ${id} · ${pas}`);
+		const avant = revision(ctx.root);
+		courant = pas;
+		console.log(ouverture(id, pas, started === lancement ? null : started - lancement, depense));
+		titre.suivre(`▶ ${id} · ${pas}`);
 		const issue = await conduirePas(ctx, pas);
+		titre.arreter();
 		const sessions = ctx.journal.depuisReouverture().filter((e) => e.pas === pas && e.genre === "session");
 		const cout = sessions.reduce((sum, e) => sum + Number(e.cout_usd), 0);
-		console.log(`  ${issue.statut} · ${duree(Date.now() - started)} · ${cout.toFixed(2)} $`);
+		console.log(cloture(pas, issue.statut, Date.now() - started, cout, commitsEntre(ctx.root, avant)));
 		if (issue.statut === "proprietaire") {
+			sonner(`${id} · ${pas} attend votre décision`);
+			titre.arreter(`? ${id} · ${pas} attend votre décision`);
 			console.log(`\n${issue.question}`);
 			return 0;
 		}
 		if (issue.statut === "bloque") {
+			sonner(`${id} · ${pas} bloqué`);
+			titre.arreter(`⛔ ${id} · ${pas} bloqué`);
 			console.error(`\n⛔ ${issue.motif}`);
 			return 1;
 		}
