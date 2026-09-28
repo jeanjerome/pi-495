@@ -97,7 +97,8 @@ rest of both skills applies. Why: `specs/adr/D-62`.
 1. **Place a finding before acting on it.** A defect the branch makes reachable belongs to the
    branch, even when the faulty line predates it: fix it, or put it to the owner, in the round that
    found it. Never register it as earlier work. A defect the branch neither introduces nor makes
-   reachable goes through the fix-or-log ladder above and does not hold the review.
+   reachable goes through the fix-or-log ladder above and does not hold the review; the fix the
+   ladder calls for is made on the branch after the gate (§ Cycle order).
 2. **Design a fix that adds a mechanism before writing it.** A new state, lifecycle or refusal names
    where the state is created, who reads it, and how many entry points reach it. Remove a second
    entry point rather than guard it. A question to the owner about the mechanism, rather than the
@@ -118,9 +119,9 @@ rest of both skills applies. Why: `specs/adr/D-62`.
 6. **Fix in the round only what adds no behavior.** A consider item whose fix adds no behavior — a
    missing test, a record put right, dead code removed — is fixed in the round that found it. One
    whose fix would add a refusal, a state or a mechanism goes to `specs/bugs/registry.yaml`, named
-   as introduced by the branch when it is, and is fixed after the gate: such a fix widens the next
-   round and needs a review of its own. This is the owner's standing answer, under rule 1, for a
-   consider item. Why: `specs/adr/D-65`.
+   as introduced by the branch when it is, and is fixed on the branch after the gate (§ Cycle
+   order): such a fix widens the next round and needs a review of its own. This is the owner's
+   standing answer, under rule 1, for a consider item. Why: `specs/adr/D-65`.
 7. **Close a text-only finding without reviewers.** A finding whose fix changes only text — a
    comment, a sentence of the story or of a record, a test title — is fixed by the response like any
    other. When every finding still holding the gate is text-only, the next round is the coordinator
@@ -128,13 +129,14 @@ rest of both skills applies. Why: `specs/adr/D-62`.
    `specs/adr/D-67`.
 8. **Review what the branch promises.** The brief lists the promises in the words of their spec: for
    a story, the scenarios of its § Acceptance criteria and the measures of its § Security and
-   compliance; for a bug branch, the Acceptance Criteria of each bug file. For each promise, a
-   reviewer reports whether the code keeps it and whether a test holds it, which a mutation of a line
-   that keeps it must break. A promise the code does not keep is must-fix; one that no test holds is
-   should-fix. A later round checks the same promises on its diff, and each finding answered. The
-   brief sends the reviewers nowhere else: it proposes no scenario, state or interleaving of its own,
-   and leaves conventions, design and smells to `audit-code`, which runs before. A finding met
-   outside the promises is still placed and categorized under rule 1. Why: `specs/adr/D-68`.
+   compliance; for a bug branch, the Acceptance Criteria of each bug file; for a fix made after the
+   gate, the expected behavior its registry entry states. For each promise, a reviewer reports
+   whether the code keeps it and whether a test holds it, which a mutation of a line that keeps it
+   must break. A promise the code does not keep is must-fix; one that no test holds is should-fix. A
+   later round checks the same promises on its diff, and each finding answered. The brief sends the
+   reviewers nowhere else: it proposes no scenario, state or interleaving of its own, and leaves
+   conventions, design and smells to `audit-code`, which runs before. A finding met outside the
+   promises is still placed and categorized under rule 1. Why: `specs/adr/D-68`.
 
 ## Cycle order
 
@@ -142,8 +144,13 @@ This order replaces the one of the bigpowers `build-epic` skill once `develop-td
 `audit-code`, then `request-review` and `respond-review` until the gate passes, then `verify-work`
 and the owner's acceptance, then `commit-message` and `release-branch`. The acceptance thus covers
 the code that ships. A gap the acceptance run finds goes back to `develop-tdd`, then to one review
-round on the diff since the reviewed revision, then to `verify-work`. Each step writes this next
-skill in the handoff, whatever its own skill names. Why: `specs/adr/D-64`.
+round on the diff since the reviewed revision, then to `verify-work`. What the review registers to
+fix after its gate — a consider item under § Review rule 6, or a defect predating the branch that
+the fix-or-log ladder fixes — goes the same way before `verify-work`: `develop-tdd` on its registry
+entry, then one review round on its diff, which counts toward the cap of five rounds. What that
+round registers goes the same way in turn. A branch thus lands with none of the defects its review
+registered still open, unless the owner decides the merge past the cap. Each step writes this next
+skill in the handoff, whatever its own skill names. Why: `specs/adr/D-64`, `specs/adr/D-69`.
 
 ## specs/ — the documentation surface
 
