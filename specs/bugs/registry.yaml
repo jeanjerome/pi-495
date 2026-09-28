@@ -1116,4 +1116,5 @@ bugs:
       Hand the detected controls to the preparation's producer, or freeze the protocol before the
       preparation; which one is a product decision, since the preparation's roots also change what the
       protocol protects.
-    status: open
+    status: fixed
+    fixed_in: 053d886
