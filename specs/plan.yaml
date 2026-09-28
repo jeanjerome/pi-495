@@ -145,20 +145,21 @@ epics:
     status: à faire
     source: chantiers/K
     objet: >
-      Les instructions portées à un producteur sont découpées et sélectionnées par rôle, au lieu d'un
-      bloc unique ; la sélection tient compte de la phase en cours autant que du rôle, et des capacités
-      déclarées du modèle, jamais de son nom ; les skills, modèles de prompts et références
-      documentaires qu'elle assemble sont des ressources versionnées.
+      Une préparation dont les exigences changent un comportement qu'un test existant affirme est
+      invitée à mettre à jour ce test, et le dossier nomme le test qu'elle a réécrit.
     motif: >
-      Trois campagnes montrent qu'elles se contredisent ou se noient. Cause de e03. Le découpage par
-      rôle, la dépendance à la phase et la dépendance au modèle visent un seul et même constructeur :
-      les séparer produirait deux plans qui éditent la même fonction. L'axe modèle reste sans objet tant
-      qu'un seul fournisseur est qualifié.
+      Seul défaut de consigne que montrent les 48 dossiers menés avec un vrai modèle depuis le
+      2026-09-20 : invitée à « seulement ajouter » des tests, la préparation laisse l'ancien test,
+      l'implémenteur ne peut pas y toucher, et le changement s'arrête en stagnation
+      (`demo-readme-refus-stagnation`, Sonnet 5).
     position: >
-      WSJF seul le placerait après e09 ; la ROADMAP le tient pour la cause de e03, et sa position ne
-      change pas. job_size passe de 5 à 7 parce que l'objet de l'epic a grandi — dépendance à la phase,
-      dépendance au modèle, et CTX-03 sorti du différé — et non pour déplacer un rang. Décision en
-      specs/adr/D-47.
+      Réduit le 2026-09-29 à ce défaut observé. Le découpage des consignes par rôle, leurs fichiers
+      versionnés (`CTX-03`) et la sélection par phase et par modèle, que `D-47` y avait réunis, sont
+      mis en attente : aucune campagne ne montre un tort qu'ils répareraient, et une refonte sans
+      défaut observé change l'empreinte d'environnement de toute campagne en vol pour rien. Ils se
+      rouvrent sur le premier dossier qui montre une consigne contradictoire, absente ou noyée.
+    stories:
+      - { id: e04s01, status: "à faire", title: "La préparation met à jour le test que la demande contredit" }
 
   - id: e05
     title: "Commande de test d'une cible Node"
