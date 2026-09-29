@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 238,
+    "constat": "Les assertions `state.protocol === null` et `adoptedPreparation(state) === null` ne peuvent être mises en échec par aucune mutation du code de révision, parce que IH-04 est toujours posée avant le gel du protocole. Un diagnostic dont la préparation est discriminante n'a aucune exigence non jugée, donc aucune préparation qualifiée ne coexiste avec IH-04. La partie « protocole et préparation ne sont plus en vigueur » est tenue par l'absence de ces objets, pas par un code qui les retire, et rien ne signalerait un futur chemin où l'un d'eux existerait avant la révision.",
+    "mutation": "Mutations portant sur cette partie : aucune ne fait échouer ces deux assertions, ni la suppression de `from(\"G1\")` dans l'invalidation, ni la suppression de `state.protocol`. Le G1 se réévalue INDETERMINATE quand la spécification est refaite, de sorte que `notEqual(G1, PASS)` tient même sans invalidation."
+   }
+  ],
+  "resume": "Le diff du tour 2 ne touche que des tests, et tous les points des constats A1-1, A1-2, B1-1, B1-2 et B1-3 sont traités. Les mutations donnent :\n- Le retrait des identifiants de `requirementsRevisionInstruction` fait échouer les deux tests de révision sur `/revise R1,/` et `/revise R1, R2,/`.\n- Câbler `openPreparation` à la place de `settleUnjudged` avant la qualification fait échouer le test de la tâche 2 et celui des deux préparations.\n- Le même câblage après la qualification fait échouer le nouveau test de la spécification refaite pour R1 et R2.\n- Remplacer `preparationsForCurrentRequirements` par `proposedSinceRevocation` fait échouer le test des deux préparations avant qu'IH-04 soit redemandée.\n- Retirer les réponses IH-04 de l'invalidation fait échouer deux tests.\n- Retirer IH-04 de `allow_free_text` fait échouer deux tests.\n\nAucun constat bloquant ni à corriger. Il reste un constat à peser : les assertions sur le protocole et la préparation ne peuvent échouer, parce qu'IH-04 précède toujours le gel du protocole et qu'une préparation discriminante n'y mène jamais.\n\nNon couvert par cette relecture : la recette en vrai Pi (scénario 4), hors du diff."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 236,
+    "constat": "Les deux assertions ajoutées (`state.protocol === null` et `adoptedPreparation(state) === null`) ne peuvent pas échouer par le code de la révision : une IH-04 n'est posée qu'avant le gel du protocole, et jamais avec une préparation qualifiée adoptée, puisque `diagnoseControlCapability` vide `undiscriminated_requirements` dès qu'une préparation discriminante est adoptée. La partie « protocole et préparation adoptés jusque-là ne sont plus en vigueur » est donc vraie par construction dans ce Given. Aucun défaut de code n'en découle, mais l'assertion documente un état et ne garde aucun code.",
+    "mutation": "Retrait de la vérification `qualified` dans `adoptedPreparation` : le test échoue, mais c'est le code de la préparation qui est mis en cause, pas celui de la révision. Aucune mutation de `reviseRequirements` ni de l'invalidation `artifact_revised` ne les fait échouer."
+   }
+  ],
+  "resume": "Pass. Le diff du tour 2 ne touche que des tests et ferme A1-1, A1-2, B1-1, B1-2 et B1-3 pour l'essentiel. Le tour 2 n'apporte aucun constat bloquant ni à corriger. Preflight n'a pas été relancée ; j'ai seulement rejoué `test/v2/verifiability-arbitration.test.ts`, verte (13/13), puis mes mutations, chacune rétablie ensuite (arbre propre).\n\nMutations et effet :\n- Consigne sans les identifiants d'exigence (`requirementsRevisionInstruction`) : deux tests échouent, celui de la révision (`/revise R1,/`) et celui de l'IH-04 posée après l'observation de la suite (`/revise R1, R2,/`). A1-1 et B1-1 sont fermés, car l'assertion ne se satisfait plus du texte du propriétaire (« check the greeting… »).\n- Consigne sans le texte du propriétaire : les deux mêmes tests échouent.\n- Second `settleUnjudged` (après `qualify`) remplacé par `openPreparation` : le nouveau test « R2 non jugée après l'observation » échoue seul. B1-2 est fermé.\n- Premier `settleUnjudged` remplacé par `openPreparation` : le test de la révision et celui des deux préparations échouent.\n- Retrait des décisions IH-04 de l'invalidation `artifact_revised` : deux tests échouent (réponse `assign_review` et révision).\n\nLes scénarios 1 à 3 sont donc tenus par le code et par un test qu'une mutation fait échouer. Le scénario 4 est une promesse de recette, hors périmètre de la relecture par tests.\n\nReste le seul constat B2-1, à peser. Le volet « protocole et préparation adoptés jusque-là ne sont plus en vigueur » est vrai par construction, et aucune mutation de la révision ne le fait échouer. Une IH-04 n'est jamais posée avec un protocole gelé ni avec une préparation qualifiée adoptée. C'est le pendant de A1-2 et B1-3, sans effet observable."
+ }
+]

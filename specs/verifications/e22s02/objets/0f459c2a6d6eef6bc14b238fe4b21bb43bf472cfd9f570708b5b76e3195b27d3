@@ -1,0 +1,62 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 230,
+    "constat": "Rien ne tient « l'intervention de spécification reçoit ce texte en nommant R1 ». L'assertion `assert.match(objectives[1]!, /R1/)` passe parce que le texte du propriétaire du test, « R1 must be checked against the name 'Ada'… », contient lui-même « R1 ». Le code qui ajoute les identifiants d'exigence à la consigne n'est donc tenu par aucun test. La ligne de code est src/application/context.ts, `requirementsRevisionInstruction`.",
+    "mutation": "Dans requirementsRevisionInstruction, `const named = requirementIds.join(\", \")` remplacé par `const named = \"\"` : les 13 tests de test/v2/verifiability-arbitration.test.ts et test/v3/requirement-revision-dialog.test.ts passent (fail 0). Le test devrait donner au propriétaire un texte qui ne contient pas « R1 »."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 199,
+    "constat": "Le titre du test annonce « requirements, protocol and preparation adopted before no longer hold », mais il n'assert rien sur la préparation. Le protocole est vacuemment absent (G2 n'a jamais été gelé avant IH-04). Le code ne retire pas non plus `state.adopted.requirements/preparation`, qui pointent toujours vers les anciennes références (probe : rqs_0018 et prp_0028 après la révision) ; seuls les gates et les réponses IH-04 sont invalidés. Sans effet observé, parce que `adoptedPreparation` ne rend qu'une préparation qualifiée, ce qu'IH-04 exclut (un diagnostic à préparation discriminante ne demande pas IH-04). La partie « préparation » de la promesse repose donc sur cette absence d'effet, pas sur une assertion."
+   }
+  ],
+  "resume": "Le code tient les quatre promesses que le relecteur peut vérifier ; le scénario 4 est celui de la recette, non examiné ici. Sept mutations ont été essayées : six sont attrapées par un test (texte libre enregistré dans decide.ts, allow_free_text, texte du propriétaire dans la consigne, décompte des préparations, invite de conduct.ts, branche revise de settleUnjudged). La septième ne l'est pas : « en nommant R1 » n'est tenu par aucun test, l'assertion `/R1/` étant satisfaite par le texte même du propriétaire, d'où le verdict fail (A1-1, à corriger). Reste à peser (A1-2) : la partie « préparation adoptée » de la promesse 2 n'est pas assertée par le test qui la nomme."
+ },
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les quatre promesses que j'ai pu lire. Une sonde jetable fait passer la révision aussi par le second appel de `settleUnjudged`, celui d'après la qualification. Le test de la tâche 2 ne tient pas « en nommant R1 » : la mutation qui retire le nom de l'exigence de la consigne le laisse vert, parce que le texte du propriétaire contient déjà « R1 ». C'est un « à corriger », donc le verdict est `fail`. Deux constats « à peser » s'y ajoutent : le second site d'appel est sans test, et les assertions sur le protocole et la préparation ne peuvent pas échouer. Les mutations qui font échouer un test : texte du propriétaire retiré de la consigne, `artifact.revise` remplacé, `free_text` non gardé, compte des préparations non remis à zéro, `settleUnjudged` du premier site remplacé, `allow_free_text` de IH-04 retiré, invite du dialogue retirée. Le scénario 4 (recette, agent scripté dans un vrai Pi) n'est pas du ressort de cette relecture. L'arbre est propre : mutations restaurées, sonde supprimée.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 231,
+    "constat": "La promesse « l'intervention de spécification reçoit ce texte en nommant R1 » n'est tenue par aucun test. `assert.match(objectives[1], /R1/)` est satisfait par le texte du propriétaire lui-même (« R1 must be checked against the name 'Ada'… »), pas par ce que `requirementsRevisionInstruction` ajoute.",
+    "mutation": "Dans `requirementsRevisionInstruction` (src/application/context.ts), remplacer « revise ${named} … Rewrite ${named} » par « revise a requirement … Rewrite it » : les 12 tests passent. Même résultat en passant `[]` au lieu de `d.undiscriminated_requirements` à `reviseRequirements` (verification-design.ts) : les 12 tests passent."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 211,
+    "constat": "`settleUnjudged` est câblé à deux endroits, avant et après `ctx.verification.qualify`. Aucun test ne répond « revise » à une IH-04 posée après la qualification (le cas où R2 n'apparaît non jugée qu'après l'observation de la suite). Ce chemin est atteignable : le test « R2 turns out to be unjudged » y passe. Une sonde jetable y répond « revise » et la spécification est bien refaite, suivie de deux préparations puis de IH-04, donc le code tient. Le test seul ne tient pas ce câblage.",
+    "mutation": "Remplacer `settleUnjudged(diagnosis)` par `openPreparation(...)` sur le second site : les 12 tests de verifiability-arbitration passent. La même mutation sur le premier site en fait échouer deux."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Répondre « réviser l'exigence » rouvre la spécification avec la consigne du propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 233,
+    "constat": "Dans le test de la tâche 2, `state.gates.G2 === undefined` est vrai avant comme après la révision, puisque IH-04 est posée avant le gel du protocole. Rien n'est assert sur la préparation. Les parties « le protocole et la préparation adoptés jusque-là ne sont plus en vigueur » ne sont donc tenues par aucune assertion capable d'échouer. Seuls G1 et l'invalidation des décisions IH-04 le sont. `artifact.revised` ne touche pas `state.adopted`, si bien que `adopted.preparation` garde l'ancien mandat. C'est sans effet aujourd'hui, `adoptedPreparation` exigeant `qualified`, mais aucun test ne le vérifie."
+   }
+  ]
+ }
+]

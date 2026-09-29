@@ -1,0 +1,117 @@
+TAP version 13
+# Subtest: a requirement no control can judge is arbitrated by the owner
+    # Subtest: given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+    ok 1 - given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+      ---
+      duration_ms: 247.502375
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+    ok 2 - given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+      ---
+      duration_ms: 314.894459
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+    not ok 3 - given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+      ---
+      duration_ms: 235.108542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0okhhq/test/v2/verifiability-arbitration.test.ts:199:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the specification is redone: verification_design -> verification_design/decision_required
+        
+        1 !== 2
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 2
+      actual: 1
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0okhhq/test/v2/verifiability-arbitration.test.ts:228:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+    ok 4 - given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+      ---
+      duration_ms: 425.355708
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+    ok 5 - given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+      ---
+      duration_ms: 762.198042
+      type: 'test'
+      ...
+    1..5
+not ok 1 - a requirement no control can judge is arbitrated by the owner
+  ---
+  duration_ms: 1985.688375
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0okhhq/test/v2/verifiability-arbitration.test.ts:126:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the IH-04 request
+    # Subtest: the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+    ok 1 - the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+      ---
+      duration_ms: 0.146458
+      type: 'test'
+      ...
+    1..1
+ok 2 - the IH-04 request
+  ---
+  duration_ms: 0.195792
+  type: 'suite'
+  ...
+# Subtest: the requirements the owner took on
+    # Subtest: is empty without any answer, whatever the requirements no control can judge
+    ok 1 - is empty without any answer, whatever the requirements no control can judge
+      ---
+      duration_ms: 0.07625
+      type: 'test'
+      ...
+    # Subtest: is the requirements the answer was asked about
+    ok 2 - is the requirements the answer was asked about
+      ---
+      duration_ms: 0.060084
+      type: 'test'
+      ...
+    # Subtest: is empty when a requirement was not among those asked about, or was, and the answer was about more
+    ok 3 - is empty when a requirement was not among those asked about, or was, and the answer was about more
+      ---
+      duration_ms: 0.054042
+      type: 'test'
+      ...
+    # Subtest: is empty for an answer that is not an assign_review, is revoked, or was given to another question
+    ok 4 - is empty for an answer that is not an assign_review, is revoked, or was given to another question
+      ---
+      duration_ms: 0.083292
+      type: 'test'
+      ...
+    # Subtest: does not depend on the order the requirements are named in
+    ok 5 - does not depend on the order the requirements are named in
+      ---
+      duration_ms: 0.037333
+      type: 'test'
+      ...
+    1..5
+ok 3 - the requirements the owner took on
+  ---
+  duration_ms: 0.424042
+  type: 'suite'
+  ...
+1..3
+# tests 11
+# suites 3
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2153.101834
