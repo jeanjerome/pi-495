@@ -349,7 +349,7 @@ epics:
       question matérielle et de sa réponse et qu'y brancher une réponse à IH-04 est un mécanisme à
       concevoir. `e12` y rangera le refus des tests recommandés (`D-72`).
     stories:
-      - { id: e22s01, status: "à faire", title: "Une exigence sans contrôle capable de la juger est arbitrée par le propriétaire" }
+      - { id: e22s01, status: "versée", title: "Une exigence sans contrôle capable de la juger est arbitrée par le propriétaire" }
       - { id: e22s02, status: "à faire", title: "Le propriétaire révise l'exigence que rien ne permet de juger" }
 
   - id: e25
