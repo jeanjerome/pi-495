@@ -136,6 +136,51 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.deepEqual(manifest.limits.notes, []);
 	});
 
+	it("given the default exclusions, then a copy keeps node_modules/vitest/dist/index.js and drops dist/index.js and module/target/classes", async () => {
+		assert.equal(isExcluded("node_modules/vitest/dist/index.js", ["dist/"]), false);
+		assert.equal(isExcluded("packages/app/node_modules/vitest/dist/index.js", ["dist/"]), false);
+		assert.equal(isExcluded("packages/app/dist/index.js", ["dist/"]), true);
+		assert.equal(isExcluded("packages/app/node_modules/x", ["node_modules/"]), true);
+
+		const project = join(root, "node-project-with-installed-dependencies");
+		writeFiles(project, {
+			"package.json": "{}",
+			"src/index.js": "export {};\n",
+			"dist/index.js": "build artefact",
+			"node_modules/vitest/dist/index.js": "export {};\n",
+			"module/pom.xml": "<project/>",
+			"module/target/classes/A.class": "stale bytecode",
+		});
+		const reference = await ws.captureReference(project, DEFAULT_WORKSPACE_POLICY);
+		const handle = await ws.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
+		assert.equal(existsSync(join(handle.path, "node_modules", "vitest", "dist", "index.js")), true);
+		assert.equal(existsSync(join(handle.path, "dist", "index.js")), false);
+		assert.equal(existsSync(join(handle.path, "dist")), false);
+		assert.equal(existsSync(join(handle.path, "module", "target", "classes")), false);
+	});
+
+	it("given the default exclusions, when a candidate rewrites node_modules/.vite/vitest/x/results.json and adds a file under node_modules/.vite-temp/, then its manifest carries neither, while a change to node_modules/vitest/dist/index.js is still in it", async () => {
+		const project = join(root, "vitest-project");
+		writeFiles(project, {
+			"package.json": "{}",
+			"node_modules/vitest/dist/index.js": "export {};\n",
+			"node_modules/.vite/vitest/x/results.json": '{"version":"5.0.0","results":[]}',
+		});
+		const reference = await ws.captureReference(project, DEFAULT_WORKSPACE_POLICY);
+		const handle = await ws.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
+		writeFiles(handle.path, {
+			"node_modules/.vite/vitest/x/results.json": '{"version":"5.0.0","results":[[0.4]]}',
+			"node_modules/.vite-temp/vitest.config.ts.timestamp.mjs": "export default {};\n",
+			"node_modules/vitest/dist/index.js": "export const patched = true;\n",
+		});
+		const manifest = await ws.snapshotCandidate(handle, reference, DEFAULT_WORKSPACE_POLICY);
+		assert.deepEqual(manifest.selected_paths, ["node_modules/vitest/dist/index.js"]);
+		assert.deepEqual(
+			manifest.entries.filter((e) => e.path.startsWith("node_modules/.vite")),
+			[],
+		);
+	});
+
 	it("resolves retained workspaces from the former colocated root", () => {
 		const current = join(root, "current-workspaces");
 		const legacy = join(root, "legacy-workspaces");
@@ -237,6 +282,22 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.ok(walked.limits.notes[0]?.includes("big.bin"));
 		const diff = diffEntries(walked.entries, walked.entries);
 		assert.ok(diff.every((e) => e.baseline_state === "unchanged"));
+	});
+	it("given a node_modules file above the file limit, when the candidate is observed, then its entry carries a digest and the limits note no excess, while the same file outside node_modules is still noted", async () => {
+		const p = join(root, "deps");
+		const nineMiB = "x".repeat(9 * 1024 * 1024);
+		assert.ok(nineMiB.length > DEFAULT_WORKSPACE_POLICY.max_file_bytes);
+		writeFiles(p, { "node_modules/x/big.node": nineMiB, "small.txt": "s" });
+		const installed = await walkTree(p, DEFAULT_WORKSPACE_POLICY);
+		const entry = installed.entries.find((e) => e.path === "node_modules/x/big.node");
+		assert.match(entry?.content_digest ?? "", /^sha256:[0-9a-f]{64}$/);
+		assert.equal(installed.limits.truncated, false);
+		assert.deepEqual(installed.limits.notes, []);
+		const outside = join(root, "outside");
+		writeFiles(outside, { "big.node": nineMiB });
+		const walked = await walkTree(outside, DEFAULT_WORKSPACE_POLICY);
+		assert.equal(walked.entries.find((e) => e.path === "big.node")?.content_digest, null);
+		assert.deepEqual(walked.limits.notes, [`big.node exceeds ${DEFAULT_WORKSPACE_POLICY.max_file_bytes} bytes`]);
 	});
 	it("inspectGit ignores a parent repository", async () => {
 		const p = join(root, "parent");

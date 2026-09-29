@@ -1150,6 +1150,42 @@ bugs:
       candidate is still a proposal that only the kernel adopts, so this changes what the owner sees,
       not what the kernel decides.
     status: open
+  - bug_id: BUG-2026-09-29T140000
+    date: "2026-09-29"
+    title: "A protocol freezes on the lint control alone when scripts.test names a runner 495 cannot read"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      On a Node target whose `scripts.test` is `jest` and which also declares `scripts.lint`, the
+      detection declares the lint control only and records the refusal of jest as a missing
+      capability. `designVerification` raises `CAPABILITY_MISSING` only when no control is left, so
+      the protocol is frozen on the lint alone and the refusal of the test runner survives as a note
+      of the capability diagnosis.
+    what_expected: >
+      The owner is told before G2 that the suite of the target cannot be judged, rather than
+      finding it in a note of a protocol that judges the lint only.
+    steps_to_reproduce:
+      - "Take a target whose `package.json` is `{\"scripts\":{\"test\":\"jest\",\"lint\":\"eslint .\"}}`."
+      - "Run `detectStack` on it: `controls` is `[lint]` and `capability_missing` names jest."
+      - "Advance the change to G2: the protocol is frozen with the lint control and no unit control."
+    root_cause: >
+      `detectNodeStack` (`src/application/stacks/node.ts`) declares a control per readable script and
+      reports the refused runner apart, in `capability_missing`. `designVerification`
+      (`src/application/phases/verification-design.ts`) reads `capability_missing` as a refusal only
+      when `controls` is empty. Introduced by the branch, which made a runner other than node:test
+      and vitest a refusal instead of a node:test run.
+    evidence: >
+      A throwaway probe of `detectStack` on the package above returned `controls: ["lint"]` and
+      `capability_missing: ["scripts.test runs jest, whose output 495 cannot read: ..."]`; the reading
+      of `designVerification` shows the only `CAPABILITY_MISSING` raise guarded by
+      `detection.controls.length === 0`.
+    risk_level: medium
+    follow_ups: >
+      Decide whether a refused `scripts.test` stops the design of the protocol whatever the other
+      controls, or is offered to the owner as an insufficiency to accept; either adds a refusal or a
+      dialog, so it is a product decision.
+    status: open
   - bug_id: BUG-2026-09-29T130000
     date: "2026-09-29"
     title: "A reopened red-green pass is blocked by a green test a later step left on the branch"
@@ -1214,3 +1250,99 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: bd10032
+  - bug_id: BUG-2026-09-29T160000
+    date: "2026-09-29"
+    title: "The Seatbelt test of the generic runner cannot fail when the repository lives under the temporary directory"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `runs the same control under seatbelt with the candidate read-only` expects the write to
+      `src/greet.js` to be refused. `SeatbeltSandbox` grants the write to the temporary directory of the
+      process and to `/private/tmp` by default, and the test builds its workspace under
+      `test-output/`; in a repository hosted under `$TMPDIR` the write succeeds and the assertion of a
+      FAIL verdict fails, so the test says nothing about the confinement there.
+    what_expected: >
+      The test holds wherever the repository lives, because it grants no temporary directory to the
+      sandbox it builds.
+    steps_to_reproduce:
+      - "Clone the repository under `$TMPDIR` and run `node --test test/v1/control-runner.test.ts` on macOS."
+      - "The candidate read-only test fails on the assertion that the write is refused."
+    root_cause: >
+      The test builds `new SeatbeltSandbox()` with its default `temp_paths` (`src/adapters/sandbox/backends.ts`),
+      which include the temporary directory the workspace may sit in. The vitest tests of the same file
+      pass `temp_paths: []` for this reason.
+    evidence: >
+      Read in `backends.ts` (`temp_paths` default, profile line that allows the write); the reviewers of
+      the branch observed the failure in a tree under `$TMPDIR` and its pass in a copy under `$HOME`.
+      Existed before the branch, which does not touch this test.
+    risk_level: low
+    follow_ups: "Build the sandbox of that test with `{ temp_paths: [] }`."
+    status: open
+  - bug_id: BUG-2026-09-29T170000
+    date: "2026-09-29"
+    title: "A candidate that adds a file under node_modules/ is not refused, though the file can shadow a dependency the vitest control loads"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      The vitest unit control protects `node_modules/` as a directory. `protectedPathsChanged` allows
+      a file added under a protected directory, so a candidate that adds
+      `node_modules/vitest/node_modules/<package>/index.js` (which shadows the hoisted package for
+      vitest) is frozen with that file in `allowed_protected_paths` and no altered protected path;
+      only a modified or deleted file under `node_modules/` is refused.
+    what_expected: >
+      A candidate that changes what the vitest that judges it loads is refused, whether it modifies an
+      installed file or adds one that takes the place of another.
+    steps_to_reproduce:
+      - "Call `protectedPathsChanged` on a manifest with `node_modules/vitest/node_modules/tinyrainbow/index.js` added and `node_modules/vitest/dist/index.js` modified, protected paths `['node_modules/']`."
+      - "`altered` holds only `dist/index.js`; the added file is in `allowed`."
+    root_cause: >
+      The rule that a file added under a protected directory takes nothing from an oracle that already
+      stood (`src/domain/gates/g4.ts`) holds for `test/` and `tests/`, where a new file is a new test.
+      Under `node_modules/` a new file can resolve before an existing one. The rule is on main; the
+      branch makes it reachable for `node_modules/` by protecting that directory in
+      `vitestControl` (`src/application/stacks/node.ts`).
+    evidence: >
+      A throwaway probe of `protectedPathsChanged` on the manifest above returned
+      `altered: [node_modules/vitest/dist/index.js]` and
+      `allowed: [node_modules/vitest/node_modules/tinyrainbow/index.js]`. The promise of the story
+      names a modified file, which the code refuses.
+    risk_level: medium
+    follow_ups: >
+      Decide whether a file added under `node_modules/` is refused (a candidate that installs a
+      dependency is then refused too) or accepted when it shadows nothing that exists on the
+      reference; either adds a refusal or a resolution check, so it is a product decision.
+    status: fixed
+    fixed_in: a3ecb9e
+  - bug_id: BUG-2026-09-29T180000
+    date: "2026-09-29"
+    title: "A writable directory that does not exist yet is granted under its symbolic path, so the sandbox refuses to create it when the copy lives behind a link"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      The vitest unit control declares `target/495-vitest` writable, a directory the copy does not carry.
+      `real()` returns the path unchanged when `realpathSync` fails, so the Seatbelt profile grants the
+      write under the symbolic form of the copy. When the copy lives under `/tmp`, a link to `/private/tmp`,
+      Seatbelt matches the resolved path, the grant does not apply and `mkdir` fails with `EPERM`; the
+      control gives FAIL. The Maven control already declared `target/` and has the same exposure.
+    what_expected: >
+      The control writes its report wherever the copy lives, since the profile grants the resolved form of
+      the directory it declares.
+    steps_to_reproduce:
+      - "Copy a vitest target under `/tmp` and run its unit control under `SeatbeltSandbox` with vitest 5.0.0."
+      - "vitest fails with `EPERM mkdir /private/tmp/.../target`; the same run under `$HOME` passes."
+    root_cause: >
+      `real` in `src/adapters/sandbox/backends.ts` resolves a path only when it exists. A directory the
+      command creates is absent when the profile is built, so its link-bearing parent is never resolved.
+      Existed before the branch, which adds a second control that declares such a directory. The default
+      data directory is `~/.495`, so the copies do not sit behind a link there.
+    evidence: >
+      Reviewer probe: vitest 5.0.0 in a copy under `/tmp` gave `EPERM mkdir /private/tmp/.../target`, and
+      the same probe under `$HOME` gave PASS.
+    risk_level: medium
+    follow_ups: >
+      Resolve the deepest existing ancestor of a path that does not exist and append the missing segments;
+      it changes what the profile grants, so it needs its own test under a linked directory.
+    status: open

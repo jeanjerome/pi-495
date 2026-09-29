@@ -16,8 +16,13 @@ import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } fr
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * `node_modules/.vite/` (vitest's duration cache) and `node_modules/.vite-temp/` (the compiled configuration) are
+ * rewritten each time the suite runs in the copy: they are outputs of the tool, not installed dependencies, and
+ * observing them would report a modified protected path for a candidate that only ran its tests.
+ */
 export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
-	exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
+	exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/"],
 	max_file_bytes: 8 * 1024 * 1024,
 	max_entries: 50_000,
 };

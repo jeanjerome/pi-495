@@ -1,6 +1,7 @@
 import { lstatSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { TSchema } from "typebox";
+import { DEFAULT_WORKSPACE_POLICY } from "../adapters/workspace/git-workspace.ts";
 import { HarnessConfigFile } from "../contracts/v1/config.ts";
 import { check, type ContractViolation, violations } from "../contracts/validate.ts";
 import { DomainError } from "../domain/errors.ts";
@@ -23,7 +24,7 @@ const DEFAULT_CONFIG: HarnessConfig = {
 	policy: DEFAULT_POLICY,
 	isolation: { allow_unconfined: false },
 	human_origin: { rpc_actor_env: "HARNESS495_RPC_HUMAN_ACTOR" },
-	workspace_exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
+	workspace_exclusions: DEFAULT_WORKSPACE_POLICY.exclusions,
 	language: "fr",
 };
 

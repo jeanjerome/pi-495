@@ -61,12 +61,18 @@ export interface ProtectedPaths {
 	altered: string[];
 }
 
+/** Whether a path or a directory pattern lies below a `node_modules` directory, at the project root or in a workspace package. */
+export function inInstalledDependencies(path: string): boolean {
+	return path.split("/").includes("node_modules");
+}
+
 /**
  * Splits what a candidate changed against the paths the frozen protocol protects (SEC-03, RM-043).
  * Three changes to a protected path are allowed: a prepared file put back exactly as the kernel
  * adopted it, which the producer did not touch; a file added under a protected directory, which
- * took nothing away from an oracle that already stood; and whatever `alsoAllowed` recognizes, which
- * is where a target's own layout conventions are read rather than written into the kernel.
+ * took nothing away from an oracle that already stood, unless the protected directory is itself an
+ * installed dependency, where a new file can shadow a package the checks load; and whatever `alsoAllowed` recognizes, which is
+ * where a target's own layout conventions are read rather than written into the kernel.
  */
 export function protectedPathsChanged(
 	manifest: CandidateManifest,
@@ -82,16 +88,15 @@ export function protectedPathsChanged(
 		if (prepared && prepared.digest === (entry?.content_digest ?? null)) return true;
 		if (
 			entry?.baseline_state === "added" &&
-			protectedPaths.some((pattern) => pattern.endsWith("/") && matchesScope(p, pattern))
+			protectedPaths.some(
+				(pattern) => pattern.endsWith("/") && !inInstalledDependencies(pattern) && matchesScope(p, pattern),
+			)
 		)
 			return true;
 		return alsoAllowed(p);
 	});
 	const altered = changed.filter(
-		(p) =>
-			protectedPaths.some(
-				(pattern) => matchesScope(p, pattern) && (!pattern.endsWith("/") || entryOf(p)?.baseline_state !== "added"),
-			) && !allowed.includes(p),
+		(p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p),
 	);
 	return { changed, allowed, altered };
 }

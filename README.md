@@ -161,7 +161,7 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 | **Host** | Pi 0.87; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
 | **Java / Maven** | Surefire tests; JaCoCo coverage and PIT mutation when the project declares the required reports; structural checks derived from supported Maven and Java declarations. Maven verification uses offline mode. |
-| **Node** | `node --test` and a detected lint script. The adapter does not yet use arbitrary `package.json` test scripts: Jest, Vitest and other runners are not implied by Node support. |
+| **Node** | `scripts.test` run by `node --test` (or absent) or by `vitest`, read through its JUnit report, and a detected lint script. Any other runner in `scripts.test` is refused, and the refusal names it. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
 | **Models** | Models configured and authenticated in Pi, including local OpenAI-compatible endpoints with working tool calls. Provider and subscription availability follow Pi and the provider. |
 
@@ -261,7 +261,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
-  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/"],
+  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/"],
   "language": "fr"
 }
 ```

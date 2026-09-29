@@ -7,7 +7,7 @@ import { lstat, readdir, readFile, readlink } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import type { ManifestEntry } from "../../contracts/v1/candidate.ts";
 import type { Limits } from "../../contracts/v1/evidence.ts";
-import { matchesScope } from "../../domain/gates/g4.ts";
+import { inInstalledDependencies, matchesScope } from "../../domain/gates/g4.ts";
 
 export interface WalkOptions {
 	exclusions: string[];
@@ -32,7 +32,14 @@ export function isExcluded(path: string, exclusions: string[]): boolean {
 		if (!normalized.endsWith("/")) return false;
 		const directory = normalized.slice(0, -1);
 		if (!directory || directory.includes("/") || directory.includes("*")) return false;
-		return path.split("/").includes(directory);
+		// A dependency ships its own `dist/` or `build/`, which its imports resolve to: the name only
+		// excludes a project directory, so it stops applying below `node_modules/`. `node_modules` itself
+		// is the one name that still matches at the segment that opens the dependencies.
+		const segments = path.split("/");
+		const dependencies = segments.indexOf("node_modules");
+		const inProject =
+			dependencies === -1 ? segments : segments.slice(0, dependencies + (directory === "node_modules" ? 1 : 0));
+		return inProject.includes(directory);
 	});
 }
 
@@ -57,7 +64,7 @@ export function includedLimits(entries: readonly ManifestEntry[], limits: Limits
 /**
  * Deterministic inventory of a directory: sorted by normalised path, each entry with kind, digest,
  * size, mode, symlink target. `.git` is never part of the application content (§9.1). A file above
- * the size limit is inventoried without digest and the limit is reported (AT-12).
+ * the size limit, outside `node_modules/`, is inventoried without digest and the limit is reported (AT-12).
  */
 export async function walkTree(root: string, options: WalkOptions): Promise<WalkResult> {
 	const entries: ManifestEntry[] = [];
@@ -134,7 +141,9 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 				continue;
 			}
 			limits.bytes_total = (limits.bytes_total ?? 0) + st.size;
-			if (st.size > options.max_file_bytes) {
+			// An installed dependency ships native binaries and bundles that are read whole; the entry
+			// limit still bounds how many files it adds.
+			if (st.size > options.max_file_bytes && !inInstalledDependencies(rel)) {
 				entries.push({
 					path: rel,
 					kind: "file",

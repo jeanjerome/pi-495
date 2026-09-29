@@ -174,7 +174,8 @@ export function summarizeJUnit(documents: string[]): JUnitSummary {
 		for (const tc of doc.matchAll(/<testcase\b([^>]*?)(\/>|>([\s\S]*?)<\/testcase>)/g)) {
 			const body = tc[3] ?? "";
 			if (/<(failure|error)\b/.test(body) && s.failed_cases.length < MAX_FAILURES) {
-				const name = /name="([^"]*)"/.exec(tc[1] ?? "")?.[1] ?? "unnamed";
+				// `classname` also ends in `name="`, and vitest writes it before `name`.
+				const name = /(?:^|\s)name="([^"]*)"/.exec(tc[1] ?? "")?.[1] ?? "unnamed";
 				const cls = /classname="([^"]*)"/.exec(tc[1] ?? "")?.[1];
 				s.failed_cases.push(cls ? `${cls}.${name}` : name);
 			}

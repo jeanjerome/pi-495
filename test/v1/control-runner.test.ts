@@ -12,6 +12,7 @@ import { parseNodeTestTap, parseJUnit, summarizeJUnit } from "../../src/adapters
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import { detectStack } from "../../src/application/target.ts";
 import { fixtureTs } from "../helpers/fixtures.ts";
 import { EXECUTOR, ENV } from "../helpers/change-fixture.ts";
 
@@ -508,4 +509,111 @@ describe("a sensor that reads the report another control writes (VER-05, PRE-03)
 			JSON.stringify(qa.notes),
 		);
 	});
+});
+
+/** JUnit reports as vitest 5.0.0 wrote them: one suite per file, a `testsuites` root, the failure as text. */
+const VITEST_GREEN_REPORT = `<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="1" failures="0" errors="0" time="0.000943834">
+    <testsuite name="tests/sum.test.ts" timestamp="2026-09-29T08:59:18.273Z" hostname="host" tests="1" failures="0" errors="0" skipped="0" time="0.000943834">
+        <testcase classname="tests/sum.test.ts" name="given two numbers, when added, then they sum" time="0.0005255">
+        </testcase>
+    </testsuite>
+</testsuites>
+`;
+const VITEST_FAILING_REPORT = `<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="1" errors="0" time="0.003157916">
+    <testsuite name="tests/sum.test.ts" timestamp="2026-09-29T08:59:18.512Z" hostname="host" tests="2" failures="1" errors="0" skipped="0" time="0.003157916">
+        <testcase classname="tests/sum.test.ts" name="given two numbers, when added, then they sum" time="0.000566625">
+        </testcase>
+        <testcase classname="tests/sum.test.ts" name="given two numbers, when subtracted, then they differ" time="0.002117541">
+            <failure message="expected 1 to be 2 // Object.is equality" type="AssertionError">
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ tests/sum.test.ts:8:17
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>
+`;
+
+/**
+ * Stands in for vitest: bundles nothing but leaves a file in `node_modules/.vite-temp` as Vite does
+ * when it compiles a configuration, copies the recorded report to the `--outputFile` it is given, and
+ * exits as vitest does.
+ */
+class FakeVitest {
+	readonly recorded: string | null;
+	readonly exitCode: number;
+	constructor(recorded: string | null, exitCode: number) {
+		this.recorded = recorded;
+		this.exitCode = exitCode;
+	}
+	install(workspace: string): void {
+		mkdirSync(join(workspace, "node_modules", "vitest"), { recursive: true });
+		const script = [
+			'import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";',
+			'import { dirname } from "node:path";',
+			'mkdirSync("node_modules/.vite-temp", { recursive: true });',
+			'writeFileSync("node_modules/.vite-temp/vitest.config.ts.timestamp.mjs", "export default {};");',
+			'const out = process.argv.find((a) => a.startsWith("--outputFile="))?.slice("--outputFile=".length);',
+			`if (out && ${this.recorded !== null}) { mkdirSync(dirname(out), { recursive: true }); copyFileSync(new URL("recorded.xml", import.meta.url), out); }`,
+			`process.exit(${this.exitCode});`,
+		].join("\n");
+		writeFileSync(join(workspace, "node_modules", "vitest", "vitest.mjs"), script);
+		if (this.recorded !== null) writeFileSync(join(workspace, "node_modules", "vitest", "recorded.xml"), this.recorded);
+	}
+}
+
+/** The unit control the detection derives from a target whose `scripts.test` is `vitest run`. */
+function derivedVitestControl(): ControlDefinition {
+	const project = join(root, "target");
+	mkdirSync(project, { recursive: true });
+	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "vitest run" } }));
+	return detectStack(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+		(c) => c.control_id === "unit",
+	)!;
+}
+
+describe("the derived vitest control through the runner", () => {
+	it("given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written", async () => {
+		const unit = derivedVitestControl();
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (fake: FakeVitest) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			fake.install(ws);
+			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
+		};
+		const green = await run(new FakeVitest(VITEST_GREEN_REPORT, 0));
+		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
+		assert.equal(green.facts.tests, 1);
+		const failing = await run(new FakeVitest(VITEST_FAILING_REPORT, 1));
+		assert.equal(failing.verdict, "FAIL");
+		assert.deepEqual(failing.facts.failed_cases, [
+			"tests/sum.test.ts.given two numbers, when subtracted, then they differ",
+		]);
+		const silent = await run(new FakeVitest(null, 0));
+		assert.equal(silent.verdict, "INDETERMINATE");
+	});
+	(process.platform === "darwin" ? it : it.skip)(
+		"given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS",
+		async () => {
+			const unit = derivedVitestControl();
+			// The copy of a target carries no target/ directory: the sandbox has to let the control create it.
+			const ws = mkdtempSync(join(root, "ws-"));
+			new FakeVitest(VITEST_GREEN_REPORT, 0).install(ws);
+			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+			// would succeed whatever the control declares writable.
+			const sandbox = new SeatbeltSandbox({ temp_paths: [] });
+			const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
+			const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
+			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+			assert.equal(evidence.facts.tests, 1);
+		},
+	);
 });
