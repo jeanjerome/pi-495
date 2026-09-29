@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: a requirement no control can judge is arbitrated by the owner
+    # Subtest: given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare and assign_review, and the change is not blocked
+    not ok 1 - given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare and assign_review, and the change is not blocked
+      ---
+      duration_ms: 238.614959
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Tl8Nub/test/v2/verifiability-arbitration.test.ts:65:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> preparing/ready | preparing -> verification_design/ready | verification_design -> preparing/ready | preparing -> verification_design/ready | verification_design: CAPABILITY_MISSING no discriminant test could be prepared after two preparation interventions: no test file under the test roots of this node target; R1 asks for behaviour the reference does not have: no control that passes on the reference can detect its absence
+        + actual - expected
+        
+        + 'capability_missing'
+        - 'decision_required'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'decision_required'
+      actual: 'capability_missing'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Tl8Nub/test/v2/verifiability-arbitration.test.ts:75:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a requirement no control can judge is arbitrated by the owner
+  ---
+  duration_ms: 239.237625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Tl8Nub/test/v2/verifiability-arbitration.test.ts:64:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 400.807958

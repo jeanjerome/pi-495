@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Les scénarios 1 à 3 sont tenus par le code et par des tests : les mutations sur l'ouverture de la troisième préparation, le compte des réponses valides, l'obligation human_decision, la révocation par révision des exigences, le garde `!reviewedByOwner` et le fait de risque font toutes échouer un test. Deux constats sur la portée de la réponse « assigner » : l'obligation humaine est étendue à des exigences que le propriétaire n'a pas vues, et le garde qui lie l'assignation à sa réponse n'est tenu par aucun test. Le scénario 4 (vrai Pi, avant/après) relève de la recette : un test jetable montre seulement qu'après « assigner » le changement atteint G2 puis IH-10 « Accepter ce candidat ? ». Je n'ai rien observé sur la construction antérieure.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Répondre « assigner à une revue humaine » fait de l'exigence une décision du propriétaire",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 170,
+    "constat": "`assigned_to_human` reçoit toutes les exigences non jugeables du diagnostic posé après qualification, pas celles que la décision IH-04 nommait. Une exigence obligatoire satisfaite par la référence sur une cible sans test (R2), inconnue à la première diagnose (suite non observée), devient non jugeable à la seconde et passe en human_decision/IH-10 sans que le propriétaire l'ait vue, alors que `needsPreparation` est court-circuité par `reviewedByOwner`. La provenance de la réponse (« aucun agent ne la donne ») n'est pas tenue pour R2.",
+    "mutation": "Sonde jetable, non commitée : ajout de R2 (mandatory, satisfied_by_reference: true) au scénario du test 3. La question d'IH-04 ne nomme que R1 et le protocole gelé porte [R1, R2] en human_decision/IH-10. Aucun test n'échoue : aucun test n'a de seconde exigence."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une exigence que deux préparations n'ont pas rendue jugeable ouvre une décision, pas un arrêt",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 170,
+    "constat": "Le garde `reviewedByOwner ? … : []` est la seule chose qui empêche d'assigner une obligation à une décision humaine sans réponse du propriétaire (« aucune obligation n'est encore assignée »). Aucun test ne le tient : le test 1 n'atteint pas le gel du protocole (protocol null), et les autres flux passent par le même garde sans jamais le contredire.",
+    "mutation": "`assigned_to_human: reviewedByOwner ? diagnosis.undiscriminated_requirements : []` remplacé par `assigned_to_human: diagnosis.undiscriminated_requirements`. Les 3 tests de verifiability-arbitration passent, ainsi que les 187 tests de test/v2/*.test.ts. Le cas exposé est une cible sans chemin de préparation (`detection.preparation_paths` vide) : l'obligation deviendrait human_decision sans réponse et G2 passerait."
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les trois premiers scénarios sont tenus par le code et par un test. Je n'ai relevé aucun constat introduit ou rendu atteignable. J'ai lu le chemin de chaque scénario et joué douze mutations une à une : le fichier a été remis après chacune, et l'arbre est propre. Chaque mutation a fait échouer un test du fichier `test/v2/verifiability-arbitration.test.ts`, soit 2 tests passés et 1 échoué.\n\n**Scénario 1** : deux préparations vides ouvrent IH-04. La mutation qui retire le risque des faits fait échouer le test, comme celle qui vide le nom de l'exigence. `protocol` reste nul, donc aucune obligation n'est assignée. L'arrêt sur `capability_missing` a disparu de `openPreparation`.\n\n**Scénario 2** : « préparer » lève la borne d'un cran par réponse valide, et une réponse « préparer » ne vaut que pour une préparation. Trois mutations échouent : la borne ramenée à 2, une borne qui devient permanente après une réponse, et un compte qui ignore l'option.\n\n**Scénario 3** : « assigner à une revue humaine » gèle une obligation `human_decision` assignée à IH-10 pour R1, et G2 passe.\n- Retirer l'assignation, passer la combinaison à `all_pass` ou mettre `human_interaction` à null fait échouer le test.\n- Le rapport liste `requirement_decided_by_a_human`. Cette logique de `report.ts` précède la branche, et le test la tient : la neutraliser le fait échouer.\n- Retirer `verifiabilityDecisions` de `invalidation.ts` fait échouer le test. Le compte sans filtre `valid` aussi. Une révision des exigences fait donc bien retomber la réponse et IH-04 est redemandée.\n- G5 traite déjà une obligation `human_decision` en attendant IH-10, ce qui prépare la suite du scénario 4.\n\n**Scénario 4** : c'est la recette en vrai Pi, que ce tour de relecture ne juge pas. Elle n'est pas tenue par un test de ce diff.\n\n**Sécurité** : la provenance humaine est vérifiée par `humanProvenanceIssue`, qui vaut pour toute interaction. Aucun chemin protégé ni sandbox n'est touché dans le diff."
+ }
+]

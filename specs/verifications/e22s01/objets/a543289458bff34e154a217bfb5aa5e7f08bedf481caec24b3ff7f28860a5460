@@ -1,0 +1,78 @@
+TAP version 13
+# Subtest: engineering report: observations, judgments and residual risks (IMP-05)
+    # Subtest: keeps the three natures apart and shares no identifier between them
+    ok 1 - keeps the three natures apart and shares no identifier between them
+      ---
+      duration_ms: 4.275959
+      type: 'test'
+      ...
+    # Subtest: a run where every control passed still names what it does not establish
+    ok 2 - a run where every control passed still names what it does not establish
+      ---
+      duration_ms: 0.398792
+      type: 'test'
+      ...
+    # Subtest: carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+    ok 3 - carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+      ---
+      duration_ms: 0.293667
+      type: 'test'
+      ...
+    # Subtest: names a control that failed its own witnesses and a requirement no control carries
+    ok 4 - names a control that failed its own witnesses and a requirement no control carries
+      ---
+      duration_ms: 0.261417
+      type: 'test'
+      ...
+    # Subtest: reports a human acceptance as a judgment of human authority, distinct from what was measured
+    ok 5 - reports a human acceptance as a judgment of human authority, distinct from what was measured
+      ---
+      duration_ms: 0.413666
+      type: 'test'
+      ...
+    # Subtest: renders what was asked, then the three sections in order, in the language of the change
+    ok 6 - renders what was asked, then the three sections in order, in the language of the change
+      ---
+      duration_ms: 0.327875
+      type: 'test'
+      ...
+    1..6
+ok 1 - engineering report: observations, judgments and residual risks (IMP-05)
+  ---
+  duration_ms: 6.498916
+  type: 'suite'
+  ...
+# Subtest: engineering report: what was asked (IMP-05)
+    # Subtest: states each adopted requirement with the verdicts its controls gave the candidate
+    ok 1 - states each adopted requirement with the verdicts its controls gave the candidate
+      ---
+      duration_ms: 0.373416
+      type: 'test'
+      ...
+    # Subtest: given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+    ok 2 - given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+      ---
+      duration_ms: 0.265708
+      type: 'test'
+      ...
+    # Subtest: says none when no requirements were adopted
+    ok 3 - says none when no requirements were adopted
+      ---
+      duration_ms: 0.212584
+      type: 'test'
+      ...
+    1..3
+ok 2 - engineering report: what was asked (IMP-05)
+  ---
+  duration_ms: 0.964625
+  type: 'suite'
+  ...
+1..2
+# tests 9
+# suites 2
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 125.577375

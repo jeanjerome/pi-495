@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Une exigence que deux préparations n'ont pas rendue jugeable ouvre une décision, pas un arrêt (« aucune obligation n'est encore assignée à une décision humaine »)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 200,
+    "constat": "Mutation `assigned_to_human: takenByOwner(diagnosis)` → `diagnosis.undiscriminated_requirements`. Les 9 tests de verifiability-arbitration et les tests v1/v2 restent verts (seuls deux échecs Seatbelt de la machine, sans rapport). Au gel du protocole, `needsPreparation` est déjà faux dans tous les cas où `takenByOwner` est non vide. Les deux sorties ne diffèrent donc que sur une cible sans chemin de préparation, où aucune IH-04 n'est posée et où rien n'est assigné sans réponse. Aucun test ne fixe ce cas. Le garde `takenByOwner` sur cette ligne tient la promesse dans le code (mutations « toujours assigné », « jamais assigné » et « digest ignoré » tuées) mais n'est pas tenu là par un test.",
+    "mutation": "assigned_to_human: takenByOwner(diagnosis) → diagnosis.undiscriminated_requirements : aucun test n'échoue"
+   }
+  ],
+  "resume": "Les deux constats du tour 1 sont traités et tenus par des tests. A1-1 (R2 vue non jugeable après la réponse) : le digest du sujet IH-04 lie l'ensemble des exigences posées. Le nouveau test d'intégration voit la question redemandée en nommant « R1, R2 », `protocol` nul entre les deux, puis G2 PASS avec R1 et R2 en `human_decision`/IH-10. Ce test échoue si l'on retire la comparaison de digest, si le digest ignore l'ensemble, ou si `needsPreparation` ignore l'avis du propriétaire. A1-2 (garde d'assignation) : `takenByOwner` est testé en unitaire (sans réponse, réponse révoquée, autre option ou autre interaction, ensemble différent, ordre) et par les flux d'intégration. Retirer la vérification `valid`, l'option ou l'interaction fait échouer un test, comme `assigned_to_human: []` ou `requirementsTakenByOwner` toujours plein. La révocation par révision des exigences reste tenue : retirer IH-04 de `invalidationFor` fait échouer le test de révision. Le code tient les scénarios 1 à 3 et la provenance. Le scénario 4 (Pi réel) relève de la recette. Seule la mutation « assigner tout sans réponse au gel » survit, sur une cible sans chemin de préparation, hors des promesses : à peser. Aucun constat bloquant ni à corriger. Aucun changement n'a été laissé dans l'arbre : un script de mutation partagé dans /tmp, écrasé par une autre session, a d'abord muté mon arbre, et je l'ai restauré depuis git."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Aucun constat introduit ni rendu atteignable. Le code tient les trois premiers scénarios (le quatrième est une recette, hors de ma passe). Sur 9 tests, les 9 passent. Le chemin de A1-1 est tenu : une exigence qui ne devient non jugeable qu'après la réponse n'est pas couverte, le digest du sujet lie l'ensemble des exigences posées au propriétaire, et IH-04 est redemandée en nommant R1 et R2.\n\nMutations essayées, chacune remise en place après essai :\n- **Digest du sujet retiré du test de portée, ou remplacé par le digest des seules exigences** : le test « R2 se révèle non jugeable » et le test unitaire de portée échouent.\n- **Option `assign_review`, validité de la réponse ou interaction IH-04 retirées du test** : les tests de la réponse « préparer », de la révision des exigences et le test unitaire d'exclusion échouent.\n- **`.sort()` retiré** : le test d'ordre échoue.\n- **Garde de `needsPreparation` forcé à `true`** : les deux tests d'assignation échouent.\n- **Budget `2 + granted` porté à 3, ou comptage de `prepare` remplacé par celui de `assign_review`** : les tests « préparer » et IH-04 en attente échouent.\n- **`assigned_to_human` non gardé au gel du protocole** (`diagnosis.undiscriminated_requirements` à la place de `takenByOwner`) : aucun test n'échoue. C'est A1-2, déjà traité. Sur une pile qui a des chemins de préparation, comme Node, le mutant est équivalent : `needsPreparation` renvoie avant le gel tant qu'une exigence non jugeable n'est pas couverte par la réponse. Je ne le recompte pas.\n- **`invalidation.ts` : les décisions IH-04 retirées de la révision des exigences** : le test de révision échoue.\n- **`report.ts` : le risque `requirement_decided_by_a_human` supprimé** : le test qui lit `residual_risks` échoue.\n\nLe seul mutant qui survit, hors mutant équivalent, est `revision: 0` dans `arbitrationSubject`. Aucune promesse ne porte dessus."
+ }
+]

@@ -1,0 +1,53 @@
+[
+ {
+  "verdict": "pass",
+  "resume": "Les quatre scénarios de code sont tenus par le code, et une mutation d'une ligne fait échouer un test pour chaque promesse. Le scénario de recette (vrai Pi, contrôle négatif) n'est pas rejoué ici. Une sonde jetable, non commitée, confirme le parcours : après `assign_review`, le protocole est gelé, G2 passe, le changement atteint la décision IH-10 d'acceptation, et le rapport nomme R1 décidée par le propriétaire avec `requirement_decided_by_a_human`. Mutations qui échouent : seuil `2 + granted` (trois variantes), `needsPreparation` sans `takenByOwner`, `assigned_to_human` vidé, révocation d'IH-04 retirée de l'invalidation, digest du sujet sans les exigences non jugées, tri du digest, `d.valid` et option de `requirementsTakenByOwner`, `human_interaction` et `combination` de l'obligation, notes et risque des faits IH-04, id de l'option `prepare`, lecture de l'obligation dans le rapport, indicateur `decided_by_owner` et rendu texte. Deux survivants seulement, tous deux à peser.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Répondre « préparer » accorde une préparation de plus et ne la promet qu'une fois",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 25,
+    "constat": "Le filtre `d.option_id === \"prepare\"` de `preparationsGranted` n'est tenu par aucun test. Sans lui, une réponse `assign_review` compterait comme une préparation accordée. Elle en ferait ouvrir une troisième au lieu de reposer IH-04 quand une seconde exigence devient non jugée. Le test « R2 seen later » passe aussi avec la mutation, car la troisième préparation vide aboutit à la même seconde question. La story ne promet pas ce cas explicitement.",
+    "mutation": "`d.valid && d.interaction === \"IH-04\" && d.option_id === \"prepare\"` remplacé par `d.valid && d.interaction === \"IH-04\"` : 9 tests sur 9 passent."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Répondre « assigner à une revue humaine » fait de l'exigence une décision du propriétaire",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/report.ts",
+    "ligne": 166,
+    "constat": "Une exigence assignée à IH-10 a `control_ids` vide et aucune raison de non-applicabilité. Le rapport la liste donc aussi sous `requirement_without_control` (« is carried by no control »), à côté de `requirement_decided_by_a_human`. La sonde de bout en bout le montre. La promesse (le rapport liste `requirement_decided_by_a_human`) est tenue. Le risque redondant se lit pourtant comme une exigence laissée sans assignation."
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "resume": "Aucun constat bloquant ni à corriger. Les cinq promesses sont tenues par le code et chacune a un test que ses mutations font échouer. J'ai lancé une trentaine de mutations d'une ligne, chacune restaurée par `git checkout`. Un sondage jetable, retiré depuis, a mené le changement de bout en bout : IH-04 demandée une seule fois même en relançant `advance`, réponse « assign_review », G2 PASS, IH-10 en attente, acceptation, changement clos `accepted` et rapport avec R1 « décidée par le propriétaire ». Deux points seulement sont à peser.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Répondre « assigner à une revue humaine » fait de l'exigence une décision du propriétaire",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/report.ts",
+    "ligne": 167,
+    "constat": "Une obligation `human_decision` a `control_ids: []`, donc le rapport liste `requirement_without_control` (« requirement R1 is carried by no control ») à côté de `requirement_decided_by_a_human`. L'exigence apparaît deux fois en risque résiduel, et la première formulation la présente comme un oubli. Le sondage de bout en bout montre les deux risques dans le rapport. La promesse (`requirement_decided_by_a_human` listé) est tenue ; ce n'est que du bruit.",
+    "mutation": "Remplacer `if (obligation.human_interaction) {` par `if (false) {` dans report.ts fait échouer le test d'assign_review et un test du rapport. La promesse est donc bien tenue par un test."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Répondre « assigner à une revue humaine » fait de l'exigence une décision du propriétaire",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 24,
+    "constat": "Une IH-04 déjà en attente quand les exigences sont révisées n'est pas annulée : la révision en fait demander une seconde. Sondé : deux IH-04 en attente, l'ancienne et la nouvelle. `preparationsGranted` compte toute réponse « prepare » valide sans regarder son sujet, donc une réponse « prepare » donnée après la révision à l'ancienne question accorde une préparation sur les nouvelles exigences. L'invalidation ne révoque que les réponses déjà enregistrées, et la promesse « cette réponse ne vaut plus » vise ces dernières. Le cas est marginal, il suppose que le propriétaire réponde aux deux questions.",
+    "mutation": "Retirer `verifiabilityDecisions` de l'invalidation fait échouer le test d'assign_review. Ne rien retirer des chemins « prepare » périmés n'a pas de test, mais aucune promesse ne le porte."
+   }
+  ]
+ }
+]

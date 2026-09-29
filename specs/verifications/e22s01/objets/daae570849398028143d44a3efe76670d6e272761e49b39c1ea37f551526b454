@@ -1,0 +1,120 @@
+TAP version 13
+# Subtest: engineering report: observations, judgments and residual risks (IMP-05)
+    # Subtest: keeps the three natures apart and shares no identifier between them
+    ok 1 - keeps the three natures apart and shares no identifier between them
+      ---
+      duration_ms: 4.106292
+      type: 'test'
+      ...
+    # Subtest: a run where every control passed still names what it does not establish
+    ok 2 - a run where every control passed still names what it does not establish
+      ---
+      duration_ms: 0.402084
+      type: 'test'
+      ...
+    # Subtest: carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+    ok 3 - carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+      ---
+      duration_ms: 0.28125
+      type: 'test'
+      ...
+    # Subtest: names a control that failed its own witnesses and a requirement no control carries
+    ok 4 - names a control that failed its own witnesses and a requirement no control carries
+      ---
+      duration_ms: 0.251833
+      type: 'test'
+      ...
+    # Subtest: reports a human acceptance as a judgment of human authority, distinct from what was measured
+    ok 5 - reports a human acceptance as a judgment of human authority, distinct from what was measured
+      ---
+      duration_ms: 0.407125
+      type: 'test'
+      ...
+    # Subtest: renders what was asked, then the three sections in order, in the language of the change
+    ok 6 - renders what was asked, then the three sections in order, in the language of the change
+      ---
+      duration_ms: 0.328459
+      type: 'test'
+      ...
+    1..6
+ok 1 - engineering report: observations, judgments and residual risks (IMP-05)
+  ---
+  duration_ms: 6.26125
+  type: 'suite'
+  ...
+# Subtest: engineering report: what was asked (IMP-05)
+    # Subtest: states each adopted requirement with the verdicts its controls gave the candidate
+    ok 1 - states each adopted requirement with the verdicts its controls gave the candidate
+      ---
+      duration_ms: 0.383792
+      type: 'test'
+      ...
+    # Subtest: given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+    not ok 2 - given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+      ---
+      duration_ms: 0.706708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zjEmTk/test/v0/engineering-report.test.ts:304:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        -   [],
+            [
+        +     'unit'
+        +   ],
+        +   [
+              'lint'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+        1:
+          0: 'lint'
+      actual:
+        0:
+          0: 'unit'
+        1:
+          0: 'lint'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zjEmTk/test/v0/engineering-report.test.ts:344:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: says none when no requirements were adopted
+    ok 3 - says none when no requirements were adopted
+      ---
+      duration_ms: 0.176458
+      type: 'test'
+      ...
+    1..3
+not ok 2 - engineering report: what was asked (IMP-05)
+  ---
+  duration_ms: 1.390875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zjEmTk/test/v0/engineering-report.test.ts:257:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 9
+# suites 2
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.945667
