@@ -41,6 +41,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 				objective: mandate.objective,
 				allowed_paths: mandate.allowed_paths,
 				files: [],
+				modified_existing: [],
 				on_reference: "NOT_RUN",
 				discriminant: false,
 				loadable: false,
@@ -87,7 +88,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		const notes: string[] = [];
 		if (r.result !== "completed") notes.push(`preparation intervention ${r.result}`);
 		const manifest = await ctx.workspace.snapshotCandidate(handle, reference, ctx.workspacePolicy);
-		const { files, out_of_scope, refused } = preparedFilesFrom(manifest, mandate.allowed_paths);
+		const { files, modified_existing, out_of_scope, refused } = preparedFilesFrom(manifest, mandate.allowed_paths);
 		for (const p of out_of_scope) notes.push(`written outside the preparation mandate, not retained: ${p}`);
 		for (const p of refused) notes.push(`change under the preparation roots refused: ${p}`);
 		if (files.length === 0) notes.push("no test file was produced");
@@ -126,6 +127,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			objective: mandate.objective,
 			allowed_paths: mandate.allowed_paths,
 			files,
+			modified_existing,
 			on_reference: onReference,
 			discriminant,
 			loadable,

@@ -18,7 +18,7 @@ import {
 import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { Protocol } from "../../src/contracts/v1/protocol.ts";
-import { buildContext, preparationMandateObjective } from "../../src/application/context.ts";
+import { buildContext, preparationMandateObjective, preparationObjective } from "../../src/application/context.ts";
 import {
 	diagnoseControlCapability,
 	preparedFilesFrom,
@@ -344,6 +344,15 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			/may be created or modified/,
 			"it no longer reads that these roots are the only ones where it may create or modify a file",
 		);
+	});
+	it("the preparation objective asks to update an existing test that asserts the behaviour the requirements change, not only to add tests", () => {
+		const objective = preparationObjective(preparationMandateObjective("node", ["test/"], ["R1"]), ["R1", "R2"]);
+		assert.match(
+			objective,
+			/update (an|any) existing test that asserts the behaviour (the|these) requirements change/,
+			`the producer reads that an existing test asserting the old behaviour is to be updated, beside the tests that are missing: ${objective}`,
+		);
+		assert.doesNotMatch(objective, /only add tests/, "it no longer reads that only tests are to be added");
 	});
 	it("on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e", () => {
 		const p = tempDir("495-maven-jacoco-");
@@ -799,6 +808,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			objective: "o",
 			allowed_paths: ["test/"],
 			files: [{ path: "test/shout.test.js", digest: "sha256:x", size_bytes: 1 }],
+			modified_existing: [],
 			on_reference: "FAIL",
 			discriminant: true,
 			loadable: true,
@@ -874,6 +884,109 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			protocolArt?.content.capability_diagnosis.level,
 			"discriminating",
 			"the frozen protocol carries the diagnosis that let it freeze",
+		);
+	});
+	it("a preparation that rewrites an existing test is adopted, and its record names the test it modified, while one that only adds a test names none", async () => {
+		const exclamation = specReport({
+			objective: "greet must end with an exclamation mark",
+			requirements: [
+				{
+					requirement_id: "R1",
+					statement: "greet(name) returns the greeting followed by an exclamation mark",
+					mandatory: true,
+					criterion: "unit test on greet passes",
+					category: "functional",
+					satisfied_by_reference: false,
+				},
+			],
+			design: { summary: "append ! to the greeting", components: ["greet"], interfaces: ["greet(name)"], risks: [] },
+		});
+		const GREET_EXCLAIMED_TEST =
+			'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet", () => {\n  assert.equal(greet("x"), "Hello, x!");\n});\n';
+		const GREET_EXCLAIMED_IMPL = "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n";
+		const preparationRecord = async (
+			t: TestHarness,
+			changeId: string,
+		): Promise<{ qualified: boolean; files: { path: string }[]; modified_existing: string[] }> => {
+			const prep = t.ledger.listArtifacts(changeId, "preparation").find((a) => a.ref.artifact_id.startsWith("prep_"))!;
+			return JSON.parse(new TextDecoder().decode((await t.objects.get(prep.object))!));
+		};
+
+		const rewriting = tempDir("495-rewrite-");
+		cleanups.push(rewriting);
+		fixtureTs(rewriting);
+		initRepo(rewriting);
+		const rewriter = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: exclamation }] },
+				scripts: {
+					prepare: {
+						steps: [
+							{ kind: "write", path: "test/greet.test.js", content: GREET_EXCLAIMED_TEST },
+							{ kind: "complete", output: report(["test/greet.test.js"]) },
+						],
+					},
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: GREET_EXCLAIMED_IMPL },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+			}),
+		);
+		const rewritten = await rewriter.harness.start({
+			project_path: rewriting,
+			request_text: "greet must end with an exclamation mark",
+			actor: HUMAN,
+		});
+		const rewriteRun = await rewriter.harness.advance(rewritten.change.change_id, { max_steps: 40 });
+		const rewriteState = rewriter.ledger.loadChange(rewritten.change.change_id)!.state;
+		assert.ok(
+			rewriteState.adopted.preparation?.ref.artifact_id.startsWith("prep_"),
+			`the rewritten suite is adopted as discriminant: ${rewriteRun.steps.join(" | ")}`,
+		);
+		const rewriteRecord = await preparationRecord(rewriter, rewritten.change.change_id);
+		assert.equal(rewriteRecord.qualified, true, "the prepared suite that rewrites test/greet.test.js is adopted");
+		assert.deepEqual(
+			rewriteRecord.modified_existing,
+			["test/greet.test.js"],
+			`the record names test/greet.test.js as an existing test the preparation modified: ${JSON.stringify(rewriteRecord)}`,
+		);
+		assert.equal(rewriteRun.stopped_because, "closed", rewriteRun.steps.join(" | "));
+		assert.equal(rewriteState.outcome, "accepted", "the candidate that appends ! passes the rewritten test");
+
+		const adding = tempDir("495-addonly-");
+		cleanups.push(adding);
+		fixtureTs(adding);
+		initRepo(adding);
+		const adder = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: {
+					prepare: {
+						steps: [
+							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+							{ kind: "complete", output: report(["test/shout.test.js"]) },
+						],
+					},
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+			}),
+		);
+		const added = await adder.harness.start({ project_path: adding, request_text: "add shout", actor: HUMAN });
+		await adder.harness.advance(added.change.change_id, { max_steps: 40 });
+		const addRecord = await preparationRecord(adder, added.change.change_id);
+		assert.equal(addRecord.qualified, true, "the new test alone is adopted as discriminant");
+		assert.deepEqual(
+			addRecord.modified_existing,
+			[],
+			"a preparation that only adds a test names no existing test modified",
 		);
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {

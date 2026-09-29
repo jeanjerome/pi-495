@@ -279,9 +279,13 @@ export function preparationMandateObjective(
 	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} are retained, and whatever you write elsewhere to check yourself is ignored. The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
 }
 
-/** What the preparing intervention is asked, on top of the mandate it was opened on. */
+/**
+ * What the preparing intervention is asked, on top of the mandate it was opened on. An existing test
+ * that asserts the behaviour the requirements change is to be updated, not left beside a new one
+ * contradicting it: the implementer may not touch the tests, and no candidate can satisfy both.
+ */
 export function preparationObjective(mandateObjective: string, requirementIds: readonly string[]): string {
-	return `${mandateObjective}\nRequirements to cover: ${requirementIds.join(", ")}. Do not implement the feature itself; only add tests that will fail until it exists.`;
+	return `${mandateObjective}\nRequirements to cover: ${requirementIds.join(", ")}. Do not implement the feature itself. Write the tests that are missing, and update any existing test that asserts the behaviour these requirements change, so that the suite fails until the feature exists and passes once it does.`;
 }
 
 /** What the producer is asked: the adopted mandate, or the design alone when no mandate is held. */

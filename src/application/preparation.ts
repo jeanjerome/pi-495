@@ -18,6 +18,11 @@ export interface PreparationRecord {
 	objective: string;
 	allowed_paths: string[];
 	files: PreparedFile[];
+	/**
+	 * Of the retained files, those that existed on the reference: a test rewritten here changes what
+	 * the target guaranteed until now, which the owner sees before deciding on the candidate.
+	 */
+	modified_existing: string[];
 	/** Verdict of the prepared suite on the bare reference: FAIL means it detects the absent feature. */
 	on_reference: "PASS" | "FAIL" | "INDETERMINATE" | "NOT_RUN" | "NOT_APPLICABLE";
 	discriminant: boolean;
@@ -27,16 +32,18 @@ export interface PreparationRecord {
 }
 
 /**
- * What a preparation retains: the files written under its roots. What it wrote elsewhere — a work
- * log, a script, the feature itself — is named and left out, never refused: the mandate bounds what
- * is retained, not what a producer may write to check itself. A deletion or a non-file entry under
- * a root is refused, since nothing of it can be retained.
+ * What a preparation retains: the files written under its roots, with those among them that existed
+ * on the reference named apart. What it wrote elsewhere — a work log, a script, the feature itself —
+ * is named and left out, never refused: the mandate bounds what is retained, not what a producer
+ * may write to check itself. A deletion or a non-file entry under a root is refused, since nothing
+ * of it can be retained.
  */
 export function preparedFilesFrom(
 	manifest: CandidateManifest,
 	allowed: string[],
-): { files: PreparedFile[]; out_of_scope: string[]; refused: string[] } {
+): { files: PreparedFile[]; modified_existing: string[]; out_of_scope: string[]; refused: string[] } {
 	const files: PreparedFile[] = [];
+	const modifiedExisting: string[] = [];
 	const out: string[] = [];
 	const refused: string[] = [];
 	for (const e of manifest.entries) {
@@ -51,8 +58,9 @@ export function preparedFilesFrom(
 			continue;
 		}
 		files.push({ path: e.path, digest: e.content_digest, size_bytes: e.size });
+		if (e.baseline_state !== "added") modifiedExisting.push(e.path);
 	}
-	return { files, out_of_scope: out, refused };
+	return { files, modified_existing: modifiedExisting, out_of_scope: out, refused };
 }
 
 /** Level 1 of the PRE-01 scale: a file named like a test, which says nothing about it ever running. */
