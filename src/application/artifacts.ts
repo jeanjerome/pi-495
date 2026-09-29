@@ -147,6 +147,25 @@ export class ArtifactRepository {
 	}
 
 	/**
+	 * The preparations written for the requirements as they stand, oldest first: since the owner last
+	 * revoked a question's resolution, and since the requirements were last revised into a different
+	 * document. A revision that puts back the document already held changes nothing a preparation was
+	 * written for, so it does not start the count again.
+	 */
+	preparationsForCurrentRequirements(state: ChangeState): ArtifactRef[] {
+		let held: string | null = null;
+		const written = this.writtenBeforeLast(state, "preparation", (event) => {
+			if (event.type === "question.revoked") return true;
+			if (event.type !== "artifact.proposed" && event.type !== "artifact.revised") return false;
+			if (event.kind !== "requirements") return false;
+			const rewritten = event.type === "artifact.revised" && held !== null && held !== event.ref.content_digest;
+			held = event.ref.content_digest;
+			return rewritten;
+		});
+		return (state.proposals.preparation ?? []).slice(written);
+	}
+
+	/**
 	 * How many proposals of `kind` were written before the last event `marks` holds. Only the ledger's
 	 * order tells which proposals an event followed: the state keeps the proposals, not what came
 	 * between them. `marks` is called once for every other event, in the ledger's order, and never for

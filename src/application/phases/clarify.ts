@@ -169,20 +169,22 @@ function questionsToAsk(unit: Unit, report: SpecificationReport): SpecificationR
 
 /**
  * Runs one specification intervention from the request and the answers recorded so far, and proposes
- * the report it returns. No report when the intervention left the change blocked.
+ * the report it returns. `instruction` is what the owner asked on top of them, when they asked
+ * something. No report when the intervention left the change blocked.
  */
-async function writeSpecification(
+export async function writeSpecification(
 	ctx: PhaseContext,
 	unit: Unit,
 	cor: string,
 	reference: ReferenceSnapshot,
 	request: string,
 	declared: Map<string, string[]>,
+	instruction: string | null = null,
 ): Promise<{ unit: Unit; report: SpecificationReport | null }> {
 	let report: SpecificationReport;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		const objective = specificationObjective(request, unit.state.open_questions, declared);
+		const objective = specificationObjective(request, unit.state.open_questions, declared, instruction);
 		const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, {});
 		unit = r.unit;
 		if (unit.state.status === "blocked") return { unit, report: null };

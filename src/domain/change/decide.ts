@@ -1447,6 +1447,7 @@ class Ctx {
 			subject: pending.subject,
 			actor_id: origin.actor_id,
 			scope: c.response.scope,
+			free_text: c.response.free_text,
 		});
 		switch (pending.interaction) {
 			case "IH-01": {

@@ -5,18 +5,21 @@ import { RequirementsDocument as RequirementsDocumentSchema } from "../../contra
 import type { RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
 import { validate } from "../../contracts/validate.ts";
-import { answersOf, declarationsOfReport } from "../../domain/change/state.ts";
+import { answersOf, declarationsOfReport, type ChangeState } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { type PhaseContext, type Unit, requestAdoption } from "./phase.ts";
 
-export async function specify(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
-	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
-	if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
-	const declared = declarationsOfReport(await ctx.artifacts.priorDiagnostics(unit.state), spec.content);
-	const doc: RequirementsDocument = {
-		change_id: unit.state.change_id,
-		requirements: spec.content.requirements.map((r) => ({
+/** The requirements document a specification report gives, carrying the answers the ledger records. */
+export async function requirementsDocument(
+	ctx: PhaseContext,
+	state: ChangeState,
+	report: SpecificationReport,
+): Promise<RequirementsDocument> {
+	const declared = declarationsOfReport(await ctx.artifacts.priorDiagnostics(state), report);
+	return {
+		change_id: state.change_id,
+		requirements: report.requirements.map((r) => ({
 			requirement_id: r.requirement_id,
 			statement: r.statement,
 			category: r.category,
@@ -26,10 +29,16 @@ export async function specify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			contract_family: null,
 			satisfied_by_reference: r.satisfied_by_reference,
 		})),
-		answers: answersOf(unit.state, declared),
-		assumptions: spec.content.assumptions,
+		answers: answersOf(state, declared),
+		assumptions: report.assumptions,
 		contract_families: {},
 	};
+}
+
+export async function specify(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
+	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
+	if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
+	const doc = await requirementsDocument(ctx, unit.state, spec.content);
 	const issues: string[] = [];
 	try {
 		validate(RequirementsDocumentSchema, doc, "requirements");

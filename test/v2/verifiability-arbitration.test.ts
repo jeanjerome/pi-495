@@ -5,10 +5,11 @@
 import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { fixtureTsWithoutTests, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
+import { buildDecisionRequest } from "../../src/application/decisions.ts";
 import { arbitrationSubject, requirementsTakenByOwner } from "../../src/application/phases/verification-design.ts";
 import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
 import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.ts";
@@ -68,6 +69,13 @@ const specWithRequirementSeenLater = specReport({
 	design: spec.design,
 });
 
+/** What the owner asked R1 to become: a statement of its own, no more judgeable than the first. */
+const revisedSpec = specReport({
+	objective: spec.objective,
+	requirements: [{ ...spec.requirements[0]!, statement: "shout('Ada') returns 'HELLO, ADA'" }],
+	design: spec.design,
+});
+
 /** A preparation that writes nothing under the test roots: no discriminant test is retained. */
 const emptyPreparation = {
 	steps: [
@@ -95,7 +103,7 @@ const origin = (): HumanOrigin => ({
 });
 
 /** The owner's answer to the one decision pending on the change. */
-function answerPending(t: TestHarness, changeId: string, optionId: string): string {
+function answerPending(t: TestHarness, changeId: string, optionId: string, freeText: string | null = null): string {
 	const pending = t.ledger.loadChange(changeId)!.state.pending_decisions;
 	assert.equal(pending.length, 1, "one decision is pending");
 	const answered = t.harness.answerDecision(
@@ -103,7 +111,7 @@ function answerPending(t: TestHarness, changeId: string, optionId: string): stri
 		{
 			decision_id: pending[0]!.decision_id,
 			option_id: optionId,
-			free_text: null,
+			free_text: freeText,
 			reason: null,
 			subject_revision: pending[0]!.subject.revision,
 			scope: null,
@@ -116,7 +124,7 @@ function answerPending(t: TestHarness, changeId: string, optionId: string): stri
 }
 
 describe("a requirement no control can judge is arbitrated by the owner", () => {
-	it("given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare and assign_review, and the change is not blocked", async () => {
+	it("given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked", async () => {
 		const t = harnessWithEmptyPreparations();
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
@@ -146,7 +154,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		);
 		assert.deepEqual(
 			request.options.map((o) => o.id),
-			["prepare", "assign_review"],
+			["prepare", "assign_review", "revise"],
 		);
 		assert.ok(
 			request.options.every((o) => o.effect.length > 0),
@@ -185,6 +193,139 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 			t.ledger.loadChange(change.change_id)!.state.interventions.filter((i) => i.role === "prepare").length,
 			4,
 			"each answer grants one preparation, not a standing licence",
+		);
+	});
+
+	it("given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold", async () => {
+		const t = track(
+			makeHarness({
+				policy: { adoption: { requirements: "human" } },
+				scripts: { prepare: emptyPreparation },
+			}),
+		);
+		const { objectives } = specificationRounds(t, [spec, revisedSpec]);
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const asked = t.harness.pendingDecisions(change.change_id);
+		assert.deepEqual(
+			asked.map((d) => d.interaction),
+			["IH-04"],
+		);
+		const before = t.ledger.loadChange(change.change_id)!.state;
+		const adoptedBefore = before.adopted.requirements!.ref;
+		assert.equal(before.gates.G1?.verdict, "PASS", "the requirements were adopted");
+
+		const text = "check the greeting against the name 'Ada' and drop the promise about accents";
+		answerPending(t, change.change_id, "revise", text);
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		assert.equal(objectives.length, 2, `the specification is redone: ${result.steps.join(" | ")}`);
+		assert.ok(objectives[1]!.includes(text), "the owner's text is in the specification request");
+		assert.match(objectives[1]!, /revise R1,/, "the request names the requirement, which the owner's text does not");
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(state.phase, "specifying", "the change is back in the specification");
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		assert.notEqual(state.gates.G1?.verdict, "PASS", "the adoption of the requirements no longer holds");
+		assert.equal(state.gates.G2, undefined, "no protocol is in force");
+		assert.ok(
+			state.human_decisions.filter((d) => d.interaction === "IH-04").every((d) => !d.valid),
+			"no answer given about the previous requirements holds",
+		);
+		const adoption = t.harness.pendingDecisions(change.change_id);
+		assert.deepEqual(
+			adoption.map((d) => d.interaction),
+			["IH-02"],
+			"the owner adopts the requirements written again, as the first ones",
+		);
+		assert.notEqual(
+			adoption[0]!.subject.digest,
+			adoptedBefore.content_digest,
+			"they are not the requirements adopted before",
+		);
+	});
+
+	it("given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements", async () => {
+		const t = track(
+			makeHarness({
+				policy: { adoption: { requirements: "human" } },
+				scripts: { prepare: emptyPreparation },
+			}),
+		);
+		specificationRounds(t, [spec, revisedSpec]);
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const first = t.requested.filter((r) => r.interaction === "IH-04");
+		answerPending(t, change.change_id, "revise", "R1 must be checked against the name 'Ada'");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt");
+		const preparationsBefore = t.ledger
+			.loadChange(change.change_id)!
+			.state.interventions.filter((i) => i.role === "prepare").length;
+		assert.equal(preparationsBefore, 2, "two preparations were spent on the first wording");
+
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.equal(
+			state.interventions.filter((i) => i.role === "prepare").length,
+			4,
+			`two preparations opened for the new requirements: ${result.steps.join(" | ")}`,
+		);
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		const asked = t.requested.filter((r) => r.interaction === "IH-04");
+		assert.equal(asked.length, first.length + 1, "IH-04 is asked again once, after those preparations");
+		assert.deepEqual(
+			asked.at(-1)!.subject,
+			arbitrationSubject(state.adopted.requirements!.ref, ["R1"]),
+			"the decision is about the revision of the new requirements",
+		);
+		assert.notEqual(asked.at(-1)!.subject.digest, first[0]!.subject.digest, "not about the requirements revised");
+	});
+
+	it("given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text", async () => {
+		const t = track(
+			makeHarness({
+				policy: { adoption: { requirements: "human" } },
+				scripts: { prepare: emptyPreparation },
+			}),
+		);
+		const { objectives } = specificationRounds(t, [specWithRequirementSeenLater, revisedSpec]);
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "assign_review");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const asked = t.requested.filter((r) => r.interaction === "IH-04");
+		assert.match(asked.at(-1)!.question, /R1, R2/, "the question asked after the observation names both requirements");
+
+		const text = "say what both greetings return for the name 'Ada'";
+		answerPending(t, change.change_id, "revise", text);
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		assert.equal(objectives.length, 2, `the specification is redone: ${result.steps.join(" | ")}`);
+		assert.match(objectives[1]!, /revise R1, R2,/, "the request names both requirements");
+		assert.ok(objectives[1]!.includes(text), "the owner's text is in the specification request");
+		assert.deepEqual(
+			t.harness.pendingDecisions(change.change_id).map((d) => d.interaction),
+			["IH-02"],
+			"the owner adopts the requirements written again",
 		);
 	});
 
@@ -286,6 +427,41 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	});
 });
 
+describe("the IH-04 request", () => {
+	const ask = (language: "fr" | "en") =>
+		buildDecisionRequest({
+			decision_id: "dec_1",
+			change_id: "chg_1",
+			interaction: "IH-04",
+			subject: { kind: "artifact", id: "req_0001", revision: 1, digest: "sha256:00" },
+			language,
+			facts: [],
+			recommendation: null,
+			arg: "R1",
+			requested_at: "2026-09-29T12:00:00.000Z",
+		});
+
+	it("the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise", () => {
+		for (const language of ["fr", "en"] as const) {
+			const request = ask(language);
+			assert.deepEqual(
+				request.options.map((o) => o.id),
+				["prepare", "assign_review", "revise"],
+				language,
+			);
+			assert.ok(
+				request.options.every((o) => o.label.length > 0 && o.effect.length > 0),
+				`each option says what it is and its effect (${language})`,
+			);
+			assert.equal(
+				request.allow_free_text,
+				true,
+				`the revise answer takes the text of what the requirement becomes (${language})`,
+			);
+		}
+	});
+});
+
 describe("the requirements the owner took on", () => {
 	const requirements: ArtifactRef = {
 		artifact_id: "req_0001",
@@ -304,6 +480,7 @@ describe("the requirements the owner took on", () => {
 		subject: arbitrationSubject(requirements, asked),
 		actor_id: "owner",
 		scope: null,
+		free_text: null,
 		valid: true,
 		recorded_at: "2026-09-16T12:00:00.000Z",
 		...overrides,

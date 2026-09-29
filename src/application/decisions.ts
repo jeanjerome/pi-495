@@ -67,6 +67,13 @@ const T = {
 						"Aucune mesure ne jugera l'exigence : c'est à vous de la juger à l'acceptation du candidat, et le rapport la liste comme décidée par un humain. La réponse tombe si les exigences sont révisées.",
 					risky: true,
 				},
+				{
+					id: "revise",
+					label: "Réviser l'exigence (dire en texte libre ce qu'elle doit devenir)",
+					effect:
+						"La spécification est refaite avec votre consigne et vous adoptez les nouvelles exigences comme les premières ; les exigences, le protocole et la préparation adoptés jusque-là ne sont plus en vigueur, et la nouvelle formulation reçoit ses propres préparations avant qu'on vous redemande de trancher.",
+					risky: true,
+				},
 			],
 		}),
 		"IH-07": (used: string) => ({
@@ -213,6 +220,13 @@ const T = {
 						"No measurement will judge the requirement: you judge it when the candidate is accepted, and the report lists it as decided by a human. The answer lapses if the requirements are revised.",
 					risky: true,
 				},
+				{
+					id: "revise",
+					label: "Revise the requirement (say in free text what it should become)",
+					effect:
+						"The specification is redone with your instruction and you adopt the new requirements like the first ones; the requirements, protocol and preparation adopted so far no longer hold, and the new wording gets its own preparations before you are asked to decide again.",
+					risky: true,
+				},
 			],
 		}),
 		"IH-07": (used: string) => ({
@@ -319,7 +333,11 @@ export function buildDecisionRequest(args: {
 		recommendation: args.recommendation,
 		options: [...t.options],
 		required_authority: args.authority ?? (args.interaction === "IH-01" ? "requester" : "change_owner"),
-		allow_free_text: args.interaction === "IH-01" || args.interaction === "IH-02" || args.interaction === "IH-07",
+		allow_free_text:
+			args.interaction === "IH-01" ||
+			args.interaction === "IH-02" ||
+			args.interaction === "IH-04" ||
+			args.interaction === "IH-07",
 		requested_at: args.requested_at,
 		expires_at: null,
 		language: args.language,

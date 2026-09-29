@@ -2,7 +2,7 @@
 
 Story : e22s02
 Epic : e22
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

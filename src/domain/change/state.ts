@@ -183,6 +183,8 @@ export interface HumanDecisionEntry {
 	subject: SubjectRef;
 	actor_id: string;
 	scope: string | null;
+	/** What the owner wrote beside the option, kept where a later step reads it: an IH-04 revision says what to write. */
+	free_text: string | null;
 	valid: boolean;
 	recorded_at: string;
 }

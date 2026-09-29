@@ -318,6 +318,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 					subject: event.subject,
 					actor_id: event.actor_id,
 					scope: event.scope,
+					free_text: event.free_text,
 					valid: true,
 					recorded_at: event.at,
 				},

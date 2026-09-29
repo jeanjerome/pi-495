@@ -66,6 +66,18 @@ export async function drive(session: ExtensionSession, ctx: ExtensionCommandCont
 	if (result.stopped_because === "decision_required") await presentDecisions(session, ctx, changeId);
 }
 
+const FREE_TEXT_PROMPTS: Record<string, Record<"fr" | "en", string>> = {
+	answer: { fr: "Votre réponse", en: "Your answer" },
+	extend: { fr: "Votre réponse", en: "Your answer" },
+	refuse: { fr: "Motif du refus", en: "Reason for the refusal" },
+	revise: { fr: "Ce que l'exigence doit devenir", en: "What the requirement should become" },
+};
+
+/** What the owner is asked for beside the option chosen, or null when that option records no text. */
+function freeTextPrompt(optionId: string, lang: "fr" | "en"): string | null {
+	return FREE_TEXT_PROMPTS[optionId]?.[lang] ?? null;
+}
+
 export async function presentDecisions(
 	session: ExtensionSession,
 	ctx: ExtensionCommandContext,
@@ -99,17 +111,8 @@ export async function presentDecisions(
 		let freeText: string | null = null;
 		// A refusal that carries no reason leaves the dossier with a blocked change and nothing to
 		// read; only the interactions whose text is actually recorded are asked for one.
-		if (req.allow_free_text && (optionId === "answer" || optionId === "extend" || optionId === "refuse"))
-			freeText =
-				(await ctx.ui.input(
-					session.lang() === "fr"
-						? optionId === "refuse"
-							? "Motif du refus"
-							: "Votre réponse"
-						: optionId === "refuse"
-							? "Reason for the refusal"
-							: "Your answer",
-				)) ?? null;
+		const prompt = req.allow_free_text ? freeTextPrompt(optionId, session.lang()) : null;
+		if (prompt) freeText = (await ctx.ui.input(prompt)) ?? null;
 		const answer = rt.harness.answerDecision(
 			changeId,
 			{

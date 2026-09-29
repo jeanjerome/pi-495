@@ -257,6 +257,7 @@ export function specificationObjective(
 	request: string,
 	questions: readonly { id: string; question: string; answer: string | null; closed_at?: string | null }[],
 	declared: ReadonlyMap<string, string[]>,
+	instruction: string | null = null,
 ): string {
 	const answered = questions
 		.filter((q) => (q.answer !== null || isQuestionClosed(q)) && q.id !== "language")
@@ -267,7 +268,16 @@ export function specificationObjective(
 			const standing = d ? `already declared, carried by ${d.join(", ")}` : "to declare in `answers`";
 			return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
 		});
-	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}`;
+	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}${instruction ? `\n\n${instruction}` : ""}`;
+}
+
+/**
+ * What the owner asks of a specification redone because no test can judge some requirements: those
+ * are rewritten as they say, the others stand. Their text is theirs, so it comes last and unaltered.
+ */
+export function requirementsRevisionInstruction(requirementIds: readonly string[], ownerText: string | null): string {
+	const named = requirementIds.join(", ");
+	return `The owner asks to revise ${named}, which no test can judge. Rewrite ${named} as the owner asks and keep the other requirements as they stand. The owner's instruction: ${ownerText?.trim() || "(none given)"}`;
 }
 
 /** The mandate a bounded preparation is opened on: what is missing, and what of its work is retained. */

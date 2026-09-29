@@ -15,6 +15,7 @@ import type { ReferenceSuiteObservation } from "../preparation.ts";
 import { detectStack } from "../target.ts";
 import type { StackDetection } from "../target.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
+import { reviseRequirements } from "./requirements-revision.ts";
 
 /**
  * How many preparations the owner granted beyond the two 495 spends by itself. A revision of the
@@ -49,11 +50,22 @@ export function requirementsTakenByOwner(
 	requirements: ArtifactRef,
 	undiscriminated: readonly string[],
 ): string[] {
+	return answerHeld(decisions, "assign_review", requirements, undiscriminated) ? [...undiscriminated] : [];
+}
+
+/** The valid answer of that option given to the question asked about exactly these requirements. */
+function answerHeld(
+	decisions: readonly HumanDecisionEntry[],
+	option: string,
+	requirements: ArtifactRef,
+	undiscriminated: readonly string[],
+): HumanDecisionEntry | null {
 	const held = arbitrationSubject(requirements, undiscriminated).digest;
-	const answered = decisions.some(
-		(d) => d.valid && d.interaction === "IH-04" && d.option_id === "assign_review" && d.subject.digest === held,
+	return (
+		decisions.find(
+			(d) => d.valid && d.interaction === "IH-04" && d.option_id === option && d.subject.digest === held,
+		) ?? null
 	);
-	return answered ? [...undiscriminated] : [];
 }
 
 /**
@@ -87,8 +99,9 @@ function requestVerifiabilityArbitration(
 /**
  * Opens the bounded preparation mandate the diagnosis calls for (SA-008). Two refused rounds are
  * enough: a third spends the same budget on the same gap, and the owner is asked what to do instead.
- * Each answer "prepare" to that question grants one round more. The rounds are counted since the
- * latest revocation: the change rebuilt after it prepares for requirements of its own (DEC-06).
+ * Each answer "prepare" to that question grants one round more. The rounds are counted for the
+ * requirements as they stand: the change rebuilt after a revocation, or the requirements the owner
+ * had rewritten, prepare for requirements of their own (DEC-06).
  */
 async function openPreparation(
 	ctx: PhaseContext,
@@ -100,7 +113,7 @@ async function openPreparation(
 	diagnosis: ControlCapabilityDiagnosis,
 ): Promise<Unit> {
 	const alreadyTried = ctx.artifacts
-		.proposedSinceRevocation(unit.state, "preparation")
+		.preparationsForCurrentRequirements(unit.state)
 		.filter((a) => a.artifact_id.startsWith("prep_")).length;
 	const granted = preparationsGranted(unit);
 	if (alreadyTried >= 2 + granted) return requestVerifiabilityArbitration(ctx, unit, cor, requirements, diagnosis);
@@ -157,6 +170,19 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			});
 		const takenByOwner = (d: ControlCapabilityDiagnosis): string[] =>
 			requirementsTakenByOwner(unit.state.human_decisions, requirements.ref, d.undiscriminated_requirements);
+		// The owner asked for these requirements to be revised: no preparation is spent on wording they
+		// have already refused to keep.
+		const settleUnjudged = (d: ControlCapabilityDiagnosis): Promise<Unit> => {
+			const revision = answerHeld(
+				unit.state.human_decisions,
+				"revise",
+				requirements.ref,
+				d.undiscriminated_requirements,
+			);
+			return revision
+				? reviseRequirements(ctx, unit, cor, reference, d.undiscriminated_requirements, revision.free_text)
+				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d);
+		};
 		const needsPreparation = (d: ControlCapabilityDiagnosis): boolean =>
 			d.undiscriminated_requirements.length > 0 &&
 			detection.preparation_paths.length > 0 &&
@@ -166,8 +192,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		// behaviour the reference does not have appears. Opening the preparation here spares the
 		// qualification of sensors that would have to be qualified again after it.
 		let diagnosis = diagnose(null);
-		if (needsPreparation(diagnosis))
-			return await openPreparation(ctx, unit, cor, detection, requirements.ref, refs, diagnosis);
+		if (needsPreparation(diagnosis)) return await settleUnjudged(diagnosis);
 		const qualified = await ctx.verification.qualify({
 			change_id: unit.state.change_id,
 			reference,
@@ -183,8 +208,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 		});
 		diagnosis = diagnose(qualified.observation);
-		if (needsPreparation(diagnosis))
-			return await openPreparation(ctx, unit, cor, detection, requirements.ref, refs, diagnosis);
+		if (needsPreparation(diagnosis)) return await settleUnjudged(diagnosis);
 		// An analyser the target does not provide is an insufficiency the protocol records, not a
 		// silence: a coverage measurement nobody produces never reads as covered code (QLT-02).
 		if (detection.capability_missing.length > 0)

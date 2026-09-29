@@ -150,6 +150,7 @@ export type ChangeEvent =
 			subject: SubjectRef;
 			actor_id: string;
 			scope: string | null;
+			free_text: string | null;
 	  })
 	| (Base & { type: "decision.rejected"; decision_id: string; reason: string })
 	| (Base & { type: "decision.revoked"; human_decision_id: string; reason: string })
