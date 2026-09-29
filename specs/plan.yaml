@@ -31,6 +31,9 @@ contraintes:
   - "Les travaux touchant au protocole gelé changent `environment_digest` et invalident le protocole d'un cycle en cours : ne pas les engager pendant qu'une campagne tourne."
   - Tout composant nouveau réclame un identifiant `CMP-*` inscrit au catalogue dans le même changement.
   - Une exigence devenue couverte s'inscrit dans la matrice de traçabilité, qui refuse une absence silencieuse.
+  - >
+    Les technologies prises en charge s'étofferont au-delà de Maven et de Node : ce qu'une story ajoute par
+    technologie vit dans l'adaptateur de cette technologie, jamais dans une table centrale (`D-75`).
 
 epics:
   - id: e23
@@ -215,32 +218,6 @@ epics:
     position: >
       WSJF seul le placerait avant e05 ; la ROADMAP ne le range pas dans sa séquence.
 
-  - id: e10
-    title: "Référentiel de qualité d'une cible"
-    status: à faire
-    source: chantiers/N
-    objet: >
-      Le noyau sait dire ce que vaut une cible sur la qualité : conventions, seuils et contrôles définis
-      par technologie et composant, existant mesuré avec les écarts localisés et les périmètres séparés,
-      remise aux standards traduite en incréments priorisés, et conformité démontrée dans le seul
-      périmètre réellement contrôlé.
-    motif: >
-      Les quatre ne sont pas livrables séparément : mesurer un existant suppose un référentiel adopté,
-      et démontrer une remise en conformité suppose la baseline qui lui sert de point de départ.
-
-  - id: e11
-    title: "Architecture cible d'une cible"
-    status: à faire
-    source: chantiers/N
-    objet: >
-      Le noyau sait dire ce que vaut l'architecture d'une cible : diagnostic de l'architecture
-      réellement présente avec ses angles morts déclarés, recommandation argumentée par les contraintes
-      et non par un style, et migration traduite en étapes avec contrats de transition et retour
-      arrière.
-    motif: >
-      Même chaîne : recommander une cible suppose le diagnostic de l'existant, et planifier une
-      migration suppose la cible adoptée.
-
   - id: e12
     title: "Cartographie des contrôles existants et recommandation de ce qui manque"
     status: à faire
@@ -256,10 +233,91 @@ epics:
       s'adapter aux tests que le projet a choisis (jest, mocha, …) plutôt que de n'en lire qu'un ou
       deux (`D-72`).
     position: >
-      `e22` en est le complément : la décision du propriétaire quand l'oracle est insuffisant. Restent
-      à concevoir un catalogue des frameworks recommandés par technologie et par type de test, des
-      chemins protégés qui suivent le besoin de la phase et non des listes fixes, et la voie par
-      laquelle un framework approuvé s'installe sans réseau ouvert aux contrôles.
+      `e22` en est le complément : la décision du propriétaire quand l'oracle est insuffisant. Le
+      catalogue des frameworks est porté par l'adaptateur de chaque technologie (`D-75`). L'installation
+      d'un framework approuvé ouvre le réseau à cette seule étape (`D-76`) ; les chemins protégés suivent
+      le besoin de la phase et non des listes fixes. Les assertions d'une suite se mesurent par la mutation
+      plutôt que par la lecture du code de test, comme le témoin `Witness495Unasserted` le fait pour Maven.
+      Sa première story met les technologies derrière une liste d'adaptateurs, ce que `e10`, `e11` et `e29`
+      supposent.
+    stories:
+      - { id: e12s01, status: "à faire", title: "Ajouter une technologie ne demande qu'un module, et les deux actuelles passent par la même liste d'adaptateurs" }
+      - { id: e12s02, status: "à faire", title: "Une cible dont les tests tournent sous un autre lanceur est jugée quand son rapport se qualifie" }
+      - { id: e12s03, status: "à faire", title: "Ce que les tests d'une cible Node laissent passer se mesure par la couverture et la mutation qu'elle produit" }
+      - { id: e12s04, status: "à faire", title: "495 recommande les types de tests qui manquent avec un framework par technologie et par type, et le refus du propriétaire est inscrit au dossier" }
+      - { id: e12s05, status: "à faire", title: "Le framework approuvé est installé, le réseau ouvert à cette seule étape, et les chemins protégés suivent le besoin de la phase" }
+
+  - id: e29
+    title: "L'état d'un projet se demande sans rien changer"
+    status: à faire
+    source: arbitrage du propriétaire, 2026-09-30
+    objet: >
+      Le propriétaire demande l'état de son projet sans rien changer : le changement a pour livrable un
+      état des lieux établi par des contrôles exécutés sur la référence, sans candidat, que le propriétaire
+      lit et accepte, dont les angles morts sont nommés.
+    motif: >
+      Le noyau ne connaît qu'un changement dont le produit est un candidat : G2 exige un contrôle, G4 et G5
+      jugent un candidat. La baseline de `e10` et le diagnostic de `e11` sont des états des lieux ; sans ce
+      changement, chacun devrait inventer le sien (`D-74`).
+    position: >
+      Après `e12`, dont la première story donne aux technologies leur liste d'adaptateurs (`D-75`), et devant
+      `e10` et `e11`, qui s'appuient sur lui. Les portes qu'un état des lieux passe sont à concevoir par sa
+      première story.
+    stories:
+      - { id: e29s01, status: "à faire", title: "Un changement dont le livrable est l'état du projet traverse ses portes sans candidat" }
+      - { id: e29s02, status: "à faire", title: "Le propriétaire lit l'état des lieux, ses angles morts nommés, et l'accepte ou le refuse" }
+
+  - id: e10
+    title: "Référentiel de qualité d'une cible"
+    status: à faire
+    source: chantiers/N
+    objet: >
+      Le noyau sait dire ce que vaut une cible sur la qualité : conventions, seuils et contrôles définis
+      par technologie et composant, existant mesuré avec les écarts localisés et les périmètres séparés,
+      remise aux standards traduite en incréments priorisés, et conformité démontrée dans le seul
+      périmètre réellement contrôlé.
+    motif: >
+      Les quatre ne sont pas livrables séparément : mesurer un existant suppose un référentiel adopté,
+      et démontrer une remise en conformité suppose la baseline qui lui sert de point de départ.
+    position: >
+      Java/Maven et Node, l'un après l'autre (arbitrage du 2026-09-30) : la partie Node attend `e12`, qui
+      lui donne la couverture et la mutation. Le référentiel est porté par le protocole gelé, comme les
+      règles de structure (`D-25`), et non par un fichier de l'arbre analysé ; il n'entre pas dans
+      `environment_digest`, qui ne porte que la plateforme, les outils et l'identité du build de 495. La
+      baseline est un état des lieux (`e29`). Le plan de dette et la conformité reposent sur un programme
+      à plusieurs incréments que le noyau porte mais dont la conduite depuis Pi reste à qualifier (`D-16`) :
+      la story `e10s04` le qualifie, et `e11s04` s'y appuie.
+    stories:
+      - { id: e10s01, status: "à faire", title: "Le référentiel d'une cible Maven est adopté par le propriétaire, chaque règle avec son oracle, sa source et sa date" }
+      - { id: e10s02, status: "à faire", title: "L'état des lieux d'une cible Maven mesure l'existant avec ce référentiel et sépare code propriétaire, code généré et dépendances" }
+      - { id: e10s03, status: "à faire", title: "Le référentiel et l'état des lieux d'une cible Node" }
+      - { id: e10s04, status: "à faire", title: "Un programme à plusieurs incréments se conduit depuis Pi jusqu'à son jalon" }
+      - { id: e10s05, status: "à faire", title: "Les écarts de l'état des lieux deviennent des incréments priorisés" }
+      - { id: e10s06, status: "à faire", title: "La conformité n'est annoncée que dans le périmètre contrôlé, et une exception a un propriétaire et une échéance" }
+
+  - id: e11
+    title: "Architecture cible d'une cible"
+    status: à faire
+    source: chantiers/N
+    objet: >
+      Le noyau sait dire ce que vaut l'architecture d'une cible : diagnostic de l'architecture
+      réellement présente avec ses angles morts déclarés, recommandation argumentée par les contraintes
+      et non par un style, et migration traduite en étapes avec contrats de transition et retour
+      arrière.
+    motif: >
+      Même chaîne : recommander une cible suppose le diagnostic de l'existant, et planifier une
+      migration suppose la cible adoptée.
+    position: >
+      Java/Maven et Node (arbitrage du 2026-09-30). Le diagnostic est un état des lieux (`e29`) ; sa moitié
+      observable existe pour Maven (`structure.ts`), pas pour Node. La recommandation est la partie la moins
+      mécanique : le noyau ne vérifie que la forme de l'argument, chaque alternative portant bénéfice, coût et
+      risque, chaque conclusion citant une contrainte ; le jugement reste au propriétaire (`EXP-02`). La
+      migration s'appuie sur le programme à plusieurs incréments que `e10s04` qualifie.
+    stories:
+      - { id: e11s01, status: "à faire", title: "L'état des lieux d'une cible Maven diagnostique l'architecture réalisée, la compare à celle qu'elle déclare et nomme ses angles morts" }
+      - { id: e11s02, status: "à faire", title: "Le diagnostic d'architecture d'une cible Node" }
+      - { id: e11s03, status: "à faire", title: "La recommandation d'architecture est argumentée par les contraintes du projet et arbitrée par le propriétaire" }
+      - { id: e11s04, status: "à faire", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
 
   - id: e13
     title: "Tests de caractérisation d'un existant"
