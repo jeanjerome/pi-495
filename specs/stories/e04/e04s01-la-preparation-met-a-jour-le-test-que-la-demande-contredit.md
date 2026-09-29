@@ -2,7 +2,7 @@
 
 Story : e04s01
 Epic : e04
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 
