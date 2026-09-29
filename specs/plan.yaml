@@ -142,7 +142,7 @@ epics:
 
   - id: e04
     title: "Clarté des instructions d'intervention"
-    status: à faire
+    status: versé
     source: chantiers/K
     objet: >
       Une préparation dont les exigences changent un comportement qu'un test existant affirme est
@@ -159,7 +159,7 @@ epics:
       défaut observé change l'empreinte d'environnement de toute campagne en vol pour rien. Ils se
       rouvrent sur le premier dossier qui montre une consigne contradictoire, absente ou noyée.
     stories:
-      - { id: e04s01, status: "à faire", title: "La préparation met à jour le test que la demande contredit" }
+      - { id: e04s01, status: "versée", title: "La préparation met à jour le test que la demande contredit" }
 
   - id: e05
     title: "Commande de test d'une cible Node"
@@ -170,6 +170,11 @@ epics:
       conserve ce dont ses dépendances ont besoin.
     motif: >
       Une cible en vitest ne passe pas ; aucune capacité n'est opposable sur une cible Node.
+    position: >
+      Réduit le 2026-09-29 à vitest, le seul lanceur qu'une cible de la démonstration utilise : un
+      autre lanceur est refusé en étant nommé, et se rouvre sur la première cible qui en dépend.
+    stories:
+      - { id: e05s01, status: "à faire", title: "Une cible Node en vitest est jugée par sa propre commande de test" }
 
   - id: e06
     title: "Inventaire des cas particuliers d'un arbre"
