@@ -50,8 +50,9 @@ Scenario: Avec un vrai modèle, le changement qui contredit un test existant abo
 - Chemins protégés : inchangés. La préparation pouvait déjà modifier un fichier sous ses racines ;
   la story le lui dit, sans élargir ses racines ni ses droits.
 - Provenance : une préparation qui réécrit un test existant change ce que la cible garantissait. Le
-  relevé le nomme, pour que le propriétaire le voie avant de décider sur le candidat ; la
-  préparation reste une proposition que seul le noyau adopte.
+  relevé le nomme, lisible dans le dossier ; ni le dialogue d'acceptation du candidat ni
+  `/495 status` ne le montrent (`specs/bugs/registry.yaml`). La préparation reste une proposition
+  que seul le noyau adopte.
 
 ## 4. Tâches
 

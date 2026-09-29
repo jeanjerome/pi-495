@@ -1118,3 +1118,35 @@ bugs:
       protocol protects.
     status: fixed
     fixed_in: 053d886
+  - bug_id: BUG-2026-09-29T101451
+    date: "2026-09-29"
+    title: "The owner who accepts a candidate is not told that its preparation rewrote an existing test"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      A preparation that rewrites a test which existed on the reference is adopted, and its record
+      names the file in `modified_existing`. That field is written to the object store and read by
+      nothing else: the IH-10 dialog asks "Accepter ce candidat ?" with the gate reasons as its only
+      facts, and `/495 status` does not list it. The owner who decides from Pi does not learn that
+      what the target guaranteed until now was rewritten; only a reading of the object store shows it.
+    what_expected: >
+      The owner sees, before accepting the candidate, which existing tests the preparation modified.
+    steps_to_reproduce:
+      - "On a target whose `test/greet.test.js` asserts `Hello, x`, request `greet must end with an exclamation mark`."
+      - "Let the preparation rewrite `test/greet.test.js`, and reach the IH-10 dialog."
+      - "The dialog and `/495 status` do not name `test/greet.test.js`; the preparation record of the object store does."
+    root_cause: >
+      `PreparationRecord.modified_existing` (`src/application/preparation.ts`) was added to the record
+      only. The IH-10 facts come from `g5.reasons` (`src/application/phases/decide.ts`), and no
+      presentation reads the preparation record.
+    evidence: >
+      A campaign on a real Pi in RPC mode with a local model: the preparation record holds
+      `modified_existing: [test/greet.test.js]` and G5 passes. The reading of `decisions.ts` and
+      `decide.ts` shows that the IH-10 question carries no mention of the rewritten test.
+    risk_level: low
+    follow_ups: >
+      Name the modified existing tests in the IH-10 facts, or in `/495 status`, or both; the
+      candidate is still a proposal that only the kernel adopts, so this changes what the owner sees,
+      not what the kernel decides.
+    status: open

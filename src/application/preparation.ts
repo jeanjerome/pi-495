@@ -20,7 +20,7 @@ export interface PreparationRecord {
 	files: PreparedFile[];
 	/**
 	 * Of the retained files, those that existed on the reference: a test rewritten here changes what
-	 * the target guaranteed until now, which the owner sees before deciding on the candidate.
+	 * the target guaranteed until now.
 	 */
 	modified_existing: string[];
 	/** Verdict of the prepared suite on the bare reference: FAIL means it detects the absent feature. */
