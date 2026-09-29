@@ -163,7 +163,7 @@ epics:
 
   - id: e05
     title: "Commande de test d'une cible Node"
-    status: à faire
+    status: versé
     source: chantiers/E
     objet: >
       Une cible Node voit sa commande de test lue depuis ce qu'elle déclare, et une copie de travail
@@ -174,7 +174,7 @@ epics:
       Réduit le 2026-09-29 à vitest, le seul lanceur qu'une cible de la démonstration utilise : un
       autre lanceur est refusé en étant nommé, et se rouvre sur la première cible qui en dépend.
     stories:
-      - { id: e05s01, status: "à faire", title: "Une cible Node en vitest est jugée par sa propre commande de test" }
+      - { id: e05s01, status: "versée", title: "Une cible Node en vitest est jugée par sa propre commande de test" }
 
   - id: e06
     title: "Inventaire des cas particuliers d'un arbre"
