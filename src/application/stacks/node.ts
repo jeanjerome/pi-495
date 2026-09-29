@@ -1,7 +1,8 @@
 /**
  * The Node stack (CMP-TGT): the controls a `package.json` offers, detected without executing
  * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, and a declared
- * lint script becomes a control of its own, refused rather than guessed when it needs a shell.
+ * lint script becomes a control of its own, refused rather than guessed when it needs a shell. A
+ * `scripts.test` that names a runner 495 cannot read leaves no control at all (D-72).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -23,8 +24,10 @@ export function detectNodeStack(
 	}
 	const scripts = pkg.scripts ?? {};
 	const suite = suiteOf(typeof scripts.test === "string" ? scripts.test : undefined, requirementRefs, nodeBinary);
+	// A runner 495 cannot read leaves no control at all: a protocol frozen on the lint alone would
+	// judge nothing of the behaviour the refused runner was there to judge.
 	const controls: ControlDefinition[] = suite.control ? [suite.control] : [];
-	if (scripts.lint)
+	if (scripts.lint && !suite.refusal)
 		controls.push({
 			control_id: "lint",
 			version: "1",

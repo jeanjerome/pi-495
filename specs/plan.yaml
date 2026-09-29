@@ -172,7 +172,8 @@ epics:
       Une cible en vitest ne passe pas ; aucune capacité n'est opposable sur une cible Node.
     position: >
       Réduit le 2026-09-29 à vitest, le seul lanceur qu'une cible de la démonstration utilise : un
-      autre lanceur est refusé en étant nommé, et se rouvre sur la première cible qui en dépend.
+      autre lanceur arrête le changement en étant nommé (`D-72`), et s'adapter aux lanceurs que les
+      projets choisissent relève de `e12`.
     stories:
       - { id: e05s01, status: "versée", title: "Une cible Node en vitest est jugée par sa propre commande de test" }
 
@@ -237,13 +238,24 @@ epics:
       migration suppose la cible adoptée.
 
   - id: e12
-    title: "Cartographie des contrôles existants"
+    title: "Cartographie des contrôles existants et recommandation de ce qui manque"
     status: à faire
     objet: >
-      La cartographie des contrôles d'une cible porte les assertions qu'ils tiennent réellement, au-delà
-      de l'échelle de capacité à quatre niveaux déjà livrée.
+      La vérification d'une cible s'appuie sur ce que ses tests existants permettent réellement de
+      valider : les assertions qu'ils tiennent, un lanceur dont le rapport se lit et se qualifie, ce
+      que les capteurs de couverture et de mutation en disent. Quand cela ne suffit pas, 495
+      recommande les types de tests qui manquent, avec un framework recommandé par technologie et par
+      type, et l'installe si le propriétaire valide ; un lanceur qui ne sert à rien et dont le
+      propriétaire a refusé le complément n'est pas utilisé.
     motif: >
-      L'instabilité relève de VER-08, livré. Ce qui reste est la part assertions.
+      L'instabilité relève de VER-08, livré. Ce qui reste est la part assertions, et le travail de
+      s'adapter aux tests que le projet a choisis (jest, mocha, …) plutôt que de n'en lire qu'un ou
+      deux (`D-72`).
+    position: >
+      `e22` en est le complément : la décision du propriétaire quand l'oracle est insuffisant. Restent
+      à concevoir un catalogue des frameworks recommandés par technologie et par type de test, des
+      chemins protégés qui suivent le besoin de la phase et non des listes fixes, et la voie par
+      laquelle un framework approuvé s'installe sans réseau ouvert aux contrôles.
 
   - id: e13
     title: "Tests de caractérisation d'un existant"

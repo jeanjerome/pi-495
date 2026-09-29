@@ -147,6 +147,22 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 		assert.equal(detection.capability_missing.length, 1);
 		assert.match(detection.capability_missing[0]!, /scripts\.test runs jest, whose output 495 cannot read/);
 	});
+	it("given scripts.test is jest and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names jest", () => {
+		const project = join(root, "target");
+		writeFiles(project, {
+			"package.json": JSON.stringify({
+				name: "t",
+				type: "module",
+				scripts: { test: "jest", lint: "node scripts/lint.js" },
+			}),
+		});
+		const detection = detectStack(project, REFS, NODE);
+		assert.deepEqual(
+			detection.controls.map((c) => c.control_id),
+			[],
+		);
+		assert.match(detection.capability_missing.join("; "), /scripts\.test runs jest, whose output 495 cannot read/);
+	});
 	it("given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain", () => {
 		const detection = detectStack(targetWith("tsc && vitest run"), REFS, NODE);
 		assert.equal(

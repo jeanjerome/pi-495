@@ -1179,13 +1179,16 @@ bugs:
       A throwaway probe of `detectStack` on the package above returned `controls: ["lint"]` and
       `capability_missing: ["scripts.test runs jest, whose output 495 cannot read: ..."]`; the reading
       of `designVerification` shows the only `CAPABILITY_MISSING` raise guarded by
-      `detection.controls.length === 0`.
+      `detection.controls.length === 0`. test/v1/node-stack.test.ts, "given scripts.test is jest and a
+      lint script is declared, when the stack is detected, then no control at all is declared and the
+      missing capability names jest": red at ade7e44 (`["lint"]`), green at 3876a7d. Preflight green under
+      Node 24.21.0.
     risk_level: medium
     follow_ups: >
-      Decide whether a refused `scripts.test` stops the design of the protocol whatever the other
-      controls, or is offered to the owner as an insufficiency to accept; either adds a refusal or a
-      dialog, so it is a product decision.
-    status: open
+      The owner decided that a refused runner stops the change (`D-72`). Adapting to the runner a
+      project chose, and letting the owner accept the insufficiency, belong to `e12` and `e22`.
+    status: fixed
+    fixed_in: 3876a7d
   - bug_id: BUG-2026-09-29T130000
     date: "2026-09-29"
     title: "A reopened red-green pass is blocked by a green test a later step left on the branch"
