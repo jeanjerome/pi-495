@@ -240,6 +240,6 @@ La ligne « Node » de la table des piles du README dit que `scripts.test` lanc�
   `testResultsProcessor` n'est pas mesuré : un fichier illisible donne INDETERMINATE, jamais un succès.
 - Une cible dont les dépendances ne sont pas installées : G2 s'arrête sur le témoin positif. Le refus
   clair de ce cas se rouvre avec l'installation d'un framework (`e12s06`).
-- La couverture et la mutation d'une cible Node, et la mesure des assertions : `e12s04`.
+- La couverture d'une cible Node : `e12s04` ; sa mutation et la mesure des assertions : `e12s07`.
 - Les mêmes lanceurs sous un shell, `npm test` ou une chaîne (`tsc && jest`) : refusés en nommant leur
   forme, comme aujourd'hui.
