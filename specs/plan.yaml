@@ -245,8 +245,8 @@ epics:
       - { id: e12s02, status: "à faire", title: "Le rapport JUnit se lit avec un analyseur XML et se recompte depuis ses tests" }
       - { id: e12s03, status: "à faire", title: "Une cible dont les tests tournent sous un autre lanceur est jugée quand son rapport se qualifie" }
       - { id: e12s04, status: "à faire", title: "La couverture des lignes introduites d'une cible Node se mesure quand la cible la demande" }
-      - { id: e12s05, status: "à faire", title: "495 recommande les types de tests qui manquent avec un framework par technologie et par type, et le refus du propriétaire est inscrit au dossier" }
-      - { id: e12s06, status: "à faire", title: "Le framework approuvé est installé, le réseau ouvert à cette seule étape, et les chemins protégés suivent le besoin de la phase" }
+      - { id: e12s05, status: "à faire", title: "495 recommande le complément de test qui manque à une cible, et le dossier dit qu'il n'est pas adopté" }
+      - { id: e12s06, status: "à faire", title: "Le propriétaire adopte le complément recommandé, le framework est installé, le réseau ouvert à cette seule étape, et les chemins protégés suivent le besoin de la phase" }
       - { id: e12s07, status: "à faire", title: "Les mutants survivants sur les lignes modifiées d'une cible Node se mesurent avec Stryker quand la cible l'a installé" }
 
   - id: e29
