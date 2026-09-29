@@ -1,0 +1,92 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.433417
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 1.786083
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.766084
+      type: 'test'
+      ...
+    1..1
+ok 2 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 0.82225
+  type: 'suite'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+    ok 1 - given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+      ---
+      duration_ms: 0.656167
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 2 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.629166
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    ok 3 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.855584
+      type: 'test'
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    ok 4 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.735708
+      type: 'test'
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    ok 5 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.686459
+      type: 'test'
+      ...
+    1..5
+ok 3 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 3.705917
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.910666
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.709041
+      type: 'test'
+      ...
+    1..2
+ok 4 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.678542
+  type: 'suite'
+  ...
+1..4
+# tests 9
+# suites 4
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 120.478708

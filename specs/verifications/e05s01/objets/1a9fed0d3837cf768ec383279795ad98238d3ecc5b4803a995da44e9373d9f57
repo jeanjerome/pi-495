@@ -1,0 +1,42 @@
+
+> pi-495@0.2.1 check
+> npm run lint:code && npm run typecheck && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format && npm run test
+
+
+> pi-495@0.2.1 lint:code
+> biome check
+
+Checked 205 files in 107ms. No fixes applied.
+
+> pi-495@0.2.1 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> pi-495@0.2.1 lint:layers
+> node scripts/check-layers.ts
+
+layer rules satisfied
+
+> pi-495@0.2.1 lint:architecture
+> node scripts/check-architecture.ts
+
+architecture read back: 16 declared components, all claimed; 104 modules, no import cycle
+
+> pi-495@0.2.1 lint:exports
+> node scripts/check-exports.ts
+
+exported surface read back: 192 modules, every exported function and constant is read elsewhere
+
+> pi-495@0.2.1 lint:traceability
+> node scripts/check-traceability.ts
+
+traceability complete: 85 functional + 8 non-functional [P0] requirements, all present in the matrix
+
+> pi-495@0.2.1 lint:declarations
+> node scripts/check-declarations.ts
+
+declarations match the package: @xynogen/pix-pretty@1.26.0 answers the calls the review makes
+
+> pi-495@0.2.1 lint:distribution
+> node scripts/check-distribution.ts
+

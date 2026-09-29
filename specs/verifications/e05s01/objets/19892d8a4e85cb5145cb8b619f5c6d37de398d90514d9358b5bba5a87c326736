@@ -1,0 +1,55 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.366375
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 1.81425
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    not ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 1.006792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtuZdV/test/v1/node-stack.test.ts:53:2'
+      failureType: 'testCodeFailure'
+      error: 'vitest.config.ts is protected'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtuZdV/test/v1/node-stack.test.ts:65:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 2 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 1.085084
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtuZdV/test/v1/node-stack.test.ts:52:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 114.611666

@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un candidat qui modifie une dépendance installée est refusé (et § Sécurité, Observation)",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 118,
+    "constat": "Le contrôle protège `node_modules/` comme un dossier (motif à barre finale), et `protectedPathsChanged` autorise l'ajout d'un fichier sous un dossier protégé. Un candidat qui AJOUTE `node_modules/vitest/node_modules/<paquet>/index.js`, lequel masque le paquet hissé pour vitest, n'est donc pas refusé : sondé, le fichier ajouté sort dans `allowed`, seul le fichier modifié sort dans `altered`. La promesse ne teste que la modification de `dist/index.js`, mais la phrase de sécurité (« un candidat qui modifierait le vitest qui le juge, ou une autre dépendance, est refusé ») laisse cette porte ouverte. La règle d'ajout est antérieure ; la branche la rend atteignable pour `node_modules/`.",
+    "mutation": "Sonde jetable, non commitée : `protectedPathsChanged(manifeste[node_modules/vitest/node_modules/tinyrainbow/index.js ajouté, node_modules/vitest/dist/index.js modifié], ['node_modules/'], [])` renvoie altered=[dist/index.js] et allowed=[le fichier ajouté]."
+   }
+  ],
+  "resume": "Aucun constat bloquant ni à corriger : chaque promesse a un test, et une mutation d'une ligne du code qui la tient fait échouer le test attendu. J'ai muté 21 lignes : commande vitest, reporter, titre, `writable_paths`, refus du lanceur, sélection de node:test, dossier et assertion des témoins, chemins protégés, regex de nom du parser, plafond de taille, exclusion de `dist/`, exclusions `.vite` et `.vite-temp`.\n\nSur la révision 8ef748d, la seule rouge de mes trois fichiers de tests est déjà au registre (BUG-2026-09-29T160000 : le test Seatbelt du runner générique ne peut pas échouer sous le répertoire temporaire). Je n'ai pas lancé Preflight, comme demandé.\n\nUn constat à peser (A1-1) : le refus des dépendances modifiées laisse passer un ajout de fichier sous `node_modules/`. La recette réelle du dernier scénario reste hors de ma portée : je n'ai lu que le code et les tests."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un candidat qui modifie une dépendance installée est refusé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 119,
+    "constat": "`node_modules/` est protégé comme un dossier (motif à `/`), et `protectedPathsChanged` laisse passer un fichier ajouté sous un dossier protégé (état `added`). Un candidat qui ajoute un fichier sous `node_modules/` n'est donc pas refusé, alors que la sécurité de la story dit qu'un candidat qui « modifierait le vitest qui le juge, ou une autre dépendance » est refusé. La promesse écrite dit « modifie » et vise un fichier existant, donc elle est tenue. Un fichier ajouté ne remplace rien de ce que vitest charge déjà, et la configuration de vitest reste protégée.",
+    "mutation": "Aucune : c'est une lecture du code, pas une mutation. Un candidat qui ajoute node_modules/x/new.js sort de protectedPathsChanged.altered et n'est pas refusé."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Avec un vrai modèle, une cible en vitest passe G2 et le changement va au bout",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 1,
+    "constat": "Ce scénario demande un vrai Pi et un vrai modèle. Il relève de la recette, pas de la relecture, et je ne l'ai pas exercé. Le code et les tests couvrent ses deux moitiés : un contrôle unit dérivé, et des témoins vitest sous tests/."
+   }
+  ],
+  "resume": "Je n'ai trouvé aucun constat bloquant ni à corriger. Chaque promesse testable est tenue par le code et par un test qui échoue quand je mute une ligne. Le scénario du vrai modèle relève de la recette et n'a pas été exercé. J'ai lancé 25 mutations, et chacune a fait échouer au moins un test. Elles portent sur le binaire de node_modules, le titre, le message de refus de jest, le dossier des témoins, `node_modules/` et les fichiers de configuration protégés, la branche node:test et les `writable_paths` (chacun des deux, vérifiés contre le test Seatbelt de vitest). Elles portent aussi sur le parseur JUnit, la regex du nom d'un test en échec, la règle du `dist/` sous `node_modules`, le plafond de 8 Mio, les deux exclusions `.vite` et `.vite-temp`, et le traitement de `node_modules` lui-même dans `isExcluded`. Le seul test rouge sur cette révision est « runs the same control under seatbelt with the candidate read-only ». C'est l'entrée BUG-2026-09-29T160000, antérieure et déjà au registre. Deux points restent à peser : un fichier ajouté sous `node_modules/` n'est pas refusé, parce que `node_modules/` est traité comme un dossier protégé ; et le scénario du vrai modèle n'a pas été exercé."
+ }
+]

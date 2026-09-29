@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "resume": "Les six premiers scénarios sont tenus par le code et par un test. J'ai muté 25 lignes de src/application/stacks/node.ts, src/adapters/execution/parsers.ts et src/adapters/workspace/walk.ts, et chaque mutation qui tient une promesse fait échouer un test. Les tests des trois fichiers passent, sauf le test seatbelt de control-runner (« candidate read-only »). Celui-ci ne touche pas la story et je ne l'ai pas isolé de mon bac à sable : il échoue déjà avant toute mutation. Une mutation survit : `VITEST_COMMAND` élargi à `/^\\s*vitest/` ne fait échouer aucun test, mais aucune promesse ne la couvre. Le scénario 7 (vrai Pi, vrai modèle, G2 puis G5, et l'arrêt à G2 sur la construction d'avant) relève de la recette : je ne l'ai pas rejoué. Deux constats à peser, aucun bloquant ni à corriger.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un lanceur que 495 ne sait pas lire est refusé et nommé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 76,
+    "constat": "Pour une cible dont scripts.test vaut « jest » et qui déclare aussi scripts.lint, la détection renvoie controls=[lint] avec le refus en capability_missing. designVerification ne lève CAPABILITY_MISSING que si controls est vide : le protocole se fige donc sur le seul lint, et le refus de jest n'est qu'une note du diagnostic. La promesse porte sur la détection, elle est tenue ; la conséquence pour G2 reste à peser.",
+    "scenario_detail": "package.json {scripts:{test:\"jest\",lint:\"eslint .\"}} : sondé, controls=['lint'], capability_missing=['scripts.test runs jest, whose output 495 cannot read: ...'].",
+    "mutation": "aucune (sonde jetable sur detectStack)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un lanceur que 495 ne sait pas lire est refusé et nommé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 86,
+    "constat": "suiteOf appelle scriptsTest.trim() sans vérifier que scripts.test est une chaîne. Avec un package.json dont scripts.test vaut 5, la détection lève TypeError: scriptsTest.trim is not a function, alors que l'ancienne détection ignorait scripts.test. Aucune promesse ne couvre ce cas.",
+    "mutation": "aucune (sonde jetable : {\"scripts\":{\"test\":5}} → TypeError)"
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Aucun constat sur les six premiers scénarios : le code tient chaque promesse et une mutation d'une ligne fait échouer le test qui la porte, dans les mots de la story. Le scénario 7 (vrai Pi, vrai modèle) relève de la recette : je ne l'ai pas exécuté, et vitest n'est pas installé dans l'arbre, donc je n'ai pas relu son vrai comportement (`vitest.mjs`, écriture du cache et du répertoire temporaire de Vite).\n\nMutations essayées (une ligne à la fois, remise en place ensuite ; `git status` propre) :\n- **Scénario 1** : chemin `node_modules/vitest/vitest.mjs` remplacé par `vitest` (échoue), rapporteur `junit` remplacé par `tap` (échoue), `parser` changé (échoue), `report_path` mis à `null` (échoue), `--outputFile` déplacé (échoue), `run` remplacé par `watch` (échoue au test node-stack). Titre sans `scripts.test` (échoue), `network` passé à `allowed` (échoue), `node_modules/.vite-temp` retiré des chemins en écriture (échoue), `vitest.config.*` et `vite.config.*` retirés des chemins protégés (échoue).\n- **Scénario 2** : branche vitest désactivée (3 tests échouent), `capability_missing` vidé (échoue). La capacité manquante est vérifiée par sa phrase exacte, « scripts.test runs jest, whose output 495 cannot read ».\n- **Scénario 3** : `scriptsTest === undefined` retiré (échoue), regex `node --test` neutralisée (échoue).\n- **Scénario 4** : dossier `tests/` forcé à `test/` (échoue), témoins node:test à la place des témoins vitest (échoue), import `vitest` remplacé par `node:test` (échoue), `toBe(1)` et `toBe(2)` inversés (échouent).\n- **Scénario 5** : regex du nom de test remise à l'ancienne, qui capte `classname` (échoue : le cas en échec porterait le nom du fichier au lieu du test), `parser` changé (échoue), `report_path` à `null` (échoue).\n- **Scénario 6** : `inProject` remplacé par `segments` (échoue), le `+1` propre à `node_modules` retiré (échoue), `dependencies === -1` court-circuité (échoue).\n\nLimites de la mesure :\n- Le test seatbelt de `test/v1/control-runner.test.ts` échoue déjà sans mutation dans cet environnement : la sandbox imbriquée est refusée. Ce n'est pas un constat de la branche, et je l'ai décompté de chaque comparaison.\n- La branche du refus « chaîne de commandes par un shell » (`tsc && vitest run`) reste sans mutation qui échoue, car le test la reconnaît aussi par le texte du refus général. Aucune promesse de la story ne porte sur elle : le hors-périmètre la mentionne seulement, donc je ne la relève pas."
+ }
+]

@@ -1,0 +1,122 @@
+TAP version 13
+# Subtest: parsers (VER-02, RM-016, RM-017, SA-014)
+    # Subtest: node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+    ok 1 - node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+      ---
+      duration_ms: 1.075
+      type: 'test'
+      ...
+    # Subtest: junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+    ok 2 - junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+      ---
+      duration_ms: 0.597208
+      type: 'test'
+      ...
+    1..2
+ok 1 - parsers (VER-02, RM-016, RM-017, SA-014)
+  ---
+  duration_ms: 2.050417
+  type: 'suite'
+  ...
+# Subtest: generic runner on F-TS (C-EXE, VER-01, PRE-03)
+    # Subtest: runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+    ok 1 - runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+      ---
+      duration_ms: 83.037792
+      type: 'test'
+      ...
+    # Subtest: a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+    ok 2 - a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+      ---
+      duration_ms: 80.236791
+      type: 'test'
+      ...
+    # Subtest: timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+    ok 3 - timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+      ---
+      duration_ms: 314.5345
+      type: 'test'
+      ...
+    # Subtest: exit-code parser follows its contract only: lint script
+    ok 4 - exit-code parser follows its contract only: lint script
+      ---
+      duration_ms: 97.07075
+      type: 'test'
+      ...
+    # Subtest: aggregates Surefire reports from every module in a Maven reactor
+    ok 5 - aggregates Surefire reports from every module in a Maven reactor
+      ---
+      duration_ms: 45.705
+      type: 'test'
+      ...
+    # Subtest: a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+    ok 6 - a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+      ---
+      duration_ms: 0.472875
+      type: 'test'
+      ...
+    # Subtest: qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+    ok 7 - qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+      ---
+      duration_ms: 330.613708
+      type: 'test'
+      ...
+    # Subtest: an established qualification is reused for the same sensor, never across a changed sensor or environment
+    ok 8 - an established qualification is reused for the same sensor, never across a changed sensor or environment
+      ---
+      duration_ms: 0.529708
+      type: 'test'
+      ...
+    # Subtest: runs the same control under seatbelt with the candidate read-only
+    ok 9 - runs the same control under seatbelt with the candidate read-only
+      ---
+      duration_ms: 123.5495
+      type: 'test'
+      ...
+    1..9
+ok 2 - generic runner on F-TS (C-EXE, VER-01, PRE-03)
+  ---
+  duration_ms: 1076.280834
+  type: 'suite'
+  ...
+# Subtest: a sensor that reads the report another control writes (VER-05, PRE-03)
+    # Subtest: orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+    ok 1 - orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+      ---
+      duration_ms: 0.456917
+      type: 'test'
+      ...
+    # Subtest: runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+    ok 2 - runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+      ---
+      duration_ms: 195.291625
+      type: 'test'
+      ...
+    1..2
+ok 3 - a sensor that reads the report another control writes (VER-05, PRE-03)
+  ---
+  duration_ms: 195.853291
+  type: 'suite'
+  ...
+# Subtest: the derived vitest control through the runner
+    # Subtest: given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+    ok 1 - given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+      ---
+      duration_ms: 97.84025
+      type: 'test'
+      ...
+    1..1
+ok 4 - the derived vitest control through the runner
+  ---
+  duration_ms: 97.923291
+  type: 'suite'
+  ...
+1..4
+# tests 14
+# suites 4
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1497.818041

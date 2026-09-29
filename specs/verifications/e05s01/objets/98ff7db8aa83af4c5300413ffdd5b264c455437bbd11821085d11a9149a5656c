@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le contrôle unit de vitest écrit son rapport sous le bac à sable de vérification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/control-runner.test.ts",
+    "ligne": 596,
+    "constat": "Le test Seatbelt du contrôle vitest ne peut échouer que si l'arbre du dépôt est hors de `$TMPDIR`, que Seatbelt laisse inscriptible. Dans un arbre sous `$TMPDIR` (le cas ici) il passe même sans `target` dans `writable_paths`. Le test voisin « candidate read-only », antérieur, échoue déjà pour la même raison. Une lecture de la porte par cet environnement ne prouve pas la promesse.",
+    "mutation": "Retrait de `VITEST_REPORT_DIRECTORY` de `writable_paths` : le test ne tombe pas dans l'arbre sous `$TMPDIR`, il tombe (PASS attendu, échec obtenu) dans une copie sous `$HOME`. Les autres mutations ont été rejouées dans cette copie."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité : confinement — répertoire temporaire de la forme compilée de la configuration",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 123,
+    "constat": "L'ouverture en écriture de `node_modules/.vite-temp` n'est tenue que par une assertion de forme (`writable_paths` égal à deux chemins). Aucun test n'exécute un vitest qui compile une configuration sous Seatbelt : le stand-in n'écrit que le rapport. Un run réel de vitest 5.0.0 sur une cible à `vitest.config.ts`, sous Seatbelt hors `$TMPDIR`, rend PASS avec 28 tests. Le code tient donc la promesse et la mutation est attrapée par le test de forme, mais pas par une exécution.",
+    "mutation": "Retrait de `\"node_modules/.vite-temp\"` de `writable_paths` : seul le test de forme de `node-stack.test.ts` échoue."
+   }
+  ],
+  "resume": "Aucun constat bloquant ni à corriger : les neuf promesses de scénario testables sont tenues par le code et chacune est portée par un test qui tombe sous mutation ; le dixième (avec un vrai modèle) relève de la recette. J'ai relu le diff et rejoué 20 mutations d'une ligne. Elles portent sur le contrôle vitest (chemin du binaire, titre, parseur, chemins protégés dont `node_modules/`), le refus nommé de jest, la sélection de node:test, les témoins, l'exclusion par défaut sous `node_modules/`, le plafond de taille hors dépendances et l'extraction du nom dans `parsers.ts`. Chacune fait échouer au moins un test, sauf le retrait de `target` de `writable_paths`, qui ne tombe que dans un arbre hors de `$TMPDIR` (A1-1). Des sondes réelles confirment l'essentiel : vitest 5.0.0 lancé par `node_modules/vitest/vitest.mjs` écrit un JUnit au format du fixture et rend PASS sous Seatbelt (28 tests) ; les témoins générés passent et échouent comme annoncé ; le `node_modules` de la cible de démonstration compte environ 1 255 entrées, loin de la limite de 50 000. Une seule échec de test est apparu sans mutation : « runs the same control under seatbelt with the candidate read-only », antérieur, absent du diff et dû au dépôt sous `$TMPDIR` (il passe dans la copie hors `$TMPDIR`).\""
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le contrôle unit de vitest écrit son rapport sous le bac à sable de vérification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/control-runner.test.ts",
+    "ligne": 595,
+    "constat": "Le test Seatbelt du stand-in ne tient la promesse que si le dossier de test-output n'est pas sous tmpdir. SeatbeltSandbox accorde déjà l'écriture sur tmpdir et /private/tmp, et le test crée son espace de travail sous process.cwd()/test-output. Dans un arbre hébergé sous $TMPDIR, comme cet arbre de relecture, le contrôle écrit dans target/ même sans writable_paths, et le test ne distingue plus rien.",
+    "mutation": "Dans un arbre sous tmpdir, retirer VITEST_REPORT_DIRECTORY de writable_paths (node.ts) laisse ce test vert : seul le test Seatbelt existant échoue, comme sur la base. Dans une copie hors tmpdir (~/.rev495/tree), la même mutation fait échouer ce test, comme celui du contrôle dérivé dans node-stack.test.ts."
+   }
+  ],
+  "resume": "Le code tient les scénarios 1 à 9 ; le scénario 10 (vrai Pi, vrai modèle) relève de la recette et je ne l'ai pas jugé. J'ai lancé 17 mutations sur le code de la branche, dans une copie de l'arbre hors tmpdir. Chacune a fait échouer au moins un test dont l'assertion est dans les mots du Then : chemin de vitest par node_modules, titre, refus de jest, nom du test en échec, chemins protégés, plafond par fichier sous node_modules, exclusions de dist/ et de target/, dossier et contenu des témoins. J'ai aussi exécuté vitest 5.0.0 réel sous Seatbelt avec le contrôle dérivé, sur une cible vitest, avec et sans node_modules/.vite et .vite-temp au départ. Sans témoin ni avec le témoin positif, le verdict est PASS ; avec le négatif, FAIL en nommant le test. Le seul constat est à peser : le test Seatbelt du rapport ne discrimine pas dans un arbre sous tmpdir. Un autre test Seatbelt, celui de « candidat en lecture seule », échoue déjà sur la base (7c5e461) dans cet arbre, pour la même raison, et ne dépend pas de cette branche."
+ }
+]

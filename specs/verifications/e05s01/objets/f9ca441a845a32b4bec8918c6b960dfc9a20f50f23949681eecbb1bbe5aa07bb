@@ -1,0 +1,35 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un candidat qui ajoute un fichier sous une dépendance installée est refusé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g4.ts",
+    "ligne": 65,
+    "constat": "inInstalledDependencies teste un segment `node_modules` n'importe où dans le chemin, et protectedPathsChanged l'applique à tout contrôle. Un fichier neuf comme `tests/fixtures/node_modules/x.js` n'est donc plus un ajout autorisé : il est refusé comme chemin protégé, pour une cible node:test ou Maven comme pour une cible vitest. La story ne promet le refus que pour les dépendances installées d'une cible vitest.",
+    "scenario_mutation": null,
+    "mutation": "Vérifié à la lecture du code, sans test jetable : le préfixe `tests/` protégé fait passer `tests/fixtures/node_modules/x.js` de « ajout autorisé » à `altered`."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôle unit de vitest écrit son rapport sous le bac à sable de vérification",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 26,
+    "constat": "real() rend le chemin tel quel quand le dossier déclaré writable n'existe pas encore, comme `target/` dans la copie. Si la copie passe par un lien symbolique (`/tmp`), Seatbelt refuse alors le mkdir et le contrôle vitest rend FAIL. Mon sondage : vitest 5.0.0 réel, copie sous /tmp, `EPERM mkdir /private/tmp/.../target`. Le même sondage sous $HOME donne PASS. Le cas est propre à l'emplacement des copies : le répertoire de données par défaut est ~/.495, et le contrôle Maven déclarait déjà `target/`.",
+    "scenario_mutation": null,
+    "mutation": "Aucune mutation ; sondage jetable, retiré."
+   }
+  ],
+  "resume": "Verdict pass : aucun constat bloquant ni à corriger. Chaque scénario codé est tenu par le code et par un test qui échoue quand je mute la ligne. Le dernier scénario est la recette avec un vrai modèle, que je n'ai pas exécutée. J'ai muté les lignes suivantes, chaque mutation a fait échouer le test qui porte la promesse, puis j'ai remis la ligne : - le chemin du binaire (vitest depuis node_modules ou depuis le PATH) ; - le titre du contrôle ; - le dossier des témoins ; - la regex du nom d'un cas en échec ; - les deux dossiers déclarés writable ; - le plafond de taille hors node_modules ; - la règle d'exclusion sous node_modules ; - le cas particulier de `node_modules` lui-même ; - le refus des ajouts sous une dépendance ; - la protection de `node_modules/` ; - la protection de `vitest.config.*` et de `vite.config.*` ; - l'exclusion de `.vite/` et celle de `.vite-temp/` ; - la valeur par défaut de `config.ts` (attrapée par le test du config.json du README). J'ai aussi sondé le contrôle dérivé contre un vrai vitest 5.0.0 sous Seatbelt : PASS avec la copie sous $HOME, et `.vite-temp` est bien la seule écriture dans `node_modules`. Deux constats à peser, aucun n'a été traité (A1-1 introduit, A1-2 antérieur). Le test du lanceur Seatbelt « runs the same control under seatbelt with the candidate read-only » échoue dans mon arbre, avant toute mutation. Je n'ai pas cherché pourquoi ; Preflight est verte à cette révision, donc je le laisse de côté."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Aucun constat sur les scénarios lus : le code tient chaque promesse vérifiable ici, et pour chacune une mutation d'une ligne du code fait échouer un test qui assert ce que le Then dit. Le scénario 12 (vrai modèle dans un vrai Pi, avec la construction d'avant la story) relève de la recette : je ne l'ai pas exécuté.\n\nMutations essayées, chacune remise après l'essai :\n- **Chemins protégés** :\n  - retirer `node_modules/` des chemins protégés fait échouer les deux tests de refus (modification de `dist/index.js` et ajout de `tinyrainbow/index.js`) ;\n  - retirer `vite.config.*` fait échouer les tests des fichiers de configuration ;\n  - retirer la garde `inInstalledDependencies` dans `protectedPathsChanged` fait échouer le test d'ajout sous `node_modules`.\n- **Observation** : retirer l'exemption de plafond sous `node_modules` (`walk.ts`) fait échouer le test des 9 Mio, y compris le contrôle négatif hors de `node_modules`.\n- **Copie de travail** :\n  - rétablir l'ancienne règle d'exclusion par segment (`isExcluded`) fait échouer le test du `dist/` d'une dépendance ;\n  - retirer `node_modules/.vite/` ou `node_modules/.vite-temp/` des exclusions par défaut fait échouer le test du manifeste, dont celui du cache ;\n  - remettre l'ancienne liste dans `config.ts` fait échouer les tests de configuration existants.\n- **Contrôle unit vitest** :\n  - retirer `target` ou `node_modules/.vite-temp` des chemins inscriptibles fait échouer le test du bac à sable Seatbelt ;\n  - rétablir l'ancien regex du nom de test dans `parsers.ts` fait échouer le test PASS/FAIL/INDETERMINATE ;\n  - changer le titre, casser la reconnaissance de `node --test` ou forcer le dossier `test/` fait échouer les tests de détection et de témoins.\n\nSonde jetable non commitée, sur `node-demo` avec son vrai vitest 5 : la copie garde le `dist/` de vitest, et le témoin positif rend PASS (29 tests) puis le négatif FAIL en nommant le test, sous l'exécution non confinée comme sous Seatbelt (`temp_paths` par défaut). Le manifeste du candidat reste vide après les runs. Seatbelt avec `temp_paths: []` fait échouer le vrai vitest (exit 1, aucun rapport), parce qu'il lui faut le dossier temporaire ; cela n'affecte pas la promesse, la production laissant ce dossier inscriptible par défaut, mais c'est un écart entre le stand-in du test et le vrai vitest.\n\nHors constats : dans cet arbre, sous `$TMPDIR`, le test Seatbelt préexistant « runs the same control under seatbelt with the candidate read-only » échoue (PASS au lieu de FAIL). Cela recoupe l'entrée ouverte BUG-2026-09-29T160000. Le nouveau test Seatbelt de la story, lui, détecte bien les mutations dans ce même arbre."
+ }
+]
