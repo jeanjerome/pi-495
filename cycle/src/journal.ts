@@ -70,6 +70,19 @@ export class Journal {
 		return at < 0 ? events : events.slice(at + 1);
 	}
 
+	/**
+	 * The head a step started from, counting from the first launch of the run the step is in: the
+	 * earliest `debute` of `pas` since the last event of another step. A launch resumed after a block
+	 * belongs to the same run, so the commits of its earlier launch stay within reach; a step that
+	 * ran in between does not, and neither does the run before a reopening.
+	 */
+	debutDePassage(pas: Pas): string | null {
+		const events = this.lire();
+		const autre = events.findLastIndex((e) => e.pas !== pas);
+		const debut = events.slice(autre + 1).find((e) => e.pas === pas && e.genre === "debute");
+		return typeof debut?.revision === "string" ? debut.revision : null;
+	}
+
 	rouvert(): boolean {
 		return this.lire().some((e) => e.genre === "rouvert");
 	}

@@ -1150,3 +1150,36 @@ bugs:
       candidate is still a proposal that only the kernel adopts, so this changes what the owner sees,
       not what the kernel decides.
     status: open
+  - bug_id: BUG-2026-09-29T130000
+    date: "2026-09-29"
+    title: "A reopened red-green pass is blocked by a green test a later step left on the branch"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      After the review and the acceptance run sent a story back to the red-green step, the step wrote
+      its new tests and code, and Preflight was green at the head, then the step blocked with
+      `no failing test read at this test-only commit (PASS)` on a commit an earlier step had left: a
+      refactor of a test file that cannot fail.
+    what_expected: >
+      The step owes a red for the test-only commits of its own run, and only those. A test the
+      self-review or the review adds afterwards passes at its commit whenever the code already keeps
+      the promise, which the review rules ask for.
+    steps_to_reproduce:
+      - "Run a story through the red-green step and the self-review, and let the self-review commit a test-only refactor of a test file."
+      - "Reopen the story after the acceptance run, and run the red-green step again."
+      - "The step replays that refactor as a red and blocks."
+    root_cause: >
+      `pasRougeVert` (`cycle/src/cycle.ts`) replays every test-only commit between the base and the
+      head, so that a pass interrupted before its journal entries is still checked. The range starts
+      at the base whatever ran since, and `estCommitDeTestSeul` judges by the paths a commit touches,
+      not by what it asserts.
+    evidence: >
+      test/cycle/cycle.test.ts, "replays only the test-only commits of the pass, so a green test a
+      later step left on the branch does not block a reopened story": red at 4b73790 (blocked on the
+      refactor commit), green at 07b068b. The guard "replays every test-only commit of a pass resumed
+      after a block" is green on both. Preflight green under Node 24.21.0, 637 tests.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 07b068b

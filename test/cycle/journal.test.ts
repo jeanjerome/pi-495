@@ -34,6 +34,23 @@ describe("the journal of a story", () => {
 		assert.equal(journal.prochainPas(), null);
 	});
 
+	it("names the head a step's run started from, across a resumed launch but not across another step or a reopening", () => {
+		const journal = new Journal("e01s05", tempDir());
+		assert.equal(journal.debutDePassage("rouge-vert"), null);
+		journal.inscrire("story", "fini");
+		journal.inscrire("rouge-vert", "debute", { revision: "aaa" });
+		journal.inscrire("rouge-vert", "bloque", { detail: "stopped" });
+		journal.inscrire("rouge-vert", "debute", { revision: "bbb" });
+		assert.equal(journal.debutDePassage("rouge-vert"), "aaa");
+		journal.inscrire("rouge-vert", "fini");
+		journal.inscrire("autocontrole", "fini");
+		journal.inscrire("recette", "rouvert", { motif: "gap" });
+		journal.inscrire("story", "fini");
+		assert.equal(journal.debutDePassage("rouge-vert"), null);
+		journal.inscrire("rouge-vert", "debute", { revision: "ccc" });
+		assert.equal(journal.debutDePassage("rouge-vert"), "ccc");
+	});
+
 	it("keeps what an event points at in a content-addressed store shared by every story", async () => {
 		const racine = tempDir();
 		const a = new Journal("e01s05", racine);

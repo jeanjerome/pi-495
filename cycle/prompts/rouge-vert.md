@@ -23,10 +23,10 @@ Pour chaque tâche :
 reproductible rencontré en chemin se corrige dans son propre commit (cycle/README.md § Preflight et
 défauts découverts). Ne pousse rien.
 
-Le contrôle qui suit cette session rejoue chaque commit de test seul dans un arbre détaché et lit
-quels tests y échouent, puis lance chaque commande `Vérifie :` sur la tête de la branche, puis
-Preflight. Ta sortie structurée dit, pour chaque tâche, le commit rouge, le commit vert et le message
-d'échec lu au rouge.
+Le contrôle qui suit cette session rejoue chaque commit de test seul de la passe, ceux d'un lancement
+antérieur compris, dans un arbre détaché et lit quels tests y échouent, puis lance chaque commande
+`Vérifie :` sur la tête de la branche, puis Preflight. Ta sortie structurée dit, pour chaque tâche,
+le commit rouge, le commit vert et le message d'échec lu au rouge.
 
 ---
 

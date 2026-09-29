@@ -25,8 +25,9 @@ Une story part d'une branche de `main`, sur une Preflight verte, et y revient en
 2. **Le rouge-vert.** Tâche par tâche : le test d'abord, son rouge vu sur l'assertion annoncée, un
    commit de test seul, puis le code et un commit vert. Un fichier absent, une erreur d'import ou de
    type, ou un rouge obtenu en mettant du code de côté n'est pas ce rouge. L'outil rejoue chaque
-   commit de test seul dans un arbre détaché et lit quels tests échouent, pas seulement le code de
-   sortie. Le pas finit sur une Preflight verte.
+   commit de test seul de la passe dans un arbre détaché et lit quels tests échouent, pas seulement
+   le code de sortie. Un test qu'un pas ultérieur ajoute, déjà vert parce que le code tient la
+   promesse, n'est pas un commit du passage. Le pas finit sur une Preflight verte.
 3. **L'autocontrôle.** Une relecture du diff de la branche contre les standards de
    `CONVENTIONS.md`, avec la liste de `prompts/autocontrole.md` : périmètre tenu, code mort, types,
    un test par fonction, une seule responsabilité, noms uniques. Ce qu'il trouve se corrige sur la
@@ -142,8 +143,8 @@ l'autocontrôle, les deux relecteurs de chaque tour en parallèle dans leur arbr
 la recette, le message du versement. Leurs invites sont dans `prompts/`. La story, elle, s'écrit
 avec le propriétaire, dans une session ordinaire.
 
-Ce que l'outil vérifie lui-même, sans croire la session : chaque commit de test seul rejoué dans un
-arbre détaché échoue sur un test lu, chaque commande de tâche passe sur la tête de la branche,
+Ce que l'outil vérifie lui-même, sans croire la session : chaque commit de test seul de la passe,
+rejoué dans un arbre détaché, échoue sur un test lu, chaque commande de tâche passe sur la tête de la branche,
 Preflight est verte à la révision citée, la relecture s'arrête à deux tours, la branche arrive sur
 `main` en un commit, le dossier est exporté au versement.
 

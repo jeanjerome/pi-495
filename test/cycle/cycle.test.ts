@@ -167,6 +167,60 @@ export default (invite, cwd) => {
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
 	});
 
+	it("replays only the test-only commits of the pass, so a green test a later step left on the branch does not block a reopened story", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+import { existsSync, readFileSync } from "node:fs";
+export default (invite, cwd) => {
+  const shout = existsSync(cwd + "/test/shout.test.js") && readFileSync(cwd + "/test/shout.test.js", "utf8").includes("refactored");
+  if (!shout) {
+    commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+    commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE)} }, "feat: greet shouts");
+  } else {
+    commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST.replace('"HELLO, X"', '"HELLO, X!"'))} }, "test: greet shouts with an exclamation mark");
+    commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE.replace("toUpperCase()", 'toUpperCase() + "!"'))} }, "feat: greet shouts with an exclamation mark");
+  }
+  return { status: "fini", taches: [{ numero: 1 }], resume: "done" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		ctx.journal.inscrire("autocontrole", "fini");
+		writeFileSync(join(root, "test", "shout.test.js"), `// refactored\n${SHOUT_TEST}`);
+		gitCmd(root, ["add", "-A"]);
+		gitCmd(root, ["commit", "-q", "-m", "test: the shout test names its subject once"]);
+		rouvrir(ctx, "the greeting lacks its exclamation mark");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		const rouges = ctx.journal.depuisReouverture().filter((e) => e.genre === "rouge");
+		assert.deepEqual(
+			rouges.map((e) => [e.sujet, e.rouge]),
+			[["test: greet shouts with an exclamation mark", true]],
+		);
+	});
+
+	it("replays every test-only commit of a pass resumed after a block, the ones its earlier launch made included", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+import { existsSync } from "node:fs";
+export default (invite, cwd) => {
+  if (!existsSync(cwd + "/test/shout.test.js")) {
+    commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+    return { status: "fini", taches: [{ numero: 1 }], resume: "stopped before the code" };
+  }
+  commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE)} }, "feat: greet shouts");
+  return { status: "fini", taches: [{ numero: 1 }], resume: "done" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		assert.equal((await conduirePas(ctx, "rouge-vert")).statut, "bloque");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		const rouges = ctx.journal.lire().filter((e) => e.genre === "rouge" && e.rouge === true);
+		assert.deepEqual(
+			rouges.map((e) => e.sujet),
+			["test: greet shouts", "test: greet shouts"],
+		);
+	});
+
 	it("reviews in two rounds at most, answers what holds the gate, and hands an unkept promise to the owner", async () => {
 		const root = depot();
 		const constat = (id: string, categorie: string, placement = "introduit") =>
