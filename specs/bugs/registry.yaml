@@ -1424,3 +1424,36 @@ bugs:
       statement of a requirement instead of its identifier. Either changes what every decision shows,
       so it needs its own story.
     status: open
+  - bug_id: BUG-2026-09-30T120000
+    date: "2026-09-30"
+    title: "The JUnit reader counts a test twice when the suites of a report nest"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `summarizeJUnit` adds the `tests`, `failures`, `errors` and `skipped` attributes of every
+      `<testsuite>` element it finds. The `junit` reporter of `node:test` nests suites: on two nested
+      `describe` blocks holding three passing tests, its report carries `outer` with `tests="2"` and
+      `inner` with `tests="2"`, and the reader counts four tests. A test is counted once per suite that
+      contains it, and an attribute an emitter omits or fills differently reads as zero.
+    what_expected: >
+      A report is counted from its test cases: each one once, whatever the depth of the suites around it.
+    steps_to_reproduce:
+      - "Write a `node:test` file with `describe('outer')` holding `describe('inner')` with two tests, and one test beside it."
+      - "Run `node --test --test-reporter=junit --test-reporter-destination=out.xml` on it."
+      - "Read `out.xml` with `summarizeJUnit`: it returns `tests: 4`, the report holds three test cases."
+    root_cause: >
+      `summarizeJUnit` (`src/adapters/execution/parsers.ts`) reads the attributes of each `<testsuite>`
+      with a regular expression and sums them, trusting an emitter to give each test to exactly one
+      suite. Maven Surefire and vitest write flat reports, so the two runners read through it today
+      never nest; the reporter of `node:test` does. Not reachable today: no control reads a JUnit report
+      written by a runner that nests, so it is latent, not introduced by a branch.
+    evidence: >
+      Reproduced on 2026-09-30 with Node 24.21.0: the report above holds `<testsuite name="outer" tests="2">`
+      and `<testsuite name="inner" tests="2">` around three `<testcase>` elements, and `summarizeJUnit`
+      returns `{"tests":4,"failures":0,"errors":0,"skipped":0}`.
+    risk_level: low
+    follow_ups: >
+      Read the report with an XML parser and count the `<testcase>` elements, which also bounds and
+      hardens the reading of an input the judged project wrote.
+    status: open

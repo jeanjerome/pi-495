@@ -23,7 +23,11 @@ nombre de technologies si chacune vivait dans une table centrale.
    frameworks par type de test et ses chemins protégés sont déclarés par son module. Aucune table
    centrale ne liste des technologies ou des frameworks.
 2. **Le noyau découvre les adaptateurs dans une liste**, qu'un nouvel adaptateur rejoint par une
-   ligne. La détection ne se déduit plus d'une chaîne de conditions sur des fichiers.
+   ligne. La détection ne se déduit plus d'une chaîne de conditions sur des fichiers. Quand un projet
+   porte les marqueurs de deux technologies, **le premier adaptateur de la liste l'emporte, et Maven
+   précède Node** (arbitrage du propriétaire, 2026-09-30) : un projet Maven qui porte aussi un
+   `package.json`, l'outillage de son front, est jugé comme un projet Maven, non comme un projet Node dont
+   les tests Java ne seraient pas lus. Le sens inverse, plus rare, est celui qu'on accepte de perdre.
 3. **Un format de rapport nouveau reste un parseur nouveau**, déclaré au contrat : un rapport qu'un
    contrôle lit est une preuve, et son format se qualifie comme tel.
 4. **Toute story de `e10`, `e11`, `e12` et `e29` place ce qu'elle ajoute par technologie dans
