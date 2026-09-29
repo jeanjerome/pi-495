@@ -221,6 +221,24 @@ export default (invite, cwd) => {
 		);
 	});
 
+	it("finishes a pass resumed after its work was done, whose session has nothing left to commit", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+import { existsSync } from "node:fs";
+export default (invite, cwd) => {
+  if (existsSync(cwd + "/test/shout.test.js")) return { status: "fini", taches: [{ numero: 1 }], resume: "already done" };
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+  commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE)} }, "feat: greet shouts");
+  return { status: "fini", taches: [{ numero: 1 }], resume: "done" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		const head = revision(root);
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		assert.equal(revision(root), head, "the resumed session committed nothing");
+	});
+
 	it("reviews in two rounds at most, answers what holds the gate, and hands an unkept promise to the owner", async () => {
 		const root = depot();
 		const constat = (id: string, categorie: string, placement = "introduit") =>

@@ -1183,3 +1183,34 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: 07b068b
+  - bug_id: BUG-2026-09-29T150000
+    date: "2026-09-29"
+    title: "A red-green pass resumed after its work was done is blocked because its session committed nothing"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      A red-green launch that was blocked after its session had already committed every test and its
+      code was launched again. The new session read the branch, replayed the reds, ran the tasks and
+      Preflight, found nothing left to do and committed nothing. The step then blocked on
+      `the red-green session committed nothing`, though the branch carried the whole pass.
+    what_expected: >
+      A pass has committed something when any of its launches did; a resumed launch whose session
+      confirms the work and adds nothing finishes, once the reds, the task commands and Preflight
+      hold.
+    steps_to_reproduce:
+      - "Let a red-green launch commit every test and its code, then block after the session."
+      - "Launch the step again: the session commits nothing."
+      - "The step blocks on the missing commit, whatever the branch carries."
+    root_cause: >
+      `pasRougeVert` (`cycle/src/cycle.ts`) counted the commits made since the head at the start of
+      the current launch. The replay of the test-only commits already ranged over the whole run, so the
+      two checks disagreed about where a pass begins.
+    evidence: >
+      test/cycle/cycle.test.ts, "finishes a pass resumed after its work was done, whose session has
+      nothing left to commit": red at the test-only commit (blocked on the missing commit), green at
+      bd10032. Preflight green under Node 24.21.0.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: bd10032

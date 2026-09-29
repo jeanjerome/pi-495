@@ -165,10 +165,13 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 		},
 		required: ["status", "taches", "resume"],
 	});
-	if (commitsEntre(ctx.root, depuis).length === 0) throw new Blocage("the red-green session committed nothing");
+	// A launch resumed after the work was done has nothing left to commit: the pass committed
+	// something, whichever launch did it.
+	const passe = ctx.journal.debutDePassage("rouge-vert") ?? depuis;
+	if (commitsEntre(ctx.root, passe).length === 0) throw new Blocage("the red-green session committed nothing");
 	// Every test-only commit of the pass, so one left by an earlier launch of it is replayed too. A
 	// green test that a later step left on the branch is not a red the pass owes.
-	for (const c of commitsEntre(ctx.root, ctx.journal.debutDePassage("rouge-vert") ?? b).filter(estCommitDeTestSeul)) {
+	for (const c of commitsEntre(ctx.root, passe).filter(estCommitDeTestSeul)) {
 		const command = commandeDuCommit(ctx, c.fichiers);
 		if (!command) continue;
 		const preuve = await controle(ctx, "rouge-vert", command, c.sha);
