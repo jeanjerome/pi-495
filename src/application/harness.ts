@@ -683,7 +683,7 @@ export class Harness {
 	private async requestDecision(
 		unit: Unit,
 		cor: string,
-		interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">,
+		interaction: Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">,
 		subject: SubjectRef,
 		facts: string[],
 		recommendation: string | null,

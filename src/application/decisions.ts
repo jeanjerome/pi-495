@@ -50,6 +50,25 @@ const T = {
 				},
 			],
 		}),
+		"IH-04": (requirements: string) => ({
+			question: `Aucun test ne peut juger ${requirements}. Que décider ?`,
+			options: [
+				{
+					id: "prepare",
+					label: "Préparer",
+					effect:
+						"Une préparation de tests de plus est accordée, une seule ; si elle ne retient encore aucun test capable de juger l'exigence, la question est posée de nouveau.",
+					risky: false,
+				},
+				{
+					id: "assign_review",
+					label: "Assigner à une revue humaine",
+					effect:
+						"Aucune mesure ne jugera l'exigence : c'est à vous de la juger à l'acceptation du candidat, et le rapport la liste comme décidée par un humain. La réponse tombe si les exigences sont révisées.",
+					risky: true,
+				},
+			],
+		}),
 		"IH-07": (used: string) => ({
 			question: `Le budget de tentatives est épuisé (${used}). Étendre le budget ?`,
 			options: [
@@ -177,6 +196,25 @@ const T = {
 				},
 			],
 		}),
+		"IH-04": (requirements: string) => ({
+			question: `No test can judge ${requirements}. What should be done?`,
+			options: [
+				{
+					id: "prepare",
+					label: "Prepare",
+					effect:
+						"One more test preparation is granted, once; if it still retains no test able to judge the requirement, the question is asked again.",
+					risky: false,
+				},
+				{
+					id: "assign_review",
+					label: "Assign to a human review",
+					effect:
+						"No measurement will judge the requirement: you judge it when the candidate is accepted, and the report lists it as decided by a human. The answer lapses if the requirements are revised.",
+					risky: true,
+				},
+			],
+		}),
 		"IH-07": (used: string) => ({
 			question: `The attempt budget is exhausted (${used}). Extend it?`,
 			options: [
@@ -261,7 +299,7 @@ const T = {
 export function buildDecisionRequest(args: {
 	decision_id: string;
 	change_id: string;
-	interaction: Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">;
+	interaction: Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
 	subject: SubjectRef;
 	language: Lang;
 	facts: string[];

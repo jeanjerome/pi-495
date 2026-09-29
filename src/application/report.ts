@@ -44,11 +44,16 @@ export interface ResidualRisk {
 	statement: string;
 }
 
-/** Asked: an adopted requirement, and what the controls covering it answered on the candidate. */
+/**
+ * Asked: an adopted requirement, and what the controls covering it answered on the candidate. A
+ * requirement whose obligation is a human decision lists no control: a control that cited it and
+ * passed observed something else, and its verdict would read as a measure of the requirement.
+ */
 export interface RequirementLine {
 	requirement_id: string;
 	statement: string;
 	mandatory: boolean;
+	decided_by_owner: boolean;
 	controls: { control_id: string; verdict: EvidenceEntry["verdict"] }[];
 }
 
@@ -78,14 +83,23 @@ export function engineeringReport(
 	const onCandidateEntries = state.evidence.filter(
 		(e) => e.valid && state.candidate !== null && e.subject_digest === state.candidate.manifest_digest,
 	);
-	const asked: RequirementLine[] = (requirements?.requirements ?? []).map((q) => ({
-		requirement_id: q.requirement_id,
-		statement: q.statement,
-		mandatory: q.mandatory,
-		controls: onCandidateEntries
-			.filter((e) => e.requirement_ids.includes(q.requirement_id))
-			.map((e) => ({ control_id: e.control_id, verdict: e.verdict })),
-	}));
+	const decidedByOwner = new Set(
+		(protocol?.obligations ?? []).filter((o) => o.human_interaction).map((o) => o.requirement.requirement_id),
+	);
+	const asked: RequirementLine[] = (requirements?.requirements ?? []).map((q) => {
+		const owner = decidedByOwner.has(q.requirement_id);
+		return {
+			requirement_id: q.requirement_id,
+			statement: q.statement,
+			mandatory: q.mandatory,
+			decided_by_owner: owner,
+			controls: owner
+				? []
+				: onCandidateEntries
+						.filter((e) => e.requirement_ids.includes(q.requirement_id))
+						.map((e) => ({ control_id: e.control_id, verdict: e.verdict })),
+		};
+	});
 	const observations: MechanicalObservation[] = evidence.map((e) => ({
 		evidence_id: e.evidence_id,
 		control_id: e.control_id,
@@ -150,7 +164,9 @@ export function engineeringReport(
 		);
 	}
 	for (const obligation of protocol?.obligations ?? []) {
-		if (obligation.control_ids.length === 0 && !obligation.not_applicable_reason) {
+		// A requirement assigned to a human decision is carried by no control on purpose; it is listed
+		// below as decided by a human, not as one nobody assigned.
+		if (obligation.control_ids.length === 0 && !obligation.not_applicable_reason && !obligation.human_interaction) {
 			add(
 				"requirement_without_control",
 				`requirement ${obligation.requirement.requirement_id} is carried by no control.`,

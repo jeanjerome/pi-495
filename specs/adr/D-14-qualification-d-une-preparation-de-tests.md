@@ -8,9 +8,10 @@ noyau qualifie la suite proposée par trois faits : périmètre respecté, suite
 exécute au moins un test), et **discriminante** (elle échoue sur la référence, donc détecte la
 fonctionnalité absente). Le mécanisme runner/parser est qualifié séparément avec un témoin positif
 trivial et un témoin négatif injecté. Une suite qui passe déjà sur la référence est conservée comme
-fait mais pas adoptée comme oracle discriminant. Deux préparations infructueuses bloquent en
-`capability_missing`. Les fichiers adoptés deviennent des chemins protégés dont le contenu exact
-est autorisé dans le candidat.
+fait mais pas adoptée comme oracle discriminant. Deux préparations infructueuses portent la
+question au propriétaire (IH-04) : une préparation de plus, ou l'exigence jugée par lui. Les
+fichiers adoptés deviennent des chemins protégés dont le contenu exact est autorisé dans le
+candidat.
 **Motif.** PRE-03 et SA-009/SA-010 : distinguer capteur opérationnel, test discriminant et produit
 conforme.
 **Limite.** La discriminance sémantique (le test couvre bien l'exigence) reste une affaire de

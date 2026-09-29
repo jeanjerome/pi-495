@@ -1349,3 +1349,40 @@ bugs:
       Resolve the deepest existing ancestor of a path that does not exist and append the missing segments;
       it changes what the profile grants, so it needs its own test under a linked directory.
     status: open
+  - bug_id: BUG-2026-09-29T190000
+    date: "2026-09-29"
+    title: "An IH-04 question left pending when the requirements are revised stays answerable, and a prepare answered to it grants a preparation on the new requirements"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A change with an IH-04 decision pending had its requirements revised. The revision revoked the
+      IH-04 answers already recorded, but not the question still waiting for one, so the verification
+      design asked IH-04 a second time and two IH-04 decisions were pending, the old and the new. An answer
+      "prepare" given to the old question was recorded valid, and `preparationsGranted` counted it: one
+      more preparation was granted on requirements that question never named.
+    what_expected: >
+      An answer to a question asked on requirements that were revised since grants nothing on the
+      requirements as they stand.
+    steps_to_reproduce:
+      - "Take a change to a pending IH-04 (two preparations retained no test able to judge R1)."
+      - "Revise the requirements (`artifact.revise` on the requirements artifact) and advance: a second IH-04 is asked."
+      - "Answer the first IH-04 `prepare`, then advance: a third preparation opens."
+    root_cause: >
+      `invalidationFor` (`src/domain/invalidation.ts`) revokes the valid IH-04 decisions of the change, and
+      nothing withdraws the IH-04 decisions still pending. `preparationsGranted`
+      (`src/application/phases/verification-design.ts`) counts every valid `prepare` answer without
+      comparing its subject with the requirements it is counted for. Introduced by the branch, which
+      makes IH-04 exist and lets a revision reach it while it is pending. Only an owner who answers
+      both questions reaches it.
+    evidence: >
+      Reviewer probe: two IH-04 decisions pending after the revision, the old one and the new one; the
+      mutation that keeps `verifiabilityDecisions` out of the invalidation fails the assign_review
+      scenario, while no test pins the stale pending question.
+    risk_level: low
+    follow_ups: >
+      Withdraw the IH-04 decisions pending when the requirements are revised, as the revocation of a
+      resolution already withdraws the pending decisions, or count only the `prepare` answers whose
+      subject digest equals the one asked for the requirements as they stand. Either adds a state
+      transition or a refusal, so it needs its own test.
+    status: open

@@ -108,6 +108,7 @@ const R = {
 		judgments: "Jugements",
 		risks: "Risques résiduels",
 		none: "aucun",
+		decidedByOwner: "décidée par le propriétaire",
 		outcome: "Résultat",
 		candidate: "Candidat",
 		authority: { kernel: "noyau", model: "modèle", human: "humain" },
@@ -119,6 +120,7 @@ const R = {
 		judgments: "Judgments",
 		risks: "Residual risks",
 		none: "none",
+		decidedByOwner: "decided by the owner",
 		outcome: "Outcome",
 		candidate: "Candidate",
 		authority: { kernel: "kernel", model: "model", human: "human" },
@@ -136,10 +138,12 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 		lines.push(`${t.candidate}: ${report.candidate.candidate_id} ${report.candidate.manifest_digest.slice(0, 23)}`);
 	lines.push("", `## ${t.requirements}`);
 	if (report.requirements.length === 0) lines.push(`  ${t.none}`);
-	for (const q of report.requirements)
-		lines.push(
-			`  ${q.requirement_id}: ${q.statement}${q.controls.length ? ` — ${q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(", ")}` : ""}`,
-		);
+	for (const q of report.requirements) {
+		const verdicts = q.decided_by_owner
+			? t.decidedByOwner
+			: q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(", ");
+		lines.push(`  ${q.requirement_id}: ${q.statement}${verdicts ? ` — ${verdicts}` : ""}`);
+	}
 	lines.push("", `## ${t.observations}`);
 	if (report.observations.length === 0) lines.push(`  ${t.none}`);
 	for (const o of report.observations)

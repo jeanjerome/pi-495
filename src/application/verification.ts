@@ -98,6 +98,8 @@ export interface FreezeInput {
 	requirements: RequirementsDocument;
 	requirements_revision: number;
 	prepared: PreparationRecord | null;
+	/** Requirements no control can judge and the owner took on: the owner's acceptance decides them. */
+	assigned_to_human: readonly string[];
 }
 
 export interface RunInput {
@@ -309,6 +311,15 @@ export class VerificationCoordinator {
 		// never compensates for any of the three.
 		const differential = controls.filter((c) => isDifferentialParser(c.parser)).map((c) => c.control_id);
 		const obligations: Obligation[] = input.requirements.requirements.map((r) => {
+			if (input.assigned_to_human.includes(r.requirement_id))
+				return {
+					requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
+					mandatory: r.mandatory,
+					control_ids: [],
+					combination: "human_decision",
+					human_interaction: "IH-10",
+					not_applicable_reason: null,
+				};
 			const preferred =
 				r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint")
 					? controls.filter((c) => c.control_id === "lint")

@@ -289,7 +289,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.equal(state.outcome, "accepted");
 	});
-	it("a preparation that retains no test stays refused, and the producer is told the paths written outside the mandate", async () => {
+	it("a preparation that retains no test stays refused, the owner is asked after two, and the producer is told the paths written outside the mandate", async () => {
 		const p = projectWithoutTests();
 		const t = track(
 			makeHarness({
@@ -312,11 +312,11 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			state.adopted.preparation?.ref.artifact_id.startsWith("prp_"),
 			"only the preparation mandate is adopted, never the producer's proposal",
 		);
-		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
 		assert.equal(
 			state.interventions.filter((i) => i.role === "prepare").length,
 			2,
-			"two bounded preparation tries, then stop",
+			"two bounded preparation tries, then the owner is asked",
 		);
 		const record = await t.harness.artifacts.read<PreparationRecord>(
 			t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prep_"))!.ref,

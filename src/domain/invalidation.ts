@@ -35,6 +35,11 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 	const candidateDecisions = state.human_decisions
 		.filter((d) => d.valid && (d.interaction === "IH-10" || d.interaction === "IH-11" || d.interaction === "IH-08"))
 		.map((d) => d.human_decision_id);
+	// What the owner answered about a requirement no control can judge holds for those requirements
+	// only: the requirements revised, it is asked again.
+	const verifiabilityDecisions = state.human_decisions
+		.filter((d) => d.valid && d.interaction === "IH-04")
+		.map((d) => d.human_decision_id);
 	// Everything from G0 on, and every human decision but the answers to the questions, the budget
 	// extensions and the reconciliations of a Git effect: an extension raises the attempt budget, which
 	// the change spends whatever its mandate, and a reconciliation records whether an effect was applied,
@@ -61,7 +66,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						gates: from("G1"),
 						evidence: allEvidence,
 						reviews: allReviews,
-						human_decisions: candidateDecisions,
+						human_decisions: [...candidateDecisions, ...verifiabilityDecisions],
 						rollback_phase: "specifying",
 					};
 				case "protocol":

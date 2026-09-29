@@ -186,6 +186,10 @@ describe("engineering report: observations, judgments and residual risks (IMP-05
 		);
 		assert.ok(risks.some((risk) => risk.code === "requirement_without_control" && risk.statement.includes("R1")));
 		assert.ok(risks.some((risk) => risk.code === "requirement_decided_by_a_human" && risk.statement.includes("IH-10")));
+		assert.ok(
+			!risks.some((risk) => risk.code === "requirement_without_control" && risk.statement.includes("R2")),
+			"a requirement assigned to a human decision is not also listed as carried by no control",
+		);
 	});
 
 	it("reports a human acceptance as a judgment of human authority, distinct from what was measured", () => {
@@ -299,6 +303,57 @@ describe("engineering report: what was asked (IMP-05)", () => {
 			text.indexOf("## Requirements") < text.indexOf("## Mechanical observations"),
 			"what was asked comes first",
 		);
+	});
+
+	it("given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts", () => {
+		const r = new Runner().toDeciding(c).g5();
+		const doc = {
+			change_id: r.s.change_id,
+			requirements: [
+				requirement("R1", "greet ends with an exclamation mark"),
+				requirement("R2", "the code stays lint-clean"),
+			],
+			answers: [],
+			assumptions: [],
+			contract_families: {},
+		};
+		const decidedByTheOwner = protocol({
+			obligations: [
+				{
+					requirement: { requirement_id: "R1", revision: 1 },
+					mandatory: true,
+					control_ids: [],
+					combination: "human_decision",
+					human_interaction: "IH-10",
+					not_applicable_reason: null,
+				},
+				{
+					requirement: { requirement_id: "R2", revision: 1 },
+					mandatory: true,
+					control_ids: ["lint"],
+					combination: "all_pass",
+					human_interaction: null,
+					not_applicable_reason: null,
+				},
+			],
+		});
+		// The unit run cites R1 among its requirements and passed on the candidate: it observed
+		// something, but not that R1 holds.
+		const report = engineeringReport(
+			r.s,
+			r.s.evidence.map((e) => stored(e)),
+			decidedByTheOwner,
+			doc,
+		);
+		assert.deepEqual(
+			report.requirements.map((q) => q.controls.map((k) => k.control_id)),
+			[[], ["lint"]],
+		);
+		assert.match(
+			formatReport(report, "en"),
+			/## Requirements\n {2}R1: greet ends with an exclamation mark — decided by the owner\n {2}R2: the code stays lint-clean — lint=PASS\n/,
+		);
+		assert.match(formatReport(report, "fr"), /R1: greet ends with an exclamation mark — décidée par le propriétaire\n/);
 	});
 
 	it("says none when no requirements were adopted", () => {

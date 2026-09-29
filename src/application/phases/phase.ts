@@ -43,7 +43,7 @@ export interface InterventionOutcome {
 }
 
 /** The human interactions a phase may open. The others belong to entry points, not to a phase. */
-export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-04" | "IH-05" | "IH-06" | "IH-09">;
+export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
 
 export interface PhaseContext {
 	/** What this change proposed and adopted, over the ledger and the object store. */

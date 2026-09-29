@@ -2,7 +2,7 @@
 
 Story : e22s01
 Epic : e22
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -39,6 +39,11 @@ Scenario: Répondre « assigner à une revue humaine » fait de l'exigence une d
   And le rapport du changement liste « requirement_decided_by_a_human » pour R1 parmi les risques résiduels
   And si les exigences sont révisées ensuite, cette réponse ne vaut plus et IH-04 est demandée de nouveau
 
+Scenario: La ligne d'une exigence décidée par le propriétaire ne porte aucun verdict de contrôle
+  Given un protocole dont l'obligation de R1 est une décision humaine assignée à IH-10, et une preuve du contrôle unit qui cite R1 parmi ses exigences
+  When le rapport du changement est rendu
+  Then la ligne de R1 dit qu'elle est décidée par le propriétaire et ne porte aucun verdict de contrôle, et la ligne d'une exigence portée par des contrôles garde ses verdicts
+
 Scenario: Avec un agent scripté déclaré, le changement sans test discriminant aboutit à une décision et à un rapport qui le dit
   Given un changement dont la préparation scriptée ne retient aucun test discriminant, conduit dans un vrai Pi
   When la décision IH-04 est répondue « assigner à une revue humaine »
@@ -51,7 +56,8 @@ Scenario: Avec un agent scripté déclaré, le changement sans test discriminant
   celles d'IH-02 et d'IH-10. Aucun agent ne la donne, aucun modèle ne la propose comme fait acquis.
 - Ce que le dossier prouve : une exigence assignée à une revue humaine n'est établie par aucune
   mesure. Le rapport la nomme comme telle en risque résiduel, à l'endroit où il liste ce que les
-  contrôles n'ont pas établi, jamais dans une note.
+  contrôles n'ont pas établi, jamais dans une note, et sa ligne d'exigence ne reprend pas le verdict
+  d'un contrôle qui a passé sur le candidat sans la porter.
 - Portée de la réponse : elle porte sur la révision des exigences qui l'a motivée. Une révision des
   exigences la fait tomber, comme les autres décisions attachées à ces exigences.
 - Aucun chemin protégé, aucune sandbox ni aucune sortie de données ne sont touchés.
@@ -87,6 +93,15 @@ motivée : une révision les fait tomber. Le rapport liste l'exigence parmi les 
 - Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
 - Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again »
 - Rouge : `freeze` donne à chaque obligation les contrôles du protocole en `all_pass` et ne produit jamais `human_decision` ; sans contrôle qui la juge, l'exigence fait échouer G2 avec « has no control and no assigned human decision »
+
+### Tâche 4 — La ligne d'une exigence décidée par le propriétaire ne montre aucun verdict de contrôle
+
+Le rapport lit l'obligation de chaque exigence : quand c'est une décision humaine, sa ligne dit qu'elle
+est décidée par le propriétaire au lieu de lister les verdicts des contrôles qui citent l'exigence.
+
+- Vérifie : `node --test test/v0/engineering-report.test.ts`
+- Tient : `test/v0/engineering-report.test.ts`, « given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts »
+- Rouge : `buildEngineeringReport` construit les contrôles de chaque exigence depuis les preuves qui la citent, sans lire son obligation, si bien que la ligne d'une exigence décidée par un humain affiche `unit=PASS`
 
 ## 5. Hors périmètre
 
