@@ -104,17 +104,66 @@ directement ; aucune issue créée par un automate.
 
 ## Ce qui s'écrit à la main, et ce qui s'observe
 
-À la main : la story, une décision du produit dans `specs/adr/`, une entrée du registre des défauts,
-l'ordre du travail dans `specs/plan.yaml`. Tout le reste est observé et inscrit par l'outil au moment
-où il l'observe : un rouge et son message, une Preflight et sa révision, un tour de relecture et ses
+À la main : une décision du produit dans `specs/adr/`, et l'ordre du travail dans `specs/plan.yaml`,
+où le propriétaire marque `prete: oui` les epics qui se déroulent sans lui. La story et l'entrée du
+registre s'écrivent à la main quand le propriétaire conduit la story lui-même ; dans une suite sans
+lui, une session les écrit sous les règles de ce fichier. Tout le reste est observé et inscrit par
+l'outil au moment où il l'observe : un rouge et son message, une Preflight et sa révision, un tour de relecture et ses
 constats, la recette et l'accord du propriétaire, le versement. Une preuve s'écrit une fois, dans le
 dossier du pas qui l'a produite ; ailleurs on la cite. Une copie dérive du code qu'elle décrit.
+
+## Le cycle sans le propriétaire
+
+`npm run cycle -- suite` déroule, l'une après l'autre, les epics que `specs/plan.yaml` marque
+`prete: oui`, dans l'ordre du plan. Pour chacune : la prochaine story du plan est écrite par une
+session quand aucune n'est listée à faire, elle est conduite jusqu'au versement comme ci-dessus, le
+plan la marque versée, et l'epic passe à `versé` quand une session constate que ses stories livrent
+son objet. La suite part de `main` avec un arbre propre et s'arrête au premier blocage, en disant
+pourquoi ; elle ne pousse jamais. `npm run cycle -- <story> auto` fait de même pour une seule
+story.
+
+Trois réponses du propriétaire sont déléguées, chacune un acte inscrit au dossier :
+
+- **L'accord après la recette.** Une session neuve, qui n'a conduit ni la recette ni la relecture,
+  lit la story, le compte rendu de la recette et les défauts que la branche inscrit au registre, puis
+  décide `accepte` ou `ecart` (`prompts/arbitrage.md`). Un écart est celui d'une promesse écrite ou
+  d'une garantie de sécurité non tenue, d'un cas que le code d'avant arrêtait et que la branche laisse
+  passer, ou d'un défaut de la branche qui affaiblit une garantie de la story ; sinon l'accord
+  emporte une note qui nomme ce qui reste au registre et ce que la recette n'a pas exercé. Une
+  question de produit que la story ne tranche pas se règle par le comportement qui arrête. La décision
+  est inscrite avec `origine: automate`.
+- **L'écart.** Que l'arbitrage le nomme ou que la recette le rouvre, une session l'écrit dans la story
+  (un scénario, la phrase de sécurité, une tâche dont le rouge se vérifie dans le code) et le
+  commite avant que le rouge-vert reparte : sans promesse écrite, la relecture ne juge pas le
+  correctif. L'outil relit la story, exige qu'elle ait gagné un scénario ou une tâche et que l'arbre
+  soit propre.
+- **Une promesse que la relecture n'a pas fait tenir.** Elle retourne au rouge-vert : elle n'était pas
+  au propriétaire de la lever.
+
+**Les défauts du registre** se corrigent aussi, au bon moment (`D-73`) : à la fin de chaque epic, avant
+la suivante, ceux de gravité moyenne ou haute ; à la fin de la suite, les faibles. Une session choisit
+le premier défaut ouvert qui ne demande aucune décision de produit, écrit sa story de correction sous
+l'epic `e28` (que le plan ne marque jamais prête) en citant l'entrée du registre, et l'outil la conduit
+par les six pas ; au versement, l'entrée est marquée corrigée à la révision livrée. Les défauts que la
+session écarte parce qu'ils demandent le propriétaire sont nommés à la fin de la suite, avec la
+raison, sans l'arrêter. Une phase corrige au plus `CYCLE_495_DEFAUTS_MAX` défauts (5 par défaut) ;
+`npm run cycle -- defauts [gravité]` lance cette phase seule.
+
+La suite s'arrête, et rend la main, quand une story est retournée au rouge-vert trois fois, quand elle
+a dépensé plus que `CYCLE_495_PLAFOND_USD` (80 $ par défaut), quand une session ne rend pas sa
+sortie, ou quand un pas bloque : un défaut de l'outil lui-même, un test qui ne peut pas être rouge,
+une Preflight rouge. La rédaction d'une story s'arrête de même sur ce qu'elle ne peut pas écrire sans
+choisir à la place du propriétaire (`bloque`, avec le choix nommé), et une epic sans première story
+possible reste à lui.
 
 ## L'outil
 
 `npm run cycle -- <story>` conduit les pas qui restent, dans l'ordre, jusqu'à ce qu'un pas ait
 besoin du propriétaire ou bloque ; `npm run cycle -- <story> etat` dit où elle en est ;
 `npm run cycle -- <story> suivre` suit, depuis un autre terminal, la story qui tourne ;
+`npm run cycle -- suite` déroule les epics marquées prêtes, sans le propriétaire ;
+`npm run cycle -- defauts [gravité]` corrige les défauts ouverts du registre, sans dérouler d'epic ;
+`npm run cycle -- <story> auto` conduit une story de même ;
 `npm run cycle -- <story> accepte [note]` inscrit l'accord après la recette ;
 `npm run cycle -- <story> ecart "<ce qui manque>"` la renvoie au rouge-vert pour l'écart nommé, avec
 un seul tour de relecture sur son diff. Le dossier vit sous `~/.495/cycle/<story>/` pendant la story

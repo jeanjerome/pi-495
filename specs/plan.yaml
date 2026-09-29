@@ -2,6 +2,10 @@
 # là où il surprend, `position` dit pourquoi. Le texte normatif des exigences reste dans
 # specs/archive/amont/expression-besoins.md ; ce fichier ne le restitue pas.
 #
+# Un epic marqué `prete: oui` sous son `status:` se déroule sans le propriétaire par
+# `npm run cycle -- suite` (cycle/README.md § Le cycle sans le propriétaire) ; sans ce champ, le
+# cycle n'y touche pas.
+#
 # Un epic est `versé` quand toutes ses stories le sont, `en cours` quand une story l'est, sinon
 # `à faire`. Les stories d'un epic en cours sont sous specs/stories/<epic>/ ; celles d'un epic versé
 # avant le cycle actuel n'ont pas de fichier, leur comportement est tenu par la suite de tests.
@@ -375,6 +379,19 @@ epics:
       utilisateur dont le modèle n'est pas `omlx` est refusé au premier `/495 start`. L'urgence tient au
       README, qui s'adresse désormais à des lecteurs extérieurs et documente ce contournement comme une
       étape du démarrage.
+
+  - id: e28
+    title: "Correctifs du registre"
+    status: à faire
+    source: specs/bugs/registry.yaml
+    objet: >
+      Les défauts ouverts du registre qui ne demandent aucune décision de produit sont corrigés, chacun
+      par une story de correction qui passe par les six pas du cycle.
+    position: >
+      Ne se déroule pas seule et n'est jamais marquée prête : `npm run cycle -- suite` la pilote, à la
+      fin de chaque epic pour les défauts de gravité moyenne ou haute, à la fin de la suite pour les
+      faibles (`D-73`). Ses stories s'y ajoutent au fil des défauts ; l'epic ne passe jamais à `versé`.
+    stories: []
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous

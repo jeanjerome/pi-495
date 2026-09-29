@@ -47,7 +47,7 @@ export type Issue =
 
 const FINI: Issue = { statut: "fini" };
 
-class Blocage extends Error {}
+export class Blocage extends Error {}
 
 function storyMarkdown(ctx: Contexte): string {
 	return readFileSync(ctx.story.chemin, "utf8");
@@ -57,7 +57,7 @@ function base(ctx: Contexte): string {
 	return baseDe(ctx.root, ctx.cible);
 }
 
-async function session(
+export async function session(
 	ctx: Contexte,
 	pas: Pas,
 	nom: string,

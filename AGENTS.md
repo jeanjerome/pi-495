@@ -116,13 +116,17 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
   fails today; the test is written first and seen failing on that assertion before the code.
 - **Review:** two reviewers, two rounds at most, on the promises of the story; what the second
   round leaves goes to `specs/bugs/registry.yaml`, except a promise the code does not keep, which
-  the owner decides.
+  the owner decides — an unattended run sends it back to the red-green instead.
 - **Acceptance run:** a real execution in a real Pi, with a negative control; a list backed by tests
-  is not one.
+  is not one. The owner accepts it or names the gap; in an unattended run (`cycle suite`) an
+  independent session decides under `cycle/prompts/arbitrage.md`, and the record says the automaton
+  decided.
 - **Always Green:** Preflight (`npm run check`) is green before forward work and before every
   commit that touches what it checks.
-- **Records:** the story, a product decision, a registry entry and the plan are written by hand;
-  every red, Preflight, review round and acceptance is observed and written once by the tool.
+- **Records:** a product decision and the order of the plan are written by hand, and the owner marks
+  `prete: oui` the epics that run without them; the story and the registry entry are written by hand
+  when the owner drives the story, and by a session in an unattended run. Every red, Preflight, review
+  round and acceptance is observed and written once by the tool.
 - Write the minimum code that solves the stated problem.
 - Run tests after every change. Show evidence before declaring done.
 
