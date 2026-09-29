@@ -1386,3 +1386,41 @@ bugs:
       subject digest equals the one asked for the requirements as they stand. Either adds a state
       transition or a refusal, so it needs its own test.
     status: open
+  - bug_id: BUG-2026-09-29T210000
+    date: "2026-09-29"
+    title: "The facts of a human decision are written in English under a question and options in the language of the change"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A decision request puts a French question and French options to the owner, followed by facts in
+      English. The IH-04 question reads "Aucun test ne peut juger <requirement id>. Que décider ?"; its
+      facts are the notes of the capability diagnosis ("<id> asks for behaviour the reference does not
+      have: no control that passes on the reference can detect its absence") and a `risk: without a
+      control able to judge …` line. The IH-10 fact is "policy requires human acceptance (IH-10)". The
+      requirement is named by its identifier, which the owner did not write.
+    what_expected: >
+      The whole decision request reads in the language of the change, and names a requirement by what it
+      asks rather than by an identifier.
+    steps_to_reproduce:
+      - "Take a change in French to an IH-04 or an IH-10 decision and read the request Pi shows."
+      - "The question and the options are French; the lines under `facts` are English."
+    root_cause: >
+      `buildDecisionRequest` (`src/application/decisions.ts`) translates the question and the options,
+      and takes `facts` as finished strings. The producers write them once, in English, where the
+      condition is known: the gates (`src/domain/gates/g5.ts`), the capability diagnosis
+      (`src/application/preparation.ts`) and `requestVerifiabilityArbitration`
+      (`src/application/phases/verification-design.ts`). The mixing was already on main for the
+      decisions whose facts a gate composes, IH-10 among them; the IH-04 request adds one more English
+      line to it.
+    evidence: >
+      Reading of `decisions.ts`, `verification-design.ts` and `g5.ts`. The acceptance run of the change
+      that made IH-04 exist reported the request of an IH-04 decision on a real Pi in RPC mode, under a
+      scripted agent, with a French question and English facts; that dossier was not read again here.
+    risk_level: low
+    follow_ups: >
+      Give the facts a form the request renders per language (a code and its arguments) instead of a
+      sentence, or write them in the language of the change where they are composed; and show the
+      statement of a requirement instead of its identifier. Either changes what every decision shows,
+      so it needs its own story.
+    status: open
