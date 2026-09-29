@@ -344,7 +344,13 @@ epics:
       Déclarée dans les contrats, mais exclue du constructeur de demandes de décision.
     position: >
       WSJF le placerait deuxième ; il est petit et empêche un verdict faux, mais la ROADMAP ne l'a pas
-      séquencé.
+      séquencé. Scindé le 2026-09-29 : les issues « préparer » et « assigner à une revue humaine »
+      d'abord, « réviser l'exigence » ensuite, parce que la réouverture de la spécification part d'une
+      question matérielle et de sa réponse et qu'y brancher une réponse à IH-04 est un mécanisme à
+      concevoir. `e12` y rangera le refus des tests recommandés (`D-72`).
+    stories:
+      - { id: e22s01, status: "à faire", title: "Une exigence sans contrôle capable de la juger est arbitrée par le propriétaire" }
+      - { id: e22s02, status: "à faire", title: "Le propriétaire révise l'exigence que rien ne permet de juger" }
 
   - id: e25
     title: "Le modèle choisi dans Pi est autorisé"
