@@ -29,3 +29,20 @@ The tool marks a registry entry fixed only for a correction story that cites it;
 marks it fixed at the landed revision after the story (`fixed_in: c8adb59`), and does the same for
 `BUG-2026-09-30T150000` after e12s07. Bought: the registry does not carry a defect the code no longer
 has, which the defect phase of a later suite would otherwise pick up and try to fix again.
+
+## Story e12s04
+
+### A test that earlier tasks already turn green is folded into their code commit
+
+Task 9 asked for a test of the LCOV report under the verification sandbox, whose stated red was the
+state before the story; written after tasks 6 and 7 it could not fail, and the red-green control
+blocked the story on a test-only commit with no failing test. The driver folded that commit into the
+code commit before it (`git rebase` with `fixup`), resumed the story, and taught the red-green prompt
+the same rule. Bought: the control keeps demanding a red on every test-only commit, and a test that
+cannot be red is still kept. Cost: the folded commit holds a test the message does not name.
+
+### A defect found on the branch stays in the registry
+
+The review of e12s04 left `BUG-2026-09-30T193000` (a control character in a path the change does not
+touch makes coverage indeterminate). It is low, not introduced by a promise of the story, and is left
+to the defect phase.

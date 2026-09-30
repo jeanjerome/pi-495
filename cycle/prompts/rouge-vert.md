@@ -15,6 +15,9 @@ Pour chaque tâche :
    mettant du code de côté n'est pas ce rouge. Si le code d'aujourd'hui ne fait pas échouer
    l'assertion, dis-le dans ta sortie au lieu de forcer un rouge.
 3. Commite le test seul : `test: <ce que le test tient, en anglais>`. Ce commit ne touche que `test/`.
+   Si le test d'une tâche est déjà vert parce que les tâches précédentes tiennent sa promesse, il n'a
+   pas de rouge à vue : ne le commite pas seul, joins-le au commit de code de la tâche dont il
+   dépend et dis-le dans ta sortie.
 4. Écris le code minimal qui fait passer le test, relance la commande, puis commite :
    `feat|fix|refactor: <le comportement obtenu, en anglais>`.
 5. Une tâche `Vérifie à la main :` se fait à la main, et ta sortie dit ce qui a été fait et observé.
