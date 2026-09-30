@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "resume": "Les cinq scénarios sont tenus par le code, et chacun a un test qui échoue quand on mute la ligne qui le tient. Mutations essayées : retrait de la borne de 16 Mio, retrait du rattrapage, FAIL remplacé par INDETERMINATE quand le programme sort en erreur, retrait de la descente dans les suites imbriquées, retrait du compte des ignorés, du compte des `failure` et du `classname`. Le NOTICE, la licence ISC (sur la liste permissive de `check-distribution`) et la déclaration dans `package.json` et le lock sont en ordre. Les fixtures « enregistrées » n'ont pas pu être comparées à leur source ; leurs contenus sont plausibles. Deux points à peser, aucun bloquant : le compte des `<error>` n'est tenu par aucun test, et un rapport très large est lu comme illisible.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les rapports que 495 lisait se lisent de la même façon",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 196,
+    "constat": "Aucune fixture ni test n'a de testcase portant un enfant `<error>`, alors que Surefire l'écrit et que l'ancien lecteur le comptait comme échec nommé. Le code le traite correctement, mais aucun test ne le tient. Le scénario ne nomme que les échecs.",
+    "mutation": "Retrait de la branche `error` (compte et nom du cas en échec) : les 5 tests passent encore."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un rapport dont les suites s'imbriquent compte chaque test une fois",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 170,
+    "constat": "`pending.push(...children)` s'étale en arguments. Un élément qui porte plus d'environ 125 000 enfants lève « Maximum call stack size exceeded », que `parseJUnit` rattrape en INDETERMINATE ou FAIL « non lisible ». Le parseur, lui, lit 300 000 enfants sans erreur. Le résultat reste sûr (jamais un succès), mais un rapport valide très large est refusé. Aucune promesse ne couvre ce cas.",
+    "mutation": "Sonde jetable : 100 000 testcase donnent PASS, 130 000 donnent INDETERMINATE « not readable »."
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les rapports que 495 lisait se lisent de la même façon",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 198,
+    "constat": "The reader still counts a testcase with an `<error>` child as an error, as the old regex did, but no fixture or test carries such a child. The recorded mocha, vitest and Surefire fixtures all fail on `<failure>`. The story names only a failing test, so this is not a broken promise. The \"same as before\" behaviour for Surefire errors is simply not pinned.",
+    "mutation": "Replaced `outcomes.includes(\"error\")` with `false` and dropped `error` from the failed-case filter. All 5 tests in junit-reader.test.ts still pass."
+   }
+  ],
+  "resume": "Every promise of e12s02 is kept by the code and held by a test. I ran the 5 tests of junit-reader.test.ts against 8 mutations, and each mutation that touches a promise fails at least one test. The mutations were:\n- no descent into nested suites\n- size bound removed\n- try/catch removed\n- the exit-code FAIL branch removed\n- skipped not counted\n- classname dropped\n- test count zeroed\n- test name replaced\n\nOnly the removal of the `<error>` child passes, and that is B1-1 (à peser).\n\nI probed beyond the tests, and the results were as the story says:\n- An external entity used in the text body gives INDETERMINATE for exit 0 and FAIL for exit 1, and no file content reaches the evidence.\n- An external entity declared but never used gives PASS.\n- Two root elements, deep nesting, and nesting of `testsuite` elements around a `testcase` (200,000 levels each) all end in INDETERMINATE, or FAIL when the program exited 1.\n\nThe `NOTICE` and `package.json` changes carry the attribution and the runtime dependency."
+ }
+]

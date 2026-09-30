@@ -1,0 +1,376 @@
+TAP version 13
+# Subtest: parsers (VER-02, RM-016, RM-017, SA-014)
+    # Subtest: node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+    ok 1 - node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+      ---
+      duration_ms: 1.210417
+      type: 'test'
+      ...
+    # Subtest: junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+    ok 2 - junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+      ---
+      duration_ms: 1.261875
+      type: 'test'
+      ...
+    1..2
+ok 1 - parsers (VER-02, RM-016, RM-017, SA-014)
+  ---
+  duration_ms: 2.902916
+  type: 'suite'
+  ...
+# Subtest: generic runner on F-TS (C-EXE, VER-01, PRE-03)
+    # Subtest: runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+    ok 1 - runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+      ---
+      duration_ms: 97.213209
+      type: 'test'
+      ...
+    # Subtest: a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+    ok 2 - a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+      ---
+      duration_ms: 80.675792
+      type: 'test'
+      ...
+    # Subtest: timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+    ok 3 - timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+      ---
+      duration_ms: 316.065291
+      type: 'test'
+      ...
+    # Subtest: exit-code parser follows its contract only: lint script
+    ok 4 - exit-code parser follows its contract only: lint script
+      ---
+      duration_ms: 99.29125
+      type: 'test'
+      ...
+    # Subtest: aggregates Surefire reports from every module in a Maven reactor
+    ok 5 - aggregates Surefire reports from every module in a Maven reactor
+      ---
+      duration_ms: 46.509333
+      type: 'test'
+      ...
+    # Subtest: a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+    ok 6 - a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+      ---
+      duration_ms: 0.482542
+      type: 'test'
+      ...
+    # Subtest: qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+    ok 7 - qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+      ---
+      duration_ms: 325.7575
+      type: 'test'
+      ...
+    # Subtest: an established qualification is reused for the same sensor, never across a changed sensor or environment
+    ok 8 - an established qualification is reused for the same sensor, never across a changed sensor or environment
+      ---
+      duration_ms: 0.516917
+      type: 'test'
+      ...
+    # Subtest: runs the same control under seatbelt with the candidate read-only
+    not ok 9 - runs the same control under seatbelt with the candidate read-only
+      ---
+      duration_ms: 117.948458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/control-runner.test.ts:352:48'
+      failureType: 'testCodeFailure'
+      error: |-
+        write to the frozen candidate is refused by the sandbox
+        
+        'PASS' !== 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/control-runner.test.ts:369:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..9
+not ok 2 - generic runner on F-TS (C-EXE, VER-01, PRE-03)
+  ---
+  duration_ms: 1085.21325
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/control-runner.test.ts:128:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: a sensor that reads the report another control writes (VER-05, PRE-03)
+    # Subtest: orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+    ok 1 - orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+      ---
+      duration_ms: 0.444125
+      type: 'test'
+      ...
+    # Subtest: runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+    ok 2 - runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+      ---
+      duration_ms: 193.349125
+      type: 'test'
+      ...
+    1..2
+ok 3 - a sensor that reads the report another control writes (VER-05, PRE-03)
+  ---
+  duration_ms: 193.896959
+  type: 'suite'
+  ...
+# Subtest: the derived vitest control through the runner
+    # Subtest: given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+    ok 1 - given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+      ---
+      duration_ms: 100.871083
+      type: 'test'
+      ...
+    # Subtest: given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS
+    ok 2 - given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS
+      ---
+      duration_ms: 42.964042
+      type: 'test'
+      ...
+    1..2
+ok 4 - the derived vitest control through the runner
+  ---
+  duration_ms: 143.951083
+  type: 'suite'
+  ...
+# Subtest: the JUnit reader counts from the test cases of the report
+    # Subtest: given a report recorded from the node:test junit reporter with two nested suites and three passing tests, then the summary counts three tests
+    ok 1 - given a report recorded from the node:test junit reporter with two nested suites and three passing tests, then the summary counts three tests
+      ---
+      duration_ms: 1.361583
+      type: 'test'
+      ...
+    # Subtest: given a suite declaring tests="0" and two test cases one of which has a failure child, then the summary counts two tests, one failed, and names it
+    ok 2 - given a suite declaring tests="0" and two test cases one of which has a failure child, then the summary counts two tests, one failed, and names it
+      ---
+      duration_ms: 0.397625
+      type: 'test'
+      ...
+    # Subtest: given recorded vitest, Surefire and mocha reports, then the counts and the failed case names are those the regular-expression reader gave
+    ok 3 - given recorded vitest, Surefire and mocha reports, then the counts and the failed case names are those the regular-expression reader gave
+      ---
+      duration_ms: 1.105167
+      type: 'test'
+      ...
+    1..3
+ok 5 - the JUnit reader counts from the test cases of the report
+  ---
+  duration_ms: 3.271709
+  type: 'suite'
+  ...
+# Subtest: the JUnit reader never takes a hostile or unreadable document for a success
+    # Subtest: given a report with a public and a system DOCTYPE, then it is read and no entity is resolved, and one whose DOCTYPE references an external file yields none of that file's content
+    not ok 1 - given a report with a public and a system DOCTYPE, then it is read and no entity is resolved, and one whose DOCTYPE references an external file yields none of that file's content
+      ---
+      duration_ms: 0.691541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/junit-reader.test.ts:91:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        XmlError: Named entity isn't defined: &leak; (line 1, column 198)
+          1"><testcase name="&leak;" classname="S"/></testsu
+                             ^
+        
+        + actual - expected
+        
+        + 'threw'
+        - 'INDETERMINATE'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'INDETERMINATE'
+      actual: 'threw'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/junit-reader.test.ts:104:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: given a truncated report, nested entity declarations, two hundred thousand levels of nesting and a report over 16 MiB, then the verdict is INDETERMINATE when the program exits 0 and FAIL saying the report is not readable when it exits with an error
+    not ok 2 - given a truncated report, nested entity declarations, two hundred thousand levels of nesting and a report over 16 MiB, then the verdict is INDETERMINATE when the program exits 0 and FAIL saying the report is not readable when it exits with an error
+      ---
+      duration_ms: 0.121625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/junit-reader.test.ts:108:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        truncated, exit 0: XmlError: Attribute value expected (line 1, column 85)
+          S"/><testcase name=
+                             ^
+        
+        + actual - expected
+        
+        + 'threw'
+        - 'INDETERMINATE'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'INDETERMINATE'
+      actual: 'threw'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/junit-reader.test.ts:123:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 6 - the JUnit reader never takes a hostile or unreadable document for a success
+  ---
+  duration_ms: 0.89475
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Mrgb7F/test/v1/junit-reader.test.ts:90:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.628584
+      type: 'test'
+      ...
+    1..1
+ok 7 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 2.047333
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.969958
+      type: 'test'
+      ...
+    1..1
+ok 8 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 1.034166
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects among the installed dependencies
+    # Subtest: given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+    ok 1 - given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+      ---
+      duration_ms: 0.823333
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+    ok 2 - given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+      ---
+      duration_ms: 0.775417
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+    ok 3 - given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+      ---
+      duration_ms: 1.595916
+      type: 'test'
+      ...
+    # Subtest: given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+    ok 4 - given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+      ---
+      duration_ms: 0.828291
+      type: 'test'
+      ...
+    1..4
+ok 9 - Node stack: what the vitest control protects among the installed dependencies
+  ---
+  duration_ms: 4.183542
+  type: 'suite'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+    ok 1 - given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+      ---
+      duration_ms: 0.610916
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is jest and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names jest
+    ok 2 - given scripts.test is jest and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names jest
+      ---
+      duration_ms: 0.577292
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 3 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.498917
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    ok 4 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.582833
+      type: 'test'
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    ok 5 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.49075
+      type: 'test'
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    ok 6 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.616
+      type: 'test'
+      ...
+    # Subtest: given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+    ok 7 - given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+      ---
+      duration_ms: 0.640875
+      type: 'test'
+      ...
+    1..7
+ok 10 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 4.152583
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.919042
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.569459
+      type: 'test'
+      ...
+    1..2
+ok 11 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.519291
+  type: 'suite'
+  ...
+1..11
+# tests 35
+# suites 11
+# pass 32
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1565.409875
