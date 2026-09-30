@@ -1,8 +1,9 @@
 /**
  * The Node stack (CMP-TGT): the controls a `package.json` offers, detected without executing
- * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, and a declared
- * lint script becomes a control of its own, refused rather than guessed when it needs a shell. A
- * `scripts.test` that names a runner 495 cannot read leaves no control at all (D-72).
+ * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, mocha or jest
+ * run without an argument, each read through the report it writes. A declared lint script becomes a
+ * control of its own, refused rather than guessed when it needs a shell. A `scripts.test` that names
+ * a runner 495 cannot read leaves no control at all (D-72).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -49,7 +50,7 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 			protected: true,
 			protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"],
 		});
-	const witnesses = suite.runner === "vitest" ? vitestWitnesses(projectPath) : nodeTestWitnesses();
+	const witnesses = suite.runner ? witnessesOf(suite.runner, projectPath) : nodeTestWitnesses();
 	return {
 		stack: "node",
 		facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) },
@@ -63,10 +64,15 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 	};
 }
 
+type SuiteRunner = "node-test" | "vitest" | "mocha" | "jest";
+
 // The only forms of `scripts.test` 495 reads: a command that starts the runner directly. Anything
 // with shell syntax needs a shell, which the sandbox does not give.
 const VITEST_COMMAND = /^\s*vitest(\s+run)?\s*$/;
+const MOCHA_COMMAND = /^\s*mocha\s*$/;
+const JEST_COMMAND = /^\s*jest\s*$/;
 const NODE_TEST_COMMAND = /^\s*node\s+--test(\s|$)/;
+const READ_RUNNER = /^(vitest|mocha|jest)\s/;
 const SHELL_SYNTAX = /[|&;<>$`()]/;
 
 /**
@@ -79,26 +85,33 @@ function suiteOf(
 	requirementRefs: RequirementRef[],
 	nodeBinary: string,
 ):
-	| { runner: "node-test" | "vitest"; control: ControlDefinition; refusal?: undefined }
+	| { runner: SuiteRunner; control: ControlDefinition; refusal?: undefined }
 	| { runner?: undefined; control?: undefined; refusal: string } {
 	if (scriptsTest === undefined || NODE_TEST_COMMAND.test(scriptsTest))
 		return { runner: "node-test", control: nodeTestControl(requirementRefs, nodeBinary) };
 	if (VITEST_COMMAND.test(scriptsTest))
 		return { runner: "vitest", control: vitestControl(requirementRefs, nodeBinary) };
+	if (MOCHA_COMMAND.test(scriptsTest)) return { runner: "mocha", control: mochaControl(requirementRefs, nodeBinary) };
+	if (JEST_COMMAND.test(scriptsTest)) return { runner: "jest", control: jestControl(requirementRefs, nodeBinary) };
 	const command = scriptsTest.trim();
 	if (SHELL_SYNTAX.test(command))
 		return { refusal: `scripts.test chains commands through a shell (${command}), which 495 cannot run` };
+	const withArguments = READ_RUNNER.exec(command);
+	if (withArguments)
+		return {
+			refusal: `scripts.test runs ${command}, but 495 reads ${withArguments[1]} only when it runs without an argument`,
+		};
 	return {
-		refusal: `scripts.test runs ${command}, whose output 495 cannot read: only node --test and vitest [run] are read`,
+		refusal: `scripts.test runs ${command}, whose output 495 cannot read: only node --test, vitest, mocha and jest are read`,
 	};
 }
 
 /**
- * Where vitest writes its JUnit report. `target/` is excluded from every snapshot by default, so the
- * copy has none: the directory itself is what the control declares writable, because vitest creates
+ * Where a runner writes its JUnit report. `target/` is excluded from every snapshot by default, so the
+ * copy has none: the directory itself is what the control declares writable, because the runner creates
  * the parent of its output file and the sandbox refuses to create a directory it did not open.
  */
-const VITEST_REPORT_DIRECTORY = "target";
+const REPORT_DIRECTORY = "target";
 
 function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
 	return {
@@ -130,7 +143,7 @@ function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string):
  * `node_modules/.vite-temp`, which is why that directory is writable next to the report.
  */
 function vitestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
-	const report = `${VITEST_REPORT_DIRECTORY}/junit.xml`;
+	const report = `${REPORT_DIRECTORY}/junit.xml`;
 	const nodeTest = nodeTestControl(requirementRefs, nodeBinary);
 	return {
 		...nodeTest,
@@ -138,14 +151,58 @@ function vitestControl(requirementRefs: RequirementRef[], nodeBinary: string): C
 		command: [nodeBinary, "node_modules/vitest/vitest.mjs", "run", "--reporter=junit", `--outputFile=${report}`],
 		parser: "junit-xml",
 		report_path: report,
-		writable_paths: [VITEST_REPORT_DIRECTORY, "node_modules/.vite-temp"],
+		writable_paths: [REPORT_DIRECTORY, "node_modules/.vite-temp"],
 		// A narrowed `include` or an added `exclude` would make the suite green without proving anything,
 		// and a modified `node_modules/` would change the vitest that judges the candidate.
 		protected_paths: [...nodeTest.protected_paths, "vitest.config.*", "vite.config.*", "node_modules/"],
 	};
 }
 
-function nodeTestWitnesses(): { positive: Record<string, string>; negative: Record<string, string> } {
+/**
+ * The mocha the target installed, run from the copy's `node_modules` and never from the host's PATH.
+ * Mocha's xunit reporter writes the report itself and creates its parent directory, so `target/` is
+ * the only place the control may write.
+ */
+function mochaControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
+	const report = `${REPORT_DIRECTORY}/mocha-xunit.xml`;
+	const nodeTest = nodeTestControl(requirementRefs, nodeBinary);
+	return {
+		...nodeTest,
+		title: "mocha suite (command read from scripts.test)",
+		command: [nodeBinary, "node_modules/mocha/bin/mocha.js", "--reporter=xunit", `--reporter-option=output=${report}`],
+		parser: "junit-xml",
+		report_path: report,
+		writable_paths: [REPORT_DIRECTORY],
+		// A narrowed `spec`, an added reporter or a modified `node_modules/` would make the suite green
+		// without proving anything, as they would for vitest.
+		protected_paths: [...nodeTest.protected_paths, ".mocharc.*", "node_modules/"],
+	};
+}
+
+/**
+ * Where jest writes its JSON report: a file, not the standard output, where a test or the code it
+ * exercises can print before the JSON. It sits at the root of the copy, which is why the control
+ * declares that one file writable and nothing around it.
+ */
+const JEST_REPORT = "495-jest-report.json";
+
+/** The jest the target installed, run from the copy's `node_modules` and never from the host's PATH. */
+function jestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
+	const nodeTest = nodeTestControl(requirementRefs, nodeBinary);
+	return {
+		...nodeTest,
+		title: "jest suite (command read from scripts.test)",
+		command: [nodeBinary, "node_modules/jest/bin/jest.js", "--json", `--outputFile=${JEST_REPORT}`],
+		parser: "jest-json",
+		report_path: JEST_REPORT,
+		writable_paths: [JEST_REPORT],
+		// A restricted `testMatch`, a `reporters` entry or a transformer, or a modified `node_modules/`, would
+		// make the suite green without proving anything.
+		protected_paths: [...nodeTest.protected_paths, "jest.config.*", "node_modules/"],
+	};
+}
+
+function nodeTestWitnesses(): Witnesses {
 	return {
 		positive: {
 			"test/495-positive-witness.test.js":
@@ -158,19 +215,50 @@ function nodeTestWitnesses(): { positive: Record<string, string>; negative: Reco
 	};
 }
 
-/** Vitest tests, placed where the target keeps its tests: its `include` is what decides whether they run. */
-function vitestWitnesses(projectPath: string): { positive: Record<string, string>; negative: Record<string, string> } {
+type Witnesses = { positive: Record<string, string>; negative: Record<string, string> };
+
+/**
+ * Witness tests placed where the target keeps its tests: the runner's own discovery decides whether
+ * they run. Mocha lends a test file no assertion, so its witnesses pass or fail by throwing; jest
+ * and vitest lend `expect`, which vitest has to import.
+ */
+function testDirectoryWitnesses(
+	projectPath: string,
+	extension: "js" | "ts",
+	sources: { positive: string; negative: string },
+): Witnesses {
 	const directory = existsSync(join(projectPath, "tests")) ? "tests" : "test";
 	return {
-		positive: {
-			[`${directory}/495-positive-witness.test.ts`]:
-				'import { expect, it } from "vitest";\nit("495 positive witness: the runner reports a passing test", () => { expect(1).toBe(1); });\n',
-		},
-		negative: {
-			[`${directory}/495-negative-witness.test.ts`]:
-				'import { expect, it } from "vitest";\nit("495 negative witness: an injected defect must be detected", () => { expect(1).toBe(2); });\n',
-		},
+		positive: { [`${directory}/495-positive-witness.test.${extension}`]: sources.positive },
+		negative: { [`${directory}/495-negative-witness.test.${extension}`]: sources.negative },
 	};
+}
+
+const POSITIVE_TITLE = "495 positive witness: the runner reports a passing test";
+const NEGATIVE_TITLE = "495 negative witness: an injected defect must be detected";
+
+const WITNESS_SOURCES = {
+	vitest: {
+		extension: "ts",
+		positive: `import { expect, it } from "vitest";\nit("${POSITIVE_TITLE}", () => { expect(1).toBe(1); });\n`,
+		negative: `import { expect, it } from "vitest";\nit("${NEGATIVE_TITLE}", () => { expect(1).toBe(2); });\n`,
+	},
+	mocha: {
+		extension: "js",
+		positive: `it("${POSITIVE_TITLE}", () => { if (1 !== 1) throw new Error("1 is not 1"); });\n`,
+		negative: `it("${NEGATIVE_TITLE}", () => { if (1 !== 2) throw new Error("1 is not 2"); });\n`,
+	},
+	jest: {
+		extension: "js",
+		positive: `test("${POSITIVE_TITLE}", () => { expect(1).toBe(1); });\n`,
+		negative: `test("${NEGATIVE_TITLE}", () => { expect(1).toBe(2); });\n`,
+	},
+} as const;
+
+function witnessesOf(runner: SuiteRunner, projectPath: string): Witnesses {
+	if (runner === "node-test") return nodeTestWitnesses();
+	const { extension, ...sources } = WITNESS_SOURCES[runner];
+	return testDirectoryWitnesses(projectPath, extension, sources);
 }
 
 /** Converts a simple npm script (`node scripts/lint.js`) into an argv; a shell-only script is refused (no implicit shell). */

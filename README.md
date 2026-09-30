@@ -161,7 +161,7 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 | **Host** | Pi 0.87; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
 | **Java / Maven** | Surefire tests; JaCoCo coverage and PIT mutation when the project declares the required reports; structural checks derived from supported Maven and Java declarations. Maven verification uses offline mode. |
-| **Node** | `scripts.test` run by `node --test` (or absent) or by `vitest`, read through its JUnit report, and a detected lint script. Any other runner in `scripts.test` is refused, and the refusal names it. |
+| **Node** | `scripts.test` run by `node --test` (or absent), or by `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
 | **Models** | Models configured and authenticated in Pi, including local OpenAI-compatible endpoints with working tool calls. Provider and subscription availability follow Pi and the provider. |
 

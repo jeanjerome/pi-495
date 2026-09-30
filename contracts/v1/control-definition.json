@@ -70,6 +70,7 @@
         "exit-code",
         "node-test",
         "junit-xml",
+        "jest-json",
         "jacoco-xml",
         "java-imports",
         "pitest-xml"

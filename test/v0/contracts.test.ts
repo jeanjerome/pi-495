@@ -7,6 +7,7 @@ import { ContractError, validate, check } from "../../src/contracts/validate.ts"
 import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { ActorRef, CanonicalError, Envelope } from "../../src/contracts/v1/common.ts";
 import { Evidence } from "../../src/contracts/v1/evidence.ts";
+import { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 
 describe("canonical JSON and digests (§8.1)", () => {
 	it("is independent of key order and omits undefined", () => {
@@ -111,5 +112,33 @@ describe("runtime validation (AT-11, NFR-08)", () => {
 	it("every published contract has a stable urn id", () => {
 		for (const [name, schema] of Object.entries(CONTRACTS))
 			assert.equal((schema as { $id?: string }).$id, `urn:495:contract:${name}:1`);
+	});
+});
+
+describe("the parser identifiers of a control", () => {
+	const unit = {
+		control_id: "unit",
+		version: "1",
+		title: "jest suite",
+		command: ["node", "node_modules/jest/bin/jest.js"],
+		cwd: ".",
+		env_allowlist: ["PATH"],
+		env: {},
+		timeout_ms: 1000,
+		parser: "jest-json",
+		report_path: "495-jest-report.json",
+		structure_rules: [],
+		provides: [],
+		requires: [],
+		scope_argument: null,
+		network: "denied",
+		writable_paths: ["495-jest-report.json"],
+		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
+		protected: true,
+		protected_paths: ["tests/"],
+	};
+	it("given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused", () => {
+		assert.deepEqual(validate(ControlDefinition, unit), unit);
+		assert.throws(() => validate(ControlDefinition, { ...unit, parser: "ava-tap" }), ContractError);
 	});
 });

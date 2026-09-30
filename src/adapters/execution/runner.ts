@@ -17,6 +17,7 @@ import type {
 	SandboxProfile,
 } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
+import { parseJestJson } from "./jest-report.ts";
 import { analyzeMutation, mutationScopeOf, nothingToMutate, unscopedMutation, type MutationScope } from "./mutation.ts";
 import {
 	PARSER_VERSIONS,
@@ -135,6 +136,19 @@ export class GenericControlRunner implements ControlExecutionPort {
 							observation,
 							docs.map((d) => d.text),
 							`${stdoutText}\n${stderrText}`,
+						);
+						break;
+					}
+					case "jest-json": {
+						const docs = await readReports(invocation.workspace_path, control.report_path);
+						for (const d of docs)
+							artifacts.push({
+								name: `report:${d.name}`,
+								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/json"),
+							});
+						report = parseJestJson(
+							observation,
+							docs.map((d) => d.text),
 						);
 						break;
 					}

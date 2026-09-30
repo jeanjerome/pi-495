@@ -82,4 +82,17 @@ describe("the tree a frozen candidate must still be, once the controls have run 
 		const after = manifest([entry("src/a.js", "one"), entry("out/report.xml", "after")]);
 		assert.equal(candidateMoved(frozen, after, []), true);
 	});
+
+	it("given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it", () => {
+		const writable = writablePrefixes([control(["495-jest-report.json"])]);
+		const frozen = manifest([entry("src/a.js", "one")]);
+		const withReport = manifest([entry("src/a.js", "one"), entry("495-jest-report.json", "{}")]);
+		assert.equal(candidateMoved(frozen, withReport, writable), false);
+		const withOther = manifest([
+			entry("src/a.js", "one"),
+			entry("495-jest-report.json", "{}"),
+			entry("other.json", "{}"),
+		]);
+		assert.equal(candidateMoved(frozen, withOther, writable), true);
+	});
 });

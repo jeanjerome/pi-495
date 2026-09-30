@@ -14,16 +14,18 @@ import { canonicalize } from "../contracts/canonical.ts";
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 
-/** What the controls of a frozen protocol declare writable, as directory prefixes. */
+/**
+ * What the controls of a frozen protocol declare writable, as prefixes: a declaration without a
+ * trailing slash names a directory and everything under it, or the one file of that name.
+ */
 export function writablePrefixes(controls: readonly ControlDefinition[]): string[] {
 	return controls.flatMap((c) => c.writable_paths.map((p) => (p.endsWith("/") ? p : `${p}/`)));
 }
 
 /** Paths and contents of a tree, the writable declarations left out: what two passes must agree on. */
 function comparableTree(entries: CandidateManifest["entries"], writable: readonly string[]): string {
-	return canonicalize(
-		entries.filter((e) => !writable.some((w) => e.path.startsWith(w))).map((e) => [e.path, e.content_digest]),
-	);
+	const isWritable = (path: string): boolean => writable.some((w) => path.startsWith(w) || `${path}/` === w);
+	return canonicalize(entries.filter((e) => !isWritable(e.path)).map((e) => [e.path, e.content_digest]));
 }
 
 /**

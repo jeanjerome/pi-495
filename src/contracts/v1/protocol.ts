@@ -8,10 +8,19 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
  * no measurement of its own. `java-imports` reads the package and import declarations of the Java
  * sources and judges them against the frozen architecture rules (ARC-04, CON-03); it compiles
  * nothing. `pitest-xml` reads the mutation report of a run scoped to the classes the candidate
- * modified and judges the mutants sitting on the lines it wrote (VER-04). Each is native to its
- * ecosystem, behind the one finding envelope.
+ * modified and judges the mutants sitting on the lines it wrote (VER-04). `jest-json` reads the
+ * JSON report jest writes to a file. Each is native to its ecosystem, behind the one finding
+ * envelope.
  */
-export const PARSER_IDS = ["exit-code", "node-test", "junit-xml", "jacoco-xml", "java-imports", "pitest-xml"] as const;
+export const PARSER_IDS = [
+	"exit-code",
+	"node-test",
+	"junit-xml",
+	"jest-json",
+	"jacoco-xml",
+	"java-imports",
+	"pitest-xml",
+] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
 
 /**

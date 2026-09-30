@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox, SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -617,3 +617,227 @@ describe("the derived vitest control through the runner", () => {
 		},
 	);
 });
+
+/** A report as mocha 12.0.2 wrote it, recorded in `test/fixtures/junit/`. */
+function recordedMochaReport(name: "green" | "red"): string {
+	return readFileSync(new URL(`../fixtures/junit/mocha-12.0.2-${name}.xml`, import.meta.url), "utf8");
+}
+
+/**
+ * Stands in for a test runner that writes its own report: copies the recorded report to the path given
+ * after `outputFlag`, creating the parent directory as mocha does, and exits as the runner does.
+ */
+class FakeReportingRunner {
+	readonly binary: string[];
+	readonly outputFlag: string;
+	readonly recorded: string | null;
+	readonly exitCode: number;
+	/** A line written on the standard output before the report, as a test or the code it exercises may print. */
+	readonly strayLine: string | null;
+	/** Where the report is written instead of the path the control declared. */
+	readonly writeInstead: string | null;
+	constructor(
+		binary: string[],
+		outputFlag: string,
+		recorded: string | null,
+		exitCode: number,
+		behaviour: { strayLine?: string; writeInstead?: string } = {},
+	) {
+		this.binary = binary;
+		this.outputFlag = outputFlag;
+		this.recorded = recorded;
+		this.exitCode = exitCode;
+		this.strayLine = behaviour.strayLine ?? null;
+		this.writeInstead = behaviour.writeInstead ?? null;
+	}
+	install(workspace: string): void {
+		const file = join(workspace, "node_modules", ...this.binary);
+		mkdirSync(dirname(file), { recursive: true });
+		const script = [
+			'import { copyFileSync, mkdirSync } from "node:fs";',
+			'import { dirname } from "node:path";',
+			`const prefix = ${JSON.stringify(this.outputFlag)};`,
+			`const out = ${this.writeInstead === null ? "process.argv.find((a) => a.startsWith(prefix))?.slice(prefix.length)" : JSON.stringify(this.writeInstead)};`,
+			...(this.strayLine === null ? [] : [`console.log(${JSON.stringify(this.strayLine)});`]),
+			`if (out && ${this.recorded !== null}) { mkdirSync(dirname(out), { recursive: true }); copyFileSync(new URL("recorded", import.meta.url), out); }`,
+			`process.exit(${this.exitCode});`,
+		].join("\n");
+		writeFileSync(file, script);
+		if (this.recorded !== null) writeFileSync(join(dirname(file), "recorded"), this.recorded);
+	}
+}
+
+class FakeMocha extends FakeReportingRunner {
+	constructor(recorded: string | null, exitCode: number) {
+		super(["mocha", "bin", "mocha.js"], "--reporter-option=output=", recorded, exitCode);
+	}
+}
+
+/** The unit control the detection derives from a target whose `scripts.test` is `mocha`. */
+function derivedMochaControl(): ControlDefinition {
+	const project = join(root, "target");
+	mkdirSync(project, { recursive: true });
+	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "mocha" } }));
+	return detectStack(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+		(c) => c.control_id === "unit",
+	)!;
+}
+
+describe("the derived mocha control through the runner", () => {
+	it("given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written", async () => {
+		const unit = derivedMochaControl();
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (fake: FakeMocha) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			fake.install(ws);
+			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
+		};
+		const green = await run(new FakeMocha(recordedMochaReport("green"), 0));
+		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
+		assert.equal(green.facts.tests, 1);
+		const failing = await run(new FakeMocha(recordedMochaReport("red"), 1));
+		assert.equal(failing.verdict, "FAIL");
+		assert.deepEqual(failing.facts.failed_cases, ["Sum.subtracts"]);
+		const silent = await run(new FakeMocha(null, 1));
+		assert.equal(silent.verdict, "FAIL");
+		assert.match(silent.limits.notes.join("; "), /the runner exited with 1 before producing any test report/);
+	});
+});
+
+/** A report as jest 30.5.2 wrote it, recorded in `test/fixtures/jest/`. */
+function recordedJestReport(name: "green" | "red" | "load" | "skip" | "todo" | "none"): string {
+	return readFileSync(new URL(`../fixtures/jest/jest-30.5.2-${name}.json`, import.meta.url), "utf8");
+}
+
+class FakeJest extends FakeReportingRunner {
+	constructor(
+		recorded: string | null,
+		exitCode: number,
+		behaviour: { strayLine?: string; writeInstead?: string } = {},
+	) {
+		super(["jest", "bin", "jest.js"], "--outputFile=", recorded, exitCode, behaviour);
+	}
+}
+
+/** The unit control the detection derives from a target whose `scripts.test` is `jest`. */
+function derivedJestControl(): ControlDefinition {
+	const project = join(root, "target");
+	mkdirSync(project, { recursive: true });
+	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "jest" } }));
+	return detectStack(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+		(c) => c.control_id === "unit",
+	)!;
+}
+
+describe("the derived jest control through the runner", () => {
+	it("given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, FAIL for a red report or an unloaded suite even when the runner exits 0, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error", async () => {
+		const unit = derivedJestControl();
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (fake: FakeJest) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			fake.install(ws);
+			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
+		};
+		const green = await run(new FakeJest(recordedJestReport("green"), 0));
+		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
+		assert.equal(green.facts.tests, 1);
+		const failing = await run(new FakeJest(recordedJestReport("red"), 1));
+		assert.equal(failing.verdict, "FAIL");
+		assert.deepEqual(failing.facts.failed_cases, ["/work/m/tests/red.test.js > subtracts"]);
+		const unloaded = await run(new FakeJest(recordedJestReport("load"), 1));
+		assert.equal(unloaded.verdict, "FAIL");
+		assert.deepEqual(unloaded.facts.failed_cases, ["/work/m/tests/load.test.js > test suite failed to run"]);
+		for (const name of ["red", "load"] as const) {
+			const reportOnly = await run(new FakeJest(recordedJestReport(name), 0));
+			assert.equal(reportOnly.verdict, "FAIL", `${name} report with an exit 0`);
+			assert.equal((reportOnly.facts.failed_cases as string[]).length, 1, name);
+		}
+		for (const name of ["skip", "todo", "none"] as const) {
+			const evidence = await run(new FakeJest(recordedJestReport(name), 0));
+			assert.equal(evidence.verdict, "INDETERMINATE", name);
+		}
+		const outside = await run(new FakeJest(recordedJestReport("green"), 1));
+		assert.equal(outside.verdict, "FAIL");
+		assert.match(
+			outside.limits.notes.join("; "),
+			/the report is green but the runner exited with 1: the failure is outside the tests that ran/,
+		);
+	});
+});
+
+describe("an unreadable jest report through the runner", () => {
+	it("given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error", async () => {
+		const unit = derivedJestControl();
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (recorded: string | null, exitCode: number) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			new FakeJest(recorded, exitCode).install(ws);
+			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
+		};
+		const truncated = recordedJestReport("green").slice(0, 200);
+		for (const [label, recorded] of [
+			["truncated", truncated],
+			["absent", null],
+		] as const) {
+			const undecided = await run(recorded, 0);
+			assert.equal(undecided.verdict, "INDETERMINATE", label);
+			const failed = await run(recorded, 1);
+			assert.equal(failed.verdict, "FAIL", label);
+			assert.match(failed.limits.notes.join("; "), /the runner exited with 1 before writing a readable report/, label);
+		}
+	});
+});
+
+describe("a jest report of another shape through the runner", () => {
+	it("given a JSON document that is not a jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL when it exits with an error, never PASS", async () => {
+		const unit = derivedJestControl();
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (recorded: string, exitCode: number) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			new FakeJest(recorded, exitCode).install(ws);
+			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
+		};
+		for (const recorded of [
+			"{}",
+			"[]",
+			'{"testResults":[{"name":"a.test.js","status":"passed"}]}',
+			'{"testResults":[{"name":"a.test.js","status":"passed","assertionResults":[{"status":"passed"}]}]}',
+			'{"testResults":[{"name":"a.test.js","status":"passed","assertionResults":[{"fullName":"adds"}]}]}',
+			'{"testResults":[{"status":"passed","assertionResults":[{"fullName":"adds","status":"passed"}]}]}',
+			'{"testResults":[{"name":"a.test.js","assertionResults":[{"fullName":"adds","status":"passed"}]}]}',
+		]) {
+			assert.equal((await run(recorded, 0)).verdict, "INDETERMINATE", recorded);
+			assert.equal((await run(recorded, 1)).verdict, "FAIL", recorded);
+		}
+	});
+});
+
+(process.platform === "darwin" ? describe : describe.skip)(
+	"the derived jest control under the verification sandbox",
+	() => {
+		it("given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox", async () => {
+			const unit = derivedJestControl();
+			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+			// would succeed whatever the control declares writable.
+			const sandbox = new SeatbeltSandbox({ temp_paths: [] });
+			const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
+			const run = async (fake: FakeJest) => {
+				const ws = mkdtempSync(join(root, "ws-"));
+				fake.install(ws);
+				const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
+				return { evidence, ws };
+			};
+			const { evidence: green } = await run(
+				new FakeJest(recordedJestReport("green"), 0, { strayLine: "console.log from a test" }),
+			);
+			assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
+			assert.equal(green.facts.tests, 1);
+			const { evidence: elsewhere, ws } = await run(
+				new FakeJest(recordedJestReport("green"), 0, { writeInstead: "elsewhere-report.json" }),
+			);
+			assert.equal(existsSync(join(ws, "elsewhere-report.json")), false, "the sandbox refused the write");
+			assert.equal(elsewhere.verdict, "FAIL");
+			assert.match(elsewhere.limits.notes.join("; "), /before writing a readable report/);
+		});
+	},
+);

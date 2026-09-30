@@ -30,12 +30,13 @@ export const PARSER_VERSIONS = {
 	"exit-code": "1.0.0",
 	"node-test": "1.0.0",
 	"junit-xml": "1.0.0",
+	"jest-json": "1.0.0",
 	"jacoco-xml": "1.0.0",
 	"java-imports": "1.0.0",
 	"pitest-xml": "1.0.0",
 } as const;
 
-const MAX_FAILURES = 50;
+export const MAX_FAILURES = 50;
 
 /** Verdict from the incident dimension only: timeout, spawn error, signal. */
 export function incidentOf(obs: ProcessObservation): string | null {
@@ -174,7 +175,7 @@ function testCasesOf(document: XmlDocument): XmlElement[] {
 }
 
 /** A report is the output of the process the judged project ran: it is bounded before it is analysed. */
-const MAX_REPORT_BYTES = 16 * 1024 * 1024;
+export const MAX_REPORT_BYTES = 16 * 1024 * 1024;
 
 function parseReport(document: string): XmlDocument {
 	if (Buffer.byteLength(document, "utf8") > MAX_REPORT_BYTES)
@@ -234,7 +235,7 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 	};
 	if (!documents || documents.length === 0) {
 		const facts = { exit_code: obs.exit_code, reports: 0 };
-		if (broke) return outside(facts, `the build exited with ${obs.exit_code} before producing any test report`);
+		if (broke) return outside(facts, `the runner exited with ${obs.exit_code} before producing any test report`);
 		return {
 			verdict: "INDETERMINATE",
 			facts,
@@ -254,7 +255,7 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 	}
 	const facts = { exit_code: obs.exit_code, ...s };
 	if (s.tests === 0) {
-		if (broke) return outside(facts, `the build exited with ${obs.exit_code} and the reports contain no test`);
+		if (broke) return outside(facts, `the runner exited with ${obs.exit_code} and the reports contain no test`);
 		return { verdict: "INDETERMINATE", facts, notes: ["JUnit reports contain no test"], failures: [] };
 	}
 	if (s.failures + s.errors > 0) return { verdict: "FAIL", facts, notes: [], failures: s.failed_cases };
@@ -268,7 +269,7 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 	if (broke)
 		return outside(
 			facts,
-			`the reports are green but the build exited with ${obs.exit_code}: the failure is outside the tests that ran`,
+			`the reports are green but the runner exited with ${obs.exit_code}: the failure is outside the tests that ran`,
 		);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
