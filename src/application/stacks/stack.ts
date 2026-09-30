@@ -4,9 +4,11 @@
  * and qualifies the controls of a Maven reactor and those of a Node package the same way.
  */
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
+import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 
 export interface StackDetection {
-	stack: "node" | "maven" | "unknown";
+	/** The stack identifier its adapter declares, or `unknown` when no adapter recognises the project. */
+	stack: string;
 	facts: Record<string, unknown>;
 	controls: ControlDefinition[];
 	/** Files written into a copy of the reference to build the positive witness (a passing test exercising the runner). */
@@ -25,6 +27,17 @@ export interface StackDetection {
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
 	preparation_paths: string[];
 	capability_missing: string[];
+}
+
+/**
+ * A technology, as the registry sees it: the identifier of its stack, the files at a project root
+ * that signal it, and the detection it answers with. Adding a technology is one module that
+ * declares its adapter and one line in the list of `target.ts`.
+ */
+export interface StackAdapter {
+	stack: string;
+	signal_files: readonly string[];
+	detect(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection;
 }
 
 /** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */

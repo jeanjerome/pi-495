@@ -8,13 +8,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, type StackDetection } from "./stack.ts";
+import { BASE_ENV, type StackAdapter, type StackDetection } from "./stack.ts";
 
-export function detectNodeStack(
-	projectPath: string,
-	requirementRefs: RequirementRef[],
-	nodeBinary: string,
-): StackDetection {
+export const NODE_ADAPTER: StackAdapter = { stack: "node", signal_files: ["package.json"], detect: detectNodeStack };
+
+function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection {
 	const pkgPath = join(projectPath, "package.json");
 	let pkg: { scripts?: Record<string, string> } = {};
 	try {

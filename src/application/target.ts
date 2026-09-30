@@ -7,19 +7,24 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { RequirementRef } from "../contracts/v1/evidence.ts";
-import { detectMavenStack } from "./stacks/maven.ts";
-import { detectNodeStack } from "./stacks/node.ts";
-import type { StackDetection } from "./stacks/stack.ts";
+import { MAVEN_ADAPTER } from "./stacks/maven.ts";
+import { NODE_ADAPTER } from "./stacks/node.ts";
+import type { StackAdapter, StackDetection } from "./stacks/stack.ts";
 
 export type { StackDetection } from "./stacks/stack.ts";
+
+/** The adapters of 495, in the order they claim a project: a Maven project that also carries a `package.json` is judged as Maven. */
+const STACK_ADAPTERS: readonly StackAdapter[] = [MAVEN_ADAPTER, NODE_ADAPTER];
 
 export function detectStack(
 	projectPath: string,
 	requirementRefs: RequirementRef[],
 	nodeBinary = process.execPath,
+	adapters: readonly StackAdapter[] = STACK_ADAPTERS,
 ): StackDetection {
-	if (existsSync(join(projectPath, "package.json"))) return detectNodeStack(projectPath, requirementRefs, nodeBinary);
-	if (existsSync(join(projectPath, "pom.xml"))) return detectMavenStack(projectPath, requirementRefs, nodeBinary);
+	const adapter = adapters.find((a) => a.signal_files.some((file) => existsSync(join(projectPath, file))));
+	if (adapter) return adapter.detect(projectPath, requirementRefs, nodeBinary);
+	const expected = adapters.flatMap((a) => a.signal_files).join(" or ");
 	return {
 		stack: "unknown",
 		facts: {},
@@ -29,7 +34,7 @@ export function detectStack(
 		negative_witness: {},
 		own_negative_witness: {},
 		preparation_paths: [],
-		capability_missing: ["no qualified target adapter for this project (package.json or pom.xml expected)"],
+		capability_missing: [`no qualified target adapter for this project (${expected} expected)`],
 	};
 }
 

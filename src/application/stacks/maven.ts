@@ -8,13 +8,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { SCOPE_PLACEHOLDER, type ControlDefinition, type StructureRule } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, emptyTrigger, type StackDetection } from "./stack.ts";
+import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
-export function detectMavenStack(
-	projectPath: string,
-	requirementRefs: RequirementRef[],
-	nodeBinary: string,
-): StackDetection {
+export const MAVEN_ADAPTER: StackAdapter = { stack: "maven", signal_files: ["pom.xml"], detect: detectMavenStack };
+
+function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection {
 	const reactor = discoverMavenReactor(projectPath);
 	const witnessPrefix = reactor.witness_module ? `${reactor.witness_module}/` : "";
 	const jacoco = bindsJacocoReport(projectPath, reactor.pom_paths);

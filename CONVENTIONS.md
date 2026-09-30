@@ -94,6 +94,10 @@ capability, and before deducing from the outside what Pi can report from the ins
 
 - Follow the layering declared in `AGENTS.md` § Architecture.
 - Keep paths predictable: one adapter per external system, one port per capability.
+- A technology is one module under `src/application/stacks/` that declares its stack identifier, the
+  files that signal it at a project root and its detection, plus one line in the adapter list of
+  `src/application/target.ts`. What a capability adds per technology is declared in that adapter,
+  never in a central table nor in a condition on the name of a technology.
 
 ## Formatting
 
