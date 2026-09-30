@@ -22,8 +22,9 @@ Le propriétaire a accepté le 2026-09-30 que 495 ouvre le réseau.
    suivre un outil que la cible a déjà installé (le fournisseur de couverture de vitest), le catalogue fixe
    la règle et la version est celle de cet outil, lue dans la référence.
 3. **Les scripts d'installation du paquet ne s'exécutent pas.**
-4. **L'étape est confinée** comme les autres, avec un profil qui n'ouvre que le réseau, et son résultat
-   (paquets installés, versions, empreintes du verrou) est inscrit au dossier.
+4. **L'étape est confinée** comme les autres, avec un profil qui n'ouvre que le réseau et l'écriture du cache ou du
+   dépôt local que l'outil lui-même annonce, et son résultat (paquets installés, versions, empreintes du verrou,
+   ou sortie de l'outil) est inscrit au dossier.
 5. **Le propriétaire peut installer lui-même** l'outil avant de lancer le changement ; 495 le constate
    alors dans la référence et n'installe rien.
 
@@ -38,3 +39,10 @@ protections : un pré-contrôle de la version auprès d'une base publique de paq
 une seconde sortie réseau, et un délai d'ancienneté de version, qui n'a pas d'objet quand la version est
 celle d'un outil que la cible a déjà retenue. Les deux se rouvrent avec un catalogue qui choisit lui-même
 des versions.
+
+L'installation se fait aux emplacements standards de l'outil, avec sa configuration : dépôts, miroirs,
+authentification et cache sont ceux que la machine et le projet désignent pour npm ou pour Maven. 495 ne choisit
+aucun de ces emplacements, n'a pas de valeur par défaut, ne vérifie pas qu'ils existent, et ne lit qu'une chose
+chez l'outil : le chemin qu'il annonce, pour le remettre tel quel au confinement. L'intégrité des téléchargements est
+celle des outils et des dépôts configurés (dépôt d'entreprise ou dépôt public) : 495 n'y ajoute pas ses propres
+vérifications. Le propriétaire l'a décidé le 2026-09-30.
