@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: the tree a frozen candidate must still be, once the controls have run (VER-03)
+    # Subtest: reads a writable declaration as a directory prefix, whether or not it was written as one
+    ok 1 - reads a writable declaration as a directory prefix, whether or not it was written as one
+      ---
+      duration_ms: 0.499041
+      type: 'test'
+      ...
+    # Subtest: an identical manifest is not a mutation
+    ok 2 - an identical manifest is not a mutation
+      ---
+      duration_ms: 0.137875
+      type: 'test'
+      ...
+    # Subtest: a content change outside the writable declarations is a mutation of the candidate
+    ok 3 - a content change outside the writable declarations is a mutation of the candidate
+      ---
+      duration_ms: 0.101083
+      type: 'test'
+      ...
+    # Subtest: an added path outside them is one too
+    ok 4 - an added path outside them is one too
+      ---
+      duration_ms: 0.062917
+      type: 'test'
+      ...
+    # Subtest: a difference confined to the writable declarations is not
+    ok 5 - a difference confined to the writable declarations is not
+      ---
+      duration_ms: 0.0645
+      type: 'test'
+      ...
+    # Subtest: the same difference is a mutation when no control declared that path
+    ok 6 - the same difference is a mutation when no control declared that path
+      ---
+      duration_ms: 0.057667
+      type: 'test'
+      ...
+    # Subtest: given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+    ok 7 - given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+      ---
+      duration_ms: 0.066083
+      type: 'test'
+      ...
+    1..7
+ok 1 - the tree a frozen candidate must still be, once the controls have run (VER-03)
+  ---
+  duration_ms: 1.426791
+  type: 'suite'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.421792

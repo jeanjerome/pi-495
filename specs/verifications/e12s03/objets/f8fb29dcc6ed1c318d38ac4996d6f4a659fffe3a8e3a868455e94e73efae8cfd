@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Aucun constat sur les dix scénarios que le harnais peut vérifier. Le onzième, l'exécution réelle avec un vrai modèle, relève de l'acceptation et n'est pas relu ici. Pour chacun des dix, j'ai lu le chemin de code, puis muté une ligne qui tient la promesse : un test a échoué à chaque fois, sauf pour trois mutations d'effet nul.\n\n- **Commande et déclarations** : le contrôle de mocha comme celui de jest lancent leur binaire depuis `node_modules`, avec le bon rapporteur. Ils déclarent en écriture `target` et `495-jest-report.json`, portent `scripts.test` dans leur titre, et protègent `.mocharc.*`, `jest.config.*` et `node_modules/`. Les mutations sur la commande, le rapporteur, `writable_paths`, le titre, le parseur et chaque chemin protégé font échouer `node-stack.test.ts`.\n- **Refus** : `jest --ci`, `mocha --exit` et `ava` sont refusés avec le message que la story attend. Les mutations sur l'expression des lanceurs lus et sur les deux textes de refus sont détectées.\n- **Témoins** : les mutations sur le choix `tests/` ou `test/`, sur l'extension et sur la source des témoins positif et négatif sont détectées.\n- **Rapport jest** : PASS, FAIL et INDETERMINATE suivent la story pour un rapport vert, en échec, non chargé, ignoré, todo, vide, tronqué, absent ou d'une autre forme. Les mutations sur `failed`, `SKIPPED_STATUSES`, `todo`, le rapport vide, le code de sortie, le rattrapage de l'erreur de lecture et les trois messages (« lanceur sorti en erreur hors des tests », « avant d'écrire un rapport lisible », « test suite failed to run ») sont détectées.\n- **Rapport xunit de mocha** : le test échoue si je remets « the build exited » à la place de « the runner exited ». Deux mutations sur `s.errors` (ne plus l'additionner à `s.failures`, ne plus l'incrémenter) laissent le test vert. Le lecteur compte les enfants `<failure>` et l'attribut `errors` du fichier enregistré ne lui sert pas, donc ces deux mutations sont sans effet observable.\n- **Bac à sable** : le test sous Seatbelt passe ici, et il échoue si j'ajoute `.` aux chemins inscriptibles. Il passe avec la ligne parasite sur la sortie standard. Je n'ai pas de mutation qui fasse lire la sortie standard.\n- **Candidat** : `candidateMoved` ne déplace pas le candidat pour `495-jest-report.json` et le déplace pour un autre fichier. Chacune des deux mutations sur `isWritable` fait échouer `candidate.test.ts`.\n\nTrois choses sont hors des constats. Dans `control-runner.test.ts`, le test Seatbelt « runs the same control under seatbelt with the candidate read-only » échoue déjà avant la story (BUG-2026-09-29T160000, ouvert). Cet échec n'est pas dû à la branche. Par ailleurs, quand la copie vit derrière un lien symbolique, le contrôle jest est refusé par le bac à sable. Je l'ai reproduit en plaçant la copie sous `/tmp/a1probe/link`. C'est le mécanisme de BUG-2026-09-29T180000, déjà ouvert : le contrôle jest l'atteint pour un fichier, alors que l'entrée du registre parle d'un dossier. Enfin, le libellé « the build exited » devient « the runner exited » dans le lecteur JUnit, donc aussi pour Maven. Aucune promesse ne dépend de l'ancien libellé."
+ },
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les dix scénarios que j'ai pu lire ; le scénario de la recette (vrai modèle) n'est pas de mon ressort. Une mutation d'une ligne du code a survécu sur deux promesses. La plus nette est « FAIL en nommant le test en échec » de jest : le test ne joue le rapport rouge qu'avec une sortie en erreur, et le chemin « vert mais sorti en erreur » rend le même FAIL. J'ai lancé ces quatre fichiers de test : test/v0/candidate.test.ts, test/v0/contracts.test.ts, test/v1/control-runner.test.ts et test/v1/node-stack.test.ts. Tout passe, sauf « runs the same control under seatbelt with the candidate read-only ». Ce test échoue parce que l'arbre relu vit sous le dossier temporaire, ce qu'enregistre déjà BUG-2026-09-29T160000. Environ 50 mutations d'une ligne : nom du rapporteur, chemins protégés et inscriptibles, titres, regex de commande, témoins, branches de jest-report.ts, identifiant de parseur, prédicat de candidate.ts et appel du lecteur dans runner.ts. Toutes sont tuées sauf les survivantes rapportées ici ou sans lien avec une promesse (branche « aucun test » avec sortie en erreur, borne de taille du rapport jest). L'octroi Seatbelt d'un fichier qui n'existe pas encore relève de BUG-2026-09-29T180000, déjà ouvert, et n'est pas compté.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le rapport JSON de jest donne PASS, FAIL ou INDETERMINATE selon ce que jest a écrit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/jest-report.ts",
+    "ligne": 98,
+    "constat": "Le test « derived jest control through the runner » ne joue le rapport rouge et le rapport de suite non chargée qu'avec un exit code 1. Un rapport rouge avec sortie 0 n'est jamais joué : le test ne prouve donc pas que le rapport à lui seul donne FAIL. Le chemin « rapport vert mais sortie en erreur » rend le même FAIL avec facts.failed_cases rempli, ce qui masque la mutation.",
+    "mutation": "`if (summary.failures > 0) return` remplacé par `if (summary.failures > 99) return` : tous les tests de control-runner.test.ts passent, sauf l'échec préexistant du test Seatbelt. Un rapport rouge avec sortie 0 donnerait alors PASS."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un rapport jest illisible ou absent n'est jamais un succès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/jest-report.ts",
+    "ligne": 35,
+    "constat": "Le code refuse bien une forme de rapport inattendue, mais le test « a jest report of another shape » ne l'éprouve que sur deux formes : testResults absent, ou une assertion sans fullName. Une assertion qui a un fullName mais pas de status, ou un fichier de test sans name ni status, est encore refusée par le code. Aucun test ne le fait échouer si on retire ces gardes, et le rapport serait alors compté comme un succès.",
+    "mutation": "`typeof assertion.status !== \"string\"` remplacé par `false` : aucun test ne casse. Le retrait du contrôle de name/status du fichier ne casse rien non plus."
+   }
+  ]
+ }
+]

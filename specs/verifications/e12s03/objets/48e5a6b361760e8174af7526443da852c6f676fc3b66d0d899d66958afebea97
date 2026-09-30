@@ -1,0 +1,212 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.651375
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 2.003167
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a mocha target
+    # Subtest: given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+      ---
+      duration_ms: 0.689125
+      type: 'test'
+      ...
+    1..1
+ok 2 - Node stack: the unit control of a mocha target
+  ---
+  duration_ms: 0.737417
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a jest target
+    # Subtest: given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+      ---
+      duration_ms: 0.661916
+      type: 'test'
+      ...
+    1..1
+ok 3 - Node stack: the unit control of a jest target
+  ---
+  duration_ms: 0.808917
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.767125
+      type: 'test'
+      ...
+    1..1
+ok 4 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 0.818041
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the mocha and jest controls protect
+    # Subtest: given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+    not ok 1 - given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+      ---
+      duration_ms: 0.958958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ETV8dW/test/v1/node-stack.test.ts:106:2'
+      failureType: 'testCodeFailure'
+      error: 'node_modules/x/index.js is protected'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ETV8dW/test/v1/node-stack.test.ts:115:12)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 5 - Node stack: what the mocha and jest controls protect
+  ---
+  duration_ms: 1.03975
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ETV8dW/test/v1/node-stack.test.ts:105:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Node stack: what the vitest control protects among the installed dependencies
+    # Subtest: given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+    ok 1 - given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+      ---
+      duration_ms: 1.516792
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+    ok 2 - given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+      ---
+      duration_ms: 0.52425
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+    ok 3 - given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+      ---
+      duration_ms: 0.504875
+      type: 'test'
+      ...
+    # Subtest: given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+    ok 4 - given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+      ---
+      duration_ms: 0.648083
+      type: 'test'
+      ...
+    1..4
+ok 6 - Node stack: what the vitest control protects among the installed dependencies
+  ---
+  duration_ms: 3.284667
+  type: 'suite'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+    ok 1 - given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+      ---
+      duration_ms: 0.524166
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+    ok 2 - given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+      ---
+      duration_ms: 0.488958
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 3 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.511625
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    ok 4 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.510666
+      type: 'test'
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    ok 5 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.467542
+      type: 'test'
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    ok 6 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.542833
+      type: 'test'
+      ...
+    # Subtest: given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+    ok 7 - given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+      ---
+      duration_ms: 0.488708
+      type: 'test'
+      ...
+    1..7
+ok 7 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 3.609
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.750458
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.467958
+      type: 'test'
+      ...
+    1..2
+ok 8 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.247666
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a mocha target and of a jest target
+    # Subtest: given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 1 - given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.567917
+      type: 'test'
+      ...
+    # Subtest: given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 2 - given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.2035
+      type: 'test'
+      ...
+    1..2
+ok 9 - Node stack: the witnesses of a mocha target and of a jest target
+  ---
+  duration_ms: 2.799209
+  type: 'suite'
+  ...
+1..9
+# tests 20
+# suites 9
+# pass 19
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 131.59725

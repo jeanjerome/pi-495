@@ -1,0 +1,105 @@
+TAP version 13
+# Subtest: canonical JSON and digests (§8.1)
+    # Subtest: is independent of key order and omits undefined
+    ok 1 - is independent of key order and omits undefined
+      ---
+      duration_ms: 0.316834
+      type: 'test'
+      ...
+    # Subtest: refuses non-finite numbers
+    ok 2 - refuses non-finite numbers
+      ---
+      duration_ms: 0.137709
+      type: 'test'
+      ...
+    # Subtest: digest is stable and well formed for random objects
+    ok 3 - digest is stable and well formed for random objects
+      ---
+      duration_ms: 5.108417
+      type: 'test'
+      ...
+    1..3
+ok 1 - canonical JSON and digests (§8.1)
+  ---
+  duration_ms: 5.969791
+  type: 'suite'
+  ...
+# Subtest: runtime validation (AT-11, NFR-08)
+    # Subtest: accepts a valid actor and refuses an unknown enum value or extra property
+    ok 1 - accepts a valid actor and refuses an unknown enum value or extra property
+      ---
+      duration_ms: 1.141958
+      type: 'test'
+      ...
+    # Subtest: refuses an envelope with an unknown schema major version before any use
+    ok 2 - refuses an envelope with an unknown schema major version before any use
+      ---
+      duration_ms: 0.578875
+      type: 'test'
+      ...
+    # Subtest: evidence requires the closed verdict set and every mandatory field
+    ok 3 - evidence requires the closed verdict set and every mandatory field
+      ---
+      duration_ms: 1.470083
+      type: 'test'
+      ...
+    # Subtest: canonical error keeps categories closed
+    ok 4 - canonical error keeps categories closed
+      ---
+      duration_ms: 0.301792
+      type: 'test'
+      ...
+    # Subtest: every published contract has a stable urn id
+    ok 5 - every published contract has a stable urn id
+      ---
+      duration_ms: 0.066584
+      type: 'test'
+      ...
+    1..5
+ok 2 - runtime validation (AT-11, NFR-08)
+  ---
+  duration_ms: 3.698875
+  type: 'suite'
+  ...
+# Subtest: the parser identifiers of a control
+    # Subtest: given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+    not ok 1 - given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+      ---
+      duration_ms: 0.347875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kJxQI5/test/v0/contracts.test.ts:140:2'
+      failureType: 'testCodeFailure'
+      error: 'contract urn:495:contract:control-definition:1 violated: /parser must be equal to one of the allowed values'
+      code: 'ERR_TEST_FAILURE'
+      name: 'ContractError'
+      stack: |-
+        validate (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kJxQI5/src/contracts/validate.ts:33:8)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kJxQI5/test/v0/contracts.test.ts:141:20)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+      ...
+    1..1
+not ok 3 - the parser identifiers of a control
+  ---
+  duration_ms: 0.410209
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kJxQI5/test/v0/contracts.test.ts:118:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 9
+# suites 3
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 152.095375

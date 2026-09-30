@@ -1,0 +1,83 @@
+TAP version 13
+# Subtest: the tree a frozen candidate must still be, once the controls have run (VER-03)
+    # Subtest: reads a writable declaration as a directory prefix, whether or not it was written as one
+    ok 1 - reads a writable declaration as a directory prefix, whether or not it was written as one
+      ---
+      duration_ms: 0.530792
+      type: 'test'
+      ...
+    # Subtest: an identical manifest is not a mutation
+    ok 2 - an identical manifest is not a mutation
+      ---
+      duration_ms: 0.139
+      type: 'test'
+      ...
+    # Subtest: a content change outside the writable declarations is a mutation of the candidate
+    ok 3 - a content change outside the writable declarations is a mutation of the candidate
+      ---
+      duration_ms: 0.109458
+      type: 'test'
+      ...
+    # Subtest: an added path outside them is one too
+    ok 4 - an added path outside them is one too
+      ---
+      duration_ms: 0.0615
+      type: 'test'
+      ...
+    # Subtest: a difference confined to the writable declarations is not
+    ok 5 - a difference confined to the writable declarations is not
+      ---
+      duration_ms: 0.064666
+      type: 'test'
+      ...
+    # Subtest: the same difference is a mutation when no control declared that path
+    ok 6 - the same difference is a mutation when no control declared that path
+      ---
+      duration_ms: 0.052625
+      type: 'test'
+      ...
+    # Subtest: given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+    not ok 7 - given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+      ---
+      duration_ms: 0.3655
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-quZp1y/test/v0/candidate.test.ts:86:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-quZp1y/test/v0/candidate.test.ts:90:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..7
+not ok 1 - the tree a frozen candidate must still be, once the controls have run (VER-03)
+  ---
+  duration_ms: 1.777583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-quZp1y/test/v0/candidate.test.ts:47:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.412666
