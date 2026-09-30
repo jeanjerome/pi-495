@@ -248,7 +248,8 @@ function registreOuvert(ctx: Contexte): string {
 async function relecteurs(ctx: Contexte, tour: number, b: string, tete: string, precedent: string): Promise<Rapport[]> {
 	const arbres = [arbreDetache(ctx.root, tete), arbreDetache(ctx.root, tete)];
 	try {
-		const sessions = await Promise.all(
+		// Both sessions end before their trees go: one that fails must not take the other's tree away.
+		const issues = await Promise.allSettled(
 			(["A", "B"] as const).map((r, i) =>
 				session(
 					ctx,
@@ -269,6 +270,9 @@ async function relecteurs(ctx: Contexte, tour: number, b: string, tete: string, 
 				),
 			),
 		);
+		const echec = issues.find((i) => i.status === "rejected");
+		if (echec) throw echec.reason;
+		const sessions = issues.map((i) => (i as PromiseFulfilledResult<Awaited<ReturnType<typeof session>>>).value);
 		return sessions.map((s) => s.sortie as unknown as Rapport);
 	} finally {
 		for (const a of arbres) retirerArbre(ctx.root, a);

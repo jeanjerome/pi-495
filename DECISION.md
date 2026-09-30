@@ -46,3 +46,15 @@ cannot be red is still kept. Cost: the folded commit holds a test the message do
 The review of e12s04 left `BUG-2026-09-30T193000` (a control character in a path the change does not
 touch makes coverage indeterminate). It is low, not introduced by a promise of the story, and is left
 to the defect phase.
+
+## Story e12s06
+
+### A reviewer's session that fails no longer takes the other reviewer's tree away
+
+Reviewer A's session ended without a result while reviewer B was still mutating code in its own tree;
+the failure removed both trees at once and B lost its working directory. The tool now waits for both
+sessions before it removes their trees. The likely cause of A's death was B running `pkill -f
+"node --test"`, whose pattern matches the command line of every session whose prompt quotes a test
+command; the common instructions now forbid killing a process by name or pattern. Bought: a failed
+session costs its own step, not its sibling's. Cost: a round whose one reviewer failed still waits for
+the other to finish.

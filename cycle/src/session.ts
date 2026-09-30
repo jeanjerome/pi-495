@@ -34,7 +34,9 @@ export interface Demande {
 export const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody answers it live and no
 question tool exists. Read cycle/README.md, CONVENTIONS.md and AGENTS.md first. Carry the step named
 in the prompt to its end and return the structured output the prompt asks for; the next step runs in
-another session. Never push to a remote. Run every command and sub-agent in the foreground and read
+another session. Never push to a remote. Never kill a process by name or pattern (pkill, killall, pkill -f): other sessions
+of the cycle run at the same time and their command lines carry the same words as yours; stop only a process
+you started, by its own pid. Run every command and sub-agent in the foreground and read
 its result before going on; give a long command a Bash timeout of up to 60 minutes. Commit messages
 follow cycle/README.md § Git et commits, whatever the harness suggests.`;
 
