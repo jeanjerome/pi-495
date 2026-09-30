@@ -1,0 +1,107 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 0.5275
+      type: 'test'
+      ...
+    1..1
+ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 0.878334
+  type: 'suite'
+  ...
+# Subtest: inspecting what an install left in the copy
+    # Subtest: given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+    ok 1 - given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+      ---
+      duration_ms: 0.297041
+      type: 'test'
+      ...
+    1..1
+ok 2 - inspecting what an install left in the copy
+  ---
+  duration_ms: 0.343625
+  type: 'suite'
+  ...
+# Subtest: what npm rewrites of its own bookkeeping
+    # Subtest: given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+    ok 1 - given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+      ---
+      duration_ms: 0.082459
+      type: 'test'
+      ...
+    1..1
+ok 3 - what npm rewrites of its own bookkeeping
+  ---
+  duration_ms: 0.139625
+  type: 'suite'
+  ...
+# Subtest: running the install in the copy
+    # Subtest: given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+    ok 1 - given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+      ---
+      duration_ms: 1.831791
+      type: 'test'
+      ...
+    # Subtest: given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered
+    ok 2 - given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered
+      ---
+      duration_ms: 0.187958
+      type: 'test'
+      ...
+    1..2
+ok 4 - running the install in the copy
+  ---
+  duration_ms: 2.101958
+  type: 'suite'
+  ...
+# Subtest: planning the resolution of a Maven plugin, reading where Maven keeps its files and inspecting what it left
+    # Subtest: given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it
+    ok 1 - given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it
+      ---
+      duration_ms: 0.264958
+      type: 'test'
+      ...
+    1..1
+ok 5 - planning the resolution of a Maven plugin, reading where Maven keeps its files and inspecting what it left
+  ---
+  duration_ms: 0.333375
+  type: 'suite'
+  ...
+# Subtest: running the resolution in the copy
+    # Subtest: given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network
+    ok 1 - given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network
+      ---
+      duration_ms: 2.660041
+      type: 'test'
+      ...
+    1..1
+ok 6 - running the resolution in the copy
+  ---
+  duration_ms: 2.69325
+  type: 'suite'
+  ...
+# Subtest: the pom.xml an adopted complement wrote, judged at G4
+    # Subtest: given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml
+    ok 1 - given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml
+      ---
+      duration_ms: 2.391958
+      type: 'test'
+      ...
+    1..1
+ok 7 - the pom.xml an adopted complement wrote, judged at G4
+  ---
+  duration_ms: 2.417541
+  type: 'suite'
+  ...
+1..7
+# tests 8
+# suites 7
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 139.691166

@@ -1,0 +1,287 @@
+TAP version 13
+# Subtest: a requirement no control can judge is arbitrated by the owner
+    # Subtest: given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+    ok 1 - given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+      ---
+      duration_ms: 236.086167
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+    ok 2 - given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+      ---
+      duration_ms: 312.824292
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+    ok 3 - given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+      ---
+      duration_ms: 278.686709
+      type: 'test'
+      ...
+    # Subtest: given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+    ok 4 - given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+      ---
+      duration_ms: 365.267708
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+    ok 5 - given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+      ---
+      duration_ms: 640.741333
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+    ok 6 - given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+      ---
+      duration_ms: 430.905666
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+    ok 7 - given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+      ---
+      duration_ms: 764.922417
+      type: 'test'
+      ...
+    1..7
+ok 1 - a requirement no control can judge is arbitrated by the owner
+  ---
+  duration_ms: 3030.212917
+  type: 'suite'
+  ...
+# Subtest: the IH-04 facts present the recommended complements
+    # Subtest: given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+    ok 1 - given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+      ---
+      duration_ms: 465.817583
+      type: 'test'
+      ...
+    1..1
+ok 2 - the IH-04 facts present the recommended complements
+  ---
+  duration_ms: 465.962333
+  type: 'suite'
+  ...
+# Subtest: the IH-04 decision offers to adopt a complement that is a file edit
+    # Subtest: given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+    ok 1 - given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+      ---
+      duration_ms: 741.898709
+      type: 'test'
+      ...
+    1..1
+ok 3 - the IH-04 decision offers to adopt a complement that is a file edit
+  ---
+  duration_ms: 742.013916
+  type: 'suite'
+  ...
+# Subtest: the IH-04 decision offers to adopt a complement that is the declaration of a Maven plugin
+    # Subtest: given a Maven target whose recommendation carries an applicable edit, then the decision offers to adopt the complement, its effect naming pom.xml, the plugin and version, the network and the local repository, and given a target whose edit does not apply or whose maven announces no local repository, then the options are today's and the report gives the reason
+    ok 1 - given a Maven target whose recommendation carries an applicable edit, then the decision offers to adopt the complement, its effect naming pom.xml, the plugin and version, the network and the local repository, and given a target whose edit does not apply or whose maven announces no local repository, then the options are today's and the report gives the reason
+      ---
+      duration_ms: 697.463583
+      type: 'test'
+      ...
+    1..1
+ok 4 - the IH-04 decision offers to adopt a complement that is the declaration of a Maven plugin
+  ---
+  duration_ms: 697.57325
+  type: 'suite'
+  ...
+# Subtest: the option to adopt the declaration of a Maven plugin says what it writes on the machine in both languages
+    # Subtest: given an adoptable POM edit and the local repository Maven announced, then the option names pom.xml, the plugin and its version, the network for that step alone and the local repository written from the adoption and kept if the integration is refused, in french and in english
+    ok 1 - given an adoptable POM edit and the local repository Maven announced, then the option names pom.xml, the plugin and its version, the network for that step alone and the local repository written from the adoption and kept if the integration is refused, in french and in english
+      ---
+      duration_ms: 0.18075
+      type: 'test'
+      ...
+    1..1
+ok 5 - the option to adopt the declaration of a Maven plugin says what it writes on the machine in both languages
+  ---
+  duration_ms: 0.20825
+  type: 'suite'
+  ...
+# Subtest: the IH-04 decision offers to adopt a complement that is an install
+    # Subtest: given three vitest targets, one with package-lock.json, one with only pnpm-lock.yaml and one with no lock, then only the first offers to adopt the complement, naming the package, its version and the network, and the report gives the reason for the other two
+    ok 1 - given three vitest targets, one with package-lock.json, one with only pnpm-lock.yaml and one with no lock, then only the first offers to adopt the complement, naming the package, its version and the network, and the report gives the reason for the other two
+      ---
+      duration_ms: 989.524375
+      type: 'test'
+      ...
+    1..1
+ok 6 - the IH-04 decision offers to adopt a complement that is an install
+  ---
+  duration_ms: 989.623
+  type: 'suite'
+  ...
+# Subtest: adopting a complement that is an install
+    # Subtest: given a sandbox backend that is not qualified, then the adopted install does not run, nothing is adopted and the reason names the backend
+    ok 1 - given a sandbox backend that is not qualified, then the adopted install does not run, nothing is adopted and the reason names the backend
+      ---
+      duration_ms: 267.762541
+      type: 'test'
+      ...
+    # Subtest: given the answer adopt the complement on a vitest target, then the protocol carries package.json, package-lock.json and the added node_modules files as complements with the installed packages and declares the coverage control qualified, and given a failing install or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption
+    ok 2 - given the answer adopt the complement on a vitest target, then the protocol carries package.json, package-lock.json and the added node_modules files as complements with the installed packages and declares the coverage control qualified, and given a failing install or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption
+      ---
+      duration_ms: 1834.749084
+      type: 'test'
+      ...
+    # Subtest: given an installed complement adopted then a revision of the requirements, then the next protocol carries no complement and no installed package, the recommendation is presented again and adoption is offered again
+    ok 3 - given an installed complement adopted then a revision of the requirements, then the next protocol carries no complement and no installed package, the recommendation is presented again and adoption is offered again
+      ---
+      duration_ms: 839.621958
+      type: 'test'
+      ...
+    1..3
+ok 7 - adopting a complement that is an install
+  ---
+  duration_ms: 2942.308667
+  type: 'suite'
+  ...
+# Subtest: adopting a complement that is a file edit
+    # Subtest: given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+    ok 1 - given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+      ---
+      duration_ms: 992.033208
+      type: 'test'
+      ...
+    1..1
+ok 8 - adopting a complement that is a file edit
+  ---
+  duration_ms: 992.143667
+  type: 'suite'
+  ...
+# Subtest: the candidate that carries an adopted complement
+    # Subtest: given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then
+    ok 1 - given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then
+      ---
+      duration_ms: 1118.654
+      type: 'test'
+      ...
+    # Subtest: given a candidate that also modifies another line of package.json, then G4 refuses it naming package.json
+    ok 2 - given a candidate that also modifies another line of package.json, then G4 refuses it naming package.json
+      ---
+      duration_ms: 886.87975
+      type: 'test'
+      ...
+    # Subtest: given a producer that writes back the package.json of the reference, byte for byte, then G4 refuses it with the reason protected path altered by the producer: package.json, and no candidate is accepted
+    ok 3 - given a producer that writes back the package.json of the reference, byte for byte, then G4 refuses it with the reason protected path altered by the producer: package.json, and no candidate is accepted
+      ---
+      duration_ms: 892.011125
+      type: 'test'
+      ...
+    1..3
+ok 9 - the candidate that carries an adopted complement
+  ---
+  duration_ms: 2897.780541
+  type: 'suite'
+  ...
+# Subtest: what adopting a complement holds for
+    # Subtest: given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again
+    ok 1 - given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again
+      ---
+      duration_ms: 1124.331083
+      type: 'test'
+      ...
+    # Subtest: given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only
+    ok 2 - given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only
+      ---
+      duration_ms: 235.269
+      type: 'test'
+      ...
+    # Subtest: given a change without a complement, then one with a complement adopted whose requirements the owner asks to revise, then the specification is written each time on the reference as the project holds it
+    ok 3 - given a change without a complement, then one with a complement adopted whose requirements the owner asks to revise, then the specification is written each time on the reference as the project holds it
+      ---
+      duration_ms: 287.992208
+      type: 'test'
+      ...
+    1..3
+ok 10 - what adopting a complement holds for
+  ---
+  duration_ms: 1647.777375
+  type: 'suite'
+  ...
+# Subtest: the IH-04 request
+    # Subtest: the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+    ok 1 - the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+      ---
+      duration_ms: 0.149
+      type: 'test'
+      ...
+    1..1
+ok 11 - the IH-04 request
+  ---
+  duration_ms: 0.195167
+  type: 'suite'
+  ...
+# Subtest: the requirements the owner took on
+    # Subtest: is empty without any answer, whatever the requirements no control can judge
+    ok 1 - is empty without any answer, whatever the requirements no control can judge
+      ---
+      duration_ms: 0.07225
+      type: 'test'
+      ...
+    # Subtest: is the requirements the answer was asked about
+    ok 2 - is the requirements the answer was asked about
+      ---
+      duration_ms: 0.067459
+      type: 'test'
+      ...
+    # Subtest: is empty when a requirement was not among those asked about, or was, and the answer was about more
+    ok 3 - is empty when a requirement was not among those asked about, or was, and the answer was about more
+      ---
+      duration_ms: 0.045875
+      type: 'test'
+      ...
+    # Subtest: is empty for an answer that is not an assign_review, is revoked, or was given to another question
+    ok 4 - is empty for an answer that is not an assign_review, is revoked, or was given to another question
+      ---
+      duration_ms: 0.060833
+      type: 'test'
+      ...
+    # Subtest: does not depend on the order the requirements are named in
+    ok 5 - does not depend on the order the requirements are named in
+      ---
+      duration_ms: 0.033
+      type: 'test'
+      ...
+    1..5
+ok 12 - the requirements the owner took on
+  ---
+  duration_ms: 0.334667
+  type: 'suite'
+  ...
+# Subtest: adopting a complement that is the declaration of a Maven plugin
+    # Subtest: given the answer adopt the complement on a Maven target, then the protocol carries pom.xml as an adopted complement, the record keeps maven's output and the JaCoCo control is declared qualified, and given a failing resolution or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption
+    ok 1 - given the answer adopt the complement on a Maven target, then the protocol carries pom.xml as an adopted complement, the record keeps maven's output and the JaCoCo control is declared qualified, and given a failing resolution or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption
+      ---
+      duration_ms: 2165.748875
+      type: 'test'
+      ...
+    # Subtest: given a local repository that does not hold the plugin yet, then adopting the complement still resolves it, the local repository being asked of Maven before the POM declares the plugin
+    ok 2 - given a local repository that does not hold the plugin yet, then adopting the complement still resolves it, the local repository being asked of Maven before the POM declares the plugin
+      ---
+      duration_ms: 896.4985
+      type: 'test'
+      ...
+    # Subtest: given a Maven plugin adopted then a revision of the requirements, then the next protocol carries no complement, the recommendation is presented again and the adoption is offered again, and the local repository Maven designates is the only path written outside the copy
+    ok 3 - given a Maven plugin adopted then a revision of the requirements, then the next protocol carries no complement, the recommendation is presented again and the adoption is offered again, and the local repository Maven designates is the only path written outside the copy
+      ---
+      duration_ms: 952.401458
+      type: 'test'
+      ...
+    1..3
+ok 13 - adopting a complement that is the declaration of a Maven plugin
+  ---
+  duration_ms: 4014.807583
+  type: 'suite'
+  ...
+1..13
+# tests 31
+# suites 13
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18597.381666

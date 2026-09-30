@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Le diff du tour 2 n'ajoute que trois tests et trois entrées de registre. Les trois tests tiennent. Les constats du tour 1 sont soit tenus, soit au registre. Je n'ai aucun constat nouveau à relever.\n\nCinq mutations d'une ligne, chacune remise après l'essai :\n- **A1-1 / B1-1** : `<goal>prepare-agent</goal>` devient `<goal>prepare</goal>` dans `maven.ts`. `test/v1/recommendations.test.ts` échoue (pass 14, fail 1). Le test assert maintenant `<goal>prepare-agent</goal>` en entier.\n- **B1-3** : je retire le refus d'une seconde section `<plugins>` dans `jacocoEdit`. Le nouveau test « build holds two plugins sections » échoue.\n- **B1-2** : dans `decisions.ts` (variante anglaise), je retire « and stay there if the integration is refused ». Le test bilingue échoue. Il échoue aussi quand je retire « from the adoption » de la même variante.\n- **B1-2** : dans `decisions.ts` (variante française), je retire « pour cette seule étape » après « réseau ». Le test bilingue échoue.\n\nLes trois entrées de registre (BUG-2026-09-30T221000, T221100, T221200) couvrent A1-2, A1-3 et A1-4/B1-4. Elles se nomment introduites par la branche e12s09, avec la raison de ne pas corriger. Elles sont déjà ouvertes au registre : je ne les recompte pas."
+ },
+ {
+  "verdict": "pass",
+  "resume": "Le diff du tour 2 ne touche que des tests et le registre. Les onze scénarios ont un test qui assert leur Then, et aucun constat n'est bloquant ni à corriger. Trois promesses laissées ouvertes au tour 1 sont maintenant tenues : le but prepare-agent (le test cherche `<goal>prepare-agent</goal>`), la section build/plugins à deux exemplaires, et la variante anglaise de l'option d'adoption Maven. Chaque test ajouté échoue quand je mute la ligne qu'il garde. Les mutations suivantes font aussi échouer un test : résolution Maven réseau fermé, dépôt local retiré des chemins inscriptibles, inspection de la copie neutralisée, dépôt local supposé au lieu d'annoncé, pom.xml remis à la référence accepté à G4, POM édité sans que la résolution ait réussi, `resolved.push` retiré, message « dépôt local non établi » changé. Les trois entrées de registre sur la codification des défauts A1-2, A1-3 et A1-4 sont présentes et leurs placements sont justes. Une seule inexactitude relevée, à peser.",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "La déclaration s'insère dans le POM octet pour octet, hors le texte inséré",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/bugs/registry.yaml",
+    "ligne": 860,
+    "constat": "L'entrée BUG-2026-09-30T221200 écrit que retirer `editedFile(...) !== null` de `adoptable.files` laisse tous les tests verts. C'est exact pour le chemin Maven, mais faux pris à la lettre : le test npm « an edit that does not apply to the file is not offered for adoption » échoue sous cette mutation (30 passés, 1 échec sur test/v2/verifiability-arbitration.test.ts). Seul le lien entre cette garde et `adoptable.installs` d'une recommandation Maven n'est tenu par aucun test. L'entrée devrait le dire ainsi.",
+    "mutation": "verification-design.ts : retrait de `editedFile(handle.path, r.edit) !== null` dans adoptable.files → échec du test de l'édition npm qui ne s'applique pas ; aucun test Maven n'échoue."
+   }
+  ]
+ }
+]

@@ -1,0 +1,150 @@
+TAP version 13
+# Subtest: Maven recommends the sensors its POM lacks
+    # Subtest: given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+    ok 1 - given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+      ---
+      duration_ms: 4.128875
+      type: 'test'
+      ...
+    # Subtest: given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+    ok 2 - given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+      ---
+      duration_ms: 2.353417
+      type: 'test'
+      ...
+    # Subtest: given a project whose JaCoCo and PIT are read, then it recommends nothing
+    ok 3 - given a project whose JaCoCo and PIT are read, then it recommends nothing
+      ---
+      duration_ms: 2.339042
+      type: 'test'
+      ...
+    # Subtest: given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+    ok 4 - given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+      ---
+      duration_ms: 4.472625
+      type: 'test'
+      ...
+    1..4
+ok 1 - Maven recommends the sensors its POM lacks
+  ---
+  duration_ms: 13.751792
+  type: 'suite'
+  ...
+# Subtest: Maven describes the declaration of JaCoCo when its POM takes it without ambiguity
+    # Subtest: given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither
+    ok 1 - given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither
+      ---
+      duration_ms: 3.320167
+      type: 'test'
+      ...
+    1..1
+ok 2 - Maven describes the declaration of JaCoCo when its POM takes it without ambiguity
+  ---
+  duration_ms: 3.36975
+  type: 'suite'
+  ...
+# Subtest: Maven declares JaCoCo beside one the POM keeps in a profile
+    # Subtest: given a POM whose JaCoCo is declared in a profile only, then the coverage recommendation carries the insertion, and given one declaring it outside any profile without the report goal, then it carries none
+    ok 1 - given a POM whose JaCoCo is declared in a profile only, then the coverage recommendation carries the insertion, and given one declaring it outside any profile without the report goal, then it carries none
+      ---
+      duration_ms: 0.862209
+      type: 'test'
+      ...
+    1..1
+ok 3 - Maven declares JaCoCo beside one the POM keeps in a profile
+  ---
+  duration_ms: 0.9045
+  type: 'suite'
+  ...
+# Subtest: Maven declares JaCoCo in the plugins of the build, wherever else the POM lists plugins
+    # Subtest: given a POM listing plugins in pluginManagement before its build plugins, and another listing them in a profile, then the insertion follows the opening of the build plugins
+    ok 1 - given a POM listing plugins in pluginManagement before its build plugins, and another listing them in a profile, then the insertion follows the opening of the build plugins
+      ---
+      duration_ms: 0.948
+      type: 'test'
+      ...
+    1..1
+ok 4 - Maven declares JaCoCo in the plugins of the build, wherever else the POM lists plugins
+  ---
+  duration_ms: 0.99875
+  type: 'suite'
+  ...
+# Subtest: The declaration of JaCoCo is inserted into the POM byte for byte, or not at all
+    # Subtest: given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied
+    ok 1 - given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied
+      ---
+      duration_ms: 1.061375
+      type: 'test'
+      ...
+    1..1
+ok 5 - The declaration of JaCoCo is inserted into the POM byte for byte, or not at all
+  ---
+  duration_ms: 1.087792
+  type: 'suite'
+  ...
+# Subtest: Node recommends the coverage its runner can produce
+    # Subtest: given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+    ok 1 - given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+      ---
+      duration_ms: 0.753375
+      type: 'test'
+      ...
+    # Subtest: given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+    ok 2 - given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+      ---
+      duration_ms: 1.01625
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit
+    ok 3 - given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit
+      ---
+      duration_ms: 1.023833
+      type: 'test'
+      ...
+    # Subtest: given jest, mocha or a target that already asks for coverage, then it recommends nothing
+    ok 4 - given jest, mocha or a target that already asks for coverage, then it recommends nothing
+      ---
+      duration_ms: 2.211583
+      type: 'test'
+      ...
+    1..4
+ok 6 - Node recommends the coverage its runner can produce
+  ---
+  duration_ms: 5.068291
+  type: 'suite'
+  ...
+# Subtest: Node describes the edit of scripts.test that adds the coverage flag
+    # Subtest: given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none
+    ok 1 - given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none
+      ---
+      duration_ms: 1.669209
+      type: 'test'
+      ...
+    1..1
+ok 7 - Node describes the edit of scripts.test that adds the coverage flag
+  ---
+  duration_ms: 1.692291
+  type: 'suite'
+  ...
+# Subtest: A technology declares its own recommendations
+    # Subtest: given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+    ok 1 - given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+      ---
+      duration_ms: 0.423958
+      type: 'test'
+      ...
+    1..1
+ok 8 - A technology declares its own recommendations
+  ---
+  duration_ms: 0.455583
+  type: 'suite'
+  ...
+1..8
+# tests 14
+# suites 8
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 177.561792

@@ -1,0 +1,35 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le producteur ne défait pas l'adoption en remettant le POM de la référence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 1092,
+    "constat": "Aucun test de la suite ne fait passer G4 sur un candidat Maven qui remet le pom.xml de la référence : le seul test « protected path altered by the producer » vise package.json. Le code tient la promesse (ma sonde jetable sur une cible Maven adoptée donne PASS quand le producteur garde le POM et FAIL « protected path altered by the producer: pom.xml » quand il remet celui de la référence). Le chemin étant générique, il est tenu par le test npm et par l'assertion unitaire de coverage.test.ts sur les protected_paths du contrôle de couverture ; la preuve propre à pom.xml ne vient que de la recette.",
+    "scenario_detail": "",
+    "mutation": "Dans src/application/stacks/maven.ts, protected_paths: [...reactor.pom_paths] remplacé par [] sur les quatre contrôles : seul le test unitaire « adds the coverage control when JaCoCo writes a report at the test phase » échoue (coverage.test.ts) ; aucun test de G4 ne bouge."
+   }
+  ],
+  "resume": "Aucun constat bloquant ni à corriger ; verdict pass. Les 12 scénarios testables sont tenus par le code et par au moins un test. Les 82 tests des fichiers touchés passent à e9b25a1. J'ai essayé 19 mutations sur le code de la story, et chacune fait échouer un test qui assert la promesse. Elles portent sur : le dépôt local non annoncé, l'inspection de la copie, l'insertion octet pour octet, les profils et pluginManagement, le motif pris sur la sortie standard puis d'erreur, le réseau ouvert pour la seule résolution, le dépôt local comme seul chemin en écriture, l'absence de but du greffon, le complément retiré quand la résolution échoue, la sortie conservée au dossier, le code de sortie de la commande d'annonce et l'option d'adoption non offerte. Une 20e mutation (remplacer l'appel qui demande le dépôt local par un identifiant inexistant) plante à l'exécution et ne prouve rien ; la couverture de cette ligne vient de la 19e et du test « dépôt local froid ». Un seul constat, à peser : le refus de G4 nommant pom.xml n'est assert sur Maven par aucun test de la suite, seulement par la recette et, en générique, par le test npm. Non lu : la recette est datée de la construction 3545e58, antérieure à e9b25a1 ; le cas du motif avec avertissement JVM sur la sortie d'erreur n'est tenu que par le test unitaire de runInstall, pas de bout en bout."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une résolution qui écrit ailleurs que dans le dépôt local est refusée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 352,
+    "constat": "L'inspection de la copie compare les empreintes données par captureReference, qui applique la politique d'exclusion du dépôt (target/, build/, dist/, .pi/, __pycache__/, .DS_Store, ._*). Un fichier que la résolution écrit sous l'un de ces chemins est donc invisible et la résolution est acceptée, alors que la promesse est « un fichier de la copie autre que pom.xml ». Le test unitaire d'inspectResolution donne `target/classes/A.class` comme exemple refusé, ce que le chemin réel ne produit pas. Portée réduite : la copie est supprimée et seul pom.xml est retenu, et resolve-plugins n'écrit pas dans target/.",
+    "mutation": "Sonde jetable, non commitée : un faux Maven qui écrit `target/out.txt` pendant la résolution. L'adoption réussit, sans refus ni motif. Le même faux Maven écrivant `build-note.txt` est refusé avec le motif « the resolution left build-note.txt changed ». Aucun test ne tient la promesse pour un chemin exclu."
+   }
+  ],
+  "resume": "Douze scénarios relus sur le code et sur les tests, par environ trente mutations d'une ligne du code de la story, chacune suivie des tests concernés et remise en place. Toutes les mutations sont détectées par un test, sauf deux : la mutation N4, équivalente (le chemin codé en dur est celui du faux Maven), et le retrait du blanchiment des commentaires dans jacocoEdit, qui ne touche aucune promesse et ne peut que supprimer une offre. Un constat est à corriger et introduit par la branche (B1-1) : l'inspection de la copie ne voit pas les chemins exclus par la politique du dépôt (target/, build/, dist/, .pi/), donc une résolution qui y écrit est acceptée. Ce constat fait échouer le verdict. Les sondes jetables sont supprimées.\\n\\nSont tenus, avec un test qui échoue à la mutation : l'édition exacte du POM (une seule occurrence, octet pour octet), le motif pris sur la sortie standard de Maven avec repli sur la sortie d'erreur, le réseau fermé pour toute étape autre que la résolution, le seul dépôt local écrit hors de la copie, le dépôt local demandé avant la déclaration du greffon, l'option d'adoption dite dans les deux langues, la non-offre quand Maven n'annonce rien ou que le backend n'est pas qualifié, le protocole gelé, et la révision des exigences qui défait l'adoption. Les entrées ouvertes 221000, 221100 et 221200 ne sont pas recomptées. Non lu : le refus à G4 d'un candidat qui remet le pom.xml de la référence est tenu par un test de la fonction de la porte sur de vrais témoins Maven et par la recette réelle, pas par un test de bout en bout sur pom.xml ; le chemin est générique, hérité du mécanisme de la story précédente, et je ne le relève pas. Sur un vrai Maven 3.9.9 hors ligne, la cause (« Connect to 127.0.0.1:9 … Connection refused ») figure bien dans les 500 derniers caractères de la sortie standard."
+ }
+]

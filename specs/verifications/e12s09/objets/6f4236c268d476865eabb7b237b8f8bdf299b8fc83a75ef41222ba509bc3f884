@@ -1,0 +1,94 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les onze scénarios testables. Sur 34 mutations (réseau, chemins en écriture, inspection, ordre de la demande du dépôt local, ancre unique, filtre des recommandations, texte de l'option, enregistrements du dossier, protection de pom.xml), 26 font échouer un test. Une promesse n'est tenue par aucun test : le but `prepare-agent` de la déclaration insérée (A1-1). Deux constats sont à peser (A1-2, A1-3) et un est sans effet aujourd'hui (A1-4). Le scénario de recette n'a pas été rejoué ; son compte rendu ne contredit pas le code lu.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une recommandation de couverture porte la déclaration du greffon quand le POM l'accueille sans ambiguïté",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 234,
+    "constat": "Le Then exige une déclaration « avec les buts prepare-agent et report ». Le test de recommandations cherche la sous-chaîne `prepare-agent`, que `<id>prepare-agent</id>` satisfait à lui seul, si bien que la déclaration peut perdre le but `prepare-agent`. Sans l'agent, le rapport de couverture serait vide. Aucun test des arbres v0, v1, v2 (arbitrage, intégration) n'échoue, et les faux Maven n'inspectent pas la déclaration. Seule la recette dans un vrai Pi la lit.",
+    "mutation": "`<goals><goal>prepare-agent</goal></goals>` remplacé par `<goals><goal>help</goal></goals>` dans jacocoDeclaration : v0, v1, arbitrage et intégration passent. Les seuls échecs sont deux tests Seatbelt sans rapport avec la mutation. Le test devrait chercher `<goal>prepare-agent</goal>`, comme il le fait pour `<goal>report</goal>`."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La déclaration s'insère dans le POM octet pour octet, hors le texte inséré",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/complement.ts",
+    "ligne": 107,
+    "constat": "editedFile lit le POM en `utf8` puis `writeFileSync` réécrit la chaîne. Un pom.xml qui porte un octet non UTF-8 (un commentaire en ISO-8859-1, par exemple) sort avec U+FFFD (EF BF BD) à la place, en plus du texte inséré, ce qui contredit « diffère de l'ancien par les seuls octets du texte inséré ». Le Given de la story (commentaires, quatre espaces) ne couvre pas ce cas, et aucun test ne l'essaie.",
+    "mutation": "Sonde jetable, sans mutation : un POM déclaré `encoding=\"ISO-8859-1\"` avec l'octet 0xE9 dans un commentaire. La recommandation porte une édition. Le texte édité fait 705 octets pour 218 d'origine et 485 insérés, donc 2 octets de trop."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'adoption n'est pas offerte quand Maven n'annonce pas son dépôt local",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 252,
+    "constat": "La story décrit la commande d'annonce comme hors ligne « sans greffon ». `mvn -X -o -B validate` exécute les greffons que le POM de la cible lie à la phase validate (enforcer, par exemple), réseau fermé et sans écriture hors de la copie. Un tel greffon peut donc faire échouer l'annonce et retirer l'adoption, ou exécuter du code du projet avant l'adoption. Le confinement tient ; seule l'adoption est perdue.",
+    "mutation": "Aucune."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "La déclaration s'insère dans le POM octet pour octet, hors le texte inséré",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 360,
+    "constat": "Le And dit que l'adoption n'est pas offerte quand le texte à remplacer n'est plus présent une seule fois. Dans `adoptable`, seule `files` teste `editedFile(...) !== null`, tandis que `installs` garde l'installation Maven, donc l'option serait offerte avec une liste de fichiers vide. Ce n'est pas atteignable aujourd'hui : l'édition se calcule sur le même pom.xml de la même copie. Seul le test unitaire d'`editedFile` tient ce And.",
+    "mutation": "Retirer la condition `(r.install === undefined || offered.installable.includes(r)) &&` de `adoptable.files` fait échouer 3 tests, mais aucun test ne fabrique une édition qui ne s'applique plus."
+   }
+  ]
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une recommandation de couverture porte la déclaration du greffon quand le POM l'accueille sans ambiguïté",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 231,
+    "constat": "La promesse dit que la déclaration insérée porte les buts prepare-agent et report, mais aucun test n'assert le but prepare-agent. test/v1/recommendations.test.ts cherche la sous-chaîne « prepare-agent », que `<id>prepare-agent</id>` satisfait à lui seul, alors qu'il assert `<goal>report</goal>` en entier. Une déclaration dont le but est faux (et l'agent JaCoCo jamais attaché) passerait tous les tests ; seule la recette réelle la verrait.",
+    "mutation": "`<goals><goal>prepare-agent</goal></goals>` remplacé par `<goal>prepare</goal>` dans jacocoDeclaration : test/v1/recommendations.test.ts et les tests Maven de test/v2/verifiability-arbitration.test.ts passent tous (la mutation survit)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'adoption est offerte quand la déclaration s'applique, et dit ce qu'elle écrit sur la machine",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 376,
+    "constat": "Seule la variante française de l'option d'adoption Maven est assertée (la décision est demandée dans la langue du changement, en français). La variante anglaise, qui porte les mêmes promesses (pom.xml, greffon et version, réseau ouvert pour cette seule étape, dépôt local écrit dès l'adoption et conservé après refus), n'est lue par aucun test : le test de l'option npm boucle sur fr/en via buildDecisionRequest, pas celui de Maven.",
+    "mutation": "Retirer « and stay there if the integration is refused », ou « network open for that step alone » du libellé Maven anglais : les tests passent (la mutation survit). La même mutation sur la variante française est tuée."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une recommandation de couverture porte la déclaration du greffon quand le POM l'accueille sans ambiguïté",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 267,
+    "constat": "Le scénario nomme une section build/plugins unique, sans que la valeur de ce « seule » soit testée : aucun test ne fournit un POM à deux sections `<plugins>` actives, et rien ne vérifie donc que la recommandation reste un texte dans ce cas. Les trois cas nommés par la promesse (pas de section, profil seul, pluginManagement seul) sont tenus.",
+    "mutation": "`|| active.indexOf(\"<plugins>\", opening + 1) >= 0` retiré de jacocoEdit : tous les tests passent (la mutation survit)."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "La déclaration s'insère dans le POM octet pour octet, hors le texte inséré",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 360,
+    "constat": "La seconde moitié du Then (« si le texte à remplacer n'est plus présent une seule fois, rien n'est appliqué et l'adoption n'est pas offerte ») n'est tenue que pour « rien n'est appliqué » (editedFile renvoie null, testé). `adoptable.files` écarte une édition qui ne s'applique pas, mais `adoptable.installs` ne dépend que de `offered.installable`, donc une recommandation Maven dont l'édition ne s'appliquerait plus offrirait quand même la résolution. Le chemin est inatteignable aujourd'hui, car la détection et le contrôle lisent la même copie, et aucun test de décision ne le pose : c'est la construction de jacocoEdit, pas une garde, qui tient « pas offerte ».",
+    "mutation": "Retirer `editedFile(handle.path, r.edit) !== null` de adoptable.files : les tests passent (la mutation survit)."
+   }
+  ],
+  "resume": "Les onze scénarios de code sont tenus : les mutations qui touchent le réseau, les chemins en écriture, l'inspection de la copie, le rapport, la révision des exigences, le digest de pom.xml et l'intégration sont toutes tuées. Le scénario de recette est corroboré par les dossiers relus (G4 « protected path altered by the producer: pom.xml », G5 PASS avec coverage). Je ne relève aucun bloquant. Un constat à corriger : le but prepare-agent de la déclaration JaCoCo n'est tenu par aucun test, une mutation survit. Trois constats à peser : la variante anglaise de l'option Maven n'est pas lue, la garde « une seule section plugins » n'est pas testée, et « l'adoption n'est pas offerte » quand l'édition ne s'applique plus repose sur la construction de jacocoEdit. Le verdict est fail à cause du constat à corriger introduit par la branche (B1-1)."
+ }
+]

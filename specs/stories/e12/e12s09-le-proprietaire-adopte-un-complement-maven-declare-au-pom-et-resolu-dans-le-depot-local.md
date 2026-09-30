@@ -2,7 +2,7 @@
 
 Story : e12s09
 Epic : e12
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

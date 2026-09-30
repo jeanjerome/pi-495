@@ -1,0 +1,143 @@
+TAP version 13
+# Subtest: canonical JSON and digests (§8.1)
+    # Subtest: is independent of key order and omits undefined
+    ok 1 - is independent of key order and omits undefined
+      ---
+      duration_ms: 0.3155
+      type: 'test'
+      ...
+    # Subtest: refuses non-finite numbers
+    ok 2 - refuses non-finite numbers
+      ---
+      duration_ms: 0.165416
+      type: 'test'
+      ...
+    # Subtest: digest is stable and well formed for random objects
+    ok 3 - digest is stable and well formed for random objects
+      ---
+      duration_ms: 5.050583
+      type: 'test'
+      ...
+    1..3
+ok 1 - canonical JSON and digests (§8.1)
+  ---
+  duration_ms: 5.948834
+  type: 'suite'
+  ...
+# Subtest: runtime validation (AT-11, NFR-08)
+    # Subtest: accepts a valid actor and refuses an unknown enum value or extra property
+    ok 1 - accepts a valid actor and refuses an unknown enum value or extra property
+      ---
+      duration_ms: 1.225875
+      type: 'test'
+      ...
+    # Subtest: refuses an envelope with an unknown schema major version before any use
+    ok 2 - refuses an envelope with an unknown schema major version before any use
+      ---
+      duration_ms: 0.60325
+      type: 'test'
+      ...
+    # Subtest: evidence requires the closed verdict set and every mandatory field
+    ok 3 - evidence requires the closed verdict set and every mandatory field
+      ---
+      duration_ms: 1.561334
+      type: 'test'
+      ...
+    # Subtest: canonical error keeps categories closed
+    ok 4 - canonical error keeps categories closed
+      ---
+      duration_ms: 0.3055
+      type: 'test'
+      ...
+    # Subtest: every published contract has a stable urn id
+    ok 5 - every published contract has a stable urn id
+      ---
+      duration_ms: 0.077458
+      type: 'test'
+      ...
+    1..5
+ok 2 - runtime validation (AT-11, NFR-08)
+  ---
+  duration_ms: 3.929333
+  type: 'suite'
+  ...
+# Subtest: the parser identifiers of a control
+    # Subtest: given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+    ok 1 - given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+      ---
+      duration_ms: 0.485
+      type: 'test'
+      ...
+    # Subtest: given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential
+    ok 2 - given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential
+      ---
+      duration_ms: 0.182
+      type: 'test'
+      ...
+    1..2
+ok 3 - the parser identifiers of a control
+  ---
+  duration_ms: 0.760416
+  type: 'suite'
+  ...
+# Subtest: the capability diagnosis of a protocol
+    # Subtest: given a capability diagnosis carrying a recommendation, then the schema accepts it, and given one without the list, then it is still accepted
+    ok 1 - given a capability diagnosis carrying a recommendation, then the schema accepts it, and given one without the list, then it is still accepted
+      ---
+      duration_ms: 0.430125
+      type: 'test'
+      ...
+    1..1
+ok 4 - the capability diagnosis of a protocol
+  ---
+  duration_ms: 0.470541
+  type: 'suite'
+  ...
+# Subtest: a file edit recommended to a target and the complement its owner adopted
+    # Subtest: given a recommendation carrying a file edit and a protocol carrying an adopted complement, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis
+    ok 1 - given a recommendation carrying a file edit and a protocol carrying an adopted complement, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis
+      ---
+      duration_ms: 2.067459
+      type: 'test'
+      ...
+    1..1
+ok 5 - a file edit recommended to a target and the complement its owner adopted
+  ---
+  duration_ms: 2.109291
+  type: 'suite'
+  ...
+# Subtest: an install recommended to a target and the packages its adoption installed
+    # Subtest: given a recommendation carrying an install and a protocol carrying installed packages, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis
+    ok 1 - given a recommendation carrying an install and a protocol carrying installed packages, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis
+      ---
+      duration_ms: 1.596125
+      type: 'test'
+      ...
+    1..1
+ok 6 - an install recommended to a target and the packages its adoption installed
+  ---
+  duration_ms: 1.636209
+  type: 'suite'
+  ...
+# Subtest: an install recommended with a package manager
+    # Subtest: given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it
+    ok 1 - given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it
+      ---
+      duration_ms: 0.283458
+      type: 'test'
+      ...
+    1..1
+ok 7 - an install recommended with a package manager
+  ---
+  duration_ms: 0.317833
+  type: 'suite'
+  ...
+1..7
+# tests 14
+# suites 7
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 170.642833
