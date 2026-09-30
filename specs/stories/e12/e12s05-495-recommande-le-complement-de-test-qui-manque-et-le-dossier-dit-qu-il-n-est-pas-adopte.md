@@ -15,7 +15,7 @@ ni avec quel outil, et sans que le rapport du changement retienne que ce complé
 Après la story, chaque technologie déclare le complément qu'elle recommande quand un capteur qu'elle sait
 lire manque : l'outil, sa version, la date à laquelle cette version a été établie, sa source, et ce que
 la cible doit changer. La décision d'arbitrage le présente, le protocole gelé le porte, et le rapport du
-changement le liste comme complément recommandé et non adopté. Adopter le complément est `e12s06`.
+changement le liste comme complément recommandé et non adopté. Adopter le complément est `e12s06`, quand ce n'est qu'une modification de fichier, et `e12s07` et `e12s08`, quand il faut installer.
 
 ## 2. Promesses
 
@@ -76,7 +76,7 @@ Scenario: Dans un vrai Pi, la décision d'arbitrage d'une cible sans couverture 
   outil ni version, et le contenu du projet n'en choisit aucun. Chaque recommandation porte la version et la
   date qui l'ont établie, comme `QLT-01` l'exige d'une recommandation « état de l'art ».
 - Rien n'est installé, rien ne s'écrit dans la cible et aucun réseau n'est ouvert : la story ne fait que dire.
-  L'installation est `e12s06`, avec son accord du propriétaire (`D-76`).
+  L'installation est `e12s07` et `e12s08`, avec l'accord du propriétaire (`D-76`).
 - Provenance : les recommandations viennent de la détection, qui ne lit que des fichiers du projet sans rien
   exécuter. Une recommandation ne dépend d'aucune sortie de contrôle.
 
@@ -142,10 +142,10 @@ protocole sans recommandation ne produit aucun de ces risques.
 
 ## 5. Hors périmètre
 
-- Adopter le complément : l'option qui l'accepte, l'installation avec son accord, le réseau ouvert à cette
-  seule étape et les chemins protégés qui suivent la phase sont `e12s06`. Tant qu'elle n'existe pas, aucune
+- Adopter le complément : l'option qui l'accepte est `e12s06` pour une modification de fichier ; l'installation, le réseau ouvert à cette
+  seule étape et les chemins protégés qui suivent la phase sont `e12s07` et `e12s08`. Tant que l'option n'existe pas, aucune
   réponse ne « refuse » un complément : le dossier dit seulement qu'il n'est pas adopté.
-- La recommandation de Stryker pour une cible Node : elle vient avec `e12s07`, quand 495 sait lire son
+- La recommandation de Stryker pour une cible Node : elle vient avec `e12s09`, quand 495 sait lire son
   rapport. Recommander ce qu'on ne lit pas mène à une impasse.
 - Les autres types de test (propriétés, intégration, contrat, caractérisation) : aucun signal que 495 observe
   ne dit qu'ils manquent. Le catalogue de l'adaptateur peut les porter le jour où un tel signal existe.

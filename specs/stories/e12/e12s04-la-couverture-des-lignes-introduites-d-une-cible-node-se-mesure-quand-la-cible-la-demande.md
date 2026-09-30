@@ -17,7 +17,7 @@ n'exécute jamais bloque, une branche non prise se signale sans bloquer, et une 
 lire n'est jamais un succès. Une cible la demande quand `scripts.test` lance `node --test` avec
 `--experimental-test-coverage`, ou quand elle a installé le fournisseur de couverture de vitest. Une cible
 qui ne la demande pas n'a pas de capteur, et la capacité manquante le dit ; ce qui lui manque est ce que
-`e12s05` recommande et `e12s06` installe.
+`e12s05` recommande et `e12s06` et `e12s07` adoptent.
 
 ## 2. Promesses
 
@@ -225,7 +225,7 @@ des lignes introduites, et que sans cela la couverture n'est pas mesurée.
 ## 5. Hors périmètre
 
 - La mutation d'une cible Node : elle demande un moteur (Stryker) que la cible n'a pas, et un profil
-  réseau de boucle locale ; elle vient après l'installation d'un framework approuvé (`e12s07`).
+  réseau de boucle locale ; elle vient après l'installation d'un framework approuvé (`e12s09`).
 - La couverture de jest et de mocha : jest la déclare dans des fichiers de configuration qu'on ne lit pas
   sans les exécuter, mocha passe par un enveloppeur (`c8`) qu'aucun contrôle ne lance. Le refus les nomme.
 - Ce que `node:test` et vitest ne cite pas quand la configuration de la cible restreint ce qu'ils
@@ -238,4 +238,4 @@ des lignes introduites, et que sans cela la couverture n'est pas mesurée.
   rouvre avec un seuil que la cible choisit.
 - Un rapport dont les chemins sont absolus : les trois lanceurs mesurés écrivent des chemins relatifs à la
   racine du projet.
-- L'installation d'un fournisseur de couverture, ou d'un enveloppeur : `e12s06`.
+- L'installation d'un fournisseur de couverture, ou d'un enveloppeur : `e12s07`.

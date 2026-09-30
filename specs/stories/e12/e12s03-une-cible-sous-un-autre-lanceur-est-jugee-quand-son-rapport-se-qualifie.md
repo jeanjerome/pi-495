@@ -239,7 +239,7 @@ La ligne « Node » de la table des piles du README dit que `scripts.test` lanc�
   s'arrête à G2 sur le témoin positif, comme vitest. Un jest configuré avec ses propres `reporters` ou un
   `testResultsProcessor` n'est pas mesuré : un fichier illisible donne INDETERMINATE, jamais un succès.
 - Une cible dont les dépendances ne sont pas installées : G2 s'arrête sur le témoin positif. Le refus
-  clair de ce cas se rouvre avec l'installation d'un framework (`e12s06`).
-- La couverture d'une cible Node : `e12s04` ; sa mutation et la mesure des assertions : `e12s07`.
+  clair de ce cas se rouvre avec l'installation d'un framework (`e12s07`).
+- La couverture d'une cible Node : `e12s04` ; sa mutation et la mesure des assertions : `e12s09`.
 - Les mêmes lanceurs sous un shell, `npm test` ou une chaîne (`tsc && jest`) : refusés en nommant leur
   forme, comme aujourd'hui.
