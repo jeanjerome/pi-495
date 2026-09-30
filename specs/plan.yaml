@@ -244,7 +244,7 @@ epics:
       - { id: e12s01, status: "versée", title: "Ajouter une technologie ne demande qu'un module, et les deux actuelles passent par la même liste d'adaptateurs" }
       - { id: e12s02, status: "versée", title: "Le rapport JUnit se lit avec un analyseur XML et se recompte depuis ses tests" }
       - { id: e12s03, status: "versée", title: "Une cible dont les tests tournent sous un autre lanceur est jugée quand son rapport se qualifie" }
-      - { id: e12s04, status: "à faire", title: "La couverture des lignes introduites d'une cible Node se mesure quand la cible la demande" }
+      - { id: e12s04, status: "versée", title: "La couverture des lignes introduites d'une cible Node se mesure quand la cible la demande" }
       - { id: e12s05, status: "à faire", title: "495 recommande le complément de test qui manque à une cible, et le dossier dit qu'il n'est pas adopté" }
       - { id: e12s06, status: "à faire", title: "Le propriétaire adopte un complément qui n'est qu'une modification de fichier, et la modification fait partie du candidat" }
       - { id: e12s07, status: "à faire", title: "Un complément adopté est présent dans chaque copie où un contrôle tourne, et l'intégration n'indexe que ce que git suit" }
