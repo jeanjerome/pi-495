@@ -4,7 +4,7 @@
  */
 import type { Dirent } from "node:fs";
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
@@ -18,6 +18,7 @@ import type {
 } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { parseJestJson } from "./jest-report.ts";
+import { expectedInLcovReport, parseLcov } from "./lcov.ts";
 import { analyzeMutation, mutationScopeOf, nothingToMutate, unscopedMutation, type MutationScope } from "./mutation.ts";
 import {
 	PARSER_VERSIONS,
@@ -25,6 +26,7 @@ import {
 	parseJacoco,
 	parseJUnit,
 	parseNodeTestTap,
+	MAX_REPORT_BYTES,
 	type ParsedReport,
 } from "./parsers.ts";
 import { analyzeJavaStructure, readJavaSources } from "./structure.ts";
@@ -152,22 +154,31 @@ export class GenericControlRunner implements ControlExecutionPort {
 						);
 						break;
 					}
+					case "lcov": {
+						const docs = await coverageReports(invocation);
+						for (const d of docs)
+							artifacts.push({
+								name: `report:${d.name}`,
+								ref: await this.objects.put(new TextEncoder().encode(d.text), "text/plain; charset=utf-8"),
+							});
+						const introduced = invocation.introduced_lines ?? null;
+						const sources = await introducedSources(
+							invocation.workspace_path,
+							introduced === null ? [] : expectedInLcovReport(introduced),
+						);
+						report = parseLcov(observation, docs, introduced, sources);
+						break;
+					}
 					case "jacoco-xml": {
 						// The sensor measures nothing of its own: the report is the one the test control of the
-						// same protocol wrote in this workspace, and only the introduced lines are judged. A
-						// subject that introduces nothing — the reference pass — is decided without looking for
-						// a report the control would not read, and keeps none as evidence.
-						const introduced = invocation.introduced_lines ?? null;
-						const docs =
-							introduced !== null && Object.keys(introduced).length === 0
-								? []
-								: await readReports(invocation.workspace_path, control.report_path);
+						// same protocol wrote in this workspace, and only the introduced lines are judged.
+						const docs = await coverageReports(invocation);
 						for (const d of docs)
 							artifacts.push({
 								name: `report:${d.name}`,
 								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml"),
 							});
-						report = parseJacoco(observation, docs, introduced);
+						report = parseJacoco(observation, docs, invocation.introduced_lines ?? null);
 						break;
 					}
 					case "java-imports": {
@@ -300,6 +311,34 @@ export class GenericControlRunner implements ControlExecutionPort {
 		};
 		return { evidence, observation };
 	}
+}
+
+/**
+ * The coverage report a differential control reads. A subject that introduces nothing — the reference
+ * pass — is decided without looking for a report the control would not read, and keeps none as evidence.
+ */
+async function coverageReports(invocation: ControlInvocation): Promise<{ name: string; text: string }[]> {
+	const introduced = invocation.introduced_lines ?? null;
+	if (introduced !== null && Object.keys(introduced).length === 0) return [];
+	return readReports(invocation.workspace_path, invocation.control.report_path);
+}
+
+/**
+ * The text of the introduced source files a reader looks into, keyed by path. A file the change deleted
+ * has nothing to read; one over the bound is not read, and that is an error rather than a silent gap.
+ */
+async function introducedSources(workspace: string, paths: readonly string[]): Promise<Map<string, string>> {
+	const root = resolve(workspace);
+	const sources = new Map<string, string>();
+	for (const path of paths) {
+		const absolute = resolve(root, path);
+		if (!absolute.startsWith(`${root}${sep}`)) continue;
+		const stats = await stat(absolute).catch(() => null);
+		if (!stats?.isFile()) continue;
+		if (stats.size > MAX_REPORT_BYTES) throw new Error(`${path} exceeds ${MAX_REPORT_BYTES} bytes`);
+		sources.set(path, await readFile(absolute, "utf8"));
+	}
+	return sources;
 }
 
 async function readReports(workspace: string, reportPath: string | null): Promise<{ name: string; text: string }[]> {

@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import {
+	hasControlCharacter,
 	introducedByAddedFiles,
 	introducedLines,
 	introducedLinesOf,
@@ -123,5 +124,45 @@ describe("introduced lines of a candidate (QLT-04)", () => {
 		assert.ok(result.notes.some((n) => n.includes("src/main/java/Big.java") && n.includes("diff limit")));
 		assert.ok(result.notes.some((n) => n.includes("src/main/java/Lost.java") && n.includes("read as an addition")));
 		assert.equal("bin/data.bin" in result.lines, false, "binary content carries no lines");
+	});
+
+	it("reads any control character of a path as one, not only the line break", () => {
+		for (const character of ["\n", "\r", "\t", "\u0000", "\u001b", "\u007f", "\u0085"]) {
+			assert.equal(hasControlCharacter(`src/a${character}b.js`), true, JSON.stringify(character));
+		}
+		for (const path of ["src/a b.js", "src/é/ü.js", "src/日本語.js"]) {
+			assert.equal(hasControlCharacter(path), false, path);
+		}
+	});
+
+	it("keeps a path that carries a control character even when the change introduces no line in it", async () => {
+		const forged = "evil\nSF:src/victim.js";
+		const kept = "export const moved = 1;\n";
+		const manifest = manifestOf([
+			entry(`old/${forged}`, "deleted", kept),
+			entry(`new/${forged}`, "added", kept),
+			entry(`big/${forged}`, "modified", "x", MAX_DIFFED_BYTES + 1),
+			entry(`bin/${forged}`, "added", "binary"),
+			entry(`same/${forged}`, "unchanged", kept),
+			entry("src/plain.mjs", "unchanged", kept),
+		]);
+		const shape = candidateShape(manifest);
+		const result = await introducedLinesOf(
+			manifest,
+			shape.renames,
+			source({ [`old/${forged}`]: kept }),
+			source({
+				[`new/${forged}`]: kept,
+				[`big/${forged}`]: "x",
+				[`bin/${forged}`]: new Uint8Array([1, 0, 2]),
+				[`same/${forged}`]: kept,
+			}),
+		);
+		assert.deepEqual(result.lines, {
+			[`new/${forged}`]: [],
+			[`big/${forged}`]: [],
+			[`bin/${forged}`]: [],
+			[`same/${forged}`]: [],
+		});
 	});
 });

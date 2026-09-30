@@ -31,6 +31,7 @@ export const PARSER_VERSIONS = {
 	"node-test": "1.0.0",
 	"junit-xml": "1.0.0",
 	"jest-json": "1.0.0",
+	lcov: "1.0.0",
 	"jacoco-xml": "1.0.0",
 	"java-imports": "1.0.0",
 	"pitest-xml": "1.0.0",
@@ -299,7 +300,6 @@ export interface CoverageMeasurement {
 export const COVERAGE_RULE_UNCOVERED = "coverage:introduced-line-not-exercised";
 export const COVERAGE_RULE_PARTIAL = "coverage:introduced-branch-not-taken";
 
-const MAX_COVERAGE_FINDINGS = 200;
 const MAX_NAMED_PATHS = 10;
 
 /** Compilation units JaCoCo instruments. */
@@ -437,6 +437,102 @@ function symbolAt(symbols: readonly { line: number; symbol: string }[], line: nu
 	return found;
 }
 
+const MAX_COVERAGE_FINDINGS = 200;
+
+interface IntroducedJudgement {
+	findings: ParsedFinding[];
+	measured: number;
+	uncovered: number;
+	partial: number;
+	/** Lines of the touched files that no test exercised and that this change did not write, per file. */
+	tolerated: { path: string; line: number }[];
+}
+
+/**
+ * The verdict rule shared by every coverage reader: an introduced line no test exercised blocks, one
+ * exercised on part of its branches is reported without blocking, and a line the change did not write is
+ * outside its jurisdiction (QLT-04). `wanted` are the files the measurement is known to hold.
+ */
+export function judgeIntroducedLines(
+	measurement: CoverageMeasurement,
+	wanted: readonly string[],
+	introduced: IntroducedLines,
+): IntroducedJudgement {
+	const judgement: IntroducedJudgement = { findings: [], measured: 0, uncovered: 0, partial: 0, tolerated: [] };
+	for (const path of wanted) {
+		const lines = measurement.files.get(path)!;
+		const symbols = measurement.symbols.get(path) ?? [];
+		const introducedHere = new Set(introduced[path] ?? []);
+		for (const nr of [...lines.keys()].sort((a, b) => a - b)) {
+			const line = lines.get(nr)!;
+			if (!introducedHere.has(nr)) {
+				if (!line.covered) judgement.tolerated.push({ path, line: nr });
+				continue;
+			}
+			judgement.measured++;
+			const symbol = symbolAt(symbols, nr);
+			const named = symbol ? ` in ${symbol}` : "";
+			if (!line.covered) {
+				judgement.uncovered++;
+				if (judgement.findings.length < MAX_COVERAGE_FINDINGS)
+					judgement.findings.push({
+						rule_id: COVERAGE_RULE_UNCOVERED,
+						category: "quality",
+						severity: "blocker",
+						message: `${path}:${nr} introduced line never exercised by the suite${named}`,
+						symbol,
+					});
+			} else if (line.branches_missed > 0) {
+				judgement.partial++;
+				if (judgement.findings.length < MAX_COVERAGE_FINDINGS)
+					judgement.findings.push({
+						rule_id: COVERAGE_RULE_PARTIAL,
+						category: "quality",
+						severity: "major",
+						message: `${path}:${nr} introduced line exercised on part of its branches only${named}`,
+						symbol,
+					});
+			}
+		}
+	}
+	return judgement;
+}
+
+/**
+ * What stops a coverage reader before it opens a report: a process that did not end normally, or one
+ * that exited non-zero. Both are INDETERMINATE: an absent measurement has never been proof of coverage.
+ */
+export function undecidedCoverage(obs: ProcessObservation, reports: number): ParsedReport | null {
+	const incident = incidentOf(obs);
+	if (incident)
+		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (obs.exit_code !== 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts: { exit_code: obs.exit_code, reports },
+			notes: [`the coverage sensor exited with ${obs.exit_code} without reading a report`],
+			failures: [],
+		};
+	return null;
+}
+
+/** A candidate whose introduced lines nobody established cannot be judged: its new lines are unknown. */
+export function unknownIntroducedLines(obs: ProcessObservation, reports: number): ParsedReport {
+	return {
+		verdict: "INDETERMINATE",
+		facts: { exit_code: obs.exit_code, reports },
+		notes: [
+			"no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown",
+		],
+		failures: [],
+	};
+}
+
+/** The note naming introduced source files no coverage report measures, bounded. */
+export function unmeasuredNote(unmeasured: readonly string[]): string {
+	return `no coverage report measures ${unmeasured.length} introduced source file(s): ${unmeasured.slice(0, MAX_NAMED_PATHS).join(", ")}`;
+}
+
 /**
  * Coverage of the introduced lines (QLT-04).
  *
@@ -452,26 +548,10 @@ export function parseJacoco(
 	documents: readonly JacocoDocument[] | null,
 	introduced: IntroducedLines | null,
 ): ParsedReport {
-	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
 	const reports = documents?.length ?? 0;
-	if (obs.exit_code !== 0)
-		return {
-			verdict: "INDETERMINATE",
-			facts: { exit_code: obs.exit_code, reports },
-			notes: [`the coverage sensor exited with ${obs.exit_code} without reading a report`],
-			failures: [],
-		};
-	if (introduced === null)
-		return {
-			verdict: "INDETERMINATE",
-			facts: { exit_code: obs.exit_code, reports },
-			notes: [
-				"no introduced-line set was given: a differential control cannot judge a candidate whose new lines are unknown",
-			],
-			failures: [],
-		};
+	const undecided = undecidedCoverage(obs, reports);
+	if (undecided) return undecided;
+	if (introduced === null) return unknownIntroducedLines(obs, reports);
 	const wanted = measurableIntroducedPaths(introduced);
 	const facts: Record<string, unknown> = {
 		exit_code: obs.exit_code,
@@ -507,58 +587,15 @@ export function parseJacoco(
 		return {
 			verdict: "INDETERMINATE",
 			facts: { ...facts, unmeasured_files: unmeasured.length },
-			notes: [
-				`no coverage report measures ${unmeasured.length} introduced source file(s): ${unmeasured.slice(0, MAX_NAMED_PATHS).join(", ")}`,
-				...measurement.notes,
-			],
+			notes: [unmeasuredNote(unmeasured), ...measurement.notes],
 			failures: [],
 		};
 
-	const findings: ParsedFinding[] = [];
-	let measured = 0;
-	let uncovered = 0;
-	let partial = 0;
-	let tolerated = 0;
-	for (const path of wanted) {
-		const lines = measurement.files.get(path)!;
-		const symbols = measurement.symbols.get(path) ?? [];
-		const introducedHere = new Set(introduced[path] ?? []);
-		for (const nr of [...lines.keys()].sort((a, b) => a - b)) {
-			const line = lines.get(nr)!;
-			if (!introducedHere.has(nr)) {
-				if (!line.covered) tolerated++;
-				continue;
-			}
-			measured++;
-			const symbol = symbolAt(symbols, nr);
-			const named = symbol ? ` in ${symbol}` : "";
-			if (!line.covered) {
-				uncovered++;
-				if (findings.length < MAX_COVERAGE_FINDINGS)
-					findings.push({
-						rule_id: COVERAGE_RULE_UNCOVERED,
-						category: "quality",
-						severity: "blocker",
-						message: `${path}:${nr} introduced line never exercised by the suite${named}`,
-						symbol,
-					});
-			} else if (line.branches_missed > 0) {
-				partial++;
-				if (findings.length < MAX_COVERAGE_FINDINGS)
-					findings.push({
-						rule_id: COVERAGE_RULE_PARTIAL,
-						category: "quality",
-						severity: "major",
-						message: `${path}:${nr} introduced line exercised on part of its branches only${named}`,
-						symbol,
-					});
-			}
-		}
-	}
+	const { findings, measured, uncovered, partial, tolerated } = judgeIntroducedLines(measurement, wanted, introduced);
 	const notes = [...measurement.notes];
-	if (tolerated > 0)
+	if (tolerated.length > 0)
 		notes.push(
-			`${tolerated} line(s) of the touched files were already unexercised before this change and are tolerated: the rule is on the introduced lines, not on a ratio (QLT-04)`,
+			`${tolerated.length} line(s) of the touched files were already unexercised before this change and are tolerated: the rule is on the introduced lines, not on a ratio (QLT-04)`,
 		);
 	if (partial > 0)
 		notes.push(`${partial} introduced line(s) are exercised on part of their branches only: reported, not blocking`);
@@ -571,7 +608,7 @@ export function parseJacoco(
 			measured_lines: measured,
 			uncovered_lines: uncovered,
 			partially_covered_lines: partial,
-			tolerated_uncovered_lines: tolerated,
+			tolerated_uncovered_lines: tolerated.length,
 		},
 		notes,
 		failures: [],

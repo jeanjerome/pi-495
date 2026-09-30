@@ -7,7 +7,7 @@ import { ContractError, validate, check } from "../../src/contracts/validate.ts"
 import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { ActorRef, CanonicalError, Envelope } from "../../src/contracts/v1/common.ts";
 import { Evidence } from "../../src/contracts/v1/evidence.ts";
-import { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
+import { ControlDefinition, isDifferentialParser } from "../../src/contracts/v1/protocol.ts";
 
 describe("canonical JSON and digests (§8.1)", () => {
 	it("is independent of key order and omits undefined", () => {
@@ -140,5 +140,17 @@ describe("the parser identifiers of a control", () => {
 	it("given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused", () => {
 		assert.deepEqual(validate(ControlDefinition, unit), unit);
 		assert.throws(() => validate(ControlDefinition, { ...unit, parser: "ava-tap" }), ContractError);
+	});
+	it("given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential", () => {
+		const coverage = {
+			...unit,
+			control_id: "coverage",
+			parser: "lcov",
+			report_path: "495-lcov.info",
+			writable_paths: [],
+		};
+		assert.deepEqual(validate(ControlDefinition, coverage), coverage);
+		assert.equal(isDifferentialParser("lcov"), true);
+		assert.equal(isDifferentialParser("node-test"), false);
 	});
 });

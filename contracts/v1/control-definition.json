@@ -71,6 +71,7 @@
         "node-test",
         "junit-xml",
         "jest-json",
+        "lcov",
         "jacoco-xml",
         "java-imports",
         "pitest-xml"

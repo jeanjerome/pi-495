@@ -1519,3 +1519,38 @@ bugs:
       Check the size of each report file with `stat` before reading it, and end the control as an unreadable
       report over the bound; a test on a report file over the bound.
     status: open
+  - bug_id: BUG-2026-09-30T193000
+    date: "2026-09-30"
+    title: "A path with a control character that a change does not touch makes its coverage control indeterminate"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `introducedLinesOf` (`src/application/coverage.ts`) keeps every non-deleted path of the tree that carries a
+      control character, with no line, including one whose state is `unchanged`. `parseLcov` refuses an introduced
+      set holding such a path, so a change that writes no line in a repository that already holds a file named with
+      a tab or a line break ends with the coverage control `INDETERMINATE` where it would have passed without
+      reading a report. The JaCoCo and PIT readers receive the same zero-line entry, which no scenario of the
+      story asks for.
+    what_expected: >
+      A path the change does not touch and no report of the changed lines can name is not held against the change;
+      only a path a runner may write into the report the change is measured on makes that report unreadable.
+    steps_to_reproduce:
+      - "In a Node target that asks for coverage, track a file whose name holds a tab."
+      - "Accept a candidate that only deletes lines from another file, so that it introduces none."
+      - "The coverage control ends `INDETERMINATE` naming the tracked file."
+    root_cause: >
+      Not a mistake of the guard: a file already in the tree, loaded by the test run, can forge a record as well as
+      an added one, so the guard keeps it on purpose (test "keeps a path that carries a control character even when
+      the change introduces no line in it", case `same/`). The cost is the refusal for a change that would have
+      needed no report. Introduced by the branch e12s04.
+    evidence: >
+      Read on 2026-09-30 in `src/application/coverage.ts` and `src/adapters/execution/lcov.ts`; covered by the test
+      above, which asserts the `unchanged` path is kept. The end-to-end run on a target holding such a file was
+      not made.
+    risk_level: low
+    follow_ups: >
+      Decide whether an `unchanged` path is kept only when the change introduces at least one line (a report is read),
+      and keep it out of the entries handed to the JaCoCo and PIT readers; a test on a change with no introduced
+      line in a tree holding an `unchanged` path with a control character.
+    status: open

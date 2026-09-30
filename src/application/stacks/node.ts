@@ -3,13 +3,15 @@
  * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, mocha or jest
  * run without an argument, each read through the report it writes. A declared lint script becomes a
  * control of its own, refused rather than guessed when it needs a shell. A `scripts.test` that names
- * a runner 495 cannot read leaves no control at all (D-72).
+ * a runner 495 cannot read leaves no control at all (D-72). A target that asks its runner for
+ * coverage receives a control that judges the lines a change introduces from the LCOV report the
+ * runner writes; one that does not is told so instead (QLT-04).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, type StackAdapter, type StackDetection } from "./stack.ts";
+import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
 export const NODE_ADAPTER: StackAdapter = { stack: "node", signal_files: ["package.json"], detect: detectNodeStack };
 
@@ -22,10 +24,16 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		/* invalid package.json is a fact, not an error */
 	}
 	const scripts = pkg.scripts ?? {};
-	const suite = suiteOf(typeof scripts.test === "string" ? scripts.test : undefined, requirementRefs, nodeBinary);
+	const suite = suiteOf(
+		projectPath,
+		typeof scripts.test === "string" ? scripts.test : undefined,
+		requirementRefs,
+		nodeBinary,
+	);
 	// A runner 495 cannot read leaves no control at all: a protocol frozen on the lint alone would
 	// judge nothing of the behaviour the refused runner was there to judge.
 	const controls: ControlDefinition[] = suite.control ? [suite.control] : [];
+	if (suite.coverage?.control) controls.push(suite.coverage.control);
 	if (scripts.lint && !suite.refusal)
 		controls.push({
 			control_id: "lint",
@@ -51,16 +59,17 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 			protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"],
 		});
 	const witnesses = suite.runner ? witnessesOf(suite.runner, projectPath) : nodeTestWitnesses();
+	const measured = suite.coverage?.control && suite.runner ? coverageWitnesses(suite.runner, projectPath) : null;
 	return {
 		stack: "node",
 		facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) },
 		controls,
-		positive_witness: witnesses.positive,
-		witness_tests: 1,
-		own_negative_witness: {},
+		positive_witness: { ...witnesses.positive, ...measured?.positive },
+		witness_tests: measured ? 2 : 1,
+		own_negative_witness: measured ? { coverage: measured.uncovered } : {},
 		negative_witness: { ...witnesses.negative, "src/495-negative-witness.js": "var forbidden = 1;\n" },
 		preparation_paths: ["test/", "tests/"],
-		capability_missing: suite.refusal ? [suite.refusal] : [],
+		capability_missing: suite.refusal ? [suite.refusal] : (suite.coverage?.missing ?? []),
 	};
 }
 
@@ -72,8 +81,17 @@ const VITEST_COMMAND = /^\s*vitest(\s+run)?\s*$/;
 const MOCHA_COMMAND = /^\s*mocha\s*$/;
 const JEST_COMMAND = /^\s*jest\s*$/;
 const NODE_TEST_COMMAND = /^\s*node\s+--test(\s|$)/;
+const NODE_TEST_COVERAGE = /(^|\s)--experimental-test-coverage(\s|$)/;
 const READ_RUNNER = /^(vitest|mocha|jest)\s/;
 const SHELL_SYNTAX = /[|&;<>$`()]/;
+
+/** What a target's coverage becomes: a control that judges it, or the reason there is none. */
+interface CoverageOutcome {
+	control?: ControlDefinition;
+	missing?: string[];
+}
+
+const COVERAGE_NOT_MEASURED = "the coverage of the introduced lines is not measured on this target";
 
 /**
  * The unit control `scripts.test` declares, or why there is none: a control whose reader is not
@@ -81,18 +99,37 @@ const SHELL_SYNTAX = /[|&;<>$`()]/;
  * named instead of being run under the wrong reader.
  */
 function suiteOf(
+	projectPath: string,
 	scriptsTest: string | undefined,
 	requirementRefs: RequirementRef[],
 	nodeBinary: string,
 ):
-	| { runner: SuiteRunner; control: ControlDefinition; refusal?: undefined }
-	| { runner?: undefined; control?: undefined; refusal: string } {
-	if (scriptsTest === undefined || NODE_TEST_COMMAND.test(scriptsTest))
-		return { runner: "node-test", control: nodeTestControl(requirementRefs, nodeBinary) };
-	if (VITEST_COMMAND.test(scriptsTest))
-		return { runner: "vitest", control: vitestControl(requirementRefs, nodeBinary) };
-	if (MOCHA_COMMAND.test(scriptsTest)) return { runner: "mocha", control: mochaControl(requirementRefs, nodeBinary) };
-	if (JEST_COMMAND.test(scriptsTest)) return { runner: "jest", control: jestControl(requirementRefs, nodeBinary) };
+	| { runner: SuiteRunner; control: ControlDefinition; coverage?: CoverageOutcome; refusal?: undefined }
+	| { runner?: undefined; control?: undefined; coverage?: undefined; refusal: string } {
+	if (scriptsTest === undefined || NODE_TEST_COMMAND.test(scriptsTest)) {
+		if (scriptsTest !== undefined && NODE_TEST_COVERAGE.test(scriptsTest)) {
+			const control = nodeTestCoverageControl(requirementRefs, nodeBinary);
+			return {
+				runner: "node-test",
+				control,
+				coverage: { control: coverageControl(control, requirementRefs, nodeBinary, LCOV_REPORT) },
+			};
+		}
+		return {
+			runner: "node-test",
+			control: nodeTestControl(requirementRefs, nodeBinary),
+			coverage: {
+				missing: [
+					`${COVERAGE_NOT_MEASURED}: scripts.test does not ask node:test for coverage (--experimental-test-coverage)`,
+				],
+			},
+		};
+	}
+	if (VITEST_COMMAND.test(scriptsTest)) return vitestSuite(projectPath, requirementRefs, nodeBinary);
+	if (MOCHA_COMMAND.test(scriptsTest))
+		return { runner: "mocha", control: mochaControl(requirementRefs, nodeBinary), coverage: unreadCoverage("mocha") };
+	if (JEST_COMMAND.test(scriptsTest))
+		return { runner: "jest", control: jestControl(requirementRefs, nodeBinary), coverage: unreadCoverage("jest") };
 	const command = scriptsTest.trim();
 	if (SHELL_SYNTAX.test(command))
 		return { refusal: `scripts.test chains commands through a shell (${command}), which 495 cannot run` };
@@ -138,17 +175,138 @@ function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string):
 }
 
 /**
+ * Where node:test writes its LCOV report: a file at the root of the copy, which is why the control
+ * declares that one file writable and nothing around it. The report goes beside the TAP stream, which
+ * stays on the standard output where the node-test reader looks for it.
+ */
+const LCOV_REPORT = "495-lcov.info";
+/** The name under which `unit` provides that report to the controls that require it. */
+const LCOV_REPORT_NAME = "lcov-report";
+
+function nodeTestCoverageControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
+	const nodeTest = nodeTestControl(requirementRefs, nodeBinary);
+	return {
+		...nodeTest,
+		title: "node:test suite with coverage (command read from scripts.test)",
+		command: [
+			nodeBinary,
+			"--test",
+			"--experimental-test-coverage",
+			"--test-reporter=tap",
+			"--test-reporter-destination=stdout",
+			"--test-reporter=lcov",
+			`--test-reporter-destination=${LCOV_REPORT}`,
+		],
+		provides: [LCOV_REPORT_NAME],
+		writable_paths: [LCOV_REPORT],
+	};
+}
+
+/**
+ * The control that judges the lines a change introduces from the LCOV report `unit` wrote. It runs
+ * nothing of its own and protects what `unit` protects: a configuration that excludes files from the
+ * report would make lines disappear from it.
+ */
+function coverageControl(
+	unit: ControlDefinition,
+	requirementRefs: RequirementRef[],
+	nodeBinary: string,
+	report: string,
+): ControlDefinition {
+	return {
+		...unit,
+		control_id: "coverage",
+		title: "introduced-line coverage, read from the LCOV report of the test run",
+		command: emptyTrigger(nodeBinary),
+		timeout_ms: 60_000,
+		parser: "lcov",
+		report_path: report,
+		provides: [],
+		requires: [LCOV_REPORT_NAME],
+		writable_paths: [],
+		requirement_refs: requirementRefs,
+	};
+}
+
+/** The coverage providers vitest loads from `node_modules`, in the order the control prefers them. */
+const VITEST_COVERAGE_PROVIDERS = ["v8", "istanbul"] as const;
+type VitestCoverageProvider = (typeof VITEST_COVERAGE_PROVIDERS)[number];
+
+/** Where vitest writes the LCOV report of its coverage run, under the directory the sandbox lets it create. */
+const VITEST_COVERAGE_DIRECTORY = `${REPORT_DIRECTORY}/coverage`;
+
+/** The provider the target installed: vitest measures nothing without one, and 495 installs none. */
+function installedVitestProvider(projectPath: string): VitestCoverageProvider | null {
+	return (
+		VITEST_COVERAGE_PROVIDERS.find((provider) =>
+			existsSync(join(projectPath, "node_modules", "@vitest", `coverage-${provider}`)),
+		) ?? null
+	);
+}
+
+function vitestSuite(
+	projectPath: string,
+	requirementRefs: RequirementRef[],
+	nodeBinary: string,
+): { runner: SuiteRunner; control: ControlDefinition; coverage: CoverageOutcome } {
+	const provider = installedVitestProvider(projectPath);
+	const control = vitestControl(requirementRefs, nodeBinary, provider);
+	if (provider === null)
+		return {
+			runner: "vitest",
+			control,
+			coverage: {
+				missing: [
+					`${COVERAGE_NOT_MEASURED}: vitest is installed without a coverage provider, and @vitest/coverage-v8 would make it measurable`,
+				],
+			},
+		};
+	return {
+		runner: "vitest",
+		control,
+		coverage: {
+			control: coverageControl(control, requirementRefs, nodeBinary, `${VITEST_COVERAGE_DIRECTORY}/lcov.info`),
+		},
+	};
+}
+
+/** A runner whose coverage is declared where 495 does not look, or wrapped by a tool it does not run. */
+function unreadCoverage(runner: "mocha" | "jest"): CoverageOutcome {
+	return { missing: [`${COVERAGE_NOT_MEASURED}: 495 does not read the coverage of ${runner}`] };
+}
+
+/**
  * The vitest the target installed, run from the copy's `node_modules` and never from the host's PATH,
  * so the control judges the version the target declared. Vite bundles its configuration under
- * `node_modules/.vite-temp`, which is why that directory is writable next to the report.
+ * `node_modules/.vite-temp`, which is why that directory is writable next to the report. With a
+ * coverage provider installed it also writes the LCOV report of the run under `target/coverage`.
  */
-function vitestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
+function vitestControl(
+	requirementRefs: RequirementRef[],
+	nodeBinary: string,
+	provider: VitestCoverageProvider | null,
+): ControlDefinition {
 	const report = `${REPORT_DIRECTORY}/junit.xml`;
 	const nodeTest = nodeTestControl(requirementRefs, nodeBinary);
 	return {
 		...nodeTest,
 		title: "vitest suite (command read from scripts.test)",
-		command: [nodeBinary, "node_modules/vitest/vitest.mjs", "run", "--reporter=junit", `--outputFile=${report}`],
+		command: [
+			nodeBinary,
+			"node_modules/vitest/vitest.mjs",
+			"run",
+			"--reporter=junit",
+			`--outputFile=${report}`,
+			...(provider === null
+				? []
+				: [
+						"--coverage.enabled",
+						`--coverage.provider=${provider}`,
+						"--coverage.reporter=lcov",
+						`--coverage.reportsDirectory=${VITEST_COVERAGE_DIRECTORY}`,
+					]),
+		],
+		provides: provider === null ? [] : [LCOV_REPORT_NAME],
 		parser: "junit-xml",
 		report_path: report,
 		writable_paths: [REPORT_DIRECTORY, "node_modules/.vite-temp"],
@@ -259,6 +417,40 @@ function witnessesOf(runner: SuiteRunner, projectPath: string): Witnesses {
 	if (runner === "node-test") return nodeTestWitnesses();
 	const { extension, ...sources } = WITNESS_SOURCES[runner];
 	return testDirectoryWitnesses(projectPath, extension, sources);
+}
+
+const COVERED_MODULE = "src/witness495/covered.mjs";
+const UNCOVERED_MODULE = "src/witness495/uncovered.mjs";
+
+/**
+ * What a coverage sensor is qualified on. The positive witness adds a module its test calls in full;
+ * the sensor's own negative witness adds one its test loads and leaves a function of uncalled, which
+ * a failing test cannot show: a suite that fails stops before the report exists, and a line nothing
+ * executes is not a failure.
+ */
+function coverageWitnesses(
+	runner: SuiteRunner,
+	projectPath: string,
+): { positive: Record<string, string>; uncovered: Record<string, string> } {
+	const directory = runner === "vitest" && existsSync(join(projectPath, "tests")) ? "tests" : "test";
+	const header =
+		runner === "vitest"
+			? 'import { expect, it } from "vitest";\n'
+			: 'import { test as it } from "node:test";\nimport { strict as assert } from "node:assert";\n';
+	const equal = (actual: string, expected: number): string =>
+		runner === "vitest" ? `expect(${actual}).toBe(${expected})` : `assert.equal(${actual}, ${expected})`;
+	return {
+		positive: {
+			[COVERED_MODULE]:
+				"export function twice(n) {\n  return n * 2;\n}\n\nexport function thrice(n) {\n  return n * 3;\n}\n",
+			[`${directory}/495-covered-witness.test.mjs`]: `${header}import { thrice, twice } from "../${COVERED_MODULE}";\n\nit("495 coverage witness: every function of the module is called", () => {\n  ${equal("twice(2)", 4)};\n  ${equal("thrice(2)", 6)};\n});\n`,
+		},
+		uncovered: {
+			[UNCOVERED_MODULE]:
+				"export function called(n) {\n  return n + 1;\n}\n\nexport function neverCalled(n) {\n  return n - 1;\n}\n",
+			[`${directory}/495-uncovered-witness.test.mjs`]: `${header}import { called } from "../${UNCOVERED_MODULE}";\n\nit("495 coverage witness: the module is loaded and one function is called", () => {\n  ${equal("called(1)", 2)};\n});\n`,
+		},
+	};
 }
 
 /** Converts a simple npm script (`node scripts/lint.js`) into an argv; a shell-only script is refused (no implicit shell). */

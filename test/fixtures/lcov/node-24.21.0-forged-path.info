@@ -1,0 +1,17 @@
+TN:
+SF:evil
+SF:src/victim.js
+FN:1,victim
+FNDA:1,victim
+FNF:1
+FNH:1
+BRDA:1,0,0,1
+BRDA:1,1,0,1
+BRF:2
+BRH:2
+DA:1,1
+DA:2,1
+DA:3,1
+LH:3
+LF:3
+end_of_record

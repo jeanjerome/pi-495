@@ -22,6 +22,17 @@ import { FILE_READ_BUDGET_BYTES } from "./review.ts";
  */
 export const MAX_DIFFED_BYTES = FILE_READ_BUDGET_BYTES;
 
+const CONTROL_CHARACTER = /\p{Cc}/u;
+
+/**
+ * A coverage report names each file it measured as a line of text, and the runner writes a path
+ * without escaping it: a path with a line break reads as two records, the second one forged by
+ * whoever named the file.
+ */
+export function hasControlCharacter(path: string): boolean {
+	return CONTROL_CHARACTER.test(path);
+}
+
 export interface IntroducedLinesResult {
 	lines: IntroducedLines;
 	/** Paths left out, with the reason: the control must know what was not measured. */
@@ -71,6 +82,10 @@ export type BytesSource = (path: string) => Promise<Uint8Array | null>;
  * so a rename introduces nothing — QLT-04 forbids a move from hiding a debt, and equally forbids it
  * from manufacturing one. A rename the manifest cannot prove leaves the file read as an addition:
  * the limit is reported, never guessed.
+ *
+ * A path of the tree that carries a control character is kept with no line when the change wrote
+ * none in it, so a reader of a report can refuse it: a file moved without a byte changing, too large
+ * to diff or binary is left out of the lines, yet a runner still writes its name into the report.
  */
 export async function introducedLinesOf(
 	manifest: CandidateManifest,
@@ -82,6 +97,7 @@ export async function introducedLinesOf(
 	const lines: IntroducedLines = {};
 	const notes: string[] = [];
 	for (const entry of manifest.entries) {
+		if (entry.baseline_state !== "deleted" && hasControlCharacter(entry.path)) lines[entry.path] = [];
 		if (entry.kind !== "file" || entry.content_digest === null) continue;
 		// `type_changed` is a file the reference held as something else — a symlink turned into source:
 		// it has no reference text, so every one of its lines is introduced, like an addition.

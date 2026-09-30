@@ -9,14 +9,16 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
  * sources and judges them against the frozen architecture rules (ARC-04, CON-03); it compiles
  * nothing. `pitest-xml` reads the mutation report of a run scoped to the classes the candidate
  * modified and judges the mutants sitting on the lines it wrote (VER-04). `jest-json` reads the
- * JSON report jest writes to a file. Each is native to its ecosystem, behind the one finding
- * envelope.
+ * JSON report jest writes to a file. `lcov` reads the LCOV coverage report a Node runner writes and
+ * judges only the lines the candidate introduced, as `jacoco-xml` does (QLT-04). Each is native to
+ * its ecosystem, behind the one finding envelope.
  */
 export const PARSER_IDS = [
 	"exit-code",
 	"node-test",
 	"junit-xml",
 	"jest-json",
+	"lcov",
 	"jacoco-xml",
 	"java-imports",
 	"pitest-xml",
@@ -30,7 +32,7 @@ export type ParserId = (typeof PARSER_IDS)[number];
  * demonstrated either, and neither is a line whose mutation no test notices. An improvement
  * elsewhere never compensates for any of the three (QLT-04, ARC-04, VER-04).
  */
-export const DIFFERENTIAL_PARSER_IDS = ["jacoco-xml", "java-imports", "pitest-xml"] as const;
+export const DIFFERENTIAL_PARSER_IDS = ["jacoco-xml", "lcov", "java-imports", "pitest-xml"] as const;
 
 export function isDifferentialParser(parser: ParserId): boolean {
 	return (DIFFERENTIAL_PARSER_IDS as readonly string[]).includes(parser);
