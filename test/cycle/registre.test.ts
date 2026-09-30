@@ -55,19 +55,27 @@ describe("the registry as the cycle reads it", () => {
 		);
 	});
 
-	it("marks an open entry fixed at a revision, and touches no other line", () => {
+	it("moves an entry fixed at a revision to the archive, and touches no other line of the registry", () => {
 		const root = racine();
 		marquerCorrige(root, "BUG-2026-09-02T100000", "def5678");
+		const entree =
+			'  - bug_id: BUG-2026-09-02T100000\n    date: "2026-09-02"\n    title: "A medium defect"\n    severity: medium\n';
 		assert.equal(
 			readFileSync(join(root, "specs", "bugs", "registry.yaml"), "utf8"),
-			REGISTRE.replace(
-				'    title: "A medium defect"\n    severity: medium\n    status: open\n',
-				'    title: "A medium defect"\n    severity: medium\n    status: fixed\n    fixed_in: def5678\n',
-			),
+			REGISTRE.replace(`${entree}    status: open\n`, ""),
+		);
+		assert.equal(
+			readFileSync(join(root, "specs", "bugs", "registry-fixed.yaml"), "utf8"),
+			`bugs:\n${entree}    status: fixed\n    fixed_in: def5678\n`,
+		);
+		marquerCorrige(root, "BUG-2026-09-04T100000", "fed9876");
+		assert.match(
+			readFileSync(join(root, "specs", "bugs", "registry-fixed.yaml"), "utf8"),
+			/fixed_in: def5678\n {2}- bug_id: BUG-2026-09-04T100000[\s\S]*fixed_in: fed9876\n$/,
 		);
 		assert.deepEqual(
 			defautsOuverts(root, "low").map((d) => d.id),
-			["BUG-2026-09-04T100000", "BUG-2026-09-01T100000"],
+			["BUG-2026-09-01T100000"],
 		);
 	});
 

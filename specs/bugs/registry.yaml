@@ -1490,7 +1490,8 @@ bugs:
       Stage only the paths git can index and never a `node_modules/` path, after copying every path the
       candidate holds; a test on a project that ignores a candidate path, and on one that does not ignore
       `node_modules/`.
-    status: open
+    status: fixed
+    fixed_in: eed144d
   - bug_id: BUG-2026-09-30T180000
     date: "2026-09-30"
     title: "A test report is read whole into memory before the size bound of the JUnit reader applies"

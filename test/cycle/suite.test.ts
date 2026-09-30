@@ -264,7 +264,7 @@ describe("the repair of the registry's defects", () => {
 			["BUG-2026-09-11T100000", "BUG-2026-09-12T100000"],
 		);
 		assert.match(
-			readFileSync(join(root, "specs", "bugs", "registry.yaml"), "utf8"),
+			readFileSync(join(root, "specs", "bugs", "registry-fixed.yaml"), "utf8"),
 			/status: fixed\n {4}fixed_in: abcdef1/,
 		);
 		assert.equal(lirePlan(root).find((e) => e.id === "e28")?.stories[0]?.statut, "versée");
@@ -320,7 +320,7 @@ export default (invite) => {
 		assert.equal(r.code, 0);
 		assert.deepEqual(sessionsAuMoment, [false], "the pending story is driven before any session is asked");
 		assert.equal(existsSync(journal), true, "the session is asked afterwards, for the defects left");
-		assert.match(readFileSync(join(root, "specs", "bugs", "registry.yaml"), "utf8"), /fixed_in: abcdef1/);
+		assert.match(readFileSync(join(root, "specs", "bugs", "registry-fixed.yaml"), "utf8"), /fixed_in: abcdef1/);
 	});
 
 	it("hands back after the ceiling of one phase", async () => {

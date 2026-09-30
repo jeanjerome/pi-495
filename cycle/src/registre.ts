@@ -52,18 +52,26 @@ export function defautDeLaStory(markdown: string): string | null {
 	return /BUG-\d{4}-\d{2}-\d{2}T\d{6}/.exec(markdown)?.[0] ?? null;
 }
 
-/** Marks an open entry fixed, at the revision that fixed it. */
+/** Where an entry goes once fixed: the registry keeps the open defects only. */
+function cheminArchive(root: string): string {
+	return join(root, "specs", "bugs", "registry-fixed.yaml");
+}
+
+/** Moves an open entry to the archive of fixed defects, marked fixed at the revision that fixed it. */
 export function marquerCorrige(root: string, id: string, sha: string): void {
 	const fichier = chemin(root);
 	const lignes = readFileSync(fichier, "utf8").split("\n");
 	const debut = lignes.findIndex((l) => ENTREE.exec(l)?.[1] === id);
 	if (debut < 0) throw new Error(`specs/bugs/registry.yaml: ${id} not found`);
-	for (let i = debut + 1; i < lignes.length && !ENTREE.test(lignes[i]!); i++) {
-		if (lignes[i] === "    status: open") {
-			lignes.splice(i, 1, "    status: fixed", `    fixed_in: ${sha}`);
-			writeFileSync(fichier, lignes.join("\n"));
-			return;
-		}
-	}
-	throw new Error(`specs/bugs/registry.yaml: ${id} is not open`);
+	let fin = debut + 1;
+	while (fin < lignes.length && !ENTREE.test(lignes[fin]!) && lignes[fin] !== "") fin++;
+	const i = lignes.slice(debut, fin).indexOf("    status: open");
+	if (i < 0) throw new Error(`specs/bugs/registry.yaml: ${id} is not open`);
+	const entree = lignes.slice(debut, fin);
+	entree.splice(i, 1, "    status: fixed", `    fixed_in: ${sha}`);
+	const archive = cheminArchive(root);
+	const dejaArchives = existsSync(archive) ? readFileSync(archive, "utf8") : "bugs:\n";
+	writeFileSync(archive, `${dejaArchives}${entree.join("\n")}\n`);
+	lignes.splice(debut, fin - debut);
+	writeFileSync(fichier, lignes.join("\n"));
 }

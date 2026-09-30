@@ -144,7 +144,7 @@ Trois réponses du propriétaire sont déléguées, chacune un acte inscrit au d
 la suivante, ceux de gravité moyenne ou haute ; à la fin de la suite, les faibles. Une session choisit
 le premier défaut ouvert qui ne demande aucune décision de produit, écrit sa story de correction sous
 l'epic `e28` (que le plan ne marque jamais prête) en citant l'entrée du registre, et l'outil la conduit
-par les six pas ; au versement, l'entrée est marquée corrigée à la révision livrée. Les défauts que la
+par les six pas ; au versement, l'entrée passe du registre à `specs/bugs/registry-fixed.yaml`, marquée corrigée à la révision livrée. Les défauts que la
 session écarte parce qu'ils demandent le propriétaire sont nommés à la fin de la suite, avec la
 raison, sans l'arrêter. Une phase corrige au plus `CYCLE_495_DEFAUTS_MAX` défauts (5 par défaut) ;
 `npm run cycle -- defauts [gravité]` lance cette phase seule.
