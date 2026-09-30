@@ -1,7 +1,7 @@
 /**
- * Applying the edit of a recommended complement to the text of a target's `package.json`. The value
- * is replaced where it stands in the text, so that the file stays byte for byte what it was around it
- * and the diff the owner reads shows that line only. Once adopted, a complement is written into the
+ * Applying the edit of a recommended complement to the text of a target's `package.json` or `pom.xml`.
+ * The value is replaced where it stands in the text, so that the file stays byte for byte what it was
+ * around it and the diff the owner reads shows that change only. Once adopted, a complement is written into the
  * copies where a control runs.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -91,10 +91,22 @@ export function applyScriptsTestEdit(packageJson: string, edit: FileEdit): strin
 	return packageJson.slice(0, start) + JSON.stringify(edit.wanted) + packageJson.slice(end);
 }
 
+/**
+ * The text of `pom.xml` with the one place `edit.current` occurs replaced by `edit.wanted`, or null
+ * when it does not occur exactly once: with no single place to replace, the edit is not applied.
+ */
+function applyExactEdit(text: string, edit: FileEdit): string | null {
+	const parts = text.split(edit.current);
+	if (edit.current === "" || parts.length !== 2) return null;
+	return `${parts[0]}${edit.wanted}${parts[1]}`;
+}
+
 /** The text `edit` makes of the file it names under `projectPath`, or null when the edit does not apply to it. */
 export function editedFile(projectPath: string, edit: FileEdit): string | null {
 	const file = join(projectPath, edit.path);
-	return existsSync(file) ? applyScriptsTestEdit(readFileSync(file, "utf8"), edit) : null;
+	if (!existsSync(file)) return null;
+	const text = readFileSync(file, "utf8");
+	return edit.path === "pom.xml" ? applyExactEdit(text, edit) : applyScriptsTestEdit(text, edit);
 }
 
 /**

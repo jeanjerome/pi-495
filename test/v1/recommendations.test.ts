@@ -7,6 +7,7 @@ import { strict as assert } from "node:assert";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { editedFile } from "../../src/application/complement.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { validate } from "../../src/contracts/validate.ts";
 import type { StackAdapter } from "../../src/application/stacks/stack.ts";
@@ -97,6 +98,175 @@ describe("Maven recommends the sensors its POM lacks", () => {
 			pitOnly.recommendations.map((r) => r.test_type),
 			["coverage"],
 		);
+	});
+});
+
+/** A POM that declares nothing about JaCoCo, whose `build` is the text given. */
+function pomWithBuild(name: string, build: string, profiles = ""): string {
+	const project = join(root, name);
+	writeFiles(project, {
+		"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.h495</groupId>
+  <artifactId>${name}</artifactId>
+  <version>1.0.0</version>
+${build}${profiles}</project>
+`,
+	});
+	return project;
+}
+
+const SUREFIRE = `<plugin><artifactId>maven-surefire-plugin</artifactId><version>3.2.5</version></plugin>`;
+
+describe("Maven describes the declaration of JaCoCo when its POM takes it without ambiguity", () => {
+	it("given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither", () => {
+		const [coverage] = detectStack(mavenProject("one-section"), REFS, NODE).recommendations;
+		assert.equal(coverage?.test_type, "coverage");
+		assert.equal(coverage?.edit?.path, "pom.xml");
+		assert.ok(coverage?.edit?.wanted.startsWith(coverage.edit.current), "the anchor is kept, the declaration follows");
+		const declaration = coverage?.edit?.wanted.slice(coverage.edit.current.length) ?? "";
+		for (const expected of [
+			"jacoco-maven-plugin",
+			"<version>0.8.15</version>",
+			"<goal>prepare-agent</goal>",
+			"<goal>report</goal>",
+		])
+			assert.ok(declaration.includes(expected), expected);
+		assert.deepEqual(coverage?.install, {
+			package: "org.jacoco:jacoco-maven-plugin",
+			version: "0.8.15",
+			manager: "maven",
+		});
+		assert.deepEqual(validate(RecommendedComplement, coverage), coverage);
+
+		const targets = {
+			"no build section": pomWithBuild("no-build", ""),
+			"plugins only in a profile": pomWithBuild(
+				"in-profile",
+				"  <build/>\n",
+				`  <profiles><profile><id>p</id><build>\n<plugins>\n${SUREFIRE}\n</plugins>\n</build></profile></profiles>\n`,
+			),
+			"plugins only in pluginManagement": pomWithBuild(
+				"in-management",
+				`  <build>\n    <pluginManagement>\n      <plugins>\n        ${SUREFIRE}\n      </plugins>\n    </pluginManagement>\n  </build>\n`,
+			),
+		};
+		for (const [label, project] of Object.entries(targets)) {
+			const [recommendation] = detectStack(project, REFS, NODE).recommendations;
+			assert.equal(recommendation?.test_type, "coverage", label);
+			assert.equal(recommendation?.edit, undefined, label);
+			assert.equal(recommendation?.install, undefined, label);
+		}
+	});
+});
+
+describe("Maven declares JaCoCo beside one the POM keeps in a profile", () => {
+	it("given a POM whose JaCoCo is declared in a profile only, then the coverage recommendation carries the insertion, and given one declaring it outside any profile without the report goal, then it carries none", () => {
+		const profile = `  <profiles><profile><id>coverage</id><build><plugins>
+<plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.11</version></plugin>
+</plugins></build></profile></profiles>\n`;
+		const inProfile = pomWithBuild(
+			"jacoco-in-profile",
+			`  <build>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
+			profile,
+		);
+		const [beside] = detectStack(inProfile, REFS, NODE).recommendations;
+		assert.equal(beside?.test_type, "coverage");
+		assert.equal(beside?.edit?.path, "pom.xml");
+		assert.equal(beside?.install?.manager, "maven");
+
+		const declared = pomWithBuild(
+			"jacoco-declared",
+			`  <build>\n    <plugins>\n      <plugin><artifactId>jacoco-maven-plugin</artifactId><version>0.8.11</version></plugin>\n    </plugins>\n  </build>\n`,
+		);
+		const [twice] = detectStack(declared, REFS, NODE).recommendations;
+		assert.equal(twice?.test_type, "coverage");
+		assert.equal(twice?.edit, undefined, "a second declaration in the same scope is not proposed");
+		assert.equal(twice?.install, undefined);
+	});
+});
+
+describe("Maven declares JaCoCo in the plugins of the build, wherever else the POM lists plugins", () => {
+	it("given a POM listing plugins in pluginManagement before its build plugins, and another listing them in a profile, then the insertion follows the opening of the build plugins", () => {
+		const managed = pomWithBuild(
+			"managed-before-build",
+			`  <build>\n    <pluginManagement>\n      <plugins>\n        ${SUREFIRE}\n      </plugins>\n    </pluginManagement>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
+		);
+		const profiled = pomWithBuild(
+			"profile-after-build",
+			`  <build>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
+			`  <profiles>\n    <profile>\n      <id>p</id>\n      <build>\n    <plugins>\n        ${SUREFIRE}\n    </plugins>\n      </build>\n    </profile>\n  </profiles>\n`,
+		);
+		for (const project of [managed, profiled]) {
+			const [coverage] = detectStack(project, REFS, NODE).recommendations;
+			const edit = coverage?.edit;
+			assert.ok(edit, project);
+			const edited = editedFile(project, edit) ?? "";
+			const buildPlugins = /<\/pluginManagement>\s*<plugins>|<build>\s*<plugins>/.exec(edited);
+			assert.ok(buildPlugins, project);
+			const declaredAt = edited.indexOf("jacoco-maven-plugin");
+			assert.ok(declaredAt > buildPlugins.index, `${project}: the declaration follows the plugins of the build`);
+			assert.ok(edited.slice(buildPlugins.index, declaredAt).indexOf("</plugins>") < 0, project);
+		}
+	});
+});
+
+describe("Maven keeps the recommendation a text when the POM lists its build plugins twice", () => {
+	it("given a POM whose build holds two plugins sections, then the coverage recommendation carries neither the edit nor the resolution", () => {
+		const twice = pomWithBuild(
+			"two-sections",
+			`  <build>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
+		);
+		const [coverage] = detectStack(twice, REFS, NODE).recommendations;
+		assert.equal(coverage?.test_type, "coverage");
+		assert.equal(coverage?.edit, undefined, "no one section is the place of the declaration");
+		assert.equal(coverage?.install, undefined);
+	});
+});
+
+describe("The declaration of JaCoCo is inserted into the POM byte for byte, or not at all", () => {
+	const fourSpaces = `    <!-- the build of the project -->
+    <build>
+        <!-- plugins are listed below -->
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+            <!-- the compiler comes last -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+`;
+
+	it("given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied", () => {
+		const project = pomWithBuild("four-spaces", fourSpaces);
+		const [coverage] = detectStack(project, REFS, NODE).recommendations;
+		const edit = coverage?.edit;
+		assert.ok(edit, "the POM takes the declaration");
+		const original = readFileSync(join(project, "pom.xml"), "utf8");
+		const edited = editedFile(project, edit);
+		assert.ok(edited !== null, "the edit applies");
+		const at = original.indexOf(edit.current) + edit.current.length;
+		const inserted = edit.wanted.slice(edit.current.length);
+		assert.equal(edited.slice(0, at), original.slice(0, at), "everything before the anchor is unchanged");
+		assert.equal(edited.slice(at, at + inserted.length), inserted);
+		assert.equal(edited.slice(at + inserted.length), original.slice(at), "everything after the anchor is unchanged");
+		assert.match(
+			inserted,
+			/^ {12}<plugin>\n {16}<groupId>org\.jacoco<\/groupId>/,
+			"the declaration follows the indentation",
+		);
+
+		const absent = join(root, "absent");
+		writeFiles(absent, { "pom.xml": original.replace(edit.current, "") });
+		assert.equal(editedFile(absent, edit), null);
+		const twice = join(root, "twice");
+		writeFiles(twice, { "pom.xml": original.replace("</project>", `<!--\n${edit.current}-->\n</project>`) });
+		assert.equal(editedFile(twice, edit), null);
 	});
 });
 

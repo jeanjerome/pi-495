@@ -56,7 +56,7 @@ import { designVerification } from "./phases/verification-design.ts";
 import { buildContext, type FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { buildDecisionRequest, type Adoptable } from "./decisions.ts";
-import { runInstall, type InstallRun } from "./installation.ts";
+import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
@@ -174,13 +174,18 @@ export class Harness {
 			verification: this.verification,
 			workspace: deps.workspace,
 			workspacePolicy: deps.workspacePolicy,
-			install: (copyPath: string, command: readonly string[]) =>
+			install: (copyPath: string, command: readonly string[], outside?: string) =>
 				deps.sandbox.qualification.qualified
-					? runInstall(deps.sandbox.backend, copyPath, command)
+					? runInstall(deps.sandbox.backend, copyPath, command, outside)
 					: Promise.resolve<InstallRun>({
 							kind: "failed",
 							reason: `sandbox backend ${deps.sandbox.backend.backend} is not qualified: ${deps.sandbox.qualification.reasons.join("; ")}`,
 						}),
+			localRepository: async (copyPath: string) => {
+				if (!deps.sandbox.qualification.qualified) return null;
+				const announced = await askedLocalRepository(deps.sandbox.backend, copyPath);
+				return "path" in announced ? announced.path : null;
+			},
 			policy: deps.policy,
 			get integrator() {
 				return harness.integrator;

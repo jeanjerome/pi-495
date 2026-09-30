@@ -311,53 +311,86 @@ const T = {
 	},
 } as const;
 
-/** What the owner is offered to adopt on an IH-04: the files a recommendation edits and the packages one installs. */
+/**
+ * What the owner is offered to adopt on an IH-04: the files a recommendation edits and the packages one
+ * installs, and for a Maven install the local repository Maven announced, which the resolution writes.
+ */
 export interface Adoptable {
 	files: readonly string[];
 	installs: readonly PackageInstall[];
+	local_repository?: string;
 }
 
 const installedName = (install: PackageInstall): string => `${install.package} ${install.version}`;
+const installedNames = (installs: readonly PackageInstall[]): string => installs.map(installedName).join(", ");
+const installsWith = (installs: readonly PackageInstall[], manager: PackageInstall["manager"]): PackageInstall[] =>
+	installs.filter((install) => install.manager === manager);
 
 /**
  * The way out of IH-04 that changes the target instead of judging anything: it applies the file edit of
- * a recommended complement, or installs its package in a copy with the network open for that step alone.
- * It is offered only when something can be applied or installed.
+ * a recommended complement, installs its package in a copy, or resolves its Maven plugin in a copy, with
+ * the network open for that step alone. It is offered only when something can be applied or installed.
  */
 const ADOPT_COMPLEMENT = {
-	fr: ({ files, installs }: Adoptable) => {
+	fr: ({ files, installs, local_repository }: Adoptable) => {
 		const edits = files.join(", ");
-		const packages = installs.map(installedName).join(", ");
+		const npm = installsWith(installs, "npm");
+		const maven = installsWith(installs, "maven");
+		const repository = local_repository === undefined ? "" : ` (${local_repository})`;
 		const what = [
 			files.length > 0 ? `applique à ${edits} la modification exacte que la recommandation décrit` : null,
-			installs.length > 0
-				? `installe ${packages} dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation`
+			npm.length > 0
+				? `installe ${installedNames(npm)} dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation`
+				: null,
+			maven.length > 0
+				? `résout ${installedNames(maven)} avec Maven dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; les fichiers téléchargés sont écrits dès l'adoption dans le dépôt local que Maven désigne${repository} et y restent si l'intégration est refusée`
 				: null,
 		]
 			.filter((part) => part !== null)
 			.join(", puis ");
+		const inspected = [
+			npm.length > 0
+				? "le résultat est inspecté et n'est accepté que s'il ajoute des paquets sans rien modifier de ce qui existait"
+				: null,
+			maven.length > 0
+				? "la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml"
+				: null,
+		].filter((part) => part !== null);
 		return {
 			id: "adopt_complement",
-			label: `Adopter le complément (${[files.length > 0 ? `modifie ${edits}` : null, installs.length > 0 ? `installe ${packages}, réseau ouvert pour cette seule étape` : null].filter((part) => part !== null).join(" ; ")})`,
-			effect: `495 ${what}${installs.length > 0 ? "" : ", sans réseau et sans rien installer"} ; ${installs.length > 0 ? "le résultat est inspecté et n'est accepté que s'il ajoute des paquets sans rien modifier de ce qui existait ; " : ""}le complément arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
+			label: `Adopter le complément (${[files.length > 0 ? `modifie ${edits}` : null, npm.length > 0 ? `installe ${installedNames(npm)}, réseau ouvert pour cette seule étape` : null, maven.length > 0 ? `résout ${installedNames(maven)}, réseau ouvert pour cette seule étape` : null].filter((part) => part !== null).join(" ; ")})`,
+			effect: `495 ${what}${installs.length > 0 ? "" : ", sans réseau et sans rien installer"} ; ${inspected.map((part) => `${part} ; `).join("")}le complément arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
 			risky: true,
 		};
 	},
-	en: ({ files, installs }: Adoptable) => {
+	en: ({ files, installs, local_repository }: Adoptable) => {
 		const edits = files.join(", ");
-		const packages = installs.map(installedName).join(", ");
+		const npm = installsWith(installs, "npm");
+		const maven = installsWith(installs, "maven");
+		const repository = local_repository === undefined ? "" : ` (${local_repository})`;
 		const what = [
 			files.length > 0 ? `applies to ${edits} the exact edit the recommendation describes` : null,
-			installs.length > 0
-				? `installs ${packages} in a copy of the project, opening the network for that step alone and running no install script`
+			npm.length > 0
+				? `installs ${installedNames(npm)} in a copy of the project, opening the network for that step alone and running no install script`
+				: null,
+			maven.length > 0
+				? `resolves ${installedNames(maven)} with Maven in a copy of the project, opening the network for that step alone and running no goal of the plugin; the downloaded files are written from the adoption into the local repository Maven designates${repository} and stay there if the integration is refused`
 				: null,
 		]
 			.filter((part) => part !== null)
 			.join(", then ");
+		const inspected = [
+			npm.length > 0
+				? "the result is inspected and accepted only if it adds packages and changes nothing that existed"
+				: null,
+			maven.length > 0
+				? "the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml"
+				: null,
+		].filter((part) => part !== null);
 		return {
 			id: "adopt_complement",
-			label: `Adopt the complement (${[files.length > 0 ? `edits ${edits}` : null, installs.length > 0 ? `installs ${packages}, network open for that step alone` : null].filter((part) => part !== null).join("; ")})`,
-			effect: `495 ${what}${installs.length > 0 ? "" : ", with no network and nothing installed"}; ${installs.length > 0 ? "the result is inspected and accepted only if it adds packages and changes nothing that existed; " : ""}the complement reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
+			label: `Adopt the complement (${[files.length > 0 ? `edits ${edits}` : null, npm.length > 0 ? `installs ${installedNames(npm)}, network open for that step alone` : null, maven.length > 0 ? `resolves ${installedNames(maven)}, network open for that step alone` : null].filter((part) => part !== null).join("; ")})`,
+			effect: `495 ${what}${installs.length > 0 ? "" : ", with no network and nothing installed"}; ${inspected.map((part) => `${part}; `).join("")}the complement reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
 			risky: true,
 		};
 	},

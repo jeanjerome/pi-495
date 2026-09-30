@@ -172,7 +172,7 @@ export const PackageInstall = Type.Object(
 	{
 		package: Type.String({ minLength: 1 }),
 		version: Type.String({ minLength: 1 }),
-		manager: Closed(["npm"] as const),
+		manager: Closed(["npm", "maven"] as const),
 	},
 	{ additionalProperties: false },
 );

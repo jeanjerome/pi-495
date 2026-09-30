@@ -7,8 +7,17 @@ import { rmSync } from "node:fs";
 import { describe, it } from "node:test";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { fixtureTs, tempDir } from "../helpers/fixtures.ts";
-import { inspectInstall, planInstall, runInstall } from "../../src/application/installation.ts";
+import { digestBytes } from "../../src/contracts/digest.ts";
+import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
+import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
+import { fixtureJava, fixtureTs, tempDir } from "../helpers/fixtures.ts";
+import {
+	inspectInstall,
+	inspectResolution,
+	planInstall,
+	readLocalRepository,
+	runInstall,
+} from "../../src/application/installation.ts";
 import type { InstallState } from "../../src/application/installation.ts";
 import type { PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import type {
@@ -270,5 +279,254 @@ describe("running the install in the copy", () => {
 		const slow = new RecordingSandbox("/machine/npm-cache", { install: { exit_code: 1, timed_out: true } });
 		const third = await runInstall(slow, "/copies/w1", command);
 		assert.match(third.kind === "failed" ? third.reason : "", /timed out/);
+	});
+});
+
+const MAVEN_INSTALL: PackageInstall = {
+	package: "org.jacoco:jacoco-maven-plugin",
+	version: "0.8.15",
+	manager: "maven",
+};
+
+describe("planning the resolution of a Maven plugin, reading where Maven keeps its files and inspecting what it left", () => {
+	const POM = { path: "pom.xml", digest: "sha256:pom1" };
+	const BEFORE_COPY = { "pom.xml": "sha256:pom0", "src/main/java/A.java": "sha256:a" };
+	const refusedFor = (result: ReturnType<typeof inspectResolution>): string =>
+		result.kind === "refused" ? result.reason : `accepted: ${JSON.stringify(result)}`;
+
+	it("given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it", () => {
+		const plan = planInstall(["pom.xml", "src/main/java/A.java"], MAVEN_INSTALL);
+		assert.equal(plan.kind, "command", plan.kind === "refused" ? plan.reason : "");
+		const command = plan.kind === "command" ? plan.command : [];
+		assert.equal(command[0], "mvn");
+		assert.ok(command.includes("-B"), "batch mode: no prompt");
+		assert.ok(!command.includes("-o"), "the resolution reaches the repositories");
+		assert.ok(
+			command.some((part) =>
+				/^org\.apache\.maven\.plugins:maven-dependency-plugin:\d+\.\d+\.\d+:resolve-plugins$/.test(part),
+			),
+			command.join(" "),
+		);
+		assert.ok(
+			command.every((part) => !part.includes("jacoco")),
+			"no goal of the adopted plugin is run",
+		);
+		assert.deepEqual(planInstall(["pom.xml", "package-lock.json", "yarn.lock"], MAVEN_INSTALL), plan);
+
+		assert.equal(
+			readLocalRepository(
+				"[INFO] Scanning\n[DEBUG] Using local repository at /home/dev x/.m2/repository\n[DEBUG] Using manager EnhancedLocalRepositoryManager with priority 10.0 for /home/dev x/.m2/repository\n",
+			),
+			"/home/dev x/.m2/repository",
+		);
+		assert.equal(readLocalRepository("[DEBUG] Using local repository at /srv/m2\r\n"), "/srv/m2");
+		assert.equal(readLocalRepository("[INFO] BUILD SUCCESS\n"), null);
+		assert.equal(readLocalRepository("[DEBUG] Using local repository at \n"), null);
+		assert.equal(readLocalRepository(""), null);
+
+		const written = { ...BEFORE_COPY, "pom.xml": POM.digest };
+		assert.deepEqual(inspectResolution(BEFORE_COPY, written, [POM]), { kind: "accepted" });
+		assert.match(
+			refusedFor(inspectResolution(BEFORE_COPY, { ...written, "pom.xml": "sha256:other" }, [POM])),
+			/pom\.xml/,
+		);
+		assert.match(
+			refusedFor(inspectResolution(BEFORE_COPY, { ...written, "src/main/java/A.java": "sha256:changed" }, [POM])),
+			/src\/main\/java\/A\.java/,
+		);
+		assert.match(
+			refusedFor(inspectResolution(BEFORE_COPY, { ...written, "target/classes/A.class": "sha256:built" }, [POM])),
+			/target\/classes\/A\.class/,
+		);
+		const { "src/main/java/A.java": _removed, ...without } = written;
+		assert.match(refusedFor(inspectResolution(BEFORE_COPY, without, [POM])), /src\/main\/java\/A\.java/);
+	});
+});
+
+/** What Maven answers when asked for its local repository offline, and when run to resolve. */
+class RecordingMavenSandbox implements SandboxPort {
+	readonly backend = "recording";
+	readonly runs: { profile: SandboxProfile; request: ExecutableRequest }[] = [];
+	private readonly announcement: string;
+	private readonly announcementExit: number;
+	private readonly resolution: NpmEnd | undefined;
+	constructor(announcement: string, announcementExit = 0, resolution?: NpmEnd) {
+		this.announcement = announcement;
+		this.announcementExit = announcementExit;
+		this.resolution = resolution;
+	}
+	qualify(): QualificationResult {
+		throw new Error("not asked");
+	}
+	async run(profile: SandboxProfile, request: ExecutableRequest): Promise<ProcessObservation> {
+		this.runs.push({ profile, request });
+		const asks = request.command.join(" ") === "mvn -X -o -B validate";
+		return {
+			exit_code: asks ? this.announcementExit : (this.resolution?.exit_code ?? 0),
+			signal: null,
+			timed_out: false,
+			spawn_error: null,
+			stdout: new TextEncoder().encode(
+				asks ? this.announcement : (this.resolution?.stdout ?? "[INFO] Downloaded jacoco-maven-plugin-0.8.15.pom\n"),
+			),
+			stderr: new TextEncoder().encode(asks ? "" : (this.resolution?.stderr ?? "")),
+			stdout_truncated: false,
+			stderr_truncated: false,
+			started_at: "2026-09-30T00:00:00.000Z",
+			ended_at: "2026-09-30T00:00:01.000Z",
+			duration_ms: 1000,
+		};
+	}
+}
+
+describe("running the resolution in the copy", () => {
+	const plan = planInstall(["pom.xml"], MAVEN_INSTALL);
+	const command = plan.kind === "command" ? plan.command : [];
+
+	it("given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network", async () => {
+		const sandbox = new RecordingMavenSandbox("[DEBUG] Using local repository at /machine/m2 repo/repository\n");
+		const run = await runInstall(sandbox, "/copies/w1", command);
+		assert.deepEqual(run, { kind: "installed", output: "[INFO] Downloaded jacoco-maven-plugin-0.8.15.pom\n" });
+		assert.equal(sandbox.runs.length, 2);
+		const [asked, resolved] = sandbox.runs;
+		assert.deepEqual(asked?.request.command, ["mvn", "-X", "-o", "-B", "validate"]);
+		assert.equal(asked?.request.cwd, "/copies/w1");
+		assert.equal(asked?.profile.network, "denied", "the local repository is asked offline");
+		assert.deepEqual(asked?.profile.write_paths, [], "and with no write outside the copy");
+		assert.deepEqual(resolved?.request.command, command);
+		assert.equal(resolved?.request.cwd, "/copies/w1");
+		assert.equal(resolved?.profile.network, "allowed");
+		assert.deepEqual(resolved?.profile.write_paths, ["/copies/w1", "/machine/m2 repo/repository"]);
+		assert.ok(
+			resolved?.profile.env_allowlist.includes("HOME"),
+			"maven reads its configuration from the home of the machine",
+		);
+
+		for (const [label, silent] of [
+			["an answer without the line", new RecordingMavenSandbox("[INFO] BUILD SUCCESS\n")],
+			["a command that fails", new RecordingMavenSandbox("[DEBUG] Using local repository at /machine/m2\n", 1)],
+		] as const) {
+			const refused = await runInstall(silent, "/copies/w1", command);
+			assert.equal(refused.kind, "failed", label);
+			assert.match(refused.kind === "failed" ? refused.reason : "", /local repository/, label);
+			assert.equal(silent.runs.length, 1, `${label}: the resolution is not run`);
+			assert.ok(silent.runs.every((r) => r.profile.network === "denied"));
+		}
+
+		const target = tempDir("495-resolve-target-");
+		try {
+			fixtureJava(target, true);
+			const controls = detectStack(target, []).controls;
+			assert.notEqual(controls.length, 0);
+			for (const control of controls)
+				assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
+		} finally {
+			rmSync(target, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("the reason a resolution that fails gives", () => {
+	const jvmWarning =
+		"WARNING: A terminally deprecated method in sun.misc.Unsafe has been called\nWARNING: Please consider reporting this to the maintainers";
+	const announcement = "[DEBUG] Using local repository at /machine/m2/repository\n";
+	const mavenCommand = planInstall(["pom.xml"], MAVEN_INSTALL);
+	const command = mavenCommand.kind === "command" ? mavenCommand.command : [];
+
+	const reasonOf = async (sandbox: SandboxPort, failing: readonly string[]): Promise<string> => {
+		const run = await runInstall(sandbox, "/copies/w1", failing);
+		assert.equal(run.kind, "failed");
+		return run.kind === "failed" ? run.reason : "";
+	};
+
+	it("given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output", async () => {
+		const causes = [
+			"[ERROR] Could not transfer artifact org.jacoco:jacoco-maven-plugin:pom:0.8.15 from/to recette (http://127.0.0.1:9/): Connect to 127.0.0.1:9 failed",
+			"[ERROR] Could not transfer artifact org.jacoco:jacoco-maven-plugin:pom:0.8.15 from/to recette (http://127.0.0.1:1/): status code: 403, reason phrase: Forbidden (403)",
+			"[ERROR] Plugin org.jacoco:jacoco-maven-plugin:0.8.15 or one of its dependencies could not be resolved: Could not find artifact org.jacoco:jacoco-maven-plugin:jar:0.8.15 in recette",
+		];
+		for (const cause of causes) {
+			const sandbox = new RecordingMavenSandbox(announcement, 0, {
+				exit_code: 1,
+				stdout: `[INFO] Scanning for projects...\n${cause}\n`,
+				stderr: jvmWarning,
+			});
+			const reason = await reasonOf(sandbox, command);
+			assert.ok(reason.includes(cause), `the reason carries "${cause}", got: ${reason}`);
+			assert.ok(!reason.includes("sun.misc.Unsafe"), "and not the warning of the JVM");
+		}
+
+		const silent = new RecordingMavenSandbox(announcement, 0, { exit_code: 1, stdout: "", stderr: jvmWarning });
+		assert.match(await reasonOf(silent, command), /sun\.misc\.Unsafe/);
+
+		const npm = new RecordingSandbox("/machine/npm-cache", {
+			install: { exit_code: 1, stdout: "npm notice a newer version", stderr: "npm error 404 Not Found" },
+		});
+		const npmReason = await reasonOf(npm, ["npm", "install", `${PROVIDER}@3.2.4`]);
+		assert.match(npmReason, /exited 1: npm error 404 Not Found/);
+		assert.ok(!npmReason.includes("newer version"));
+	});
+});
+
+describe("the pom.xml an adopted complement wrote, judged at G4", () => {
+	const entry = (path: string, baseline_state: ManifestEntry["baseline_state"], digest: string): ManifestEntry => ({
+		path,
+		kind: "file",
+		content_digest: digest as ManifestEntry["content_digest"],
+		size: 1,
+		mode: "000644",
+		symlink_target: null,
+		baseline_state,
+		origin: "agent",
+		limits: null,
+	});
+	const manifestOf = (...entries: ManifestEntry[]): CandidateManifest => ({
+		candidate_id: "cnd_1",
+		workspace_id: "wsp_1",
+		base_reference_id: "ref_1",
+		base_digest: `sha256:${"b".repeat(64)}`,
+		selected_paths: [],
+		exclusions: [],
+		entries,
+		metadata_policy: "content_and_mode",
+		manifest_digest: `sha256:${"c".repeat(64)}`,
+		frozen_at: "2026-09-30T12:00:00.000Z",
+		limits: { truncated: false, bytes_read: 0, bytes_total: null, exclusions: [], unstable: false, notes: [] },
+	});
+
+	it("given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml", () => {
+		const target = tempDir("495-g4-pom-");
+		try {
+			fixtureJava(target);
+			const test = detectStack(target, []).controls.find((c) => c.control_id === "maven-test");
+			assert.ok(test, "the detection declares the Maven test control");
+			assert.ok(test.protected_paths.includes("pom.xml"), "the POM is a protected path");
+			const written = digestBytes("<project>with the declaration</project>");
+			const complement = {
+				path: "pom.xml",
+				digest: written,
+				test_type: "coverage",
+				tool: "org.jacoco:jacoco-maven-plugin",
+			};
+			const kept = protectedPathsChanged(
+				manifestOf(entry("pom.xml", "modified", written)),
+				test.protected_paths,
+				[],
+				() => false,
+				[complement],
+			);
+			assert.deepEqual(kept.altered, []);
+			assert.deepEqual(kept.allowed, ["pom.xml"]);
+			const restored = protectedPathsChanged(
+				manifestOf(entry("pom.xml", "unchanged", digestBytes("<project>the reference</project>"))),
+				test.protected_paths,
+				[],
+				() => false,
+				[complement],
+			);
+			assert.deepEqual(restored.altered, ["pom.xml"]);
+		} finally {
+			rmSync(target, { recursive: true, force: true });
+		}
 	});
 });

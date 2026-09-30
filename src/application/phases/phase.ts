@@ -54,8 +54,10 @@ export interface PhaseContext {
 	readonly verification: VerificationCoordinator;
 	readonly workspace: WorkspacePort;
 	readonly workspacePolicy: WorkspacePolicy;
-	/** Runs an install command in a copy, with the network open for that step alone. */
-	install(copyPath: string, command: readonly string[]): Promise<InstallRun>;
+	/** Runs an install command in a copy, with the network open for that step alone, writing `outside` when it is given. */
+	install(copyPath: string, command: readonly string[], outside?: string): Promise<InstallRun>;
+	/** The local repository Maven announces for a copy, asked offline, or null when it announces none. */
+	localRepository(copyPath: string): Promise<string | null>;
 	readonly policy: ActivePolicy;
 	/** Applies the accepted candidate locally; absent when no integrator is configured. */
 	readonly integrator: ((unit: Unit, cor: string) => Promise<Unit>) | null;

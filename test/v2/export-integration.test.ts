@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
 import {
+	fixtureJava,
 	fixtureTs,
 	fixtureTsWithoutTests,
 	fixtureVitestWithoutProvider,
@@ -13,6 +14,7 @@ import {
 	SHOUT_IMPL,
 	tempDir,
 } from "../helpers/fixtures.ts";
+import { FakeMavenControls, FakeMavenSandbox } from "../helpers/fake-maven.ts";
 import { FakeNpmSandbox, FakeVitestControls, PROVIDER_FILES } from "../helpers/fake-npm.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
@@ -531,6 +533,88 @@ describe("what the integration indexes of the files it copies", () => {
 		assert.match(readFileSync(join(p, "package.json"), "utf8"), /"@vitest\/coverage-v8": "3\.2\.4"/);
 		for (const [path, text] of Object.entries(PROVIDER_FILES))
 			assert.equal(readFileSync(join(p, path), "utf8"), text, path);
+		assert.equal(gitCmd(p, ["remote"]).trim(), "", "nothing is pushed");
+	});
+
+	it("given an accepted candidate carrying the adopted declaration of a Maven plugin, then the local commit holds the pom.xml with the declaration and only the files of the candidate, and the project is not written before the integration", async () => {
+		const p = tempDir("495-proj-");
+		cleanups.push(p);
+		fixtureJava(p);
+		initRepo(p);
+		const greeter = "src/main/java/io/h495/Greeter.java";
+		const shouted = `package io.h495;\n\npublic final class Greeter {\n    private Greeter() {}\n\n    public static String greet(String name) {\n        return "Hello, " + name;\n    }\n\n    public static String shout(String name) {\n        return greet(name).toUpperCase();\n    }\n}\n`;
+		const unjudgeable = specReport({
+			objective: "add shout(name) returning the greeting in upper case",
+			requirements: [
+				{
+					requirement_id: "R1",
+					statement: "shout(name) returns greet(name) upper-cased",
+					mandatory: true,
+					criterion: "unit test on shout passes",
+					category: "functional",
+					satisfied_by_reference: false,
+				},
+			],
+		});
+		const t = track(
+			makeHarness({
+				policy: { integration_enabled: true },
+				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+				scripts: {
+					prepare: { steps: [{ kind: "complete", output: report([]) }] },
+					implement: {
+						steps: [
+							{ kind: "write", path: greeter, content: shouted },
+							{ kind: "complete", output: report([greeter]) },
+						],
+					},
+				},
+				backend: (real) => new FakeMavenSandbox(real, "resolves"),
+				controls: (real) => new FakeMavenControls(real),
+			}),
+		);
+		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const answer = (optionId: string): void => {
+			const [pending] = t.harness.pendingDecisions(changeId);
+			const answered = t.harness.answerDecision(
+				changeId,
+				{
+					decision_id: pending!.decision_id,
+					option_id: optionId,
+					free_text: null,
+					reason: null,
+					subject_revision: pending!.subject.revision,
+					scope: null,
+					expires_at: null,
+				},
+				origin(),
+			);
+			assert.equal(answered.error, null);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("assign_review");
+		let result = await t.harness.advance(changeId, { max_steps: 40 });
+		assert.equal(
+			gitCmd(p, ["status", "--porcelain"]).trim(),
+			"",
+			"nothing is written in the project before the integration",
+		);
+		for (let step = 0; step < 4 && result.stopped_because === "decision_required"; step++) {
+			const [asked] = t.harness.pendingDecisions(changeId);
+			answer(asked!.interaction === "IH-11" ? "integrate" : "accept");
+			result = await t.harness.advance(changeId, { max_steps: 40 });
+		}
+
+		assert.equal(result.view.change?.outcome, "integrated", result.steps.join(" | "));
+		assert.deepEqual(committedPaths(p), ["pom.xml", greeter]);
+		assert.match(
+			readFileSync(join(p, "pom.xml"), "utf8"),
+			/<artifactId>jacoco-maven-plugin<\/artifactId>\s*<version>0\.8\.15<\/version>/,
+		);
 		assert.equal(gitCmd(p, ["remote"]).trim(), "", "nothing is pushed");
 	});
 

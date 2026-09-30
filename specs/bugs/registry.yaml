@@ -775,3 +775,96 @@ bugs:
       Decide whether a failed install holds back the edits of the same answer, which adds a refusal, or whether
       the scenario reads "the install adopts nothing"; a test on a target that carries both once one exists.
     status: open
+  - bug_id: BUG-2026-09-30T221000
+    date: "2026-09-30"
+    title: "A POM that holds a byte which is not UTF-8 is rewritten with U+FFFD in its place when the declaration of a Maven plugin is adopted"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `editedFile` (`src/application/complement.ts`) reads `pom.xml` as UTF-8 text and the adoption writes the
+      string back. A POM with a byte that is not valid UTF-8 (a comment in ISO-8859-1, for one) comes out with
+      U+FFFD (EF BF BD) in place of that byte, besides the inserted declaration. On a POM declared
+      `encoding="ISO-8859-1"` with the byte 0xE9 in a comment, the edited text is 705 bytes for 218 of the
+      original and 485 inserted: two bytes too many.
+    what_expected: >
+      The scenario "La déclaration s'insère dans le POM octet pour octet, hors le texte inséré": the file obtained
+      differs from the old one by the bytes of the inserted text alone, whatever the encoding of the POM.
+    steps_to_reproduce:
+      - "Write a POM declared ISO-8859-1 with a byte 0xE9 in a comment, and no JaCoCo, with one build/plugins section."
+      - "Adopt the complement on the decision IH-04."
+      - "Compare the bytes of the POM of the copy with the original: the byte 0xE9 became EF BF BD."
+    root_cause: >
+      The file is decoded and re-encoded as UTF-8 whatever its bytes. Introduced by the branch e12s09, which
+      applies an edit to `pom.xml`; the edit of `package.json` reads JSON, which is UTF-8 by definition.
+    evidence: >
+      Throwaway probe of the reviewer on 2026-09-30; not re-run here. The scenario's Given (comments, four
+      spaces) does not cover this case.
+    risk_level: low
+    follow_ups: >
+      Decide between refusing an edit of a file that does not survive a UTF-8 round trip, which adds a refusal
+      and withdraws the adoption for such a POM, and splicing the inserted text into the bytes of the file, which
+      changes what `editedFile` returns from text to bytes for its three callers; a test with such a POM.
+    status: open
+  - bug_id: BUG-2026-09-30T221100
+    date: "2026-09-30"
+    title: "The command that announces the local repository of Maven runs the plugins the POM binds to the validate phase"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The announcement of the local repository is `mvn -X -o -B validate` in the copy of the target
+      (`src/application/installation.ts`). `validate` runs the plugins the POM binds to that phase (enforcer, for
+      one), with the network closed and no write outside the copy. Such a plugin can make the announcement fail,
+      and the adoption is then not offered, or run code of the project before the adoption. The story describes
+      the command as running no plugin.
+    what_expected: >
+      The command that announces the local repository runs no plugin of the target, as the story says of it
+      ("sans greffon").
+    steps_to_reproduce:
+      - "Write a POM that binds maven-enforcer-plugin to the validate phase with a rule the copy does not meet."
+      - "Reach the decision IH-04 on that target."
+      - "Maven's announcement fails, the local repository is not established and the option to adopt is not offered."
+    root_cause: >
+      A phase is asked of Maven to make it print its settings; a phase runs every plugin bound to it and to the
+      phases before it. Introduced by the branch e12s09. The confinement holds: no network, no write outside the
+      copy; what is lost is the adoption.
+    evidence: >
+      Reading of the reviewer on 2026-09-30, from the behaviour of a Maven phase; no probe on such a POM.
+    risk_level: low
+    follow_ups: >
+      Decide between a goal that reads the settings without a lifecycle phase, which may need a plugin resolved
+      offline that the local repository does not hold, and writing the story as "the plugins bound to validate
+      run, network closed"; a test on a fake Maven whose validate phase fails.
+    status: open
+  - bug_id: BUG-2026-09-30T221200
+    date: "2026-09-30"
+    title: "The option to adopt a Maven plugin does not depend on its edit applying to the POM"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      In `designVerification` (`src/application/phases/verification-design.ts`), `adoptable.files` keeps a
+      recommendation only when its edit applies to the copy, while `adoptable.installs` keeps every installable
+      recommendation. A Maven recommendation whose edit no longer applied would still offer the resolution, with
+      an empty list of files. The scenario "La déclaration s'insère dans le POM octet pour octet, hors le texte
+      inséré" says the adoption is not offered then.
+    what_expected: >
+      The adoption of a Maven plugin is not offered when the text to replace is no longer present exactly once in
+      `pom.xml`.
+    steps_to_reproduce:
+      - "Not reachable today: the edit is computed from, and checked against, the same pom.xml of the same copy."
+    root_cause: >
+      The two lists are computed by separate conditions, and only one of them reads the edit. Introduced by the
+      branch e12s09. The scenario holds by the construction of `jacocoEdit`, which gives an edit and an install
+      together or neither; no catalogue target builds an edit that does not apply.
+    evidence: >
+      Mutation of the reviewers on 2026-09-30: removing the check `editedFile(...) !== null` from
+      `adoptable.files` fails the npm test "an edit that does not apply to the file is not offered for adoption"
+      in `test/v2/verifiability-arbitration.test.ts` and no Maven test; no test builds a Maven recommendation
+      whose edit does not apply, so the link between that check and `adoptable.installs` is held by none.
+    risk_level: low
+    follow_ups: >
+      Make `adoptable.installs` read the edit of a Maven recommendation, which adds a refusal, with a test on a
+      target that carries an edit that does not apply once one exists.
+    status: open

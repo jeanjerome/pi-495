@@ -9,6 +9,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
 	SCOPE_PLACEHOLDER,
 	type ControlDefinition,
+	type FileEdit,
 	type RecommendedComplement,
 	type StructureRule,
 } from "../../contracts/v1/protocol.ts";
@@ -202,22 +203,108 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 						"no two modules of this reactor lay out package roots that could be opposed to each other: no dependency direction between modules is checked on this target (CON-03)",
 					]),
 		],
-		recommendations: [...(jacoco ? [] : [JACOCO_RECOMMENDATION]), ...mutationRecommendation(mutation)],
+		recommendations: [...(jacoco ? [] : [jacocoRecommendation(projectPath)]), ...mutationRecommendation(mutation)],
 	};
 }
 
 /** The date the versions below were checked against the sources they cite. */
 const CATALOGUE_DATE = "2026-09-30";
 
-const JACOCO_RECOMMENDATION: RecommendedComplement = {
-	test_type: "coverage",
-	tool: "org.jacoco:jacoco-maven-plugin",
-	version: "0.8.15",
-	established_on: CATALOGUE_DATE,
-	source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
-	change:
-		"in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase",
-};
+const JACOCO_PLUGIN_VERSION = "0.8.15";
+
+/** The dependency plugin that resolves the plugins of a POM without running any of them, at the release checked on the date above. */
+export const MAVEN_DEPENDENCY_PLUGIN_VERSION = "3.11.0";
+
+/**
+ * The declaration of JaCoCo as it is inserted into a POM: `prepare-agent` attaches the agent to the
+ * tests, and `report` is bound to the test phase so that `mvn test` leaves the report the control reads.
+ */
+function jacocoDeclaration(indent: string, unit: string, eol: string): string {
+	const lines = [
+		"<plugin>",
+		`${unit}<groupId>org.jacoco</groupId>`,
+		`${unit}<artifactId>jacoco-maven-plugin</artifactId>`,
+		`${unit}<version>${JACOCO_PLUGIN_VERSION}</version>`,
+		`${unit}<executions>`,
+		`${unit}${unit}<execution>`,
+		`${unit}${unit}${unit}<id>prepare-agent</id>`,
+		`${unit}${unit}${unit}<goals><goal>prepare-agent</goal></goals>`,
+		`${unit}${unit}</execution>`,
+		`${unit}${unit}<execution>`,
+		`${unit}${unit}${unit}<id>report</id>`,
+		`${unit}${unit}${unit}<phase>test</phase>`,
+		`${unit}${unit}${unit}<goals><goal>report</goal></goals>`,
+		`${unit}${unit}</execution>`,
+		`${unit}</executions>`,
+		"</plugin>",
+	];
+	return lines.map((line) => `${indent}${line}${eol}`).join("");
+}
+
+/** The regions of a POM whose plugins a build does not run: comments, profiles, managed plugins and reporting. */
+const INACTIVE_REGIONS = [
+	/<!--[\s\S]*?-->/g,
+	/<profiles\b[\s\S]*?<\/profiles>/g,
+	/<pluginManagement\b[\s\S]*?<\/pluginManagement>/g,
+	/<reporting\b[\s\S]*?<\/reporting>/g,
+];
+
+/** How many lines before the opening of the plugins may be added to the text to replace to make it occur once. */
+const ANCHOR_CONTEXT_LINES = 4;
+
+/**
+ * The replacement that declares JaCoCo in the root POM: the line that opens its one `build/plugins`
+ * section, preceded by as many lines as it takes to occur once, followed by the declaration. Null when
+ * the POM does not take it without ambiguity: plugins only in a profile, in `pluginManagement` or in
+ * `reporting`, more than one section, JaCoCo already named outside a profile, or an opening line that
+ * is not alone on its line.
+ */
+function jacocoEdit(pom: string): FileEdit | null {
+	// The inactive regions are blanked to the same length, so a position found in `active` is one of `pom`.
+	const active = INACTIVE_REGIONS.reduce((text, region) => text.replace(region, (m) => " ".repeat(m.length)), pom);
+	if (active.includes("jacoco-maven-plugin")) return null;
+	const opening = active.indexOf("<plugins>");
+	if (opening < 0 || active.indexOf("<plugins>", opening + 1) >= 0) return null;
+	if (!/<build\b/.test(active.slice(0, opening))) return null;
+	const openingLine = /^([ \t]*)<plugins>[ \t]*(\r?\n)/.exec(pom.slice(pom.lastIndexOf("\n", opening) + 1));
+	if (openingLine === null) return null;
+	const [line, indent = "", eol = "\n"] = openingLine;
+	const end = pom.lastIndexOf("\n", opening) + 1 + line.length;
+	let start = end - line.length;
+	for (let added = 0; pom.split(pom.slice(start, end)).length !== 2; added++) {
+		if (added === ANCHOR_CONTEXT_LINES || start === 0) return null;
+		start = pom.lastIndexOf("\n", start - 2) + 1;
+	}
+	const anchor = pom.slice(start, end);
+	const unit = /^([ \t]*)<plugin>/m.exec(pom.slice(end))?.[1]?.slice(indent.length) || "  ";
+	return { path: "pom.xml", current: anchor, wanted: `${anchor}${jacocoDeclaration(`${indent}${unit}`, unit, eol)}` };
+}
+
+/** Recommends JaCoCo, with the edit and the resolution that adopt it when the root POM takes the declaration. */
+function jacocoRecommendation(projectPath: string): RecommendedComplement {
+	const recommendation: RecommendedComplement = {
+		test_type: "coverage",
+		tool: "org.jacoco:jacoco-maven-plugin",
+		version: JACOCO_PLUGIN_VERSION,
+		established_on: CATALOGUE_DATE,
+		source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
+		change:
+			"in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase",
+	};
+	let pom: string;
+	try {
+		pom = readFileSync(join(projectPath, "pom.xml"), "utf8");
+	} catch {
+		return recommendation;
+	}
+	const edit = jacocoEdit(pom);
+	if (edit === null) return recommendation;
+	return {
+		...recommendation,
+		edit,
+		install: { package: recommendation.tool, version: recommendation.version, manager: "maven" },
+	};
+}
 
 /**
  * What the target must change so the mutants of its modified classes are observed: declare PIT when

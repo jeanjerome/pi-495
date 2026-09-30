@@ -2,7 +2,7 @@
 
 Story : e12s09
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -64,6 +64,12 @@ Scenario: Une résolution qui échoue n'adopte rien
   Then le dossier porte le motif de l'échec, le complément reste recommandé et non adopté au rapport
   And la décision IH-04 est demandée de nouveau sans l'issue d'adoption, et ni le projet ni le POM de la copie du candidat n'ont été modifiés
 
+Scenario: Le motif d'une résolution qui échoue est la cause que Maven écrit, pas un avertissement de la JVM
+  Given une résolution Maven qui échoue et dont la sortie d'erreur ne porte que des avertissements de la JVM, tandis que sa sortie standard dit « Could not transfer artifact … Connect to 127.0.0.1:9 failed », puis la même résolution qui échoue sur un dépôt qui refuse l'accès, puis sur un dépôt qui ne connaît pas la version
+  When le propriétaire répond « adopter le complément »
+  Then le motif écrit au dossier et montré au propriétaire reprend la fin de la sortie standard de Maven, où figure la cause de chacun des trois échecs, et ne reprend pas l'avertissement de la JVM
+  And quand Maven n'écrit rien sur sa sortie standard, le motif reprend la fin de sa sortie d'erreur
+
 Scenario: Une résolution qui écrit ailleurs que dans le dépôt local est refusée
   Given une résolution qui a modifié un fichier de la copie autre que pom.xml
   When 495 inspecte la copie
@@ -117,7 +123,9 @@ Scenario: Dans un vrai Pi, adopter le greffon de couverture d'une cible Maven m�
   contenu du dépôt local.
 - **Ce qui s'exécute réseau ouvert.** Maven et `maven-dependency-plugin`, à la version que le catalogue fixe, qui
   résout les greffons sans en exécuter aucun but. Le code du greffon adopté ne s'exécute qu'à la qualification et
-  aux contrôles, réseau fermé, dans le confinement de la cible.
+  aux contrôles, réseau fermé, dans le confinement de la cible. Quand la résolution échoue, le motif du dossier est la
+  fin de ce que Maven écrit sur sa sortie standard, où il dit la cause (réseau, accès refusé, version inconnue), et non
+  de sa sortie d'erreur, où la JVM écrit ses avertissements : 495 n'interprète ni ne nomme aucune cause lui-même.
 - **Provenance.** Le greffon, sa version et le texte inséré sont une donnée de l'adaptateur : aucun modèle, aucun
   contenu du projet ne les choisit.
 - **Chemin protégé.** `pom.xml` reste protégé. La seule modification permise est celle dont l'empreinte est celle du
@@ -216,6 +224,18 @@ n'est pas offerte), et un POM dont les plugins sont tous dans un profil (l'adopt
 - Tient : `specs/verifications/`, « la preuve de la recette de e12s09 » nomme le dossier lu, la sortie de Maven et les trois contrôles négatifs
 - Rouge : sur la construction d'avant la story, la décision n'offre pas l'adoption d'un greffon et le protocole n'a pas de contrôle de couverture
 
+### Tâche 9 — Le motif d'une résolution Maven qui échoue est la cause que Maven écrit sur sa sortie standard
+
+Quand la commande de résolution d'un plan Maven sort en erreur, le motif rendu par `runInstall` reprend la fin de la
+sortie standard de Maven, et la fin de sa sortie d'erreur seulement quand la sortie standard est vide. Pour npm, qui
+écrit ses erreurs sur la sortie d'erreur, le motif reste celui d'aujourd'hui. Le test joue un faux Maven qui écrit un
+avertissement de la JVM sur la sortie d'erreur et sa cause sur la sortie standard, pour les trois causes : réseau
+injoignable, accès refusé, version inconnue.
+
+- Vérifie : `node --test test/v1/installation.test.ts`
+- Tient : `test/v1/installation.test.ts`, « given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output »
+- Rouge : `runInstall` compose le motif avec `tail(observed.stderr) || tail(observed.stdout)` : l'avertissement de la JVM rend la sortie d'erreur non vide, donc le motif d'un Maven en échec est cet avertissement et ne contient jamais « Could not transfer artifact » écrit sur la sortie standard
+
 ## 5. Hors périmètre
 
 - La mutation (PIT), son greffon JUnit 5 dont la compatibilité avec JUnit 6 n'est pas établie, et la correction d'une
@@ -232,3 +252,4 @@ n'est pas offerte), et un POM dont les plugins sont tous dans un profil (l'adopt
   porte le motif.
 - Un projet multi-modules : la déclaration s'insère dans le POM racine si son `build/plugins` l'accueille, et le rapport
   JaCoCo de chaque module est celui que le contrôle lit déjà ; la lecture agrégée d'un réacteur n'est pas examinée ici.
+- Nommer une cause : 495 ne classe pas l'échec (réseau, accès, version) et ne traduit pas ce que Maven écrit ; le motif est la fin de sa sortie, telle quelle. Le motif d'un échec de la commande qui annonce le dépôt local, et celui d'un échec de npm, ne changent pas.

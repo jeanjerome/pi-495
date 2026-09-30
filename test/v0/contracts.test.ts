@@ -269,3 +269,26 @@ describe("an install recommended to a target and the packages its adoption insta
 		);
 	});
 });
+
+describe("an install recommended with a package manager", () => {
+	const recommendation = {
+		test_type: "coverage",
+		tool: "org.jacoco:jacoco-maven-plugin",
+		version: "0.8.15",
+		established_on: "2026-09-30",
+		source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
+		change: "declare jacoco-maven-plugin in the POM",
+	};
+	const diagnosis = protocol().capability_diagnosis;
+	const installing = (manager: string) => ({
+		...diagnosis,
+		recommendations: [
+			{ ...recommendation, install: { package: "org.jacoco:jacoco-maven-plugin", version: "0.8.15", manager } },
+		],
+	});
+	it("given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it", () => {
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, installing("maven")), installing("maven"));
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, installing("npm")), installing("npm"));
+		assert.throws(() => validate(ControlCapabilityDiagnosis, installing("gradle")), ContractError);
+	});
+});

@@ -18,6 +18,15 @@ import {
 } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import {
+	FakeMavenControls,
+	FakeMavenSandbox,
+	LOCAL_REPOSITORY,
+	RESOLUTION_OUTPUT,
+	TAMPERED_FILE,
+	EXCLUDED_FILE,
+	type MavenMode,
+} from "../helpers/fake-maven.ts";
+import {
 	FakeNpmSandbox,
 	FakeVitestControls,
 	PROVIDER,
@@ -27,6 +36,7 @@ import {
 } from "../helpers/fake-npm.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { buildDecisionRequest } from "../../src/application/decisions.ts";
+import { editedFile } from "../../src/application/complement.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
@@ -456,9 +466,59 @@ function mavenProjectWithoutTests(complete: boolean): string {
 	return p;
 }
 
+/** A Maven target whose only plugins are managed, so the declaration of JaCoCo has no place to go without ambiguity. */
+function mavenProjectWithManagedPluginsOnly(): string {
+	const p = tempDir("495-arbitration-maven-managed-");
+	cleanups.push(p);
+	fixtureJava(p);
+	const pom = join(p, "pom.xml");
+	writeFileSync(
+		pom,
+		readFileSync(pom, "utf8")
+			.replace("<build>", "<build><pluginManagement>")
+			.replace("</build>", "</pluginManagement></build>"),
+	);
+	initRepo(p);
+	return p;
+}
+
+function mavenHarness(
+	mode: MavenMode,
+	implement?: Record<string, string>,
+): { t: TestHarness; maven: FakeMavenSandbox } {
+	let maven: FakeMavenSandbox | undefined;
+	const t = track(
+		makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: emptyPreparation,
+				...(implement === undefined
+					? {}
+					: {
+							implement: {
+								steps: [
+									...Object.entries(implement).map(([path, content]) => ({ kind: "write" as const, path, content })),
+									{
+										kind: "complete" as const,
+										output: { summary: "done", changed_paths: Object.keys(implement), tests_claimed: false, notes: [] },
+									},
+								],
+							},
+						}),
+			},
+			backend: (real) => {
+				maven = new FakeMavenSandbox(real, mode);
+				return maven;
+			},
+			controls: (real) => new FakeMavenControls(real),
+		}),
+	);
+	return { t, maven: maven! };
+}
+
 describe("the IH-04 facts present the recommended complements", () => {
 	async function askedOn(project: string): Promise<string[]> {
-		const t = harnessWithEmptyPreparations();
+		const { t } = mavenHarness("announces-nothing");
 		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
@@ -558,12 +618,127 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 			["prepare", "assign_review", "revise"],
 			"an edit that does not apply to the file is not offered for adoption",
 		);
-		const withoutEdit = await optionsAsked(mavenProjectWithoutTests(false));
+		const managed = await optionsAsked(mavenProjectWithManagedPluginsOnly());
 		assert.deepEqual(
-			withoutEdit.map((o) => o.id),
+			managed.map((o) => o.id),
 			["prepare", "assign_review", "revise"],
-			"the recommendations of a Maven target are texts",
+			"a POM that has no single place for the declaration keeps the recommendation a text",
 		);
+	});
+});
+
+describe("the IH-04 decision offers to adopt a complement that is the declaration of a Maven plugin", () => {
+	async function asked(project: string, mode: MavenMode): Promise<DecisionRequest> {
+		const { t } = mavenHarness(mode);
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		return t.harness.pendingDecisions(change.change_id)[0]!;
+	}
+
+	it("given a Maven target whose recommendation carries an applicable edit, then the decision offers to adopt the complement, its effect naming pom.xml, the plugin and version, the network and the local repository, and given a target whose edit does not apply or whose maven announces no local repository, then the options are today's and the report gives the reason", async () => {
+		const offered = await asked(mavenProjectWithoutTests(false), "resolves");
+		assert.deepEqual(
+			offered.options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+		);
+		const adopt = offered.options.at(-1)!;
+		const text = `${adopt.label} ${adopt.effect}`;
+		assert.match(text, /pom\.xml/);
+		assert.match(text, /jacoco-maven-plugin/);
+		assert.match(text, /0\.8\.15/);
+		assert.match(
+			adopt.label,
+			/pour cette seule étape|for that step alone/,
+			"the option says the network opens for one step",
+		);
+		assert.match(adopt.effect, /réseau|network/);
+		assert.match(adopt.effect, /dépôt local|local repository/);
+		assert.ok(adopt.effect.includes(LOCAL_REPOSITORY), "the effect names the directory Maven announced");
+		assert.match(adopt.effect, /dès l'adoption|from the adoption/, "the files are written before the integration");
+		assert.match(adopt.effect, /y restent|stay there/, "and stay if the integration is refused");
+
+		const silent = await asked(mavenProjectWithoutTests(false), "announces-nothing");
+		assert.deepEqual(
+			silent.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+		);
+		assert.ok(
+			silent.facts.some((f) => f.includes("jacoco-maven-plugin") && /local repository/.test(f)),
+			silent.facts.join(" | "),
+		);
+
+		const managed = await asked(mavenProjectWithManagedPluginsOnly(), "resolves");
+		assert.deepEqual(
+			managed.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+		);
+	});
+});
+
+describe("a Maven target on a sandbox backend that is not qualified", () => {
+	it("given a sandbox backend that is not qualified, then Maven is not asked for its local repository, and no Maven command reaches the backend", async () => {
+		const { t, maven } = mavenHarness("resolves");
+		t.harness.deps.sandbox.qualification = {
+			...t.harness.deps.sandbox.qualification,
+			qualified: false,
+			reasons: ["backend not qualified"],
+		};
+		const { change } = await t.harness.start({
+			project_path: mavenProjectWithoutTests(false),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.ok(
+			result.steps.some((step) => step.includes("backend not qualified")),
+			result.steps.join(" | "),
+		);
+		assert.equal(maven.runs.length, 0, "no command reaches an unqualified backend");
+	});
+});
+
+describe("the option to adopt the declaration of a Maven plugin says what it writes on the machine in both languages", () => {
+	it("given an adoptable POM edit and the local repository Maven announced, then the option names pom.xml, the plugin and its version, the network for that step alone and the local repository written from the adoption and kept if the integration is refused, in french and in english", () => {
+		const promises = {
+			fr: [
+				/pom\.xml/,
+				/jacoco-maven-plugin 0\.8\.15/,
+				/réseau pour cette seule étape/,
+				/dès l'adoption/,
+				/y restent si l'intégration est refusée/,
+			],
+			en: [
+				/pom\.xml/,
+				/jacoco-maven-plugin 0\.8\.15/,
+				/network for that step alone/,
+				/from the adoption/,
+				/stay there if the integration is refused/,
+			],
+		};
+		for (const language of ["fr", "en"] as const) {
+			const options = buildDecisionRequest({
+				decision_id: "dec_1",
+				change_id: "chg_1",
+				interaction: "IH-04",
+				subject: { kind: "artifact", id: "req_0001", revision: 1, digest: "sha256:00" },
+				language,
+				facts: [],
+				recommendation: null,
+				arg: "R1",
+				requested_at: "2026-09-30T12:00:00.000Z",
+				adoptable: {
+					files: ["pom.xml"],
+					installs: [{ package: "org.jacoco:jacoco-maven-plugin", version: "0.8.15", manager: "maven" }],
+					local_repository: LOCAL_REPOSITORY,
+				},
+			}).options;
+			const adopt = options.at(-1)!;
+			assert.equal(adopt.id, "adopt_complement", language);
+			const text = `${adopt.label} ${adopt.effect}`;
+			for (const promise of promises[language]) assert.match(text, promise, `${language}: ${promise}`);
+			assert.ok(adopt.effect.includes(LOCAL_REPOSITORY), `${language}: the directory Maven announced`);
+		}
 	});
 });
 
@@ -1176,5 +1351,198 @@ describe("the requirements the owner took on", () => {
 
 	it("does not depend on the order the requirements are named in", () => {
 		assert.deepEqual(requirementsTakenByOwner([answer(["R2", "R1"])], requirements, ["R1", "R2"]), ["R1", "R2"]);
+	});
+});
+
+describe("adopting a complement that is the declaration of a Maven plugin", () => {
+	async function askedAdoption(mode: MavenMode, implement?: (project: string) => Record<string, string>) {
+		const project = mavenProjectWithoutTests(false);
+		const { t, maven } = mavenHarness(mode, implement?.(project));
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt_complement");
+		const again = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
+		return { t, maven, project, changeId: change.change_id };
+	}
+
+	const untouched = (project: string): void =>
+		assert.equal(
+			readFileSync(join(project, "pom.xml"), "utf8").includes("jacoco"),
+			false,
+			"the project is not written",
+		);
+
+	const outputsOf = async (t: TestHarness, changeId: string): Promise<string[]> =>
+		Promise.all(
+			(t.ledger.loadChange(changeId)!.state.proposals.output ?? []).map(async (ref) =>
+				JSON.stringify(await t.harness.artifacts.read<unknown>(ref)),
+			),
+		);
+
+	it("given the answer adopt the complement on a Maven target, then the protocol carries pom.xml as an adopted complement, the record keeps maven's output and the JaCoCo control is declared qualified, and given a failing resolution or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption", async () => {
+		const { t, maven, project, changeId } = await askedAdoption("resolves");
+		untouched(project);
+		const resolution = maven.runs.filter((r) => r.command.some((part) => part.endsWith(":resolve-plugins")));
+		assert.equal(resolution.length, 1);
+		assert.equal(resolution[0]!.network, "allowed");
+		assert.equal(resolution[0]!.write_paths.at(-1), LOCAL_REPOSITORY);
+		assert.ok(
+			resolution[0]!.command.every((part) => !part.includes("jacoco")),
+			"no goal of the adopted plugin",
+		);
+		assert.deepEqual(
+			maven.runs.filter((r) => r.network !== "denied").map((r) => r.command.at(-1)),
+			resolution.map((r) => r.command.at(-1)),
+			"the network is open for the resolution and for nothing else",
+		);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const loaded = t.ledger.loadChange(changeId)!;
+		assert.equal(loaded.state.gates.G2?.verdict, "PASS", loaded.state.gates.G2?.reasons.join("; "));
+		const protocol = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		const edit = detectStack(project, []).recommendations.find((r) => r.tool.includes("jacoco"))!.edit!;
+		assert.deepEqual(
+			protocol.complements?.map((c) => [c.path, c.digest]),
+			[["pom.xml", digestBytes(editedFile(project, edit)!)]],
+		);
+		assert.equal(protocol.installed_packages, undefined, "a Maven resolution installs no package of the target");
+		assert.ok(
+			(await outputsOf(t, changeId)).some((o) => o.includes(RESOLUTION_OUTPUT.trim())),
+			"the dossier keeps what Maven printed",
+		);
+		assert.ok(protocol.controls.some((c) => c.control_id === "coverage"));
+		assert.equal(protocol.qualifications.coverage?.qualified, true, protocol.qualifications.coverage?.notes.join("; "));
+		assert.ok(
+			!(await t.harness.report(changeId)).residual_risks.some(
+				(r) => r.code === "recommended_complement_not_adopted" && r.statement.includes("jacoco-maven-plugin"),
+			),
+		);
+
+		for (const [mode, reason] of [
+			["fails", "403 Forbidden"],
+			["modifies-a-file", TAMPERED_FILE],
+			["writes-an-excluded-file", EXCLUDED_FILE],
+		] as const) {
+			const failed = await askedAdoption(mode);
+			untouched(failed.project);
+			const pending = failed.t.harness.pendingDecisions(failed.changeId);
+			assert.deepEqual(
+				pending[0]!.options.map((o) => o.id),
+				["prepare", "assign_review", "revise"],
+				mode,
+			);
+			assert.ok(
+				pending[0]!.facts.some((f) => f.includes("jacoco-maven-plugin") && f.includes(reason)),
+				`${mode}: ${pending[0]!.facts.join(" | ")}`,
+			);
+			assert.equal(failed.t.ledger.loadChange(failed.changeId)!.state.protocol, null, mode);
+			assert.ok(
+				(await outputsOf(failed.t, failed.changeId)).some((o) => o.includes(reason)),
+				`${mode}: the record gives the reason`,
+			);
+			answerPending(failed.t, failed.changeId, "assign_review");
+			await failed.t.harness.advance(failed.changeId, { max_steps: 40 });
+			assert.equal(failed.maven.resolutions(), 1, `${mode}: the resolution is not run again`);
+			const settled = failed.t.ledger.loadChange(failed.changeId)!;
+			assert.equal(settled.state.gates.G2?.verdict, "PASS", settled.state.gates.G2?.reasons.join("; "));
+			const frozen = (await failed.t.harness.artifacts.latest<Protocol>(settled.state, "protocol"))!.content;
+			assert.equal(frozen.complements, undefined, mode);
+			assert.equal(
+				frozen.controls.some((c) => c.control_id === "coverage"),
+				false,
+				mode,
+			);
+			assert.ok(
+				(await failed.t.harness.report(failed.changeId)).residual_risks.some(
+					(r) => r.code === "recommended_complement_not_adopted" && r.statement.includes(reason),
+				),
+				mode,
+			);
+			untouched(failed.project);
+		}
+	});
+
+	it("given a local repository that does not hold the plugin yet, then adopting the complement still resolves it, the local repository being asked of Maven before the POM declares the plugin", async () => {
+		const { t, maven, changeId } = await askedAdoption("cold-repository");
+		const resolution = maven.runs.filter((r) => r.command.some((part) => part.endsWith(":resolve-plugins")));
+		assert.equal(resolution.length, 1, "the plugin is resolved");
+		assert.equal(resolution[0]!.write_paths.at(-1), LOCAL_REPOSITORY);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		const protocol = (await t.harness.artifacts.latest<Protocol>(state, "protocol"))!.content;
+		assert.deepEqual(
+			protocol.complements?.map((c) => c.path),
+			["pom.xml"],
+		);
+	});
+
+	it("given a Maven plugin adopted and a producer that writes back the pom.xml of the reference, byte for byte, then G4 refuses the candidate with the reason protected path altered by the producer: pom.xml", async () => {
+		const { t, changeId } = await askedAdoption("resolves", (project) => ({
+			"pom.xml": readFileSync(join(project, "pom.xml"), "utf8"),
+			[TAMPERED_FILE]: readFileSync(join(project, TAMPERED_FILE), "utf8").replace("Hello, ", "HELLO, "),
+		}));
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+
+		const refused = t.ledger
+			.readChangeEvents(changeId)
+			.filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G4")
+			.map((e) => (e.event as { decision: { verdict: string; reasons: string[] } }).decision);
+		assert.ok(refused.length > 0, "the candidate reaches G4");
+		assert.ok(
+			refused.every(
+				(g) => g.verdict === "FAIL" && g.reasons.includes("protected path altered by the producer: pom.xml"),
+			),
+			JSON.stringify(refused),
+		);
+	});
+
+	it("given a Maven plugin adopted then a revision of the requirements, then the next protocol carries no complement, the recommendation is presented again and the adoption is offered again, and the local repository Maven designates is the only path written outside the copy", async () => {
+		const { t, maven, changeId } = await askedAdoption("resolves");
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 1 });
+		const loaded = t.ledger.loadChange(changeId)!;
+		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		assert.equal(frozen.complements?.length, 1, "pom.xml is adopted in the first protocol");
+		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
+		t.harness.commit(
+			loaded,
+			{
+				type: "artifact.revise",
+				at: t.harness.now(),
+				actor: KERNEL_ACTOR,
+				kind: "requirements",
+				ref: requirements.ref,
+				reason: "the requirements were rewritten",
+			},
+			t.harness.id("cor"),
+		);
+
+		const again = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
+		const [asked] = t.harness.pendingDecisions(changeId);
+		assert.deepEqual(
+			asked!.options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+			"adoption is offered again",
+		);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		const next = (await t.harness.artifacts.latest<Protocol>(state, "protocol"))!.content;
+		assert.equal(next.complements, undefined, "the next protocol carries no complement");
+		assert.ok(
+			next.capability_diagnosis.recommendations?.some((r) => r.tool.includes("jacoco")),
+			"the plugin is recommended again",
+		);
+		assert.ok(
+			maven.runs
+				.filter((r) => r.command[0] === "mvn")
+				.every((r) => r.write_paths.length === 0 || r.write_paths.at(-1) === LOCAL_REPOSITORY),
+			"the only path written outside the copy is the local repository",
+		);
 	});
 });

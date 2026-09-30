@@ -3,6 +3,7 @@
  * bounded preparation, the sensors are qualified, and G2 freezes the protocol.
  */
 import type { ArtifactRef, SubjectRef } from "../../contracts/v1/common.ts";
+import type { ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { digestValue } from "../../contracts/digest.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type {
@@ -18,7 +19,7 @@ import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
 import type { Adoptable } from "../decisions.ts";
-import { installableRecommendations, installInCopy, type FailedInstall } from "../installation.ts";
+import { installableRecommendations, installInCopy, resolveInCopy, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { ReferenceSuiteObservation } from "../preparation.ts";
@@ -85,6 +86,8 @@ function complementAdopted(decisions: readonly HumanDecisionEntry[]): boolean {
 
 /** The identifier every record of an install that was not adopted starts with, followed by `_`. */
 const INSTALL_RECORD_PREFIX = "install_";
+/** The identifier of the record that keeps what Maven printed when it resolved a plugin. */
+const RESOLUTION_RECORD_PREFIX = "resolution";
 
 interface InstallFailureRecord {
 	kind: "install-failure";
@@ -193,6 +196,8 @@ interface InstallAdoption {
 	complements: AdoptedComplement[];
 	packages: InstalledPackage[];
 	failed: FailedInstall[];
+	/** The recommendations whose Maven plugin was resolved, whose edit of `pom.xml` the adoption applies. */
+	resolved: RecommendedComplement[];
 }
 
 /** The installs that ran for these requirements and were not adopted, from the record each left in the dossier. */
@@ -217,16 +222,27 @@ async function adoptInstalls(
 	unit: Unit,
 	cor: string,
 	requirements: ArtifactRef,
+	reference: ReferenceSnapshot,
 	copyPath: string,
 	referenceFiles: readonly string[],
 	installable: readonly RecommendedComplement[],
 ): Promise<InstallAdoption> {
-	const adoption: InstallAdoption = { unit, complements: [], packages: [], failed: [] };
-	const deps = { workspace: ctx.workspace, workspacePolicy: ctx.workspacePolicy, install: ctx.install };
+	const adoption: InstallAdoption = { unit, complements: [], packages: [], failed: [], resolved: [] };
+	const deps = {
+		workspace: ctx.workspace,
+		workspacePolicy: ctx.workspacePolicy,
+		install: ctx.install,
+		localRepository: ctx.localRepository,
+	};
 	for (const r of installable) {
 		if (r.install === undefined) continue;
-		ctx.progress(`installing ${r.install.package}@${r.install.version} in a copy, network open for that step alone`);
-		const result = await installInCopy(deps, copyPath, r.install, referenceFiles);
+		ctx.progress(
+			`${r.install.manager === "maven" ? "resolving" : "installing"} ${r.install.package}@${r.install.version} in a copy, network open for that step alone`,
+		);
+		const result =
+			r.install.manager === "maven"
+				? await resolveInCopy(deps, reference, r.install, r.edit)
+				: await installInCopy(deps, copyPath, r.install, referenceFiles);
 		if (result.kind === "failed") {
 			const record: InstallFailureRecord = {
 				kind: "install-failure",
@@ -246,7 +262,29 @@ async function adoptInstalls(
 				{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref },
 				cor,
 			);
-			return { ...adoption, complements: [], packages: [], failed: [{ install: r.install, reason: result.reason }] };
+			return {
+				...adoption,
+				complements: [],
+				packages: [],
+				resolved: [],
+				failed: [{ install: r.install, reason: result.reason }],
+			};
+		}
+		if (result.kind === "resolved") {
+			const ref = await ctx.artifacts.store(
+				"output",
+				adoption.unit.state.change_id,
+				ctx.id(RESOLUTION_RECORD_PREFIX),
+				{ kind: "resolution", install: r.install, output: result.output },
+				KERNEL_ACTOR.actor_id,
+			);
+			adoption.unit = ctx.commit(
+				adoption.unit,
+				{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref },
+				cor,
+			);
+			adoption.resolved.push(r);
+			continue;
 		}
 		adoption.complements.push(
 			...result.files.map((f) => ({ path: f.path, digest: f.digest, test_type: r.test_type, tool: r.tool })),
@@ -270,15 +308,19 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		let detection = detectStack(handle.path, refs);
 		const referenceFiles = reference.entries.filter((e) => e.kind === "file").map((e) => e.path);
 		let failed = await failedInstalls(ctx, unit, requirements.ref);
+		const localRepository = detection.recommendations.some((r) => r.install?.manager === "maven")
+			? await ctx.localRepository(handle.path)
+			: null;
 		const adoption = complementAdopted(unit.state.human_decisions)
 			? await adoptInstalls(
 					ctx,
 					unit,
 					cor,
 					requirements.ref,
+					reference,
 					handle.path,
 					referenceFiles,
-					installableRecommendations(referenceFiles, detection.recommendations, failed).installable,
+					installableRecommendations(referenceFiles, detection.recommendations, failed, localRepository).installable,
 				)
 			: null;
 		if (adoption !== null) {
@@ -289,7 +331,12 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		// asks for, and the project stays as it is until the candidate that carries the edit is integrated.
 		const complements = [
 			...(adoption?.complements ?? []),
-			...(adoption !== null ? applyRecommendedEdits(handle.path, detection.recommendations) : []),
+			...(adoption !== null
+				? applyRecommendedEdits(
+						handle.path,
+						detection.recommendations.filter((r) => r.install?.manager !== "maven" || adoption.resolved.includes(r)),
+					)
+				: []),
 		];
 		const installed = adoption?.packages ?? [];
 		if (complements.length > 0) {
@@ -300,13 +347,18 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {
 				nextActions: ["cancel"],
 			});
-		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed);
+		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed, localRepository);
 		detection = { ...detection, recommendations: offered.recommendations };
 		const adoptable: Adoptable = {
 			files: detection.recommendations.flatMap((r) =>
-				r.edit && editedFile(handle.path, r.edit) !== null ? [r.edit.path] : [],
+				r.edit &&
+				(r.install === undefined || offered.installable.includes(r)) &&
+				editedFile(handle.path, r.edit) !== null
+					? [r.edit.path]
+					: [],
 			),
 			installs: offered.installable.flatMap((r) => (r.install ? [r.install] : [])),
+			...(localRepository !== null ? { local_repository: localRepository } : {}),
 		};
 		const ordered = ctx.verification.orderOf(detection.controls);
 		const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis =>

@@ -1,12 +1,16 @@
 /**
- * Installing the package a recommendation describes into a copy of the target: the plan is decided
- * from the files of the reference alone, and what the package manager leaves behind is accepted only
- * when it is what was asked for.
+ * Installing the package a recommendation describes into a copy of the target, or resolving its Maven
+ * plugin there: the plan is decided from the files of the reference alone, and what the package manager
+ * leaves behind is accepted only when it is what was asked for.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { InstalledPackage, PackageInstall, RecommendedComplement } from "../contracts/v1/protocol.ts";
+import { digestBytes } from "../contracts/digest.ts";
+import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
+import type { FileEdit, InstalledPackage, PackageInstall, RecommendedComplement } from "../contracts/v1/protocol.ts";
 import type { SandboxPort, SandboxProfile, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import { editedFile } from "./complement.ts";
+import { MAVEN_DEPENDENCY_PLUGIN_VERSION } from "./stacks/maven.ts";
 import { BASE_ENV } from "./stacks/stack.ts";
 
 /** What installing a package comes to: the command to run in the copy, or why it cannot be run. */
@@ -16,11 +20,22 @@ export type InstallPlan = { kind: "command"; command: string[] } | { kind: "refu
 const OTHER_MANAGERS_LOCKS = ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"];
 
 /**
- * The npm command that installs `install` as an exact development dependency without running any
- * install script, or the reason it is not run: a target locked by another manager, or by none, is
+ * The command that installs `install`. For Maven, the plugins of the copy are resolved with the
+ * dependency plugin the catalogue pins, which runs no goal of any plugin it resolves. For npm, it
+ * installs `install` as an exact development dependency without running any install script, or
+ * gives the reason it is not run: a target locked by another manager, or by none, is
  * not one npm can extend without choosing the tree of its dependencies itself.
  */
 export function planInstall(files: readonly string[], install: PackageInstall): InstallPlan {
+	if (install.manager === "maven")
+		return {
+			kind: "command",
+			command: [
+				"mvn",
+				"-B",
+				`org.apache.maven.plugins:maven-dependency-plugin:${MAVEN_DEPENDENCY_PLUGIN_VERSION}:resolve-plugins`,
+			],
+		};
 	const foreign = OTHER_MANAGERS_LOCKS.find((lock) => files.includes(lock));
 	if (foreign !== undefined)
 		return { kind: "refused", reason: `${foreign} is the lock of a manager other than npm, and only npm is run` };
@@ -62,12 +77,14 @@ export interface FailedInstall {
 /**
  * The recommendations as the owner and the report read them, with those whose install can be run. A
  * recommendation whose install cannot be run, or ran and was not adopted, says why in its own text,
- * so that it is not read as one 495 will do.
+ * so that it is not read as one 495 will do. A Maven install is run only where Maven announced its
+ * local repository, which `localRepository` carries.
  */
 export function installableRecommendations(
 	files: readonly string[],
 	recommendations: readonly RecommendedComplement[],
 	failed: readonly FailedInstall[] = [],
+	localRepository: string | null = null,
 ): { recommendations: RecommendedComplement[]; installable: RecommendedComplement[] } {
 	const installable: RecommendedComplement[] = [];
 	const described = recommendations.map((r) => {
@@ -78,6 +95,11 @@ export function installableRecommendations(
 		if (earlier !== undefined)
 			return { ...r, change: `${r.change}; the install ran in a copy and nothing was adopted: ${earlier.reason}` };
 		const plan = planInstall(files, r.install);
+		if (r.install.manager === "maven" && localRepository === null)
+			return {
+				...r,
+				change: `${r.change}; 495 does not run this install: Maven's local repository could not be established`,
+			};
 		if (plan.kind === "command") {
 			installable.push(r);
 			return r;
@@ -168,8 +190,8 @@ export function inspectInstall(before: InstallState, after: InstallState, instal
 	return { kind: "accepted", files, packages };
 }
 
-/** What running the install command in the copy came to. */
-export type InstallRun = { kind: "installed" } | { kind: "failed"; reason: string };
+/** What running the install command in the copy came to; Maven's output is kept, for the dossier to show what it downloaded. */
+export type InstallRun = { kind: "installed"; output?: string } | { kind: "failed"; reason: string };
 
 const CACHE_QUERY_TIMEOUT_MS = 60_000;
 const INSTALL_TIMEOUT_MS = 10 * 60_000;
@@ -190,6 +212,9 @@ const NPM_ENV_NAMES = [
 	"SSL_CERT_FILE",
 ];
 
+/** The variables Maven reads its own options and its installation from, besides the ones every control receives. */
+const MAVEN_ENV_NAMES = ["MAVEN_ARGS", "MAVEN_HOME", "M2_HOME"];
+
 function npmEnvAllowlist(source: NodeJS.ProcessEnv): string[] {
 	const configured = Object.keys(source).filter((name) => /^npm_config_/i.test(name));
 	return [...BASE_ENV, ...NPM_ENV_NAMES, ...configured];
@@ -200,47 +225,113 @@ function tail(bytes: Uint8Array): string {
 }
 
 /**
- * Runs the planned install in the copy at `copyPath`. The cache directory is asked of npm first, offline,
- * so that its configuration, the machine's and the project's, decides where it is; the install then runs
- * with the network open and no write outside the copy and that directory, which is given as npm said it.
- * Nothing here chooses a repository, an authentication or a cache: npm reads them itself.
+ * What a package manager is asked offline before its step runs, so that the one directory it writes
+ * outside the copy is the one it says, configuration of the machine and of the project applied.
+ */
+interface OutsideWriteQuery {
+	command: string[];
+	/** The directory the answer names, or null when it names none. */
+	read: (stdout: string) => string | null;
+	unsaid: string;
+	env: (source: NodeJS.ProcessEnv) => string[];
+}
+
+const NPM_CACHE_QUERY: OutsideWriteQuery = {
+	command: ["npm", "config", "get", "cache"],
+	read: (stdout) => stdout.trim() || null,
+	unsaid: "npm did not say its cache directory",
+	env: npmEnvAllowlist,
+};
+
+const MAVEN_LOCAL_REPOSITORY_QUERY: OutsideWriteQuery = {
+	command: ["mvn", "-X", "-o", "-B", "validate"],
+	read: readLocalRepository,
+	unsaid: "Maven did not announce its local repository",
+	env: () => [...BASE_ENV, ...MAVEN_ENV_NAMES],
+};
+
+const OUTSIDE_WRITE_QUERIES: Record<string, OutsideWriteQuery> = {
+	npm: NPM_CACHE_QUERY,
+	mvn: MAVEN_LOCAL_REPOSITORY_QUERY,
+};
+
+/** The profile an install step runs under: the copy readable, the network and the writable paths as given. */
+function installProfile(
+	query: OutsideWriteQuery,
+	copyPath: string,
+	source: NodeJS.ProcessEnv,
+	network: SandboxProfile["network"],
+	writable: string[],
+): SandboxProfile {
+	return {
+		profile_id: "install",
+		read_paths: [copyPath],
+		write_paths: writable,
+		network,
+		env_allowlist: query.env(source),
+		env: {},
+	};
+}
+
+/** The directory the manager says it writes outside the copy, or why it said none. */
+async function askedOutsideWrite(
+	sandbox: SandboxPort,
+	query: OutsideWriteQuery,
+	copyPath: string,
+	source: NodeJS.ProcessEnv,
+): Promise<{ path: string } | { reason: string }> {
+	const asked = await sandbox.run(installProfile(query, copyPath, source, "denied", []), {
+		command: query.command,
+		cwd: copyPath,
+		timeout_ms: CACHE_QUERY_TIMEOUT_MS,
+		max_output_bytes: MAX_OUTPUT_BYTES,
+	});
+	const outside = asked.exit_code === 0 ? query.read(new TextDecoder().decode(asked.stdout)) : null;
+	return outside === null
+		? { reason: `${query.unsaid}: ${asked.spawn_error ?? tail(asked.stderr)}` }
+		: { path: outside };
+}
+
+/** The local repository Maven announces for the copy at `copyPath`, or the reason it announces none. */
+export async function askedLocalRepository(
+	sandbox: SandboxPort,
+	copyPath: string,
+	source: NodeJS.ProcessEnv = process.env,
+): Promise<{ path: string } | { reason: string }> {
+	return askedOutsideWrite(sandbox, MAVEN_LOCAL_REPOSITORY_QUERY, copyPath, source);
+}
+
+/**
+ * Runs the planned install in the copy at `copyPath`. The directory the manager writes outside the
+ * copy, its cache for npm and its local repository for Maven, is asked of it first, offline, so that its
+ * configuration, the machine's and the project's, decides where it is; the install then runs with the
+ * network open and no write outside the copy and that directory, which is given as the manager said it.
+ * Nothing here chooses a repository, an authentication or a directory: the manager reads them itself.
+ * A caller that asked for the directory already, before it changed the copy, hands it over as `known`.
  */
 export async function runInstall(
 	sandbox: SandboxPort,
 	copyPath: string,
 	command: readonly string[],
+	known?: string,
 	source: NodeJS.ProcessEnv = process.env,
 ): Promise<InstallRun> {
-	const profile = (network: SandboxProfile["network"], writable: string[]): SandboxProfile => ({
-		profile_id: "install",
-		read_paths: [copyPath],
-		write_paths: writable,
-		network,
-		env_allowlist: npmEnvAllowlist(source),
-		env: {},
-	});
-	const asked = await sandbox.run(profile("denied", []), {
-		command: ["npm", "config", "get", "cache"],
-		cwd: copyPath,
-		timeout_ms: CACHE_QUERY_TIMEOUT_MS,
-		max_output_bytes: MAX_OUTPUT_BYTES,
-	});
-	const cache = new TextDecoder().decode(asked.stdout).trim();
-	if (asked.exit_code !== 0 || cache === "")
-		return {
-			kind: "failed",
-			reason: `npm did not say its cache directory: ${asked.spawn_error ?? tail(asked.stderr)}`,
-		};
-	const observed = await sandbox.run(profile("allowed", [copyPath, cache]), {
+	const query = OUTSIDE_WRITE_QUERIES[command[0] ?? ""];
+	if (query === undefined) return { kind: "failed", reason: `${command[0]} is not a package manager 495 runs` };
+	const outside = known === undefined ? await askedOutsideWrite(sandbox, query, copyPath, source) : { path: known };
+	if ("reason" in outside) return { kind: "failed", reason: outside.reason };
+	const observed = await sandbox.run(installProfile(query, copyPath, source, "allowed", [copyPath, outside.path]), {
 		command: [...command],
 		cwd: copyPath,
 		timeout_ms: INSTALL_TIMEOUT_MS,
 		max_output_bytes: MAX_OUTPUT_BYTES,
 	});
-	if (observed.exit_code === 0) return { kind: "installed" };
-	const why = observed.timed_out
-		? "timed out"
-		: (observed.spawn_error ?? `exited ${observed.exit_code}: ${tail(observed.stderr)}`);
+	const maven = command[0] === "mvn";
+	if (observed.exit_code === 0)
+		return maven ? { kind: "installed", output: new TextDecoder().decode(observed.stdout) } : { kind: "installed" };
+	// Maven says the cause on its standard output and leaves its error output to the JVM's warnings; npm says it on its error output.
+	const said = maven ? tail(observed.stdout) || tail(observed.stderr) : tail(observed.stderr) || tail(observed.stdout);
+	const why = observed.timed_out ? "timed out" : (observed.spawn_error ?? `exited ${observed.exit_code}: ${said}`);
 	return { kind: "failed", reason: `${command.join(" ")} ${why}` };
 }
 
@@ -252,18 +343,27 @@ export type InstalledCopy =
 export interface InstallDeps {
 	workspace: WorkspacePort;
 	workspacePolicy: WorkspacePolicy;
-	install: (copyPath: string, command: readonly string[]) => Promise<InstallRun>;
+	install: (copyPath: string, command: readonly string[], outside?: string) => Promise<InstallRun>;
+	/** The local repository Maven announces for a copy, or null when it announces none. */
+	localRepository: (copyPath: string) => Promise<string | null>;
 }
 
-/** The copy as an install can change it, or why it cannot be listed in full. */
-async function stateOf(deps: InstallDeps, copyPath: string): Promise<InstallState | string> {
-	const snapshot = await deps.workspace.captureReference(copyPath, deps.workspacePolicy);
+/** Each regular file of the copy by its digest under `policy`, or why the copy cannot be listed in full. */
+async function digestsOf(deps: InstallDeps, copyPath: string, policy: WorkspacePolicy): Promise<CopyFiles | string> {
+	const snapshot = await deps.workspace.captureReference(copyPath, policy);
 	if (snapshot.limits.truncated)
 		return `the copy could not be listed in full: ${snapshot.limits.notes.join("; ") || "a limit was reached"}`;
 	const files: Record<string, string> = {};
 	// A link carries no bytes to keep: the tree that is kept holds regular files only.
 	for (const entry of snapshot.entries)
 		if (entry.kind === "file" && entry.content_digest !== null) files[entry.path] = entry.content_digest;
+	return files;
+}
+
+/** The copy as an install can change it, or why it cannot be listed in full. */
+async function stateOf(deps: InstallDeps, copyPath: string): Promise<InstallState | string> {
+	const files = await digestsOf(deps, copyPath, deps.workspacePolicy);
+	if (typeof files === "string") return files;
 	try {
 		return {
 			files,
@@ -300,4 +400,84 @@ export async function installInCopy(
 		files: inspected.files.map((path) => ({ path, digest: after.files[path]! })),
 		packages: inspected.packages,
 	};
+}
+
+/** The line a debug run of Maven announces its local repository with, configuration of the machine and of the project applied. */
+const LOCAL_REPOSITORY_LINE = /^\[DEBUG\] Using local repository at ([^\r\n]+)/m;
+
+/** The local repository Maven announces in the output of a debug run, as announced, or null when it announces none. */
+export function readLocalRepository(output: string): string | null {
+	return LOCAL_REPOSITORY_LINE.exec(output)?.[1] ?? null;
+}
+
+/** What a Maven resolution left in the copy: accepted, or what keeps it from being accepted. */
+export type ResolutionInspection = { kind: "accepted" } | { kind: "refused"; reason: string };
+
+/** The digest of each file of a copy, by path. */
+export type CopyFiles = Readonly<Record<string, string>>;
+
+/**
+ * Accepts a resolution only when the copy holds what 495 wrote into it and nothing else changed: each
+ * file in `written` is as written, and every other file is as it was, none added and none removed.
+ * The resolution writes the local repository of Maven, which is outside the copy.
+ */
+export function inspectResolution(
+	before: CopyFiles,
+	after: CopyFiles,
+	written: readonly { path: string; digest: string }[],
+): ResolutionInspection {
+	const expected = new Map(written.map((w) => [w.path, w.digest] as const));
+	const paths = [...new Set([...Object.keys(before), ...Object.keys(after), ...expected.keys()])].sort();
+	for (const path of paths) {
+		if (after[path] === (expected.get(path) ?? before[path])) continue;
+		return {
+			kind: "refused",
+			reason: `the resolution left ${path} ${expected.has(path) ? "other than 495 wrote it" : "changed, and only the local repository of Maven is written outside pom.xml"}`,
+		};
+	}
+	return { kind: "accepted" };
+}
+
+/** What resolving the plugin of a recommendation in a copy came to: Maven's output, or why nothing is adopted. */
+export type ResolvedPlugin = { kind: "resolved"; output: string } | { kind: "failed"; reason: string };
+
+/**
+ * Declares the plugin in a copy of the reference, resolves it there with Maven and keeps the result only
+ * when the inspection accepts it. The copy is one of its own and is deleted: `pom.xml` is written into the
+ * copies of the verification from the object store, once the resolution is accepted.
+ */
+export async function resolveInCopy(
+	deps: InstallDeps,
+	reference: ReferenceSnapshot,
+	install: PackageInstall,
+	edit: FileEdit | undefined,
+): Promise<ResolvedPlugin> {
+	if (edit === undefined) return { kind: "failed", reason: "the recommendation carries no edit of pom.xml to resolve" };
+	const plan = planInstall([], install);
+	if (plan.kind === "refused") return { kind: "failed", reason: plan.reason };
+	const handle = await deps.workspace.createWorkspace(reference, deps.workspacePolicy);
+	try {
+		// Asked of the copy as the reference has it: once the POM declares a plugin the local repository does
+		// not hold yet, an offline Maven fails before it can say where that repository is.
+		const repository = await deps.localRepository(handle.path);
+		if (repository === null) return { kind: "failed", reason: "Maven's local repository could not be established" };
+		// The copy is listed with no exclusion: a file the resolution writes under a directory the policy leaves
+		// out of a copy, such as target/, is a change like any other.
+		const whole = { ...deps.workspacePolicy, exclusions: [] };
+		const before = await digestsOf(deps, handle.path, whole);
+		if (typeof before === "string") return { kind: "failed", reason: before };
+		const text = editedFile(handle.path, edit);
+		if (text === null) return { kind: "failed", reason: `the edit of ${edit.path} no longer applies` };
+		writeFileSync(join(handle.path, edit.path), text);
+		const run = await deps.install(handle.path, plan.command, repository);
+		if (run.kind === "failed") return run;
+		const after = await digestsOf(deps, handle.path, whole);
+		if (typeof after === "string") return { kind: "failed", reason: after };
+		const inspected = inspectResolution(before, after, [{ path: edit.path, digest: digestBytes(text) }]);
+		return inspected.kind === "refused"
+			? { kind: "failed", reason: inspected.reason }
+			: { kind: "resolved", output: run.output ?? "" };
+	} finally {
+		await deps.workspace.closeWorkspace(handle.workspace_id, "delete");
+	}
 }
