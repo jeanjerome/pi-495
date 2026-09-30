@@ -2,7 +2,14 @@ import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { lirePlan, marquerEpic, marquerStory, prochaineEpic, prochaineStory } from "../../cycle/src/plan.ts";
+import {
+	lirePlan,
+	marquerEpic,
+	marquerStory,
+	marquerStoryListee,
+	prochaineEpic,
+	prochaineStory,
+} from "../../cycle/src/plan.ts";
 import { tempDir } from "../helpers/fixtures.ts";
 
 const PLAN = `contraintes:
@@ -94,5 +101,13 @@ describe("the plan as the cycle reads it", () => {
 		const root = racine();
 		assert.throws(() => marquerStory(root, "e09s01", "versée"), /line to update was not found/);
 		assert.throws(() => marquerEpic(root, "e09", "versé"), /line to update was not found/);
+	});
+
+	it("marks a landed story only when the plan lists it as pending", () => {
+		const root = racine();
+		assert.equal(marquerStoryListee(root, "e02s02"), true);
+		assert.equal(lirePlan(root)[1]!.stories[1]!.statut, "versée");
+		assert.equal(marquerStoryListee(root, "e02s02"), false);
+		assert.equal(marquerStoryListee(root, "e09s01"), false);
 	});
 });

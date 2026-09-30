@@ -28,8 +28,9 @@ import {
 import { PREFLIGHT, Executeur } from "./controls.ts";
 import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
-import { commitsEntre, revision } from "./git.ts";
+import { commitsEntre, git, revision } from "./git.ts";
 import { Journal, type Pas, racineCycle } from "./journal.ts";
+import { marquerStoryListee } from "./plan.ts";
 import { corrigerDefauts, suite } from "./suite.ts";
 import { lireStory } from "./story.ts";
 
@@ -136,7 +137,13 @@ async function main(argv: string[]): Promise<number> {
 		rouvrir(ctx, reste.join(" "));
 		console.log(`${id} : rouverte au rouge-vert.`);
 	}
-	return await derouler(ctx, id, commande === "auto");
+	const code = await derouler(ctx, id, commande === "auto");
+	// The suite marks the plan itself after each story it drives; a story driven alone is marked here.
+	if (code === 0 && ctx.journal.prochainPas() === null && marquerStoryListee(ctx.root, id)) {
+		git(ctx.root, ["add", "--", "specs/plan.yaml"]);
+		git(ctx.root, ["commit", "-q", "-m", `docs: the plan marks ${id} landed`]);
+	}
+	return code;
 }
 
 let interruption: (() => void) | null = null;

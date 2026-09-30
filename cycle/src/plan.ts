@@ -78,6 +78,16 @@ export function marquerStory(root: string, storyId: string, statut: "versée"): 
 	});
 }
 
+/** Marks a story landed when the plan lists it pending; false when it is not listed or already landed. */
+export function marquerStoryListee(root: string, storyId: string): boolean {
+	const story = lirePlan(root)
+		.flatMap((e) => e.stories)
+		.find((s) => s.id === storyId);
+	if (!story || story.statut === "versée") return false;
+	marquerStory(root, storyId, "versée");
+	return true;
+}
+
 export function marquerEpic(root: string, epicId: string, statut: "versé"): void {
 	reecrire(root, (lignes) => {
 		const debut = lignes.findIndex((l) => EPIC.exec(l)?.[1] === epicId);
