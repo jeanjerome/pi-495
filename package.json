@@ -91,6 +91,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@rgrove/parse-xml": "^5.0.0",
     "@xynogen/pix-pretty": "^1.26.0",
     "jiti": "^2.7.0"
   }

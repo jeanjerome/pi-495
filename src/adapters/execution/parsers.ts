@@ -1,3 +1,4 @@
+import { parseXml, XmlElement, type XmlDocument, type XmlNode } from "@rgrove/parse-xml";
 import type { Verdict } from "../../contracts/v1/common.ts";
 import type { Finding } from "../../contracts/v1/evidence.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
@@ -160,25 +161,47 @@ export interface JUnitSummary {
 	files: number;
 }
 
-/** Minimal JUnit/Surefire XML reader: counts from `<testsuite>` attributes and `<testcase>` children. */
+/** Every `<testcase>` of a document, in document order, however deep the suites that hold it nest. */
+function testCasesOf(document: XmlDocument): XmlElement[] {
+	const found: XmlElement[] = [];
+	const pending: XmlNode[] = [...document.children].reverse();
+	for (let node = pending.pop(); node; node = pending.pop()) {
+		if (!(node instanceof XmlElement)) continue;
+		if (node.name === "testcase") found.push(node);
+		for (let i = node.children.length - 1; i >= 0; i -= 1) pending.push(node.children[i]!);
+	}
+	return found;
+}
+
+/** A report is the output of the process the judged project ran: it is bounded before it is analysed. */
+const MAX_REPORT_BYTES = 16 * 1024 * 1024;
+
+function parseReport(document: string): XmlDocument {
+	if (Buffer.byteLength(document, "utf8") > MAX_REPORT_BYTES)
+		throw new Error(`the report exceeds ${MAX_REPORT_BYTES} bytes`);
+	return parseXml(document);
+}
+
+/**
+ * JUnit/Surefire reader: every `<testcase>` is one test, failed on a `failure` or `error` child and
+ * skipped on a `skipped` child. The counts of the enclosing `<testsuite>` elements are not read: a
+ * nested suite repeats the tests of its parent, and an emitter may omit or fill an attribute as it likes.
+ * Throws when a document is over the bound or is not XML the parser reads, deep nesting included.
+ */
 export function summarizeJUnit(documents: string[]): JUnitSummary {
 	const s: JUnitSummary = { tests: 0, failures: 0, errors: 0, skipped: 0, failed_cases: [], files: documents.length };
 	for (const doc of documents) {
-		for (const suite of doc.matchAll(/<testsuite\b([^>]*)>/g)) {
-			const attrs = suite[1] ?? "";
-			s.tests += intAttr(attrs, "tests");
-			s.failures += intAttr(attrs, "failures");
-			s.errors += intAttr(attrs, "errors");
-			s.skipped += intAttr(attrs, "skipped");
-		}
-		for (const tc of doc.matchAll(/<testcase\b([^>]*?)(\/>|>([\s\S]*?)<\/testcase>)/g)) {
-			const body = tc[3] ?? "";
-			if (/<(failure|error)\b/.test(body) && s.failed_cases.length < MAX_FAILURES) {
-				// `classname` also ends in `name="`, and vitest writes it before `name`.
-				const name = /(?:^|\s)name="([^"]*)"/.exec(tc[1] ?? "")?.[1] ?? "unnamed";
-				const cls = /classname="([^"]*)"/.exec(tc[1] ?? "")?.[1];
-				s.failed_cases.push(cls ? `${cls}.${name}` : name);
-			}
+		for (const testcase of testCasesOf(parseReport(doc))) {
+			s.tests += 1;
+			const outcomes = testcase.children.flatMap((child) => (child instanceof XmlElement ? [child.name] : []));
+			if (outcomes.includes("failure")) s.failures += 1;
+			else if (outcomes.includes("error")) s.errors += 1;
+			else if (outcomes.includes("skipped")) s.skipped += 1;
+			if (!outcomes.some((name) => name === "failure" || name === "error")) continue;
+			if (s.failed_cases.length >= MAX_FAILURES) continue;
+			const name = testcase.attributes.name ?? "unnamed";
+			const cls = testcase.attributes.classname;
+			s.failed_cases.push(cls ? `${cls}.${name}` : name);
 		}
 	}
 	return s;
@@ -219,7 +242,16 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 			failures: [],
 		};
 	}
-	const s = summarizeJUnit(documents);
+	let s: JUnitSummary;
+	try {
+		s = summarizeJUnit(documents);
+	} catch (error) {
+		// A document the parser refuses is a report that was not written: an unreadable one is never a success.
+		const facts = { exit_code: obs.exit_code, reports: documents.length };
+		const note = `a JUnit report is not readable: ${(error as Error).message.split("\n")[0]?.slice(0, 200)}`;
+		if (broke) return outside(facts, note);
+		return { verdict: "INDETERMINATE", facts, notes: [note], failures: [] };
+	}
 	const facts = { exit_code: obs.exit_code, ...s };
 	if (s.tests === 0) {
 		if (broke) return outside(facts, `the build exited with ${obs.exit_code} and the reports contain no test`);

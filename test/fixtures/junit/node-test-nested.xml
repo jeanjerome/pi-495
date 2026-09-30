@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testsuite name="outer" time="0.000839" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-09-30T01:03:39.971Z" hostname="host">
+		<testcase name="a" time="0.000233" classname="outer" file="/work/n.test.mjs"/>
+		<testsuite name="inner" time="0.000165" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-09-30T01:03:39.971Z" hostname="host">
+			<testcase name="b" time="0.000056" classname="outer.inner" file="/work/n.test.mjs"/>
+			<testcase name="c" time="0.000034" classname="outer.inner" file="/work/n.test.mjs"/>
+		</testsuite>
+	</testsuite>
+	<!-- tests 3 -->
+	<!-- suites 2 -->
+	<!-- pass 3 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 41.441959 -->
+</testsuites>

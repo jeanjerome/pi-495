@@ -2,7 +2,7 @@
 
 Story : e12s02
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

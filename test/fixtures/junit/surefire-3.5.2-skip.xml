@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="demo.SumTest" time="0.014" tests="2" errors="0" skipped="1" failures="0">
+  <testcase name="adds" classname="demo.SumTest" time="0.007"/>
+  <testcase name="later" classname="demo.SumTest" time="0.0">
+    <skipped message="void demo.SumTest.later() is @Disabled"/>
+  </testcase>
+</testsuite>

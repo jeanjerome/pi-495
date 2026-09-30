@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="1" errors="0" time="0.003157916">
+    <testsuite name="tests/sum.test.ts" timestamp="2026-09-29T08:59:18.512Z" hostname="host" tests="2" failures="1" errors="0" skipped="0" time="0.003157916">
+        <testcase classname="tests/sum.test.ts" name="given two numbers, when added, then they sum" time="0.000566625">
+        </testcase>
+        <testcase classname="tests/sum.test.ts" name="given two numbers, when subtracted, then they differ" time="0.002117541">
+            <failure message="expected 1 to be 2 // Object.is equality" type="AssertionError">
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ tests/sum.test.ts:8:17
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

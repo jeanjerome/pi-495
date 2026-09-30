@@ -25,3 +25,7 @@ jiti — MIT — https://github.com/unjs/jiti
   Loads the TypeScript sources @xynogen/pix-pretty publishes. Node refuses to
   strip types from a file under node_modules, so the package asks for this loader
   itself rather than relying on the host to have registered one.
+
+@rgrove/parse-xml — ISC — https://github.com/rgrove/parse-xml
+  Reads the JUnit reports a test runner writes. It ignores the DOCTYPE without resolving an
+  entity or an external DTD, and has no dependency of its own.
