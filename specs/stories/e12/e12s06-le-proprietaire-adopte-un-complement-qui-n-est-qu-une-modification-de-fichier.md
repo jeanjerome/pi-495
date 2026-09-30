@@ -18,7 +18,7 @@ que cette modification demande, et la modification fait partie du candidat : ell
 lui, à l'intégration que le propriétaire accepte, comme tout le reste. Adopter un complément n'est pas juger
 l'exigence, qui reste à préparer, à assigner ou à réviser : la question est reposée sans cette issue quand
 l'exigence reste sans juge. Les compléments qui demandent une installation, avec le réseau ouvert, sont
-`e12s07` et `e12s08`.
+`e12s08` et `e12s09`.
 
 ## 2. Promesses
 
@@ -186,9 +186,9 @@ complément adoptable ne manque.
 ## 5. Hors périmètre
 
 - Un complément qui demande une installation, avec le réseau ouvert : l'arbre installé se conserve et se remet sans
-  réseau, un gestionnaire de paquets se détecte, un verrou se vérifie. C'est `e12s07` pour Node. Le fournisseur de
+  réseau, un gestionnaire de paquets se détecte, un verrou se vérifie. C'est `e12s08` pour Node. Le fournisseur de
   couverture de vitest n'est donc pas adoptable ici.
-- Un complément Maven, qui demande une ligne du POM et des jars dans le dépôt local de la machine : `e12s08`.
+- Un complément Maven, qui demande une ligne du POM et des jars dans le dépôt local de la machine : `e12s09`.
 - Une modification qui ajoute une clé absente (une cible sans `scripts.test`) : elle dépend de la mise en forme du
   fichier et n'est pas offerte ; la recommandation reste un texte.
 - Des chemins protégés qui suivent le besoin de chaque phase en général : cette story ne lève la protection que pour

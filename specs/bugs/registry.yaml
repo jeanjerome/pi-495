@@ -1457,3 +1457,36 @@ bugs:
       Read the report with an XML parser and count the `<testcase>` elements, which also bounds and
       hardens the reading of an input the judged project wrote.
     status: open
+  - bug_id: BUG-2026-09-30T150000
+    date: "2026-09-30"
+    title: "Integrating a candidate that holds a path git ignores ends uncertain instead of integrated"
+    severity: medium
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The integrator copies every changed path of the candidate into the project, then runs
+      `git add -A -- <selected paths>`. When one of those paths is matched by the project's `.gitignore`,
+      git prints "The following paths are ignored by one of your .gitignore files" and exits 1. The call
+      is not allowed to fail, so the integration falls into its `catch` and ends `uncertain`, which asks
+      the owner to investigate an accepted change whose files are all in place.
+    what_expected: >
+      A path git ignores is copied with the rest and left out of the commit; the change is integrated.
+    steps_to_reproduce:
+      - "In a git project whose `.gitignore` lists `coverage/`, accept a candidate that adds `coverage/report.txt` and another tracked file."
+      - "Accept the local integration."
+      - "The integration ends `uncertain` and the commit is not made."
+    root_cause: >
+      `Integrator` (`src/adapters/git/integrator.ts`) calls `git(project, ["add", "-A", "--", ...selected_paths])`
+      without `allowFailure`, and the workspace walk that builds `selected_paths` does not read `.gitignore`.
+      Not introduced by a branch: the same code is on main.
+    evidence: >
+      Read on 2026-09-30, and git measured: `git add -A -- package.json node_modules/x/i.js` in a project
+      ignoring `node_modules/` prints the message above and exits 1, while the tracked file is still
+      staged. In a project that does not ignore `node_modules/`, the same command stages the dependency
+      files, which would commit them. The path from the integrator to that call was not run end to end.
+    risk_level: low
+    follow_ups: >
+      Stage only the paths git can index and never a `node_modules/` path, after copying every path the
+      candidate holds; a test on a project that ignores a candidate path, and on one that does not ignore
+      `node_modules/`.
+    status: open

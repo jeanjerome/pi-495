@@ -247,9 +247,10 @@ epics:
       - { id: e12s04, status: "à faire", title: "La couverture des lignes introduites d'une cible Node se mesure quand la cible la demande" }
       - { id: e12s05, status: "à faire", title: "495 recommande le complément de test qui manque à une cible, et le dossier dit qu'il n'est pas adopté" }
       - { id: e12s06, status: "à faire", title: "Le propriétaire adopte un complément qui n'est qu'une modification de fichier, et la modification fait partie du candidat" }
-      - { id: e12s07, status: "à faire", title: "Le propriétaire adopte un complément à installer, le réseau est ouvert à cette seule étape et l'arbre installé est remis sans réseau" }
-      - { id: e12s08, status: "à faire", title: "Le propriétaire adopte un complément Maven, déclaré au POM et résolu dans le dépôt local de la machine" }
-      - { id: e12s09, status: "à faire", title: "Les mutants survivants sur les lignes modifiées d'une cible Node se mesurent avec Stryker quand la cible l'a installé" }
+      - { id: e12s07, status: "à faire", title: "Un complément adopté est présent dans chaque copie où un contrôle tourne, et l'intégration n'indexe que ce que git suit" }
+      - { id: e12s08, status: "à faire", title: "Le propriétaire adopte un complément à installer pour une cible Node : le réseau s'ouvre à cette seule étape, et le résultat est inspecté et conservé" }
+      - { id: e12s09, status: "à faire", title: "Le propriétaire adopte un complément Maven, déclaré au POM et résolu dans le dépôt local de la machine" }
+      - { id: e12s10, status: "à faire", title: "Les mutants survivants sur les lignes modifiées d'une cible Node se mesurent avec Stryker quand la cible l'a installé" }
 
   - id: e29
     title: "L'état d'un projet se demande sans rien changer"
