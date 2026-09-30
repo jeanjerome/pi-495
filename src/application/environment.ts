@@ -28,6 +28,19 @@ function packageRoot(from: string): string | null {
 	}
 }
 
+/** The version `package.json` declares, the one place it is written; "unknown" when no manifest reads. */
+export function harnessVersion(): string {
+	const root = packageRoot(dirname(fileURLToPath(import.meta.url)));
+	if (!root) return "unknown";
+	try {
+		return String(
+			(JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version?: string }).version ?? "unknown",
+		);
+	} catch {
+		return "unknown"; // an unreadable manifest leaves the version unknown, never fails the session
+	}
+}
+
 /**
  * Digest of the executable harness itself — `dist/` once installed, `src/` when run from sources.
  * Without it a mid-change upgrade keeps the environment identity untouched, so a frozen protocol
@@ -36,14 +49,7 @@ function packageRoot(from: string): string | null {
 function buildIdentity(): { version: string; build_digest: string } {
 	const root = packageRoot(dirname(fileURLToPath(import.meta.url)));
 	if (!root) return { version: "unknown", build_digest: "sha256:unknown" };
-	let version = "unknown";
-	try {
-		version = String(
-			(JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version?: string }).version ?? "unknown",
-		);
-	} catch {
-		/* an unreadable manifest leaves the version unknown, never fails the session */
-	}
+	const version = harnessVersion();
 	const tree = ["dist", "src"].map((d) => join(root, d)).find((d) => existsSync(d));
 	if (!tree) return { version, build_digest: "sha256:unknown" };
 	const hash = createHash("sha256");

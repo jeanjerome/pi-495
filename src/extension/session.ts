@@ -22,6 +22,7 @@ import type { StatusView } from "../application/views.ts";
 import { formatConsumption } from "../presentation/structured/text.ts";
 import { DomainError } from "../domain/errors.ts";
 import { locateModel } from "../domain/policy.ts";
+import { harnessVersion } from "../application/environment.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
 
 interface Binding {
@@ -29,7 +30,7 @@ interface Binding {
 	change_id: string;
 }
 
-export const VERSION_495 = "0.2.1";
+export const VERSION_495 = harnessVersion();
 
 /**
  * A runtime that could not be created, told by its error code alone: the system's message names the
