@@ -5,3 +5,4 @@ dist/
 test-output/
 .dist-check/
 .cursor/rules
+DECISION.md
