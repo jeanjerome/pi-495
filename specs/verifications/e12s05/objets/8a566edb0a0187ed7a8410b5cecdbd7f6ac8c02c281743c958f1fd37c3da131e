@@ -1,0 +1,203 @@
+TAP version 13
+# Subtest: engineering report: observations, judgments and residual risks (IMP-05)
+    # Subtest: keeps the three natures apart and shares no identifier between them
+    ok 1 - keeps the three natures apart and shares no identifier between them
+      ---
+      duration_ms: 4.793042
+      type: 'test'
+      ...
+    # Subtest: a run where every control passed still names what it does not establish
+    ok 2 - a run where every control passed still names what it does not establish
+      ---
+      duration_ms: 0.449917
+      type: 'test'
+      ...
+    # Subtest: carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+    ok 3 - carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+      ---
+      duration_ms: 0.320084
+      type: 'test'
+      ...
+    # Subtest: names a control that failed its own witnesses and a requirement no control carries
+    ok 4 - names a control that failed its own witnesses and a requirement no control carries
+      ---
+      duration_ms: 0.290417
+      type: 'test'
+      ...
+    # Subtest: reports a human acceptance as a judgment of human authority, distinct from what was measured
+    ok 5 - reports a human acceptance as a judgment of human authority, distinct from what was measured
+      ---
+      duration_ms: 0.449667
+      type: 'test'
+      ...
+    # Subtest: renders what was asked, then the three sections in order, in the language of the change
+    ok 6 - renders what was asked, then the three sections in order, in the language of the change
+      ---
+      duration_ms: 0.342709
+      type: 'test'
+      ...
+    1..6
+ok 1 - engineering report: observations, judgments and residual risks (IMP-05)
+  ---
+  duration_ms: 7.20225
+  type: 'suite'
+  ...
+# Subtest: engineering report: what was asked (IMP-05)
+    # Subtest: states each adopted requirement with the verdicts its controls gave the candidate
+    ok 1 - states each adopted requirement with the verdicts its controls gave the candidate
+      ---
+      duration_ms: 0.392125
+      type: 'test'
+      ...
+    # Subtest: given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+    ok 2 - given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+      ---
+      duration_ms: 0.324791
+      type: 'test'
+      ...
+    # Subtest: says none when no requirements were adopted
+    ok 3 - says none when no requirements were adopted
+      ---
+      duration_ms: 0.200375
+      type: 'test'
+      ...
+    1..3
+ok 2 - engineering report: what was asked (IMP-05)
+  ---
+  duration_ms: 1.034167
+  type: 'suite'
+  ...
+# Subtest: engineering report: the recommended complements a target has not adopted
+    # Subtest: given a protocol whose diagnosis carries a recommendation, then the report lists recommended_complement_not_adopted naming the test type, the tool and its version, and a protocol without any lists none
+    not ok 1 - given a protocol whose diagnosis carries a recommendation, then the report lists recommended_complement_not_adopted naming the test type, the tool and its version, and a protocol without any lists none
+      ---
+      duration_ms: 0.542417
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v0/engineering-report.test.ts:384:2'
+      failureType: 'testCodeFailure'
+      error: 'coverage is named in: undefined'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v0/engineering-report.test.ts:388:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 3 - engineering report: the recommended complements a target has not adopted
+  ---
+  duration_ms: 0.607417
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v0/engineering-report.test.ts:367:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the frozen candidate, while the controls measure it (VER-03)
+    # Subtest: a control writing inside the paths it declares writable leaves the candidate frozen
+    ok 1 - a control writing inside the paths it declares writable leaves the candidate frozen
+      ---
+      duration_ms: 77.698292
+      type: 'test'
+      ...
+    # Subtest: a write anywhere else moves the candidate, and the run says so
+    ok 2 - a write anywhere else moves the candidate, and the run says so
+      ---
+      duration_ms: 68.786291
+      type: 'test'
+      ...
+    # Subtest: a candidate frozen with an output already under a writable path is not read as moved
+    ok 3 - a candidate frozen with an output already under a writable path is not read as moved
+      ---
+      duration_ms: 68.525208
+      type: 'test'
+      ...
+    # Subtest: the same write is a mutation for a control that declared no writable path
+    ok 4 - the same write is a mutation for a control that declared no writable path
+      ---
+      duration_ms: 67.973917
+      type: 'test'
+      ...
+    1..4
+ok 4 - the frozen candidate, while the controls measure it (VER-03)
+  ---
+  duration_ms: 283.580916
+  type: 'suite'
+  ...
+# Subtest: the protocol frozen from a detection
+    # Subtest: given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+    not ok 1 - given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+      ---
+      duration_ms: 4.5135
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v2/verification.test.ts:250:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   {
+        -     change: 'in package.json, add --experimental-test-coverage to scripts.test',
+        -     established_on: '2026-09-30',
+        -     source: 'https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage',
+        -     test_type: 'coverage',
+        -     tool: '--experimental-test-coverage',
+        -     version: '24.21.0'
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          test_type: 'coverage'
+          tool: '--experimental-test-coverage'
+          version: '24.21.0'
+          established_on: '2026-09-30'
+          source: 'https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage'
+          change: 'in package.json, add --experimental-test-coverage to scripts.test'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v2/verification.test.ts:251:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+    ok 2 - given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+      ---
+      duration_ms: 3.727125
+      type: 'test'
+      ...
+    1..2
+not ok 5 - the protocol frozen from a detection
+  ---
+  duration_ms: 8.321917
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XZvdOn/test/v2/verification.test.ts:226:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..5
+# tests 16
+# suites 5
+# pass 14
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 447.186334

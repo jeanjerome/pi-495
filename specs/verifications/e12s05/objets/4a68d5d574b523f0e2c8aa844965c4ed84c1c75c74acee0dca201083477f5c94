@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les deux constats du tour 1 (A1-1, A1-2) sont levés. Je n'ai relevé aucun constat nouveau. Les deux fichiers de test touchés passent (49/49 : `test/v2/harness.test.ts` et `test/v1/recommendations.test.ts`).\n\n**Liaison détection → protocole gelé.** Le test `harness.test.ts` (« carries the recommendation the detection made ») conduit un vrai changement sur une cible `node --test`. Il relit le protocole stocké et compare `capability_diagnosis.recommendations` à la détection. Deux mutations le font échouer :\n- `verification-design.ts:235`, où `recommendations: detection.recommendations` devient `[]` ;\n- `verification.ts:346`, où la condition sur `input.recommendations.length` devient `false`.\n\n**PIT déclaré mais illisible.** Le code tient la promesse : `mutationRecommendation` sépare PIT absent (déclarer) de PIT déclaré illisible (changer la configuration). Le test assert maintenant `/in the pitest-maven declaration/` et `doesNotMatch(/\\bdeclare\\b/)`. Le cas « ni JaCoCo ni PIT » assert `/declare pitest-maven/`. Deux mutations font échouer un test :\n- forcer la branche « PIT absent » dans tous les cas fait échouer le test du PIT déclaré ;\n- ne jamais prendre cette branche fait échouer le test de la cible nue.\n\nJ'ai remis chaque ligne mutée ; l'arbre est propre (seul `node_modules` est non suivi).\n\nJe n'ai pas relu les scénarios hors du diff (Node, adaptateur de test, IH-04, rétrocompatibilité, recette Pi) : le tour 1 les avait traités et ce diff ne les touche pas."
+ },
+ {
+  "verdict": "fail",
+  "resume": "Les deux constats B1 du tour 1 sont levés. Le passage détection → protocole gelé est tenu par le test de harnais : retirer `recommendations: detection.recommendations` de `verification-design.ts`, ou le spread dans `verification.ts`, le fait échouer. Le texte « corriger la configuration de PIT et pas l'ajouter » est tenu par les deux assertions ajoutées : inverser `!engine.declared` ou glisser « declare » dans le texte de la branche « déclaré illisible » fait échouer le test. Les autres promesses sont tenues par un test, mutations essayées : recommandations Node et Maven, détection pilotée par la liste d'adaptateurs, faits d'IH-04, risque résiduel du rapport, protocole ancien lisible. Un nouveau constat, à corriger : le test du rapport ne tient pas « nomme le type de test ».",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Le protocole gelé porte les recommandations et le rapport dit qu'elles ne sont pas adoptées",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v0/engineering-report.test.ts",
+    "ligne": 388,
+    "constat": "Le `Then` demande un risque « recommended_complement_not_adopted » qui nomme le type de test, l'outil et sa version. La donnée du test a `test_type: \"coverage\"`, mais `tool` et `change` contiennent déjà « coverage » (`--experimental-test-coverage`). L'assertion `includes(test_type)` réussit donc sans que le rapport nomme le type, et aucun test ne tient cette partie de la promesse.",
+    "mutation": "Dans `src/application/report.ts`, remplacer « a ${r.test_type} complement » par « a complement » : les 10 tests de `test/v0/engineering-report.test.ts` passent quand même."
+   }
+  ]
+ }
+]

@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: Maven recommends the sensors its POM lacks
+    # Subtest: given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+    ok 1 - given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+      ---
+      duration_ms: 3.730083
+      type: 'test'
+      ...
+    # Subtest: given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+    ok 2 - given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+      ---
+      duration_ms: 2.204459
+      type: 'test'
+      ...
+    # Subtest: given a project whose JaCoCo and PIT are read, then it recommends nothing
+    ok 3 - given a project whose JaCoCo and PIT are read, then it recommends nothing
+      ---
+      duration_ms: 2.087
+      type: 'test'
+      ...
+    # Subtest: given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+    ok 4 - given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+      ---
+      duration_ms: 3.92975
+      type: 'test'
+      ...
+    1..4
+ok 1 - Maven recommends the sensors its POM lacks
+  ---
+  duration_ms: 12.364125
+  type: 'suite'
+  ...
+# Subtest: Node recommends the coverage its runner can produce
+    # Subtest: given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+    ok 1 - given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+      ---
+      duration_ms: 0.865458
+      type: 'test'
+      ...
+    # Subtest: given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+    ok 2 - given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+      ---
+      duration_ms: 0.992
+      type: 'test'
+      ...
+    # Subtest: given jest, mocha or a target that already asks for coverage, then it recommends nothing
+    ok 3 - given jest, mocha or a target that already asks for coverage, then it recommends nothing
+      ---
+      duration_ms: 2.15125
+      type: 'test'
+      ...
+    1..3
+ok 2 - Node recommends the coverage its runner can produce
+  ---
+  duration_ms: 4.094417
+  type: 'suite'
+  ...
+# Subtest: A technology declares its own recommendations
+    # Subtest: given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+    ok 1 - given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+      ---
+      duration_ms: 0.456167
+      type: 'test'
+      ...
+    1..1
+ok 3 - A technology declares its own recommendations
+  ---
+  duration_ms: 0.508875
+  type: 'suite'
+  ...
+1..3
+# tests 8
+# suites 3
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 155.660459

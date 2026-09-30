@@ -1,0 +1,124 @@
+TAP version 13
+# Subtest: canonical JSON and digests (§8.1)
+    # Subtest: is independent of key order and omits undefined
+    ok 1 - is independent of key order and omits undefined
+      ---
+      duration_ms: 0.32475
+      type: 'test'
+      ...
+    # Subtest: refuses non-finite numbers
+    ok 2 - refuses non-finite numbers
+      ---
+      duration_ms: 0.144459
+      type: 'test'
+      ...
+    # Subtest: digest is stable and well formed for random objects
+    ok 3 - digest is stable and well formed for random objects
+      ---
+      duration_ms: 4.741417
+      type: 'test'
+      ...
+    1..3
+ok 1 - canonical JSON and digests (§8.1)
+  ---
+  duration_ms: 5.60025
+  type: 'suite'
+  ...
+# Subtest: runtime validation (AT-11, NFR-08)
+    # Subtest: accepts a valid actor and refuses an unknown enum value or extra property
+    ok 1 - accepts a valid actor and refuses an unknown enum value or extra property
+      ---
+      duration_ms: 1.155042
+      type: 'test'
+      ...
+    # Subtest: refuses an envelope with an unknown schema major version before any use
+    ok 2 - refuses an envelope with an unknown schema major version before any use
+      ---
+      duration_ms: 0.567792
+      type: 'test'
+      ...
+    # Subtest: evidence requires the closed verdict set and every mandatory field
+    ok 3 - evidence requires the closed verdict set and every mandatory field
+      ---
+      duration_ms: 1.478334
+      type: 'test'
+      ...
+    # Subtest: canonical error keeps categories closed
+    ok 4 - canonical error keeps categories closed
+      ---
+      duration_ms: 0.319917
+      type: 'test'
+      ...
+    # Subtest: every published contract has a stable urn id
+    ok 5 - every published contract has a stable urn id
+      ---
+      duration_ms: 0.069375
+      type: 'test'
+      ...
+    1..5
+ok 2 - runtime validation (AT-11, NFR-08)
+  ---
+  duration_ms: 3.73925
+  type: 'suite'
+  ...
+# Subtest: the parser identifiers of a control
+    # Subtest: given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+    ok 1 - given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused
+      ---
+      duration_ms: 0.424458
+      type: 'test'
+      ...
+    # Subtest: given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential
+    ok 2 - given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential
+      ---
+      duration_ms: 0.158875
+      type: 'test'
+      ...
+    1..2
+ok 3 - the parser identifiers of a control
+  ---
+  duration_ms: 0.656625
+  type: 'suite'
+  ...
+# Subtest: the capability diagnosis of a protocol
+    # Subtest: given a capability diagnosis carrying a recommendation, then the schema accepts it, and given one without the list, then it is still accepted
+    not ok 1 - given a capability diagnosis carrying a recommendation, then the schema accepts it, and given one without the list, then it is still accepted
+      ---
+      duration_ms: 0.195792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4tGSqH/test/v0/contracts.test.ts:181:2'
+      failureType: 'testCodeFailure'
+      error: 'contract anonymous violated: /recommendations schema is false; / must not have additional properties'
+      code: 'ERR_TEST_FAILURE'
+      name: 'ContractError'
+      stack: |-
+        validate (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4tGSqH/src/contracts/validate.ts:33:8)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4tGSqH/test/v0/contracts.test.ts:183:20)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+      ...
+    1..1
+not ok 4 - the capability diagnosis of a protocol
+  ---
+  duration_ms: 0.251208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4tGSqH/test/v0/contracts.test.ts:162:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..4
+# tests 11
+# suites 4
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 150.231791

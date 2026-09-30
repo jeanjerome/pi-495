@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les neuf scénarios que je peux lire. Le neuvième est la recette dans un vrai Pi, que je n'ai pas exécutée. Deux promesses n'ont aucun test qui les tienne, d'où le verdict fail. Un test ne vérifie pas que le protocole gelé par la phase de conception porte les recommandations de la détection. L'autre ne distingue pas « ajouter PIT » de « corriger sa configuration ». Les autres mutations que j'ai essayées font toutes échouer un test : arbitrage IH-04, risque du rapport, condition du gel, JaCoCo, le drapeau de couverture de Node, la version de vitest, et chaque moitié de la correction PIT. J'ai remis le code à l'identique après chaque mutation.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le protocole gelé porte les recommandations et le rapport dit qu'elles ne sont pas adoptées",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 235,
+    "constat": "Aucun test ne vérifie que la phase de conception transmet `detection.recommendations` au gel. Le test de `freeze` passe la liste à la main, et celui du rapport construit le protocole à la main. Le lien détection → protocole gelé → rapport, pour un changement dont la cible a une recommandation, n'est donc tenu par aucun test.",
+    "mutation": "Remplacer `recommendations: detection.recommendations` par `recommendations: []` dans l'appel à `ctx.verification.freeze`. Les suites test/v0, test/v2 et test/v3 (475 tests) passent toutes ; test/v1 n'a pas été rejoué."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une cible Maven dont PIT est déclaré mais illisible reçoit la recommandation de ce qui lui manque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v1/recommendations.test.ts",
+    "ligne": 80,
+    "constat": "Le test « PIT déclaré sans rapport XML » ne distingue pas la recommandation de corriger la configuration de celle d'ajouter PIT. Le texte « ajouter PIT » contient déjà `XML` et `timestampedReports`, donc les deux `assert.match` passent. Le garde `doesNotMatch(/^declare\\b/i)` ne peut pas échouer : le texte commence par « in the POM, declare… ». La promesse « nommer ce que le POM doit changer, et pas l'ajout de PIT » n'est tenue par aucun test.",
+    "mutation": "Dans `mutationRecommendation` de src/application/stacks/maven.ts, remplacer `if (!engine.declared)` par `if (true)`. Les 8 tests de test/v1/recommendations.test.ts passent."
+   }
+  ]
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une cible Maven dont PIT est déclaré mais illisible reçoit la recommandation de ce qui lui manque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v1/recommendations.test.ts",
+    "ligne": 73,
+    "constat": "Le code tient la promesse : `mutationRecommendation` sépare bien PIT absent (déclarer) et PIT déclaré illisible (changer la configuration). Aucun test ne tient le « et pas l'ajout de PIT ». Les deux textes de `change` commencent par « in the POM, » et contiennent XML et timestampedReports. L'assertion `doesNotMatch(change, /^declare\\b/i)` ne peut donc jamais échouer.",
+    "mutation": "src/application/stacks/maven.ts:235, `if (!engine.declared)` remplacé par `if (true)`. La cible au PIT déclaré reçoit alors la recommandation d'ajouter PIT. `test/v1/recommendations.test.ts` reste vert (8/8)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le protocole gelé porte les recommandations et le rapport dit qu'elles ne sont pas adoptées",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 235,
+    "constat": "Aucun test ne tient le passage de la détection au protocole gelé, c'est-à-dire « Given un changement dont la cible a une recommandation et dont le protocole est gelé … Then le protocole porte cette recommandation ». `VerificationCoordinator.freeze` est testé avec une liste passée à la main, et le rapport avec un protocole construit à la main. L'appel de `designVerification` qui donne `detection.recommendations` à `freeze` n'est exercé par aucun test.",
+    "mutation": "src/application/phases/verification-design.ts:235, `recommendations: detection.recommendations` remplacé par `recommendations: []`. Un changement réel gèle alors un protocole sans recommandation et le rapport n'a plus de risque `recommended_complement_not_adopted`. Les cinq fichiers de test de la story passent, 49 sur 49 dont test/v2/verification.test.ts et test/v2/verifiability-arbitration.test.ts."
+   }
+  ],
+  "resume": "Relecture B, tour 1, de e12s05 : aucune promesse n'est violée par le code, mais deux ne sont tenues par aucun test. Verdict : fail, sur deux constats « à corriger », tous deux introduits par la branche. Le scénario de recette (dernier scénario) est hors de ma portée et je ne l'ai pas relu. Je n'ai pas relancé Preflight.\n\nLes mutations concluantes, dont les tests ont échoué : retrait des faits de recommandation dans la décision IH-04, boucle du rapport, condition d'écriture de la liste dans `freeze`, recommandation du drapeau de couverture Node, version de vitest, recommandation JaCoCo, retour anticipé de PIT utilisable, contrat `Optional` rendu obligatoire, texte du risque du rapport.\n\nChaque mutation a été annulée par `git checkout`. Aucune modification n'est restée dans l'arbre."
+ }
+]
