@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Un chemin de fichier qui forge un enregistrement du rapport n'est pas lu",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/coverage.ts",
+    "ligne": 25,
+    "constat": "Le Then dit « un caractère de contrôle » et le code teste `\\p{Cc}`. Aucun test n'emploie un autre caractère de contrôle que le retour à la ligne, donc restreindre la classe au seul `\\n` laisse tout vert. Le lecteur LCOV ne coupe que sur `\\r?\\n`, donc le seul vecteur de forgerie est tenu, et la promesse (chemin à retour à la ligne) l'est aussi.",
+    "mutation": "const CONTROL_CHARACTER = /\\n/u; les 12 tests de coverage.test.ts et lcov.test.ts restent verts."
+   }
+  ],
+  "resume": "Verdict pass : le tour 2 clôt les constats A1-1, A1-2, A1-3 et B1-1, et aucun constat bloquant ou à corriger ne subsiste.\n\nLe correctif de A1-1 tient. `introducedLinesOf` garde désormais, sans ligne, tout chemin non supprimé qui porte un caractère de contrôle. Le lecteur refuse donc un fichier déplacé sans octet changé, trop gros, binaire ou inchangé, comme un fichier introduit. Le test de `coverage.test.ts` échoue si l'on retire cette ligne, si l'on retire la condition `deleted`, ou si l'on neutralise la condition. Le test de `lcov.test.ts` échoue si l'on neutralise le filtre `forged` du lecteur, et il couvre le cas d'un chemin gardé avec `[]` et d'un `src/victim.js` introduit.\n\n- **A1-2 :** retirer le filtre `CODE_SOURCE` fait maintenant échouer le test des fichiers attendus, grâce aux `package.json` et `README.md` ajoutés.\n- **A1-3 et B1-1 :** neutraliser la garde `introduced === null` ou la garde `documents.length === 0` fait échouer le test, qui vérifie maintenant les notes « no LCOV report found » et « no introduced-line set was given ».\n\nJe n'ai relancé que `coverage.test.ts` et `lcov.test.ts` (12 tests verts), pas Preflight, et je n'ai pas relu les autres scénarios pour ce tour. L'arbre est remis dans son état d'origine après chaque mutation. Le seul constat est A2-1, à peser : le test ne prend que le retour à la ligne comme caractère de contrôle."
+ },
+ {
+  "verdict": "pass",
+  "resume": "Le tour 2 ne trouve aucun constat bloquant ni à corriger. Les fichiers déplacés sans changement d'octet, les fichiers trop gros et les fichiers binaires gardent maintenant leur chemin à caractère de contrôle dans l'ensemble introduit, avec zéro ligne. Le lecteur lcov refuse ce chemin (INDETERMINATE) et src/victim.js n'est pas jugé couvert. J'ai lancé 8 mutations sur coverage.test.ts et lcov.test.ts. Six font échouer un test : retrait de la ligne qui garde le chemin, retrait de l'exclusion des fichiers supprimés, remplacement du filtre du lecteur par un filtre vide, retrait du filtre CODE_SOURCE, retrait de la garde `introduced === null` et retrait de la garde « aucun rapport ». Deux ne font échouer aucun test : la restriction de la regex à `\\n`, qui donne le constat B2-2, et la restriction de la garde à `kind === \"file\"`, que je n'ai pas relevée parce que le scénario ne parle que d'un fichier. Les constats du tour 1 (A1-1, A1-2, A1-3, B1-1) sont tenus par un test. Restent deux points à peser : B2-1 et B2-2.",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Un chemin de fichier qui forge un enregistrement du rapport n'est pas lu",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/coverage.ts",
+    "ligne": 100,
+    "constat": "La garde retient aussi un chemin à caractère de contrôle que la cible portait déjà et que le changement ne touche pas (état unchanged). Un changement qui n'introduit aucune ligne dans un dépôt qui porte un tel fichier n'est plus décidé sans lire de rapport : le contrôle coverage rend INDETERMINATE au lieu de PASS. Les lecteurs JaCoCo et PIT reçoivent aussi cette entrée à zéro ligne, sans que le scénario le demande. La garde est cohérente avec la sécurité, puisque ce fichier chargé par la suite peut forger un enregistrement, et un test l'assert avec le cas `same/`. Le coût est un refus pour un cas rare.",
+    "mutation": "aucune : c'est le comportement voulu et testé (cas `same/`)"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Un chemin de fichier qui forge un enregistrement du rapport n'est pas lu",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/coverage.ts",
+    "ligne": 25,
+    "constat": "Aucun test n'exige le caractère de contrôle autre que le retour à la ligne : remplacer `/\\p{Cc}/u` par `/\\n/u` laisse les 12 tests de coverage.test.ts et lcov.test.ts verts. La promesse écrite, le retour à la ligne suivi de « SF:src », est bien tenue. La regex vient d'être déplacée sans changer, donc le constat précède la branche.",
+    "mutation": "CONTROL_CHARACTER = /\\n/u : 12 tests sur 12 verts"
+   }
+  ]
+ }
+]

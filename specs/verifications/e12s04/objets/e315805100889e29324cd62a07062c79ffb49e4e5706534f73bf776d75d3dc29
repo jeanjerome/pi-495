@@ -1,0 +1,367 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.70375
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 2.083375
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a mocha target
+    # Subtest: given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+      ---
+      duration_ms: 0.685209
+      type: 'test'
+      ...
+    1..1
+ok 2 - Node stack: the unit control of a mocha target
+  ---
+  duration_ms: 0.735792
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a jest target
+    # Subtest: given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+      ---
+      duration_ms: 0.677667
+      type: 'test'
+      ...
+    1..1
+ok 3 - Node stack: the unit control of a jest target
+  ---
+  duration_ms: 0.744167
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.684917
+      type: 'test'
+      ...
+    1..1
+ok 4 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 0.72575
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the mocha and jest controls protect
+    # Subtest: given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+    ok 1 - given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+      ---
+      duration_ms: 0.73275
+      type: 'test'
+      ...
+    1..1
+ok 5 - Node stack: what the mocha and jest controls protect
+  ---
+  duration_ms: 0.78525
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects among the installed dependencies
+    # Subtest: given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+    ok 1 - given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+      ---
+      duration_ms: 0.645125
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+    ok 2 - given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+      ---
+      duration_ms: 0.531541
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+    ok 3 - given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+      ---
+      duration_ms: 0.514458
+      type: 'test'
+      ...
+    # Subtest: given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+    ok 4 - given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+      ---
+      duration_ms: 0.628042
+      type: 'test'
+      ...
+    1..4
+ok 6 - Node stack: what the vitest control protects among the installed dependencies
+  ---
+  duration_ms: 2.392916
+  type: 'suite'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+    ok 1 - given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+      ---
+      duration_ms: 0.543416
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+    ok 2 - given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+      ---
+      duration_ms: 0.485125
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is jest --ci, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 3 - given scripts.test is jest --ci, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.527458
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 4 - given scripts.test is mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.442417
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is vitest --watch, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 5 - given scripts.test is vitest --watch, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.467
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read
+    ok 6 - given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read
+      ---
+      duration_ms: 0.520292
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 7 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.488292
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    not ok 8 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.721875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:260:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /coverage of the introduced lines is not measured on this target: scripts\.test does not ask node:test for coverage/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:266:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    not ok 9 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.461291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:260:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /coverage of the introduced lines is not measured on this target: scripts\.test does not ask node:test for coverage/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:266:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    not ok 10 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.482875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:260:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /coverage of the introduced lines is not measured on this target: scripts\.test does not ask node:test for coverage/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:266:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+    not ok 11 - given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+      ---
+      duration_ms: 0.508708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:268:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /coverage of the introduced lines is not measured on this target: scripts\.test does not ask node:test for coverage/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:273:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..11
+not ok 7 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 5.777667
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:198:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.692375
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.396792
+      type: 'test'
+      ...
+    1..2
+ok 8 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.116042
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a mocha target and of a jest target
+    # Subtest: given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 1 - given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.560166
+      type: 'test'
+      ...
+    # Subtest: given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 2 - given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.185
+      type: 'test'
+      ...
+    1..2
+ok 9 - Node stack: the witnesses of a mocha target and of a jest target
+  ---
+  duration_ms: 2.775917
+  type: 'suite'
+  ...
+# Subtest: Node stack: node:test asked for coverage
+    # Subtest: given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage
+    not ok 1 - given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage
+      ---
+      duration_ms: 0.7745
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:348:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            '/opt/homebrew/Cellar/node@24/24.21.0/bin/node',
+            '--test',
+        -   '--experimental-test-coverage',
+            '--test-reporter=tap',
+        -   '--test-reporter-destination=stdout',
+        -   '--test-reporter=lcov',
+        -   '--test-reporter-destination=495-lcov.info'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: '/opt/homebrew/Cellar/node@24/24.21.0/bin/node'
+        1: '--test'
+        2: '--experimental-test-coverage'
+        3: '--test-reporter=tap'
+        4: '--test-reporter-destination=stdout'
+        5: '--test-reporter=lcov'
+        6: '--test-reporter-destination=495-lcov.info'
+      actual:
+        0: '/opt/homebrew/Cellar/node@24/24.21.0/bin/node'
+        1: '--test'
+        2: '--test-reporter=tap'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:352:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage
+    not ok 2 - given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage
+      ---
+      duration_ms: 0.546916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:378:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        null
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:387:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 10 - Node stack: node:test asked for coverage
+  ---
+  duration_ms: 1.357834
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oQ3hBS/test/v1/node-stack.test.ts:346:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..10
+# tests 26
+# suites 10
+# pass 20
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 133.832083

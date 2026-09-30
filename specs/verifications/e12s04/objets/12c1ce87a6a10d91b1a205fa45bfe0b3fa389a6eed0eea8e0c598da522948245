@@ -1,0 +1,36 @@
+TAP version 13
+# Subtest: a comment that silences the coverage of the lines under it
+    # Subtest: given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated
+    ok 1 - given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated
+      ---
+      duration_ms: 41.933875
+      type: 'test'
+      ...
+    1..1
+ok 1 - a comment that silences the coverage of the lines under it
+  ---
+  duration_ms: 42.344958
+  type: 'suite'
+  ...
+# Subtest: the derived controls under the verification sandbox
+    # Subtest: given the derived unit control of each runner run under the verification sandbox against a stand-in that writes the recorded LCOV report at the declared path, then coverage reads and judges it, and a stand-in that writes it elsewhere under the root of the copy fails under the sandbox
+    ok 1 - given the derived unit control of each runner run under the verification sandbox against a stand-in that writes the recorded LCOV report at the declared path, then coverage reads and judges it, and a stand-in that writes it elsewhere under the root of the copy fails under the sandbox
+      ---
+      duration_ms: 303.554625
+      type: 'test'
+      ...
+    1..1
+ok 2 - the derived controls under the verification sandbox
+  ---
+  duration_ms: 303.677958
+  type: 'suite'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 474.724875

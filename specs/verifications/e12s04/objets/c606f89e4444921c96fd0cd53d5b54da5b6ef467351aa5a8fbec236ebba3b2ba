@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: a comment that silences the coverage of the lines under it
+    # Subtest: given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated
+    not ok 1 - given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated
+      ---
+      duration_ms: 44.779125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-r1XZQm/test/v1/lcov-control.test.ts:27:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        []
+        
+        'PASS' !== 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-r1XZQm/test/v1/lcov-control.test.ts:49:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a comment that silences the coverage of the lines under it
+  ---
+  duration_ms: 45.396583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-r1XZQm/test/v1/lcov-control.test.ts:26:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 170.844166

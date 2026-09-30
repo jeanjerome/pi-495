@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: the lcov reader judges the lines a change introduces
+    # Subtest: given recorded LCOV reports and a change introducing three lines one of which is never executed, then the verdict is FAIL with a finding at that file and line and the earlier unexecuted line is named as tolerated
+    ok 1 - given recorded LCOV reports and a change introducing three lines one of which is never executed, then the verdict is FAIL with a finding at that file and line and the earlier unexecuted line is named as tolerated
+      ---
+      duration_ms: 76.841834
+      type: 'test'
+      ...
+    # Subtest: given an introduced line executed with a branch never taken, then the verdict is PASS with a major finding at that line
+    ok 2 - given an introduced line executed with a branch never taken, then the verdict is PASS with a major finding at that line
+      ---
+      duration_ms: 65.082792
+      type: 'test'
+      ...
+    # Subtest: given a file that appears in two records, then a line executed in either counts as executed
+    ok 3 - given a file that appears in two records, then a line executed in either counts as executed
+      ---
+      duration_ms: 34.83375
+      type: 'test'
+      ...
+    1..3
+ok 1 - the lcov reader judges the lines a change introduces
+  ---
+  duration_ms: 177.335959
+  type: 'suite'
+  ...
+# Subtest: the lcov reader expects in the report only the files a coverage runner measures
+    # Subtest: given changes introducing a test, a vitest configuration, a declaration file and one source file, then only the source file is expected in the report
+    ok 1 - given changes introducing a test, a vitest configuration, a declaration file and one source file, then only the source file is expected in the report
+      ---
+      duration_ms: 61.035
+      type: 'test'
+      ...
+    # Subtest: given an introduced source file the report does not cite, an absent report and an unknown introduced set, then each verdict is INDETERMINATE and the first names the file
+    ok 2 - given an introduced source file the report does not cite, an absent report and an unknown introduced set, then each verdict is INDETERMINATE and the first names the file
+      ---
+      duration_ms: 85.459208
+      type: 'test'
+      ...
+    # Subtest: given a reference pass that introduces nothing, then no report is looked for and the verdict is PASS
+    ok 3 - given a reference pass that introduces nothing, then no report is looked for and the verdict is PASS
+      ---
+      duration_ms: 27.200958
+      type: 'test'
+      ...
+    # Subtest: given a coverage sensor that exits non-zero, then the verdict is INDETERMINATE without a report being read
+    ok 4 - given a coverage sensor that exits non-zero, then the verdict is INDETERMINATE without a report being read
+      ---
+      duration_ms: 33.335333
+      type: 'test'
+      ...
+    1..4
+ok 2 - the lcov reader expects in the report only the files a coverage runner measures
+  ---
+  duration_ms: 207.275625
+  type: 'suite'
+  ...
+# Subtest: the lcov reader treats a report as the output of the project it judges
+    # Subtest: given the report Node 24.21.0 wrote for a directory whose name embeds a second SF record and a change adding that file, then the verdict is INDETERMINATE naming the path and src/victim.js is not judged covered
+    ok 1 - given the report Node 24.21.0 wrote for a directory whose name embeds a second SF record and a change adding that file, then the verdict is INDETERMINATE naming the path and src/victim.js is not judged covered
+      ---
+      duration_ms: 59.837209
+      type: 'test'
+      ...
+    1..1
+ok 3 - the lcov reader treats a report as the output of the project it judges
+  ---
+  duration_ms: 59.947125
+  type: 'suite'
+  ...
+1..3
+# tests 8
+# suites 3
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 569.784958

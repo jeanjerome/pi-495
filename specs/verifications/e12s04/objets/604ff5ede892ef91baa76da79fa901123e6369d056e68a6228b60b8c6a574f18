@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un chemin de fichier qui forge un enregistrement du rapport n'est pas lu (et clause Sécurité : le rapport est écrit sur des chemins que le candidat a choisis)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/lcov.ts",
+    "ligne": 161,
+    "constat": "Le contrôle du caractère de contrôle ne porte que sur les clés de l'ensemble des lignes introduites, or introducedLinesOf (src/application/coverage.ts) omet un fichier déplacé sans qu'un octet change, un fichier au-dessus de MAX_DIFFED_BYTES et un fichier à NUL. Le candidat qui déplace, sans le modifier, un fichier de code vers « evil\\nSF:src/victim.js » garde ce chemin hors de l'ensemble introduit ; il ajoute src/victim.js, jamais chargé, et un test qui charge le fichier déplacé : le rapport Node 24.21.0 forgé est lu, et src/victim.js est jugé couvert. Sondé : parseLcov avec le rapport node-24.21.0-forged-path.info et introduced={\"src/victim.js\":[1,2,3]} rend PASS avec measured_lines=3 ; introducedLinesOf sur un renommage prouvé sans changement d'octet ne retient pas le chemin déplacé. Aucun test ne couvre un chemin forgé absent de l'ensemble introduit.",
+    "mutation": "Sondage jetable sur parseLcov et introducedLinesOf, pas une mutation : PASS au lieu d'INDETERMINATE pour le rapport forgé quand le chemin forgé n'est pas une clé de introduced."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un test, une configuration ou une déclaration de types n'est pas un fichier que le rapport doit citer",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/lcov.ts",
+    "ligne": 89,
+    "constat": "Le filtre CODE_SOURCE, qui écarte package.json, README.md et tout fichier qui n'est pas du code des fichiers attendus, n'est tenu par aucun test : retirer `CODE_SOURCE.test(path) &&` laisse les 51 tests verts. Le scénario ne cite que test/, vitest.config.ts, index.d.ts et un .mjs sous src/, donc la promesse écrite est tenue ; mais sans le filtre, tout changement qui touche un fichier non code deviendrait INDETERMINATE sans que rien ne le signale.",
+    "mutation": "Retrait de `CODE_SOURCE.test(path) &&` dans expectedInLcovReport : 0 échec."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Une couverture qu'on ne peut pas lire n'est jamais un succès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/lcov.ts",
+    "ligne": 146,
+    "constat": "Deux gardes de parseLcov (introduced === null via unknownIntroducedLines, et documents.length === 0 avec la note « no LCOV report found ») peuvent être neutralisées sans qu'un test échoue, parce que le verdict INDETERMINATE reste rendu par un autre chemin (erreur levée, ou fichier non cité). Le Then (INDETERMINATE) est tenu ; seule la note change, et le test ne l'assert pas.",
+    "mutation": "`if (introduced === null)` remplacé par `if (false)`, puis `if (documents.length === 0)` par `if (false)` : 0 échec dans les deux cas."
+   }
+  ],
+  "resume": "Relecteur A, tour 1 de e12s04 : verdict fail. Le code tient les scénarios de détection, de jugement des lignes introduites, des commentaires de silence et du bac à sable. Environ 45 mutations ont été essayées, chaque promesse nommée est tenue par un test, et un sondage réel de node --test avec couverture donne PASS pour le témoin positif et FAIL pour le négatif. Un constat à corriger : le contrôle du caractère de contrôle ne regarde que l'ensemble introduit, et un fichier déplacé sans changement d'octet, trop gros ou à NUL en est absent, si bien qu'un chemin forgé passe et que src/victim.js est jugé couvert (PASS sondé). Deux constats à peser : un filtre d'attendus et deux gardes dont la note seule change ne sont tenus par aucun test."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une couverture qu'on ne peut pas lire n'est jamais un succès (ensemble de lignes introduites inconnu)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/lcov.ts",
+    "ligne": 139,
+    "constat": "Le garde explicite `introduced === null` de parseLcov n'est tenu par aucun test. Sans lui, `Object.keys(null)` lève une TypeError, que le catch de runner.ts:229 convertit en INDETERMINATE. Le test « ensemble inconnu » reste donc vert, mais par l'exception et non par la note prévue « no introduced-line set was given ». La promesse (INDETERMINATE) tient dans les deux cas. Seule la voie propre n'est pas verrouillée.",
+    "mutation": "suppression de `if (introduced === null) return unknownIntroducedLines(obs, documents.length);` : 0 échec sur lcov.test, lcov-control.test, node-stack.test et contracts.test"
+   }
+  ],
+  "resume": "Aucun constat bloquant ni à corriger. Onze des douze scénarios sont tenus par le code et par au moins un test. Le douzième, le vrai Pi, relève de la recette et n'a pas de trace dans ce diff.\n\n**Sondes**\n- Les témoins ajoutés (fichier appelé en entier, fichier chargé avec une fonction jamais appelée) ont tourné sur un vrai `node --test --experimental-test-coverage`, avec la commande exacte du contrôle `unit`. Le positif donne PASS. Le négatif donne FAIL avec les lignes 6 et 7 de `uncovered.mjs`.\n- La même chaîne, exécutée sous Seatbelt avec le bac à sable par défaut, écrit `495-lcov.info` et le contrôle `coverage` la lit et la juge.\n\n**Mutations**\n- Une soixantaine de mutations sur `lcov.ts`, `parsers.ts`, `runner.ts`, `node.ts` et `protocol.ts` ont été essayées. Cela couvre les rapporteurs de la commande, `writable_paths`, `provides`/`requires`, l'analyseur, les messages de capacité manquante, la valeur de `witness_tests` et le témoin négatif propre. Cela couvre aussi les regex du commentaire de silence, le caractère de contrôle, les exclusions test/config/`.d.ts`, la gravité majeure de la branche non prise, la dette tolérée, l'exécution de la référence sans rapport, le code de sortie non nul et la liste des analyseurs différentiels. Chacune fait échouer au moins un test.\n- Trois mutations survivent et aucune ne touche une promesse de la story: la fusion de deux enregistrements pour un même fichier (lignes et branches), qui n'est promise par aucun scénario, et l'ordre de préférence v8/istanbul quand les deux fournisseurs sont installés. Une quatrième survit, celle du garde `introduced === null`, relevée en B1-1.\n- Deux de mes mutations ne portaient pas ce que je croyais (mauvaise occurrence, import sans appel). Je les ai refaites ou écartées.\n\n**Non couvert par la relecture**\nLe scénario « vrai Pi » sur une cible node:test et une cible vitest, avec la comparaison à la construction d'avant la story. Il n'y a aucune preuve dans le diff (pas de fichier sous `specs/verifications/`), et la recette d'acceptance vient après la relecture. Le fournisseur vitest n'est pas installé ici. La lecture de vitest repose sur le rapport enregistré `vitest-5.0.2-calc.info` et sur le bac à sable simulé, pas sur un vrai vitest.\n\nLa copie de travail est propre. Les sondes jetables ont été supprimées."
+ }
+]
