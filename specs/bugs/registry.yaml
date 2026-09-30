@@ -1456,7 +1456,8 @@ bugs:
     follow_ups: >
       Read the report with an XML parser and count the `<testcase>` elements, which also bounds and
       hardens the reading of an input the judged project wrote.
-    status: open
+    status: fixed
+    fixed_in: c8adb59
   - bug_id: BUG-2026-09-30T150000
     date: "2026-09-30"
     title: "Integrating a candidate that holds a path git ignores ends uncertain instead of integrated"

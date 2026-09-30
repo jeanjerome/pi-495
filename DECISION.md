@@ -19,3 +19,13 @@ with `auto`, so an independent session decides `accepte` or `ecart` under `cycle
 and the record says the automaton decided. Bought: the acceptance rests on a session that did not
 conduct the run. Cost: the owner has not seen the acceptance run themselves; each story's dossier under
 `specs/verifications/<story>/` holds what they would read.
+
+## Story e12s02
+
+### A defect a feature story fixes is marked fixed by hand
+
+The tool marks a registry entry fixed only for a correction story that cites it; e12s02 fixed
+`BUG-2026-09-30T120000` inside a feature story, so the entry stayed `open` after the landing. The driver
+marks it fixed at the landed revision after the story (`fixed_in: c8adb59`), and does the same for
+`BUG-2026-09-30T150000` after e12s07. Bought: the registry does not carry a defect the code no longer
+has, which the defect phase of a later suite would otherwise pick up and try to fix again.
