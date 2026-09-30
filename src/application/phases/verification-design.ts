@@ -6,6 +6,7 @@ import type { ArtifactRef, SubjectRef } from "../../contracts/v1/common.ts";
 import { digestValue } from "../../contracts/digest.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type {
+	AdoptedComplement,
 	ControlCapabilityDiagnosis,
 	RecommendedComplement,
 	RequirementsDocument,
@@ -129,6 +130,7 @@ async function openPreparation(
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
 	adoptableFiles: readonly string[],
+	complements: readonly AdoptedComplement[],
 ): Promise<Unit> {
 	const alreadyTried = ctx.artifacts
 		.preparationsForCurrentRequirements(unit.state)
@@ -159,7 +161,7 @@ async function openPreparation(
 		"preparation",
 		unit.state.change_id,
 		ctx.id("prp"),
-		{ ...mandate, kind: "preparation-mandate", diagnosis },
+		{ ...mandate, kind: "preparation-mandate", diagnosis, ...(complements.length > 0 ? { complements } : {}) },
 		KERNEL_ACTOR.actor_id,
 	);
 	unit = ctx.commit(
@@ -220,7 +222,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			);
 			return revision
 				? reviseRequirements(ctx, unit, cor, reference, d.undiscriminated_requirements, revision.free_text)
-				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptableFiles);
+				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptableFiles, complements);
 		};
 		const needsPreparation = (d: ControlCapabilityDiagnosis): boolean =>
 			d.undiscriminated_requirements.length > 0 &&
@@ -245,6 +247,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			},
 			requirement_refs: refs,
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
+			complements,
 		});
 		diagnosis = diagnose(qualified.observation);
 		if (needsPreparation(diagnosis)) return await settleUnjudged(diagnosis);

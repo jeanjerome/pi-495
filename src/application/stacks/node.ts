@@ -196,7 +196,9 @@ function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string):
 		writable_paths: [],
 		requirement_refs: requirementRefs,
 		protected: true,
-		protected_paths: ["test/", "tests/", "package.json"],
+		// `node_modules/` holds code the checks load, and only an adopted complement writes there: any other
+		// file added or modified under it is a dependency the producer slipped into the project.
+		protected_paths: ["test/", "tests/", "package.json", "node_modules/"],
 	};
 }
 
@@ -362,9 +364,8 @@ function vitestControl(
 		parser: "junit-xml",
 		report_path: report,
 		writable_paths: [REPORT_DIRECTORY, "node_modules/.vite-temp"],
-		// A narrowed `include` or an added `exclude` would make the suite green without proving anything,
-		// and a modified `node_modules/` would change the vitest that judges the candidate.
-		protected_paths: [...nodeTest.protected_paths, "vitest.config.*", "vite.config.*", "node_modules/"],
+		// A narrowed `include` or an added `exclude` would make the suite green without proving anything.
+		protected_paths: [...nodeTest.protected_paths, "vitest.config.*", "vite.config.*"],
 	};
 }
 
@@ -383,9 +384,9 @@ function mochaControl(requirementRefs: RequirementRef[], nodeBinary: string): Co
 		parser: "junit-xml",
 		report_path: report,
 		writable_paths: [REPORT_DIRECTORY],
-		// A narrowed `spec`, an added reporter or a modified `node_modules/` would make the suite green
-		// without proving anything, as they would for vitest.
-		protected_paths: [...nodeTest.protected_paths, ".mocharc.*", "node_modules/"],
+		// A narrowed `spec` or an added reporter would make the suite green without proving anything, as
+		// they would for vitest.
+		protected_paths: [...nodeTest.protected_paths, ".mocharc.*"],
 	};
 }
 
@@ -406,9 +407,9 @@ function jestControl(requirementRefs: RequirementRef[], nodeBinary: string): Con
 		parser: "jest-json",
 		report_path: JEST_REPORT,
 		writable_paths: [JEST_REPORT],
-		// A restricted `testMatch`, a `reporters` entry or a transformer, or a modified `node_modules/`, would
-		// make the suite green without proving anything.
-		protected_paths: [...nodeTest.protected_paths, "jest.config.*", "node_modules/"],
+		// A restricted `testMatch`, a `reporters` entry or a transformer would make the suite green without
+		// proving anything.
+		protected_paths: [...nodeTest.protected_paths, "jest.config.*"],
 	};
 }
 

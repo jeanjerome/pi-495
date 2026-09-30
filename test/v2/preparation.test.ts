@@ -17,7 +17,9 @@ import {
 } from "../helpers/fixtures.ts";
 import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
 import { detectStack } from "../../src/application/target.ts";
+import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Protocol } from "../../src/contracts/v1/protocol.ts";
+import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
 import { buildContext, preparationMandateObjective, preparationObjective } from "../../src/application/context.ts";
 import {
 	diagnoseControlCapability,
@@ -1024,5 +1026,96 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(record.on_reference, "PASS");
 		assert.equal(record.qualified, false);
 		assert.ok(record.notes.some((n) => n.includes("does not detect")));
+	});
+});
+
+describe("the workspaces of a preparation, once a complement is adopted", () => {
+	const owner = (): HumanOrigin => ({
+		actor: HUMAN,
+		host: "tui",
+		session_id: "s1",
+		asserted_at: "2026-09-16T12:00:00.000Z",
+	});
+	const answerPending = (t: TestHarness, changeId: string, optionId: string): void => {
+		const [pending] = t.ledger.loadChange(changeId)!.state.pending_decisions;
+		const answered = t.harness.answerDecision(
+			changeId,
+			{
+				decision_id: pending!.decision_id,
+				option_id: optionId,
+				free_text: null,
+				reason: null,
+				subject_revision: pending!.subject.revision,
+				scope: null,
+				expires_at: null,
+			},
+			owner(),
+		);
+		assert.equal(answered.error, null);
+	};
+	const scriptsTestOf = (text: string | null): string | undefined =>
+		text === null ? undefined : (JSON.parse(text) as { scripts: { test: string } }).scripts.test;
+
+	it("given an adopted complement, then the producer's workspace and the bare workspace judging the prepared suite both carry it", async () => {
+		const packageJsonOf = (path: string): string | null =>
+			existsSync(join(path, "package.json")) ? readFileSync(join(path, "package.json"), "utf8") : null;
+		const seen: { producer: string | null; judge: string | null } = { producer: null, judge: null };
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+				controls: (real): ControlExecutionPort => ({
+					runControl(invocation: ControlInvocation, signal?: AbortSignal) {
+						if (invocation.protocol.protocol_id === "preparation")
+							seen.judge = packageJsonOf(invocation.workspace_path);
+						return real.runControl(invocation, signal);
+					},
+				}),
+			}),
+		);
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		// The round the owner grants writes the test: the two before it retained none.
+		t.agent.scripts.set("prepare", {
+			steps: [
+				{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+				{ kind: "complete", output: report(["test/shout.test.js"]) },
+			],
+		});
+		const startIntervention = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = (mandate) => {
+			if (mandate.role === "prepare") seen.producer = packageJsonOf(mandate.workspace_path);
+			return startIntervention(mandate);
+		};
+		answerPending(t, changeId, "prepare");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const carried = "node --test --experimental-test-coverage";
+		assert.equal(scriptsTestOf(seen.producer), carried, "the producer starts on a copy that carries the complement");
+		assert.equal(scriptsTestOf(seen.judge), carried, "the bare copy the prepared suite is judged on carries it too");
+		const record = t.ledger
+			.listArtifacts(changeId, "preparation")
+			.filter((a) => a.ref.artifact_id.startsWith("prep_"))
+			.at(-1)!;
+		const { notes, files } = JSON.parse(new TextDecoder().decode((await t.objects.get(record.object))!)) as {
+			notes: string[];
+			files: { path: string }[];
+		};
+		assert.deepEqual(
+			files.map((f) => f.path),
+			["test/shout.test.js"],
+			"the complement is not retained as a prepared file",
+		);
+		assert.deepEqual(
+			notes.filter((n) => n.includes("package.json")),
+			[],
+			"the complement the copy carries is not reported as something the producer wrote",
+		);
 	});
 });

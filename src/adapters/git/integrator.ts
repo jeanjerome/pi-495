@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { DomainError } from "../../domain/errors.ts";
+import { inInstalledDependencies } from "../../domain/gates/g4.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
 import { git, inspectGit } from "../workspace/git-workspace.ts";
 import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
@@ -23,8 +24,23 @@ export interface IntegrationReceipt {
 	candidate_digest: string;
 	applied_digest: string;
 	commit: string;
+	/** Every file the candidate wrote into the project, those the commit leaves out included, as `applied_digest` does. */
 	files: string[];
 	at: string;
+}
+
+/**
+ * The paths among `paths` that the integration indexes. Every file of the candidate is copied, but
+ * the code of a dependency never enters the owner's history, whether or not the project ignores it,
+ * and what the project's ignore rules list is left out because git refuses to index it. A path git
+ * already tracks is indexable whatever the rules say.
+ */
+async function indexablePaths(project: string, paths: readonly string[]): Promise<string[]> {
+	const own = paths.filter((path) => !inInstalledDependencies(path));
+	if (own.length === 0) return [];
+	const listed = await git(project, ["ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...own]);
+	const ignored = new Set(listed.stdout.split("\0").filter(Boolean));
+	return own.filter((path) => !ignored.has(path));
 }
 
 export class GitIntegrator {
@@ -135,7 +151,10 @@ export class GitIntegrator {
 					else if (e.kind === "file") await cp(join(workspace, e.path), target, { dereference: false });
 				}
 				if (info.is_repo) {
-					await git(project, ["add", "-A", "--", ...manifest.selected_paths]);
+					const indexable = await indexablePaths(project, manifest.selected_paths);
+					// An empty pathspec would index the whole tree.
+					if (indexable.length === 0) throw new Error("no file of the candidate is one git can index");
+					await git(project, ["add", "-A", "--", ...indexable]);
 					const r = await git(
 						project,
 						[

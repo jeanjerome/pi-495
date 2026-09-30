@@ -1554,3 +1554,94 @@ bugs:
       and keep it out of the entries handed to the JaCoCo and PIT readers; a test on a change with no introduced
       line in a tree holding an `unchanged` path with a control character.
     status: open
+  - bug_id: BUG-2026-09-30T200000
+    date: "2026-09-30"
+    title: "No test holds the wiring that hands the adopted complement to the qualification of a sensor"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `designVerification` (`src/application/phases/verification-design.ts`) passes `complements` to
+      `ctx.verification.qualify`, so that the witness copies where the kernel qualifies a sensor carry the
+      adopted complement. Every qualification test calls the coordinator with `complements` by hand, and the
+      only test that runs the whole preparation on a campaign does not look at the qualification copies.
+      Replacing `complements,` with `complements: [],` in that call leaves the whole suite as green as before
+      (only the two Seatbelt failures of this environment, which fail without the change too).
+    what_expected: >
+      A test fails when the kernel qualifies a sensor on copies that lack the package.json the adopted
+      complement wrote.
+    steps_to_reproduce:
+      - "In `designVerification`, replace `complements,` with `complements: [],` in the call to `qualify`."
+      - "Run `npm test`: no test fails on that mutation."
+    root_cause: >
+      The wiring is one property of one call and the tests of the complement start one layer below it. Introduced
+      by the branch e12s07, which added the property.
+    evidence: >
+      Mutation run by the reviewer on 2026-09-30, and the code read on the same date in
+      `src/application/phases/verification-design.ts`; the test names of `test/v2/verification.test.ts` and
+      `test/v2/preparation.test.ts` call `qualify` or `prepare` with `complements` given directly.
+    risk_level: low
+    follow_ups: >
+      A test on `designVerification` with an adopted complement that reads the files of the qualification copy
+      the fake coordinator receives (or its `complements` argument); red on the mutation above.
+    status: open
+  - bug_id: BUG-2026-09-30T201000
+    date: "2026-09-30"
+    title: "No integration test exercises a node_modules/ path at the project root, the one an adopted complement writes"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The integration stage never indexes a path of `node_modules/` (`inInstalledDependencies` in
+      `indexablePaths`, `src/adapters/git/integrator.ts`), whether or not the project ignores it. The test of
+      that promise in `test/v2/export-integration.test.ts` adds `packages/app/node_modules/x/index.js`, a nested
+      path, because G4 now refuses a root `node_modules/` no complement wrote. The root path the story names, and
+      the one an adopted complement really writes, is not exercised by any integration test. The predicate is the
+      same for both paths, so the code keeps the promise; only the test is narrower than the promise.
+    what_expected: >
+      A test in which a root `node_modules/x/index.js` written by an adopted complement stays out of the
+      integration commit and out of the index, and is listed in the receipt.
+    steps_to_reproduce:
+      - "In `indexablePaths`, replace the filter by `const own = [...paths]`: the nested-path test fails."
+      - "No test adds a root `node_modules/` path to the project, so nothing pins the path the story names."
+    root_cause: >
+      The test moved to a nested path to stay reachable under G4 and kept that path. Introduced by the branch
+      e12s07.
+    evidence: >
+      Read on 2026-09-30 in `src/adapters/git/integrator.ts` and `test/v2/export-integration.test.ts`; the
+      reviewer's mutation fails the nested test only. A root-path variant was not run.
+    risk_level: low
+    follow_ups: >
+      Add the root-path case, its files written into the project by the fake complement of the integration
+      fixture, and assert the index and the receipt.
+    status: open
+  - bug_id: BUG-2026-09-30T202000
+    date: "2026-09-30"
+    title: "A complement file the reference does not hold, deleted by the producer, is invisible to G4"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `protectedPathsChanged` (`src/domain/gates/g4.ts`) refuses a complement file that the reference holds and
+      the candidate returns unchanged (`restored`). A complement file absent from the reference, under
+      `node_modules/` for instance, that the producer deletes has no entry in the manifest, so G4 judges nothing
+      about it. The test "a manifest without the complement file judges nothing about it"
+      (`test/v1/node-stack.test.ts`) asserts that silence.
+    what_expected: >
+      A producer can neither undo nor extend the complement: deleting one of its files is refused as a
+      modification, whatever path it sits on.
+    steps_to_reproduce:
+      - "Adopt a complement that writes a file under `node_modules/`, absent from the reference snapshot."
+      - "Have the candidate delete that file: the manifest holds no entry for it and `altered` stays empty."
+    root_cause: >
+      The check reads the manifest, which only lists paths present in the reference or in the candidate; a path
+      in neither has no entry. The code on this point did not change with the branch e12s07 and a deletion
+      removes a dependency without adding one, so the branch neither introduces nor makes it reachable.
+    evidence: >
+      Read on 2026-09-30 in `src/domain/gates/g4.ts` and asserted by the test named above; the end-to-end
+      deletion was not run.
+    risk_level: low
+    follow_ups: >
+      Decide whether G4 receives the complement paths as a required set and refuses one missing from the
+      candidate; a test on a candidate that deletes an adopted complement file the reference does not hold.
+    status: open

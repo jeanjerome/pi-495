@@ -43,9 +43,17 @@ import type { ControlExecutionPort, WorkspacePolicy, WorkspacePort } from "../po
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import { EXECUTOR_ACTOR } from "./actors.ts";
+import { openWorkspaceWithComplements } from "./complement.ts";
 import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "./preparation.ts";
 import { qualifyControlDetailed, reusableQualification, type DetailedQualification } from "./qualification.ts";
+
+/**
+ * Protected on every target, whatever the stack and the test runner: only an adopted complement writes
+ * there, so any other file added under it is a dependency the producer slipped into the project, and the
+ * integration never indexes it.
+ */
+const INSTALLED_DEPENDENCIES = "node_modules/";
 
 export interface VerificationDeps {
 	controls: ControlExecutionPort;
@@ -84,6 +92,8 @@ export interface QualifyInput {
 	requirement_refs: RequirementRef[];
 	/** Protocols already proposed for this change: a sensor qualified there is not qualified again. */
 	prior_protocol_refs: readonly { artifact_id: string; revision: number }[];
+	/** The complements the owner had applied: each witness copy carries them, as the positive one does. */
+	complements: readonly AdoptedComplement[];
 }
 
 export interface QualificationOutcome {
@@ -165,7 +175,7 @@ export class VerificationCoordinator {
 	 */
 	async qualify(input: QualifyInput): Promise<QualificationOutcome> {
 		const { positive, reference } = input;
-		const negative = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+		const negative = await openWorkspaceWithComplements(this.deps, reference, input.complements);
 		try {
 			const sharedNegativeFiles = { ...input.witnesses.positive, ...input.witnesses.negative };
 			await writeWitness(positive.path, input.witnesses.positive);
@@ -208,7 +218,7 @@ export class VerificationCoordinator {
 				const ownNegative = input.witnesses.own_negative[control.control_id];
 				const negativeFiles = ownNegative ? { ...input.witnesses.positive, ...ownNegative } : sharedNegativeFiles;
 				const ownHandle = ownNegative
-					? await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy)
+					? await openWorkspaceWithComplements(this.deps, reference, input.complements)
 					: null;
 				// A sensor that measures nothing of its own reads a report a witness workspace only holds
 				// once the control that writes it has run there. Each witness workspace is a fresh copy of
@@ -308,7 +318,9 @@ export class VerificationCoordinator {
 	freeze(input: FreezeInput): Protocol {
 		const controls: ControlDefinition[] = input.ordered.map((c) => ({
 			...c,
-			protected_paths: [...new Set([...c.protected_paths, ...(input.prepared?.files.map((f) => f.path) ?? [])])],
+			protected_paths: [
+				...new Set([...c.protected_paths, ...(input.prepared?.files.map((f) => f.path) ?? []), INSTALLED_DEPENDENCIES]),
+			],
 		}));
 		// A differential control answers a question every requirement asks, whatever its category: a
 		// requirement whose lines no test exercises is not demonstrated by a suite that stayed green,
@@ -513,7 +525,7 @@ export class VerificationCoordinator {
 			else pending.push(control);
 		}
 		if (pending.length === 0) return passes;
-		const handle = await this.deps.workspace.createWorkspace(reference, this.deps.workspacePolicy);
+		const handle = await openWorkspaceWithComplements(this.deps, reference, protocol.complements ?? []);
 		try {
 			for (const control of pending) {
 				this.deps.progress(`running control ${control.control_id} on the reference`);

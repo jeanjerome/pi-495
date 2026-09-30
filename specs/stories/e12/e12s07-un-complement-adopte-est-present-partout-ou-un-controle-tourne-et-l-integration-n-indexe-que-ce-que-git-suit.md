@@ -2,7 +2,7 @@
 
 Story : e12s07
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -65,6 +65,19 @@ Scenario: Un projet sans chemin ignoré est intégré comme avant
   When le candidat est intégré
   Then le commit local contient exactement ces deux fichiers, avec le message et le reçu d'aujourd'hui
 
+Scenario: Un fichier de node_modules qu'aucun complément n'a écrit est refusé à G4, quel que soit le lanceur de tests de la cible
+  Given une cible dont scripts.test lance node --test, un candidat qui ajoute node_modules/x/index.js et src/greet.js sans qu'aucun complément soit adopté, et un autre candidat qui garde tel quel un node_modules/x/index.js écrit par un complément adopté
+  When le noyau juge chacun à G4
+  Then le premier est refusé en nommant node_modules/x/index.js comme chemin protégé altéré, sans nommer src/greet.js
+  And le second passe
+
+Scenario: Un fichier de node_modules qu'aucun complément n'a écrit est refusé à G4 sur une cible Maven, qui ne déclare aucun chemin de node_modules/
+  Given une cible Maven dont les contrôles ne protègent que les fichiers de préparation et les pom.xml, aucun complément adopté, un candidat qui ajoute node_modules/x/index.js et src/main/java/Greet.java, et un autre candidat qui garde tel quel un node_modules/x/index.js écrit par un complément adopté
+  When le noyau gèle le protocole puis juge chacun à G4
+  Then le protocole gelé protège node_modules/
+  And le premier est refusé en nommant node_modules/x/index.js comme chemin protégé altéré, sans nommer src/main/java/Greet.java
+  And le second passe
+
 ## 3. Sécurité
 
 - Un fichier de complément vient du magasin d'objets, par son empreinte : il est remis tel qu'il a été adopté, et
@@ -72,8 +85,11 @@ Scenario: Un projet sans chemin ignoré est intégré comme avant
 - À G4, un fichier n'est permis sur un chemin protégé que s'il a l'empreinte que le complément a écrite ; le
   producteur ne peut ni le défaire ni le prolonger, quel que soit le chemin.
 - L'intégration n'écrit dans le projet, comme avant, qu'après l'acceptation du propriétaire. Elle copie ce que le
-  candidat contient, et le candidat n'a pu contenir un fichier de dépendance que par un complément que le
-  propriétaire a adopté. Le code d'une dépendance n'entre jamais dans l'historique du propriétaire.
+  candidat contient, et G4 refuse tout fichier de `node_modules/` qu'un complément adopté n'a pas écrit, quelle que
+  soit la pile de la cible et quel que soit son lanceur de tests, Maven comme Node : le protocole gelé protège
+  `node_modules/` même quand aucun contrôle de la cible ne le déclare, et le candidat n'a pu contenir un fichier de
+  dépendance que par un complément que le propriétaire a adopté. Le code d'une dépendance n'entre jamais dans
+  l'historique du propriétaire.
 
 ## 4. Tâches
 
@@ -129,6 +145,26 @@ Un chemin de `node_modules/` est copié dans le projet et n'est jamais indexé, 
 - Tient : `test/v2/export-integration.test.ts`, « given a project that does not ignore node_modules/ and a candidate modifying package.json and adding node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/ », et « given a project with no ignored path and two modified files, then the commit holds exactly those two files »
 - Rouge : l'intégrateur indexe tous les chemins du candidat : dans un projet qui n'ignore pas `node_modules/`, le commit contient `node_modules/x/index.js`
 
+### Tâche 7 — Un fichier de `node_modules/` est un chemin protégé d'une cible `node:test`
+
+Le contrôle `unit` d'une cible `node --test` protège `node_modules/` comme ceux de vitest, mocha et jest : un fichier
+ajouté sous `node_modules/` n'est permis à G4 que remis tel qu'un complément adopté l'a écrit, et tout autre est
+refusé.
+
+- Vérifie : `node --test test/v1/node-stack.test.ts`
+- Tient : `test/v1/node-stack.test.ts`, « given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
+- Rouge : `nodeTestControl` déclare `protected_paths: ["test/", "tests/", "package.json"]` : sur une cible `node --test`, `protectedPathsChanged` rend `altered: []` pour `node_modules/x/index.js` ajouté, et G4 passe
+
+### Tâche 8 — Le protocole gelé protège `node_modules/` quelle que soit la pile de la cible
+
+Le protocole gelé protège `node_modules/` en plus de ce que les contrôles de la cible déclarent : une cible dont aucun
+contrôle ne le nomme, Maven par exemple, refuse à G4 un fichier de `node_modules/` qu'aucun complément adopté n'a écrit,
+et permet celui qu'un complément adopté a écrit, remis tel quel.
+
+- Vérifie : `node --test test/v2/verification.test.ts`
+- Tient : `test/v2/verification.test.ts`, « given the controls of a Maven target and no adopted complement, then the frozen protocol protects node_modules/, a candidate adding node_modules/x/index.js and src/main/java/Greet.java is refused naming node_modules/x/index.js and not src/main/java/Greet.java, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
+- Rouge : `freeze` ne complète le `protected_paths` de chaque contrôle qu'avec les fichiers de préparation, et ceux de `maven-test` sont les fichiers de préparation et les `pom.xml` : le protocole gelé ne contient pas `node_modules/`, `protectedPathsChanged` rend `altered: []` pour `node_modules/x/index.js` ajouté, et G4 passe
+
 ## 5. Hors périmètre
 
 - L'installation d'un complément qui demande un arbre de dépendances, le réseau ouvert à cette seule étape, la
@@ -140,3 +176,10 @@ Un chemin de `node_modules/` est copié dans le projet et n'est jamais indexé, 
   est déjà celle qui refuse ce candidat en le disant.
 - Le coût d'ouvrir une copie avec un gros arbre de complément, sur chaque copie : il se mesure avec l'installation
   réelle de `e12s08`.
+- Le dossier de dépendances d'une autre pile : la tâche 7 protège `node_modules/`, le seul que l'intégrateur écarte
+  de l'index.
+- Les dossiers de dépendances propres à Maven (`target/`, le dépôt local de la machine) : la tâche 8 protège
+  `node_modules/` sur toute cible, elle n'en protège aucun autre.
+- Un `node_modules/` sous un paquet d'espace de travail (`packages/a/node_modules/`) : le chemin protégé est
+  `node_modules/` à la racine du projet, comme pour les contrôles de la pile Node.
+

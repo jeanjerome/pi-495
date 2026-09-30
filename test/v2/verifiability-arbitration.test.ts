@@ -812,6 +812,42 @@ describe("what adopting a complement holds for", () => {
 			"adopting grants no preparation",
 		);
 	});
+
+	it("given a change without a complement, then one with a complement adopted whose requirements the owner asks to revise, then the specification is written each time on the reference as the project holds it", async () => {
+		const t = harnessWithEmptyPreparations();
+		const scriptsTestOf = (workspacePath: string): string =>
+			(JSON.parse(readFileSync(join(workspacePath, "package.json"), "utf8")) as { scripts: { test: string } }).scripts
+				.test;
+		const specified: string[] = [];
+		const startIntervention = t.agent.startIntervention.bind(t.agent);
+		t.agent.startIntervention = (mandate) => {
+			if (mandate.role === "specify") specified.push(scriptsTestOf(mandate.workspace_path));
+			return startIntervention(mandate);
+		};
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.deepEqual(specified, ["node --test"], "the specification of a change without a complement");
+		answerPending(t, change.change_id, "adopt_complement");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.deepEqual(
+			t.harness.pendingDecisions(change.change_id).map((d) => d.options.map((o) => o.id)),
+			[["prepare", "assign_review", "revise"]],
+			"the complement is adopted",
+		);
+
+		answerPending(t, change.change_id, "revise", "R1 must be checked against the name 'Ada'");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		assert.deepEqual(
+			specified,
+			["node --test", "node --test"],
+			"the specification written again, the complement adopted",
+		);
+	});
 });
 
 describe("the IH-04 request", () => {

@@ -43,6 +43,25 @@ export interface PreparedWorkspace {
 	complements?: string[];
 }
 
+/**
+ * Writes each file into the tree at `root` from the object store, as it was stored: bytes that are
+ * missing, or that no longer match the digest the file was recorded under, are not written.
+ */
+export async function writeStoredFiles(
+	objects: ObjectStorePort,
+	files: readonly { path: string; digest: string }[],
+	root: string,
+): Promise<void> {
+	for (const f of files) {
+		const bytes = await objects.get(f.digest);
+		if (!bytes || digestBytes(bytes) !== f.digest)
+			throw new DomainError("EVIDENCE_MISSING", `file ${f.path} (${f.digest}) is missing from the store or altered`);
+		const target = join(root, f.path);
+		await mkdir(dirname(target), { recursive: true });
+		await writeFile(target, bytes);
+	}
+}
+
 export class ArtifactRepository {
 	private readonly deps: ArtifactDeps;
 	constructor(deps: ArtifactDeps) {
@@ -213,15 +232,7 @@ export class ArtifactRepository {
 		prepared: { files: readonly { path: string; digest: string }[] } | null,
 		workspacePath: string,
 	): Promise<void> {
-		if (!prepared) return;
-		for (const f of prepared.files) {
-			const bytes = await this.deps.objects.get(f.digest);
-			if (!bytes)
-				throw new DomainError("EVIDENCE_MISSING", `prepared file ${f.path} (${f.digest}) is missing from the store`);
-			const target = join(workspacePath, f.path);
-			await mkdir(dirname(target), { recursive: true });
-			await writeFile(target, bytes);
-		}
+		if (prepared) await writeStoredFiles(this.deps.objects, prepared.files, workspacePath);
 	}
 
 	/**

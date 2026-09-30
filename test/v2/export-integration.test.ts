@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { makeHarness, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, gitCmd, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { makeHarness, specReport, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
+import { fixtureTs, fixtureTsWithoutTests, gitCmd, initRepo, SHOUT_IMPL, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { exportChange, verifyExport } from "../../src/export/export-service.ts";
@@ -269,5 +269,178 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 		assert.equal(a.view.change?.outcome, "accepted");
 		assert.equal(a.view.change?.status, "blocked");
 		assert.equal(gitCmd(p, ["status", "--porcelain"]).trim(), "");
+	});
+});
+
+describe("what the integration indexes of the files it copies", () => {
+	/** A project whose .gitignore says `ignored`, and a harness whose producer writes `files` and reports them done. */
+	function projectAndProducer(ignored: string, files: Record<string, string>): { p: string; t: TestHarness } {
+		const p = tempDir("495-proj-");
+		cleanups.push(p);
+		fixtureTs(p);
+		if (ignored) writeFileSync(join(p, ".gitignore"), ignored);
+		initRepo(p);
+		const t = track(
+			makeHarness({
+				policy: { integration_enabled: true },
+				scripts: {
+					implement: {
+						steps: [
+							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+							{ kind: "complete", output: report(Object.keys(files)) },
+						],
+					},
+				},
+			}),
+		);
+		t.harness.integrator = new GitIntegrator(t.harness).step;
+		return { p, t };
+	}
+
+	/** Carries the change to its acceptance, then answers the integration question with `integrate`. */
+	async function integrated(
+		p: string,
+		t: TestHarness,
+	): Promise<{ change_id: string; outcome: string | undefined; steps: string }> {
+		const { change } = await acceptedChange(t, p);
+		const req = t.requested.at(-1)!;
+		assert.equal(req.interaction, "IH-11");
+		t.harness.answerDecision(
+			change.change_id,
+			{
+				decision_id: req.decision_id,
+				option_id: "integrate",
+				free_text: null,
+				reason: null,
+				subject_revision: req.subject.revision,
+				scope: null,
+				expires_at: null,
+			},
+			origin(),
+		);
+		const done = await t.harness.advance(change.change_id, { max_steps: 10 });
+		return { change_id: change.change_id, outcome: done.view.change?.outcome, steps: done.steps.join(" | ") };
+	}
+
+	const committedPaths = (p: string): string[] =>
+		gitCmd(p, ["show", "--name-only", "--pretty=format:", "HEAD"]).split("\n").filter(Boolean).sort();
+
+	it("given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/greet.js, then the file is in the project, the commit holds src/greet.js only and the receipt says the integration is done", async () => {
+		const { p, t } = projectAndProducer("coverage/\n", {
+			"src/greet.js": "export function greet(name) {\n  return `Hello, ${name}`; // covered\n}\n",
+			"coverage/report.txt": "lines: 100%\n",
+		});
+
+		const done = await integrated(p, t);
+
+		assert.equal(done.outcome, "integrated", done.steps);
+		assert.equal(readFileSync(join(p, "coverage", "report.txt"), "utf8"), "lines: 100%\n");
+		assert.deepEqual(committedPaths(p), ["src/greet.js"]);
+		const state = t.ledger.loadChange(done.change_id)!.state;
+		assert.equal(
+			state.integration?.destination_after,
+			gitCmd(p, ["rev-parse", "HEAD"]).trim(),
+			"the integration is recorded as done, not left uncertain",
+		);
+		assert.equal(t.ledger.listArtifacts(done.change_id, "integration").length, 1);
+	});
+
+	it("given a project ignoring coverage/ and a candidate adding only coverage/report.txt, then nothing is committed, not even a file the project holds untracked, and the integration does not claim to be done", async () => {
+		const { p, t } = projectAndProducer("coverage/\n", { "coverage/report.txt": "lines: 100%\n" });
+		writeFileSync(join(p, "notes.txt"), "the owner's own untracked file\n");
+		const headBefore = gitCmd(p, ["rev-parse", "HEAD"]).trim();
+
+		const done = await integrated(p, t);
+
+		assert.notEqual(done.outcome, "integrated", done.steps);
+		assert.equal(gitCmd(p, ["rev-parse", "HEAD"]).trim(), headBefore);
+		assert.equal(t.ledger.loadChange(done.change_id)!.state.integration?.destination_after ?? null, null);
+	});
+
+	it("given a project that does not ignore node_modules/ and a candidate modifying package.json and adding packages/app/node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/", async () => {
+		const p = tempDir("495-proj-");
+		cleanups.push(p);
+		fixtureTsWithoutTests(p);
+		initRepo(p);
+		const unjudgeable = specReport({
+			objective: "add shout(name) returning the greeting in upper case",
+			requirements: [
+				{
+					requirement_id: "R1",
+					statement: "shout(name) returns greet(name) upper-cased",
+					mandatory: true,
+					criterion: "unit test on shout passes",
+					category: "functional",
+					satisfied_by_reference: false,
+				},
+			],
+		});
+		// A node_modules/ at the project root is protected at G4 and only an adopted complement writes there, so
+		// the dependency the candidate adds sits in a workspace package, which the integration leaves out of the commit all the same.
+		const dependency = "packages/app/node_modules/x/index.js";
+		const files = { "src/greet.js": SHOUT_IMPL, [dependency]: "module.exports = 1;\n" };
+		const t = track(
+			makeHarness({
+				policy: { integration_enabled: true },
+				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+				scripts: {
+					prepare: { steps: [{ kind: "complete", output: report([]) }] },
+					implement: {
+						steps: [
+							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+							{ kind: "complete", output: report(Object.keys(files)) },
+						],
+					},
+				},
+			}),
+		);
+		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const answer = (optionId: string): void => {
+			const [pending] = t.harness.pendingDecisions(changeId);
+			const answered = t.harness.answerDecision(
+				changeId,
+				{
+					decision_id: pending!.decision_id,
+					option_id: optionId,
+					free_text: null,
+					reason: null,
+					subject_revision: pending!.subject.revision,
+					scope: null,
+					expires_at: null,
+				},
+				origin(),
+			);
+			assert.equal(answered.error, null);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		// package.json is a file of the candidate only through the complement the owner adopts.
+		answer("adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("assign_review");
+		let result = await t.harness.advance(changeId, { max_steps: 40 });
+		for (let step = 0; step < 4 && result.stopped_because === "decision_required"; step++) {
+			const [asked] = t.harness.pendingDecisions(changeId);
+			answer(asked!.interaction === "IH-11" ? "integrate" : "accept");
+			result = await t.harness.advance(changeId, { max_steps: 40 });
+		}
+
+		assert.equal(result.view.change?.outcome, "integrated", result.steps.join(" | "));
+		assert.equal(readFileSync(join(p, dependency), "utf8"), files[dependency]);
+		assert.deepEqual(committedPaths(p), ["package.json", "src/greet.js"]);
+	});
+
+	it("given a project with no ignored path and two modified files, then the commit holds exactly those two files", async () => {
+		const { p, t } = projectAndProducer("", {
+			"src/greet.js": "export function greet(name) {\n  return `Hello, ${name}`; // two\n}\n",
+			"README.md": "# two files\n",
+		});
+
+		const done = await integrated(p, t);
+
+		assert.equal(done.outcome, "integrated", done.steps);
+		assert.deepEqual(committedPaths(p), ["README.md", "src/greet.js"]);
+		assert.match(gitCmd(p, ["log", "-1", "--pretty=%B"]), /495: integrate candidate/);
 	});
 });

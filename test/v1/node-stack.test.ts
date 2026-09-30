@@ -127,7 +127,7 @@ describe("Node stack: what the mocha and jest controls protect", () => {
 	});
 });
 
-describe("Node stack: what the vitest control protects among the installed dependencies", () => {
+describe("Node stack: what the unit controls protect among the installed dependencies", () => {
 	const entry = (path: string, baseline_state: ManifestEntry["baseline_state"]): ManifestEntry => ({
 		path,
 		kind: "file",
@@ -255,6 +255,55 @@ describe("Node stack: what the vitest control protects among the installed depen
 			[complement],
 		);
 		assert.deepEqual(untouched.altered, [], "a manifest without the complement file judges nothing about it");
+	});
+	it("given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file", () => {
+		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
+		const installed = [
+			"node_modules/@vitest/coverage-v8/index.js",
+			"node_modules/@vitest/coverage-v8/package.json",
+		].map((path) => ({
+			path,
+			digest: digestBytes(`the bytes of ${path}`),
+			test_type: "coverage",
+			tool: "coverage-v8",
+		}));
+		const complements = [complement, ...installed];
+		const asWritten = complements.map((c) => ({ ...entry(c.path, "added"), content_digest: c.digest }));
+		const kept = protectedPathsChanged(manifestOf(...asWritten), protectedPaths, [], () => false, complements);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(
+			kept.allowed,
+			complements.map((c) => c.path),
+		);
+		const modified = asWritten.map((e) =>
+			e.path === installed[1]!.path ? { ...e, content_digest: digestBytes("shadowing bytes") } : e,
+		);
+		const refused = protectedPathsChanged(manifestOf(...modified), protectedPaths, [], () => false, complements);
+		assert.deepEqual(refused.altered, [installed[1]!.path]);
+	});
+	it("given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed", () => {
+		const { protected_paths: protectedPaths } = unitOf(targetWith("node --test"));
+		const added = protectedPathsChanged(
+			manifestOf(entry("node_modules/x/index.js", "added"), entry("src/greet.js", "added")),
+			protectedPaths,
+			[],
+		);
+		assert.deepEqual(added.altered, ["node_modules/x/index.js"]);
+		const installed = {
+			path: "node_modules/x/index.js",
+			digest: digestBytes("the bytes of node_modules/x/index.js"),
+			test_type: "coverage",
+			tool: "x",
+		};
+		const kept = protectedPathsChanged(
+			manifestOf({ ...entry(installed.path, "added"), content_digest: installed.digest }),
+			protectedPaths,
+			[],
+			() => false,
+			[installed],
+		);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(kept.allowed, [installed.path]);
 	});
 });
 

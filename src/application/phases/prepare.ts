@@ -2,6 +2,7 @@
  * Preparing: a bounded intervention writes the tests no existing control can replace, and the kernel
  * judges them on the bare reference before adopting any of them.
  */
+import type { AdoptedComplement } from "../../contracts/v1/protocol.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { preparationObjective } from "../context.ts";
@@ -19,9 +20,12 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		allowed_paths: string[];
 		requirement_ids: string[];
 		stack: StackDetection["stack"];
+		/** The complements the owner had adopted when the mandate opened; absent when there were none. */
+		complements?: AdoptedComplement[];
 	}>(unit.state, "preparation");
 	if (!mandateArt) throw new DomainError("EVIDENCE_MISSING", "preparation mandate missing");
 	const mandate = mandateArt.content;
+	const complements = mandate.complements ?? [];
 	const previousRef = ctx.artifacts
 		.proposedSinceRevocation(unit.state, "preparation")
 		.findLast((ref) => ref.artifact_id.startsWith("prep_"));
@@ -31,6 +35,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		: null;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
+		await ctx.artifacts.materializePrepared({ files: complements }, handle.path);
 		const detected = detectStack(
 			handle.path,
 			mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })),
@@ -87,7 +92,10 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		if (unit.state.status === "blocked") return unit;
 		const notes: string[] = [];
 		if (r.result !== "completed") notes.push(`preparation intervention ${r.result}`);
-		const manifest = await ctx.workspace.snapshotCandidate(handle, reference, ctx.workspacePolicy);
+		const snapshot = await ctx.workspace.snapshotCandidate(handle, reference, ctx.workspacePolicy);
+		// What the copy carried from the start is not something the producer wrote.
+		const carried = new Map(complements.map((c) => [c.path, c.digest]));
+		const manifest = { ...snapshot, entries: snapshot.entries.filter((e) => carried.get(e.path) !== e.content_digest) };
 		const { files, modified_existing, out_of_scope, refused } = preparedFilesFrom(manifest, mandate.allowed_paths);
 		for (const p of out_of_scope) notes.push(`written outside the preparation mandate, not retained: ${p}`);
 		for (const p of refused) notes.push(`change under the preparation roots refused: ${p}`);
@@ -101,7 +109,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		if (files.length > 0 && sensor) {
 			const bare = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 			try {
-				await ctx.artifacts.materializePrepared({ files }, bare.path);
+				await ctx.artifacts.materializePrepared({ files: [...complements, ...files] }, bare.path);
 				const judged = await ctx.verification.judgePreparedSuite({
 					control: sensor,
 					reference,

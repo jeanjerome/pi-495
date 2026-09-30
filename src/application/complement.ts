@@ -1,12 +1,17 @@
 /**
  * Applying the edit of a recommended complement to the text of a target's `package.json`. The value
  * is replaced where it stands in the text, so that the file stays byte for byte what it was around it
- * and the diff the owner reads shows that line only.
+ * and the diff the owner reads shows that line only. Once adopted, a complement is written into the
+ * copies where a control runs.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { digestBytes } from "../contracts/digest.ts";
+import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { AdoptedComplement, FileEdit, RecommendedComplement } from "../contracts/v1/protocol.ts";
+import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import type { ObjectStorePort } from "../ports/object-store.ts";
+import { writeStoredFiles } from "./artifacts.ts";
 
 interface Member {
 	key: string;
@@ -110,4 +115,23 @@ export function applyRecommendedEdits(
 		complements.push({ path: r.edit.path, digest: digestBytes(text), test_type: r.test_type, tool: r.tool });
 	}
 	return complements;
+}
+
+/**
+ * A copy of the reference that carries the adopted complements, written from the object store before
+ * anything else is put in it: a control that needs a complement to run finds it in every copy it runs in.
+ */
+export async function openWorkspaceWithComplements(
+	deps: { workspace: WorkspacePort; workspacePolicy: WorkspacePolicy; objects: ObjectStorePort },
+	reference: ReferenceSnapshot,
+	complements: readonly AdoptedComplement[],
+): Promise<WorkspaceHandle> {
+	const handle = await deps.workspace.createWorkspace(reference, deps.workspacePolicy);
+	try {
+		await writeStoredFiles(deps.objects, complements, handle.path);
+	} catch (error) {
+		await deps.workspace.closeWorkspace(handle.workspace_id, "delete");
+		throw error;
+	}
+	return handle;
 }
