@@ -1,0 +1,331 @@
+TAP version 13
+# Subtest: full change cycle with real ledger, workspace, runner and scripted agent (REC-01, REC-02, REC-04, SA-015)
+    # Subtest: accepts a conforming change end to end and keeps the project untouched
+    ok 1 - accepts a conforming change end to end and keeps the project untouched
+      ---
+      duration_ms: 722.153
+      type: 'test'
+      ...
+    # Subtest: given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made
+    ok 2 - given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made
+      ---
+      duration_ms: 664.541166
+      type: 'test'
+      ...
+    # Subtest: given a frozen protocol carrying an adopted complement, then a new attempt's workspace carries the modified package.json before the producer reads anything, and a workspace opened before the adoption is not reused
+    not ok 3 - given a frozen protocol carrying an adopted complement, then a new attempt's workspace carries the modified package.json before the producer reads anything, and a workspace opened before the adoption is not reused
+      ---
+      duration_ms: 771.920208
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZOTyLn/test/v2/harness.test.ts:144:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a workspace of its own is prepared for the attempt
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZOTyLn/test/v2/harness.test.ts:220:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a producer claiming success without passing tests is refused at G5, then corrected on a second attempt with bounded feedback (REC-02, SA-015, DEC-02)
+    ok 4 - a producer claiming success without passing tests is refused at G5, then corrected on a second attempt with bounded feedback (REC-02, SA-015, DEC-02)
+      ---
+      duration_ms: 1475.188417
+      type: 'test'
+      ...
+    # Subtest: a control that answers differently on two passes of the same candidate keeps INDETERMINATE and is not run again (VER-08, REC-25)
+    ok 5 - a control that answers differently on two passes of the same candidate keeps INDETERMINATE and is not run again (VER-08, REC-25)
+      ---
+      duration_ms: 906.383875
+      type: 'test'
+      ...
+    # Subtest: allows new tests while keeping frozen test content protected
+    ok 6 - allows new tests while keeping frozen test content protected
+      ---
+      duration_ms: 712.898708
+      type: 'test'
+      ...
+    # Subtest: a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)
+    ok 7 - a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)
+      ---
+      duration_ms: 594.850458
+      type: 'test'
+      ...
+    # Subtest: a material question suspends the change with IH-01 and resumes after a human answer; a model output cannot answer (SA-004, SA-005, SA-030)
+    ok 8 - a material question suspends the change with IH-01 and resumes after a human answer; a model output cannot answer (SA-004, SA-005, SA-030)
+      ---
+      duration_ms: 705.362125
+      type: 'test'
+      ...
+    # Subtest: an answer to a material question reopens the specification, and the requirements adopted at G1 carry it rather than the report written before it (SA-004, RM-010)
+    ok 9 - an answer to a material question reopens the specification, and the requirements adopted at G1 carry it rather than the report written before it (SA-004, RM-010)
+      ---
+      duration_ms: 697.3585
+      type: 'test'
+      ...
+    # Subtest: a specification that keeps ignoring a recorded answer stops the change before G0, naming the question (RM-011)
+    ok 10 - a specification that keeps ignoring a recorded answer stops the change before G0, naming the question (RM-011)
+      ---
+      duration_ms: 131.902834
+      type: 'test'
+      ...
+    # Subtest: reopens the specification again when a round of answers opens new material questions, and stops when a report gives the same ground back (RM-010)
+    ok 11 - reopens the specification again when a round of answers opens new material questions, and stops when a report gives the same ground back (RM-010)
+      ---
+      duration_ms: 744.910709
+      type: 'test'
+      ...
+    # Subtest: does not count an answer bound to a requirement the report does not carry as carried, and counts one bound to a non-mandatory requirement beside a mandatory one (RM-011)
+    ok 12 - does not count an answer bound to a requirement the report does not carry as carried, and counts one bound to a non-mandatory requirement beside a mandatory one (RM-011)
+      ---
+      duration_ms: 722.845209
+      type: 'test'
+      ...
+    # Subtest: carries an answer declaration from one report to the next, and asks the reopened report only for the answer it has not declared (RM-010)
+    ok 13 - carries an answer declaration from one report to the next, and asks the reopened report only for the answer it has not declared (RM-010)
+      ---
+      duration_ms: 739.970625
+      type: 'test'
+      ...
+    # Subtest: stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and stops the change before G0 when the next one gains nothing (RM-011)
+    ok 14 - stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and stops the change before G0 when the next one gains nothing (RM-011)
+      ---
+      duration_ms: 211.49575
+      type: 'test'
+      ...
+    # Subtest: lifts a block the kernel declared retryable, which the status names with the cancel, and the change redoes the step that threw (DEC-05)
+    ok 15 - lifts a block the kernel declared retryable, which the status names with the cancel, and the change redoes the step that threw (DEC-05)
+      ---
+      duration_ms: 672.630791
+      type: 'test'
+      ...
+    # Subtest: keeps the exact text every intervention was handed addressable in the store (CTX-01)
+    ok 16 - keeps the exact text every intervention was handed addressable in the store (CTX-01)
+      ---
+      duration_ms: 659.665792
+      type: 'test'
+      ...
+    # Subtest: names the layer the retained provider imposes, and never emits it itself (CTX-02, D-48)
+    ok 17 - names the layer the retained provider imposes, and never emits it itself (CTX-02, D-48)
+      ---
+      duration_ms: 671.773667
+      type: 'test'
+      ...
+    # Subtest: a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)
+    ok 18 - a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)
+      ---
+      duration_ms: 663.242833
+      type: 'test'
+      ...
+    # Subtest: a mandate whose human adoption is refused stops the change with the reason, and nothing is adopted at G0 (IH-02)
+    ok 19 - a mandate whose human adoption is refused stops the change with the reason, and nothing is adopted at G0 (IH-02)
+      ---
+      duration_ms: 108.81875
+      type: 'test'
+      ...
+    # Subtest: an unqualified sandbox blocks before any producing intervention, and the status names the cancel as its only way out (capability_missing, ADR-013)
+    ok 20 - an unqualified sandbox blocks before any producing intervention, and the status names the cancel as its only way out (capability_missing, ADR-013)
+      ---
+      duration_ms: 397.629334
+      type: 'test'
+      ...
+    # Subtest: resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)
+    ok 21 - resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)
+      ---
+      duration_ms: 662.521125
+      type: 'test'
+      ...
+    # Subtest: refuses to pause a change blocked by a step that failed while its intervention ran, keeps its stop and names the resume that lifts it
+    ok 22 - refuses to pause a change blocked by a step that failed while its intervention ran, keeps its stop and names the resume that lifts it
+      ---
+      duration_ms: 91.114791
+      type: 'test'
+      ...
+    # Subtest: does not lift on resume a stop no resume lifts, when the step failed while its intervention ran
+    ok 23 - does not lift on resume a stop no resume lifts, when the step failed while its intervention ran
+      ---
+      duration_ms: 89.12975
+      type: 'test'
+      ...
+    # Subtest: does not lift on resume a stop no resume lifts, when the step failed while its controls ran
+    ok 24 - does not lift on resume a stop no resume lifts, when the step failed while its controls ran
+      ---
+      duration_ms: 549.529625
+      type: 'test'
+      ...
+    # Subtest: records a failure that is not the pause's own conflict, even when the change is paused under the step
+    ok 25 - records a failure that is not the pause's own conflict, even when the change is paused under the step
+      ---
+      duration_ms: 92.033334
+      type: 'test'
+      ...
+    # Subtest: a verification cut short by the end of its session is run again after a resume, and the change reaches its decision
+    ok 26 - a verification cut short by the end of its session is run again after a resume, and the change reaches its decision
+      ---
+      duration_ms: 659.980458
+      type: 'test'
+      ...
+    # Subtest: a change paused during its verification is resumed and its verification is run again
+    ok 27 - a change paused during its verification is resumed and its verification is run again
+      ---
+      duration_ms: 786.947917
+      type: 'test'
+      ...
+    # Subtest: a session whose record loses to another session's block keeps that block and its reason
+    ok 28 - a session whose record loses to another session's block keeps that block and its reason
+      ---
+      duration_ms: 671.30675
+      type: 'test'
+      ...
+    # Subtest: puts no project file in a prompt: an intervention reads the tree with its own tools
+    ok 29 - puts no project file in a prompt: an intervention reads the tree with its own tools
+      ---
+      duration_ms: 697.551458
+      type: 'test'
+      ...
+    # Subtest: a step that fails after writing still records the block, so the change cannot silently restart
+    ok 30 - a step that fails after writing still records the block, so the change cannot silently restart
+      ---
+      duration_ms: 113.5145
+      type: 'test'
+      ...
+    # Subtest: a producer stopped by the duration budget resumes on its own workspace instead of starting over
+    ok 31 - a producer stopped by the duration budget resumes on its own workspace instead of starting over
+      ---
+      duration_ms: 452.874417
+      type: 'test'
+      ...
+    # Subtest: a candidate that cannot build is corrected, never re-verified: an identical re-run proves nothing
+    ok 32 - a candidate that cannot build is corrected, never re-verified: an identical re-run proves nothing
+      ---
+      duration_ms: 1023.489792
+      type: 'test'
+      ...
+    # Subtest: explicit /verify re-runs the frozen controls on the frozen candidate without any model; human acceptance then closes (SA-013, IH-10)
+    ok 33 - explicit /verify re-runs the frozen controls on the frozen candidate without any model; human acceptance then closes (SA-013, IH-10)
+      ---
+      duration_ms: 785.964
+      type: 'test'
+      ...
+    1..33
+not ok 1 - full change cycle with real ledger, workspace, runner and scripted agent (REC-01, REC-02, REC-04, SA-015)
+  ---
+  duration_ms: 19653.113041
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZOTyLn/test/v2/harness.test.ts:54:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: what a change introduces, recomputed from the store (QLT-04)
+    # Subtest: hands every control the lines the candidate wrote, an empty set on the reference, and keeps both texts in the dossier
+    ok 1 - hands every control the lines the candidate wrote, an empty set on the reference, and keeps both texts in the dossier
+      ---
+      duration_ms: 703.484709
+      type: 'test'
+      ...
+    1..1
+ok 2 - what a change introduces, recomputed from the store (QLT-04)
+  ---
+  duration_ms: 703.5965
+  type: 'suite'
+  ...
+# Subtest: obligations and budgets across a session change (CTX-04, REC-06)
+    # Subtest: a session opened on the same ledger restores the same normative revisions, the same remaining budgets and the bounded feedback, with no model memory
+    ok 1 - a session opened on the same ledger restores the same normative revisions, the same remaining budgets and the bounded feedback, with no model memory
+      ---
+      duration_ms: 960.889875
+      type: 'test'
+      ...
+    1..1
+ok 3 - obligations and budgets across a session change (CTX-04, REC-06)
+  ---
+  duration_ms: 960.975917
+  type: 'suite'
+  ...
+# Subtest: the report an engineer reads, on a conducted change (IMP-05)
+    # Subtest: separates what the controls measured, what was concluded from it and what stays unestablished, from the ledger alone
+    ok 1 - separates what the controls measured, what was concluded from it and what stays unestablished, from the ledger alone
+      ---
+      duration_ms: 683.388042
+      type: 'test'
+      ...
+    1..1
+ok 4 - the report an engineer reads, on a conducted change (IMP-05)
+  ---
+  duration_ms: 683.468459
+  type: 'suite'
+  ...
+# Subtest: a profile that cannot do the work is refused before it is paid for (AGT-01, AGT-02, D-46)
+    # Subtest: an endpoint that does not call the tools it is given blocks before any intervention
+    ok 1 - an endpoint that does not call the tools it is given blocks before any intervention
+      ---
+      duration_ms: 79.809042
+      type: 'test'
+      ...
+    # Subtest: a thinking level the model does not accept blocks before any intervention, and is never converted
+    ok 2 - a thinking level the model does not accept blocks before any intervention, and is never converted
+      ---
+      duration_ms: 77.78375
+      type: 'test'
+      ...
+    # Subtest: a level the model does accept opens the intervention with that level, unchanged
+    ok 3 - a level the model does accept opens the intervention with that level, unchanged
+      ---
+      duration_ms: 379.603708
+      type: 'test'
+      ...
+    1..3
+ok 5 - a profile that cannot do the work is refused before it is paid for (AGT-01, AGT-02, D-46)
+  ---
+  duration_ms: 537.331959
+  type: 'suite'
+  ...
+# Subtest: the language a change was started in
+    # Subtest: is the one the first intervention is told to write in, before a mandate records it
+    ok 1 - is the one the first intervention is told to write in, before a mandate records it
+      ---
+      duration_ms: 650.825833
+      type: 'test'
+      ...
+    # Subtest: also offers the close option among IH-01's three issues in English (BES-02)
+    ok 2 - also offers the close option among IH-01's three issues in English (BES-02)
+      ---
+      duration_ms: 102.236041
+      type: 'test'
+      ...
+    1..2
+ok 6 - the language a change was started in
+  ---
+  duration_ms: 753.165208
+  type: 'suite'
+  ...
+# Subtest: what the specify role is told about a declaration that fixes nothing observable (BES-02)
+    # Subtest: is instructed that observable: false is a proposal the owner confirms or refuses, not a decision it makes on its own
+    ok 1 - is instructed that observable: false is a proposal the owner confirms or refuses, not a decision it makes on its own
+      ---
+      duration_ms: 653.021875
+      type: 'test'
+      ...
+    1..1
+ok 7 - what the specify role is told about a declaration that fixes nothing observable (BES-02)
+  ---
+  duration_ms: 653.122375
+  type: 'suite'
+  ...
+1..7
+# tests 42
+# suites 7
+# pass 41
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24115.24

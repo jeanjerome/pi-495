@@ -1,0 +1,166 @@
+TAP version 13
+# Subtest: a requirement no control can judge is arbitrated by the owner
+    # Subtest: given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+    ok 1 - given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+      ---
+      duration_ms: 250.381916
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+    ok 2 - given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+      ---
+      duration_ms: 312.724916
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+    ok 3 - given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+      ---
+      duration_ms: 274.424
+      type: 'test'
+      ...
+    # Subtest: given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+    ok 4 - given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+      ---
+      duration_ms: 373.158833
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+    ok 5 - given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+      ---
+      duration_ms: 626.495708
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+    ok 6 - given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+      ---
+      duration_ms: 418.493042
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+    ok 7 - given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+      ---
+      duration_ms: 748.431083
+      type: 'test'
+      ...
+    1..7
+ok 1 - a requirement no control can judge is arbitrated by the owner
+  ---
+  duration_ms: 3004.878083
+  type: 'suite'
+  ...
+# Subtest: the IH-04 facts present the recommended complements
+    # Subtest: given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+    ok 1 - given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+      ---
+      duration_ms: 464.235375
+      type: 'test'
+      ...
+    1..1
+ok 2 - the IH-04 facts present the recommended complements
+  ---
+  duration_ms: 464.377875
+  type: 'suite'
+  ...
+# Subtest: the IH-04 decision offers to adopt a complement that is a file edit
+    # Subtest: given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+    ok 1 - given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+      ---
+      duration_ms: 451.003167
+      type: 'test'
+      ...
+    1..1
+ok 3 - the IH-04 decision offers to adopt a complement that is a file edit
+  ---
+  duration_ms: 451.105375
+  type: 'suite'
+  ...
+# Subtest: adopting a complement that is a file edit
+    # Subtest: given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+    not ok 1 - given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+      ---
+      duration_ms: 571.852125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kmSqm7/test/v2/verifiability-arbitration.test.ts:546:2'
+      failureType: 'testCodeFailure'
+      error: 'the coverage control is declared: unit'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kmSqm7/test/v2/verifiability-arbitration.test.ts:564:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 4 - adopting a complement that is a file edit
+  ---
+  duration_ms: 572.185375
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-kmSqm7/test/v2/verifiability-arbitration.test.ts:537:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the IH-04 request
+    # Subtest: the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+    ok 1 - the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+      ---
+      duration_ms: 0.120541
+      type: 'test'
+      ...
+    1..1
+ok 5 - the IH-04 request
+  ---
+  duration_ms: 0.153458
+  type: 'suite'
+  ...
+# Subtest: the requirements the owner took on
+    # Subtest: is empty without any answer, whatever the requirements no control can judge
+    ok 1 - is empty without any answer, whatever the requirements no control can judge
+      ---
+      duration_ms: 0.05975
+      type: 'test'
+      ...
+    # Subtest: is the requirements the answer was asked about
+    ok 2 - is the requirements the answer was asked about
+      ---
+      duration_ms: 0.059209
+      type: 'test'
+      ...
+    # Subtest: is empty when a requirement was not among those asked about, or was, and the answer was about more
+    ok 3 - is empty when a requirement was not among those asked about, or was, and the answer was about more
+      ---
+      duration_ms: 0.04275
+      type: 'test'
+      ...
+    # Subtest: is empty for an answer that is not an assign_review, is revoked, or was given to another question
+    ok 4 - is empty for an answer that is not an assign_review, is revoked, or was given to another question
+      ---
+      duration_ms: 0.052291
+      type: 'test'
+      ...
+    # Subtest: does not depend on the order the requirements are named in
+    ok 5 - does not depend on the order the requirements are named in
+      ---
+      duration_ms: 0.034833
+      type: 'test'
+      ...
+    1..5
+ok 6 - the requirements the owner took on
+  ---
+  duration_ms: 0.30425
+  type: 'suite'
+  ...
+1..6
+# tests 16
+# suites 6
+# pass 15
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4661.579333

@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le producteur ne défait pas l'adoption en remettant le fichier de la référence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/node-stack.test.ts",
+    "ligne": 225,
+    "constat": "Le refus du candidat qui remet le package.json de la référence n'est asserté qu'au niveau de protectedPathsChanged, sur un manifeste fabriqué. Aucun test de harnais n'asserte l'événement gate.decided G4 FAIL avec le motif « protected path altered by the producer: package.json ». Le code tient la promesse : une sonde jetable, non commitée, où le producteur réécrit le package.json d'origine, a produit deux G4 FAIL avec ce motif et la change est restée bloquée.",
+    "mutation": "Retirer `...restored` de `altered` dans g4.ts fait échouer le test unitaire. Retirer `complements` de l'appel dans implement.ts fait échouer le test « keeping ». Aucune mutation du chemin manifeste → faits → motif ne se distingue de celles du cas « modifie une autre ligne »."
+   }
+  ],
+  "resume": "Les onze promesses, lues dans le code et éprouvées par mutation, sont tenues, sauf la onzième que je n'ai pas exécutée. Vingt et une mutations ont été essayées. Une seule est restée sans effet sur les tests : la première tentative de retirer `...restored` de G4, dont l'expression régulière ne s'appliquait pas. Rejouée avec une expression corrigée, elle fait échouer le test du package.json de la référence remis à l'identique. Chaque mutation a été annulée.\n\nVoici ce que les mutations ont touché, et si un test a échoué :\n\n- **Recommandation et modification :**\n  - Le suffixe de `scripts.test`, l'absence de modification sans `scripts.test` et le cas vitest ont chacun fait échouer un test. `test/v1/recommendations.test.ts` porte ces trois cas.\n  - Sur la modification octet pour octet, l'application ne s'est pas faite quand la valeur actuelle diffère ou que `scripts.test` est écrit deux fois, et un espace ajouté après la valeur remplacée casse le test des octets.\n- **Décision IH-04 :**\n  - L'issue « adopter le complément » disparaît quand la modification ne s'applique pas au fichier, ou quand la recommandation n'a pas de modification (cible Maven).\n  - Sa condition d'offre, son texte fr/en, et le retour à trois issues une fois le complément en place sont tenus.\n- **Adoption :**\n  - Le contrôle `coverage` déclaré et qualifié, le complément porté par le protocole avec son empreinte, et le rapport qui ne le liste plus comme non adopté sont tous tenus.\n  - Ne plus relire la détection après la modification, ou ne plus reconnaître la réponse, casse l'un de ces tests.\n- **Workspace du candidat :**\n  - Le fichier modifié est bien matérialisé avant le producteur, et un workspace ouvert avant l'adoption n'est pas réutilisé.\n  - Le projet n'est pas écrit avant l'intégration : le commit local contient le drapeau de couverture et rien n'est poussé.\n- **G4 :** le candidat qui garde le fichier tel que le complément l'a écrit passe, et celui qui y modifie une autre ligne est refusé en nommant `package.json`.\n- **Révision des exigences :** le protocole suivant ne porte plus de complément, la recommandation revient et l'adoption est reproposée.\n\nUn seul constat, à peser : le refus du candidat qui remet le `package.json` de la référence n'est asserté que par un test unitaire de `protectedPathsChanged`, sur un manifeste fabriqué. Aucun test de harnais n'asserte l'événement `gate.decided` G4 FAIL avec son motif. La sonde jetable montre pourtant que le code tient la promesse de bout en bout, et aucune mutation réaliste ne passerait à côté du test unitaire.\n\nJe n'ai pas exécuté la promesse de recette dans un vrai Pi, qui relève de l'étape de recette."
+ },
+ {
+  "verdict": "pass",
+  "resume": "Relecteur B, tour 1. Le code tient les onze promesses, sauf la recette en vrai Pi, qui n'est pas de mon ressort. Aucun constat n'est bloquant ni à corriger. Je n'en relève que deux à peser.\n\nJ'ai lu le chemin de chaque scénario. J'ai aussi lancé une sonde jetable, non commitée : un producteur qui réécrit le package.json d'origine octet pour octet. Elle produit deux événements gate.decided G4 FAIL, tous deux avec le motif « protected path altered by the producer: package.json ». J'ai essayé sept cas limites de `applyScriptsTestEdit` : une clé écrite `scripts` en double, un BOM, un `scripts` imbriqué dans une autre clé, une valeur avec des échappements, des espaces et des tabulations autour du `:`, un tableau à la racine. Chaque cas donne soit l'attendu, soit `null`.\n\nUne trentaine de mutations d'une ligne ont fait échouer au moins un test qui assert ce que le `Then` dit. Elles couvrent le `wanted` du drapeau, l'absence d'édition sans `scripts.test`, les options IH-04, les gardes `editedFile`, la validité de la réponse, la réécriture de l'unique valeur, l'exclusion des doublons, l'écriture du fichier, la réutilisation du workspace, `kept` et `restored` dans g4, et le filtre du rapport. Elles couvrent aussi l'écriture du package.json sur la référence (mutation `applyRecommendedEdits(reference.project_path)`) et les complements du protocole gelé. Une seule mutation survit (B1-2) ; elle n'est pas une promesse de la story.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le producteur ne défait pas l'adoption en remettant le fichier de la référence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/node-stack.test.ts",
+    "ligne": 218,
+    "constat": "La promesse dit « l'événement gate.decided G4 est FAIL, avec le motif protected path altered by the producer: package.json ». Le test du cas « remis à la référence » n'assert que `protectedPathsChanged` (altered = [\"package.json\"]). Aucun test de bout en bout n'assert l'événement G4 pour ce cas ; celui du cas « autre ligne modifiée » le fait pour un autre chemin. Ma sonde jetable confirme que le code tient la promesse (FAIL, motif exact, deux tentatives). Les deux cas suivent le même enchaînement `scope.altered` → `candidate.freeze` → G4, donc le risque est faible.",
+    "mutation": "Retirer `...restored` de `altered` dans g4.ts : le test unitaire échoue (1 échec). Aucune mutation propre au seul niveau événement n'a été trouvée : le chemin de G4 est commun aux deux cas."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La modification fait partie du candidat sans que le producteur y touche (un workspace ouvert avant l'adoption n'est pas réutilisé)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/implement.ts",
+    "ligne": 35,
+    "constat": "L'enregistrement de `complements` (les empreintes) dans `PreparedWorkspace` n'est tenu par aucun test : le retirer ne fait échouer aucun test. Sans lui, `unstartedAttempt` refuse toujours de reprendre un workspace qui porte des compléments, et en ouvre un nouveau. Il n'y a donc aucun risque de sécurité, seulement une copie du projet de plus à chaque reprise. La story ne promet que le refus de réutiliser un workspace ouvert avant l'adoption, que les tests tiennent ; elle ne promet pas la réutilisation d'un workspace ouvert après.",
+    "mutation": "Retirer `complements: complements.map((c) => c.digest),` de l'objet `PreparedWorkspace` dans implement.ts : les 138 tests passent."
+   }
+  ]
+ }
+]

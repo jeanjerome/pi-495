@@ -1,0 +1,83 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les neuf scénarios que j'ai relus (le dixième est la recette). Trois promesses n'ont aucun test qui les tienne, d'où le verdict fail. Toutes trois sont introduites par la branche. Aucun constat n'est bloquant.\n\nJe n'ai pas lu le scénario du vrai Pi. Le code est tenu par les neuf autres :\n- La recommandation porte la modification (scénario 1).\n- L'option d'adoption est offerte (scénario 2).\n- Le protocole porte le complément adopté (scénario 3).\n- La modification s'applique octet pour octet (scénario 4).\n- Le workspace du candidat porte le fichier modifié (scénario 5).\n- Le chemin protégé est permis pour ce seul fichier (scénario 6).\n- L'intégrateur recopie les entrées du manifeste depuis le workspace, donc le package.json modifié arrive dans le commit (scénario 7).\n- Une révision des exigences défait l'adoption (scénario 8).\n- L'adoption ne juge pas l'exigence (scénario 9).\n\nLes mutations sur les autres lignes échouent bien : à la matérialisation dans le workspace, à la réutilisation d'un workspace antérieur, à `complementAdopted`, au filtre du rapport, à la re-détection, aux compléments du protocole, à `wanted`, aux contrôles de courant/doublons et à l'égalité d'empreinte de G4.\n\nDeux mutations survivent sans être des constats. La garde `interaction === \"IH-04\"` de `buildDecisionRequest` est défensive : aucune promesse ne la couvre. Le témoin positif `{...positive_witness, ...complementFiles}` ne fait rien changer aux tests ; je n'ai pas cherché s'il est nécessaire.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Seule la modification adoptée est permise sur ce chemin protégé / La modification fait partie du candidat (pas refusé à G4)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/implement.ts",
+    "ligne": 152,
+    "constat": "Le jugement de G4 sur le candidat ne passe par l'adoption qu'à travers l'argument `complements` transmis à `protectedPathsChanged` dans `implement`. Le test ne juge que la fonction `protectedPathsChanged` appelée directement. Aucun test ne fait passer un candidat qui garde le package.json adopté, ni un candidat qui le modifie ailleurs, par l'étape d'implémentation. Le test du harnais s'arrête avant, faute de producteur.",
+    "mutation": "Retrait de l'argument `complements` de l'appel à `protectedPathsChanged` dans implement.ts : tous les tests passent, 0 échec sur les 7 fichiers de test concernés."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La modification s'applique octet pour octet (si la valeur actuelle n'est pas celle décrite ou si scripts.test apparaît deux fois, l'adoption n'est pas offerte)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 199,
+    "constat": "Le code n'offre l'adoption que si `editedFile(handle.path, r.edit) !== null`. Les tests couvrent `applyScriptsTestEdit` (rien n'est appliqué) mais aucun test ne vérifie que la décision IH-04 n'offre pas `adopt_complement` quand la modification recommandée ne s'applique pas au fichier de la copie.",
+    "mutation": "Remplacement de `r.edit && editedFile(handle.path, r.edit) !== null ? [r.edit.path] : []` par `r.edit ? [r.edit.path] : []` : 0 échec."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La modification arrive dans le projet avec le candidat, à l'intégration",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/git/integrator.ts",
+    "ligne": 135,
+    "constat": "Le code tient la promesse. L'intégrateur recopie chaque entrée du manifeste du candidat depuis son workspace, et le package.json modifié en est une. Aucun test de la branche ne fait intégrer un candidat portant un complément adopté. Rien n'assert que le commit local contient `--experimental-test-coverage` dans scripts.test, ni que le projet est intact avant l'intégration au-delà de l'étape de conception."
+   }
+  ]
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Seule la modification adoptée est permise sur ce chemin protégé",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/implement.ts",
+    "ligne": 152,
+    "constat": "Le câblage qui fait passer `complements` de `implement` à `protectedPathsChanged` n'est tenu par aucun test. Le test de la tâche 7 n'appelle que la fonction pure, et le test de harness s'arrête à `capability_missing` avant que le producteur démarre, donc aucun test n'atteint le G4 d'un candidat qui garde le package.json du complément.",
+    "mutation": "Retirer l'argument `complements` de l'appel `protectedPathsChanged(...)` dans implement.ts : 97 tests verts sur complement, node-stack, harness et verifiability-arbitration. Sans cet argument, un candidat qui garde le fichier tel que le complément l'a écrit est refusé à G4 pour `package.json`, et aucun test ne le voit. La mutation du même argument dans g4.ts (retirer `...complements`) fait échouer le test de node-stack, donc la fonction est tenue, pas son appel."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La modification arrive dans le projet avec le candidat, à l'intégration",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/git/integrator.ts",
+    "ligne": 125,
+    "constat": "Aucun test ne mène un candidat qui porte le complément adopté jusqu'à l'intégration. Il n'y a ni tâche ni test pour ce scénario : le commit local contenant `package.json` avec `--experimental-test-coverage`, et le projet intact jusque-là, ne sont vérifiés qu'indirectement par le test de harness, qui s'arrête avant le producteur. Le chemin de code est générique : l'intégrateur copie chaque entrée du manifeste, dont le `package.json` modifié. Je n'y ai pas trouvé de défaut, mais je n'ai pas exécuté ce chemin de bout en bout.",
+    "mutation": "Aucune ligne de code propre à ce scénario à muter : le code est celui de l'intégration existante, et aucun test de la branche n'atteint l'intégration avec un complément adopté."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La modification s'applique au fichier octet pour octet, hors la valeur remplacée (et adoption non offerte si elle ne s'applique pas)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 200,
+    "constat": "La promesse « si scripts.test apparaît deux fois, rien n'est appliqué et l'adoption n'est pas offerte » n'est tenue que pour « rien n'est appliqué » (tests de complement.test.ts). Aucun test ne vérifie que la décision IH-04 n'offre pas `adopt_complement` quand la modification ne s'applique pas. Le filtre `editedFile(...) !== null` qui calcule `adoptableFiles` peut être remplacé sans qu'un test échoue.",
+    "mutation": "Remplacer `r.edit && editedFile(handle.path, r.edit) !== null` par `r.edit !== undefined` dans le calcul de `adoptableFiles` : 117 tests verts sur les six fichiers de test de la story."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Adopter le complément fait entrer le capteur dans le protocole gelé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 241,
+    "constat": "L'ajout de `...complementFiles` aux témoins positifs de la qualification n'est discriminé par aucun test. Sans lui, la qualification du contrôle coverage sort identique dans la fixture : positive PASS, negative FAIL, qualified true. Or les copies négatives du contrôle sont des copies neuves de la référence, faites de `{...positive, ...ownNegative}` : sans ce fichier, le témoin négatif de couverture tournerait sur un package.json sans le drapeau. Soit la ligne est redondante avec la copie déjà modifiée, soit un témoin négatif est qualifié pour une mauvaise raison ; la fixture ne permet pas de trancher.",
+    "mutation": "Remplacer `{ ...detection.positive_witness, ...complementFiles }` par `detection.positive_witness` : les 60 tests de verifiability-arbitration et harness restent verts, et le contenu de `protocol.qualifications.coverage` est identique."
+   }
+  ],
+  "resume": "Onze mutations sur quatorze sont tuées par le test qui tient la promesse : le contrat, la description de la modification par Node, l'application octet pour octet (valeur actuelle, `scripts` en double, `test` en double, reste du fichier), l'option d'adoption, l'entrée du contrôle coverage et du complément dans le protocole, l'exclusion du rapport, la réouverture d'un workspace antérieur, l'exception G4 par empreinte, la révocation par révision des exigences, et la question reposée sans l'issue d'adoption. Le code tient les dix scénarios (le dernier est la recette, hors de cette relecture) ; je n'ai trouvé aucune promesse rompue. Trois promesses n'ont pas de test qui les tienne : le câblage de `complements` dans `implement` vers G4 (B1-1), l'intégration d'un candidat portant le complément (B1-2, aucune tâche ni test) et le refus d'offrir l'adoption quand la modification ne s'applique pas (B1-3). La ligne des témoins de qualification (B1-4) est à peser. Les mutations de B1-1, B1-3 et B1-4 laissent les tests verts. L'arbre est resté propre."
+ }
+]

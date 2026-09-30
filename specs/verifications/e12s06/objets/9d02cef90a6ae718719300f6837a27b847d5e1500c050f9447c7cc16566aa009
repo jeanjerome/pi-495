@@ -1,0 +1,273 @@
+TAP version 13
+# Subtest: engineering report: observations, judgments and residual risks (IMP-05)
+    # Subtest: keeps the three natures apart and shares no identifier between them
+    ok 1 - keeps the three natures apart and shares no identifier between them
+      ---
+      duration_ms: 3.82775
+      type: 'test'
+      ...
+    # Subtest: a run where every control passed still names what it does not establish
+    ok 2 - a run where every control passed still names what it does not establish
+      ---
+      duration_ms: 1.29525
+      type: 'test'
+      ...
+    # Subtest: carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+    ok 3 - carries every limit of the controls into the risks: indeterminate, unstable, truncated, excluded and tolerated
+      ---
+      duration_ms: 0.329417
+      type: 'test'
+      ...
+    # Subtest: names a control that failed its own witnesses and a requirement no control carries
+    ok 4 - names a control that failed its own witnesses and a requirement no control carries
+      ---
+      duration_ms: 0.280333
+      type: 'test'
+      ...
+    # Subtest: reports a human acceptance as a judgment of human authority, distinct from what was measured
+    ok 5 - reports a human acceptance as a judgment of human authority, distinct from what was measured
+      ---
+      duration_ms: 0.440833
+      type: 'test'
+      ...
+    # Subtest: renders what was asked, then the three sections in order, in the language of the change
+    ok 6 - renders what was asked, then the three sections in order, in the language of the change
+      ---
+      duration_ms: 0.339458
+      type: 'test'
+      ...
+    1..6
+ok 1 - engineering report: observations, judgments and residual risks (IMP-05)
+  ---
+  duration_ms: 7.054541
+  type: 'suite'
+  ...
+# Subtest: engineering report: what was asked (IMP-05)
+    # Subtest: states each adopted requirement with the verdicts its controls gave the candidate
+    ok 1 - states each adopted requirement with the verdicts its controls gave the candidate
+      ---
+      duration_ms: 0.375542
+      type: 'test'
+      ...
+    # Subtest: given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+    ok 2 - given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts
+      ---
+      duration_ms: 0.327375
+      type: 'test'
+      ...
+    # Subtest: says none when no requirements were adopted
+    ok 3 - says none when no requirements were adopted
+      ---
+      duration_ms: 0.196083
+      type: 'test'
+      ...
+    1..3
+ok 2 - engineering report: what was asked (IMP-05)
+  ---
+  duration_ms: 1.010125
+  type: 'suite'
+  ...
+# Subtest: engineering report: the recommended complements a target has not adopted
+    # Subtest: given a protocol whose diagnosis carries a recommendation, then the report lists recommended_complement_not_adopted naming the test type, the tool and its version, and a protocol without any lists none
+    ok 1 - given a protocol whose diagnosis carries a recommendation, then the report lists recommended_complement_not_adopted naming the test type, the tool and its version, and a protocol without any lists none
+      ---
+      duration_ms: 0.476083
+      type: 'test'
+      ...
+    # Subtest: given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted
+    ok 2 - given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted
+      ---
+      duration_ms: 0.295334
+      type: 'test'
+      ...
+    1..2
+ok 3 - engineering report: the recommended complements a target has not adopted
+  ---
+  duration_ms: 0.832458
+  type: 'suite'
+  ...
+# Subtest: a requirement no control can judge is arbitrated by the owner
+    # Subtest: given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+    ok 1 - given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked
+      ---
+      duration_ms: 220.754208
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+    ok 2 - given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation
+      ---
+      duration_ms: 301.482042
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+    ok 3 - given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold
+      ---
+      duration_ms: 268.443625
+      type: 'test'
+      ...
+    # Subtest: given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+    ok 4 - given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements
+      ---
+      duration_ms: 350.960167
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+    ok 5 - given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text
+      ---
+      duration_ms: 605.762292
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+    ok 6 - given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again
+      ---
+      duration_ms: 407.307666
+      type: 'test'
+      ...
+    # Subtest: given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+    ok 7 - given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both
+      ---
+      duration_ms: 728.918458
+      type: 'test'
+      ...
+    1..7
+ok 4 - a requirement no control can judge is arbitrated by the owner
+  ---
+  duration_ms: 2884.430458
+  type: 'suite'
+  ...
+# Subtest: the IH-04 facts present the recommended complements
+    # Subtest: given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+    ok 1 - given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged
+      ---
+      duration_ms: 445.973333
+      type: 'test'
+      ...
+    1..1
+ok 5 - the IH-04 facts present the recommended complements
+  ---
+  duration_ms: 446.121
+  type: 'suite'
+  ...
+# Subtest: the IH-04 decision offers to adopt a complement that is a file edit
+    # Subtest: given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+    ok 1 - given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today
+      ---
+      duration_ms: 666.8615
+      type: 'test'
+      ...
+    1..1
+ok 6 - the IH-04 decision offers to adopt a complement that is a file edit
+  ---
+  duration_ms: 666.989584
+  type: 'suite'
+  ...
+# Subtest: adopting a complement that is a file edit
+    # Subtest: given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+    ok 1 - given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes
+      ---
+      duration_ms: 951.492167
+      type: 'test'
+      ...
+    1..1
+ok 7 - adopting a complement that is a file edit
+  ---
+  duration_ms: 951.587917
+  type: 'suite'
+  ...
+# Subtest: the candidate that carries an adopted complement
+    # Subtest: given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then
+    ok 1 - given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then
+      ---
+      duration_ms: 1067.931791
+      type: 'test'
+      ...
+    # Subtest: given a candidate that also modifies another line of package.json, then G4 refuses it naming package.json
+    ok 2 - given a candidate that also modifies another line of package.json, then G4 refuses it naming package.json
+      ---
+      duration_ms: 840.441917
+      type: 'test'
+      ...
+    1..2
+ok 8 - the candidate that carries an adopted complement
+  ---
+  duration_ms: 1908.542958
+  type: 'suite'
+  ...
+# Subtest: what adopting a complement holds for
+    # Subtest: given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again
+    ok 1 - given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again
+      ---
+      duration_ms: 1062.146208
+      type: 'test'
+      ...
+    # Subtest: given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only
+    ok 2 - given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only
+      ---
+      duration_ms: 228.3825
+      type: 'test'
+      ...
+    1..2
+ok 9 - what adopting a complement holds for
+  ---
+  duration_ms: 1290.670125
+  type: 'suite'
+  ...
+# Subtest: the IH-04 request
+    # Subtest: the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+    ok 1 - the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise
+      ---
+      duration_ms: 0.134125
+      type: 'test'
+      ...
+    1..1
+ok 10 - the IH-04 request
+  ---
+  duration_ms: 0.165084
+  type: 'suite'
+  ...
+# Subtest: the requirements the owner took on
+    # Subtest: is empty without any answer, whatever the requirements no control can judge
+    ok 1 - is empty without any answer, whatever the requirements no control can judge
+      ---
+      duration_ms: 0.061042
+      type: 'test'
+      ...
+    # Subtest: is the requirements the answer was asked about
+    ok 2 - is the requirements the answer was asked about
+      ---
+      duration_ms: 0.057416
+      type: 'test'
+      ...
+    # Subtest: is empty when a requirement was not among those asked about, or was, and the answer was about more
+    ok 3 - is empty when a requirement was not among those asked about, or was, and the answer was about more
+      ---
+      duration_ms: 0.041084
+      type: 'test'
+      ...
+    # Subtest: is empty for an answer that is not an assign_review, is revoked, or was given to another question
+    ok 4 - is empty for an answer that is not an assign_review, is revoked, or was given to another question
+      ---
+      duration_ms: 0.04925
+      type: 'test'
+      ...
+    # Subtest: does not depend on the order the requirements are named in
+    ok 5 - does not depend on the order the requirements are named in
+      ---
+      duration_ms: 0.031833
+      type: 'test'
+      ...
+    1..5
+ok 11 - the requirements the owner took on
+  ---
+  duration_ms: 0.291
+  type: 'suite'
+  ...
+1..11
+# tests 31
+# suites 11
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8323.908083
