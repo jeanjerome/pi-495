@@ -249,7 +249,7 @@ epics:
       - { id: e12s06, status: "versée", title: "Le propriétaire adopte un complément qui n'est qu'une modification de fichier, et la modification fait partie du candidat" }
       - { id: e12s07, status: "versée", title: "Un complément adopté est présent dans chaque copie où un contrôle tourne, et l'intégration n'indexe que ce que git suit" }
       - { id: e12s08, status: "versée", title: "Le propriétaire adopte un complément à installer pour une cible Node : le réseau s'ouvre à cette seule étape, et le résultat est inspecté et conservé" }
-      - { id: e12s09, status: "à faire", title: "Le propriétaire adopte un complément Maven, déclaré au POM et résolu dans le dépôt local de la machine" }
+      - { id: e12s09, status: "versée", title: "Le propriétaire adopte un complément Maven, déclaré au POM et résolu dans le dépôt local de la machine" }
       - { id: e12s10, status: "à faire", title: "Les mutants survivants sur les lignes modifiées d'une cible Node se mesurent avec Stryker quand la cible l'a installé" }
       - { id: e12s11, status: "à faire", title: "Un commentaire qui fait taire Stryker, écrit par le candidat, est un constat bloquant" }
 
