@@ -1,0 +1,930 @@
+bugs:
+  - bug_id: BUG-2026-09-26T142500
+    date: "2026-09-26"
+    title: "Pausing a stopped change erases its stop, and a resume can no longer lift it"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      A change blocked on a stop a resume lifts (a stalled specification, an execution error) accepted
+      `/495 pause`. On resume it came back `blocked` with no stop reason, no detail and no longer
+      retryable: a second resume lifted nothing, the names of the lost answers were gone, and cancel
+      was the only way out left.
+    what_expected: >
+      A stopped change keeps its stop, its detail and its ways out whatever the operator does before
+      lifting it.
+    steps_to_reproduce:
+      - "Take a change to the stop before G0 of a specification that no longer progresses."
+      - "Run `/495 pause`, then `/495 resume` twice."
+      - "The change stays `blocked` with `stop_reason` null and `stop_retryable` false, and `advance` writes nothing."
+    root_cause: >
+      `changePause` (`src/domain/change/decide.ts`) accepted any active change, blocked ones included.
+      It saved only the status in the resume point, and its `status.changed` event cleared the stop
+      reason, detail and retryability. `changeResume` restored `blocked` without them, and
+      `harness.resume` lifts a block only when its reason is `execution_error` or it is retryable. The
+      same code is on main for every stop a resume lifts; a stalled specification relies on that
+      resume for its recourse.
+    evidence: >
+      test/v0/change-rules.test.ts, "refuses to pause a blocked change, which keeps its stop, its detail
+      and its retryability", and test/v2/specification-reopening.test.ts, "refuses to pause a stopped
+      change, whose stop a resume still lifts into a rewriting (6a)": red at 0d67f46 (2 failures out
+      of 59, the pause accepted), green at 6d5a3e3, both in a detached worktree. Preflight green under
+      Node 26.9.0, 486 tests.
+    reopened: >
+      The guard `6d5a3e3` added to `changePause` left a second way in: a change blocked while an
+      intervention still ran. A `DomainError` thrown between `intervention.start` and
+      `intervention.finish` (a missing adopted artifact, a failed store write, a worker that does not
+      start) blocked the change and left the intervention `running`. `harness.pause` finishes a running
+      intervention before it commits `change.pause`, and `intervention.finished` sets the status to
+      `ready`: the guard saw a ready change, accepted the pause, and the stop was erased. The kernel now
+      ends the running intervention in `block`, in the same decision as the stop, so a blocked change
+      never has one: red at 287123c (3 failures out of 93), green at d6b0bd5, both in a detached
+      worktree. Preflight green under Node 26.9.0, 490 tests.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: d6b0bd5
+  - bug_id: BUG-2026-09-26T145000
+    date: "2026-09-26"
+    title: "A resume lifts a stop no resume may lift when the step failed while its intervention ran"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      A change blocked on a missing capability, an invalid configuration or a policy refusal, by a step
+      that failed while its intervention ran, came back `ready` on `/495 resume`. No `change.unblock`
+      was recorded, so the lift was neither judged by the kernel nor attributed to the human who
+      resumed.
+    what_expected: >
+      A resume lifts only an execution error or a stop the kernel declared retryable, under the actor
+      who resumed; any other stop stays in place.
+    steps_to_reproduce:
+      - "Make the worker start throw `CAPABILITY_MISSING` after `intervention.start` is committed."
+      - "Run `/495 advance`: the change stops `blocked capability_missing` with its intervention `running`."
+      - "Run `/495 resume`: the change is `ready`."
+    root_cause: >
+      Same state as BUG-2026-09-26T142500: a block left the intervention running. `harness.resume`
+      finishes a running intervention first, `intervention.finished` sets the status to `ready`, and
+      the branch that lifts a block by `change.unblock` never ran. The code is on main.
+    evidence: >
+      test/v2/harness.test.ts, "does not lift on resume a stop no resume lifts, when the step failed
+      while its intervention ran": red at 287123c, green at d6b0bd5, both in a detached worktree.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: d6b0bd5
+  - bug_id: BUG-2026-09-25T103000
+    date: "2026-09-25"
+    title: "In the TUI, every 495 message and every opening diagnostic is drawn twice on the screen"
+    severity: low
+    priority: p2
+    scope: presentation
+    what_happened: >
+      In Pi's terminal interface, each reply of a /495 command appears twice: once as a message box in
+      the conversation, once as an info notice under it. An opening diagnostic, the off-machine model
+      announcement included, appears as a warning notice when it arises, then again as a message box at
+      the first /495.
+    what_expected: >
+      Each text is drawn once on the screen, and a diagnostic reaches the structured entry once, as the
+      off-machine announcement of e25s03 requires.
+    steps_to_reproduce:
+      - "Open Pi in the TUI with 495 loaded and an off-machine model selected."
+      - "Run `/495 status`: the warning seen at opening is drawn again as a box, and the reply is drawn as a box and as a notice."
+    root_cause: >
+      A message sent with `display: true` is drawn in the conversation by Pi's terminal interface
+      (docs/message-types.md: `display` controls terminal rendering). `emit` added a notice to every
+      such message, and `flushDiagnostics` sent every queued diagnostic with `display: true` although
+      the screen had been told when it was queued. The fix of BUG-2026-09-24T175500 counted notices
+      only, through a probe on `ctx.ui.notify`, and took the drawn message for a channel off the
+      screen.
+    evidence: >
+      Seen in a vhs recording of Pi 0.87.1 in the TUI with 495 loaded
+      (~/.495-campagnes/demo-readme-bench/f2.png): the off-machine warning, then the same text in a
+      "Custom · 495" box, then the /495 status reply in a box and again as a notice.
+      test/v3/model-select.test.ts, four tests under "on the screen of Pi's terminal interface" that
+      count notices and displayed messages together: red before the fix (2 !== 1 three times, 4 !== 2),
+      green after it, Preflight green (456 tests).
+    risk_level: low
+    follow_ups: >
+      a message 495 emits is drawn once, by Pi, with no notice; a diagnostic already announced on a
+      screen is kept in the session with `display: false`
+    status: fixed
+  - bug_id: BUG-2026-09-24T175500
+    date: "2026-09-24"
+    title: "In the TUI, an off-machine model announcement and every opening diagnostic reach the screen twice"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      In the TUI, a pending diagnostic is said on the screen as soon as it arises: `announce` notifies
+      the opening diagnostics as warnings, and `modelSelected` notifies an off-machine model as a
+      warning. The first `/495` that follows, or the first call of the tool, runs `flushDiagnostics`,
+      which hands each pending text to `emit`. In the TUI, `emit` also notifies every structured
+      message as an info notice. The same text is therefore said twice on the screen, once as a
+      warning and once as an info notice, besides the message in the conversation.
+    what_expected: >
+      Each announcement is said once per channel, as the specification of the off-machine
+      announcement and the `pending` comment in `src/extension/session.ts` require: once on the
+      screen, once on the structured entry.
+    steps_to_reproduce:
+      - "Open Pi in the TUI with 495 loaded and a local model selected."
+      - "Select a model whose address is not a loopback with `/model`: one warning notice."
+      - "Run `/495 status`: the same text is notified again, as an info notice."
+    root_cause: >
+      `emit` doubles every message with an info notice when `ctx.mode` is `tui` (since a61d217), and
+      the diagnostic queue, flushed through `emit` on the first operation (since d46e0d9), was written
+      for entries without a screen. The TUI is the one mode that has both. The off-machine
+      announcement goes through the same queue.
+    evidence: >
+      Seen in Pi's real terminal interface, driven through a pseudo-terminal
+      (~/.495-campagnes/e25s04-tui): a probe extension loaded before 495 records every notice Pi's
+      screen receives; opened on a model declared at a non-loopback address in an isolated Pi
+      configuration, then `/495 status` twice: one warning, the same text as an info notice, then the
+      two replies, on the build of a888f48 before the fix; the warning alone, then the two replies, on
+      the fixed build. A first pass typed too fast and ran `/495` once with help as its reply; it is
+      kept as avant-1.log and apres-1.log. First probed on the code with
+      ExtensionSession under a fake context in `tui` mode (hasUI true): after `modelSelected` with a
+      non-loopback model, one warning notice; after `flushDiagnostics`, the same text again as an info
+      notice, and one message. test/v3/model-select.test.ts, two tests under "on the screen of Pi's
+      terminal interface", red at 447df46 (2 failures of 2), green at 3a9ef82 with Preflight green
+      (454 tests); a third, for an ordinary opening diagnostic, red on the code of a888f48 and green
+      at 4591fe8. Pi 0.87.1 sets `mode: "tui"` in the interactive context
+      (`interactive-mode.js`).
+    risk_level: low
+    follow_ups: >
+      the owner decided to fix it with the acceptance of the admitted model; a diagnostic is now
+      delivered by the first operation on the structured channel alone, since a screen was told when it
+      was queued
+    status: fixed
+    fixed_in: 3a9ef82
+  - bug_id: BUG-2026-09-24T000204
+    date: "2026-09-24"
+    title: "A change blocked because the selected model cannot carry an intervention stays blocked after /model and /495 resume"
+    severity: medium
+    priority: p2
+    scope: interventions
+    what_happened: >
+      A change whose intervention is refused because the selected model cannot carry it (no model
+      selected, a thinking level the model refuses, no tool calls) is blocked `capability_missing`,
+      not retryable. Selecting a model with `/model` and running `/495 resume` lifts nothing: the
+      next `advance` returns `capability_missing` at once, with no step. The change can only be
+      cancelled.
+    what_expected: >
+      The model refusal names something the user fixes in the session, by selecting another model.
+      `/495 resume` lifts the block, and the next intervention runs with the model selected since.
+      A sandbox that is not qualified stays refused without retry: no command of the session
+      qualifies it.
+    steps_to_reproduce:
+      - "Open a session with no model selected and run `/495 start <request>`."
+      - "The change is blocked `capability_missing: model /: cannot carry this intervention`."
+      - "Select a model with `/model`, then run `/495 resume`: the status stays blocked."
+    root_cause: >
+      `InterventionSupervisor.requireCapable` throws the model refusal without `retryable`, and
+      `Harness.resume` lifts only `execution_error` blocks and blocks declared retryable. Present
+      since the capability check was written; the model became selectable within a session with
+      the model read at each intervention start, which makes `/model` then resume the natural remedy.
+    evidence: >
+      Reproduced by a scratch test during review: `advance` with an empty selection gives
+      `capability_missing`; after `resume`, `advance` with a selectable model gives
+      `capability_missing` again, with no step. test/v3/model-select.test.ts, "a change refused for
+      its model is resumed with the model selected since (6e)", red at 6bd0ba5 (1 failure of 7),
+      green at 144d371 with Preflight green (396 tests).
+    risk_level: low
+    follow_ups: >
+      a change blocked by a model refusal before the fix carries a non-retryable block in its
+      journal, and resume still does not lift it; such a change can only be cancelled
+    status: fixed
+    fixed_in: 144d371
+  - bug_id: BUG-2026-09-23T184520
+    date: "2026-09-23"
+    title: "An unreadable config.json drops the human arbitration the owner wrote"
+    severity: medium
+    priority: p2
+    scope: configuration
+    what_happened: >
+      A config.json that does not parse is ignored, and the session runs under the default policy. A
+      setting that asked for a human decision (`policy.adoption.design: human`,
+      `g5_human_acceptance: true`, `required_reviews`) is then replaced by the kernel's own default
+      until the file is fixed. The only trace is one session-open diagnostic, `config.json ignored`.
+    what_expected: >
+      A setting the owner wrote to keep a decision for a human is not lost behind a typo without the
+      owner deciding that it may be.
+    steps_to_reproduce:
+      - "Write `{\"policy\":{\"adoption\":{\"design\":\"human\"},\"g5_human_acceptance\":true}` (closing brace missing) to the data directory's config.json."
+      - "Call `loadConfig` on that directory, or open a session."
+      - "The active policy reads `adoption.design: kernel` and `g5_human_acceptance: false`, with one diagnostic."
+    root_cause: >
+      The load falls back to the default configuration on any parse error. Until the egress list was
+      removed, the same fallback also emptied that list, so every intervention was refused and the
+      loss of the other settings could not take effect. Without the list, nothing is refused.
+    evidence: >
+      Probe of loadConfig on 2026-09-23 against the branch that removes the egress list; spec e25s01 §6b
+      stated the fallback without weighing the other settings. After the fix, test/v1/model-admitted.test.ts
+      ("refuses an unreadable file instead of running under the defaults") holds the refusal, and a cold
+      start of the built extension on a file keeping `adoption.design: human`, closing brace missing,
+      answers `/495 start` with `CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON;
+      no change runs until it is fixed or removed` and creates no ledger. Since 2908ec6 the refusal
+      lasts until a new session is started, since a runtime created later in the same session would
+      run unbound and announce nothing, and a config.json that is a dangling link is refused rather
+      than read as absent; test/v3/pi-rpc-sdk.test.ts holds the first, test/v1/model-admitted.test.ts
+      the second. Since 0b6539d the refusal names /reload, which replaces the extension runtime as a
+      new session does, and a file that is not a regular file, or whose directory cannot be searched,
+      is refused without its path.
+    risk_level: medium
+    follow_ups: >
+      none — the owner decided on 2026-09-23 that an unreadable config.json stops every change until
+      it is fixed or removed, rather than giving way to the defaults.
+    status: fixed
+    fixed_in: bda51c7
+  - bug_id: BUG-2026-09-23T184521
+    date: "2026-09-23"
+    title: "A config.json field of the wrong type is loaded as written, and can hand a human's decision to the kernel"
+    severity: medium
+    priority: p2
+    scope: configuration
+    what_happened: >
+      `policy`, `policy.budgets` and `policy.adoption` were spread into the active policy without checking
+      that they are objects, so a string or a list put index keys ("0", "1", …) into the policy. Since
+      bda51c7 a section that is not an object makes the file unreadable, and no change runs. No field
+      value is type-checked yet, so `max_attempts: "abc"` is still loaded as written. Three cases reach a
+      guard: `policy.adoption.design: "Human"` is loaded as is, and `src/domain/change/decide.ts` compares
+      with `"human"`, so the kernel adopts the design and nothing is announced — the loss the refusal of
+      an unreadable file exists to prevent; `policy.integration_enabled: "false"` is truthy, so
+      integration is enabled, still behind a human authorization (`src/application/phases/integrate.ts`);
+      `isolation.allow_unconfined: "no"` selects the unconfined backend, which never qualifies, so every
+      role that writes is refused with `CAPABILITY_MISSING` and a startup diagnostic says the backend is
+      not qualified (`src/extension/runtime.ts`, `src/application/intervention.ts`). `policy.baseline`
+      is object-valued but is neither checked nor merged over its default: `"x"` is loaded as is, and
+      `{"tolerance":"no_aggravation"}` drops `compare_to_reference`, so the comparison with the
+      reference is skipped (`src/application/verification.ts`).
+    what_expected: >
+      A malformed section is refused or announced, and a field of the wrong type does not reach the
+      policy.
+    steps_to_reproduce:
+      - "Write `{\"policy\":\"ab\"}` to the data directory's config.json."
+      - "Call `loadConfig` on that directory."
+      - "The active policy carries the keys \"0\" and \"1\", and no diagnostic is emitted."
+    root_cause: >
+      The loader checks only that the file itself is an object; each section is spread as read. A
+      `__proto__` key becomes an ordinary own property, so the prototype is not reached.
+    evidence: >
+      Probe of loadConfig on 2026-09-23; the same result on main. A second probe on 2026-09-23 loads
+      `{"policy":{"adoption":{"design":"Human"},"integration_enabled":"false"},"isolation":{"allow_unconfined":"no"}}`
+      as `"Human"`, `"false"` and `"no"`.
+    risk_level: medium
+    follow_ups: >
+      config.json is validated against a contract closed at every level before any setting applies:
+      a field of the wrong type, the three values above included, makes the file refused as an
+      unreadable one is, without any written value. Refused in a real Pi (`~/.495-campagnes/e25s05-human`
+      and `-registre`). The attempt budget that never reaches a change stays open on its own entry.
+    status: fixed
+    fixed_in: c290f69
+  - bug_id: BUG-2026-09-23T173000
+    date: "2026-09-23"
+    title: "An unreadable config.json diagnostic quotes an excerpt of the file to the session's model"
+    severity: low
+    priority: p3
+    scope: configuration
+    what_happened: >
+      A config.json that does not parse was announced as `config.json ignored: <message>`, where the
+      message was V8's JSON syntax error. That error quotes about twenty characters of the source around
+      the fault. The diagnostic is emitted by `pi.sendMessage`, and Pi converts a custom message into a
+      user message of the model's context (`convertToLlm` in `dist/core/messages.js`; `extensions.md`:
+      "Custom content stored and sent to the model"). An excerpt of the file therefore reached the
+      provider of the session's model.
+    what_expected: >
+      The diagnostic says the file is ignored and why, without reproducing any of its text.
+    steps_to_reproduce:
+      - "Write `{\"policy\":{\"egress\":[{\"provider_id\":k7f3a9}]}}` to the data directory's config.json."
+      - "Call `loadConfig` on that directory, or open a session."
+      - "The diagnostic reads `config.json ignored: Unexpected token 'k', ...\"vider_id\":k7f3a9}]}}\" is not valid JSON`."
+    root_cause: >
+      The load reported the caught error's message as is. The same code is on main; the egress-list
+      echo was bounded, this path never was.
+    evidence: >
+      test/v1/model-admitted.test.ts, "says an unreadable file is ignored without reproducing any of its
+      text", red before the fix. Cold start of the built extension on that file after the fix:
+      `495: config.json ignored: it is not valid JSON`. Since bda51c7 such a file is refused rather
+      than ignored, and the test that holds it, "refuses an unreadable file instead of running under
+      the defaults, without reproducing any of its text", checks the same word is absent from the
+      refusal.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: dcdd890
+  - bug_id: BUG-2026-09-27T220000
+    date: "2026-09-27"
+    title: "/495 verify sets and clears busy without reading it first, so it can drop another operation's hold"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `/495 verify` (`src/extension/command.ts`, the `verify` case) sets `session.busy = true`
+      unconditionally and clears it in its own `finally`. Every other site that touches the flag —
+      `conduct`, `/495 close`, the conversational tool — checks `if (session.busy)` first and refuses
+      instead of taking it over. A `verify` started while another operation already holds `busy`
+      (`conduct` awaiting an IH-01 decision through `presentDecisions`, or `/495 close` awaiting its
+      confirmation) would clear the flag under that other holder as soon as it returns, before the
+      holder's own dialog is answered.
+    what_expected: >
+      A second operation that finds `busy` already set is refused, as `conduct`, `/495 close` and the
+      conversational tool already are, rather than taking the flag over and releasing it under the
+      first holder.
+    steps_to_reproduce:
+      - "Reach a change stopped on a pending IH-01 decision, or a /495 close awaiting its confirmation, over one RPC connection (`session.busy` true, a dialog await pending)."
+      - "Dispatch /495 verify as a second command on the same session while that await is still pending."
+      - "verify's own `finally` clears `busy` as soon as it returns, before the first operation's dialog is answered."
+    root_cause: >
+      `case \"verify\"` (`command.ts`, ~lines 105-121) is the only busy-touching site with no guard.
+      The same shared, unguarded flag already covered `conduct`'s own hold during `presentDecisions`
+      before this branch; the branch adds one more long-held window, `/495 close`'s confirmation, to an
+      already-reachable race, rather than making a previously unreachable one reachable (rule 1).
+    evidence: >
+      `command.ts:110-119` sets and clears `busy` with no guard; `conduct.ts:36-40` and
+      `command.ts:226,236` both guard first. Confirmed against Pi 0.87.1's own source, not executed:
+      the RPC mode launches every received line without awaiting it (`void handleInputLine(line)`,
+      `dist/modes/rpc/rpc-mode.js:647`), the `prompt` case launches `session.prompt` the same way
+      (`:302`), and `AgentSession.prompt` runs an extension command immediately, with no lock
+      (`dist/core/agent-session.js:1216-1224`). Two `/495` commands sent on one RPC connection can
+      therefore overlap while one is mid-await. Reproduced through the command in RPC mode by the
+      review of the branch that reruns a verification cut short (record
+      `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 2, R2-2):
+      `/495 verify`, refused by the kernel while a conduct holds the session, leaves `busy` false, and
+      a `/495 resume` asked next passes the refusal that branch gives it and is inscribed.
+      test/v3/resume.test.ts, "stays refused after a /495 verify refused while another operation holds
+      the session, which keeps its hold": red at 45cce76, green at c06ad23, both in a detached
+      worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: c06ad23
+  - bug_id: BUG-2026-09-28T013000
+    date: "2026-09-28"
+    title: "A change paused while its verification ran cannot have a question's resolution revoked, though nothing runs"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      A change paused during its verification keeps the verification operation open: `changePause`
+      (`src/domain/change/decide.ts`) refuses only a running intervention and an external effect in
+      flight, and the pause closes no operation. `/495 revoke` is then refused with `OPERATION_ACTIVE`
+      by `requireRevocable`, although nothing runs. The owner's only way on is `/495 resume`, which
+      runs the verification again; under the default automatic acceptance G5 can then close the change
+      on the answer the owner wanted to revoke. An abrupt end of the session that leaves the operation
+      open gives the same refusal. Introduced by the branch that adds `/495 revoke`.
+    what_expected: >
+      A revocation is refused only while something runs whose output would rest on the revoked
+      resolution: a paused change, or one whose session ended, runs nothing.
+    steps_to_reproduce:
+      - "Take a change with an answered material question to its verification, and pause it while the verification operation is open."
+      - "Run `/495 revoke q1`: it is refused with OPERATION_ACTIVE, verification operation in progress."
+    root_cause: >
+      The pause ends a running intervention but leaves a running verification's operation open, and
+      `requireRevocable` refuses any open operation. The kernel cannot tell a verification a session left
+      open from one another session runs, so a change whose session ended is paused first, as one whose
+      intervention was cut short already is.
+    evidence: >
+      Reproduced by throwaway probes on 8f683d9, at the kernel (pause after `verification.start`, then
+      `question.revoke`: OPERATION_ACTIVE) and through the harness (a control runner that pauses the
+      change during its verification: `verifying paused`, operation open, revocation refused). A pause
+      closing the verification operation, as a temporary patch, makes both accepted. Review record
+      `specs/verifications/e01s04-relecture.md`, round 1, R1-7.
+    risk_level: low
+    file: specs/bugs/BUG-2026-09-28T013000-revocation-refused-on-a-change-paused-during-verification.md
+    follow_ups: >
+      The pause closes the verification operation it suspends, and the revocation's refusal names the
+      pause; red tests and order in the bug file, after BUG-2026-09-28T081300's first cycle.
+    status: fixed
+    fixed_in: ded5f28
+  - bug_id: BUG-2026-09-28T025000
+    date: "2026-09-28"
+    title: "After an integration fallback, a revocation says revoked the reconciliation of the Git effect, whose effect holds, and leaves the outcome accepted"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      When the destination advances and the combined tree differs, the invalidation for
+      `destination_advanced` (`src/domain/invalidation.ts`) revokes IH-10, IH-11 and IH-08 and brings
+      the change back to `verifying`. Revoking IH-10 clears `acceptance_decision_id`, so
+      `requireRevocable` admits a revocation again. The plan the revocation shares with the mandate
+      revision revokes every valid decision but IH-01 and IH-07, IH-12 included, although the
+      reconciliation of the uncertain Git effect it recorded still holds. The same path carries
+      `outcome: "accepted"` into clarification, where a revised artifact would set it back to `pending`
+      (`src/domain/change/apply.ts`). Introduced by the branch that adds `/495 revoke`: before it,
+      nothing reached that plan after an integration.
+    what_expected: >
+      A revocation says revoked only a decision whose effect it undoes, and a change back in
+      clarification holds no accepted outcome.
+    steps_to_reproduce:
+      - "Take a change to G6 with IH-10, IH-11 and an IH-12 reconciliation recorded and valid."
+      - "Record that the destination advanced with a combined tree that differs: the change is `verifying ready`, outcome `accepted`."
+      - "Revoke the answer to a material question: the change is `clarifying`, outcome `accepted`, and the IH-12 decision is revoked."
+    root_cause: >
+      The plan of the mandate revision was kept for the revocation on the ground that IH-12 only
+      follows an acceptance, after which a revocation is refused; the integration fallback withdraws
+      that acceptance without undoing the reconciliation. The outcome is stale from the fallback, not
+      from the revocation: invalidating G5 drops the gate and leaves `accepted`, so a change back in
+      `verifying` says accepted, one whose re-verification fails at G5 too, and a revocation carries it
+      on. That part predates the branch.
+    evidence: >
+      Reproduced by throwaway kernel probes on 8f683d9: after the fallback, `verifying ready accepted`
+      with IH-12 valid; after `question.revoke`, `clarifying accepted` and a `decision.revoked` naming
+      the IH-12 decision; after the fallback and a failed re-verification, `deciding`, G5 FAIL,
+      `accepted`. IH-12 kept out of the shared plan and G5's invalidation resetting the outcome, as a
+      temporary patch, give IH-12 valid and `pending` in all three. Review record
+      `specs/verifications/e01s04-relecture.md`, round 2, R2-3.
+    risk_level: low
+    file: specs/bugs/BUG-2026-09-28T025000-revocation-after-integration-fallback.md
+    follow_ups: >
+      Keep IH-12 out of the plan the revocation shares with the mandate revision, as IH-07 is, and set
+      an accepted outcome back to pending where G5 is invalidated rather than in the revocation alone.
+    status: fixed
+    fixed_in: 04e4450, 1f36ec6
+  - bug_id: BUG-2026-09-28T025100
+    date: "2026-09-28"
+    title: "The prepared suite is written as a free-text note of every control's qualification, found again by its prefix and read as a reason the control is not qualified"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A qualification taken up from an earlier protocol replaces the note of the prepared suite judged
+      beside it: `withPreparedSuite` (`src/application/verification.ts`) drops every note that starts
+      with "prepared suite on the bare reference:" and writes the one judged now. No other note starts
+      with that prefix today, but nothing keeps one from doing so, and a note of the suite worded
+      otherwise would be kept beside the new one. Introduced by the branch that adds `/495 revoke`,
+      with the fix of the note doubled at every take-up.
+    what_expected: >
+      The reasons a control is not qualified are what its witnesses answered, and the prepared suite is
+      recorded once, by the preparation artifact that already carries its verdict.
+    steps_to_reproduce:
+      - "Read `withPreparedSuite`: the suite is matched by the text of its note."
+    root_cause: >
+      The verification coordinator notes the prepared suite in every qualification it writes or takes
+      up, although the preparation artifact records its verdict, and the two readers of a
+      qualification's notes, the G2 refusal and the report, take them as reasons the control is not
+      qualified. The note predates the branch (bdd0566); its prefix match is the branch's.
+    evidence: >
+      Reproduced by a throwaway harness probe on 8f683d9: the preparation scenario with the `unit`
+      control failing its qualification; the stop detail and the report end the reasons of `control
+      unit is not qualified` with `prepared suite on the bare reference: FAIL (discriminant)`. With the
+      note removed, as a temporary patch, only the three take-up tests that count the note fail.
+      Review record `specs/verifications/e01s04-relecture.md`, round 2, R2-10.
+    risk_level: low
+    file: specs/bugs/BUG-2026-09-28T025100-prepared-suite-noted-in-each-qualification.md
+    follow_ups: >
+      Remove the note rather than add a field to the protocol contract, which would hold a second copy
+      of what the preparation artifact holds.
+    status: fixed
+    fixed_in: 8993a85
+  - bug_id: BUG-2026-09-28T081300
+    date: "2026-09-28"
+    title: "A verification cut short by a pause or by the end of its session is never run again, so the change can only be cancelled"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      A session that ends while the frozen controls run leaves the change `verifying running` with its
+      verification operation open. `/495 resume` closes it as interrupted, and the next verification is
+      refused by the ledger, `OPERATION_ACTIVE: operation <op> already holds the idempotency key
+      verify:<candidate>:0`, which blocks the change `execution_error`; each resume lifts it into the
+      same refusal. A change paused while its controls run fails its resume at once with
+      `PRECONDITION_FAILED: change is paused`. Cancelling is the only way left in both cases.
+    what_expected: >
+      A verification cut short is run again once the change is resumed, on the same frozen candidate.
+    steps_to_reproduce:
+      - "Kill the session while the controls of a verification run (or throw from the control runner), then `/495 resume`: the change is blocked on the reused idempotency key."
+      - "Pause the change while the controls of a verification run, then `/495 resume`: refused, change is paused."
+    root_cause: >
+      A verification's idempotency key is the candidate and the count of evidence, which a run cut
+      short does not change, and the ledger refuses a key once used (since bd7c5be). The pause leaves
+      the verification operation open, and the resume re-runs it before ending the pause, which the
+      kernel refuses on a paused change (since the first kernel). Both predate the revocation branch.
+    evidence: >
+      Found while reproducing BUG-2026-09-28T013000. Throwaway harness probes on 8f683d9, one per
+      path, with the results above. A key naming the revision the verification starts from, and a
+      pause closing the verification operation, as a temporary patch, make both reach the decision.
+    risk_level: low
+    file: specs/bugs/BUG-2026-09-28T081300-interrupted-verification-never-runs-again.md
+    follow_ups: >
+      A change a build before the fix paused during its verification keeps its operation open, and its
+      resume stays refused until it is paused again, which closes that verification. One such a build
+      blocked during its verification has its resume lift any stop (BUG-2026-09-28T113000).
+    status: fixed
+    fixed_in: c258255, 897ff02
+  - bug_id: BUG-2026-09-28T130000
+    date: "2026-09-28"
+    title: "With two live sessions, a revocation is overwritten by the other session's block, and the resume then reruns the specification without presenting the question again"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Two live sessions conduct the same change. One of them closes the other's verification, is refused
+      or loses, and blocks the change; the owner revokes the answer to Q1 there, which is accepted:
+      `clarifying decision_required`, IH-01 pending. The other session's record then loses on the
+      revision, and its block overwrites the decision: `clarifying blocked execution_error`, IH-01 still
+      pending. A resume hands the change back `clarifying ready`, and each conduct reruns the
+      specification until the step budget stops it (`max_steps`), IH-01 never presented.
+    what_expected: >
+      A block written by a session that lost to a later act does not overwrite that act, and a change
+      with a pending decision comes back to that decision when its stop is lifted.
+    steps_to_reproduce:
+      - "Open two harnesses on the same ledger, and conduct one change to its verification in the first."
+      - "In the second, resume the change (`harness.resume`, then `advance`) while the first one's controls run: the second is refused by the key the first holds and blocks the change."
+      - "Revoke Q1 in the second: accepted, IH-01 pending. Let the first finish: its record loses, and its block leaves `clarifying blocked execution_error`."
+      - "Resume, then `advance`: the specification reruns until `max_steps`, and IH-01 is never presented."
+    root_cause: >
+      Three reads compose. The error branch of `advance` (`src/application/harness.ts`) yields only to a
+      paused change on `REVISION_CONFLICT`, so it blocks over whatever a later writer did.
+      `change.unblock` (`src/domain/change/decide.ts`) hands the change back `ready` even when a
+      decision is pending. The specification skips a question already open
+      (`src/application/phases/clarify.ts`), so nothing presents IH-01 again. Reachable on main: a
+      coordinator probe on the `src/` of `fa7d370` reaches the same state through the second session's
+      resume.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      B3-1 and A3-P1: probes of reviewers A and B on 82ff627, and the coordinator's probe on main
+      (`REVISION_CONFLICT`, revision 59 against 48 expected; eight `clarifying -> clarifying/ready`
+      steps). Declared in BUG-2026-09-28T081300, "Not covered".
+      test/v2/answer-revocation.test.ts, "a revoked change blocked over its question asked again comes
+      back to that question once its stop is lifted": red at f17f5a6, green at 89d6ecf; "a block
+      written by a session whose record lost to the owner's revocation does not overwrite it": red at
+      fad0ad9, green at 4532f55; both in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 4532f55
+  - bug_id: BUG-2026-09-28T130100
+    date: "2026-09-28"
+    title: "A refusal on a blocked change names `unblock`, which no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `requireNotBlocked` (`src/domain/change/decide.ts`) refuses a blocked change with the next action
+      `unblock`. No `/495` subcommand is called so: `/495 verify` on a change blocked during its
+      verification answers `next: unblock`, where `resume` lifts a stop a resume may lift and `cancel`
+      is the only way out of any other.
+    what_expected: >
+      A refusal names only actions the operator can take, as the pause's refusal of a blocked change
+      does (`resume` and `cancel`, or `cancel` alone).
+    steps_to_reproduce:
+      - "Take a change blocked in `verifying`, and run `/495 verify`."
+      - "The refusal names `unblock` as its next action."
+    root_cause: >
+      The next action names the kernel command, not the subcommand that reaches it. Present before the
+      branch that reruns a verification cut short.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      P3-1 (reviewer B), read in `decide.ts` by the coordinator.
+      test/v3/resume.test.ts, "`/495 verify` on a change blocked in its verification names the resume
+      and the cancel, or the cancel alone": red at a23a019, green at 3a6da04, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 3a6da04
+  - bug_id: BUG-2026-09-28T130200
+    date: "2026-09-28"
+    title: "/495 close and /495 revoke release the session between the act and its conduct, so a command started in that gap passes and the act's conduct is refused as busy"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `actOnQuestion` (`src/extension/command.ts`) releases the session once the act is inscribed, and
+      `conduct` takes it again a few microtasks later. A `/495` command started in that gap finds the
+      session free and passes; the conduct of the act is then refused as busy, and the change is left
+      where the act put it. Introduced by the branch that reruns a verification cut short: before it,
+      the release and the conduct's own check followed each other in the same synchronous turn.
+    what_expected: >
+      The act and the conduct that follows it hold the session as one operation.
+    steps_to_reproduce:
+      - "Run `/495 close q1` or `/495 revoke q1`, and start another `/495` command from a microtask queued three deep after the act is inscribed."
+      - "The other command passes, and the act's conduct is refused with the busy message."
+    root_cause: >
+      The act holds the session through `session.hold`, which releases it before `conduct` holds it
+      again. Not reachable through Pi, on reading: in RPC mode the handler is called synchronously from
+      the standard input callback (`rpc-mode.js:646`, `agent-session.js:1207-1224`), and the TUI queues
+      its input.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      R3-7: probe P-gap of reviewer B, from a microtask; `git show 5c32195` read by the coordinator.
+      test/v3/question-closure.test.ts, "holds the session from the confirmation through the conduct
+      of the closure, as one operation (BES-02)", which replaces the test that pinned the release
+      before the conduct: red at 11a7225, green at 521e91b, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 521e91b
+  - bug_id: BUG-2026-09-28T130300
+    date: "2026-09-28"
+    title: "The operations table records as succeeded a verification a pause or a block closed"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The ledger projects `operation.closed` onto the operations table by turning a `running` operation
+      into `succeeded` (`src/adapters/storage-sqlite/ledger.ts`). A verification the pause or the block
+      closes recorded no evidence, yet its row says it succeeded. Nothing in `src/` reads that status;
+      only a direct SQLite read of the dossier sees it. Introduced by the branch that reruns a
+      verification cut short, whose pause and block close the verification they stop.
+    what_expected: >
+      A verification closed without its record is not said to have succeeded.
+    steps_to_reproduce:
+      - "Pause a change while its controls run on the candidate."
+      - "Read its verification in the `operations` table: `succeeded`."
+    root_cause: >
+      `operation.closed` carries no outcome, and the projection takes every close of a running
+      operation for a success.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
+      R3-8 (reviewer B), read in `ledger.ts` by the coordinator.
+      test/v2/ledger.test.ts, "does not record as succeeded a verification the pause or the block
+      closes before its record": red at f0e74e8, green at 6dada98, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 6dada98
+  - bug_id: BUG-2026-09-28T143500
+    date: "2026-09-28"
+    title: "Refusals and blocks outside the blocked-change refusal name next actions no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      Several failures name as next action a kernel or internal action the operator cannot take:
+      `qualify_capability` (`src/application/intervention.ts`, sandbox not qualified; and
+      `src/domain/change/decide.ts`, profile not qualified), `configure_model`
+      (`src/application/intervention.ts`, model that cannot carry an intervention),
+      `abort_intervention` (`decide.ts`, `budgetConsume`) and `request_decision` (`decide.ts`,
+      `decisionAnswer` rejected). When such a failure stops a step, the harness appends
+      `(next: …)` to the block detail, which `/495 status` prints after the stop reason. The path from
+      `abort_intervention` and `request_decision` to the operator is not established.
+    what_expected: >
+      A refusal names only actions the operator can take, as the refusal of a blocked change does
+      since BUG-2026-09-28T130100.
+    steps_to_reproduce:
+      - "Run a change whose sandbox backend is not qualified, and read `/495 status`."
+      - "The stop detail ends with `(next: qualify_capability)`."
+    root_cause: >
+      The next action names a kernel command or an internal step, not the subcommand or the Pi action
+      that reaches it. Present before the branch that reruns a verification cut short, and made
+      reachable by nothing on it.
+    evidence: >
+      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 4,
+      B4-4 (reviewer B, found by grep), read in `decide.ts`, `intervention.ts`, `harness.ts` and
+      `src/presentation/structured/text.ts` by the coordinator. Not reproduced in a live session.
+      `abort_intervention` reaches only the supervisor, which reads the message of a budget refusal, and
+      `request_decision` only the conduct, which prints the code and the reason of a refused answer.
+      test/v2/harness.test.ts, "an unqualified sandbox blocks before any producing intervention, and the
+      status names the cancel as its only way out" and "lifts a block the kernel declared retryable,
+      which the status names with the cancel", and test/v3/model-select.test.ts, "a change refused for
+      its model names Pi's model selection, then the resume or the cancel, and no kernel command": red
+      at 40dc901, green at 37626c6, in a detached worktree.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 37626c6
+  - bug_id: BUG-2026-09-28T222200
+    date: "2026-09-28"
+    title: "A preparation opened on a target without tests hands its producer no control to run, because the protocol is frozen after it"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `designVerification` (`src/application/phases/verification-design.ts`) opens the preparation
+      before it freezes the protocol, on both routes that lead to it: before the qualification and
+      after it. The harness builds the producer's context from the latest protocol artifact
+      (`src/application/harness.ts`), which does not exist yet, so the `prepare` producer's
+      instructions carry no line on what the kernel will run: neither the test command of the target
+      (`mvn -B -q -o test`) nor the controls that read a report or the code. Only a preparation
+      reopened after a protocol was already frozen, as after an environment change, receives them.
+    what_expected: >
+      The producer of a preparation is told, like the producer of a candidate, which command the
+      kernel will run its tests with and which controls read its tree without running anything, so it
+      can verify itself as the kernel will judge it.
+    steps_to_reproduce:
+      - "Take a Maven target with JaCoCo and no test, and a requirement the reference does not satisfy."
+      - "Advance the change into `preparing`; read the `prepare` intervention's context."
+      - "Its trusted instructions carry no `The kernel will judge your work` line."
+    root_cause: >
+      The preparation is opened to spare the qualification of sensors that would have to be qualified
+      again after it, so no protocol exists when the preparation's producer starts; the detected
+      controls are known at that point but are not handed to it. Present on main (b9321a3).
+    evidence: >
+      Observed while writing a harness-level test on 5d4b2cc: a campaign on the Maven hexagonal fixture
+      with JaCoCo, cut after the `prepare` intervention started, found no `The kernel will judge your
+      work` instruction in the context the scripted agent received; the same reading of
+      `designVerification` shows both `openPreparation` calls before `freeze`.
+    risk_level: low
+    follow_ups: >
+      Hand the detected controls to the preparation's producer, or freeze the protocol before the
+      preparation; which one is a product decision, since the preparation's roots also change what the
+      protocol protects.
+    status: fixed
+    fixed_in: 053d886
+  - bug_id: BUG-2026-09-29T140000
+    date: "2026-09-29"
+    title: "A protocol freezes on the lint control alone when scripts.test names a runner 495 cannot read"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      On a Node target whose `scripts.test` is `jest` and which also declares `scripts.lint`, the
+      detection declares the lint control only and records the refusal of jest as a missing
+      capability. `designVerification` raises `CAPABILITY_MISSING` only when no control is left, so
+      the protocol is frozen on the lint alone and the refusal of the test runner survives as a note
+      of the capability diagnosis.
+    what_expected: >
+      The owner is told before G2 that the suite of the target cannot be judged, rather than
+      finding it in a note of a protocol that judges the lint only.
+    steps_to_reproduce:
+      - "Take a target whose `package.json` is `{\"scripts\":{\"test\":\"jest\",\"lint\":\"eslint .\"}}`."
+      - "Run `detectStack` on it: `controls` is `[lint]` and `capability_missing` names jest."
+      - "Advance the change to G2: the protocol is frozen with the lint control and no unit control."
+    root_cause: >
+      `detectNodeStack` (`src/application/stacks/node.ts`) declares a control per readable script and
+      reports the refused runner apart, in `capability_missing`. `designVerification`
+      (`src/application/phases/verification-design.ts`) reads `capability_missing` as a refusal only
+      when `controls` is empty. Introduced by the branch, which made a runner other than node:test
+      and vitest a refusal instead of a node:test run.
+    evidence: >
+      A throwaway probe of `detectStack` on the package above returned `controls: ["lint"]` and
+      `capability_missing: ["scripts.test runs jest, whose output 495 cannot read: ..."]`; the reading
+      of `designVerification` shows the only `CAPABILITY_MISSING` raise guarded by
+      `detection.controls.length === 0`. test/v1/node-stack.test.ts, "given scripts.test is jest and a
+      lint script is declared, when the stack is detected, then no control at all is declared and the
+      missing capability names jest": red at ade7e44 (`["lint"]`), green at 3876a7d. Preflight green under
+      Node 24.21.0.
+    risk_level: medium
+    follow_ups: >
+      The owner decided that a refused runner stops the change (`D-72`). Adapting to the runner a
+      project chose, and letting the owner accept the insufficiency, belong to `e12` and `e22`.
+    status: fixed
+    fixed_in: 3876a7d
+  - bug_id: BUG-2026-09-29T130000
+    date: "2026-09-29"
+    title: "A reopened red-green pass is blocked by a green test a later step left on the branch"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      After the review and the acceptance run sent a story back to the red-green step, the step wrote
+      its new tests and code, and Preflight was green at the head, then the step blocked with
+      `no failing test read at this test-only commit (PASS)` on a commit an earlier step had left: a
+      refactor of a test file that cannot fail.
+    what_expected: >
+      The step owes a red for the test-only commits of its own run, and only those. A test the
+      self-review or the review adds afterwards passes at its commit whenever the code already keeps
+      the promise, which the review rules ask for.
+    steps_to_reproduce:
+      - "Run a story through the red-green step and the self-review, and let the self-review commit a test-only refactor of a test file."
+      - "Reopen the story after the acceptance run, and run the red-green step again."
+      - "The step replays that refactor as a red and blocks."
+    root_cause: >
+      `pasRougeVert` (`cycle/src/cycle.ts`) replays every test-only commit between the base and the
+      head, so that a pass interrupted before its journal entries is still checked. The range starts
+      at the base whatever ran since, and `estCommitDeTestSeul` judges by the paths a commit touches,
+      not by what it asserts.
+    evidence: >
+      test/cycle/cycle.test.ts, "replays only the test-only commits of the pass, so a green test a
+      later step left on the branch does not block a reopened story": red at 4b73790 (blocked on the
+      refactor commit), green at 07b068b. The guard "replays every test-only commit of a pass resumed
+      after a block" is green on both. Preflight green under Node 24.21.0, 637 tests.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 07b068b
+  - bug_id: BUG-2026-09-29T150000
+    date: "2026-09-29"
+    title: "A red-green pass resumed after its work was done is blocked because its session committed nothing"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      A red-green launch that was blocked after its session had already committed every test and its
+      code was launched again. The new session read the branch, replayed the reds, ran the tasks and
+      Preflight, found nothing left to do and committed nothing. The step then blocked on
+      `the red-green session committed nothing`, though the branch carried the whole pass.
+    what_expected: >
+      A pass has committed something when any of its launches did; a resumed launch whose session
+      confirms the work and adds nothing finishes, once the reds, the task commands and Preflight
+      hold.
+    steps_to_reproduce:
+      - "Let a red-green launch commit every test and its code, then block after the session."
+      - "Launch the step again: the session commits nothing."
+      - "The step blocks on the missing commit, whatever the branch carries."
+    root_cause: >
+      `pasRougeVert` (`cycle/src/cycle.ts`) counted the commits made since the head at the start of
+      the current launch. The replay of the test-only commits already ranged over the whole run, so the
+      two checks disagreed about where a pass begins.
+    evidence: >
+      test/cycle/cycle.test.ts, "finishes a pass resumed after its work was done, whose session has
+      nothing left to commit": red at the test-only commit (blocked on the missing commit), green at
+      bd10032. Preflight green under Node 24.21.0.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: bd10032
+  - bug_id: BUG-2026-09-29T170000
+    date: "2026-09-29"
+    title: "A candidate that adds a file under node_modules/ is not refused, though the file can shadow a dependency the vitest control loads"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      The vitest unit control protects `node_modules/` as a directory. `protectedPathsChanged` allows
+      a file added under a protected directory, so a candidate that adds
+      `node_modules/vitest/node_modules/<package>/index.js` (which shadows the hoisted package for
+      vitest) is frozen with that file in `allowed_protected_paths` and no altered protected path;
+      only a modified or deleted file under `node_modules/` is refused.
+    what_expected: >
+      A candidate that changes what the vitest that judges it loads is refused, whether it modifies an
+      installed file or adds one that takes the place of another.
+    steps_to_reproduce:
+      - "Call `protectedPathsChanged` on a manifest with `node_modules/vitest/node_modules/tinyrainbow/index.js` added and `node_modules/vitest/dist/index.js` modified, protected paths `['node_modules/']`."
+      - "`altered` holds only `dist/index.js`; the added file is in `allowed`."
+    root_cause: >
+      The rule that a file added under a protected directory takes nothing from an oracle that already
+      stood (`src/domain/gates/g4.ts`) holds for `test/` and `tests/`, where a new file is a new test.
+      Under `node_modules/` a new file can resolve before an existing one. The rule is on main; the
+      branch makes it reachable for `node_modules/` by protecting that directory in
+      `vitestControl` (`src/application/stacks/node.ts`).
+    evidence: >
+      A throwaway probe of `protectedPathsChanged` on the manifest above returned
+      `altered: [node_modules/vitest/dist/index.js]` and
+      `allowed: [node_modules/vitest/node_modules/tinyrainbow/index.js]`. The promise of the story
+      names a modified file, which the code refuses.
+    risk_level: medium
+    follow_ups: >
+      Decide whether a file added under `node_modules/` is refused (a candidate that installs a
+      dependency is then refused too) or accepted when it shadows nothing that exists on the
+      reference; either adds a refusal or a resolution check, so it is a product decision.
+    status: fixed
+    fixed_in: a3ecb9e
+  - bug_id: BUG-2026-09-30T120000
+    date: "2026-09-30"
+    title: "The JUnit reader counts a test twice when the suites of a report nest"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `summarizeJUnit` adds the `tests`, `failures`, `errors` and `skipped` attributes of every
+      `<testsuite>` element it finds. The `junit` reporter of `node:test` nests suites: on two nested
+      `describe` blocks holding three passing tests, its report carries `outer` with `tests="2"` and
+      `inner` with `tests="2"`, and the reader counts four tests. A test is counted once per suite that
+      contains it, and an attribute an emitter omits or fills differently reads as zero.
+    what_expected: >
+      A report is counted from its test cases: each one once, whatever the depth of the suites around it.
+    steps_to_reproduce:
+      - "Write a `node:test` file with `describe('outer')` holding `describe('inner')` with two tests, and one test beside it."
+      - "Run `node --test --test-reporter=junit --test-reporter-destination=out.xml` on it."
+      - "Read `out.xml` with `summarizeJUnit`: it returns `tests: 4`, the report holds three test cases."
+    root_cause: >
+      `summarizeJUnit` (`src/adapters/execution/parsers.ts`) reads the attributes of each `<testsuite>`
+      with a regular expression and sums them, trusting an emitter to give each test to exactly one
+      suite. Maven Surefire and vitest write flat reports, so the two runners read through it today
+      never nest; the reporter of `node:test` does. Not reachable today: no control reads a JUnit report
+      written by a runner that nests, so it is latent, not introduced by a branch.
+    evidence: >
+      Reproduced on 2026-09-30 with Node 24.21.0: the report above holds `<testsuite name="outer" tests="2">`
+      and `<testsuite name="inner" tests="2">` around three `<testcase>` elements, and `summarizeJUnit`
+      returns `{"tests":4,"failures":0,"errors":0,"skipped":0}`.
+    risk_level: low
+    follow_ups: >
+      Read the report with an XML parser and count the `<testcase>` elements, which also bounds and
+      hardens the reading of an input the judged project wrote.
+    status: fixed
+    fixed_in: c8adb59
+  - bug_id: BUG-2026-09-30T150000
+    date: "2026-09-30"
+    title: "Integrating a candidate that holds a path git ignores ends uncertain instead of integrated"
+    severity: medium
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The integrator copies every changed path of the candidate into the project, then runs
+      `git add -A -- <selected paths>`. When one of those paths is matched by the project's `.gitignore`,
+      git prints "The following paths are ignored by one of your .gitignore files" and exits 1. The call
+      is not allowed to fail, so the integration falls into its `catch` and ends `uncertain`, which asks
+      the owner to investigate an accepted change whose files are all in place.
+    what_expected: >
+      A path git ignores is copied with the rest and left out of the commit; the change is integrated.
+    steps_to_reproduce:
+      - "In a git project whose `.gitignore` lists `coverage/`, accept a candidate that adds `coverage/report.txt` and another tracked file."
+      - "Accept the local integration."
+      - "The integration ends `uncertain` and the commit is not made."
+    root_cause: >
+      `Integrator` (`src/adapters/git/integrator.ts`) calls `git(project, ["add", "-A", "--", ...selected_paths])`
+      without `allowFailure`, and the workspace walk that builds `selected_paths` does not read `.gitignore`.
+      Not introduced by a branch: the same code is on main.
+    evidence: >
+      Read on 2026-09-30, and git measured: `git add -A -- package.json node_modules/x/i.js` in a project
+      ignoring `node_modules/` prints the message above and exits 1, while the tracked file is still
+      staged. In a project that does not ignore `node_modules/`, the same command stages the dependency
+      files, which would commit them. The path from the integrator to that call was not run end to end.
+    risk_level: low
+    follow_ups: >
+      Stage only the paths git can index and never a `node_modules/` path, after copying every path the
+      candidate holds; a test on a project that ignores a candidate path, and on one that does not ignore
+      `node_modules/`.
+    status: fixed
+    fixed_in: eed144d
