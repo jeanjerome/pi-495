@@ -1,0 +1,127 @@
+TAP version 13
+# Subtest: Maven recommends the sensors its POM lacks
+    # Subtest: given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+    ok 1 - given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs
+      ---
+      duration_ms: 3.906916
+      type: 'test'
+      ...
+    # Subtest: given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+    ok 2 - given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change
+      ---
+      duration_ms: 2.346791
+      type: 'test'
+      ...
+    # Subtest: given a project whose JaCoCo and PIT are read, then it recommends nothing
+    ok 3 - given a project whose JaCoCo and PIT are read, then it recommends nothing
+      ---
+      duration_ms: 2.449417
+      type: 'test'
+      ...
+    # Subtest: given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+    ok 4 - given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one
+      ---
+      duration_ms: 4.82525
+      type: 'test'
+      ...
+    1..4
+ok 1 - Maven recommends the sensors its POM lacks
+  ---
+  duration_ms: 13.994417
+  type: 'suite'
+  ...
+# Subtest: Node recommends the coverage its runner can produce
+    # Subtest: given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+    ok 1 - given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing
+      ---
+      duration_ms: 0.958208
+      type: 'test'
+      ...
+    # Subtest: given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+    ok 2 - given vitest without a coverage provider, then it recommends @vitest/coverage-v8 at the version of the installed vitest
+      ---
+      duration_ms: 1.126792
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit
+    not ok 3 - given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit
+      ---
+      duration_ms: 1.608292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TekgMf/test/v1/recommendations.test.ts:136:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - {
+        -   manager: 'npm',
+        -   package: '@vitest/coverage-v8',
+        -   version: '3.2.4'
+        - }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        package: '@vitest/coverage-v8'
+        version: '3.2.4'
+        manager: 'npm'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TekgMf/test/v1/recommendations.test.ts:143:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given jest, mocha or a target that already asks for coverage, then it recommends nothing
+    ok 4 - given jest, mocha or a target that already asks for coverage, then it recommends nothing
+      ---
+      duration_ms: 2.491125
+      type: 'test'
+      ...
+    1..4
+not ok 2 - Node recommends the coverage its runner can produce
+  ---
+  duration_ms: 6.33725
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TekgMf/test/v1/recommendations.test.ts:109:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Node describes the edit of scripts.test that adds the coverage flag
+    # Subtest: given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none
+    ok 1 - given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none
+      ---
+      duration_ms: 1.820208
+      type: 'test'
+      ...
+    1..1
+ok 3 - Node describes the edit of scripts.test that adds the coverage flag
+  ---
+  duration_ms: 1.870792
+  type: 'suite'
+  ...
+# Subtest: A technology declares its own recommendations
+    # Subtest: given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+    ok 1 - given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it
+      ---
+      duration_ms: 0.503166
+      type: 'test'
+      ...
+    1..1
+ok 4 - A technology declares its own recommendations
+  ---
+  duration_ms: 0.528417
+  type: 'suite'
+  ...
+1..4
+# tests 10
+# suites 4
+# pass 9
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 165.836208

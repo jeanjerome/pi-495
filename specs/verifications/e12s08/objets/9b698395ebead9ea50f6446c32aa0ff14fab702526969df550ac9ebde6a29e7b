@@ -1,0 +1,77 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    not ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 0.979166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e2JBCf/test/v1/installation.test.ts:14:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   kind: 'refused',
+        +   reason: 'no install is planned'
+        -   command: [
+        -     'npm',
+        -     'install',
+        -     '--save-dev',
+        -     '--save-exact',
+        -     '--ignore-scripts',
+        -     '--no-audit',
+        -     '--no-fund',
+        -     '@vitest/coverage-v8@3.2.4'
+        -   ],
+        -   kind: 'command'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        kind: 'command'
+        command:
+          0: 'npm'
+          1: 'install'
+          2: '--save-dev'
+          3: '--save-exact'
+          4: '--ignore-scripts'
+          5: '--no-audit'
+          6: '--no-fund'
+          7: '@vitest/coverage-v8@3.2.4'
+      actual:
+        kind: 'refused'
+        reason: 'no install is planned'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e2JBCf/test/v1/installation.test.ts:16:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 1.33
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e2JBCf/test/v1/installation.test.ts:13:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 67.26875

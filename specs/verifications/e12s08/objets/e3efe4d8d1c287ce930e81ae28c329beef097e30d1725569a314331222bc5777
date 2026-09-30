@@ -1,0 +1,94 @@
+[
+ {
+  "verdict": "pass",
+  "resume": "Les promesses des scénarios 1 à 10 sont tenues par le code et chacune est tenue par au moins un test qu'une mutation fait échouer. J'ai passé environ 30 mutations sur les lignes qui portent les promesses. J'ai aussi sondé G4 et la révision des exigences par un test jetable, retiré depuis. Le scénario 11 (vrai Pi) relève de la recette et je ne l'ai pas relu. Il reste trois constats à peser, aucun bloquant ni à corriger.\n\nMutations qui font échouer un test :\n- Lecture de l'installation sur la recommandation : retrait de `install` dans `node.ts`, version différente de celle de vitest.\n- Offre de l'adoption : retrait du refus sans verrou, retrait du refus d'un autre gestionnaire, retrait de la mention du réseau dans l'option.\n- Réseau de l'installation : profil d'installation refermé, profil de la requête du cache ouvert, retrait de `--ignore-scripts`, retrait de la garde du backend non qualifié.\n- Protocole et rapport : retrait de `installed_packages` au gel, au rapport ou dans `designVerification`.\n- Inspection : retrait des refus de fichier existant, de fichier hors cadre, d'une autre entrée de package.json, de la version exacte, et de l'exception des manifestes.\n- Échec d'installation : retrait du filtre des échecs déjà enregistrés.\n- G4 : retrait de `entry === undefined`, et complément de G4 remplacé par `[]` dans `implement.ts`.\n- Intégration : retrait de l'exclusion de `node_modules` de l'index.\n- Lignes introduites : retrait de l'omission des fichiers du complément dans `introducedLinesOf`.\n\nSondes jetables :\n- Sur une cible vitest avec installation adoptée, G4 refuse un candidat qui modifie `node_modules/@vitest/coverage-v8/package.json` et un qui y ajoute un fichier, chacun en nommant le fichier. Il passe celui qui garde l'arbre tel quel.\n- Après une révision des exigences, la décision IH-04 offre de nouveau l'adoption et le protocole suivant ne porte ni `installed_packages` ni complément.\n- La suppression d'un fichier du complément n'est pas sondable de bout en bout : l'agent scripté ne sait qu'écrire. Elle est tenue par le test de `protectedPathsChanged` au niveau du domaine.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'inspection accepte ce que l'installation a ajouté et rien de plus / L'inspection refuse un résultat qui sort de ce cadre",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 92,
+    "constat": "La story refuse toute modification d'un fichier existant de node_modules/. Le code en excepte `node_modules/.package-lock.json`, que npm réécrit toujours, et le liste dans les compléments adoptés. L'écart est voulu et testé, mais il n'est écrit ni dans les scénarios ni dans la section Sécurité, qui disent « sans toucher un fichier qui existait ».",
+    "mutation": "`if (MANIFESTS.includes(path)) continue;` remplacé par `continue;` : le test d'inspection échoue, donc l'exception est tenue."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une révision des exigences défait l'adoption",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 951,
+    "constat": "Le seul test de révision après adoption porte sur un complément de modification de fichier (`node --experimental-test-coverage`). Aucun ne porte sur un complément installé : il n'asserte ni `installed_packages` absent du protocole suivant, ni l'offre d'adopter l'installation de nouveau. Le code tient la promesse, car ma sonde l'a vérifié, et le chemin de levée de la décision est partagé. Aucune mutation propre à l'installation ne le fait échouer, faute d'en trouver de plausible.",
+    "mutation": "Aucune mutation propre à l'installation plausible. La sonde jetable montre que le protocole suivant ne porte ni `installed_packages` ni complément, et que l'adoption est offerte de nouveau."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Dans un vrai Pi, adopter le fournisseur de couverture d'une cible vitest mène le changement à G5 avec un capteur de couverture",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 600,
+    "constat": "Aucun test ne tient que le protocole passe ses compléments à `introducedLinesOf` au moment de l'exécution des contrôles. Le test de `coverage.test.ts` tient la fonction seule. Sans ce câblage, l'arbre installé serait lu comme des ajouts et diffé en entier, ce que le correctif 0a29b7a veut éviter. Aucune des quatre suites lancées ne l'observe, car le faux vitest n'y est pas sensible : seule la recette réelle le verrait.",
+    "mutation": "`introducedLinesOf(..., complements)` ramené à quatre arguments dans `introducedLines` : `verifiability-arbitration.test.ts` et `export-integration.test.ts` passent tous (36/36)."
+   }
+  ]
+ },
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les onze promesses. Sur les mutations essayées, sauf celles des constats ci-dessous, chaque test attendu échoue. Je compte parmi elles : le refus de pnpm, l'absence de verrou, le réseau de l'installation, le chemin d'écriture du cache, `--ignore-scripts`, les trois refus de l'inspection, l'enregistrement de l'échec, `restored` de G4, le complément écarté des lignes introduites, le gel des paquets, le rapport, `install` dans la pile Node et l'exclusion de `node_modules/` par l'intégrateur. Un seul constat à corriger : le texte de l'option « adopter » dit que le réseau s'ouvre « pour cette seule étape », et aucun test ne le tient. Les autres constats sont à peser. Je n'ai lancé ni Preflight ni la recette, et l'arbre est propre.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "L'adoption n'est offerte que lorsque l'installation peut se faire",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 341,
+    "constat": "Le Then exige que l'option nomme « le fait que le réseau s'ouvre pour cette seule étape ». Le test n'assert que /@vitest\\/coverage-v8/, /3\\.2\\.4/ et /réseau|network/ sur label+effect, donc la mention « pour cette seule étape » n'est tenue par aucun test.",
+    "mutation": "Remplacer, en français et en anglais, « réseau ouvert pour cette seule étape » par « réseau ouvert » dans le label et « en ouvrant le réseau pour cette seule étape » par « en ouvrant le réseau » dans l'effet (lignes 334, 341, 352, 359). Les 25 tests de test/v2/verifiability-arbitration.test.ts passent."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une révision des exigences défait l'adoption",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verifiability-arbitration.test.ts",
+    "ligne": 951,
+    "constat": "Le seul test de révision après adoption (« given an adopted complement then a revision… ») porte sur un complément qui est une édition de fichier (cible node --test). Aucun test n'exerce la révision d'un complément installé. Une sonde jetable sur une cible vitest avec installation confirme que le code tient : le protocole suivant ne porte ni complément ni `installed_packages`, et l'adoption est offerte de nouveau. La branche installation de cette promesse n'a toutefois pas de test propre.",
+    "mutation": "Aucune mutation propre à l'installation n'a été trouvée : la porte est `complementAdopted`, partagée avec l'édition de fichier."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Adopter installe le fournisseur dans une copie, réseau ouvert pour cette seule étape",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 272,
+    "constat": "`designVerification` relance `adoptInstalls` à chaque reprise de la conception tant que la réponse « adopter » reste valide, et chaque reprise ouvre le réseau. Sonde : après l'adoption puis `assign_review`, `npm install` tourne deux fois (installs = 2). Le test ne compte les installations qu'avant `assign_review` (`install.length === 1`). La réponse valide du propriétaire couvre ces relances, donc aucune promesse n'est rompue, mais le réseau se rouvre sans qu'il le sache.",
+    "mutation": "Sonde, pas mutation : `FakeNpmSandbox.installs()` vaut 2 en fin de parcours."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Une installation qui échoue n'adopte rien",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 293,
+    "constat": "La garde `adoption.failed.length === 0` de l'application des éditions d'autres recommandations (« une installation qui échoue n'adopte rien, l'édition d'une autre recommandation comprise ») n'est tenue par aucun test. Aucune cible du catalogue ne porte à la fois une édition et une installation, donc le chemin est peu atteignable aujourd'hui.",
+    "mutation": "Remplacer `adoption !== null && adoption.failed.length === 0` par `adoption !== null` : les 30 tests de installation.test.ts et verifiability-arbitration.test.ts passent."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "L'inspection accepte ce que l'installation a ajouté et rien de plus",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 92,
+    "constat": "`inspectInstall` accepte que l'installation réécrive `node_modules/.package-lock.json` quand il existait déjà. La Sécurité et le scénario bornent pourtant l'acceptation à « des fichiers de node_modules/ qui n'existaient pas ». L'exception est testée et cohérente (npm réécrit ce fichier), mais elle déborde la borne écrite de la story.",
+    "mutation": "Sans objet : le comportement est voulu et testé (« what npm rewrites of its own bookkeeping »)."
+   }
+  ]
+ }
+]

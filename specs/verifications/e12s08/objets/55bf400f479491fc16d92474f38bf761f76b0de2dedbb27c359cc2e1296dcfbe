@@ -1,0 +1,105 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 0.533583
+      type: 'test'
+      ...
+    1..1
+ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 0.879084
+  type: 'suite'
+  ...
+# Subtest: inspecting what an install left in the copy
+    # Subtest: given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+    not ok 1 - given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+      ---
+      duration_ms: 0.650125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p1oqq1/test/v1/installation.test.ts:99:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   kind: 'refused',
+        +   reason: 'no install is inspected'
+        -   files: [
+        -     'package.json',
+        -     'package-lock.json',
+        -     'node_modules/.package-lock.json',
+        -     'node_modules/@vitest/coverage-v8/package.json',
+        -     'node_modules/@vitest/coverage-v8/node_modules/istanbul-lib-report/package.json'
+        -   ],
+        -   kind: 'accepted',
+        -   packages: [
+        -     {
+        -       integrity: 'sha512-provider',
+        -       name: '@vitest/coverage-v8',
+        -       version: '3.2.4'
+        -     },
+        -     {
+        -       integrity: 'sha512-report',
+        -       name: 'istanbul-lib-report',
+        -       version: '3.0.1'
+        -     }
+        -   ]
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        kind: 'accepted'
+        files:
+          0: 'package.json'
+          1: 'package-lock.json'
+          2: 'node_modules/.package-lock.json'
+          3: 'node_modules/@vitest/coverage-v8/package.json'
+          4: 'node_modules/@vitest/coverage-v8/node_modules/istanbul-lib-report/package.json'
+        packages:
+          0:
+            name: '@vitest/coverage-v8'
+            version: '3.2.4'
+            integrity: 'sha512-provider'
+          1:
+            name: 'istanbul-lib-report'
+            version: '3.0.1'
+            integrity: 'sha512-report'
+      actual:
+        kind: 'refused'
+        reason: 'no install is inspected'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p1oqq1/test/v1/installation.test.ts:101:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 2 - inspecting what an install left in the copy
+  ---
+  duration_ms: 0.709083
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p1oqq1/test/v1/installation.test.ts:98:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.569167

@@ -1,0 +1,62 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 0.596375
+      type: 'test'
+      ...
+    1..1
+ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 0.961625
+  type: 'suite'
+  ...
+# Subtest: inspecting what an install left in the copy
+    # Subtest: given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+    ok 1 - given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+      ---
+      duration_ms: 0.298959
+      type: 'test'
+      ...
+    1..1
+ok 2 - inspecting what an install left in the copy
+  ---
+  duration_ms: 0.345875
+  type: 'suite'
+  ...
+# Subtest: what npm rewrites of its own bookkeeping
+    # Subtest: given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+    ok 1 - given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+      ---
+      duration_ms: 0.088542
+      type: 'test'
+      ...
+    1..1
+ok 3 - what npm rewrites of its own bookkeeping
+  ---
+  duration_ms: 0.139292
+  type: 'suite'
+  ...
+# Subtest: running the install in the copy
+    # Subtest: given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+    ok 1 - given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+      ---
+      duration_ms: 1.8815
+      type: 'test'
+      ...
+    1..1
+ok 4 - running the install in the copy
+  ---
+  duration_ms: 1.926083
+  type: 'suite'
+  ...
+1..4
+# tests 4
+# suites 4
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 128.474541

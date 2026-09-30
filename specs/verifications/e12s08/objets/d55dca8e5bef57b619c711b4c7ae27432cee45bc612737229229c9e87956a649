@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Aucun constat au tour 2. Le diff du tour est petit : trois tests ajoutés, la garde `adoption.failed.length === 0` retirée, deux textes de la story modifiés et une entrée de registre. J'ai lancé les deux suites concernées (`verifiability-arbitration` et `export-integration`) sans mutation : 37 tests passent, 0 échec. Je ne fais pas d'inférence sur Preflight, que je n'ai pas relancée.\n\nTrois mutations, chacune remise en place ensuite (`git status` propre hors `node_modules`) :\n- **Câblage des compléments vers `introducedLinesOf`** (`verification.ts:600`, `complements` remplacé par `[]`) : le test de `export-integration` échoue avec « the installed tree and the manifests the complement wrote are not lines this change introduced ». L'ancien A1-3 est tenu.\n- **Mention du réseau ouvert « pour cette seule étape »** (`decisions.ts:341`, libellé réduit à « réseau ouvert ») : le test de `verifiability-arbitration` échoue sur « the option says the network opens for one step ». L'ancien B1-1 est tenu.\n- **Levée de la réponse « adopter » à la révision** (`verification-design.ts:83`, `d.valid &&` retiré) : les deux tests de révision échouent, celui du complément installé (nouveau) comme celui de l'édition de fichier. L'ancien A1-2 / B1-2 est tenu, et le test vérifie `installed_packages` absent, aucun complément, la recommandation de nouveau présentée et l'adoption de nouveau offerte.\n\nSur la garde retirée (ancien B1-4), la recommandation d'installation du catalogue (`node.ts`) ne porte aucune édition, donc `applyRecommendedEdits` ne fait rien après un échec d'installation. Dans ce cas `complements` reste vide, comme avant. Le scénario « Une installation qui échoue n'adopte rien » n'est donc pas relâché.\n\nSur les deux textes de la story, l'exception `node_modules/.package-lock.json` est maintenant écrite dans le scénario d'acceptation et dans la section Sécurité, en accord avec le code (anciens A1-1 et B1-5). L'ancien B1-3 (réseau rouvert à chaque reprise) est au registre, comme `BUG-2026-09-30T203000`, et ne se compte pas."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Une installation qui échoue n'adopte rien",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 292,
+    "constat": "Le correctif 6b220fa retire la garde `adoption.failed.length === 0`: après un échec d'installation, les éditions des autres recommandations sont désormais appliquées, alors que le scénario dit que rien n'est adopté. Le chemin est inatteignable avec le catalogue actuel (aucune cible ne porte à la fois une édition et une installation) et la réponse « adopter » couvre les éditions, donc aucune promesse n'est rompue aujourd'hui; aucun test ne tient ce cas non plus.",
+    "mutation": "aucune : la garde n'existe plus et aucune cible ne permet d'exercer le cas"
+   }
+  ],
+  "resume": "Les quatre correctifs du tour 2 tiennent leurs promesses, et chaque test ajouté échoue sous une mutation d'une ligne.\n\n- **B1-1 (option et effet nomment « pour cette seule étape »)** : le test asserte maintenant la mention sur le label et sur l'effet. Retirer la mention du label, puis celle de l'effet seule, le fait échouer dans les deux cas.\n- **B1-2 / A1-2 (révision après adoption d'un complément installé)** : le nouveau test couvre la branche installation, avec `installed_packages` présent au premier protocole puis absent du suivant, et `adopt_complement` offert de nouveau. Retirer la vérification `d.valid` dans `complementAdopted` le fait échouer (les options offertes n'incluent plus `adopt_complement`).\n- **A1-3 (câblage des compléments vers `introducedLinesOf`)** : le test d'intégration asserte que les contrôles du candidat ne reçoivent que `src/greet.js` comme lignes introduites. Remplacer `complements` par `[]` dans `verification.ts` le fait échouer.\n- **A1-1 / B1-5 (`node_modules/.package-lock.json`)** : la story nomme désormais l'exception, et elle correspond à ce que fait `inspectInstall`.\n- **B1-3 (installation rejouée à chaque reprise)** : le registre l'a inscrit (`BUG-2026-09-30T203000`), ce qui est cohérent avec l'absence de promesse rompue. Je ne le compte pas.\n- **B1-4 (garde sur l'échec d'installation)** : la garde est retirée. Je le relève en B2-1, à peser.\n\nJe n'ai pas relancé Preflight ni la suite complète. Seuls les trois fichiers de test des mutations ont été rejoués, et chaque fichier modifié a été remis à l'identique après sa mutation."
+ }
+]

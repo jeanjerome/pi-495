@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 1.350583
+      type: 'test'
+      ...
+    1..1
+ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 1.738083
+  type: 'suite'
+  ...
+# Subtest: inspecting what an install left in the copy
+    # Subtest: given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+    ok 1 - given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+      ---
+      duration_ms: 0.34
+      type: 'test'
+      ...
+    1..1
+ok 2 - inspecting what an install left in the copy
+  ---
+  duration_ms: 0.39475
+  type: 'suite'
+  ...
+# Subtest: running the install in the copy
+    # Subtest: given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+    not ok 1 - given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+      ---
+      duration_ms: 0.562834
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xFHklk/test/v1/installation.test.ts:193:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   kind: 'failed',
+        +   reason: 'no install is run'
+        -   kind: 'installed'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        kind: 'installed'
+      actual:
+        kind: 'failed'
+        reason: 'no install is run'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xFHklk/test/v1/installation.test.ts:199:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 3 - running the install in the copy
+  ---
+  duration_ms: 0.632833
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xFHklk/test/v1/installation.test.ts:192:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 3
+# suites 3
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 127.274375
