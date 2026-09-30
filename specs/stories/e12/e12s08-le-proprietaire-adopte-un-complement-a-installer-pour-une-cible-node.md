@@ -2,7 +2,7 @@
 
 Story : e12s08
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -50,7 +50,7 @@ Scenario: Le protocole gelé porte l'arbre installé et la liste des paquets
   And la conception déclare le contrôle coverage de vitest et le qualifie sur ses témoins, et le rapport ne liste plus le complément comme recommandé et non adopté
 
 Scenario: L'inspection accepte ce que l'installation a ajouté et rien de plus
-  Given une installation qui n'a modifié que package.json, package-lock.json et node_modules/, sans toucher un fichier qui existait sous node_modules/, et dont package.json n'a gagné que l'entrée de @vitest/coverage-v8 à la version exacte
+  Given une installation qui n'a modifié que package.json, package-lock.json et node_modules/, sans toucher un fichier qui existait sous node_modules/ hors `node_modules/.package-lock.json`, la copie du verrou que npm y tient et réécrit à chaque installation, et dont package.json n'a gagné que l'entrée de @vitest/coverage-v8 à la version exacte
   When 495 inspecte le résultat
   Then le résultat est accepté, avec la liste des paquets ajoutés
 
@@ -110,7 +110,7 @@ Scenario: Dans un vrai Pi, adopter le fournisseur de couverture d'une cible vite
   fournisseur : à ce moment le réseau est fermé et le confinement des contrôles s'applique, comme pour tout code de
   la cible. Le propriétaire lit la liste des paquets installés avant d'accepter l'intégration.
 - **Inspection.** Sur une cible Node dont le gestionnaire est npm, un résultat d'installation n'est accepté que
-  s'il ne touche que `package.json`, `package-lock.json` et des fichiers de `node_modules/` qui n'existaient pas, et si
+  s'il ne touche que `package.json`, `package-lock.json`, des fichiers de `node_modules/` qui n'existaient pas et `node_modules/.package-lock.json`, la copie du verrou que npm y tient et réécrit à chaque installation, et si
   `package.json` n'a gagné que l'entrée du paquet demandé, à la version exacte : ces bornes disent ce qui entre dans le
   candidat, non d'où viennent les paquets. pnpm, yarn et bun ne sont pas pris en charge : ils sont refusés en le
   disant.

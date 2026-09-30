@@ -254,6 +254,7 @@ describe("the protocol frozen from a detection", () => {
 			assigned_to_human: [],
 			recommendations,
 			complements: [],
+			installed: [],
 		});
 	};
 
@@ -306,6 +307,7 @@ describe("the paths the frozen protocol protects, whatever the stack of the targ
 			assigned_to_human: [],
 			recommendations: [],
 			complements: [],
+			installed: [],
 		});
 		const protectedPaths = protocol.controls.flatMap((c) => c.protected_paths);
 		assert.ok(protectedPaths.includes("node_modules/"), "the frozen protocol protects node_modules/");

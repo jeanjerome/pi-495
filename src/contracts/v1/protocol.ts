@@ -167,6 +167,17 @@ export const FileEdit = Type.Object(
 );
 export type FileEdit = Static<typeof FileEdit>;
 
+/** The install of one package of a package manager, which the owner may have run in a copy of the target. */
+export const PackageInstall = Type.Object(
+	{
+		package: Type.String({ minLength: 1 }),
+		version: Type.String({ minLength: 1 }),
+		manager: Closed(["npm"] as const),
+	},
+	{ additionalProperties: false },
+);
+export type PackageInstall = Static<typeof PackageInstall>;
+
 /**
  * A test complement an adapter recommends when a sensor it can read is missing on the target. The
  * tool and its version are data of the adapter, checked against `source` on `established_on`; nothing
@@ -184,6 +195,8 @@ export const RecommendedComplement = Type.Object(
 		change: Type.String({ minLength: 1 }),
 		/** Present when `change` is nothing more than a replacement in one file, which the owner may have applied. */
 		edit: Type.Optional(FileEdit),
+		/** Present when `change` is the install of one package, which the owner may have run. */
+		install: Type.Optional(PackageInstall),
 	},
 	{ additionalProperties: false },
 );
@@ -244,6 +257,17 @@ export const AdoptedComplement = Type.Object(
 );
 export type AdoptedComplement = Static<typeof AdoptedComplement>;
 
+/** A package an adopted install added to the target, as its lock file names it. */
+export const InstalledPackage = Type.Object(
+	{
+		name: Type.String({ minLength: 1 }),
+		version: Type.String({ minLength: 1 }),
+		integrity: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type InstalledPackage = Static<typeof InstalledPackage>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
@@ -258,6 +282,8 @@ export const Protocol = Type.Object(
 		environment_digest: Digest,
 		/** Absent from a protocol frozen before complements could be adopted. */
 		complements: Type.Optional(Type.Array(AdoptedComplement)),
+		/** Absent from a protocol frozen before an install could be adopted. */
+		installed_packages: Type.Optional(Type.Array(InstalledPackage)),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

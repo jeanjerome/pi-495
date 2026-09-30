@@ -8,6 +8,8 @@ import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type {
 	AdoptedComplement,
 	ControlCapabilityDiagnosis,
+	InstalledPackage,
+	PackageInstall,
 	RecommendedComplement,
 	RequirementsDocument,
 } from "../../contracts/v1/protocol.ts";
@@ -15,6 +17,8 @@ import type { HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
+import type { Adoptable } from "../decisions.ts";
+import { installableRecommendations, installInCopy, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { ReferenceSuiteObservation } from "../preparation.ts";
@@ -79,6 +83,17 @@ function complementAdopted(decisions: readonly HumanDecisionEntry[]): boolean {
 	return decisions.some((d) => d.valid && d.interaction === "IH-04" && d.option_id === "adopt_complement");
 }
 
+/** The identifier every record of an install that was not adopted starts with, followed by `_`. */
+const INSTALL_RECORD_PREFIX = "install_";
+
+interface InstallFailureRecord {
+	kind: "install-failure";
+	/** The requirements the install was adopted for: another revision of them asks the owner again. */
+	requirements_digest: string;
+	install: PackageInstall;
+	reason: string;
+}
+
 function recommendationFact(r: RecommendedComplement): string {
 	return `recommended ${r.test_type} complement, not adopted: ${r.tool} ${r.version} (established ${r.established_on}, source ${r.source}); ${r.change}`;
 }
@@ -95,7 +110,7 @@ function requestVerifiabilityArbitration(
 	requirements: ArtifactRef,
 	diagnosis: ControlCapabilityDiagnosis,
 	recommendations: readonly RecommendedComplement[],
-	adoptableFiles: readonly string[],
+	adoptable: Adoptable,
 ): Promise<Unit> {
 	const named = diagnosis.undiscriminated_requirements.join(", ");
 	const subject = arbitrationSubject(requirements, diagnosis.undiscriminated_requirements);
@@ -110,7 +125,7 @@ function requestVerifiabilityArbitration(
 		named,
 		undefined,
 		ctx.language(unit.state),
-		adoptableFiles,
+		adoptable,
 	);
 }
 
@@ -129,7 +144,7 @@ async function openPreparation(
 	requirements: ArtifactRef,
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
-	adoptableFiles: readonly string[],
+	adoptable: Adoptable,
 	complements: readonly AdoptedComplement[],
 ): Promise<Unit> {
 	const alreadyTried = ctx.artifacts
@@ -144,7 +159,7 @@ async function openPreparation(
 			requirements,
 			diagnosis,
 			detection.recommendations,
-			adoptableFiles,
+			adoptable,
 		);
 	const objective = preparationMandateObjective(
 		detection.stack,
@@ -172,6 +187,75 @@ async function openPreparation(
 	return ctx.commit(unit, { type: "preparation.open", at: ctx.now(), actor: KERNEL_ACTOR, mandate_ref: ref }, cor);
 }
 
+/** What the owner's adoption of installs came to in the copy: what was kept, and what failed. */
+interface InstallAdoption {
+	unit: Unit;
+	complements: AdoptedComplement[];
+	packages: InstalledPackage[];
+	failed: FailedInstall[];
+}
+
+/** The installs that ran for these requirements and were not adopted, from the record each left in the dossier. */
+async function failedInstalls(ctx: PhaseContext, unit: Unit, requirements: ArtifactRef): Promise<FailedInstall[]> {
+	const records = await Promise.all(
+		(unit.state.proposals.output ?? [])
+			.filter((ref) => ref.artifact_id.startsWith(INSTALL_RECORD_PREFIX))
+			.map((ref) => ctx.artifacts.read<InstallFailureRecord>(ref)),
+	);
+	return records
+		.filter((r) => r.requirements_digest === requirements.content_digest)
+		.map((r) => ({ install: r.install, reason: r.reason }));
+}
+
+/**
+ * Runs the install of each recommendation the owner adopted in the copy, and keeps what the inspection
+ * accepts. An install that fails or is refused adopts nothing: the reason is written in the dossier
+ * for these requirements, so the install is not run again and the adoption is not offered again.
+ */
+async function adoptInstalls(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	requirements: ArtifactRef,
+	copyPath: string,
+	referenceFiles: readonly string[],
+	installable: readonly RecommendedComplement[],
+): Promise<InstallAdoption> {
+	const adoption: InstallAdoption = { unit, complements: [], packages: [], failed: [] };
+	const deps = { workspace: ctx.workspace, workspacePolicy: ctx.workspacePolicy, install: ctx.install };
+	for (const r of installable) {
+		if (r.install === undefined) continue;
+		ctx.progress(`installing ${r.install.package}@${r.install.version} in a copy, network open for that step alone`);
+		const result = await installInCopy(deps, copyPath, r.install, referenceFiles);
+		if (result.kind === "failed") {
+			const record: InstallFailureRecord = {
+				kind: "install-failure",
+				requirements_digest: requirements.content_digest,
+				install: r.install,
+				reason: result.reason,
+			};
+			const ref = await ctx.artifacts.store(
+				"output",
+				adoption.unit.state.change_id,
+				ctx.id(INSTALL_RECORD_PREFIX.slice(0, -1)),
+				record,
+				KERNEL_ACTOR.actor_id,
+			);
+			adoption.unit = ctx.commit(
+				adoption.unit,
+				{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref },
+				cor,
+			);
+			return { ...adoption, complements: [], packages: [], failed: [{ install: r.install, reason: result.reason }] };
+		}
+		adoption.complements.push(
+			...result.files.map((f) => ({ path: f.path, digest: f.digest, test_type: r.test_type, tool: r.tool })),
+		);
+		adoption.packages.push(...result.packages);
+	}
+	return adoption;
+}
+
 export async function designVerification(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const reference = await ctx.artifacts.reference(unit.state);
 	const requirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements");
@@ -184,11 +268,30 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		let detection = detectStack(handle.path, refs);
+		const referenceFiles = reference.entries.filter((e) => e.kind === "file").map((e) => e.path);
+		let failed = await failedInstalls(ctx, unit, requirements.ref);
+		const adoption = complementAdopted(unit.state.human_decisions)
+			? await adoptInstalls(
+					ctx,
+					unit,
+					cor,
+					requirements.ref,
+					handle.path,
+					referenceFiles,
+					installableRecommendations(referenceFiles, detection.recommendations, failed).installable,
+				)
+			: null;
+		if (adoption !== null) {
+			unit = adoption.unit;
+			failed = adoption.failed.length > 0 ? await failedInstalls(ctx, unit, requirements.ref) : failed;
+		}
 		// The edit is written into this copy alone: the detection that follows reads the sensor the edit
 		// asks for, and the project stays as it is until the candidate that carries the edit is integrated.
-		const complements = complementAdopted(unit.state.human_decisions)
-			? applyRecommendedEdits(handle.path, detection.recommendations)
-			: [];
+		const complements = [
+			...(adoption?.complements ?? []),
+			...(adoption !== null ? applyRecommendedEdits(handle.path, detection.recommendations) : []),
+		];
+		const installed = adoption?.packages ?? [];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
 			detection = detectStack(handle.path, refs);
@@ -197,9 +300,14 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {
 				nextActions: ["cancel"],
 			});
-		const adoptableFiles = detection.recommendations.flatMap((r) =>
-			r.edit && editedFile(handle.path, r.edit) !== null ? [r.edit.path] : [],
-		);
+		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed);
+		detection = { ...detection, recommendations: offered.recommendations };
+		const adoptable: Adoptable = {
+			files: detection.recommendations.flatMap((r) =>
+				r.edit && editedFile(handle.path, r.edit) !== null ? [r.edit.path] : [],
+			),
+			installs: offered.installable.flatMap((r) => (r.install ? [r.install] : [])),
+		};
 		const ordered = ctx.verification.orderOf(detection.controls);
 		const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis =>
 			diagnoseControlCapability({
@@ -222,7 +330,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			);
 			return revision
 				? reviseRequirements(ctx, unit, cor, reference, d.undiscriminated_requirements, revision.free_text)
-				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptableFiles, complements);
+				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptable, complements);
 		};
 		const needsPreparation = (d: ControlCapabilityDiagnosis): boolean =>
 			d.undiscriminated_requirements.length > 0 &&
@@ -266,6 +374,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			assigned_to_human: takenByOwner(diagnosis),
 			recommendations: detection.recommendations,
 			complements,
+			installed,
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

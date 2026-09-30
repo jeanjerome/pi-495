@@ -241,3 +241,32 @@ ${dependencies}</project>
 			'package io.demo.infra;\n\nimport io.demo.domain.port.UserPort;\n\npublic final class UserRepository implements UserPort {\n    public String read() { return "x"; }\n}\n',
 	});
 }
+
+/**
+ * A vitest target without a coverage provider, committed, locked by `lock` when there is one. The
+ * lock names vitest only when it is npm's, as an install would have left it.
+ */
+export function fixtureVitestWithoutProvider(root: string, lock: string | null): void {
+	fixtureTsWithoutTests(root);
+	writeFiles(root, {
+		"package.json": JSON.stringify({
+			name: "f-vitest",
+			type: "module",
+			scripts: { test: "vitest run" },
+			devDependencies: { vitest: "3.2.4" },
+		}),
+		"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
+	});
+	if (lock === "package-lock.json")
+		writeFiles(root, {
+			[lock]: JSON.stringify({
+				lockfileVersion: 3,
+				packages: {
+					"": { name: "f-vitest" },
+					"node_modules/vitest": { version: "3.2.4", integrity: "sha512-fake-vitest" },
+				},
+			}),
+		});
+	else if (lock !== null) writeFiles(root, { [lock]: "{}\n" });
+	initRepo(root);
+}

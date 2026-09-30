@@ -310,6 +310,7 @@ function vitestSuite(
 								established_on: CATALOGUE_DATE,
 								source: "vitest.dev/guide/coverage.html",
 								change: `install @vitest/coverage-v8@${version} as a devDependency, the version of the installed vitest`,
+								install: { package: "@vitest/coverage-v8", version, manager: "npm" },
 							},
 						}),
 			},

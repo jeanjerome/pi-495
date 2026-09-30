@@ -83,6 +83,8 @@ export type BytesSource = (path: string) => Promise<Uint8Array | null>;
  * from manufacturing one. A rename the manifest cannot prove leaves the file read as an addition:
  * the limit is reported, never guessed.
  *
+ * A file an adopted complement wrote and the candidate kept as written introduces nothing.
+ *
  * A path of the tree that carries a control character is kept with no line when the change wrote
  * none in it, so a reader of a report can refuse it: a file moved without a byte changing, too large
  * to diff or binary is left out of the lines, yet a runner still writes its name into the report.
@@ -92,13 +94,18 @@ export async function introducedLinesOf(
 	renames: ReadonlyMap<string, string>,
 	reference: BytesSource,
 	candidate: BytesSource,
+	complements: readonly { path: string; digest: string }[] = [],
 ): Promise<IntroducedLinesResult> {
 	const formerName = new Map([...renames].map(([from, to]) => [to, from] as const));
+	// What a complement wrote, kept as written, is the same in every copy: it is not this change's, and
+	// an installed dependency read as an addition would be diffed whole.
+	const written = new Map(complements.map((c) => [c.path, c.digest] as const));
 	const lines: IntroducedLines = {};
 	const notes: string[] = [];
 	for (const entry of manifest.entries) {
 		if (entry.baseline_state !== "deleted" && hasControlCharacter(entry.path)) lines[entry.path] = [];
 		if (entry.kind !== "file" || entry.content_digest === null) continue;
+		if (written.get(entry.path) === entry.content_digest) continue;
 		// `type_changed` is a file the reference held as something else — a symlink turned into source:
 		// it has no reference text, so every one of its lines is introduced, like an addition.
 		if (

@@ -232,3 +232,40 @@ describe("a file edit recommended to a target and the complement its owner adopt
 		assert.throws(() => validate(Protocol, { ...frozen, complements: [{ ...adopted, extra: 1 }] }), ContractError);
 	});
 });
+
+describe("an install recommended to a target and the packages its adoption installed", () => {
+	const recommendation = {
+		test_type: "coverage",
+		tool: "@vitest/coverage-v8",
+		version: "3.2.4",
+		established_on: "2026-09-30",
+		source: "vitest.dev/guide/coverage.html",
+		change: "install @vitest/coverage-v8 at the installed vitest version",
+	};
+	const install = { package: "@vitest/coverage-v8", version: "3.2.4", manager: "npm" };
+	const installedPackages = [{ name: "@vitest/coverage-v8", version: "3.2.4", integrity: "sha512-abc==" }];
+	const frozen = protocol();
+	it("given a recommendation carrying an install and a protocol carrying installed packages, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis", () => {
+		const withInstall = { ...frozen.capability_diagnosis, recommendations: [{ ...recommendation, install }] };
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, withInstall), withInstall);
+		const carrying = { ...frozen, installed_packages: installedPackages };
+		assert.deepEqual(validate(Protocol, carrying), carrying);
+		assert.deepEqual(validate(Protocol, frozen), frozen);
+		assert.deepEqual(
+			validate(ControlCapabilityDiagnosis, { ...frozen.capability_diagnosis, recommendations: [recommendation] }),
+			{ ...frozen.capability_diagnosis, recommendations: [recommendation] },
+		);
+		assert.throws(
+			() =>
+				validate(ControlCapabilityDiagnosis, {
+					...withInstall,
+					recommendations: [{ ...recommendation, install: { package: "@vitest/coverage-v8" } }],
+				}),
+			ContractError,
+		);
+		assert.throws(
+			() => validate(Protocol, { ...frozen, installed_packages: [{ ...installedPackages[0], extra: 1 }] }),
+			ContractError,
+		);
+	});
+});

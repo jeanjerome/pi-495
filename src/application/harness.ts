@@ -55,7 +55,8 @@ import { verify as verifyPhase } from "./phases/verify.ts";
 import { designVerification } from "./phases/verification-design.ts";
 import { buildContext, type FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
-import { buildDecisionRequest } from "./decisions.ts";
+import { buildDecisionRequest, type Adoptable } from "./decisions.ts";
+import { runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
@@ -173,6 +174,13 @@ export class Harness {
 			verification: this.verification,
 			workspace: deps.workspace,
 			workspacePolicy: deps.workspacePolicy,
+			install: (copyPath: string, command: readonly string[]) =>
+				deps.sandbox.qualification.qualified
+					? runInstall(deps.sandbox.backend, copyPath, command)
+					: Promise.resolve<InstallRun>({
+							kind: "failed",
+							reason: `sandbox backend ${deps.sandbox.backend.backend} is not qualified: ${deps.sandbox.qualification.reasons.join("; ")}`,
+						}),
 			policy: deps.policy,
 			get integrator() {
 				return harness.integrator;
@@ -182,18 +190,7 @@ export class Harness {
 			progress: (message: string) => harness.progress(message),
 			language: (state: ChangeState) => harness.language(state),
 			commit: (unit: Unit, command: ChangeCommand, correlation: string) => harness.commit(unit, command, correlation),
-			requestDecision: (
-				unit,
-				cor,
-				interaction,
-				subject,
-				facts,
-				recommendation,
-				arg,
-				decisionId,
-				language,
-				adoptableFiles,
-			) =>
+			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language, adoptable) =>
 				harness.requestDecision(
 					unit,
 					cor,
@@ -204,7 +201,7 @@ export class Harness {
 					arg,
 					decisionId,
 					language,
-					adoptableFiles,
+					adoptable,
 				),
 			feedbackSources: () => harness.feedbackSources(),
 			indeterminateObservations: (state: ChangeState) => harness.indeterminateObservations(state),
@@ -712,7 +709,7 @@ export class Harness {
 		arg?: string,
 		decisionId?: string,
 		language: "fr" | "en" = "fr",
-		adoptableFiles?: readonly string[],
+		adoptable?: Adoptable,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
 			decision_id: decisionId ?? this.id("dec"),
@@ -723,7 +720,7 @@ export class Harness {
 			facts,
 			recommendation,
 			...(arg !== undefined ? { arg } : {}),
-			...(adoptableFiles ? { adoptable_files: adoptableFiles } : {}),
+			...(adoptable ? { adoptable } : {}),
 			requested_at: this.now(),
 		});
 		this.deps.ledger.putDecisionRequest(request);

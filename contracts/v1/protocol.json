@@ -452,6 +452,31 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "install": {
+                "type": "object",
+                "required": [
+                  "package",
+                  "version",
+                  "manager"
+                ],
+                "properties": {
+                  "package": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "manager": {
+                    "type": "string",
+                    "enum": [
+                      "npm"
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -613,6 +638,32 @@
             "minLength": 1
           },
           "tool": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "installed_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "integrity"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "integrity": {
             "type": "string",
             "minLength": 1
           }

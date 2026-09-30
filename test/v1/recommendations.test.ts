@@ -133,6 +133,18 @@ describe("Node recommends the coverage its runner can produce", () => {
 		assert.match(recommendations[0]?.change ?? "", /@vitest\/coverage-v8@3\.2\.4/);
 	});
 
+	it("given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit", () => {
+		const project = nodeProject("vitest-install", "vitest run", {
+			"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
+			"package-lock.json": "{}",
+		});
+		const [recommendation, ...others] = detectStack(project, REFS, NODE).recommendations;
+		assert.deepEqual(others, []);
+		assert.deepEqual(recommendation?.install, { package: "@vitest/coverage-v8", version: "3.2.4", manager: "npm" });
+		assert.equal(recommendation?.edit, undefined);
+		assert.deepEqual(validate(RecommendedComplement, recommendation), recommendation);
+	});
+
 	it("given jest, mocha or a target that already asks for coverage, then it recommends nothing", () => {
 		const targets = {
 			jest: nodeProject("jest", "jest"),

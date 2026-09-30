@@ -4,7 +4,16 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specReport, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, fixtureTsWithoutTests, gitCmd, initRepo, SHOUT_IMPL, tempDir } from "../helpers/fixtures.ts";
+import {
+	fixtureTs,
+	fixtureTsWithoutTests,
+	fixtureVitestWithoutProvider,
+	gitCmd,
+	initRepo,
+	SHOUT_IMPL,
+	tempDir,
+} from "../helpers/fixtures.ts";
+import { FakeNpmSandbox, FakeVitestControls, PROVIDER_FILES } from "../helpers/fake-npm.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { exportChange, verifyExport } from "../../src/export/export-service.ts";
@@ -429,6 +438,100 @@ describe("what the integration indexes of the files it copies", () => {
 		assert.equal(result.view.change?.outcome, "integrated", result.steps.join(" | "));
 		assert.equal(readFileSync(join(p, dependency), "utf8"), files[dependency]);
 		assert.deepEqual(committedPaths(p), ["package.json", "src/greet.js"]);
+	});
+
+	it("given an accepted candidate carrying an installed complement, then the local commit holds package.json and package-lock.json and no node_modules path, and the installed provider is in the project", async () => {
+		const p = tempDir("495-proj-");
+		cleanups.push(p);
+		fixtureVitestWithoutProvider(p, "package-lock.json");
+		const unjudgeable = specReport({
+			objective: "add shout(name) returning the greeting in upper case",
+			requirements: [
+				{
+					requirement_id: "R1",
+					statement: "shout(name) returns greet(name) upper-cased",
+					mandatory: true,
+					criterion: "unit test on shout passes",
+					category: "functional",
+					satisfied_by_reference: false,
+				},
+			],
+		});
+		const introducedOnCandidate: (Record<string, number[]> | null | undefined)[] = [];
+		const t = track(
+			makeHarness({
+				policy: { integration_enabled: true },
+				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+				scripts: {
+					prepare: { steps: [{ kind: "complete", output: report([]) }] },
+					implement: {
+						steps: [
+							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+							{ kind: "complete", output: report(["src/greet.js"]) },
+						],
+					},
+				},
+				backend: (real) => new FakeNpmSandbox(real, "installs"),
+				controls: (real) => {
+					const vitest = new FakeVitestControls(real);
+					return {
+						runControl: async (invocation, signal) => {
+							if (invocation.subject.kind === "candidate") introducedOnCandidate.push(invocation.introduced_lines);
+							return vitest.runControl(invocation, signal);
+						},
+					};
+				},
+			}),
+		);
+		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const answer = (optionId: string): void => {
+			const [pending] = t.harness.pendingDecisions(changeId);
+			const answered = t.harness.answerDecision(
+				changeId,
+				{
+					decision_id: pending!.decision_id,
+					option_id: optionId,
+					free_text: null,
+					reason: null,
+					subject_revision: pending!.subject.revision,
+					scope: null,
+					expires_at: null,
+				},
+				origin(),
+			);
+			assert.equal(answered.error, null);
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("assign_review");
+		let result = await t.harness.advance(changeId, { max_steps: 40 });
+		assert.equal(
+			gitCmd(p, ["status", "--porcelain"]).trim(),
+			"",
+			"nothing is written in the project before the integration",
+		);
+		for (let step = 0; step < 4 && result.stopped_because === "decision_required"; step++) {
+			const [asked] = t.harness.pendingDecisions(changeId);
+			answer(asked!.interaction === "IH-11" ? "integrate" : "accept");
+			result = await t.harness.advance(changeId, { max_steps: 40 });
+		}
+
+		assert.equal(result.view.change?.outcome, "integrated", result.steps.join(" | "));
+		assert.ok(introducedOnCandidate.length > 0, "the controls ran on the candidate");
+		for (const introduced of introducedOnCandidate)
+			assert.deepEqual(
+				Object.keys(introduced ?? {}),
+				["src/greet.js"],
+				"the installed tree and the manifests the complement wrote are not lines this change introduced",
+			);
+		assert.deepEqual(committedPaths(p), ["package-lock.json", "package.json", "src/greet.js"]);
+		assert.match(readFileSync(join(p, "package.json"), "utf8"), /"@vitest\/coverage-v8": "3\.2\.4"/);
+		for (const [path, text] of Object.entries(PROVIDER_FILES))
+			assert.equal(readFileSync(join(p, path), "utf8"), text, path);
+		assert.equal(gitCmd(p, ["remote"]).trim(), "", "nothing is pushed");
 	});
 
 	it("given a project with no ignored path and two modified files, then the commit holds exactly those two files", async () => {

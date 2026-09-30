@@ -16,6 +16,7 @@ import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from
 import {
 	isDifferentialParser,
 	type AdoptedComplement,
+	type InstalledPackage,
 	type ControlCapabilityDiagnosis,
 	type ControlDefinition,
 	type Obligation,
@@ -116,6 +117,8 @@ export interface FreezeInput {
 	recommendations: readonly RecommendedComplement[];
 	/** The complements the owner had applied, whose files the candidate carries from its first byte. */
 	complements: readonly AdoptedComplement[];
+	/** The packages the adopted install added, which the owner reads before accepting the integration. */
+	installed: readonly InstalledPackage[];
 }
 
 export interface RunInput {
@@ -367,6 +370,7 @@ export class VerificationCoordinator {
 			baseline: { ...this.deps.policy.baseline },
 			environment_digest: this.deps.environment.digest,
 			...(input.complements.length > 0 ? { complements: [...input.complements] } : {}),
+			...(input.installed.length > 0 ? { installed_packages: [...input.installed] } : {}),
 		};
 	}
 
@@ -381,7 +385,7 @@ export class VerificationCoordinator {
 		const shape = candidateShape(manifest);
 		// What this change wrote, line by line: a differential control is given the introduced lines and
 		// judges those, instead of a ratio that would answer for the whole tree (QLT-04).
-		const introduced = await this.introducedLines(manifest, shape);
+		const introduced = await this.introducedLines(manifest, shape, protocol.complements ?? []);
 		const passes = await this.referencePasses(input.change_id, protocol, input.protocol_ref, reference);
 		for (const control of protocol.controls) {
 			this.deps.progress(`running control ${control.control_id}`);
@@ -578,7 +582,11 @@ export class VerificationCoordinator {
 	 * candidate bytes of `files_` and the reference bytes of `base_files_` are both in the dossier, so
 	 * the calculation an auditor would redo is the one the controls were given (QLT-04).
 	 */
-	private async introducedLines(manifest: CandidateManifest, shape: CandidateShape): Promise<IntroducedLinesResult> {
+	private async introducedLines(
+		manifest: CandidateManifest,
+		shape: CandidateShape,
+		complements: readonly AdoptedComplement[],
+	): Promise<IntroducedLinesResult> {
 		const index = async (artifactId: string) =>
 			await this.deps
 				.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 })
@@ -589,7 +597,7 @@ export class VerificationCoordinator {
 			const entry = files[path];
 			return entry ? await this.deps.objects.get(entry.digest) : null;
 		};
-		return introducedLinesOf(manifest, shape.renames, bytesOf(referenceFiles), bytesOf(candidateFiles));
+		return introducedLinesOf(manifest, shape.renames, bytesOf(referenceFiles), bytesOf(candidateFiles), complements);
 	}
 
 	/** A qualification an earlier protocol of this change established for this exact sensor. */

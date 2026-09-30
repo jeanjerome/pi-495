@@ -100,6 +100,34 @@ describe("introduced lines of a candidate (QLT-04)", () => {
 		);
 	});
 
+	it("leaves out the files an adopted complement wrote and the candidate kept as written, and reads a complement file the candidate changed", async () => {
+		const provider = "module.exports = 1;\n".repeat(3);
+		const manifest = manifestOf([
+			entry("node_modules/@vitest/coverage-v8/index.js", "added", provider),
+			entry("node_modules/@vitest/coverage-v8/lib.js", "added", "changed by the producer\n"),
+			entry("src/greet.js", "modified", "export const b = 2;\n"),
+		]);
+		const complements = [
+			{ path: "node_modules/@vitest/coverage-v8/index.js", digest: digestValue(provider) },
+			{ path: "node_modules/@vitest/coverage-v8/lib.js", digest: digestValue("as the complement wrote it\n") },
+		];
+		const result = await introducedLinesOf(
+			manifest,
+			new Map(),
+			source({ "src/greet.js": "export const a = 1;\n" }),
+			source({
+				"node_modules/@vitest/coverage-v8/index.js": provider,
+				"node_modules/@vitest/coverage-v8/lib.js": "changed by the producer\n",
+				"src/greet.js": "export const b = 2;\n",
+			}),
+			complements,
+		);
+		assert.deepEqual(result.lines, {
+			"node_modules/@vitest/coverage-v8/lib.js": [1],
+			"src/greet.js": [1],
+		});
+	});
+
 	it("reports what it could not diff instead of reading it as an empty change", async () => {
 		const manifest = manifestOf([
 			entry("src/main/java/Big.java", "modified", "x", MAX_DIFFED_BYTES + 1),

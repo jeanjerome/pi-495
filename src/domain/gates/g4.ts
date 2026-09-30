@@ -74,8 +74,9 @@ export function inInstalledDependencies(path: string): boolean {
  * protected directory is itself an installed dependency, where a new file can shadow a package the
  * checks load; and whatever `alsoAllowed` recognizes, which is where a target's own layout
  * conventions are read rather than written into the kernel. A file of an adopted complement that the
- * candidate holds as the reference has it is altered too: the producer put the reference back, so the
- * complement the frozen protocol carries is absent from the candidate.
+ * candidate holds as the reference has it is altered too, and so is one the candidate no longer holds
+ * at all: the manifest lists every file of the candidate, so a complement file it lacks was removed,
+ * whether the reference had it or not.
  */
 export function protectedPathsChanged(
 	manifest: CandidateManifest,
@@ -99,7 +100,12 @@ export function protectedPathsChanged(
 			return true;
 		return alsoAllowed(p);
 	});
-	const restored = complements.map((c) => c.path).filter((p) => entryOf(p)?.baseline_state === "unchanged");
+	const restored = complements
+		.map((c) => c.path)
+		.filter((p) => {
+			const entry = entryOf(p);
+			return entry === undefined || entry.baseline_state === "unchanged";
+		});
 	const altered = [
 		...changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p)),
 		...restored,

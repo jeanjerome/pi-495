@@ -16,6 +16,8 @@ import type { ActivePolicy } from "../../domain/policy.ts";
 import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
 import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
+import type { Adoptable } from "../decisions.ts";
+import type { InstallRun } from "../installation.ts";
 import type { VerificationCoordinator } from "../verification.ts";
 
 /** A change and the ledger revision it was read at: a commit that loses that race is refused. */
@@ -52,6 +54,8 @@ export interface PhaseContext {
 	readonly verification: VerificationCoordinator;
 	readonly workspace: WorkspacePort;
 	readonly workspacePolicy: WorkspacePolicy;
+	/** Runs an install command in a copy, with the network open for that step alone. */
+	install(copyPath: string, command: readonly string[]): Promise<InstallRun>;
 	readonly policy: ActivePolicy;
 	/** Applies the accepted candidate locally; absent when no integrator is configured. */
 	readonly integrator: ((unit: Unit, cor: string) => Promise<Unit>) | null;
@@ -82,7 +86,7 @@ export interface PhaseContext {
 		arg?: string,
 		decisionId?: string,
 		language?: "fr" | "en",
-		adoptableFiles?: readonly string[],
+		adoptable?: Adoptable,
 	): Promise<Unit>;
 	/** The ledger and store reads the feedback document is composed from. */
 	feedbackSources(): FeedbackSources;

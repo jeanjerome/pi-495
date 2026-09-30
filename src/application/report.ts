@@ -193,6 +193,12 @@ export function engineeringReport(
 			`a ${r.test_type} complement is recommended and not adopted: ${r.tool} ${r.version}; ${r.change}.`,
 		);
 	}
+	const installed = protocol?.installed_packages ?? [];
+	if (installed.length > 0)
+		add(
+			"installed_packages",
+			`495 installed ${installed.length} package(s) into the target, whose code the controls will load: ${installed.map((p) => `${p.name}@${p.version} (${p.integrity})`).join(", ")}.`,
+		);
 	for (const [controlId, qualification] of Object.entries(protocol?.qualifications ?? {})) {
 		if (!qualification.qualified)
 			add(

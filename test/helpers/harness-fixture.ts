@@ -8,7 +8,12 @@ import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/bac
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
-import type { ControlExecutionPort, ControlInvocation, ModelSelection } from "../../src/ports/execution.ts";
+import type {
+	ControlExecutionPort,
+	ControlInvocation,
+	ModelSelection,
+	SandboxPort,
+} from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -140,6 +145,8 @@ export interface HarnessOptions {
 	/** Replaces the scripted agent built from `scripts` and `defaultScript`, e.g. one that judges the model it is given. */
 	agent?: ScriptedAgent;
 	sandbox?: "unconfined" | "platform";
+	/** Wraps the unconfined backend, e.g. with one that stands for the package repository an install reaches. */
+	backend?: (real: SandboxPort) => SandboxPort;
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
 	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
 	root?: string;
@@ -212,7 +219,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		options.sandbox === "platform"
 			? selectSandbox({ allow_unconfined: false })
 			: {
-					backend: new UnconfinedSandbox(),
+					backend: options.backend ? options.backend(new UnconfinedSandbox()) : new UnconfinedSandbox(),
 					qualification: {
 						...new UnconfinedSandbox().qualify({
 							profile_id: "observe",

@@ -15,7 +15,15 @@ import type { InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
 
-export type SandboxProfileId = "observe" | "specify" | "prepare" | "implement" | "verify" | "review" | "integrate";
+export type SandboxProfileId =
+	| "observe"
+	| "specify"
+	| "prepare"
+	| "implement"
+	| "verify"
+	| "review"
+	| "integrate"
+	| "install";
 
 export interface SandboxProfile {
 	profile_id: SandboxProfileId;

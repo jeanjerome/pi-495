@@ -717,3 +717,61 @@ bugs:
       Decide whether G4 receives the complement paths as a required set and refuses one missing from the
       candidate; a test on a candidate that deletes an adopted complement file the reference does not hold.
     status: open
+  - bug_id: BUG-2026-09-30T203000
+    date: "2026-09-30"
+    title: "The install of an adopted complement runs again, network open, each time the verification design resumes"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `designVerification` (`src/application/phases/verification-design.ts`) calls `adoptInstalls` on every
+      resumption of the design for as long as the owner's answer to adopt the complement holds, and each call
+      runs `npm install` in a fresh copy with the network open. After the adoption and an `assign_review`, a
+      probe counted two `npm install` runs for one answer; the test counts the installs only before
+      `assign_review`. The answer is valid throughout, so the promise that the step runs only on the owner's
+      valid answer holds; the owner is not told that the network opens again.
+    what_expected: >
+      The network opens once per answer: a resumption of the design with the answer still valid reuses what the
+      first install was accepted with, or says that it installs again.
+    steps_to_reproduce:
+      - "Adopt the complement on a vitest target with package-lock.json, then answer assign_review."
+      - "Count the `npm install` commands the sandbox received: two, where the owner answered once."
+    root_cause: >
+      The result of an accepted install is not kept between resumptions: only the files it added and the packages
+      it listed reach the protocol, and only at the freeze, so a resumption before it recomputes them. Introduced
+      by the branch e12s08.
+    evidence: >
+      Probe of the reviewer on 2026-09-30 (`FakeNpmSandbox.installs()` equals 2 at the end of the run); not
+      re-run here.
+    risk_level: low
+    follow_ups: >
+      Decide between keeping the accepted result in the dossier for these requirements, as the failure record
+      already is, and announcing the new install to the owner; a test counting the installs to the freeze.
+    status: open
+  - bug_id: BUG-2026-09-30T204000
+    date: "2026-09-30"
+    title: "An install that fails no longer keeps the edit of another recommendation from being applied"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `designVerification` (`src/application/phases/verification-design.ts`) applies the edits of the
+      recommendations in the copy whenever the owner adopted the complement, whether or not an install of
+      the same answer failed. The scenario "Une installation qui échoue n'adopte rien" says nothing is adopted
+      when an install fails; the edit of another recommendation is applied and enters the protocol.
+    what_expected: >
+      An install that fails adopts nothing, the edit of another recommendation included.
+    steps_to_reproduce:
+      - "Have a target whose detection recommends both a file edit and an install, and whose install fails."
+      - "Answer « adopter le complément »: the edit is written in the copy and declared as a complement."
+    root_cause: >
+      The guard on the failure of the install was removed from the application of the edits as a separate
+      condition. Introduced by the branch e12s08. No target of the catalogue carries both an edit and an
+      install, so the path is not reachable today and the answer to adopt covers the edits.
+    evidence: >
+      Read on 2026-09-30 in `designVerification`; no test exercises the case, since no catalogue target builds it.
+    risk_level: low
+    follow_ups: >
+      Decide whether a failed install holds back the edits of the same answer, which adds a refusal, or whether
+      the scenario reads "the install adopts nothing"; a test on a target that carries both once one exists.
+    status: open

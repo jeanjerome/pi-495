@@ -4,6 +4,7 @@
  */
 import type { HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest } from "../contracts/v1/decision.ts";
+import type { PackageInstall } from "../contracts/v1/protocol.ts";
 
 type Lang = "fr" | "en";
 
@@ -310,23 +311,56 @@ const T = {
 	},
 } as const;
 
+/** What the owner is offered to adopt on an IH-04: the files a recommendation edits and the packages one installs. */
+export interface Adoptable {
+	files: readonly string[];
+	installs: readonly PackageInstall[];
+}
+
+const installedName = (install: PackageInstall): string => `${install.package} ${install.version}`;
+
 /**
- * The way out of IH-04 that changes the target instead of judging anything: it applies the file edit
- * of a recommended complement. It is offered only when such an edit can be applied.
+ * The way out of IH-04 that changes the target instead of judging anything: it applies the file edit of
+ * a recommended complement, or installs its package in a copy with the network open for that step alone.
+ * It is offered only when something can be applied or installed.
  */
 const ADOPT_COMPLEMENT = {
-	fr: (files: string) => ({
-		id: "adopt_complement",
-		label: `Adopter le complément (modifie ${files})`,
-		effect: `495 applique à ${files} la modification exacte que la recommandation décrit, sans réseau et sans rien installer ; elle arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
-		risky: true,
-	}),
-	en: (files: string) => ({
-		id: "adopt_complement",
-		label: `Adopt the complement (edits ${files})`,
-		effect: `495 applies to ${files} the exact edit the recommendation describes, with no network and nothing installed; it reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
-		risky: true,
-	}),
+	fr: ({ files, installs }: Adoptable) => {
+		const edits = files.join(", ");
+		const packages = installs.map(installedName).join(", ");
+		const what = [
+			files.length > 0 ? `applique à ${edits} la modification exacte que la recommandation décrit` : null,
+			installs.length > 0
+				? `installe ${packages} dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation`
+				: null,
+		]
+			.filter((part) => part !== null)
+			.join(", puis ");
+		return {
+			id: "adopt_complement",
+			label: `Adopter le complément (${[files.length > 0 ? `modifie ${edits}` : null, installs.length > 0 ? `installe ${packages}, réseau ouvert pour cette seule étape` : null].filter((part) => part !== null).join(" ; ")})`,
+			effect: `495 ${what}${installs.length > 0 ? "" : ", sans réseau et sans rien installer"} ; ${installs.length > 0 ? "le résultat est inspecté et n'est accepté que s'il ajoute des paquets sans rien modifier de ce qui existait ; " : ""}le complément arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
+			risky: true,
+		};
+	},
+	en: ({ files, installs }: Adoptable) => {
+		const edits = files.join(", ");
+		const packages = installs.map(installedName).join(", ");
+		const what = [
+			files.length > 0 ? `applies to ${edits} the exact edit the recommendation describes` : null,
+			installs.length > 0
+				? `installs ${packages} in a copy of the project, opening the network for that step alone and running no install script`
+				: null,
+		]
+			.filter((part) => part !== null)
+			.join(", then ");
+		return {
+			id: "adopt_complement",
+			label: `Adopt the complement (${[files.length > 0 ? `edits ${edits}` : null, installs.length > 0 ? `installs ${packages}, network open for that step alone` : null].filter((part) => part !== null).join("; ")})`,
+			effect: `495 ${what}${installs.length > 0 ? "" : ", with no network and nothing installed"}; ${installs.length > 0 ? "the result is inspected and accepted only if it adds packages and changes nothing that existed; " : ""}the complement reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
+			risky: true,
+		};
+	},
 } as const;
 
 export function buildDecisionRequest(args: {
@@ -338,15 +372,17 @@ export function buildDecisionRequest(args: {
 	facts: string[];
 	recommendation: string | null;
 	arg?: string;
-	/** The files that the adoptable complements of an IH-04 would edit; none when no recommended edit can be applied. */
-	adoptable_files?: readonly string[];
+	/** What an IH-04 offers to adopt; nothing when no recommended edit can be applied and no install run. */
+	adoptable?: Adoptable;
 	requested_at: string;
 	authority?: DecisionRequest["required_authority"];
 }): DecisionRequest {
 	const t = T[args.language][args.interaction](args.arg ?? "");
-	const adoptableFiles = args.interaction === "IH-04" ? (args.adoptable_files ?? []) : [];
+	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
 	const options =
-		adoptableFiles.length > 0 ? [...t.options, ADOPT_COMPLEMENT[args.language](adoptableFiles.join(", "))] : t.options;
+		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)
+			? [...t.options, ADOPT_COMPLEMENT[args.language](adoptable)]
+			: t.options;
 	return {
 		decision_id: args.decision_id,
 		change_id: args.change_id,

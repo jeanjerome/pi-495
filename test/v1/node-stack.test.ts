@@ -247,14 +247,6 @@ describe("Node stack: what the unit controls protect among the installed depende
 		);
 		assert.deepEqual(kept.altered, []);
 		assert.deepEqual(kept.allowed, ["package.json"]);
-		const untouched = protectedPathsChanged(
-			manifestOf(entry("src/agenda.ts", "modified")),
-			protectedPaths,
-			[],
-			() => false,
-			[complement],
-		);
-		assert.deepEqual(untouched.altered, [], "a manifest without the complement file judges nothing about it");
 	});
 	it("given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file", () => {
 		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
@@ -280,6 +272,35 @@ describe("Node stack: what the unit controls protect among the installed depende
 		);
 		const refused = protectedPathsChanged(manifestOf(...modified), protectedPaths, [], () => false, complements);
 		assert.deepEqual(refused.altered, [installed[1]!.path]);
+	});
+	it("given a complement that wrote a file absent from the reference, then a candidate that no longer holds that file is refused naming it, and one that keeps it as written passes", () => {
+		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
+		const written = {
+			path: "node_modules/@vitest/coverage-v8/package.json",
+			digest: digestBytes('{"name":"@vitest/coverage-v8"}'),
+			test_type: "coverage",
+			tool: "@vitest/coverage-v8",
+		};
+		const kept = protectedPathsChanged(
+			manifestOf(
+				{ ...entry(written.path, "added"), content_digest: written.digest },
+				entry("src/agenda.ts", "modified"),
+			),
+			protectedPaths,
+			[],
+			() => false,
+			[written],
+		);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(kept.allowed, [written.path]);
+		const removed = protectedPathsChanged(
+			manifestOf(entry("src/agenda.ts", "modified")),
+			protectedPaths,
+			[],
+			() => false,
+			[written],
+		);
+		assert.deepEqual(removed.altered, [written.path]);
 	});
 	it("given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed", () => {
 		const { protected_paths: protectedPaths } = unitOf(targetWith("node --test"));

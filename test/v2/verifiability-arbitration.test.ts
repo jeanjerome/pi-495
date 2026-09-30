@@ -3,12 +3,28 @@
  * the owner instead of stopping the change: prepare once more, or judge the requirement themselves.
  */
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureJava, fixtureTsWithoutTests, gitCmd, initRepo, SHOUT_IMPL, tempDir } from "../helpers/fixtures.ts";
+import {
+	fixtureJava,
+	fixtureTsWithoutTests,
+	fixtureVitestWithoutProvider,
+	gitCmd,
+	initRepo,
+	SHOUT_IMPL,
+	tempDir,
+} from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
+import {
+	FakeNpmSandbox,
+	FakeVitestControls,
+	PROVIDER,
+	PROVIDER_FILES,
+	PROVIDER_INTEGRITY,
+	type NpmMode,
+} from "../helpers/fake-npm.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { buildDecisionRequest } from "../../src/application/decisions.ts";
 import { detectStack } from "../../src/application/target.ts";
@@ -18,7 +34,7 @@ import { arbitrationSubject, requirementsTakenByOwner } from "../../src/applicat
 import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
 import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.ts";
 import type { Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
-import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -499,7 +515,7 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 		assert.match(adopt.effect, /package\.json/);
 		assert.match(adopt.effect, /ne juge pas|does not judge/);
 		for (const language of ["fr", "en"] as const) {
-			const request = (adoptable_files: string[]) =>
+			const request = (files: string[]) =>
 				buildDecisionRequest({
 					decision_id: "dec_1",
 					change_id: "chg_1",
@@ -510,7 +526,7 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 					recommendation: null,
 					arg: "R1",
 					requested_at: "2026-09-30T12:00:00.000Z",
-					adoptable_files,
+					adoptable: { files, installs: [] },
 				}).options;
 			assert.deepEqual(
 				request([]).map((o) => o.id),
@@ -548,6 +564,236 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 			["prepare", "assign_review", "revise"],
 			"the recommendations of a Maven target are texts",
 		);
+	});
+});
+
+function vitestProjectWithoutProvider(lock: string | null): string {
+	const p = tempDir("495-arbitration-vitest-");
+	cleanups.push(p);
+	fixtureVitestWithoutProvider(p, lock);
+	return p;
+}
+
+describe("the IH-04 decision offers to adopt a complement that is an install", () => {
+	async function asked(project: string): Promise<DecisionRequest> {
+		const t = harnessWithEmptyPreparations();
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		return t.harness.pendingDecisions(change.change_id)[0]!;
+	}
+
+	it("given three vitest targets, one with package-lock.json, one with only pnpm-lock.yaml and one with no lock, then only the first offers to adopt the complement, naming the package, its version and the network, and the report gives the reason for the other two", async () => {
+		const locked = await asked(vitestProjectWithoutProvider("package-lock.json"));
+		assert.deepEqual(
+			locked.options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+		);
+		const adopt = locked.options.at(-1)!;
+		assert.match(`${adopt.label} ${adopt.effect}`, /@vitest\/coverage-v8/);
+		assert.match(`${adopt.label} ${adopt.effect}`, /3\.2\.4/);
+		assert.match(`${adopt.label} ${adopt.effect}`, /réseau|network/);
+		assert.match(
+			adopt.label,
+			/pour cette seule étape|for that step alone/,
+			"the option says the network opens for one step",
+		);
+		assert.match(adopt.effect, /pour cette seule étape|for that step alone/, "and so does its effect");
+
+		const pnpm = await asked(vitestProjectWithoutProvider("pnpm-lock.yaml"));
+		assert.deepEqual(
+			pnpm.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+		);
+		assert.ok(
+			pnpm.facts.some((f) => f.includes("@vitest/coverage-v8") && f.includes("pnpm-lock.yaml")),
+			pnpm.facts.join(" | "),
+		);
+
+		const unlocked = await asked(vitestProjectWithoutProvider(null));
+		assert.deepEqual(
+			unlocked.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+		);
+		assert.ok(
+			unlocked.facts.some((f) => f.includes("@vitest/coverage-v8") && f.includes("package-lock.json")),
+			unlocked.facts.join(" | "),
+		);
+	});
+});
+
+describe("adopting a complement that is an install", () => {
+	function vitestHarness(mode: NpmMode): { t: TestHarness; npm: FakeNpmSandbox } {
+		let npm: FakeNpmSandbox | undefined;
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: { prepare: emptyPreparation },
+				backend: (real) => {
+					npm = new FakeNpmSandbox(real, mode);
+					return npm;
+				},
+				controls: (real) => new FakeVitestControls(real),
+			}),
+		);
+		return { t, npm: npm! };
+	}
+
+	async function askedAdoption(mode: NpmMode) {
+		const { t, npm } = vitestHarness(mode);
+		const project = vitestProjectWithoutProvider("package-lock.json");
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt_complement");
+		const again = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
+		return { t, npm, project, changeId: change.change_id };
+	}
+
+	it("given a sandbox backend that is not qualified, then the adopted install does not run, nothing is adopted and the reason names the backend", async () => {
+		const { t, npm } = vitestHarness("installs");
+		const project = vitestProjectWithoutProvider("package-lock.json");
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		t.harness.deps.sandbox.qualification = {
+			...t.harness.deps.sandbox.qualification,
+			qualified: false,
+			reasons: ["backend not qualified"],
+		};
+		answerPending(t, change.change_id, "adopt_complement");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(npm.installs(), 0, "no install command reaches an unqualified backend");
+		assert.ok(npm.runs.every((r) => r.network === "denied"));
+		const pending = t.harness.pendingDecisions(change.change_id);
+		assert.ok(
+			pending[0]?.facts.some((f) => f.includes("not qualified") && f.includes("backend not qualified")),
+			pending[0]?.facts.join(" | "),
+		);
+	});
+
+	const untouched = (project: string): void => {
+		assert.equal(readFileSync(join(project, "package.json"), "utf8").includes("coverage-v8"), false);
+		assert.equal(existsSync(join(project, "node_modules", "@vitest")), false, "nothing is written in the project");
+	};
+
+	it("given the answer adopt the complement on a vitest target, then the protocol carries package.json, package-lock.json and the added node_modules files as complements with the installed packages and declares the coverage control qualified, and given a failing install or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption", async () => {
+		const { t, npm, project, changeId } = await askedAdoption("installs");
+		untouched(project);
+		const install = npm.runs.filter((r) => r.command[0] === "npm" && r.command[1] === "install");
+		assert.equal(install.length, 1);
+		assert.equal(install[0]!.network, "allowed");
+		assert.ok(install[0]!.command.includes(`${PROVIDER}@3.2.4`));
+		assert.ok(install[0]!.command.includes("--ignore-scripts"));
+		assert.deepEqual(install[0]!.write_paths.at(-1), "/machine/npm-cache");
+		assert.deepEqual(
+			npm.runs.filter((r) => r.network !== "denied").map((r) => r.command.slice(0, 2)),
+			[["npm", "install"]],
+			"the network is open for the install and for nothing else",
+		);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const loaded = t.ledger.loadChange(changeId)!;
+		assert.equal(loaded.state.gates.G2?.verdict, "PASS", loaded.state.gates.G2?.reasons.join("; "));
+		const protocol = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		assert.deepEqual(
+			(protocol.complements ?? []).map((c) => c.path).sort(),
+			["package-lock.json", "package.json", ...Object.keys(PROVIDER_FILES)].sort(),
+		);
+		for (const [path, text] of Object.entries(PROVIDER_FILES))
+			assert.equal(protocol.complements?.find((c) => c.path === path)?.digest, digestBytes(text), path);
+		assert.deepEqual(protocol.installed_packages, [
+			{ name: PROVIDER, version: "3.2.4", integrity: PROVIDER_INTEGRITY },
+		]);
+		assert.ok(protocol.controls.some((c) => c.control_id === "coverage"));
+		assert.equal(protocol.qualifications.coverage?.qualified, true, protocol.qualifications.coverage?.notes.join("; "));
+		const report = await t.harness.report(changeId);
+		assert.ok(
+			report.residual_risks.some((r) => r.code === "installed_packages" && r.statement.includes(PROVIDER_INTEGRITY)),
+			JSON.stringify(report.residual_risks),
+		);
+		assert.ok(!report.residual_risks.some((r) => r.code === "recommended_complement_not_adopted"));
+
+		for (const [mode, reason] of [
+			["fails", "404"],
+			["modifies-an-existing-file", "node_modules/vitest/package.json"],
+		] as const) {
+			const failed = await askedAdoption(mode);
+			untouched(failed.project);
+			const pending = failed.t.harness.pendingDecisions(failed.changeId);
+			assert.deepEqual(
+				pending[0]!.options.map((o) => o.id),
+				["prepare", "assign_review", "revise"],
+				mode,
+			);
+			assert.ok(
+				pending[0]!.facts.some((f) => f.includes(PROVIDER) && f.includes(reason)),
+				`${mode}: ${pending[0]!.facts.join(" | ")}`,
+			);
+			const state = failed.t.ledger.loadChange(failed.changeId)!.state;
+			assert.equal(state.protocol, null, "nothing is frozen on an adoption that failed");
+			const recorded = await Promise.all(
+				(state.proposals.output ?? [])
+					.filter((ref) => ref.artifact_id.startsWith("install_"))
+					.map((ref) => failed.t.harness.artifacts.read<{ reason: string }>(ref)),
+			);
+			assert.equal(recorded.length, 1, mode);
+			assert.match(recorded[0]!.reason, new RegExp(reason.replace(/[./]/g, "\\$&")), mode);
+			answerPending(failed.t, failed.changeId, "assign_review");
+			await failed.t.harness.advance(failed.changeId, { max_steps: 40 });
+			assert.equal(failed.npm.installs(), 1, `${mode}: the install is not run again`);
+			const settled = failed.t.ledger.loadChange(failed.changeId)!;
+			assert.equal(settled.state.gates.G2?.verdict, "PASS", settled.state.gates.G2?.reasons.join("; "));
+			const frozen = (await failed.t.harness.artifacts.latest<Protocol>(settled.state, "protocol"))!.content;
+			assert.equal(frozen.complements, undefined, mode);
+			assert.equal(frozen.installed_packages, undefined, mode);
+			assert.ok(
+				(await failed.t.harness.report(failed.changeId)).residual_risks.some(
+					(r) => r.code === "recommended_complement_not_adopted" && r.statement.includes(reason),
+				),
+				mode,
+			);
+			untouched(failed.project);
+		}
+	});
+
+	it("given an installed complement adopted then a revision of the requirements, then the next protocol carries no complement and no installed package, the recommendation is presented again and adoption is offered again", async () => {
+		const { t, changeId } = await askedAdoption("installs");
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 1 });
+		const loaded = t.ledger.loadChange(changeId)!;
+		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		assert.equal(frozen.installed_packages?.length, 1, "the install is adopted in the first protocol");
+		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
+		t.harness.commit(
+			loaded,
+			{
+				type: "artifact.revise",
+				at: t.harness.now(),
+				actor: KERNEL_ACTOR,
+				kind: "requirements",
+				ref: requirements.ref,
+				reason: "the requirements were rewritten",
+			},
+			t.harness.id("cor"),
+		);
+
+		const again = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
+		const [asked] = t.harness.pendingDecisions(changeId);
+		assert.deepEqual(
+			asked!.options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+			"adoption is offered again",
+		);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.gates.G2?.verdict, "PASS", state.gates.G2?.reasons.join("; "));
+		const next = (await t.harness.artifacts.latest<Protocol>(state, "protocol"))!.content;
+		assert.equal(next.complements, undefined, "the next protocol carries no complement");
+		assert.equal(next.installed_packages, undefined, "and no installed package");
+		assert.equal(next.capability_diagnosis.recommendations?.length, 1, "the install is recommended again");
 	});
 });
 
