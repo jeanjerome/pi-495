@@ -182,8 +182,30 @@ export class Harness {
 			progress: (message: string) => harness.progress(message),
 			language: (state: ChangeState) => harness.language(state),
 			commit: (unit: Unit, command: ChangeCommand, correlation: string) => harness.commit(unit, command, correlation),
-			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language) =>
-				harness.requestDecision(unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language),
+			requestDecision: (
+				unit,
+				cor,
+				interaction,
+				subject,
+				facts,
+				recommendation,
+				arg,
+				decisionId,
+				language,
+				adoptableFiles,
+			) =>
+				harness.requestDecision(
+					unit,
+					cor,
+					interaction,
+					subject,
+					facts,
+					recommendation,
+					arg,
+					decisionId,
+					language,
+					adoptableFiles,
+				),
 			feedbackSources: () => harness.feedbackSources(),
 			indeterminateObservations: (state: ChangeState) => harness.indeterminateObservations(state),
 		};
@@ -690,6 +712,7 @@ export class Harness {
 		arg?: string,
 		decisionId?: string,
 		language: "fr" | "en" = "fr",
+		adoptableFiles?: readonly string[],
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
 			decision_id: decisionId ?? this.id("dec"),
@@ -700,6 +723,7 @@ export class Harness {
 			facts,
 			recommendation,
 			...(arg !== undefined ? { arg } : {}),
+			...(adoptableFiles ? { adoptable_files: adoptableFiles } : {}),
 			requested_at: this.now(),
 		});
 		this.deps.ledger.putDecisionRequest(request);

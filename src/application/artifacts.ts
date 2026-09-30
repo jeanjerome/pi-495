@@ -12,6 +12,7 @@ import { canonicalize } from "../contracts/canonical.ts";
 import { digestBytes } from "../contracts/digest.ts";
 import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { ArtifactRef } from "../contracts/v1/common.ts";
+import type { AdoptedComplement, Protocol } from "../contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../contracts/v1/reports.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../domain/change/state.ts";
@@ -35,6 +36,11 @@ export interface PreparedWorkspace {
 	 * taken up again: what it holds is not known.
 	 */
 	preparation_id?: string | null;
+	/**
+	 * The digests of the complement files written into it. Absent from a workspace opened before
+	 * complements could be adopted, which holds none.
+	 */
+	complements?: string[];
 }
 
 export class ArtifactRepository {
@@ -197,8 +203,16 @@ export class ArtifactRepository {
 		return a?.content.qualified ? a.content : null;
 	}
 
+	/** The complements the owner adopted, as the latest protocol froze them. */
+	async adoptedComplements(state: ChangeState): Promise<AdoptedComplement[]> {
+		return (await this.latest<Protocol>(state, "protocol"))?.content.complements ?? [];
+	}
+
 	/** Writes prepared files into a workspace, from the store and not from a tree. */
-	async materializePrepared(prepared: Pick<PreparationRecord, "files"> | null, workspacePath: string): Promise<void> {
+	async materializePrepared(
+		prepared: { files: readonly { path: string; digest: string }[] } | null,
+		workspacePath: string,
+	): Promise<void> {
 		if (!prepared) return;
 		for (const f of prepared.files) {
 			const bytes = await this.deps.objects.get(f.digest);
@@ -215,9 +229,9 @@ export class ArtifactRepository {
 	 * refused it, or the step stopped between the two. Taking it up again keeps one workspace per
 	 * attempt, instead of a new copy of the project at every resume. It applies only before the first
 	 * attempt starts: a correction opens the next attempt itself, and a started one stays open. The
-	 * copy is the right start only while it holds the preparation adopted now: the reference cannot
-	 * change, but a revocation withdraws the adoption, and the change rebuilt after it adopts a
-	 * preparation of its own (DEC-06).
+	 * copy is the right start only while it holds the preparation and the complements adopted now: the
+	 * reference cannot change, but a revocation withdraws the adoption, and the change rebuilt after it
+	 * adopts a preparation of its own (DEC-06).
 	 */
 	async unstartedAttempt(state: ChangeState): Promise<string | null> {
 		const started = new Set(state.attempts.map((a) => a.attempt_id));
@@ -228,7 +242,11 @@ export class ArtifactRepository {
 		if (!unstarted) return null;
 		const workspace = await this.read<PreparedWorkspace>(unstarted.ref);
 		const adopted = await this.adoptedPreparation(state);
-		return workspace.preparation_id === (adopted?.preparation_id ?? null)
+		const complements = (await this.adoptedComplements(state)).map((c) => c.digest);
+		const holdsComplements =
+			(workspace.complements ?? []).length === complements.length &&
+			complements.every((digest) => workspace.complements?.includes(digest));
+		return workspace.preparation_id === (adopted?.preparation_id ?? null) && holdsComplements
 			? unstarted.ref.artifact_id.slice("ws_".length)
 			: null;
 	}

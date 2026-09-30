@@ -2,7 +2,7 @@
 
 Story : e12s06
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -58,6 +58,12 @@ Scenario: Seule la modification adoptée est permise sur ce chemin protégé
   When le noyau juge chacun à G4
   Then le premier passe, le second est refusé en nommant package.json comme chemin protégé modifié
 
+Scenario: Le producteur ne défait pas l'adoption en remettant le fichier de la référence
+  Given un complément adopté sur package.json, et un candidat dont le producteur a réécrit dans son workspace le package.json d'origine, octet pour octet
+  When le noyau juge ce candidat à G4
+  Then l'événement gate.decided G4 est FAIL, avec le motif « protected path altered by the producer: package.json »
+  And le candidat n'est pas accepté, et aucun commit d'intégration n'est produit sans le complément que le protocole gelé porte
+
 Scenario: La modification arrive dans le projet avec le candidat, à l'intégration
   Given un candidat accepté par le propriétaire qui porte le complément adopté, et l'intégration locale acceptée
   When le candidat est intégré
@@ -86,8 +92,10 @@ Scenario: Dans un vrai Pi, adopter le drapeau de couverture mène le changement 
   ne la propose, aucun contenu du projet ne la choisit. Elle ne s'applique que sur la réponse valide du
   propriétaire à la décision IH-04, par le dialogue de Pi, comme les autres réponses.
 - **Chemin protégé.** `package.json` reste protégé. La seule modification permise est celle dont l'empreinte est
-  celle du fichier que le complément a écrit : le producteur ne peut ni la défaire ni la prolonger.
-  L'exception disparaît avec la réponse qui l'a permise.
+  celle du fichier que le complément a écrit : le producteur ne peut ni la défaire ni la prolonger. Un candidat
+  dont `package.json` est redevenu, octet pour octet, celui de la référence a défait l'adoption : il est refusé à
+  G4 en nommant `package.json`, comme celui qui y modifie une autre ligne, et non accepté sans le complément que
+  le protocole gelé porte. L'exception disparaît avec la réponse qui l'a permise.
 - **Rien n'est écrit dans le projet avant l'intégration** que le propriétaire accepte. Aucun réseau, aucune
   installation, aucun fichier autre que celui que la modification nomme.
 - La modification remplace une valeur exacte du fichier, hors laquelle il reste octet pour octet ce qu'il était,
@@ -183,6 +191,16 @@ complément adoptable ne manque.
 - Tient : `test/v2/verifiability-arbitration.test.ts`, « given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only »
 - Rouge : les options d'IH-04 sont fixes et aucune réponse ne modifie la cible : la question reposée offrirait les mêmes issues, dont une adoption déjà faite
 
+### Tâche 10 — Le producteur ne défait pas l'adoption en remettant le fichier de la référence
+
+À G4, un fichier de complément adopté que le candidat ne change pas par rapport à la référence est refusé comme chemin
+protégé altéré : le complément est absent du candidat, et le protocole gelé le porte. Le fichier gardé tel que le
+complément l'a écrit reste permis.
+
+- Vérifie : `node --test test/v1/node-stack.test.ts`
+- Tient : `test/v1/node-stack.test.ts`, « given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed »
+- Rouge : `protectedPathsChanged` ne juge que les entrées dont `baseline_state` n'est pas `unchanged` : un `package.json` remis à la référence octet pour octet n'est ni dans `changed` ni dans `altered`, si bien que `altered` reste vide au lieu de nommer `package.json`, et que `evaluateG4` rend PASS
+
 ## 5. Hors périmètre
 
 - Un complément qui demande une installation, avec le réseau ouvert : l'arbre installé se conserve et se remet sans
@@ -195,5 +213,7 @@ complément adoptable ne manque.
   l'empreinte exacte d'un complément adopté. Une règle plus large se rouvre avec l'installation.
 - Défaire un complément adopté après l'intégration : le propriétaire le défait comme toute modification de son
   dépôt.
+- Les fichiers de la préparation adoptée : l'écart ne porte que sur le fichier d'un complément que le producteur
+  remet à la référence ; le sort d'un fichier préparé qu'il défait n'est pas examiné ici.
 - Le refus explicite d'un complément : refuser, c'est choisir une autre issue ; le rapport dit déjà que le complément
   n'est pas adopté (`e12s05`).

@@ -391,4 +391,28 @@ describe("engineering report: the recommended complements a target has not adopt
 		assert.deepEqual(risksOf(), [], "a protocol frozen without the list");
 		assert.deepEqual(risksOf([]), []);
 	});
+	it("given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted", () => {
+		const adopted = {
+			path: "package.json",
+			digest: `sha256:${"d".repeat(64)}` as const,
+			test_type: recommendation.test_type,
+			tool: recommendation.tool,
+		};
+		const listed = (complements: (typeof adopted)[]) =>
+			engineeringReport(
+				new Runner().toDeciding(c).s,
+				[],
+				protocol({
+					capability_diagnosis: { ...frozen.capability_diagnosis, recommendations: [recommendation] },
+					complements,
+				}),
+			).residual_risks.filter((risk) => risk.code === "recommended_complement_not_adopted");
+		assert.deepEqual(listed([adopted]), []);
+		assert.equal(listed([]).length, 1, "the same recommendation with nothing adopted is still listed");
+		assert.equal(
+			listed([{ ...adopted, tool: "another tool" }]).length,
+			1,
+			"another complement adopted does not cover it",
+		);
+	});
 });

@@ -431,6 +431,27 @@
               "change": {
                 "type": "string",
                 "minLength": 1
+              },
+              "edit": {
+                "type": "object",
+                "required": [
+                  "path",
+                  "current",
+                  "wanted"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "current": {
+                    "type": "string"
+                  },
+                  "wanted": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -566,6 +587,38 @@
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$",
       "description": "SHA-256 digest, hex, prefixed"
+    },
+    "complements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "digest",
+          "test_type",
+          "tool"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "SHA-256 digest, hex, prefixed"
+          },
+          "test_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tool": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "$id": "urn:495:contract:protocol:1",

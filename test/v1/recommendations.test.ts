@@ -148,6 +148,37 @@ describe("Node recommends the coverage its runner can produce", () => {
 	});
 });
 
+describe("Node describes the edit of scripts.test that adds the coverage flag", () => {
+	it("given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none", () => {
+		for (const current of ["node --test", "node --test test/"]) {
+			const [recommendation, ...others] = detectStack(nodeProject("edited", current), REFS, NODE).recommendations;
+			assert.deepEqual(others, []);
+			assert.deepEqual(recommendation?.edit, {
+				path: "package.json",
+				current,
+				wanted: `${current} --experimental-test-coverage`,
+			});
+			assert.deepEqual(validate(RecommendedComplement, recommendation), recommendation);
+		}
+		const noScriptsTest = join(root, "no-scripts-test");
+		writeFiles(noScriptsTest, { "package.json": JSON.stringify({ name: "no-scripts-test", scripts: {} }) });
+		const bare = detectStack(noScriptsTest, REFS, NODE).recommendations;
+		assert.deepEqual(
+			bare.map((r) => [r.test_type, r.edit]),
+			[["coverage", undefined]],
+			"the recommendation stays a text",
+		);
+		const vitest = nodeProject("vitest-edit", "vitest run", {
+			"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
+		});
+		const installs = detectStack(vitest, REFS, NODE).recommendations;
+		assert.deepEqual(
+			installs.map((r) => [r.tool, r.edit]),
+			[["@vitest/coverage-v8", undefined]],
+		);
+	});
+});
+
 describe("A technology declares its own recommendations", () => {
 	it("given a list of adapters gaining a test adapter that declares a recommendation, then the detection of a project it recognises carries it", () => {
 		const recommendation: RecommendedComplement = {

@@ -13,6 +13,7 @@ import type {
 import type { HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
+import { applyRecommendedEdits, editedFile } from "../complement.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { ReferenceSuiteObservation } from "../preparation.ts";
@@ -72,6 +73,11 @@ function answerHeld(
 	);
 }
 
+/** A valid answer "adopt_complement" holds until the requirements are revised, which revokes it with the others. */
+function complementAdopted(decisions: readonly HumanDecisionEntry[]): boolean {
+	return decisions.some((d) => d.valid && d.interaction === "IH-04" && d.option_id === "adopt_complement");
+}
+
 function recommendationFact(r: RecommendedComplement): string {
 	return `recommended ${r.test_type} complement, not adopted: ${r.tool} ${r.version} (established ${r.established_on}, source ${r.source}); ${r.change}`;
 }
@@ -88,6 +94,7 @@ function requestVerifiabilityArbitration(
 	requirements: ArtifactRef,
 	diagnosis: ControlCapabilityDiagnosis,
 	recommendations: readonly RecommendedComplement[],
+	adoptableFiles: readonly string[],
 ): Promise<Unit> {
 	const named = diagnosis.undiscriminated_requirements.join(", ");
 	const subject = arbitrationSubject(requirements, diagnosis.undiscriminated_requirements);
@@ -102,6 +109,7 @@ function requestVerifiabilityArbitration(
 		named,
 		undefined,
 		ctx.language(unit.state),
+		adoptableFiles,
 	);
 }
 
@@ -120,13 +128,22 @@ async function openPreparation(
 	requirements: ArtifactRef,
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
+	adoptableFiles: readonly string[],
 ): Promise<Unit> {
 	const alreadyTried = ctx.artifacts
 		.preparationsForCurrentRequirements(unit.state)
 		.filter((a) => a.artifact_id.startsWith("prep_")).length;
 	const granted = preparationsGranted(unit);
 	if (alreadyTried >= 2 + granted)
-		return requestVerifiabilityArbitration(ctx, unit, cor, requirements, diagnosis, detection.recommendations);
+		return requestVerifiabilityArbitration(
+			ctx,
+			unit,
+			cor,
+			requirements,
+			diagnosis,
+			detection.recommendations,
+			adoptableFiles,
+		);
 	const objective = preparationMandateObjective(
 		detection.stack,
 		detection.preparation_paths,
@@ -164,11 +181,23 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		const detection = detectStack(handle.path, refs);
+		let detection = detectStack(handle.path, refs);
+		// The edit is written into this copy alone: the detection that follows reads the sensor the edit
+		// asks for, and the project stays as it is until the candidate that carries the edit is integrated.
+		const complements = complementAdopted(unit.state.human_decisions)
+			? applyRecommendedEdits(handle.path, detection.recommendations)
+			: [];
+		if (complements.length > 0) {
+			await ctx.artifacts.ensureBytes(handle.path, complements);
+			detection = detectStack(handle.path, refs);
+		}
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {
 				nextActions: ["cancel"],
 			});
+		const adoptableFiles = detection.recommendations.flatMap((r) =>
+			r.edit && editedFile(handle.path, r.edit) !== null ? [r.edit.path] : [],
+		);
 		const ordered = ctx.verification.orderOf(detection.controls);
 		const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis =>
 			diagnoseControlCapability({
@@ -191,7 +220,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			);
 			return revision
 				? reviseRequirements(ctx, unit, cor, reference, d.undiscriminated_requirements, revision.free_text)
-				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d);
+				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptableFiles);
 		};
 		const needsPreparation = (d: ControlCapabilityDiagnosis): boolean =>
 			d.undiscriminated_requirements.length > 0 &&
@@ -233,6 +262,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			prepared,
 			assigned_to_human: takenByOwner(diagnosis),
 			recommendations: detection.recommendations,
+			complements,
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

@@ -310,6 +310,25 @@ const T = {
 	},
 } as const;
 
+/**
+ * The way out of IH-04 that changes the target instead of judging anything: it applies the file edit
+ * of a recommended complement. It is offered only when such an edit can be applied.
+ */
+const ADOPT_COMPLEMENT = {
+	fr: (files: string) => ({
+		id: "adopt_complement",
+		label: `Adopter le complément (modifie ${files})`,
+		effect: `495 applique à ${files} la modification exacte que la recommandation décrit, sans réseau et sans rien installer ; elle arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
+		risky: true,
+	}),
+	en: (files: string) => ({
+		id: "adopt_complement",
+		label: `Adopt the complement (edits ${files})`,
+		effect: `495 applies to ${files} the exact edit the recommendation describes, with no network and nothing installed; it reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
+		risky: true,
+	}),
+} as const;
+
 export function buildDecisionRequest(args: {
 	decision_id: string;
 	change_id: string;
@@ -319,10 +338,15 @@ export function buildDecisionRequest(args: {
 	facts: string[];
 	recommendation: string | null;
 	arg?: string;
+	/** The files that the adoptable complements of an IH-04 would edit; none when no recommended edit can be applied. */
+	adoptable_files?: readonly string[];
 	requested_at: string;
 	authority?: DecisionRequest["required_authority"];
 }): DecisionRequest {
 	const t = T[args.language][args.interaction](args.arg ?? "");
+	const adoptableFiles = args.interaction === "IH-04" ? (args.adoptable_files ?? []) : [];
+	const options =
+		adoptableFiles.length > 0 ? [...t.options, ADOPT_COMPLEMENT[args.language](adoptableFiles.join(", "))] : t.options;
 	return {
 		decision_id: args.decision_id,
 		change_id: args.change_id,
@@ -331,7 +355,7 @@ export function buildDecisionRequest(args: {
 		question: t.question,
 		facts: args.facts,
 		recommendation: args.recommendation,
-		options: [...t.options],
+		options: [...options],
 		required_authority: args.authority ?? (args.interaction === "IH-01" ? "requester" : "change_owner"),
 		allow_free_text:
 			args.interaction === "IH-01" ||

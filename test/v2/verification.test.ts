@@ -244,6 +244,7 @@ describe("the protocol frozen from a detection", () => {
 			prepared: null,
 			assigned_to_human: [],
 			recommendations,
+			complements: [],
 		});
 	};
 

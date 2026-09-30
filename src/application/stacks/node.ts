@@ -137,7 +137,17 @@ function suiteOf(
 				missing: [
 					`${COVERAGE_NOT_MEASURED}: scripts.test does not ask node:test for coverage (--experimental-test-coverage)`,
 				],
-				recommendation: NODE_TEST_COVERAGE_RECOMMENDATION,
+				recommendation:
+					scriptsTest === undefined
+						? NODE_TEST_COVERAGE_RECOMMENDATION
+						: {
+								...NODE_TEST_COVERAGE_RECOMMENDATION,
+								edit: {
+									path: "package.json",
+									current: scriptsTest,
+									wanted: `${scriptsTest} --experimental-test-coverage`,
+								},
+							},
 			},
 		};
 	}

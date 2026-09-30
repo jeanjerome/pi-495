@@ -185,11 +185,14 @@ export function engineeringReport(
 			);
 		}
 	}
-	for (const r of protocol?.capability_diagnosis.recommendations ?? [])
+	const adopted = protocol?.complements ?? [];
+	for (const r of protocol?.capability_diagnosis.recommendations ?? []) {
+		if (adopted.some((c) => c.test_type === r.test_type && c.tool === r.tool)) continue;
 		add(
 			"recommended_complement_not_adopted",
 			`a ${r.test_type} complement is recommended and not adopted: ${r.tool} ${r.version}; ${r.change}.`,
 		);
+	}
 	for (const [controlId, qualification] of Object.entries(protocol?.qualifications ?? {})) {
 		if (!qualification.qualified)
 			add(

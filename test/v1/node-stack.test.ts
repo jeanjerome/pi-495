@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import { detectStack } from "../../src/application/target.ts";
+import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { matchesScope, protectedPathsChanged } from "../../src/domain/gates/g4.ts";
@@ -192,6 +193,68 @@ describe("Node stack: what the vitest control protects among the installed depen
 			assert.deepEqual(added.allowed, ["tests/fixtures/node_modules/x.js"], String(scriptsTest));
 			assert.deepEqual(added.altered, [], String(scriptsTest));
 		}
+	});
+	const complement = {
+		path: "package.json",
+		digest: digestBytes('{"scripts":{"test":"node --test --experimental-test-coverage"}}'),
+		test_type: "coverage",
+		tool: "node --experimental-test-coverage",
+	} as const;
+	const packageJson = (baseline_state: ManifestEntry["baseline_state"], content_digest: `sha256:${string}`) => ({
+		...entry("package.json", baseline_state),
+		content_digest,
+	});
+	it("given an adopted complement on package.json, then a candidate keeping that file as the complement wrote it is allowed, and one modifying another line is refused naming package.json", () => {
+		const { protected_paths: protectedPaths } = unitOf(targetWith("node --test"));
+		const kept = protectedPathsChanged(
+			manifestOf(packageJson("modified", complement.digest)),
+			protectedPaths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(kept.allowed, ["package.json"]);
+		const edited = protectedPathsChanged(
+			manifestOf(packageJson("modified", digestBytes('{"scripts":{"test":"node --test","lint":"x"}}'))),
+			protectedPaths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(edited.altered, ["package.json"]);
+		assert.deepEqual(edited.allowed, []);
+		const unadopted = protectedPathsChanged(manifestOf(packageJson("modified", complement.digest)), protectedPaths, []);
+		assert.deepEqual(unadopted.altered, ["package.json"], "without the adoption the same file is refused");
+	});
+	it("given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed", () => {
+		const { protected_paths: protectedPaths } = unitOf(targetWith("node --test"));
+		const restored = protectedPathsChanged(
+			manifestOf(packageJson("unchanged", digestBytes('{"scripts":{"test":"node --test"}}'))),
+			protectedPaths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(restored.altered, ["package.json"]);
+		assert.deepEqual(restored.allowed, []);
+		const kept = protectedPathsChanged(
+			manifestOf(packageJson("modified", complement.digest)),
+			protectedPaths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(kept.allowed, ["package.json"]);
+		const untouched = protectedPathsChanged(
+			manifestOf(entry("src/agenda.ts", "modified")),
+			protectedPaths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(untouched.altered, [], "a manifest without the complement file judges nothing about it");
 	});
 });
 

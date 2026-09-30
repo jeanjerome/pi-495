@@ -14,7 +14,7 @@ import {
 } from "../helpers/harness-fixture.ts";
 import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 import type { ContextManifest } from "../../src/ports/execution.ts";
-import { fixtureTs, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { fixtureTs, fixtureTsWithoutTests, initRepo, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
@@ -139,6 +139,123 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		const protocol = await t.harness.artifacts.latest<Protocol>(state, "protocol");
 		assert.deepEqual(protocol?.content.capability_diagnosis.recommendations, recommended);
+	});
+
+	/** A change frozen with the complement adopted, whose producer is refused after its workspace is prepared. */
+	async function adoptedWithProducerRefused(): Promise<{ t: TestHarness; p: string; changeId: string }> {
+		const p = tempDir("495-adopted-");
+		cleanups.push(p);
+		fixtureTsWithoutTests(p);
+		initRepo(p);
+		const unjudgeable = specReport({
+			objective: "add shout(name) returning the greeting in upper case",
+			requirements: [
+				{
+					requirement_id: "R1",
+					statement: "shout(name) returns greet(name) upper-cased",
+					mandatory: true,
+					criterion: "unit test on shout passes",
+					category: "functional",
+					satisfied_by_reference: false,
+				},
+			],
+		});
+		const t = track(
+			makeHarness({
+				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+				scripts: {
+					prepare: { steps: [{ kind: "complete", output: report([]) }] },
+					implement: { steps: [{ kind: "complete", output: report([]) }] },
+				},
+			}),
+		);
+		// The producer is refused after its workspace is prepared and before it starts.
+		const describeCapabilities = t.agent.describeCapabilities.bind(t.agent);
+		t.agent.describeCapabilities = async (model) => {
+			const described = await describeCapabilities(model);
+			return t.ledger.loadChange(changeId)!.state.phase === "implementing"
+				? { ...described, available: false, reasons: ["refused by the test"] }
+				: described;
+		};
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const changeId = change.change_id;
+		const answer = (optionId: string): void => {
+			const [pending] = t.ledger.loadChange(changeId)!.state.pending_decisions;
+			const done = t.harness.answerDecision(
+				changeId,
+				{
+					decision_id: pending!.decision_id,
+					option_id: optionId,
+					free_text: null,
+					reason: null,
+					subject_revision: pending!.subject.revision,
+					scope: null,
+					expires_at: null,
+				},
+				origin(),
+			);
+			assert.equal(done.error, null);
+		};
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answer("assign_review");
+		return { t, p, changeId };
+	}
+
+	it("given a frozen protocol carrying an adopted complement, then a new attempt's workspace carries the modified package.json before the producer reads anything, and a workspace opened before the adoption is not reused", async () => {
+		const { t, p, changeId } = await adoptedWithProducerRefused();
+		// A workspace opened before the adoption: the producer never started in it, and it holds the bare reference.
+		const earlier = tempDir("495-earlier-");
+		cleanups.push(earlier);
+		writeFiles(earlier, { "package.json": readFileSync(join(p, "package.json"), "utf8") });
+		await t.harness.artifacts.store(
+			"candidate",
+			changeId,
+			"ws_att_earlier",
+			{ workspace_id: "wsp_earlier", path: earlier, preparation_id: null },
+			KERNEL_ACTOR.actor_id,
+		);
+
+		const result = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
+		const opened = t.ledger
+			.listArtifacts(changeId, "candidate")
+			.filter((a) => a.ref.artifact_id.startsWith("ws_") && a.ref.artifact_id !== "ws_att_earlier");
+		assert.equal(opened.length, 1, "a workspace of its own is prepared for the attempt");
+		const workspace = await t.harness.artifacts.read<{ path: string }>(opened[0]!.ref);
+		assert.notEqual(workspace.path, earlier);
+		assert.equal(
+			JSON.parse(readFileSync(join(workspace.path, "package.json"), "utf8")).scripts.test,
+			"node --test --experimental-test-coverage",
+			"the candidate carries the complement the owner adopted",
+		);
+		assert.equal(
+			JSON.parse(readFileSync(join(p, "package.json"), "utf8")).scripts.test,
+			"node --test",
+			"the project is not written",
+		);
+		assert.equal(t.agent.started.filter((m) => m.role === "implement").length, 0, "the producer never started");
+	});
+
+	it("given a workspace opened after the adoption, in which the producer never started, then resuming the change takes it up again instead of preparing another copy of the project", async () => {
+		const { t, changeId } = await adoptedWithProducerRefused();
+		const workspaces = () =>
+			t.ledger.listArtifacts(changeId, "candidate").filter((a) => a.ref.artifact_id.startsWith("ws_"));
+
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const opened = workspaces().map((a) => a.ref.artifact_id);
+		assert.equal(opened.length, 1, "the first advance prepares the workspace of the attempt");
+		t.harness.resume(changeId, HUMAN);
+		const resumed = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.equal(resumed.stopped_because, "capability_missing", resumed.steps.join(" | "));
+		assert.deepEqual(
+			workspaces().map((a) => a.ref.artifact_id),
+			opened,
+			"the workspace already holding the complement is reused",
+		);
 	});
 
 	it("a producer claiming success without passing tests is refused at G5, then corrected on a second attempt with bounded feedback (REC-02, SA-015, DEC-02)", async () => {

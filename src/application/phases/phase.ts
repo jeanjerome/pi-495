@@ -82,6 +82,7 @@ export interface PhaseContext {
 		arg?: string,
 		decisionId?: string,
 		language?: "fr" | "en",
+		adoptableFiles?: readonly string[],
 	): Promise<Unit>;
 	/** The ledger and store reads the feedback document is composed from. */
 	feedbackSources(): FeedbackSources;

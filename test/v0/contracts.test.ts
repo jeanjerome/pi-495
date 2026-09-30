@@ -11,7 +11,9 @@ import {
 	ControlCapabilityDiagnosis,
 	ControlDefinition,
 	isDifferentialParser,
+	Protocol,
 } from "../../src/contracts/v1/protocol.ts";
+import { protocol } from "../helpers/change-fixture.ts";
 
 describe("canonical JSON and digests (§8.1)", () => {
 	it("is independent of key order and omits undefined", () => {
@@ -186,5 +188,47 @@ describe("the capability diagnosis of a protocol", () => {
 			() => validate(ControlCapabilityDiagnosis, { ...diagnosis, recommendations: [{ ...recommendation, extra: 1 }] }),
 			ContractError,
 		);
+	});
+});
+
+describe("a file edit recommended to a target and the complement its owner adopted", () => {
+	const recommendation = {
+		test_type: "coverage",
+		tool: "node --experimental-test-coverage",
+		version: "24.21.0",
+		established_on: "2026-09-30",
+		source: "nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage",
+		change: "in package.json, add --experimental-test-coverage to scripts.test",
+	};
+	const edit = { path: "package.json", current: "node --test", wanted: "node --test --experimental-test-coverage" };
+	const adopted = {
+		path: "package.json",
+		digest: digestBytes('{"scripts":{"test":"node --test --experimental-test-coverage"}}'),
+		test_type: "coverage",
+		tool: "node --experimental-test-coverage",
+	};
+	const frozen = protocol();
+	it("given a recommendation carrying a file edit and a protocol carrying an adopted complement, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis", () => {
+		const withEdit = { ...frozen.capability_diagnosis, recommendations: [{ ...recommendation, edit }] };
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, withEdit), withEdit);
+		assert.deepEqual(
+			validate(ControlCapabilityDiagnosis, { ...frozen.capability_diagnosis, recommendations: [recommendation] }),
+			{
+				...frozen.capability_diagnosis,
+				recommendations: [recommendation],
+			},
+		);
+		const carrying = { ...frozen, complements: [adopted] };
+		assert.deepEqual(validate(Protocol, carrying), carrying);
+		assert.deepEqual(validate(Protocol, frozen), frozen);
+		assert.throws(
+			() =>
+				validate(ControlCapabilityDiagnosis, {
+					...withEdit,
+					recommendations: [{ ...recommendation, edit: { path: "package.json" } }],
+				}),
+			ContractError,
+		);
+		assert.throws(() => validate(Protocol, { ...frozen, complements: [{ ...adopted, extra: 1 }] }), ContractError);
 	});
 });

@@ -3,14 +3,17 @@
  * the owner instead of stopping the change: prepare once more, or judge the requirement themselves.
  */
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureJava, fixtureTsWithoutTests, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureJava, fixtureTsWithoutTests, gitCmd, initRepo, SHOUT_IMPL, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { buildDecisionRequest } from "../../src/application/decisions.ts";
 import { detectStack } from "../../src/application/target.ts";
+import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
+import { digestBytes } from "../../src/contracts/digest.ts";
 import { arbitrationSubject, requirementsTakenByOwner } from "../../src/application/phases/verification-design.ts";
 import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
 import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.ts";
@@ -155,7 +158,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		);
 		assert.deepEqual(
 			request.options.map((o) => o.id),
-			["prepare", "assign_review", "revise"],
+			["prepare", "assign_review", "revise", "adopt_complement"],
 		);
 		assert.ok(
 			request.options.every((o) => o.effect.length > 0),
@@ -474,6 +477,340 @@ describe("the IH-04 facts present the recommended complements", () => {
 			`no recommendation to list: ${bare.join(" | ")}`,
 		);
 		assert.equal(facts.length, bare.length + 2, "each recommendation is one fact and nothing else changes");
+	});
+});
+
+describe("the IH-04 decision offers to adopt a complement that is a file edit", () => {
+	async function optionsAsked(project: string): Promise<{ id: string; label: string; effect: string }[]> {
+		const t = harnessWithEmptyPreparations();
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		return t.harness.pendingDecisions(change.change_id)[0]!.options;
+	}
+
+	it("given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today", async () => {
+		const options = await optionsAsked(projectWithoutTests());
+		assert.deepEqual(
+			options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+		);
+		const adopt = options.at(-1)!;
+		assert.match(adopt.effect, /package\.json/);
+		assert.match(adopt.effect, /ne juge pas|does not judge/);
+		for (const language of ["fr", "en"] as const) {
+			const request = (adoptable_files: string[]) =>
+				buildDecisionRequest({
+					decision_id: "dec_1",
+					change_id: "chg_1",
+					interaction: "IH-04",
+					subject: { kind: "artifact", id: "req_0001", revision: 1, digest: "sha256:00" },
+					language,
+					facts: [],
+					recommendation: null,
+					arg: "R1",
+					requested_at: "2026-09-30T12:00:00.000Z",
+					adoptable_files,
+				}).options;
+			assert.deepEqual(
+				request([]).map((o) => o.id),
+				["prepare", "assign_review", "revise"],
+				`nothing adoptable (${language})`,
+			);
+			const offered = request(["package.json"]);
+			assert.deepEqual(
+				offered.map((o) => o.id),
+				["prepare", "assign_review", "revise", "adopt_complement"],
+				language,
+			);
+			assert.match(offered.at(-1)!.effect, /package\.json/, language);
+			assert.match(offered.at(-1)!.effect, language === "fr" ? /ne juge pas/ : /does not judge/, language);
+		}
+		const duplicated = projectWithoutTests();
+		writeFileSync(
+			join(duplicated, "package.json"),
+			'{"name":"f-notests","type":"module","scripts":{"test":"node --test","test":"node --test"}}\n',
+		);
+		gitCmd(duplicated, ["commit", "-qam", "scripts.test written twice"]);
+		assert.equal(
+			detectStack(duplicated, []).recommendations.filter((r) => r.edit).length,
+			1,
+			"the recommendation still carries the edit",
+		);
+		assert.deepEqual(
+			(await optionsAsked(duplicated)).map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+			"an edit that does not apply to the file is not offered for adoption",
+		);
+		const withoutEdit = await optionsAsked(mavenProjectWithoutTests(false));
+		assert.deepEqual(
+			withoutEdit.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+			"the recommendations of a Maven target are texts",
+		);
+	});
+});
+
+describe("adopting a complement that is a file edit", () => {
+	/** The package.json the recommended edit makes of the one the target holds. */
+	function editedPackageJson(project: string): string {
+		return readFileSync(join(project, "package.json"), "utf8").replace(
+			'"node --test"',
+			'"node --test --experimental-test-coverage"',
+		);
+	}
+
+	it("given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes", async () => {
+		const t = harnessWithEmptyPreparations();
+		const project = projectWithoutTests();
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt_complement");
+		const asked = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(asked.stopped_because, "decision_required", asked.steps.join(" | "));
+		assert.equal(
+			readFileSync(join(project, "package.json"), "utf8").includes("--experimental-test-coverage"),
+			false,
+			"nothing is written in the project",
+		);
+		answerPending(t, change.change_id, "assign_review");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const loaded = t.ledger.loadChange(change.change_id)!;
+		assert.equal(loaded.state.gates.G2?.verdict, "PASS", loaded.state.gates.G2?.reasons.join("; "));
+		const protocol = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		assert.ok(
+			protocol.controls.some((c) => c.control_id === "coverage"),
+			`the coverage control is declared: ${protocol.controls.map((c) => c.control_id).join(", ")}`,
+		);
+		assert.equal(protocol.qualifications.coverage?.qualified, true, protocol.qualifications.coverage?.notes.join("; "));
+		assert.deepEqual(protocol.complements, [
+			{
+				path: "package.json",
+				digest: digestBytes(editedPackageJson(project)),
+				test_type: "coverage",
+				tool: "node --experimental-test-coverage",
+			},
+		]);
+		const report = await t.harness.report(change.change_id);
+		assert.ok(
+			!report.residual_risks.some((r) => r.code === "recommended_complement_not_adopted"),
+			JSON.stringify(report.residual_risks),
+		);
+	});
+});
+
+describe("the candidate that carries an adopted complement", () => {
+	/** The change frozen with the complement adopted and R1 assigned to the owner, whose producer writes `files`. */
+	async function adoptedAndImplemented(
+		files: Record<string, string>,
+	): Promise<{ t: TestHarness; project: string; changeId: string }> {
+		const project = projectWithoutTests();
+		const t = track(
+			makeHarness({
+				policy: { integration_enabled: true },
+				defaultScript: { steps: [{ kind: "complete", output: spec }] },
+				scripts: {
+					prepare: emptyPreparation,
+					implement: {
+						steps: [
+							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+							{
+								kind: "complete",
+								output: { summary: "done", changed_paths: Object.keys(files), tests_claimed: false, notes: [] },
+							},
+						],
+					},
+				},
+			}),
+		);
+		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "adopt_complement");
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		answerPending(t, change.change_id, "assign_review");
+		return { t, project, changeId: change.change_id };
+	}
+
+	const g4Decisions = (t: TestHarness, changeId: string) =>
+		t.ledger
+			.readChangeEvents(changeId)
+			.filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G4")
+			.map((e) => (e.event as { decision: { verdict: string; reasons: string[] } }).decision);
+
+	it("given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then", async () => {
+		const { t, project, changeId } = await adoptedAndImplemented({ "src/greet.js": SHOUT_IMPL });
+		const before = gitCmd(project, ["rev-parse", "HEAD"]).trim();
+
+		let result = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.deepEqual(
+			g4Decisions(t, changeId).map((g) => g.verdict),
+			["PASS"],
+			g4Decisions(t, changeId)
+				.flatMap((g) => g.reasons)
+				.join("; "),
+		);
+		assert.equal(
+			gitCmd(project, ["rev-parse", "HEAD"]).trim(),
+			before,
+			"nothing is committed before the owner accepts",
+		);
+		assert.equal(gitCmd(project, ["status", "--porcelain"]).trim(), "", "nothing is written in the project");
+		for (let step = 0; step < 4 && result.stopped_because === "decision_required"; step++) {
+			const [asked] = t.harness.pendingDecisions(changeId);
+			answerPending(t, changeId, asked!.interaction === "IH-11" ? "integrate" : "accept");
+			result = await t.harness.advance(changeId, { max_steps: 40 });
+		}
+		assert.equal(result.view.change?.outcome, "integrated", result.steps.join(" | "));
+		const committed = JSON.parse(gitCmd(project, ["show", "HEAD:package.json"])) as { scripts: { test: string } };
+		assert.equal(committed.scripts.test, "node --test --experimental-test-coverage");
+		assert.equal(gitCmd(project, ["remote"]).trim(), "", "nothing is pushed");
+	});
+
+	it("given a candidate that also modifies another line of package.json, then G4 refuses it naming package.json", async () => {
+		const modified = JSON.stringify({
+			name: "f-notests",
+			version: "1.0.0",
+			type: "module",
+			scripts: { test: "node --test --experimental-test-coverage", extra: "true" },
+		});
+		const { t, changeId } = await adoptedAndImplemented({ "src/greet.js": SHOUT_IMPL, "package.json": modified });
+
+		await t.harness.advance(changeId, { max_steps: 40 });
+
+		const refused = g4Decisions(t, changeId);
+		assert.ok(refused.length > 0, "the candidate reaches G4");
+		assert.ok(
+			refused.every((g) => g.verdict === "FAIL" && g.reasons.some((r) => r.includes("package.json"))),
+			JSON.stringify(refused),
+		);
+	});
+
+	it("given a producer that writes back the package.json of the reference, byte for byte, then G4 refuses it with the reason protected path altered by the producer: package.json, and no candidate is accepted", async () => {
+		const reference = JSON.stringify({
+			name: "f-notests",
+			version: "1.0.0",
+			type: "module",
+			scripts: { test: "node --test" },
+		});
+		const { t, project, changeId } = await adoptedAndImplemented({
+			"src/greet.js": SHOUT_IMPL,
+			"package.json": reference,
+		});
+		const before = gitCmd(project, ["rev-parse", "HEAD"]).trim();
+
+		const result = await t.harness.advance(changeId, { max_steps: 40 });
+
+		const refused = g4Decisions(t, changeId);
+		assert.ok(refused.length > 0, "the candidate reaches G4");
+		assert.ok(
+			refused.every(
+				(g) => g.verdict === "FAIL" && g.reasons.includes("protected path altered by the producer: package.json"),
+			),
+			JSON.stringify(refused),
+		);
+		assert.notEqual(result.view.change?.outcome, "integrated");
+		assert.equal(gitCmd(project, ["rev-parse", "HEAD"]).trim(), before, "no integration commit is produced");
+	});
+});
+
+describe("what adopting a complement holds for", () => {
+	/** The change frozen with the complement adopted, then its requirements rewritten. */
+	async function adoptedThenRevised(t: TestHarness): Promise<string> {
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 1 });
+		const loaded = t.ledger.loadChange(changeId)!;
+		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
+		assert.equal(frozen.complements?.length, 1, "the complement is adopted in the first protocol");
+		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
+		t.harness.commit(
+			loaded,
+			{
+				type: "artifact.revise",
+				at: t.harness.now(),
+				actor: KERNEL_ACTOR,
+				kind: "requirements",
+				ref: requirements.ref,
+				reason: "the requirements were rewritten",
+			},
+			t.harness.id("cor"),
+		);
+		return changeId;
+	}
+
+	it("given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again", async () => {
+		const t = harnessWithEmptyPreparations();
+		const changeId = await adoptedThenRevised(t);
+
+		const again = await t.harness.advance(changeId, { max_steps: 40 });
+
+		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
+		const [asked] = t.harness.pendingDecisions(changeId);
+		assert.deepEqual(
+			asked!.options.map((o) => o.id),
+			["prepare", "assign_review", "revise", "adopt_complement"],
+			"adoption is offered again",
+		);
+		assert.ok(
+			asked!.facts.some((f) => f.includes("node --experimental-test-coverage")),
+			`the recommendation is presented again: ${asked!.facts.join(" | ")}`,
+		);
+		answerPending(t, changeId, "assign_review");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.equal(state.gates.G2?.verdict, "PASS", state.gates.G2?.reasons.join("; "));
+		const next = (await t.harness.artifacts.latest<Protocol>(state, "protocol"))!.content;
+		assert.equal(next.complements, undefined, "the next protocol carries no complement");
+		assert.equal(
+			next.controls.some((c) => c.control_id === "coverage"),
+			false,
+			"and no coverage control",
+		);
+		assert.equal(next.capability_diagnosis.recommendations?.length, 1, "the complement is recommended again");
+	});
+
+	it("given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only", async () => {
+		const t = harnessWithEmptyPreparations();
+		const { change } = await t.harness.start({
+			project_path: projectWithoutTests(),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const first = t.harness.pendingDecisions(change.change_id)[0]!;
+		answerPending(t, change.change_id, "adopt_complement");
+
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		const [again] = t.harness.pendingDecisions(change.change_id);
+		assert.notEqual(again!.decision_id, first.decision_id, "the question is asked again, not left answered");
+		assert.match(again!.question, /R1/, "about the requirement the sensor did not make judgeable");
+		assert.deepEqual(
+			again!.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+			"the complement is in place: nothing left to adopt",
+		);
+		assert.equal(
+			again!.facts.some((f) => f.includes("node --experimental-test-coverage")),
+			false,
+			"and nothing left to recommend",
+		);
+		assert.equal(
+			t.ledger.loadChange(change.change_id)!.state.interventions.filter((i) => i.role === "prepare").length,
+			2,
+			"adopting grants no preparation",
+		);
 	});
 });
 

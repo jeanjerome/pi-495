@@ -15,6 +15,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candi
 import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from "../contracts/v1/evidence.ts";
 import {
 	isDifferentialParser,
+	type AdoptedComplement,
 	type ControlCapabilityDiagnosis,
 	type ControlDefinition,
 	type Obligation,
@@ -103,6 +104,8 @@ export interface FreezeInput {
 	assigned_to_human: readonly string[];
 	/** What the detection recommends the target adds; carried by the diagnosis the protocol freezes. */
 	recommendations: readonly RecommendedComplement[];
+	/** The complements the owner had applied, whose files the candidate carries from its first byte. */
+	complements: readonly AdoptedComplement[];
 }
 
 export interface RunInput {
@@ -351,6 +354,7 @@ export class VerificationCoordinator {
 			arbitration: "human_decision",
 			baseline: { ...this.deps.policy.baseline },
 			environment_digest: this.deps.environment.digest,
+			...(input.complements.length > 0 ? { complements: [...input.complements] } : {}),
 		};
 	}
 

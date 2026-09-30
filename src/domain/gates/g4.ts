@@ -68,24 +68,28 @@ export function inInstalledDependencies(path: string): boolean {
 
 /**
  * Splits what a candidate changed against the paths the frozen protocol protects (SEC-03, RM-043).
- * Three changes to a protected path are allowed: a prepared file put back exactly as the kernel
- * adopted it, which the producer did not touch; a file added under a protected directory, which
- * took nothing away from an oracle that already stood, unless the protected directory is itself an
- * installed dependency, where a new file can shadow a package the checks load; and whatever `alsoAllowed` recognizes, which is
- * where a target's own layout conventions are read rather than written into the kernel.
+ * Three changes to a protected path are allowed: a prepared file or a file of an adopted complement
+ * put back exactly as the kernel wrote it, which the producer did not touch; a file added under a
+ * protected directory, which took nothing away from an oracle that already stood, unless the
+ * protected directory is itself an installed dependency, where a new file can shadow a package the
+ * checks load; and whatever `alsoAllowed` recognizes, which is where a target's own layout
+ * conventions are read rather than written into the kernel. A file of an adopted complement that the
+ * candidate holds as the reference has it is altered too: the producer put the reference back, so the
+ * complement the frozen protocol carries is absent from the candidate.
  */
 export function protectedPathsChanged(
 	manifest: CandidateManifest,
 	protectedPaths: readonly string[],
 	preparedFiles: readonly { path: string; digest: string }[],
 	alsoAllowed: (path: string) => boolean = () => false,
+	complements: readonly { path: string; digest: string }[] = [],
 ): ProtectedPaths {
 	const entryOf = (path: string) => manifest.entries.find((e) => e.path === path);
 	const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 	const allowed = changed.filter((p) => {
 		const entry = entryOf(p);
-		const prepared = preparedFiles.find((f) => f.path === p);
-		if (prepared && prepared.digest === (entry?.content_digest ?? null)) return true;
+		const kept = [...preparedFiles, ...complements].find((f) => f.path === p);
+		if (kept && kept.digest === (entry?.content_digest ?? null)) return true;
 		if (
 			entry?.baseline_state === "added" &&
 			protectedPaths.some(
@@ -95,8 +99,10 @@ export function protectedPathsChanged(
 			return true;
 		return alsoAllowed(p);
 	});
-	const altered = changed.filter(
-		(p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p),
-	);
+	const restored = complements.map((c) => c.path).filter((p) => entryOf(p)?.baseline_state === "unchanged");
+	const altered = [
+		...changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p)),
+		...restored,
+	];
 	return { changed, allowed, altered };
 }

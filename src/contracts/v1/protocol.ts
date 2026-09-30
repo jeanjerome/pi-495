@@ -154,6 +154,20 @@ export const CAPABILITY_LEVELS = ["none", "file_present", "discoverable", "execu
 export type CapabilityLevel = (typeof CAPABILITY_LEVELS)[number];
 
 /**
+ * The replacement of one exact value in a file of the target: the file is left byte for byte as it was
+ * except for that value, which is why the value it currently holds is part of the edit.
+ */
+export const FileEdit = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		current: Type.String(),
+		wanted: Type.String(),
+	},
+	{ additionalProperties: false },
+);
+export type FileEdit = Static<typeof FileEdit>;
+
+/**
  * A test complement an adapter recommends when a sensor it can read is missing on the target. The
  * tool and its version are data of the adapter, checked against `source` on `established_on`; nothing
  * here is a model output, and recommending installs or writes nothing.
@@ -168,6 +182,8 @@ export const RecommendedComplement = Type.Object(
 		source: Type.String({ minLength: 1 }),
 		/** What the target must change for the complement to take effect. */
 		change: Type.String({ minLength: 1 }),
+		/** Present when `change` is nothing more than a replacement in one file, which the owner may have applied. */
+		edit: Type.Optional(FileEdit),
 	},
 	{ additionalProperties: false },
 );
@@ -213,6 +229,21 @@ export const BaselinePolicy = Type.Object(
 );
 export type BaselinePolicy = Static<typeof BaselinePolicy>;
 
+/**
+ * A recommended complement the owner had applied: the file as it was written, by its digest, so that
+ * the candidate may keep it and change nothing else in it.
+ */
+export const AdoptedComplement = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		digest: Digest,
+		test_type: Type.String({ minLength: 1 }),
+		tool: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type AdoptedComplement = Static<typeof AdoptedComplement>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
@@ -225,6 +256,8 @@ export const Protocol = Type.Object(
 		arbitration: Closed(["human_decision", "reject"] as const),
 		baseline: BaselinePolicy,
 		environment_digest: Digest,
+		/** Absent from a protocol frozen before complements could be adopted. */
+		complements: Type.Optional(Type.Array(AdoptedComplement)),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

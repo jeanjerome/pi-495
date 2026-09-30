@@ -17,6 +17,7 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 	const attemptId = open?.attempt_id ?? (await ctx.artifacts.unstartedAttempt(unit.state)) ?? ctx.id("att");
 	const opened = await ctx.artifacts.workspaceOfAttempt(unit.state.change_id, attemptId);
 	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
+	const complements = await ctx.artifacts.adoptedComplements(unit.state);
 	let workspaceId: string;
 	let workspacePath: string;
 	if (opened) {
@@ -26,11 +27,12 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		const h = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 		workspaceId = h.workspace_id;
 		workspacePath = h.path;
-		await ctx.artifacts.materializePrepared(prepared, h.path);
+		await ctx.artifacts.materializePrepared({ files: [...(prepared?.files ?? []), ...complements] }, h.path);
 		const workspace: PreparedWorkspace = {
 			workspace_id: h.workspace_id,
 			path: h.path,
 			preparation_id: prepared?.preparation_id ?? null,
+			complements: complements.map((c) => c.digest),
 		};
 		await ctx.artifacts.store("candidate", unit.state.change_id, `ws_${attemptId}`, workspace, KERNEL_ACTOR.actor_id);
 	}
@@ -147,6 +149,7 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		unit.state.protocol?.protected_paths ?? [],
 		prepared?.files ?? [],
 		(p) => mirrorsProductionResource(manifest, p),
+		complements,
 	);
 	const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
 	const truncatedNote =
