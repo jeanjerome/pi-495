@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les quatre scénarios sont tenus par le code et chacun par un test. `detectStack` prend le premier adaptateur de la liste dont un fichier déclaré existe à la racine, et rend sa détection telle quelle. Sinon il rend `unknown`, sans contrôle, avec les fichiers de la liste joints par « or ». La liste de 495 est `[MAVEN_ADAPTER, NODE_ADAPTER]`. J'ai lancé le fichier de test seul (4 verts) et essayé 12 mutations, chacune suivie d'un retour à l'état d'origine. Onze font échouer au moins un test. Celle qui change l'identifiant `stack` déclaré par l'adaptateur Maven n'en fait échouer aucun. Ce champ n'est lu par aucune promesse, car la pile rendue vient de `detect`, donc je ne le relève pas.\n\n- **Ordre inversé de la liste par défaut :** le test « both give maven » et le message « pom.xml or package.json » échouent.\n- **`find` remplacé par `findLast` :** échec de « the first of the list wins » et du test de la liste par défaut.\n- **Détection réécrite (pile, `facts`, `capability_missing` ou `controls`) :** échec. Pour `controls`, c'est le test de la liste par défaut qui échoue (contrôles `unit` et `maven-test`), car l'adaptateur fictif du scénario 1 n'a aucun contrôle.\n- **Liste des fichiers attendus réduite au premier adaptateur :** échec.\n- **Aucun fichier reconnu, ou `signal_files` de Maven ou de Node modifiés :** échec."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un adaptateur ajouté à la liste est choisi par le fichier qu'il déclare",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/target-registry.test.ts",
+    "ligne": 32,
+    "constat": "L'adaptateur de test « cargo » rend toujours `controls: []`, donc le test du scénario 1 n'asserte pas « son contrôle » sur l'adaptateur ajouté. La transmission des contrôles n'est tenue que par le scénario 4 (contrôles `unit` et `maven-test` de la liste par défaut).",
+    "mutation": "Dans `detectStack`, remplacer le retour de `adapter.detect(...)` par `{ ...detect(...), controls: [] }` : le test du scénario 1 reste vert, seul le test de la liste par défaut échoue (1 échec sur 4)."
+   }
+  ],
+  "resume": "Le code tient les quatre scénarios : `detectStack` prend le premier adaptateur de la liste dont un fichier signal est présent, rend sa détection telle quelle, et nomme dans le refus l'ensemble des fichiers déclarés (« Cargo.toml or go.mod expected », « pom.xml or package.json expected »). Les quatre tests de `test/v1/target-registry.test.ts` passent. Neuf mutations (ordre par défaut inversé, `findLast`, contrôles vidés, capacité manquante vidée, fichiers attendus limités au premier adaptateur, identifiant de pile réécrit, `unknown` remplacé par `node`, paramètre `adapters` ignoré, contrôle déclaré pour `unknown`) font toutes échouer au moins un test. Un seul constat, à peser : l'adaptateur de test du scénario 1 ne déclare aucun contrôle."
+ }
+]

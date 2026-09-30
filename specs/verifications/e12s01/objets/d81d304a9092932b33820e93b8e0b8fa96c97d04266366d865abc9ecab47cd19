@@ -1,0 +1,390 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 2.466375
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 2.917417
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.971042
+      type: 'test'
+      ...
+    1..1
+ok 2 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 1.037
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects among the installed dependencies
+    # Subtest: given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+    ok 1 - given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+      ---
+      duration_ms: 1.145375
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+    ok 2 - given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+      ---
+      duration_ms: 0.708417
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+    ok 3 - given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+      ---
+      duration_ms: 0.621625
+      type: 'test'
+      ...
+    # Subtest: given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+    ok 4 - given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+      ---
+      duration_ms: 0.741333
+      type: 'test'
+      ...
+    1..4
+ok 3 - Node stack: what the vitest control protects among the installed dependencies
+  ---
+  duration_ms: 3.365792
+  type: 'suite'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+    ok 1 - given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest
+      ---
+      duration_ms: 0.581584
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is jest and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names jest
+    ok 2 - given scripts.test is jest and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names jest
+      ---
+      duration_ms: 0.737375
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 3 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.649125
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    ok 4 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.659
+      type: 'test'
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    ok 5 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.484375
+      type: 'test'
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    ok 6 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.516958
+      type: 'test'
+      ...
+    # Subtest: given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+    ok 7 - given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+      ---
+      duration_ms: 0.534
+      type: 'test'
+      ...
+    1..7
+ok 4 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 4.303875
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.85425
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.701458
+      type: 'test'
+      ...
+    1..2
+ok 5 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.604667
+  type: 'suite'
+  ...
+# Subtest: reading what a Java tree declares about itself
+    # Subtest: keeps the package, every import and its line, and nothing it would have to compile to know
+    ok 1 - keeps the package, every import and its line, and nothing it would have to compile to know
+      ---
+      duration_ms: 0.915375
+      type: 'test'
+      ...
+    # Subtest: attributes an imported name to the longest package the tree declares, which is the only way to place a static import
+    ok 2 - attributes an imported name to the longest package the tree declares, which is the only way to place a static import
+      ---
+      duration_ms: 0.292041
+      type: 'test'
+      ...
+    # Subtest: names a cycle between packages and ignores what only looks like one
+    ok 3 - names a cycle between packages and ignores what only looks like one
+      ---
+      duration_ms: 5.195125
+      type: 'test'
+      ...
+    1..3
+ok 6 - reading what a Java tree declares about itself
+  ---
+  duration_ms: 6.815333
+  type: 'suite'
+  ...
+# Subtest: what the structural control blocks on (ARC-04, QLT-04)
+    # Subtest: an introduced import of a forbidden module fails, named at its file, at its line and at its package
+    ok 1 - an introduced import of a forbidden module fails, named at its file, at its line and at its package
+      ---
+      duration_ms: 0.582833
+      type: 'test'
+      ...
+    # Subtest: the same violation on a line the subject did not write is reported at its exact place and fails nothing
+    ok 2 - the same violation on a line the subject did not write is reported at its exact place and fails nothing
+      ---
+      duration_ms: 0.314167
+      type: 'test'
+      ...
+    # Subtest: a cycle is named where the candidate closed it, and at its first import when nobody did
+    ok 3 - a cycle is named where the candidate closed it, and at its first import when nobody did
+      ---
+      duration_ms: 0.287125
+      type: 'test'
+      ...
+    # Subtest: an absent rule, an absent source, an unknown set of introduced lines and a broken sensor are all INDETERMINATE
+    ok 4 - an absent rule, an absent source, an unknown set of introduced lines and a broken sensor are all INDETERMINATE
+      ---
+      duration_ms: 0.242959
+      type: 'test'
+      ...
+    1..4
+ok 7 - what the structural control blocks on (ARC-04, QLT-04)
+  ---
+  duration_ms: 1.544583
+  type: 'suite'
+  ...
+# Subtest: the boundaries a Maven reactor opposes to its own code (CON-03)
+    # Subtest: derives them from the dependency direction of the POMs and the package root each module lays out
+    ok 1 - derives them from the dependency direction of the POMs and the package root each module lays out
+      ---
+      duration_ms: 4.970167
+      type: 'test'
+      ...
+    # Subtest: opposes no direction it cannot read, and says so instead of inventing a convention
+    ok 2 - opposes no direction it cannot read, and says so instead of inventing a convention
+      ---
+      duration_ms: 2.965084
+      type: 'test'
+      ...
+    1..2
+ok 8 - the boundaries a Maven reactor opposes to its own code (CON-03)
+  ---
+  duration_ms: 8.005459
+  type: 'suite'
+  ...
+# Subtest: the same sensor on the reference and on the candidate (ARC-04, VER-08)
+    # Subtest: a candidate placing a responsibility in a forbidden module is refused; the cycle it inherited is named and tolerated
+    ok 1 - a candidate placing a responsibility in a forbidden module is refused; the cycle it inherited is named and tolerated
+      ---
+      duration_ms: 68.040708
+      type: 'test'
+      ...
+    # Subtest: a candidate that only inherits the cycle is accepted, and the cycle stays visible as preexisting
+    ok 2 - a candidate that only inherits the cycle is accepted, and the cycle stays visible as preexisting
+      ---
+      duration_ms: 61.322
+      type: 'test'
+      ...
+    # Subtest: is qualified on witnesses of its own: a boundary crossed, which no failing test would exhibit
+    ok 3 - is qualified on witnesses of its own: a boundary crossed, which no failing test would exhibit
+      ---
+      duration_ms: 65.750959
+      type: 'test'
+      ...
+    # Subtest: reads the declarations of the scopes the rules name, and of nothing else
+    ok 4 - reads the declarations of the scopes the rules name, and of nothing else
+      ---
+      duration_ms: 6.023667
+      type: 'test'
+      ...
+    1..4
+ok 9 - the same sensor on the reference and on the candidate (ARC-04, VER-08)
+  ---
+  duration_ms: 201.308083
+  type: 'suite'
+  ...
+# Subtest: what an intervention is told of its output contract (CTX-01, AGT-06)
+    # Subtest: shows a valid answer of the required shape, not a sketch of its types
+    ok 1 - shows a valid answer of the required shape, not a sketch of its types
+      ---
+      duration_ms: 2.347958
+      type: 'test'
+      ...
+    # Subtest: says what a missing block costs, since the kernel reads nothing else
+    ok 2 - says what a missing block costs, since the kernel reads nothing else
+      ---
+      duration_ms: 0.205
+      type: 'test'
+      ...
+    # Subtest: does not tell a role that cannot write to leave the workspace building
+    ok 3 - does not tell a role that cannot write to leave the workspace building
+      ---
+      duration_ms: 0.232
+      type: 'test'
+      ...
+    # Subtest: addresses the exact text it sent, so a dossier can be read back on it
+    ok 4 - addresses the exact text it sent, so a dossier can be read back on it
+      ---
+      duration_ms: 0.246916
+      type: 'test'
+      ...
+    1..4
+ok 10 - what an intervention is told of its output contract (CTX-01, AGT-06)
+  ---
+  duration_ms: 3.091291
+  type: 'suite'
+  ...
+# Subtest: what the producer receives before it writes (ARC-04)
+    # Subtest: hands the frozen boundaries to the intervention that produces, and tells it they are read in its code
+    ok 1 - hands the frozen boundaries to the intervention that produces, and tells it they are read in its code
+      ---
+      duration_ms: 0.235125
+      type: 'test'
+      ...
+    1..1
+ok 11 - what the producer receives before it writes (ARC-04)
+  ---
+  duration_ms: 0.25625
+  type: 'suite'
+  ...
+# Subtest: Target registry: the adapter list chooses the stack
+    # Subtest: given a project holding Cargo.toml and a list that gains an adapter declaring that file, then the detection is the adapter's
+    not ok 1 - given a project holding Cargo.toml and a list that gains an adapter declaring that file, then the detection is the adapter's
+      ---
+      duration_ms: 1.46725
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:40:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'unknown' !== 'cargo'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'cargo'
+      actual: 'unknown'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:43:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: given two adapters that both recognise a project, then the first of the list wins and the reverse order gives the second
+    not ok 2 - given two adapters that both recognise a project, then the first of the list wins and the reverse order gives the second
+      ---
+      duration_ms: 0.968042
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:48:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'unknown' !== 'cargo'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'cargo'
+      actual: 'unknown'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:52:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a project no adapter recognises, then the stack is unknown and the missing capability names the files the list declares
+    not ok 3 - given a project no adapter recognises, then the stack is unknown and the missing capability names the files the list declares
+      ---
+      duration_ms: 1.120875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:56:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /Cargo\.toml or go\.mod expected/. Input:
+        
+        'no qualified target adapter for this project (package.json or pom.xml expected)'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'no qualified target adapter for this project (package.json or pom.xml expected)'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:63:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given the default list, then package.json gives node, pom.xml gives maven, both give maven, and neither names pom.xml or package.json as expected
+    not ok 4 - given the default list, then package.json gives node, pom.xml gives maven, both give maven, and neither names pom.xml or package.json as expected
+      ---
+      duration_ms: 2.643875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:66:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'node' !== 'maven'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'maven'
+      actual: 'node'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:82:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 12 - Target registry: the adapter list chooses the stack
+  ---
+  duration_ms: 7.656125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ZdPuzz/test/v1/target-registry.test.ts:39:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..12
+# tests 37
+# suites 12
+# pass 33
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 393.457583
