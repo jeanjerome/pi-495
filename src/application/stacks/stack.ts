@@ -3,7 +3,7 @@
  * that qualify them, and what it could not give. One shape for every stack, so the kernel orders
  * and qualifies the controls of a Maven reactor and those of a Node package the same way.
  */
-import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
+import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 
 export interface StackDetection {
@@ -27,6 +27,11 @@ export interface StackDetection {
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
 	preparation_paths: string[];
 	capability_missing: string[];
+	/**
+	 * What the adapter recommends the target adds where a sensor it can read is missing. Data of the
+	 * adapter, never of a model; recommending installs nothing and writes nothing in the target.
+	 */
+	recommendations: RecommendedComplement[];
 }
 
 /**

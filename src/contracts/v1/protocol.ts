@@ -153,6 +153,26 @@ export type Obligation = Static<typeof Obligation>;
 export const CAPABILITY_LEVELS = ["none", "file_present", "discoverable", "executed", "discriminating"] as const;
 export type CapabilityLevel = (typeof CAPABILITY_LEVELS)[number];
 
+/**
+ * A test complement an adapter recommends when a sensor it can read is missing on the target. The
+ * tool and its version are data of the adapter, checked against `source` on `established_on`; nothing
+ * here is a model output, and recommending installs or writes nothing.
+ */
+export const RecommendedComplement = Type.Object(
+	{
+		test_type: Type.String({ minLength: 1 }),
+		tool: Type.String({ minLength: 1 }),
+		version: Type.String({ minLength: 1 }),
+		established_on: Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" }),
+		/** Where the version was read, as a host and a path: a reference to read, never an address 495 contacts. */
+		source: Type.String({ minLength: 1 }),
+		/** What the target must change for the complement to take effect. */
+		change: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type RecommendedComplement = Static<typeof RecommendedComplement>;
+
 export const ControlCapabilityDiagnosis = Type.Object(
 	{
 		stack: Type.String(),
@@ -168,6 +188,8 @@ export const ControlCapabilityDiagnosis = Type.Object(
 		/** Mandatory requirements whose oracle has not been observed yet. */
 		unobserved_requirements: Type.Array(Identifier),
 		notes: Type.Array(Type.String()),
+		/** Absent from a protocol frozen before complements were recommended. */
+		recommendations: Type.Optional(Type.Array(RecommendedComplement)),
 	},
 	{ additionalProperties: false },
 );

@@ -6,10 +6,11 @@ import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
 import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTsWithoutTests, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureJava, fixtureTsWithoutTests, initRepo, tempDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { buildDecisionRequest } from "../../src/application/decisions.ts";
+import { detectStack } from "../../src/application/target.ts";
 import { arbitrationSubject, requirementsTakenByOwner } from "../../src/application/phases/verification-design.ts";
 import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
 import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.ts";
@@ -424,6 +425,55 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 				["R2", "human_decision", "IH-10"],
 			],
 		);
+	});
+});
+
+/** A Maven target whose POM binds JaCoCo and PIT (or neither), so the detection recommends nothing (or two complements). */
+function mavenProjectWithoutTests(complete: boolean): string {
+	const p = tempDir("495-arbitration-maven-");
+	cleanups.push(p);
+	fixtureJava(p, complete, complete);
+	initRepo(p);
+	return p;
+}
+
+describe("the IH-04 facts present the recommended complements", () => {
+	async function askedOn(project: string): Promise<string[]> {
+		const t = harnessWithEmptyPreparations();
+		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
+		const pending = t.harness.pendingDecisions(change.change_id);
+		assert.deepEqual(
+			pending.map((d) => d.interaction),
+			["IH-04"],
+		);
+		assert.deepEqual(
+			pending[0]!.options.map((o) => o.id),
+			["prepare", "assign_review", "revise"],
+		);
+		return pending[0]!.facts;
+	}
+
+	it("given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged", async () => {
+		const recommended = mavenProjectWithoutTests(false);
+		const recommendations = detectStack(recommended, []).recommendations;
+		assert.equal(recommendations.length, 2, "the target lacks JaCoCo and PIT");
+		const facts = await askedOn(recommended);
+		for (const r of recommendations)
+			assert.ok(
+				facts.some(
+					(f) => f.includes(r.tool) && f.includes(r.version) && f.includes(r.established_on) && f.includes(r.change),
+				),
+				`${r.tool} is listed with its version, date and change: ${facts.join(" | ")}`,
+			);
+		const bare = await askedOn(mavenProjectWithoutTests(true));
+		assert.equal(
+			bare.some((f) => /recommend/i.test(f) && !/^risk:/.test(f)),
+			false,
+			`no recommendation to list: ${bare.join(" | ")}`,
+		);
+		assert.equal(facts.length, bare.length + 2, "each recommendation is one fact and nothing else changes");
 	});
 });
 

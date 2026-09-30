@@ -5,7 +5,11 @@
 import type { ArtifactRef, SubjectRef } from "../../contracts/v1/common.ts";
 import { digestValue } from "../../contracts/digest.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import type { ControlCapabilityDiagnosis, RequirementsDocument } from "../../contracts/v1/protocol.ts";
+import type {
+	ControlCapabilityDiagnosis,
+	RecommendedComplement,
+	RequirementsDocument,
+} from "../../contracts/v1/protocol.ts";
 import type { HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
@@ -68,6 +72,10 @@ function answerHeld(
 	);
 }
 
+function recommendationFact(r: RecommendedComplement): string {
+	return `recommended ${r.test_type} complement, not adopted: ${r.tool} ${r.version} (established ${r.established_on}, source ${r.source}); ${r.change}`;
+}
+
 /**
  * Puts to the owner a requirement no control can judge once the preparations 495 may spend on it are
  * spent: another preparation, or the requirement judged by the owner. The decision is bound to the
@@ -79,6 +87,7 @@ function requestVerifiabilityArbitration(
 	cor: string,
 	requirements: ArtifactRef,
 	diagnosis: ControlCapabilityDiagnosis,
+	recommendations: readonly RecommendedComplement[],
 ): Promise<Unit> {
 	const named = diagnosis.undiscriminated_requirements.join(", ");
 	const subject = arbitrationSubject(requirements, diagnosis.undiscriminated_requirements);
@@ -88,7 +97,7 @@ function requestVerifiabilityArbitration(
 		cor,
 		"IH-04",
 		subject,
-		[...diagnosis.notes, risk],
+		[...diagnosis.notes, ...recommendations.map(recommendationFact), risk],
 		null,
 		named,
 		undefined,
@@ -116,7 +125,8 @@ async function openPreparation(
 		.preparationsForCurrentRequirements(unit.state)
 		.filter((a) => a.artifact_id.startsWith("prep_")).length;
 	const granted = preparationsGranted(unit);
-	if (alreadyTried >= 2 + granted) return requestVerifiabilityArbitration(ctx, unit, cor, requirements, diagnosis);
+	if (alreadyTried >= 2 + granted)
+		return requestVerifiabilityArbitration(ctx, unit, cor, requirements, diagnosis, detection.recommendations);
 	const objective = preparationMandateObjective(
 		detection.stack,
 		detection.preparation_paths,
@@ -222,6 +232,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			requirements_revision: requirements.ref.revision,
 			prepared,
 			assigned_to_human: takenByOwner(diagnosis),
+			recommendations: detection.recommendations,
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

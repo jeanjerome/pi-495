@@ -17,7 +17,7 @@ import { EXECUTOR_ACTOR } from "../../src/application/actors.ts";
 import { VerificationCoordinator } from "../../src/application/verification.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { EvidenceCandidate } from "../../src/contracts/v1/evidence.ts";
-import type { ControlDefinition, Protocol } from "../../src/contracts/v1/protocol.ts";
+import type { ControlDefinition, Protocol, RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
@@ -122,6 +122,27 @@ afterEach(() => {
 	rmSync(root, { recursive: true, force: true });
 });
 
+/** A coordinator over a fresh ledger and object store, the ports its callers do not replace being the real ones. */
+function coordinatorOver(controls: ControlExecutionPort, workspace: GitWorkspace): VerificationCoordinator {
+	ledger = new SqliteLedger(join(root, "state.sqlite"));
+	let next = 0;
+	return new VerificationCoordinator({
+		controls,
+		workspace,
+		workspacePolicy: DEFAULT_WORKSPACE_POLICY,
+		objects: new CasObjectStore(join(root, "objects")),
+		ledger,
+		environment: ENVIRONMENT,
+		policy: DEFAULT_POLICY,
+		now: () => AT,
+		id: (prefix) => `${prefix}_${++next}`,
+		readArtifact: async () => {
+			throw new Error("no file index for this candidate");
+		},
+		progress: () => {},
+	});
+}
+
 /** Freezes a candidate on a copy of the reference, and runs one control against it. */
 async function runOneControl(
 	definition: ControlDefinition,
@@ -143,24 +164,8 @@ async function runOneControl(
 	}
 	const manifest = await workspace.snapshotCandidate(handle, reference, DEFAULT_WORKSPACE_POLICY);
 
-	ledger = new SqliteLedger(join(root, "state.sqlite"));
 	const protocol = protocolOf([definition]);
-	let next = 0;
-	const coordinator = new VerificationCoordinator({
-		controls,
-		workspace,
-		workspacePolicy: DEFAULT_WORKSPACE_POLICY,
-		objects: new CasObjectStore(join(root, "objects")),
-		ledger,
-		environment: ENVIRONMENT,
-		policy: DEFAULT_POLICY,
-		now: () => AT,
-		id: (prefix) => `${prefix}_${++next}`,
-		readArtifact: async () => {
-			throw new Error("no file index for this candidate");
-		},
-		progress: () => {},
-	});
+	const coordinator = coordinatorOver(controls, workspace);
 	const outcome = await coordinator.run({
 		change_id: "chg_1",
 		protocol,
@@ -215,5 +220,38 @@ describe("the frozen candidate, while the controls measure it (VER-03)", () => {
 			true,
 			"what makes an output tolerable is the control's declaration, not the name of the directory",
 		);
+	});
+});
+
+describe("the protocol frozen from a detection", () => {
+	const recommendation: RecommendedComplement = {
+		test_type: "coverage",
+		tool: "--experimental-test-coverage",
+		version: "24.21.0",
+		established_on: "2026-09-30",
+		source: "https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage",
+		change: "in package.json, add --experimental-test-coverage to scripts.test",
+	};
+	const freezeWith = (recommendations: RecommendedComplement[]): Protocol => {
+		const { capability_diagnosis: diagnosis } = protocolOf([]);
+		return coordinatorOver(writingControl(null), new GitWorkspace(join(root, "workspaces"))).freeze({
+			change_id: "chg_1",
+			ordered: [control()],
+			qualifications: {},
+			diagnosis,
+			requirements: { change_id: "chg_1", requirements: [], answers: [], assumptions: [], contract_families: {} },
+			requirements_revision: 1,
+			prepared: null,
+			assigned_to_human: [],
+			recommendations,
+		});
+	};
+
+	it("given a target with a recommendation, then the frozen protocol carries it in its diagnosis", () => {
+		assert.deepEqual(freezeWith([recommendation]).capability_diagnosis.recommendations, [recommendation]);
+	});
+
+	it("given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them", () => {
+		assert.equal("recommendations" in freezeWith([]).capability_diagnosis, false);
 	});
 });

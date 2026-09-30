@@ -20,6 +20,7 @@ import {
 	type Obligation,
 	type Protocol,
 	type Qualification,
+	type RecommendedComplement,
 	type RequirementsDocument,
 } from "../contracts/v1/protocol.ts";
 import {
@@ -100,6 +101,8 @@ export interface FreezeInput {
 	prepared: PreparationRecord | null;
 	/** Requirements no control can judge and the owner took on: the owner's acceptance decides them. */
 	assigned_to_human: readonly string[];
+	/** What the detection recommends the target adds; carried by the diagnosis the protocol freezes. */
+	recommendations: readonly RecommendedComplement[];
 }
 
 export interface RunInput {
@@ -339,7 +342,10 @@ export class VerificationCoordinator {
 			change_id: input.change_id,
 			controls,
 			qualifications: input.qualifications,
-			capability_diagnosis: input.diagnosis,
+			capability_diagnosis:
+				input.recommendations.length > 0
+					? { ...input.diagnosis, recommendations: [...input.recommendations] }
+					: input.diagnosis,
 			obligations,
 			required_reviews: [...this.deps.policy.required_reviews],
 			arbitration: "human_decision",

@@ -35,6 +35,7 @@ export function detectStack(
 		own_negative_witness: {},
 		preparation_paths: [],
 		capability_missing: [`no qualified target adapter for this project (${expected} expected)`],
+		recommendations: [],
 	};
 }
 

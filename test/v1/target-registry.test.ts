@@ -57,6 +57,7 @@ function adapter(stack: string, signalFile: string, missing: string): StackAdapt
 		own_negative_witness: {},
 		preparation_paths: [],
 		capability_missing: [missing],
+		recommendations: [],
 	};
 	return { stack, signal_files: [signalFile], detect: () => detection };
 }

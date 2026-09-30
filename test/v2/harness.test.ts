@@ -21,7 +21,8 @@ import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
-import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
+import { detectStack } from "../../src/application/target.ts";
+import type { Mandate, Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -121,6 +122,23 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			t.ledger.listArtifacts(change.change_id, "context").length >= 2,
 			"context manifests are recorded per intervention (CTX-01)",
 		);
+	});
+
+	it("given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made", async () => {
+		const p = project();
+		const recommended = detectStack(p, []).recommendations;
+		assert.deepEqual(
+			recommended.map((r) => r.test_type),
+			["coverage"],
+			"node --test without the coverage flag is recommended it",
+		);
+		const t = track(makeHarness());
+		const { change } = await t.harness.start({ project_path: p, request_text: "keep greet as it is", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		assert.notEqual(result.stopped_because, "blocked", result.steps.join(" | "));
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		const protocol = await t.harness.artifacts.latest<Protocol>(state, "protocol");
+		assert.deepEqual(protocol?.content.capability_diagnosis.recommendations, recommended);
 	});
 
 	it("a producer claiming success without passing tests is refused at G5, then corrected on a second attempt with bounded feedback (REC-02, SA-015, DEC-02)", async () => {

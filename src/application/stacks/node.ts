@@ -9,7 +9,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
+import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
@@ -70,6 +70,7 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		negative_witness: { ...witnesses.negative, "src/495-negative-witness.js": "var forbidden = 1;\n" },
 		preparation_paths: ["test/", "tests/"],
 		capability_missing: suite.refusal ? [suite.refusal] : (suite.coverage?.missing ?? []),
+		recommendations: suite.coverage?.recommendation ? [suite.coverage.recommendation] : [],
 	};
 }
 
@@ -85,11 +86,25 @@ const NODE_TEST_COVERAGE = /(^|\s)--experimental-test-coverage(\s|$)/;
 const READ_RUNNER = /^(vitest|mocha|jest)\s/;
 const SHELL_SYNTAX = /[|&;<>$`()]/;
 
-/** What a target's coverage becomes: a control that judges it, or the reason there is none. */
+/** What a target's coverage becomes: a control that judges it, or the reason there is none and what would give one. */
 interface CoverageOutcome {
 	control?: ControlDefinition;
 	missing?: string[];
+	recommendation?: RecommendedComplement;
 }
+
+/** The date the versions below were checked against the sources they cite. */
+const CATALOGUE_DATE = "2026-09-30";
+
+/** The flag makes `node --test` write the lines it executed; it needs nothing installed. */
+const NODE_TEST_COVERAGE_RECOMMENDATION: RecommendedComplement = {
+	test_type: "coverage",
+	tool: "node --experimental-test-coverage",
+	version: "24.21.0",
+	established_on: CATALOGUE_DATE,
+	source: "nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage",
+	change: "in package.json, add --experimental-test-coverage to scripts.test",
+};
 
 const COVERAGE_NOT_MEASURED = "the coverage of the introduced lines is not measured on this target";
 
@@ -122,6 +137,7 @@ function suiteOf(
 				missing: [
 					`${COVERAGE_NOT_MEASURED}: scripts.test does not ask node:test for coverage (--experimental-test-coverage)`,
 				],
+				recommendation: NODE_TEST_COVERAGE_RECOMMENDATION,
 			},
 		};
 	}
@@ -235,6 +251,18 @@ type VitestCoverageProvider = (typeof VITEST_COVERAGE_PROVIDERS)[number];
 /** Where vitest writes the LCOV report of its coverage run, under the directory the sandbox lets it create. */
 const VITEST_COVERAGE_DIRECTORY = `${REPORT_DIRECTORY}/coverage`;
 
+/** The version of the vitest the target installed, which a coverage provider has to match; null when it cannot be read. */
+function installedVitestVersion(projectPath: string): string | null {
+	try {
+		const manifest = JSON.parse(readFileSync(join(projectPath, "node_modules", "vitest", "package.json"), "utf8")) as {
+			version?: unknown;
+		};
+		return typeof manifest.version === "string" ? manifest.version : null;
+	} catch {
+		return null;
+	}
+}
+
 /** The provider the target installed: vitest measures nothing without one, and 495 installs none. */
 function installedVitestProvider(projectPath: string): VitestCoverageProvider | null {
 	return (
@@ -251,7 +279,8 @@ function vitestSuite(
 ): { runner: SuiteRunner; control: ControlDefinition; coverage: CoverageOutcome } {
 	const provider = installedVitestProvider(projectPath);
 	const control = vitestControl(requirementRefs, nodeBinary, provider);
-	if (provider === null)
+	if (provider === null) {
+		const version = installedVitestVersion(projectPath);
 		return {
 			runner: "vitest",
 			control,
@@ -259,8 +288,21 @@ function vitestSuite(
 				missing: [
 					`${COVERAGE_NOT_MEASURED}: vitest is installed without a coverage provider, and @vitest/coverage-v8 would make it measurable`,
 				],
+				...(version === null
+					? {}
+					: {
+							recommendation: {
+								test_type: "coverage",
+								tool: "@vitest/coverage-v8",
+								version,
+								established_on: CATALOGUE_DATE,
+								source: "vitest.dev/guide/coverage.html",
+								change: `install @vitest/coverage-v8@${version} as a devDependency, the version of the installed vitest`,
+							},
+						}),
 			},
 		};
+	}
 	return {
 		runner: "vitest",
 		control,

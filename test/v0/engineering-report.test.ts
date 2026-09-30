@@ -363,3 +363,32 @@ describe("engineering report: what was asked (IMP-05)", () => {
 		assert.match(formatReport(report, "en"), /## Requirements\n {2}none/);
 	});
 });
+
+describe("engineering report: the recommended complements a target has not adopted", () => {
+	const recommendation = {
+		test_type: "mutation",
+		tool: "--experimental-test-coverage",
+		version: "24.21.0",
+		established_on: "2026-09-30",
+		source: "https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage",
+		change: "in package.json, add --experimental-test-coverage to scripts.test",
+	};
+	const frozen = protocol();
+	const risksOf = (recommendations?: (typeof recommendation)[]) =>
+		engineeringReport(
+			new Runner().toDeciding(c).s,
+			[],
+			protocol({
+				capability_diagnosis: { ...frozen.capability_diagnosis, ...(recommendations ? { recommendations } : {}) },
+			}),
+		).residual_risks.filter((risk) => risk.code === "recommended_complement_not_adopted");
+
+	it("given a protocol whose diagnosis carries a recommendation, then the report lists recommended_complement_not_adopted naming the test type, the tool and its version, and a protocol without any lists none", () => {
+		const [risk, ...others] = risksOf([recommendation]);
+		assert.deepEqual(others, []);
+		for (const named of [recommendation.test_type, recommendation.tool, recommendation.version])
+			assert.ok(risk?.statement.includes(named), `${named} is named in: ${risk?.statement}`);
+		assert.deepEqual(risksOf(), [], "a protocol frozen without the list");
+		assert.deepEqual(risksOf([]), []);
+	});
+});

@@ -7,7 +7,11 @@ import { ContractError, validate, check } from "../../src/contracts/validate.ts"
 import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { ActorRef, CanonicalError, Envelope } from "../../src/contracts/v1/common.ts";
 import { Evidence } from "../../src/contracts/v1/evidence.ts";
-import { ControlDefinition, isDifferentialParser } from "../../src/contracts/v1/protocol.ts";
+import {
+	ControlCapabilityDiagnosis,
+	ControlDefinition,
+	isDifferentialParser,
+} from "../../src/contracts/v1/protocol.ts";
 
 describe("canonical JSON and digests (§8.1)", () => {
 	it("is independent of key order and omits undefined", () => {
@@ -152,5 +156,35 @@ describe("the parser identifiers of a control", () => {
 		assert.deepEqual(validate(ControlDefinition, coverage), coverage);
 		assert.equal(isDifferentialParser("lcov"), true);
 		assert.equal(isDifferentialParser("node-test"), false);
+	});
+});
+
+describe("the capability diagnosis of a protocol", () => {
+	const diagnosis = {
+		stack: "node",
+		level: "executed",
+		test_files: 3,
+		discovered: 3,
+		executed: 3,
+		undiscriminated_requirements: [],
+		unobserved_requirements: [],
+		notes: [],
+	};
+	const recommendation = {
+		test_type: "coverage",
+		tool: "--experimental-test-coverage",
+		version: "24.0.0",
+		established_on: "2026-09-30",
+		source: "https://nodejs.org/api/test.html#collecting-code-coverage",
+		change: "add --experimental-test-coverage to scripts.test",
+	};
+	it("given a capability diagnosis carrying a recommendation, then the schema accepts it, and given one without the list, then it is still accepted", () => {
+		const carrying = { ...diagnosis, recommendations: [recommendation] };
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, carrying), carrying);
+		assert.deepEqual(validate(ControlCapabilityDiagnosis, diagnosis), diagnosis);
+		assert.throws(
+			() => validate(ControlCapabilityDiagnosis, { ...diagnosis, recommendations: [{ ...recommendation, extra: 1 }] }),
+			ContractError,
+		);
 	});
 });

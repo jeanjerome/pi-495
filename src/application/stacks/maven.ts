@@ -6,7 +6,12 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { SCOPE_PLACEHOLDER, type ControlDefinition, type StructureRule } from "../../contracts/v1/protocol.ts";
+import {
+	SCOPE_PLACEHOLDER,
+	type ControlDefinition,
+	type RecommendedComplement,
+	type StructureRule,
+} from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
@@ -197,7 +202,49 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 						"no two modules of this reactor lay out package roots that could be opposed to each other: no dependency direction between modules is checked on this target (CON-03)",
 					]),
 		],
+		recommendations: [...(jacoco ? [] : [JACOCO_RECOMMENDATION]), ...mutationRecommendation(mutation)],
 	};
+}
+
+/** The date the versions below were checked against the sources they cite. */
+const CATALOGUE_DATE = "2026-09-30";
+
+const JACOCO_RECOMMENDATION: RecommendedComplement = {
+	test_type: "coverage",
+	tool: "org.jacoco:jacoco-maven-plugin",
+	version: "0.8.15",
+	established_on: CATALOGUE_DATE,
+	source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
+	change:
+		"in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase",
+};
+
+/**
+ * What the target must change so the mutants of its modified classes are observed: declare PIT when
+ * it is absent, otherwise fix the one property or two that make its report unreadable.
+ */
+function mutationRecommendation(engine: MutationEngineConfiguration): RecommendedComplement[] {
+	if (engine.usable) return [];
+	const pit = {
+		test_type: "mutation",
+		tool: "org.pitest:pitest-maven",
+		version: "1.30.0",
+		established_on: CATALOGUE_DATE,
+		source: "pitest.org/quickstart/maven/",
+	};
+	if (!engine.declared)
+		return [
+			{
+				...pit,
+				change:
+					"in the POM, declare pitest-maven outside any profile with XML among its outputFormats and timestampedReports set to false",
+			},
+		];
+	const changes = [
+		...(engine.xml_report ? [] : ["add XML to its outputFormats"]),
+		...(engine.stable_report_path ? [] : ["set timestampedReports to false"]),
+	];
+	return [{ ...pit, change: `in the POM, in the pitest-maven declaration, ${changes.join(" and ")}` }];
 }
 
 /**
