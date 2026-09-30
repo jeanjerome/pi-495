@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un chemin de node_modules n'est jamais indexé, même si le projet ne l'ignore pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/export-integration.test.ts",
+    "ligne": 166,
+    "constat": "Le scénario de la story ajoute `node_modules/x/index.js` à la racine ; le test ajoute `packages/app/node_modules/x/index.js`, parce que G4 refuse désormais un `node_modules/` racine sans complément. Le prédicat `inInstalledDependencies` est le même pour les deux chemins, donc le code tient la promesse. Mais aucun test d'intégration n'exerce le chemin racine que la story nomme, alors que c'est celui qu'un complément adopté écrit vraiment.",
+    "mutation": "integrator.ts : `own = [...paths]` au lieu de filtrer `inInstalledDependencies` → le test échoue (la promesse est tenue pour le chemin imbriqué)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un fichier du complément, à n'importe quel chemin protégé, n'est pas une modification refusée (Sécurité : le producteur ne peut ni le défaire ni le prolonger)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/domain/gates/g4.ts",
+    "ligne": 102,
+    "constat": "`restored` ne refuse que le fichier de complément présent dans la référence et rendu tel quel. Un fichier de complément absent de la référence, par exemple sous `node_modules/`, que le producteur supprime n'a aucune entrée dans le manifeste : G4 ne le voit pas. Le test « a manifest without the complement file judges nothing about it » l'assert déjà. Le code n'a pas changé sur ce point, et la suppression retire une dépendance sans en ajouter, donc je ne la juge ni bloquante ni à corriger."
+   }
+  ],
+  "resume": "Les neuf scénarios sont tenus par le code, et 13 mutations d'une ligne ont fait échouer le test qui porte chaque promesse. Je n'ai relancé que les 5 fichiers de test touchés (96 tests verts). Ce que j'ai muté :\n- qualification : copie négative, copie négative propre au contrôle, écriture depuis le magasin sans contrôle d'empreinte, fermeture de la copie incomplète ;\n- passe sur la référence : le complément retiré de sa copie ;\n- préparation : copie du producteur, copie nue qui juge la suite, et filtre des fichiers déjà portés par la copie ;\n- G4 : `node_modules/` retiré des chemins protégés de `nodeTestControl`, exception d'un fichier ajouté sous un dossier de dépendances, égalité d'empreinte d'un fichier gardé ;\n- intégrateur : filtre de `node_modules/`, filtre des chemins ignorés, garde contre un pathspec vide.\n\nLe scénario 4 (copies d'aujourd'hui, spécification sur la référence nue) est tenu par le test de `verifiability-arbitration` ; je n'ai pas muté `clarify.ts`. Aucun constat introduit n'est bloquant ni à corriger ; A1-1 et A1-2 sont à peser."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les copies où le noyau qualifie un capteur portent le complément adopté",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 250,
+    "constat": "Aucun test ne tient le câblage du noyau : `designVerification` passe `complements` à `ctx.verification.qualify`. Les tests de qualification appellent le coordinateur en lui donnant `complements` à la main, et le seul test de bout en bout de la story sur la campagne (préparation) ne regarde pas les copies de qualification. Si ce câblage disparaît, le noyau qualifie sur des copies sans le package.json du complément, et aucun test n'échoue.",
+    "mutation": "Dans `designVerification`, `complements,` remplacé par `complements: [],` dans l'appel à `qualify`. `npm test` complet : seuls les 2 échecs Seatbelt de cet environnement, les mêmes hors mutation. Les tests v0, v1 et v2 sur les compléments, la préparation, le harnais et l'intégration passent tous."
+   }
+  ],
+  "resume": "Le code tient les neuf scénarios et les trois points de la section Sécurité. Un seul constat : le câblage du noyau vers la qualification n'est tenu par aucun test. Les onze autres mutations ont fait échouer un test qui assert ce que dit le `Then` :\n- les trois copies de la qualification, la copie de la passe sur la référence, les deux copies de la préparation, le filtre des fichiers déjà portés par la copie et le complément dans le mandat ;\n- le refus d'un fichier écrit avec un contenu qui ne correspond plus à l'empreinte ;\n- le filtre des chemins ignorés, l'exclusion de `node_modules/`, le refus d'un index vide et les options de `git ls-files` ;\n- la protection de `node_modules/` par `nodeTestControl`.\n\nÉcarts sans conséquence : le scénario « node_modules jamais indexé » est testé avec `packages/app/node_modules/x/index.js`, un chemin imbriqué que `inInstalledDependencies` traite comme la racine ; les deux échecs Seatbelt viennent de l'environnement et n'ont aucun rapport avec la branche."
+ }
+]

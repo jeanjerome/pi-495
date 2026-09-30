@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une copie où aucun contrôle ne tourne, et un changement sans complément, gardent les copies d'aujourd'hui",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/clarify.ts",
+    "ligne": 185,
+    "constat": "Le code tient la promesse : la copie jetable de la spécification est ouverte par `createWorkspace(reference, …)` et ne reçoit aucun complément. Aucun test n'assert que cette copie reste la référence nue quand un complément est adopté. Le seul chemin qui atteint `writeSpecification` avec un complément adopté est la révision des exigences après adoption, et aucun test ne le parcourt. La moitié « celle de la spécification est la référence nue » du Then n'est donc tenue par aucun test.",
+    "mutation": "Dans `writeSpecification`, ajout de `await ctx.artifacts.materializePrepared({ files: await ctx.artifacts.adoptedComplements(unit.state) }, handle.path)` après l'ouverture de la copie. Les 218 tests de test/v2 passent (0 échec)."
+   }
+  ],
+  "resume": "Le code tient les huit scénarios et leurs trois points de sécurité. J'ai muté 20 lignes du code qui tient les promesses, réparties sur les scénarios 1, 2, 3, 5, 6, 7 et 8. Chacune fait échouer le test que la story nomme, sur son assertion, sauf une mutation invalide (I4, retrait de `--others --ignored`), qui casse aussi les tests de non-régression. Le contrôle d'empreinte de `writeStoredFiles` est tenu par le test « stored bytes no longer match its digest ». Reste un seul constat : le volet « la copie de la spécification est la référence nue » du scénario 4 n'est tenu par aucun test (à corriger, introduit). Je n'ai pas relevé d'autre écart. Aucun test ne vérifie que le complément est écrit *avant* le témoin ; les chemins des deux ne se recouvrent pas, donc je ne le compte pas."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une copie où aucun contrôle ne tourne, et un changement sans complément, gardent les copies d'aujourd'hui",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/clarify.ts",
+    "ligne": 185,
+    "constat": "Le code tient la promesse : `clarify` ouvre toujours sa copie par `createWorkspace`, sans complément. Aucun test ne tient sa seconde moitié, « avec un complément adopté, la copie jetable de la spécification est la référence nue ». La branche n'ajoute aucun test de ce scénario. La première moitié (sans complément, copies d'aujourd'hui) n'a pas de test dédié non plus : elle n'est tenue que par les tests existants, qui passent tous.",
+    "mutation": "clarify.ts:185 ouvre sa copie par `openWorkspaceWithComplements(..., await ctx.artifacts.adoptedComplements(unit.state))` au lieu de `createWorkspace`. Sur `test/v1` et `test/v2`, aucun test des scénarios ne devient rouge. Les deux seuls échecs sont les tests Seatbelt du bac à sable, qui échouent aussi sans mutation dans cet environnement."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un chemin que git ignore est copié dans le projet et laissé hors du commit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/git/integrator.ts",
+    "ligne": 198,
+    "constat": "Le reçu d'intégration garde `files: manifest.selected_paths`, qui liste aussi les chemins copiés mais non indexés (`coverage/report.txt`, chemins de `node_modules/`). Le commit et le reçu ne racontent donc pas la même liste. La promesse ne demande que « le reçu dit que l'intégration est faite », ce que le code tient et qu'un test vérifie ; aucune promesse ne tranche le contenu de `files`.",
+    "mutation": "Aucune."
+   }
+  ],
+  "resume": "Le code tient les huit promesses. Deux des trois sondes sont vertes : les mutations font échouer les tests des scénarios 1, 2, 3, 5, 6 (7 aussi) et 8. Un constat est à corriger : le scénario 4 n'a pas de test. J'ai muté puis remis en place : les copies de qualification (positive, négative, propre au contrôle), la passe de référence, la préparation (copie du producteur, copie de jugement, filtre des fichiers portés), la vérification d'empreinte, l'exception G4 pour les fichiers de complément, le retrait de l'argument `complements` dans `implement`, et l'intégrateur (filtre `node_modules`, filtre des chemins ignorés, garde du pathspec vide, tous les chemins). Chacune fait échouer le test attendu, sauf la mutation de `clarify` : la seconde moitié du scénario 4 (la copie de la spécification reste la référence nue) n'est tenue par aucun test. Verdict fail sur cette seule ligne, à corriger : un test qui adopte un complément puis vérifie que la copie de la spécification est nue. Seconde ligne, à peser : le reçu liste des fichiers que le commit n'indexe pas. Sondes hors tests : un fichier suivi par git mais que le `.gitignore` liste reste indexé, et un chemin supprimé aussi. Les échecs Seatbelt du bac à sable existent avec ou sans mutation ; je ne les compte pas.\""
+ }
+]

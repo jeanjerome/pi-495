@@ -1,0 +1,91 @@
+TAP version 13
+# Subtest: export dossier (EVD-01, SA-036, RM-071, RM-072)
+    # Subtest: writes a self-contained, verifiable dossier; redaction removes sentinels and says so
+    ok 1 - writes a self-contained, verifiable dossier; redaction removes sentinels and says so
+      ---
+      duration_ms: 783.235792
+      type: 'test'
+      ...
+    # Subtest: names what a redaction removed by location and count only, never by value (SEC-05)
+    ok 2 - names what a redaction removed by location and count only, never by value (SEC-05)
+      ---
+      duration_ms: 1083.179042
+      type: 'test'
+      ...
+    # Subtest: carries its own verifier, which a third party runs with nothing but Node (RM-072)
+    ok 3 - carries its own verifier, which a third party runs with nothing but Node (RM-072)
+      ---
+      duration_ms: 872.212667
+      type: 'test'
+      ...
+    1..3
+ok 1 - export dossier (EVD-01, SA-036, RM-071, RM-072)
+  ---
+  duration_ms: 2739.289333
+  type: 'suite'
+  ...
+# Subtest: git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)
+    # Subtest: integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6
+    ok 1 - integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6
+      ---
+      duration_ms: 819.981292
+      type: 'test'
+      ...
+    # Subtest: a destination that advanced before integration is detected and re-verified, never merged silently
+    ok 2 - a destination that advanced before integration is detected and re-verified, never merged silently
+      ---
+      duration_ms: 731.707375
+      type: 'test'
+      ...
+    # Subtest: export-only declines integration and keeps the change accepted
+    ok 3 - export-only declines integration and keeps the change accepted
+      ---
+      duration_ms: 689.153792
+      type: 'test'
+      ...
+    1..3
+ok 2 - git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)
+  ---
+  duration_ms: 2241.089584
+  type: 'suite'
+  ...
+# Subtest: what the integration indexes of the files it copies
+    # Subtest: given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/greet.js, then the file is in the project, the commit holds src/greet.js only and the receipt says the integration is done
+    ok 1 - given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/greet.js, then the file is in the project, the commit holds src/greet.js only and the receipt says the integration is done
+      ---
+      duration_ms: 795.364
+      type: 'test'
+      ...
+    # Subtest: given a project ignoring coverage/ and a candidate adding only coverage/report.txt, then nothing is committed, not even a file the project holds untracked, and the integration does not claim to be done
+    ok 2 - given a project ignoring coverage/ and a candidate adding only coverage/report.txt, then nothing is committed, not even a file the project holds untracked, and the integration does not claim to be done
+      ---
+      duration_ms: 742.305292
+      type: 'test'
+      ...
+    # Subtest: given a project that does not ignore node_modules/ and a candidate modifying package.json and adding packages/app/node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/
+    ok 3 - given a project that does not ignore node_modules/ and a candidate modifying package.json and adding packages/app/node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/
+      ---
+      duration_ms: 1137.428584
+      type: 'test'
+      ...
+    # Subtest: given a project with no ignored path and two modified files, then the commit holds exactly those two files
+    ok 4 - given a project with no ignored path and two modified files, then the commit holds exactly those two files
+      ---
+      duration_ms: 803.990458
+      type: 'test'
+      ...
+    1..4
+ok 3 - what the integration indexes of the files it copies
+  ---
+  duration_ms: 3479.363792
+  type: 'suite'
+  ...
+1..3
+# tests 10
+# suites 3
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8640.890417

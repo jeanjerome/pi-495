@@ -1,0 +1,133 @@
+TAP version 13
+# Subtest: the frozen candidate, while the controls measure it (VER-03)
+    # Subtest: a control writing inside the paths it declares writable leaves the candidate frozen
+    ok 1 - a control writing inside the paths it declares writable leaves the candidate frozen
+      ---
+      duration_ms: 77.719583
+      type: 'test'
+      ...
+    # Subtest: a write anywhere else moves the candidate, and the run says so
+    ok 2 - a write anywhere else moves the candidate, and the run says so
+      ---
+      duration_ms: 67.903041
+      type: 'test'
+      ...
+    # Subtest: a candidate frozen with an output already under a writable path is not read as moved
+    ok 3 - a candidate frozen with an output already under a writable path is not read as moved
+      ---
+      duration_ms: 68.221
+      type: 'test'
+      ...
+    # Subtest: the same write is a mutation for a control that declared no writable path
+    ok 4 - the same write is a mutation for a control that declared no writable path
+      ---
+      duration_ms: 67.2865
+      type: 'test'
+      ...
+    1..4
+ok 1 - the frozen candidate, while the controls measure it (VER-03)
+  ---
+  duration_ms: 281.701541
+  type: 'suite'
+  ...
+# Subtest: the protocol frozen from a detection
+    # Subtest: given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+    ok 1 - given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+      ---
+      duration_ms: 3.961083
+      type: 'test'
+      ...
+    # Subtest: given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+    ok 2 - given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+      ---
+      duration_ms: 3.786958
+      type: 'test'
+      ...
+    1..2
+ok 2 - the protocol frozen from a detection
+  ---
+  duration_ms: 7.818625
+  type: 'suite'
+  ...
+# Subtest: the workspaces of a qualification, once a complement is adopted
+    # Subtest: given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written
+    not ok 1 - given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written
+      ---
+      duration_ms: 106.28925
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gzsdi8/test/v2/verification.test.ts:311:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the copy /var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/495-verif-erPkvS/workspaces/ws_munwnrtg_6 carries the package.json of the complement
+        + actual - expected
+        
+        + '{\n' +
+        +   '  "name": "f-ts",\n' +
+        +   '  "version": "1.0.0",\n' +
+        +   '  "type": "module",\n' +
+        +   '  "scripts": {\n' +
+        +   '    "test": "node --test",\n' +
+        +   '    "lint": "node scripts/lint.js"\n' +
+        +   '  }\n' +
+        +   '}'
+        - '{"name":"f-ts","scripts":{"test":"node --test --experimental-test-coverage"}}\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: |-
+        {"name":"f-ts","scripts":{"test":"node --test --experimental-test-coverage"}}
+        
+      actual: |-
+        {
+          "name": "f-ts",
+          "version": "1.0.0",
+          "type": "module",
+          "scripts": {
+            "test": "node --test",
+            "lint": "node scripts/lint.js"
+          }
+        }
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gzsdi8/test/v2/verification.test.ts:316:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a complement whose stored bytes no longer match its digest, then the qualification writes nothing of it and stops
+    not ok 2 - given a complement whose stored bytes no longer match its digest, then the qualification writes nothing of it and stops
+      ---
+      duration_ms: 98.688167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gzsdi8/test/v2/verification.test.ts:319:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected rejection.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'rejects'
+      stack: |-
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gzsdi8/test/v2/verification.test.ts:324:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 3 - the workspaces of a qualification, once a complement is adopted
+  ---
+  duration_ms: 205.210333
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gzsdi8/test/v2/verification.test.ts:265:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 8
+# suites 3
+# pass 6
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 640.397125

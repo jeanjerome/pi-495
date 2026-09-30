@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les copies où le noyau qualifie un capteur portent le complément adopté",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verification.test.ts",
+    "ligne": 381,
+    "constat": "Le Then dit que chaque copie porte le package.json du complément « avant que le témoin n'y soit écrit ». Le test lit package.json au moment où le contrôle tourne, avec des témoins qui n'écrivent jamais package.json. Il ne peut donc pas distinguer l'ordre « complément puis témoin » de l'ordre inverse. Le code garantit l'ordre par construction : openWorkspaceWithComplements écrit avant que qualify n'appelle writeWitness. Un témoin ne touche que des tests ou du source, donc l'écart n'a pas d'effet observable.",
+    "mutation": "Aucune mutation naturelle ne renverse l'ordre sans réécrire qualify. Les mutations de présence (négatif, négatif propre, empreinte, fermeture de la copie) sont bien tuées."
+   }
+  ],
+  "resume": "Je n'ai trouvé aucun constat bloquant ni à corriger. Chacun des dix scénarios est tenu par le code, et chaque promesse a un test que la mutation d'une ligne fait échouer. Le seul constat est mineur (A1-1, à peser).\n\nMutations qui font échouer le test attendu :\n- **Qualification :** retirer le complément de la copie négative ou de la copie négative propre à un contrôle, retirer la vérification de l'empreinte, ou retirer la suppression de la copie ratée.\n- **Rejeu sur la référence :** retirer le complément de la copie.\n- **Préparation :** retirer le complément de la copie du producteur, retirer le complément de la copie nue qui juge la suite préparée, retirer le filtre qui écarte le complément des écritures du producteur, retirer le complément du mandat, ou passer `[]` à `openPreparation`.\n- **Protocole et G4 :** retirer `node_modules/` de `freeze`, retirer `node_modules/` du contrôle de `node --test`.\n- **Intégration :** ne plus filtrer les chemins ignorés, retirer le drapeau `--ignored`, ou ne plus écarter `node_modules`.\n\nDeux mutations passent sans faire échouer de test. Toutes deux sont déjà au registre et je ne les compte pas :\n- Remplacer par `[]` le `complements` que `designVerification` passe à `qualify` (BUG-2026-09-30T200000).\n- L'absence de test d'intégration sur un chemin `node_modules/` à la racine (BUG-2026-09-30T201000). Le code écarte bien ce chemin de l'index, car `inInstalledDependencies` couvre la racine.\n\nSondes de lecture :\n- **G4 :** `implement` appelle bien `protectedPathsChanged` avec les chemins protégés du protocole gelé et les compléments. Les tests des scénarios G4 appellent `protectedPathsChanged` et `freeze` directement, pas `evaluateG4`. Le chemin réel utilise les mêmes fonctions.\n- **Sécurité :** `writeStoredFiles` refuse un contenu dont l'empreinte diverge et n'écrit rien dans ce cas.\n\nPreflight et le reste de la suite n'ont pas été relancés. Les mutations ont été remises et l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les copies où le noyau qualifie un capteur portent le complément adopté",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/verification.test.ts",
+    "ligne": 379,
+    "constat": "Le Then dit que chaque copie porte le package.json du complément avant que le témoin n'y soit écrit. Le test ne lit package.json qu'à l'exécution du contrôle, donc il ne voit pas l'ordre. L'ordre tient par construction, car `openWorkspaceWithComplements` écrit à la création de la copie, avant tout `writeWitness`. Aucun témoin d'aujourd'hui n'écrit package.json, donc aucune mutation d'ordre n'a d'effet observable.",
+    "mutation": "Aucune mutation d'ordre faisable sans réécrire le code. Les retraits du complément dans la copie négative partagée, dans la copie négative propre au contrôle et dans le contrôle d'empreinte font tous échouer le test."
+   }
+  ],
+  "resume": "Verdict pass : aucun constat bloquant ni à corriger. Le code tient les dix promesses. Pour chacune, une mutation d'une ligne du code qui la tient fait échouer un test qui l'asserte. Ce que j'ai lancé : `test/v2/verification.test.ts`, `test/v2/preparation.test.ts`, `test/v2/verifiability-arbitration.test.ts`, `test/v2/export-integration.test.ts` et `test/v1/node-stack.test.ts`. Les tests d'ensemble qui touchent `implement.ts` et `protected_paths` aussi.\n\nMutations qui échouent, comme il faut :\n- **Qualification** : copie négative partagée sans complément, copie négative propre au contrôle sans complément, contrôle d'empreinte de `writeStoredFiles` retiré.\n- **Passe sur la référence** : `protocol.complements ?? []` remplacé par `[]`.\n- **Préparation** : copie du producteur sans complément, copie nue du juge sans complément, filtre des fichiers déjà portés retiré, mandat qui ne porte plus les compléments.\n- **Copie de la spécification** : un complément écrit dans cette copie fait échouer le test de la spécification.\n- **G4** : garde d'empreinte de `protectedPathsChanged` neutralisée, `node_modules/` retiré du contrôle unitaire Node, `node_modules/` retiré de `freeze`, et les deux retraits ensemble.\n- **Intégration** : filtre des chemins ignorés retiré, filtre des `node_modules` retiré, `git add` sur tous les chemins, garde du pathspec vide retirée, `--ignored` retiré.\n\nUn seul constat, à peser : le test de la qualification ne voit pas l'ordre « avant que le témoin n'y soit écrit ».\n\nDeux écarts que j'ai constatés et que je ne compte pas :\n- Le test du scénario « un chemin de node_modules n'est jamais indexé » utilise `packages/app/node_modules/...` et non le `node_modules/x/index.js` de la racine que dit le Given. C'est le défaut déjà au registre (BUG-2026-09-30T201000).\n- Les scénarios G4 (complément, `node --test`, Maven) sont tenus au niveau de `protectedPathsChanged` et de `freeze`. Le câblage jusqu'à G4 est déjà tenu par des tests d'ensemble : neutraliser `protected_paths` dans `implement.ts` fait échouer « allows new tests while keeping frozen test content protected »."
+ }
+]

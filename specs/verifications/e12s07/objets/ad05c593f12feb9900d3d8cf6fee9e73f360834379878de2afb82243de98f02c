@@ -1,0 +1,98 @@
+TAP version 13
+# Subtest: export dossier (EVD-01, SA-036, RM-071, RM-072)
+    # Subtest: writes a self-contained, verifiable dossier; redaction removes sentinels and says so
+    ok 1 - writes a self-contained, verifiable dossier; redaction removes sentinels and says so
+      ---
+      duration_ms: 756.652625
+      type: 'test'
+      ...
+    # Subtest: names what a redaction removed by location and count only, never by value (SEC-05)
+    ok 2 - names what a redaction removed by location and count only, never by value (SEC-05)
+      ---
+      duration_ms: 706.798125
+      type: 'test'
+      ...
+    # Subtest: carries its own verifier, which a third party runs with nothing but Node (RM-072)
+    ok 3 - carries its own verifier, which a third party runs with nothing but Node (RM-072)
+      ---
+      duration_ms: 819.769584
+      type: 'test'
+      ...
+    1..3
+ok 1 - export dossier (EVD-01, SA-036, RM-071, RM-072)
+  ---
+  duration_ms: 2283.775292
+  type: 'suite'
+  ...
+# Subtest: git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)
+    # Subtest: integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6
+    ok 1 - integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6
+      ---
+      duration_ms: 785.7235
+      type: 'test'
+      ...
+    # Subtest: a destination that advanced before integration is detected and re-verified, never merged silently
+    ok 2 - a destination that advanced before integration is detected and re-verified, never merged silently
+      ---
+      duration_ms: 724.326959
+      type: 'test'
+      ...
+    # Subtest: export-only declines integration and keeps the change accepted
+    ok 3 - export-only declines integration and keeps the change accepted
+      ---
+      duration_ms: 684.811167
+      type: 'test'
+      ...
+    1..3
+ok 2 - git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)
+  ---
+  duration_ms: 2195.077833
+  type: 'suite'
+  ...
+# Subtest: what the integration indexes of the files it copies
+    # Subtest: given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/greet.js, then the file is in the project, the commit holds src/greet.js only and the receipt says the integration is done
+    not ok 1 - given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/greet.js, then the file is in the project, the commit holds src/greet.js only and the receipt says the integration is done
+      ---
+      duration_ms: 737.466
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JdDRqL/test/v2/export-integration.test.ts:328:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        integrating -> integrating/ready | integrating -> integrating/decision_required
+        + actual - expected
+        
+        + 'accepted'
+        - 'integrated'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'integrated'
+      actual: 'accepted'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JdDRqL/test/v2/export-integration.test.ts:336:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 3 - what the integration indexes of the files it copies
+  ---
+  duration_ms: 737.827958
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JdDRqL/test/v2/export-integration.test.ts:275:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 7
+# suites 3
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5386.668

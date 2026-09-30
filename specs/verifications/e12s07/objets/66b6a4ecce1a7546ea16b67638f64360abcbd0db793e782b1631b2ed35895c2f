@@ -1,0 +1,330 @@
+TAP version 13
+# Subtest: Node stack: the unit control follows scripts.test
+    # Subtest: given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title
+      ---
+      duration_ms: 1.861542
+      type: 'test'
+      ...
+    1..1
+ok 1 - Node stack: the unit control follows scripts.test
+  ---
+  duration_ms: 2.243084
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a mocha target
+    # Subtest: given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title
+      ---
+      duration_ms: 0.740334
+      type: 'test'
+      ...
+    1..1
+ok 2 - Node stack: the unit control of a mocha target
+  ---
+  duration_ms: 0.808042
+  type: 'suite'
+  ...
+# Subtest: Node stack: the unit control of a jest target
+    # Subtest: given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+    ok 1 - given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title
+      ---
+      duration_ms: 0.66
+      type: 'test'
+      ...
+    1..1
+ok 3 - Node stack: the unit control of a jest target
+  ---
+  duration_ms: 0.718125
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects
+    # Subtest: given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+    ok 1 - given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files
+      ---
+      duration_ms: 0.662875
+      type: 'test'
+      ...
+    1..1
+ok 4 - Node stack: what the vitest control protects
+  ---
+  duration_ms: 0.697625
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the mocha and jest controls protect
+    # Subtest: given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+    ok 1 - given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest
+      ---
+      duration_ms: 0.789958
+      type: 'test'
+      ...
+    1..1
+ok 5 - Node stack: what the mocha and jest controls protect
+  ---
+  duration_ms: 0.848375
+  type: 'suite'
+  ...
+# Subtest: Node stack: what the vitest control protects among the installed dependencies
+    # Subtest: given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+    ok 1 - given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path
+      ---
+      duration_ms: 0.80925
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+    ok 2 - given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path
+      ---
+      duration_ms: 0.6495
+      type: 'test'
+      ...
+    # Subtest: given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+    ok 3 - given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused
+      ---
+      duration_ms: 0.539208
+      type: 'test'
+      ...
+    # Subtest: given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+    ok 4 - given a node:test target and a vitest target, when a candidate adds tests/fixtures/node_modules/x.js, then the file is allowed as a new test file and not refused as an installed dependency
+      ---
+      duration_ms: 0.669458
+      type: 'test'
+      ...
+    # Subtest: given an adopted complement on package.json, then a candidate keeping that file as the complement wrote it is allowed, and one modifying another line is refused naming package.json
+    ok 5 - given an adopted complement on package.json, then a candidate keeping that file as the complement wrote it is allowed, and one modifying another line is refused naming package.json
+      ---
+      duration_ms: 0.578542
+      type: 'test'
+      ...
+    # Subtest: given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed
+    ok 6 - given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed
+      ---
+      duration_ms: 0.5685
+      type: 'test'
+      ...
+    # Subtest: given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file
+    ok 7 - given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file
+      ---
+      duration_ms: 0.57125
+      type: 'test'
+      ...
+    # Subtest: given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed
+    not ok 8 - given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed
+      ---
+      duration_ms: 0.971958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DhsfbO/test/v1/node-stack.test.ts:284:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + []
+        - [
+        -   'node_modules/x/index.js'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'node_modules/x/index.js'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DhsfbO/test/v1/node-stack.test.ts:291:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..8
+not ok 6 - Node stack: what the vitest control protects among the installed dependencies
+  ---
+  duration_ms: 5.5045
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DhsfbO/test/v1/node-stack.test.ts:130:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+    # Subtest: given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+    ok 1 - given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava
+      ---
+      duration_ms: 0.496583
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+    ok 2 - given scripts.test is ava and a lint script is declared, when the stack is detected, then no control at all is declared and the missing capability names ava
+      ---
+      duration_ms: 0.501625
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is jest --ci, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 3 - given scripts.test is jest --ci, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.40225
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 4 - given scripts.test is mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.398583
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is vitest --watch, then no unit control is declared and the missing capability says the runner is read only without arguments
+    ok 5 - given scripts.test is vitest --watch, then no unit control is declared and the missing capability says the runner is read only without arguments
+      ---
+      duration_ms: 0.428583
+      type: 'test'
+      ...
+    # Subtest: given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read
+    ok 6 - given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read
+      ---
+      duration_ms: 0.452667
+      type: 'test'
+      ...
+    # Subtest: given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+    ok 7 - given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain
+      ---
+      duration_ms: 0.445625
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test, then unit is the node:test control
+    ok 8 - given no scripts.test, then unit is the node:test control
+      ---
+      duration_ms: 0.436167
+      type: 'test'
+      ...
+    # Subtest: given node --test, then unit is the node:test control
+    ok 9 - given node --test, then unit is the node:test control
+      ---
+      duration_ms: 0.503958
+      type: 'test'
+      ...
+    # Subtest: given node --test with a path, then unit is the node:test control
+    ok 10 - given node --test with a path, then unit is the node:test control
+      ---
+      duration_ms: 0.450709
+      type: 'test'
+      ...
+    # Subtest: given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+    ok 11 - given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control
+      ---
+      duration_ms: 0.509209
+      type: 'test'
+      ...
+    1..11
+ok 7 - Node stack: a runner 495 cannot read is refused, node:test stays for the rest
+  ---
+  duration_ms: 5.154083
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a vitest target
+    # Subtest: given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+    ok 1 - given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing
+      ---
+      duration_ms: 0.742208
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a tests/ directory, then the witnesses live under test/
+    ok 2 - given a vitest target without a tests/ directory, then the witnesses live under test/
+      ---
+      duration_ms: 0.434542
+      type: 'test'
+      ...
+    1..2
+ok 8 - Node stack: the witnesses of a vitest target
+  ---
+  duration_ms: 1.2085
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a mocha target and of a jest target
+    # Subtest: given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 1 - given a mocha target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.649167
+      type: 'test'
+      ...
+    # Subtest: given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+    ok 2 - given a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/
+      ---
+      duration_ms: 1.279
+      type: 'test'
+      ...
+    1..2
+ok 9 - Node stack: the witnesses of a mocha target and of a jest target
+  ---
+  duration_ms: 2.9615
+  type: 'suite'
+  ...
+# Subtest: Node stack: node:test asked for coverage
+    # Subtest: given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage
+    ok 1 - given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage
+      ---
+      duration_ms: 0.5165
+      type: 'test'
+      ...
+    # Subtest: given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage
+    ok 2 - given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage
+      ---
+      duration_ms: 0.71
+      type: 'test'
+      ...
+    1..2
+ok 10 - Node stack: node:test asked for coverage
+  ---
+  duration_ms: 1.264042
+  type: 'suite'
+  ...
+# Subtest: Node stack: vitest with a coverage provider
+    # Subtest: given a vitest target whose node_modules carries a coverage provider, then unit adds that provider with the lcov reporter under target/coverage and coverage reads target/coverage/lcov.info
+    ok 1 - given a vitest target whose node_modules carries a coverage provider, then unit adds that provider with the lcov reporter under target/coverage and coverage reads target/coverage/lcov.info
+      ---
+      duration_ms: 2.139625
+      type: 'test'
+      ...
+    # Subtest: given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8
+    ok 2 - given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8
+      ---
+      duration_ms: 0.649666
+      type: 'test'
+      ...
+    # Subtest: given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage
+    ok 3 - given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage
+      ---
+      duration_ms: 0.493666
+      type: 'test'
+      ...
+    1..3
+ok 11 - Node stack: vitest with a coverage provider
+  ---
+  duration_ms: 3.320042
+  type: 'suite'
+  ...
+# Subtest: Node stack: the witnesses of a coverage sensor
+    # Subtest: given node:test and vitest targets that ask for coverage, then the positive witness adds a .mjs module called in full and its test, and the coverage control has its own negative witness whose module is loaded with a function never called
+    ok 1 - given node:test and vitest targets that ask for coverage, then the positive witness adds a .mjs module called in full and its test, and the coverage control has its own negative witness whose module is loaded with a function never called
+      ---
+      duration_ms: 1.415625
+      type: 'test'
+      ...
+    # Subtest: given targets that do not ask for coverage, then their witnesses add no code file and no control has a negative witness of its own
+    ok 2 - given targets that do not ask for coverage, then their witnesses add no code file and no control has a negative witness of its own
+      ---
+      duration_ms: 1.216084
+      type: 'test'
+      ...
+    1..2
+ok 12 - Node stack: the witnesses of a coverage sensor
+  ---
+  duration_ms: 2.657167
+  type: 'suite'
+  ...
+1..12
+# tests 35
+# suites 12
+# pass 34
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 155.85175

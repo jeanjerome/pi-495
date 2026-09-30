@@ -1,0 +1,105 @@
+TAP version 13
+# Subtest: the frozen candidate, while the controls measure it (VER-03)
+    # Subtest: a control writing inside the paths it declares writable leaves the candidate frozen
+    ok 1 - a control writing inside the paths it declares writable leaves the candidate frozen
+      ---
+      duration_ms: 80.51375
+      type: 'test'
+      ...
+    # Subtest: a write anywhere else moves the candidate, and the run says so
+    ok 2 - a write anywhere else moves the candidate, and the run says so
+      ---
+      duration_ms: 72.298791
+      type: 'test'
+      ...
+    # Subtest: a candidate frozen with an output already under a writable path is not read as moved
+    ok 3 - a candidate frozen with an output already under a writable path is not read as moved
+      ---
+      duration_ms: 74.415834
+      type: 'test'
+      ...
+    # Subtest: the same write is a mutation for a control that declared no writable path
+    ok 4 - the same write is a mutation for a control that declared no writable path
+      ---
+      duration_ms: 72.007458
+      type: 'test'
+      ...
+    1..4
+ok 1 - the frozen candidate, while the controls measure it (VER-03)
+  ---
+  duration_ms: 299.841875
+  type: 'suite'
+  ...
+# Subtest: the protocol frozen from a detection
+    # Subtest: given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+    ok 1 - given a target with a recommendation, then the frozen protocol carries it in its diagnosis
+      ---
+      duration_ms: 3.966958
+      type: 'test'
+      ...
+    # Subtest: given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+    ok 2 - given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them
+      ---
+      duration_ms: 3.421875
+      type: 'test'
+      ...
+    1..2
+ok 2 - the protocol frozen from a detection
+  ---
+  duration_ms: 7.463709
+  type: 'suite'
+  ...
+# Subtest: the paths the frozen protocol protects, whatever the stack of the target
+    # Subtest: given the controls of a Maven target and no adopted complement, then the frozen protocol protects node_modules/, a candidate adding node_modules/x/index.js and src/main/java/Greet.java is refused naming node_modules/x/index.js and not src/main/java/Greet.java, and one keeping a node_modules/x/index.js written by an adopted complement is allowed
+    ok 1 - given the controls of a Maven target and no adopted complement, then the frozen protocol protects node_modules/, a candidate adding node_modules/x/index.js and src/main/java/Greet.java is refused naming node_modules/x/index.js and not src/main/java/Greet.java, and one keeping a node_modules/x/index.js written by an adopted complement is allowed
+      ---
+      duration_ms: 3.936375
+      type: 'test'
+      ...
+    1..1
+ok 3 - the paths the frozen protocol protects, whatever the stack of the target
+  ---
+  duration_ms: 3.998792
+  type: 'suite'
+  ...
+# Subtest: the workspaces of a qualification, once a complement is adopted
+    # Subtest: given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written
+    ok 1 - given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written
+      ---
+      duration_ms: 109.378625
+      type: 'test'
+      ...
+    # Subtest: given a complement whose stored bytes no longer match its digest, then the qualification writes nothing of it, stops and deletes the copy it could not complete
+    ok 2 - given a complement whose stored bytes no longer match its digest, then the qualification writes nothing of it, stops and deletes the copy it could not complete
+      ---
+      duration_ms: 89.636333
+      type: 'test'
+      ...
+    1..2
+ok 4 - the workspaces of a qualification, once a complement is adopted
+  ---
+  duration_ms: 199.167958
+  type: 'suite'
+  ...
+# Subtest: the workspace of a reference pass, once a complement is adopted
+    # Subtest: given a frozen protocol carrying an adopted complement, then the workspace of a reference pass carries it
+    ok 1 - given a frozen protocol carrying an adopted complement, then the workspace of a reference pass carries it
+      ---
+      duration_ms: 93.483334
+      type: 'test'
+      ...
+    1..1
+ok 5 - the workspace of a reference pass, once a complement is adopted
+  ---
+  duration_ms: 93.5615
+  type: 'suite'
+  ...
+1..5
+# tests 10
+# suites 5
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 754.043542
