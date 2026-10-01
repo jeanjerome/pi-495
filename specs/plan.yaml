@@ -185,7 +185,7 @@ epics:
 
   - id: e30
     title: "Les défauts que l'audit du code a trouvés"
-    status: à faire
+    status: versé
     source: specs/reprises.md
     objet: >
       Les défauts de comportement que l'audit de `src/` et `test/` du 2026-10-01 a trouvés sont corrigés,
