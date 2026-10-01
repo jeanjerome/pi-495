@@ -352,7 +352,7 @@ export class Harness {
 			},
 			cor,
 		);
-		this.commitProgram(
+		const program = this.commitProgram(
 			programId,
 			{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId },
 			cor,
@@ -397,7 +397,7 @@ export class Harness {
 				},
 				cor,
 			);
-		return { program: this.deps.ledger.loadProgram(programId)!.state, change: unit.state };
+		return { program, change: unit.state };
 	}
 
 	status(changeId: string): StatusView {

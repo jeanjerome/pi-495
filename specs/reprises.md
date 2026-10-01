@@ -273,7 +273,7 @@ Statut : versée
 
 ## R35 — L'ouverture d'un changement garde le programme qu'elle vient d'écrire
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/harness.ts:319-359,400
 - Constat : commitProgram renvoie ProgramState ; les trois appels jettent la valeur, puis l.400 recharge avec loadProgram(programId)!.
