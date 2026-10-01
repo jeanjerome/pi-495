@@ -1,9 +1,16 @@
+# Dependencies and build outputs
 node_modules/
 dist/
-*.tgz
-.DS_Store
-test-output/
 .dist-check/
+*.tgz
+
+# Test outputs
+test-output/
+
+# Editor and OS files
+.DS_Store
 .cursor/rules
+
+# Local files of this machine, never shared
 DECISION.md
 .claude/settings.local.json
