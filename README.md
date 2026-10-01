@@ -161,7 +161,7 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 | **Host** | Pi 0.87; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
 | **Java / Maven** | Surefire tests; JaCoCo coverage and PIT mutation when the project declares the required reports; structural checks derived from supported Maven and Java declarations. Maven verification uses offline mode. |
-| **Node** | `scripts.test` run by `node --test` (or absent), or by `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. A target that asks for coverage (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed) also receives a control on the coverage of the lines a change introduces, read from the LCOV report of the run; otherwise coverage is not measured and the report says so. |
+| **Node** | `scripts.test` run by `node --test` (or absent), or by `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. A target that asks for coverage (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed) also receives a control on the coverage of the lines a change introduces, read from the LCOV report of the run; otherwise coverage is not measured and the report says so. A target that installed Stryker (`@stryker-mutator/core`) also receives a control on the mutants of the lines a change introduces, read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
 | **Models** | Models configured and authenticated in Pi, including local OpenAI-compatible endpoints with working tool calls. Provider and subscription availability follow Pi and the provider. |
 
@@ -261,7 +261,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
-  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/"],
+  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/", "reports/mutation/", ".stryker-tmp/"],
   "language": "fr"
 }
 ```

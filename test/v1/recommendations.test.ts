@@ -276,10 +276,14 @@ function nodeProject(name: string, scriptsTest: string, extra: Record<string, st
 	return project;
 }
 
+/** The coverage recommendation of a Node target: Stryker is recommended beside it when it is not installed. */
+function coverageRecommendations(project: string): RecommendedComplement[] {
+	return detectStack(project, REFS, NODE).recommendations.filter((r) => r.test_type === "coverage");
+}
+
 describe("Node recommends the coverage its runner can produce", () => {
 	it("given node --test without the coverage flag, then the detection recommends adding --experimental-test-coverage and installing nothing", () => {
-		const detection = detectStack(nodeProject("plain", "node --test"), REFS, NODE);
-		const recommendations = detection.recommendations;
+		const recommendations = coverageRecommendations(nodeProject("plain", "node --test"));
 		assert.equal(recommendations.length, 1);
 		const [recommendation] = recommendations;
 		assert.deepEqual(validate(RecommendedComplement, recommendation), recommendation);
@@ -295,7 +299,7 @@ describe("Node recommends the coverage its runner can produce", () => {
 		const project = nodeProject("vitest", "vitest run", {
 			"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
 		});
-		const recommendations = detectStack(project, REFS, NODE).recommendations;
+		const recommendations = coverageRecommendations(project);
 		assert.deepEqual(
 			recommendations.map((r) => [r.test_type, r.tool, r.version]),
 			[["coverage", "@vitest/coverage-v8", "3.2.4"]],
@@ -308,7 +312,7 @@ describe("Node recommends the coverage its runner can produce", () => {
 			"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
 			"package-lock.json": "{}",
 		});
-		const [recommendation, ...others] = detectStack(project, REFS, NODE).recommendations;
+		const [recommendation, ...others] = coverageRecommendations(project);
 		assert.deepEqual(others, []);
 		assert.deepEqual(recommendation?.install, { package: "@vitest/coverage-v8", version: "3.2.4", manager: "npm" });
 		assert.equal(recommendation?.edit, undefined);
@@ -326,14 +330,14 @@ describe("Node recommends the coverage its runner can produce", () => {
 			}),
 		};
 		for (const [label, project] of Object.entries(targets))
-			assert.deepEqual(detectStack(project, REFS, NODE).recommendations, [], label);
+			assert.deepEqual(coverageRecommendations(project), [], label);
 	});
 });
 
 describe("Node describes the edit of scripts.test that adds the coverage flag", () => {
 	it("given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none", () => {
 		for (const current of ["node --test", "node --test test/"]) {
-			const [recommendation, ...others] = detectStack(nodeProject("edited", current), REFS, NODE).recommendations;
+			const [recommendation, ...others] = coverageRecommendations(nodeProject("edited", current));
 			assert.deepEqual(others, []);
 			assert.deepEqual(recommendation?.edit, {
 				path: "package.json",
@@ -344,7 +348,7 @@ describe("Node describes the edit of scripts.test that adds the coverage flag", 
 		}
 		const noScriptsTest = join(root, "no-scripts-test");
 		writeFiles(noScriptsTest, { "package.json": JSON.stringify({ name: "no-scripts-test", scripts: {} }) });
-		const bare = detectStack(noScriptsTest, REFS, NODE).recommendations;
+		const bare = coverageRecommendations(noScriptsTest);
 		assert.deepEqual(
 			bare.map((r) => [r.test_type, r.edit]),
 			[["coverage", undefined]],
@@ -353,7 +357,7 @@ describe("Node describes the edit of scripts.test that adds the coverage flag", 
 		const vitest = nodeProject("vitest-edit", "vitest run", {
 			"node_modules/vitest/package.json": JSON.stringify({ name: "vitest", version: "3.2.4" }),
 		});
-		const installs = detectStack(vitest, REFS, NODE).recommendations;
+		const installs = coverageRecommendations(vitest);
 		assert.deepEqual(
 			installs.map((r) => [r.tool, r.edit]),
 			[["@vitest/coverage-v8", undefined]],

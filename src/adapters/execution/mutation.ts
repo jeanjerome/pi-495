@@ -13,20 +13,28 @@
  * sitting on a line the candidate wrote. A survivor elsewhere is inherited debt, named and not
  * opposed to the change (QLT-04).
  *
+ * Two engines write the report this reads: PIT, scoped to the classes the candidate modified, and
+ * Stryker, scoped to the line ranges it introduced. Both are judged by the same rule on the same
+ * statuses.
+ *
  * Nothing here is declared deterministic by its name. The scope comes from the manifest and the
- * introduced lines, both computed from content-addressed bytes; the run is offline, single-threaded
- * and bounded by a budget of its own; the report path carries no timestamp; and a mutant the engine
- * could not decide is counted as undecided, never as killed. When the budget ends the run before the
- * report is written, the observation is an incident — INDETERMINATE — and the bar this control holds
- * is not lowered to conclude.
+ * introduced lines, both computed from content-addressed bytes; the run reaches no network beyond
+ * loopback, is single-threaded and bounded by a budget of its own; the report path carries no
+ * timestamp; and a mutant the engine could not decide is counted as undecided, never as killed. When
+ * the budget ends the run before the report is written, the observation is an incident —
+ * INDETERMINATE — and the bar this control holds is not lowered to conclude.
  */
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
+import { stripVTControlCharacters } from "node:util";
+import { hasControlCharacter } from "../../application/coverage.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
+import { SCRIPT_DECLARATION_ONLY, SCRIPT_SOURCE, SCRIPT_TEST_SOURCE } from "./lcov.ts";
 import {
 	buildErrors,
 	decodeXml,
 	incidentOf,
+	MAX_REPORT_BYTES,
 	moduleOf,
 	resolveSourcePath,
 	type ParsedFinding,
@@ -51,6 +59,22 @@ const TEST_SOURCE = /(^|\/)src\/test\//;
 const DETECTED = new Set(["KILLED", "TIMED_OUT"]);
 /** A mutant that never ran: it is not a defect of the candidate, and it is counted as excluded. */
 const NOT_VIABLE = new Set(["NON_VIABLE"]);
+/** A mutant the target's own configuration asked the engine to skip: counted, never a finding. */
+const IGNORED = new Set(["IGNORED"]);
+
+/** The reports a mutation control reads, and the engine that writes each. */
+export type MutationParser = "pitest-xml" | "stryker-json";
+
+/** Stryker statuses, named as the statuses this sensor judges: one vocabulary behind both engines. */
+const STRYKER_STATUS: Readonly<Record<string, string>> = {
+	Killed: "KILLED",
+	Timeout: "TIMED_OUT",
+	Survived: "SURVIVED",
+	NoCoverage: "NO_COVERAGE",
+	CompileError: "NON_VIABLE",
+	RuntimeError: "RUN_ERROR",
+	Ignored: "IGNORED",
+};
 
 /**
  * Introduced paths whose classes a mutation run is scoped to. A test, a POM or a resource is not
@@ -69,6 +93,43 @@ export interface MutationScope {
 	paths: string[];
 	/** Paths left out, with the reason: the control must know what it did not scope. */
 	notes: string[];
+	/** Paths the engine would read as a pattern: none can be designated to it, and the run is not made. */
+	unaddressable: string[];
+}
+
+/**
+ * Stryker reads a scope as a glob pattern: a path carrying one of these would mutate another file or
+ * none, and a run that mutates nothing looks like a suite that kills everything. A path with a control
+ * character is kept by the introduced lines with no range, so it cannot be designated either.
+ */
+const STRYKER_PATTERN_CHARACTER = /[*?[\]{}()!,]/;
+
+/** `5, 6, 9` as `5-6`, `9-9`: one range per run of consecutive lines. */
+function lineRanges(lines: readonly number[]): [number, number][] {
+	const ranges: [number, number][] = [];
+	for (const line of [...new Set(lines)].sort((a, b) => a - b)) {
+		const last = ranges.at(-1);
+		if (last && last[1] + 1 === line) last[1] = line;
+		else ranges.push([line, line]);
+	}
+	return ranges;
+}
+
+/**
+ * The ranges of the introduced lines Stryker is asked to mutate, `file:start-end` each, in the place
+ * of the class patterns a scope otherwise carries. The scope comes from the manifest and the
+ * introduced lines, never from a file the producer wrote.
+ */
+function strykerScopeOf(introduced: IntroducedLines): MutationScope {
+	const sources = Object.keys(introduced)
+		.filter((path) => SCRIPT_SOURCE.test(path) && !SCRIPT_DECLARATION_ONLY.test(path) && !SCRIPT_TEST_SOURCE.test(path))
+		.sort();
+	const unaddressable = sources.filter((path) => STRYKER_PATTERN_CHARACTER.test(path) || hasControlCharacter(path));
+	const paths = sources.filter((path) => !unaddressable.includes(path));
+	const classes = paths.flatMap((path) =>
+		lineRanges(introduced[path] ?? []).map(([start, end]) => `${path}:${start}-${end}`),
+	);
+	return { classes, paths, notes: [], unaddressable };
 }
 
 /**
@@ -77,7 +138,12 @@ export interface MutationScope {
  * target lays out differently would otherwise scope the run onto a class that does not exist, and a
  * run that mutates nothing is indistinguishable from a suite that kills everything.
  */
-export async function mutationScopeOf(workspacePath: string, introduced: IntroducedLines): Promise<MutationScope> {
+export async function mutationScopeOf(
+	workspacePath: string,
+	introduced: IntroducedLines,
+	parser: MutationParser = "pitest-xml",
+): Promise<MutationScope> {
+	if (parser === "stryker-json") return strykerScopeOf(introduced);
 	const root = resolve(workspacePath);
 	const paths: string[] = [];
 	const classes: string[] = [];
@@ -101,13 +167,15 @@ export async function mutationScopeOf(workspacePath: string, introduced: Introdu
 		paths.push(path);
 		classes.push(type, `${type}$*`);
 	}
-	return { classes: [...new Set(classes)].sort(), paths, notes };
+	return { classes: [...new Set(classes)].sort(), paths, notes, unaddressable: [] };
 }
 
-export interface PitestDocument {
+export interface MutationReportDocument {
 	/** Workspace-relative path of the report, which names the module it comes from. */
 	name: string;
 	text: string;
+	/** Size of a report left unread because it passed the read bound: its `text` is then empty. */
+	oversized_bytes?: number;
 }
 
 export interface Mutant {
@@ -163,7 +231,7 @@ export interface MutationSummary {
  * resolved the same way a coverage report is: from the package of the mutated class and the source
  * file it names, looked up among the paths the candidate touched, one match or nothing.
  */
-function summarizeMutations(documents: readonly PitestDocument[], paths: readonly string[]): MutationSummary {
+function summarizeMutations(documents: readonly MutationReportDocument[], paths: readonly string[]): MutationSummary {
 	const mutants: Mutant[] = [];
 	const ambiguous = new Set<string>();
 	let outOfScope = 0;
@@ -208,6 +276,110 @@ function summarizeMutations(documents: readonly PitestDocument[], paths: readonl
 	return { mutants, out_of_scope: outOfScope, notes };
 }
 
+interface StrykerReport {
+	files: Record<string, { mutants: StrykerMutant[] }>;
+}
+
+interface StrykerMutant {
+	mutatorName: string;
+	replacement?: string;
+	description?: string;
+	location: { start: { line: number } };
+	status: string;
+}
+
+const STRYKER_REPORT_PATH = "reports/mutation/mutation.json";
+
+/** The report Stryker wrote, or the reason the text is not one that can be checked complete. */
+function readStrykerReport(text: string): { report: StrykerReport } | { unreadable: string } {
+	let parsed: { files?: unknown } | null;
+	try {
+		parsed = JSON.parse(text) as { files?: unknown } | null;
+	} catch {
+		return { unreadable: "the Stryker report is not valid JSON: it was truncated or is unreadable" };
+	}
+	const files = parsed?.files;
+	if (typeof files !== "object" || files === null || Array.isArray(files))
+		return {
+			unreadable:
+				"the Stryker report has no files entry: a run that mutated nothing is not a run that killed everything",
+		};
+	return { report: parsed as StrykerReport };
+}
+
+/**
+ * Reads the mutants of a Stryker report. Stryker lays a report out by file, relative to where it ran,
+ * which is the workspace: no path has to be resolved, and a mutant sits on the line it starts on.
+ */
+function summarizeStryker(documents: readonly MutationReportDocument[]): MutationSummary {
+	const mutants: Mutant[] = [];
+	for (const doc of documents) {
+		const read = readStrykerReport(doc.text);
+		if ("unreadable" in read) continue;
+		for (const [path, file] of Object.entries(read.report.files))
+			for (const mutant of file.mutants) {
+				const replacement = mutant.replacement?.replace(/\s+/g, " ").slice(0, 80);
+				mutants.push({
+					status: STRYKER_STATUS[mutant.status] ?? mutant.status,
+					path,
+					line: mutant.location.start.line,
+					mutator: mutant.mutatorName || "unnamed operator",
+					mutated_class: "",
+					mutated_method: "",
+					description: mutant.description ?? (replacement ? `replaced by ${replacement}` : ""),
+				});
+			}
+	}
+	return { mutants, out_of_scope: 0, notes: [] };
+}
+
+/** Why a document present at the report path cannot be checked complete, or null when it can. */
+function unreadableStrykerReport(doc: MutationReportDocument): string | null {
+	if (doc.oversized_bytes !== undefined)
+		return `the Stryker report is ${doc.oversized_bytes} bytes, past the read bound of ${MAX_REPORT_BYTES}: it was not read`;
+	const read = readStrykerReport(doc.text);
+	return "unreadable" in read ? read.unreadable : null;
+}
+
+/**
+ * What the control answers when Stryker left no report it could read. A report that is there and
+ * cannot be checked complete is undecided whatever the exit code says. Without any, a non-zero exit is
+ * a suite that fails on the frozen copy — Stryker runs it once unmutated before anything else — and a
+ * zero exit is a run whose proof is missing.
+ */
+function withoutStrykerReport(
+	obs: ProcessObservation,
+	documents: readonly MutationReportDocument[],
+	facts: Record<string, unknown>,
+	output: string,
+): ParsedReport {
+	const unreadable = documents.map(unreadableStrykerReport).filter((reason) => reason !== null);
+	if (unreadable.length > 0) return { verdict: "INDETERMINATE", facts, notes: unreadable, failures: [] };
+	if (obs.exit_code === 0)
+		return {
+			verdict: "INDETERMINATE",
+			facts,
+			notes: [
+				`no Stryker report at ${STRYKER_REPORT_PATH}: the run that would prove the suite kills the mutants is missing`,
+			],
+			failures: [],
+		};
+	// Stryker colors its log and stamps each line with the time and its process number: none of that
+	// belongs to a message that two runs of the same tree must word alike.
+	const errors = stripVTControlCharacters(output)
+		.split(/\r?\n/)
+		.filter((line) => /\bERROR\b/.test(line))
+		.map((line) => line.replace(/^\s*\d{2}:\d{2}:\d{2} \(\d+\) /, "").trim());
+	return {
+		verdict: "FAIL",
+		facts,
+		notes: [
+			`Stryker exited with ${obs.exit_code} before writing a report: the initial test run fails in the frozen copy`,
+		],
+		failures: errors.length > 0 ? errors.slice(0, MAX_NAMED_PATHS) : [`exit code ${obs.exit_code}`],
+	};
+}
+
 /** What the control answers when nobody computed what the subject introduced: nothing is run. */
 export function unscopedMutation(): ParsedReport {
 	return {
@@ -215,6 +387,19 @@ export function unscopedMutation(): ParsedReport {
 		facts: { scoped_classes: 0, scoped_files: 0 },
 		notes: [
 			"no introduced-line set was given: a mutation run nobody could scope would mutate the whole tree on the budget of one change",
+		],
+		failures: [],
+	};
+}
+
+/** What the control answers when a path it must mutate cannot be designated to the engine: nothing is run. */
+export function unaddressableMutation(scope: MutationScope): ParsedReport {
+	return {
+		verdict: "INDETERMINATE",
+		facts: { scoped_files: scope.paths.length, unaddressable_files: scope.unaddressable.length },
+		notes: [
+			`${scope.unaddressable.length} introduced path(s) cannot be designated to the engine, which reads a scope as a pattern, and no run was made: ${scope.unaddressable.join(", ")}`,
+			...scope.notes,
 		],
 		failures: [],
 	};
@@ -250,10 +435,11 @@ export function nothingToMutate(scope: MutationScope): ParsedReport {
  */
 export function analyzeMutation(
 	obs: ProcessObservation,
-	documents: readonly PitestDocument[] | null,
+	documents: readonly MutationReportDocument[] | null,
 	introduced: IntroducedLines | null,
 	scope: MutationScope,
 	output = "",
+	parser: MutationParser = "pitest-xml",
 ): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) {
@@ -275,15 +461,20 @@ export function analyzeMutation(
 		};
 	}
 	if (introduced === null) return unscopedMutation();
+	if (scope.unaddressable.length > 0) return unaddressableMutation(scope);
 	if (scope.paths.length === 0) return nothingToMutate(scope);
 
-	const complete = (documents ?? []).filter((doc) => isCompleteMutationReport(doc.text));
+	const isComplete =
+		parser === "stryker-json" ? (text: string) => "report" in readStrykerReport(text) : isCompleteMutationReport;
+	const complete = (documents ?? []).filter((doc) => isComplete(doc.text));
 	const facts: Record<string, unknown> = {
 		exit_code: obs.exit_code,
 		reports: complete.length,
 		scoped_classes: scope.classes.length,
 		scoped_files: scope.paths.length,
 	};
+	if (complete.length === 0 && parser === "stryker-json")
+		return withoutStrykerReport(obs, documents ?? [], facts, output);
 	if (complete.length === 0) {
 		// The report is written once the analysis is over. Without one, a non-zero exit is a build that
 		// broke on the frozen tree — a reproducible property of the candidate, not an incident.
@@ -321,7 +512,7 @@ export function analyzeMutation(
 		};
 	}
 
-	const summary = summarizeMutations(complete, scope.paths);
+	const summary = parser === "stryker-json" ? summarizeStryker(complete) : summarizeMutations(complete, scope.paths);
 	const written = new Map(Object.entries(introduced).map(([path, lines]) => [path, new Set(lines)] as const));
 	const wroteLine = (path: string, line: number) => written.get(path)?.has(line) ?? false;
 	const statuses: Record<string, number> = {};
@@ -331,12 +522,13 @@ export function analyzeMutation(
 	let onIntroduced = 0;
 	let killed = 0;
 	let excluded = 0;
+	let ignored = 0;
 	let inherited = 0;
 	for (const mutant of summary.mutants) {
 		statuses[mutant.status] = (statuses[mutant.status] ?? 0) + 1;
 		const method = mutant.mutated_method ? `${mutant.mutated_class}.${mutant.mutated_method}` : mutant.mutated_class;
 		if (!wroteLine(mutant.path, mutant.line)) {
-			if (!DETECTED.has(mutant.status) && !NOT_VIABLE.has(mutant.status)) inherited++;
+			if (!DETECTED.has(mutant.status) && !NOT_VIABLE.has(mutant.status) && !IGNORED.has(mutant.status)) inherited++;
 			continue;
 		}
 		onIntroduced++;
@@ -348,6 +540,10 @@ export function analyzeMutation(
 			excluded++;
 			continue;
 		}
+		if (IGNORED.has(mutant.status)) {
+			ignored++;
+			continue;
+		}
 		if (mutant.status === "SURVIVED" || mutant.status === "NO_COVERAGE") {
 			const rule = mutant.status === "SURVIVED" ? MUTATION_RULE_SURVIVED : MUTATION_RULE_UNCOVERED;
 			const what = mutant.status === "SURVIVED" ? "no test notices" : "no test exercises";
@@ -357,8 +553,8 @@ export function analyzeMutation(
 					rule_id: rule,
 					category: "quality",
 					severity: "blocker",
-					message: `${mutant.path}:${mutant.line} introduced line whose mutation ${what}: ${described} (${mutant.mutator}) in ${method}`,
-					symbol: method,
+					message: `${mutant.path}:${mutant.line} introduced line whose mutation ${what}: ${described} (${mutant.mutator})${method ? ` in ${method}` : ""}`,
+					symbol: method || null,
 				});
 			continue;
 		}
@@ -380,6 +576,10 @@ export function analyzeMutation(
 		notes.push(
 			`${excluded} mutant(s) of the introduced lines never ran and are excluded: a mutant the engine reports as non-viable is not a defect`,
 		);
+	if (ignored > 0)
+		notes.push(
+			`${ignored} mutant(s) of the introduced lines are ignored by the target's own configuration: counted, never a finding`,
+		);
 	if (inherited > 0)
 		notes.push(
 			`${inherited} mutant(s) survive on lines of the scoped classes this subject did not write: counted as debt of those classes, never opposed to the candidate (QLT-04)`,
@@ -400,6 +600,7 @@ export function analyzeMutation(
 		killed_mutants: killed,
 		surviving_mutants: survived,
 		excluded_mutants: excluded,
+		ignored_mutants: ignored,
 		undecided_mutants: undecidedCount,
 		inherited_survivors: inherited,
 		out_of_scope_mutants: summary.out_of_scope,

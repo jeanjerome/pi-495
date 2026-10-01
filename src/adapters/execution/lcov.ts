@@ -86,13 +86,13 @@ function measurementOf(files: Map<string, FileRecord>): CoverageMeasurement {
 }
 
 const MAX_NAMED_PATHS = 10;
-const CODE_SOURCE = /\.[cm]?[jt]sx?$/;
+export const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
 /** A declaration file has no executable line, and a runner reports none. */
-const DECLARATION_ONLY = /\.d\.[cm]?ts$/;
+export const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;
 /** A configuration is read by the tools, not run by the suite. */
 const CONFIGURATION = /\.config\.[cm]?[jt]sx?$/;
 /** A test is what measures; it is never what is measured. */
-const TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
+export const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
 
 /**
  * Introduced paths an LCOV report is expected to cite. A path outside this set is not an unmeasured
@@ -102,7 +102,10 @@ export function expectedInLcovReport(introduced: IntroducedLines): string[] {
 	return Object.keys(introduced)
 		.filter(
 			(path) =>
-				CODE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !CONFIGURATION.test(path) && !TEST_SOURCE.test(path),
+				SCRIPT_SOURCE.test(path) &&
+				!SCRIPT_DECLARATION_ONLY.test(path) &&
+				!CONFIGURATION.test(path) &&
+				!SCRIPT_TEST_SOURCE.test(path),
 		)
 		.sort();
 }

@@ -868,3 +868,118 @@ bugs:
       Make `adoptable.installs` read the edit of a Maven recommendation, which adds a refusal, with a test on a
       target that carries an edit that does not apply once one exists.
     status: open
+  - bug_id: BUG-2026-10-01T120000
+    date: "2026-10-01"
+    title: "A Stryker report whose file entry has no mutants list ends as a runner error that does not say what is missing"
+    severity: low
+    priority: p3
+    scope: execution
+    what_happened: >
+      `readStrykerReport` (`src/adapters/execution/mutation.ts`) checks that the report is valid JSON with a
+      `files` object, and nothing below it. A `files` entry without a `mutants` list, or a mutant without
+      `location.start.line`, passes that check and makes `summarizeStryker` throw a `TypeError`. The runner
+      catches it and the control ends INDETERMINATE with `runner error: file.mutants is not iterable`.
+    what_expected: >
+      A report that cannot be checked complete ends INDETERMINATE with a reason that says what the report
+      lacks, as the truncated report and the report without `files` do.
+    steps_to_reproduce:
+      - "Call `analyzeMutation` with the parser `stryker-json` and the report text `{\"files\":{\"src/calc.js\":{}}}`."
+      - "It throws `TypeError: file.mutants is not iterable` instead of returning a verdict."
+    root_cause: >
+      The shape of the report is asserted by a cast after the first-level check. Introduced by the branch
+      e12s10. The verdict stays INDETERMINATE through the runner's own catch, so no candidate passes on it.
+    evidence: >
+      Probe on 2026-10-01 against the head of the branch: the call above throws, and the runner's catch
+      at `runner.ts` turns it into an INDETERMINATE whose note is the raw `TypeError`.
+    risk_level: low
+    follow_ups: >
+      Validate the `mutants` list and the start line of each mutant in `readStrykerReport`, which adds a
+      refusal, with a test on a report whose entry has no `mutants`.
+    status: open
+  - bug_id: BUG-2026-10-01T130000
+    date: "2026-10-01"
+    title: "No test has the mutation control judge its own two witnesses"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The mutation control of a Node target that installed Stryker is qualified on a positive witness (a module
+      whose test asserts every result) and a negative witness of its own (a module whose test calls the function
+      without asserting). The tests hold the shape of the two witnesses: the module asserted in full, the module
+      called without an assertion, the `mutation` key of `own_negative_witness`, two witness tests. No test makes
+      the control judge them, so that PASS on the positive witness and FAIL on the negative one are observed
+      only by a run with a real Stryker.
+    what_expected: >
+      A test fails when a change to a witness makes the control answer PASS on the module that nothing asserts,
+      or FAIL on the module that asserts everything.
+    steps_to_reproduce:
+      - "In `src/application/stacks/node.ts`, add an assertion to the test of the own negative witness of the mutation control."
+      - "Run `npm test`: the tests of the shape fail, and none of them judges the witness."
+    root_cause: >
+      Judging a witness takes the mutants of a real Stryker run, which a stand-in cannot produce from the code of
+      the witness: a stand-in answers with the report it is given, whatever the witness says. The repository
+      installs no Stryker. Introduced by the branch e12s10.
+    evidence: >
+      Mutation run by the reviewers on 2026-10-01: removing `own_negative_witness.mutation`, or changing the
+      content of the negative test, fails the tests of shape; no mutation of how the control judges a witness is
+      possible without a real Stryker. The neighbouring gap on the qualification wiring is BUG-2026-09-30T200000.
+    risk_level: low
+    follow_ups: >
+      Run the two witnesses through a Stryker installed in a scratch target, in a test that skips with a written
+      note when it cannot be installed.
+    status: open
+  - bug_id: BUG-2026-10-01T140000
+    date: "2026-10-01"
+    title: "No test asserts the wording of the finding on a mutant that no test exercises"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The mutation control opposes a Stryker mutant with the status NoCoverage with a blocking finding whose
+      message says that no test exercises the introduced line, and one with the status Survived with a message
+      that says no test notices it. The tests of the Stryker report assert the rule id and the line of the
+      finding, never the words. Changing the message of the NoCoverage finding to that of a survivor leaves
+      every test green.
+    what_expected: >
+      A test fails when the finding on a mutant that no test exercises stops saying so, because the words
+      are what tells the subject whether a test runs the line or runs it without noticing the change.
+    steps_to_reproduce:
+      - "In `src/adapters/execution/mutation.ts`, replace `\"no test exercises\"` with `\"no test notices\"` in the `what` of the finding."
+      - "Run `npm run test:v1`: `test/v1/stryker-mutation.test.ts`, `mutation.test.ts` and `control-runner.test.ts` stay green."
+    root_cause: >
+      The test of the NoCoverage mutant asserts `MUTATION_RULE_UNCOVERED` and the line, and the rule already
+      tells the two statuses apart, so the test holds the distinction by the rule and not by the message.
+      Introduced by the branch e12s10.
+    evidence: >
+      Mutation run by the reviewers on 2026-10-01: the wording of the NoCoverage finding replaced by that of a
+      survivor passes the three mutation test files; replacing the rule id UNCOVERED by SURVIVED fails two tests.
+    risk_level: low
+    follow_ups: >
+      Assert in the Stryker NoCoverage test that the message contains `no test exercises`, and in the Survived
+      test that it contains `no test notices`.
+    status: open
+  - bug_id: BUG-2026-10-01T140100
+    date: "2026-10-01"
+    title: "Only three of the ten characters Stryker reads as a pattern are exercised by a test of the scope"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The scope of a Stryker run leaves out, and names as unaddressable, a path carrying a character that
+      Stryker reads as a glob pattern: `* ? [ ] { } ( ) ! ,`. The test of the scope exercises `[id]`, `a,b` and
+      `!x`. Removing `*`, `?` or the braces and parentheses from the pattern of the code changes no test result.
+    what_expected: >
+      A test fails when a path carrying any one of the ten characters is designated to the engine as a scope.
+    steps_to_reproduce:
+      - "In `src/adapters/execution/mutation.ts`, remove `*` from `STRYKER_PATTERN_CHARACTER`, or `{}` from it."
+      - "Run `npm run test:v1`: `test/v1/stryker-mutation.test.ts` stays green in both cases."
+    root_cause: >
+      The test lists the three paths of the story's scenario; the pattern of the code names ten characters and
+      nothing asserts the other seven. Introduced by the branch e12s10.
+    evidence: >
+      Mutation run by the reviewers on 2026-10-01: `/[?[\]{}()!,]/` and `/[*?[\]()!,]/` in place of the
+      pattern both pass `test/v1/stryker-mutation.test.ts`.
+    risk_level: low
+    follow_ups: >
+      Run the scope test over one path per character of the pattern.
+    status: open

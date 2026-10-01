@@ -159,6 +159,17 @@ describe("the parser identifiers of a control", () => {
 		assert.equal(isDifferentialParser("lcov"), true);
 		assert.equal(isDifferentialParser("node-test"), false);
 	});
+	it("given a control declaring the stryker-json parser, then the protocol schema accepts it and the parser is differential", () => {
+		const mutation = {
+			...unit,
+			control_id: "mutation",
+			parser: "stryker-json",
+			report_path: "reports/mutation",
+			writable_paths: ["reports/mutation", ".stryker-tmp"],
+		};
+		assert.deepEqual(validate(ControlDefinition, mutation), mutation);
+		assert.equal(isDifferentialParser("stryker-json"), true);
+	});
 });
 
 describe("the capability diagnosis of a protocol", () => {

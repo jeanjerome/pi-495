@@ -5,11 +5,13 @@
  * control of its own, refused rather than guessed when it needs a shell. A `scripts.test` that names
  * a runner 495 cannot read leaves no control at all (D-72). A target that asks its runner for
  * coverage receives a control that judges the lines a change introduces from the LCOV report the
- * runner writes; one that does not is told so instead (QLT-04).
+ * runner writes; one that does not is told so instead (QLT-04). A target that installed Stryker
+ * receives a control that judges the mutants of the lines a change introduces; one that did not is
+ * recommended to (VER-04).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
+import { SCOPE_PLACEHOLDER, type ControlDefinition, type RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
@@ -58,19 +60,29 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 			protected: true,
 			protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"],
 		});
+	const mutation = suite.runner
+		? mutationOutcome(projectPath, suite.runner, suite.control, requirementRefs, nodeBinary)
+		: {};
+	if (mutation.control) controls.push(mutation.control);
 	const witnesses = suite.runner ? witnessesOf(suite.runner, projectPath) : nodeTestWitnesses();
-	const measured = suite.coverage?.control && suite.runner ? coverageWitnesses(suite.runner, projectPath) : null;
+	const measured =
+		suite.runner && (suite.coverage?.control || mutation.control) ? moduleWitnesses(suite.runner, projectPath) : null;
 	return {
 		stack: "node",
 		facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) },
 		controls,
 		positive_witness: { ...witnesses.positive, ...measured?.positive },
 		witness_tests: measured ? 2 : 1,
-		own_negative_witness: measured ? { coverage: measured.uncovered } : {},
+		own_negative_witness: {
+			...(suite.coverage?.control && measured ? { coverage: measured.uncovered } : {}),
+			...(mutation.control && measured ? { mutation: measured.unasserted } : {}),
+		},
 		negative_witness: { ...witnesses.negative, "src/495-negative-witness.js": "var forbidden = 1;\n" },
 		preparation_paths: ["test/", "tests/"],
-		capability_missing: suite.refusal ? [suite.refusal] : (suite.coverage?.missing ?? []),
-		recommendations: suite.coverage?.recommendation ? [suite.coverage.recommendation] : [],
+		capability_missing: suite.refusal
+			? [suite.refusal]
+			: [...(suite.coverage?.missing ?? []), ...(mutation.missing ?? [])],
+		recommendations: [suite.coverage?.recommendation, mutation.recommendation].filter((r) => r !== undefined),
 	};
 }
 
@@ -86,8 +98,8 @@ const NODE_TEST_COVERAGE = /(^|\s)--experimental-test-coverage(\s|$)/;
 const READ_RUNNER = /^(vitest|mocha|jest)\s/;
 const SHELL_SYNTAX = /[|&;<>$`()]/;
 
-/** What a target's coverage becomes: a control that judges it, or the reason there is none and what would give one. */
-interface CoverageOutcome {
+/** What a measurement of the introduced lines becomes on a target: a control that judges it, or the reason there is none and what would give one. */
+interface SensorOutcome {
 	control?: ControlDefinition;
 	missing?: string[];
 	recommendation?: RecommendedComplement;
@@ -108,6 +120,72 @@ const NODE_TEST_COVERAGE_RECOMMENDATION: RecommendedComplement = {
 
 const COVERAGE_NOT_MEASURED = "the coverage of the introduced lines is not measured on this target";
 
+/** What Stryker is installed as, and where its JSON reporter writes the report the control reads. */
+const STRYKER_PACKAGE = "@stryker-mutator/core";
+const STRYKER_REPORT = "reports/mutation/mutation.json";
+
+const MUTATION_NOT_MEASURED = "the mutation of the introduced lines is not measured on this target";
+
+const STRYKER_RECOMMENDATION: RecommendedComplement = {
+	test_type: "mutation",
+	tool: STRYKER_PACKAGE,
+	version: "10.0.0",
+	established_on: CATALOGUE_DATE,
+	source: "stryker-mutator.io/docs/stryker-js/getting-started/",
+	change: `install ${STRYKER_PACKAGE} as a devDependency`,
+};
+
+/**
+ * The mutation control of a target that installed Stryker, or why it has none. Stryker is run from the
+ * copy's `node_modules` and never from the host's PATH, with the configuration the target chose and
+ * `npm test` as its command unless that configuration says otherwise; 495 installs nothing. The runners
+ * whose qualification witnesses 495 writes are the ones it can qualify the control on.
+ */
+function mutationOutcome(
+	projectPath: string,
+	runner: SuiteRunner,
+	unit: ControlDefinition,
+	requirementRefs: RequirementRef[],
+	nodeBinary: string,
+): SensorOutcome {
+	if (runner !== "node-test" && runner !== "vitest")
+		return { missing: [`${MUTATION_NOT_MEASURED}: 495 writes no qualification witness for ${runner}`] };
+	if (!existsSync(join(projectPath, "node_modules", STRYKER_PACKAGE)))
+		return {
+			missing: [`${MUTATION_NOT_MEASURED}: ${STRYKER_PACKAGE} is not installed`],
+			recommendation: STRYKER_RECOMMENDATION,
+		};
+	return {
+		control: {
+			...unit,
+			control_id: "mutation",
+			title: "surviving mutants on the lines the candidate wrote, read from the Stryker JSON report",
+			command: [
+				nodeBinary,
+				`node_modules/${STRYKER_PACKAGE}/bin/stryker.js`,
+				"run",
+				"--reporters",
+				"json",
+				"--concurrency",
+				"1",
+			],
+			timeout_ms: 30 * 60_000,
+			parser: "stryker-json",
+			report_path: STRYKER_REPORT,
+			provides: [],
+			requires: [],
+			scope_argument: `--mutate=${SCOPE_PLACEHOLDER}`,
+			// Stryker listens on every interface to talk to its test processes: without the loopback profile
+			// it fails with `listen EPERM`.
+			network: "loopback",
+			writable_paths: ["reports/mutation", ".stryker-tmp"],
+			requirement_refs: requirementRefs,
+			// A narrowed `mutate`, an added exclusion or another reporter would make the control pass on less.
+			protected_paths: [...unit.protected_paths, "stryker.conf.*", "stryker.config.*"],
+		},
+	};
+}
+
 /**
  * The unit control `scripts.test` declares, or why there is none: a control whose reader is not
  * qualified on the output it reads is worth less than no control, so a runner 495 cannot read is
@@ -119,7 +197,7 @@ function suiteOf(
 	requirementRefs: RequirementRef[],
 	nodeBinary: string,
 ):
-	| { runner: SuiteRunner; control: ControlDefinition; coverage?: CoverageOutcome; refusal?: undefined }
+	| { runner: SuiteRunner; control: ControlDefinition; coverage?: SensorOutcome; refusal?: undefined }
 	| { runner?: undefined; control?: undefined; coverage?: undefined; refusal: string } {
 	if (scriptsTest === undefined || NODE_TEST_COMMAND.test(scriptsTest)) {
 		if (scriptsTest !== undefined && NODE_TEST_COVERAGE.test(scriptsTest)) {
@@ -288,7 +366,7 @@ function vitestSuite(
 	projectPath: string,
 	requirementRefs: RequirementRef[],
 	nodeBinary: string,
-): { runner: SuiteRunner; control: ControlDefinition; coverage: CoverageOutcome } {
+): { runner: SuiteRunner; control: ControlDefinition; coverage: SensorOutcome } {
 	const provider = installedVitestProvider(projectPath);
 	const control = vitestControl(requirementRefs, nodeBinary, provider);
 	if (provider === null) {
@@ -326,7 +404,7 @@ function vitestSuite(
 }
 
 /** A runner whose coverage is declared where 495 does not look, or wrapped by a tool it does not run. */
-function unreadCoverage(runner: "mocha" | "jest"): CoverageOutcome {
+function unreadCoverage(runner: "mocha" | "jest"): SensorOutcome {
 	return { missing: [`${COVERAGE_NOT_MEASURED}: 495 does not read the coverage of ${runner}`] };
 }
 
@@ -475,22 +553,27 @@ function witnessesOf(runner: SuiteRunner, projectPath: string): Witnesses {
 
 const COVERED_MODULE = "src/witness495/covered.mjs";
 const UNCOVERED_MODULE = "src/witness495/uncovered.mjs";
+const UNASSERTED_MODULE = "src/witness495/unasserted.mjs";
 
 /**
- * What a coverage sensor is qualified on. The positive witness adds a module its test calls in full;
- * the sensor's own negative witness adds one its test loads and leaves a function of uncalled, which
- * a failing test cannot show: a suite that fails stops before the report exists, and a line nothing
- * executes is not a failure.
+ * What the sensors of the introduced lines are qualified on. The positive witness adds a module its
+ * test calls in full and asserts every result of. The coverage sensor's own negative witness adds one
+ * its test loads and leaves a function of uncalled, which a failing test cannot show: a suite that
+ * fails stops before the report exists, and a line nothing executes is not a failure. The mutation
+ * sensor's own negative witness adds one its test calls without asserting, which coverage cannot see
+ * either: every line of it is executed, and no test would notice if it changed.
  */
-function coverageWitnesses(
+function moduleWitnesses(
 	runner: SuiteRunner,
 	projectPath: string,
-): { positive: Record<string, string>; uncovered: Record<string, string> } {
+): { positive: Record<string, string>; uncovered: Record<string, string>; unasserted: Record<string, string> } {
 	const directory = runner === "vitest" && existsSync(join(projectPath, "tests")) ? "tests" : "test";
+	const runnerImport =
+		runner === "vitest" ? 'import { it } from "vitest";\n' : 'import { test as it } from "node:test";\n';
 	const header =
 		runner === "vitest"
 			? 'import { expect, it } from "vitest";\n'
-			: 'import { test as it } from "node:test";\nimport { strict as assert } from "node:assert";\n';
+			: `${runnerImport}import { strict as assert } from "node:assert";\n`;
 	const equal = (actual: string, expected: number): string =>
 		runner === "vitest" ? `expect(${actual}).toBe(${expected})` : `assert.equal(${actual}, ${expected})`;
 	return {
@@ -503,6 +586,10 @@ function coverageWitnesses(
 			[UNCOVERED_MODULE]:
 				"export function called(n) {\n  return n + 1;\n}\n\nexport function neverCalled(n) {\n  return n - 1;\n}\n",
 			[`${directory}/495-uncovered-witness.test.mjs`]: `${header}import { called } from "../${UNCOVERED_MODULE}";\n\nit("495 coverage witness: the module is loaded and one function is called", () => {\n  ${equal("called(1)", 2)};\n});\n`,
+		},
+		unasserted: {
+			[UNASSERTED_MODULE]: "export function half(n) {\n  return n / 2;\n}\n",
+			[`${directory}/495-unasserted-witness.test.mjs`]: `${runnerImport}import { half } from "../${UNASSERTED_MODULE}";\n\nit("495 mutation witness: the function is called and nothing is asserted", () => {\n  half(4);\n});\n`,
 		},
 	};
 }

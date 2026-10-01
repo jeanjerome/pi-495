@@ -391,6 +391,11 @@ describe("engineering report: the recommended complements a target has not adopt
 		assert.deepEqual(risksOf(), [], "a protocol frozen without the list");
 		assert.deepEqual(risksOf([]), []);
 	});
+	it("given a mutation complement recommended and not adopted, then the report says the mutation of the introduced lines is not measured as well as the complement is not adopted", () => {
+		const [risk] = risksOf([recommendation]);
+		assert.match(risk?.statement ?? "", /not adopted/);
+		assert.match(risk?.statement ?? "", /the mutation of the introduced lines is not measured/);
+	});
 	it("given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted", () => {
 		const adopted = {
 			path: "package.json",

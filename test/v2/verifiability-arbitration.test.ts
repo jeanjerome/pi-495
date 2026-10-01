@@ -886,7 +886,11 @@ describe("adopting a complement that is an install", () => {
 			report.residual_risks.some((r) => r.code === "installed_packages" && r.statement.includes(PROVIDER_INTEGRITY)),
 			JSON.stringify(report.residual_risks),
 		);
-		assert.ok(!report.residual_risks.some((r) => r.code === "recommended_complement_not_adopted"));
+		assert.ok(
+			!report.residual_risks.some(
+				(r) => r.code === "recommended_complement_not_adopted" && r.statement.includes("coverage complement"),
+			),
+		);
 
 		for (const [mode, reason] of [
 			["fails", "404"],
@@ -968,7 +972,11 @@ describe("adopting a complement that is an install", () => {
 		const next = (await t.harness.artifacts.latest<Protocol>(state, "protocol"))!.content;
 		assert.equal(next.complements, undefined, "the next protocol carries no complement");
 		assert.equal(next.installed_packages, undefined, "and no installed package");
-		assert.equal(next.capability_diagnosis.recommendations?.length, 1, "the install is recommended again");
+		assert.equal(
+			next.capability_diagnosis.recommendations?.filter((r) => r.test_type === "coverage").length,
+			1,
+			"the install is recommended again",
+		);
 	});
 });
 
@@ -1014,7 +1022,9 @@ describe("adopting a complement that is a file edit", () => {
 		]);
 		const report = await t.harness.report(change.change_id);
 		assert.ok(
-			!report.residual_risks.some((r) => r.code === "recommended_complement_not_adopted"),
+			!report.residual_risks.some(
+				(r) => r.code === "recommended_complement_not_adopted" && r.statement.includes("coverage complement"),
+			),
 			JSON.stringify(report.residual_risks),
 		);
 	});
@@ -1197,7 +1207,11 @@ describe("what adopting a complement holds for", () => {
 			false,
 			"and no coverage control",
 		);
-		assert.equal(next.capability_diagnosis.recommendations?.length, 1, "the complement is recommended again");
+		assert.equal(
+			next.capability_diagnosis.recommendations?.filter((r) => r.test_type === "coverage").length,
+			1,
+			"the complement is recommended again",
+		);
 	});
 
 	it("given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only", async () => {

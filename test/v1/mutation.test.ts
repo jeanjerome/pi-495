@@ -95,7 +95,7 @@ function scopeOf(...paths: string[]): MutationScope {
 			.replace(/\.java$/, "")}`;
 		return [type, `${type}$*`];
 	});
-	return { classes: [...new Set(classes)].sort(), paths, notes: [] };
+	return { classes: [...new Set(classes)].sort(), paths, notes: [], unaddressable: [] };
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
@@ -265,7 +265,10 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 		assert.equal(broken.verdict, "FAIL");
 		assert.ok(broken.failures[0]?.includes("cannot find symbol"));
 		// The reference introduces nothing, so this sensor has nothing to mutate and says so.
-		assert.equal(analyzeMutation(obs(), null, {}, { classes: [], paths: [], notes: [] }).verdict, "PASS");
+		assert.equal(
+			analyzeMutation(obs(), null, {}, { classes: [], paths: [], notes: [], unaddressable: [] }).verdict,
+			"PASS",
+		);
 	});
 
 	it("a threshold the target sets over everything it mutated is not what is opposed to the candidate", () => {
@@ -293,7 +296,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			obs(),
 			perModule,
 			{ [paths[0]!]: [5], [paths[1]!]: [5] },
-			{ classes: ["io.h495.Adapter"], paths, notes: [] },
+			{ classes: ["io.h495.Adapter"], paths, notes: [], unaddressable: [] },
 		);
 		assert.equal(parsed.verdict, "FAIL");
 		assert.equal(parsed.findings?.length, 2, "each module report is attributed to its own module");
@@ -302,7 +305,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			obs(),
 			rootReport,
 			{ [paths[0]!]: [5], [paths[1]!]: [5] },
-			{ classes: ["io.h495.Adapter"], paths, notes: [] },
+			{ classes: ["io.h495.Adapter"], paths, notes: [], unaddressable: [] },
 		);
 		assert.equal(ambiguous.verdict, "PASS");
 		assert.ok(ambiguous.notes.some((n) => n.includes("matches several scoped paths")));

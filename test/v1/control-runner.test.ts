@@ -8,8 +8,13 @@ import { GenericControlRunner, qualifyControl } from "../../src/adapters/executi
 import { reusableQualification, sensorDigest } from "../../src/application/qualification.ts";
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { Protocol, Qualification } from "../../src/contracts/v1/protocol.ts";
-import { parseNodeTestTap, parseJUnit, summarizeJUnit } from "../../src/adapters/execution/parsers.ts";
-import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
+import {
+	MAX_REPORT_BYTES,
+	parseNodeTestTap,
+	parseJUnit,
+	summarizeJUnit,
+} from "../../src/adapters/execution/parsers.ts";
+import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { detectStack } from "../../src/application/target.ts";
@@ -838,6 +843,244 @@ describe("a jest report of another shape through the runner", () => {
 			assert.equal(existsSync(join(ws, "elsewhere-report.json")), false, "the sandbox refused the write");
 			assert.equal(elsewhere.verdict, "FAIL");
 			assert.match(elsewhere.limits.notes.join("; "), /before writing a readable report/);
+		});
+	},
+);
+
+/**
+ * Stands in for Stryker: records the arguments it was given and writes the report at the path Stryker
+ * writes its JSON reporter to, under `reports/mutation`.
+ */
+class FakeStryker {
+	readonly report: string | null;
+	readonly exitCode: number;
+	readonly log: string;
+	constructor(report: string | null, exitCode: number, log = "") {
+		this.report = report;
+		this.exitCode = exitCode;
+		this.log = log;
+	}
+	install(workspace: string): void {
+		writeFileSync(
+			join(workspace, "stryker-stand-in.mjs"),
+			[
+				'import { mkdirSync, writeFileSync } from "node:fs";',
+				'mkdirSync("reports/mutation", { recursive: true });',
+				'writeFileSync("reports/mutation/argv.json", JSON.stringify(process.argv.slice(2)));',
+				...(this.report === null
+					? []
+					: [`writeFileSync("reports/mutation/mutation.json", ${JSON.stringify(this.report)});`]),
+				`process.stderr.write(${JSON.stringify(this.log)});`,
+				`process.exit(${this.exitCode});`,
+			].join("\n"),
+		);
+	}
+}
+
+function strykerControl(): ControlDefinition {
+	return control({
+		control_id: "mutation",
+		command: [NODE, "stryker-stand-in.mjs", "--reporters", "json"],
+		parser: "stryker-json",
+		report_path: "reports/mutation/mutation.json",
+		scope_argument: `--mutate=${SCOPE_PLACEHOLDER}`,
+		writable_paths: ["reports/mutation", ".stryker-tmp"],
+	});
+}
+
+/** A `mutation.json` with one mutant of `src/calc.js:6` of the given status. */
+function strykerReportOf(status: "Survived" | "Killed"): string {
+	return JSON.stringify({
+		schemaVersion: "2",
+		files: {
+			"src/calc.js": {
+				language: "javascript",
+				source: "",
+				mutants: [
+					{
+						id: "0",
+						mutatorName: "ArithmeticOperator",
+						replacement: "a / b",
+						location: { start: { line: 6, column: 9 }, end: { line: 6, column: 14 } },
+						status,
+					},
+				],
+			},
+		},
+	});
+}
+
+const STRYKER_SURVIVOR_REPORT = strykerReportOf("Survived");
+const STRYKER_KILLED_REPORT = strykerReportOf("Killed");
+
+describe("the mutation control reading Stryker's report through the runner", () => {
+	it("given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record", async () => {
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const run = async (introduced: Record<string, number[]>) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			new FakeStryker(STRYKER_SURVIVOR_REPORT, 1).install(ws);
+			const { evidence, observation } = await runner.runControl({
+				...base(),
+				control: strykerControl(),
+				workspace_path: ws,
+				introduced_lines: introduced,
+			});
+			return { evidence, observation, ws };
+		};
+
+		const scoped = await run({ "src/calc.js": [5, 6], "test/calc.test.js": [1] });
+		assert.deepEqual(scoped.evidence.facts.command, [
+			NODE,
+			"stryker-stand-in.mjs",
+			"--reporters",
+			"json",
+			"--mutate=src/calc.js:5-6",
+		]);
+		assert.deepEqual(JSON.parse(readFileSync(join(scoped.ws, "reports/mutation/argv.json"), "utf8")), [
+			"--reporters",
+			"json",
+			"--mutate=src/calc.js:5-6",
+		]);
+		assert.equal(scoped.evidence.verdict, "FAIL", JSON.stringify(scoped.evidence.limits.notes));
+		assert.match(scoped.evidence.findings[0]?.message ?? "", /^src\/calc\.js:6 /);
+		assert.ok(
+			scoped.evidence.artifacts.some((artifact) => artifact.name === "report:reports/mutation/mutation.json"),
+			"the report is kept in the record",
+		);
+
+		const nothing = await run({ "test/calc.test.js": [1], "README.md": [1] });
+		assert.equal(nothing.observation, null, "no process was spawned");
+		assert.equal(existsSync(join(nothing.ws, "reports/mutation/argv.json")), false);
+		assert.equal(nothing.evidence.verdict, "PASS", JSON.stringify(nothing.evidence.limits.notes));
+
+		const refused = await run({ "src/[id].js": [1] });
+		assert.equal(refused.observation, null, "no process was spawned for a path Stryker reads as a pattern");
+		assert.equal(refused.evidence.verdict, "INDETERMINATE");
+		assert.match(refused.evidence.limits.notes.join("; "), /src\/\[id\]\.js/);
+	});
+});
+
+describe("the mutation control reading a Stryker report that cannot be trusted through the runner", () => {
+	const runWith = async (stryker: FakeStryker) => {
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const ws = mkdtempSync(join(root, "ws-"));
+		stryker.install(ws);
+		const { evidence } = await runner.runControl({
+			...base(),
+			control: strykerControl(),
+			workspace_path: ws,
+			introduced_lines: { "src/calc.js": [5, 6] },
+		});
+		return evidence;
+	};
+
+	it("given a valid report larger than the read bound, then the control is INDETERMINATE naming the bound and the report is not kept in the record", async () => {
+		const padded = JSON.stringify({ ...JSON.parse(STRYKER_KILLED_REPORT), padding: "x".repeat(MAX_REPORT_BYTES) });
+		assert.ok(padded.length > MAX_REPORT_BYTES);
+		const evidence = await runWith(new FakeStryker(padded, 0));
+		assert.equal(evidence.verdict, "INDETERMINATE", JSON.stringify(evidence.limits.notes));
+		assert.match(evidence.limits.notes.join("; "), /read bound/);
+		assert.equal(
+			evidence.artifacts.some((artifact) => artifact.name.startsWith("report:")),
+			false,
+			"a report left unread is not kept",
+		);
+	});
+
+	it("given a failing initial run that writes no report and logs an error, then the control is FAIL and the error of Stryker is among its failures", async () => {
+		const evidence = await runWith(new FakeStryker(null, 1, "12:00:01 (77) ERROR Initial test run failed\n"));
+		assert.equal(evidence.verdict, "FAIL", JSON.stringify(evidence.limits.notes));
+		assert.ok(
+			evidence.findings.some((finding) => finding.message.includes("Initial test run failed")),
+			JSON.stringify(evidence.findings.map((finding) => finding.message)),
+		);
+	});
+});
+
+/**
+ * Stands in for the Stryker the target installed, at the path the mutation control runs it from: it
+ * listens on every interface as Stryker does to reach its test processes, then writes its report, or a
+ * file outside the two paths the control may write.
+ */
+class ListeningStryker {
+	readonly writes: "the report" | "a file outside the writable paths";
+	constructor(writes: "the report" | "a file outside the writable paths") {
+		this.writes = writes;
+	}
+	install(workspace: string): void {
+		const file = join(workspace, "node_modules", "@stryker-mutator", "core", "bin", "stryker.js");
+		mkdirSync(dirname(file), { recursive: true });
+		writeFileSync(
+			file,
+			[
+				'import { createServer } from "node:net";',
+				'import { mkdirSync, writeFileSync } from "node:fs";',
+				"const server = createServer();",
+				'server.on("error", (error) => { console.error(`listen failed: ${error.code}`); process.exit(2); });',
+				'server.listen(0, "0.0.0.0", () => {',
+				"  try {",
+				this.writes === "the report"
+					? `    mkdirSync("reports/mutation", { recursive: true }); writeFileSync("reports/mutation/mutation.json", ${JSON.stringify(STRYKER_KILLED_REPORT)});`
+					: '    writeFileSync("elsewhere.txt", "outside");',
+				"  } catch (error) { console.error(`write failed: ${error.code}`); process.exit(3); }",
+				"  server.close(() => process.exit(0));",
+				"});",
+			].join("\n"),
+		);
+	}
+}
+
+/** The mutation control the detection derives from a target that installed Stryker. */
+function derivedMutationControl(): ControlDefinition {
+	const project = join(root, "target");
+	mkdirSync(join(project, "node_modules", "@stryker-mutator", "core"), { recursive: true });
+	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
+	writeFileSync(join(project, "node_modules", "@stryker-mutator", "core", "package.json"), "{}");
+	return detectStack(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+		(c) => c.control_id === "mutation",
+	)!;
+}
+
+(process.platform === "darwin" ? describe : describe.skip)(
+	"the mutation control under the verification sandbox",
+	() => {
+		it("given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp", async () => {
+			const mutation = derivedMutationControl();
+			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+			// would succeed whatever the control declares writable.
+			const runner = new GenericControlRunner(
+				new SeatbeltSandbox({ temp_paths: [] }),
+				new CasObjectStore(join(root, "objects")),
+			);
+			const run = async (stand: ListeningStryker, control: ControlDefinition) => {
+				const ws = mkdtempSync(join(root, "ws-"));
+				stand.install(ws);
+				const { evidence, observation } = await runner.runControl({
+					...base(),
+					control,
+					workspace_path: ws,
+					introduced_lines: { "src/calc.js": [5, 6] },
+				});
+				return { evidence, stderr: new TextDecoder().decode(observation?.stderr), ws };
+			};
+
+			const loopback = await run(new ListeningStryker("the report"), mutation);
+			assert.equal(
+				loopback.evidence.verdict,
+				"PASS",
+				`${JSON.stringify(loopback.evidence.limits.notes)} ${loopback.stderr}`,
+			);
+			assert.ok(existsSync(join(loopback.ws, "reports/mutation/mutation.json")), "the report is written");
+
+			const closed = await run(new ListeningStryker("the report"), { ...mutation, network: "denied" });
+			assert.match(closed.stderr, /listen failed: EPERM/);
+			assert.equal(existsSync(join(closed.ws, "reports/mutation/mutation.json")), false);
+			assert.notEqual(closed.evidence.verdict, "PASS");
+
+			const outside = await run(new ListeningStryker("a file outside the writable paths"), mutation);
+			assert.match(outside.stderr, /write failed: EPERM/);
+			assert.equal(existsSync(join(outside.ws, "elsewhere.txt")), false, "the sandbox refused the write");
+			assert.notEqual(outside.evidence.verdict, "PASS");
 		});
 	},
 );

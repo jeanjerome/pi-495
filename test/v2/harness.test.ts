@@ -129,8 +129,8 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const recommended = detectStack(p, []).recommendations;
 		assert.deepEqual(
 			recommended.map((r) => r.test_type),
-			["coverage"],
-			"node --test without the coverage flag is recommended it",
+			["coverage", "mutation"],
+			"node --test without the coverage flag nor Stryker is recommended both",
 		);
 		const t = track(makeHarness());
 		const { change } = await t.harness.start({ project_path: p, request_text: "keep greet as it is", actor: HUMAN });

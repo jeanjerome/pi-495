@@ -3,8 +3,8 @@
  * normalizes what it observed into the canonical evidence candidate. It judges nothing.
  */
 import type { Dirent } from "node:fs";
-import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { isAbsolute, join, resolve, sep } from "node:path";
+import { mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
@@ -19,7 +19,15 @@ import type {
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import { parseJestJson } from "./jest-report.ts";
 import { expectedInLcovReport, parseLcov } from "./lcov.ts";
-import { analyzeMutation, mutationScopeOf, nothingToMutate, unscopedMutation, type MutationScope } from "./mutation.ts";
+import {
+	analyzeMutation,
+	mutationScopeOf,
+	nothingToMutate,
+	unaddressableMutation,
+	unscopedMutation,
+	type MutationScope,
+	type MutationReportDocument,
+} from "./mutation.ts";
 import {
 	PARSER_VERSIONS,
 	parseExitCode,
@@ -86,12 +94,13 @@ export class GenericControlRunner implements ControlExecutionPort {
 			// nobody established would be mutated whole, on the budget of one change (VER-04).
 			let scope: MutationScope | null = null;
 			let decided: ParsedReport | null = null;
-			if (control.parser === "pitest-xml") {
+			if (control.parser === "pitest-xml" || control.parser === "stryker-json") {
 				const lines = invocation.introduced_lines ?? null;
 				if (lines === null) decided = unscopedMutation();
 				else {
-					scope = await mutationScopeOf(invocation.workspace_path, lines);
-					if (scope.paths.length === 0) decided = nothingToMutate(scope);
+					scope = await mutationScopeOf(invocation.workspace_path, lines, control.parser);
+					if (scope.unaddressable.length > 0) decided = unaddressableMutation(scope);
+					else if (scope.paths.length === 0) decided = nothingToMutate(scope);
 					else if (control.scope_argument !== null)
 						command = [
 							...control.command,
@@ -102,6 +111,10 @@ export class GenericControlRunner implements ControlExecutionPort {
 			if (decided) {
 				report = decided;
 			} else {
+				// The sandbox lets a command create what sits under a writable path and nothing above it: the
+				// directory that holds `reports/mutation` is made here, by the runner, so that the tool can
+				// create the path it was granted without being granted its parent.
+				for (const writable of profile.write_paths) await mkdir(dirname(writable), { recursive: true });
 				observation = await this.sandbox.run(
 					profile,
 					{ command, cwd, timeout_ms: control.timeout_ms, max_output_bytes: this.options.max_output_bytes },
@@ -214,6 +227,27 @@ export class GenericControlRunner implements ControlExecutionPort {
 							invocation.introduced_lines ?? null,
 							scope!,
 							`${stdoutText}\n${stderrText}`,
+						);
+						break;
+					}
+					case "stryker-json": {
+						// Stryker ran once unmutated and then on the introduced line ranges only. What is read back
+						// is the report of its JSON reporter at the path the target declares, bounded in size: the
+						// report is an output of the project judged.
+						const docs = await readBoundedReport(invocation.workspace_path, control.report_path);
+						for (const d of docs)
+							if (d.oversized_bytes === undefined)
+								artifacts.push({
+									name: `report:${d.name}`,
+									ref: await this.objects.put(new TextEncoder().encode(d.text), "application/json"),
+								});
+						report = analyzeMutation(
+							observation,
+							docs,
+							invocation.introduced_lines ?? null,
+							scope!,
+							`${stdoutText}\n${stderrText}`,
+							"stryker-json",
 						);
 						break;
 					}
@@ -356,6 +390,21 @@ async function readReports(workspace: string, reportPath: string | null): Promis
 	} catch {
 		return [];
 	}
+}
+
+/**
+ * The single report file a control declares, or none when it is absent. A file past the read bound is
+ * returned unread with its size: the reader then says it could not check it, instead of this function
+ * loading what the project judged chose to write.
+ */
+async function readBoundedReport(workspace: string, reportPath: string | null): Promise<MutationReportDocument[]> {
+	if (!reportPath) return [];
+	const absolute = resolve(workspace, reportPath);
+	if (!absolute.startsWith(`${resolve(workspace)}${sep}`)) return [];
+	const stats = await stat(absolute).catch(() => null);
+	if (!stats?.isFile()) return [];
+	if (stats.size > MAX_REPORT_BYTES) return [{ name: reportPath, text: "", oversized_bytes: stats.size }];
+	return [{ name: reportPath, text: await readFile(absolute, "utf8") }];
 }
 
 async function readRecursiveReports(

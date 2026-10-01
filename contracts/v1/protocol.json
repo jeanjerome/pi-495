@@ -101,7 +101,8 @@
               "lcov",
               "jacoco-xml",
               "java-imports",
-              "pitest-xml"
+              "pitest-xml",
+              "stryker-json"
             ]
           },
           "report_path": {

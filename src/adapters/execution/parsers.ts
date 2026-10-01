@@ -35,6 +35,7 @@ export const PARSER_VERSIONS = {
 	"jacoco-xml": "1.0.0",
 	"java-imports": "1.0.0",
 	"pitest-xml": "1.0.0",
+	"stryker-json": "1.0.0",
 } as const;
 
 export const MAX_FAILURES = 50;

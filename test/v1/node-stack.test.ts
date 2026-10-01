@@ -6,7 +6,7 @@ import { runInNewContext } from "node:vm";
 import { detectStack } from "../../src/application/target.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
-import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
+import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { matchesScope, protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { tempDir, writeFiles } from "../helpers/fixtures.ts";
 
@@ -27,6 +27,11 @@ function targetWith(scriptsTest: string | null, extra: Record<string, string> = 
 	const pkg = { name: "t", type: "module", ...(scriptsTest === null ? {} : { scripts: { test: scriptsTest } }) };
 	writeFiles(project, { "package.json": JSON.stringify(pkg), ...extra });
 	return project;
+}
+
+/** What a target lacks besides the mutation of its introduced lines, which every target without Stryker lacks. */
+function withoutMutation(missing: readonly string[]): string[] {
+	return missing.filter((line) => !/mutation/.test(line));
 }
 
 function unitOf(project: string): ControlDefinition {
@@ -175,6 +180,23 @@ describe("Node stack: what the unit controls protect among the installed depende
 		);
 		assert.deepEqual(added.altered, ["node_modules/vitest/node_modules/tinyrainbow/index.js"]);
 		assert.deepEqual(added.allowed, []);
+	});
+	it("given a target that installed Stryker, then a candidate that modifies stryker.config.mjs or adds stryker.conf.json is refused naming each file, and one that modifies src/agenda.ts is not", () => {
+		const stryker = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
+		const mutation = detectStack(targetWith("node --test", stryker), REFS, NODE).controls.find(
+			(c) => c.control_id === "mutation",
+		);
+		assert.ok(mutation, "the detection declares a mutation control");
+		const changed = protectedPathsChanged(
+			manifestOf(
+				entry("stryker.config.mjs", "modified"),
+				entry("stryker.conf.json", "added"),
+				entry("src/agenda.ts", "modified"),
+			),
+			mutation.protected_paths,
+			[],
+		);
+		assert.deepEqual(changed.altered, ["stryker.config.mjs", "stryker.conf.json"]);
 	});
 	it("given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused", () => {
 		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
@@ -506,7 +528,7 @@ describe("Node stack: node:test asked for coverage", () => {
 		);
 		const protects = (path: string) => coverage.protected_paths.some((pattern) => matchesScope(path, pattern));
 		assert.ok(protects("test/a.test.js") && protects("package.json"), "the tests and package.json are protected");
-		assert.deepEqual(detection.capability_missing, []);
+		assert.deepEqual(withoutMutation(detection.capability_missing), []);
 	});
 	it("given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage", () => {
 		for (const scriptsTest of [null, "node --test"]) {
@@ -517,8 +539,8 @@ describe("Node stack: node:test asked for coverage", () => {
 				String(scriptsTest),
 			);
 			assert.deepEqual(unitOf(targetWith(scriptsTest)).command, [NODE, "--test", "--test-reporter=tap"]);
-			assert.equal(detection.capability_missing.length, 1, String(scriptsTest));
-			assert.match(detection.capability_missing[0]!, NOT_ASKED_FOR_COVERAGE);
+			assert.equal(withoutMutation(detection.capability_missing).length, 1, String(scriptsTest));
+			assert.match(withoutMutation(detection.capability_missing)[0]!, NOT_ASKED_FOR_COVERAGE);
 		}
 	});
 });
@@ -551,7 +573,7 @@ describe("Node stack: vitest with a coverage provider", () => {
 			const protects = (path: string) => coverage.protected_paths.some((pattern) => matchesScope(path, pattern));
 			for (const path of ["test/a.test.ts", "package.json", "vitest.config.ts", "node_modules/vitest/dist/index.js"])
 				assert.ok(protects(path), `${provider}: ${path} is protected by coverage`);
-			assert.deepEqual(detection.capability_missing, [], provider);
+			assert.deepEqual(withoutMutation(detection.capability_missing), [], provider);
 		}
 	});
 	it("given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8", () => {
@@ -561,8 +583,8 @@ describe("Node stack: vitest with a coverage provider", () => {
 			false,
 		);
 		assert.ok(!unitOf(targetWith("vitest run")).command.some((argument) => argument.startsWith("--coverage")));
-		assert.equal(detection.capability_missing.length, 1);
-		assert.match(detection.capability_missing[0]!, /@vitest\/coverage-v8/);
+		assert.equal(withoutMutation(detection.capability_missing).length, 1);
+		assert.match(withoutMutation(detection.capability_missing)[0]!, /@vitest\/coverage-v8/);
 	});
 	it("given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage", () => {
 		for (const runner of ["jest", "mocha"]) {
@@ -572,8 +594,11 @@ describe("Node stack: vitest with a coverage provider", () => {
 				false,
 				runner,
 			);
-			assert.equal(detection.capability_missing.length, 1, runner);
-			assert.match(detection.capability_missing[0]!, new RegExp(`495 does not read the coverage of ${runner}`));
+			assert.equal(withoutMutation(detection.capability_missing).length, 1, runner);
+			assert.match(
+				withoutMutation(detection.capability_missing)[0]!,
+				new RegExp(`495 does not read the coverage of ${runner}`),
+			);
 		}
 	});
 });
@@ -634,5 +659,109 @@ describe("Node stack: the witnesses of a coverage sensor", () => {
 			assert.deepEqual(detection.own_negative_witness, {}, String(scriptsTest));
 			assert.equal(detection.witness_tests, 1, String(scriptsTest));
 		}
+	});
+});
+
+describe("Node stack: the mutation control of a target that installed Stryker", () => {
+	const STRYKER = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
+	const mutationOf = (project: string) =>
+		detectStack(project, REFS, NODE).controls.find((c) => c.control_id === "mutation");
+	it("given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source", () => {
+		const detection = detectStack(targetWith("node --test", STRYKER), REFS, NODE);
+		const mutation = detection.controls.find((c) => c.control_id === "mutation");
+		assert.ok(mutation, "the detection declares a mutation control");
+		assert.deepEqual(mutation.command, [
+			NODE,
+			"node_modules/@stryker-mutator/core/bin/stryker.js",
+			"run",
+			"--reporters",
+			"json",
+			"--concurrency",
+			"1",
+		]);
+		assert.equal(mutation.parser, "stryker-json");
+		assert.equal(mutation.report_path, "reports/mutation/mutation.json");
+		assert.equal(mutation.scope_argument, `--mutate=${SCOPE_PLACEHOLDER}`);
+		assert.equal(mutation.network, "loopback");
+		assert.deepEqual(
+			detection.controls.filter((c) => c !== mutation).map((c) => c.network),
+			detection.controls.filter((c) => c !== mutation).map(() => "denied"),
+			"the other controls keep the network closed",
+		);
+		assert.deepEqual(mutation.writable_paths, ["reports/mutation", ".stryker-tmp"]);
+		assert.ok(mutation.timeout_ms > unitOf(targetWith("node --test", STRYKER)).timeout_ms, "a budget of its own");
+		for (const protectedPath of ["stryker.conf.*", "stryker.config.*", "package.json", "test/"])
+			assert.ok(mutation.protected_paths.includes(protectedPath), protectedPath);
+		assert.doesNotMatch(detection.capability_missing.join(" "), /mutation/);
+		assert.deepEqual(
+			detection.recommendations.filter((r) => r.test_type === "mutation"),
+			[],
+		);
+
+		rmSync(join(root, "target"), { recursive: true, force: true });
+		const without = detectStack(targetWith("node --test"), REFS, NODE);
+		assert.equal(
+			without.controls.find((c) => c.control_id === "mutation"),
+			undefined,
+		);
+		assert.match(without.capability_missing.join(" "), /mutation of the introduced lines is not measured/);
+		const [recommendation, ...others] = without.recommendations.filter((r) => r.test_type === "mutation");
+		assert.ok(recommendation && others.length === 0, "one mutation recommendation");
+		assert.equal(recommendation.tool, "@stryker-mutator/core");
+		assert.match(recommendation.version, /^\d+\.\d+\.\d+$/);
+		assert.match(recommendation.established_on, /^\d{4}-\d{2}-\d{2}$/);
+		assert.match(recommendation.source, /stryker-mutator\.io/);
+		assert.match(recommendation.change, /@stryker-mutator\/core/);
+		assert.equal(recommendation.install, undefined, "495 installs nothing for the owner here");
+
+		rmSync(join(root, "target"), { recursive: true, force: true });
+		assert.equal(mutationOf(targetWith("jest", STRYKER)), undefined, "no qualification witness is written for jest");
+	});
+});
+
+describe("Node stack: the witnesses of a mutation sensor", () => {
+	const STRYKER = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
+	const installed = (runner: "node-test" | "vitest") =>
+		targetWith(runner === "node-test" ? "node --test" : "vitest run", STRYKER);
+	const exportsOf = (source: string) => [...source.matchAll(/export function (\w+)/g)].map((m) => m[1]!);
+	const modulesOf = (files: Record<string, string>) =>
+		Object.keys(files).filter((path) => path.startsWith("src/") && path.endsWith(".mjs"));
+	const testImporting = (files: Record<string, string>, module: string) => {
+		const found = Object.entries(files).find(
+			([path, source]) => /\.test\./.test(path) && source.includes(`../${module}`),
+		);
+		assert.ok(found, `a test imports ${module}`);
+		return found[1];
+	};
+	it("given a target that installed Stryker, then the positive witness adds a module whose test asserts every result and the mutation control has its own negative witness whose test calls the function without asserting", () => {
+		for (const runner of ["node-test", "vitest"] as const) {
+			rmSync(join(root, "target"), { recursive: true, force: true });
+			const detection = detectStack(installed(runner), REFS, NODE);
+			const [asserted, ...others] = modulesOf(detection.positive_witness);
+			assert.ok(asserted && others.length === 0, `${runner}: the positive witness adds one .mjs module`);
+			const functions = exportsOf(detection.positive_witness[asserted]!);
+			assert.ok(functions.length >= 2, `${runner}: the module declares functions`);
+			const asserting = testImporting(detection.positive_witness, asserted);
+			for (const name of functions)
+				assert.match(asserting, new RegExp(`(assert\\.equal|expect)\\(${name}\\(`), `${runner}: ${name} is asserted`);
+			assert.equal(detection.witness_tests, 2, runner);
+
+			assert.deepEqual(Object.keys(detection.own_negative_witness), ["mutation"], runner);
+			const own = detection.own_negative_witness.mutation!;
+			const [unasserted, ...rest] = modulesOf(own);
+			assert.ok(unasserted && rest.length === 0, `${runner}: the own negative witness adds one .mjs module`);
+			assert.notEqual(unasserted, asserted, runner);
+			const calling = testImporting(own, unasserted);
+			for (const name of exportsOf(own[unasserted]!))
+				assert.match(calling, new RegExp(`\\b${name}\\(`), `${runner}: ${name} is called`);
+			assert.doesNotMatch(calling, /\bassert\.|\bexpect\(/, `${runner}: nothing is asserted`);
+			assert.match(calling, runner === "vitest" ? /from "vitest"/ : /from "node:test"/, runner);
+		}
+	});
+	it("given a node:test target that installed Stryker and asks for coverage, then the positive witness is shared and each control has its own negative witness", () => {
+		const detection = detectStack(targetWith("node --test --experimental-test-coverage", STRYKER), REFS, NODE);
+		assert.equal(modulesOf(detection.positive_witness).length, 1);
+		assert.deepEqual(Object.keys(detection.own_negative_witness).sort(), ["coverage", "mutation"]);
+		assert.equal(detection.witness_tests, 2);
 	});
 });

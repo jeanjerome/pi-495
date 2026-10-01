@@ -19,10 +19,22 @@ const execFileAsync = promisify(execFile);
 /**
  * `node_modules/.vite/` (vitest's duration cache) and `node_modules/.vite-temp/` (the compiled configuration) are
  * rewritten each time the suite runs in the copy: they are outputs of the tool, not installed dependencies, and
- * observing them would report a modified protected path for a candidate that only ran its tests.
+ * observing them would report a modified protected path for a candidate that only ran its tests. The same holds
+ * for what Stryker leaves in the copy: its report under `reports/mutation/` and the instrumented sources it runs
+ * the tests on under `.stryker-tmp/`.
  */
 export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
-	exclusions: ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/"],
+	exclusions: [
+		"target/",
+		"dist/",
+		".pi/",
+		"__pycache__/",
+		"build/",
+		"node_modules/.vite/",
+		"node_modules/.vite-temp/",
+		"reports/mutation/",
+		".stryker-tmp/",
+	],
 	max_file_bytes: 8 * 1024 * 1024,
 	max_entries: 50_000,
 };
