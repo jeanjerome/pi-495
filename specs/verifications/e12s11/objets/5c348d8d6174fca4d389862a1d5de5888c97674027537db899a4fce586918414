@@ -1,0 +1,45 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un commentaire de silence de Stryker introduit par le candidat est un constat bloquant",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 60,
+    "constat": "Le motif `(?:\\/\\/|\\/\\*)\\s*(Stryker\\s+disable\\b)` est cherché ligne par ligne et exige le marqueur de commentaire sur la même ligne que « Stryker disable ». Or le motif de Stryker 10 (`/^\\s?Stryker (disable|restore).../` sur le texte du commentaire, `directive-bookkeeper.js`) accepte un bloc dont « Stryker disable all » est sur la ligne suivante : `/*⏎Stryker disable all⏎*/`. J'ai vérifié par un vrai run de Stryker 10.0.0 : les deux mutants de la fonction sont `Ignored`, et le motif du contrôle ne reconnaît aucune des lignes de ce fichier. Un candidat qui écrit ce commentaire passe donc le contrôle sans test assertif, ce qui est l'effet que la story veut interdire. Les trois formes énumérées par la story sont toutes tenues, d'où le classement à peser et non bloquant : c'est à l'auteur ou au propriétaire de dire si la promesse vise « tout commentaire que Stryker honore » ou seulement ces trois formes.",
+    "scenario_extra": null,
+    "mutation": "sonde jetable : texte `/*\\nStryker disable all\\n*/` passé au motif ligne par ligne, aucun des lignes ne correspond ; Stryker 10.0.0 sur la même source ignore les mutants des lignes 4 et 5"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un mot voisin n'est pas un commentaire de silence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/stryker-mutation.test.ts",
+    "ligne": 217,
+    "constat": "Chacune des deux gardes du motif est redondante pour les entrées du test : la chaîne `'Stryker disabled'` n'est écartée à la fois par l'absence du préfixe `//` ou `/*` et par le `\\b`, et `// stryker restore` par la casse et par `restore`. Retirer le préfixe seul, ou retirer `\\b` seul, laisse tout le test vert. Le test ne tient donc la promesse que si les deux gardes sautent ensemble ; une chaîne contenant exactement « Stryker disable » ne serait plus tenue à l'écart si le préfixe disparaissait. La promesse telle qu'écrite (« Stryker disabled » dans une chaîne) reste tenue.",
+    "mutation": "remplacer le motif par `(Stryker\\s+disable\\b)` (préfixe retiré) : 30 passent, seul l'échec connu de seatbelt ; remplacer par `(Stryker\\s+disable)` (`\\b` retiré) : idem"
+   }
+  ],
+  "resume": "Les quatre premiers scénarios sont tenus par le code et par un test. Chaque mutation sur la condition, le filtre de portée, la lecture des sources par le runner, l'inversion introduit/présent, la note « toléré », la fusion des constats et le verdict fait échouer au moins un test (le bloc `/* … */` aussi). Deux constats à peser, aucun bloquant ni à corriger. Un commentaire de bloc dont « Stryker disable all » est sur la ligne suivante est honoré par Stryker 10 et n'est pas lu par le motif. Aucun test ne tient chaque garde du motif prise seule. Le scénario de recette en vrai Pi n'est pas une promesse que je puisse sonder ici. À la révision lue, le test seatbelt de `control-runner.test.ts` échoue à l'identique, avec et sans mutation : il tient au sandbox imbriqué et ne touche pas cette branche."
+ },
+ {
+  "verdict": "pass",
+  "resume": "Les quatre scénarios de code sont tenus par le code et par un test. Le cinquième, la recette dans un vrai Pi, n'est pas de mon ressort. Les mutations suivantes ont toutes fait échouer le test attendu :\n- retrait de l'alternative `/*` ;\n- retrait de l'alternative `//` ;\n- garde `stryker-json` neutralisée ;\n- condition FAIL ramenée à `survived > 0` ;\n- inversion du test « introduit / déjà présent » ;\n- note « toléré » retirée ;\n- portée élargie à tous les fichiers introduits ;\n- source introduite non transmise par le runner ;\n- motif étendu à `restore` et rendu insensible à la casse.\n\nLe test unitaire et le test du runner tiennent chacun le FAIL sur rapport complet sans survivant, avec un constat par commentaire.\n\nDans cet arbre, le test Seatbelt de control-runner.test.ts échoue déjà sans aucune mutation. C'est un échec d'environnement, hors de cette story.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un mot voisin n'est pas un commentaire de silence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 60,
+    "constat": "Pour la chaîne « Stryker disabled », le préfixe `//|/*` et la frontière `\\b` suffisent chacun à écarter le cas. Retirer l'un seul des deux ne fait échouer aucun test. Seul le retrait des deux fait échouer la promesse. Les entrées de la story sont donc bien tenues, mais aucune ne vérifie chaque garde séparément. Un commentaire `// Stryker disabled` n'est pas dans la story.",
+    "mutation": "motif `(Stryker\\s+disable\\b)` sans préfixe, ou `(?:\\/\\/|\\/\\*)\\s*(Stryker\\s+disable)` sans frontière : les deux survivent aux tests"
+   }
+  ]
+ }
+]

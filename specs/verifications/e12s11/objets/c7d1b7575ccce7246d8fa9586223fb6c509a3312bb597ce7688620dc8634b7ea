@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une directive seule sur sa ligne dans un bloc de commentaire est un constat bloquant (4e « And » : la même directive seule sur une ligne hors de tout commentaire n'est pas un constat)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v1/stryker-mutation.test.ts",
+    "ligne": 288,
+    "constat": "Le code tient la promesse : une sonde jetable donne aucun constat pour `/* a */` suivi de « Stryker disable all » seul sur sa ligne, et pour un bloc multiligne fermé suivi de la même ligne. Mais le seul cas « hors de tout commentaire » du test est `src/bare.js`, un fichier sans aucun bloc `/* */`. Une mutation qui étend la portée d'un bloc au-delà de sa fermeture ne le fait pas échouer ; aucun test ne tient donc la promesse que la directive après un bloc fermé n'est pas lue.",
+    "mutation": "lcov.ts, linesInsideBlockComments : `[\\s\\S]*?(?:\\*\\/|$)` rendu glouton (`[\\s\\S]*`), puis `following` mis au nombre de lignes de tout le source, puis `line <= first + following + 3` : les trois laissent les 8 tests de stryker-mutation.test.ts verts (8 pass, 0 fail). Il manque une ligne de directive seule placée après la fermeture d'un bloc, dans un fichier qui porte aussi un bloc."
+   }
+  ],
+  "resume": "Cinq des six scénarios de la story sont tenus par le code et par un test : le scénario 6 (recette dans un vrai Pi) est celui de la recette, hors de mon passage. Les mutations que j'ai essayées sur le contrôle (motif `//` et `/*`, `blockLine`, le `\\b` des deux motifs, le ET du verdict, l'appel réservé à `stryker-json`, la portée `scope.paths`, la note « toléré », le décalage `index + 1`, la source lue par le runner) font toutes échouer au moins un test. Un trou : la promesse « hors de tout commentaire n'est pas un constat » n'est tenue que sur un fichier sans bloc, et la portée d'un bloc peut s'étendre au-delà de sa fermeture sans qu'aucun test échoue (A1-1). Le code, lui, est correct sur ce chemin. Le verdict est fail à cause de ce seul constat à corriger."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une directive seule sur sa ligne dans un bloc de commentaire est un constat bloquant",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 62,
+    "constat": "Le motif de ligne de bloc est ancré (`^\\s*`), de sorte que la directive doit être seule sur sa ligne, mais aucun test ne le tient : une ligne de bloc comme `see Stryker disable all` ne devrait pas être un constat, et l'ancre peut être retirée sans qu'aucun test échoue. Le `Then` de la story ne nomme que la directive seule, le mot voisin et la ligne hors commentaire, d'où un simple « à peser » et non un « à corriger ».",
+    "mutation": "blockLine: /^\\s*(Stryker\\s+disable\\b)/ -> /(Stryker\\s+disable\\b)/ : tous les tests de stryker-mutation et control-runner restent verts (seuls échecs : les deux tests Seatbelt/F-TS du banc de base, indépendants)."
+   }
+  ],
+  "resume": "Aucun constat bloquant ni à corriger. Le code tient les six promesses relues ; je n'ai pas lu le sixième scénario (vrai Pi), qui est celui de la recette, non de la relecture. Les mutations d'une ligne sur le code des cinq premiers scénarios font toutes échouer un test, sauf quatre qui survivent. Trois sont équivalentes pour les scénarios : l'indice de la ligne d'ouverture du bloc, la borne de la ligne de fermeture et le décalage de `first`. La quatrième est le B1-1, l'ancre `^\\s*` du motif de ligne de bloc. Mutations qui échouent bien : verdict qui ignore les constats de silence, constats non rendus, lecture réservée à un autre analyseur, runner qui ne passe plus les sources, frontière `\\b`, motif sans `//` ou `/*`, motif sans marqueur, suppression de `blockLine`, ou blockLine sans frontière, test d'« introduit » inversé, bloc toujours lu, note « toléré » retirée, numéro de ligne décalé, chemins lus élargis à tous les fichiers introduits. J'ai aussi sondé hors tests la fin de ligne CRLF, la directive après des lignes de prose dans un bloc, `Stryker disable */` sur la ligne de fermeture et `*/ // Stryker disable` : tous sont rendus. Baseline : deux tests échouent déjà dans les deux fichiers (`generic runner on F-TS`, `runs the same control under seatbelt`), sans rapport avec le diff. Les tests de silence du coverage (lcov-control) passent."
+ }
+]
