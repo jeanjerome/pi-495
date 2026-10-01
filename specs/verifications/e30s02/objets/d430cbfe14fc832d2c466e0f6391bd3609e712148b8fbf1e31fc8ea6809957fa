@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: a malformed worker line is ignored without bringing down the host process
+    # Subtest: a worker that writes {"type":"event"} then completes has its events relayed started, tool_started, tool_finished, completed
+    ok 1 - a worker that writes {"type":"event"} then completes has its events relayed started, tool_started, tool_finished, completed
+      ---
+      duration_ms: 58.783292
+      type: 'test'
+      ...
+    # Subtest: a worker that writes null then completes has its events end with completed
+    ok 2 - a worker that writes null then completes has its events end with completed
+      ---
+      duration_ms: 56.317416
+      type: 'test'
+      ...
+    1..2
+ok 1 - a malformed worker line is ignored without bringing down the host process
+  ---
+  duration_ms: 115.594417
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 274.945459
