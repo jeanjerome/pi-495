@@ -339,7 +339,7 @@ function declarationHolds(
  * What a report says about each answered material question — its own declarations, over the ones it
  * inherits from the reports written before it on the same change. Every reopening would otherwise
  * make the report redeclare the whole history of the decisions taken, which is what grows it at each
- * round until its output is refused (`chantiers/F`); the kernel recorded those answers and read those
+ * round until its output is refused; the kernel recorded those answers and read those
  * declarations, so it carries them itself and asks the next report only for what it has not already
  * said. A declaration, inherited or the report's own, counts only while it holds in the requirements
  * of the report, as G1 judges it: one that names a requirement the report does not carry, or no

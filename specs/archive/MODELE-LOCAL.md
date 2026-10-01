@@ -1,5 +1,7 @@
 # Le modèle local : oMLX et sa configuration pour 495
 
+> Les renvois `chantiers/…`, `revues/…` et `STATUS.md` de ce rapport désignent des fichiers retirés de l'arbre ; ils se lisent dans l'historique git (`git log --diff-filter=D -- specs/archive`).
+
 495 n'appelle jamais un modèle lui-même : il reçoit celui que Pi lui tend (`ctx.model` dans
 `extension/index.ts`). Configurer le modèle est donc une affaire entre oMLX et Pi, et ce document
 décrit la chaîne des deux côtés, telle qu'elle est établie sur la machine de référence.

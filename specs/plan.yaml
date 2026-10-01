@@ -1,6 +1,6 @@
 # Le travail ouvert de 495, dans l'ordre où il se fait. L'ordre est une décision, pas un score :
 # là où il surprend, `position` dit pourquoi. Le texte normatif des exigences reste dans
-# specs/archive/amont/expression-besoins.md ; ce fichier ne le restitue pas.
+# specs/amont/expression-besoins.md ; ce fichier ne le restitue pas.
 #
 # Un epic marqué `prete: oui` sous son `status:` se déroule sans le propriétaire par
 # `npm run cycle -- suite` (cycle/README.md § Le cycle sans le propriétaire) ; sans ce champ, le

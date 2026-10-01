@@ -18,7 +18,7 @@ de cette intervention, et à celui de l'implémentation, se contredisaient ou le
   sources — payait sa préparation entière. Sur la cible Maven, le 18 septembre 2026, onze fichiers
   de travail sous `.verify-scratch/` ont fait refuser quatre tests discriminants, jugés `FAIL` sur
   la référence, chargeables ; la campagne a coûté 55,7 min et 7,4 M de jetons là où un seul essai
-  aurait coûté 32,5 min et 2,5 M (`specs/archive/chantiers/J-mandat-de-preparation-contradictoire.md`,
+  aurait coûté 32,5 min et 2,5 M (le travail sur le mandat de préparation contradictoire, retiré de l'arbre : `git log --diff-filter=D -- specs/archive/chantiers`,
   `specs/archive/QUALIFICATION.md`). Celui qui passait par `mvn test` n'était sauvé que parce que
   `target/` est exclu du manifeste, ce que le prompt ne disait nulle part.
 - **Une commande annoncée ne lançait rien.** Les contrôles qui lisent un rapport laissé par un autre

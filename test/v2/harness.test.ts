@@ -913,7 +913,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	// Every reopening made the report redeclare each answer already taken, so it grew at each round
-	// until the fifth was refused on its structured output (chantiers/F). The kernel recorded those
+	// until the fifth was refused on its structured output. The kernel recorded those
 	// answers and read those declarations: it carries them, and asks the next report for what is new.
 	const CARRIED = [
 		{

@@ -1,5 +1,7 @@
 # Rapport de qualification — machine de référence
 
+> Les renvois `chantiers/…`, `revues/…` et `STATUS.md` de ce rapport désignent des fichiers retirés de l'arbre ; ils se lisent dans l'historique git (`git log --diff-filter=D -- specs/archive`).
+
 Environnement : macOS 27.0 (Darwin), Apple Silicon arm64, Node 24.21.0, Pi 0.85.1
 (`/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent`), Git 2.55.0, GraalVM JDK 25,
 Maven 3.9.9, modèle local `omlx/qwen3.8-27b-oq8e` (endpoint OpenAI-compatible sur 127.0.0.1:8000).

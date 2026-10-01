@@ -18,7 +18,7 @@ interpolé, et `CTX-03` nomme les skills, modèles de prompts et références do
 ressources versionnées, c'est-à-dire la matière que ce même constructeur assemble. Deux epics
 produiraient deux plans qui éditent la même fonction, chacun ignorant l'autre.
 
-**Conséquence.** Aucune écriture n'est due au catalogue de `specs/archive/amont/conception-technique.md`
+**Conséquence.** Aucune écriture n'est due au catalogue de `specs/amont/conception-technique.md`
 §4.1, puisqu'aucun composant n'est créé. `CTX-03` quitte la liste des exigences différées du
 périmètre et devient la seule exigence non couverte que `e04` ferme. L'axe modèle reste sans objet
 tant qu'un seul fournisseur est qualifié — des variantes indexées sur les capacités déclarées n'ont

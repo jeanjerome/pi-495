@@ -58,13 +58,13 @@ résout depuis le `models.json` de Pi, sans repli (`RM-022`).
 | --- | --- |
 | Le fournisseur écrit un bloc système **au-dessus** des instructions de confiance, et `buildContext` ne le connaît pas : le manifeste `ctx_…` déclare « ce qui a été mis devant le modèle » et deviendrait faux | `CTX-02`, dont la clause « les contraintes imposées par un fournisseur doivent être reconnues comme extérieures à cette hiérarchie locale » n'a jamais été éprouvée faute de fournisseur qui en impose |
 | L'identité annoncée sur le fil est `claude-cli/2.1.251` + `x-app: cli` | fait matériel à consigner au dossier ; l'arbitrage sur les conditions d'utilisation revient au propriétaire |
-| « Le même cas de contrat passe avec deux fournisseurs qualifiés » n'est tenu que par des preuves unitaires | recette de `AGT-02` ; `specs/archive/TRACEABILITY.md:26` |
+| « Le même cas de contrat passe avec deux fournisseurs qualifiés » n'est tenu que par des preuves unitaires | recette de `AGT-02` ; `specs/amont/TRACEABILITY.md:26` |
 | « Refuser un profil incompatible avant une intervention **facturée** » n'a aucun effet tant que le modèle est gratuit | `AGT-01` |
 | `intervention_ms` 20 min et `increment_ms` 120 min sont calibrés sur 2,5 appels d'outil par minute ; avec un modèle frontière la borne n'est plus le temps mais la fenêtre d'abonnement | `src/domain/policy.ts:47` |
 | Les extraits et les invites quittent la machine ; la campagne `NFR-06` mesure l'absence de télémétrie **produit**, pas le canal modèle | `SEC-05`, `NFR-06` |
 | Le bac à sable ne bouge pas : le worker est déjà exempté de confinement réseau pour joindre le fournisseur | `specs/adr/D-11…` |
 
-**C'est aussi un instrument de mesure.** Les trois campagnes qui fondent `specs/archive/chantiers/K…`
+**C'est aussi un instrument de mesure.** Les trois campagnes qui fondent le travail sur la clarté des prompts (retiré de l'arbre ; `git log --diff-filter=D -- specs/archive/chantiers`)
 ont tourné avec un modèle local qui rend deux fois sur trois un rapport que le schéma
 `specification-report` refuse. Tant qu'il est le seul témoin, une instruction mauvaise ne se
 distingue pas d'un modèle incapable.
@@ -75,7 +75,7 @@ distingue pas d'un modèle incapable.
 intervention is handed is composed here and nowhere else ». Déjà par rôle, déjà avec manifeste
 empreinté, budget d'entrée compté et schéma de sortie.
 
-Le travail ouvert dessus existe : **`e04`**, adossé à `specs/archive/chantiers/K-clarte-des-prompts-et-skills-du-harnais.md`,
+Le travail ouvert dessus existe : **`e04`**, adossé au travail sur la clarté des prompts et des skills du harnais (même renvoi),
 qui a déjà instruit l'antériorité (`superpowers`, `bigpowers`), déjà arbitré la voie de chargement —
 495 lit ses propres fichiers de skill par un chemin qu'il contrôle, jamais le `ResourceLoader` de Pi,
 parce qu'une ressource chargée par l'hôte n'apparaît dans aucun manifeste — et déjà borné la taille à

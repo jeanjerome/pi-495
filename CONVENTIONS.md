@@ -15,9 +15,9 @@ integration, 100× in production: fix a red gate now.
 |---------|---------|
 | `lint:code` | what Biome refuses (`specs/adr/D-42`, `D-43`) |
 | `lint:layers` | an import against the direction of `AGENTS.md` § Architecture |
-| `lint:architecture` | a `CMP-*` id claimed in `src/` without a row in `specs/archive/amont/conception-technique.md` §4.1, or an import cycle |
+| `lint:architecture` | a `CMP-*` id claimed in `src/` without a row in `specs/amont/conception-technique.md` §4.1, or an import cycle |
 | `lint:exports` | an export nothing reads outside its module (`specs/adr/D-44`) |
-| `lint:traceability` | a `[P0]` requirement of `specs/archive/amont/expression-besoins.md` absent from `specs/archive/TRACEABILITY.md` |
+| `lint:traceability` | a `[P0]` requirement of `specs/amont/expression-besoins.md` absent from `specs/amont/TRACEABILITY.md` |
 | `lint:declarations`, `lint:distribution` | a published surface that drifts from `src/` |
 | `lint:story-format` | a story of `specs/stories/` that departs from `cycle/format-de-story.md` |
 

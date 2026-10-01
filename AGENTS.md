@@ -6,7 +6,7 @@
 
 ## Where things are
 
-`specs/` is the project: what remains to do (`specs/plan.yaml`), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), and the corpus written before the switch, archived under `specs/archive/` in its original layout and still read by two Preflight controls. `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
+`specs/` is the project: what remains to do (`specs/plan.yaml`), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), the normative corpus (`specs/amont/`, read by two Preflight controls), and the measurements written before the switch (`specs/archive/`). `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
 
 ## Learned User Preferences
 
@@ -84,7 +84,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Architecture
 
-Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package. `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `specs/archive/amont/conception-technique.md` §4.1 and refuses import cycles.
+Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package. `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `specs/amont/conception-technique.md` §4.1 and refuses import cycles.
 
 ## Conventions
 
@@ -92,10 +92,10 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Route the Pi API only through `extension/` or `adapters/pi-worker/`.
 - Reach for Pi's own API before rebuilding a capability or deducing a fact from outside it. 495 is a
   Pi extension, and a fact Pi reports beats one 495 restates (`CONVENTIONS.md` § Pi is the host).
-- Give every new component a `CMP-*` id and add it to `specs/archive/amont/conception-technique.md` §4.1 in the same change.
+- Give every new component a `CMP-*` id and add it to `specs/amont/conception-technique.md` §4.1 in the same change.
 - Rebuild `dist/` from `src/` before every check. Never hand-edit `dist/`.
 - Attribute every redistributed dependency in `NOTICE`. Keep peer dependencies on the permissive licence allowlist.
-- Cover every `[P0]` requirement id from `specs/archive/amont/expression-besoins.md` in `specs/archive/TRACEABILITY.md`.
+- Cover every `[P0]` requirement id from `specs/amont/expression-besoins.md` in `specs/amont/TRACEABILITY.md`.
 - Write commit messages in English, as `<type>: <description>`, one line, describing the resulting behavior — whatever the language of the session or of the file changed. Carry no ticket, chantier, lot, or phase reference. Carry no AI attribution.
 
 ## Never
@@ -104,7 +104,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Never proceed on a red Preflight (`npm run check`) — fix it before forward work.
 - Never hand-edit `dist/` — rebuild it with `npm run build`.
 - Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, `presentation/`, or `export/`.
-- Never claim a `CMP-*` component id in `src/` without a matching row in `specs/archive/amont/conception-technique.md` §4.1.
+- Never claim a `CMP-*` component id in `src/` without a matching row in `specs/amont/conception-technique.md` §4.1.
 - Never let an unqualified sandbox backend run unconfined. Refuse with `capability_missing` instead.
 
 ## Agent Rules

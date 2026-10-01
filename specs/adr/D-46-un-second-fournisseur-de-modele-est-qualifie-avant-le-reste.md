@@ -20,7 +20,7 @@ Son coût est faible parce qu'aucun code n'est à écrire pour joindre le fourni
 l'abonnement par jeton OAuth présenté en Bearer, sans frapper de clé d'API — et que ce qui reste est
 ce que le harnais doit porter en conséquence.
 
-**Conséquence.** L'autorité d'ordonnancement, `specs/archive/ROADMAP.md` §5, est antérieure à cet
+**Conséquence.** L'autorité d'ordonnancement d'alors, la feuille de route §5 (retirée de l'arbre ; `git log --diff-filter=D -- specs/archive/ROADMAP.md`), est antérieure à cet
 epic et ne couvre plus la tête de l'index ; le `wsjf_note` de `e23` le consigne. La recette d'`AGT-02`
 cesse de ne tenir que par des preuves unitaires. La clause d'`AGT-01` sur le refus d'un profil avant
 une intervention **facturée** reçoit un effet pour la première fois, n'en ayant aucun tant que le
