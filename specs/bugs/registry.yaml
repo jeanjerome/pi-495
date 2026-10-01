@@ -435,37 +435,6 @@ bugs:
     risk_level: low
     follow_ups: "Build the sandbox of those tests with `{ temp_paths: [] }`."
     status: open
-  - bug_id: BUG-2026-09-29T180000
-    date: "2026-09-29"
-    title: "A writable directory that does not exist yet is granted under its symbolic path, so the sandbox refuses to create it when the copy lives behind a link"
-    severity: medium
-    priority: p2
-    scope: adapters
-    what_happened: >
-      The vitest unit control declares `target/495-vitest` writable, a directory the copy does not carry.
-      `real()` returns the path unchanged when `realpathSync` fails, so the Seatbelt profile grants the
-      write under the symbolic form of the copy. When the copy lives under `/tmp`, a link to `/private/tmp`,
-      Seatbelt matches the resolved path, the grant does not apply and `mkdir` fails with `EPERM`; the
-      control gives FAIL. The Maven control already declared `target/` and has the same exposure.
-    what_expected: >
-      The control writes its report wherever the copy lives, since the profile grants the resolved form of
-      the directory it declares.
-    steps_to_reproduce:
-      - "Copy a vitest target under `/tmp` and run its unit control under `SeatbeltSandbox` with vitest 5.0.0."
-      - "vitest fails with `EPERM mkdir /private/tmp/.../target`; the same run under `$HOME` passes."
-    root_cause: >
-      `real` in `src/adapters/sandbox/backends.ts` resolves a path only when it exists. A directory the
-      command creates is absent when the profile is built, so its link-bearing parent is never resolved.
-      Existed before the branch, which adds a second control that declares such a directory. The default
-      data directory is `~/.495`, so the copies do not sit behind a link there.
-    evidence: >
-      Reviewer probe: vitest 5.0.0 in a copy under `/tmp` gave `EPERM mkdir /private/tmp/.../target`, and
-      the same probe under `$HOME` gave PASS.
-    risk_level: medium
-    follow_ups: >
-      Resolve the deepest existing ancestor of a path that does not exist and append the missing segments;
-      it changes what the profile grants, so it needs its own test under a linked directory.
-    status: open
   - bug_id: BUG-2026-09-29T190000
     date: "2026-09-29"
     title: "An IH-04 question left pending when the requirements are revised stays answerable, and a prepare answered to it grants a preparation on the new requirements"
