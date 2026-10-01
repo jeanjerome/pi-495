@@ -110,7 +110,7 @@ Statut : versée
 
 ## R16 — La porte G5 reçoit le protocole et le candidat que l'appelant a vérifiés
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/gates/g5.ts:21-22
 - Constat : const protocol = state.protocol!; const candidate = state.candidate!; alors que l'invariant est établi chez l'appelant (decide.ts:832-833 échoue avant d'appeler).

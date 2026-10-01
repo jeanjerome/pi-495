@@ -831,7 +831,7 @@ class Ctx {
 			this.fail("PRECONDITION_FAILED", "a producer is still active on the candidate");
 		if (!this.state.candidate) this.fail("PRECONDITION_FAILED", "no candidate frozen");
 		if (!this.state.protocol) this.fail("PROTOCOL_NOT_FROZEN", "no protocol frozen");
-		const result = evaluateG5(this.state, this.policy);
+		const result = evaluateG5(this.state, this.state.protocol, this.state.candidate, this.policy);
 		const evaluated = {
 			candidate: this.state.candidate.manifest_digest,
 			protocol: this.state.protocol.ref.content_digest,

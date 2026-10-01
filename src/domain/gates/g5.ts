@@ -1,5 +1,5 @@
-import type { Verdict } from "../../contracts/v1/common.ts";
-import type { ChangeState, EvidenceEntry } from "../change/state.ts";
+import type { CandidateRef, Verdict } from "../../contracts/v1/common.ts";
+import type { ChangeState, EvidenceEntry, FrozenProtocol } from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G5Result {
@@ -18,9 +18,12 @@ export interface G5Result {
  * decisions against the frozen protocol. FAIL and INDETERMINATE are both blocking and both kept
  * (RM-036, SA-032). No model is called (DEC-01).
  */
-export function evaluateG5(state: ChangeState, policy: ActivePolicy): G5Result {
-	const protocol = state.protocol!;
-	const candidate = state.candidate!;
+export function evaluateG5(
+	state: ChangeState,
+	protocol: FrozenProtocol,
+	candidate: CandidateRef,
+	policy: ActivePolicy,
+): G5Result {
 	const reasons: string[] = [];
 	const retained: string[] = [];
 	const ignored: string[] = [];
