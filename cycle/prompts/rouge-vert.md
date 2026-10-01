@@ -1,5 +1,8 @@
+/node
+
 Pas 2 du cycle, le rouge-vert, pour la story {{id}} sur la branche `{{branche}}` (base `{{base}}`).
-La story est ci-dessous ; ses tâches se font dans l'ordre, une par une.
+La story est ci-dessous ; ses tâches se font dans l'ordre, une par une. Quand `npm run typecheck`
+est rouge, charge le skill `typescript-magician` avant de corriger le type.
 
 La branche porte déjà ces commits depuis la base :
 

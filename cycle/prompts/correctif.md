@@ -1,5 +1,8 @@
+/node
+
 Correction d'un défaut du registre, sur `main`, arbre propre. Le propriétaire a délégué à la suite la
-correction des défauts ouverts dont la gravité est au moins `{{seuil}}` ; {{contexte}}.
+correction des défauts ouverts dont la gravité est au moins `{{seuil}}` ; {{contexte}}. Quand
+`npm run typecheck` est rouge, charge le skill `typescript-magician` avant de corriger le type.
 
 Défauts ouverts de gravité au moins `{{seuil}}`, le plus grave d'abord, le plus ancien d'abord à
 gravité égale :

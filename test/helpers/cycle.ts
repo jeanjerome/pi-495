@@ -70,7 +70,8 @@ export function depot(): string {
 /**
  * A stand-in for `claude -p`: it loads the module `FAUX_REPONSES` names, whose default export
  * receives the prompt and the working directory, may act on the repository, and returns the
- * structured output.
+ * structured output. Like the real `claude`, it treats a leading `/skill` line as a command and
+ * hands the module only the text that follows it.
  */
 export function fauxClaude(reponses: string): string {
 	const dir = tempDir();
@@ -79,7 +80,7 @@ export function fauxClaude(reponses: string): string {
 	const path = join(dir, "claude");
 	writeFileSync(
 		path,
-		`#!/usr/bin/env node\nconst args = process.argv.slice(2);\nconst invite = args[args.indexOf("-p") + 1];\nconst { default: repondre } = await import(${JSON.stringify(module)});\nconst sortie = await repondre(invite, process.cwd());\nprocess.stdout.write(JSON.stringify({ type: "result", subtype: "success", is_error: false, num_turns: 1, duration_ms: 10, total_cost_usd: 0.01, session_id: "s", result: "ok", structured_output: sortie }) + "\\n");\n`,
+		`#!/usr/bin/env node\nconst args = process.argv.slice(2);\nconst invite = args[args.indexOf("-p") + 1].replace(/^\\/[\\w-]+\\n+/, "");\nconst { default: repondre } = await import(${JSON.stringify(module)});\nconst sortie = await repondre(invite, process.cwd());\nprocess.stdout.write(JSON.stringify({ type: "result", subtype: "success", is_error: false, num_turns: 1, duration_ms: 10, total_cost_usd: 0.01, session_id: "s", result: "ok", structured_output: sortie }) + "\\n");\n`,
 	);
 	chmodSync(path, 0o755);
 	return path;

@@ -1,3 +1,5 @@
+/node
+
 Tu es le relecteur {{relecteur}}, tour {{tour}}, de la story {{id}}. Tu travailles seul, sans
 contexte commun avec l'auteur ni avec l'autre relecteur, dans ta copie de l'arbre : le répertoire
 courant, un arbre détaché à `{{tete}}` avec `node_modules` lié. Le diff relu est
