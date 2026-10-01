@@ -173,7 +173,7 @@ Statut : versée
 
 ## R23 — Les unions répétées du domaine portent un nom unique
 
-Statut : à faire
+Statut : versée
 
 - Où : state.ts:149,124 · events.ts:136,103,66-70,91-97 · commands.ts:125,108 · contracts/v1/reports.ts:21,27-32
 - Constat : « approve | reject | consultative » écrit quatre fois ; le résultat d'intervention « completed | failed | cancelled | truncated » trois fois ; les formes mandat {allowed_paths, integration, language} et modèle {provider_id, model_id, thinking_level, location?} deux fois chacune. La sévérité de revue est un Type.Union de littéraux alors que Closed(SEVERITIES) est l'idiome du dépôt (evidence.ts:63,87).

@@ -107,21 +107,25 @@ export interface AttemptState {
 	result: AttemptResult;
 }
 
+export interface ModelIdentity {
+	provider_id: string;
+	model_id: string;
+	thinking_level: string;
+	/** Absent from a dossier written before the location was recorded, and then never read as on this machine. */
+	location?: ModelLocation;
+}
+
+export type InterventionResult = "completed" | "failed" | "cancelled" | "truncated";
+
 export interface InterventionState {
 	intervention_id: string;
 	role: InterventionRole;
 	attempt_id: string | null;
-	model: {
-		provider_id: string;
-		model_id: string;
-		thinking_level: string;
-		/** Absent from a dossier written before the location was recorded, and then never read as on this machine. */
-		location?: ModelLocation;
-	};
+	model: ModelIdentity;
 	profile_id: string;
 	started_at: string;
 	ended_at: string | null;
-	result: "running" | "completed" | "failed" | "cancelled" | "truncated";
+	result: "running" | InterventionResult;
 	counters: AttemptCounters;
 	/** What the host put on the intervention once it finished; absent while it runs and in an older dossier. */
 	cost?: InterventionCost;
@@ -142,11 +146,13 @@ export interface EvidenceEntry {
 	findings_blocking: number;
 }
 
+export type ReviewConclusion = "approve" | "reject" | "consultative";
+
 export interface ReviewEntry {
 	review_id: string;
 	reviewer_role: string;
 	subject_digest: string;
-	conclusion: "approve" | "reject" | "consultative";
+	conclusion: ReviewConclusion;
 	blocking_findings: number;
 	valid: boolean;
 	recorded_at: string;
@@ -229,6 +235,12 @@ export interface BudgetState {
 	extensions: { amount: number; decision_id: string; at: string }[];
 }
 
+export interface MandateTerms {
+	allowed_paths: string[];
+	integration: "disabled" | "local_branch";
+	language: "fr" | "en";
+}
+
 export interface ChangeState {
 	schema_version: 1;
 	change_id: string;
@@ -249,7 +261,7 @@ export interface ChangeState {
 	proposals: Partial<Record<ArtifactKind, ArtifactRef[]>>;
 	adopted: Partial<Record<ArtifactKind, AdoptedArtifact>>;
 	protocol: FrozenProtocol | null;
-	mandate: { allowed_paths: string[]; integration: "disabled" | "local_branch"; language: "fr" | "en" } | null;
+	mandate: MandateTerms | null;
 	requirement_ids: string[];
 	mandatory_requirement_ids: string[];
 	open_questions: OpenQuestion[];

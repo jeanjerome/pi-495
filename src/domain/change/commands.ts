@@ -11,8 +11,14 @@ import type {
 import type { DecisionRequest, DecisionResponse, HumanOrigin } from "../../contracts/v1/decision.ts";
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import type { ImposedLayersRecord } from "../imposed-layers.ts";
-import type { ArtifactKind, AttemptCounters, InterventionCost } from "./state.ts";
-import type { ModelLocation } from "../policy.ts";
+import type {
+	ArtifactKind,
+	AttemptCounters,
+	InterventionCost,
+	InterventionResult,
+	ModelIdentity,
+	ReviewConclusion,
+} from "./state.ts";
 
 interface Base {
 	at: string;
@@ -99,14 +105,14 @@ export type ChangeCommand =
 			intervention_id: string;
 			role: InterventionRole;
 			attempt_id: string | null;
-			model: { provider_id: string; model_id: string; thinking_level: string; location: ModelLocation };
+			model: Required<ModelIdentity>;
 			profile_id: string;
 			profile_qualified: boolean;
 	  })
 	| (Base & {
 			type: "intervention.finish";
 			intervention_id: string;
-			result: "completed" | "failed" | "cancelled" | "truncated";
+			result: InterventionResult;
 			counters: AttemptCounters;
 			detail: string | null;
 			cost: InterventionCost;
@@ -123,7 +129,7 @@ export type ChangeCommand =
 			review_id: string;
 			reviewer_role: string;
 			subject_digest: string;
-			conclusion: "approve" | "reject" | "consultative";
+			conclusion: ReviewConclusion;
 			blocking_findings: number;
 	  })
 	| (Base & { type: "review.complete" })

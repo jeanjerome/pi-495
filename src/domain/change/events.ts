@@ -19,9 +19,12 @@ import type {
 	FrozenProtocol,
 	GateDecisionState,
 	InterventionCost,
+	InterventionResult,
+	MandateTerms,
+	ModelIdentity,
 	OperationKind,
+	ReviewConclusion,
 } from "./state.ts";
-import type { ModelLocation } from "../policy.ts";
 
 interface Base {
 	at: string;
@@ -62,12 +65,7 @@ export type ChangeEvent =
 			invalidated_gates: GateId[];
 			reason: string;
 	  })
-	| (Base & {
-			type: "mandate.recorded";
-			allowed_paths: string[];
-			integration: "disabled" | "local_branch";
-			language: "fr" | "en";
-	  })
+	| (Base & MandateTerms & { type: "mandate.recorded" })
 	| (Base & { type: "requirements.recorded"; requirement_ids: string[]; mandatory_requirement_ids: string[] })
 	| (Base & { type: "protocol.frozen"; protocol: FrozenProtocol })
 	| (Base & { type: "question.opened"; id: string; question: string; material: boolean; decision_id: string | null })
@@ -88,19 +86,13 @@ export type ChangeEvent =
 			intervention_id: string;
 			role: InterventionRole;
 			attempt_id: string | null;
-			model: {
-				provider_id: string;
-				model_id: string;
-				thinking_level: string;
-				/** Absent from a dossier written before the location was recorded, and then never read as on this machine. */
-				location?: ModelLocation;
-			};
+			model: ModelIdentity;
 			profile_id: string;
 	  })
 	| (Base & {
 			type: "intervention.finished";
 			intervention_id: string;
-			result: "completed" | "failed" | "cancelled" | "truncated";
+			result: InterventionResult;
 			counters: AttemptCounters;
 			detail: string | null;
 			/** Absent from a dossier written before the cost was recorded, which is not a zero. */
@@ -133,7 +125,7 @@ export type ChangeEvent =
 			review_id: string;
 			reviewer_role: string;
 			subject_digest: string;
-			conclusion: "approve" | "reject" | "consultative";
+			conclusion: ReviewConclusion;
 			blocking_findings: number;
 	  })
 	| (Base & { type: "review.invalidated"; review_id: string; reason: string })

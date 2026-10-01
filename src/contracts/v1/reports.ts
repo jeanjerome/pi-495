@@ -3,7 +3,8 @@
  * An output that does not validate is a proposal with `output_valid=false`, never a decision.
  */
 import { Type, type Static } from "typebox";
-import type { InterventionRole } from "./common.ts";
+import { Closed, type InterventionRole } from "./common.ts";
+import { SEVERITIES } from "./evidence.ts";
 
 export const ProducerReport = Type.Object(
 	{
@@ -24,12 +25,7 @@ export const ReviewReport = Type.Object(
 				{
 					path: Type.Union([Type.String(), Type.Null()]),
 					line: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
-					severity: Type.Union([
-						Type.Literal("blocker"),
-						Type.Literal("major"),
-						Type.Literal("minor"),
-						Type.Literal("info"),
-					]),
+					severity: Closed(SEVERITIES),
 					expected: Type.String(),
 					observed: Type.String(),
 					requirement_id: Type.Union([Type.String(), Type.Null()]),
