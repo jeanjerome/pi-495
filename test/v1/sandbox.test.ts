@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
@@ -75,6 +75,48 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 			assert.equal(readFileSync(join(root, "ws", "in-ws.txt"), "utf8"), "1");
 		},
 	);
+	it("a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new", () => {
+		mkdirSync(join(root, "real"));
+		symlinkSync(join(root, "real"), join(root, "link"));
+		const text = new SeatbeltSandbox().profileText(profile({ write_paths: [join(root, "link", "new")] }));
+		assert.ok(text.includes(`(allow file-write* (subpath "${join(realpathSync(root), "real", "new")}"))`), text);
+		assert.equal(text.includes(join(root, "link", "new")), false, text);
+	});
+	it("a path that exists is granted under its resolved form", () => {
+		mkdirSync(join(root, "real"));
+		symlinkSync(join(root, "real"), join(root, "link"));
+		const text = new SeatbeltSandbox().profileText(profile({ write_paths: [join(root, "link")] }));
+		assert.ok(text.includes(`(allow file-write* (subpath "${join(realpathSync(root), "real")}"))`), text);
+		assert.equal(text.includes(join(root, "link")), false, text);
+	});
+	darwinOnly("mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM", async () => {
+		mkdirSync(join(root, "real"));
+		symlinkSync(join(root, "real"), join(root, "link"));
+		const sbx = new SeatbeltSandbox({ temp_paths: [] });
+		const p = profile({ write_paths: [join(root, "link", "new")] });
+		// Probed while real/new is still absent: the grant is then built from the missing-path branch, the
+		// one that must stay bounded to the declared directory.
+		const other = await sbx.run(p, {
+			command: [
+				NODE,
+				"-e",
+				`try{require("fs").writeFileSync(${JSON.stringify(join(root, "real", "other"))},"x");console.log("ok")}catch(e){console.log(e.code)}`,
+			],
+			cwd: join(root, "ws"),
+			timeout_ms: 20000,
+			max_output_bytes: 4096,
+		});
+		assert.equal(new TextDecoder().decode(other.stdout).trim(), "EPERM");
+		assert.equal(existsSync(join(root, "real", "other")), false);
+		const made = await sbx.run(p, {
+			command: ["/bin/mkdir", join(root, "link", "new")],
+			cwd: join(root, "ws"),
+			timeout_ms: 20000,
+			max_output_bytes: 4096,
+		});
+		assert.equal(made.exit_code, 0, new TextDecoder().decode(made.stderr));
+		assert.equal(existsSync(join(root, "real", "new")), true);
+	});
 	darwinOnly("seatbelt lets a loopback profile reach itself and no other host (VER-04)", async () => {
 		// A mutation engine forks worker processes and talks to them over a socket. The narrowest grant
 		// that lets such a tool run is the loopback interface: the confinement SEC-02 claims is kept,

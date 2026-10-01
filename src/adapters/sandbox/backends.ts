@@ -1,6 +1,6 @@
 import { existsSync, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type {
 	ExecutableRequest,
 	ProcessObservation,
@@ -23,11 +23,17 @@ function defaultDenied(): string[] {
 	return [join(home, ".ssh"), join(home, ".aws"), join(home, ".gnupg"), join(home, ".pi", "agent", "auth.json")];
 }
 
+/**
+ * Seatbelt compares the resolved path of what a command touches, so a grant is written under the
+ * resolved path. A path that does not exist yet is resolved through its deepest existing ancestor
+ * and keeps its absent segments: the grant stays bounded to that path.
+ */
 function real(p: string): string {
 	try {
 		return realpathSync(p);
 	} catch {
-		return p;
+		const parent = dirname(p);
+		return parent === p ? p : join(real(parent), basename(p));
 	}
 }
 

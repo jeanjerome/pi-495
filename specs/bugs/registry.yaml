@@ -404,7 +404,7 @@ bugs:
     status: open
   - bug_id: BUG-2026-09-29T160000
     date: "2026-09-29"
-    title: "The Seatbelt test of the generic runner cannot fail when the repository lives under the temporary directory"
+    title: "The Seatbelt tests of the generic runner and of the sandbox backends cannot fail when the repository lives under the temporary directory"
     severity: low
     priority: p3
     scope: adapters
@@ -413,13 +413,17 @@ bugs:
       `src/greet.js` to be refused. `SeatbeltSandbox` grants the write to the temporary directory of the
       process and to `/private/tmp` by default, and the test builds its workspace under
       `test-output/`; in a repository hosted under `$TMPDIR` the write succeeds and the assertion of a
-      FAIL verdict fails, so the test says nothing about the confinement there.
+      FAIL verdict fails, so the test says nothing about the confinement there. `seatbelt qualifies on
+      macOS and confines writes, sensitive reads, symlink escapes and network` in
+      `test/v1/sandbox.test.ts` builds the same sandbox and fails the same way on its `outside:EPERM`
+      assertion.
     what_expected: >
-      The test holds wherever the repository lives, because it grants no temporary directory to the
-      sandbox it builds.
+      The tests hold wherever the repository lives, because they grant no temporary directory to the
+      sandbox they build.
     steps_to_reproduce:
       - "Clone the repository under `$TMPDIR` and run `node --test test/v1/control-runner.test.ts` on macOS."
       - "The candidate read-only test fails on the assertion that the write is refused."
+      - "Run `node --test test/v1/sandbox.test.ts` from the same clone: the confinement test fails on the write outside the workspace."
     root_cause: >
       The test builds `new SeatbeltSandbox()` with its default `temp_paths` (`src/adapters/sandbox/backends.ts`),
       which include the temporary directory the workspace may sit in. The vitest tests of the same file
@@ -429,7 +433,7 @@ bugs:
       the branch observed the failure in a tree under `$TMPDIR` and its pass in a copy under `$HOME`.
       Existed before the branch, which does not touch this test.
     risk_level: low
-    follow_ups: "Build the sandbox of that test with `{ temp_paths: [] }`."
+    follow_ups: "Build the sandbox of those tests with `{ temp_paths: [] }`."
     status: open
   - bug_id: BUG-2026-09-29T180000
     date: "2026-09-29"
