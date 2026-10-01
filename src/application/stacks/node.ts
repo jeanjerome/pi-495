@@ -178,7 +178,9 @@ function mutationOutcome(
 			// Stryker listens on every interface to talk to its test processes: without the loopback profile
 			// it fails with `listen EPERM`.
 			network: "loopback",
-			writable_paths: ["reports/mutation", ".stryker-tmp"],
+			// Stryker runs the suite in a copy under `.stryker-tmp` whose `node_modules` links back to the
+			// copy's own, so the directory Vite compiles a vitest configuration in is written through that link.
+			writable_paths: ["reports/mutation", ".stryker-tmp", ...(runner === "vitest" ? ["node_modules/.vite-temp"] : [])],
 			requirement_refs: requirementRefs,
 			// A narrowed `mutate`, an added exclusion or another reporter would make the control pass on less.
 			protected_paths: [...unit.protected_paths, "stryker.conf.*", "stryker.config.*"],

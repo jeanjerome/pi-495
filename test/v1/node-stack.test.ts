@@ -717,6 +717,11 @@ describe("Node stack: the mutation control of a target that installed Stryker", 
 		rmSync(join(root, "target"), { recursive: true, force: true });
 		assert.equal(mutationOf(targetWith("jest", STRYKER)), undefined, "no qualification witness is written for jest");
 	});
+	it("given a vitest target that installed Stryker, then the mutation control also lets Vite compile the configuration under node_modules/.vite-temp, which the sandbox copy of Stryker reaches through its node_modules link", () => {
+		const mutation = mutationOf(targetWith("vitest run", STRYKER));
+		assert.ok(mutation, "the detection declares a mutation control");
+		assert.deepEqual(mutation.writable_paths, ["reports/mutation", ".stryker-tmp", "node_modules/.vite-temp"]);
+	});
 });
 
 describe("Node stack: the witnesses of a mutation sensor", () => {
