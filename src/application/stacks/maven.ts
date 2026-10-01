@@ -14,7 +14,7 @@ import {
 	type StructureRule,
 } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
+import { baseControl, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
 export const MAVEN_ADAPTER: StackAdapter = { stack: "maven", signal_files: ["pom.xml"], detect: detectMavenStack };
 
@@ -28,24 +28,15 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 	const measuresIntroducedCode = jacoco || mutation.usable;
 	const controls: ControlDefinition[] = [
 		{
+			...baseControl(requirementRefs),
 			control_id: "maven-test",
-			version: "1",
 			title: "mvn test (Surefire)",
 			command: ["mvn", "-B", "-q", "-o", "test"],
-			cwd: ".",
-			env_allowlist: BASE_ENV,
-			env: {},
 			timeout_ms: 20 * 60_000,
 			parser: "junit-xml",
 			report_path: "**/target/surefire-reports",
-			structure_rules: [],
 			provides: ["surefire-reports", ...(jacoco ? ["jacoco-report"] : [])],
-			requires: [],
-			scope_argument: null,
-			network: "denied",
 			writable_paths: reactor.target_paths,
-			requirement_refs: requirementRefs,
-			protected: true,
 			protected_paths: [...reactor.preparation_paths, ...reactor.pom_paths],
 		},
 	];
@@ -55,24 +46,15 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 	// producer in each of its witness workspaces, and the verification runs them in that order.
 	if (jacoco)
 		controls.push({
+			...baseControl(requirementRefs),
 			control_id: "coverage",
-			version: "1",
 			title: "introduced-line coverage, read from the JaCoCo report of mvn test",
 			command: emptyTrigger(nodeBinary),
-			cwd: ".",
-			env_allowlist: BASE_ENV,
-			env: {},
 			timeout_ms: 60_000,
 			parser: "jacoco-xml",
 			report_path: "**/target/site/jacoco",
-			structure_rules: [],
 			provides: [],
 			requires: ["jacoco-report"],
-			scope_argument: null,
-			network: "denied",
-			writable_paths: [],
-			requirement_refs: requirementRefs,
-			protected: true,
 			protected_paths: [...reactor.pom_paths],
 		});
 	// The architecture is read from what the target itself declares — the reactor, the dependency
@@ -81,24 +63,15 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 	// tree would be a suggestion, and ARC-04 asks for the opposite.
 	if (rules.length > 0)
 		controls.push({
+			...baseControl(requirementRefs),
 			control_id: "structure",
-			version: "1",
 			title: "frozen architecture boundaries, read from the Java declarations",
 			command: emptyTrigger(nodeBinary),
-			cwd: ".",
-			env_allowlist: BASE_ENV,
-			env: {},
 			timeout_ms: 120_000,
 			parser: "java-imports",
 			report_path: null,
 			structure_rules: rules,
 			provides: [],
-			requires: [],
-			scope_argument: null,
-			network: "denied",
-			writable_paths: [],
-			requirement_refs: requirementRefs,
-			protected: true,
 			protected_paths: [...reactor.pom_paths],
 		});
 	// Mutation is the one question coverage cannot answer, and the one control that runs a build of
@@ -107,8 +80,8 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 	// it costs follows the size of the change rather than the size of the target (VER-04).
 	if (mutation.usable)
 		controls.push({
+			...baseControl(requirementRefs),
 			control_id: "mutation",
-			version: "1",
 			title: "surviving mutants on the classes the candidate modified, read from the PITest XML report",
 			command: [
 				"mvn",
@@ -120,20 +93,13 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 				"-DfailWhenNoMutations=false",
 				"-Dthreads=1",
 			],
-			cwd: ".",
-			env_allowlist: BASE_ENV,
-			env: {},
 			timeout_ms: 30 * 60_000,
 			parser: "pitest-xml",
 			report_path: "**/target/pit-reports",
-			structure_rules: [],
 			provides: ["pit-reports"],
-			requires: [],
 			scope_argument: `-DtargetClasses=${SCOPE_PLACEHOLDER}`,
 			network: "loopback",
 			writable_paths: reactor.target_paths,
-			requirement_refs: requirementRefs,
-			protected: true,
 			protected_paths: [...reactor.pom_paths],
 		});
 	const positive: Record<string, string> = {
@@ -241,10 +207,31 @@ function jacocoDeclaration(indent: string, unit: string, eol: string): string {
 	return lines.map((line) => `${indent}${line}${eol}`).join("");
 }
 
+/** The profiles of a POM: what they declare exists only when a build activates them. */
+const PROFILES = /<profiles\b[\s\S]*?<\/profiles>/g;
+
+/** A POM without its profiles, the part every build of the reactor reads. */
+function outsideProfiles(xml: string): string {
+	return xml.replace(PROFILES, "");
+}
+
+/** Each POM of the reactor that can be read, outside its profiles. */
+function* readPomsOutsideProfiles(projectPath: string, pomPaths: readonly string[]): Generator<string> {
+	for (const rel of pomPaths) {
+		let xml = "";
+		try {
+			xml = readFileSync(join(projectPath, rel), "utf8");
+		} catch {
+			continue; // an unreadable POM declares and binds nothing; the other POMs are still read
+		}
+		yield outsideProfiles(xml);
+	}
+}
+
 /** The regions of a POM whose plugins a build does not run: comments, profiles, managed plugins and reporting. */
 const INACTIVE_REGIONS = [
 	/<!--[\s\S]*?-->/g,
-	/<profiles\b[\s\S]*?<\/profiles>/g,
+	PROFILES,
 	/<pluginManagement\b[\s\S]*?<\/pluginManagement>/g,
 	/<reporting\b[\s\S]*?<\/reporting>/g,
 ];
@@ -352,18 +339,11 @@ export interface MutationEngineConfiguration {
 
 export function readsMutationReport(projectPath: string, pomPaths: readonly string[]): MutationEngineConfiguration {
 	const found = { declared: false, xml_report: false, stable_report_path: false };
-	for (const rel of pomPaths) {
-		let xml = "";
-		try {
-			xml = readFileSync(join(projectPath, rel), "utf8");
-		} catch {
-			continue; // an unreadable POM declares nothing; the other POMs are still read
-		}
-		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
-		if (!/pitest-maven/.test(outsideProfiles)) continue;
+	for (const pom of readPomsOutsideProfiles(projectPath, pomPaths)) {
+		if (!/pitest-maven/.test(pom)) continue;
 		found.declared = true;
-		if (/<outputFormats>[\s\S]*?\bXML\b[\s\S]*?<\/outputFormats>/i.test(outsideProfiles)) found.xml_report = true;
-		if (/<timestampedReports>\s*false\s*<\/timestampedReports>/i.test(outsideProfiles)) found.stable_report_path = true;
+		if (/<outputFormats>[\s\S]*?\bXML\b[\s\S]*?<\/outputFormats>/i.test(pom)) found.xml_report = true;
+		if (/<timestampedReports>\s*false\s*<\/timestampedReports>/i.test(pom)) found.stable_report_path = true;
 	}
 	return { ...found, usable: found.declared && found.xml_report && found.stable_report_path };
 }
@@ -416,16 +396,8 @@ function mutationNegativeWitness(witnessPrefix: string): Record<string, string> 
  * the control cannot assume — and a sensor that silently finds no measurement is worth nothing.
  */
 function bindsJacocoReport(projectPath: string, pomPaths: readonly string[]): boolean {
-	for (const rel of pomPaths) {
-		let xml = "";
-		try {
-			xml = readFileSync(join(projectPath, rel), "utf8");
-		} catch {
-			continue; // an unreadable POM binds nothing; the other POMs are still read
-		}
-		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
-		if (/jacoco-maven-plugin/.test(outsideProfiles) && /<goal>\s*report\s*<\/goal>/.test(outsideProfiles)) return true;
-	}
+	for (const pom of readPomsOutsideProfiles(projectPath, pomPaths))
+		if (/jacoco-maven-plugin/.test(pom) && /<goal>\s*report\s*<\/goal>/.test(pom)) return true;
 	return false;
 }
 
@@ -542,7 +514,7 @@ function pomIdentity(xml: string): { artifact_id: string | null; dependencies: s
 		.replace(/<parent\b[\s\S]*?<\/parent>/g, "")
 		.replace(/<dependencyManagement\b[\s\S]*?<\/dependencyManagement>/g, "")
 		.replace(/<build\b[\s\S]*?<\/build>/g, "")
-		.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "")
+		.replace(PROFILES, "")
 		.replace(/<reporting\b[\s\S]*?<\/reporting>/g, "");
 	const dependencies: string[] = [];
 	for (const block of own.matchAll(/<dependencies\b[^>]*>([\s\S]*?)<\/dependencies>/g)) {

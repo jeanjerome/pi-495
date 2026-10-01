@@ -48,6 +48,38 @@ export interface StackAdapter {
 /** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */
 export const BASE_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME", "MAVEN_OPTS"];
 
+/** What a control of any stack declares unless it says otherwise; each adapter extends it with what it runs and reads. */
+export function baseControl(
+	requirementRefs: RequirementRef[],
+): Pick<
+	ControlDefinition,
+	| "version"
+	| "cwd"
+	| "env_allowlist"
+	| "env"
+	| "structure_rules"
+	| "requires"
+	| "scope_argument"
+	| "network"
+	| "writable_paths"
+	| "requirement_refs"
+	| "protected"
+> {
+	return {
+		version: "1",
+		cwd: ".",
+		env_allowlist: BASE_ENV,
+		env: {},
+		structure_rules: [],
+		requires: [],
+		scope_argument: null,
+		network: "denied",
+		writable_paths: [],
+		requirement_refs: requirementRefs,
+		protected: true,
+	};
+}
+
 /**
  * The command of a control that runs nothing: its parser reads a report another control left, or
  * the code itself. Spawning the Node binary on an empty program keeps one runner for every control.

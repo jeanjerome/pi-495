@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SCOPE_PLACEHOLDER, type ControlDefinition, type RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { BASE_ENV, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
+import { baseControl, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
 
 export const NODE_ADAPTER: StackAdapter = { stack: "node", signal_files: ["package.json"], detect: detectNodeStack };
 
@@ -40,24 +40,14 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 	const lint = lintScript && !suite.refusal ? lintOf(lintScript, nodeBinary) : {};
 	if (lint.command)
 		controls.push({
+			...baseControl(requirementRefs),
 			control_id: "lint",
-			version: "1",
 			title: `npm run lint (${lintScript})`,
 			command: lint.command,
-			cwd: ".",
-			env_allowlist: BASE_ENV,
-			env: {},
 			timeout_ms: 5 * 60_000,
 			parser: "exit-code",
 			report_path: null,
-			structure_rules: [],
 			provides: [],
-			requires: [],
-			scope_argument: null,
-			network: "denied",
-			writable_paths: [],
-			requirement_refs: requirementRefs,
-			protected: true,
 			protected_paths: ["scripts/lint.js", "eslint.config.js", ".eslintrc.json", "package.json"],
 		});
 	const mutation = suite.runner
@@ -258,24 +248,14 @@ const REPORT_DIRECTORY = "target";
 
 function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
 	return {
+		...baseControl(requirementRefs),
 		control_id: "unit",
-		version: "1",
 		title: "node:test suite",
 		command: [nodeBinary, "--test", "--test-reporter=tap"],
-		cwd: ".",
-		env_allowlist: BASE_ENV,
-		env: {},
 		timeout_ms: 10 * 60_000,
 		parser: "node-test",
 		report_path: null,
-		structure_rules: [],
 		provides: [],
-		requires: [],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
-		requirement_refs: requirementRefs,
-		protected: true,
 		// `node_modules/` holds code the checks load, and only an adopted complement writes there: any other
 		// file added or modified under it is a dependency the producer slipped into the project.
 		protected_paths: ["test/", "tests/", "package.json", "node_modules/"],

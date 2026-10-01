@@ -319,7 +319,7 @@ Statut : versée
 
 ## R40 — Les contrôles des piles partent d'une base commune
 
-Statut : à faire
+Statut : versée
 
 - Où : stacks/maven.ts:30-50,57-77,83-103,109-138 · stacks/node.ts:40-62,259-282 · maven.ts:247,362,426,545 et 355-360,419-424
 - Constat : Six littéraux ControlDefinition à 19 champs dont 10 à 12 identiques (version, cwd, env_allowlist, env, requires, writable_paths, protected, structure_rules, network, scope_argument), environ 65 lignes ; node.ts dérive déjà ses cinq autres contrôles par spread de nodeTestControl, maven.ts n'étend rien. Dans maven.ts, le strip /<profiles\b[\s\S]*?<\/profiles>/g est écrit quatre fois et la boucle lire-le-POM-ou-continuer deux fois. Au-delà, les deux stacks ne partagent que la forme StackDetection : témoins JS contre Java, parsing JSON contre XML, rien à mutualiser.
