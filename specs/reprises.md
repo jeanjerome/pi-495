@@ -182,7 +182,7 @@ Statut : versée
 
 ## R24 — Une seule interface décrit la vue d'un rapport de spécification
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/change/state.ts:315-318 vs 436-439
 - Constat : DeclaringReport et SpecificationReportView sont la même forme ; declarationsOfReport prend l'une, specificationStanding l'autre.

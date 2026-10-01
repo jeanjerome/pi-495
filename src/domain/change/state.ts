@@ -324,11 +324,6 @@ interface AnswerDeclaration {
 	requirement_ids: string[];
 }
 
-interface DeclaringReport {
-	requirements: { requirement_id: string; mandatory: boolean }[];
-	answers: AnswerDeclaration[];
-}
-
 /**
  * Whether a declaration still binds in a given set of requirements: an observable answer is carried
  * by requirements the document holds, one of them mandatory at least, since G2 freezes an obligation
@@ -358,7 +353,10 @@ function declarationHolds(
  * mandatory one, binds nothing, and the answer counts as undeclared again; so does one that declares
  * the answer fixes nothing observable.
  */
-export function declarationsOfReport(priors: DeclaringReport[], report: DeclaringReport): Map<string, string[]> {
+export function declarationsOfReport(
+	priors: SpecificationReportView[],
+	report: SpecificationReportView,
+): Map<string, string[]> {
 	const declared = new Map<string, string[]>();
 	for (const r of [...priors, report]) {
 		for (const a of r.answers) {
