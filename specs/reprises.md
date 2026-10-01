@@ -328,7 +328,7 @@ Statut : versée
 
 ## R41 — La conception de la vérification se lit comme une séquence d'étapes
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/phases/verification-design.ts:297-463
 - Constat : Une fonction de 167 lignes avec quatre fermetures internes (diagnose, takenByOwner, settleUnjudged, needsPreparation) et un diagnostic en deux passes ; adoptInstalls sort au premier échec avec un objet reconstruit (l.265-271).

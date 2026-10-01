@@ -22,7 +22,7 @@ import type { Adoptable } from "../decisions.ts";
 import { installableRecommendations, installInCopy, resolveInCopy, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
-import type { ReferenceSuiteObservation } from "../preparation.ts";
+import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
 import { detectStack } from "../target.ts";
 import type { StackDetection } from "../target.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
@@ -291,6 +291,71 @@ async function adoptInstalls(
 	return adoption;
 }
 
+/**
+ * What the controls the target offers can decide of the requirements: before the suite has run on the
+ * reference when `suite` is null, from what it reported after.
+ */
+function diagnose(
+	detection: StackDetection,
+	requirements: RequirementsDocument,
+	reference: ReferenceSnapshot,
+	prepared: PreparationRecord | null,
+	suite: ReferenceSuiteObservation | null,
+): ControlCapabilityDiagnosis {
+	return diagnoseControlCapability({
+		stack: detection.stack,
+		test_files: referenceTestFiles(reference, detection.preparation_paths),
+		requirements: requirements.requirements,
+		suite,
+		prepared,
+	});
+}
+
+/** The requirements no control can judge that the owner took on, as the requirements stand. */
+function takenByOwner(requirements: ArtifactRef, unit: Unit, diagnosis: ControlCapabilityDiagnosis): string[] {
+	return requirementsTakenByOwner(unit.state.human_decisions, requirements, diagnosis.undiscriminated_requirements);
+}
+
+/** A requirement no control can judge opens a preparation when the target has room for one and the owner did not take it on. */
+function needsPreparation(
+	detection: StackDetection,
+	requirements: ArtifactRef,
+	unit: Unit,
+	diagnosis: ControlCapabilityDiagnosis,
+): boolean {
+	return (
+		diagnosis.undiscriminated_requirements.length > 0 &&
+		detection.preparation_paths.length > 0 &&
+		takenByOwner(requirements, unit, diagnosis).length === 0
+	);
+}
+
+/** Settles the requirements no control can judge: revised when the owner asked for it, otherwise by a preparation. */
+function settleUnjudged(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	reference: ReferenceSnapshot,
+	detection: StackDetection,
+	requirements: ArtifactRef,
+	refs: RequirementRef[],
+	diagnosis: ControlCapabilityDiagnosis,
+	adoptable: Adoptable,
+	complements: readonly AdoptedComplement[],
+): Promise<Unit> {
+	// The owner asked for these requirements to be revised: no preparation is spent on wording they
+	// have already refused to keep.
+	const revision = answerHeld(
+		unit.state.human_decisions,
+		"revise",
+		requirements,
+		diagnosis.undiscriminated_requirements,
+	);
+	return revision
+		? reviseRequirements(ctx, unit, cor, reference, diagnosis.undiscriminated_requirements, revision.free_text)
+		: openPreparation(ctx, unit, cor, detection, requirements, refs, diagnosis, adoptable, complements);
+}
+
 export async function designVerification(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const reference = await ctx.artifacts.reference(unit.state);
 	const requirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements");
@@ -358,39 +423,24 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			...(localRepository !== null ? { local_repository: localRepository } : {}),
 		};
 		const ordered = ctx.verification.orderOf(detection.controls);
-		const diagnose = (suite: ReferenceSuiteObservation | null): ControlCapabilityDiagnosis =>
-			diagnoseControlCapability({
-				stack: detection.stack,
-				test_files: referenceTestFiles(reference, detection.preparation_paths),
-				requirements: requirements.content.requirements,
-				suite,
-				prepared,
-			});
-		const takenByOwner = (d: ControlCapabilityDiagnosis): string[] =>
-			requirementsTakenByOwner(unit.state.human_decisions, requirements.ref, d.undiscriminated_requirements);
-		// The owner asked for these requirements to be revised: no preparation is spent on wording they
-		// have already refused to keep.
-		const settleUnjudged = (d: ControlCapabilityDiagnosis): Promise<Unit> => {
-			const revision = answerHeld(
-				unit.state.human_decisions,
-				"revise",
-				requirements.ref,
-				d.undiscriminated_requirements,
-			);
-			return revision
-				? reviseRequirements(ctx, unit, cor, reference, d.undiscriminated_requirements, revision.free_text)
-				: openPreparation(ctx, unit, cor, detection, requirements.ref, refs, d, adoptable, complements);
-		};
-		const needsPreparation = (d: ControlCapabilityDiagnosis): boolean =>
-			d.undiscriminated_requirements.length > 0 &&
-			detection.preparation_paths.length > 0 &&
-			takenByOwner(d).length === 0;
 		// What no existing control can decide is settled before any of them runs: the controls the
 		// protocol may freeze are green on the reference, so none of them changes verdict when a
 		// behaviour the reference does not have appears. Opening the preparation here spares the
 		// qualification of sensors that would have to be qualified again after it.
-		let diagnosis = diagnose(null);
-		if (needsPreparation(diagnosis)) return await settleUnjudged(diagnosis);
+		let diagnosis = diagnose(detection, requirements.content, reference, prepared, null);
+		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
+			return await settleUnjudged(
+				ctx,
+				unit,
+				cor,
+				reference,
+				detection,
+				requirements.ref,
+				refs,
+				diagnosis,
+				adoptable,
+				complements,
+			);
 		const qualified = await ctx.verification.qualify({
 			change_id: unit.state.change_id,
 			reference,
@@ -406,8 +456,20 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 			complements,
 		});
-		diagnosis = diagnose(qualified.observation);
-		if (needsPreparation(diagnosis)) return await settleUnjudged(diagnosis);
+		diagnosis = diagnose(detection, requirements.content, reference, prepared, qualified.observation);
+		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
+			return await settleUnjudged(
+				ctx,
+				unit,
+				cor,
+				reference,
+				detection,
+				requirements.ref,
+				refs,
+				diagnosis,
+				adoptable,
+				complements,
+			);
 		// An analyser the target does not provide is an insufficiency the protocol records, not a
 		// silence: a coverage measurement nobody produces never reads as covered code (QLT-02).
 		if (detection.capability_missing.length > 0)
@@ -420,7 +482,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			requirements: requirements.content,
 			requirements_revision: requirements.ref.revision,
 			prepared,
-			assigned_to_human: takenByOwner(diagnosis),
+			assigned_to_human: takenByOwner(requirements.ref, unit, diagnosis),
 			recommendations: detection.recommendations,
 			complements,
 			installed,
