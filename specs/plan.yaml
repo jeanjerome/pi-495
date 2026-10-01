@@ -331,6 +331,11 @@ epics:
       Un existant peu testé reçoit des tests de caractérisation et des jeux de référence avant
       transformation, en distinguant comportement observé et comportement voulu, sans consacrer un
       défaut existant comme exigence.
+    position: >
+      Porte aussi la vérification d'une exigence que la spécification dit déjà satisfaite par l'existant
+      (`BUG-2026-09-27T170100`) : aujourd'hui rien ne l'éprouve et une affirmation fausse franchit G0 à G5
+      sans test qui échoue d'abord. Le test de caractérisation qui doit passer sur la référence réfute
+      l'affirmation sans humain ; le propriétaire a écarté une confirmation humaine le 2026-10-01.
 
   - id: e14
     title: "Capacité de vérification par incrément"

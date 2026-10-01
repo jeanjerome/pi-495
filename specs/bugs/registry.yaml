@@ -41,9 +41,12 @@ bugs:
       owner. G5 asks for a human acceptance only under `policy.g5_human_acceptance`, which is off by default.
     risk_level: medium
     follow_ups: >
-      Trace G2 (`preparation`-derived evidence) and G5 for whether a mandatory `satisfied_by_reference`
-      claim the reference does not support is caught anywhere before integration; write a red test for
-      the gap found, then fix through fix-bug with TDD.
+      Owner decision of 2026-10-01: no human confirmation, which would stop the automatic process, and no
+      mechanism now. The defect is carried by epic `e13`: a mandatory requirement the specification says the
+      reference already satisfies is proved by a characterization test that must pass on the reference, and a
+      claim that test refutes follows the path of a requirement asking for something new. Until then the gap
+      stays open and reproduced. The mixed case, where a prepared failing test for one requirement lifts the
+      check on every other, is read in the code and not reproduced.
     status: open
   - bug_id: BUG-2026-09-28T013100
     date: "2026-09-28"
