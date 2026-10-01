@@ -245,7 +245,7 @@ Statut : versée
 
 ## R31 — Le commentaire de Closed dit ce que la fonction émet
 
-Statut : à faire
+Statut : versée
 
 - Où : src/contracts/v1/common.ts:16
 - Constat : Le commentaire dit « Uses anyOf of constants » ; Closed émet { type: "string", enum: [...] }.

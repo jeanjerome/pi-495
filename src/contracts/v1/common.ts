@@ -13,7 +13,7 @@ export function contractId(name: string): string {
 	return `urn:495:contract:${name}:${SCHEMA_VERSION}`;
 }
 
-/** Closed string set. Uses `anyOf` of constants so that the emitted schema is provider neutral. */
+/** Closed string set. Emits a string `enum` so that the emitted schema is provider neutral. */
 export function Closed<const T extends readonly string[]>(values: T, options?: Record<string, unknown>) {
 	return Type.Unsafe<T[number]>({ type: "string", enum: [...values], ...(options ?? {}) });
 }
