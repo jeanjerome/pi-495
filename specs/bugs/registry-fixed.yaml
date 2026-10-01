@@ -1019,3 +1019,50 @@ bugs:
       it changes what the profile grants, so it needs its own test under a linked directory.
     status: fixed
     fixed_in: 9c4e69f
+  - bug_id: BUG-2026-09-27T170000
+    date: "2026-09-27"
+    title: "A rejected decision is never written to the ledger, although the reducer emits the event for it"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      `decisionAnswer` (`src/domain/change/decide.ts`) computes a `decision.rejected` event for every
+      way it refuses an answer (unknown decision, expired, wrong revision, invalid provenance, no
+      option or free text) and calls `this.emit(...)` on it before returning `reject(error)`. `reject`
+      constructs `{ ok: false, error }`, with no `events` field: the event `emit` pushed is discarded
+      with it. `Harness.commit` (`src/application/harness.ts`) throws `d.error` as soon as `d.ok` is
+      false, never inspecting or appending anything the reducer emitted on that path. No
+      `decision.rejected` event has ever reached a ledger, on this branch or before it.
+    what_expected: >
+      A decision the kernel refuses is inscribed as rejected, the way §12 of the question-closure story
+      states a provenance-refused closure is: "the decision stays refused in the journal, like any
+      refused decision." The phrasing presumes an existing, general guarantee that does not hold for
+      any refusal.
+    steps_to_reproduce:
+      - "Open a material question and request an IH-01 decision on it."
+      - "Answer it with a forged provenance (an agent, a model output, or an unauthenticated origin)."
+      - "The command is refused with INVALID_PROVENANCE; the ledger carries no `decision.rejected` event for it, at any revision."
+    root_cause: >
+      `reject()` (`src/domain/change/decide.ts:76`) returns the `Decision` union's `ok: false` arm,
+      which the type defines with an `error` field only, no `events`. `Ctx.emit` pushes onto
+      `this.events` regardless of the outcome, but nothing reads `this.events` on the rejected path:
+      `decide()` never reaches its `return ok(this.events)`, and `Harness.commit` throws before
+      touching `d` beyond `d.ok` and `d.error`. The event is real state kept only in the temporary
+      `Ctx` instance, discarded with it.
+    evidence: >
+      Read during the round-1 review of e01s03 (`specs/verifications/e01s03-relecture.md`, P1):
+      `decide.ts:1288` emits `decision.rejected`; `reject()` at `decide.ts:76` drops it; `harness.ts`'s
+      `commit` (~`src/application/harness.ts:214`) throws on `!d.ok` without ever appending an event
+      from that branch. Not yet reproduced against a running ledger.
+    risk_level: medium
+    follow_ups: >
+      Decide whether `decision.rejected` should carry through `reject()` (a `Decision` shape that keeps
+      `events` on both arms, appended before the caller throws) or whether the event and every place
+      that predicates on it should be removed as dead; fix through fix-bug with TDD, and correct or
+      remove the §12 claim of the question-closure story either way.
+    status: fixed
+    fixed_in: f858c12
+    resolution: >
+      The owner chose to remove the event rather than write it: a refused answer leaves no line in the
+      ledger, as it never did, and the event, its reducer case and its type are gone. The story whose
+      claim the entry cites is no longer in the tree.
