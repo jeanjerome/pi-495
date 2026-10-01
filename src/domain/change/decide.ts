@@ -1264,24 +1264,16 @@ class Ctx {
 
 	decisionAnswer(c: CommandOf<"decision.answer">): Decision {
 		const pending = this.state.pending_decisions.find((d) => d.decision_id === c.response.decision_id);
-		const rejectWith = (reason: string, code: ConstructorParameters<typeof DomainError>[0]): Decision => {
-			return reject(
-				new DomainError(code, reason, {
-					subject: subjectOfChange(this.state),
-					phase: this.state.phase,
-				}),
-			);
-		};
-		if (!pending) return rejectWith(`decision ${c.response.decision_id} is not pending`, "UNKNOWN_REFERENCE");
+		if (!pending) this.fail("UNKNOWN_REFERENCE", `decision ${c.response.decision_id} is not pending`);
 		const origin = c.origin.actor;
 		const provenanceIssue = this.humanProvenanceIssue(c.origin);
-		if (provenanceIssue) return rejectWith(provenanceIssue, "INVALID_PROVENANCE");
+		if (provenanceIssue) this.fail("INVALID_PROVENANCE", provenanceIssue);
 		if (pending.expires_at && c.at > pending.expires_at)
-			return rejectWith(`decision ${pending.decision_id} expired at ${pending.expires_at}`, "DECISION_EXPIRED");
+			this.fail("DECISION_EXPIRED", `decision ${pending.decision_id} expired at ${pending.expires_at}`);
 		if (c.response.subject_revision !== pending.subject.revision)
-			return rejectWith(
-				`decision answers revision ${c.response.subject_revision} but ${pending.subject.revision} was presented`,
+			this.fail(
 				"DECISION_NOT_APPLICABLE",
+				`decision answers revision ${c.response.subject_revision} but ${pending.subject.revision} was presented`,
 			);
 		const currentDigest =
 			pending.subject.kind === "candidate"
@@ -1290,9 +1282,9 @@ class Ctx {
 					? subjectOfChange(this.state).digest
 					: pending.subject.digest;
 		if (pending.subject.kind === "candidate" && currentDigest !== pending.subject.digest)
-			return rejectWith("the candidate changed since the decision was requested", "DECISION_NOT_APPLICABLE");
+			this.fail("DECISION_NOT_APPLICABLE", "the candidate changed since the decision was requested");
 		if (c.response.option_id === null && c.response.free_text === null)
-			return rejectWith("a decision needs an option or a free text answer", "PRECONDITION_FAILED");
+			this.fail("PRECONDITION_FAILED", "a decision needs an option or a free text answer");
 		this.emit({
 			type: "decision.recorded",
 			...this.base(),

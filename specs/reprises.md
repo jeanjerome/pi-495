@@ -200,7 +200,7 @@ Statut : versée
 
 ## R26 — Le réducteur rejette par un seul chemin
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/change/decide.ts:1409-1418
 - Constat : rejectWith construit un DomainError et retourne reject(...) ; toutes les autres méthodes lancent via this.fail, que decide() rattrape vers le même {ok:false}. Deux chemins pour un seul résultat.
