@@ -5,14 +5,15 @@
  *
  * What each phase needs done is asked of the component that owns it — the verification coordinator
  * for the protocol and the evidence, the target registry for what a stack offers, the review query
- * model for what a candidate shows. This module holds the order of the phases, and nothing else.
+ * model for what a candidate shows, `phases/intervene.ts` for one bounded agent session. This module
+ * wires those collaborators, creates a change, conducts it in the order of its phases and blocks it
+ * on the failure of a step, and records what an entry point asks of it: a decision, a verification,
+ * a pause, a resume, a cancellation, a question closed or revoked.
  */
 import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, SubjectRef } from "../contracts/v1/common.ts";
-import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
-import { TOOLS_FOR_ROLE } from "../contracts/v1/reports.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
@@ -25,7 +26,7 @@ import {
 	type ChangeState,
 } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
-import { imposedLayersFor, recordImposedLayers, unobservedEnd } from "../domain/imposed-layers.ts";
+import { unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
@@ -33,7 +34,6 @@ import type { ObjectStorePort } from "../ports/object-store.ts";
 import type {
 	AgentPort,
 	ControlExecutionPort,
-	InterventionMandate,
 	ModelSelection,
 	SandboxSelection,
 	WorkspacePolicy,
@@ -47,30 +47,21 @@ import { decide as decidePhase } from "./phases/decide.ts";
 import { design } from "./phases/design.ts";
 import { implement } from "./phases/implement.ts";
 import { integrate } from "./phases/integrate.ts";
-import type { InterventionOptions, PhaseContext, Unit } from "./phases/phase.ts";
+import { intervene } from "./phases/intervene.ts";
+import type { PhaseContext, Unit } from "./phases/phase.ts";
 import { prepare } from "./phases/prepare.ts";
 import { review } from "./phases/review.ts";
 import { specify } from "./phases/specify.ts";
 import { verify as verifyPhase } from "./phases/verify.ts";
 import { designVerification } from "./phases/verification-design.ts";
-import { buildContext, type FeedbackSources } from "./context.ts";
+import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { buildDecisionRequest, type Adoptable } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
-import {
-	buildSnapshot,
-	readChanges,
-	readContent,
-	FILE_READ_BUDGET_BYTES,
-	type ChangePage,
-	type ContentPage,
-	type PathStatus,
-	type ReviewSnapshot,
-} from "./review.ts";
-import type { Finding } from "../contracts/v1/evidence.ts";
+import { openReview as openReviewOf } from "./review.ts";
 
 export interface HarnessDeps {
 	ledger: LedgerPort;
@@ -132,6 +123,54 @@ const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string)
 	reviewing: review,
 	deciding: decidePhase,
 	integrating: integrate,
+};
+
+/** What an answer does to the change once it is recorded, for an option that acts at once. */
+type AnswerEffect = (
+	response: DecisionResponse,
+	answer: { actor: ActorRef; human_decision_id: string; now(): string },
+) => ChangeCommand | null;
+
+/** The interactions an answer acts on; any other answer is recorded and does nothing more. */
+const ANSWER_EFFECTS: Partial<Record<HumanInteraction, AnswerEffect>> = {
+	"IH-01": (response, { actor, now }) =>
+		response.option_id === "abandon"
+			? { type: "change.cancel", at: now(), actor, reason: "abandoned at clarification" }
+			: null,
+	"IH-10": (response, { human_decision_id, now }) =>
+		response.option_id === "correct"
+			? { type: "gate.evaluate", gate: "G5", at: now(), actor: KERNEL_ACTOR, decision_id: human_decision_id }
+			: null,
+	"IH-11": (response, { now }) =>
+		response.option_id === "export_only" || response.option_id === "cancel"
+			? {
+					type: "change.block",
+					at: now(),
+					actor: KERNEL_ACTOR,
+					reason: "policy_denied",
+					detail: "integration declined by the change owner; the change stays accepted and exportable",
+				}
+			: null,
+	"IH-02": (response, { now }) =>
+		response.option_id === "refuse"
+			? {
+					type: "change.block",
+					at: now(),
+					actor: KERNEL_ACTOR,
+					reason: "policy_denied",
+					detail: `adoption refused by the change owner${response.free_text ? `: ${response.free_text}` : ""}`,
+				}
+			: null,
+	"IH-07": (response, { now }) =>
+		response.option_id === "stop"
+			? {
+					type: "change.block",
+					at: now(),
+					actor: KERNEL_ACTOR,
+					reason: "attempts_exhausted",
+					detail: "budget extension refused",
+				}
+			: null,
 };
 
 export class Harness {
@@ -441,7 +480,24 @@ export class Harness {
 		const phaseContext: PhaseContext = {
 			...this.phase,
 			runIntervention: (unit, cor, role, objective, workspacePath, extra) =>
-				this.runIntervention(options.readModel, unit, cor, role, objective, workspacePath, extra),
+				intervene(
+					{
+						artifacts: this.artifacts,
+						interventions: this.interventions,
+						objects: this.deps.objects,
+						commit: this.phase.commit,
+						now: this.phase.now,
+						id: this.phase.id,
+						language: this.phase.language,
+					},
+					options.readModel,
+					unit,
+					cor,
+					role,
+					objective,
+					workspacePath,
+					extra,
+				),
 		};
 		let unit = this.load(changeId);
 		for (let i = 0; i < max; i++) {
@@ -504,186 +560,6 @@ export class Harness {
 		return { view: this.status(unit.state.change_id), steps, stopped_because: why };
 	}
 
-	// --- interventions ---------------------------------------------------------------------------
-
-	private async runIntervention(
-		readModel: () => ModelSelection,
-		unit: Unit,
-		cor: string,
-		role: InterventionMandate["role"],
-		objective: string,
-		workspacePath: string,
-		extra: InterventionOptions,
-	): Promise<{
-		unit: Unit;
-		output: unknown;
-		output_valid: boolean;
-		result: "completed" | "failed" | "cancelled" | "truncated";
-		intervention_id: string;
-	}> {
-		// Read once: the model judged is the one journaled, declared in the context and handed to the
-		// worker, whatever is selected in Pi while the capability check awaits the model's description.
-		const model = readModel();
-		await this.interventions.requireCapable(role, model);
-		const interventionId = this.id("int");
-		const attemptId = extra.attempt_id ?? (role === "implement" || role === "prepare" ? this.id("att") : null);
-		unit = this.commit(
-			unit,
-			{
-				type: "intervention.start",
-				at: this.now(),
-				actor: KERNEL_ACTOR,
-				intervention_id: interventionId,
-				role,
-				attempt_id: attemptId,
-				model,
-				profile_id: role,
-				profile_qualified: this.interventions.qualifiedFor(role),
-			},
-			cor,
-		);
-		if (unit.state.status === "blocked")
-			return { unit, output: null, output_valid: false, result: "failed", intervention_id: interventionId };
-		const adopted: { kind: string; artifact_id: string; revision: number; digest: string; text: string }[] = [];
-		for (const kind of extra.adopted ?? []) {
-			const a = await this.artifacts.latest<unknown>(unit.state, kind);
-			if (a)
-				adopted.push({
-					kind,
-					artifact_id: a.ref.artifact_id,
-					revision: a.ref.revision,
-					digest: a.ref.content_digest,
-					text: typeof a.content === "string" ? a.content : JSON.stringify(a.content, null, 2),
-				});
-		}
-		const protocol = await this.artifacts.latest<Protocol>(unit.state, "protocol");
-		const ctx = buildContext({
-			role,
-			objective,
-			language: this.language(unit.state),
-			adopted,
-			untrusted: [],
-			feedback: extra.feedback ?? null,
-			tools: TOOLS_FOR_ROLE[role],
-			budget_bytes: 60_000,
-			// The provider is read from the same selection the supervisor hands the worker; what it
-			// imposes is declared whether or not this intervention writes (CTX-02).
-			imposed_layers: imposedLayersFor(model.provider_id),
-			// A preparation opens before any protocol is frozen: the controls it is judged by are the ones
-			// its phase detected on the target, and the latest protocol is read only when none is handed.
-			controls: extra.controls ?? protocol?.content.controls ?? [],
-			boundaries: (protocol?.content.controls ?? []).flatMap((c) => c.structure_rules.map((rule) => rule.statement)),
-		});
-		// The manifest addresses the prompt and each excerpt by digest; the bytes go to the store, or
-		// those digests resolve to nothing and the dossier cannot say what the model read.
-		await this.deps.objects.putText(ctx.record, "application/json");
-		const contextRef = await this.artifacts.store(
-			"context",
-			unit.state.change_id,
-			this.id("ctx"),
-			ctx.manifest,
-			KERNEL_ACTOR.actor_id,
-		);
-		unit = this.commit(
-			unit,
-			{ type: "artifact.propose", at: this.now(), actor: KERNEL_ACTOR, kind: "context", ref: contextRef },
-			cor,
-		);
-		// Each tool call is paid for as it happens: what the budget refuses ends the session there.
-		const report = await this.interventions.run(
-			{
-				intervention_id: interventionId,
-				change_id: unit.state.change_id,
-				role,
-				objective,
-				workspace_path: workspacePath,
-				prompt: ctx.prompt,
-				system_prompt: ctx.system_prompt,
-				context: ctx.manifest,
-				model,
-			},
-			() => {
-				const consumed = this.tryCommit(
-					unit,
-					{
-						type: "budget.consume",
-						at: this.now(),
-						actor: KERNEL_ACTOR,
-						intervention_id: interventionId,
-						counters: { tool_calls: 1, duration_ms: 0, tokens_known: 0, delegations: 0 },
-					},
-					cor,
-				);
-				unit = consumed.unit;
-				return consumed.error;
-			},
-		);
-		const outputRef = await this.artifacts.store(
-			"output",
-			unit.state.change_id,
-			this.id("out"),
-			{ intervention_id: interventionId, role, terminal: report.terminal, events: report.events },
-			interventionId,
-		);
-		unit = this.commit(
-			unit,
-			{
-				type: "artifact.propose",
-				at: this.now(),
-				actor: {
-					actor_id: interventionId,
-					actor_type: "agent",
-					role: role === "review" ? "reviewer_agent" : "producer_agent",
-					origin: "model_output",
-					authentication_level: "none",
-				},
-				kind: "output",
-				ref: outputRef,
-			},
-			cor,
-		);
-		unit = this.commit(
-			unit,
-			{
-				type: "intervention.finish",
-				at: this.now(),
-				actor: KERNEL_ACTOR,
-				intervention_id: interventionId,
-				result: report.result,
-				counters: report.counters,
-				detail: report.detail,
-				cost: report.cost,
-				imposed_layers: report.imposed_layers_observed.map((observed) =>
-					recordImposedLayers(ctx.manifest.imposed_layers, observed),
-				),
-			},
-			cor,
-		);
-		// The tool-call bound is what caps spending on a provider billed per token, so reaching it waits
-		// for the owner instead of resuming on its own the way the duration bound does (D-19). Whatever
-		// the role, the change stops here; a resume lifts it.
-		if (report.budget_refusal !== null)
-			unit = this.commit(
-				unit,
-				{
-					type: "change.block",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "budget_exhausted",
-					detail: `${role} intervention: ${report.budget_refusal}; the change waits for its owner, and a raised bound takes effect in a new session`,
-					retryable: true,
-				},
-				cor,
-			);
-		return {
-			unit,
-			output: report.output,
-			output_valid: report.output_valid,
-			result: report.result,
-			intervention_id: interventionId,
-		};
-	}
-
 	// --- phase steps -----------------------------------------------------------------------------
 
 	/** The indeterminate observations recorded on the frozen candidate, oldest first. */
@@ -732,52 +608,19 @@ export class Harness {
 	}
 
 	/** Opens a read-only review of the frozen candidate (or of the reference alone). Identical data in every Pi entry (RM-066). */
-	async openReview(
-		changeId: string,
-		candidateId?: string,
-	): Promise<{
-		snapshot: ReviewSnapshot;
-		changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
-		content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
-	}> {
+	async openReview(changeId: string, candidateId?: string): ReturnType<typeof openReviewOf> {
 		const { state } = this.load(changeId);
-		const reference = await this.artifacts.reference(state);
-		const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
-		const manifest = wanted
-			? await this.artifacts.read<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null)
-			: null;
-		const workspacePath = manifest ? this.deps.workspace.workspacePath(manifest.workspace_id) : null;
-		const findings: (Finding & { evidence_id: string })[] = [];
-		for (const e of state.evidence.filter(
-			(x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest,
-		)) {
-			const ev = this.deps.ledger.getEvidence(e.evidence_id);
-			if (ev) for (const f of ev.findings) findings.push({ ...f, evidence_id: ev.evidence_id });
-		}
-		const newer =
-			manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id
-				? state.candidate.candidate_id
-				: null;
-		const snapshot = buildSnapshot({
-			change_id: changeId,
-			reference,
-			manifest,
-			findings,
-			newer_candidate: newer,
-			now: this.now(),
-		});
-		const sources = {
-			referencePath: reference.project_path,
-			workspacePath,
-			reference,
-			manifest,
-			maxBytes: FILE_READ_BUDGET_BYTES,
-		};
-		return {
-			snapshot,
-			changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath),
-			content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }),
-		};
+		return openReviewOf(
+			{
+				artifacts: this.artifacts,
+				workspace: this.deps.workspace,
+				getEvidence: (evidenceId: string) => this.deps.ledger.getEvidence(evidenceId),
+				now: () => this.now(),
+			},
+			state,
+			changeId,
+			candidateId,
+		);
 	}
 
 	pendingDecisions(changeId: string): DecisionRequest[] {
@@ -820,58 +663,12 @@ export class Harness {
 			revoked: false,
 		};
 		this.deps.ledger.putHumanDecision(decision, changeId);
-		if (request.interaction === "IH-01" && response.option_id === "abandon")
-			unit = this.commit(
-				unit,
-				{ type: "change.cancel", at: this.now(), actor, reason: "abandoned at clarification" },
-				cor,
-			);
-		if (request.interaction === "IH-10" && response.option_id === "correct") {
-			unit = this.commit(
-				unit,
-				{ type: "gate.evaluate", gate: "G5", at: this.now(), actor: KERNEL_ACTOR, decision_id: humanDecisionId },
-				cor,
-			);
-		}
-		if (request.interaction === "IH-11" && (response.option_id === "export_only" || response.option_id === "cancel")) {
-			unit = this.commit(
-				unit,
-				{
-					type: "change.block",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "policy_denied",
-					detail: "integration declined by the change owner; the change stays accepted and exportable",
-				},
-				cor,
-			);
-		}
-		if (request.interaction === "IH-02" && response.option_id === "refuse") {
-			unit = this.commit(
-				unit,
-				{
-					type: "change.block",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "policy_denied",
-					detail: `adoption refused by the change owner${response.free_text ? `: ${response.free_text}` : ""}`,
-				},
-				cor,
-			);
-		}
-		if (request.interaction === "IH-07" && response.option_id === "stop") {
-			unit = this.commit(
-				unit,
-				{
-					type: "change.block",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "attempts_exhausted",
-					detail: "budget extension refused",
-				},
-				cor,
-			);
-		}
+		const effect = ANSWER_EFFECTS[request.interaction]?.(response, {
+			actor,
+			human_decision_id: humanDecisionId,
+			now: () => this.now(),
+		});
+		if (effect) unit = this.commit(unit, effect, cor);
 		return { view: this.status(changeId), decision, error: null };
 	}
 

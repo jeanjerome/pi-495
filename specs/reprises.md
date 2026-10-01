@@ -291,7 +291,7 @@ Statut : versée
 
 ## R37 — Le harnais ne garde que l'ordre des phases
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/harness.ts (1 036 lignes ; 51 des 300 derniers commits)
 - Constat : 14 dépendances injectées, 3 collaborateurs construits, une façade PhaseContext à 17 membres, 17 méthodes publiques et 3 champs publics, environ 7 préoccupations : câblage, primitives de commit, start (106 l.), modèles de lecture, boucle de conduite et politique erreur→blocage, runIntervention (177 l. : contexte, trois magasins, cinq commits, budget), answerDecision (86 l. en cinq blocs quasi identiques), opérations explicites. L'en-tête l.8 dit « This module holds the order of the phases, and nothing else » : faux.

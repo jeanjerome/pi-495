@@ -7,8 +7,11 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { digestValue } from "../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
-import type { Finding } from "../contracts/v1/evidence.ts";
+import type { Evidence, Finding } from "../contracts/v1/evidence.ts";
+import type { ChangeState } from "../domain/change/state.ts";
 import { messageOf } from "../domain/errors.ts";
+import type { WorkspacePort } from "../ports/execution.ts";
+import type { ArtifactRepository } from "./artifacts.ts";
 import { diffLines, hunks, intraline, similarity, splitLines, type Hunk } from "./diff.ts";
 
 export type PathStatus = "intact" | "added" | "modified" | "deleted" | "renamed" | "renamed?" | "special" | "unknown";
@@ -390,6 +393,62 @@ export async function readChanges(
 				}
 		}
 	return { path, status, kind, hunks: h, intraline: intra, metadata, notes };
+}
+
+/** What opening a review reads: the change's artifacts, the candidate's workspace and its evidence. */
+export interface ReviewDeps {
+	readonly artifacts: ArtifactRepository;
+	readonly workspace: WorkspacePort;
+	getEvidence(evidenceId: string): Evidence | null;
+	now(): string;
+}
+
+/** Opens a read-only review of the frozen candidate (or of the reference alone). Identical data in every Pi entry (RM-066). */
+export async function openReview(
+	deps: ReviewDeps,
+	state: ChangeState,
+	changeId: string,
+	candidateId?: string,
+): Promise<{
+	snapshot: ReviewSnapshot;
+	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
+	content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
+}> {
+	const reference = await deps.artifacts.reference(state);
+	const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
+	const manifest = wanted
+		? await deps.artifacts.read<CandidateManifest>({ artifact_id: wanted, revision: 1 }).catch(() => null)
+		: null;
+	const workspacePath = manifest ? deps.workspace.workspacePath(manifest.workspace_id) : null;
+	const findings: (Finding & { evidence_id: string })[] = [];
+	for (const e of state.evidence.filter((x) => x.valid && manifest && x.subject_digest === manifest.manifest_digest)) {
+		const ev = deps.getEvidence(e.evidence_id);
+		if (ev) for (const f of ev.findings) findings.push({ ...f, evidence_id: ev.evidence_id });
+	}
+	const newer =
+		manifest && state.candidate && state.candidate.candidate_id !== manifest.candidate_id
+			? state.candidate.candidate_id
+			: null;
+	const snapshot = buildSnapshot({
+		change_id: changeId,
+		reference,
+		manifest,
+		findings,
+		newer_candidate: newer,
+		now: deps.now(),
+	});
+	const sources = {
+		referencePath: reference.project_path,
+		workspacePath,
+		reference,
+		manifest,
+		maxBytes: FILE_READ_BUDGET_BYTES,
+	};
+	return {
+		snapshot,
+		changes: (path, status, oldPath) => readChanges(sources, path, status, oldPath),
+		content: (path, side, start, limit) => readContent(sources, path, side, { start_line: start, limit }),
+	};
 }
 
 /** Strips terminal control sequences for display only; stored bytes are never altered (RM-046). */
