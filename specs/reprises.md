@@ -155,7 +155,7 @@ Statut : versée
 
 ## R21 — L'ordre des phases et des portes vient du contrat
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/change/decide.ts:1733-1746 · src/domain/invalidation.ts:21
 - Constat : PHASE_ORDER est la même liste de 12 phases, dans le même ordre, que PHASES (contracts/v1/common.ts:150) ; ORDER est la même liste de 7 gates que GATES (common.ts:191). Une phase ajoutée d'un côté dérive de l'autre.

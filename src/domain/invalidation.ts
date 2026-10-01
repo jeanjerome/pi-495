@@ -1,4 +1,4 @@
-import type { GateId, Phase } from "../contracts/v1/common.ts";
+import { GATES, type GateId, type Phase } from "../contracts/v1/common.ts";
 import type { ArtifactKind, ChangeState } from "./change/state.ts";
 
 export type InvalidationCause =
@@ -18,10 +18,8 @@ export interface InvalidationPlan {
 	rollback_phase: Phase | null;
 }
 
-const ORDER: GateId[] = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
-
 function from(gate: GateId): GateId[] {
-	return ORDER.slice(ORDER.indexOf(gate));
+	return GATES.slice(GATES.indexOf(gate));
 }
 
 /**
@@ -134,7 +132,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						rollback_phase: "integrating",
 					};
 		case "evidence_lost": {
-			const consuming = ORDER.filter((g) => state.gates[g]?.evidence_retained.includes(cause.evidence_id));
+			const consuming = GATES.filter((g) => state.gates[g]?.evidence_retained.includes(cause.evidence_id));
 			const first = consuming[0];
 			return {
 				reason: `evidence ${cause.evidence_id} lost or corrupted (RM-070)`,

@@ -6,7 +6,7 @@
  * The reducer reads no clock, no file system and no model. Time, identifiers, digests and
  * observations are provided as facts inside the command (AT-01, AT-02, ADR-003).
  */
-import type { ActorRef, Phase, StopReason } from "../../contracts/v1/common.ts";
+import { type ActorRef, type Phase, PHASES, type StopReason } from "../../contracts/v1/common.ts";
 import type { HumanOrigin } from "../../contracts/v1/decision.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
@@ -1382,7 +1382,7 @@ class Ctx {
 		if (!plan.rollback_phase) this.fail("PRECONDITION_FAILED", `artifact ${c.kind} cannot be revised`);
 		if (!this.state.adopted[c.kind])
 			this.fail("PRECONDITION_FAILED", `artifact ${c.kind} has not been adopted; propose it instead`);
-		if (PHASE_ORDER.indexOf(this.state.phase) < PHASE_ORDER.indexOf(plan.rollback_phase))
+		if (PHASES.indexOf(this.state.phase) < PHASES.indexOf(plan.rollback_phase))
 			this.fail(
 				"PRECONDITION_FAILED",
 				`phase ${this.state.phase} precedes ${plan.rollback_phase}; nothing to roll back`,
@@ -1585,18 +1585,3 @@ class Ctx {
 		return ok(this.events);
 	}
 }
-
-const PHASE_ORDER: Phase[] = [
-	"intake",
-	"clarifying",
-	"specifying",
-	"verification_design",
-	"preparing",
-	"designing",
-	"implementing",
-	"verifying",
-	"reviewing",
-	"deciding",
-	"integrating",
-	"closed",
-];
