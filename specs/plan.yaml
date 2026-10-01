@@ -206,7 +206,7 @@ epics:
     stories:
       - { id: e30s01, status: "versée", title: "Un script lint qui demande un shell est refusé et nommé, et un lint qui n'est pas une commande ne fait pas tomber la détection" }
       - { id: e30s02, status: "versée", title: "Une ligne mal formée du worker est ignorée sans faire tomber le processus de Pi" }
-      - { id: e30s03, status: "à faire", title: "Une preuve altérée qu'une décision lit arrête le changement au lieu d'être lue comme absente" }
+      - { id: e30s03, status: "versée", title: "Une preuve altérée qu'une décision lit arrête le changement au lieu d'être lue comme absente" }
 
   - id: e06
     title: "Inventaire des cas particuliers d'un arbre"
