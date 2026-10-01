@@ -66,7 +66,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 | Run | N/A — Pi loads the built extension; there is no standalone entry point |
 | Test | `npm test` |
 | Build | `npm run build` |
-| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format` |
+| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format` |
 | Preflight | `npm run check` |
 | CI | N/A — no CI job configured; before every commit, run the checks the changed files call for (`CONVENTIONS.md` § Always Green) |
 
@@ -76,7 +76,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Lint
 
-`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format`
+`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format`
 
 ## Build
 
@@ -95,7 +95,6 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Give every new component a `CMP-*` id and add it to `specs/amont/conception-technique.md` §4.1 in the same change.
 - Rebuild `dist/` from `src/` before every check. Never hand-edit `dist/`.
 - Attribute every redistributed dependency in `NOTICE`. Keep peer dependencies on the permissive licence allowlist.
-- Cover every `[P0]` requirement id from `specs/amont/expression-besoins.md` in `specs/amont/TRACEABILITY.md`.
 - Write commit messages in English, as `<type>: <description>`, one line, describing the resulting behavior — whatever the language of the session or of the file changed. Carry no ticket, chantier, lot, or phase reference. Carry no AI attribution.
 
 ## Never

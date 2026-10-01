@@ -13,24 +13,16 @@ La façon dont un changement est fait vit ailleurs, dans `cycle/`.
 | `security/` | le modèle de menace d'un epic | la main |
 | `communication/` | le chantier parallèle qui fait essayer pi-495 : plan, règles, mesures | la main, aux moments clés |
 | `spikes/` | les explorations qui ont précédé une décision | la main |
-| `amont/` | le texte normatif : exigences, spécification, conceptions, matrice de traçabilité | la main, par révision explicite |
+| `amont/` | le texte normatif : exigences, spécification, conceptions | la main, par révision explicite |
 | `archive/` | des rapports de mesure antérieurs au 2026-09-21 (qualification, modèle local, vitesses) | plus rien |
 
 ## `amont/` — le texte normatif
 
 `amont/README.md` en est l'index. Le texte normatif des exigences est là, et nulle part ailleurs :
-`plan.yaml` le désigne sans le restituer. Deux contrôles de Preflight le lisent, et ne peuvent
-refuser une régression que pour cette raison :
-
-| Contrôle | Lit | Refuse |
-|---|---|---|
-| `scripts/check-architecture.ts` | `amont/conception-technique.md` §4.1 | un `CMP-*` réclamé dans `src/` sans ligne au catalogue |
-| `scripts/check-traceability.ts` | `amont/expression-besoins.md`, `amont/TRACEABILITY.md` | une exigence `[P0]` absente de la matrice |
-
-Une matrice régénérée depuis le code ne pourrait jamais être en désaccord avec lui : ces deux
-contrôles ne gardent leur pouvoir de refus qu'en lisant des documents tenus à la main. Un composant
-nouveau reçoit donc sa ligne au catalogue, et une exigence devenue couverte sa ligne à la matrice,
-dans le changement qui les apporte.
+`plan.yaml` le désigne sans le restituer. Un contrôle de Preflight le lit :
+`scripts/check-architecture.ts` lit le catalogue de `amont/conception-technique.md` §4.1 et refuse un
+`CMP-*` réclamé dans `src/` sans ligne au catalogue. Un composant nouveau reçoit donc sa ligne au
+catalogue, dans le changement qui l'apporte.
 
 Les décisions `D-18`, `D-19` et `D-20` sont chacune portées par deux fichiers, défaut conservé du
 journal d'origine et signalé dans les fichiers concernés.

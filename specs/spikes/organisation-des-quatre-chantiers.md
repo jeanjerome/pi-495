@@ -58,7 +58,7 @@ résout depuis le `models.json` de Pi, sans repli (`RM-022`).
 | --- | --- |
 | Le fournisseur écrit un bloc système **au-dessus** des instructions de confiance, et `buildContext` ne le connaît pas : le manifeste `ctx_…` déclare « ce qui a été mis devant le modèle » et deviendrait faux | `CTX-02`, dont la clause « les contraintes imposées par un fournisseur doivent être reconnues comme extérieures à cette hiérarchie locale » n'a jamais été éprouvée faute de fournisseur qui en impose |
 | L'identité annoncée sur le fil est `claude-cli/2.1.251` + `x-app: cli` | fait matériel à consigner au dossier ; l'arbitrage sur les conditions d'utilisation revient au propriétaire |
-| « Le même cas de contrat passe avec deux fournisseurs qualifiés » n'est tenu que par des preuves unitaires | recette de `AGT-02` ; `specs/amont/TRACEABILITY.md:26` |
+| « Le même cas de contrat passe avec deux fournisseurs qualifiés » n'est tenu que par des preuves unitaires | recette de `AGT-02` ; la matrice de traçabilité de l'époque (retirée par `D-78`) |
 | « Refuser un profil incompatible avant une intervention **facturée** » n'a aucun effet tant que le modèle est gratuit | `AGT-01` |
 | `intervention_ms` 20 min et `increment_ms` 120 min sont calibrés sur 2,5 appels d'outil par minute ; avec un modèle frontière la borne n'est plus le temps mais la fenêtre d'abonnement | `src/domain/policy.ts:47` |
 | Les extraits et les invites quittent la machine ; la campagne `NFR-06` mesure l'absence de télémétrie **produit**, pas le canal modèle | `SEC-05`, `NFR-06` |

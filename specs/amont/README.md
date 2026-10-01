@@ -10,19 +10,15 @@ explicite. En cas de contradiction avec un autre document, **c'est ce répertoir
 | [conception-verification.md](conception-verification.md) | Comment le produit se vérifie : suites, contrôles, critères de couverture, revues obligatoires. |
 | [conception-technique.md](conception-technique.md) | Architecture, composants, adaptateurs, ordre d'implémentation. |
 | [references-externes.md](references-externes.md) | Registre des références étudiées, avec leur statut et ce que 495 en retient. |
-| [TRACEABILITY.md](TRACEABILITY.md) | Matrice exigence → composants → preuves, y compris les exigences non couvertes. |
 
-Deux contrôles de Preflight lisent ces documents, et ne peuvent refuser une régression que parce
-qu'ils sont tenus à la main : `scripts/check-architecture.ts` lit le catalogue de
-`conception-technique.md` §4.1, `scripts/check-traceability.ts` lit `expression-besoins.md` et
-`TRACEABILITY.md`.
+Un contrôle de Preflight lit ces documents, et ne peut refuser une régression que parce qu'ils sont
+tenus à la main : `scripts/check-architecture.ts` lit le catalogue de `conception-technique.md` §4.1.
 
 ## Où écrire quoi
 
 | Nature de l'information | Destination |
 | --- | --- |
 | Une exigence nouvelle ou révisée | ce répertoire, par révision explicite |
-| Une exigence devenue couverte, ou révélée non couverte | `TRACEABILITY.md` |
 | Un composant nouveau | une ligne au catalogue de `conception-technique.md` §4.1, dans le même changement |
 | Un arbitrage d'implémentation | `specs/adr/` |
 | Un travail à engager | `specs/plan.yaml` |

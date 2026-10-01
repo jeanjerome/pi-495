@@ -1,6 +1,6 @@
 # D-20: La matrice de traçabilité porte une ligne par exigence P0
 
-**Status:** Acceptée
+**Status:** Acceptée ; remplacée par `D-78`
 **Note:** l'identifiant D-20 est porté par deux décisions distinctes dans le journal d'origine ; l'autre est « Le build 495 fait partie de l'identité d'environnement ». Le défaut est conservé tel quel, non résolu.
 
 **Décision.** Toute exigence `[P0]`, aux deux niveaux de titre de l'expression de besoins — `####`

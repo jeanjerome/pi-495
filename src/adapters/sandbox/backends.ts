@@ -127,7 +127,7 @@ export class SeatbeltSandbox implements SandboxPort {
 /**
  * Linux bubblewrap backend. Written, never qualified: Linux is not a platform this package claims,
  * and `qualify` says so whatever the machine offers. Selecting it therefore refuses every confined
- * role with `capability_missing` (ADR-013, NFR-05, `specs/amont/TRACEABILITY.md`).
+ * role with `capability_missing` (ADR-013, NFR-05).
  */
 export class BubblewrapSandbox implements SandboxPort {
 	readonly backend = "bubblewrap";
