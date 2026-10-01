@@ -110,32 +110,67 @@ export function expectedInLcovReport(introduced: IntroducedLines): string[] {
 		.sort();
 }
 
-const SILENCING_COMMENT = /\b(?:v8|istanbul|c8)\s+ignore\b|\bnode:coverage\s+(?:disable|ignore)\b/;
-const RULE_SILENCED = "coverage:silence-comment-introduced";
+/** A comment that removes the lines under it from a report, and the finding rendered when the change wrote one. */
+export interface SilencingRule {
+	/** Matches the comment; its first capture group, when it has one, is the text quoted in the finding. */
+	pattern: RegExp;
+	rule_id: string;
+	/** What the comment hides, completing `removes the lines under it from …`. */
+	hides: string;
+	/**
+	 * Matches a line that sits inside a block comment, where the marker is on an earlier line. Without it
+	 * the rule only reads a line that carries its own marker.
+	 */
+	blockLine?: RegExp;
+}
+
+const COVERAGE_SILENCING: SilencingRule = {
+	pattern: /\b(?:v8|istanbul|c8)\s+ignore\b|\bnode:coverage\s+(?:disable|ignore)\b/,
+	rule_id: "coverage:silence-comment-introduced",
+	hides: "the coverage report",
+};
 
 /**
- * The comments of `wanted` files that remove the lines under them from a coverage report. One the change
- * wrote blocks, since it would hide the code the change did not test; one already there is tolerated.
+ * The lines that follow the opening line of a block comment, up to and including its closing line. The
+ * extent is read from the text alone, so a block opener inside a string opens one too: over-reading hides
+ * nothing, while a block read as code would let a directive through.
  */
-function silencingComments(
+function linesInsideBlockComments(source: string): Set<number> {
+	const inside = new Set<number>();
+	for (const block of source.matchAll(/\/\*[\s\S]*?(?:\*\/|$)/g)) {
+		const first = source.slice(0, block.index).split("\n").length;
+		const following = block[0].split("\n").length - 1;
+		for (let line = first + 1; line <= first + following; line++) inside.add(line);
+	}
+	return inside;
+}
+
+/**
+ * The comments of `wanted` files that remove the lines under them from a report. One the change wrote
+ * blocks, since it would hide the code the change did not test; one already there is tolerated.
+ */
+export function silencingComments(
 	wanted: readonly string[],
 	introduced: IntroducedLines,
 	sources: ReadonlyMap<string, string>,
+	rule: SilencingRule = COVERAGE_SILENCING,
 ): { findings: ParsedFinding[]; earlier: string[] } {
 	const findings: ParsedFinding[] = [];
 	const earlier: string[] = [];
 	for (const path of wanted) {
 		const introducedHere = new Set(introduced[path] ?? []);
-		(sources.get(path) ?? "").split(/\r?\n/).forEach((text, index) => {
-			const comment = SILENCING_COMMENT.exec(text);
+		const source = sources.get(path) ?? "";
+		const inBlock = rule.blockLine ? linesInsideBlockComments(source) : new Set<number>();
+		source.split(/\r?\n/).forEach((text, index) => {
+			const comment = rule.pattern.exec(text) ?? (inBlock.has(index + 1) ? rule.blockLine?.exec(text) : null);
 			if (!comment) return;
 			if (!introducedHere.has(index + 1)) earlier.push(`${path}:${index + 1}`);
 			else
 				findings.push({
-					rule_id: RULE_SILENCED,
+					rule_id: rule.rule_id,
 					category: "quality",
 					severity: "blocker",
-					message: `${path}:${index + 1} introduced comment "${comment[0]}" removes the lines under it from the coverage report`,
+					message: `${path}:${index + 1} introduced comment "${comment[1] ?? comment[0]}" removes the lines under it from ${rule.hides}`,
 					symbol: null,
 				});
 		});

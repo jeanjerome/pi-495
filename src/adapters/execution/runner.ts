@@ -233,7 +233,9 @@ export class GenericControlRunner implements ControlExecutionPort {
 					case "stryker-json": {
 						// Stryker ran once unmutated and then on the introduced line ranges only. What is read back
 						// is the report of its JSON reporter at the path the target declares, bounded in size: the
-						// report is an output of the project judged.
+						// report is an output of the project judged. The introduced sources are read too: a comment
+						// that silences Stryker leaves a complete report whose mutants are Ignored, which only the
+						// source shows.
 						const docs = await readBoundedReport(invocation.workspace_path, control.report_path);
 						for (const d of docs)
 							if (d.oversized_bytes === undefined)
@@ -248,6 +250,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 							scope!,
 							`${stdoutText}\n${stderrText}`,
 							"stryker-json",
+							await introducedSources(invocation.workspace_path, scope!.paths),
 						);
 						break;
 					}

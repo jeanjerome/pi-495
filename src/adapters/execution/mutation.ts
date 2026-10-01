@@ -29,7 +29,13 @@ import { basename, resolve } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { hasControlCharacter } from "../../application/coverage.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
-import { SCRIPT_DECLARATION_ONLY, SCRIPT_SOURCE, SCRIPT_TEST_SOURCE } from "./lcov.ts";
+import {
+	SCRIPT_DECLARATION_ONLY,
+	SCRIPT_SOURCE,
+	SCRIPT_TEST_SOURCE,
+	silencingComments,
+	type SilencingRule,
+} from "./lcov.ts";
 import {
 	buildErrors,
 	decodeXml,
@@ -44,6 +50,19 @@ import { readDeclarations } from "./structure.ts";
 
 export const MUTATION_RULE_SURVIVED = "mutation:introduced-line-mutant-survived";
 export const MUTATION_RULE_UNCOVERED = "mutation:introduced-line-mutant-not-exercised";
+
+/**
+ * Stryker drops the mutants of the lines a `Stryker disable` comment covers and reports them Ignored,
+ * which the control counts and never opposes: a candidate that wrote one would pass on a line no test
+ * protects. The directive may stand alone on a line of a block comment. The word `restore`, or `disabled`
+ * in a string, is not the directive.
+ */
+const STRYKER_SILENCING: SilencingRule = {
+	pattern: /(?:\/\/|\/\*)\s*(Stryker\s+disable\b)/,
+	blockLine: /^\s*(Stryker\s+disable\b)/,
+	rule_id: "mutation:silence-comment-introduced",
+	hides: "the mutation report",
+};
 
 const MAX_MUTATION_FINDINGS = 200;
 const MAX_NAMED_PATHS = 10;
@@ -440,6 +459,7 @@ export function analyzeMutation(
 	scope: MutationScope,
 	output = "",
 	parser: MutationParser = "pitest-xml",
+	sources: ReadonlyMap<string, string> = new Map(),
 ): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) {
@@ -563,7 +583,16 @@ export function analyzeMutation(
 			undecided.push(`${mutant.path}:${mutant.line} ${mutant.status} (${mutant.mutator})`);
 	}
 
+	const silenced =
+		parser === "stryker-json"
+			? silencingComments(scope.paths, introduced, sources, STRYKER_SILENCING)
+			: { findings: [], earlier: [] };
+
 	const notes = [...summary.notes, ...scope.notes];
+	if (silenced.earlier.length > 0)
+		notes.push(
+			`comments that silence Stryker were already there before this change and are tolerated: ${silenced.earlier.slice(0, MAX_NAMED_PATHS).join(", ")}`,
+		);
 	if (obs.exit_code !== 0)
 		notes.push(
 			`the mutation run exited with ${obs.exit_code} after writing a complete report: a threshold the target sets over everything it mutated is a ratio, and a ratio is not what is opposed to this candidate (QLT-04)`,
@@ -604,9 +633,11 @@ export function analyzeMutation(
 		undecided_mutants: undecidedCount,
 		inherited_survivors: inherited,
 		out_of_scope_mutants: summary.out_of_scope,
+		silencing_comments: silenced.findings.length,
 		statuses,
 	};
-	if (survived > 0) return { verdict: "FAIL", facts: allFacts, notes, failures: [], findings };
+	if (survived + silenced.findings.length > 0)
+		return { verdict: "FAIL", facts: allFacts, notes, failures: [], findings: [...findings, ...silenced.findings] };
 	if (undecidedCount > 0) return { verdict: "INDETERMINATE", facts: allFacts, notes, failures: [], findings };
 	return { verdict: "PASS", facts: allFacts, notes, failures: [], findings: [] };
 }

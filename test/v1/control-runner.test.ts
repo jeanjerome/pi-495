@@ -960,6 +960,30 @@ describe("the mutation control reading Stryker's report through the runner", () 
 	});
 });
 
+describe("the mutation control reading the introduced source through the runner", () => {
+	it("given a mutation control and a candidate whose introduced source carries a Stryker disable comment, and a stand-in for Stryker that writes a complete report with no survivor, then the evidence is FAIL with the finding at the comment", async () => {
+		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const ws = mkdtempSync(join(root, "ws-"));
+		new FakeStryker(STRYKER_KILLED_REPORT, 0).install(ws);
+		mkdirSync(join(ws, "src"));
+		writeFileSync(
+			join(ws, "src/calc.js"),
+			"export function add(a, b) {\n\t// Stryker disable next-line all\n\treturn a + b;\n}\n",
+		);
+		const { evidence } = await runner.runControl({
+			...base(),
+			control: strykerControl(),
+			workspace_path: ws,
+			introduced_lines: { "src/calc.js": [1, 2, 3, 4] },
+		});
+		assert.equal(evidence.verdict, "FAIL", JSON.stringify(evidence.limits.notes));
+		assert.deepEqual(
+			evidence.findings.map((finding) => finding.message.split(" ")[0]),
+			["src/calc.js:2"],
+		);
+	});
+});
+
 describe("the mutation control reading a Stryker report that cannot be trusted through the runner", () => {
 	const runWith = async (stryker: FakeStryker) => {
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));

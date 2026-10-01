@@ -214,6 +214,165 @@ describe("a Stryker report that cannot be checked complete is never a success (V
 	});
 });
 
+describe("a comment that silences Stryker, written by the candidate, blocks the control (VER-04)", () => {
+	it("given introduced files carrying Stryker disable, Stryker disable next-line and a block comment Stryker disable, then the evidence is FAIL with a blocking finding at each comment even when the report is complete and without survivor, a comment already present before the change is named as tolerated, and a test file, a declaration file, a README and the words Stryker disabled in a string are not read", async () => {
+		const silencing = [
+			"export function add(a, b) {",
+			"\t// Stryker disable next-line all",
+			"\treturn a + b;",
+			"}",
+			"// Stryker disable",
+			"export const zero = 0;",
+			"/* Stryker disable */",
+			"export const label = 'Stryker disabled';",
+			"// stryker restore",
+		].join("\n");
+		const introduced = {
+			"src/new.js": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+			"src/old.js": [4, 5],
+			"test/new.test.js": [1],
+			"src/new.d.ts": [1],
+			"README.md": [1],
+		};
+		const sources = new Map([
+			["src/new.js", silencing],
+			[
+				"src/old.js",
+				"export const a = 1;\n// Stryker disable next-line\nexport const b = a + 1;\nexport const c = b;\nexport const d = c;",
+			],
+			["test/new.test.js", "// Stryker disable\n"],
+			["src/new.d.ts", "// Stryker disable\n"],
+			["README.md", "// Stryker disable\n"],
+		]);
+		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const complete = doc(
+			strykerReport({
+				"src/new.js": [{ status: "Ignored", line: 3, statusReason: "Ignored by a Stryker comment" }],
+				"src/old.js": [{ status: "Killed", line: 4 }],
+			}),
+		);
+		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", "stryker-json", sources);
+		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
+		assert.deepEqual(
+			parsed.findings?.map((f) => [f.rule_id, f.category, f.severity, f.message.split(" ")[0]]),
+			[
+				["mutation:silence-comment-introduced", "quality", "blocker", "src/new.js:2"],
+				["mutation:silence-comment-introduced", "quality", "blocker", "src/new.js:5"],
+				["mutation:silence-comment-introduced", "quality", "blocker", "src/new.js:7"],
+			],
+			"the three comments, and neither the string, the restore comment nor the three files that are not code",
+		);
+		assert.ok(
+			parsed.notes.some((n) => n.includes("src/old.js:2") && n.includes("tolerated")),
+			JSON.stringify(parsed.notes),
+		);
+		assert.equal(parsed.facts.surviving_mutants, 0, "the report holds no survivor");
+	});
+});
+
+describe("a word next to the Stryker directive is not a silencing comment (VER-04)", () => {
+	it("given an introduced source carrying the text Stryker disable in a string with no comment marker, and a comment whose word is Stryker disabled, then each is read by its own boundary and neither is a finding", async () => {
+		const source = [
+			"export const bare = 'Stryker disable';",
+			"export const word = 1; // Stryker disabled",
+			"/* Stryker disabled */",
+		].join("\n");
+		const introduced = { "src/words.js": [1, 2, 3] };
+		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const complete = doc(strykerReport({ "src/words.js": [{ status: "Killed", line: 1 }] }));
+		const parsed = analyzeMutation(
+			obs(),
+			complete,
+			introduced,
+			scope,
+			"",
+			"stryker-json",
+			new Map([["src/words.js", source]]),
+		);
+		assert.deepEqual(
+			parsed.findings?.filter((f) => f.rule_id === "mutation:silence-comment-introduced"),
+			[],
+			JSON.stringify(parsed.findings),
+		);
+	});
+});
+
+describe("a Stryker directive alone on its line inside a block comment silences the control (VER-04)", () => {
+	it("given an introduced source whose block comment opens on one line, carries Stryker disable all alone on the next line and closes on a third, above a line whose mutant the complete report marks Ignored, then the evidence is FAIL with one blocking finding located at the line of the directive and not at the opening of the block, the same directive alone on a line outside any comment or after a block has closed, Stryker disabled alone in a block and the directive preceded by a word in a block are not findings, and the directive alone in a block of a file already present before the change is named as tolerated", async () => {
+		const silencing = [
+			"/*",
+			"Stryker disable all",
+			"*/",
+			"export const zero = 0 + 1;",
+			"/*",
+			"Stryker disable",
+			"*/",
+			"export const one = 0 + 1;",
+		].join("\n");
+		const bare = "Stryker disable all\nexport const one = 1;\n";
+		const neighbours = [
+			"/*",
+			"Stryker disabled",
+			"stryker restore",
+			"see Stryker disable all",
+			"*/",
+			"export const two = 2;",
+		].join("\n");
+		const after = [
+			"/* a */",
+			"Stryker disable all",
+			"export const five = 5;",
+			"/*",
+			"b",
+			"*/",
+			"Stryker disable all",
+			"export const six = 6;",
+		].join("\n");
+		const old = ["/*", "Stryker disable", "*/", "export const three = 3;", "export const four = 4;"].join("\n");
+		const introduced = {
+			"src/block.js": [1, 2, 3, 4, 5, 6, 7, 8],
+			"src/bare.js": [1, 2],
+			"src/neighbours.js": [1, 2, 3, 4, 5, 6],
+			"src/after.js": [1, 2, 3, 4, 5, 6, 7, 8],
+			"src/old.js": [4, 5],
+		};
+		const sources = new Map([
+			["src/block.js", silencing],
+			["src/bare.js", bare],
+			["src/neighbours.js", neighbours],
+			["src/after.js", after],
+			["src/old.js", old],
+		]);
+		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const complete = doc(
+			strykerReport({
+				"src/block.js": [
+					{ status: "Ignored", line: 4, statusReason: "Ignored by a Stryker comment" },
+					{ status: "Ignored", line: 8, statusReason: "Ignored by a Stryker comment" },
+				],
+				"src/bare.js": [{ status: "Killed", line: 2 }],
+				"src/neighbours.js": [{ status: "Killed", line: 6 }],
+				"src/after.js": [{ status: "Killed", line: 3 }],
+				"src/old.js": [{ status: "Killed", line: 4 }],
+			}),
+		);
+		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", "stryker-json", sources);
+		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
+		assert.deepEqual(
+			parsed.findings?.map((f) => [f.rule_id, f.severity, f.message.split(" ")[0]]),
+			[
+				["mutation:silence-comment-introduced", "blocker", "src/block.js:2"],
+				["mutation:silence-comment-introduced", "blocker", "src/block.js:6"],
+			],
+			"one finding at each directive line, with or without all: neither the opening of a block, nor the bare line, nor the neighbouring words, nor the directive alone on a line after a block has closed",
+		);
+		assert.ok(
+			parsed.notes.some((n) => n.includes("src/old.js:2") && n.includes("tolerated")),
+			JSON.stringify(parsed.notes),
+		);
+	});
+});
+
 describe("the scope Stryker is given comes from the lines the candidate wrote (VER-04)", () => {
 	it("given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE", async () => {
 		const scope = await mutationScopeOf(

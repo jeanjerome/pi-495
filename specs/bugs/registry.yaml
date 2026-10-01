@@ -983,3 +983,34 @@ bugs:
     follow_ups: >
       Run the scope test over one path per character of the pattern.
     status: open
+  - bug_id: BUG-2026-10-01T150000
+    date: "2026-10-01"
+    title: "A Stryker disable comment whose directive sits on a line of its own inside a block comment is not read"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      The silencing pattern of the mutation control is searched line by line and requires the comment
+      marker, `//` or `/*`, on the same line as `Stryker disable`. Stryker reads the text of the comment and
+      accepts a block whose directive is on the next line: `/*`, then `Stryker disable all`, then `*/`, each
+      on its own line. The control reads none of the three lines, so the candidate that writes the block
+      passes with the mutants of the lines below it reported Ignored.
+    what_expected: >
+      A candidate that introduces any comment Stryker honours as a silencing directive is refused with a
+      blocking finding localised at the comment.
+    steps_to_reproduce:
+      - "Introduce a source file holding `/*`, `Stryker disable all` and `*/` on three consecutive lines, followed by a function."
+      - "Run Stryker 10.0.0 on it: the mutants of the function are reported Ignored. Run the mutation control on the same candidate with a complete report: the verdict is PASS."
+    root_cause: >
+      `STRYKER_SILENCING` in `src/adapters/execution/mutation.ts` is applied to one line at a time by
+      `silencingComments`, so a directive separated from its comment marker by a line break is outside what
+      the pattern can see. The story names three forms, all held; the multi-line block is a fourth that
+      Stryker honours. Introduced by the branch e12s11.
+    evidence: >
+      Reviewers' probe on 2026-10-01: the pattern matches none of the lines of the text; Stryker 10.0.0 on the
+      same source ignores the mutants of the lines below the block.
+    risk_level: medium
+    follow_ups: >
+      Read the comment blocks of a source as a whole, not line by line, and locate the finding at the line of
+      the directive. Settle whether the promise covers every comment Stryker honours or only the three forms.
+    status: open

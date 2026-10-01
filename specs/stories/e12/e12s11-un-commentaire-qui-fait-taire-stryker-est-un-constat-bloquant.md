@@ -2,7 +2,7 @@
 
 Story : e12s11
 Epic : e12
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -40,6 +40,14 @@ Scenario: Un mot voisin n'est pas un commentaire de silence
   When le contrôle mutation juge le candidat
   Then aucun constat de silence n'est rendu
 
+Scenario: Une directive seule sur sa ligne dans un bloc de commentaire est un constat bloquant
+  Given un candidat qui introduit un fichier de code dont un bloc « /* » ouvre une ligne, dont « Stryker disable all » occupe seul la ligne suivante, et que « */ » ferme, au-dessus d'une ligne dont le mutant est ignoré dans un rapport complet et sans survivant
+  When le contrôle mutation juge le candidat
+  Then le verdict est FAIL, avec un constat bloquant localisé à la ligne de « Stryker disable all », et non à celle de « /* »
+  And ce constat est rendu aussi pour un bloc dont la directive est seule sur sa ligne sans « all » ni « next-line »
+  And un mot voisin seul sur sa ligne dans le même bloc, « Stryker disabled » ou « stryker restore », n'est pas un constat
+  And la même directive seule sur une ligne hors de tout commentaire n'est pas un constat
+
 Scenario: Dans un vrai Pi, le commentaire de silence ne fait plus passer un test sans assertion
   Given une cible Node dont Stryker est installé, et un agent scripté, déclaré comme tel, qui écrit une fonction, un test qui l'appelle sans asserter, et « // Stryker disable next-line all » au-dessus de la ligne
   When le changement est conduit dans un vrai Pi jusqu'à G5
@@ -50,8 +58,10 @@ Scenario: Dans un vrai Pi, le commentaire de silence ne fait plus passer un test
 
 - **Chemin protégé.** La story garde ce que le candidat écrit dans un fichier de code qu'il introduit ou modifie. Les
   fichiers de configuration de Stryker sont déjà protégés par `e12s10`.
-- **Ce qui est lu.** Les lignes introduites des fichiers de code que le contrôle mute, lues dans le candidat gelé, et
-  non un fichier que le producteur écrirait hors du candidat.
+- **Ce qui est lu.** Les commentaires des fichiers de code que le contrôle mute, lus par blocs entiers et non ligne par
+  ligne, dans le candidat gelé, et non un fichier que le producteur écrirait hors du candidat : une directive seule sur
+  sa ligne dans un bloc `/* */` est lue, et le constat est localisé à cette ligne ; elle est du candidat quand cette
+  ligne est une ligne qu'il a introduite.
 - **Ce que la story ne fait pas tenir.** Un commentaire de silence n'est pas le seul moyen de rendre une ligne
   invisible à la mutation : un fichier exclu de la portée par l'emplacement où il est écrit, ou un test qui ne
   s'exécute jamais, ne sont pas examinés ici.
@@ -88,6 +98,17 @@ candidat sur la construction de `e12s10`, où il passe le contrôle mutation.
 - Tient : `specs/verifications/`, « la preuve de la recette de e12s11 » nomme le dossier lu, le constat et le contrôle négatif
 - Rouge : sur la construction de `e12s10`, le candidat qui porte le commentaire passe le contrôle mutation
 
+### Tâche 4 — Le lecteur lit les commentaires par blocs entiers
+
+Le lecteur de mutation repère les commentaires `//` et `/* */` du source dans leur étendue entière, et non ligne par
+ligne : une directive `Stryker disable` seule sur sa ligne à l'intérieur d'un bloc `/* */` est un constat bloquant
+localisé à la ligne de la directive, tandis que la même ligne hors de tout commentaire, ou portant un mot voisin
+(`disabled`, `restore`), n'en est pas un.
+
+- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
+- Tient : `test/v1/stryker-mutation.test.ts`, « given an introduced source whose block comment opens on one line, carries Stryker disable all alone on the next line and closes on a third, above a line whose mutant the complete report marks Ignored, then the evidence is FAIL with one blocking finding located at the line of the directive and not at the opening of the block, the same directive alone on a line outside any comment and Stryker disabled alone in a block are not findings, and the directive alone in a block of a file already present before the change is named as tolerated »
+- Rouge : `silencingComments` (`src/adapters/execution/lcov.ts`) coupe le source en lignes et applique à chacune le motif de `STRYKER_SILENCING` (`src/adapters/execution/mutation.ts`), qui exige `//` ou `/*` devant `Stryker disable` sur la même ligne : la ligne « Stryker disable all » d'un bloc n'en porte aucun, si bien que le même rapport complet, sans survivant et à mutant ignoré, rend un PASS sans constat (mesuré : verdict PASS, findings vide)
+
 ## 5. Hors périmètre
 
 - Les autres façons de rendre une ligne invisible à la mutation : un test qui ne s'exécute jamais, un fichier écrit hors
@@ -95,3 +116,8 @@ candidat sur la construction de `e12s10`, où il passe le contrôle mutation.
 - Le commentaire d'un outil autre que Stryker, ou d'un autre langage : la couverture a sa liste (`e12s04`), PIT n'a pas de
   commentaire de silence.
 - Refuser un commentaire déjà présent avant le changement : il est l'héritage de la cible, nommé et toléré.
+- Lire comme une directive une ligne de bloc que précède un astérisque de commentaire de documentation
+  (`* Stryker disable all`) : Stryker n'y voit pas la directive, qu'il ne lit qu'au début du commentaire, et la story ne
+  promet ni constat ni absence de constat pour elle.
+- La lecture des commentaires de silence de la couverture (`e12s04`) : elle garde son motif, qui ne dépend pas d'un
+  marqueur de commentaire sur la ligne.
