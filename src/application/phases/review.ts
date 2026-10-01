@@ -12,12 +12,11 @@ export async function review(ctx: PhaseContext, unit: Unit, cor: string): Promis
 	const state = unit.state;
 	if (!state.candidate || !state.protocol)
 		throw new DomainError("PRECONDITION_FAILED", "candidate and protocol required");
-	const workspacePath = ctx.workspace.workspacePath(state.candidate.workspace_id);
+	const candidate = state.candidate;
+	const workspacePath = ctx.workspace.workspacePath(candidate.workspace_id);
 	for (const role of state.protocol.required_reviews) {
 		if (
-			state.reviews.some(
-				(r) => r.valid && r.reviewer_role === role && r.subject_digest === state.candidate!.manifest_digest,
-			)
+			state.reviews.some((r) => r.valid && r.reviewer_role === role && r.subject_digest === candidate.manifest_digest)
 		)
 			continue;
 		const manifest = await ctx.artifacts.read<CandidateManifest>({

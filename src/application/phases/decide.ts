@@ -5,6 +5,7 @@
 import { digestBytes } from "../../contracts/digest.ts";
 import type { SubjectRef } from "../../contracts/v1/common.ts";
 import { retryCanDiffer } from "../../domain/baseline.ts";
+import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
 import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
@@ -48,12 +49,14 @@ export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promis
 	);
 	const g5 = unit.state.gates.G5!;
 	if (g5.verdict === "PASS") return unit;
+	const candidate = unit.state.candidate;
+	if (!candidate) throw new DomainError("PRECONDITION_FAILED", "candidate required");
 	const language = ctx.language(unit.state);
 	const subject: SubjectRef = {
 		kind: "candidate",
-		id: unit.state.candidate!.candidate_id,
+		id: candidate.candidate_id,
 		revision: 1,
-		digest: unit.state.candidate!.manifest_digest,
+		digest: candidate.manifest_digest,
 	};
 	if (g5.next_action === "request_decision:IH-10")
 		return ctx.requestDecision(unit, cor, "IH-10", subject, g5.reasons, null, undefined, undefined, language);
@@ -71,7 +74,7 @@ export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promis
 				`${g5.reasons.join("; ")} — re-running the frozen candidate cannot change this observation`,
 			);
 		}
-		const key = `verify:${unit.state.candidate!.manifest_digest}`;
+		const key = `verify:${candidate.manifest_digest}`;
 		const retried = ctx.commit(
 			unit,
 			{ type: "operation.fail", at: ctx.now(), actor: KERNEL_ACTOR, operation_key: key },

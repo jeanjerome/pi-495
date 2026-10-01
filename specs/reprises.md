@@ -119,7 +119,7 @@ Statut : versée
 
 ## R17 — Les assertions non nulles qu'un rétrécissement remplace sont retirées
 
-Statut : à faire
+Statut : versée
 
 - Où : phases/review.ts:19 · stacks/maven.ts:625-654 · views.ts:128-130 · context.ts:154,158,176 · preparation.ts:107 · phases/decide.ts:54-74 · phases/integrate.ts:24-26
 - Constat : ! remplaçables par un rétrécissement : narrowing perdu dans un callback après la garde (review.ts:13), perdu à travers filter (maven.ts:618), flatMap plutôt que filter + !, input.controls ?? []. Dans decide.ts et integrate.ts, candidate! sans précondition dans la fonction. Les autres ! du périmètre (diff.ts, review.ts:198-398, harness.ts:277,318, qualification.ts:146…) sont des invariants justifiés.

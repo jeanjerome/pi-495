@@ -616,26 +616,27 @@ const FRAMEWORK_PACKAGES = [
  */
 function structureRules(reactor: MavenReactor): StructureRule[] {
 	const modules = reactor.module_info.filter(
-		(m) => m.artifact_id !== null && m.package_root !== null && m.source_root !== null,
+		(m): m is MavenModule & { artifact_id: string; package_root: string; source_root: string } =>
+			m.artifact_id !== null && m.package_root !== null && m.source_root !== null,
 	);
 	const rules: StructureRule[] = [];
 	for (const module of modules) {
 		for (const other of modules) {
 			if (other.path === module.path || other.package_root === module.package_root) continue;
-			if (module.depends_on.includes(other.artifact_id!)) continue;
+			if (module.depends_on.includes(other.artifact_id)) continue;
 			// Nested package roots cannot be told apart by an import: `io.x.domain.spi` is under
 			// `io.x.domain`, so forbidding the second would forbid the first module's own sources.
 			if (
-				module.package_root!.startsWith(`${other.package_root}.`) ||
-				other.package_root!.startsWith(`${module.package_root}.`)
+				module.package_root.startsWith(`${other.package_root}.`) ||
+				other.package_root.startsWith(`${module.package_root}.`)
 			)
 				continue;
 			rules.push({
 				rule_id: `structure:module-boundary:${module.path || "."}->${other.path || "."}`,
 				kind: "forbidden_dependency",
 				statement: `module ${module.artifact_id} declares no dependency on module ${other.artifact_id}, whose sources are laid out under ${other.package_root}`,
-				scope: [module.source_root!],
-				forbidden: [other.package_root!],
+				scope: [module.source_root],
+				forbidden: [other.package_root],
 			});
 		}
 	}
@@ -644,14 +645,14 @@ function structureRules(reactor: MavenReactor): StructureRule[] {
 	const core = modules.find(
 		(m) =>
 			m.depends_on.length === 0 &&
-			modules.some((other) => other.path !== m.path && other.depends_on.includes(m.artifact_id!)),
+			modules.some((other) => other.path !== m.path && other.depends_on.includes(m.artifact_id)),
 	);
 	if (core)
 		rules.push({
 			rule_id: `structure:framework-independence:${core.path || "."}`,
 			kind: "forbidden_dependency",
 			statement: `module ${core.artifact_id} declares no dependency on another module of the reactor and the others build on it, so a framework or container imported there is one they all carry`,
-			scope: [core.source_root!],
+			scope: [core.source_root],
 			forbidden: [...FRAMEWORK_PACKAGES],
 		});
 	// A cycle needs no second module to exist, and no declaration to be read as one: two packages that

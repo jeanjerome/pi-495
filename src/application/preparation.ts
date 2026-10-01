@@ -104,7 +104,7 @@ export interface CapabilityInput {
  */
 export function diagnoseControlCapability(input: CapabilityInput): ControlCapabilityDiagnosis {
 	const discovered = input.suite ? Math.max(0, input.suite.reported - input.suite.witnesses) : null;
-	const executed = discovered === null ? null : Math.max(0, discovered - input.suite!.skipped);
+	const executed = discovered === null || input.suite === null ? null : Math.max(0, discovered - input.suite.skipped);
 	const discriminant = Boolean(input.prepared?.discriminant);
 	const level: CapabilityLevel = discriminant
 		? "discriminating"

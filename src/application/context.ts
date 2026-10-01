@@ -149,13 +149,14 @@ export function buildContext(input: ContextInput): {
 	// build; the kernel would then reject it without the model ever seeing why.
 	// A control that runs nothing — its parser reads a report another control left, or the code —
 	// is named with what it reads: handed as a command, its empty trigger is a command to nowhere.
-	if ((input.role === "implement" || input.role === "prepare") && (input.controls?.length ?? 0) > 0) {
-		const commands = input
-			.controls!.filter((c) => !runsNothing(c.command))
+	const controls = input.controls ?? [];
+	if ((input.role === "implement" || input.role === "prepare") && controls.length > 0) {
+		const commands = controls
+			.filter((c) => !runsNothing(c.command))
 			.map((c) => `\`${c.command.join(" ")}\` in ${c.cwd === "." ? "the workspace root" : c.cwd} (${c.control_id})`)
 			.join("; ");
-		const readings = input
-			.controls!.filter((c) => runsNothing(c.command))
+		const readings = controls
+			.filter((c) => runsNothing(c.command))
 			.map((c) => `${c.control_id} (${c.title})`)
 			.join("; ");
 		trusted.push(
@@ -171,9 +172,10 @@ export function buildContext(input: ContextInput): {
 	}
 	// The architecture the producer is judged against is told to it before it writes, and checked on
 	// what it wrote afterwards. Only the first half would leave it a suggestion (ARC-04).
-	if ((input.role === "implement" || input.role === "prepare") && (input.boundaries?.length ?? 0) > 0) {
+	const boundaries = input.boundaries ?? [];
+	if ((input.role === "implement" || input.role === "prepare") && boundaries.length > 0) {
 		trusted.push(
-			`The architecture frozen for this change holds these boundaries, which a control of the protocol reads in your code: ${input.boundaries!.map((b) => `${b}`).join("; ")}. Moving one of them is not yours to decide: place the responsibility where the boundary allows it, or report the conflict instead of crossing it.`,
+			`The architecture frozen for this change holds these boundaries, which a control of the protocol reads in your code: ${boundaries.map((b) => `${b}`).join("; ")}. Moving one of them is not yours to decide: place the responsibility where the boundary allows it, or report the conflict instead of crossing it.`,
 		);
 	}
 	// Only a role that writes can leave a workspace half-edited, and only one that writes is resumed

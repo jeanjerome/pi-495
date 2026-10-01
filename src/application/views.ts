@@ -121,14 +121,12 @@ export function statusView(
 					outcome: change.outcome,
 					stop_reason: change.stop_reason,
 					stop_detail: change.stop_detail,
-					gates: (["G0", "G1", "G2", "G3", "G4", "G5", "G6"] as const)
-						.filter((g) => change.gates[g])
-						.map((g) => ({
-							gate: g,
-							verdict: change.gates[g]!.verdict,
-							reasons: change.gates[g]!.reasons,
-							next_action: change.gates[g]!.next_action,
-						})),
+					gates: (["G0", "G1", "G2", "G3", "G4", "G5", "G6"] as const).flatMap((g) => {
+						const decision = change.gates[g];
+						return decision
+							? [{ gate: g, verdict: decision.verdict, reasons: decision.reasons, next_action: decision.next_action }]
+							: [];
+					}),
 					attempts: { used: change.budgets.attempts_used, max: change.budgets.max_attempts },
 					candidate: change.candidate
 						? { candidate_id: change.candidate.candidate_id, manifest_digest: change.candidate.manifest_digest }
