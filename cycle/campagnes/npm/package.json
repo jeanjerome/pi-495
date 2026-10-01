@@ -1,0 +1,17 @@
+{
+  "name": "slots",
+  "version": "0.1.0",
+  "description": "Time slots over a day: merge what overlaps, read back what is left free",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@vitest/coverage-v8": "5.0.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

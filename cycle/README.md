@@ -39,7 +39,10 @@ Une story part d'une branche de `main`, sur une Preflight verte, et y revient en
    modèle réel ou un agent scripté déclaré comme tel, une campagne menée jusqu'à son verdict, puis
    le dossier relu depuis SQLite et le magasin d'objets. Un contrôle négatif accompagne la campagne
    verte : la même configuration privée de ce que la story ajoute, et le refus qu'elle produit. Une
-   liste adossée à des tests n'est pas une recette. Le propriétaire accepte, ou nomme l'écart.
+   liste adossée à des tests n'est pas une recette. Une story qui touche `src/application/stacks/`, les
+   contrôles ou l'exécuteur ajoute à la recette les deux campagnes de référence de `cycle/campagnes/`
+   (`npm run campagne -- npm` et `-- maven`), qui n'ont pas été taillées pour elle ; elles se lancent
+   aussi avant toute release. Le propriétaire accepte, ou nomme l'écart.
 6. **Le versement.** La branche arrive sur `main` en un commit écrasé, dont le message dit le
    comportement obtenu, en anglais, sur une ligne. La branche est gardée : le dossier cite ses
    commits. Le dossier de la story est exporté sous `specs/verifications/<story>/`, la story passe

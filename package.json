@@ -63,6 +63,7 @@
     "test:v3": "node --test --test-concurrency=1 'test/v3/**/*.test.ts'",
     "contracts": "node scripts/emit-contracts.ts",
     "cycle": "node cycle/src/main.ts",
+    "campagne": "node cycle/src/campagne.ts",
     "check": "npm run lint:code && npm run typecheck && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:traceability && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format && npm run test",
     "lint:code": "biome check",
     "lint:layers": "node scripts/check-layers.ts",

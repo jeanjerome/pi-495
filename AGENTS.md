@@ -120,7 +120,8 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - **Acceptance run:** a real execution in a real Pi, with a negative control; a list backed by tests
   is not one. The owner accepts it or names the gap; in an unattended run (`cycle suite`) an
   independent session decides under `cycle/prompts/arbitrage.md`, and the record says the automaton
-  decided.
+  decided. A story that touches the stacks, the controls or the executor adds the two reference
+  campaigns (`npm run campagne -- npm`, `-- maven`, `cycle/campagnes/README.md`) to it.
 - **Always Green:** Preflight (`npm run check`) is green before forward work and before every
   commit that touches what it checks.
 - **Records:** a product decision and the order of the plan are written by hand, and the owner marks
