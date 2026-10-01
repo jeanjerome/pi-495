@@ -236,7 +236,7 @@ Statut : versée
 
 ## R30 — Le type des schémas TypeBox s'importe comme un type
 
-Statut : à faire
+Statut : versée
 
 - Où : src/contracts/v1/reports.ts:193,202,206,212
 - Constat : import("typebox").TSchema écrit en ligne quatre fois ; extractJsonOutput(): unknown | undefined, qui vaut unknown.

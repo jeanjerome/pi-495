@@ -2,7 +2,7 @@
  * Contract v1 — structured outputs of agent interventions and the closed tool sets per role.
  * An output that does not validate is a proposal with `output_valid=false`, never a decision.
  */
-import { Type, type Static } from "typebox";
+import { Type, type Static, type TSchema } from "typebox";
 import { Closed, type InterventionRole } from "./common.ts";
 import { SEVERITIES } from "./evidence.ts";
 
@@ -127,7 +127,7 @@ export const OUTPUT_SCHEMAS = {
  * (or unlabelled) that parses, else a trailing bare JSON object. Fenced blocks of other languages
  * are skipped so that an earlier ```js example cannot swallow the report.
  */
-export function extractJsonOutput(text: string): unknown | undefined {
+export function extractJsonOutput(text: string): unknown {
 	const lines = text.split(/\r?\n/);
 	const blocks: { lang: string; body: string[] }[] = [];
 	let open: { lang: string; body: string[] } | null = null;
@@ -186,7 +186,7 @@ export function retainedRefusedText(text: string, limit = 20_000, head = 8_000):
 }
 
 /** Drops unknown properties and fills missing arrays with [] before validation (tolerant to small models). */
-export function normalizeOutput(schema: import("typebox").TSchema, value: unknown): unknown {
+export function normalizeOutput(schema: TSchema, value: unknown): unknown {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return value;
 	const props = (schema as { properties?: Record<string, { type?: string; properties?: unknown }> }).properties ?? {};
 	const out: Record<string, unknown> = {};
@@ -195,17 +195,17 @@ export function normalizeOutput(schema: import("typebox").TSchema, value: unknow
 		let x = v[key];
 		if (x === undefined || x === null) {
 			if (sub.type === "array") x = [];
-			else if (sub.type === "object") x = normalizeOutput(sub as import("typebox").TSchema, {});
+			else if (sub.type === "object") x = normalizeOutput(sub as TSchema, {});
 			else if (sub.type === "string") x = x === null ? null : undefined;
 			else if (sub.type === "boolean") x = false;
 		} else if (sub.type === "object" && typeof x === "object" && !Array.isArray(x))
-			x = normalizeOutput(sub as import("typebox").TSchema, x);
+			x = normalizeOutput(sub as TSchema, x);
 		else if (
 			sub.type === "array" &&
 			Array.isArray(x) &&
 			(sub as { items?: { type?: string } }).items?.type === "object"
 		)
-			x = x.map((item) => normalizeOutput((sub as { items: import("typebox").TSchema }).items, item));
+			x = x.map((item) => normalizeOutput((sub as { items: TSchema }).items, item));
 		if (x !== undefined) out[key] = x;
 	}
 	return out;
