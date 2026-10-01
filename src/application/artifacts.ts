@@ -210,7 +210,12 @@ export class ArtifactRepository {
 	private async readReports(refs: ArtifactRef[]): Promise<SpecificationReport[]> {
 		const out: SpecificationReport[] = [];
 		for (const ref of refs) {
-			const report = await this.read<SpecificationReport>(ref).catch(() => null);
+			// A report the specification is judged against cannot be dropped because its bytes were altered:
+			// the refusal stops the change instead of leaving the judgment to the reports that remain (RM-070).
+			const report = await this.read<SpecificationReport>(ref).catch((error: unknown) => {
+				if (error instanceof DomainError && error.code === "EVIDENCE_MISSING") return null;
+				throw error;
+			});
 			if (report) out.push(report);
 		}
 		return out;

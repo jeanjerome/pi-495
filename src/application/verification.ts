@@ -587,10 +587,15 @@ export class VerificationCoordinator {
 		shape: CandidateShape,
 		complements: readonly AdoptedComplement[],
 	): Promise<IntroducedLinesResult> {
+		// An index never written leaves the calculation without those bytes; an altered one is evidence a
+		// verdict would rest on, so its refusal stops the change instead of reading as empty (RM-070).
 		const index = async (artifactId: string) =>
 			await this.deps
 				.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 })
-				.catch(() => ({}));
+				.catch((error: unknown) => {
+					if (error instanceof DomainError && error.code === "EVIDENCE_MISSING") return {};
+					throw error;
+				});
 		const candidateFiles = await index(`files_${manifest.candidate_id}`);
 		const referenceFiles = await index(`base_files_${manifest.candidate_id}`);
 		const bytesOf = (files: Record<string, { digest: string }>) => async (path: string) => {

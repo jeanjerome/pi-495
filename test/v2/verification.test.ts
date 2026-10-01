@@ -24,6 +24,7 @@ import type {
 	Protocol,
 	RecommendedComplement,
 } from "../../src/contracts/v1/protocol.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
@@ -144,7 +145,7 @@ function coordinatorOver(controls: ControlExecutionPort, workspace: GitWorkspace
 		now: () => AT,
 		id: (prefix) => `${prefix}_${++next}`,
 		readArtifact: async () => {
-			throw new Error("no file index for this candidate");
+			throw new DomainError("EVIDENCE_MISSING", "no file index for this candidate");
 		},
 		progress: () => {},
 	});
