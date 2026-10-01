@@ -78,7 +78,7 @@ export function applyScriptsTestEdit(packageJson: string, edit: FileEdit): strin
 	try {
 		JSON.parse(packageJson);
 	} catch {
-		return null;
+		return null; // a manifest that is not JSON has no scripts.test to replace
 	}
 	const root = skipSpace(packageJson, 0);
 	if (packageJson[root] !== "{") return null;

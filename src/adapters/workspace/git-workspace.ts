@@ -172,6 +172,7 @@ export class GitWorkspace implements WorkspacePort {
 			}
 		}
 		await git(path, ["init", "-q"], true);
+		// The reference marker is informational and nothing reads it back: a workspace without it runs the same.
 		await writeFile(join(path, ".git", "info", "495-reference"), `${reference.reference_id}\n`).catch(() => undefined);
 		return {
 			workspace_id: workspaceId,

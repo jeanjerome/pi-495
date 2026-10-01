@@ -75,7 +75,7 @@ export class CasObjectStore implements ObjectStorePort {
 		try {
 			return statSync(this.pathFor(digest)).isFile();
 		} catch {
-			return false;
+			return false; // an absent or unreadable object is not held
 		}
 	}
 

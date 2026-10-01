@@ -392,7 +392,7 @@ async function readReports(workspace: string, reportPath: string | null): Promis
 			if (f.endsWith(".xml")) out.push({ name: `${reportPath}/${f}`, text: await readFile(join(abs, f), "utf8") });
 		return out;
 	} catch {
-		return [];
+		return []; // a missing or unreadable report path yields no report, which the parser judges as such
 	}
 }
 
@@ -430,7 +430,7 @@ async function readRecursiveReports(
 		try {
 			entries = await readdir(current.absolute, { withFileTypes: true });
 		} catch {
-			continue;
+			continue; // an unreadable directory is not scanned; the reports found elsewhere still count
 		}
 		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
 			if (!entry.isDirectory() || entry.name === ".git" || entry.name === "node_modules") continue;

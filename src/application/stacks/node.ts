@@ -351,7 +351,7 @@ function installedVitestVersion(projectPath: string): string | null {
 		};
 		return typeof manifest.version === "string" ? manifest.version : null;
 	} catch {
-		return null;
+		return null; // an absent or unreadable vitest manifest leaves the version unread
 	}
 }
 

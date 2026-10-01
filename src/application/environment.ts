@@ -61,7 +61,7 @@ function buildIdentity(): { version: string; build_digest: string } {
 		try {
 			names = readdirSync(dir).sort();
 		} catch {
-			continue;
+			continue; // an unreadable directory does not contribute to the build digest
 		}
 		for (const name of names) {
 			const abs = join(dir, name);
@@ -69,7 +69,7 @@ function buildIdentity(): { version: string; build_digest: string } {
 			try {
 				st = statSync(abs);
 			} catch {
-				continue;
+				continue; // an entry that disappeared mid-scan does not contribute either
 			}
 			if (st.isDirectory()) stack.push(abs);
 			else if (/\.(js|mjs|cjs|ts|json)$/.test(name)) files.push(abs);

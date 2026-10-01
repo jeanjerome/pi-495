@@ -202,7 +202,7 @@ export class ExtensionSession {
 		try {
 			view = this.currentView();
 		} catch {
-			view = null;
+			view = null; // without a readable view the footer shows the progress message alone
 		}
 		this.footer(ctx, `495 ${message}`, view);
 	}
@@ -345,6 +345,7 @@ export class ExtensionSession {
 	/** The session is ending: whatever is running is aborted, and the runtime is released. */
 	async close(): Promise<void> {
 		if (this.harnessRuntime) {
+			// A failed abort must not keep the session from closing: the runtime is released either way.
 			await this.harnessRuntime.harness.abortCurrent("session shutdown").catch(() => undefined);
 			this.harnessRuntime.close();
 			this.harnessRuntime = null;

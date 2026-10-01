@@ -295,7 +295,7 @@ function jacocoRecommendation(projectPath: string): RecommendedComplement {
 	try {
 		pom = readFileSync(join(projectPath, "pom.xml"), "utf8");
 	} catch {
-		return recommendation;
+		return recommendation; // an unreadable POM gets the recommendation without an edit to apply
 	}
 	const edit = jacocoEdit(pom);
 	if (edit === null) return recommendation;
@@ -357,7 +357,7 @@ export function readsMutationReport(projectPath: string, pomPaths: readonly stri
 		try {
 			xml = readFileSync(join(projectPath, rel), "utf8");
 		} catch {
-			continue;
+			continue; // an unreadable POM declares nothing; the other POMs are still read
 		}
 		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
 		if (!/pitest-maven/.test(outsideProfiles)) continue;
@@ -421,7 +421,7 @@ function bindsJacocoReport(projectPath: string, pomPaths: readonly string[]): bo
 		try {
 			xml = readFileSync(join(projectPath, rel), "utf8");
 		} catch {
-			continue;
+			continue; // an unreadable POM binds nothing; the other POMs are still read
 		}
 		const outsideProfiles = xml.replace(/<profiles\b[\s\S]*?<\/profiles>/g, "");
 		if (/jacoco-maven-plugin/.test(outsideProfiles) && /<goal>\s*report\s*<\/goal>/.test(outsideProfiles)) return true;
@@ -573,13 +573,13 @@ function packageRootOf(sourceRoot: string): string | null {
 		try {
 			entries = readdirSync(current).filter((name) => !name.startsWith("."));
 		} catch {
-			break;
+			break; // an unreadable directory ends the descent at the package found so far
 		}
 		const directories = entries.filter((name) => {
 			try {
 				return statSync(join(current, name)).isDirectory();
 			} catch {
-				return false;
+				return false; // an entry that cannot be read is no directory, so the descent stops here
 			}
 		});
 		if (directories.length !== 1 || directories.length !== entries.length) break;

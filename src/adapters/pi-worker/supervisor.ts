@@ -129,7 +129,7 @@ export class PiWorkerAgent implements AgentPort {
 			try {
 				msg = JSON.parse(line) as WorkerMessage;
 			} catch {
-				return;
+				return; // a line that is not JSON is worker output, not a message
 			}
 			// JSON that is not a message is ignored like a line that is not JSON.
 			if (typeof msg !== "object" || msg === null) return;

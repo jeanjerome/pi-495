@@ -80,7 +80,7 @@ Statut : écartée — Pi's edit tool wraps the workspace refusal in a new Error
 
 ## R12 — Chaque abandon d'erreur dit pourquoi il est sans conséquence
 
-Statut : à faire
+Statut : versée
 
 - Où : runner.ts:393,428 · supervisor.ts:131 · git-workspace.ts:175 · cas.ts:77 · extension/session.ts:204,348 · application : stacks/node.ts:353, stacks/maven.ts:297,359,423,575,581, environment.ts:63,71, complement.ts:80
 - Constat : Catch vides ou .catch(() => undefined) sans la phrase qui dit pourquoi l'abandon est inoffensif. Les catch commentés (node.ts:25, artifacts.ts:294, environment.ts:39,82, policy.ts:35, reports.ts:155,168) montrent la forme attendue.
