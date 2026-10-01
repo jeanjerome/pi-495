@@ -155,7 +155,6 @@ export type ChangeEvent =
 			scope: string | null;
 			free_text: string | null;
 	  })
-	| (Base & { type: "decision.rejected"; decision_id: string; reason: string })
 	| (Base & { type: "decision.revoked"; human_decision_id: string; reason: string })
 	| (Base & { type: "decision.withdrawn"; decision_id: string; reason: string })
 	| (Base & { type: "feedback.produced"; attempt_id: string; digest: string; bytes: number; truncated: boolean })

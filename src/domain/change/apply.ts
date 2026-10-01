@@ -328,8 +328,6 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			if (event.interaction === "IH-11" && event.option_id === "integrate")
 				s.integration_authorization_id = event.human_decision_id;
 			return settlePending(s, event.decision_id);
-		case "decision.rejected":
-			return s;
 		case "decision.revoked":
 			s.human_decisions = s.human_decisions.map((d) =>
 				d.human_decision_id === event.human_decision_id ? { ...d, valid: false } : d,

@@ -1409,7 +1409,6 @@ class Ctx {
 	decisionAnswer(c: CommandOf<"decision.answer">): Decision {
 		const pending = this.state.pending_decisions.find((d) => d.decision_id === c.response.decision_id);
 		const rejectWith = (reason: string, code: ConstructorParameters<typeof DomainError>[0]): Decision => {
-			this.emit({ type: "decision.rejected", ...this.base(), decision_id: c.response.decision_id, reason });
 			return reject(
 				new DomainError(code, reason, {
 					subject: subjectOfChange(this.state),
