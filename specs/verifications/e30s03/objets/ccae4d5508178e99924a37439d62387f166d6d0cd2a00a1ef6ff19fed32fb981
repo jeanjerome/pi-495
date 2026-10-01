@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+    # Subtest: un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+    ok 1 - un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+      ---
+      duration_ms: 479.519792
+      type: 'test'
+      ...
+    # Subtest: un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+    ok 2 - un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+      ---
+      duration_ms: 685.235083
+      type: 'test'
+      ...
+    # Subtest: un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE
+    ok 3 - un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE
+      ---
+      duration_ms: 141.689792
+      type: 'test'
+      ...
+    1..3
+ok 1 - an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+  ---
+  duration_ms: 1307.036625
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1480.523166

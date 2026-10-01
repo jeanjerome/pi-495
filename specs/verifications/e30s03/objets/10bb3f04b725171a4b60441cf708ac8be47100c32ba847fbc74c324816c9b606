@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un index des fichiers du candidat absent garde le comportement d'aujourd'hui",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2/altered-evidence.test.ts",
+    "ligne": 113,
+    "constat": "Le test tient « le changement n'est pas arrêté » (il finit fermé et accepté), mais n'asserte rien sur le calcul des lignes introduites sans les octets du candidat. Cette moitié du `Then` n'est tenue que de façon indirecte : le calcul aboutit puisque le changement se ferme.",
+    "mutation": "verification.ts:596, code comparé remplacé par \"EVIDENCE_MISSING_X\" (l'absence est relancée) : ce test échoue, ainsi que cinq tests de verification.test.ts ; ligne remise."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code et par un test qui échoue sous mutation. Altérer l'index des fichiers du candidat (verification.ts:592-598) arrête le changement : remettre `.catch(() => ({}))` fait échouer le test 1, qui finit alors fermé au lieu d'arrêté. Un index absent ne l'arrête pas : relancer aussi EVIDENCE_MISSING fait échouer le test 2. Altérer un rapport de spécification antérieur (artifacts.ts:213-218) arrête le changement : remettre `.catch(() => null)` fait échouer le test 3, où le changement va alors jusqu'à la fermeture. Le détail de l'arrêt nomme l'empreinte : la retirer du message EVIDENCE_STALE (artifacts.ts:98) fait échouer les tests 1 et 3. Un seul constat, à peser : le test du cas absent n'asserte pas directement le calcul fait sans les octets. Toutes les mutations ont été remises et l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Le code et les tests tiennent les trois promesses, et je n'ai aucun constat.\n\n**Scénario 1 : index du candidat altéré.** À `src/application/verification.ts:590-598`, la lecture de l'index des fichiers du candidat ne rattrape plus que `EVIDENCE_MISSING`. Une altération lève `EVIDENCE_STALE` avec le message « object <empreinte> is corrupted » (`src/application/artifacts.ts:98`). La boucle de conduite arrête alors le changement, et le détail de l'arrêt porte le code et l'empreinte. Le premier test de `test/v2/altered-evidence.test.ts` le vérifie.\n- Mutation : retour à `.catch(() => ({}))`. Le premier test échoue.\n- Mutation : retrait de l'empreinte du message `EVIDENCE_STALE`. Le premier et le troisième test échouent.\n\n**Scénario 2 : index du candidat absent.** Le test utilise un registre qui n'enregistre jamais l'index du candidat. La lecture tombe sur `EVIDENCE_MISSING`, le calcul continue sans ces octets, et le changement se ferme accepté.\n- Mutation : `EVIDENCE_MISSING` relancé au lieu de rendre un index vide. Le deuxième test échoue, ce qui montre que le chemin du calcul est bien atteint par le test.\n\n**Scénario 3 : rapport de spécification antérieur altéré.** À `src/application/artifacts.ts:210-222`, `readReports` ne rattrape plus que `EVIDENCE_MISSING`. Une altération remonte et arrête le changement en phase de clarification, et le détail nomme `EVIDENCE_STALE` et l'empreinte. Le troisième test le vérifie.\n- Mutation : retour à `return null` pour toute erreur. Le troisième test échoue.\n\nChaque ligne mutée a été remise en place, et l'arbre est propre à `ebd15a7`."
+ }
+]

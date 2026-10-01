@@ -2,7 +2,7 @@
 
 Story : e30s03
 Epic : e30
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

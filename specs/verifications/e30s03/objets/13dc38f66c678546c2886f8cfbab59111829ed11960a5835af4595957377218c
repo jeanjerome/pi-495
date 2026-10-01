@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+    # Subtest: un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+    not ok 1 - un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+      ---
+      duration_ms: 715.115542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ISnwh2/test/v2/altered-evidence.test.ts:73:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        verifying -> deciding/ready | deciding -> closed/completed
+        + actual - expected
+        
+        + 'closed'
+        - 'blocked'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'blocked'
+      actual: 'closed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ISnwh2/test/v2/altered-evidence.test.ts:82:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+    ok 2 - un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+      ---
+      duration_ms: 684.667166
+      type: 'test'
+      ...
+    1..2
+not ok 1 - an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+  ---
+  duration_ms: 1400.323708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ISnwh2/test/v2/altered-evidence.test.ts:72:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1568.867333

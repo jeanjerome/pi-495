@@ -1,0 +1,57 @@
+TAP version 13
+# Subtest: an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+    # Subtest: un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+    ok 1 - un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet
+      ---
+      duration_ms: 484.035167
+      type: 'test'
+      ...
+    # Subtest: un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+    ok 2 - un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites
+      ---
+      duration_ms: 695.582125
+      type: 'test'
+      ...
+    # Subtest: un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE
+    not ok 3 - un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE
+      ---
+      duration_ms: 745.298958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-70F6lD/test/v2/altered-evidence.test.ts:124:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> designing/ready | designing -> implementing/ready | implementing -> verifying/ready | verifying -> deciding/ready | deciding -> closed/completed
+        + actual - expected
+        
+        + 'closed'
+        - 'blocked'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'blocked'
+      actual: 'closed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-70F6lD/test/v2/altered-evidence.test.ts:145:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)
+  ---
+  duration_ms: 1925.719333
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-70F6lD/test/v2/altered-evidence.test.ts:96:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2094.837209
