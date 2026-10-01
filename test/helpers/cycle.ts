@@ -1,4 +1,5 @@
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { afterEach } from "node:test";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -9,6 +10,11 @@ import { lireStory } from "../../cycle/src/story.ts";
 import { fixtureTs, gitCmd, tempDir } from "../helpers/fixtures.ts";
 
 export const NODE = process.execPath;
+
+const cleanups: string[] = [];
+afterEach(() => {
+	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
+});
 
 export const STORY = `# greet shouts
 
@@ -57,6 +63,7 @@ export const PASSING_TEST =
 /** A repository with the fixture project on main, the story committed, and a clean tree. */
 export function depot(): string {
 	const root = tempDir();
+	cleanups.push(root);
 	fixtureTs(root);
 	mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
 	writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md"), STORY);
@@ -75,6 +82,7 @@ export function depot(): string {
  */
 export function fauxClaude(reponses: string): string {
 	const dir = tempDir();
+	cleanups.push(dir);
 	const module = join(dir, "reponses.mjs");
 	writeFileSync(module, reponses);
 	const path = join(dir, "claude");
@@ -96,6 +104,7 @@ export function commit(cwd, files, message) { for (const [rel, content] of Objec
 
 export function contexte(root: string, claude: string): Contexte {
 	const racine = tempDir();
+	cleanups.push(racine);
 	return {
 		root,
 		story: lireStory("e01s05", root),

@@ -25,7 +25,7 @@ Les numéros suivent ceux des constats de l'audit. Ce qui manque à la liste a p
 
 ## R06 — Les répertoires temporaires des tests de l'outil du cycle sont supprimés après chaque test
 
-Statut : à faire
+Statut : versée
 
 - Où : test/cycle/*.test.ts (11 fichiers sur 12) · test/helpers/cycle.ts:58-68,76-87,97-108
 - Constat : depot(), fauxClaude() et contexte() créent un à trois tempDir() chacun ; aucun rmSync, afterEach ni t.after sous test/cycle (vingt appels à tempDir). Mesuré sur la machine : 25 654 dossiers 495-* pour 1,9 Go dans $TMPDIR, du 29 septembre au 1er octobre. Non supprimés : le propriétaire décide.
