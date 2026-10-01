@@ -11,6 +11,7 @@
  */
 import type { LoadExtensionsResult, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { ObservedLayers } from "../../domain/imposed-layers.ts";
+import { messageOf } from "../../domain/errors.ts";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
@@ -64,7 +65,7 @@ export function readImposedLayers(
 	} catch (error) {
 		return {
 			status: "not_observed",
-			reason: `the ${api} request is not the shape this harness reads: ${(error as Error).message}`,
+			reason: `the ${api} request is not the shape this harness reads: ${messageOf(error)}`,
 		};
 	}
 	const at = texts.indexOf(prompts.host);
@@ -107,7 +108,7 @@ export class RequestLayerObserver {
 		} catch (error) {
 			observation = {
 				status: "not_observed",
-				reason: `the system prompt the host reports could not be read: ${(error as Error).message}`,
+				reason: `the system prompt the host reports could not be read: ${messageOf(error)}`,
 			};
 		}
 		const key = JSON.stringify(observation);

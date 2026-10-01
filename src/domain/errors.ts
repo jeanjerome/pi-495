@@ -100,3 +100,8 @@ export class DomainError extends Error {
 		};
 	}
 }
+
+/** The message of any thrown value: an `Error`'s own message, anything else as a string. */
+export function messageOf(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}

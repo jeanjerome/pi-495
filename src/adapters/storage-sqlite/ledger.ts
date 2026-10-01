@@ -13,7 +13,7 @@ import { evidenceDigest, type Evidence } from "../../contracts/v1/evidence.ts";
 import { apply, replay } from "../../domain/change/apply.ts";
 import type { ChangeEvent } from "../../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../../domain/change/state.ts";
-import { DomainError } from "../../domain/errors.ts";
+import { DomainError, messageOf } from "../../domain/errors.ts";
 import { applyProgram, replayProgram, type ProgramEvent, type ProgramState } from "../../domain/program/program.ts";
 import type {
 	AppendMeta,
@@ -687,7 +687,7 @@ export class SqliteLedger implements LedgerPort {
 				report.problems.push({
 					kind: "projection",
 					subject: agg.aggregate_id,
-					detail: `replay failed: ${(error as Error).message}`,
+					detail: `replay failed: ${messageOf(error)}`,
 				});
 			}
 		}

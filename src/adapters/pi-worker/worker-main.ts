@@ -16,6 +16,7 @@ import type { InterventionEvent, InterventionMandate, SandboxPort } from "../../
 import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { digestValue } from "../../contracts/digest.ts";
 import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
+import { messageOf } from "../../domain/errors.ts";
 import { observeSessionEvent, readSessionCost, type SessionEventRead } from "./session-observer.ts";
 import { RequestLayerObserver, loadRequestObserver } from "./provider-request.ts";
 import {
@@ -184,12 +185,12 @@ async function main(): Promise<void> {
 						});
 						return result;
 					} catch (error) {
-						blocked = /outside the workspace|budget exhausted|not allowed/.test((error as Error).message);
+						blocked = /outside the workspace|budget exhausted|not allowed/.test(messageOf(error));
 						send({
 							type: "event",
 							event: { type: "tool_finished", at: now(), tool: tool.name, call_id: id, is_error: true, blocked },
 						});
-						if (/budget exhausted/.test((error as Error).message)) void session?.abort();
+						if (/budget exhausted/.test(messageOf(error))) void session?.abort();
 						throw error;
 					}
 				},
@@ -380,7 +381,7 @@ async function main(): Promise<void> {
 					cost,
 				});
 		} catch (error) {
-			finish({ type: "failed", at: now(), error: (error as Error).message, counters, cost: costOf() });
+			finish({ type: "failed", at: now(), error: messageOf(error), counters, cost: costOf() });
 		}
 	}
 }

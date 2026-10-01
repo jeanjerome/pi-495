@@ -4,6 +4,7 @@
  */
 import { spawn } from "node:child_process";
 import type { ExecutableRequest, ProcessObservation } from "../../ports/execution.ts";
+import { messageOf } from "../../domain/errors.ts";
 
 export interface SpawnPlan {
 	command: string[];
@@ -42,7 +43,7 @@ export function runProcess(
 				shell: false,
 			});
 		} catch (error) {
-			resolve(finish(null, null, false, (error as Error).message));
+			resolve(finish(null, null, false, messageOf(error)));
 			return;
 		}
 		const killGroup = (sig: NodeJS.Signals) => {

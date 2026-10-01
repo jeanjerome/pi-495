@@ -7,7 +7,7 @@ import { cp, mkdir, rm, symlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
-import { DomainError } from "../../domain/errors.ts";
+import { DomainError, messageOf } from "../../domain/errors.ts";
 import { inInstalledDependencies } from "../../domain/gates/g4.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
 import { git, inspectGit } from "../workspace/git-workspace.ts";
@@ -230,7 +230,7 @@ export class GitIntegrator {
 					cor,
 				);
 			} catch (error) {
-				const detail = (error as Error).message;
+				const detail = messageOf(error);
 				return h.commit(
 					unit,
 					{

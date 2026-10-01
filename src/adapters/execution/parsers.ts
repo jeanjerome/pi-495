@@ -1,6 +1,7 @@
 import { parseXml, XmlElement, type XmlDocument, type XmlNode } from "@rgrove/parse-xml";
 import type { Verdict } from "../../contracts/v1/common.ts";
 import type { Finding } from "../../contracts/v1/evidence.ts";
+import { messageOf } from "../../domain/errors.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
 
 /**
@@ -251,7 +252,7 @@ export function parseJUnit(obs: ProcessObservation, documents: string[] | null, 
 	} catch (error) {
 		// A document the parser refuses is a report that was not written: an unreadable one is never a success.
 		const facts = { exit_code: obs.exit_code, reports: documents.length };
-		const note = `a JUnit report is not readable: ${(error as Error).message.split("\n")[0]?.slice(0, 200)}`;
+		const note = `a JUnit report is not readable: ${messageOf(error).split("\n")[0]?.slice(0, 200)}`;
 		if (broke) return outside(facts, note);
 		return { verdict: "INDETERMINATE", facts, notes: [note], failures: [] };
 	}

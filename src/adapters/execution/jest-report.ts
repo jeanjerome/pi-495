@@ -1,4 +1,5 @@
 import type { ProcessObservation } from "../../ports/execution.ts";
+import { messageOf } from "../../domain/errors.ts";
 import { incidentOf, MAX_FAILURES, MAX_REPORT_BYTES, type ParsedReport } from "./parsers.ts";
 
 interface JestTestResult {
@@ -92,7 +93,7 @@ export function parseJestJson(obs: ProcessObservation, documents: string[] | nul
 	try {
 		summary = summarizeJest(readJestReport(documents[0]!));
 	} catch (error) {
-		return unreadable((error as Error).message.split("\n")[0]!.slice(0, 200));
+		return unreadable(messageOf(error).split("\n")[0]!.slice(0, 200));
 	}
 	const facts = { exit_code: obs.exit_code, ...summary };
 	if (summary.failures > 0) return { verdict: "FAIL", facts, notes: [], failures: summary.failed_cases };

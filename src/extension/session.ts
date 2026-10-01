@@ -20,7 +20,7 @@ import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
 import { formatConsumption } from "../presentation/structured/text.ts";
-import { DomainError } from "../domain/errors.ts";
+import { DomainError, messageOf } from "../domain/errors.ts";
 import { locateModel } from "../domain/policy.ts";
 import { harnessVersion } from "../application/environment.ts";
 import { createRuntime, type HarnessRuntime } from "./runtime.ts";
@@ -336,7 +336,7 @@ export class ExtensionSession {
 			this.pending = rt.diagnostics.map((d) => `495: ${d}`);
 			this.announce(ctx);
 		} catch (error) {
-			const text = `495: ${(error as Error).message}`;
+			const text = `495: ${messageOf(error)}`;
 			this.pending = [text];
 			if (ctx.hasUI) ctx.ui.notify(text, "error");
 		}

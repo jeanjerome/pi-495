@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { digestValue } from "../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { Finding } from "../contracts/v1/evidence.ts";
+import { messageOf } from "../domain/errors.ts";
 import { diffLines, hunks, intraline, similarity, splitLines, type Hunk } from "./diff.ts";
 
 export type PathStatus = "intact" | "added" | "modified" | "deleted" | "renamed" | "renamed?" | "special" | "unknown";
@@ -316,7 +317,7 @@ async function readSide(
 			metadata: meta,
 		};
 	} catch (error) {
-		return { kind: "missing", text: "", bytes: 0, metadata: { ...meta, error: (error as Error).message } };
+		return { kind: "missing", text: "", bytes: 0, metadata: { ...meta, error: messageOf(error) } };
 	}
 }
 

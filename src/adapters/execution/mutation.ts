@@ -28,6 +28,7 @@ import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { hasControlCharacter } from "../../application/coverage.ts";
+import { messageOf } from "../../domain/errors.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
 import {
 	SCRIPT_DECLARATION_ONLY,
@@ -177,7 +178,7 @@ export async function mutationScopeOf(
 		try {
 			text = await readFile(absolute, "utf8");
 		} catch (error) {
-			notes.push(`unreadable source ${path}: ${(error as Error).message}; its classes were not mutated`);
+			notes.push(`unreadable source ${path}: ${messageOf(error)}; its classes were not mutated`);
 			continue;
 		}
 		const declared = readDeclarations(path, text).package_name;

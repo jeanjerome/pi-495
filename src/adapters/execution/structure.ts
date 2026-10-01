@@ -19,6 +19,7 @@ import type { Dirent } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { StructureRule } from "../../contracts/v1/protocol.ts";
+import { messageOf } from "../../domain/errors.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
 import { incidentOf, type ParsedFinding, type ParsedReport } from "./parsers.ts";
 
@@ -96,7 +97,7 @@ export async function readJavaSources(workspacePath: string, scopes: readonly st
 			try {
 				entries = await readdir(current.absolute, { withFileTypes: true });
 			} catch (error) {
-				notes.push(`unreadable directory ${current.relative}: ${(error as Error).message}`);
+				notes.push(`unreadable directory ${current.relative}: ${messageOf(error)}`);
 				continue;
 			}
 			for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -116,7 +117,7 @@ export async function readJavaSources(workspacePath: string, scopes: readonly st
 				try {
 					text = await readFile(join(current.absolute, entry.name), "utf8");
 				} catch (error) {
-					notes.push(`unreadable source ${rel}: ${(error as Error).message}`);
+					notes.push(`unreadable source ${rel}: ${messageOf(error)}`);
 					continue;
 				}
 				if (text.length > MAX_SOURCE_BYTES) {

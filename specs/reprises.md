@@ -53,7 +53,7 @@ Statut : écartée — Les erreurs que git() lève, comme celle de l'échec de g
 
 ## R09 — Le message d'une erreur se lit par une seule fonction qui accepte toute valeur levée
 
-Statut : à faire
+Statut : versée
 
 - Où : 19 sites sous adapters/ et extension/ · application : review.ts:319, installation.ts:374, phases/specify.ts:46
 - Constat : 22 (error as Error).message sur un catch unknown ; instanceof Error une seule fois (pi-worker/capabilities.ts:160). .message.split(...) à parsers.ts:254 et jest-report.ts:95 plante si ce qui est lancé n'est pas un Error.

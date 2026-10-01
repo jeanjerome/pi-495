@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { VERSION, type ExtensionAPI, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
-import { DomainError } from "../domain/errors.ts";
+import { DomainError, messageOf } from "../domain/errors.ts";
 import { formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
 import { conduct, drive, presentDecisions } from "./conduct.ts";
@@ -309,7 +309,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 						);
 				}
 			} catch (error) {
-				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : (error as Error).message;
+				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : messageOf(error);
 				session.emit(ctx, `495 error: ${msg}`, {
 					error: error instanceof DomainError ? error.toCanonical() : { message: msg },
 				});

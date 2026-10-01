@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { digestBytes } from "../contracts/digest.ts";
 import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { FileEdit, InstalledPackage, PackageInstall, RecommendedComplement } from "../contracts/v1/protocol.ts";
+import { messageOf } from "../domain/errors.ts";
 import type { SandboxPort, SandboxProfile, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import { editedFile } from "./complement.ts";
 import { MAVEN_DEPENDENCY_PLUGIN_VERSION } from "./stacks/maven.ts";
@@ -371,7 +372,7 @@ async function stateOf(deps: InstallDeps, copyPath: string): Promise<InstallStat
 			package_lock: readFileSync(join(copyPath, "package-lock.json"), "utf8"),
 		};
 	} catch (error) {
-		return `package.json or package-lock.json cannot be read: ${(error as Error).message}`;
+		return `package.json or package-lock.json cannot be read: ${messageOf(error)}`;
 	}
 }
 

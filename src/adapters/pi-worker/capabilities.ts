@@ -12,6 +12,7 @@
  */
 import { getSupportedThinkingLevels, Type, type Api, type Model } from "@earendil-works/pi-ai";
 import type { AgentCapabilities, CapabilityFact, ModelLimits, ModelSelection } from "../../ports/execution.ts";
+import { messageOf } from "../../domain/errors.ts";
 
 /**
  * The part of Pi's model surface a description reads. `ModelRegistry` (pi-coding-agent 0.87.0)
@@ -154,11 +155,7 @@ export class PiModelDescription {
 					: "the endpoint answered without calling the tool it was given",
 			);
 		} catch (error) {
-			observation = fact<boolean>(
-				null,
-				"reported",
-				`the tool-call format could not be observed: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			observation = fact<boolean>(null, "reported", `the tool-call format could not be observed: ${messageOf(error)}`);
 		}
 		this.observed.set(pair, observation);
 		return observation;

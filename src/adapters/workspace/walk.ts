@@ -8,6 +8,7 @@ import { join, posix, relative, sep } from "node:path";
 import type { ManifestEntry } from "../../contracts/v1/candidate.ts";
 import type { Limits } from "../../contracts/v1/evidence.ts";
 import { inInstalledDependencies, matchesScope } from "../../domain/gates/g4.ts";
+import { messageOf } from "../../domain/errors.ts";
 
 export interface WalkOptions {
 	exclusions: string[];
@@ -83,7 +84,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 		try {
 			names = await readdir(dir);
 		} catch (error) {
-			limits.notes.push(`unreadable directory ${toPosix(relative(root, dir))}: ${(error as Error).message}`);
+			limits.notes.push(`unreadable directory ${toPosix(relative(root, dir))}: ${messageOf(error)}`);
 			limits.truncated = true;
 			continue;
 		}

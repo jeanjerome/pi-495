@@ -6,7 +6,7 @@ import type { RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
 import { validate } from "../../contracts/validate.ts";
 import { answersOf, declarationsOfReport, type ChangeState } from "../../domain/change/state.ts";
-import { DomainError } from "../../domain/errors.ts";
+import { DomainError, messageOf } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { type PhaseContext, type Unit, requestAdoption } from "./phase.ts";
 
@@ -43,7 +43,7 @@ export async function specify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	try {
 		validate(RequirementsDocumentSchema, doc, "requirements");
 	} catch (error) {
-		issues.push((error as Error).message);
+		issues.push(messageOf(error));
 	}
 	const ref = await ctx.artifacts.store(
 		"requirements",

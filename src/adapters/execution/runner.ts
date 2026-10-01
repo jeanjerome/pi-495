@@ -8,6 +8,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
+import { messageOf } from "../../domain/errors.ts";
 import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
 import type {
 	ControlExecutionPort,
@@ -266,8 +267,8 @@ export class GenericControlRunner implements ControlExecutionPort {
 		} catch (error) {
 			report = {
 				verdict: "INDETERMINATE",
-				facts: { error: (error as Error).message },
-				notes: [`runner error: ${(error as Error).message}`],
+				facts: { error: messageOf(error) },
+				notes: [`runner error: ${messageOf(error)}`],
 				failures: [],
 			};
 		}
@@ -440,7 +441,7 @@ async function readRecursiveReports(
 						out.push({ name: `${rel}/${file}`, text: await readFile(join(abs, file), "utf8") });
 					}
 				} catch (error) {
-					if ((error as Error).message.startsWith("JUnit report scan exceeded")) throw error;
+					if (messageOf(error).startsWith("JUnit report scan exceeded")) throw error;
 					/* a missing or unreadable report directory produces no report */
 				}
 				continue;
