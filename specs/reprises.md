@@ -191,7 +191,7 @@ Statut : versée
 
 ## R25 — Le verdict de G5 n'a plus de branche morte
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/gates/g5.ts:186-187
 - Constat : if (v.includes("FAIL") && !v.some(…)) return "FAIL"; puis return v.includes("FAIL") ? "FAIL" : … : la première ligne est subsumée par la seconde.

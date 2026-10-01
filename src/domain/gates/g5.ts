@@ -186,7 +186,6 @@ function combine(verdicts: Verdict[], mode: "all" | "any"): Verdict {
 	if (v.length === 0) return verdicts.length === 0 ? "NOT_RUN" : "NOT_APPLICABLE";
 	if (mode === "any") {
 		if (v.includes("PASS")) return "PASS";
-		if (v.includes("FAIL") && !v.some((x) => x === "INDETERMINATE" || x === "NOT_RUN")) return "FAIL";
 		return v.includes("FAIL") ? "FAIL" : v.includes("INDETERMINATE") ? "INDETERMINATE" : "NOT_RUN";
 	}
 	if (v.includes("FAIL")) return "FAIL";
