@@ -43,7 +43,7 @@ Statut : versée
 
 ## R08 — Les adaptateurs enveloppent la panne de ce qu'ils pilotent dans une erreur qui garde sa cause
 
-Statut : à faire
+Statut : écartée — Les erreurs que git() lève, comme celle de l'échec de git commit dans l'intégrateur, ne sont pas internes : l'intégrateur en recopie le message mot pour mot dans le detail de l'événement operation.effect du dossier (integrator.ts, detail = error.message). Le préfixe « git <cmd> failed in <cwd>: » demandé par la reprise changerait donc le texte d'un événement, ce que D-80 §2 interdit.
 
 - Où : src/adapters/workspace/git-workspace.ts:61-66 · object-store/cas.ts:68-71 · git/integrator.ts:172
 - Constat : Aucun { cause } dans tout src/ (grep : 0). git() relance l'erreur brute d'execFile ; l'intégrateur construit new Error(`git commit failed: ${stderr}`) sans origine. La chaîne ne se lit pas du symptôme à la cause.
