@@ -254,7 +254,7 @@ Statut : versée
 
 ## R32 — Le commentaire des budgets dit la règle sans le journal de mesure
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/policy.ts:66-80
 - Constat : Quinze lignes de commentaire qui racontent une campagne de mesure (noms de modèles, taux d'appel, scripts/measure-budgets.ts). C'est un « pourquoi », donc défendable, mais il se lit comme un processus.
