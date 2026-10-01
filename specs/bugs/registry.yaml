@@ -900,3 +900,57 @@ bugs:
     follow_ups: >
       Run the scope test over one path per character of the pattern.
     status: open
+  - bug_id: BUG-2026-10-01T200000
+    date: "2026-10-01"
+    title: "Adopting a program trajectory never refuses a global requirement that nothing is assigned to"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `trajectory.adopt` loops over each milestone's `global_requirement_ids` and refuses one that is
+      "neither assigned to an increment nor to a milestone control" — but it tests the requirement against the
+      very list it iterates over, so the condition is always false and the refusal never fires. The program
+      holds no list of its global requirements apart from the milestones, so the rule has nothing to check.
+    what_expected: >
+      PRG-03: every global obligation is assigned to one or more increments, to a global verification or to an
+      explicit scope decision, and a global requirement left unassigned blocks the adoption of the program plan.
+    steps_to_reproduce:
+      - "Read `src/domain/program/program.ts`, the loop over `m.global_requirement_ids` in `trajectory.adopt`."
+      - "Adopt a trajectory whose milestone lists a global requirement that no increment covers: adoption passes."
+    root_cause: >
+      The guard is dead code, and the data the rule needs is missing: the adoption command carries the increments
+      and the milestones, not the program's global requirements nor its scope decisions.
+    evidence: >
+      Read during the code audit of 2026-10-01. Not reachable from Pi today: the harness adopts a single-increment
+      trajectory with no milestone (`initial single-increment trajectory`).
+    risk_level: low
+    follow_ups: >
+      Needs a design, not a fix: where the program's global requirements come from and how a scope decision is
+      recorded. Carried by `e10s04`, which makes a multi-increment program drivable from Pi; until then the guard
+      stays as it is.
+    status: open
+  - bug_id: BUG-2026-10-01T200100
+    date: "2026-10-01"
+    title: "A Stryker report whose mutant lacks a location is reported as a runner error, not as an unreadable report"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `readStrykerReport` checks only that the report has a `files` object, then casts it to `StrykerReport`.
+      `summarizeStryker` reads `mutant.location.start.line` without a guard: a mutant without a location throws a
+      `TypeError`, which the runner catches and reports as a runner error.
+    what_expected: >
+      A malformed Stryker report is read as unreadable, with the reason, like a report that is not JSON or has no
+      `files` entry; `readJestReport` already validates every field it reads.
+    steps_to_reproduce:
+      - "Give the mutation control a `reports/mutation/mutation.json` whose one mutant has no `location`."
+      - "Run the control: the evidence names a runner error instead of an unreadable report."
+    root_cause: >
+      The boundary narrows the top of the document and trusts the rest.
+    evidence: >
+      Read during the code audit of 2026-10-01, `src/adapters/execution/mutation.ts`, `readStrykerReport` and
+      `summarizeStryker`. Not reproduced by a run.
+    risk_level: low
+    follow_ups: >
+      Guard each mutant entry before it is read, as `readJestReport` does, and name the report unreadable otherwise.
+    status: open

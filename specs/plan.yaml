@@ -183,6 +183,31 @@ epics:
     stories:
       - { id: e05s01, status: "versée", title: "Une cible Node en vitest est jugée par sa propre commande de test" }
 
+  - id: e30
+    title: "Les défauts que l'audit du code a trouvés"
+    status: à faire
+    source: specs/reprises.md
+    objet: >
+      Les défauts de comportement que l'audit de `src/` et `test/` du 2026-10-01 a trouvés sont corrigés,
+      chacun par une story qui passe par les six pas : un script lint qui demande un shell est refusé et
+      nommé, une ligne mal formée du worker ne fait plus tomber le processus de Pi, et une preuve altérée
+      qu'une décision lit arrête le changement au lieu d'être lue comme absente.
+    motif: >
+      Chacun est une promesse écrite que le code ne tient pas : un commentaire et la règle de la commande de
+      test pour le lint, le contrat du superviseur pour le worker, `RM-070` pour la preuve altérée. Le reste
+      de l'audit ne change aucun comportement : il passe par des reprises à comportement constant
+      (`D-80`, `specs/reprises.md`), après cette epic.
+    position: >
+      Avant tout autre travail ouvert, à la demande du propriétaire du 2026-10-01 : assainir avant de
+      bâtir. Les stories se conduisent une à une par `npm run cycle -- <story> auto` ; l'epic n'est pas
+      marquée prête, pour que `suite` ne la rédige ni n'enchaîne sur les défauts du registre. La garde
+      morte de l'adoption d'une trajectoire, quatrième défaut de l'audit, n'est pas atteignable depuis Pi
+      et demande une conception : elle est au registre (`BUG-2026-10-01T200000`), portée par `e10s04`.
+    stories:
+      - { id: e30s01, status: "à faire", title: "Un script lint qui demande un shell est refusé et nommé, et un lint qui n'est pas une commande ne fait pas tomber la détection" }
+      - { id: e30s02, status: "à faire", title: "Une ligne mal formée du worker est ignorée sans faire tomber le processus de Pi" }
+      - { id: e30s03, status: "à faire", title: "Une preuve altérée qu'une décision lit arrête le changement au lieu d'être lue comme absente" }
+
   - id: e06
     title: "Inventaire des cas particuliers d'un arbre"
     status: à faire
@@ -291,7 +316,9 @@ epics:
       `environment_digest`, qui ne porte que la plateforme, les outils et l'identité du build de 495. La
       baseline est un état des lieux (`e29`). Le plan de dette et la conformité reposent sur un programme
       à plusieurs incréments que le noyau porte mais dont la conduite depuis Pi reste à qualifier (`D-16`) :
-      la story `e10s04` le qualifie, et `e11s04` s'y appuie.
+      la story `e10s04` le qualifie, et `e11s04` s'y appuie. `e10s04` porte aussi la règle qu'une exigence
+      globale non affectée bloque l'adoption de la trajectoire (`PRG-03`), dont la garde est aujourd'hui
+      morte faute de liste des exigences globales (`BUG-2026-10-01T200000`).
     stories:
       - { id: e10s01, status: "à faire", title: "Le référentiel d'une cible Maven est adopté par le propriétaire, chaque règle avec son oracle, sa source et sa date" }
       - { id: e10s02, status: "à faire", title: "L'état des lieux d'une cible Maven mesure l'existant avec ce référentiel et sépare code propriétaire, code généré et dépendances" }

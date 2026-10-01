@@ -6,6 +6,7 @@ La façon dont un changement est fait vit ailleurs, dans `cycle/`.
 | Emplacement | Porte | Écrit par |
 |---|---|---|
 | `plan.yaml` | le travail ouvert : les epics dans l'ordre où ils se font, leur objet, leur motif, leurs stories | la main |
+| `reprises.md` | les reprises à comportement constant, dans l'ordre où elles se font, et leur statut (`D-80`) | la main ; l'outil du cycle écrit le statut |
 | `stories/<epic>/` | les stories du travail en cours, au format de `cycle/format-de-story.md` | la main, au pas 1 du cycle ; l'outil fait avancer leur statut |
 | `bugs/registry.yaml`, `bugs/registry-fixed.yaml`, `bugs/BUG-*.md` | les défauts ouverts (`registry.yaml`), les défauts corrigés avec la révision qui les a corrigés (`registry-fixed.yaml`), et leur analyse | la main ; l'outil du cycle déplace une entrée corrigée vers l'archive |
 | `adr/` | les décisions du produit, une par fichier : `ADR-001..018` extraites de la conception technique, `D-*` prises pendant l'implémentation | la main |
