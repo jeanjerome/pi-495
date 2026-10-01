@@ -411,6 +411,9 @@ async function readBoundedReport(workspace: string, reportPath: string | null): 
 	return [{ name: reportPath, text: await readFile(absolute, "utf8") }];
 }
 
+/** The bound on the XML files a recursive scan reads; it escapes the catch that skips unreadable directories. */
+class ScanBound extends Error {}
+
 async function readRecursiveReports(
 	workspace: string,
 	directorySuffix: string,
@@ -437,11 +440,11 @@ async function readRecursiveReports(
 				try {
 					for (const file of (await readdir(abs)).sort()) {
 						if (!file.endsWith(".xml")) continue;
-						if (out.length >= 500) throw new Error("JUnit report scan exceeded 500 XML files");
+						if (out.length >= 500) throw new ScanBound("JUnit report scan exceeded 500 XML files");
 						out.push({ name: `${rel}/${file}`, text: await readFile(join(abs, file), "utf8") });
 					}
 				} catch (error) {
-					if (messageOf(error).startsWith("JUnit report scan exceeded")) throw error;
+					if (error instanceof ScanBound) throw error;
 					/* a missing or unreadable report directory produces no report */
 				}
 				continue;

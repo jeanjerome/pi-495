@@ -62,7 +62,7 @@ Statut : versée
 
 ## R10 — La borne de lecture des rapports JUnit se reconnaît sans lire son message
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/execution/runner.ts:439-445
 - Constat : La borne de 500 fichiers est levée dans le try qui avale les échecs de readdir, puis récupérée par (error as Error).message.startsWith("JUnit report scan exceeded").
