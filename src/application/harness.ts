@@ -357,7 +357,6 @@ export class Harness {
 			{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId },
 			cor,
 		);
-		let unit: Unit = { state: null as unknown as ChangeState, revision: 0 };
 		const d = decide(
 			null,
 			{
@@ -377,7 +376,8 @@ export class Harness {
 		const receipt = this.deps.ledger.appendChange(changeId, 0, d.events, { correlation_id: cor });
 		let state: ChangeState | null = null;
 		for (const e of d.events) state = apply(state, e);
-		unit = { state: state!, revision: receipt.revision };
+		if (!state) throw new DomainError("INVALID_TRANSITION", "change.create produced no change state");
+		let unit: Unit = { state, revision: receipt.revision };
 		unit = this.commit(
 			unit,
 			{ type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef },

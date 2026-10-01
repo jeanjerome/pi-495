@@ -264,7 +264,7 @@ Statut : versée
 
 ## R34 — L'ouverture d'un changement ne fabrique plus un état nul
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/harness.ts:360,380
 - Constat : let unit: Unit = { state: null as unknown as ChangeState, revision: 0 } n'est jamais lu avant d'être réaffecté l.380 (l.361-379 ne touchent pas unit). Le state! l.380 affirme que le réducteur produit un état sur change.create.
