@@ -15,10 +15,12 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 
 export type Pas = "story" | "rouge-vert" | "autocontrole" | "relecture" | "recette" | "versement";
 export const PAS: Pas[] = ["story", "rouge-vert", "autocontrole", "relecture", "recette", "versement"];
+/** A step of a story, or `reprise`, the short path of a refactoring that changes no behaviour (D-80). */
+export type Etape = Pas | "reprise";
 
 export interface Evenement {
 	at: string;
-	pas: Pas;
+	pas: Etape;
 	genre: string;
 	[detail: string]: unknown;
 }
@@ -43,7 +45,7 @@ export class Journal {
 		this.objets = new CasObjectStore(join(racine, "objects"));
 	}
 
-	inscrire(pas: Pas, genre: string, detail: Record<string, unknown> = {}): Evenement {
+	inscrire(pas: Etape, genre: string, detail: Record<string, unknown> = {}): Evenement {
 		const evenement: Evenement = { at: new Date().toISOString(), pas, genre, ...detail };
 		appendFileSync(this.fichier, `${JSON.stringify(evenement)}\n`);
 		this.observateur?.(evenement);

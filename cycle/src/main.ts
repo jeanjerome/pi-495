@@ -4,6 +4,7 @@
  * `cycle suite` runs, one after the other, the epics the plan marks `prete: oui`, writing their
  * stories and driving each to its landing, and repairs the registry's open defects between them;
  * `cycle defauts [gravité]` repairs the open defects alone;
+ * `cycle reprises` runs the refactorings of `specs/reprises.md` that change no behaviour, one commit each;
  * `cycle <story> suivre` follows a running story from another terminal;
  * `cycle <story> accepte [note]` records the owner's acceptance; `cycle <story> ecart "<texte>"`
  * sends the story back to the red-green for a gap the owner names; `cycle <story> etat` prints
@@ -31,6 +32,7 @@ import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
 import { commitsEntre, git, revision } from "./git.ts";
 import { Journal, type Pas, racineCycle } from "./journal.ts";
 import { marquerStoryListee } from "./plan.ts";
+import { reprendre } from "./reprise.ts";
 import { corrigerDefauts, suite } from "./suite.ts";
 import { lireStory } from "./story.ts";
 
@@ -103,16 +105,38 @@ async function lancerDefauts(seuil: string | undefined): Promise<number> {
 	return r.code;
 }
 
+/** The refactorings of the list that change no behaviour, each relayed to the terminal as it runs. */
+async function lancerReprises(): Promise<number> {
+	const root = process.cwd();
+	const racine = racineCycle();
+	const code = await reprendre({
+		root,
+		racine,
+		cible: "main",
+		executeur: new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects"))),
+		preflight: PREFLIGHT,
+		build: { id: "build", commande: ["npm", "run", "build"], reseau: "denied", timeout_ms: 300_000 },
+		...(process.env.CYCLE_495_REPRISES_MAX ? { max: Number(process.env.CYCLE_495_REPRISES_MAX) } : {}),
+		annonce: (texte) => console.log(annonce(texte)),
+		suivi: (nom, brut) => {
+			for (const ligne of lignesDuFlux(brut, root)) console.log(etiquetee(nom, ligne));
+		},
+	});
+	sonner(code === 0 ? "les reprises sont finies" : "les reprises sont arrêtées");
+	return code;
+}
+
 async function main(argv: string[]): Promise<number> {
 	const [id, commande, ...reste] = argv;
 	if (!id) {
 		console.error(
-			"usage: cycle suite | cycle defauts [gravité] | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]",
+			"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]",
 		);
 		return 2;
 	}
 	if (id === "suite") return await lancerSuite();
 	if (id === "defauts") return await lancerDefauts(commande);
+	if (id === "reprises") return await lancerReprises();
 	let ctx: Contexte;
 	try {
 		ctx = contexte(id);

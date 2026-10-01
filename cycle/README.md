@@ -159,6 +159,34 @@ une Preflight rouge. La rédaction d'une story s'arrête de même sur ce qu'elle
 choisir à la place du propriétaire (`bloque`, avec le choix nommé), et une epic sans première story
 possible reste à lui.
 
+## Les reprises
+
+Une reprise ne change aucun comportement : mêmes événements, mêmes artefacts, mêmes verdicts, mêmes
+refus, mêmes contrats, mêmes textes destinés au propriétaire ou au modèle. Elle n'a ni promesse à
+relire, ni rouge à voir, ni rien à montrer en recette ; elle ne passe donc pas par les six pas, et
+prend le chemin court de `D-80`. Ce qui change un comportement, même peu, est une story.
+
+Les reprises sont écrites dans `specs/reprises.md`, une section par reprise, dans l'ordre où elles se
+font. `npm run cycle -- reprises` les conduit l'une après l'autre, depuis `main` et un arbre propre :
+
+1. Preflight est verte sur `main`, après reconstruction de `dist/`, et l'outil lit son nombre de tests.
+2. Une session fait la reprise sur la branche `reprise-<id>` (`prompts/reprise.md`). Elle peut
+   l'écarter, avec la raison, quand la reprise changerait un comportement ou que le code la dément :
+   l'outil l'écrit dans la liste, commite, et passe à la suivante.
+3. L'outil vérifie, sans croire la session : un commit au moins, un arbre propre, la liste intacte,
+   aucune ligne d'assertion de `test/` retirée sans revenir à l'identique, Preflight verte après
+   reconstruction de `dist/`, et pas moins de tests qu'avant.
+4. Une session neuve relit le diff dans une copie détachée (`prompts/reprise-relecture.md`) et dit si
+   un comportement change ou si le diff déborde de la reprise. Il n'y a pas de second tour.
+5. La branche arrive sur `main` en un commit, qui marque la reprise `versée` dans la liste ; la branche
+   est supprimée, le journal de `~/.495/cycle/<id>/` garde les transcriptions.
+
+La course s'arrête, et rend la main, à la première vérification qui échoue ou à la relecture qui voit
+un changement : la branche reste extraite pour qu'on la lise, `main` et la liste ne bougent pas. On
+reprend en revenant sur `main` (`git checkout main`) : la course suivante repart la même reprise d'une
+branche neuve, ou on l'écarte à la main dans la liste avec la raison. `CYCLE_495_REPRISES_MAX` borne le
+nombre de reprises d'une course. Rien n'est poussé.
+
 ## L'outil
 
 `npm run cycle -- <story>` conduit les pas qui restent, dans l'ordre, jusqu'à ce qu'un pas ait
@@ -166,6 +194,7 @@ besoin du propriétaire ou bloque ; `npm run cycle -- <story> etat` dit où elle
 `npm run cycle -- <story> suivre` suit, depuis un autre terminal, la story qui tourne ;
 `npm run cycle -- suite` déroule les epics marquées prêtes, sans le propriétaire ;
 `npm run cycle -- defauts [gravité]` corrige les défauts ouverts du registre, sans dérouler d'epic ;
+`npm run cycle -- reprises` conduit les reprises à comportement constant de `specs/reprises.md` ;
 `npm run cycle -- <story> auto` conduit une story de même ;
 `npm run cycle -- <story> accepte [note]` inscrit l'accord après la recette ;
 `npm run cycle -- <story> ecart "<ce qui manque>"` la renvoie au rouge-vert pour l'écart nommé, avec
