@@ -205,8 +205,41 @@ class Ctx {
 				interrupted: true,
 			});
 	}
-	gateDecision(partial: Omit<GateDecisionState, "decided_at" | "state_revision">): GateDecisionState {
-		return { ...partial, decided_at: this.at, state_revision: this.state.revision };
+	decideGate(
+		gate: GateDecisionState["gate"],
+		verdict: GateDecisionState["verdict"],
+		evaluated: Record<string, string>,
+		reasons: string[],
+		next_action: string,
+		lists: Partial<
+			Pick<
+				GateDecisionState,
+				| "evidence_retained"
+				| "evidence_ignored"
+				| "evidence_missing"
+				| "fail_requirements"
+				| "indeterminate_requirements"
+			>
+		> = {},
+	): void {
+		this.emit({
+			type: "gate.decided",
+			...this.base(),
+			decision: {
+				gate,
+				verdict,
+				evaluated,
+				reasons,
+				evidence_retained: lists.evidence_retained ?? [],
+				evidence_ignored: lists.evidence_ignored ?? [],
+				evidence_missing: lists.evidence_missing ?? [],
+				fail_requirements: lists.fail_requirements ?? [],
+				indeterminate_requirements: lists.indeterminate_requirements ?? [],
+				next_action,
+				decided_at: this.at,
+				state_revision: this.state.revision,
+			},
+		});
 	}
 	invalidate(cause: InvalidationCause): void {
 		const plan = invalidationFor(this.state, cause);
@@ -500,62 +533,29 @@ class Ctx {
 		for (const id of new Set(materialOpen)) reasons.push(`material question open: ${id}`);
 		const evaluated = { mandate: c.mandate_ref.content_digest, request: this.state.request.content_digest };
 		if (reasons.length > 0) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G0",
-					verdict: "FAIL",
-					evaluated,
-					reasons,
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: materialOpen.length > 0 ? "answer_material_questions" : "revise_mandate",
-				}),
-			});
+			this.decideGate(
+				"G0",
+				"FAIL",
+				evaluated,
+				reasons,
+				materialOpen.length > 0 ? "answer_material_questions" : "revise_mandate",
+			);
 			return ok(this.events);
 		}
 		if (
 			this.policy.adoption.mandate === "human" &&
 			!this.hasValidDecision("IH-02", "adopt", c.mandate_ref.content_digest)
 		) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G0",
-					verdict: "INDETERMINATE",
-					evaluated,
-					reasons: ["mandate adoption requires a human decision (IH-02)"],
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "request_decision:IH-02",
-				}),
-			});
+			this.decideGate(
+				"G0",
+				"INDETERMINATE",
+				evaluated,
+				["mandate adoption requires a human decision (IH-02)"],
+				"request_decision:IH-02",
+			);
 			return ok(this.events);
 		}
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G0",
-				verdict: "PASS",
-				evaluated,
-				reasons: [],
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: [],
-				fail_requirements: [],
-				indeterminate_requirements: [],
-				next_action: "specify_requirements",
-			}),
-		});
+		this.decideGate("G0", "PASS", evaluated, [], "specify_requirements");
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "mandate", ref: c.mandate_ref, gate: "G0" });
 		this.emit({
 			type: "mandate.recorded",
@@ -632,62 +632,23 @@ class Ctx {
 		// Past G0 no phase goes back to the specification, so the refusal names the one way out a
 		// command holds: abandoning the change.
 		if (reasons.length > 0) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G1",
-					verdict: "FAIL",
-					evaluated,
-					reasons,
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "cancel",
-				}),
-			});
+			this.decideGate("G1", "FAIL", evaluated, reasons, "cancel");
 			return ok(this.events);
 		}
 		if (
 			this.policy.adoption.requirements === "human" &&
 			!this.hasValidDecision("IH-02", "adopt", c.requirements_ref.content_digest)
 		) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G1",
-					verdict: "INDETERMINATE",
-					evaluated,
-					reasons: ["requirements adoption requires a human decision"],
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "request_decision:IH-02",
-				}),
-			});
+			this.decideGate(
+				"G1",
+				"INDETERMINATE",
+				evaluated,
+				["requirements adoption requires a human decision"],
+				"request_decision:IH-02",
+			);
 			return ok(this.events);
 		}
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G1",
-				verdict: "PASS",
-				evaluated,
-				reasons: [],
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: [],
-				fail_requirements: [],
-				indeterminate_requirements: [],
-				next_action: "design_verification",
-			}),
-		});
+		this.decideGate("G1", "PASS", evaluated, [], "design_verification");
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "requirements", ref: c.requirements_ref, gate: "G1" });
 		this.emit({
 			type: "requirements.recorded",
@@ -708,21 +669,9 @@ class Ctx {
 			requirements: this.state.adopted.requirements?.ref.content_digest ?? "",
 			environment: this.state.environment_digest ?? "",
 		};
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G2",
-				verdict: result.verdict,
-				evaluated,
-				reasons: result.reasons,
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: result.missing_capabilities,
-				fail_requirements: result.uncovered_requirements,
-				indeterminate_requirements: [],
-				next_action: result.next_action,
-			}),
+		this.decideGate("G2", result.verdict, evaluated, result.reasons, result.next_action, {
+			evidence_missing: result.missing_capabilities,
+			fail_requirements: result.uncovered_requirements,
 		});
 		if (result.verdict !== "PASS") return ok(this.events);
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "protocol", ref: c.protocol_ref, gate: "G2" });
@@ -762,62 +711,23 @@ class Ctx {
 			if (!covered.has(id)) reasons.push(`mandatory requirement ${id} is not addressed by the design`);
 		const evaluated = { design: c.design_ref.content_digest, protocol: this.state.protocol?.ref.content_digest ?? "" };
 		if (reasons.length > 0) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G3",
-					verdict: "FAIL",
-					evaluated,
-					reasons,
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "revise_design",
-				}),
-			});
+			this.decideGate("G3", "FAIL", evaluated, reasons, "revise_design");
 			return ok(this.events);
 		}
 		if (
 			this.policy.adoption.design === "human" &&
 			!this.hasValidDecision("IH-05", "choose", c.design_ref.content_digest)
 		) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G3",
-					verdict: "INDETERMINATE",
-					evaluated,
-					reasons: ["design adoption requires a human decision (IH-05)"],
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "request_decision:IH-05",
-				}),
-			});
+			this.decideGate(
+				"G3",
+				"INDETERMINATE",
+				evaluated,
+				["design adoption requires a human decision (IH-05)"],
+				"request_decision:IH-05",
+			);
 			return ok(this.events);
 		}
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G3",
-				verdict: "PASS",
-				evaluated,
-				reasons: [],
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: [],
-				fail_requirements: [],
-				indeterminate_requirements: [],
-				next_action: "produce_candidate",
-			}),
-		});
+		this.decideGate("G3", "PASS", evaluated, [], "produce_candidate");
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "design", ref: c.design_ref, gate: "G3" });
 		this.enter("implementing", "G3 passed");
 		return ok(this.events);
@@ -837,21 +747,12 @@ class Ctx {
 			protocol: this.state.protocol.ref.content_digest,
 			environment: this.state.environment_digest ?? "",
 		};
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G5",
-				verdict: result.verdict,
-				evaluated,
-				reasons: result.reasons,
-				evidence_retained: result.retained,
-				evidence_ignored: result.ignored,
-				evidence_missing: result.missing,
-				fail_requirements: result.failed_requirements,
-				indeterminate_requirements: result.indeterminate_requirements,
-				next_action: result.next_action,
-			}),
+		this.decideGate("G5", result.verdict, evaluated, result.reasons, result.next_action, {
+			evidence_retained: result.retained,
+			evidence_ignored: result.ignored,
+			evidence_missing: result.missing,
+			fail_requirements: result.failed_requirements,
+			indeterminate_requirements: result.indeterminate_requirements,
 		});
 		if (result.verdict === "PASS") {
 			this.emit({ type: "outcome.set", ...this.base(), outcome: "accepted" });
@@ -883,41 +784,11 @@ class Ctx {
 			receipt: c.receipt_digest,
 		};
 		if (reasons.length > 0) {
-			this.emit({
-				type: "gate.decided",
-				...this.base(),
-				decision: this.gateDecision({
-					gate: "G6",
-					verdict: "FAIL",
-					evaluated,
-					reasons,
-					evidence_retained: [],
-					evidence_ignored: [],
-					evidence_missing: [],
-					fail_requirements: [],
-					indeterminate_requirements: [],
-					next_action: "reconcile_integration",
-				}),
-			});
+			this.decideGate("G6", "FAIL", evaluated, reasons, "reconcile_integration");
 			this.block("integration_conflict", reasons.join("; "));
 			return ok(this.events);
 		}
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G6",
-				verdict: "PASS",
-				evaluated,
-				reasons: [],
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: [],
-				fail_requirements: [],
-				indeterminate_requirements: [],
-				next_action: "close",
-			}),
-		});
+		this.decideGate("G6", "PASS", evaluated, [], "close");
 		this.emit({
 			type: "integration.confirmed",
 			...this.base(),
@@ -1077,22 +948,7 @@ class Ctx {
 			base: c.facts.candidate.base_digest,
 			protocol: this.state.protocol.ref.content_digest,
 		};
-		this.emit({
-			type: "gate.decided",
-			...this.base(),
-			decision: this.gateDecision({
-				gate: "G4",
-				verdict: result.verdict,
-				evaluated,
-				reasons: result.reasons,
-				evidence_retained: [],
-				evidence_ignored: [],
-				evidence_missing: [],
-				fail_requirements: [],
-				indeterminate_requirements: [],
-				next_action: result.next_action,
-			}),
-		});
+		this.decideGate("G4", result.verdict, evaluated, result.reasons, result.next_action);
 		if (result.verdict === "PASS") this.enter("verifying", "candidate frozen, G4 passed");
 		else this.enter("deciding", "G4 failed: correct or reject");
 		return ok(this.events);

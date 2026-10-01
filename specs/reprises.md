@@ -137,7 +137,7 @@ Statut : versée
 
 ## R19 — Les décisions de porte se construisent par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/change/decide.ts — 14 émissions gate.decided : G0 ×3 l.503-558, G1 ×3 l.635-690, G2 l.711, G3 ×3 l.765-820, G4 l.1080, G5 l.840, G6 ×2 l.886-920
 - Constat : Chaque émission répète un littéral d'environ 20 lignes avec evidence_retained: [], evidence_ignored: [], evidence_missing: [], fail_requirements: [], indeterminate_requirements: []. Environ 280 des 1 746 lignes du fichier sont cette seule forme. Le fichier est un réducteur agrégé qui partage emit/fail/state ; sa taille vient de là, pas d'un mélange de préoccupations, et une scission en fichiers obligerait à faire circuler Ctx.
