@@ -248,6 +248,7 @@ describe("the protocol frozen from a detection", () => {
 		return coordinatorOver(writingControl(null), new GitWorkspace(join(root, "workspaces"))).freeze({
 			change_id: "chg_1",
 			ordered: [control()],
+			lint_control_ids: [],
 			qualifications: {},
 			diagnosis,
 			requirements: { change_id: "chg_1", requirements: [], answers: [], assumptions: [], contract_families: {} },
@@ -301,6 +302,7 @@ describe("the paths the frozen protocol protects, whatever the stack of the targ
 		const protocol = coordinatorOver(writingControl(null), new GitWorkspace(join(root, "workspaces"))).freeze({
 			change_id: "chg_1",
 			ordered: [control({ control_id: "maven-test", protected_paths: ["pom.xml", "*/pom.xml"] })],
+			lint_control_ids: [],
 			qualifications: {},
 			diagnosis,
 			requirements: { change_id: "chg_1", requirements: [], answers: [], assumptions: [], contract_families: {} },

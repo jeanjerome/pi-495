@@ -51,6 +51,7 @@ function adapter(stack: string, signalFile: string, missing: string): StackAdapt
 		stack,
 		facts: { adapter: stack },
 		controls: [control(stack)],
+		lint_control_ids: [],
 		positive_witness: {},
 		witness_tests: 0,
 		negative_witness: {},

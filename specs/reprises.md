@@ -337,7 +337,7 @@ Statut : versée
 
 ## R42 — Le coordinateur reconnaît un lint par ce que l'adaptateur déclare
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/verification.ts:344-347
 - Constat : r.category.includes("quality" | "lint") et control_id === "lint" codés dans le coordinateur ; épinglé par engineering-report.test.

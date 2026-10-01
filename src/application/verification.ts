@@ -106,6 +106,8 @@ export interface QualificationOutcome {
 export interface FreezeInput {
 	change_id: string;
 	ordered: readonly ControlDefinition[];
+	/** The controls the stack adapter declares as lint, which alone judge a quality or lint requirement. */
+	lint_control_ids: readonly string[];
 	qualifications: Protocol["qualifications"];
 	diagnosis: ControlCapabilityDiagnosis;
 	requirements: RequirementsDocument;
@@ -343,8 +345,8 @@ export class VerificationCoordinator {
 				};
 			const preferred =
 				r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint")
-					? controls.filter((c) => c.control_id === "lint")
-					: controls.filter((c) => c.control_id !== "lint");
+					? controls.filter((c) => input.lint_control_ids.includes(c.control_id))
+					: controls.filter((c) => !input.lint_control_ids.includes(c.control_id));
 			const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
 			return {
 				requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },

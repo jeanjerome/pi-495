@@ -29,6 +29,7 @@ export function detectStack(
 		stack: "unknown",
 		facts: {},
 		controls: [],
+		lint_control_ids: [],
 		positive_witness: {},
 		witness_tests: 0,
 		negative_witness: {},

@@ -61,6 +61,7 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		stack: "node",
 		facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) },
 		controls,
+		lint_control_ids: lint.command ? ["lint"] : [],
 		positive_witness: { ...witnesses.positive, ...measured?.positive },
 		witness_tests: measured ? 2 : 1,
 		own_negative_witness: {

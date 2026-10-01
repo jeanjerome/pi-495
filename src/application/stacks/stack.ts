@@ -11,6 +11,8 @@ export interface StackDetection {
 	stack: string;
 	facts: Record<string, unknown>;
 	controls: ControlDefinition[];
+	/** The controls that judge the style of the code: a quality or lint requirement is judged by them, and no other requirement is. */
+	lint_control_ids: string[];
 	/** Files written into a copy of the reference to build the positive witness (a passing test exercising the runner). */
 	positive_witness: Record<string, string>;
 	/** Test cases the positive witness adds to the suite; they say nothing about what the reference itself covers. */

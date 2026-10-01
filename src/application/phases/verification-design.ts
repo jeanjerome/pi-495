@@ -477,6 +477,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const protocol = ctx.verification.freeze({
 			change_id: unit.state.change_id,
 			ordered,
+			lint_control_ids: detection.lint_control_ids,
 			qualifications: qualified.qualifications,
 			diagnosis,
 			requirements: requirements.content,

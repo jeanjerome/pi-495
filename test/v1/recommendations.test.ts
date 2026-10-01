@@ -382,6 +382,7 @@ describe("A technology declares its own recommendations", () => {
 				stack: "cargo",
 				facts: {},
 				controls: [],
+				lint_control_ids: [],
 				positive_witness: {},
 				witness_tests: 0,
 				negative_witness: {},

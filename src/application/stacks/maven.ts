@@ -129,6 +129,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 			architecture_rules: rules.map((rule) => rule.rule_id),
 		},
 		controls,
+		lint_control_ids: [],
 		positive_witness: positive,
 		witness_tests: measuresIntroducedCode ? 2 : 1,
 		negative_witness: {
