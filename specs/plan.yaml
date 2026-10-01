@@ -30,7 +30,6 @@ contraintes:
     instruite (`D-49`).
   - "Les travaux touchant au protocole gelé changent `environment_digest` et invalident le protocole d'un cycle en cours : ne pas les engager pendant qu'une campagne tourne."
   - Tout composant nouveau réclame un identifiant `CMP-*` inscrit au catalogue dans le même changement.
-  - Une exigence devenue couverte s'inscrit dans la matrice de traçabilité, qui refuse une absence silencieuse.
   - >
     Les technologies prises en charge s'étofferont au-delà de Maven et de Node : ce qu'une story ajoute par
     technologie vit dans l'adaptateur de cette technologie, jamais dans une table centrale (`D-75`).
