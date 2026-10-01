@@ -19,7 +19,7 @@ export const NODE_ADAPTER: StackAdapter = { stack: "node", signal_files: ["packa
 
 function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection {
 	const pkgPath = join(projectPath, "package.json");
-	let pkg: { scripts?: Record<string, string> } = {};
+	let pkg: { scripts?: Record<string, unknown> } = {};
 	try {
 		pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as typeof pkg;
 	} catch {
@@ -36,14 +36,14 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 	// judge nothing of the behaviour the refused runner was there to judge.
 	const controls: ControlDefinition[] = suite.control ? [suite.control] : [];
 	if (suite.coverage?.control) controls.push(suite.coverage.control);
-	if (scripts.lint && !suite.refusal)
+	const lintScript = typeof scripts.lint === "string" ? scripts.lint : undefined;
+	const lint = lintScript && !suite.refusal ? lintOf(lintScript, nodeBinary) : {};
+	if (lint.command)
 		controls.push({
 			control_id: "lint",
 			version: "1",
-			title: `npm run lint (${scripts.lint})`,
-			command: [nodeBinary, join(projectPath, "node_modules", ".bin", "___unused___")]
-				.slice(0, 0)
-				.concat(commandFromScript(scripts.lint, nodeBinary)),
+			title: `npm run lint (${lintScript})`,
+			command: lint.command,
 			cwd: ".",
 			env_allowlist: BASE_ENV,
 			env: {},
@@ -81,7 +81,7 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		preparation_paths: ["test/", "tests/"],
 		capability_missing: suite.refusal
 			? [suite.refusal]
-			: [...(suite.coverage?.missing ?? []), ...(mutation.missing ?? [])],
+			: [...(suite.coverage?.missing ?? []), ...(mutation.missing ?? []), ...(lint.refusal ? [lint.refusal] : [])],
 		recommendations: [suite.coverage?.recommendation, mutation.recommendation].filter((r) => r !== undefined),
 	};
 }
@@ -599,11 +599,13 @@ function moduleWitnesses(
 	};
 }
 
-/** Converts a simple npm script (`node scripts/lint.js`) into an argv; a shell-only script is refused (no implicit shell). */
-function commandFromScript(script: string, nodeBinary: string): string[] {
+/**
+ * The argv of `scripts.lint` split on whitespace, `node` replaced by the Node binary, or why there is
+ * none: a script with shell syntax needs a shell, which the sandbox does not give.
+ */
+function lintOf(script: string, nodeBinary: string): { command?: string[]; refusal?: string } {
+	if (SHELL_SYNTAX.test(script))
+		return { refusal: `scripts.lint chains commands through a shell (${script}), which 495 cannot run` };
 	const parts = script.trim().split(/\s+/);
-	if (parts.length === 0) return ["/bin/false"];
-	if (/[|&;<>$`]/.test(script)) return ["/bin/sh", "-c", script];
-	if (parts[0] === "node") return [nodeBinary, ...parts.slice(1)];
-	return parts;
+	return { command: parts[0] === "node" ? [nodeBinary, ...parts.slice(1)] : parts };
 }

@@ -2,7 +2,7 @@
 
 Story : e30s01
 Epic : e30
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

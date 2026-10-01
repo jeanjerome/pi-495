@@ -954,3 +954,29 @@ bugs:
     follow_ups: >
       Guard each mutant entry before it is read, as `readJestReport` does, and name the report unreadable otherwise.
     status: open
+  - bug_id: BUG-2026-10-01T172325
+    date: "2026-10-01"
+    title: "A scripts.lint made only of whitespace declares a lint control whose command is an empty string"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `detectNodeStack` skips an empty `scripts.lint`, but a script of whitespace alone is truthy and carries no
+      shell syntax: `lintOf` trims it and splits it into `[""]`, and the detection declares a lint control whose
+      argv is a single empty string, which cannot start.
+    what_expected: >
+      A `scripts.lint` with no command in it is no lint: the detection declares no lint control, as for an empty
+      script.
+    steps_to_reproduce:
+      - "Give a Node target `scripts.test` = `node --test` and `scripts.lint` = `\"   \"`."
+      - "Detect its stack: the controls carry a `lint` control whose command is `[\"\"]`."
+    root_cause: >
+      The guard tests the raw string for truthiness before it is trimmed. The conversion of the script into an
+      argv had the same split and gave the same `[""]` before the shell refusal.
+    evidence: >
+      Read during the self-review of the shell refusal of `scripts.lint`, `src/application/stacks/node.ts`,
+      `detectNodeStack` and `lintOf`; `"   ".trim().split(/\s+/)` is `[""]` under Node 24. Not reproduced by a run.
+    risk_level: low
+    follow_ups: >
+      Treat a `scripts.lint` that is blank after trimming as absent, with a test.
+    status: open
