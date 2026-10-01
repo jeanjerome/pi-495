@@ -1,0 +1,156 @@
+TAP version 13
+# Subtest: sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+    # Subtest: seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+    not ok 1 - seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+      ---
+      duration_ms: 40.664125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:43:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /outside:EPERM/. Input:
+        
+        'ws:ok,outside:ok,secret:EPERM,symlink:EPERM,home:EPERM,net:EPERM'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'ws:ok,outside:ok,secret:EPERM,symlink:EPERM,home:EPERM,net:EPERM'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:68:11)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+    not ok 2 - a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+      ---
+      duration_ms: 1.396833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:78:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        (version 1)
+        (deny default)
+        (allow process-exec*)
+        (allow process-fork)
+        (allow signal (target same-sandbox))
+        (allow sysctl-read)
+        (allow mach-lookup)
+        (allow ipc-posix-shm*)
+        (allow file-read*)
+        (deny file-read* (subpath "/Users/jeanjerome/.ssh"))
+        (deny file-read* (subpath "/Users/jeanjerome/.aws"))
+        (deny file-read* (subpath "/Users/jeanjerome/.gnupg"))
+        (deny file-read* (subpath "/Users/jeanjerome/.pi/agent/auth.json"))
+        (allow file-write* (subpath "/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test-output/sbx-JXxIb1/link/new"))
+        (allow file-write* (subpath "/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T"))
+        (allow file-write* (subpath "/private/tmp"))
+        (allow file-write* (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/ttys[0-9]+$") (literal "/dev/dtracehelper"))
+        (deny network*)
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:82:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a path that exists is granted under its resolved form
+    ok 3 - a path that exists is granted under its resolved form
+      ---
+      duration_ms: 1.02675
+      type: 'test'
+      ...
+    # Subtest: mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+    not ok 4 - mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+      ---
+      duration_ms: 44.003458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:92:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'ok' !== 'EPERM'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'EPERM'
+      actual: 'ok'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:115:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: seatbelt lets a loopback profile reach itself and no other host (VER-04)
+    ok 5 - seatbelt lets a loopback profile reach itself and no other host (VER-04)
+      ---
+      duration_ms: 39.856458
+      type: 'test'
+      ...
+    # Subtest: seatbelt allows network only when the mandate says so
+    ok 6 - seatbelt allows network only when the mandate says so
+      ---
+      duration_ms: 37.117458
+      type: 'test'
+      ...
+    # Subtest: unconfined never qualifies and declares missing confinement capabilities
+    ok 7 - unconfined never qualifies and declares missing confinement capabilities
+      ---
+      duration_ms: 0.599417
+      type: 'test'
+      ...
+    # Subtest: bubblewrap never qualifies, whatever the machine offers, because Linux is not claimed
+    ok 8 - bubblewrap never qualifies, whatever the machine offers, because Linux is not claimed
+      ---
+      duration_ms: 0.990708
+      type: 'test'
+      ...
+    # Subtest: a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+    ok 9 - a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+      ---
+      duration_ms: 0.591417
+      type: 'test'
+      ...
+    # Subtest: the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+    ok 10 - the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+      ---
+      duration_ms: 564.006125
+      type: 'test'
+      ...
+    # Subtest: environment is built from the allowlist only, no shell is involved
+    ok 11 - environment is built from the allowlist only, no shell is involved
+      ---
+      duration_ms: 34.787375
+      type: 'test'
+      ...
+    1..11
+not ok 1 - sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+  ---
+  duration_ms: 765.875084
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XC2PAa/test/v1/sandbox.test.ts:42:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 11
+# suites 1
+# pass 8
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 839.20025

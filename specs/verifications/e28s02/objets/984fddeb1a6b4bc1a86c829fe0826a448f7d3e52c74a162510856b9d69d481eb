@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le dossier accordé reste borné à lui-même",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "test/v1/sandbox.test.ts",
+    "ligne": 92,
+    "constat": "Dans un arbre situé sous le répertoire temporaire (comme cet arbre de relecture, /private/var/folders/.../T), le test « mkdir on link/new … write in real/other stays EPERM » échoue : l'écriture dans real/other est permise par l'accord du répertoire temporaire (temp_paths), pas par le code de la story. Hors du répertoire temporaire, les 11 tests passent. C'est le défaut déjà ouvert BUG-2026-09-29T160000 (le test Seatbelt dépend de l'emplacement du dépôt), qui touche ici aussi le nouveau test ; le code tient la promesse.",
+    "mutation": "Hors tmp : accord élargi au parent de la ligne 99 de backends.ts → le test échoue sur l'assertion 'ok' !== 'EPERM'. Dans l'arbre sous tmp, le test échoue sans mutation."
+   }
+  ],
+  "resume": "Les quatre scénarios sont tenus par le code et par des tests, vérifiés dans une copie hors du répertoire temporaire, où les 11 tests de `test/v1/sandbox.test.ts` passent. Cinq mutations de `real()` et une mutation d'élargissement du profil font chacune échouer un test.\n\n- **Forme résolue (scénarios 1 et 4) :** rétablir `return p`, ne pas résoudre le parent, mal nommer le segment absent ou désactiver `realpathSync` font échouer les tests du profil. Désactiver `realpathSync` fait échouer le test du chemin existant.\n- **`mkdir` derrière le lien (scénario 2) :** le même test d'exécution échoue sous chacune de ces mutations.\n- **Bornage (scénario 3) :** l'accord élargi au parent fait échouer ce test sur l'assertion `EPERM`.\n- **Seul constat :** un défaut antérieur déjà au registre, BUG-2026-09-29T160000, qui touche aussi le nouveau test d'exécution. Sous le répertoire temporaire, `mkdir` (scénario 2) passe, mais l'écriture dans `real/other` (scénario 3) est permise par l'accord du répertoire temporaire. Les assertions `EPERM` y échouent donc, comme le test existant de confinement."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le dossier accordé reste borné à lui-même",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/sandbox.test.ts",
+    "ligne": 92,
+    "constat": "Dans le test « mkdir on link/new… », la lecture EPERM sur real/other s'exécute après le mkdir, donc `real/new` existe déjà et le profil est régénéré sous la branche « chemin qui existe », pas sous la branche « dossier absent » que le Given du scénario vise. Ce test ne voit donc pas un élargissement de la branche du chemin absent. Seul le test du texte de profil attrape l'élargissement, par la ligne exacte `real/new`.",
+    "mutation": "Dans `real()`, `join(real(parent), basename(p))` remplacé par `real(parent)` : accord élargi à `real`. Seul le test du profil (« a directory to create behind a link… ») échoue ; le test d'exécution mkdir/EPERM reste vert, alors que l'écriture dans real/other réussit si le dossier est absent (sondée à part : « ok »)."
+   }
+  ],
+  "resume": "Les quatre scénarios sont tenus par le code, `real()` résout le plus profond ancêtre existant et remet les segments absents. Chaque scénario a un test qui échoue sous mutation : repli `return p`, parent non résolu, grant écrit sans `real`, chemin existant non résolu ; chacune fait échouer au moins un test. Une réserve : le test de bornage EPERM s'exécute après la création du dossier, donc il n'exerce pas l'état « dossier absent » ; l'élargissement au parent n'est attrapé que par le test du texte de profil. Dans l'arbre de revue sous le dossier temporaire, ce test d'exécution et le test existant sur les écritures échouent à la base comme à la tête : c'est BUG-2026-09-29T160000, ouvert au registre, que je ne compte pas. Avec TMPDIR hors du dossier temporaire, les 11 tests passent. L'arbre est remis propre par `git checkout`."
+ }
+]
