@@ -269,8 +269,6 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 			digest: digestValue({ test: true }),
 			profile_id: sandbox.backend.backend,
 		},
-		instance_id: "test",
-		denied_read_paths: [root],
 		onDecisionRequested: (r) => requested.push(r),
 		onProgress: (m) => progress.push(m),
 	};

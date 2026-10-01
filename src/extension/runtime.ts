@@ -115,8 +115,6 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		policy: config.policy,
 		workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 },
 		environment: environment.ref,
-		instance_id: randomIds.next("ins"),
-		denied_read_paths: normative,
 	});
 	harness.integrator = new GitIntegrator(harness).step;
 	return {

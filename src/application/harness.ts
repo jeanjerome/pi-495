@@ -84,9 +84,6 @@ export interface HarnessDeps {
 	policy: ActivePolicy;
 	workspacePolicy: WorkspacePolicy;
 	environment: EnvironmentRef;
-	instance_id: string;
-	/** Absolute paths never readable by workers (data dir). */
-	denied_read_paths: string[];
 	/** Called when a decision is requested (presentation hook, never authoritative). */
 	onDecisionRequested?: (request: DecisionRequest) => void;
 	onProgress?: (message: string) => void;

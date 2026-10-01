@@ -282,7 +282,7 @@ Statut : versée
 
 ## R36 — Le harnais ne reçoit plus deux dépendances qu'il ne lit pas
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/harness.ts:87-89 · src/extension/runtime.ts:118-119
 - Constat : HarnessDeps.instance_id et HarnessDeps.denied_read_paths sont injectés et jamais lus dans application/ (vérifié : aucun deps.instance_id ni deps.denied_read_paths dans src/). Les sandboxes reçoivent denied_read_paths par un autre chemin (runtime.ts:69,89).
