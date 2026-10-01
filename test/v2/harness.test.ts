@@ -1327,6 +1327,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const blocked = await t.harness.advance(change.change_id);
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
 		assert.throws(() => t.harness.pause(change.change_id, HUMAN), {
+			constructor: DomainError,
 			code: "PRECONDITION_FAILED",
 			nextActions: ["resume", "cancel"],
 		});

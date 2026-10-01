@@ -128,7 +128,7 @@ Statut : versée
 
 ## R18 — Les tests vérifient une erreur par sa classe et son code
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v2/model-admitted.test.ts:141 · v2/specification-reopening.test.ts:512 · v2/harness.test.ts:1348
 - Constat : Une sentinelle comparée par message (error.message === "this test never drives a session") ; deux contrôles de code sans instanceof DomainError. Les autres correspondances auditées (v1/model-admitted:58,93-99, config-schema:132, change-rules:959,1248,1540) affirment d'abord le code puis le texte, qui est le produit ; structure:185, stryker-mutation:98-99 et control-runner:945,1018 affirment le texte d'un finding : légitimes.

@@ -10,6 +10,7 @@ import {
 import { initRepo, fixtureTs, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
 const cleanups = removedAfterEach();
@@ -500,7 +501,10 @@ describe("a change stopped because its specification no longer progresses is res
 		const changeId = await stopped(t, calls);
 		assert.throws(
 			() => t.harness.pause(changeId, HUMAN),
-			(e: { code?: string }) => e.code === "PRECONDITION_FAILED",
+			(e) => {
+				assert.ok(e instanceof DomainError, String(e));
+				return e.code === "PRECONDITION_FAILED";
+			},
 		);
 		await assertStoppedBeforeG0(t, changeId, [Q1.id]);
 		assert.equal(t.harness.resume(changeId, HUMAN).change?.status, "ready");

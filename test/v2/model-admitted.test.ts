@@ -72,6 +72,9 @@ class UndrivenSandbox {
 	}
 }
 
+/** What `RecordingAgent` throws in place of a session: the test recognises it by its class. */
+class NeverDriven extends Error {}
+
 /** An agent that records what it was asked to probe and start, and never drives a session. */
 class RecordingAgent implements AgentPort {
 	readonly probed: ModelSelection[] = [];
@@ -82,7 +85,7 @@ class RecordingAgent implements AgentPort {
 	}
 	async startIntervention(mandate: InterventionMandate): Promise<never> {
 		this.started.push(mandate.intervention_id);
-		throw new Error("this test never drives a session");
+		throw new NeverDriven("this test never drives a session");
 	}
 }
 
@@ -132,7 +135,7 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 					},
 					() => null,
 				),
-			(error: Error) => error.message === "this test never drives a session",
+			NeverDriven,
 		);
 		assert.deepEqual(started, ["int_1"], "the worker is reached: nothing stands between the choice and the provider");
 	});
