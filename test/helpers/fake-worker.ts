@@ -1,7 +1,8 @@
 /**
  * Fake worker speaking the supervisor protocol without Pi nor model. Behaviour is chosen by the
  * mandate objective: "complete", "invalid-output", "crash", "silent", "hang", "write-outside",
- * "echo-env" (reports its own process.env back, to let a test inspect what actually reached it).
+ * "echo-env" (reports its own process.env back, to let a test inspect what actually reached it),
+ * "malformed-event" and "malformed-null" (write `{"type":"event"}` or `null` first, then complete).
  */
 import { createInterface } from "node:readline";
 import { writeFileSync } from "node:fs";
@@ -25,6 +26,8 @@ rl.on("line", (line) => {
 	const m = msg.mandate;
 	send({ type: "ready", pid: process.pid, pi_version: "fake" });
 	send({ type: "event", event: { type: "started", at: now() } });
+	if (m.objective === "malformed-event") process.stdout.write('{"type":"event"}\n');
+	if (m.objective === "malformed-null") process.stdout.write("null\n");
 	const counters = { tool_calls: 1, duration_ms: 5, tokens_known: 42, delegations: 0 };
 	const cost = {
 		usd: null,

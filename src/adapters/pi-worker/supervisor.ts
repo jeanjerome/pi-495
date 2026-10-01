@@ -131,7 +131,10 @@ export class PiWorkerAgent implements AgentPort {
 			} catch {
 				return;
 			}
+			// JSON that is not a message is ignored like a line that is not JSON.
+			if (typeof msg !== "object" || msg === null) return;
 			if (msg.type === "event") {
+				if (typeof msg.event !== "object" || msg.event === null) return;
 				if (msg.event.type === "tool_started") toolCalls++;
 				push(msg.event);
 			}
