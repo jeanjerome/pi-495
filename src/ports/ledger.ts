@@ -1,4 +1,12 @@
-import type { ArtifactRef, ObjectRef } from "../contracts/v1/common.ts";
+import type {
+	ArtifactRef,
+	EffectState,
+	ExecStatus,
+	ObjectRef,
+	OperationStatus,
+	Outcome,
+	Phase,
+} from "../contracts/v1/common.ts";
 import type { DecisionRequest, HumanDecision } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
@@ -54,8 +62,8 @@ export interface OperationRecord {
 	operation_type: string;
 	aggregate_id: string;
 	inputs_digest: string;
-	status: "accepted" | "running" | "succeeded" | "failed" | "indeterminate" | "cancelled";
-	effect_state: "none" | "prepared" | "started" | "confirmed" | "failed" | "uncertain" | "reconciled";
+	status: OperationStatus;
+	effect_state: EffectState;
 	result: unknown;
 	created_at: string;
 	updated_at: string;
@@ -90,9 +98,9 @@ export interface LedgerPort {
 		change_id: string;
 		program_id: string;
 		increment_id: string;
-		phase: string;
-		status: string;
-		outcome: string;
+		phase: Phase;
+		status: ExecStatus;
+		outcome: Outcome;
 		updated_at: string;
 	}[];
 

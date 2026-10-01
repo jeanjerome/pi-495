@@ -164,7 +164,7 @@ Statut : versée
 
 ## R22 — Les ports et le domaine nomment les types du contrat au lieu de les réécrire
 
-Statut : à faire
+Statut : versée
 
 - Où : commands.ts:29 · ports/ledger.ts:57-58,93-95 · ports/execution.ts:38,187,227-240 · change/apply.ts:414-415,439
 - Constat : Jumeaux manuscrits de types existants : le verdict réécrit en cinq littéraux alors que Verdict (common.ts:148) sert déjà à EvidenceEntry et à evidence.recorded ; OperationStatus, EffectState, Phase, ExecStatus, Outcome réécrits dans les ports ; output_schema réécrit au lieu de keyof typeof OUTPUT_SCHEMAS ; AttemptCounters (state.ts:72) réécrit en ligne six fois.

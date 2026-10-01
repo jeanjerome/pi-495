@@ -336,15 +336,7 @@ export class SqliteLedger implements LedgerPort {
 							"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes ORDER BY updated_at",
 						)
 						.all()
-		) as Array<{
-			change_id: string;
-			program_id: string;
-			increment_id: string;
-			phase: string;
-			status: string;
-			outcome: string;
-			updated_at: string;
-		}>;
+		) as ReturnType<LedgerPort["listChanges"]>;
 		return rows;
 	}
 

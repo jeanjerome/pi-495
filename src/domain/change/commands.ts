@@ -6,6 +6,7 @@ import type {
 	InterventionRole,
 	Phase,
 	StopReason,
+	Verdict,
 } from "../../contracts/v1/common.ts";
 import type { DecisionRequest, DecisionResponse, HumanOrigin } from "../../contracts/v1/decision.ts";
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../contracts/v1/protocol.ts";
@@ -26,7 +27,7 @@ export interface EvidenceFact {
 	subject_digest: string;
 	protocol_revision: number;
 	environment_digest: string;
-	verdict: "PASS" | "FAIL" | "INDETERMINATE" | "NOT_RUN" | "NOT_APPLICABLE";
+	verdict: Verdict;
 	findings_blocking: number;
 }
 

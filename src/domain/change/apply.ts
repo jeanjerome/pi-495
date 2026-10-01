@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "./events.ts";
-import type { ChangeState } from "./state.ts";
+import type { AttemptCounters, ChangeState } from "./state.ts";
 import { DEFAULT_POLICY } from "../policy.ts";
 
 /** Pure projection of one event onto the aggregate. Never throws for known events. */
@@ -410,10 +410,7 @@ export function replay(events: readonly ChangeEvent[]): ChangeState {
 	return state;
 }
 
-function addCounters(
-	a: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number },
-	b: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number },
-) {
+function addCounters(a: AttemptCounters, b: AttemptCounters) {
 	return {
 		tool_calls: a.tool_calls + b.tool_calls,
 		duration_ms: a.duration_ms + b.duration_ms,
@@ -433,11 +430,7 @@ function settlePending(s: ChangeState, decisionId: string): ChangeState {
 	return s;
 }
 
-function addCountersToAttempt(
-	s: ChangeState,
-	interventionId: string,
-	counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number },
-): ChangeState {
+function addCountersToAttempt(s: ChangeState, interventionId: string, counters: AttemptCounters): ChangeState {
 	const intervention = s.interventions.find((i) => i.intervention_id === interventionId);
 	s.budgets = {
 		...s.budgets,

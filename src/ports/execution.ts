@@ -9,9 +9,10 @@ import type {
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
+import type { OUTPUT_SCHEMAS } from "../contracts/v1/reports.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
-import type { InterventionCost } from "../domain/change/state.ts";
+import type { AttemptCounters, InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
 
@@ -35,7 +36,7 @@ export interface SandboxProfile {
 	 * `denied` grants no socket at all; `loopback` lets a process reach itself and nothing else, which
 	 * is what a tool that forks workers and talks to them over a socket needs; `allowed` is a mandate.
 	 */
-	network: "denied" | "loopback" | "allowed";
+	network: ControlDefinition["network"];
 	env_allowlist: string[];
 	env: Record<string, string>;
 }
@@ -184,7 +185,7 @@ export interface InterventionMandate {
 	workspace_path: string;
 	model: ModelSelection;
 	budgets: { duration_ms: number; tool_calls: number };
-	output_schema: "producer-report" | "review-report" | "observation-report" | "specification-report";
+	output_schema: keyof typeof OUTPUT_SCHEMAS;
 }
 
 export type InterventionEvent =
@@ -224,20 +225,20 @@ export type InterventionEvent =
 			output: unknown;
 			output_valid: boolean;
 			truncated?: boolean;
-			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			counters: AttemptCounters;
 			cost: InterventionCost;
 	  }
 	| {
 			type: "failed";
 			at: string;
 			error: string;
-			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			counters: AttemptCounters;
 			cost: InterventionCost;
 	  }
 	| {
 			type: "cancelled";
 			at: string;
-			counters: { tool_calls: number; duration_ms: number; tokens_known: number; delegations: number };
+			counters: AttemptCounters;
 			cost: InterventionCost;
 	  };
 
