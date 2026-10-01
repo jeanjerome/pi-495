@@ -176,19 +176,23 @@ class Ctx {
 		// hand the change back ready and erase the stop without the kernel ever lifting it, and a
 		// verification left open would have the resume run it again, lifting any stop with it.
 		this.closeOpenVerification();
+		this.endRunningIntervention("failed", `change blocked: ${reason}`, "blocked");
+		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail, retryable });
+	}
+	/** Ends the running intervention, if any, before the host reported its usage or its requests. */
+	endRunningIntervention(result: "failed" | "cancelled", detail: string, ended: "blocked" | "cancelled"): void {
 		const running = runningIntervention(this.state);
 		if (running)
 			this.emit({
 				type: "intervention.finished",
 				...this.base(),
 				intervention_id: running.intervention_id,
-				result: "failed",
+				result,
 				counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
-				detail: `change blocked: ${reason}`,
-				cost: unknownCost("the change was blocked before the host reported the session's usage"),
-				imposed_layers: [unobservedEnd("the change was blocked before the session reported its requests")],
+				detail,
+				cost: unknownCost(`the change was ${ended} before the host reported the session's usage`),
+				imposed_layers: [unobservedEnd(`the change was ${ended} before the session reported its requests`)],
 			});
-		this.emit({ type: "status.changed", ...this.base(), status: "blocked", stop_reason: reason, detail, retryable });
 	}
 	/**
 	 * A verification has no external effect, and one a pause, a block, a revocation or a rerun stops can
@@ -1183,18 +1187,7 @@ class Ctx {
 		this.requireActive();
 		if (!HUMAN_ORIGINS.has(this.actor.origin) && this.actor.actor_type !== "kernel")
 			this.fail("INVALID_PROVENANCE", "cancellation requires a human or kernel actor");
-		const running = runningIntervention(this.state);
-		if (running)
-			this.emit({
-				type: "intervention.finished",
-				...this.base(),
-				intervention_id: running.intervention_id,
-				result: "cancelled",
-				counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
-				detail: "change cancelled",
-				cost: unknownCost("the change was cancelled before the host reported the session's usage"),
-				imposed_layers: [unobservedEnd("the change was cancelled before the session reported its requests")],
-			});
+		this.endRunningIntervention("cancelled", "change cancelled", "cancelled");
 		const open = openAttempt(this.state);
 		if (open) this.emit({ type: "attempt.closed", ...this.base(), attempt_id: open.attempt_id, result: "cancelled" });
 		this.emit({ type: "outcome.set", ...this.base(), outcome: "abandoned" });

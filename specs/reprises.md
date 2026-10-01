@@ -209,7 +209,7 @@ Statut : versée
 
 ## R27 — La fin d'une intervention en cours se construit par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : src/domain/change/decide.ts:181-190 vs 1332-1341
 - Constat : block() et changeCancel() construisent chacun un intervention.finished à compteurs nuls, unknownCost(...), unobservedEnd(...).
