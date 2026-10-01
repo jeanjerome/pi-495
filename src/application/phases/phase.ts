@@ -7,7 +7,7 @@
  * and nothing here writes a verdict — everything normative goes through `commit`, which runs the
  * domain reducer and appends what it accepts in one transaction (AT-01).
  */
-import type { ArtifactRef, HumanInteraction, SubjectRef } from "../../contracts/v1/common.ts";
+import type { ArtifactRef, SubjectRef } from "../../contracts/v1/common.ts";
 import type { Evidence } from "../../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
 import type { ChangeCommand } from "../../domain/change/commands.ts";
@@ -16,7 +16,7 @@ import type { ActivePolicy } from "../../domain/policy.ts";
 import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
 import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
-import type { Adoptable } from "../decisions.ts";
+import type { Adoptable, PhaseInteraction } from "../decisions.ts";
 import type { InstallRun } from "../installation.ts";
 import type { VerificationCoordinator } from "../verification.ts";
 
@@ -43,9 +43,6 @@ export interface InterventionOutcome {
 	result: "completed" | "failed" | "cancelled" | "truncated";
 	intervention_id: string;
 }
-
-/** The human interactions a phase may open. The others belong to entry points, not to a phase. */
-export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
 
 /** What a decision put to the human says: the interaction, what it is about, and in which language. */
 export interface DecisionOptions {

@@ -310,7 +310,7 @@ Statut : versée
 
 ## R39 — Les types de l'intervention et des interactions de phase ne sont plus réécrits
 
-Statut : à faire
+Statut : versée
 
 - Où : phases/phase.ts:39-45,48 vs harness.ts:520-526,710 et decisions.ts:402
 - Constat : InterventionOutcome réécrit en ligne comme type de retour de runIntervention ; Exclude<HumanInteraction, "IH-03" | …> écrit trois fois alors que PhaseInteraction existe.

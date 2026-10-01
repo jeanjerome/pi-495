@@ -8,6 +8,9 @@ import type { PackageInstall } from "../contracts/v1/protocol.ts";
 
 type Lang = "fr" | "en";
 
+/** The human interactions a phase may open. The others belong to entry points, not to a phase. */
+export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
+
 const T = {
 	fr: {
 		"IH-01": (q: string) => ({
@@ -399,7 +402,7 @@ const ADOPT_COMPLEMENT = {
 export function buildDecisionRequest(args: {
 	decision_id: string;
 	change_id: string;
-	interaction: Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
+	interaction: PhaseInteraction;
 	subject: SubjectRef;
 	language: Lang;
 	facts: string[];
