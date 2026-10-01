@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import {
 	assertStoppedBeforeG0,
 	makeHarness,
@@ -8,26 +7,18 @@ import {
 	specReport,
 	type TestHarness,
 } from "../helpers/harness-fixture.ts";
-import { initRepo, fixtureTs, tempDir } from "../helpers/fixtures.ts";
+import { initRepo, fixtureTs, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 function project(): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	return p;
-}
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
 }
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
@@ -142,7 +133,7 @@ async function throughTwoRounds(t: TestHarness): Promise<string> {
 
 describe("a specification report is judged against every recorded material answer, the report a reopening produced included (BES-02, RM-010, RM-011)", () => {
 	it("reopens a report that renames the requirement an answer was bound to without asking anything, and the answer reaches the requirements adopted at G1 (6a)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, BINDS_Q1_TO_BODY]);
 		const changeId = await throughTwoRounds(t);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
@@ -167,7 +158,7 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("does not reopen a report that loses an answer and carries nothing an earlier report did not, and stops the change before G0, naming the lost answer (6b)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, RENAMES_MESSAGE]);
 		const changeId = await throughTwoRounds(t);
 		const last = await t.harness.advance(changeId, { max_steps: 30 });
@@ -191,7 +182,7 @@ describe("a specification report is judged against every recorded material answe
 			answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
 			requirements: [RB],
 		});
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA, QB], answers: [], requirements: [RA, RB] }),
 			carriesA,
@@ -224,7 +215,7 @@ describe("a specification report is judged against every recorded material answe
 			answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
 			requirements: [RB],
 		});
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		// The fourth run is paused as `/495 pause` does it: the running session is aborted, then the
 		// change is paused.
@@ -268,7 +259,7 @@ describe("a specification report is judged against every recorded material answe
 		const RC = requirement("R-C");
 		const binds = (...ids: [string, string][]) =>
 			ids.map(([question_id, r]) => ({ question_id, observable: true, requirement_ids: [r] }));
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: [RA] }),
 			specReport({ questions: [QB], answers: binds([QA.id, RA.requirement_id]), requirements: [RA, RB] }),
@@ -299,7 +290,7 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("asks no human to adopt the mandate of a report that loses an answer, and stops the change before G0 (6g)", async () => {
-		const t = track(makeHarness({ policy: { adoption: { mandate: "human" } } }));
+		const t = makeHarness({ policy: { adoption: { mandate: "human" } } });
 		const renames = Array.from({ length: 6 }, (_, i) => ({ ...RENAMES_MESSAGE, objective: `objectif ${i}` }));
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, ...renames]);
 		const changeId = await throughTwoRounds(t);
@@ -314,7 +305,7 @@ describe("a specification report is judged against every recorded material answe
 		const QC = { id: "q-c", question: "C ?", material: true };
 		const RA = requirement("R-A");
 		const bindsA = { question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] };
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: [RA] }),
 			specReport({ questions: [QC], answers: [bindsA], requirements: [RA] }),
@@ -338,7 +329,7 @@ describe("a specification report is judged against every recorded material answe
 		const QB = { id: "q-b", question: "B ?", material: true };
 		const RA = requirement("R-A");
 		const RB = requirement("R-B");
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: [RA] }),
 			// Written again for A, it declares nothing and asks B: B is answered on it.
@@ -373,7 +364,7 @@ describe("a specification report is judged against every recorded material answe
 		const RB = requirement("R-B");
 		const bindsA = { question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] };
 		const bindsB = { question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] };
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: [RA] }),
 			specReport({ questions: [QB], answers: [bindsA], requirements: [RA] }),
@@ -396,7 +387,7 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("a report that declares an answer fixes nothing observable stops the change instead of passing it silently, and closing the question confirms it past G1 without any exigence (6c, 6d)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			ASKS_Q1,
 			specReport({
@@ -425,7 +416,7 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("refusing the proposal by resuming instead of closing rewrites the specification, which binds the answer past G1 (6e)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
 			specReport({
@@ -466,7 +457,7 @@ describe("a change stopped because its specification no longer progresses is res
 	}
 
 	it("writes the specification again on resume, asks it to declare the lost answer, and a report that declares it takes the change past G1", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
 			BINDS_Q1,
@@ -491,7 +482,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("stops the change again after a single rewriting when the report a resume obtained gains nothing, at each resume (6a)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
 		const changeId = await stopped(t, calls);
 		for (const expected of [5, 6]) {
@@ -504,7 +495,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("refuses to pause a stopped change, whose stop a resume still lifts into a rewriting (6a)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
 		const changeId = await stopped(t, calls);
 		assert.throws(
@@ -519,7 +510,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("closes a stopped change as abandoned on cancel, without any intervention (6b)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
 		const changeId = await stopped(t, calls);
 		const view = t.harness.cancel(changeId, HUMAN, "la spécification perd la réponse à q1");
@@ -532,7 +523,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("closes the lost question at the stop instead of resuming it, and the change proceeds without a further specification intervention (6a)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE]);
 		const changeId = await stopped(t, calls);
 		const res = t.harness.closeQuestion(changeId, Q1.id, origin());
@@ -565,7 +556,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("closes one of two lost answers, and the specification is rewritten once more for the other, whose declaration the close is named beside (6b)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
 			BINDS_Q1,
@@ -591,7 +582,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("does not read a closed question's declaration as progress on top of the rewriting its close already owes, while another lost answer is still owed (BES-02)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			ASKS_Q1,
 			BINDS_Q1,
@@ -619,7 +610,7 @@ describe("a change stopped because its specification no longer progresses is res
 	});
 
 	it("does not read a closed question's observable binding as progress either, while another lost answer is still owed (BES-02)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			ASKS_Q1,
 			BINDS_Q1,
@@ -669,7 +660,7 @@ describe("a declaration carries an answer only when it holds in the requirements
 	}
 
 	it("reopens a report whose declaration names a requirement it does not carry, and stops the change before G0 when the next one gains nothing (6e)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const toAbsent = binds(Q1.id, "REQ-ABSENT");
 		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
@@ -695,7 +686,7 @@ describe("a declaration carries an answer only when it holds in the requirements
 	});
 
 	it("reopens a report whose own declaration names a requirement it does not carry, although an earlier report bound the answer to one it keeps, and stops the change before G0 when the next one gains nothing (6e)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const rebindsToAbsent = specReport({
 			questions: [],
 			answers: [binds(Q1.id, "REQ-ABSENT"), binds(Q6.id, MESSAGE.requirement_id)],
@@ -722,7 +713,7 @@ describe("a declaration carries an answer only when it holds in the requirements
 	});
 
 	it("reopens a report whose declaration names only a non-mandatory requirement, and a report that binds the answer to a mandatory one takes the change past G1 (6e)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			ASKS_Q1,
 			specReport({
@@ -752,7 +743,7 @@ describe("a declaration carries an answer only when it holds in the requirements
 
 describe("a refusal at G1 names the only way out a command holds once the mandate is adopted (BES-02)", () => {
 	it("names cancel, and nowhere revise_requirements, when G1 refuses a report that carries every answer and repeats a requirement id (6f)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		specificationRounds(t, [
 			ASKS_Q1,
 			specReport({
@@ -785,7 +776,7 @@ describe("a refusal at G1 names the only way out a command holds once the mandat
 
 describe("the owner closes a material question through IH-01 instead of answering it (BES-02)", () => {
 	it("does not reopen the report that posed the closed question, and the mandate carries it closed with the owner (étapes 1 à 5)", async () => {
-		const t = track(makeHarness());
+		const t = makeHarness();
 		const Q = { id: "q-scope", question: "faut-il aussi la mise à jour ?", material: true };
 		const { calls } = specificationRounds(t, [specReport({ questions: [Q], answers: [] })]);
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });

@@ -6,9 +6,9 @@
  * the run, and the three witnesses.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -26,7 +26,7 @@ import { mutationCapabilityMissing, readsMutationReport } from "../../src/applic
 import { digestValue } from "../../src/contracts/digest.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
-import { fixtureJava, PITEST_PLUGIN } from "../helpers/fixtures.ts";
+import { fixtureJava, PITEST_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { candidate, evidence, protocol, Runner, EXECUTOR, ENV } from "../helpers/change-fixture.ts";
 
 const NODE = process.execPath;
@@ -35,11 +35,10 @@ const GREETER_SOURCE =
 	"package io.h495;\n\npublic final class Greeter {\n    public int twice(int n) {\n        return n * 2;\n    }\n}\n";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "mut-"));
+	root = outputDir("mut-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 interface MutantSpec {
 	status: string;

@@ -34,7 +34,7 @@ Statut : versée
 
 ## R07 — Les répertoires temporaires des tests se nettoient d'une seule façon
 
-Statut : à faire
+Statut : versée
 
 - Où : test/helpers/harness-fixture.ts:212-214 · test/helpers/fixtures.ts:6
 - Constat : makeHarness et tempDir allouent sans nettoyage, et les appelants ont quatre styles : cleanups[] + afterEach (v2), root de module + afterEach (v1), try/finally dans le it (v1/installation.test.ts:251-258,417-424,499-529 ; v4/java-stack.test.ts:139,229), mkdtemp de module + after (v1/junit-reader.test.ts:111-112). Deux racines coexistent : os.tmpdir() et <cwd>/test-output/ (25 Mo).

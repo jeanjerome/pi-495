@@ -13,10 +13,12 @@ import {
 	revision,
 	versementEcrase,
 } from "../../cycle/src/git.ts";
-import { gitCmd, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { gitCmd, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 function depot(): string {
-	const root = tempDir();
+	const root = tempDir("495-", cleanups);
 	gitCmd(root, ["init", "-q", "-b", "main"]);
 	gitCmd(root, ["config", "commit.gpgsign", "false"]);
 	writeFiles(root, { "src/a.js": "export const a = 1;\n", "node_modules/.keep": "" });

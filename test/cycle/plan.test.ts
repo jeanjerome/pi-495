@@ -10,7 +10,9 @@ import {
 	prochaineEpic,
 	prochaineStory,
 } from "../../cycle/src/plan.ts";
-import { tempDir } from "../helpers/fixtures.ts";
+import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 const PLAN = `contraintes:
   - "une contrainte"
@@ -45,7 +47,7 @@ communication: specs/communication
 `;
 
 function racine(): string {
-	const root = tempDir();
+	const root = tempDir("495-", cleanups);
 	mkdirSync(join(root, "specs"), { recursive: true });
 	writeFileSync(join(root, "specs", "plan.yaml"), PLAN);
 	return root;

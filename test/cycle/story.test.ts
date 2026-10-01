@@ -3,7 +3,9 @@ import { strict as assert } from "node:assert";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { avecStatut, lireStory, parseStory, trouverStory } from "../../cycle/src/story.ts";
-import { tempDir } from "../helpers/fixtures.ts";
+import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 const STORY = `# Une réponse révoquée est reposée
 
@@ -81,7 +83,7 @@ describe("a story read from its file", () => {
 	});
 
 	it("is found by its id under specs/stories, whatever its epic directory, and its status line alone is rewritten", () => {
-		const root = tempDir();
+		const root = tempDir("495-", cleanups);
 		mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
 		const path = join(root, "specs", "stories", "e01", "e01s05-une-reponse-revoquee.md");
 		writeFileSync(path, STORY);

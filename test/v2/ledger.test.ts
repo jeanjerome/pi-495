@@ -1,8 +1,7 @@
 import { strict as assert } from "node:assert";
-import { mkdtempSync, rmSync, readdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { SqliteLedger, evidenceDigest } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -12,13 +11,12 @@ import type { ChangeCommand } from "../../src/domain/change/commands.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { replay } from "../../src/domain/change/apply.ts";
 import type { OperationKind } from "../../src/domain/change/state.ts";
+import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
 
+const cleanups = removedAfterEach();
 let dir: string;
 beforeEach(() => {
-	dir = mkdtempSync(join(tmpdir(), "495-ledger-"));
-});
-afterEach(() => {
-	rmSync(dir, { recursive: true, force: true });
+	dir = tempDir("495-ledger-", cleanups);
 });
 
 function sampleEvents() {

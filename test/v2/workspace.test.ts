@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync, chmodSync, existsSync } from "node:fs";
+import { readFileSync, symlinkSync, unlinkSync, writeFileSync, chmodSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY, inspectGit } from "../../src/adapters/workspace/git-workspace.ts";
 import { walkTree, diffEntries, isExcluded } from "../../src/adapters/workspace/walk.ts";
 import {
@@ -13,15 +13,16 @@ import {
 	fixtureSpecial,
 	fixtureMavenMultiModule,
 	ESC,
+	removedAfterEach,
 } from "../helpers/fixtures.ts";
 
 let root: string;
 let ws: GitWorkspace;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	root = tempDir("495-ws-");
+	root = tempDir("495-ws-", cleanups);
 	ws = new GitWorkspace(join(root, "workspaces"));
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("reference capture: the five entry situations (§9.1, SA-002, SA-003, GIT-01)", () => {
 	it("empty directory gives an explicit empty reference", async () => {

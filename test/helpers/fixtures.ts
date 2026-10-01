@@ -1,10 +1,34 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync, chmodSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach } from "node:test";
 
-export function tempDir(prefix = "495-"): string {
-	return mkdtempSync(join(tmpdir(), prefix));
+/**
+ * The directories pushed onto the returned list are removed after each test of the suite that calls it,
+ * once the `afterEach` hooks that suite registered before have run.
+ */
+export function removedAfterEach(): string[] {
+	const dirs: string[] = [];
+	afterEach(() => {
+		for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+	});
+	return dirs;
+}
+
+/** A fresh directory under the system's temporary directory, pushed onto `cleanups` when given. */
+export function tempDir(prefix = "495-", cleanups?: string[]): string {
+	const dir = mkdtempSync(join(tmpdir(), prefix));
+	cleanups?.push(dir);
+	return dir;
+}
+
+/** A fresh directory under `test-output/` in the working directory, pushed onto `cleanups` when given. */
+export function outputDir(prefix: string, cleanups?: string[]): string {
+	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
+	const dir = mkdtempSync(join(process.cwd(), "test-output", prefix));
+	cleanups?.push(dir);
+	return dir;
 }
 
 export function gitCmd(cwd: string, args: string[]): string {

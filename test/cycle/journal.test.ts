@@ -3,11 +3,13 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Journal, racineCycle } from "../../cycle/src/journal.ts";
-import { tempDir } from "../helpers/fixtures.ts";
+import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 describe("the journal of a story", () => {
 	it("appends each event when it is observed and reads them back in order", () => {
-		const journal = new Journal("e01s05", tempDir());
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
 		journal.inscrire("rouge-vert", "rouge", { tache: 1, message: "revokeQuestion is not a function" });
 		journal.inscrire("rouge-vert", "vert", { tache: 1, commit: "abc" });
 		const events = journal.lire();
@@ -25,7 +27,7 @@ describe("the journal of a story", () => {
 	});
 
 	it("names the next step as the first one no fini event closes", () => {
-		const journal = new Journal("e01s05", tempDir());
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
 		assert.equal(journal.prochainPas(), "story");
 		journal.inscrire("story", "fini");
 		journal.inscrire("rouge-vert", "fini");
@@ -35,7 +37,7 @@ describe("the journal of a story", () => {
 	});
 
 	it("names the head a step's run started from, across a resumed launch but not across another step or a reopening", () => {
-		const journal = new Journal("e01s05", tempDir());
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
 		assert.equal(journal.debutDePassage("rouge-vert"), null);
 		journal.inscrire("story", "fini");
 		journal.inscrire("rouge-vert", "debute", { revision: "aaa" });
@@ -52,7 +54,7 @@ describe("the journal of a story", () => {
 	});
 
 	it("keeps what an event points at in a content-addressed store shared by every story", async () => {
-		const racine = tempDir();
+		const racine = tempDir("495-", cleanups);
 		const a = new Journal("e01s05", racine);
 		const b = new Journal("e01s06", racine);
 		const ref = await a.garder("transcript");

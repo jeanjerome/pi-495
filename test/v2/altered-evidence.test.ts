@@ -1,29 +1,20 @@
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { afterEach, describe, it } from "node:test";
+import { readFileSync, writeFileSync } from "node:fs";
+import { describe, it } from "node:test";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import type { ArtifactRef } from "../../src/contracts/v1/common.ts";
 import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 function project(): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	return p;
 }
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
-}
-
 const IMPLEMENTS_GREET = {
 	implement: {
 		steps: [
@@ -95,7 +86,7 @@ function alter(t: TestHarness, artifactId: string): string {
 
 describe("an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)", () => {
 	it("un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet", async () => {
-		const t = track(makeHarness({ scripts: IMPLEMENTS_GREET }));
+		const t = makeHarness({ scripts: IMPLEMENTS_GREET });
 		const { change } = await t.harness.start({ project_path: project(), request_text: "tidy greet", actor: HUMAN });
 		await untilVerifying(t, change.change_id);
 		const candidateId = t.ledger.loadChange(change.change_id)!.state.candidate!.candidate_id;
@@ -111,19 +102,17 @@ describe("an altered piece of evidence a decision reads stops the change instead
 
 	it("un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites", async () => {
 		const introduced: Record<string, readonly number[]>[] = [];
-		const t = track(
-			makeHarness({
-				scripts: IMPLEMENTS_GREET,
-				ledger: (path) => new LedgerWithoutCandidateFiles(path),
-				controls: (real) => ({
-					runControl: async (invocation, signal) => {
-						if (invocation.subject.kind === "candidate" && invocation.introduced_lines)
-							introduced.push(invocation.introduced_lines);
-						return real.runControl(invocation, signal);
-					},
-				}),
+		const t = makeHarness({
+			scripts: IMPLEMENTS_GREET,
+			ledger: (path) => new LedgerWithoutCandidateFiles(path),
+			controls: (real) => ({
+				runControl: async (invocation, signal) => {
+					if (invocation.subject.kind === "candidate" && invocation.introduced_lines)
+						introduced.push(invocation.introduced_lines);
+					return real.runControl(invocation, signal);
+				},
 			}),
-		);
+		});
 		const { change } = await t.harness.start({ project_path: project(), request_text: "tidy greet", actor: HUMAN });
 
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
@@ -139,7 +128,7 @@ describe("an altered piece of evidence a decision reads stops the change instead
 		const first = { id: "q1", question: "400 ou 422 ?", material: true };
 		const second = { id: "q2", question: "quel message ?", material: true };
 		const bound = (id: string) => ({ question_id: id, observable: true, requirement_ids: ["R1"] });
-		const t = track(makeHarness());
+		const t = makeHarness();
 		specificationRounds(t, [
 			specReport({ questions: [first] }),
 			specReport({ questions: [first, second], answers: [bound(first.id)] }),

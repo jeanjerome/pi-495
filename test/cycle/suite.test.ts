@@ -6,8 +6,10 @@ import { Journal } from "../../cycle/src/journal.ts";
 import { lirePlan } from "../../cycle/src/plan.ts";
 import { defautsOuverts } from "../../cycle/src/registre.ts";
 import { corrigerDefauts, suite } from "../../cycle/src/suite.ts";
-import { gitCmd, tempDir } from "../helpers/fixtures.ts";
+import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { COMMIT, depot, fauxClaude } from "../helpers/cycle.ts";
+
+const cleanups = removedAfterEach();
 
 const PLAN = (stories: string) => `epics:
   - id: e01
@@ -39,7 +41,7 @@ function depotSuite(stories: string): string {
 function options(root: string, claude: string, appels: string[], code = 0) {
 	return {
 		root,
-		racine: tempDir(),
+		racine: tempDir("495-", cleanups),
 		cible: "main",
 		claude: fauxClaude(claude),
 		deroulerStory: async (id: string) => {
@@ -229,7 +231,7 @@ describe("the defects between the epics of a run", () => {
 		);
 		gitCmd(root, ["add", "-A"]);
 		gitCmd(root, ["commit", "-q", "-m", "docs: the plan and the registry list the defects"]);
-		const journal = join(tempDir(), "sessions.log");
+		const journal = join(tempDir("495-", cleanups), "sessions.log");
 		const modele = `import { appendFileSync } from "node:fs";
 export default (invite) => {
   appendFileSync(${JSON.stringify(journal)}, invite.slice(0, 12) + "|" + (invite.match(/gravité au moins \`(\\w+)\`/)?.[1] ?? "") + "\\n");
@@ -298,7 +300,7 @@ describe("the repair of the registry's defects", () => {
 		const o = options(root, CHOISIT, appels);
 		const premier = await corrigerDefauts({ ...o, deroulerStory: async () => 1 }, "medium", "test");
 		assert.equal(premier.code, 1);
-		const journal = join(tempDir(), "sessions.log");
+		const journal = join(tempDir("495-", cleanups), "sessions.log");
 		const aucun = `import { appendFileSync } from "node:fs";
 export default (invite) => {
   appendFileSync(${JSON.stringify(journal)}, "session\\n");

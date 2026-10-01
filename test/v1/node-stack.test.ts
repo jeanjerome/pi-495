@@ -1,23 +1,23 @@
 import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import { detectStack } from "../../src/application/target.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { matchesScope, protectedPathsChanged } from "../../src/domain/gates/g4.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	root = tempDir("495-node-stack-");
+	root = tempDir("495-node-stack-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const NOT_ASKED_FOR_COVERAGE =
 	/coverage of the introduced lines is not measured on this target: scripts\.test does not ask node:test for coverage/;

@@ -6,7 +6,6 @@
  * decides, adopts or closes.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -21,16 +20,16 @@ import {
 	commandProject,
 	stalledOnQ1,
 } from "../helpers/command-fixture.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "question-closure-"));
+	root = outputDir("question-closure-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function project(): string {
-	return commandProject("495-question-closure-");
+	return commandProject("495-question-closure-", cleanups);
 }
 
 describe("`/495 close <question>` closes a material question from the stop of a stalled specification (BES-02)", () => {
@@ -61,7 +60,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			);
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -76,7 +74,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			);
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -101,7 +98,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.equal(state.status, "blocked", "the change stays stopped");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -125,7 +121,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.equal(state.open_questions.find((q) => q.id === "q1")?.closed_at, null, "nothing is inscribed");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -174,7 +169,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.ok(state.open_questions.find((q) => q.id === "q1")?.closed_at, "the closure still inscribes");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -193,7 +187,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.equal(state.status, "blocked", "the change stays stopped");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -209,7 +202,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.equal(state.status, "blocked", "the change stays stopped");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -224,7 +216,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			);
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 
@@ -247,7 +238,6 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.notEqual(state.phase, "clarifying", "the change moves past clarifying, as after a resume");
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 });

@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import {
 	SeatbeltSandbox,
 	UnconfinedSandbox,
@@ -12,18 +12,17 @@ import {
 } from "../../src/adapters/sandbox/backends.ts";
 import { incidentOf, parseExitCode } from "../../src/adapters/execution/parsers.ts";
 import type { SandboxProfile } from "../../src/ports/execution.ts";
-import { mkdtempSync } from "node:fs";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "sbx-"));
+	root = outputDir("sbx-", cleanups);
 	mkdirSync(join(root, "ws"));
 	mkdirSync(join(root, "secret"));
 	writeFileSync(join(root, "secret", "key"), "s3cret");
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function profile(over: Partial<SandboxProfile> = {}): SandboxProfile {
 	return {

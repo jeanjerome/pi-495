@@ -1,18 +1,16 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { COVERAGE_RULE_PARTIAL, COVERAGE_RULE_UNCOVERED } from "../../src/adapters/execution/parsers.ts";
 import { judgeCoverage, LCOV_REPORT, lcovControl, recordedLcov, workspaceWith } from "../helpers/lcov-control.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const CALC = "src/calc.mjs";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "lcov-"));
+	root = outputDir("lcov-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("the lcov reader judges the lines a change introduces", () => {
 	it("given recorded LCOV reports and a change introducing three lines one of which is never executed, then the verdict is FAIL with a finding at that file and line and the earlier unexecuted line is named as tolerated", async () => {

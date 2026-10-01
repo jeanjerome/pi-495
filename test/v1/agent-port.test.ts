@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { PiWorkerAgent } from "../../src/adapters/pi-worker/supervisor.ts";
 import { ScriptedAgent } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { collect, fakeWorkerAgent, mandate as buildMandate } from "../helpers/intervention-fixture.ts";
@@ -10,15 +10,15 @@ import { PiModelDescription, type PiModelCatalogue } from "../../src/adapters/pi
 import type { ModelSelection } from "../../src/ports/execution.ts";
 import type { Api, AssistantMessage as PiAssistantMessage, Model } from "@earendil-works/pi-ai";
 import { Value } from "typebox/value";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 type PiModel = Model<Api>;
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "agent-"));
+	root = outputDir("agent-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("worker supervisor protocol (C-AGT, AGT-03, AGT-06, ADR-007)", () => {
 	it("relays started, tool and completed events with a validated structured output", async () => {

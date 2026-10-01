@@ -4,9 +4,9 @@
  * report is an input like any other, and the V4 campaign covers the real chain.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -21,18 +21,17 @@ import { detectStack } from "../../src/application/target.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
-import { fixtureJava, JACOCO_PLUGIN } from "../helpers/fixtures.ts";
+import { fixtureJava, JACOCO_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { EXECUTOR, ENV } from "../helpers/change-fixture.ts";
 
 const NODE = process.execPath;
 const GREETER = "src/main/java/io/h495/Greeter.java";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "cov-"));
+	root = outputDir("cov-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 interface SourceSpec {
 	file: string;

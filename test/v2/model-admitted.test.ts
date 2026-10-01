@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { InterventionSupervisor } from "../../src/application/intervention.ts";
 import type { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
@@ -13,7 +12,7 @@ import type {
 } from "../../src/ports/execution.ts";
 import { describedAs } from "../helpers/capabilities.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { mandate } from "../helpers/intervention-fixture.ts";
 import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
 
@@ -29,16 +28,11 @@ const CHOSEN: ModelSelection = {
 	location: "off_machine",
 };
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 /** Drives a fresh change until its first intervention, and returns the providers the journal started. */
 async function firstInterventionUnder(t: TestHarness): Promise<{ started: unknown[]; stopReason: unknown }> {
-	cleanups.push(t.root);
-	const project = tempDir("495-admitted-");
-	cleanups.push(project);
+	const project = tempDir("495-admitted-", cleanups);
 	fixtureTs(project);
 	initRepo(project);
 	const { change } = await t.harness.start({ project_path: project, request_text: "x", actor: HUMAN });

@@ -3,9 +3,9 @@
  * the owner instead of stopping the change: prepare once more, or judge the requirement themselves.
  */
 import { strict as assert } from "node:assert";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import {
 	fixtureJava,
@@ -15,6 +15,7 @@ import {
 	initRepo,
 	SHOUT_IMPL,
 	tempDir,
+	removedAfterEach,
 } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import {
@@ -46,19 +47,10 @@ import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.
 import type { Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
-}
-
+const cleanups = removedAfterEach();
 /** A target without any test: `shout` does not exist, so R1 asks for behaviour no control can detect. */
 function projectWithoutTests(): string {
-	const p = tempDir("495-arbitration-");
-	cleanups.push(p);
+	const p = tempDir("495-arbitration-", cleanups);
 	fixtureTsWithoutTests(p);
 	initRepo(p);
 	return p;
@@ -117,12 +109,10 @@ const emptyPreparation = {
 };
 
 function harnessWithEmptyPreparations(): TestHarness {
-	return track(
-		makeHarness({
-			defaultScript: { steps: [{ kind: "complete", output: spec }] },
-			scripts: { prepare: emptyPreparation },
-		}),
-	);
+	return makeHarness({
+		defaultScript: { steps: [{ kind: "complete", output: spec }] },
+		scripts: { prepare: emptyPreparation },
+	});
 }
 
 const origin = (): HumanOrigin => ({
@@ -227,12 +217,10 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	});
 
 	it("given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold", async () => {
-		const t = track(
-			makeHarness({
-				policy: { adoption: { requirements: "human" } },
-				scripts: { prepare: emptyPreparation },
-			}),
-		);
+		const t = makeHarness({
+			policy: { adoption: { requirements: "human" } },
+			scripts: { prepare: emptyPreparation },
+		});
 		const { objectives } = specificationRounds(t, [spec, revisedSpec]);
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
@@ -281,12 +269,10 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	});
 
 	it("given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements", async () => {
-		const t = track(
-			makeHarness({
-				policy: { adoption: { requirements: "human" } },
-				scripts: { prepare: emptyPreparation },
-			}),
-		);
+		const t = makeHarness({
+			policy: { adoption: { requirements: "human" } },
+			scripts: { prepare: emptyPreparation },
+		});
 		specificationRounds(t, [spec, revisedSpec]);
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
@@ -325,12 +311,10 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	});
 
 	it("given an IH-04 asked once R2 turned out to be unjudged after the suite was observed, when it is answered revise, then the specification is written again naming R1 and R2 with the owner's text", async () => {
-		const t = track(
-			makeHarness({
-				policy: { adoption: { requirements: "human" } },
-				scripts: { prepare: emptyPreparation },
-			}),
-		);
+		const t = makeHarness({
+			policy: { adoption: { requirements: "human" } },
+			scripts: { prepare: emptyPreparation },
+		});
 		const { objectives } = specificationRounds(t, [specWithRequirementSeenLater, revisedSpec]);
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
@@ -414,12 +398,10 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	});
 
 	it("given an IH-04 answered assign_review for R1, when R2 turns out to be unjudged as well, then the answer does not hold for R2 and IH-04 is asked again naming both", async () => {
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: specWithRequirementSeenLater }] },
-				scripts: { prepare: emptyPreparation },
-			}),
-		);
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: specWithRequirementSeenLater }] },
+			scripts: { prepare: emptyPreparation },
+		});
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
 			request_text: "add shout",
@@ -459,8 +441,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 
 /** A Maven target whose POM binds JaCoCo and PIT (or neither), so the detection recommends nothing (or two complements). */
 function mavenProjectWithoutTests(complete: boolean): string {
-	const p = tempDir("495-arbitration-maven-");
-	cleanups.push(p);
+	const p = tempDir("495-arbitration-maven-", cleanups);
 	fixtureJava(p, complete, complete);
 	initRepo(p);
 	return p;
@@ -468,8 +449,7 @@ function mavenProjectWithoutTests(complete: boolean): string {
 
 /** A Maven target whose only plugins are managed, so the declaration of JaCoCo has no place to go without ambiguity. */
 function mavenProjectWithManagedPluginsOnly(): string {
-	const p = tempDir("495-arbitration-maven-managed-");
-	cleanups.push(p);
+	const p = tempDir("495-arbitration-maven-managed-", cleanups);
 	fixtureJava(p);
 	const pom = join(p, "pom.xml");
 	writeFileSync(
@@ -487,32 +467,30 @@ function mavenHarness(
 	implement?: Record<string, string>,
 ): { t: TestHarness; maven: FakeMavenSandbox } {
 	let maven: FakeMavenSandbox | undefined;
-	const t = track(
-		makeHarness({
-			defaultScript: { steps: [{ kind: "complete", output: spec }] },
-			scripts: {
-				prepare: emptyPreparation,
-				...(implement === undefined
-					? {}
-					: {
-							implement: {
-								steps: [
-									...Object.entries(implement).map(([path, content]) => ({ kind: "write" as const, path, content })),
-									{
-										kind: "complete" as const,
-										output: { summary: "done", changed_paths: Object.keys(implement), tests_claimed: false, notes: [] },
-									},
-								],
-							},
-						}),
-			},
-			backend: (real) => {
-				maven = new FakeMavenSandbox(real, mode);
-				return maven;
-			},
-			controls: (real) => new FakeMavenControls(real),
-		}),
-	);
+	const t = makeHarness({
+		defaultScript: { steps: [{ kind: "complete", output: spec }] },
+		scripts: {
+			prepare: emptyPreparation,
+			...(implement === undefined
+				? {}
+				: {
+						implement: {
+							steps: [
+								...Object.entries(implement).map(([path, content]) => ({ kind: "write" as const, path, content })),
+								{
+									kind: "complete" as const,
+									output: { summary: "done", changed_paths: Object.keys(implement), tests_claimed: false, notes: [] },
+								},
+							],
+						},
+					}),
+		},
+		backend: (real) => {
+			maven = new FakeMavenSandbox(real, mode);
+			return maven;
+		},
+		controls: (real) => new FakeMavenControls(real),
+	});
 	return { t, maven: maven! };
 }
 
@@ -743,8 +721,7 @@ describe("the option to adopt the declaration of a Maven plugin says what it wri
 });
 
 function vitestProjectWithoutProvider(lock: string | null): string {
-	const p = tempDir("495-arbitration-vitest-");
-	cleanups.push(p);
+	const p = tempDir("495-arbitration-vitest-", cleanups);
 	fixtureVitestWithoutProvider(p, lock);
 	return p;
 }
@@ -800,17 +777,15 @@ describe("the IH-04 decision offers to adopt a complement that is an install", (
 describe("adopting a complement that is an install", () => {
 	function vitestHarness(mode: NpmMode): { t: TestHarness; npm: FakeNpmSandbox } {
 		let npm: FakeNpmSandbox | undefined;
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: { prepare: emptyPreparation },
-				backend: (real) => {
-					npm = new FakeNpmSandbox(real, mode);
-					return npm;
-				},
-				controls: (real) => new FakeVitestControls(real),
-			}),
-		);
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: emptyPreparation },
+			backend: (real) => {
+				npm = new FakeNpmSandbox(real, mode);
+				return npm;
+			},
+			controls: (real) => new FakeVitestControls(real),
+		});
 		return { t, npm: npm! };
 	}
 
@@ -1036,24 +1011,22 @@ describe("the candidate that carries an adopted complement", () => {
 		files: Record<string, string>,
 	): Promise<{ t: TestHarness; project: string; changeId: string }> {
 		const project = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: emptyPreparation,
-					implement: {
-						steps: [
-							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
-							{
-								kind: "complete",
-								output: { summary: "done", changed_paths: Object.keys(files), tests_claimed: false, notes: [] },
-							},
-						],
-					},
+		const t = makeHarness({
+			policy: { integration_enabled: true },
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: emptyPreparation,
+				implement: {
+					steps: [
+						...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+						{
+							kind: "complete",
+							output: { summary: "done", changed_paths: Object.keys(files), tests_claimed: false, notes: [] },
+						},
+					],
 				},
-			}),
-		);
+			},
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 40 });

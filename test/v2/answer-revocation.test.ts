@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import {
 	ActsOnFirstCandidateRun,
 	ThrowsOnFirstCandidateRun,
@@ -11,7 +11,15 @@ import {
 	type TestHarness,
 } from "../helpers/harness-fixture.ts";
 import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
-import { initRepo, fixtureTs, fixtureTsWithoutTests, tempDir, SHOUT_IMPL, SHOUT_TEST } from "../helpers/fixtures.ts";
+import {
+	initRepo,
+	fixtureTs,
+	fixtureTsWithoutTests,
+	tempDir,
+	SHOUT_IMPL,
+	SHOUT_TEST,
+	removedAfterEach,
+} from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import type { ArtifactRef } from "../../src/contracts/v1/common.ts";
@@ -22,21 +30,13 @@ import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 function project(fixture: (root: string) => void = fixtureTs): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixture(p);
 	initRepo(p);
 	return p;
-}
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
 }
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
@@ -138,7 +138,7 @@ function revoke(t: TestHarness, changeId: string, questionId: string): void {
 
 describe("the harness revokes the owner's resolution of a material question (DEC-06)", () => {
 	it("presents Q1 again through IH-01 with its three outcomes, in place of the acceptance, and launches no intervention", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t);
 		const interventions = t.ledger.loadChange(changeId)!.state.interventions.length;
 
@@ -158,7 +158,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("the report and the exported dossier say revoked the IH-01 decision that answered Q1 (§12)", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId, answeredBy } = await awaitingAcceptance(t);
 
 		revoke(t, changeId, Q1.id);
@@ -184,7 +184,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("the report lists no requirement and no candidate built on the revoked answer (§14, M5)", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t);
 
 		revoke(t, changeId, Q1.id);
@@ -199,7 +199,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("asks Q1 again on the tree the change was opened on, as clarification first asked it, not on the candidate the revocation withdraws", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t);
 		const before = t.ledger.loadChange(changeId)!.state;
 		const firstAsked = t.ledger.getDecisionRequest(before.open_questions.find((q) => q.id === Q1.id)!.decision_id!)!;
@@ -216,7 +216,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("asks Q1 again in the language the change was started in", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t, { language: "en" });
 
 		revoke(t, changeId, Q1.id);
@@ -229,15 +229,13 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 
 	it("a revocation whose question asked again cannot be stored for presentation inscribes nothing, and Q1 stays answered", async () => {
 		let ledger: LedgerFailingRequests | null = null;
-		const t = track(
-			makeHarness({
-				policy: { g5_human_acceptance: true },
-				ledger: (path) => {
-					ledger = new LedgerFailingRequests(path);
-					return ledger;
-				},
-			}),
-		);
+		const t = makeHarness({
+			policy: { g5_human_acceptance: true },
+			ledger: (path) => {
+				ledger = new LedgerFailingRequests(path);
+				return ledger;
+			},
+		});
 		const { changeId } = await awaitingAcceptance(t);
 		ledger!.failing = true;
 
@@ -254,12 +252,10 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 
 	it("the owner revokes an answer on a change paused during its verification", async () => {
 		let changeId = "";
-		const t = track(
-			makeHarness({
-				policy: { g5_human_acceptance: true },
-				controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
-			}),
-		);
+		const t = makeHarness({
+			policy: { g5_human_acceptance: true },
+			controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
+		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
@@ -277,15 +273,13 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("the owner revokes an answer on a change a step blocked while its controls ran", async () => {
-		const t = track(
-			makeHarness({
-				controls: (real) =>
-					new ThrowsOnFirstCandidateRun(
-						real,
-						new DomainError("EVIDENCE_MISSING", "the report the control wrote is gone"),
-					),
-			}),
-		);
+		const t = makeHarness({
+			controls: (real) =>
+				new ThrowsOnFirstCandidateRun(
+					real,
+					new DomainError("EVIDENCE_MISSING", "the report the control wrote is gone"),
+				),
+		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		const changeId = change.change_id;
@@ -309,27 +303,25 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 
 	it("a block written by a session whose record lost to the owner's revocation does not overwrite it", async () => {
 		let changeId = "";
-		const t = track(
-			makeHarness({
-				controls: (real) =>
-					new ActsOnFirstCandidateRun(real, () => {
-						// Another live session blocks the change, which closes this session's verification, and the
-						// owner revokes Q1 there; this session's controls run on, and its record loses on the revision.
-						t.harness.commit(
-							t.ledger.loadChange(changeId)!,
-							{
-								type: "change.block",
-								at: new Date().toISOString(),
-								actor: KERNEL_ACTOR,
-								reason: "execution_error",
-								detail: "OPERATION_ACTIVE: another session holds the verification",
-							},
-							"cor_other_session",
-						);
-						revoke(t, changeId, Q1.id);
-					}),
-			}),
-		);
+		const t = makeHarness({
+			controls: (real) =>
+				new ActsOnFirstCandidateRun(real, () => {
+					// Another live session blocks the change, which closes this session's verification, and the
+					// owner revokes Q1 there; this session's controls run on, and its record loses on the revision.
+					t.harness.commit(
+						t.ledger.loadChange(changeId)!,
+						{
+							type: "change.block",
+							at: new Date().toISOString(),
+							actor: KERNEL_ACTOR,
+							reason: "execution_error",
+							detail: "OPERATION_ACTIVE: another session holds the verification",
+						},
+						"cor_other_session",
+					);
+					revoke(t, changeId, Q1.id);
+				}),
+		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
 		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
@@ -353,7 +345,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 	});
 
 	it("a revoked change blocked over its question asked again comes back to that question once its stop is lifted", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t);
 		revoke(t, changeId, Q1.id);
 		// The block a losing conduct wrote over the decision before a harness yielded to it.
@@ -393,7 +385,7 @@ class LedgerFailingRequests extends SqliteLedger {
 
 describe("after a revocation the specification is written again, on the owner's new resolution alone (DEC-06)", () => {
 	it("a new answer to Q1 is declared by a rewritten report, and reaches the requirements adopted at G1 and the protocol frozen at G2 (step 6)", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId, rounds } = await awaitingAcceptance(t, { reports: [POSES_Q1, BINDS_Q1_TO_400, BINDS_Q1_TO_422] });
 		assert.equal(rounds.calls(), 2);
 
@@ -425,7 +417,7 @@ describe("after a revocation the specification is written again, on the owner's 
 	});
 
 	it("closing Q1 once asked again rewrites the specification, whose request says Q1 closed, and the mandate carries it closed with the owner (6b)", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId, rounds } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1, BINDS_Q1_TO_400, SAYS_NOTHING_OF_Q1],
 		});
@@ -450,7 +442,7 @@ describe("after a revocation the specification is written again, on the owner's 
 	});
 
 	it("a report rewritten after the revocation that no longer declares Q1 inherits no binding from the reports written before it (step 6, §14)", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t, { reports: [POSES_Q1, BINDS_Q1_TO_400, KEEPS_400_SILENT_ON_Q1] });
 
 		revoke(t, changeId, Q1.id);
@@ -521,7 +513,7 @@ const PREPARES_SHOUT = {
 
 describe("after a revocation the change is rebuilt from the owner's new resolution, not from what was built on the revoked one (DEC-06)", () => {
 	it("the producer of the rebuilt change is not handed the feedback measured under the revoked answer", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		implementWith(t, WRONG_GREET, 1);
 		const { changeId } = await awaitingAcceptance(t, { reports: [POSES_Q1, BINDS_Q1_TO_400, BINDS_Q1_TO_422] });
 		assert.equal(t.ledger.loadChange(changeId)!.state.feedback.length, 1, "the first candidate was corrected");
@@ -542,7 +534,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 	});
 
 	it("the preparation of the rebuilt change starts afresh: it is told of no refusal, and a change revoked twice still prepares its tests", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } });
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT],
@@ -577,7 +569,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 	});
 
 	it("a workspace whose producer never started is taken up while its preparation is adopted, and not by the change rebuilt on a preparation of its own", async () => {
-		const t = track(makeHarness({ scripts: { prepare: PREPARES_SHOUT } }));
+		const t = makeHarness({ scripts: { prepare: PREPARES_SHOUT } });
 		implementWith(t, SHOUT_IMPL);
 		specificationRounds(t, [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT]);
 		const { change } = await t.harness.start({
@@ -629,7 +621,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 	});
 
 	it("a qualification taken up by the rebuilt change notes no prepared suite, and the rebuilt change holds the preparation it made", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } });
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT],
@@ -651,7 +643,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 	});
 
 	it("a qualification taken up by a change rebuilt without a preparation notes no prepared suite, and the rebuilt change holds none, though its first build had one", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } });
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT, BINDS_Q1_TO_422],
@@ -670,7 +662,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 	});
 
 	it("a qualification taken up by a change rebuilt with a preparation notes no prepared suite, and the rebuilt change holds the preparation it made, though its first build had none", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true }, scripts: { prepare: PREPARES_SHOUT } });
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, { reports: [POSES_Q1, BINDS_Q1_TO_400, BINDS_Q1_TO_SHOUT] });
 		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "qualified afresh with no suite prepared");
@@ -711,7 +703,7 @@ function adoptedPreparationRef(t: TestHarness, changeId: string): ArtifactRef | 
 
 describe("the change rebuilt after a revocation spends on the same attempt budget, and asks its owner once it is spent (DEC-06, §18)", () => {
 	it("a change rebuilt with no attempt left asks its owner for a budget extension (IH-07), then implements once it is granted", async () => {
-		const t = track(makeHarness({ policy: { g5_human_acceptance: true } }));
+		const t = makeHarness({ policy: { g5_human_acceptance: true } });
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1, BINDS_Q1_TO_400, BINDS_Q1_TO_422],
 			language: "en",
@@ -761,9 +753,7 @@ describe("the change rebuilt after a revocation spends on the same attempt budge
 	});
 
 	it("the producer of the rebuilt change, resumed on its own attempt, is handed no feedback measured before the revocation", async () => {
-		const t = track(
-			makeHarness({ policy: { g5_human_acceptance: true, budgets: { tool_calls_per_intervention: 2 } } }),
-		);
+		const t = makeHarness({ policy: { g5_human_acceptance: true, budgets: { tool_calls_per_intervention: 2 } } });
 		const PAST_ITS_BOUND: AgentScript = {
 			steps: [
 				...[1, 2, 3].map((n) => ({ kind: "write" as const, path: `src/w${n}.js`, content: `// piece ${n}\n` })),

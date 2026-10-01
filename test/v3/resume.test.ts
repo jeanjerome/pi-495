@@ -5,7 +5,7 @@
  * blocks the change it resumed.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -22,25 +22,25 @@ import {
 	commandProject,
 	stalledOnQ1,
 } from "../helpers/command-fixture.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 let root: string;
 let cwd: string;
 const saved: Record<string, string | undefined> = {};
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "resume-"));
+	root = outputDir("resume-", cleanups);
 	for (const name of HARNESS_ENV) saved[name] = process.env[name];
 	delete process.env.HARNESS495_LANGUAGE;
-	cwd = commandProject("495-resume-");
+	cwd = commandProject("495-resume-", cleanups);
 });
 afterEach(() => {
 	for (const [name, value] of Object.entries(saved)) {
 		if (value === undefined) delete process.env[name];
 		else process.env[name] = value;
 	}
-	rmSync(cwd, { recursive: true, force: true });
-	rmSync(root, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 /** Takes a change with no question to its frozen candidate, in its verification with no control run yet. */
 async function atVerification(

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import {
 	fixtureTs,
@@ -14,6 +14,7 @@ import {
 	JACOCO_PLUGIN,
 	SHOUT_IMPL,
 	SHOUT_TEST,
+	removedAfterEach,
 } from "../helpers/fixtures.ts";
 import { HUMAN, KERNEL } from "../helpers/change-fixture.ts";
 import { detectStack } from "../../src/application/target.ts";
@@ -30,19 +31,10 @@ import {
 } from "../../src/application/preparation.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
-}
-
+const cleanups = removedAfterEach();
 /** F-TS without any test: greet exists, shout does not. */
 function projectWithoutTests(): string {
-	const p = tempDir("495-notests-");
-	cleanups.push(p);
+	const p = tempDir("495-notests-", cleanups);
 	fixtureTsWithoutTests(p);
 	initRepo(p);
 	return p;
@@ -75,25 +67,23 @@ const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, te
 describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)", () => {
 	it("opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
@@ -138,29 +128,27 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 
 	it("the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it", async () => {
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-				// Every witness of the unit control answers FAIL, so its qualification fails beside a
-				// prepared suite that does what it must.
-				controls: (real) => ({
-					runControl: async (invocation, signal) => {
-						const run = await real.runControl(invocation, signal);
-						if (invocation.protocol.protocol_id !== "qualification" || invocation.control.control_id !== "unit")
-							return run;
-						return { ...run, evidence: { ...run.evidence, verdict: "FAIL" as const } };
-					},
-				}),
+			},
+			// Every witness of the unit control answers FAIL, so its qualification fails beside a
+			// prepared suite that does what it must.
+			controls: (real) => ({
+				runControl: async (invocation, signal) => {
+					const run = await real.runControl(invocation, signal);
+					if (invocation.protocol.protocol_id !== "qualification" || invocation.control.control_id !== "unit")
+						return run;
+					return { ...run, evidence: { ...run.evidence, verdict: "FAIL" as const } };
+				},
 			}),
-		);
+		});
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
 			request_text: "add shout",
@@ -187,26 +175,24 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "write", path: ".verify-scratch/run.log", content: "node --test: 1 failing\n" },
-							{ kind: "complete", output: report(["test/shout.test.js", ".verify-scratch/run.log"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "write", path: ".verify-scratch/run.log", content: "node --test: 1 failing\n" },
+						{ kind: "complete", output: report(["test/shout.test.js", ".verify-scratch/run.log"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		const state = t.ledger.loadChange(change.change_id)!.state;
@@ -238,26 +224,24 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["src/greet.js", "test/shout.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["src/greet.js", "test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		// The tree the producer receives is read as it starts, before the script overwrites greet.js.
 		const handedToImplement: string[] = [];
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -293,20 +277,18 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("a preparation that retains no test stays refused, the owner is asked after two, and the producer is told the paths written outside the mandate", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "write", path: ".verify-scratch/run.log", content: "node --test: ok\n" },
-							{ kind: "complete", output: report(["src/greet.js", ".verify-scratch/run.log"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "write", path: ".verify-scratch/run.log", content: "node --test: ok\n" },
+						{ kind: "complete", output: report(["src/greet.js", ".verify-scratch/run.log"]) },
+					],
 				},
-			}),
-		);
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		const state = t.ledger.loadChange(change.change_id)!.state;
@@ -357,8 +339,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.doesNotMatch(objective, /only add tests/, "it no longer reads that only tests are to be added");
 	});
 	it("on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e", () => {
-		const p = tempDir("495-maven-jacoco-");
-		cleanups.push(p);
+		const p = tempDir("495-maven-jacoco-", cleanups);
 		fixtureMavenHexagonal(p);
 		const pom = readFileSync(join(p, "pom.xml"), "utf8");
 		writeFileSync(
@@ -412,8 +393,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		}
 	});
 	it("a role that only reads is told no verification instruction even when the detected controls are handed to it", () => {
-		const p = tempDir("495-maven-reader-");
-		cleanups.push(p);
+		const p = tempDir("495-maven-reader-", cleanups);
 		fixtureMavenHexagonal(p);
 		const detected = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
 		assert.ok(detected.controls.length > 0, "the reactor yields controls to hand over");
@@ -438,8 +418,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		}
 	});
 	it("the context the harness hands the producer names the frozen protocol's coverage and structure with what they read", async () => {
-		const maven = tempDir("495-maven-jacoco-protocol-");
-		cleanups.push(maven);
+		const maven = tempDir("495-maven-jacoco-protocol-", cleanups);
 		fixtureMavenHexagonal(maven);
 		const pom = readFileSync(join(maven, "pom.xml"), "utf8");
 		writeFileSync(
@@ -450,11 +429,10 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		// The campaign runs on the Node target whose controls need no JDK; once its protocol is
 		// adopted, the Maven controls are frozen in its place, and the campaign is cut as soon as the
 		// producer has received its context, before any of them is opposed to a candidate.
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureTs(p);
 		initRepo(p);
-		const t = track(makeHarness({ scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } } }));
+		const t = makeHarness({ scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } } });
 		const { change } = await t.harness.start({ project_path: p, request_text: "keep greet", actor: HUMAN });
 		let frozen = false;
 		for (let step = 0; step < 12 && !t.agent.started.some((m) => m.role === "implement"); step++) {
@@ -504,19 +482,17 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		// The campaign is cut as soon as the preparation producer has received its context: what it is
 		// told then comes from the detection alone, no protocol having been frozen yet.
@@ -550,8 +526,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("on a Maven reactor with JaCoCo and no test, the preparation producer is asked to run mvn -B -q -o test before it answers and told what coverage and structure read, before any protocol is frozen", async () => {
-		const p = tempDir("495-maven-first-preparation-");
-		cleanups.push(p);
+		const p = tempDir("495-maven-first-preparation-", cleanups);
 		fixtureMavenHexagonal(p);
 		const pom = readFileSync(join(p, "pom.xml"), "utf8");
 		writeFileSync(
@@ -559,12 +534,10 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			pom.replace("</project>", `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n</project>`),
 		);
 		initRepo(p);
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
-			}),
-		);
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		// The campaign is cut as soon as the preparation producer has received its context: no control
 		// of the reactor is run, so no JDK is needed, and no protocol has been frozen yet.
@@ -605,25 +578,23 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
@@ -649,9 +620,8 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("derives explicit test roots from a Maven reactor, leaves a production write out of the retained files and refuses a deletion under a root", async () => {
-		const p = tempDir("495-maven-reactor-");
-		const workspaces = tempDir("495-maven-workspaces-");
-		cleanups.push(p, workspaces);
+		const p = tempDir("495-maven-reactor-", cleanups);
+		const workspaces = tempDir("495-maven-workspaces-", cleanups);
 		fixtureMavenMultiModule(p);
 		// A fixture under a test root that is not a test: the reference still has no test file to run.
 		writeFiles(p, { "domain/src/test/resources/fixture.sql": "insert into users values (1);\n" });
@@ -704,11 +674,10 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("closes a persisted single-module mandate before resuming on a Maven reactor", async () => {
-		const p = tempDir("495-maven-stale-mandate-");
-		cleanups.push(p);
+		const p = tempDir("495-maven-stale-mandate-", cleanups);
 		fixtureMavenMultiModule(p);
 		initRepo(p);
-		const t = track(makeHarness({ defaultScript: { steps: [{ kind: "complete", output: spec }] } }));
+		const t = makeHarness({ defaultScript: { steps: [{ kind: "complete", output: spec }] } });
 		const { change } = await t.harness.start({ project_path: p, request_text: "add address", actor: HUMAN });
 		const reached = await t.harness.advance(change.change_id, { max_steps: 3 });
 		assert.equal(reached.view.change?.phase, "preparing", reached.steps.join(" | "));
@@ -834,29 +803,26 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.deepEqual(optional.undiscriminated_requirements, []);
 	});
 	it("opens a preparation on a target that already has tests when the request adds behaviour", async () => {
-		const p = tempDir("495-withtests-");
-		cleanups.push(p);
+		const p = tempDir("495-withtests-", cleanups);
 		fixtureTs(p);
 		initRepo(p);
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
@@ -914,29 +880,26 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			return JSON.parse(new TextDecoder().decode((await t.objects.get(prep.object))!));
 		};
 
-		const rewriting = tempDir("495-rewrite-");
-		cleanups.push(rewriting);
+		const rewriting = tempDir("495-rewrite-", cleanups);
 		fixtureTs(rewriting);
 		initRepo(rewriting);
-		const rewriter = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: exclamation }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/greet.test.js", content: GREET_EXCLAIMED_TEST },
-							{ kind: "complete", output: report(["test/greet.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: GREET_EXCLAIMED_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const rewriter = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: exclamation }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/greet.test.js", content: GREET_EXCLAIMED_TEST },
+						{ kind: "complete", output: report(["test/greet.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: GREET_EXCLAIMED_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const rewritten = await rewriter.harness.start({
 			project_path: rewriting,
 			request_text: "greet must end with an exclamation mark",
@@ -958,29 +921,26 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(rewriteRun.stopped_because, "closed", rewriteRun.steps.join(" | "));
 		assert.equal(rewriteState.outcome, "accepted", "the candidate that appends ! passes the rewritten test");
 
-		const adding = tempDir("495-addonly-");
-		cleanups.push(adding);
+		const adding = tempDir("495-addonly-", cleanups);
 		fixtureTs(adding);
 		initRepo(adding);
-		const adder = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
-							{ kind: "complete", output: report(["test/shout.test.js"]) },
-						],
-					},
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const adder = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
 				},
-			}),
-		);
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+		});
 		const added = await adder.harness.start({ project_path: adding, request_text: "add shout", actor: HUMAN });
 		await adder.harness.advance(added.change.change_id, { max_steps: 40 });
 		const addRecord = await preparationRecord(adder, added.change.change_id);
@@ -993,24 +953,22 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {
 		const p = projectWithoutTests();
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: {
-					prepare: {
-						steps: [
-							{
-								kind: "write",
-								path: "test/greet.test.js",
-								content:
-									'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\ntest("greet", () => { assert.equal(greet("x"), "Hello, x"); });\n',
-							},
-							{ kind: "complete", output: report(["test/greet.test.js"]) },
-						],
-					},
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{
+							kind: "write",
+							path: "test/greet.test.js",
+							content:
+								'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\ntest("greet", () => { assert.equal(greet("x"), "Hello, x"); });\n',
+						},
+						{ kind: "complete", output: report(["test/greet.test.js"]) },
+					],
 				},
-			}),
-		);
+			},
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 40 });
 		const state = t.ledger.loadChange(change.change_id)!.state;
@@ -1060,19 +1018,16 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 		const packageJsonOf = (path: string): string | null =>
 			existsSync(join(path, "package.json")) ? readFileSync(join(path, "package.json"), "utf8") : null;
 		const seen: { producer: string | null; judge: string | null } = { producer: null, judge: null };
-		const t = track(
-			makeHarness({
-				defaultScript: { steps: [{ kind: "complete", output: spec }] },
-				scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
-				controls: (real): ControlExecutionPort => ({
-					runControl(invocation: ControlInvocation, signal?: AbortSignal) {
-						if (invocation.protocol.protocol_id === "preparation")
-							seen.judge = packageJsonOf(invocation.workspace_path);
-						return real.runControl(invocation, signal);
-					},
-				}),
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+			controls: (real): ControlExecutionPort => ({
+				runControl(invocation: ControlInvocation, signal?: AbortSignal) {
+					if (invocation.protocol.protocol_id === "preparation") seen.judge = packageJsonOf(invocation.workspace_path);
+					return real.runControl(invocation, signal);
+				},
 			}),
-		);
+		});
 		const { change } = await t.harness.start({
 			project_path: projectWithoutTests(),
 			request_text: "add shout",

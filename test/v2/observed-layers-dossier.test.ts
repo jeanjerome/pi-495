@@ -5,23 +5,18 @@
  * observed travels as an intervention event and lands in the ledger with the intervention's end.
  */
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import type { ObservedLayers } from "../../src/domain/imposed-layers.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 function project(): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	return p;
@@ -39,7 +34,6 @@ const preamble: ObservedLayers = { ...bare, above_local_instructions: ["an endpo
 /** The end of the change's first specification intervention, as the ledger holds it. */
 async function specificationEnd(script: AgentScript): Promise<Extract<ChangeEvent, { type: "intervention.finished" }>> {
 	const t: TestHarness = makeHarness({ scripts: { specify: script } });
-	cleanups.push(t.root);
 	const { change } = await t.harness.start({ project_path: project(), request_text: "greet", actor: HUMAN });
 	await t.harness.advance(change.change_id, { max_steps: 3 });
 	const events = t.ledger.readChangeEvents(change.change_id).map((stored) => stored.event);

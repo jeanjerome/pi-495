@@ -3,7 +3,9 @@ import { strict as assert } from "node:assert";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { defautDeLaStory, defautsOuverts, marquerCorrige } from "../../cycle/src/registre.ts";
-import { tempDir } from "../helpers/fixtures.ts";
+import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 const REGISTRE = `bugs:
   - bug_id: BUG-2026-09-01T100000
@@ -33,7 +35,7 @@ const REGISTRE = `bugs:
 `;
 
 function racine(): string {
-	const root = tempDir();
+	const root = tempDir("495-", cleanups);
 	mkdirSync(join(root, "specs", "bugs"), { recursive: true });
 	writeFileSync(join(root, "specs", "bugs", "registry.yaml"), REGISTRE);
 	return root;

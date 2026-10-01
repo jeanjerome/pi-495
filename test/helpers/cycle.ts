@@ -1,5 +1,4 @@
-import { afterEach } from "node:test";
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -7,14 +6,11 @@ import { Executeur } from "../../cycle/src/controls.ts";
 import type { Contexte } from "../../cycle/src/cycle.ts";
 import { Journal } from "../../cycle/src/journal.ts";
 import { lireStory } from "../../cycle/src/story.ts";
-import { fixtureTs, gitCmd, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 export const NODE = process.execPath;
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 export const STORY = `# greet shouts
 
@@ -62,8 +58,7 @@ export const PASSING_TEST =
 
 /** A repository with the fixture project on main, the story committed, and a clean tree. */
 export function depot(): string {
-	const root = tempDir();
-	cleanups.push(root);
+	const root = tempDir("495-", cleanups);
 	fixtureTs(root);
 	mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
 	writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md"), STORY);
@@ -81,8 +76,7 @@ export function depot(): string {
  * hands the module only the text that follows it.
  */
 export function fauxClaude(reponses: string): string {
-	const dir = tempDir();
-	cleanups.push(dir);
+	const dir = tempDir("495-", cleanups);
 	const module = join(dir, "reponses.mjs");
 	writeFileSync(module, reponses);
 	const path = join(dir, "claude");
@@ -103,8 +97,7 @@ export function commit(cwd, files, message) { for (const [rel, content] of Objec
 `;
 
 export function contexte(root: string, claude: string): Contexte {
-	const racine = tempDir();
-	cleanups.push(racine);
+	const racine = tempDir("495-", cleanups);
 	return {
 		root,
 		story: lireStory("e01s05", root),

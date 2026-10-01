@@ -5,11 +5,11 @@
  */
 import { strict as assert } from "node:assert";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
-import { fixtureTs, initRepo } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
@@ -29,11 +29,10 @@ const REFUSED = JSON.stringify({ policy: { adoptoin: { design: "human" } } });
 const REPAIRED = JSON.stringify({ policy: { adoption: { design: "kernel" } } });
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "v3cfg-"));
+	root = outputDir("v3cfg-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function piAvailable(): boolean {
 	try {

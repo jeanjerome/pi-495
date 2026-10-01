@@ -6,13 +6,13 @@
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { selectedModel } from "../../src/extension/conduct.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 import type { ModelSelection } from "../../src/ports/execution.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
 
 /** Found anywhere in a dossier, this can only have been copied from the address. */
@@ -26,15 +26,10 @@ function commandContext(provider: string, id: string, baseUrl: string): Extensio
 const LOCAL = commandContext("omlx", "local-1", `http://127.0.0.1:8000/${ADDRESS_SENTINEL}/v1?key=${ADDRESS_SENTINEL}`);
 const REMOTE = commandContext("acme-hosted", "acme-large", `https://api.acme-hosted.example/${ADDRESS_SENTINEL}/v1`);
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 async function startChange(t: TestHarness): Promise<string> {
-	cleanups.push(t.root);
-	const project = tempDir("495-location-");
-	cleanups.push(project);
+	const project = tempDir("495-location-", cleanups);
 	fixtureTs(project);
 	initRepo(project);
 	const { change } = await t.harness.start({ project_path: project, request_text: "x", actor: HUMAN });
@@ -51,8 +46,7 @@ function startedWith(t: TestHarness, changeId: string): ModelSelection[] {
 
 /** Exports the change and returns every file of the dossier, by path. */
 async function exported(t: TestHarness, changeId: string): Promise<Map<string, string>> {
-	const destination = tempDir("495-location-export-");
-	cleanups.push(destination);
+	const destination = tempDir("495-location-export-", cleanups);
 	rmSync(destination, { recursive: true, force: true });
 	await exportChange(t.ledger, t.objects, {
 		change_id: changeId,

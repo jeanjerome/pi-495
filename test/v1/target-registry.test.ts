@@ -1,20 +1,20 @@
 import { strict as assert } from "node:assert";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { detectStack } from "../../src/application/target.ts";
 import type { StackAdapter, StackDetection } from "../../src/application/stacks/stack.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	root = tempDir("495-target-registry-");
+	root = tempDir("495-target-registry-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function project(files: Record<string, string>): string {
 	const path = join(root, "target");

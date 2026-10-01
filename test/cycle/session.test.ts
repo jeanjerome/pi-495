@@ -4,11 +4,13 @@ import { chmodSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Journal } from "../../cycle/src/journal.ts";
 import { lancerSession, lireFlux } from "../../cycle/src/session.ts";
-import { tempDir } from "../helpers/fixtures.ts";
+import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 /** A stand-in for `claude -p` that echoes what it was asked and answers the schema it was given. */
 function fauxClaude(lines: string[]): string {
-	const path = join(tempDir(), "claude");
+	const path = join(tempDir("495-", cleanups), "claude");
 	writeFileSync(
 		path,
 		`#!/usr/bin/env node\nconst args = process.argv.slice(2);\nconst invite = args[args.indexOf("-p") + 1];\nconst schema = args[args.indexOf("--json-schema") + 1];\nconst consignes = args[args.indexOf("--append-system-prompt") + 1];\nconst q = (s) => JSON.stringify(s).slice(1, -1);\nprocess.stdout.write(${JSON.stringify(lines.join("\n"))}.replaceAll("INVITE", q(invite)).replaceAll("SCHEMA", q(schema)).replaceAll("SHELL", q(process.env.CLAUDE_CODE_SHELL ?? "")).replaceAll("CONSIGNES", q(consignes.split("\\n").at(-1))) + "\\n");\n`,
@@ -24,7 +26,7 @@ describe("a Claude Code session run by the cycle", () => {
 			'{"type":"assistant","text":"INVITE"}',
 			'{"type":"result","subtype":"success","is_error":false,"num_turns":3,"duration_ms":1200,"total_cost_usd":0.5,"session_id":"s1","result":"done","structured_output":{"echo":"SCHEMA","shell":"SHELL","consignes":"CONSIGNES"}}',
 		]);
-		const journal = new Journal("e01s05", tempDir());
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
 		const session = await lancerSession(
 			{ invite: "say hi", schema: { type: "object" }, consignes: "step rules", cwd: process.cwd(), claude },
 			journal,
@@ -43,7 +45,7 @@ describe("a Claude Code session run by the cycle", () => {
 	});
 
 	it("is not ok when the stream has no result, or when a task was still running at the result", async () => {
-		const journal = new Journal("e01s05", tempDir());
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
 		const sans = await lancerSession(
 			{ invite: "x", schema: {}, cwd: process.cwd(), claude: fauxClaude(['{"type":"system","subtype":"init"}']) },
 			journal,

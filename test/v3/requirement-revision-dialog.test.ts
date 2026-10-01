@@ -3,14 +3,14 @@
  * requirement should become, and the text lands in the decision the journal records.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR } from "../helpers/command-fixture.ts";
-import { fixtureTsWithoutTests, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTsWithoutTests, initRepo, tempDir, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { specReport } from "../helpers/harness-fixture.ts";
 
 const OWNER_TEXT = "R1 must be checked against the name 'Ada'";
@@ -42,11 +42,10 @@ let root: string;
 let cwd: string;
 const saved: Record<string, string | undefined> = {};
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "requirement-revision-dialog-"));
+	root = outputDir("requirement-revision-dialog-", cleanups);
 	for (const name of HARNESS_ENV) saved[name] = process.env[name];
 	delete process.env.HARNESS495_LANGUAGE;
-	cwd = tempDir("495-revision-dialog-");
+	cwd = tempDir("495-revision-dialog-", cleanups);
 	fixtureTsWithoutTests(cwd);
 	initRepo(cwd);
 });
@@ -55,9 +54,9 @@ afterEach(() => {
 		if (value === undefined) delete process.env[name];
 		else process.env[name] = value;
 	}
-	rmSync(root, { recursive: true, force: true });
-	rmSync(cwd, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 describe("answering revise to the IH-04 decision from Pi", () => {
 	it("asks the owner what the requirement should become and records the text with the decision", async () => {

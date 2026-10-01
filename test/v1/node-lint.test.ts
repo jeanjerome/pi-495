@@ -1,18 +1,17 @@
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { detectStack } from "../../src/application/target.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	root = tempDir("495-node-lint-");
+	root = tempDir("495-node-lint-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function targetWithLint(lint: unknown): string {
 	const project = join(root, "target");

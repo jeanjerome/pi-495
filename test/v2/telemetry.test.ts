@@ -5,33 +5,25 @@
  */
 import { strict as assert } from "node:assert";
 import dns from "node:dns";
-import { readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import { join, relative } from "node:path";
 import tls from "node:tls";
-import { afterEach, describe, it } from "node:test";
-import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { describe, it } from "node:test";
+import { makeHarness } from "../helpers/harness-fixture.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 function project(): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	return p;
-}
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
 }
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
@@ -91,24 +83,22 @@ describe("observability without imposed surveillance (NFR-06, REC-24)", () => {
 	it("an instrumented change, from the request to the redacted export, opens no connection and resolves no host", async () => {
 		const p = project();
 		const profiles: string[] = [];
-		const t = track(
-			makeHarness({
-				scripts: {
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: RIGHT },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
-					},
+		const t = makeHarness({
+			scripts: {
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: RIGHT },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
 				},
-				controls: (real) => ({
-					runControl: async (invocation, signal) => {
-						profiles.push(`control:${invocation.control.control_id}:${invocation.control.network}`);
-						return real.runControl(invocation, signal);
-					},
-				}),
+			},
+			controls: (real) => ({
+				runControl: async (invocation, signal) => {
+					profiles.push(`control:${invocation.control.control_id}:${invocation.control.network}`);
+					return real.runControl(invocation, signal);
+				},
 			}),
-		);
+		});
 		const startIntervention = t.agent.startIntervention.bind(t.agent);
 		t.agent.startIntervention = async (mandate) => {
 			profiles.push(`intervention:${mandate.role}:${mandate.profile.network}`);

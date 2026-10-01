@@ -4,24 +4,24 @@
  * date comes from a model or from anything the detection executes.
  */
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { editedFile } from "../../src/application/complement.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { validate } from "../../src/contracts/validate.ts";
 import type { StackAdapter } from "../../src/application/stacks/stack.ts";
 import { RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
-import { fixtureJava, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { fixtureJava, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	root = tempDir("495-recommendations-");
+	root = tempDir("495-recommendations-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 /** A pitest-maven declaration outside any profile, with none of the properties that make its report readable. */
 const PIT_WITHOUT_REPORT = `      <plugin>

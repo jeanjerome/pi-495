@@ -5,31 +5,25 @@
  */
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 
 const SCRIPT = join(process.cwd(), "scripts", "compare-dossiers.ts");
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 const read = { kind: "tool" as const, tool: "read" };
 
 /** A dossier whose one change stopped on its specification, written by the harness and closed. */
 async function dossierStoppedOnSpecification(specify: AgentScript, policy = {}): Promise<string> {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	const t: TestHarness = makeHarness({ policy, scripts: { specify } });
-	cleanups.push(t.root);
 	const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour", actor: HUMAN });
 	await t.harness.advance(change.change_id, { max_steps: 20 });
 	t.ledger.close();

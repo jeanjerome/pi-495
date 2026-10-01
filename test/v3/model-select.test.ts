@@ -9,7 +9,7 @@
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -21,7 +21,7 @@ import { ExtensionSession } from "../../src/extension/session.ts";
 import type { AgentCapabilities, ModelSelection } from "../../src/ports/execution.ts";
 import { describedAs } from "../helpers/capabilities.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
@@ -44,12 +44,11 @@ const NONE: ModelSelection = { provider_id: "", model_id: "", thinking_level: "o
 const REMOTE = { provider: "stand-in-remote", id: "remote-1", host: "models.example.invalid" };
 const OFF_MACHINE = `${REMOTE.provider}/${REMOTE.id} was selected and is reached off this machine`;
 
+const cleanups = removedAfterEach();
 let root: string;
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "model-select-"));
+	root = outputDir("model-select-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 /** A scripted agent that describes the model it is asked about, and remembers every model it judged. */
 class ModelJudgingAgent extends ScriptedAgent {
@@ -64,7 +63,7 @@ class ModelJudgingAgent extends ScriptedAgent {
 }
 
 function project(): string {
-	const path = tempDir("495-model-select-");
+	const path = tempDir("495-model-select-", cleanups);
 	fixtureTs(path);
 	initRepo(path);
 	return path;
@@ -78,24 +77,17 @@ function startedWith(ledger: SqliteLedger, changeId: string): ModelSelection[] {
 		.map((e) => (e.event as { model: ModelSelection }).model);
 }
 
-async function startChange(t: TestHarness, cleanup: string[]): Promise<string> {
-	cleanup.push(t.root);
+async function startChange(t: TestHarness): Promise<string> {
 	const path = project();
-	cleanup.push(path);
 	const { change } = await t.harness.start({ project_path: path, request_text: "x", actor: HUMAN });
 	return change.change_id;
 }
 
 describe("the model selected in Pi when an intervention starts (AGT-07)", () => {
-	const cleanup: string[] = [];
-	afterEach(() => {
-		for (const d of cleanup.splice(0)) rmSync(d, { recursive: true, force: true });
-	});
-
 	it("a model selected between two interventions is the one the second starts with, and the first keeps its own (6b)", async () => {
 		const agent = new ModelJudgingAgent();
 		const t = makeHarness({ agent });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		// One step opens the specifying intervention; four more reach the implementing one.
 		await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
 		await t.harness.advance(changeId, { max_steps: 4, readModel: () => SECOND });
@@ -109,7 +101,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 	it("each intervention reads the selection once, and the model judged is the one journaled and handed to the worker (§5, 6c)", async () => {
 		const agent = new ModelJudgingAgent();
 		const t = makeHarness({ agent });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		const selections = [FIRST, SECOND];
 		let reads = 0;
 		// Every read after the first returns another model: a second read within one intervention
@@ -128,7 +120,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 
 	it("a thinking level changed alone is the one the next intervention starts with (6d)", async () => {
 		const t = makeHarness({ agent: new ModelJudgingAgent() });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
 		await t.harness.advance(changeId, { max_steps: 4, readModel: () => ({ ...FIRST, thinking_level: "high" }) });
 		assert.deepEqual(
@@ -140,7 +132,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 	it("a selection with no provider is refused by the capability check, and no worker starts (6e)", async () => {
 		const agent = new ModelJudgingAgent();
 		const t = makeHarness({ agent });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
 		assert.equal(result.stopped_because, "capability_missing");
 		assert.deepEqual(agent.judged, [NONE], "the refusal is the model's, not the sandbox's");
@@ -150,7 +142,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 
 	it("a change refused for its model names Pi's model selection, then the resume or the cancel, and no kernel command (6e)", async () => {
 		const t = makeHarness({ agent: new ModelJudgingAgent() });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
 		assert.equal(result.stopped_because, "capability_missing");
 		const read = formatStatus(result.view, "en");
@@ -161,7 +153,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 
 	it("a change refused for its model is resumed with the model selected since (6e)", async () => {
 		const t = makeHarness({ agent: new ModelJudgingAgent() });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		await t.harness.advance(changeId, { max_steps: 1, readModel: () => NONE });
 		t.harness.resume(changeId, HUMAN);
 		const result = await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
@@ -171,7 +163,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 
 	it("a producer refused for its model, then resumed, works in the one workspace prepared for it (6e)", async () => {
 		const t = makeHarness({ agent: new ModelJudgingAgent() });
-		const changeId = await startChange(t, cleanup);
+		const changeId = await startChange(t);
 		const workspaces = (): string[] => readdirSync(join(t.root, "workspaces"));
 		await t.harness.advance(changeId, { max_steps: 1, readModel: () => FIRST });
 		// Four steps reach the implementing one, which is refused before its producer starts.
@@ -269,7 +261,6 @@ describe("a session opened with no model selected (AGT-07, 6a)", () => {
 			assert.deepEqual(startedWith(session.runtime().ledger, changeId), [FIRST], pi.said.join(" | "));
 		} finally {
 			await session.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 });
@@ -307,7 +298,6 @@ describe("a session whose runtime could not be created (SEC-05, 6i)", () => {
 			assert.doesNotMatch(said, new RegExp(REMOTE.host.replaceAll(".", "\\.")), "the address is never said");
 		} finally {
 			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 });
@@ -375,7 +365,6 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 			return { screen: [...notices, ...pi.displayed], said: pi.said };
 		} finally {
 			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	}
 
@@ -451,7 +440,6 @@ describe("the help /495 gives when it is called with no known operation", () => 
 			return pi.said.at(-1)!;
 		} finally {
 			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	}
 
@@ -566,7 +554,6 @@ describe("a session Pi replaced (AGT-07, 6g)", {
 			assert.deepEqual(startedWith(ledger, changeId), [SECOND], said.join(" | "));
 		} finally {
 			ledger.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 });
@@ -594,7 +581,6 @@ describe("a model reached off this machine (SEC-05)", {
 			assert.equal(status.success, true, "the announcement blocks no command");
 		} finally {
 			await client.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 		const said = client.messages().map((m) => m.content);
 		assert.equal(warned(client).length, 1, "returning to a model on this machine announces nothing");
@@ -630,7 +616,6 @@ describe("a model reached off this machine (SEC-05)", {
 			);
 		} finally {
 			await client.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 		assert.equal(warned(client).length - before, 1, warned(client).join(" | "));
 	});
@@ -664,7 +649,6 @@ describe("a model reached off this machine (SEC-05)", {
 			await call(client, "status", { type: "prompt", message: "/495 status" });
 		} finally {
 			await client.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 		const said = client.messages().map((m) => m.content);
 		assert.equal(warned(client).filter((w) => w.includes(OFF_MACHINE)).length, 1, warned(client).join(" | "));
@@ -714,7 +698,6 @@ describe("a model reached off this machine (SEC-05)", {
 			await call(client, "status", { type: "prompt", message: "/495 status" });
 		} finally {
 			await client.close();
-			rmSync(cwd, { recursive: true, force: true });
 		}
 		const said = client.messages().map((m) => m.content);
 		assert.equal(said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said.join(" | "));

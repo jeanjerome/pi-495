@@ -1,22 +1,22 @@
 import { strict as assert } from "node:assert";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { DomainError } from "../../src/domain/errors.ts";
 import { loadConfig } from "../../src/extension/config.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 /** A provider name no default carries, so finding it in a diagnostic can only mean it was echoed. */
 const PRIVATE_PROVIDER = "provider-kept-private-7f3a";
 
 describe("a configuration that neither admits nor refuses a provider (SEC-05)", () => {
 	let root: string;
+	const cleanups = removedAfterEach();
 	beforeEach(() => {
-		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-		root = mkdtempSync(join(process.cwd(), "test-output", "model-admitted-"));
+		root = outputDir("model-admitted-", cleanups);
 	});
-	afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 	const configured = (policy: unknown): string => {
 		writeFileSync(join(root, "config.json"), JSON.stringify({ policy }));

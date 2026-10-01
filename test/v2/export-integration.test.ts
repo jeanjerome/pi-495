@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { makeHarness, specReport, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
 import {
 	fixtureJava,
@@ -13,6 +13,7 @@ import {
 	initRepo,
 	SHOUT_IMPL,
 	tempDir,
+	removedAfterEach,
 } from "../helpers/fixtures.ts";
 import { FakeMavenControls, FakeMavenSandbox } from "../helpers/fake-maven.ts";
 import { FakeNpmSandbox, FakeVitestControls, PROVIDER_FILES } from "../helpers/fake-npm.ts";
@@ -21,20 +22,12 @@ import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { exportChange, verifyExport } from "../../src/export/export-service.ts";
 import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 function project(): string {
-	const p = tempDir("495-proj-");
-	cleanups.push(p);
+	const p = tempDir("495-proj-", cleanups);
 	fixtureTs(p);
 	initRepo(p);
 	return p;
-}
-function track(t: TestHarness): TestHarness {
-	cleanups.push(t.root);
-	return t;
 }
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
@@ -48,21 +41,19 @@ const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, te
 
 /** A harness whose producer writes `content` to src/greet.js and reports that one path done. */
 function writingHarness(content: string, policy?: PolicyOverride): TestHarness {
-	return track(
-		makeHarness({
-			// `exactOptionalPropertyTypes` refuses an explicit `policy: undefined`, so the key is omitted
-			// rather than passed empty.
-			...(policy ? { policy } : {}),
-			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+	return makeHarness({
+		// `exactOptionalPropertyTypes` refuses an explicit `policy: undefined`, so the key is omitted
+		// rather than passed empty.
+		...(policy ? { policy } : {}),
+		scripts: {
+			implement: {
+				steps: [
+					{ kind: "write", path: "src/greet.js", content },
+					{ kind: "complete", output: report(["src/greet.js"]) },
+				],
 			},
-		}),
-	);
+		},
+	});
 }
 
 async function acceptedChange(t: TestHarness, p: string) {
@@ -286,24 +277,21 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 describe("what the integration indexes of the files it copies", () => {
 	/** A project whose .gitignore says `ignored`, and a harness whose producer writes `files` and reports them done. */
 	function projectAndProducer(ignored: string, files: Record<string, string>): { p: string; t: TestHarness } {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureTs(p);
 		if (ignored) writeFileSync(join(p, ".gitignore"), ignored);
 		initRepo(p);
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				scripts: {
-					implement: {
-						steps: [
-							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
-							{ kind: "complete", output: report(Object.keys(files)) },
-						],
-					},
+		const t = makeHarness({
+			policy: { integration_enabled: true },
+			scripts: {
+				implement: {
+					steps: [
+						...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+						{ kind: "complete", output: report(Object.keys(files)) },
+					],
 				},
-			}),
-		);
+			},
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		return { p, t };
 	}
@@ -369,8 +357,7 @@ describe("what the integration indexes of the files it copies", () => {
 	});
 
 	it("given a project that does not ignore node_modules/ and a candidate modifying package.json and adding packages/app/node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/", async () => {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureTsWithoutTests(p);
 		initRepo(p);
 		const unjudgeable = specReport({
@@ -390,21 +377,19 @@ describe("what the integration indexes of the files it copies", () => {
 		// the dependency the candidate adds sits in a workspace package, which the integration leaves out of the commit all the same.
 		const dependency = "packages/app/node_modules/x/index.js";
 		const files = { "src/greet.js": SHOUT_IMPL, [dependency]: "module.exports = 1;\n" };
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
-				scripts: {
-					prepare: { steps: [{ kind: "complete", output: report([]) }] },
-					implement: {
-						steps: [
-							...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
-							{ kind: "complete", output: report(Object.keys(files)) },
-						],
-					},
+		const t = makeHarness({
+			policy: { integration_enabled: true },
+			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+			scripts: {
+				prepare: { steps: [{ kind: "complete", output: report([]) }] },
+				implement: {
+					steps: [
+						...Object.entries(files).map(([path, content]) => ({ kind: "write" as const, path, content })),
+						{ kind: "complete", output: report(Object.keys(files)) },
+					],
 				},
-			}),
-		);
+			},
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);
@@ -443,8 +428,7 @@ describe("what the integration indexes of the files it copies", () => {
 	});
 
 	it("given an accepted candidate carrying an installed complement, then the local commit holds package.json and package-lock.json and no node_modules path, and the installed provider is in the project", async () => {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureVitestWithoutProvider(p, "package-lock.json");
 		const unjudgeable = specReport({
 			objective: "add shout(name) returning the greeting in upper case",
@@ -460,31 +444,29 @@ describe("what the integration indexes of the files it copies", () => {
 			],
 		});
 		const introducedOnCandidate: (Record<string, number[]> | null | undefined)[] = [];
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
-				scripts: {
-					prepare: { steps: [{ kind: "complete", output: report([]) }] },
-					implement: {
-						steps: [
-							{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
-							{ kind: "complete", output: report(["src/greet.js"]) },
-						],
+		const t = makeHarness({
+			policy: { integration_enabled: true },
+			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+			scripts: {
+				prepare: { steps: [{ kind: "complete", output: report([]) }] },
+				implement: {
+					steps: [
+						{ kind: "write", path: "src/greet.js", content: SHOUT_IMPL },
+						{ kind: "complete", output: report(["src/greet.js"]) },
+					],
+				},
+			},
+			backend: (real) => new FakeNpmSandbox(real, "installs"),
+			controls: (real) => {
+				const vitest = new FakeVitestControls(real);
+				return {
+					runControl: async (invocation, signal) => {
+						if (invocation.subject.kind === "candidate") introducedOnCandidate.push(invocation.introduced_lines);
+						return vitest.runControl(invocation, signal);
 					},
-				},
-				backend: (real) => new FakeNpmSandbox(real, "installs"),
-				controls: (real) => {
-					const vitest = new FakeVitestControls(real);
-					return {
-						runControl: async (invocation, signal) => {
-							if (invocation.subject.kind === "candidate") introducedOnCandidate.push(invocation.introduced_lines);
-							return vitest.runControl(invocation, signal);
-						},
-					};
-				},
-			}),
-		);
+				};
+			},
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);
@@ -537,8 +519,7 @@ describe("what the integration indexes of the files it copies", () => {
 	});
 
 	it("given an accepted candidate carrying the adopted declaration of a Maven plugin, then the local commit holds the pom.xml with the declaration and only the files of the candidate, and the project is not written before the integration", async () => {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureJava(p);
 		initRepo(p);
 		const greeter = "src/main/java/io/h495/Greeter.java";
@@ -556,23 +537,21 @@ describe("what the integration indexes of the files it copies", () => {
 				},
 			],
 		});
-		const t = track(
-			makeHarness({
-				policy: { integration_enabled: true },
-				defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
-				scripts: {
-					prepare: { steps: [{ kind: "complete", output: report([]) }] },
-					implement: {
-						steps: [
-							{ kind: "write", path: greeter, content: shouted },
-							{ kind: "complete", output: report([greeter]) },
-						],
-					},
+		const t = makeHarness({
+			policy: { integration_enabled: true },
+			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
+			scripts: {
+				prepare: { steps: [{ kind: "complete", output: report([]) }] },
+				implement: {
+					steps: [
+						{ kind: "write", path: greeter, content: shouted },
+						{ kind: "complete", output: report([greeter]) },
+					],
 				},
-				backend: (real) => new FakeMavenSandbox(real, "resolves"),
-				controls: (real) => new FakeMavenControls(real),
-			}),
-		);
+			},
+			backend: (real) => new FakeMavenSandbox(real, "resolves"),
+			controls: (real) => new FakeMavenControls(real),
+		});
 		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);

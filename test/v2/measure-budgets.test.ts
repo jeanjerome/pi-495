@@ -7,14 +7,14 @@
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { type InterventionCost, unknownCost } from "../../src/domain/change/state.ts";
 import { KERNEL, Runner, tick } from "../helpers/change-fixture.ts";
+import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
 
 const SCRIPT = join(process.cwd(), "scripts", "measure-budgets.ts");
 
@@ -26,12 +26,10 @@ interface Spent {
 	cost: InterventionCost | "not recorded";
 }
 
+const cleanups = removedAfterEach();
 let dir: string;
 beforeEach(() => {
-	dir = mkdtempSync(join(tmpdir(), "495-measure-"));
-});
-afterEach(() => {
-	rmSync(dir, { recursive: true, force: true });
+	dir = tempDir("495-measure-", cleanups);
 });
 
 function priced(usd: number, subscription: boolean): InterventionCost {

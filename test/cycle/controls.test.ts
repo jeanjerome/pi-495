@@ -5,12 +5,14 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { Executeur, controleDeTache, estUnRouge, PREFLIGHT } from "../../cycle/src/controls.ts";
 import { revision } from "../../cycle/src/git.ts";
-import { fixtureTs, gitCmd, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { fixtureTs, gitCmd, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 const NODE = process.execPath;
 
 function depot(): string {
-	const root = tempDir();
+	const root = tempDir("495-", cleanups);
 	fixtureTs(root);
 	gitCmd(root, ["init", "-q", "-b", "main"]);
 	gitCmd(root, ["config", "commit.gpgsign", "false"]);
@@ -20,7 +22,7 @@ function depot(): string {
 }
 
 function executeur(): Executeur {
-	return new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(tempDir(), "objects")));
+	return new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(tempDir("495-", cleanups), "objects")));
 }
 
 describe("the controls of the cycle", () => {

@@ -5,8 +5,10 @@ import { join } from "node:path";
 import { accepter, conduirePas, rouvrir } from "../../cycle/src/cycle.ts";
 import { brancheCourante, revision } from "../../cycle/src/git.ts";
 import { lireStory } from "../../cycle/src/story.ts";
-import { gitCmd, tempDir } from "../helpers/fixtures.ts";
+import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { COMMIT, PASSING_TEST, SHOUT_CODE, SHOUT_TEST, contexte, depot, fauxClaude } from "../helpers/cycle.ts";
+
+const cleanups = removedAfterEach();
 
 describe("the steps of the cycle", () => {
 	it("opens the story on its own branch from a green Preflight, and marks it in progress", async () => {
@@ -186,7 +188,7 @@ export default (invite, cwd) => {
 
 	it("keeps the tree of a reviewer running until it ends when the other reviewer's session fails", async () => {
 		const root = depot();
-		const marker = join(tempDir(), "b-cwd");
+		const marker = join(tempDir("495-", cleanups), "b-cwd");
 		const claude = fauxClaude(`import { existsSync, writeFileSync } from "node:fs";
 export default async (invite, cwd) => {
   if (invite.startsWith("Tu es le relecteur A")) throw new Error("the session died");

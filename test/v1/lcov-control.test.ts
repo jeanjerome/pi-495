@@ -1,21 +1,20 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { invocationBase, judgeCoverage, LCOV_REPORT, recordedLcov, workspaceWith } from "../helpers/lcov-control.ts";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "lcov-control-"));
+	root = outputDir("lcov-control-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 /** An LCOV report that cites `file` and holds a `DA` record for each executed line given. */
 function reportOf(...files: { file: string; executed: number[] }[]): string {
@@ -105,7 +104,7 @@ describe("a comment that silences the coverage of the lines under it", () => {
 				new CasObjectStore(join(root, "objects")),
 			);
 			for (const target of runners) {
-				const project = tempDir("495-lcov-sandbox-");
+				const project = tempDir("495-lcov-sandbox-", cleanups);
 				writeFiles(project, target.files);
 				const detection = detectStack(project, REFS, NODE);
 				const unit = detection.controls.find((c) => c.control_id === "unit")!;
@@ -129,29 +128,25 @@ describe("a comment that silences the coverage of the lines under it", () => {
 						`const fs = require("node:fs"); const path = require("node:path"); ${target.standIn(unit)} const report = ${JSON.stringify(writeTo)}; fs.mkdirSync(path.dirname(report), { recursive: true }); fs.writeFileSync(report, ${JSON.stringify(recordedLcov(target.recorded))});`,
 					],
 				});
-				try {
-					const declared = workspaceWith(root, `${target.name}-declared`, {});
-					const produced = await run(standIn(reportPath), declared);
-					assert.equal(produced.verdict, "PASS", `${target.name}: ${JSON.stringify(produced.limits.notes)}`);
-					const judged = await run(coverage, declared);
-					assert.equal(judged.verdict, "FAIL", `${target.name}: ${JSON.stringify(judged.limits.notes)}`);
-					assert.deepEqual(
-						judged.findings.filter((f) => f.severity === "blocker").map((f) => [f.path, f.region?.start_line]),
-						[[CALC, 13]],
-						target.name,
-					);
-					const elsewhere = workspaceWith(root, `${target.name}-elsewhere`, {});
-					const refused = await run(standIn("elsewhere-lcov.info"), elsewhere);
-					assert.equal(
-						existsSync(join(elsewhere, "elsewhere-lcov.info")),
-						false,
-						`${target.name}: the sandbox refused the write`,
-					);
-					assert.notEqual(refused.verdict, "PASS", target.name);
-					assert.equal((await run(coverage, elsewhere)).verdict, "INDETERMINATE", target.name);
-				} finally {
-					rmSync(project, { recursive: true, force: true });
-				}
+				const declared = workspaceWith(root, `${target.name}-declared`, {});
+				const produced = await run(standIn(reportPath), declared);
+				assert.equal(produced.verdict, "PASS", `${target.name}: ${JSON.stringify(produced.limits.notes)}`);
+				const judged = await run(coverage, declared);
+				assert.equal(judged.verdict, "FAIL", `${target.name}: ${JSON.stringify(judged.limits.notes)}`);
+				assert.deepEqual(
+					judged.findings.filter((f) => f.severity === "blocker").map((f) => [f.path, f.region?.start_line]),
+					[[CALC, 13]],
+					target.name,
+				);
+				const elsewhere = workspaceWith(root, `${target.name}-elsewhere`, {});
+				const refused = await run(standIn("elsewhere-lcov.info"), elsewhere);
+				assert.equal(
+					existsSync(join(elsewhere, "elsewhere-lcov.info")),
+					false,
+					`${target.name}: the sandbox refused the write`,
+				);
+				assert.notEqual(refused.verdict, "PASS", target.name);
+				assert.equal((await run(coverage, elsewhere)).verdict, "INDETERMINATE", target.name);
 			}
 		});
 	},

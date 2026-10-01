@@ -7,7 +7,7 @@
  */
 import { strict as assert } from "node:assert";
 import { createServer, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { ModelRuntime, SessionManager, SettingsManager, createAgentSession } from "@earendil-works/pi-coding-agent";
@@ -17,22 +17,20 @@ import type { InterventionCost } from "../../src/domain/change/state.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { collect, mandate } from "../helpers/intervention-fixture.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 
 let root: string;
 let server: Server | null = null;
-const cleanups: string[] = [];
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "cost-"));
+	root = outputDir("cost-", cleanups);
 });
 afterEach(async () => {
 	if (server) await new Promise<void>((done) => server?.close(() => done()));
 	server = null;
-	rmSync(root, { recursive: true, force: true });
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 /** One prose answer, with the usage an OpenAI-compatible server reports for it. */
 function chunks(text: string): string[] {
@@ -267,8 +265,7 @@ describe("the worker reports the host's total with its last event (AGT-07)", () 
 
 describe("the dossier carries the cost of each intervention (AGT-07)", () => {
 	function project(): string {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureTs(p);
 		initRepo(p);
 		return p;
@@ -303,7 +300,6 @@ describe("the dossier carries the cost of each intervention (AGT-07)", () => {
 				},
 			},
 		});
-		cleanups.push(t.root);
 		const { change } = await t.harness.start({
 			project_path: p,
 			request_text: "Keep greet behaviour, tidy the implementation",
@@ -324,7 +320,6 @@ describe("the dossier carries the cost of each intervention (AGT-07)", () => {
 	it("an intervention whose session reported no cost is recorded as unknown with its reason, never as zero", async () => {
 		const p = project();
 		const t = makeHarness();
-		cleanups.push(t.root);
 		const { change } = await t.harness.start({ project_path: p, request_text: "Keep greet behaviour", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 2 });
 		const records = finished(t, change.change_id);

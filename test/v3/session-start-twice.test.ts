@@ -4,11 +4,12 @@
  * `clone`: the runtime is created once, and a start that failed stays failed.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ExtensionSession } from "../../src/extension/session.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 /** The part of Pi's extension context session start reads, for a client with no screen. */
 class FakeStartContext {
@@ -27,16 +28,16 @@ class FakeStartContext {
 let root: string;
 let saved: string | undefined;
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "start-twice-"));
+	root = outputDir("start-twice-", cleanups);
 	saved = process.env.HARNESS495_DATA_DIR;
 	process.env.HARNESS495_DATA_DIR = join(root, "data");
 });
 afterEach(() => {
 	if (saved === undefined) delete process.env.HARNESS495_DATA_DIR;
 	else process.env.HARNESS495_DATA_DIR = saved;
-	rmSync(root, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 function started(session: ExtensionSession): void {
 	session.openedAt(new FakeStartContext(root) as unknown as ExtensionContext);

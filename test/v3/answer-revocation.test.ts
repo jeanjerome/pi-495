@@ -5,8 +5,6 @@
  * undoes, then the change is conducted onward and presents the question asked again.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
@@ -18,16 +16,16 @@ import {
 	stalledOnQ1,
 } from "../helpers/command-fixture.ts";
 import type { ExtensionSession } from "../../src/extension/session.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const SESSION = "s-answer-revocation";
 const Q1 = ASKS_Q1.questions[0]!;
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "answer-revocation-"));
+	root = outputDir("answer-revocation-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 /**
  * Standard output, where the session routes every message in print mode, kept instead of written
@@ -70,14 +68,13 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 	beforeEach(() => {
 		for (const name of HARNESS_ENV) saved[name] = process.env[name];
 		delete process.env.HARNESS495_LANGUAGE;
-		cwd = commandProject("495-answer-revocation-");
+		cwd = commandProject("495-answer-revocation-", cleanups);
 	});
 	afterEach(() => {
 		for (const [name, value] of Object.entries(saved)) {
 			if (value === undefined) delete process.env[name];
 			else process.env[name] = value;
 		}
-		rmSync(cwd, { recursive: true, force: true });
 	});
 
 	it("revokes the answer once confirmed, lifts the stop and presents Q1 again through IH-01, and the revocation itself launches no intervention (6c)", async () => {

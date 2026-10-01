@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -16,15 +16,14 @@ import {
 	compareToReference,
 	divergesFromReference,
 } from "../../src/domain/baseline.ts";
-import { writeFiles } from "../helpers/fixtures.ts";
+import { writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { ENV, EXECUTOR } from "../helpers/change-fixture.ts";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "bsl-"));
+	root = outputDir("bsl-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const NODE = process.execPath;
 

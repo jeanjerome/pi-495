@@ -4,15 +4,14 @@
  * no port — the rule alone.
  */
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { walkTree } from "../../src/adapters/workspace/walk.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { candidateMoved, writablePrefixes } from "../../src/domain/candidate.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 function entry(path: string, content: string): ManifestEntry {
 	return {
@@ -103,10 +102,10 @@ describe("the tree a frozen candidate must still be, once the controls have run 
 
 describe("the outputs of Stryker are not changes of the candidate (VER-03)", () => {
 	let workspace: string;
+	const cleanups = removedAfterEach();
 	beforeEach(() => {
-		workspace = tempDir("495-stryker-outputs-");
+		workspace = tempDir("495-stryker-outputs-", cleanups);
 	});
-	afterEach(() => rmSync(workspace, { recursive: true, force: true }));
 
 	it("given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed", async () => {
 		writeFiles(workspace, {

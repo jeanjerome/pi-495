@@ -3,13 +3,13 @@
  * from the original by the value the edit replaces and by nothing else, or nothing is applied.
  */
 import { strict as assert } from "node:assert";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { applyRecommendedEdits, applyScriptsTestEdit, editedFile } from "../../src/application/complement.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { FileEdit, RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
-import { tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 const EDIT: FileEdit = {
 	path: "package.json",
@@ -73,10 +73,7 @@ describe("applying the edit of scripts.test to a package.json", () => {
 });
 
 describe("applying the edits of the recommended complements to a copy of the target", () => {
-	const cleanups: string[] = [];
-	afterEach(() => {
-		for (const dir of cleanups.splice(0)) rmSync(dir, { recursive: true, force: true });
-	});
+	const cleanups = removedAfterEach();
 	const packageJson = '{\n  "scripts": {\n    "test": "node --test"\n  }\n}\n';
 	const recommendation: RecommendedComplement = {
 		test_type: "coverage",
@@ -88,8 +85,7 @@ describe("applying the edits of the recommended complements to a copy of the tar
 		edit: EDIT,
 	};
 	const copy = (files: Record<string, string>): string => {
-		const dir = tempDir("495-complement-");
-		cleanups.push(dir);
+		const dir = tempDir("495-complement-", cleanups);
 		writeFiles(dir, files);
 		return dir;
 	};

@@ -5,9 +5,8 @@
  * control — a violation the candidate wrote, never one it inherited.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -31,7 +30,13 @@ import { digestValue } from "../../src/contracts/digest.ts";
 import type { Finding } from "../../src/contracts/v1/evidence.ts";
 import type { ControlDefinition, StructureRule } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
-import { fixtureMavenHexagonal, fixtureMavenMultiModule, writeFiles } from "../helpers/fixtures.ts";
+import {
+	fixtureMavenHexagonal,
+	fixtureMavenMultiModule,
+	writeFiles,
+	removedAfterEach,
+	outputDir,
+} from "../helpers/fixtures.ts";
 import { EXECUTOR, ENV } from "../helpers/change-fixture.ts";
 
 const SERVICE = "domain/src/main/java/io/demo/domain/service/UserService.java";
@@ -43,11 +48,10 @@ const FORBIDDEN_SERVICE =
 	"package io.demo.domain.service;\n\nimport io.demo.domain.user.User;\nimport io.demo.infra.UserRepository;\n\npublic final class UserService {\n    public User keep(User user) { return user; }\n}\n";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "arc-"));
+	root = outputDir("arc-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
 	return {

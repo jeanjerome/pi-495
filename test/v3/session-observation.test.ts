@@ -5,24 +5,25 @@
  */
 import { strict as assert } from "node:assert";
 import { createServer, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { ModelRuntime, SessionManager, SettingsManager, createAgentSession } from "@earendil-works/pi-coding-agent";
 import { observeSessionEvent, type SessionEventRead } from "../../src/adapters/pi-worker/session-observer.ts";
 import type { InterventionEvent } from "../../src/ports/execution.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 let root: string;
 let server: Server | null = null;
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "observe-"));
+	root = outputDir("observe-", cleanups);
 });
 afterEach(async () => {
 	if (server) await new Promise<void>((done) => server?.close(() => done()));
 	server = null;
-	rmSync(root, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 /** One prose answer, with the usage an OpenAI-compatible server reports for it. */
 function chunks(text: string, total: number): string[] {

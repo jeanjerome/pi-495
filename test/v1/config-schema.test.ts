@@ -1,13 +1,14 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { HarnessConfigFile } from "../../src/contracts/v1/config.ts";
 import { check } from "../../src/contracts/validate.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import { loadConfig } from "../../src/extension/config.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const accepted = (file: unknown): boolean => check(HarnessConfigFile, file);
 
@@ -112,11 +113,10 @@ describe("the contract of config.json (SEC-05)", () => {
 
 describe("the reading of config.json against its contract (SEC-05)", () => {
 	let root: string;
+	const cleanups = removedAfterEach();
 	beforeEach(() => {
-		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-		root = mkdtempSync(join(process.cwd(), "test-output", "config-schema-"));
+		root = outputDir("config-schema-", cleanups);
 	});
-	afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 	const written = (file: unknown): string => {
 		writeFileSync(join(root, "config.json"), JSON.stringify(file));
@@ -304,11 +304,10 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 
 describe("the config.json the README shows (SEC-05)", () => {
 	let root: string;
+	const cleanups = removedAfterEach();
 	beforeEach(() => {
-		mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-		root = mkdtempSync(join(process.cwd(), "test-output", "config-readme-"));
+		root = outputDir("config-readme-", cleanups);
 	});
-	afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 	/** The one `json` block of the README's configuration section. */
 	const example = (): unknown => {

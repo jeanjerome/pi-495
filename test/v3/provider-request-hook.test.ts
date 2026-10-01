@@ -13,7 +13,7 @@
  */
 import { strict as assert } from "node:assert";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import * as pi from "@earendil-works/pi-coding-agent";
@@ -22,6 +22,7 @@ import { PiWorkerAgent } from "../../src/adapters/pi-worker/supervisor.ts";
 import type { ObservedLayers } from "../../src/domain/imposed-layers.ts";
 import type { InterventionEvent } from "../../src/ports/execution.ts";
 import { collect, mandate } from "../helpers/intervention-fixture.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const LOCAL = "You are the review role of the 495 harness.";
 const IMPOSED = "You are Claude Code, Anthropic's official CLI for Claude.";
@@ -30,15 +31,15 @@ let root: string;
 let server: Server | null = null;
 let bodies: unknown[] = [];
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "request-hook-"));
+	root = outputDir("request-hook-", cleanups);
 	bodies = [];
 });
 afterEach(async () => {
 	if (server) await new Promise<void>((done) => server?.close(() => done()));
 	server = null;
-	rmSync(root, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 const sse = (frames: Array<[string | null, unknown]>) =>
 	frames.map(([event, data]) => `${event ? `event: ${event}\n` : ""}data: ${JSON.stringify(data)}\n\n`).join("");

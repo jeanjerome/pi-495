@@ -21,8 +21,8 @@ export const HARNESS_ENV = [
 	"HARNESS495_LANGUAGE",
 ] as const;
 
-export function commandProject(prefix: string): string {
-	const path = tempDir(prefix);
+export function commandProject(prefix: string, cleanups?: string[]): string {
+	const path = tempDir(prefix, cleanups);
 	fixtureTs(path);
 	initRepo(path);
 	return path;

@@ -3,14 +3,13 @@
  * reference alone, and what npm leaves behind is accepted only when it is what was asked for.
  */
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
 import { describe, it } from "node:test";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
-import { fixtureJava, fixtureTs, tempDir } from "../helpers/fixtures.ts";
+import { fixtureJava, fixtureTs, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import {
 	inspectInstall,
 	inspectResolution,
@@ -30,6 +29,8 @@ import type {
 
 const INSTALL: PackageInstall = { package: "@vitest/coverage-v8", version: "3.2.4", manager: "npm" };
 const BASE_FILES = ["package.json", "src/index.ts"];
+
+const cleanups = removedAfterEach();
 
 describe("planning the install of a recommended package", () => {
 	it("given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command", () => {
@@ -247,16 +248,12 @@ describe("running the install in the copy", () => {
 		assert.equal(installed?.profile.network, "allowed");
 		assert.deepEqual(installed?.profile.write_paths, ["/copies/w1", "/machine/npm-cache"]);
 
-		const target = tempDir("495-install-target-");
-		try {
-			fixtureTs(target);
-			const controls = detectStack(target, []).controls;
-			assert.notEqual(controls.length, 0);
-			for (const control of controls)
-				assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
-		} finally {
-			rmSync(target, { recursive: true, force: true });
-		}
+		const target = tempDir("495-install-target-", cleanups);
+		fixtureTs(target);
+		const controls = detectStack(target, []).controls;
+		assert.notEqual(controls.length, 0);
+		for (const control of controls)
+			assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
 	});
 
 	it("given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered", async () => {
@@ -413,16 +410,12 @@ describe("running the resolution in the copy", () => {
 			assert.ok(silent.runs.every((r) => r.profile.network === "denied"));
 		}
 
-		const target = tempDir("495-resolve-target-");
-		try {
-			fixtureJava(target, true);
-			const controls = detectStack(target, []).controls;
-			assert.notEqual(controls.length, 0);
-			for (const control of controls)
-				assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
-		} finally {
-			rmSync(target, { recursive: true, force: true });
-		}
+		const target = tempDir("495-resolve-target-", cleanups);
+		fixtureJava(target, true);
+		const controls = detectStack(target, []).controls;
+		assert.notEqual(controls.length, 0);
+		for (const control of controls)
+			assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
 	});
 });
 
@@ -495,38 +488,34 @@ describe("the pom.xml an adopted complement wrote, judged at G4", () => {
 	});
 
 	it("given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml", () => {
-		const target = tempDir("495-g4-pom-");
-		try {
-			fixtureJava(target);
-			const test = detectStack(target, []).controls.find((c) => c.control_id === "maven-test");
-			assert.ok(test, "the detection declares the Maven test control");
-			assert.ok(test.protected_paths.includes("pom.xml"), "the POM is a protected path");
-			const written = digestBytes("<project>with the declaration</project>");
-			const complement = {
-				path: "pom.xml",
-				digest: written,
-				test_type: "coverage",
-				tool: "org.jacoco:jacoco-maven-plugin",
-			};
-			const kept = protectedPathsChanged(
-				manifestOf(entry("pom.xml", "modified", written)),
-				test.protected_paths,
-				[],
-				() => false,
-				[complement],
-			);
-			assert.deepEqual(kept.altered, []);
-			assert.deepEqual(kept.allowed, ["pom.xml"]);
-			const restored = protectedPathsChanged(
-				manifestOf(entry("pom.xml", "unchanged", digestBytes("<project>the reference</project>"))),
-				test.protected_paths,
-				[],
-				() => false,
-				[complement],
-			);
-			assert.deepEqual(restored.altered, ["pom.xml"]);
-		} finally {
-			rmSync(target, { recursive: true, force: true });
-		}
+		const target = tempDir("495-g4-pom-", cleanups);
+		fixtureJava(target);
+		const test = detectStack(target, []).controls.find((c) => c.control_id === "maven-test");
+		assert.ok(test, "the detection declares the Maven test control");
+		assert.ok(test.protected_paths.includes("pom.xml"), "the POM is a protected path");
+		const written = digestBytes("<project>with the declaration</project>");
+		const complement = {
+			path: "pom.xml",
+			digest: written,
+			test_type: "coverage",
+			tool: "org.jacoco:jacoco-maven-plugin",
+		};
+		const kept = protectedPathsChanged(
+			manifestOf(entry("pom.xml", "modified", written)),
+			test.protected_paths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(kept.altered, []);
+		assert.deepEqual(kept.allowed, ["pom.xml"]);
+		const restored = protectedPathsChanged(
+			manifestOf(entry("pom.xml", "unchanged", digestBytes("<project>the reference</project>"))),
+			test.protected_paths,
+			[],
+			() => false,
+			[complement],
+		);
+		assert.deepEqual(restored.altered, ["pom.xml"]);
 	});
 });

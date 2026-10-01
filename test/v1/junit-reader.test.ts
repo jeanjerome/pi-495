@@ -1,10 +1,10 @@
 import { strict as assert } from "node:assert";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { after, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { parseJUnit, summarizeJUnit } from "../../src/adapters/execution/parsers.ts";
 import type { ProcessObservation } from "../../src/ports/execution.ts";
+import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
 
 function recorded(name: string): string {
 	return readFileSync(new URL(`../fixtures/junit/${name}`, import.meta.url), "utf8");
@@ -108,8 +108,7 @@ function verdictOn(code: number, document: string): { verdict: string; notes: st
 }
 
 const GREEN_BODY = '<testsuite name="S" tests="1"><testcase name="passes" classname="S"/></testsuite>';
-const secretDirectory = mkdtempSync(join(tmpdir(), "junit-reader-"));
-after(() => rmSync(secretDirectory, { recursive: true, force: true }));
+const cleanups = removedAfterEach();
 
 describe("the JUnit reader never takes a hostile or unreadable document for a success", () => {
 	it("given a report with a public and a system DOCTYPE, then it is read and no entity is resolved, and one whose DOCTYPE references an external file yields none of that file's content", () => {
@@ -118,7 +117,7 @@ describe("the JUnit reader never takes a hostile or unreadable document for a su
 			GREEN_BODY;
 		assert.equal(verdictOn(0, jacocoStyle).verdict, "PASS");
 
-		const secret = join(secretDirectory, "secret.txt");
+		const secret = join(tempDir("junit-reader-", cleanups), "secret.txt");
 		writeFileSync(secret, "CONTENT-OF-A-FILE-OF-THE-MACHINE");
 		const external =
 			`<?xml version="1.0"?><!DOCTYPE report [<!ENTITY leak SYSTEM "file://${secret}">]>` +

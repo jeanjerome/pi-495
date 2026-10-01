@@ -5,17 +5,13 @@
  * so a request that shows no block is a disagreement to name, not an error, and it stops nothing.
  */
 import { strict as assert } from "node:assert";
-import { rmSync } from "node:fs";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { GOOD_GREET, makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { compareImposedLayers, imposedLayersFor, type ObservedLayers } from "../../src/domain/imposed-layers.ts";
 
-const cleanups: string[] = [];
-afterEach(() => {
-	for (const d of cleanups.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const cleanups = removedAfterEach();
 
 const expected = imposedLayersFor("anthropic");
 const IMPOSED = expected[0]!.text;
@@ -92,8 +88,7 @@ describe("the manifest's expectation set against what the request showed (CTX-02
 
 describe("a disagreement is written to the dossier and stops nothing (CTX-02, D-55)", () => {
 	it("a provider declared to impose its block, reached without showing it, is named at the intervention's end", async () => {
-		const p = tempDir("495-proj-");
-		cleanups.push(p);
+		const p = tempDir("495-proj-", cleanups);
 		fixtureTs(p);
 		initRepo(p);
 		const t: TestHarness = makeHarness({
@@ -117,7 +112,6 @@ describe("a disagreement is written to the dossier and stops nothing (CTX-02, D-
 				},
 			},
 		});
-		cleanups.push(t.root);
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(result.stopped_because, "closed", "a disagreement stops nothing");

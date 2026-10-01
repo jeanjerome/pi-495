@@ -1,5 +1,4 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
@@ -19,6 +18,10 @@ import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
+import { outputDir, removedAfterEach } from "./fixtures.ts";
+
+/** The roots `makeHarness` allocates, removed after each test. */
+const harnessRoots = removedAfterEach();
 
 /**
  * A harness whose `advance` reads the test's model unless the test passes its own reader: most tests
@@ -210,8 +213,7 @@ export class ThrowsOnFirstCandidateRun implements ControlExecutionPort {
 
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
 export function makeHarness(options: HarnessOptions = {}): TestHarness {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	const root = options.root ?? mkdtempSync(join(process.cwd(), "test-output", "harness-"));
+	const root = options.root ?? outputDir("harness-", harnessRoots);
 	const ledger = (options.ledger ?? ((path: string) => new SqliteLedger(path)))(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
 	const workspace = new GitWorkspace(join(root, "workspaces"));

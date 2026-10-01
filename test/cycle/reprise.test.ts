@@ -1,12 +1,12 @@
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { Executeur } from "../../cycle/src/controls.ts";
 import { assertionsPerdues, lireReprises, marquerReprise, nombreDeTests, reprendre } from "../../cycle/src/reprise.ts";
-import { gitCmd, tempDir } from "../helpers/fixtures.ts";
+import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { COMMIT, NODE, depot, fauxClaude } from "../helpers/cycle.ts";
 
 const LISTE = `# Les reprises
@@ -32,10 +32,7 @@ Statut : à faire
 const LOOSE_TEST =
 	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet", () => {\n  assert.ok(greet("x"));\n});\n';
 
-const aNettoyer: string[] = [];
-afterEach(() => {
-	for (const d of aNettoyer.splice(0)) rmSync(d, { recursive: true, force: true });
-});
+const aNettoyer = removedAfterEach();
 
 /** A repository on main whose list carries two refactorings, and the options of a run over it. */
 function depotReprises(reponses: string) {
@@ -43,8 +40,7 @@ function depotReprises(reponses: string) {
 	writeFileSync(join(root, "specs", "reprises.md"), LISTE);
 	gitCmd(root, ["add", "-A"]);
 	gitCmd(root, ["commit", "-q", "-m", "docs: the refactoring list"]);
-	const racine = tempDir();
-	aNettoyer.push(root, racine);
+	const racine = tempDir("495-", aNettoyer);
 	const annonces: string[] = [];
 	return {
 		root,
@@ -79,8 +75,7 @@ export default (invite, cwd) => {
 
 describe("the list of refactorings", () => {
 	it("reads each section's id, title and status, and marks one without touching the others", () => {
-		const root = tempDir();
-		aNettoyer.push(root);
+		const root = tempDir("495-", aNettoyer);
 		writeFileSync(join(root, "reprises.md"), LISTE);
 		const chemin = join(root, "reprises.md");
 		assert.deepEqual(

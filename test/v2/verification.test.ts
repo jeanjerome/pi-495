@@ -7,7 +7,7 @@
  * that — so both sides are read with those paths left out, and only a difference elsewhere counts.
  */
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
@@ -28,7 +28,7 @@ import { DomainError } from "../../src/domain/errors.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
-import { fixtureTs, initRepo, tempDir } from "../helpers/fixtures.ts";
+import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 const ENVIRONMENT = { environment_id: "env_test", digest: digestValue({ test: true }), profile_id: "unconfined" };
 const AT = "2026-09-20T12:00:00.000Z";
@@ -123,12 +123,13 @@ function writingControl(relativePath: string | null): ControlExecutionPort {
 let root: string;
 let ledger: SqliteLedger;
 beforeEach(() => {
-	root = tempDir("495-verif-");
+	root = tempDir("495-verif-", cleanups);
 });
 afterEach(() => {
 	ledger?.close();
-	rmSync(root, { recursive: true, force: true });
 });
+/** Registered after the teardown above, so the directories are removed once it has run. */
+const cleanups = removedAfterEach();
 
 /** A coordinator over a fresh ledger and object store, the ports its callers do not replace being the real ones. */
 function coordinatorOver(controls: ControlExecutionPort, workspace: GitWorkspace): VerificationCoordinator {

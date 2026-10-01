@@ -1,15 +1,13 @@
 import { strict as assert } from "node:assert";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { collect, fakeWorkerAgent, mandate } from "../helpers/intervention-fixture.ts";
+import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "malformed-"));
+	root = outputDir("malformed-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("a malformed worker line is ignored without bringing down the host process", () => {
 	it('a worker that writes {"type":"event"} then completes has its events relayed started, tool_started, tool_finished, completed', async () => {

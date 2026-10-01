@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox, SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { GenericControlRunner, qualifyControl } from "../../src/adapters/execution/runner.ts";
@@ -18,15 +18,14 @@ import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { fixtureTs } from "../helpers/fixtures.ts";
+import { fixtureTs, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { EXECUTOR, ENV } from "../helpers/change-fixture.ts";
 
 let root: string;
+const cleanups = removedAfterEach();
 beforeEach(() => {
-	mkdirSync(join(process.cwd(), "test-output"), { recursive: true });
-	root = mkdtempSync(join(process.cwd(), "test-output", "ctl-"));
+	root = outputDir("ctl-", cleanups);
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const NODE = process.execPath;
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
