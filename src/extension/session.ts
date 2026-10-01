@@ -245,23 +245,29 @@ export class ExtensionSession {
 	): Promise<T> {
 		if (ctx.mode !== "tui") return work(() => {});
 		const { BorderedLoader } = await import("@earendil-works/pi-coding-agent");
-		let failure: Error | null = null;
-		const result = await ctx.ui.custom<T>((tui, theme, _kb, done) => {
+		const outcome = await ctx.ui.custom<{ value: T } | { failure: unknown }>((tui, theme, _kb, done) => {
 			const loader = new BorderedLoader(tui, theme, title);
 			loader.onAbort = () => {
 				void this.runtime().harness.abortCurrent("user abort");
 			};
-			work((m) => {
-				this.showProgress(ctx, m);
-				tui.requestRender();
-			}).then(done, (e: Error) => {
-				failure = e;
-				done(undefined as unknown as T);
-			});
+			void (async () => {
+				let settled: { value: T } | { failure: unknown };
+				try {
+					settled = {
+						value: await work((m) => {
+							this.showProgress(ctx, m);
+							tui.requestRender();
+						}),
+					};
+				} catch (failure) {
+					settled = { failure };
+				}
+				done(settled);
+			})();
 			return loader;
 		});
-		if (failure) throw failure;
-		return result;
+		if ("failure" in outcome) throw outcome.failure;
+		return outcome.value;
 	}
 
 	/**

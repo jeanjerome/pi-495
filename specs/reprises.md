@@ -90,7 +90,7 @@ Statut : versée
 
 ## R13 — Une vue modale de Pi rend son échec sans fabriquer de valeur
 
-Statut : à faire
+Statut : versée
 
 - Où : src/extension/session.ts:249-263
 - Constat : .then(done, (e) => { failure = e; done(undefined as unknown as T) }) : un T fabriqué pour faire passer un rejet par le done: (result: T) => void de Pi, qui n'a pas de chemin de rejet (types.d.ts:118).
