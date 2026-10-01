@@ -30,6 +30,15 @@ bugs:
       `gateG1`'s mandatory-answer loop names no check on `satisfied_by_reference`; `preparation.ts:116-126`
       is the only reader found, and it is proved only by the tests that already pass, not by a new
       failing one exercising a false claim. G2 and G5's own handling of the case was not traced.
+    reproduced: >
+      Reproduced on 2026-10-01 with a scripted agent on the reference npm target (`npm run campagne -- npm`).
+      A specification report whose only mandatory requirement asks for a function the tree does not have,
+      marked `satisfied_by_reference: true`, and an implementation that only appends a comment, pass G0 to G5
+      (unit, coverage and mutation PASS, `lastFit` absent from the candidate): `diagnoseControlCapability`
+      reports no undiscriminated requirement while the reference suite executes a test, so no failing test is
+      prepared, no arbitration is asked, and every control stays green on the reference and on the candidate.
+      The same report with `satisfied_by_reference: false` stops at "no test can judge R1" and waits for the
+      owner. G5 asks for a human acceptance only under `policy.g5_human_acceptance`, which is off by default.
     risk_level: medium
     follow_ups: >
       Trace G2 (`preparation`-derived evidence) and G5 for whether a mandatory `satisfied_by_reference`
