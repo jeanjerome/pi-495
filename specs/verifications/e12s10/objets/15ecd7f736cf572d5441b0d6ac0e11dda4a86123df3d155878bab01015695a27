@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les quinze scénarios, sauf un qu'une sonde met en défaut, classé à peser. Les mutations sur le lecteur, la portée, le contrôle déclaré, l'exécuteur, le confinement et les exclusions du gel font toutes échouer un test, sauf une. La garde de taille de `readBoundedReport`, qui donne « rapport dépassant la borne de lecture → INDETERMINATE », n'est tenue par aucun test : d'où le verdict fail. Le seul échec observé dans mes arbres est « runs the same control under seatbelt » : il échoue sans la branche, parce que mon arbre vit sous $TMPDIR, et il est déjà au registre (BUG-2026-09-29T160000). Le scénario 15 (vrai Pi) relève de la recette, pas de cette relecture.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un rapport absent, incomplet, trop grand ou illisible n'est jamais un succès",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 404,
+    "constat": "`readBoundedReport` est l'unique endroit qui applique la borne de lecture au rapport Stryker réel et produit `oversized_bytes`. Aucun test ne passe par lui : le test « oversized » appelle `analyzeMutation` avec un document déjà marqué `oversized_bytes`, et le test de l'exécuteur ne pose aucun rapport volumineux. La promesse « un rapport dépassant la borne de lecture est INDETERMINATE » n'est donc tenue par aucun test de bout en bout.",
+    "mutation": "`if (stats.size > MAX_REPORT_BYTES)` remplacé par `if (false)`, puis `oversized_bytes` retiré du document rendu : test/v1/stryker-mutation, control-runner, node-stack, candidate, contracts et recommendations restent tous verts (seul l'échec seatbelt de base reste). Un rapport de plus de 16 Mio et valide serait lu en entier et jugé normalement au lieu de rendre INDETERMINATE."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôle ne mute que les lignes que le candidat a écrites",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 104,
+    "constat": "`introducedLinesOf` écrit `lines[path] = []` pour un chemin qui porte un caractère de contrôle (comportement antérieur, voir BUG-2026-09-30T193000). `strykerScopeOf` garde ce chemin dans `paths` sans lui donner de plage. Sondé : `mutationScopeOf(\".\", {\"src/a\\u0001b.js\": []}, \"stryker-json\")` rend `classes: []` et `paths: [\"src/a\\u0001b.js\"]`. Le contrôle lance alors Stryker avec `--mutate=` vide, donc sans portée désignée, et ne tombe pas dans `nothingToMutate` ni dans `unaddressable`. Stryker peut alors muter toute la configuration, ou rien et rendre un rapport `files: {}` jugé PASS : c'est l'exécution qui ne mute rien et ressemble à une suite qui tue tout.",
+    "mutation": "Aucune : sonde jetable sur `mutationScopeOf`, retirée."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le contrôle mutation se qualifie sur ses témoins",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1/node-stack.test.ts",
+    "ligne": 716,
+    "constat": "Les tests tiennent la forme des témoins : module asserté en entier pour le positif, module appelé sans assertion pour le négatif propre, clé `mutation`, `witness_tests` à 2. Aucun test ne fait juger ces deux témoins par le contrôle : le PASS sur le positif et le FAIL sur le négatif ne sont observés que par la recette avec un vrai Stryker (BUG-2026-09-30T200000 ouvre déjà un manque voisin sur le câblage de la qualification).",
+    "mutation": "`own_negative_witness.mutation` retiré, contenu du test négatif modifié en ajoutant une assertion : les tests de forme échouent ; aucune mutation du jugement des témoins n'est possible sans Stryker réel."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Une cible sans Stryker reçoit une recommandation et aucun contrôle de mutation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/report.ts",
+    "ligne": 189,
+    "constat": "Le rapport d'ingénierie dit seulement « a mutation complement is recommended and not adopted: … » ; la phrase « la mutation de l'intention n'est pas mesurée » ne vit que dans `capability_missing`, donc dans les notes du diagnostic du protocole et les faits d'IH-04. Le test de la pile tient cette phrase dans `capability_missing`, et les tests du rapport tiennent la ligne « non adopté » pour un type quelconque. Aucun test ne relie le complément de mutation à ce que le rapport affiche. Même mécanisme que la couverture.",
+    "mutation": "`mutation.missing` retiré de `capability_missing` : node-stack échoue, donc la phrase de la détection est tenue ; rien ne tient ce que le rapport en dit."
+   }
+  ]
+ },
+ {
+  "verdict": "fail",
+  "resume": "J'ai relu les 16 scénarios contre le code. Le scénario de recette sous vrai Pi n'est pas de mon ressort, et Stryker n'est pas installé dans cet arbre, donc je n'ai pas fait tourner Stryker lui-même. Le code tient chaque promesse : j'ai sondé par des tests jetables G4 sur `stryker.config.mjs` et `stryker.conf.json`, un rapport de 17 Mo passé par le runner, et une suite initiale qui échoue sans écrire de rapport. Une soixantaine de mutations d'une ligne (commande, réseau, chemins protégés, portée, motifs interdits, table des statuts, rapport absent ou illisible, exclusions du gel, témoins) font toutes échouer un test, sauf deux. Le test `runs the same control under seatbelt with the candidate read-only` échoue déjà sans mutation dans cet arbre ; je l'ai écarté de la comparaison. Un constat est à corriger : la borne de lecture du rapport n'est tenue par aucun test au niveau du runner. Deux autres sont à peser.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un rapport absent, incomplet, trop grand ou illisible n'est jamais un succès",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 406,
+    "constat": "Aucun test n'exerce la borne de lecture dans `readBoundedReport`. Le test du rapport trop grand passe `oversized_bytes: 10**12` directement à `analyzeMutation` et contourne le `stat` du runner. Le code tient la promesse, je l'ai sondé avec un rapport de 17 Mo.",
+    "mutation": "Remplacer `if (stats.size > MAX_REPORT_BYTES) return [...]` par `if (false) return [...]` : aucun test ne devient rouge. Le rapport de 17 Mo valide est alors lu en entier et jugé PASS (« rien à conclure ») au lieu de INDETERMINATE."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un rapport absent, incomplet, trop grand ou illisible n'est jamais un succès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 233,
+    "constat": "Aucun test ne tient le câblage qui passe la sortie standard et la sortie d'erreur à `analyzeMutation` dans le cas stryker-json. Seul le test unitaire de `analyzeMutation` vérifie les constats tirés de la sortie. Les artefacts stdout et stderr restent versés au dossier quoi qu'il arrive, donc « la sortie de Stryker au dossier » tient.",
+    "mutation": "Remplacer `${stdoutText}\\n${stderrText}` par `\"\"` dans l'appel `analyzeMutation(..., \"stryker-json\")` : aucun test ne devient rouge. Les constats deviennent `exit code 1` au lieu des lignes ERROR de Stryker."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La configuration de Stryker est protégée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 184,
+    "constat": "Le seul test vérifie que `protected_paths` contient `stryker.conf.*` et `stryker.config.*`. Aucun test ne fait juger à G4 un candidat qui modifie `stryker.config.mjs` ou `stryker.conf.json`, ni ne vérifie que le motif refuse avec le fichier nommé. Le code tient : ma sonde `protectedPathsChanged` classe les deux fichiers comme altérés. Retirer l'un des deux motifs fait échouer le test de déclaration.",
+    "mutation": "Retirer `stryker.config.*` (ou `stryker.conf.*`) de `protected_paths` : le test du node-stack échoue, donc la déclaration est tenue. Le refus de bout en bout à G4 n'est tenu par aucun test propre à la story."
+   }
+  ]
+ }
+]

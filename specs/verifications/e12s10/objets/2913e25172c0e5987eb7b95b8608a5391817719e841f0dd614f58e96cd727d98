@@ -1,0 +1,108 @@
+TAP version 13
+# Subtest: the tree a frozen candidate must still be, once the controls have run (VER-03)
+    # Subtest: reads a writable declaration as a directory prefix, whether or not it was written as one
+    ok 1 - reads a writable declaration as a directory prefix, whether or not it was written as one
+      ---
+      duration_ms: 0.550833
+      type: 'test'
+      ...
+    # Subtest: an identical manifest is not a mutation
+    ok 2 - an identical manifest is not a mutation
+      ---
+      duration_ms: 0.156042
+      type: 'test'
+      ...
+    # Subtest: a content change outside the writable declarations is a mutation of the candidate
+    ok 3 - a content change outside the writable declarations is a mutation of the candidate
+      ---
+      duration_ms: 0.121416
+      type: 'test'
+      ...
+    # Subtest: an added path outside them is one too
+    ok 4 - an added path outside them is one too
+      ---
+      duration_ms: 0.077584
+      type: 'test'
+      ...
+    # Subtest: a difference confined to the writable declarations is not
+    ok 5 - a difference confined to the writable declarations is not
+      ---
+      duration_ms: 0.083375
+      type: 'test'
+      ...
+    # Subtest: the same difference is a mutation when no control declared that path
+    ok 6 - the same difference is a mutation when no control declared that path
+      ---
+      duration_ms: 0.07475
+      type: 'test'
+      ...
+    # Subtest: given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+    ok 7 - given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+      ---
+      duration_ms: 0.072208
+      type: 'test'
+      ...
+    1..7
+ok 1 - the tree a frozen candidate must still be, once the controls have run (VER-03)
+  ---
+  duration_ms: 1.631833
+  type: 'suite'
+  ...
+# Subtest: the outputs of Stryker are not changes of the candidate (VER-03)
+    # Subtest: given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed
+    not ok 1 - given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed
+      ---
+      duration_ms: 6.7715
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P1YJF6/test/v0/candidate.test.ts:111:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        +   '.stryker-tmp/sandbox-abc123/src/calc.js',
+            'reports/coverage/lcov.info',
+        +   'reports/mutation/html/index.html',
+        +   'reports/mutation/mutation.json',
+            'src/calc.js'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'reports/coverage/lcov.info'
+        1: 'src/calc.js'
+      actual:
+        0: '.stryker-tmp/sandbox-abc123/src/calc.js'
+        1: 'reports/coverage/lcov.info'
+        2: 'reports/mutation/html/index.html'
+        3: 'reports/mutation/mutation.json'
+        4: 'src/calc.js'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P1YJF6/test/v0/candidate.test.ts:120:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 2 - the outputs of Stryker are not changes of the candidate (VER-03)
+  ---
+  duration_ms: 7.125292
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P1YJF6/test/v0/candidate.test.ts:104:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 8
+# suites 2
+# pass 7
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.643625

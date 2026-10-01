@@ -1,0 +1,75 @@
+TAP version 13
+# Subtest: surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+    # Subtest: given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+    ok 1 - given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+      ---
+      duration_ms: 1.011791
+      type: 'test'
+      ...
+    1..1
+ok 1 - surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+  ---
+  duration_ms: 1.389042
+  type: 'suite'
+  ...
+# Subtest: a Stryker report that cannot be checked complete is never a success (VER-04)
+    # Subtest: given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+    ok 1 - given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+      ---
+      duration_ms: 0.349166
+      type: 'test'
+      ...
+    1..1
+ok 2 - a Stryker report that cannot be checked complete is never a success (VER-04)
+  ---
+  duration_ms: 0.398333
+  type: 'suite'
+  ...
+# Subtest: the scope Stryker is given comes from the lines the candidate wrote (VER-04)
+    # Subtest: given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE
+    ok 1 - given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE
+      ---
+      duration_ms: 0.452875
+      type: 'test'
+      ...
+    1..1
+ok 3 - the scope Stryker is given comes from the lines the candidate wrote (VER-04)
+  ---
+  duration_ms: 0.508792
+  type: 'suite'
+  ...
+# Subtest: a path no scope can designate to Stryker is never run as an empty scope (VER-04)
+    # Subtest: given a source whose name carries a control character and no line range, then it is refused by name, the verdict is INDETERMINATE and no empty scope is handed to Stryker
+    ok 1 - given a source whose name carries a control character and no line range, then it is refused by name, the verdict is INDETERMINATE and no empty scope is handed to Stryker
+      ---
+      duration_ms: 0.080209
+      type: 'test'
+      ...
+    1..1
+ok 4 - a path no scope can designate to Stryker is never run as an empty scope (VER-04)
+  ---
+  duration_ms: 0.128042
+  type: 'suite'
+  ...
+# Subtest: the output Stryker leaves when its initial run fails (VER-04)
+    # Subtest: given the colored, timestamped lines Stryker logs, then the failures keep the message and drop the color codes, the time and the process number that would make two runs differ
+    ok 1 - given the colored, timestamped lines Stryker logs, then the failures keep the message and drop the color codes, the time and the process number that would make two runs differ
+      ---
+      duration_ms: 0.111917
+      type: 'test'
+      ...
+    1..1
+ok 5 - the output Stryker leaves when its initial run fails (VER-04)
+  ---
+  duration_ms: 0.180042
+  type: 'suite'
+  ...
+1..5
+# tests 5
+# suites 5
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 87.228792

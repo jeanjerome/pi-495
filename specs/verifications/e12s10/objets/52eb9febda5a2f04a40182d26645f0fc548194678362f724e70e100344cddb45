@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+    # Subtest: given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+    ok 1 - given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+      ---
+      duration_ms: 0.971208
+      type: 'test'
+      ...
+    1..1
+ok 1 - surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+  ---
+  duration_ms: 1.311416
+  type: 'suite'
+  ...
+# Subtest: a Stryker report that cannot be checked complete is never a success (VER-04)
+    # Subtest: given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+    not ok 1 - given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+      ---
+      duration_ms: 0.436625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-EE9ziO/test/v1/stryker-mutation.test.ts:162:2'
+      failureType: 'testCodeFailure'
+      error: '["the mutation run exited with 1 before writing a report"]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-EE9ziO/test/v1/stryker-mutation.test.ts:166:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 2 - a Stryker report that cannot be checked complete is never a success (VER-04)
+  ---
+  duration_ms: 0.496792
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-EE9ziO/test/v1/stryker-mutation.test.ts:153:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77.979375

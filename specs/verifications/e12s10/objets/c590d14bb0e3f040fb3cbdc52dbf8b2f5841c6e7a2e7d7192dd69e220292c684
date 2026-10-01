@@ -1,0 +1,99 @@
+TAP version 13
+# Subtest: surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+    # Subtest: given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+    ok 1 - given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed
+      ---
+      duration_ms: 1.028208
+      type: 'test'
+      ...
+    1..1
+ok 1 - surviving mutants on the lines a candidate wrote, read from a Stryker report (VER-04)
+  ---
+  duration_ms: 1.421333
+  type: 'suite'
+  ...
+# Subtest: a Stryker report that cannot be checked complete is never a success (VER-04)
+    # Subtest: given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+    ok 1 - given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing
+      ---
+      duration_ms: 0.321292
+      type: 'test'
+      ...
+    1..1
+ok 2 - a Stryker report that cannot be checked complete is never a success (VER-04)
+  ---
+  duration_ms: 0.368875
+  type: 'suite'
+  ...
+# Subtest: the scope Stryker is given comes from the lines the candidate wrote (VER-04)
+    # Subtest: given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE
+    ok 1 - given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE
+      ---
+      duration_ms: 0.412292
+      type: 'test'
+      ...
+    1..1
+ok 3 - the scope Stryker is given comes from the lines the candidate wrote (VER-04)
+  ---
+  duration_ms: 0.471167
+  type: 'suite'
+  ...
+# Subtest: the output Stryker leaves when its initial run fails (VER-04)
+    # Subtest: given the colored, timestamped lines Stryker logs, then the failures keep the message and drop the color codes, the time and the process number that would make two runs differ
+    not ok 1 - given the colored, timestamped lines Stryker logs, then the failures keep the message and drop the color codes, the time and the process number that would make two runs differ
+      ---
+      duration_ms: 0.567292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RJ25Br/test/v1/stryker-mutation.test.ts:249:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        +   '\x1B[91m23:46:41 (63309) ERROR DryRunExecutor\x1B[39m One or more tests failed in the initial test run:',
+        +   '\x1B[91m23:46:41 (63309) ERROR Stryker\x1B[39m There were failed tests in the initial test run.'
+        -   'ERROR DryRunExecutor One or more tests failed in the initial test run:',
+        -   'ERROR Stryker There were failed tests in the initial test run.'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'ERROR DryRunExecutor One or more tests failed in the initial test run:'
+        1: 'ERROR Stryker There were failed tests in the initial test run.'
+      actual:
+        0: '\x1B[91m23:46:41 (63309) ERROR DryRunExecutor\x1B[39m One or more tests failed in the initial test run:'
+        1: '\x1B[91m23:46:41 (63309) ERROR Stryker\x1B[39m There were failed tests in the initial test run.'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RJ25Br/test/v1/stryker-mutation.test.ts:255:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 4 - the output Stryker leaves when its initial run fails (VER-04)
+  ---
+  duration_ms: 0.625625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RJ25Br/test/v1/stryker-mutation.test.ts:248:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..4
+# tests 4
+# suites 4
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82.9915

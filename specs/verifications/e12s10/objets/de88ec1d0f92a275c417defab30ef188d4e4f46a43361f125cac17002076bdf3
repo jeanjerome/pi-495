@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Les corrections du tour 1 tiennent : la borne de lecture, le chemin à caractère de contrôle, la sortie d'erreur versée au dossier et les fichiers de configuration Stryker protégés sont chacun tenus par un test qui échoue sous mutation. Une promesse reste non tenue par le code : le rapport d'ingénierie d'une cible sans Stryker ne dit pas que la mutation n'est pas mesurée (A2-1). L'auteur l'a déjà inscrite au registre (BUG-2026-10-01T130100) ; la règle du cycle veut qu'une promesse non tenue aille au propriétaire et non au registre. Je ne relève rien d'autre. Les deux autres manques déjà ouverts au registre, les témoins jugés par le contrôle (BUG-2026-10-01T130000) et le câblage de la qualification (BUG-2026-09-30T200000), ne sont pas recomptés.",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Une cible sans Stryker reçoit une recommandation et aucun contrôle de mutation",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/report.ts",
+    "ligne": 189,
+    "constat": "Le Then promet que le rapport dit que la mutation n'est pas mesurée et que le complément n'est pas adopté. Le rapport ne tient que la seconde moitié : il n'y a pas de ligne « mutation non mesurée » dans ses risques résiduels, car il ne lit que `capability_diagnosis.recommendations`. La phrase « the mutation of the introduced lines is not measured » vit seulement dans `capability_missing` (src/application/stacks/node.ts:127, 155), donc dans les notes du diagnostic et les faits d'IH-04. Le risque résiduel rendu est « a mutation complement is recommended and not adopted: @stryker-mutator/core 10.0.0; install … ». L'auteur l'a inscrit au registre comme BUG-2026-10-01T130100, mais la règle du cycle veut qu'une promesse que le code ne tient pas aille au propriétaire.",
+    "mutation": "Aucune mutation n'est utile : le code ne tient pas la promesse. Retirer `mutation.missing` de `capability_missing` ne fait échouer que le test de la pile, aucun test du rapport."
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Je n'ai aucun constat nouveau. Les quatre corrections du diff tiennent chacune leur promesse, et une mutation d'une ligne du code concerné fait échouer le test ajouté.\n\n- **Rapport trop grand (A1-1, B1-1) :** j'ai neutralisé le `if (stats.size > MAX_REPORT_BYTES)` de `readBoundedReport` dans `runner.ts`. Le test « given a valid report larger than the read bound… » échoue. Ce test passe maintenant par le vrai `stat` du runner.\n- **Chemin à caractère de contrôle (A1-2) :** j'ai retiré `|| hasControlCharacter(path)` de `strykerScopeOf` dans `mutation.ts`. Le test « given a source whose name carries a control character… » échoue.\n  - Sondé : `src/a\\u0001b.js` sans plage est désormais `unaddressable`, et `paths` et `classes` restent vides.\n  - Mêlé à un chemin valide, il est écarté sans perdre le chemin valide.\n  - `runner.ts:102` refuse de lancer Stryker dès qu'un chemin est `unaddressable`.\n- **Sortie de Stryker (B1-2) :** j'ai remplacé la sortie passée à `analyzeMutation` dans le cas `stryker-json` par `\"\"`. Le test « given a failing initial run that writes no report… » échoue. Le câblage de la sortie standard et de la sortie d'erreur est donc tenu de bout en bout.\n- **Configuration protégée (B1-3) :** j'ai retiré le motif `stryker.config.*` de `protected_paths` dans `node.ts`. Le nouveau test de `node-stack.test.ts` échoue, ainsi que le test de déclaration. Ce test vérifie `protectedPathsChanged` (les chemins altérés), pas le texte du refus de G4. `g4.ts:16` nomme chaque `altered_protected_paths` dans la raison du refus.\n\nTrois points ne sont pas comptés :\n- **Témoins non jugés (A1-3) :** l'entrée BUG-2026-10-01T130000 du registre les couvre (aucun test ne fait juger les deux témoins).\n- **Rapport sans « mutation non mesurée » (A1-4) :** l'entrée BUG-2026-10-01T130100 les couvre aussi. Le rapport d'ingénierie dit « complement recommended and not adopted » mais pas que la mutation n'est pas mesurée. C'est la seule promesse du scénario « Une cible sans Stryker » que le code ne tient pas à la lettre. L'entrée existe, donc je ne la recompte pas ; le propriétaire doit la voir au versement.\n- **Test seatbelt rouge dans cet arbre :** « runs the same control under seatbelt with the candidate read-only » échoue déjà sans mutation, dans `control-runner.test.ts`. Ce test est antérieur au diff et sans rapport avec lui. La cause est probablement le bac à sable imbriqué.\n\nTous les fichiers modifiés pour les mutations ont été restaurés (`git status` propre)."
+ }
+]

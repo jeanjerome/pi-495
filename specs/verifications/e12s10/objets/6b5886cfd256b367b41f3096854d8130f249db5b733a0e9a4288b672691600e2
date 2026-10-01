@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Le code tient les 15 promesses vérifiables dans le diff ; le 16e scénario, dans un vrai Pi, relève de la recette et n'a pas été relu. J'ai muté une cinquantaine de lignes (portée, caractères de motif, statuts Stryker, lecture bornée du rapport, sorties exclues du gel, chemins protégés, réseau de bouclage, répertoire créé par le runner, témoins, recommandation, note du rapport) : toutes font échouer un test, sauf une. Le texte « no test exercises » du constat d'un mutant NoCoverage n'est asserté par aucun test, alors que la promesse dit que le constat « dit qu'aucun test ne l'exécute » ; seul le `rule_id` est tenu, et il distingue déjà ce cas. Les deux témoins du contrôle mutation jugés PASS et FAIL ne sont tenus par aucun test, mais l'entrée BUG-2026-10-01T130000 du registre le consigne déjà, donc je ne la compte pas. Le test Seatbelt « runs the same control under seatbelt with the candidate read-only » (BUG-2026-09-29T160000) échoue ici parce que l'arbre est sous le répertoire temporaire : l'échec est antérieur, et le test Stryker du confinement, qui n'accorde aucun répertoire temporaire, passe.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un mutant que rien n'exécute bloque aussi, et un mutant tué par expiration est détecté",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 549,
+    "constat": "La promesse veut un constat bloquant à la ligne du mutant NoCoverage « qui dit qu'aucun test ne l'exécute ». Aucun test n'asserte ce message : test/v1/stryker-mutation.test.ts ne vérifie que le `rule_id` (MUTATION_RULE_UNCOVERED) et la ligne. Le message « no test exercises » peut donc changer sans qu'un test échoue.",
+    "mutation": "const what = mutant.status === \"SURVIVED\" ? \"no test notices\" : \"no test exercises\" remplacé par const what = \"no test notices\" : stryker-mutation.test.ts, mutation.test.ts et control-runner.test.ts restent verts. En revanche, remplacer la règle UNCOVERED par SURVIVED fait échouer deux tests."
+   }
+  ]
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un mutant que rien n'exécute bloque aussi, et un mutant tué par expiration est détecté",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 549,
+    "constat": "Le test Stryker du NoCoverage vérifie la règle (MUTATION_RULE_UNCOVERED) et la ligne du constat, mais aucun test n'asserte le texte « no test exercises » que la story demande (« dit qu'aucun test ne l'exécute »). La règle distingue déjà NoCoverage de Survived, donc la promesse est tenue par la règle et pas par les mots.",
+    "mutation": "const what = ... \"no test exercises\" remplacé par \"no test wonders\" : les trois fichiers de test de mutation passent (stryker-mutation, control-runner, mutation)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un chemin que Stryker prendrait pour un motif ne se règle pas en silence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/mutation.ts",
+    "ligne": 104,
+    "constat": "La section Sécurité énumère dix caractères de motif (`* ? [ ] { } ( ) ! ,`), mais le test n'en exerce que trois, ceux du scénario (`[id]`, `a,b`, `!x`). Retirer `*`, `?` ou `{}()` de STRYKER_PATTERN_CHARACTER ne fait échouer aucun test. Le code tient la promesse, et les trois chemins du scénario sont tenus par un test.",
+    "mutation": "STRYKER_PATTERN_CHARACTER /[*?[\\]{}()!,]/ réduit à /[?[\\]{}()!,]/ (sans `*`) et à /[*?[\\]()!,]/ (sans `{}`) : stryker-mutation.test.ts passe dans les deux cas."
+   }
+  ],
+  "resume": "Les quinze scénarios de code sont tenus par le code et par un test. Je les ai lus et sondés, sauf le dernier (vrai Pi), qui revient à la recette. Environ 55 mutations sur mutation.ts, runner.ts, node.ts, git-workspace.ts et report.ts ont fait échouer un test propre à la promesse, sauf les deux cas relevés (B1-1, B1-2). Stryker n'est pas installé ici, je n'ai donc pas lancé de vrai Stryker. Dans mon arbre, le test « runs the same control under seatbelt with the candidate read-only » échoue déjà à la révision non mutée (il ne relève pas de cette story), et je l'ai écarté de mes comptes de mutations. Le test seatbelt du contrôle mutation passe, en bouclage, sans réseau et en écriture hors des chemins autorisés. Je n'ai relevé aucun constat bloquant ni à corriger ; les deux constats sont à peser."
+ }
+]

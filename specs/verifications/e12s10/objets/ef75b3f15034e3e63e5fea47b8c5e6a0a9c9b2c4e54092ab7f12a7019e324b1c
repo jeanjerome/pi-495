@@ -1,0 +1,72 @@
+TAP version 13
+# Subtest: the tree a frozen candidate must still be, once the controls have run (VER-03)
+    # Subtest: reads a writable declaration as a directory prefix, whether or not it was written as one
+    ok 1 - reads a writable declaration as a directory prefix, whether or not it was written as one
+      ---
+      duration_ms: 0.622208
+      type: 'test'
+      ...
+    # Subtest: an identical manifest is not a mutation
+    ok 2 - an identical manifest is not a mutation
+      ---
+      duration_ms: 0.187291
+      type: 'test'
+      ...
+    # Subtest: a content change outside the writable declarations is a mutation of the candidate
+    ok 3 - a content change outside the writable declarations is a mutation of the candidate
+      ---
+      duration_ms: 0.124792
+      type: 'test'
+      ...
+    # Subtest: an added path outside them is one too
+    ok 4 - an added path outside them is one too
+      ---
+      duration_ms: 0.076459
+      type: 'test'
+      ...
+    # Subtest: a difference confined to the writable declarations is not
+    ok 5 - a difference confined to the writable declarations is not
+      ---
+      duration_ms: 0.08175
+      type: 'test'
+      ...
+    # Subtest: the same difference is a mutation when no control declared that path
+    ok 6 - the same difference is a mutation when no control declared that path
+      ---
+      duration_ms: 0.099417
+      type: 'test'
+      ...
+    # Subtest: given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+    ok 7 - given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it
+      ---
+      duration_ms: 0.123042
+      type: 'test'
+      ...
+    1..7
+ok 1 - the tree a frozen candidate must still be, once the controls have run (VER-03)
+  ---
+  duration_ms: 1.871833
+  type: 'suite'
+  ...
+# Subtest: the outputs of Stryker are not changes of the candidate (VER-03)
+    # Subtest: given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed
+    ok 1 - given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed
+      ---
+      duration_ms: 5.400917
+      type: 'test'
+      ...
+    1..1
+ok 2 - the outputs of Stryker are not changes of the candidate (VER-03)
+  ---
+  duration_ms: 5.57625
+  type: 'suite'
+  ...
+1..2
+# tests 8
+# suites 2
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86.577167
