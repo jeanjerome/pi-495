@@ -244,7 +244,7 @@ async function main(): Promise<void> {
 								},
 								stat: async (p: string) => stat(await guard.inside(p, false)),
 								readdir: async (p: string) => readdir(await guard.inside(p, false)),
-							} as never,
+							},
 						}),
 					),
 				);
@@ -326,7 +326,13 @@ async function main(): Promise<void> {
 				cwd: workspace,
 				agentDir: c.pi_agent_dir,
 				model,
-				thinkingLevel: m.model.thinking_level as never,
+				// The mandate carries the level as a string and Pi exports no guard to its type: its
+				// `isValidThinkingLevel` lives in the CLI, outside the package exports. Narrowing against
+				// `getSupportedThinkingLevels(model)` would refuse here a level Pi clamps today; the level
+				// the model does not accept is refused before the mandate, from the same Pi function.
+				thinkingLevel: m.model.thinking_level as NonNullable<
+					import("@earendil-works/pi-coding-agent").CreateAgentSessionOptions["thinkingLevel"]
+				>,
 				modelRuntime,
 				resourceLoader,
 				noTools: "all",

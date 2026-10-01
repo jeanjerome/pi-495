@@ -100,7 +100,7 @@ Statut : versée
 
 ## R14 — Les deux conversions forcées du worker vers les types de Pi sont retirées ou justifiées
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/pi-worker/worker-main.ts:246,328
 - Constat : Deux as never : l'objet d'opérations ls forcé au-delà de LsToolOptions de Pi ; une string nue forcée en ThinkingLevel.
