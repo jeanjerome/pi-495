@@ -118,18 +118,15 @@ function requestVerifiabilityArbitration(
 	const named = diagnosis.undiscriminated_requirements.join(", ");
 	const subject = arbitrationSubject(requirements, diagnosis.undiscriminated_requirements);
 	const risk = `risk: without a control able to judge ${named}, no measurement tells whether the change delivers it, and a candidate that does not is not detected by any check`;
-	return ctx.requestDecision(
-		unit,
-		cor,
-		"IH-04",
+	return ctx.requestDecision(unit, cor, {
+		interaction: "IH-04",
 		subject,
-		[...diagnosis.notes, ...recommendations.map(recommendationFact), risk],
-		null,
-		named,
-		undefined,
-		ctx.language(unit.state),
+		facts: [...diagnosis.notes, ...recommendations.map(recommendationFact), risk],
+		recommendation: null,
+		arg: named,
+		language: ctx.language(unit.state),
 		adoptable,
-	);
+	});
 }
 
 /**

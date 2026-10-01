@@ -47,6 +47,18 @@ export interface InterventionOutcome {
 /** The human interactions a phase may open. The others belong to entry points, not to a phase. */
 export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
 
+/** What a decision put to the human says: the interaction, what it is about, and in which language. */
+export interface DecisionOptions {
+	interaction: PhaseInteraction;
+	subject: SubjectRef;
+	facts: string[];
+	recommendation: string | null;
+	arg?: string;
+	decisionId?: string;
+	language: "fr" | "en";
+	adoptable?: Adoptable;
+}
+
 export interface PhaseContext {
 	/** What this change proposed and adopted, over the ledger and the object store. */
 	readonly artifacts: ArtifactRepository;
@@ -78,18 +90,7 @@ export interface PhaseContext {
 		extra: InterventionOptions,
 	): Promise<InterventionOutcome>;
 	/** Puts a decision to the human and stops the change on it. */
-	requestDecision(
-		unit: Unit,
-		cor: string,
-		interaction: PhaseInteraction,
-		subject: SubjectRef,
-		facts: string[],
-		recommendation: string | null,
-		arg?: string,
-		decisionId?: string,
-		language?: "fr" | "en",
-		adoptable?: Adoptable,
-	): Promise<Unit>;
+	requestDecision(unit: Unit, cor: string, options: DecisionOptions): Promise<Unit>;
 	/** The ledger and store reads the feedback document is composed from. */
 	feedbackSources(): FeedbackSources;
 	/** The indeterminate observations recorded on the frozen candidate, oldest first. */
@@ -118,7 +119,14 @@ export async function requestAdoption(
 		revision: ref.revision,
 		digest: ref.content_digest,
 	};
-	return ctx.requestDecision(unit, cor, "IH-02", subject, decided.reasons, null, kind, undefined, language);
+	return ctx.requestDecision(unit, cor, {
+		interaction: "IH-02",
+		subject,
+		facts: decided.reasons,
+		recommendation: null,
+		arg: kind,
+		language,
+	});
 }
 
 /**
@@ -135,15 +143,12 @@ export async function requestBudgetExtensionIfExhausted(
 ): Promise<Unit> {
 	const { budgets, status, stop_reason } = unit.state;
 	if (status !== "blocked" || stop_reason !== "attempts_exhausted") return unit;
-	return ctx.requestDecision(
-		unit,
-		cor,
-		"IH-07",
-		subjectOfChange(unit.state),
+	return ctx.requestDecision(unit, cor, {
+		interaction: "IH-07",
+		subject: subjectOfChange(unit.state),
 		facts,
-		"stop",
-		`${budgets.attempts_used}/${budgets.max_attempts}`,
-		undefined,
-		ctx.language(unit.state),
-	);
+		recommendation: "stop",
+		arg: `${budgets.attempts_used}/${budgets.max_attempts}`,
+		language: ctx.language(unit.state),
+	});
 }

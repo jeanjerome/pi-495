@@ -59,9 +59,21 @@ export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promis
 		digest: candidate.manifest_digest,
 	};
 	if (g5.next_action === "request_decision:IH-10")
-		return ctx.requestDecision(unit, cor, "IH-10", subject, g5.reasons, null, undefined, undefined, language);
+		return ctx.requestDecision(unit, cor, {
+			interaction: "IH-10",
+			subject,
+			facts: g5.reasons,
+			recommendation: null,
+			language,
+		});
 	if (g5.next_action === "request_decision:IH-08")
-		return ctx.requestDecision(unit, cor, "IH-08", subject, g5.reasons, null, undefined, undefined, language);
+		return ctx.requestDecision(unit, cor, {
+			interaction: "IH-08",
+			subject,
+			facts: g5.reasons,
+			recommendation: null,
+			language,
+		});
 	if (g5.next_action === "resolve_incident") {
 		// Re-running a frozen candidate through a frozen protocol is a pure function: it can only
 		// answer differently when the last observation was a transient incident. Anything else is

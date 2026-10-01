@@ -301,7 +301,7 @@ Statut : versée
 
 ## R38 — Une demande de décision se construit par un objet d'options
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/phases/phase.ts:81-92 et six appels : clarify.ts:71-81, phase.ts:121,138-148, verification-design.ts:121-132, decide.ts:59,61, integrate.ts:28-38
 - Constat : requestDecision prend dix paramètres positionnels ; les appelants écrivent des trous null, undefined, undefined, language. Le défaut language = "fr" (harness.ts:716) n'est jamais utilisé, chaque appelant le passe.

@@ -68,17 +68,15 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 				},
 				cor,
 			);
-			unit = await ctx.requestDecision(
-				unit,
-				cor,
-				"IH-01",
-				subjectOfChange(unit.state),
-				[],
-				null,
-				q.question,
+			unit = await ctx.requestDecision(unit, cor, {
+				interaction: "IH-01",
+				subject: subjectOfChange(unit.state),
+				facts: [],
+				recommendation: null,
+				arg: q.question,
 				decisionId,
 				language,
-			);
+			});
 		}
 		return unit;
 	}

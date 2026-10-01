@@ -10,7 +10,7 @@
  * on the failure of a step, and records what an entry point asks of it: a decision, a verification,
  * a pause, a resume, a cancellation, a question closed or revoked.
  */
-import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, SubjectRef } from "../contracts/v1/common.ts";
+import type { ActorRef, EnvironmentRef, HumanInteraction, Phase } from "../contracts/v1/common.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
@@ -48,7 +48,7 @@ import { design } from "./phases/design.ts";
 import { implement } from "./phases/implement.ts";
 import { integrate } from "./phases/integrate.ts";
 import { intervene } from "./phases/intervene.ts";
-import type { PhaseContext, Unit } from "./phases/phase.ts";
+import type { DecisionOptions, PhaseContext, Unit } from "./phases/phase.ts";
 import { prepare } from "./phases/prepare.ts";
 import { review } from "./phases/review.ts";
 import { specify } from "./phases/specify.ts";
@@ -56,7 +56,7 @@ import { verify as verifyPhase } from "./phases/verify.ts";
 import { designVerification } from "./phases/verification-design.ts";
 import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
-import { buildDecisionRequest, type Adoptable } from "./decisions.ts";
+import { buildDecisionRequest } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
@@ -231,19 +231,7 @@ export class Harness {
 			progress: (message: string) => harness.progress(message),
 			language: (state: ChangeState) => harness.language(state),
 			commit: (unit: Unit, command: ChangeCommand, correlation: string) => harness.commit(unit, command, correlation),
-			requestDecision: (unit, cor, interaction, subject, facts, recommendation, arg, decisionId, language, adoptable) =>
-				harness.requestDecision(
-					unit,
-					cor,
-					interaction,
-					subject,
-					facts,
-					recommendation,
-					arg,
-					decisionId,
-					language,
-					adoptable,
-				),
+			requestDecision: (unit, cor, options) => harness.requestDecision(unit, cor, options),
 			feedbackSources: () => harness.feedbackSources(),
 			indeterminateObservations: (state: ChangeState) => harness.indeterminateObservations(state),
 		};
@@ -580,14 +568,7 @@ export class Harness {
 	private async requestDecision(
 		unit: Unit,
 		cor: string,
-		interaction: Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">,
-		subject: SubjectRef,
-		facts: string[],
-		recommendation: string | null,
-		arg?: string,
-		decisionId?: string,
-		language: "fr" | "en" = "fr",
-		adoptable?: Adoptable,
+		{ interaction, subject, facts, recommendation, arg, decisionId, language, adoptable }: DecisionOptions,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
 			decision_id: decisionId ?? this.id("dec"),

@@ -28,17 +28,14 @@ export async function integrate(ctx: PhaseContext, unit: Unit, cor: string): Pro
 			revision: 1,
 			digest: candidate.manifest_digest,
 		};
-		return ctx.requestDecision(
-			unit,
-			cor,
-			"IH-11",
+		return ctx.requestDecision(unit, cor, {
+			interaction: "IH-11",
 			subject,
-			[],
-			"integrate",
-			"the project branch",
-			undefined,
-			ctx.language(unit.state),
-		);
+			facts: [],
+			recommendation: "integrate",
+			arg: "the project branch",
+			language: ctx.language(unit.state),
+		});
 	}
 	if (!ctx.integrator)
 		return ctx.commit(
