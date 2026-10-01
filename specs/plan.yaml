@@ -220,7 +220,7 @@ epics:
 
   - id: e12
     title: "Cartographie des contrôles existants et recommandation de ce qui manque"
-    status: à faire
+    status: versé
     objet: >
       La vérification d'une cible s'appuie sur ce que ses tests existants permettent réellement de
       valider : les assertions qu'ils tiennent, un lanceur dont le rapport se lit et se qualifie, ce
