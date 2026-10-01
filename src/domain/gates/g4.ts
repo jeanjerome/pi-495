@@ -1,11 +1,11 @@
 import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
 import type { CandidateFacts } from "../change/commands.ts";
-import type { ChangeState } from "../change/state.ts";
+import type { ChangeState, NextAction } from "../change/state.ts";
 
 export interface G4Result {
 	verdict: "PASS" | "FAIL";
 	reasons: string[];
-	next_action: string;
+	next_action: NextAction;
 }
 
 /** G4 — the candidate is complete, in scope and did not alter a protected control (SEC-03, RM-043). */

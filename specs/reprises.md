@@ -218,7 +218,7 @@ Statut : versée
 
 ## R28 — Les identifiants fermés du réducteur sont typés
 
-Statut : à faire
+Statut : versée
 
 - Où : decide.ts:934 · decide.ts:1646 · gates/g2,g4,g5.ts et state.ts:167
 - Constat : hasValidDecision accepte quatre interactions, deux seulement sont appelées (l.523,655,785) ; allowed: Record<string, string[]> pour les transitions d'effet alors qu'EffectState existe (d'où le ?. l.1654) ; next_action est un ensemble fermé de 12 littéraux porté en string.

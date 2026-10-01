@@ -6,7 +6,7 @@
  * The reducer reads no clock, no file system and no model. Time, identifiers, digests and
  * observations are provided as facts inside the command (AT-01, AT-02, ADR-003).
  */
-import { type ActorRef, type Phase, PHASES, type StopReason } from "../../contracts/v1/common.ts";
+import { type ActorRef, type EffectState, type Phase, PHASES, type StopReason } from "../../contracts/v1/common.ts";
 import type { HumanOrigin } from "../../contracts/v1/decision.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
@@ -29,6 +29,7 @@ import {
 	unknownCost,
 	type ChangeState,
 	type GateDecisionState,
+	type NextAction,
 	type OpenQuestion,
 } from "./state.ts";
 import { PHASE_FOR_ROLE } from "./commands.ts";
@@ -214,7 +215,7 @@ class Ctx {
 		verdict: GateDecisionState["verdict"],
 		evaluated: Record<string, string>,
 		reasons: string[],
-		next_action: string,
+		next_action: NextAction,
 		lists: Partial<
 			Pick<
 				GateDecisionState,
@@ -806,7 +807,7 @@ class Ctx {
 		return ok(this.events);
 	}
 
-	hasValidDecision(interaction: "IH-02" | "IH-05" | "IH-10" | "IH-11", option: string, digest: string): boolean {
+	hasValidDecision(interaction: "IH-02" | "IH-05", option: string, digest: string): boolean {
 		return this.state.human_decisions.some(
 			(d) => d.valid && d.interaction === interaction && d.option_id === option && d.subject.digest === digest,
 		);
@@ -1484,15 +1485,16 @@ class Ctx {
 		const op = this.state.operation;
 		if (!op || op.operation_id !== c.operation_id)
 			this.fail("UNKNOWN_REFERENCE", `operation ${c.operation_id} is not active`);
-		const allowed: Record<string, string[]> = {
+		const allowed: Record<EffectState, readonly EffectState[]> = {
 			prepared: ["started", "failed"],
 			started: ["confirmed", "failed", "uncertain"],
 			uncertain: [],
 			confirmed: [],
 			failed: [],
 			none: [],
+			reconciled: [],
 		};
-		if (!allowed[op.effect_state]?.includes(c.effect_state))
+		if (!allowed[op.effect_state].includes(c.effect_state))
 			this.fail("INVALID_TRANSITION", `effect ${op.effect_state} -> ${c.effect_state} is not allowed`);
 		this.emit({
 			type: "operation.effect",

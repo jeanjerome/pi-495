@@ -1,5 +1,5 @@
 import type { Protocol } from "../../contracts/v1/protocol.ts";
-import type { ChangeState } from "../change/state.ts";
+import type { ChangeState, NextAction } from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G2Result {
@@ -7,7 +7,7 @@ export interface G2Result {
 	reasons: string[];
 	uncovered_requirements: string[];
 	missing_capabilities: string[];
-	next_action: string;
+	next_action: NextAction;
 }
 
 /**

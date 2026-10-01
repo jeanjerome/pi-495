@@ -158,6 +158,29 @@ export interface ReviewEntry {
 	recorded_at: string;
 }
 
+/** What a gate decision names as the next step of the change. */
+export type NextAction =
+	| "answer_material_questions"
+	| "revise_mandate"
+	| "specify_requirements"
+	| "cancel"
+	| "design_verification"
+	| "design_change"
+	| "prepare_capabilities_or_assign_human_decision"
+	| "revise_protocol"
+	| "revise_design"
+	| "produce_candidate"
+	| "verify"
+	| "correct_or_reject"
+	| "integrate"
+	| "close_accepted"
+	| "correct"
+	| "stop:attempts_exhausted"
+	| "resolve_incident"
+	| "reconcile_integration"
+	| "close"
+	| `request_decision:${HumanInteraction}`;
+
 export interface GateDecisionState {
 	gate: GateId;
 	verdict: "PASS" | "FAIL" | "INDETERMINATE";
@@ -170,7 +193,7 @@ export interface GateDecisionState {
 	evidence_missing: string[];
 	fail_requirements: string[];
 	indeterminate_requirements: string[];
-	next_action: string;
+	next_action: NextAction;
 }
 
 export interface PendingDecision {

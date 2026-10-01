@@ -1,5 +1,5 @@
 import type { CandidateRef, Verdict } from "../../contracts/v1/common.ts";
-import type { ChangeState, EvidenceEntry, FrozenProtocol } from "../change/state.ts";
+import type { ChangeState, NextAction, EvidenceEntry, FrozenProtocol } from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G5Result {
@@ -10,7 +10,7 @@ export interface G5Result {
 	missing: string[];
 	failed_requirements: string[];
 	indeterminate_requirements: string[];
-	next_action: string;
+	next_action: NextAction;
 }
 
 /**
@@ -159,7 +159,7 @@ export function evaluateG5(
 				state.mandate?.integration === "local_branch" && policy.integration_enabled ? "integrate" : "close_accepted",
 		};
 	const humanPending = missing.some((m) => m.startsWith("human:"));
-	let next: string;
+	let next: NextAction;
 	if (failedList.length > 0)
 		next = state.budgets.attempts_used < state.budgets.max_attempts ? "correct" : "stop:attempts_exhausted";
 	else if (humanPending) next = missing.includes("human:IH-08") ? "request_decision:IH-08" : "request_decision:IH-10";
