@@ -71,7 +71,7 @@ Statut : versée
 
 ## R11 — Les refus du worker se reconnaissent par leur classe et non par leur texte
 
-Statut : à faire
+Statut : écartée — Pi's edit tool wraps the workspace refusal in a new Error with no cause ("Could not edit file: … Error: path outside the workspace is not allowed …"), and the bash tool rethrows the command's output as the message; an instanceof would therefore no longer mark these calls blocked in the tool_finished event the regex marks today, so the recorded events would change.
 
 - Où : src/adapters/pi-worker/worker-main.ts:187,192
 - Constat : blocked = /outside the workspace|budget exhausted|not allowed/.test(message) et /budget exhausted/ : des erreurs levées dans le même fichier (l.46,49,56,145,149) sont reconnues par regex sur leur texte.
