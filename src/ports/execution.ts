@@ -7,7 +7,7 @@ import type {
 	SubjectRef,
 } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
-import type { EvidenceCandidate, Limits, RequirementRef } from "../contracts/v1/evidence.ts";
+import type { EvidenceCandidate, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
@@ -293,12 +293,3 @@ export interface AgentPort {
 	describeCapabilities(model: ModelSelection): Promise<AgentCapabilities>;
 	startIntervention(mandate: InterventionMandate): Promise<InterventionHandle>;
 }
-
-export const EMPTY_LIMITS: Limits = {
-	truncated: false,
-	bytes_read: 0,
-	bytes_total: 0,
-	exclusions: [],
-	unstable: false,
-	notes: [],
-};

@@ -146,7 +146,7 @@ Statut : versée
 
 ## R20 — La constante des limites vides n'existe qu'une fois
 
-Statut : à faire
+Statut : versée
 
 - Où : src/ports/execution.ts:297-304 vs src/contracts/v1/evidence.ts:38-45
 - Constat : EMPTY_LIMITS défini deux fois, octet pour octet. Seul celui de evidence.ts est importé (test/v0/engineering-report.test.ts) ; lint:exports laisse passer la copie parce que le nom apparaît ailleurs.
