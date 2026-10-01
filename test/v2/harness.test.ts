@@ -435,6 +435,20 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(result.view.change?.gates.find((gate) => gate.gate === "G4")?.verdict, "PASS");
 	});
 
+	it("un changement démarré sous max_attempts à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce Tentatives: 0/2", async () => {
+		const p = project();
+		const first = track(makeHarness({ policy: { budgets: { max_attempts: 2 } } }));
+		const { change } = await first.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
+		const created = first.ledger
+			.readChangeEvents(change.change_id)
+			.map((e) => e.event)
+			.find((e) => e.type === "change.created");
+		assert.equal(created?.type === "change.created" ? created.max_attempts : undefined, 2);
+		const second = reopenHarness(first);
+		assert.equal(second.ledger.loadChange(change.change_id)!.state.budgets.max_attempts, 2);
+		assert.match(formatStatus(second.harness.status(change.change_id), "fr"), /^Tentatives: 0\/2$/m);
+	});
+
 	it("a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)", async () => {
 		const p = project();
 		const t = track(makeHarness());

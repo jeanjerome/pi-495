@@ -29,6 +29,8 @@ interface Base {
 }
 
 export type ChangeEvent =
+	// `max_attempts` is absent from changes created before the kernel recorded it, so it is read as
+	// the default bound rather than required of a replayed ledger.
 	| (Base & {
 			type: "change.created";
 			change_id: string;
@@ -37,6 +39,7 @@ export type ChangeEvent =
 			request: ArtifactRef;
 			reference: { reference_id: string; kind: string; digest: string };
 			environment_digest: string | null;
+			max_attempts?: number;
 	  })
 	| (Base & { type: "phase.entered"; phase: Phase; status: ExecStatus; reason: string })
 	// `retryable` is absent from every status change but a block, and from blocks written before the

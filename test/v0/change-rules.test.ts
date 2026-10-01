@@ -2125,6 +2125,45 @@ describe("attempts, budgets and stagnation (SA-015, SA-016, RM-032, RM-034, RM-0
 		r.run({ type: "correction.authorize", at: tick(), actor: KERNEL, attempt_id: "att_4", feedback: null });
 		assert.equal(r.s.attempts.length, 4);
 	});
+	it("un changement s'ouvre avec le budget de tentatives de la politique : l'événement change.created et l'état portent 2, et une extension IH-07 d'une tentative écrit new_max_attempts à 3", () => {
+		const r = new Runner({ budgets: { max_attempts: 2 } }).create();
+		const created = r.events.find((e) => e.type === "change.created");
+		assert.equal(created?.type === "change.created" ? created.max_attempts : undefined, 2);
+		assert.equal(r.s.budgets.max_attempts, 2);
+		assert.equal(r.s.budgets.attempts_used, 0);
+		ownerDecides(
+			r,
+			{
+				decision_id: "dec_b",
+				change_id: "chg_1",
+				interaction: "IH-07",
+				subject: { kind: "change", id: "chg_1", revision: r.s.revision, digest: r.s.reference.digest },
+				question: "Étendre ?",
+				facts: [],
+				recommendation: null,
+				options: [
+					{ id: "extend", label: "Étendre", effect: "+n", risky: false },
+					{ id: "stop", label: "Arrêter", effect: "", risky: false },
+				],
+				required_authority: "change_owner",
+				allow_free_text: true,
+				requested_at: tick(),
+				expires_at: null,
+				language: "fr",
+			},
+			"extend",
+			"1",
+			"hd_b",
+		);
+		const extended = r.events.find((e) => e.type === "budget.extended");
+		assert.equal(extended?.type === "budget.extended" ? extended.new_max_attempts : undefined, 3);
+	});
+	it("un change.created sans max_attempts se rejoue à 3", () => {
+		const r = new Runner({ budgets: { max_attempts: 2 } }).create();
+		const created = r.events.find((e) => e.type === "change.created")!;
+		const { max_attempts: _written, ...legacy } = created as Extract<ChangeEvent, { type: "change.created" }>;
+		assert.equal(apply(null, legacy).budgets.max_attempts, 3);
+	});
 	it("identical candidates stop with stagnation before the attempt budget", () => {
 		const r = new Runner({ stagnation_identical_candidates: 2 });
 		r.toDeciding(candidate("same"), { unit: "FAIL", lint: "PASS" }).g5();

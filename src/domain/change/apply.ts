@@ -39,7 +39,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			human_decisions: [],
 			operation: null,
 			budgets: {
-				max_attempts: DEFAULT_POLICY.budgets.max_attempts,
+				max_attempts: event.max_attempts ?? DEFAULT_POLICY.budgets.max_attempts,
 				attempts_used: 0,
 				retries: {},
 				increment_ms_used: 0,

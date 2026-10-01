@@ -52,6 +52,7 @@ export function decide(state: ChangeState | null, command: ChangeCommand, policy
 					request: command.request,
 					reference: command.reference,
 					environment_digest: command.environment_digest,
+					max_attempts: policy.budgets.max_attempts,
 				},
 				{
 					type: "phase.entered",
