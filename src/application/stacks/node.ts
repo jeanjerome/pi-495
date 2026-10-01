@@ -568,6 +568,9 @@ function moduleWitnesses(
 	projectPath: string,
 ): { positive: Record<string, string>; uncovered: Record<string, string>; unasserted: Record<string, string> } {
 	const directory = runner === "vitest" && existsSync(join(projectPath, "tests")) ? "tests" : "test";
+	// A vitest test is a `.ts` file, as its unit witnesses are: the `include` of a vitest configuration
+	// that names `*.test.ts` would never discover a `.mjs` one.
+	const testExtension = runner === "vitest" ? "ts" : "mjs";
 	const runnerImport =
 		runner === "vitest" ? 'import { it } from "vitest";\n' : 'import { test as it } from "node:test";\n';
 	const header =
@@ -580,16 +583,16 @@ function moduleWitnesses(
 		positive: {
 			[COVERED_MODULE]:
 				"export function twice(n) {\n  return n * 2;\n}\n\nexport function thrice(n) {\n  return n * 3;\n}\n",
-			[`${directory}/495-covered-witness.test.mjs`]: `${header}import { thrice, twice } from "../${COVERED_MODULE}";\n\nit("495 coverage witness: every function of the module is called", () => {\n  ${equal("twice(2)", 4)};\n  ${equal("thrice(2)", 6)};\n});\n`,
+			[`${directory}/495-covered-witness.test.${testExtension}`]: `${header}import { thrice, twice } from "../${COVERED_MODULE}";\n\nit("495 coverage witness: every function of the module is called", () => {\n  ${equal("twice(2)", 4)};\n  ${equal("thrice(2)", 6)};\n});\n`,
 		},
 		uncovered: {
 			[UNCOVERED_MODULE]:
 				"export function called(n) {\n  return n + 1;\n}\n\nexport function neverCalled(n) {\n  return n - 1;\n}\n",
-			[`${directory}/495-uncovered-witness.test.mjs`]: `${header}import { called } from "../${UNCOVERED_MODULE}";\n\nit("495 coverage witness: the module is loaded and one function is called", () => {\n  ${equal("called(1)", 2)};\n});\n`,
+			[`${directory}/495-uncovered-witness.test.${testExtension}`]: `${header}import { called } from "../${UNCOVERED_MODULE}";\n\nit("495 coverage witness: the module is loaded and one function is called", () => {\n  ${equal("called(1)", 2)};\n});\n`,
 		},
 		unasserted: {
 			[UNASSERTED_MODULE]: "export function half(n) {\n  return n / 2;\n}\n",
-			[`${directory}/495-unasserted-witness.test.mjs`]: `${runnerImport}import { half } from "../${UNASSERTED_MODULE}";\n\nit("495 mutation witness: the function is called and nothing is asserted", () => {\n  half(4);\n});\n`,
+			[`${directory}/495-unasserted-witness.test.${testExtension}`]: `${runnerImport}import { half } from "../${UNASSERTED_MODULE}";\n\nit("495 mutation witness: the function is called and nothing is asserted", () => {\n  half(4);\n});\n`,
 		},
 	};
 }

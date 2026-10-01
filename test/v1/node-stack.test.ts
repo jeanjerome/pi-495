@@ -758,6 +758,24 @@ describe("Node stack: the witnesses of a mutation sensor", () => {
 			assert.match(calling, runner === "vitest" ? /from "vitest"/ : /from "node:test"/, runner);
 		}
 	});
+	it("given a vitest target that installed Stryker and a coverage provider, then the test of every witness module is a .ts file, as the unit witnesses are, so that a vitest include of tests/**/*.test.ts discovers each of them, and a node:test target keeps .mjs tests", () => {
+		const testPaths = (project: string) => {
+			const detection = detectStack(project, REFS, NODE);
+			return [
+				...Object.keys(detection.positive_witness),
+				...Object.values(detection.own_negative_witness).flatMap((files) => Object.keys(files)),
+			].filter((path) => /495-(covered|uncovered|unasserted)-witness\.test\./.test(path));
+		};
+		const vitest = testPaths(
+			targetWith("vitest run", { ...STRYKER, "node_modules/@vitest/coverage-v8/package.json": '{"name":"provider"}' }),
+		);
+		assert.equal(vitest.length, 3, "the test of the covered module and the tests of the two own negative witnesses");
+		for (const path of vitest) assert.match(path, /\.test\.ts$/, path);
+		rmSync(join(root, "target"), { recursive: true, force: true });
+		const nodeTest = testPaths(targetWith("node --test --experimental-test-coverage", STRYKER));
+		assert.equal(nodeTest.length, 3);
+		for (const path of nodeTest) assert.match(path, /\.test\.mjs$/, path);
+	});
 	it("given a node:test target that installed Stryker and asks for coverage, then the positive witness is shared and each control has its own negative witness", () => {
 		const detection = detectStack(targetWith("node --test --experimental-test-coverage", STRYKER), REFS, NODE);
 		assert.equal(modulesOf(detection.positive_witness).length, 1);
