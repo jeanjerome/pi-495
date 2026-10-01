@@ -1,0 +1,131 @@
+TAP version 13
+# Subtest: Node stack: the lint control follows scripts.lint
+    # Subtest: given scripts.lint is eslint . && prettier --check ., when the stack is detected, then no lint control is declared, the unit control is kept, and the missing capabilities name scripts.lint chains commands through a shell
+    not ok 1 - given scripts.lint is eslint . && prettier --check ., when the stack is detected, then no lint control is declared, the unit control is kept, and the missing capabilities name scripts.lint chains commands through a shell
+      ---
+      duration_ms: 2.886083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-tD0bV6/test/v1/node-lint.test.ts:26:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the detection declares no lint control
+        + actual - expected
+        
+        + {
+        +   command: [
+        +     '/bin/sh',
+        +     '-c',
+        +     'eslint . && prettier --check .'
+        +   ],
+        +   control_id: 'lint',
+        +   cwd: '.',
+        +   env: {},
+        +   env_allowlist: [
+        +     'PATH',
+        +     'HOME',
+        +     'TMPDIR',
+        +     'LANG',
+        +     'LC_ALL',
+        +     'JAVA_HOME',
+        +     'MAVEN_OPTS'
+        +   ],
+        +   network: 'denied',
+        +   parser: 'exit-code',
+        +   protected: true,
+        +   protected_paths: [
+        +     'scripts/lint.js',
+        +     'eslint.config.js',
+        +     '.eslintrc.json',
+        +     'package.json'
+        +   ],
+        +   provides: [],
+        +   report_path: null,
+        +   requirement_refs: [
+        +     {
+        +       requirement_id: 'R1',
+        +       revision: 1
+        +     }
+        +   ],
+        +   requires: [],
+        +   scope_argument: null,
+        +   structure_rules: [],
+        +   timeout_ms: 300000,
+        +   title: 'npm run lint (eslint . && prettier --check .)',
+        +   version: '1',
+        +   writable_paths: []
+        + }
+        - undefined
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      actual:
+        control_id: 'lint'
+        version: '1'
+        title: 'npm run lint (eslint . && prettier --check .)'
+        command:
+          0: '/bin/sh'
+          1: '-c'
+          2: 'eslint . && prettier --check .'
+        cwd: '.'
+        env_allowlist:
+          0: 'PATH'
+          1: 'HOME'
+          2: 'TMPDIR'
+          3: 'LANG'
+          4: 'LC_ALL'
+          5: 'JAVA_HOME'
+          6: 'MAVEN_OPTS'
+        env:
+        timeout_ms: 300000
+        parser: 'exit-code'
+        report_path: ~
+        structure_rules:
+        provides:
+        requires:
+        scope_argument: ~
+        network: 'denied'
+        writable_paths:
+        requirement_refs:
+          0:
+            requirement_id: 'R1'
+            revision: 1
+        protected: true
+        protected_paths:
+          0: 'scripts/lint.js'
+          1: 'eslint.config.js'
+          2: '.eslintrc.json'
+          3: 'package.json'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-tD0bV6/test/v1/node-lint.test.ts:28:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: given scripts.lint is node scripts/lint.js, when the stack is detected, then a lint control runs the Node binary on scripts/lint.js and no missing capability names scripts.lint
+    ok 2 - given scripts.lint is node scripts/lint.js, when the stack is detected, then a lint control runs the Node binary on scripts/lint.js and no missing capability names scripts.lint
+      ---
+      duration_ms: 0.960083
+      type: 'test'
+      ...
+    1..2
+not ok 1 - Node stack: the lint control follows scripts.lint
+  ---
+  duration_ms: 4.317084
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-tD0bV6/test/v1/node-lint.test.ts:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 119.891875
