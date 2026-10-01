@@ -398,7 +398,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			return s;
 		default: {
 			const never: never = event;
-			throw new Error(`unknown event ${(never as { type: string }).type}`);
+			throw new Error(`unknown event ${JSON.stringify(never)}`);
 		}
 	}
 }

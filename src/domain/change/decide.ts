@@ -338,7 +338,7 @@ class Ctx {
 				return ok(this.events);
 			default: {
 				const never: never = c;
-				throw new Error(`unknown command ${(never as { type: string }).type}`);
+				throw new Error(`unknown command ${JSON.stringify(never)}`);
 			}
 		}
 	}
@@ -512,7 +512,7 @@ class Ctx {
 				return this.gateG6(c);
 			default: {
 				const never: never = c;
-				throw new Error(`unsupported gate ${(never as { gate: string }).gate}`);
+				throw new Error(`unsupported gate ${JSON.stringify(never)}`);
 			}
 		}
 	}

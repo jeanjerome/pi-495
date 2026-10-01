@@ -227,7 +227,7 @@ Statut : versée
 
 ## R29 — Le cas impossible d'un aiguillage exhaustif s'écrit d'une seule façon
 
-Statut : à faire
+Statut : versée
 
 - Où : apply.ts:401 · program.ts:180,324 · decide.ts:303,477 vs invalidation.ts:153
 - Constat : (never as { type: string }).type dans le default exhaustif, contre JSON.stringify(never) dans invalidation.ts.

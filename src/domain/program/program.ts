@@ -177,7 +177,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			return s;
 		default: {
 			const never: never = event;
-			throw new Error(`unknown event ${(never as { type: string }).type}`);
+			throw new Error(`unknown event ${JSON.stringify(never)}`);
 		}
 	}
 }
@@ -321,7 +321,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 				return { ok: true, events: [{ type: "program.closed", ...base, reason: command.reason }] };
 			default: {
 				const never: never = command;
-				throw new Error(`unknown command ${(never as { type: string }).type}`);
+				throw new Error(`unknown command ${JSON.stringify(never)}`);
 			}
 		}
 	} catch (error) {
