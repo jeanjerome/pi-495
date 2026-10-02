@@ -288,7 +288,7 @@ epics:
 
   - id: e29
     title: "L'état d'un projet se demande sans rien changer"
-    status: à faire
+    status: versé
     source: arbitrage du propriétaire, 2026-09-30
     objet: >
       Le propriétaire demande l'état de son projet sans rien changer : le changement a pour livrable un

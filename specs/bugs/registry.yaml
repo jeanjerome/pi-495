@@ -1145,36 +1145,6 @@ bugs:
       Have the reader name the files of its passing cases and require one in the positive witness's files, with a
       test on a skipped positive case beside a passing project test.
     status: open
-  - bug_id: BUG-2026-10-02T200000
-    date: "2026-10-02"
-    title: "A survey lists every frozen control with its verdict, an unqualified one included, so a sensor that detects nothing reads as a PASS of the project"
-    severity: medium
-    priority: p2
-    scope: application
-    what_happened: >
-      Introduced by the change that surveys the project. `surveyReference` in `src/application/verification.ts`
-      runs every control of the frozen protocol on the reference, and the `controls` section of the survey carries
-      each one with its verdict and evidence. G2 only requires the controls an obligation names to be qualified, so
-      a control no requirement uses is frozen with `qualified: false` and still appears in the survey with a
-      verdict. On the `fixtureTs` project, whose lint does not detect its negative witness ("negative witness gave
-      PASS"), a survey asking only whether the tests pass carries `lint` with verdict PASS.
-    what_expected: >
-      A control whose qualification failed measures nothing the survey can report: it is either left out of the
-      survey or named a blind spot with the qualification note as its reason, never presented with a verdict
-      (`D-74` §2 and §3).
-    steps_to_reproduce:
-      - "In a v2-kernel test, start a change with `deliverable: \"state\"` on `trackedProject(fixtureTs)`, with one requirement of category `functional`, and advance it."
-      - "The adopted survey's `controls` holds `{ control_id: \"lint\", verdict: \"PASS\", blind_spot: null }`, while the protocol's qualification of `lint` is `qualified: false`."
-    root_cause: >
-      The survey reads the controls of the protocol, not the qualified ones; the requirement rows are safe because
-      G2 refuses an obligation naming an unqualified control, but the control rows have no such guard.
-    evidence: >
-      Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
-    risk_level: medium
-    follow_ups: >
-      Name an unqualified control a blind spot in the survey, with its qualification notes, and assert it in the
-      survey tests; `e29s02` presents the survey to the owner and must not show such a verdict.
-    status: open
   - bug_id: BUG-2026-10-02T200100
     date: "2026-10-02"
     title: "A change with a candidate on a project whose own test already fails stops at G2, its test sensor refused for a failure the change did not cause"
@@ -1207,4 +1177,33 @@ bugs:
       by the witnesses' cases for every change, as the survey does; let the failure message enter the comparison of
       the two passes, so a test failing otherwise is new; fix BUG-2026-10-02T190000 in the same correction, since
       the reading it weakens then judges every change.
+    status: open
+  - bug_id: BUG-2026-10-02T230000
+    date: "2026-10-02"
+    title: "The blind-spot list of a survey's report names only controls and says none while a requirement is a blind spot"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      Introduced by the change that presents the survey in the report. `engineeringReport` builds
+      `survey.blind_spots` from the survey's controls alone (`src/application/report.ts`), and `formatReport`
+      prints "Angles morts : aucun" when that list is empty (`src/presentation/structured/text.ts`). A requirement
+      that no control of its nature measures shows its reason on its own line, but the list headed "Angles morts"
+      still reads "aucun", so the owner reading the summary is told the survey has no blind spot.
+    what_expected: >
+      The blind-spot list names every blind spot of the survey, requirements included, and says none only when
+      there is none (`D-74` §3).
+    steps_to_reproduce:
+      - "Survey a Node project with one requirement of category `architecture` and one of category `functional`, on a target whose controls all qualify."
+      - "`/495 report` shows the architecture requirement with its blind-spot reason, then « Angles morts : aucun »."
+    root_cause: >
+      The report reads the blind spots of the controls only; those of the requirements are carried on the
+      requirement rows and never gathered into the list.
+    evidence: >
+      Noted by the acceptance arbitration of the survey presentation, confirmed by reading `report.ts` and `text.ts`
+      on main at 57aa7e9.
+    risk_level: low
+    follow_ups: >
+      Gather the requirements' blind spots into the list, with a report test on a survey whose only blind spot is a
+      requirement.
     status: open

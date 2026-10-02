@@ -1066,3 +1066,34 @@ bugs:
       The owner chose to remove the event rather than write it: a refused answer leaves no line in the
       ledger, as it never did, and the event, its reducer case and its type are gone. The story whose
       claim the entry cites is no longer in the tree.
+  - bug_id: BUG-2026-10-02T200000
+    date: "2026-10-02"
+    title: "A survey lists every frozen control with its verdict, an unqualified one included, so a sensor that detects nothing reads as a PASS of the project"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      Introduced by the change that surveys the project. `surveyReference` in `src/application/verification.ts`
+      runs every control of the frozen protocol on the reference, and the `controls` section of the survey carries
+      each one with its verdict and evidence. G2 only requires the controls an obligation names to be qualified, so
+      a control no requirement uses is frozen with `qualified: false` and still appears in the survey with a
+      verdict. On the `fixtureTs` project, whose lint does not detect its negative witness ("negative witness gave
+      PASS"), a survey asking only whether the tests pass carries `lint` with verdict PASS.
+    what_expected: >
+      A control whose qualification failed measures nothing the survey can report: it is either left out of the
+      survey or named a blind spot with the qualification note as its reason, never presented with a verdict
+      (`D-74` §2 and §3).
+    steps_to_reproduce:
+      - "In a v2-kernel test, start a change with `deliverable: \"state\"` on `trackedProject(fixtureTs)`, with one requirement of category `functional`, and advance it."
+      - "The adopted survey's `controls` holds `{ control_id: \"lint\", verdict: \"PASS\", blind_spot: null }`, while the protocol's qualification of `lint` is `qualified: false`."
+    root_cause: >
+      The survey reads the controls of the protocol, not the qualified ones; the requirement rows are safe because
+      G2 refuses an obligation naming an unqualified control, but the control rows have no such guard.
+    evidence: >
+      Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
+    risk_level: medium
+    follow_ups: >
+      Name an unqualified control a blind spot in the survey, with its qualification notes, and assert it in the
+      survey tests; `e29s02` presents the survey to the owner and must not show such a verdict.
+    status: fixed
+    fixed_in: f249dd5
