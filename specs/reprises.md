@@ -428,7 +428,7 @@ Statut : versée
 
 ## R53 — Les rapports JaCoCo et PIT se lisent avec l'analyseur XML
 
-Statut : à faire
+Statut : écartée — Lire JaCoCo et PIT avec parseXml changerait des verdicts : un rapport mal formé que la projet jugé écrit et que les expressions lisent aujourd'hui en partie (mesuré : un jacoco.xml sans `</report>` donne PASS) ferait lever l'analyseur, et le runner rendrait INDETERMINATE « runner error » ; en plus, les références numériques et les CDATA, que decodeXml laisse telles quelles, seraient décodées dans les symboles et les descriptions des constats.
 
 - Où : execution/parsers.ts:213-216,332-335 (intAttr/strAttr, guillemets doubles seulement) · mutation.ts:213-222 (tagText/attr, les deux)
 - Constat : JUnit est lu par @rgrove/parse-xml ; JaCoCo et PIT sont raclés par regex avec deux lecteurs d'attributs divergents.
