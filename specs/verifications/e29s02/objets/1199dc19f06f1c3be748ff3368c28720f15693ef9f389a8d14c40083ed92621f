@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the report of a survey
+    # Subtest: le rapport d'un état des lieux d'un projet dont un test échoue et dont une exigence porte sur l'architecture nomme chaque exigence avec ses verdicts, le fichier du test en échec et l'angle mort d'architecture avec sa raison
+    ok 1 - le rapport d'un état des lieux d'un projet dont un test échoue et dont une exigence porte sur l'architecture nomme chaque exigence avec ses verdicts, le fichier du test en échec et l'angle mort d'architecture avec sa raison
+      ---
+      duration_ms: 546.547167
+      type: 'test'
+      ...
+    1..1
+ok 1 - the report of a survey
+  ---
+  duration_ms: 547.03
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 722.2935

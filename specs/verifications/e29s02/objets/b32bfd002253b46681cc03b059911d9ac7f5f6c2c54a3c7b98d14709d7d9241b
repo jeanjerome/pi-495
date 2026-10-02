@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: a control whose qualification failed
+    # Subtest: dans l'état des lieux d'un projet dont le lint ne détecte pas son témoin négatif, le contrôle lint est un angle mort avec la note de sa qualification et ne porte aucun verdict
+    not ok 1 - dans l'état des lieux d'un projet dont le lint ne détecte pas son témoin négatif, le contrôle lint est un angle mort avec la note de sa qualification et ne porte aucun verdict
+      ---
+      duration_ms: 545.759125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jPOuLd/test/v2-kernel/state-survey-unqualified.test.ts:18:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no verdict is attributed to the lint control: {"blind_spot":null,"control_id":"lint","evidence_id":"evr_0025","findings":[],"verdict":"PASS"}
+        
+        'PASS' !== null
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: ~
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jPOuLd/test/v2-kernel/state-survey-unqualified.test.ts:58:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a control whose qualification failed
+  ---
+  duration_ms: 546.408208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jPOuLd/test/v2-kernel/state-survey-unqualified.test.ts:17:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 718.9085

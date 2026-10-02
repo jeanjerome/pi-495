@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the next action G2 announces
+    # Subtest: G2 d'un état des lieux qui passe annonce verify, et G2 d'un changement à candidat annonce design_change
+    ok 1 - G2 d'un état des lieux qui passe annonce verify, et G2 d'un changement à candidat annonce design_change
+      ---
+      duration_ms: 3.066333
+      type: 'test'
+      ...
+    1..1
+ok 1 - the next action G2 announces
+  ---
+  duration_ms: 3.44525
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 121.743167

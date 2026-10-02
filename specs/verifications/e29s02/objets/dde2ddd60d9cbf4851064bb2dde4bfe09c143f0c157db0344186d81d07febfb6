@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a control whose qualification failed
+    # Subtest: dans l'état des lieux d'un projet dont le lint ne détecte pas son témoin négatif, le contrôle lint est un angle mort avec la note de sa qualification et ne porte aucun verdict
+    ok 1 - dans l'état des lieux d'un projet dont le lint ne détecte pas son témoin négatif, le contrôle lint est un angle mort avec la note de sa qualification et ne porte aucun verdict
+      ---
+      duration_ms: 541.524209
+      type: 'test'
+      ...
+    1..1
+ok 1 - a control whose qualification failed
+  ---
+  duration_ms: 541.97875
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 717.418417

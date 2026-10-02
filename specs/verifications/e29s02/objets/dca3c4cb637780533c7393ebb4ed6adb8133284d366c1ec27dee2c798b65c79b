@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: the owner accepts or refuses the survey
+    # Subtest: G5 d'un état des lieux demande IH-10 sur le survey avec les seules options accepter et refuser et un fait par exigence, même quand la politique n'exige pas l'acceptation
+    not ok 1 - G5 d'un état des lieux demande IH-10 sur le survey avec les seules options accepter et refuser et un fait par exigence, même quand la politique n'exige pas l'acceptation
+      ---
+      duration_ms: 574.188375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:89:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        an IH-10 decision awaits the owner: closed/completed outcome=accepted G5=PASS
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        awaitedAcceptance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:59:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:91:17)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: accepter clôt l'état des lieux accepted avec la décision du propriétaire
+    not ok 2 - accepter clôt l'état des lieux accepted avec la décision du propriétaire
+      ---
+      duration_ms: 543.676542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:127:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        an IH-10 decision awaits the owner: closed/completed outcome=accepted G5=PASS
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        awaitedAcceptance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:59:9)
+        answer (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:69:16)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:129:37)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: refuser avec un motif clôt l'état des lieux rejected, inscrit le motif et n'ouvre aucune tentative
+    not ok 3 - refuser avec un motif clôt l'état des lieux rejected, inscrit le motif et n'ouvre aucune tentative
+      ---
+      duration_ms: 555.020625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:137:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        an IH-10 decision awaits the owner: closed/completed outcome=accepted G5=PASS
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        awaitedAcceptance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:59:9)
+        answer (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:69:16)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:139:37)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the owner accepts or refuses the survey
+  ---
+  duration_ms: 1673.55025
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v2-kernel/state-survey-acceptance.test.ts:88:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: `/495 state` presents the survey before the owner accepts or refuses it
+    # Subtest: /495 state sur un projet dont un test échoue affiche le contrôle de tests en FAIL avec le fichier du test puis ouvre le dialogue Accepter cet état des lieux ? ; refuser demande le motif et clôt rejected ; sans écran le changement s'arrête sur decision_required avec les mêmes faits
+    not ok 1 - /495 state sur un projet dont un test échoue affiche le contrôle de tests en FAIL avec le fichier du test puis ouvre le dialogue Accepter cet état des lieux ? ; refuser demande le motif et clôt rejected ; sans écran le changement s'arrête sur decision_required avec les mêmes faits
+      ---
+      duration_ms: 1255.81425
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v3-pi/state-acceptance.test.ts:97:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the acceptance dialog opens: 495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test-output/state-acceptance-mPkDgM/interactive-agent.json; no model is called | Programme créé: prg_murenh3te660711c88 / chg_murenh3t1ee39b1e0c | Programme: où en sont les tests ? (prg_murenh3te660711c88) — /var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/495-state-acceptance-XoZP7O
+        Changement: chg_murenh3t1ee39b1e0c r35 (inc_1)
+        Phase: closed   Statut: completed   Résultat: accepted
+        Gates: G0=PASS G1=PASS G2=PASS G5=PASS
+        Tentatives: 0/3
+        Dernière intervention: specify=completed (0s, 0 tool calls)
+        Preuves: unit=FAIL lint=PASS
+        Prochaine action: done: accepted (export available)
+        Limites: sandbox:seatbelt:qualified
+        
+        clarifying -> specifying/ready
+        specifying -> verification_design/ready
+        verification_design -> verifying/ready
+        verifying -> deciding/ready
+        deciding -> closed/completed
+        + actual - expected
+        
+        + []
+        - [
+        -   'Accepter cet état des lieux ?'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'Accepter cet état des lieux ?'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v3-pi/state-acceptance.test.ts:114:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 2 - `/495 state` presents the survey before the owner accepts or refuses it
+  ---
+  duration_ms: 1256.539666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JBa2SF/test/v3-pi/state-acceptance.test.ts:85:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 4
+# suites 2
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1856.532917

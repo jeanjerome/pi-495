@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le rapport présente l'état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 165,
+    "constat": "Aucun test ne tient le fichier du constat dans le texte que `/495 report` affiche. Le test cherche `test/farewell.test.js` dans la section, mais le message du constat node-test contient déjà ce chemin entre parenthèses. Retirer le champ `path` de la ligne affichée ne fait donc échouer aucun test. Sur cet exemple, la promesse reste tenue par le message. Le champ `path` du rapport structuré, lui, est tenu (mutation M16 : le test échoue). Pour un contrôle dont le message ne cite pas le fichier, le texte pourrait perdre le chemin sans qu'un test le remarque.",
+    "mutation": "Remplacer `${f.path === null ? \"\" : ` ${f.path}`}` par une chaîne vide dans formatReport : state-survey-report.test.ts reste vert."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le rapport présente l'état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/report.ts",
+    "ligne": 95,
+    "constat": "L'énoncé de l'exigence dans la section état des lieux n'est tenu par aucun test : le test vérifie l'exigence par son identifiant, et `R1: .*unit=FAIL` accepte un énoncé vide. La promesse dit « nomme chaque exigence », et l'identifiant suffit à la tenir ; l'énoncé est un ajout que rien ne protège.",
+    "mutation": "Remplacer `statement: requirements?.requirements.find(...)?.statement ?? \"\"` par `statement: \"\"` : state-survey-report.test.ts reste vert."
+   }
+  ],
+  "resume": "Relecture A, tour 1 de e29s02, à 06b2b07, avant restauration : le code tient les sept scénarios, et un test tient chacun. J'ai lancé seulement les cinq fichiers de test de la story, sans relancer la Preflight : tous verts. J'ai essayé 25 mutations. 23 font échouer le test qui porte la promesse :\n- **IH-10 sur l'état des lieux :** la question, les seules options accepter et refuser, et l'oubli de la demande, même sous une politique qui n'exige pas l'acceptation.\n- **Faits par exigence :** le verdict, le fichier du constat et la raison de l'angle mort.\n- **Accepter :** l'adoption, `outcome` accepted et la décision d'acceptation du propriétaire.\n- **Refuser :** `outcome` rejected, la clôture, et l'appel à `settleSurvey`.\n- **Dans Pi :** le motif demandé au refus (`allow_free_text`), et les faits avec `unit FAIL` et le fichier montrés avant le dialogue.\n- **Rapport :** le passage de l'état des lieux par le harness, les verdicts, l'angle mort, le chemin du constat, la liste des angles morts et leur texte.\n- **Contrôle non qualifié :** la condition `qualified`, la note de qualification et l'absence de verdict.\n- **G2 :** l'annonce de verify plutôt que de design_change.\n\nDeux mutations survivent, toutes deux à peser : le chemin du constat dans le texte du rapport, masqué parce que le message node-test cite déjà le fichier, et l'énoncé de l'exigence, que la promesse n'exige pas. Côté sécurité : l'origine humaine est exigée pour toute réponse à une décision (`humanProvenanceIssue`), et sans écran la décision reste en attente (test v3 en mode json). Arbre rendu intact, rien de commité."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le rapport présente l'état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 165,
+    "constat": "La promesse « chaque constat avec son fichier » est tenue dans le rapport structuré : la mutation R2 (path → null dans surveySection) fait échouer le test. Dans le texte du rapport, en revanche, aucun test ne tient le rendu du fichier d'un constat. Le test passe encore parce que le message du lecteur node-test contient déjà « (test/farewell.test.js) ». Pour un constat dont le message ne cite pas le fichier, le texte pourrait perdre ce fichier sans qu'aucun test ne le voie.",
+    "mutation": "Dans formatReport, j'ai remplacé `${f.path === null ? \"\" : ` ${f.path}`}` par `x`. state-survey-report.test.ts reste vert : le texte affiche « unitx: greet says goodbye (test/farewell.test.js) »."
+   }
+  ],
+  "resume": "J'ai relu les sept scénarios et la section sécurité contre le diff 2bbb623...06b2b07, et le code tient toutes les promesses. J'ai essayé 28 mutations et 27 font échouer un test qui dit ce que dit le scénario.\n\n- **Scénario 1 (IH-10 demandée sur le survey) :** 6 mutations, toutes tuées. Elles portent sur la question et les seules options accepter/refuser, sur les faits (verdicts, angles morts, fichiers des constats), sur l'absence de demande de décision, et sur une clôture directe sans le propriétaire sous une politique qui n'exige pas l'acceptation.\n- **Scénario 2 (accepter) :** 2 mutations tuées, sur la branche accepter et sur l'adoption du survey.\n- **Scénario 3 (refuser) :** 3 mutations tuées, sur l'issue rejected, la clôture du changement et l'appel à settleSurvey.\n- **Scénario 4 (Pi) :** j'ai retiré allow_free_text, et le test v3 voit que le motif n'est plus demandé. Les faits affichés avant le dialogue et le mode sans écran sur decision_required avec les mêmes faits sont tenus par le même test.\n- **Scénario 5 (rapport) :** 8 de mes 9 mutations sont tuées, sur la section, le fichier des constats, les angles morts, les verdicts et le câblage dans harness. La dernière ne l'est pas : c'est le constat B1-1, à peser.\n- **Scénario 6 (contrôle non qualifié) :** 2 mutations tuées, sur le test de qualification et sur la note donnée comme raison.\n- **Scénario 7 (G2) :** la mutation qui remplace « verify » par « design_change » est tuée.\n- **Sécurité :** l'origine humaine est exigée par humanProvenanceIssue, que ce code ne touche pas. Sans écran, la décision reste en attente, et le test v3 le vérifie.\n\nUn seul constat, à peser et sans effet sur le verdict : le fichier d'un constat dans le texte du rapport n'est tenu par aucun test, parce que le message de node-test cite déjà ce fichier.\n\nUne mutation survit aussi sans que je la relève : vider l'énoncé d'une exigence dans le rapport ne fait échouer aucun test. Je ne la relève pas parce que l'exigence reste nommée par son identifiant.\n\nL'arbre est revenu propre ; je n'ai rien commité."
+ }
+]
