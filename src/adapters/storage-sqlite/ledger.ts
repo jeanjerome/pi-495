@@ -730,8 +730,6 @@ export class SqliteLedger implements LedgerPort {
 	}
 }
 
-export { evidenceDigest };
-
 function rowToArtifact(r: ArtifactRow): StoredArtifact {
 	return {
 		ref: {

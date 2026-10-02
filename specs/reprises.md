@@ -485,7 +485,7 @@ Statut : versée
 
 ## R59 — Les tests importent une fonction depuis son module d'origine
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/execution/runner.ts:454 · storage-sqlite/ledger.ts:725
 - Constat : Réexport d'application/qualification et export { evidenceDigest } : seuls test/v1/control-runner.test.ts:7 et test/v2/ledger.test.ts:6 lisent à travers eux, tous les autres tests importent l'origine.

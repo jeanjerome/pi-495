@@ -4,8 +4,8 @@ import { dirname, join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox, SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
-import { GenericControlRunner, qualifyControl } from "../../src/adapters/execution/runner.ts";
-import { reusableQualification, sensorDigest } from "../../src/application/qualification.ts";
+import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
+import { qualifyControl, reusableQualification, sensorDigest } from "../../src/application/qualification.ts";
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { Protocol, Qualification } from "../../src/contracts/v1/protocol.ts";
 import {
