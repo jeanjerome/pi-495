@@ -640,3 +640,13 @@ Statut : versée
 - Constat : Commentaires qui citent une décision ou racontent une campagne. Les noms de tests portent des tags d'exigence (66 it dans 18 fichiers, 113 describe sur 226) : CONVENTIONS § Comments ne dit rien des noms, et ces tags sont le seul lien exigence ↔ test depuis le retrait de la matrice ; ils restent.
 - Reprise : Réécrire les 29 commentaires en comportement ; laisser les noms.
 - Règle : § Comments : décrire le comportement, jamais le processus.
+
+## R76 — Les répertoires de test disent le niveau de vérification qu'ils portent
+
+Statut : à faire
+
+- Où : test/v0 · test/v1 · test/v2 · test/v3 · test/v4 · package.json:59-63 · AGENTS.md:75 · .claude/skills/node/SKILL.md:25,29 · .claude/skills/node/rules/testing.md:144-147 · .claude/skills/node/rules/typescript.md:135 · cycle/format-de-story.md:95-96 · test/v1/imposed-layers.test.ts:5 · specs/stories · specs/bugs · specs/plan.yaml:131,133
+- Constat : Les répertoires de test portent le numéro du niveau de vérification de `specs/amont/conception-verification.md` §6 (V0 à V4) et rien d'autre : leur nom ne dit pas ce qu'ils vérifient. `package.json` n'a ni `test:v4` ni `test:cycle`, alors que `npm test` exécute `test/v4` et `test/cycle`.
+- Reprise : `git mv` des cinq répertoires : `test/v0` → `test/v0-pure`, `test/v1` → `test/v1-adapters`, `test/v2` → `test/v2-kernel`, `test/v3` → `test/v3-pi`, `test/v4` → `test/v4-platform`. Mettre à jour les scripts `test:v0` .. `test:v3` de `package.json` et ajouter `test:v4` et `test:cycle` sur le modèle des autres, avec `--test-concurrency=1`. Remplacer chaque chemin `test/vN/` par le nouveau dans les fichiers de `Où`, et dire dans `AGENTS.md:75` ce que porte chaque niveau, en une ligne qui renvoie à `conception-verification.md` §6.
+- Règle : Lisibilité : un nom dit ce qu'il désigne.
+- Limite : Ne touche ni `specs/verifications`, ni `specs/archive`, ni `specs/adr`, ni `specs/reprises.md` : ce sont des relevés datés ou la liste que l'outil écrit, leurs anciens chemins restent ceux de leur date. Ne touche pas l'exemple de story de `test/cycle/story.test.ts` ni le commentaire d'exemple de `cycle/src/story.ts:68` : ce sont des données d'exemple, pas des chemins lus. Le glob de `npm test` (`test/**/*.test.ts`) ne change pas.
