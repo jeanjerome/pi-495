@@ -4,7 +4,7 @@
  */
 import type { Mandate } from "../../contracts/v1/protocol.ts";
 import type { ProducerReport } from "../../contracts/v1/reports.ts";
-import { protectedPathsChanged } from "../../domain/gates/g4.ts";
+import { protectedPathsChanged, submodulePathsChanged } from "../../domain/gates/g4.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import type { PreparedWorkspace } from "../artifacts.ts";
 import { implementObjective, resumeNote } from "../context.ts";
@@ -177,6 +177,7 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 				out_of_scope_paths: [],
 				altered_protected_paths: scope.altered,
 				allowed_protected_paths: scope.allowed,
+				submodule_paths: submodulePathsChanged(manifest, reference.entries),
 				complete: !manifest.limits.truncated,
 				limits_notes: [
 					...manifest.limits.notes,

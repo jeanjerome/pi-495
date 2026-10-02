@@ -207,6 +207,7 @@ function materialize(kind: Kind, s: ChangeState): ChangeCommand {
 					complete: true,
 					limits_notes: [],
 					allowed_protected_paths: [],
+					submodule_paths: [],
 				},
 			};
 		case "verify_pass":

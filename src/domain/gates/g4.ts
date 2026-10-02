@@ -1,4 +1,4 @@
-import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
+import type { CandidateManifest, ManifestEntry } from "../../contracts/v1/candidate.ts";
 import type { CandidateFacts } from "../change/commands.ts";
 import type { ChangeState, NextAction } from "../change/state.ts";
 
@@ -8,7 +8,10 @@ export interface G4Result {
 	next_action: NextAction;
 }
 
-/** G4 — the candidate is complete, in scope and did not alter a protected control (SEC-03, RM-043). */
+/**
+ * G4 — the candidate is complete, in scope, did not alter a protected control (SEC-03, RM-043) and
+ * changed nothing of a submodule, whose files the project's repository cannot carry (§9.1).
+ */
 export function evaluateG4(state: ChangeState, facts: CandidateFacts): G4Result {
 	const reasons: string[] = [];
 	if (!facts.complete)
@@ -19,6 +22,8 @@ export function evaluateG4(state: ChangeState, facts: CandidateFacts): G4Result 
 	if (allowed.length > 0)
 		for (const p of facts.changed_paths) if (!allowed.some((a) => matchesScope(p, a))) outOfScope.add(p);
 	for (const p of outOfScope) reasons.push(`path outside the mandate scope: ${p}`);
+	for (const { path, submodule } of facts.submodule_paths)
+		reasons.push(`path in submodule ${submodule}, which the project's repository cannot carry: ${path}`);
 	const allowedProtected = new Set(facts.allowed_protected_paths);
 	if (state.protocol)
 		for (const p of facts.changed_paths)
@@ -59,6 +64,22 @@ export interface ProtectedPaths {
 	allowed: string[];
 	/** Changes to a protected path nothing allows: the producer altered an oracle. */
 	altered: string[];
+}
+
+/**
+ * Each path a candidate changed under a submodule of the reference, or the boundary itself, with that
+ * submodule: its files belong to another repository, and a commit of the project cannot carry them.
+ */
+export function submodulePathsChanged(
+	manifest: CandidateManifest,
+	reference: readonly ManifestEntry[],
+): CandidateFacts["submodule_paths"] {
+	const submodules = reference.filter((e) => e.kind === "submodule").map((e) => e.path);
+	return manifest.entries.flatMap((e) => {
+		if (e.baseline_state === "unchanged") return [];
+		const submodule = submodules.find((s) => e.path === s || e.path.startsWith(`${s}/`));
+		return submodule === undefined ? [] : [{ path: e.path, submodule }];
+	});
 }
 
 /** Whether a path or a directory pattern lies below a `node_modules` directory, at the project root or in a workspace package. */

@@ -1085,3 +1085,33 @@ bugs:
     follow_ups: >
       Leave the conflict out of the steps when the change is found stopped by the act that caused it.
     status: open
+  - bug_id: BUG-2026-10-02T180000
+    date: "2026-10-02"
+    title: "An installed dependency that carries its own .git is inventoried as a submodule, so G4 refuses a candidate that updates it"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `walkTree` inventories as a `submodule` boundary every directory below the root that holds a `.git`,
+      `node_modules/` included. A dependency installed with its repository, `node_modules/foo/.git`, becomes the
+      boundary `node_modules/foo`, and a candidate that changes `node_modules/foo/index.js` gets the G4 reason
+      `path in submodule node_modules/foo, which the project's repository cannot carry`, although that path is an
+      installed dependency the project's repository does not track either.
+    what_expected: >
+      The submodule rule of G4 applies to a repository the project's tree carries, not to an installed dependency,
+      which the rest of the inventory already treats apart (`inInstalledDependencies`).
+    steps_to_reproduce:
+      - "Make a project with `a.txt` and `node_modules/foo/index.js`, and run `git init` plus one commit in `node_modules/foo`."
+      - "Capture its reference with `GitWorkspace`, create the working copy, change `node_modules/foo/index.js` in it and snapshot the candidate."
+      - "`submodulePathsChanged(candidate, reference.entries)` returns `[{ path: 'node_modules/foo/index.js', submodule: 'node_modules/foo' }]`."
+    root_cause: >
+      `walkTree` in `src/adapters/workspace/walk.ts` pushes a `submoduleEntry` for any directory where
+      `existsSync(join(abs, ".git"))` holds, without the `inInstalledDependencies` test the size limit applies.
+    evidence: >
+      Reproduced on the branch that introduces the submodule boundary, with a probe script calling
+      `GitWorkspace` and `submodulePathsChanged` on such a project; npm itself does not keep `.git` in a git
+      dependency it installs, so the case needs a dependency copied or linked in by hand.
+    risk_level: low
+    follow_ups: >
+      Leave directories below `node_modules/` out of the submodule boundary, with a test on a dependency that holds a `.git`.
+    status: open

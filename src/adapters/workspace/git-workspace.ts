@@ -2,19 +2,16 @@
  * Workspace repository (CMP-WSP, §9.1, §9.2): captures the reference, creates the isolated copy the
  * producer writes in, freezes a candidate from it and closes the space. The project is never written.
  */
-import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { chmod, cp, mkdir, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { promisify } from "node:util";
 import { canonicalize } from "../../contracts/canonical.ts";
 import { digestBytes, digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { DomainError } from "../../domain/errors.ts";
 import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
+import { git } from "./git.ts";
 import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } from "./walk.ts";
-
-const execFileAsync = promisify(execFile);
 
 /**
  * `node_modules/.vite/` (vitest's duration cache) and `node_modules/.vite-temp/` (the compiled configuration) are
@@ -44,26 +41,6 @@ export interface GitInfo {
 	head: string | null;
 	branch: string | null;
 	dirty_paths: string[];
-}
-
-export async function git(
-	cwd: string,
-	args: string[],
-	allowFailure = false,
-): Promise<{ stdout: string; stderr: string; code: number }> {
-	try {
-		const { stdout, stderr } = await execFileAsync("git", args, {
-			cwd,
-			maxBuffer: 64 * 1024 * 1024,
-			env: { ...process.env, GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
-		});
-		return { stdout, stderr, code: 0 };
-	} catch (error) {
-		const e = error as { stdout?: string; stderr?: string; code?: number };
-		if (allowFailure)
-			return { stdout: e.stdout ?? "", stderr: e.stderr ?? "", code: typeof e.code === "number" ? e.code : 1 };
-		throw error;
-	}
 }
 
 export async function inspectGit(path: string): Promise<GitInfo> {
@@ -190,7 +167,10 @@ export class GitWorkspace implements WorkspacePort {
 		const walked = await walkTree(handle.path, policy);
 		const referenceEntries = includedEntries(reference.entries, policy.exclusions);
 		const referenceLimits = includedLimits(reference.entries, reference.limits, policy.exclusions);
-		const entries = diffEntries(referenceEntries, walked.entries);
+		const entries = diffEntries(referenceEntries, [
+			...walked.entries,
+			...uncopied(referenceEntries, walked.entries, handle.path),
+		]);
 		const selected = entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
 		const digest = digestBytes(
 			canonicalize({
@@ -219,6 +199,26 @@ export class GitWorkspace implements WorkspacePort {
 	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {
 		if (retention === "delete") await rm(this.workspacePath(workspaceId), { recursive: true, force: true });
 	}
+}
+
+/**
+ * The copy recreates neither a pipe, a socket nor a device: a special entry of the reference whose path
+ * the copy leaves empty is carried as the reference holds it, so that nobody reads a deletion nobody made.
+ * Nor does it hold a submodule's `.git`, so a submodule boundary is carried as long as its directory
+ * stands in the copy. A path the producer filled with something else is observed as it is.
+ */
+function uncopied(
+	reference: readonly ManifestEntry[],
+	observed: readonly ManifestEntry[],
+	copy: string,
+): ManifestEntry[] {
+	const present = new Set(observed.map((e) => e.path));
+	return reference.filter(
+		(e) =>
+			!present.has(e.path) &&
+			(e.kind === "special" ||
+				(e.kind === "submodule" && lstatSync(join(copy, e.path), { throwIfNoEntry: false })?.isDirectory() === true)),
+	);
 }
 
 function mergeLimits(a: ReferenceSnapshot["limits"], b: ReferenceSnapshot["limits"]): ReferenceSnapshot["limits"] {

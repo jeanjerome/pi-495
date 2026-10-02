@@ -302,6 +302,7 @@ async function readSide(
 		origin: entry.origin,
 		baseline_state: entry.baseline_state,
 		symlink_target: entry.symlink_target,
+		...(entry.limits ? { notes: entry.limits.notes } : {}),
 	};
 	if (entry.kind === "symlink")
 		return { kind: "symlink", text: entry.symlink_target ?? "", bytes: entry.size, metadata: meta };

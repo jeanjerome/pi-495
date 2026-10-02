@@ -3,12 +3,14 @@
  * links and untracked files — and the identity derived from it.
  */
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { lstat, readdir, readFile, readlink } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import type { ManifestEntry } from "../../contracts/v1/candidate.ts";
 import type { Limits } from "../../contracts/v1/evidence.ts";
 import { inInstalledDependencies, matchesScope } from "../../domain/gates/g4.ts";
 import { messageOf } from "../../domain/errors.ts";
+import { git } from "./git.ts";
 
 export interface WalkOptions {
 	exclusions: string[];
@@ -64,7 +66,7 @@ export function includedLimits(entries: readonly ManifestEntry[], limits: Limits
 
 /**
  * Deterministic inventory of a directory: sorted by normalised path, each entry with kind, digest,
- * size, mode, symlink target. `.git` is never part of the application content (§9.1). A file above
+ * size, mode, symlink target. No `.git`, at any depth, is part of the application content (§9.1). A file above
  * the size limit, outside `node_modules/`, is inventoried without digest and the limit is reported (AT-12).
  */
 export async function walkTree(root: string, options: WalkOptions): Promise<WalkResult> {
@@ -91,7 +93,9 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 		for (const name of names.sort()) {
 			const abs = join(dir, name);
 			const rel = toPosix(relative(root, abs));
-			if (rel === ".git" || rel.startsWith(".git/")) continue;
+			// A `.git`, at the root or below it — a submodule's file pointing into the parent repository, a
+			// nested repository's directory — is Git's plumbing, never application content.
+			if (name === ".git") continue;
 			if (isExcluded(rel, options.exclusions)) continue;
 			if (entries.length >= options.max_entries) {
 				limits.truncated = true;
@@ -117,6 +121,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 				continue;
 			}
 			if (st.isDirectory()) {
+				if (existsSync(join(abs, ".git"))) entries.push(await submoduleEntry(rel, abs, mode));
 				stack.push(abs);
 				continue;
 			}
@@ -184,6 +189,33 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 	}
 	entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 	return { entries, limits };
+}
+
+/**
+ * The boundary of a repository below the root — a submodule, or a nested repository — with the commit
+ * it has checked out. Its files belong to that repository, and stay inventoried as files of their own.
+ */
+async function submoduleEntry(rel: string, abs: string, mode: string): Promise<ManifestEntry> {
+	let note: string;
+	let commit: string | null = null;
+	try {
+		const { stdout } = await git(abs, ["rev-parse", "--verify", "HEAD"]);
+		commit = stdout.trim();
+		note = `submodule at commit ${commit}`;
+	} catch (error) {
+		note = `submodule without a readable commit: ${messageOf(error)}`;
+	}
+	return {
+		path: rel,
+		kind: "submodule",
+		content_digest: commit === null ? null : `sha256:${createHash("sha256").update(commit).digest("hex")}`,
+		size: 0,
+		mode,
+		symlink_target: null,
+		baseline_state: "unchanged",
+		origin: "unknown",
+		limits: { truncated: false, bytes_read: 0, bytes_total: null, exclusions: [], unstable: false, notes: [note] },
+	};
 }
 
 /** Diff two inventories: marks each candidate entry relative to the reference, adds deletions. */

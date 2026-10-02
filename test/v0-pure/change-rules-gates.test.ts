@@ -162,6 +162,7 @@ describe("candidate G4 (SA-011, BES-03, SEC-03)", () => {
 					complete: true,
 					limits_notes: [],
 					allowed_protected_paths: [],
+					submodule_paths: [],
 				},
 			},
 			"PRECONDITION_FAILED",

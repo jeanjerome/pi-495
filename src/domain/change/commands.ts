@@ -50,6 +50,8 @@ export interface CandidateFacts {
 	altered_protected_paths: string[];
 	/** Protected paths permitted by the frozen protocol: exact prepared files, new files under protected roots and identical mirrored support resources. */
 	allowed_protected_paths: string[];
+	/** Paths the candidate changed under a submodule of the reference, the boundary itself included, each with that submodule. */
+	submodule_paths: { path: string; submodule: string }[];
 	complete: boolean;
 	limits_notes: string[];
 }

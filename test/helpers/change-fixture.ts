@@ -411,6 +411,7 @@ export class Runner {
 				complete: true,
 				limits_notes: [],
 				allowed_protected_paths: [],
+				submodule_paths: [],
 				...over,
 			},
 		});

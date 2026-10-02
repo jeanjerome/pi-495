@@ -10,7 +10,8 @@ import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/ca
 import { DomainError, messageOf } from "../../domain/errors.ts";
 import { inInstalledDependencies } from "../../domain/gates/g4.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
-import { DEFAULT_WORKSPACE_POLICY, git, inspectGit } from "../workspace/git-workspace.ts";
+import { DEFAULT_WORKSPACE_POLICY, inspectGit } from "../workspace/git-workspace.ts";
+import { git } from "../workspace/git.ts";
 import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
 import { KERNEL_ACTOR } from "../../application/actors.ts";
 import type { Harness } from "../../application/harness.ts";
