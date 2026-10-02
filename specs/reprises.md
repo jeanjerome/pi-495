@@ -567,7 +567,7 @@ Statut : versée
 
 ## R68 — Les tests attendent une condition au lieu d'un délai
 
-Statut : à faire
+Statut : versée
 
 - Où : test/cycle/cycle.test.ts:193 (setTimeout(r, 700) dans le faux relecteur B) · v0/review-parameters.test.ts:99,191,208 (tick : 10 ms après render())
 - Constat : Attentes devinées (« A a déjà échoué à ce stade », « le chargement asynchrone a résolu »), pas une condition. v0/review-surface.test.ts:120-130 drawn() montre la bonne forme : sonder jusqu'à ce que « chargement… » disparaisse. helpers/rpc-client.ts:117-127 waitQuiet attend une condition (flux silencieux) ; v1/agent-port.test.ts:55 est du jeu, fake-worker gère l'abort dans les deux ordres : acceptables.

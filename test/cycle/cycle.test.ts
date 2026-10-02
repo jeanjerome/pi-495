@@ -188,19 +188,28 @@ export default (invite, cwd) => {
 
 	it("keeps the tree of a reviewer running until it ends when the other reviewer's session fails", async () => {
 		const root = depot();
-		const marker = join(tempDir("495-", cleanups), "b-cwd");
+		const dir = tempDir("495-", cleanups);
+		const marker = join(dir, "b-cwd");
+		const handled = join(dir, "a-handled");
 		const claude = fauxClaude(`import { existsSync, writeFileSync } from "node:fs";
 export default async (invite, cwd) => {
   if (invite.startsWith("Tu es le relecteur A")) throw new Error("the session died");
-  await new Promise((r) => setTimeout(r, 700));
+  while (!existsSync(${JSON.stringify(handled)})) await new Promise((r) => setTimeout(r, 10));
   writeFileSync(${JSON.stringify(marker)}, existsSync(cwd) ? "present" : "gone");
   return { verdict: "pass", constats: [], resume: "" };
 };`);
 		const ctx = contexte(root, claude);
 		await conduirePas(ctx, "story");
 		for (const pas of ["rouge-vert", "autocontrole"] as const) ctx.journal.inscrire(pas, "fini");
+		// B reads its tree once the tool has recorded A's failed session and run what follows it to the
+		// end of that turn of the event loop, where removing the trees on that failure would happen.
+		ctx.journal.observateur = (e) => {
+			if (e.genre === "session" && e.nom === "relecteur-A-tour-1") setImmediate(() => writeFileSync(handled, ""));
+		};
 		const issue = await conduirePas(ctx, "relecture");
 		assert.equal(issue.statut, "bloque");
+		// A step that returned before B ended did not wait for it: B still writes what it then saw.
+		for (let i = 0; i < 200 && !existsSync(marker); i++) await new Promise((r) => setTimeout(r, 10));
 		assert.equal(readFileSync(marker, "utf8"), "present");
 	});
 

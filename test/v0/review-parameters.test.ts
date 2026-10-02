@@ -171,11 +171,26 @@ describe("pagination of large files (§10.5, §16)", () => {
 
 	it("loads one page at a time, says what is not loaded yet, and reaches the end by reading on", async () => {
 		const query = pagedQuery(tallFile(total));
-		const surface = new ReviewSurface({ snapshot, query, rows: () => 30, onExit: () => {}, requestRender: () => {} });
+		let renders = 0;
+		const surface = new ReviewSurface({
+			snapshot,
+			query,
+			rows: () => 30,
+			onExit: () => {},
+			requestRender: () => {
+				renders++;
+			},
+		});
+		/** Waits until the surface asks to be drawn again: the page it asked for has arrived. */
+		const settled = async () => {
+			const before = renders;
+			for (let i = 0; i < 200 && renders === before; i++) await tick();
+			if (renders === before) throw new Error("the page asked for never arrived");
+		};
 		surface.selectPath(path);
 		surface.handleInput("m"); // changes → new: the reader shows the content itself
 		surface.render(120);
-		await tick();
+		await settled();
 		assert.deepEqual(
 			query.asked,
 			[{ start: 1, limit: CONTENT_PAGE_LINES }],
@@ -192,7 +207,7 @@ describe("pagination of large files (§10.5, §16)", () => {
 				new RegExp(`${total - CONTENT_PAGE_LINES * page} lignes non chargées`),
 				`the limit left after ${page} page(s) is visible`,
 			);
-			await tick();
+			await settled();
 		}
 		assert.deepEqual(
 			query.asked.map((a) => a.start),
