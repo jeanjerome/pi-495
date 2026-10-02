@@ -512,7 +512,7 @@ Statut : versée
 
 ## R62 — Les événements d'outil de l'agent scripté se construisent par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/pi-worker/scripted-agent.ts:107-134,139-164,169-183
 - Constat : Les paires tool_started / tool_finished sont écrites trois fois, environ 60 lignes.
