@@ -211,21 +211,7 @@ export class SqliteLedger implements LedgerPort {
 			for (const e of events) state = apply(state, e);
 			if (!state) return;
 			for (const e of events) this.projectOperation(changeId, e);
-			this.db
-				.prepare(
-					"INSERT INTO changes (change_id, program_id, increment_id, revision, phase, status, outcome, state, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (change_id) DO UPDATE SET revision = excluded.revision, phase = excluded.phase, status = excluded.status, outcome = excluded.outcome, state = excluded.state, updated_at = excluded.updated_at",
-				)
-				.run(
-					changeId,
-					state.program_id,
-					state.increment_id,
-					state.revision,
-					state.phase,
-					state.status,
-					state.outcome,
-					JSON.stringify(state),
-					state.updated_at,
-				);
+			this.projectChange(changeId, state);
 		});
 	}
 
@@ -301,6 +287,11 @@ export class SqliteLedger implements LedgerPort {
 		const events = this.readChangeEvents(changeId);
 		if (events.length === 0) return null;
 		const state = replay(events.map((e) => e.event));
+		this.projectChange(changeId, state);
+		return state;
+	}
+
+	private projectChange(changeId: string, state: ChangeState): void {
 		this.db
 			.prepare(
 				"INSERT INTO changes (change_id, program_id, increment_id, revision, phase, status, outcome, state, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (change_id) DO UPDATE SET revision = excluded.revision, phase = excluded.phase, status = excluded.status, outcome = excluded.outcome, state = excluded.state, updated_at = excluded.updated_at",
@@ -316,7 +307,6 @@ export class SqliteLedger implements LedgerPort {
 				JSON.stringify(state),
 				state.updated_at,
 			);
-		return state;
 	}
 
 	readChangeEvents(changeId: string, fromSequence = 0): StoredEvent<ChangeEvent>[] {

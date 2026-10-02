@@ -383,7 +383,7 @@ Statut : versée
 
 ## R48 — Le registre projette un changement par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/storage-sqlite/ledger.ts:214-228 ≡ 304-318
 - Constat : L'INSERT INTO changes … ON CONFLICT et son .run à neuf arguments sont dupliqués mot pour mot.
