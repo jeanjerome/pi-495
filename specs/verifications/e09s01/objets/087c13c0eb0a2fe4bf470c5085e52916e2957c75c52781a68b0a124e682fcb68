@@ -1,0 +1,63 @@
+TAP version 13
+# Subtest: one Pi session conducts a change at a time
+    # Subtest: une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+    ok 1 - une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+      ---
+      duration_ms: 137.665583
+      type: 'test'
+      ...
+    # Subtest: avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+    ok 2 - avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+      ---
+      duration_ms: 114.933875
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend sans attendre un changement que la première a fini de conduire
+    ok 3 - une seconde session reprend sans attendre un changement que la première a fini de conduire
+      ---
+      duration_ms: 108.215916
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+    ok 4 - une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+      ---
+      duration_ms: 100.902875
+      type: 'test'
+      ...
+    # Subtest: une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+    not ok 5 - une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+      ---
+      duration_ms: 100.037416
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-GpKLsB/test/v2-kernel/conducting-session.test.ts:182:2'
+      failureType: 'testCodeFailure'
+      error: 'the first session does not block the change: execution_error REVISION_CONFLICT: aggregate chg_0003 is at revision 6, expected 5'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'blocked'
+      actual: 'blocked'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-GpKLsB/test/v2-kernel/conducting-session.test.ts:192:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..5
+not ok 1 - one Pi session conducts a change at a time
+  ---
+  duration_ms: 562.678292
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-GpKLsB/test/v2-kernel/conducting-session.test.ts:79:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 739.876834

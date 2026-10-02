@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: one Pi session conducts a change at a time
+    # Subtest: une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+    ok 1 - une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+      ---
+      duration_ms: 124.453167
+      type: 'test'
+      ...
+    # Subtest: avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+    ok 2 - avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+      ---
+      duration_ms: 114.924333
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend sans attendre un changement que la première a fini de conduire
+    ok 3 - une seconde session reprend sans attendre un changement que la première a fini de conduire
+      ---
+      duration_ms: 115.393791
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+    ok 4 - une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+      ---
+      duration_ms: 104.366166
+      type: 'test'
+      ...
+    # Subtest: une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+    ok 5 - une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+      ---
+      duration_ms: 100.2445
+      type: 'test'
+      ...
+    1..5
+ok 1 - one Pi session conducts a change at a time
+  ---
+  duration_ms: 560.080417
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 730.833417

@@ -1,0 +1,80 @@
+TAP version 13
+# Subtest: one Pi session conducts a change at a time
+    # Subtest: une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+    ok 1 - une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+      ---
+      duration_ms: 133.248
+      type: 'test'
+      ...
+    # Subtest: avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+    ok 2 - avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+      ---
+      duration_ms: 110.894125
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend sans attendre un changement que la première a fini de conduire
+    ok 3 - une seconde session reprend sans attendre un changement que la première a fini de conduire
+      ---
+      duration_ms: 110.65625
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+    ok 4 - une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+      ---
+      duration_ms: 100.364583
+      type: 'test'
+      ...
+    # Subtest: une session qui conduit plus longtemps que son bail le renouvelle, et une seconde session est toujours refusée une fois le premier délai passé
+    ok 5 - une session qui conduit plus longtemps que son bail le renouvelle, et une seconde session est toujours refusée une fois le premier délai passé
+      ---
+      duration_ms: 109.689417
+      type: 'test'
+      ...
+    # Subtest: une session dont le bail a échu sans qu'aucune autre ne l'ait pris, après une mise en veille de la machine, le reprend à son renouvellement suivant, et une seconde session est toujours refusée
+    not ok 6 - une session dont le bail a échu sans qu'aucune autre ne l'ait pris, après une mise en veille de la machine, le reprend à son renouvellement suivant, et une seconde session est toujours refusée
+      ---
+      duration_ms: 98.763083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HJqsQj/test/v2-kernel/conducting-session.test.ts:203:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the first session took its lease back at its next renewal and still holds the change
+        + actual - expected
+        
+        + undefined
+        - 'OPERATION_ACTIVE'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'OPERATION_ACTIVE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HJqsQj/test/v2-kernel/conducting-session.test.ts:217:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+    ok 7 - une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle
+      ---
+      duration_ms: 98.621083
+      type: 'test'
+      ...
+    1..7
+not ok 1 - one Pi session conducts a change at a time
+  ---
+  duration_ms: 763.069
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HJqsQj/test/v2-kernel/conducting-session.test.ts:79:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 932.520792

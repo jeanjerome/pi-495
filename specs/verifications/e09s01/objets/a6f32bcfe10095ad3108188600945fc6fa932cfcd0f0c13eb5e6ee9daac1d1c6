@@ -1,0 +1,110 @@
+TAP version 13
+# Subtest: one Pi session conducts a change at a time
+    # Subtest: une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+    not ok 1 - une seconde session qui reprend le changement pendant qu'une intervention de la première tourne est refusée avec OPERATION_ACTIVE, et l'intervention de la première est toujours en cours
+      ---
+      duration_ms: 115.829041
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bWxFKa/test/v2-kernel/conducting-session.test.ts:80:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the resume is refused
+        + actual - expected
+        
+        + undefined
+        - 'OPERATION_ACTIVE'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'OPERATION_ACTIVE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bWxFKa/test/v2-kernel/conducting-session.test.ts:90:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+    not ok 2 - avancer, vérifier, répondre, clore, révoquer, mettre en pause et annuler depuis une seconde session sont refusés, et la révision du changement n'a pas bougé
+      ---
+      duration_ms: 115.911458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bWxFKa/test/v2-kernel/conducting-session.test.ts:108:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   advance: 'not refused for the first session: accepted',
+        +   answer: 'not refused for the first session: UNKNOWN_REFERENCE decision dec_asked_of_the_first_session not found',
+        +   cancel: 'not refused for the first session: accepted',
+        +   close: 'not refused for the first session: UNKNOWN_REFERENCE question q1 does not exist',
+        +   pause: 'not refused for the first session: PRECONDITION_FAILED change is blocked: execution_error; nothing runs to pause',
+        +   revoke: 'not refused for the first session: UNKNOWN_REFERENCE question q1 does not exist',
+        +   verify: 'not refused for the first session: INVALID_TRANSITION operation verification.rerun is not allowed in phase clarifying'
+        -   advance: 'refused: another Pi session conducts the change',
+        -   answer: 'refused: another Pi session conducts the change',
+        -   cancel: 'refused: another Pi session conducts the change',
+        -   close: 'refused: another Pi session conducts the change',
+        -   pause: 'refused: another Pi session conducts the change',
+        -   revoke: 'refused: another Pi session conducts the change',
+        -   verify: 'refused: another Pi session conducts the change'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        advance: 'refused: another Pi session conducts the change'
+        verify: 'refused: another Pi session conducts the change'
+        answer: 'refused: another Pi session conducts the change'
+        close: 'refused: another Pi session conducts the change'
+        revoke: 'refused: another Pi session conducts the change'
+        pause: 'refused: another Pi session conducts the change'
+        cancel: 'refused: another Pi session conducts the change'
+      actual:
+        advance: 'not refused for the first session: accepted'
+        verify: 'not refused for the first session: INVALID_TRANSITION operation verification.rerun is not allowed in phase clarifying'
+        answer: 'not refused for the first session: UNKNOWN_REFERENCE decision dec_asked_of_the_first_session not found'
+        close: 'not refused for the first session: UNKNOWN_REFERENCE question q1 does not exist'
+        revoke: 'not refused for the first session: UNKNOWN_REFERENCE question q1 does not exist'
+        pause: 'not refused for the first session: PRECONDITION_FAILED change is blocked: execution_error; nothing runs to pause'
+        cancel: 'not refused for the first session: accepted'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bWxFKa/test/v2-kernel/conducting-session.test.ts:145:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une seconde session reprend sans attendre un changement que la première a fini de conduire
+    ok 3 - une seconde session reprend sans attendre un changement que la première a fini de conduire
+      ---
+      duration_ms: 112.896084
+      type: 'test'
+      ...
+    # Subtest: une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+    ok 4 - une seconde session reprend un changement dont la première a disparu une fois son bail échu, et l'intervention de la première est close comme échouée
+      ---
+      duration_ms: 104.001625
+      type: 'test'
+      ...
+    1..4
+not ok 1 - one Pi session conducts a change at a time
+  ---
+  duration_ms: 449.284417
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bWxFKa/test/v2-kernel/conducting-session.test.ts:79:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 2
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 621.874375

@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une seconde session ne reprend pas un changement qu'une autre conduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/harness.ts",
+    "ligne": 296,
+    "constat": "The refusal names the lease's current expiry. A live session pushes that expiry back every 20 s, so the time given is not really the latest one. The message says so itself (\"unless it keeps conducting it\"). The story's wording « jusqu'à quelle heure au plus tard » cannot be met exactly by a lease that renews; the test checks that the message carries `expires_at`.",
+    "mutation": "Message without `${other?.expires_at ...}` → test 1 of conducting-session.test.ts fails"
+   }
+  ],
+  "resume": "The code keeps all five promises, and a test kills at least one mutation of each. Every mutation ran against test/v2-kernel/conducting-session.test.ts, and the tree was restored afterwards.\n\nS1 (a second session's resume while an intervention runs): take() refuses before anything is written, with the expiry in the message, and the intervention stays open in the journal. Three mutations each break test 1: dropping the refusal in take(), dropping it together with commit's holds() check, and removing the expiry from the message. Removing the hold on resume() breaks tests 1, 4 and 6.\n\nS2 (no act of a second session writes): advance, verify, answerDecision, closeQuestion, revokeQuestion, pause and cancel all run under holdWhile or conducting. Removing that hold from any single one of them breaks the acts test. Without the hold, commit still refuses, but with a different message that the test's regex rejects. The revision is asserted unchanged.\n\nS3 (resume once the first session is done): loosen gives the lease back. Removing releaseLease breaks test 3.\n\nS4 (a vanished session): once the lease has expired, acquireLease takes it, and the old intervention is closed as failed. Setting CHANGE_LEASE_MS to 3 days breaks tests 4 and 6.\n\nS5 (a session that lost the change): commit refuses through holds(), and advance rethrows without writing a block. Removing the holds() check from commit, or removing the rethrow from advance, each breaks test 6, where the revision is unchanged and an OPERATION_ACTIVE error is expected.\n\nLease renewal: removing heartbeatLease breaks test 5.\n\nOne constat, to weigh: the time in the message is the current expiry of a lease the conducting session keeps renewing. Only one mechanism mutation survived, removing the shared hold in take(); no promise depends on it, so it is not reported."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une seconde session ne reprend pas un changement qu'une autre conduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/extension/runtime.ts",
+    "ligne": 118,
+    "constat": "Le noyau tient la promesse et `test/v2-kernel/conducting-session.test.ts` la tient avec deux instances de `Harness` qui ont chacune leur identifiant de session. Mais aucun test ne tient la ligne qui donne à chaque session Pi son propre détenteur : si tous les runtimes portaient le même identifiant, deux sessions Pi sur le même dossier de données se partageraient le bail et la reprise de la seconde serait acceptée. Seule la recette exercera ce câblage.",
+    "mutation": "`session: randomIds.next(\"ses\")` remplacé par `session: \"ses_shared\"` dans createRuntime : `npm run test:v3` passe quand même à 84/84, et aucun test hors de v3 ne construit le runtime."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une seconde session ne reprend pas un changement qu'une autre conduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/harness.ts",
+    "ligne": 296,
+    "constat": "Le refus donne `expires_at` comme l'heure « au plus tard » où l'autre session tient le changement, puis ajoute « unless it keeps conducting it ». L'heure affichée n'est donc pas une borne : chaque renouvellement la repousse de 60 s. La promesse est tenue au mot près, mais le texte se contredit.",
+    "mutation": "Message réduit à « it holds it for a while » : le premier test de conducting-session échoue, donc la mention de l'heure est bien tenue par un test."
+   }
+  ],
+  "resume": "J'ai relu les cinq scénarios de e09s01 à la révision f49385f. Le code les tient tous, et pour chacun au moins un test échoue quand on mute la ligne qui le tient.\n\nCe que fait le code :\n- Chaque acte qui écrit passe par `take` : `start`, `advance`/`verify` via `conducting`, et `answerDecision`, `closeQuestion`, `revokeQuestion`, `pause`, `resume`, `cancel` via `holdWhile`. `take` prend le bail `change:<id>` ; si une autre session le tient, l'acte est refusé avant toute écriture avec `OPERATION_ACTIVE` et le message donne `expires_at`.\n- `loosen` rend le bail, mais seulement s'il appartient à la session qui le rend.\n- `commit` refuse toute écriture d'une session qui n'est plus détentrice. `conduct` relance alors l'erreur au lieu d'écrire le blocage.\n- Côté extension, toutes les écritures passent par ces méthodes : resume, verify, pause, cancel, close, revoke, answer et l'outil verify. Les écritures annexes (demande de décision, preuve) ne sont visibles que par l'état du changement.\n\nLes 11 mutations essayées sur `harness.ts` sont toutes tuées par `test/v2-kernel/conducting-session.test.ts` :\n- refus jamais levé ;\n- heure retirée du message ;\n- bail jamais rendu (scénario 3) ;\n- délai de 10 jours (scénarios 4 et 5) ;\n- contrôle du détenteur retiré de `commit` (scénario 5) ;\n- relance retirée de `conduct` (scénario 5) ;\n- renouvellement retiré ;\n- intervention close en `cancelled` au lieu de `failed` (scénario 4) ;\n- `pause`, `cancel` et `resume` sans `holdWhile`.\n\nIl reste deux constats à peser, aucun bloquant ni à corriger :\n- B1-1 : la ligne de `createRuntime` qui donne à chaque session Pi son propre détenteur n'est tenue par aucun test. Avec un identifiant partagé, `test:v3` passe quand même.\n- B1-2 : le message présente comme « au plus tard » une heure que chaque renouvellement repousse.\n\nLe défaut du bail jamais renouvelé après une mise en veille est déjà ouvert au registre (BUG-2026-10-02T120000) et n'est pas compté.\n\nL'arbre est revenu propre : les mutations ont été annulées et le script jetable supprimé."
+ }
+]

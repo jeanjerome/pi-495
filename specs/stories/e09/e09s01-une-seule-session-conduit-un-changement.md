@@ -2,7 +2,7 @@
 
 Story : e09s01
 Epic : e09
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 
