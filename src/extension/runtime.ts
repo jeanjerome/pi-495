@@ -115,6 +115,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		policy: config.policy,
 		workspacePolicy: { ...DEFAULT_WORKSPACE_POLICY, exclusions: config.workspace_exclusions },
 		environment: environment.ref,
+		session: randomIds.next("ses"),
 	});
 	harness.integrator = new GitIntegrator(harness).step;
 	return {

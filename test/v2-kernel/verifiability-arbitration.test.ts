@@ -378,17 +378,19 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 			"the requirement the owner took on is not also listed as carried by no control",
 		);
 		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
-		t.harness.commit(
-			loaded,
-			{
-				type: "artifact.revise",
-				at: t.harness.now(),
-				actor: KERNEL_ACTOR,
-				kind: "requirements",
-				ref: requirements.ref,
-				reason: "the requirements were rewritten",
-			},
-			t.harness.id("cor"),
+		await t.harness.conducting(loaded.state.change_id, async () =>
+			t.harness.commit(
+				loaded,
+				{
+					type: "artifact.revise",
+					at: t.harness.now(),
+					actor: KERNEL_ACTOR,
+					kind: "requirements",
+					ref: requirements.ref,
+					reason: "the requirements were rewritten",
+				},
+				t.harness.id("cor"),
+			),
 		);
 		const again = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(again.stopped_because, "decision_required", again.steps.join(" | "));
@@ -933,17 +935,19 @@ describe("adopting a complement that is an install", () => {
 		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
 		assert.equal(frozen.installed_packages?.length, 1, "the install is adopted in the first protocol");
 		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
-		t.harness.commit(
-			loaded,
-			{
-				type: "artifact.revise",
-				at: t.harness.now(),
-				actor: KERNEL_ACTOR,
-				kind: "requirements",
-				ref: requirements.ref,
-				reason: "the requirements were rewritten",
-			},
-			t.harness.id("cor"),
+		await t.harness.conducting(loaded.state.change_id, async () =>
+			t.harness.commit(
+				loaded,
+				{
+					type: "artifact.revise",
+					at: t.harness.now(),
+					actor: KERNEL_ACTOR,
+					kind: "requirements",
+					ref: requirements.ref,
+					reason: "the requirements were rewritten",
+				},
+				t.harness.id("cor"),
+			),
 		);
 
 		const again = await t.harness.advance(changeId, { max_steps: 40 });
@@ -1146,17 +1150,19 @@ describe("what adopting a complement holds for", () => {
 		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
 		assert.equal(frozen.complements?.length, 1, "the complement is adopted in the first protocol");
 		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
-		t.harness.commit(
-			loaded,
-			{
-				type: "artifact.revise",
-				at: t.harness.now(),
-				actor: KERNEL_ACTOR,
-				kind: "requirements",
-				ref: requirements.ref,
-				reason: "the requirements were rewritten",
-			},
-			t.harness.id("cor"),
+		await t.harness.conducting(loaded.state.change_id, async () =>
+			t.harness.commit(
+				loaded,
+				{
+					type: "artifact.revise",
+					at: t.harness.now(),
+					actor: KERNEL_ACTOR,
+					kind: "requirements",
+					ref: requirements.ref,
+					reason: "the requirements were rewritten",
+				},
+				t.harness.id("cor"),
+			),
 		);
 		return changeId;
 	}
@@ -1500,17 +1506,19 @@ describe("adopting a complement that is the declaration of a Maven plugin", () =
 		const frozen = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
 		assert.equal(frozen.complements?.length, 1, "pom.xml is adopted in the first protocol");
 		const requirements = (await t.harness.artifacts.latest<RequirementsDocument>(loaded.state, "requirements"))!;
-		t.harness.commit(
-			loaded,
-			{
-				type: "artifact.revise",
-				at: t.harness.now(),
-				actor: KERNEL_ACTOR,
-				kind: "requirements",
-				ref: requirements.ref,
-				reason: "the requirements were rewritten",
-			},
-			t.harness.id("cor"),
+		await t.harness.conducting(loaded.state.change_id, async () =>
+			t.harness.commit(
+				loaded,
+				{
+					type: "artifact.revise",
+					at: t.harness.now(),
+					actor: KERNEL_ACTOR,
+					kind: "requirements",
+					ref: requirements.ref,
+					reason: "the requirements were rewritten",
+				},
+				t.harness.id("cor"),
+			),
 		);
 
 		const again = await t.harness.advance(changeId, { max_steps: 40 });

@@ -614,11 +614,15 @@ export class SqliteLedger implements LedgerPort {
 		});
 	}
 
+	/**
+	 * Extends a lease still in `owner`'s name, expired or not: an owner suspended past its lease that
+	 * nobody took over keeps it, while a lease another owner took is left to that owner.
+	 */
 	heartbeatLease(scope: string, owner: string, ttlMs: number, now: string): boolean {
 		const expires = new Date(Date.parse(now) + ttlMs).toISOString();
 		const r = this.db
-			.prepare("UPDATE leases SET expires_at = ? WHERE scope = ? AND owner = ? AND expires_at > ?")
-			.run(expires, scope, owner, now);
+			.prepare("UPDATE leases SET expires_at = ? WHERE scope = ? AND owner = ?")
+			.run(expires, scope, owner);
 		return Number(r.changes) === 1;
 	}
 

@@ -29,9 +29,10 @@ export function selectedModel(ctx: ExtensionCommandContext): ModelSelection {
 }
 
 /**
- * Advances the change while holding the session. `inscribe` is written under the same hold before the
- * first step: an act the conduct follows, such as a resume, is refused with it while another operation
- * holds the session, instead of ending a pause or closing a verification under steps still running.
+ * Advances the change while holding the session and the change. `inscribe` is written under the same
+ * holds before the first step: an act the conduct follows, such as a resume, is refused with it while
+ * another operation holds the session or another Pi session conducts the change, instead of ending a
+ * pause or closing a verification under steps still running.
  */
 export async function conduct(
 	session: ExtensionSession,
@@ -39,10 +40,12 @@ export async function conduct(
 	changeId: string,
 	inscribe: () => void = () => {},
 ): Promise<void> {
-	await session.hold(ctx, async () => {
-		inscribe();
-		await drive(session, ctx, changeId);
-	});
+	await session.hold(ctx, () =>
+		session.runtime().harness.conducting(changeId, async () => {
+			inscribe();
+			await drive(session, ctx, changeId);
+		}),
+	);
 }
 
 /**

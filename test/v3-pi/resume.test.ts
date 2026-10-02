@@ -102,16 +102,18 @@ async function pausedDuringVerificationByAnEarlierBuild(
 	const { pi, session, ctx, changeId } = await atVerification(dataDir, cwd, "s-resume-earlier-build");
 	const rt = session.runtime();
 	const owner = session.humanOrigin(ctx.asCommand())!.actor;
-	const verifying = rt.harness.commit(
-		rt.ledger.loadChange(changeId)!,
-		{
-			type: "verification.start",
-			at: new Date().toISOString(),
-			actor: KERNEL_ACTOR,
-			operation_id: "op_earlier_build",
-			idempotency_key: "verify:earlier-build",
-		},
-		"cor_earlier_build",
+	const verifying = await rt.harness.conducting(changeId, async () =>
+		rt.harness.commit(
+			rt.ledger.loadChange(changeId)!,
+			{
+				type: "verification.start",
+				at: new Date().toISOString(),
+				actor: KERNEL_ACTOR,
+				operation_id: "op_earlier_build",
+				idempotency_key: "verify:earlier-build",
+			},
+			"cor_earlier_build",
+		),
 	);
 	const at = new Date().toISOString();
 	rt.ledger.appendChange(
@@ -221,10 +223,12 @@ describe("a refusal on a blocked change names only the ways out `/495` offers", 
 			const rt = session.runtime();
 			/** Blocks the change as the losing conduct of another session would, then asks `/495 verify`. */
 			const refusalOf = async (reason: "execution_error" | "configuration_error"): Promise<unknown> => {
-				rt.harness.commit(
-					rt.ledger.loadChange(changeId)!,
-					{ type: "change.block", at: new Date().toISOString(), actor: KERNEL_ACTOR, reason, detail: reason },
-					`cor_${reason}`,
+				await rt.harness.conducting(changeId, async () =>
+					rt.harness.commit(
+						rt.ledger.loadChange(changeId)!,
+						{ type: "change.block", at: new Date().toISOString(), actor: KERNEL_ACTOR, reason, detail: reason },
+						`cor_${reason}`,
+					),
 				);
 				const before = pi.said.length;
 				await pi.run("verify", ctx);

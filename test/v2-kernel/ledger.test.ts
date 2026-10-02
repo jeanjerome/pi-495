@@ -221,6 +221,11 @@ describe("SQLite ledger: append-only chain and projections (EVD-02, EVD-03, NFR-
 			"expired lease can be taken over",
 		);
 		assert.equal(ledger.heartbeatLease("change:chg_1", "owner-a", 60_000, "2026-09-16T10:02:00.000Z"), false);
+		assert.ok(
+			ledger.heartbeatLease("change:chg_1", "owner-b", 60_000, "2026-09-16T10:05:00.000Z"),
+			"an owner's own expired lease is renewed while nobody took it over",
+		);
+		assert.equal(ledger.getLease("change:chg_1")?.expires_at, "2026-09-16T10:06:00.000Z");
 		ledger.close();
 	});
 

@@ -334,16 +334,18 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 		const { changeId } = await awaitingAcceptance(t);
 		revoke(t, changeId, Q1.id);
 		// The block a losing conduct wrote over the decision before a harness yielded to it.
-		t.harness.commit(
-			t.ledger.loadChange(changeId)!,
-			{
-				type: "change.block",
-				at: new Date().toISOString(),
-				actor: KERNEL_ACTOR,
-				reason: "execution_error",
-				detail: "REVISION_CONFLICT: revision 59, expected 48",
-			},
-			"cor_losing_session",
+		await t.harness.conducting(changeId, async () =>
+			t.harness.commit(
+				t.ledger.loadChange(changeId)!,
+				{
+					type: "change.block",
+					at: new Date().toISOString(),
+					actor: KERNEL_ACTOR,
+					reason: "execution_error",
+					detail: "REVISION_CONFLICT: revision 59, expected 48",
+				},
+				"cor_losing_session",
+			),
 		);
 
 		t.harness.resume(changeId, HUMAN);

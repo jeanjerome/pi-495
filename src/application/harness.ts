@@ -75,6 +75,8 @@ export interface HarnessDeps {
 	policy: ActivePolicy;
 	workspacePolicy: WorkspacePolicy;
 	environment: EnvironmentRef;
+	/** The Pi session this harness writes for: the holder of the changes it conducts. */
+	session: string;
 	/** Called when a decision is requested (presentation hook, never authoritative). */
 	onDecisionRequested?: (request: DecisionRequest) => void;
 	onProgress?: (message: string) => void;
@@ -109,6 +111,12 @@ function stopOf(s: ChangeState): AdvanceResult["stopped_because"] | null {
 	if (s.status === "paused") return "paused";
 	return null;
 }
+
+/**
+ * How long a change stays held by a session that stopped renewing it. A live session renews it well
+ * before then; past it, the session is taken for gone and another may conduct the change.
+ */
+const CHANGE_LEASE_MS = 60_000;
 
 /** The phase a change is in decides what runs next; this table is the whole of that order. */
 const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string) => Promise<Unit>>> = {
@@ -193,6 +201,8 @@ export class Harness {
 	 * it starts, which only the caller of `advance` can read.
 	 */
 	private readonly phase: Omit<PhaseContext, "runIntervention">;
+	/** The changes this session holds: how many of its acts hold each, and the timer that renews it. */
+	private readonly held = new Map<string, { acts: number; renewal: ReturnType<typeof setInterval> }>();
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
 		const harness = this;
@@ -268,14 +278,91 @@ export class Harness {
 		this.deps.onProgress?.(message);
 	}
 
+	/**
+	 * Takes the change for this session, or refuses before anything is written while another session
+	 * holds it (§12.1: one producer per change). An act of this session made while another of its acts
+	 * holds the change shares that hold. A lease whose holder stopped renewing it is taken.
+	 */
+	private take(changeId: string): () => void {
+		const holding = this.held.get(changeId);
+		if (holding) {
+			holding.acts++;
+			return () => this.loosen(changeId);
+		}
+		const scope = `change:${changeId}`;
+		if (!this.deps.ledger.acquireLease(scope, this.deps.session, CHANGE_LEASE_MS, this.now())) {
+			const other = this.deps.ledger.getLease(scope);
+			throw new DomainError(
+				"OPERATION_ACTIVE",
+				`another Pi session conducts change ${changeId} and renews its hold while it runs; if that session is gone, the change is free at ${other?.expires_at ?? this.now()} at the latest`,
+			);
+		}
+		const renewal = setInterval(() => {
+			try {
+				this.deps.ledger.heartbeatLease(scope, this.deps.session, CHANGE_LEASE_MS, this.now());
+			} catch {
+				// The journal closed under the session: the lease is left to expire, which frees the change.
+				clearInterval(renewal);
+			}
+		}, CHANGE_LEASE_MS / 3);
+		renewal.unref();
+		this.held.set(changeId, { acts: 1, renewal });
+		return () => this.loosen(changeId);
+	}
+
+	/** Ends one act's hold on the change, and gives the change back once no act of this session holds it. */
+	private loosen(changeId: string): void {
+		const holding = this.held.get(changeId);
+		if (!holding || --holding.acts > 0) return;
+		clearInterval(holding.renewal);
+		this.held.delete(changeId);
+		this.deps.ledger.releaseLease(`change:${changeId}`, this.deps.session);
+	}
+
+	/** Runs an act that writes on the change, holding it for this session while it runs. */
+	private holdWhile<T>(changeId: string, act: () => T): T {
+		const release = this.take(changeId);
+		try {
+			return act();
+		} finally {
+			release();
+		}
+	}
+
+	/**
+	 * Runs `work` holding the change for this session, so that an act and the conduct that follows it
+	 * are not split by another session's act.
+	 */
+	async conducting<T>(changeId: string, work: () => Promise<T>): Promise<T> {
+		const release = this.take(changeId);
+		try {
+			return await work();
+		} finally {
+			release();
+		}
+	}
+
 	private load(changeId: string): Unit {
 		const loaded = this.deps.ledger.loadChange(changeId);
 		if (!loaded) throw new DomainError("UNKNOWN_REFERENCE", `change ${changeId} does not exist`);
 		return loaded;
 	}
 
-	/** Applies one command through the reducer and commits its events atomically. */
+	/** Whether the journal still names this session as the one conducting the change. */
+	private holds(changeId: string): boolean {
+		return this.deps.ledger.getLease(`change:${changeId}`)?.owner === this.deps.session;
+	}
+
+	/**
+	 * Applies one command through the reducer and commits its events atomically, if this session still
+	 * holds the change: a session whose lease expired and was taken over writes nothing more on it.
+	 */
 	commit(unit: Unit, command: ChangeCommand, correlation: string): Unit {
+		if (!this.holds(unit.state.change_id))
+			throw new DomainError(
+				"OPERATION_ACTIVE",
+				`this Pi session no longer holds change ${unit.state.change_id}: another session conducts it`,
+			);
 		const d = decide(unit.state, command, this.deps.policy);
 		if (!d.ok) throw d.error;
 		if (d.events.length === 0) return unit;
@@ -388,47 +475,49 @@ export class Harness {
 			{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId },
 			cor,
 		);
-		const d = decide(
-			null,
-			{
-				type: "change.create",
-				at,
-				actor: args.actor,
-				change_id: changeId,
-				program_id: programId,
-				increment_id: incrementId,
-				request: requestRef,
-				reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest },
-				environment_digest: this.deps.environment.digest,
-			},
-			this.deps.policy,
-		);
-		if (!d.ok) throw d.error;
-		const receipt = this.deps.ledger.appendChange(changeId, 0, d.events, { correlation_id: cor });
-		let state: ChangeState | null = null;
-		for (const e of d.events) state = apply(state, e);
-		if (!state) throw new DomainError("INVALID_TRANSITION", "change.create produced no change state");
-		let unit: Unit = { state, revision: receipt.revision };
-		unit = this.commit(
-			unit,
-			{ type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef },
-			cor,
-		);
-		if (args.language)
+		return this.holdWhile(changeId, () => {
+			const d = decide(
+				null,
+				{
+					type: "change.create",
+					at,
+					actor: args.actor,
+					change_id: changeId,
+					program_id: programId,
+					increment_id: incrementId,
+					request: requestRef,
+					reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest },
+					environment_digest: this.deps.environment.digest,
+				},
+				this.deps.policy,
+			);
+			if (!d.ok) throw d.error;
+			const receipt = this.deps.ledger.appendChange(changeId, 0, d.events, { correlation_id: cor });
+			let state: ChangeState | null = null;
+			for (const e of d.events) state = apply(state, e);
+			if (!state) throw new DomainError("INVALID_TRANSITION", "change.create produced no change state");
+			let unit: Unit = { state, revision: receipt.revision };
 			unit = this.commit(
 				unit,
-				{
-					type: "question.open",
-					at,
-					actor: KERNEL_ACTOR,
-					id: "language",
-					question: `language:${args.language}`,
-					material: false,
-					decision_id: null,
-				},
+				{ type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef },
 				cor,
 			);
-		return { program, change: unit.state };
+			if (args.language)
+				unit = this.commit(
+					unit,
+					{
+						type: "question.open",
+						at,
+						actor: KERNEL_ACTOR,
+						id: "language",
+						question: `language:${args.language}`,
+						material: false,
+						decision_id: null,
+					},
+					cor,
+				);
+			return { program, change: unit.state };
+		});
 	}
 
 	status(changeId: string): StatusView {
@@ -470,6 +559,14 @@ export class Harness {
 		changeId: string,
 		options: { max_steps?: number; actor?: ActorRef; readModel: () => ModelSelection },
 	): Promise<AdvanceResult> {
+		return this.conducting(changeId, () => this.conduct(changeId, options));
+	}
+
+	/** Runs the change through its phases until it stops, under the hold `advance` took. */
+	private async conduct(
+		changeId: string,
+		options: { max_steps?: number; actor?: ActorRef; readModel: () => ModelSelection },
+	): Promise<AdvanceResult> {
 		const steps: string[] = [];
 		const max = options.max_steps ?? 12;
 		const phaseContext: PhaseContext = {
@@ -507,6 +604,8 @@ export class Harness {
 				steps.push(`${s.phase} -> ${unit.state.phase}/${unit.state.status}`);
 			} catch (error) {
 				if (error instanceof DomainError) {
+					// A session that lost the change to another writes nothing on it, not even its own block.
+					if (!this.holds(changeId)) throw error;
 					steps.push(`${s.phase}: ${error.code} ${error.message}`);
 					// The failing step commits before it throws, so `unit` holds a stale revision: writing
 					// the block against it loses the optimistic-concurrency race and the change silently
@@ -620,136 +719,146 @@ export class Harness {
 		response: DecisionResponse,
 		origin: HumanOrigin,
 	): { view: StatusView; decision: HumanDecision | null; error: DomainError | null } {
-		const cor = this.id("cor");
-		let unit = this.load(changeId);
-		const request = this.deps.ledger.getDecisionRequest(response.decision_id);
-		if (!request)
-			return {
-				view: this.status(changeId),
-				decision: null,
-				error: new DomainError("UNKNOWN_REFERENCE", `decision ${response.decision_id} not found`),
+		return this.holdWhile(changeId, () => {
+			const cor = this.id("cor");
+			let unit = this.load(changeId);
+			const request = this.deps.ledger.getDecisionRequest(response.decision_id);
+			if (!request)
+				return {
+					view: this.status(changeId),
+					decision: null,
+					error: new DomainError("UNKNOWN_REFERENCE", `decision ${response.decision_id} not found`),
+				};
+			const humanDecisionId = this.id("hd");
+			const actor: ActorRef = origin.actor;
+			const res = this.tryCommit(
+				unit,
+				{ type: "decision.answer", at: this.now(), actor, human_decision_id: humanDecisionId, response, origin },
+				cor,
+			);
+			unit = res.unit;
+			if (res.error) return { view: this.status(changeId), decision: null, error: res.error };
+			const decision: HumanDecision = {
+				human_decision_id: humanDecisionId,
+				request,
+				response,
+				origin,
+				recorded_at: this.now(),
+				revoked: false,
 			};
-		const humanDecisionId = this.id("hd");
-		const actor: ActorRef = origin.actor;
-		const res = this.tryCommit(
-			unit,
-			{ type: "decision.answer", at: this.now(), actor, human_decision_id: humanDecisionId, response, origin },
-			cor,
-		);
-		unit = res.unit;
-		if (res.error) return { view: this.status(changeId), decision: null, error: res.error };
-		const decision: HumanDecision = {
-			human_decision_id: humanDecisionId,
-			request,
-			response,
-			origin,
-			recorded_at: this.now(),
-			revoked: false,
-		};
-		this.deps.ledger.putHumanDecision(decision, changeId);
-		const effect = ANSWER_EFFECTS[request.interaction]?.(response, {
-			actor,
-			human_decision_id: humanDecisionId,
-			now: () => this.now(),
+			this.deps.ledger.putHumanDecision(decision, changeId);
+			const effect = ANSWER_EFFECTS[request.interaction]?.(response, {
+				actor,
+				human_decision_id: humanDecisionId,
+				now: () => this.now(),
+			});
+			if (effect) unit = this.commit(unit, effect, cor);
+			return { view: this.status(changeId), decision, error: null };
 		});
-		if (effect) unit = this.commit(unit, effect, cor);
-		return { view: this.status(changeId), decision, error: null };
 	}
 
 	// --- explicit operations -------------------------------------------------------------------------
 
 	async verify(changeId: string): Promise<AdvanceResult> {
-		const cor = this.id("cor");
-		let unit = this.load(changeId);
-		if (unit.state.phase !== "verifying") {
-			unit = this.commit(
-				unit,
-				{
-					type: "verification.rerun",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "explicit re-verification requested",
-				},
-				cor,
-			);
-		}
-		unit = await verifyPhase(this.phase, unit, cor);
-		return {
-			view: this.status(changeId),
-			steps: ["verify"],
-			stopped_because: unit.state.status === "blocked" ? "blocked" : "max_steps",
-		};
+		return this.conducting(changeId, async () => {
+			const cor = this.id("cor");
+			let unit = this.load(changeId);
+			if (unit.state.phase !== "verifying") {
+				unit = this.commit(
+					unit,
+					{
+						type: "verification.rerun",
+						at: this.now(),
+						actor: KERNEL_ACTOR,
+						reason: "explicit re-verification requested",
+					},
+					cor,
+				);
+			}
+			unit = await verifyPhase(this.phase, unit, cor);
+			return {
+				view: this.status(changeId),
+				steps: ["verify"],
+				stopped_because: unit.state.status === "blocked" ? "blocked" : "max_steps",
+			};
+		});
 	}
 
 	pause(changeId: string, actor: ActorRef): StatusView {
-		let unit = this.load(changeId);
-		const running = runningIntervention(unit.state);
-		if (running)
-			unit = this.commit(
-				unit,
-				{
-					type: "intervention.finish",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					intervention_id: running.intervention_id,
-					result: "cancelled",
-					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
-					detail: "paused",
-					cost: unknownCost("the change was paused before the host reported the session's usage"),
-					imposed_layers: [unobservedEnd("the change was paused before the session reported its requests")],
-				},
-				this.id("cor"),
-			);
-		this.commit(unit, { type: "change.pause", at: this.now(), actor }, this.id("cor"));
-		return this.status(changeId);
+		return this.holdWhile(changeId, () => {
+			let unit = this.load(changeId);
+			const running = runningIntervention(unit.state);
+			if (running)
+				unit = this.commit(
+					unit,
+					{
+						type: "intervention.finish",
+						at: this.now(),
+						actor: KERNEL_ACTOR,
+						intervention_id: running.intervention_id,
+						result: "cancelled",
+						counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
+						detail: "paused",
+						cost: unknownCost("the change was paused before the host reported the session's usage"),
+						imposed_layers: [unobservedEnd("the change was paused before the session reported its requests")],
+					},
+					this.id("cor"),
+				);
+			this.commit(unit, { type: "change.pause", at: this.now(), actor }, this.id("cor"));
+			return this.status(changeId);
+		});
 	}
 
 	resume(changeId: string, actor: ActorRef): StatusView {
-		const unit = this.load(changeId);
-		const cor = this.id("cor");
-		const running = runningIntervention(unit.state);
-		let u = unit;
-		if (running)
-			u = this.commit(
-				u,
-				{
-					type: "intervention.finish",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					intervention_id: running.intervention_id,
-					result: "failed",
-					counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
-					detail: "intervention was running when the session stopped; treated as failed on resume",
-					cost: unknownCost("the session stopped before the host reported its usage"),
-					imposed_layers: [unobservedEnd("the session stopped before it reported its requests")],
-				},
-				cor,
-			);
-		if (u.state.operation && u.state.operation.kind === "verification")
-			u = this.commit(
-				u,
-				{
-					type: "verification.rerun",
-					at: this.now(),
-					actor: KERNEL_ACTOR,
-					reason: "verification was interrupted; it will be re-run",
-				},
-				cor,
-			);
-		if (u.state.status === "paused") u = this.commit(u, { type: "change.resume", at: this.now(), actor }, cor);
-		// A block whose cause the kernel declared retryable is lifted whatever its class: the change
-		// goes back to the step that threw and redoes it. Declaring an error retryable and leaving no
-		// entry able to act on it is what loses a change on an invalid structured output. The block is
-		// lifted under the actor who resumed, so that what the change spends after a stop on its budget
-		// is recorded as that actor's decision.
-		else if (resumeLiftsStop(u.state))
-			u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor }, cor).unit;
-		return this.status(changeId);
+		return this.holdWhile(changeId, () => {
+			const unit = this.load(changeId);
+			const cor = this.id("cor");
+			const running = runningIntervention(unit.state);
+			let u = unit;
+			if (running)
+				u = this.commit(
+					u,
+					{
+						type: "intervention.finish",
+						at: this.now(),
+						actor: KERNEL_ACTOR,
+						intervention_id: running.intervention_id,
+						result: "failed",
+						counters: { tool_calls: 0, duration_ms: 0, tokens_known: 0, delegations: 0 },
+						detail: "intervention was running when the session stopped; treated as failed on resume",
+						cost: unknownCost("the session stopped before the host reported its usage"),
+						imposed_layers: [unobservedEnd("the session stopped before it reported its requests")],
+					},
+					cor,
+				);
+			if (u.state.operation && u.state.operation.kind === "verification")
+				u = this.commit(
+					u,
+					{
+						type: "verification.rerun",
+						at: this.now(),
+						actor: KERNEL_ACTOR,
+						reason: "verification was interrupted; it will be re-run",
+					},
+					cor,
+				);
+			if (u.state.status === "paused") u = this.commit(u, { type: "change.resume", at: this.now(), actor }, cor);
+			// A block whose cause the kernel declared retryable is lifted whatever its class: the change
+			// goes back to the step that threw and redoes it. Declaring an error retryable and leaving no
+			// entry able to act on it is what loses a change on an invalid structured output. The block is
+			// lifted under the actor who resumed, so that what the change spends after a stop on its budget
+			// is recorded as that actor's decision.
+			else if (resumeLiftsStop(u.state))
+				u = this.tryCommit(u, { type: "change.unblock", at: this.now(), actor }, cor).unit;
+			return this.status(changeId);
+		});
 	}
 
 	cancel(changeId: string, actor: ActorRef, reason: string): StatusView {
-		this.commit(this.load(changeId), { type: "change.cancel", at: this.now(), actor, reason }, this.id("cor"));
-		return this.status(changeId);
+		return this.holdWhile(changeId, () => {
+			this.commit(this.load(changeId), { type: "change.cancel", at: this.now(), actor, reason }, this.id("cor"));
+			return this.status(changeId);
+		});
 	}
 
 	/**
@@ -763,12 +872,14 @@ export class Harness {
 		questionId: string,
 		origin: HumanOrigin,
 	): { view: StatusView; error: DomainError | null } {
-		const res = this.tryCommit(
-			this.load(changeId),
-			{ type: "question.close", at: this.now(), actor: origin.actor, id: questionId, origin },
-			this.id("cor"),
-		);
-		return { view: this.status(changeId), error: res.error };
+		return this.holdWhile(changeId, () => {
+			const res = this.tryCommit(
+				this.load(changeId),
+				{ type: "question.close", at: this.now(), actor: origin.actor, id: questionId, origin },
+				this.id("cor"),
+			);
+			return { view: this.status(changeId), error: res.error };
+		});
 	}
 
 	/**
@@ -786,29 +897,31 @@ export class Harness {
 		questionId: string,
 		origin: HumanOrigin,
 	): { view: StatusView; error: DomainError | null } {
-		const unit = this.load(changeId);
-		const question = unit.state.open_questions.find((q) => q.id === questionId);
-		const request = {
-			...buildDecisionRequest({
-				decision_id: this.id("dec"),
-				change_id: changeId,
-				interaction: "IH-01",
-				subject: { ...subjectOfChange(unit.state), digest: unit.state.reference.digest },
-				language: requestedLanguage(unit.state) ?? "fr",
-				facts: [],
-				recommendation: null,
-				arg: question?.question ?? questionId,
-				requested_at: this.now(),
-			}),
-			interaction: "IH-01" as const,
-		};
-		this.deps.ledger.putDecisionRequest(request);
-		const res = this.tryCommit(
-			unit,
-			{ type: "question.revoke", at: this.now(), actor: origin.actor, id: questionId, origin, request },
-			this.id("cor"),
-		);
-		if (!res.error) this.deps.onDecisionRequested?.(request);
-		return { view: this.status(changeId), error: res.error };
+		return this.holdWhile(changeId, () => {
+			const unit = this.load(changeId);
+			const question = unit.state.open_questions.find((q) => q.id === questionId);
+			const request = {
+				...buildDecisionRequest({
+					decision_id: this.id("dec"),
+					change_id: changeId,
+					interaction: "IH-01",
+					subject: { ...subjectOfChange(unit.state), digest: unit.state.reference.digest },
+					language: requestedLanguage(unit.state) ?? "fr",
+					facts: [],
+					recommendation: null,
+					arg: question?.question ?? questionId,
+					requested_at: this.now(),
+				}),
+				interaction: "IH-01" as const,
+			};
+			this.deps.ledger.putDecisionRequest(request);
+			const res = this.tryCommit(
+				unit,
+				{ type: "question.revoke", at: this.now(), actor: origin.actor, id: questionId, origin, request },
+				this.id("cor"),
+			);
+			if (!res.error) this.deps.onDecisionRequested?.(request);
+			return { view: this.status(changeId), error: res.error };
+		});
 	}
 }

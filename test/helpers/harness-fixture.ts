@@ -14,7 +14,7 @@ import type {
 	ModelSelection,
 	SandboxPort,
 } from "../../src/ports/execution.ts";
-import { fixedSources, randomIds, type IdSource } from "../../src/application/ids.ts";
+import { fixedSources, randomIds, type Clock, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
@@ -165,6 +165,8 @@ export interface HarnessOptions {
 	root?: string;
 	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
 	ids?: IdSource;
+	/** The time this session reads, e.g. one taken long after another session last renewed what it holds. */
+	clock?: Clock;
 	/**
 	 * The model `advance` reads unless the test passes its own reader, e.g. to drive a test against a
 	 * provider that imposes a layer.
@@ -273,7 +275,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		controls,
 		agent,
 		sandbox,
-		clock: sources.clock,
+		clock: options.clock ?? sources.clock,
 		ids,
 		policy,
 		workspacePolicy: DEFAULT_WORKSPACE_POLICY,
@@ -282,6 +284,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 			digest: digestValue({ test: true }),
 			profile_id: sandbox.backend.backend,
 		},
+		session: randomIds.next("ses"),
 		onDecisionRequested: (r) => requested.push(r),
 		onProgress: (m) => progress.push(m),
 	};

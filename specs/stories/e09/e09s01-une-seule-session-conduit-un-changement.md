@@ -2,7 +2,7 @@
 
 Story : e09s01
 Epic : e09
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -47,6 +47,11 @@ Scenario: Une session qui a perdu le changement n'y écrit plus
   When la première tente d'écrire sur le changement
   Then son écriture est refusée avec `OPERATION_ACTIVE`, et elle ne bloque pas le changement
 
+Scenario: Une session réveillée reprend le changement que personne n'a pris
+  Given une première session qui conduit le changement, suspendue plus longtemps que son délai, par exemple par une mise en veille de la machine, et qu'aucune autre session n'a remplacée
+  When elle se réveille et renouvelle son délai, puis une seconde session demande la reprise
+  Then le bail du changement est de nouveau au nom de la première session, et la reprise de la seconde est refusée avec `OPERATION_ACTIVE`
+
 ## 3. Sécurité
 
 Sans objet : la story ne touche ni provenance, ni confinement, ni secrets, ni sortie de données, ni
@@ -76,6 +81,17 @@ changement.
 - Tient : `test/v2-kernel/conducting-session.test.ts`, « une session dont le bail a échu et a été repris par une autre voit son écriture suivante refusée avec OPERATION_ACTIVE, et le changement n'est pas bloqué par elle »
 - Rouge : l'écriture de la première session, faite sur une révision dépassée, perd la course (`REVISION_CONFLICT`) et la boucle de conduite bloque le changement en `execution_error` par-dessus ce que la seconde a écrit
 
+### Tâche 3 — Une session réveillée reprend le bail que personne n'a pris
+
+Le renouvellement du bail d'un changement le prolonge tant qu'il est encore au nom de la session,
+échu ou non : une session suspendue plus longtemps que son délai, que personne n'a remplacée, le
+reprend à son renouvellement suivant et le garde jusqu'à la fin de sa conduite. Un bail qu'une autre
+session a pris entre-temps reste à celle-ci.
+
+- Vérifie : `node --test test/v2-kernel/conducting-session.test.ts`
+- Tient : `test/v2-kernel/conducting-session.test.ts`, « une session dont le bail a échu sans qu'aucune autre ne l'ait pris, après une mise en veille de la machine, le reprend à son renouvellement suivant, et une seconde session est toujours refusée »
+- Rouge : le renouvellement passe par `heartbeatLease`, qui ne prolonge qu'un bail non échu ; après la veille il échoue, l'échec est ignoré, chaque renouvellement suivant échoue de même, et la reprise de la seconde session est acceptée
+
 ## 5. Hors périmètre
 
 - Arrêter depuis une seconde session un changement qu'une autre conduit : refusé comme tout autre
@@ -87,3 +103,5 @@ changement.
 - Un changement bloqué qui repassait prêt à la fin d'une intervention, première moitié de l'objet de
   l'epic : déjà tenu, un blocage clôt l'intervention qui tourne (`test/v0-pure/change-rules-decisions.test.ts`,
   « ends the running intervention when it blocks a change »).
+- Une session réveillée dont le bail a été pris puis rendu par une autre : elle ne le reprend pas,
+  et son écriture suivante est refusée comme celle d'une session qui a perdu le changement.
