@@ -392,7 +392,7 @@ Statut : versée
 
 ## R49 — Les transactions du registre passent par une seule enveloppe qui garde l'erreur d'origine
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/storage-sqlite/ledger.ts:113-170 et 585-602
 - Constat : Deux enveloppes BEGIN IMMEDIATE / COMMIT / ROLLBACK écrites à la main ; celle du bail ne garde pas le ROLLBACK (l.600), un rollback en échec remplace l'erreur d'origine.

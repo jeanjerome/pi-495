@@ -110,8 +110,7 @@ export class SqliteLedger implements LedgerPort {
 				last_hash: agg?.last_hash ?? "",
 			};
 		}
-		this.db.exec("BEGIN IMMEDIATE");
-		try {
+		return this.transaction(() => {
 			const agg = this.aggregate(kind, aggregateId);
 			const currentRevision = agg?.revision ?? 0;
 			if (currentRevision !== expectedRevision)
@@ -158,8 +157,17 @@ export class SqliteLedger implements LedgerPort {
 			this.hooks.beforeProjection?.(aggregateId);
 			project(aggregateId);
 			this.hooks.beforeCommit?.(aggregateId);
-			this.db.exec("COMMIT");
 			return { aggregate_id: aggregateId, revision: sequence, event_ids: ids, last_hash: previous ?? "" };
+		});
+	}
+
+	/** Runs `work` in one `BEGIN IMMEDIATE` transaction; a failed rollback never hides the error that caused it. */
+	private transaction<T>(work: () => T): T {
+		this.db.exec("BEGIN IMMEDIATE");
+		try {
+			const result = work();
+			this.db.exec("COMMIT");
+			return result;
 		} catch (error) {
 			try {
 				this.db.exec("ROLLBACK");
@@ -564,24 +572,16 @@ export class SqliteLedger implements LedgerPort {
 		operationId: string | null = null,
 	): Lease | null {
 		const expires = new Date(Date.parse(now) + ttlMs).toISOString();
-		this.db.exec("BEGIN IMMEDIATE");
-		try {
+		return this.transaction(() => {
 			const current = this.db.prepare("SELECT * FROM leases WHERE scope = ?").get(scope) as Lease | undefined;
-			if (current && current.owner !== owner && current.expires_at > now) {
-				this.db.exec("COMMIT");
-				return null;
-			}
+			if (current && current.owner !== owner && current.expires_at > now) return null;
 			this.db
 				.prepare(
 					"INSERT INTO leases (scope, owner, expires_at, operation_id) VALUES (?, ?, ?, ?) ON CONFLICT (scope) DO UPDATE SET owner = excluded.owner, expires_at = excluded.expires_at, operation_id = excluded.operation_id",
 				)
 				.run(scope, owner, expires, operationId);
-			this.db.exec("COMMIT");
 			return { scope, owner, expires_at: expires, operation_id: operationId };
-		} catch (error) {
-			this.db.exec("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	heartbeatLease(scope: string, owner: string, ttlMs: number, now: string): boolean {
