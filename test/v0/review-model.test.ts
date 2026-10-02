@@ -3,23 +3,10 @@ import { describe, it } from "node:test";
 import fc from "fast-check";
 import { diffLines, hunks, intraline, myers, splitLines, similarity } from "../../src/application/diff.ts";
 import { buildSnapshot, flatten, neutralize } from "../../src/application/review.ts";
-import type { ManifestEntry, ReferenceSnapshot, CandidateManifest } from "../../src/contracts/v1/candidate.ts";
+import type { ReferenceSnapshot, CandidateManifest } from "../../src/contracts/v1/candidate.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import { entry } from "../helpers/review-entry.ts";
 
-function entry(path: string, state: ManifestEntry["baseline_state"], over: Partial<ManifestEntry> = {}): ManifestEntry {
-	return {
-		path,
-		kind: "file",
-		content_digest: digestValue(path + state),
-		size: 1,
-		mode: "000644",
-		symlink_target: null,
-		baseline_state: state,
-		origin: "unknown",
-		limits: null,
-		...over,
-	};
-}
 const ESC = String.fromCharCode(27);
 const BEL = String.fromCharCode(7);
 

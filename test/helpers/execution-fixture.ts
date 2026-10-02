@@ -1,4 +1,5 @@
 import { digestValue } from "../../src/contracts/digest.ts";
+import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
 import { EXECUTOR, ENV } from "./change-fixture.ts";
 
@@ -16,6 +17,32 @@ export function observation(over: Partial<ProcessObservation> = {}): ProcessObse
 		started_at: "t",
 		ended_at: "t",
 		duration_ms: 1,
+		...over,
+	};
+}
+
+/** A protected control that runs nothing and reads its exit code, with the fields a test sets laid over it. */
+export function controlOf(over: Partial<ControlDefinition> = {}): ControlDefinition {
+	return {
+		control_id: "c1",
+		version: "1",
+		title: "a control",
+		command: [process.execPath, "-e", ""],
+		cwd: ".",
+		env_allowlist: ["PATH", "HOME", "TMPDIR"],
+		env: {},
+		timeout_ms: 30000,
+		parser: "exit-code",
+		report_path: null,
+		structure_rules: [],
+		provides: [],
+		requires: [],
+		scope_argument: null,
+		network: "denied",
+		writable_paths: [],
+		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
+		protected: true,
+		protected_paths: [],
 		...over,
 	};
 }

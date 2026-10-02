@@ -6,19 +6,14 @@ import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { Executeur, controleDeTache, estUnRouge, PREFLIGHT } from "../../cycle/src/controls.ts";
 import { revision } from "../../cycle/src/git.ts";
 import { fixtureTs, gitCmd, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { depotDe } from "../helpers/cycle.ts";
 
 const cleanups = removedAfterEach();
 
 const NODE = process.execPath;
 
 function depot(): string {
-	const root = tempDir("495-", cleanups);
-	fixtureTs(root);
-	gitCmd(root, ["init", "-q", "-b", "main"]);
-	gitCmd(root, ["config", "commit.gpgsign", "false"]);
-	gitCmd(root, ["add", "-A"]);
-	gitCmd(root, ["commit", "-q", "-m", "chore: base"]);
-	return root;
+	return depotDe(fixtureTs);
 }
 
 function executeur(): Executeur {

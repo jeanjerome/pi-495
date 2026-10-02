@@ -558,7 +558,7 @@ Statut : versée
 
 ## R67 — Les aides de test copiées d'un fichier à l'autre sont réunies
 
-Statut : à faire
+Statut : versée
 
 - Où : control() ×5 · entry() ×5 · doc() ×3 · piAvailable() ×4 (v3/pi-entries:22, model-select:416, config-refused:38, pi-rpc-sdk:27) · chunks() ×3 · depot() ×3 (cycle/git.test.ts:18, cycle/controls.test.ts:12)
 - Constat : piAvailable ×4 identique, avec la constante PI et la note de skip dupliquées à côté ; entry() ×3 identique (v0/review-parameters, review-model, review-surface), deux différents ; control() ×5 ne diffèrent que par les défauts, ce que helpers/lcov-control.ts:20 absorbe déjà ; doc() même forme, nom par défaut différent ; chunks() ×3 mêmes trames SSE ; depot() ≈ helpers/cycle.ts:58 sans la story.

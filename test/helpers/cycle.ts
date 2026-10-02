@@ -56,17 +56,24 @@ export const SHOUT_CODE =
 export const PASSING_TEST =
 	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet greets", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n';
 
-/** A repository with the fixture project on main, the story committed, and a clean tree. */
-export function depot(): string {
+/** A repository on main whose one commit holds what `prepare` wrote, with a clean tree. */
+export function depotDe(prepare: (root: string) => void): string {
 	const root = tempDir("495-", cleanups);
-	fixtureTs(root);
-	mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
-	writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md"), STORY);
+	prepare(root);
 	gitCmd(root, ["init", "-q", "-b", "main"]);
 	gitCmd(root, ["config", "commit.gpgsign", "false"]);
 	gitCmd(root, ["add", "-A"]);
 	gitCmd(root, ["commit", "-q", "-m", "chore: base"]);
 	return root;
+}
+
+/** A repository with the fixture project on main, the story committed, and a clean tree. */
+export function depot(): string {
+	return depotDe((root) => {
+		fixtureTs(root);
+		mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
+		writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md"), STORY);
+	});
 }
 
 /**

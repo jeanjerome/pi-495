@@ -3,13 +3,13 @@
  * Runs the real `pi` binary with the extension and a scripted agent; no model is called.
  */
 import { strict as assert } from "node:assert";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
-const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
 const ESC = String.fromCharCode(27);
 let root: string;
@@ -17,16 +17,6 @@ const cleanups = removedAfterEach();
 beforeEach(() => {
 	root = outputDir("v3-", cleanups);
 });
-
-function piAvailable(): boolean {
-	try {
-		execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
-const skip = !piAvailable() && "pi binary not available";
 
 /** Runs pi; print mode text is read from stdout and stderr together (Pi keeps stdout for the model answer). */
 function runPi(
@@ -91,7 +81,7 @@ const SPEC = {
 };
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n";
 
-describe("Pi entries: print and JSON (C-PI)", { skip }, () => {
+describe("Pi entries: print and JSON (C-PI)", { skip: skipWithoutPi }, () => {
 	it("the same start yields the same verdict in print and in JSON; JSON carries the canonical view (REC-39)", () => {
 		const outcomes: Record<string, string> = {};
 		for (const mode of ["print", "json"] as const) {

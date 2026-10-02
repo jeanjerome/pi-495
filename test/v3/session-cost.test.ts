@@ -18,6 +18,7 @@ import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { collect, mandate } from "../helpers/intervention-fixture.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { fixtureTs, initRepo, tempDir, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { openaiChunks } from "../helpers/openai-chunks.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 
 let root: string;
@@ -34,17 +35,11 @@ const cleanups = removedAfterEach();
 
 /** One prose answer, with the usage an OpenAI-compatible server reports for it. */
 function chunks(text: string): string[] {
-	const head = { id: "cost-1", object: "chat.completion.chunk", created: 0, model: "local" };
-	return [
-		JSON.stringify({ ...head, choices: [{ index: 0, delta: { role: "assistant" }, finish_reason: null }] }),
-		JSON.stringify({ ...head, choices: [{ index: 0, delta: { content: text }, finish_reason: null }] }),
-		JSON.stringify({
-			...head,
-			choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-			usage: { prompt_tokens: 380, completion_tokens: 20, total_tokens: 400 },
-		}),
-		"[DONE]",
-	];
+	return openaiChunks(
+		{ id: "cost-1", model: "local" },
+		{ content: text },
+		{ prompt_tokens: 380, completion_tokens: 20, total_tokens: 400 },
+	);
 }
 
 /**

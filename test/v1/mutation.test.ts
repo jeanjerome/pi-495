@@ -26,7 +26,7 @@ import { mutationCapabilityMissing, readsMutationReport } from "../../src/applic
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, PITEST_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { candidate, evidence, protocol, Runner, ENV } from "../helpers/change-fixture.ts";
-import { invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
+import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
 const NODE = process.execPath;
 const GREETER = "src/main/java/io/h495/Greeter.java";
@@ -80,28 +80,17 @@ function scopeOf(...paths: string[]): MutationScope {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return {
+	return controlOf({
 		control_id: "mutation",
-		version: "1",
 		title: "surviving mutants on the modified classes",
-		command: [NODE, "-e", ""],
-		cwd: ".",
-		env_allowlist: ["PATH", "HOME", "TMPDIR"],
-		env: {},
-		timeout_ms: 30000,
 		parser: "pitest-xml",
 		report_path: "**/target/pit-reports",
-		structure_rules: [],
 		provides: ["pit-reports"],
-		requires: [],
 		scope_argument: `-DtargetClasses=${SCOPE_PLACEHOLDER}`,
-		network: "denied",
 		writable_paths: ["target"],
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		protected: true,
 		protected_paths: ["pom.xml"],
 		...over,
-	};
+	});
 }
 
 describe("surviving mutants on the introduced lines (VER-04)", () => {

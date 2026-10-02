@@ -21,24 +21,11 @@ import { summarizeReview } from "../../src/presentation/structured/review-text.t
 import { DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../src/contracts/v1/candidate.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
+import { entry } from "../helpers/review-entry.ts";
 import { splitLines } from "../../src/application/diff.ts";
 import { REVIEW_CORPUS, deepestChangedPath, nameOfLength, tallFile } from "../fixtures/review-corpus.ts";
 
 const noLimits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
-function entry(path: string, state: ManifestEntry["baseline_state"], over: Partial<ManifestEntry> = {}): ManifestEntry {
-	return {
-		path,
-		kind: "file",
-		content_digest: digestValue(path + state),
-		size: 1,
-		mode: "000644",
-		symlink_target: null,
-		baseline_state: state,
-		origin: "unknown",
-		limits: null,
-		...over,
-	};
-}
 function snapshotOf(entries: ManifestEntry[]) {
 	const reference: ReferenceSnapshot = {
 		reference_id: "ref_1",

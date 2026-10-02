@@ -4,14 +4,14 @@
  * UX-11, REC-39, SA-029, SA-030, SA-031, D-12). Real `pi`, scripted agent, no model called.
  */
 import { strict as assert } from "node:assert";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { PiRpcClient, type RpcEvent } from "../helpers/rpc-client.ts";
 import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
-const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
 const SDK_HOST = join(process.cwd(), "test", "helpers", "sdk-host.ts");
 const ESC = String.fromCharCode(27);
@@ -22,16 +22,6 @@ const cleanups = removedAfterEach();
 beforeEach(() => {
 	root = outputDir("v3rpc-", cleanups);
 });
-
-function piAvailable(): boolean {
-	try {
-		execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
-const skip = !piAvailable() && "pi binary not available";
 
 const SPEC = {
 	objective: "tidy greet",
@@ -220,7 +210,7 @@ async function ask(client: PiRpcClient, id: string, message: string): Promise<vo
 	await client.waitQuiet();
 }
 
-describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip }, () => {
+describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWithoutPi }, () => {
 	it("the same reference path yields the same facts and the same verdicts in RPC, in an SDK host, in print and in JSON (REC-39, UX-02)", async () => {
 		const rpcChannel = channel("rpc");
 		const client = await runRpc(rpcChannel.project, rpcChannel.env, [REQUEST]);

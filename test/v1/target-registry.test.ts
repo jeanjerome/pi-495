@@ -6,6 +6,7 @@ import { detectStack } from "../../src/application/target.ts";
 import type { StackAdapter, StackDetection } from "../../src/application/stacks/stack.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { controlOf } from "../helpers/execution-fixture.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
@@ -23,27 +24,13 @@ function project(files: Record<string, string>): string {
 }
 
 function control(stack: string): ControlDefinition {
-	return {
+	return controlOf({
 		control_id: `${stack}-test`,
-		version: "1",
 		title: `${stack} test suite`,
-		command: [NODE, "-e", ""],
-		cwd: ".",
 		env_allowlist: [],
-		env: {},
 		timeout_ms: 1000,
-		parser: "exit-code",
-		report_path: null,
-		structure_rules: [],
-		provides: [],
-		requires: [],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
 		requirement_refs: REFS,
-		protected: true,
-		protected_paths: [],
-	};
+	});
 }
 
 function adapter(stack: string, signalFile: string, missing: string): StackAdapter {

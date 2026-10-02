@@ -6,7 +6,7 @@ import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import type { EvidenceCandidate } from "../../src/contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { IntroducedLines } from "../../src/ports/execution.ts";
-import { invocationBase } from "./execution-fixture.ts";
+import { controlOf, invocationBase } from "./execution-fixture.ts";
 
 export const LCOV_REPORT = "495-lcov.info";
 
@@ -17,28 +17,15 @@ export function recordedLcov(name: string): string {
 
 /** The coverage control a Node target declares: it runs nothing and reads the report `unit` left. */
 export function lcovControl(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return {
+	return controlOf({
 		control_id: "coverage",
-		version: "1",
 		title: "introduced-line coverage, read from the LCOV report of the test run",
-		command: [process.execPath, "-e", ""],
-		cwd: ".",
-		env_allowlist: ["PATH", "HOME", "TMPDIR"],
-		env: {},
-		timeout_ms: 30000,
 		parser: "lcov",
 		report_path: LCOV_REPORT,
-		structure_rules: [],
-		provides: [],
 		requires: ["lcov-report"],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		protected: true,
 		protected_paths: ["test/", "tests/", "package.json"],
 		...over,
-	};
+	});
 }
 
 /** A copy of a project holding the given files, the LCOV report among them. */

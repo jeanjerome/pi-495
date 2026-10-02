@@ -19,7 +19,7 @@ import { digestValue } from "../../src/contracts/digest.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { fixtureTs, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { ENV } from "../helpers/change-fixture.ts";
-import { invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
+import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -29,28 +29,14 @@ beforeEach(() => {
 
 const NODE = process.execPath;
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return {
+	return controlOf({
 		control_id: "unit",
-		version: "1",
 		title: "unit tests",
 		command: [NODE, "--test", "--test-reporter=tap"],
-		cwd: ".",
-		env_allowlist: ["PATH", "HOME", "TMPDIR"],
-		env: {},
-		timeout_ms: 30000,
 		parser: "node-test",
-		report_path: null,
-		structure_rules: [],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
-		provides: [],
-		requires: [],
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		protected: true,
 		protected_paths: ["test/"],
 		...over,
-	};
+	});
 }
 
 describe("parsers (VER-02, RM-016, RM-017, SA-014)", () => {

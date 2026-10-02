@@ -29,33 +29,20 @@ import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
 import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { controlOf } from "../helpers/execution-fixture.ts";
 
 const ENVIRONMENT = { environment_id: "env_test", digest: digestValue({ test: true }), profile_id: "unconfined" };
 const AT = "2026-09-20T12:00:00.000Z";
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return {
-		control_id: "c1",
-		version: "1",
+	return controlOf({
 		title: "a control the double stands in for",
 		command: ["true"],
-		cwd: ".",
 		env_allowlist: [],
-		env: {},
 		timeout_ms: 1000,
-		parser: "exit-code",
-		report_path: null,
-		structure_rules: [],
-		provides: [],
-		requires: [],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
 		requirement_refs: [{ requirement_id: "VER-03", revision: 1 }],
-		protected: true,
-		protected_paths: [],
 		...over,
-	};
+	});
 }
 
 /** A protocol reduced to what `run` reads: its controls, and how it compares them to the reference. */

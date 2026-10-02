@@ -12,6 +12,7 @@ import { ModelRuntime, SessionManager, SettingsManager, createAgentSession } fro
 import { observeSessionEvent, type SessionEventRead } from "../../src/adapters/pi-worker/session-observer.ts";
 import type { InterventionEvent } from "../../src/ports/execution.ts";
 import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { openaiChunks } from "../helpers/openai-chunks.ts";
 
 let root: string;
 let server: Server | null = null;
@@ -27,17 +28,11 @@ const cleanups = removedAfterEach();
 
 /** One prose answer, with the usage an OpenAI-compatible server reports for it. */
 function chunks(text: string, total: number): string[] {
-	const head = { id: "obs-1", object: "chat.completion.chunk", created: 0, model: "local-1" };
-	return [
-		JSON.stringify({ ...head, choices: [{ index: 0, delta: { role: "assistant" }, finish_reason: null }] }),
-		JSON.stringify({ ...head, choices: [{ index: 0, delta: { content: text }, finish_reason: null }] }),
-		JSON.stringify({
-			...head,
-			choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-			usage: { prompt_tokens: total - 20, completion_tokens: 20, total_tokens: total },
-		}),
-		"[DONE]",
-	];
+	return openaiChunks(
+		{ id: "obs-1", model: "local-1" },
+		{ content: text },
+		{ prompt_tokens: total - 20, completion_tokens: 20, total_tokens: total },
+	);
 }
 
 /** A conversation that grows: each answer reports a context larger than the one before it. */

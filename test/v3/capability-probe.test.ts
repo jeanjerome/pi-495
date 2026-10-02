@@ -12,6 +12,7 @@ import { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { PiModelDescription } from "../../src/adapters/pi-worker/capabilities.ts";
 import type { ModelSelection } from "../../src/ports/execution.ts";
 import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { openaiChunks } from "../helpers/openai-chunks.ts";
 
 let root: string;
 let server: Server | null = null;
@@ -27,7 +28,6 @@ const cleanups = removedAfterEach();
 
 /** The chunks an OpenAI-compatible server streams, with or without a tool call. */
 function chunks(callsTool: boolean): string[] {
-	const head = { id: "probe-1", object: "chat.completion.chunk", created: 0, model: "local-1" };
 	const delta = callsTool
 		? {
 				tool_calls: [
@@ -40,16 +40,12 @@ function chunks(callsTool: boolean): string[] {
 				],
 			}
 		: { content: "I am ready." };
-	return [
-		JSON.stringify({ ...head, choices: [{ index: 0, delta: { role: "assistant" }, finish_reason: null }] }),
-		JSON.stringify({ ...head, choices: [{ index: 0, delta, finish_reason: null }] }),
-		JSON.stringify({
-			...head,
-			choices: [{ index: 0, delta: {}, finish_reason: callsTool ? "tool_calls" : "stop" }],
-			usage: { prompt_tokens: 12, completion_tokens: 3, total_tokens: 15 },
-		}),
-		"[DONE]",
-	];
+	return openaiChunks(
+		{ id: "probe-1", model: "local-1" },
+		delta,
+		{ prompt_tokens: 12, completion_tokens: 3, total_tokens: 15 },
+		callsTool ? "tool_calls" : "stop",
+	);
 }
 
 /** Starts the stand-in endpoint and declares it to Pi exactly as a local server is declared. */

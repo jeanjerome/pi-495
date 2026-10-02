@@ -8,7 +8,6 @@
  * (SEC-05): a screen is told at once, a structured entry on its first `/495`. Nothing is blocked.
  */
 import { strict as assert } from "node:assert";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
@@ -25,6 +24,7 @@ import { fixtureTs, initRepo, tempDir, removedAfterEach, outputDir } from "../he
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
+import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
 // Both stand-ins are registered in Pi at a loopback address, below, so they read as on this machine.
 const FIRST: ModelSelection = {
@@ -401,16 +401,6 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 	});
 });
 
-const PI = process.env.HARNESS495_PI_BIN ?? "pi";
-function piAvailable(): boolean {
-	try {
-		execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
-
 describe("the help /495 gives when it is called with no known operation", () => {
 	const saved: Record<string, string | undefined> = {};
 	afterEach(() => {
@@ -523,7 +513,7 @@ function warned(client: PiRpcClient): string[] {
 }
 
 describe("a session Pi replaced (AGT-07, 6g)", {
-	skip: !piAvailable() && "pi binary not available",
+	skip: skipWithoutPi,
 }, () => {
 	it("runs the next intervention with the model selected in the replacing session", async () => {
 		const cwd = project();
@@ -559,7 +549,7 @@ describe("a session Pi replaced (AGT-07, 6g)", {
 });
 
 describe("a model reached off this machine (SEC-05)", {
-	skip: !piAvailable() && "pi binary not available",
+	skip: skipWithoutPi,
 }, () => {
 	it("is announced when /model selects it, by name and without its address, and a model on this machine is not (6a, 6b, 6d)", async () => {
 		const cwd = project();

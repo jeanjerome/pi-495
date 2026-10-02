@@ -4,14 +4,14 @@
  * Real `pi`, scripted agent, no model called.
  */
 import { strict as assert } from "node:assert";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
 import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
-const PI = process.env.HARNESS495_PI_BIN ?? "pi";
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
 // RPC has no `/reload` of its own: Pi's example command calls `ctx.reload()`, which runs the same
 // `session.reload()` as the interactive `/reload`.
@@ -33,16 +33,6 @@ const cleanups = removedAfterEach();
 beforeEach(() => {
 	root = outputDir("v3cfg-", cleanups);
 });
-
-function piAvailable(): boolean {
-	try {
-		execFileSync(PI, ["--version"], { stdio: "ignore", timeout: 20000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
-const skip = !piAvailable() && "pi binary not available";
 
 const SPEC = {
 	objective: "tidy greet",
@@ -143,7 +133,7 @@ async function ask(client: PiRpcClient, id: string, message: string): Promise<vo
 
 const refusal = /config\.json cannot be read: policy\.adoptoin is not a known setting/;
 
-describe("config.json refused by its contract in a real Pi (SEC-05)", { skip }, () => {
+describe("config.json refused by its contract in a real Pi (SEC-05)", { skip: skipWithoutPi }, () => {
 	it("an unknown key stops /495 start in JSON mode, naming where it lies, and no change is recorded", () => {
 		const json = channel("json", REFUSED);
 		const said = runJson(json.project, json.env, REQUEST);

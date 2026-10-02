@@ -13,19 +13,14 @@ import {
 	revision,
 	versementEcrase,
 } from "../../cycle/src/git.ts";
-import { gitCmd, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
-
-const cleanups = removedAfterEach();
+import { gitCmd, writeFiles } from "../helpers/fixtures.ts";
+import { depotDe } from "../helpers/cycle.ts";
 
 function depot(): string {
-	const root = tempDir("495-", cleanups);
-	gitCmd(root, ["init", "-q", "-b", "main"]);
-	gitCmd(root, ["config", "commit.gpgsign", "false"]);
-	writeFiles(root, { "src/a.js": "export const a = 1;\n", "node_modules/.keep": "" });
-	writeFileSync(join(root, ".gitignore"), "node_modules/\n");
-	gitCmd(root, ["add", "-A"]);
-	gitCmd(root, ["commit", "-q", "-m", "chore: base"]);
-	return root;
+	return depotDe((root) => {
+		writeFiles(root, { "src/a.js": "export const a = 1;\n", "node_modules/.keep": "" });
+		writeFileSync(join(root, ".gitignore"), "node_modules/\n");
+	});
 }
 
 describe("the git operations of the cycle", () => {

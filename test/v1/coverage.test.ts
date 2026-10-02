@@ -20,9 +20,8 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, JACOCO_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
-import { invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
+import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
-const NODE = process.execPath;
 const GREETER = "src/main/java/io/h495/Greeter.java";
 
 let root: string;
@@ -63,28 +62,15 @@ function doc(text: string, name = "target/site/jacoco/jacoco.xml") {
 }
 
 function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
-	return {
+	return controlOf({
 		control_id: "coverage",
-		version: "1",
 		title: "introduced-line coverage",
-		command: [NODE, "-e", ""],
-		cwd: ".",
-		env_allowlist: ["PATH", "HOME", "TMPDIR"],
-		env: {},
-		timeout_ms: 30000,
 		parser: "jacoco-xml",
 		report_path: "**/target/site/jacoco",
-		structure_rules: [],
-		provides: [],
 		requires: ["jacoco-report"],
-		scope_argument: null,
-		network: "denied",
-		writable_paths: [],
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		protected: true,
 		protected_paths: ["pom.xml"],
 		...over,
-	};
+	});
 }
 
 describe("coverage of the introduced lines (QLT-04)", () => {
