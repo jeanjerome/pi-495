@@ -218,6 +218,7 @@ epics:
     stories:
       - { id: e06s01, status: "versée", title: "Un fichier spécial et un sous-module sont inventoriés tels qu'ils sont" }
       - { id: e06s02, status: "versée", title: "La revue d'un candidat se lit dans le dossier, après intégration comme après retrait de sa copie" }
+      - { id: e06s03, status: "à faire", title: "Un fichier spécial ne rend pas incomplète l'observation d'un candidat" }
 
   - id: e07
     title: "Lisibilité d'un changement arrêté"
