@@ -494,7 +494,7 @@ Statut : versée
 
 ## R60 — Les bornes d'un instantané viennent de la politique d'espace de travail par défaut
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/git/integrator.ts:68-72,89-93,175-179 · src/extension/runtime.ts:116
 - Constat : { max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 } écrit quatre fois ; DEFAULT_WORKSPACE_POLICY (git-workspace.ts:26) porte les mêmes valeurs.

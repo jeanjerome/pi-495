@@ -10,7 +10,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/ca
 import { DomainError, messageOf } from "../../domain/errors.ts";
 import { inInstalledDependencies } from "../../domain/gates/g4.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
-import { git, inspectGit } from "../workspace/git-workspace.ts";
+import { DEFAULT_WORKSPACE_POLICY, git, inspectGit } from "../workspace/git-workspace.ts";
 import { walkTree, diffEntries, includedEntries } from "../workspace/walk.ts";
 import { KERNEL_ACTOR } from "../../application/actors.ts";
 import type { Harness } from "../../application/harness.ts";
@@ -65,11 +65,7 @@ export class GitIntegrator {
 		const before = info.head ?? "0".repeat(40);
 		// destination advanced?
 		if (state.integration && state.integration.destination_before !== before) {
-			const current = await walkTree(project, {
-				exclusions: reference.exclusions,
-				max_file_bytes: 8 * 1024 * 1024,
-				max_entries: 50_000,
-			});
+			const current = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
 			const changed =
 				digestValue(current.entries.map((e) => [e.path, e.content_digest])) !==
 				digestValue(referenceEntries.map((e) => [e.path, e.content_digest]));
@@ -86,11 +82,7 @@ export class GitIntegrator {
 			);
 		}
 		if (!state.operation) {
-			const workingTree = await walkTree(project, {
-				exclusions: reference.exclusions,
-				max_file_bytes: 8 * 1024 * 1024,
-				max_entries: 50_000,
-			});
+			const workingTree = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
 			if (diffEntries(referenceEntries, workingTree.entries).some((e) => e.baseline_state !== "unchanged")) {
 				return h.commit(
 					unit,
@@ -172,11 +164,7 @@ export class GitIntegrator {
 					if (r.code !== 0) throw new Error(`git commit failed: ${r.stderr}`);
 				}
 				const after = (await inspectGit(project)).head ?? before;
-				const applied = await walkTree(project, {
-					exclusions: reference.exclusions,
-					max_file_bytes: 8 * 1024 * 1024,
-					max_entries: 50_000,
-				});
+				const applied = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
 				const appliedEntries = diffEntries(referenceEntries, applied.entries);
 				const appliedDigest = digestValue({
 					base_ref: reference.tree_digest,

@@ -14,7 +14,7 @@ import type { AgentPort } from "../ports/execution.ts";
 import { dataLayout, legacyDataDirs, resolveDataDir, resolveWorkspacesDir } from "../adapters/platform/paths.ts";
 import { selectSandbox } from "../adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../adapters/storage-sqlite/ledger.ts";
-import { GitWorkspace } from "../adapters/workspace/git-workspace.ts";
+import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../adapters/workspace/git-workspace.ts";
 import { GitIntegrator } from "../adapters/git/integrator.ts";
 import { describeEnvironment } from "../application/environment.ts";
 import { Harness } from "../application/harness.ts";
@@ -113,7 +113,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		clock: systemClock,
 		ids: randomIds,
 		policy: config.policy,
-		workspacePolicy: { exclusions: config.workspace_exclusions, max_file_bytes: 8 * 1024 * 1024, max_entries: 50_000 },
+		workspacePolicy: { ...DEFAULT_WORKSPACE_POLICY, exclusions: config.workspace_exclusions },
 		environment: environment.ref,
 	});
 	harness.integrator = new GitIntegrator(harness).step;
