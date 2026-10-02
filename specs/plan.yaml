@@ -245,7 +245,7 @@ epics:
       première moitié est tenue sans story depuis `d6b0bd5` : un blocage clôt l'intervention qui tourne
       (`test/v0-pure/change-rules-decisions.test.ts`).
     stories:
-      - { id: e09s01, status: "à faire", title: "Une seule session Pi conduit un changement, et une session disparue ne le retient pas" }
+      - { id: e09s01, status: "versée", title: "Une seule session Pi conduit un changement, et une session disparue ne le retient pas" }
 
   - id: e12
     title: "Cartographie des contrôles existants et recommandation de ce qui manque"
