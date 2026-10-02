@@ -235,8 +235,9 @@ export function fixtureMavenMultiModule(root: string, withTests = false): void {
 /**
  * F-HEXA: Maven reactor whose `domain` module declares no dependency on `infrastructure`, and whose
  * two modules lay out distinct package roots. The dependency direction is the one its POMs state.
+ * With `withCoverage`, the root POM declares JaCoCo.
  */
-export function fixtureMavenHexagonal(root: string): void {
+export function fixtureMavenHexagonal(root: string, withCoverage = false): void {
 	const modulePom = (artifactId: string, dependencies = "") => `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
@@ -251,7 +252,7 @@ ${dependencies}</project>
   <groupId>io.demo</groupId><artifactId>demo-reactor</artifactId><version>1.0.0</version>
   <packaging>pom</packaging>
   <modules><module>domain</module><module>infrastructure</module></modules>
-</project>
+${withCoverage ? `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n` : ""}</project>
 `,
 		"domain/pom.xml": modulePom("demo-domain"),
 		"infrastructure/pom.xml": modulePom(

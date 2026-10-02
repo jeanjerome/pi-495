@@ -125,6 +125,21 @@ async function throughTwoRounds(t: TestHarness): Promise<string> {
 }
 
 describe("a specification report is judged against every recorded material answer, the report a reopening produced included (BES-02, RM-010, RM-011)", () => {
+	const QA = { id: "q-a", question: "A ?", material: true };
+	const QB = { id: "q-b", question: "B ?", material: true };
+	const RA = requirement("R-A");
+	const RB = requirement("R-B");
+	const carriesA = specReport({
+		questions: [],
+		answers: [{ question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] }],
+		requirements: [RA],
+	});
+	const carriesB = specReport({
+		questions: [],
+		answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
+		requirements: [RB],
+	});
+
 	it("reopens a report that renames the requirement an answer was bound to without asking anything, and the answer reaches the requirements adopted at G1 (6a)", async () => {
 		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [ASKS_Q1, BINDS_Q1, RENAMES_MESSAGE, BINDS_Q1_TO_BODY]);
@@ -161,20 +176,6 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("stops reopening reports that take one answer back and lose the other in turn, and the change stops before G0 (6c)", async () => {
-		const QA = { id: "q-a", question: "A ?", material: true };
-		const QB = { id: "q-b", question: "B ?", material: true };
-		const RA = requirement("R-A");
-		const RB = requirement("R-B");
-		const carriesA = specReport({
-			questions: [],
-			answers: [{ question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] }],
-			requirements: [RA],
-		});
-		const carriesB = specReport({
-			questions: [],
-			answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
-			requirements: [RB],
-		});
 		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA, QB], answers: [], requirements: [RA, RB] }),
@@ -194,20 +195,6 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("does not count a pause and its resume as a human act: the rewritings after them stay bounded from the latest answer (6c)", async () => {
-		const QA = { id: "q-a", question: "A ?", material: true };
-		const QB = { id: "q-b", question: "B ?", material: true };
-		const RA = requirement("R-A");
-		const RB = requirement("R-B");
-		const carriesA = specReport({
-			questions: [],
-			answers: [{ question_id: QA.id, observable: true, requirement_ids: [RA.requirement_id] }],
-			requirements: [RA],
-		});
-		const carriesB = specReport({
-			questions: [],
-			answers: [{ question_id: QB.id, observable: true, requirement_ids: [RB.requirement_id] }],
-			requirements: [RB],
-		});
 		const t = makeHarness();
 		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		// The fourth run is paused as `/495 pause` does it: the running session is aborted, then the
@@ -244,11 +231,7 @@ describe("a specification report is judged against every recorded material answe
 	});
 
 	it("asks the new material question of a reopened report first, and reopens that report on the answer even when it carries nothing an earlier report did not (6f)", async () => {
-		const QA = { id: "q-a", question: "A ?", material: true };
-		const QB = { id: "q-b", question: "B ?", material: true };
 		const QC = { id: "q-c", question: "C ?", material: true };
-		const RA = requirement("R-A");
-		const RB = requirement("R-B");
 		const RC = requirement("R-C");
 		const binds = (...ids: [string, string][]) =>
 			ids.map(([question_id, r]) => ({ question_id, observable: true, requirement_ids: [r] }));

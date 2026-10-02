@@ -143,6 +143,13 @@ function answerPending(t: TestHarness, changeId: string, optionId: string, freeT
 	return pending[0]!.decision_id;
 }
 
+/** The G4 decisions recorded on the change. */
+const g4Decisions = (t: TestHarness, changeId: string) =>
+	t.ledger
+		.readChangeEvents(changeId)
+		.filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G4")
+		.map((e) => (e.event as { decision: { verdict: string; reasons: string[] } }).decision);
+
 describe("a requirement no control can judge is arbitrated by the owner", () => {
 	it("given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked", async () => {
 		const t = harnessWithEmptyPreparations();
@@ -1044,12 +1051,6 @@ describe("the candidate that carries an adopted complement", () => {
 		return { t, project, changeId: change.change_id };
 	}
 
-	const g4Decisions = (t: TestHarness, changeId: string) =>
-		t.ledger
-			.readChangeEvents(changeId)
-			.filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G4")
-			.map((e) => (e.event as { decision: { verdict: string; reasons: string[] } }).decision);
-
 	it("given a candidate keeping the package.json the complement wrote, then G4 passes it, and once the owner accepts it the local commit holds the coverage flag in scripts.test while the project was untouched until then", async () => {
 		const { t, project, changeId } = await adoptedAndImplemented({ "src/greet.js": SHOUT_IMPL });
 		const before = gitCmd(project, ["rev-parse", "HEAD"]).trim();
@@ -1481,10 +1482,7 @@ describe("adopting a complement that is the declaration of a Maven plugin", () =
 		answerPending(t, changeId, "assign_review");
 		await t.harness.advance(changeId, { max_steps: 40 });
 
-		const refused = t.ledger
-			.readChangeEvents(changeId)
-			.filter((e) => e.event.type === "gate.decided" && e.event.decision.gate === "G4")
-			.map((e) => (e.event as { decision: { verdict: string; reasons: string[] } }).decision);
+		const refused = g4Decisions(t, changeId);
 		assert.ok(refused.length > 0, "the candidate reaches G4");
 		assert.ok(
 			refused.every(

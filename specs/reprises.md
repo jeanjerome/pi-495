@@ -624,7 +624,7 @@ Statut : versée
 
 ## R74 — Les répétitions des grands fichiers de test sont réunies
 
-Statut : à faire
+Statut : versée
 
 - Où : v2/harness.test.ts (2 133 l., describe fourre-tout l.54-1742) · v2/verifiability-arbitration.test.ts:817-852 vs 1372-1395 · v2/preparation.test.ts:360-367,441-448,553-560 · v1/control-runner.test.ts:592-929 · v2/specification-reopening.test.ts:180-193 vs 213-226
 - Constat : Le script implement qui écrit RIGHT est répété 14 fois ; la fermeture answerPending apparaît dans six fichiers (harness ×3, specification-reopening:57-79, verifiability:136-154, preparation:1039-1055) ; askedAdoption / untouched / g4Decisions dupliqués npm contre Maven ; le patch POM JaCoCo trois fois identique alors que fixtureJava(..., withCoverage) existe (helpers/fixtures.ts:139) ; la fermeture run = async (fake) => { mkdtemp; install; runControl } sept fois ; le bloc QA/QB/RA/RB deux fois.

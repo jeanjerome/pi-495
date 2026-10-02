@@ -11,7 +11,6 @@ import {
 	writeFiles,
 	fixtureMavenMultiModule,
 	fixtureMavenHexagonal,
-	JACOCO_PLUGIN,
 	SHOUT_IMPL,
 	SHOUT_TEST,
 	removedAfterEach,
@@ -333,12 +332,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e", () => {
 		const p = tempDir("495-maven-jacoco-", cleanups);
-		fixtureMavenHexagonal(p);
-		const pom = readFileSync(join(p, "pom.xml"), "utf8");
-		writeFileSync(
-			join(p, "pom.xml"),
-			pom.replace("</project>", `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n</project>`),
-		);
+		fixtureMavenHexagonal(p, true);
 		const detected = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
 		assert.deepEqual(
 			detected.controls.map((c) => c.control_id),
@@ -412,12 +406,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("the context the harness hands the producer names the frozen protocol's coverage and structure with what they read", async () => {
 		const maven = tempDir("495-maven-jacoco-protocol-", cleanups);
-		fixtureMavenHexagonal(maven);
-		const pom = readFileSync(join(maven, "pom.xml"), "utf8");
-		writeFileSync(
-			join(maven, "pom.xml"),
-			pom.replace("</project>", `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n</project>`),
-		);
+		fixtureMavenHexagonal(maven, true);
 		const mavenControls = detectStack(maven, [{ requirement_id: "R1", revision: 1 }]).controls;
 		// The campaign runs on the Node target whose controls need no JDK; once its protocol is
 		// adopted, the Maven controls are frozen in its place, and the campaign is cut as soon as the
@@ -520,12 +509,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	});
 	it("on a Maven reactor with JaCoCo and no test, the preparation producer is asked to run mvn -B -q -o test before it answers and told what coverage and structure read, before any protocol is frozen", async () => {
 		const p = tempDir("495-maven-first-preparation-", cleanups);
-		fixtureMavenHexagonal(p);
-		const pom = readFileSync(join(p, "pom.xml"), "utf8");
-		writeFileSync(
-			join(p, "pom.xml"),
-			pom.replace("</project>", `  <build><plugins>\n${JACOCO_PLUGIN}    </plugins></build>\n</project>`),
-		);
+		fixtureMavenHexagonal(p, true);
 		initRepo(p);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },

@@ -15,6 +15,7 @@ import {
 } from "../helpers/harness-fixture.ts";
 import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 import type { ContextManifest } from "../../src/ports/execution.ts";
+import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { fixtureTsWithoutTests, initRepo, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
@@ -37,6 +38,13 @@ const origin = (): HumanOrigin => ({
 const WRONG = "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n";
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
+/** An implementation that writes `content` to src/greet.js and reports that path changed. */
+const writesGreet = (content: string): AgentScript => ({
+	steps: [
+		{ kind: "write", path: "src/greet.js", content },
+		{ kind: "complete", output: report(["src/greet.js"]) },
+	],
+});
 
 describe("full change cycle with real ledger, workspace, runner and scripted agent (REC-01, REC-02, REC-04, SA-015)", () => {
 	it("accepts a conforming change end to end and keeps the project untouched", async () => {
@@ -248,12 +256,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		t.agent.startIntervention = async (m) => {
 			if (m.role === "implement") {
 				attempt++;
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: attempt === 1 ? WRONG : RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+				t.agent.scripts.set("implement", writesGreet(attempt === 1 ? WRONG : RIGHT));
 				if (attempt === 2)
 					assert.ok(m.prompt.includes("Feedback from the previous attempt"), "feedback injected in the second attempt");
 			}
@@ -299,12 +302,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		let candidatePasses = 0;
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 			// The unit control fails once on the first candidate and answers what the tree really is
 			// afterwards: the two passes of the same candidate disagree without any cause in it.
@@ -502,13 +500,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 				});
 				if (calls === 2) assert.ok(m.objective.includes("Answered questions"), "answer is given back to the specifier");
 			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+			if (m.role === "implement") t.agent.scripts.set("implement", writesGreet(RIGHT));
 			return original(m);
 		};
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -611,13 +603,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 						"the recorded answer is in the request the second report is written from",
 					);
 			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+			if (m.role === "implement") t.agent.scripts.set("implement", writesGreet(RIGHT));
 			return original(m);
 		};
 		const { change } = await t.harness.start({
@@ -767,13 +753,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 					steps: [{ kind: "complete", output: reports[Math.min(calls - 1, reports.length - 1)]! }],
 				});
 			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+			if (m.role === "implement") t.agent.scripts.set("implement", writesGreet(RIGHT));
 			return original(m);
 		};
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
@@ -861,13 +841,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 					],
 				});
 			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+			if (m.role === "implement") t.agent.scripts.set("implement", writesGreet(RIGHT));
 			return original(m);
 		};
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
@@ -1069,13 +1043,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 						: { steps: [{ kind: "complete", output: specReport() }] },
 				);
 			}
-			if (m.role === "implement")
-				t.agent.scripts.set("implement", {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				});
+			if (m.role === "implement") t.agent.scripts.set("implement", writesGreet(RIGHT));
 			return original(m);
 		};
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -1103,12 +1071,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -1151,12 +1114,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const t = makeHarness({
 			model: { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" },
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -1186,12 +1144,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const t = makeHarness({
 			policy: { adoption: { requirements: "human" } },
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
@@ -1280,12 +1233,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
@@ -1341,12 +1289,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	it("does not lift on resume a stop no resume lifts, when the step failed while its controls ran", async () => {
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 			controls: (real) =>
 				new ThrowsOnFirstCandidateRun(real, new DomainError("CONFIGURATION_ERROR", "the control's toolchain is gone")),
@@ -1378,12 +1321,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	it("a verification cut short by the end of its session is run again after a resume, and the change reaches its decision", async () => {
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 			// The first control run on the candidate ends the conduct as a killed session would: nothing
 			// is recorded, and the verification is left open in the ledger.
@@ -1412,12 +1350,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		let changeId = "";
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 			controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
 		});
@@ -1456,12 +1389,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		let changeId = "";
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 			controls: (real) =>
 				new ActsOnFirstCandidateRun(real, () => {
@@ -1505,12 +1433,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		writeFiles(p, { "modules/core/src/main/java/io/demo/user/UserRepository.java": "class UserRepository {}\n" });
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({
@@ -1651,12 +1574,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const t = makeHarness({
 			policy: { g5_human_acceptance: true },
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
@@ -1779,12 +1697,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 		const first = makeHarness({
 			policy: { budgets: { max_attempts: 3 } },
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: WRONG },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(WRONG),
 			},
 		});
 		const { change } = await first.harness.start({
@@ -1817,12 +1730,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 		const second = reopenHarness(first, {
 			policy: { budgets: { max_attempts: 3 } },
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const restored = second.ledger.loadChange(change.change_id)!.state;
@@ -1894,12 +1802,7 @@ describe("the report an engineer reads, on a conducted change (IMP-05)", () => {
 		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
-				implement: {
-					steps: [
-						{ kind: "write", path: "src/greet.js", content: RIGHT },
-						{ kind: "complete", output: report(["src/greet.js"]) },
-					],
-				},
+				implement: writesGreet(RIGHT),
 			},
 		});
 		const { change } = await t.harness.start({

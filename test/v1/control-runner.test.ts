@@ -39,6 +39,27 @@ function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
 	});
 }
 
+/**
+ * Installs `stand` in a new workspace under the test root and runs `control` there through `runner`,
+ * on the lines `introduced` when given.
+ */
+async function runInstalled(
+	runner: GenericControlRunner,
+	control: ControlDefinition,
+	stand: { install(workspace: string): void },
+	introduced?: Record<string, number[]>,
+) {
+	const ws = mkdtempSync(join(root, "ws-"));
+	stand.install(ws);
+	const { evidence, observation } = await runner.runControl({
+		...base(),
+		control,
+		workspace_path: ws,
+		...(introduced ? { introduced_lines: introduced } : {}),
+	});
+	return { evidence, observation, ws };
+}
+
 describe("parsers (VER-02, RM-016, RM-017, SA-014)", () => {
 	it("node-test TAP: pass, fail, skip, no test, truncated summary, timeout", () => {
 		const tap = (body: string) => body;
@@ -540,11 +561,7 @@ describe("the derived vitest control through the runner", () => {
 	it("given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written", async () => {
 		const unit = derivedVitestControl();
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (fake: FakeVitest) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			fake.install(ws);
-			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
-		};
+		const run = async (fake: FakeVitest) => (await runInstalled(runner, unit, fake)).evidence;
 		const green = await run(new FakeVitest(VITEST_GREEN_REPORT, 0));
 		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
 		assert.equal(green.facts.tests, 1);
@@ -644,11 +661,7 @@ describe("the derived mocha control through the runner", () => {
 	it("given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written", async () => {
 		const unit = derivedMochaControl();
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (fake: FakeMocha) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			fake.install(ws);
-			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
-		};
+		const run = async (fake: FakeMocha) => (await runInstalled(runner, unit, fake)).evidence;
 		const green = await run(new FakeMocha(recordedMochaReport("green"), 0));
 		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
 		assert.equal(green.facts.tests, 1);
@@ -690,11 +703,7 @@ describe("the derived jest control through the runner", () => {
 	it("given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, FAIL for a red report or an unloaded suite even when the runner exits 0, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error", async () => {
 		const unit = derivedJestControl();
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (fake: FakeJest) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			fake.install(ws);
-			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
-		};
+		const run = async (fake: FakeJest) => (await runInstalled(runner, unit, fake)).evidence;
 		const green = await run(new FakeJest(recordedJestReport("green"), 0));
 		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
 		assert.equal(green.facts.tests, 1);
@@ -726,11 +735,8 @@ describe("an unreadable jest report through the runner", () => {
 	it("given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error", async () => {
 		const unit = derivedJestControl();
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (recorded: string | null, exitCode: number) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			new FakeJest(recorded, exitCode).install(ws);
-			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
-		};
+		const run = async (recorded: string | null, exitCode: number) =>
+			(await runInstalled(runner, unit, new FakeJest(recorded, exitCode))).evidence;
 		const truncated = recordedJestReport("green").slice(0, 200);
 		for (const [label, recorded] of [
 			["truncated", truncated],
@@ -749,11 +755,8 @@ describe("a jest report of another shape through the runner", () => {
 	it("given a JSON document that is not a jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL when it exits with an error, never PASS", async () => {
 		const unit = derivedJestControl();
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (recorded: string, exitCode: number) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			new FakeJest(recorded, exitCode).install(ws);
-			return (await runner.runControl({ ...base(), control: unit, workspace_path: ws })).evidence;
-		};
+		const run = async (recorded: string, exitCode: number) =>
+			(await runInstalled(runner, unit, new FakeJest(recorded, exitCode))).evidence;
 		for (const recorded of [
 			"{}",
 			"[]",
@@ -776,12 +779,7 @@ describe("the derived jest control under the verification sandbox", darwinOnly, 
 		// would succeed whatever the control declares writable.
 		const sandbox = new SeatbeltSandbox({ temp_paths: [] });
 		const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
-		const run = async (fake: FakeJest) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			fake.install(ws);
-			const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
-			return { evidence, ws };
-		};
+		const run = (fake: FakeJest) => runInstalled(runner, unit, fake);
 		const { evidence: green } = await run(
 			new FakeJest(recordedJestReport("green"), 0, { strayLine: "console.log from a test" }),
 		);
@@ -865,17 +863,8 @@ const STRYKER_KILLED_REPORT = strykerReportOf("Killed");
 describe("the mutation control reading Stryker's report through the runner", () => {
 	it("given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record", async () => {
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const run = async (introduced: Record<string, number[]>) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			new FakeStryker(STRYKER_SURVIVOR_REPORT, 1).install(ws);
-			const { evidence, observation } = await runner.runControl({
-				...base(),
-				control: strykerControl(),
-				workspace_path: ws,
-				introduced_lines: introduced,
-			});
-			return { evidence, observation, ws };
-		};
+		const run = (introduced: Record<string, number[]>) =>
+			runInstalled(runner, strykerControl(), new FakeStryker(STRYKER_SURVIVOR_REPORT, 1), introduced);
 
 		const scoped = await run({ "src/calc.js": [5, 6], "test/calc.test.js": [1] });
 		assert.deepEqual(scoped.evidence.facts.command, [
@@ -936,15 +925,7 @@ describe("the mutation control reading the introduced source through the runner"
 describe("the mutation control reading a Stryker report that cannot be trusted through the runner", () => {
 	const runWith = async (stryker: FakeStryker) => {
 		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		const ws = mkdtempSync(join(root, "ws-"));
-		stryker.install(ws);
-		const { evidence } = await runner.runControl({
-			...base(),
-			control: strykerControl(),
-			workspace_path: ws,
-			introduced_lines: { "src/calc.js": [5, 6] },
-		});
-		return evidence;
+		return (await runInstalled(runner, strykerControl(), stryker, { "src/calc.js": [5, 6] })).evidence;
 	};
 
 	it("given a valid report larger than the read bound, then the control is INDETERMINATE naming the bound and the report is not kept in the record", async () => {
@@ -1024,14 +1005,7 @@ describe("the mutation control under the verification sandbox", darwinOnly, () =
 			new CasObjectStore(join(root, "objects")),
 		);
 		const run = async (stand: ListeningStryker, control: ControlDefinition) => {
-			const ws = mkdtempSync(join(root, "ws-"));
-			stand.install(ws);
-			const { evidence, observation } = await runner.runControl({
-				...base(),
-				control,
-				workspace_path: ws,
-				introduced_lines: { "src/calc.js": [5, 6] },
-			});
+			const { evidence, observation, ws } = await runInstalled(runner, control, stand, { "src/calc.js": [5, 6] });
 			return { evidence, stderr: new TextDecoder().decode(observation?.stderr), ws };
 		};
 
