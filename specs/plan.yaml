@@ -309,6 +309,7 @@ epics:
   - id: e10
     title: "Référentiel de qualité d'une cible"
     status: à faire
+    prete: oui
     source: chantiers/N
     objet: >
       Le noyau sait dire ce que vaut une cible sur la qualité : conventions, seuils et contrôles définis
@@ -327,7 +328,11 @@ epics:
       à plusieurs incréments que le noyau porte mais dont la conduite depuis Pi reste à qualifier (`D-16`) :
       la story `e10s04` le qualifie, et `e11s04` s'y appuie. `e10s04` porte aussi la règle qu'une exigence
       globale non affectée bloque l'adoption de la trajectoire (`PRG-03`), dont la garde est aujourd'hui
-      morte faute de liste des exigences globales (`BUG-2026-10-01T200000`).
+      morte faute de liste des exigences globales (`BUG-2026-10-01T200000`). Les analyseurs du référentiel
+      sont choisis par le propriétaire : PMD seul, avec son détecteur de duplication, pour Maven (2026-10-03,
+      `e10s01`) ; pour Node, ESLint pour la complexité et le code mort, et jscpd pour la duplication
+      (2026-10-03), afin que les deux technologies mesurent les mêmes natures. Checkstyle et SpotBugs sont
+      écartés au départ.
     stories:
       - { id: e10s01, status: "à faire", title: "Le référentiel d'une cible Maven est adopté par le propriétaire, chaque règle avec son oracle, sa source et sa date" }
       - { id: e10s02, status: "à faire", title: "L'état des lieux d'une cible Maven mesure l'existant avec ce référentiel et sépare code propriétaire, code généré et dépendances" }
