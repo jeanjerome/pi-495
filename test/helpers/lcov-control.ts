@@ -3,11 +3,10 @@ import { dirname, join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
-import { digestValue } from "../../src/contracts/digest.ts";
 import type { EvidenceCandidate } from "../../src/contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
-import type { ControlInvocation, IntroducedLines } from "../../src/ports/execution.ts";
-import { EXECUTOR, ENV } from "./change-fixture.ts";
+import type { IntroducedLines } from "../../src/ports/execution.ts";
+import { invocationBase } from "./execution-fixture.ts";
 
 export const LCOV_REPORT = "495-lcov.info";
 
@@ -39,22 +38,6 @@ export function lcovControl(over: Partial<ControlDefinition> = {}): ControlDefin
 		protected: true,
 		protected_paths: ["test/", "tests/", "package.json"],
 		...over,
-	};
-}
-
-export function invocationBase(): Omit<ControlInvocation, "control" | "workspace_path"> {
-	return {
-		protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") },
-		candidate: {
-			candidate_id: "c",
-			manifest_digest: digestValue("c"),
-			base_digest: digestValue("b"),
-			workspace_id: "w",
-		},
-		subject: { kind: "candidate", id: "c", revision: 1, digest: digestValue("c") },
-		environment: { environment_id: "env", digest: ENV, profile_id: "verify" },
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		producer: EXECUTOR,
 	};
 }
 

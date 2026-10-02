@@ -8,7 +8,8 @@ import { SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { tempDir, writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
-import { invocationBase, judgeCoverage, LCOV_REPORT, recordedLcov, workspaceWith } from "../helpers/lcov-control.ts";
+import { invocationBase } from "../helpers/execution-fixture.ts";
+import { judgeCoverage, LCOV_REPORT, recordedLcov, workspaceWith } from "../helpers/lcov-control.ts";
 
 let root: string;
 const cleanups = removedAfterEach();

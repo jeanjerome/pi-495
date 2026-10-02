@@ -23,11 +23,10 @@ import {
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { mutationCapabilityMissing, readsMutationReport } from "../../src/application/stacks/maven.ts";
-import { digestValue } from "../../src/contracts/digest.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
-import type { ControlInvocation, ProcessObservation } from "../../src/ports/execution.ts";
 import { fixtureJava, PITEST_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
-import { candidate, evidence, protocol, Runner, EXECUTOR, ENV } from "../helpers/change-fixture.ts";
+import { candidate, evidence, protocol, Runner, ENV } from "../helpers/change-fixture.ts";
+import { invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
 const NODE = process.execPath;
 const GREETER = "src/main/java/io/h495/Greeter.java";
@@ -68,23 +67,6 @@ function doc(text: string, name = "target/pit-reports/mutations.xml") {
 	return [{ name, text }];
 }
 
-function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
-	return {
-		exit_code: 0,
-		signal: null,
-		timed_out: false,
-		spawn_error: null,
-		stdout: new Uint8Array(),
-		stderr: new Uint8Array(),
-		stdout_truncated: false,
-		stderr_truncated: false,
-		started_at: "t",
-		ended_at: "t",
-		duration_ms: 1,
-		...over,
-	};
-}
-
 /** The scope a run on `paths` would have been given, as `mutationScopeOf` derives it from the tree. */
 function scopeOf(...paths: string[]): MutationScope {
 	const classes = paths.flatMap((path) => {
@@ -119,22 +101,6 @@ function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
 		protected: true,
 		protected_paths: ["pom.xml"],
 		...over,
-	};
-}
-
-function base(): Omit<ControlInvocation, "control" | "workspace_path"> {
-	return {
-		protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") },
-		candidate: {
-			candidate_id: "c",
-			manifest_digest: digestValue("c"),
-			base_digest: digestValue("b"),
-			workspace_id: "w",
-		},
-		subject: { kind: "candidate", id: "c", revision: 1, digest: digestValue("c") },
-		environment: { environment_id: "env", digest: ENV, profile_id: "verify" },
-		requirement_refs: [{ requirement_id: "R1", revision: 1 }],
-		producer: EXECUTOR,
 	};
 }
 

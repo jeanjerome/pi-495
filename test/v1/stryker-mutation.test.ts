@@ -12,7 +12,7 @@ import {
 	MUTATION_RULE_UNCOVERED,
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
-import type { ProcessObservation } from "../../src/ports/execution.ts";
+import { observation as obs } from "../helpers/execution-fixture.ts";
 
 const CALC = "src/calc.js";
 
@@ -46,23 +46,6 @@ function strykerReport(files: Record<string, StrykerMutantSpec[]>): string {
 
 function doc(text: string) {
 	return [{ name: "reports/mutation/mutation.json", text }];
-}
-
-function obs(over: Partial<ProcessObservation> = {}): ProcessObservation {
-	return {
-		exit_code: 0,
-		signal: null,
-		timed_out: false,
-		spawn_error: null,
-		stdout: new Uint8Array(),
-		stderr: new Uint8Array(),
-		stdout_truncated: false,
-		stderr_truncated: false,
-		started_at: "t",
-		ended_at: "t",
-		duration_ms: 1,
-		...over,
-	};
 }
 
 /** The scope a run on `paths` was given: one range per source, as the runner hands it to Stryker. */

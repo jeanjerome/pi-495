@@ -549,7 +549,7 @@ Statut : versée
 
 ## R66 — Les observations et les invocations de contrôle des tests viennent d'une seule aide
 
-Statut : à faire
+Statut : versée
 
 - Où : obs() ×5 : v1/stryker-mutation:51, mutation:72, structure:52, coverage:68, control-runner:71 · base() ×4 : v1/coverage:110, structure:69, mutation:126, control-runner:56
 - Constat : Corps identiques octet pour octet. base() existe déjà sous le nom invocationBase() dans helpers/lcov-control.ts:45 ; obs() double observation() de helpers/fake-npm.ts:22 et fake-maven.ts:35 (seuls les horodatages diffèrent).
