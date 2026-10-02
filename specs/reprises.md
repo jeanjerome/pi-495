@@ -401,7 +401,7 @@ Statut : versée
 
 ## R50 — Le registre lit ses lignes par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/storage-sqlite/ledger.ts (27 as : l.184-197, 296, 384, 467-513, 561-570 as unknown as SessionBinding[])
 - Constat : Chaque ligne SQL est crue ; .all() passe par as unknown as parce que Record<string, SQLOutputValue>[] n'est pas comparable au type du port. Le schéma et l'écrivain sont au dépôt, la confiance est défendable, mais elle est éparpillée.

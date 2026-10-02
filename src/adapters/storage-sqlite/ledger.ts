@@ -2,7 +2,7 @@
  * Evidence ledger (CMP-EVD, §7): the chained event log, its projections, the artifacts, evidence,
  * decisions, operations and leases. Writes are atomic and never overwrite a revision.
  */
-import { DatabaseSync } from "node:sqlite";
+import { DatabaseSync, type SQLInputValue, type StatementSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { canonicalize } from "../../contracts/canonical.ts";
@@ -48,6 +48,30 @@ function defaultId(): string {
 }
 
 /**
+ * node:sqlite types every row as `Record<string, SQLOutputValue>`, which no row type of the port is
+ * comparable to. The schema (`schema.ts`) and the only writer (this class) live in this repository,
+ * so a row is trusted to carry the columns and types its query selects: these two functions are the
+ * one place that trust is taken.
+ */
+function rows<T>(statement: StatementSync, ...params: SQLInputValue[]): T[] {
+	return statement.all(...params) as unknown as T[];
+}
+
+function row<T>(statement: StatementSync, ...params: SQLInputValue[]): T | undefined {
+	return statement.get(...params) as T | undefined;
+}
+
+type EventRow = Omit<StoredEvent, "event"> & { payload: string };
+type ArtifactRow = Omit<StoredArtifact, "ref" | "object"> & {
+	artifact_id: string;
+	revision: number;
+	content_digest: string;
+	size_bytes: number;
+	media_type: string;
+};
+type OperationRow = Omit<OperationRecord, "result"> & { result: string | null };
+
+/**
  * SQLite implementation of the ledger. One logical writer, `BEGIN IMMEDIATE` transactions, WAL
  * journal, hash-chained events per aggregate and replaceable projections (conception §7.2–7.3).
  */
@@ -76,18 +100,19 @@ export class SqliteLedger implements LedgerPort {
 
 	private migrate(): void {
 		this.db.exec(SCHEMA_SQL);
-		const row = this.db.prepare("SELECT version FROM schema_migrations WHERE version = ?").get(SCHEMA_VERSION) as
-			| { version: number }
-			| undefined;
-		if (!row)
+		const applied = row<{ version: number }>(
+			this.db.prepare("SELECT version FROM schema_migrations WHERE version = ?"),
+			SCHEMA_VERSION,
+		);
+		if (!applied)
 			this.db
 				.prepare("INSERT INTO schema_migrations (version, digest, applied_at, result) VALUES (?, ?, ?, ?)")
 				.run(SCHEMA_VERSION, digestBytes(SCHEMA_SQL), this.clock(), "applied");
-		const newer = this.db.prepare("SELECT MAX(version) AS v FROM schema_migrations").get() as { v: number | null };
-		if ((newer.v ?? 0) > SCHEMA_VERSION)
+		const newer = row<{ v: number | null }>(this.db.prepare("SELECT MAX(version) AS v FROM schema_migrations"));
+		if ((newer?.v ?? 0) > SCHEMA_VERSION)
 			throw new DomainError(
 				"CONFIGURATION_ERROR",
-				`database schema ${newer.v} is newer than supported ${SCHEMA_VERSION}; refusing to mutate`,
+				`database schema ${newer?.v} is newer than supported ${SCHEMA_VERSION}; refusing to mutate`,
 			);
 	}
 
@@ -180,28 +205,34 @@ export class SqliteLedger implements LedgerPort {
 
 	private aggregate(kind: string, id: string): { revision: number; last_hash: string } | null {
 		return (
-			(this.db
-				.prepare("SELECT revision, last_hash FROM aggregates WHERE aggregate_kind = ? AND aggregate_id = ?")
-				.get(kind, id) as { revision: number; last_hash: string } | undefined) ?? null
+			row<{ revision: number; last_hash: string }>(
+				this.db.prepare("SELECT revision, last_hash FROM aggregates WHERE aggregate_kind = ? AND aggregate_id = ?"),
+				kind,
+				id,
+			) ?? null
 		);
 	}
 
 	private events<E>(kind: string, id: string, from = 0): StoredEvent<E>[] {
-		const rows = this.db
-			.prepare("SELECT * FROM events WHERE aggregate_kind = ? AND aggregate_id = ? AND sequence > ? ORDER BY sequence")
-			.all(kind, id, from) as Array<Record<string, unknown>>;
-		return rows.map((r) => ({
-			event_id: r.event_id as string,
-			aggregate_kind: r.aggregate_kind as "change" | "program",
-			aggregate_id: r.aggregate_id as string,
-			sequence: r.sequence as number,
-			correlation_id: r.correlation_id as string,
-			causation_id: (r.causation_id as string | null) ?? null,
-			type: r.type as string,
-			event: JSON.parse(r.payload as string) as E,
-			previous_hash: (r.previous_hash as string | null) ?? null,
-			hash: r.hash as string,
-			recorded_at: r.recorded_at as string,
+		return rows<EventRow>(
+			this.db.prepare(
+				"SELECT * FROM events WHERE aggregate_kind = ? AND aggregate_id = ? AND sequence > ? ORDER BY sequence",
+			),
+			kind,
+			id,
+			from,
+		).map((r) => ({
+			event_id: r.event_id,
+			aggregate_kind: r.aggregate_kind,
+			aggregate_id: r.aggregate_id,
+			sequence: r.sequence,
+			correlation_id: r.correlation_id,
+			causation_id: r.causation_id ?? null,
+			type: r.type,
+			event: JSON.parse(r.payload) as E,
+			previous_hash: r.previous_hash ?? null,
+			hash: r.hash,
+			recorded_at: r.recorded_at,
 		}));
 	}
 
@@ -283,11 +314,12 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	loadChange(changeId: string): { state: ChangeState; revision: number } | null {
-		const row = this.db.prepare("SELECT state, revision FROM changes WHERE change_id = ?").get(changeId) as
-			| { state: string; revision: number }
-			| undefined;
-		if (!row) return null;
-		return { state: JSON.parse(row.state) as ChangeState, revision: row.revision };
+		const projected = row<{ state: string; revision: number }>(
+			this.db.prepare("SELECT state, revision FROM changes WHERE change_id = ?"),
+			changeId,
+		);
+		if (!projected) return null;
+		return { state: JSON.parse(projected.state) as ChangeState, revision: projected.revision };
 	}
 
 	/** Rebuilds the projection from events (used after a detected divergence). */
@@ -322,20 +354,19 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	listChanges(programId?: string) {
-		const rows = (
-			programId
-				? this.db
-						.prepare(
-							"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes WHERE program_id = ? ORDER BY updated_at",
-						)
-						.all(programId)
-				: this.db
-						.prepare(
-							"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes ORDER BY updated_at",
-						)
-						.all()
-		) as ReturnType<LedgerPort["listChanges"]>;
-		return rows;
+		type ChangeRow = ReturnType<LedgerPort["listChanges"]>[number];
+		return programId
+			? rows<ChangeRow>(
+					this.db.prepare(
+						"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes WHERE program_id = ? ORDER BY updated_at",
+					),
+					programId,
+				)
+			: rows<ChangeRow>(
+					this.db.prepare(
+						"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes ORDER BY updated_at",
+					),
+				);
 	}
 
 	// --- program --------------------------------------------------------------------------------
@@ -367,11 +398,12 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	loadProgram(programId: string): { state: ProgramState; revision: number } | null {
-		const row = this.db.prepare("SELECT state, revision FROM programs WHERE program_id = ?").get(programId) as
-			| { state: string; revision: number }
-			| undefined;
-		if (!row) return null;
-		return { state: JSON.parse(row.state) as ProgramState, revision: row.revision };
+		const projected = row<{ state: string; revision: number }>(
+			this.db.prepare("SELECT state, revision FROM programs WHERE program_id = ?"),
+			programId,
+		);
+		if (!projected) return null;
+		return { state: JSON.parse(projected.state) as ProgramState, revision: projected.revision };
 	}
 
 	readProgramEvents(programId: string): StoredEvent<ProgramEvent>[] {
@@ -379,18 +411,20 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	listPrograms(projectPath?: string) {
-		const rows = (
-			projectPath
-				? this.db
-						.prepare(
-							"SELECT program_id, project_path, title, updated_at, closed FROM programs WHERE project_path = ? ORDER BY updated_at",
-						)
-						.all(projectPath)
-				: this.db
-						.prepare("SELECT program_id, project_path, title, updated_at, closed FROM programs ORDER BY updated_at")
-						.all()
-		) as Array<{ program_id: string; project_path: string; title: string; updated_at: string; closed: number }>;
-		return rows.map((r) => ({ ...r, closed: r.closed === 1 }));
+		type ProgramRow = { program_id: string; project_path: string; title: string; updated_at: string; closed: number };
+		const programs = projectPath
+			? rows<ProgramRow>(
+					this.db.prepare(
+						"SELECT program_id, project_path, title, updated_at, closed FROM programs WHERE project_path = ? ORDER BY updated_at",
+					),
+					projectPath,
+				)
+			: rows<ProgramRow>(
+					this.db.prepare(
+						"SELECT program_id, project_path, title, updated_at, closed FROM programs ORDER BY updated_at",
+					),
+				);
+		return programs.map((r) => ({ ...r, closed: r.closed === 1 }));
 	}
 
 	// --- artifacts, evidence, decisions ------------------------------------------------------------
@@ -403,10 +437,11 @@ export class SqliteLedger implements LedgerPort {
 		producerId: string,
 		at: string,
 	): ArtifactRef {
-		const row = this.db.prepare("SELECT MAX(revision) AS r FROM artifacts WHERE artifact_id = ?").get(artifactId) as {
-			r: number | null;
-		};
-		const revision = (row.r ?? 0) + 1;
+		const latest = row<{ r: number | null }>(
+			this.db.prepare("SELECT MAX(revision) AS r FROM artifacts WHERE artifact_id = ?"),
+			artifactId,
+		);
+		const revision = (latest?.r ?? 0) + 1;
 		this.db
 			.prepare(
 				"INSERT INTO artifacts (artifact_id, revision, kind, change_id, content_digest, size_bytes, media_type, producer_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -416,21 +451,26 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getArtifact(ref: Pick<ArtifactRef, "artifact_id" | "revision">): StoredArtifact | null {
-		const r = this.db
-			.prepare("SELECT * FROM artifacts WHERE artifact_id = ? AND revision = ?")
-			.get(ref.artifact_id, ref.revision) as Record<string, unknown> | undefined;
+		const r = row<ArtifactRow>(
+			this.db.prepare("SELECT * FROM artifacts WHERE artifact_id = ? AND revision = ?"),
+			ref.artifact_id,
+			ref.revision,
+		);
 		return r ? rowToArtifact(r) : null;
 	}
 
 	listArtifacts(changeId: string, kind?: ArtifactKind): StoredArtifact[] {
-		const rows = (
-			kind
-				? this.db
-						.prepare("SELECT * FROM artifacts WHERE change_id = ? AND kind = ? ORDER BY created_at, revision")
-						.all(changeId, kind)
-				: this.db.prepare("SELECT * FROM artifacts WHERE change_id = ? ORDER BY created_at, revision").all(changeId)
-		) as Array<Record<string, unknown>>;
-		return rows.map(rowToArtifact);
+		const artifacts = kind
+			? rows<ArtifactRow>(
+					this.db.prepare("SELECT * FROM artifacts WHERE change_id = ? AND kind = ? ORDER BY created_at, revision"),
+					changeId,
+					kind,
+				)
+			: rows<ArtifactRow>(
+					this.db.prepare("SELECT * FROM artifacts WHERE change_id = ? ORDER BY created_at, revision"),
+					changeId,
+				);
+		return artifacts.map(rowToArtifact);
 	}
 
 	putEvidence(evidence: Evidence, changeId: string): void {
@@ -451,17 +491,17 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getEvidence(evidenceId: string): Evidence | null {
-		const r = this.db.prepare("SELECT document FROM evidence WHERE evidence_id = ?").get(evidenceId) as
-			| { document: string }
-			| undefined;
+		const r = row<{ document: string }>(
+			this.db.prepare("SELECT document FROM evidence WHERE evidence_id = ?"),
+			evidenceId,
+		);
 		return r ? (JSON.parse(r.document) as Evidence) : null;
 	}
 
 	listEvidence(changeId: string): Evidence[] {
-		return (
-			this.db.prepare("SELECT document FROM evidence WHERE change_id = ? ORDER BY recorded_at").all(changeId) as Array<{
-				document: string;
-			}>
+		return rows<{ document: string }>(
+			this.db.prepare("SELECT document FROM evidence WHERE change_id = ? ORDER BY recorded_at"),
+			changeId,
 		).map((r) => JSON.parse(r.document) as Evidence);
 	}
 
@@ -474,9 +514,10 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getDecisionRequest(decisionId: string): DecisionRequest | null {
-		const r = this.db.prepare("SELECT document FROM decision_requests WHERE decision_id = ?").get(decisionId) as
-			| { document: string }
-			| undefined;
+		const r = row<{ document: string }>(
+			this.db.prepare("SELECT document FROM decision_requests WHERE decision_id = ?"),
+			decisionId,
+		);
 		return r ? (JSON.parse(r.document) as DecisionRequest) : null;
 	}
 
@@ -496,10 +537,9 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	listHumanDecisions(changeId: string): HumanDecision[] {
-		return (
-			this.db
-				.prepare("SELECT document FROM human_decisions WHERE change_id = ? ORDER BY recorded_at")
-				.all(changeId) as Array<{ document: string }>
+		return rows<{ document: string }>(
+			this.db.prepare("SELECT document FROM human_decisions WHERE change_id = ? ORDER BY recorded_at"),
+			changeId,
 		).map((r) => JSON.parse(r.document) as HumanDecision);
 	}
 
@@ -525,16 +565,12 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getOperationByKey(idempotencyKey: string): OperationRecord | null {
-		const r = this.db.prepare("SELECT * FROM operations WHERE idempotency_key = ?").get(idempotencyKey) as
-			| Record<string, unknown>
-			| undefined;
+		const r = row<OperationRow>(this.db.prepare("SELECT * FROM operations WHERE idempotency_key = ?"), idempotencyKey);
 		return r ? rowToOperation(r) : null;
 	}
 
 	getOperation(operationId: string): OperationRecord | null {
-		const r = this.db.prepare("SELECT * FROM operations WHERE operation_id = ?").get(operationId) as
-			| Record<string, unknown>
-			| undefined;
+		const r = row<OperationRow>(this.db.prepare("SELECT * FROM operations WHERE operation_id = ?"), operationId);
 		return r ? rowToOperation(r) : null;
 	}
 
@@ -547,17 +583,11 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getSessionBinding(sessionId: string): SessionBinding | null {
-		return (
-			(this.db.prepare("SELECT * FROM pi_bindings WHERE session_id = ?").get(sessionId) as
-				| SessionBinding
-				| undefined) ?? null
-		);
+		return row<SessionBinding>(this.db.prepare("SELECT * FROM pi_bindings WHERE session_id = ?"), sessionId) ?? null;
 	}
 
 	findBindingsByCwd(cwd: string): SessionBinding[] {
-		return this.db
-			.prepare("SELECT * FROM pi_bindings WHERE cwd = ? ORDER BY bound_at DESC")
-			.all(cwd) as unknown as SessionBinding[];
+		return rows<SessionBinding>(this.db.prepare("SELECT * FROM pi_bindings WHERE cwd = ? ORDER BY bound_at DESC"), cwd);
 	}
 
 	unbindSession(sessionId: string): void {
@@ -573,7 +603,7 @@ export class SqliteLedger implements LedgerPort {
 	): Lease | null {
 		const expires = new Date(Date.parse(now) + ttlMs).toISOString();
 		return this.transaction(() => {
-			const current = this.db.prepare("SELECT * FROM leases WHERE scope = ?").get(scope) as Lease | undefined;
+			const current = row<Lease>(this.db.prepare("SELECT * FROM leases WHERE scope = ?"), scope);
 			if (current && current.owner !== owner && current.expires_at > now) return null;
 			this.db
 				.prepare(
@@ -597,7 +627,7 @@ export class SqliteLedger implements LedgerPort {
 	}
 
 	getLease(scope: string): Lease | null {
-		return (this.db.prepare("SELECT * FROM leases WHERE scope = ?").get(scope) as Lease | undefined) ?? null;
+		return row<Lease>(this.db.prepare("SELECT * FROM leases WHERE scope = ?"), scope) ?? null;
 	}
 
 	// --- integrity ------------------------------------------------------------------------------
@@ -610,14 +640,12 @@ export class SqliteLedger implements LedgerPort {
 			objects_checked: 0,
 			problems: [],
 		};
-		const aggregates = this.db
-			.prepare("SELECT aggregate_kind, aggregate_id, revision, last_hash FROM aggregates")
-			.all() as Array<{
+		const aggregates = rows<{
 			aggregate_kind: "change" | "program";
 			aggregate_id: string;
 			revision: number;
 			last_hash: string;
-		}>;
+		}>(this.db.prepare("SELECT aggregate_kind, aggregate_id, revision, last_hash FROM aggregates"));
 		for (const agg of aggregates) {
 			report.aggregates_checked++;
 			const events = this.events<{ type: string }>(agg.aggregate_kind, agg.aggregate_id);
@@ -675,11 +703,9 @@ export class SqliteLedger implements LedgerPort {
 		}
 		if (objectVerifier) {
 			const digests = new Set<string>();
-			for (const r of this.db.prepare("SELECT content_digest FROM artifacts").all() as Array<{
-				content_digest: string;
-			}>)
+			for (const r of rows<{ content_digest: string }>(this.db.prepare("SELECT content_digest FROM artifacts")))
 				digests.add(r.content_digest);
-			for (const r of this.db.prepare("SELECT document FROM evidence").all() as Array<{ document: string }>) {
+			for (const r of rows<{ document: string }>(this.db.prepare("SELECT document FROM evidence"))) {
 				const ev = JSON.parse(r.document) as Evidence;
 				for (const a of ev.artifacts) digests.add(a.ref.digest);
 				if (ev.integrity.content_digest !== evidenceDigest(ev))
@@ -706,38 +732,38 @@ export class SqliteLedger implements LedgerPort {
 
 export { evidenceDigest };
 
-function rowToArtifact(r: Record<string, unknown>): StoredArtifact {
+function rowToArtifact(r: ArtifactRow): StoredArtifact {
 	return {
 		ref: {
-			artifact_id: r.artifact_id as string,
-			revision: r.revision as number,
-			content_digest: r.content_digest as string,
+			artifact_id: r.artifact_id,
+			revision: r.revision,
+			content_digest: r.content_digest,
 			schema_version: 1,
 		},
-		kind: r.kind as ArtifactKind,
-		change_id: r.change_id as string,
+		kind: r.kind,
+		change_id: r.change_id,
 		object: {
 			algorithm: "sha256",
-			digest: r.content_digest as string,
-			size_bytes: r.size_bytes as number,
-			media_type: r.media_type as string,
+			digest: r.content_digest,
+			size_bytes: r.size_bytes,
+			media_type: r.media_type,
 		},
-		producer_id: r.producer_id as string,
-		created_at: r.created_at as string,
+		producer_id: r.producer_id,
+		created_at: r.created_at,
 	};
 }
 
-function rowToOperation(r: Record<string, unknown>): OperationRecord {
+function rowToOperation(r: OperationRow): OperationRecord {
 	return {
-		operation_id: r.operation_id as string,
-		idempotency_key: r.idempotency_key as string,
-		operation_type: r.operation_type as string,
-		aggregate_id: r.aggregate_id as string,
-		inputs_digest: r.inputs_digest as string,
-		status: r.status as OperationRecord["status"],
-		effect_state: r.effect_state as OperationRecord["effect_state"],
-		result: r.result ? JSON.parse(r.result as string) : null,
-		created_at: r.created_at as string,
-		updated_at: r.updated_at as string,
+		operation_id: r.operation_id,
+		idempotency_key: r.idempotency_key,
+		operation_type: r.operation_type,
+		aggregate_id: r.aggregate_id,
+		inputs_digest: r.inputs_digest,
+		status: r.status,
+		effect_state: r.effect_state,
+		result: r.result ? JSON.parse(r.result) : null,
+		created_at: r.created_at,
+		updated_at: r.updated_at,
 	};
 }
