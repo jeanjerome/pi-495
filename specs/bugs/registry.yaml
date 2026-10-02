@@ -1190,8 +1190,9 @@ bugs:
       candidate keeps the old rule, so no change can be made on a project that has a red test, although the
       comparison of the two passes (VER-08) already treats such a failure as preexisting.
     what_expected: >
-      Either the change proceeds, the failing project test being an inherited finding that does not block, or it
-      stops saying that the reference fails its own test and naming it — not that the sensor cannot be qualified.
+      The change proceeds: a project test that already fails on the reference is an inherited finding that does
+      not block, a test that starts failing blocks, and a test that still fails with another message counts as a
+      new finding (owner's decision, 2026-10-02).
     steps_to_reproduce:
       - "In a v2-kernel test, start a change (default deliverable) on `trackedProject` with `fixtureTs` plus `test/farewell.test.js` asserting `greet(\"x\") === \"Goodbye, x\"`, and advance it."
       - "The change stops in `verification_design`, blocked `capability_missing`, G2 FAIL with \"control unit: positive witness gave FAIL, expected PASS\"."
@@ -1202,7 +1203,8 @@ bugs:
       Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
     risk_level: medium
     follow_ups: >
-      Product decision first: whether 495 changes a project whose suite is already red. If it does, qualify the
-      sensor by the witnesses' cases for every change, as the survey does (see BUG-2026-10-02T190000 for the
-      weakness of that reading).
+      Decided by the owner on 2026-10-02: 495 changes a project whose suite is already red. Qualify the test sensor
+      by the witnesses' cases for every change, as the survey does; let the failure message enter the comparison of
+      the two passes, so a test failing otherwise is new; fix BUG-2026-10-02T190000 in the same correction, since
+      the reading it weakens then judges every change.
     status: open
