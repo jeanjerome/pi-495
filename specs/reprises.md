@@ -355,7 +355,7 @@ Statut : versée
 
 ## R44 — Les options qu'aucun appelant ne fait varier sont retirées
 
-Statut : à faire
+Statut : versée
 
 - Où : decisions.ts:411 · review.ts:350 · installation.ts:86-87
 - Constat : authority? jamais passé par un appelant ; readChanges(..., context = 3) jamais varié ; les défauts d'installableRecommendations inutilisés (les deux appelants passent quatre arguments).

@@ -411,7 +411,6 @@ export function buildDecisionRequest(args: {
 	/** What an IH-04 offers to adopt; nothing when no recommended edit can be applied and no install run. */
 	adoptable?: Adoptable;
 	requested_at: string;
-	authority?: DecisionRequest["required_authority"];
 }): DecisionRequest {
 	const t = T[args.language][args.interaction](args.arg ?? "");
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
@@ -428,7 +427,7 @@ export function buildDecisionRequest(args: {
 		facts: args.facts,
 		recommendation: args.recommendation,
 		options: [...options],
-		required_authority: args.authority ?? (args.interaction === "IH-01" ? "requester" : "change_owner"),
+		required_authority: args.interaction === "IH-01" ? "requester" : "change_owner",
 		allow_free_text:
 			args.interaction === "IH-01" ||
 			args.interaction === "IH-02" ||

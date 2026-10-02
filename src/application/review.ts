@@ -352,7 +352,6 @@ export async function readChanges(
 	path: string,
 	status: PathStatus,
 	oldPath: string | null,
-	context = 3,
 ): Promise<ChangePage> {
 	const oldSide = await readSide(sources, oldPath ?? path, "old");
 	const newSide = await readSide(sources, path, "new");
@@ -381,7 +380,7 @@ export async function readChanges(
 	if (status === "renamed?" && oldPath)
 		notes.push(`rename hypothesis: similarity ${similarity(oldSide.text, newSide.text).toFixed(2)} with ${oldPath}`);
 	const segs = diffLines(oldSide.text, newSide.text);
-	const h = hunks(segs, context);
+	const h = hunks(segs);
 	const intra: ChangePage["intraline"] = {};
 	for (const hk of h)
 		for (let i = 0; i + 1 < hk.segments.length; i++) {

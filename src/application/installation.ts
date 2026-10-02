@@ -84,8 +84,8 @@ export interface FailedInstall {
 export function installableRecommendations(
 	files: readonly string[],
 	recommendations: readonly RecommendedComplement[],
-	failed: readonly FailedInstall[] = [],
-	localRepository: string | null = null,
+	failed: readonly FailedInstall[],
+	localRepository: string | null,
 ): { recommendations: RecommendedComplement[]; installable: RecommendedComplement[] } {
 	const installable: RecommendedComplement[] = [];
 	const described = recommendations.map((r) => {
