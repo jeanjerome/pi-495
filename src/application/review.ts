@@ -1,7 +1,7 @@
 /**
- * Review query model (CMP-REV, ADR-010): the union of reference and candidate paths, per-path
- * status readable without colour, paged content and typed change segments. Independent of any
- * TUI component and identical for every Pi entry (RM-066, UX-11).
+ * Review query model (CMP-REV), common to every renderer: the union of reference and candidate
+ * paths, per-path status readable without colour, paged content and typed change segments.
+ * Independent of any TUI component and identical for every Pi entry (RM-066, UX-11).
  */
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";

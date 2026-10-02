@@ -1,7 +1,8 @@
 /**
- * Target adapter registry (CMP-TGT, ADR-012): detects the stack without executing anything and
- * hands the question to the adapter that knows it. A stack nobody adapts is not a stack without
- * defects — it is named as a missing capability, which is what G2 refuses on.
+ * Target adapter registry (CMP-TGT), whose stack adapters normalise their findings to one shape:
+ * detects the stack without executing anything and hands the question to the adapter that knows it.
+ * A stack nobody adapts is not a stack without defects — it is named as a missing capability, which
+ * is what G2 refuses on.
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";

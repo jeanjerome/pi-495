@@ -3,9 +3,10 @@
  * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, mocha or jest
  * run without an argument, each read through the report it writes. A declared lint script becomes a
  * control of its own, refused rather than guessed when it needs a shell. A `scripts.test` that names
- * a runner 495 cannot read leaves no control at all (D-72). A target that asks its runner for
- * coverage receives a control that judges the lines a change introduces from the LCOV report the
- * runner writes; one that does not is told so instead (QLT-04). A target that installed Stryker
+ * a runner 495 cannot read leaves no control at all, lint included, so the change stops on that
+ * runner rather than freezing a protocol without it. A target that asks its runner for coverage
+ * receives a control that judges the lines a change introduces from the LCOV report the runner
+ * writes; one that does not is told so instead (QLT-04). A target that installed Stryker
  * receives a control that judges the mutants of the lines a change introduces; one that did not is
  * recommended to (VER-04).
  */

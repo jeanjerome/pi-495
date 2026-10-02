@@ -1,5 +1,5 @@
 /**
- * What a target adapter answers with (CMP-TGT, ADR-012): the controls a stack offers, the witnesses
+ * What a target adapter answers with (CMP-TGT): the controls a stack offers, the witnesses
  * that qualify them, and what it could not give. One shape for every stack, so the kernel orders
  * and qualifies the controls of a Maven reactor and those of a Node package the same way.
  */

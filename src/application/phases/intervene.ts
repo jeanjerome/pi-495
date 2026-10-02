@@ -181,8 +181,9 @@ export async function intervene(
 		cor,
 	);
 	// The tool-call bound is what caps spending on a provider billed per token, so reaching it waits
-	// for the owner instead of resuming on its own the way the duration bound does (D-19). Whatever
-	// the role, the change stops here; a resume lifts it.
+	// for the owner instead of resuming on its own the way the duration bound does, where a truncated
+	// session resumes on its own workspace within the same attempt. Whatever the role, the change
+	// stops here; a resume lifts it.
 	if (report.budget_refusal !== null)
 		unit = deps.commit(
 			unit,

@@ -1,5 +1,7 @@
 /**
- * Line diff (Myers) and intraline highlighting (common prefix/suffix), decision D-06.
+ * Line diff (Myers) and intraline highlighting (common prefix/suffix), written here rather than
+ * taken from a diff package so that the review model has no production dependency and controls
+ * its segments exactly.
  * Segments are typed; presenters render OLD/NEW blocks without `+`/`-` prefixes (UX-07).
  */
 export type Segment =

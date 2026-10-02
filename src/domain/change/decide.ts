@@ -604,7 +604,7 @@ class Ctx {
 			if (a.answer !== q.answer) reasons.push(`material answer ${q.id} differs from the recorded decision`);
 			if (!a.observable) {
 				// Declaring nothing observable is a proposal the owner decides, not a decision the
-				// specification may take on its own (BES-02, D-37): G1 refuses it from any producer, but
+				// specification may take on its own (BES-02): G1 refuses it from any producer, but
 				// conduct's own — `answersOf` — never builds one here, since `declarationHolds` discards
 				// such a proposal before it can bind and `answersOf` writes `observable: true` for every
 				// open, answered question regardless. This guards a document `answersOf` did not write.

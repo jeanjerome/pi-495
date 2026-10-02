@@ -374,7 +374,7 @@ Statut : versée
 
 ## R47 — Les commentaires du code disent le comportement au lieu de citer une décision
 
-Statut : à faire
+Statut : versée
 
 - Où : application : diff.ts:2, context.ts:38,229, harness.ts:666,793, stacks/node.ts:6, target.ts:2, review.ts:2, stack.ts:2 · domaine : imposed-layers.ts:2,13,38,54, decide.ts:602, ports/execution.ts:157,198,244
 - Constat : Identifiants de décision ou de story dans des commentaires (D-06, D-19, D-37, D-48, D-55, D-72, « §6a–§6c of e23s02 »). Aucun « chantier », « lot » ni « previously » trouvé. Les tags d'exigence (QLT-04, VER-05, RM-010) pointent le corpus normatif et restent.

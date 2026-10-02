@@ -155,7 +155,7 @@ export interface ContextManifest {
 	objective: string;
 	output_schema: string;
 	trusted_instructions: string[];
-	/** What a provider writes above `trusted_instructions` on its own, never composed here (CTX-02, D-48). */
+	/** What a provider writes above `trusted_instructions` on its own, never composed here (CTX-02). */
 	imposed_layers: readonly ImposedLayer[];
 	adopted_refs: { kind: string; artifact_id: string; revision: number; digest: string }[];
 	untrusted_excerpts: { source: string; digest: string; bytes: number }[];
@@ -196,7 +196,7 @@ export type InterventionEvent =
 	| { type: "checkpointed"; at: string }
 	/**
 	 * What the provider wrote around 495's instructions in a request, read from the payload the host
-	 * handed over once the provider had built it (CTX-02, D-55): an observation, where the manifest's
+	 * handed over once the provider had built it (CTX-02): an observation, where the manifest's
 	 * imposed layers are an expectation. Sent for the first request, then for each one that differs.
 	 */
 	| { type: "imposed_layers_observed"; at: string; observation: ObservedLayers }
@@ -242,7 +242,10 @@ export type InterventionEvent =
 			cost: InterventionCost;
 	  };
 
-/** Where a capability value comes from: reported by the host, or restated by 495 (D-55). */
+/**
+ * Where a capability value comes from: reported by the host, or restated by 495. Where the host
+ * reports a value, that report is the source and a restated value is only an expectation.
+ */
 export type CapabilityOrigin = "reported" | "restated";
 
 /**

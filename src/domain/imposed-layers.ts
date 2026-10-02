@@ -1,5 +1,5 @@
 /**
- * What a model provider writes above the instructions 495 composes (CTX-02, D-48, D-55). A pure
+ * What a model provider writes above the instructions 495 composes (CTX-02). A pure
  * lookup: it asks no provider, reads no package, opens no connection. A provider absent here is one
  * this harness has never verified, and it is declared nothing rather than guessed at.
  *
@@ -10,7 +10,8 @@
  */
 
 /**
- * `above_local_instructions` is the one position observed to date; D-48 is the sole prior art.
+ * `above_local_instructions` is the one position observed to date: the block the provider writes
+ * above 495's instructions on the Anthropic subscription path.
  *
  * `condition` is prose a reader reads back out of an exported dossier, so it is written to survive
  * that journey: the export redacts anything shaped like a secret, and a token prefix spelled out
@@ -35,8 +36,8 @@ const IMPOSED: Readonly<Record<string, ImposedLayer>> = Object.freeze({
 
 /**
  * The layers a provider imposes, or an empty list for a provider that imposes nothing, an unknown
- * provider, or an empty identifier (§6a–§6c of e23s02). 495 declares only what it has verified
- * against the provider's own package; it does not infer a layer from a name it has never checked.
+ * provider, or an empty identifier. 495 declares only what it has verified against the provider's
+ * own package; it does not infer a layer from a name it has never checked.
  *
  * `IMPOSED` is an object literal and so inherits `Object.prototype`: a plain `IMPOSED[providerId]`
  * would resolve `providerId` values like `toString` or `__proto__` to an inherited member rather
@@ -51,8 +52,9 @@ export function imposedLayersFor(providerId: string): ImposedLayer[] {
 
 /**
  * What a provider wrote around 495's instructions in one request, read out of the payload the host
- * handed over once the provider had built it (CTX-02, D-55). This is an **observation**, the
- * counterpart of `ImposedLayer`'s expectation.
+ * handed over once the provider had built it (CTX-02): where Pi reports a fact, it is the source and
+ * what 495 restates is only an expectation. This is an **observation**, the counterpart of
+ * `ImposedLayer`'s expectation.
  *
  * Above and below are relative to the system prompt the host built from 495's instructions, and
  * what the provider wrote is what surrounds it. `added_by_host` is what that prompt holds besides

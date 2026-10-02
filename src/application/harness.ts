@@ -611,7 +611,10 @@ export class Harness {
 			.filter((d): d is DecisionRequest => d !== null);
 	}
 
-	/** Records a human decision; provenance is provided by the host adapter, never by the content (ADR-014). */
+	/**
+	 * Records a human decision; provenance is provided by the host adapter, never by the content, and
+	 * only a local TUI or a qualified RPC or SDK host provides it.
+	 */
 	answerDecision(
 		changeId: string,
 		response: DecisionResponse,

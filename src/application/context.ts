@@ -35,7 +35,8 @@ export interface ContextInput {
 	/** Frozen architecture boundaries the candidate will be judged against (ARC-04). */
 	boundaries?: string[];
 	/**
-	 * What the retained provider imposes above `trusted`, named but never composed (CTX-02, D-48).
+	 * What the retained provider imposes above `trusted`, named but never composed (CTX-02):
+	 * declared in the manifest as a constraint outside the local trust hierarchy.
 	 * Required rather than defaulted: an omitted field would silently assert "this provider imposes
 	 * nothing", which is the exact false manifest CTX-02 exists to prevent. A caller that has no
 	 * layer to declare says so with an empty list, which is an answer rather than a silence.
@@ -228,7 +229,7 @@ export function buildContext(input: ContextInput): {
 		output_schema: schema,
 		trusted_instructions: trusted,
 		// Never folded into `trusted`: what a provider imposes is not what 495 composed, and the
-		// distinction is the fact this field exists to keep (CTX-02, D-48). Copied rather than held by
+		// distinction is the fact this field exists to keep (CTX-02). Copied rather than held by
 		// reference, so a caller cannot alter a manifest after it has been built.
 		imposed_layers: [...input.imposed_layers],
 		adopted_refs: input.adopted.map((a) => ({
