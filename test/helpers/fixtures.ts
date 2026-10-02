@@ -16,6 +16,9 @@ export function removedAfterEach(): string[] {
 	return dirs;
 }
 
+/** The options of a test that runs a command under Seatbelt, skipped with that reason off macOS. */
+export const darwinOnly = { skip: process.platform !== "darwin" && "seatbelt is macOS-only" };
+
 /** A fresh directory under the system's temporary directory, pushed onto `cleanups` when given. */
 export function tempDir(prefix = "495-", cleanups?: string[]): string {
 	const dir = mkdtempSync(join(tmpdir(), prefix));

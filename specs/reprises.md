@@ -605,7 +605,7 @@ Statut : versée
 
 ## R72 — Un test réservé à macOS dit pourquoi il est sauté
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v1/sandbox.test.ts:40 · control-runner.test.ts:357,608,820,1068 · lcov-control.test.ts:74
 - Constat : darwin ? it : it.skip saute en silence hors macOS, sans note. Les { skip } de v4/java-stack:23, v3/* et v1/model-admitted:139 portent leur note.

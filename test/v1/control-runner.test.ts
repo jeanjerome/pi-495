@@ -17,7 +17,7 @@ import {
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { fixtureTs, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { darwinOnly, fixtureTs, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { ENV } from "../helpers/change-fixture.ts";
 import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
@@ -308,26 +308,23 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 			["newer"],
 		);
 	});
-	(process.platform === "darwin" ? it : it.skip)(
-		"runs the same control under seatbelt with the candidate read-only",
-		async () => {
-			const ws = join(root, "ws");
-			fixtureTs(ws);
-			const runner = new GenericControlRunner(new SeatbeltSandbox(), new CasObjectStore(join(root, "objects")));
-			const { evidence } = await runner.runControl({ ...base(), control: control(), workspace_path: ws });
-			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence));
-			const mutate = await runner.runControl({
-				...base(),
-				control: control({
-					control_id: "mut",
-					command: [NODE, "-e", 'require("fs").writeFileSync("src/greet.js","x")'],
-					parser: "exit-code",
-				}),
-				workspace_path: ws,
-			});
-			assert.equal(mutate.evidence.verdict, "FAIL", "write to the frozen candidate is refused by the sandbox");
-		},
-	);
+	it("runs the same control under seatbelt with the candidate read-only", darwinOnly, async () => {
+		const ws = join(root, "ws");
+		fixtureTs(ws);
+		const runner = new GenericControlRunner(new SeatbeltSandbox(), new CasObjectStore(join(root, "objects")));
+		const { evidence } = await runner.runControl({ ...base(), control: control(), workspace_path: ws });
+		assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence));
+		const mutate = await runner.runControl({
+			...base(),
+			control: control({
+				control_id: "mut",
+				command: [NODE, "-e", 'require("fs").writeFileSync("src/greet.js","x")'],
+				parser: "exit-code",
+			}),
+			workspace_path: ws,
+		});
+		assert.equal(mutate.evidence.verdict, "FAIL", "write to the frozen candidate is refused by the sandbox");
+	});
 });
 
 /**
@@ -559,8 +556,9 @@ describe("the derived vitest control through the runner", () => {
 		const silent = await run(new FakeVitest(null, 0));
 		assert.equal(silent.verdict, "INDETERMINATE");
 	});
-	(process.platform === "darwin" ? it : it.skip)(
+	it(
 		"given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS",
+		darwinOnly,
 		async () => {
 			const unit = derivedVitestControl();
 			// The copy of a target carries no target/ directory: the sandbox has to let the control create it.
@@ -771,35 +769,32 @@ describe("a jest report of another shape through the runner", () => {
 	});
 });
 
-(process.platform === "darwin" ? describe : describe.skip)(
-	"the derived jest control under the verification sandbox",
-	() => {
-		it("given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox", async () => {
-			const unit = derivedJestControl();
-			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
-			// would succeed whatever the control declares writable.
-			const sandbox = new SeatbeltSandbox({ temp_paths: [] });
-			const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
-			const run = async (fake: FakeJest) => {
-				const ws = mkdtempSync(join(root, "ws-"));
-				fake.install(ws);
-				const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
-				return { evidence, ws };
-			};
-			const { evidence: green } = await run(
-				new FakeJest(recordedJestReport("green"), 0, { strayLine: "console.log from a test" }),
-			);
-			assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
-			assert.equal(green.facts.tests, 1);
-			const { evidence: elsewhere, ws } = await run(
-				new FakeJest(recordedJestReport("green"), 0, { writeInstead: "elsewhere-report.json" }),
-			);
-			assert.equal(existsSync(join(ws, "elsewhere-report.json")), false, "the sandbox refused the write");
-			assert.equal(elsewhere.verdict, "FAIL");
-			assert.match(elsewhere.limits.notes.join("; "), /before writing a readable report/);
-		});
-	},
-);
+describe("the derived jest control under the verification sandbox", darwinOnly, () => {
+	it("given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox", async () => {
+		const unit = derivedJestControl();
+		// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+		// would succeed whatever the control declares writable.
+		const sandbox = new SeatbeltSandbox({ temp_paths: [] });
+		const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
+		const run = async (fake: FakeJest) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			fake.install(ws);
+			const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
+			return { evidence, ws };
+		};
+		const { evidence: green } = await run(
+			new FakeJest(recordedJestReport("green"), 0, { strayLine: "console.log from a test" }),
+		);
+		assert.equal(green.verdict, "PASS", JSON.stringify(green.limits.notes));
+		assert.equal(green.facts.tests, 1);
+		const { evidence: elsewhere, ws } = await run(
+			new FakeJest(recordedJestReport("green"), 0, { writeInstead: "elsewhere-report.json" }),
+		);
+		assert.equal(existsSync(join(ws, "elsewhere-report.json")), false, "the sandbox refused the write");
+		assert.equal(elsewhere.verdict, "FAIL");
+		assert.match(elsewhere.limits.notes.join("; "), /before writing a readable report/);
+	});
+});
 
 /**
  * Stands in for Stryker: records the arguments it was given and writes the report at the path Stryker
@@ -1019,46 +1014,43 @@ function derivedMutationControl(): ControlDefinition {
 	)!;
 }
 
-(process.platform === "darwin" ? describe : describe.skip)(
-	"the mutation control under the verification sandbox",
-	() => {
-		it("given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp", async () => {
-			const mutation = derivedMutationControl();
-			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
-			// would succeed whatever the control declares writable.
-			const runner = new GenericControlRunner(
-				new SeatbeltSandbox({ temp_paths: [] }),
-				new CasObjectStore(join(root, "objects")),
-			);
-			const run = async (stand: ListeningStryker, control: ControlDefinition) => {
-				const ws = mkdtempSync(join(root, "ws-"));
-				stand.install(ws);
-				const { evidence, observation } = await runner.runControl({
-					...base(),
-					control,
-					workspace_path: ws,
-					introduced_lines: { "src/calc.js": [5, 6] },
-				});
-				return { evidence, stderr: new TextDecoder().decode(observation?.stderr), ws };
-			};
+describe("the mutation control under the verification sandbox", darwinOnly, () => {
+	it("given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp", async () => {
+		const mutation = derivedMutationControl();
+		// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+		// would succeed whatever the control declares writable.
+		const runner = new GenericControlRunner(
+			new SeatbeltSandbox({ temp_paths: [] }),
+			new CasObjectStore(join(root, "objects")),
+		);
+		const run = async (stand: ListeningStryker, control: ControlDefinition) => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			stand.install(ws);
+			const { evidence, observation } = await runner.runControl({
+				...base(),
+				control,
+				workspace_path: ws,
+				introduced_lines: { "src/calc.js": [5, 6] },
+			});
+			return { evidence, stderr: new TextDecoder().decode(observation?.stderr), ws };
+		};
 
-			const loopback = await run(new ListeningStryker("the report"), mutation);
-			assert.equal(
-				loopback.evidence.verdict,
-				"PASS",
-				`${JSON.stringify(loopback.evidence.limits.notes)} ${loopback.stderr}`,
-			);
-			assert.ok(existsSync(join(loopback.ws, "reports/mutation/mutation.json")), "the report is written");
+		const loopback = await run(new ListeningStryker("the report"), mutation);
+		assert.equal(
+			loopback.evidence.verdict,
+			"PASS",
+			`${JSON.stringify(loopback.evidence.limits.notes)} ${loopback.stderr}`,
+		);
+		assert.ok(existsSync(join(loopback.ws, "reports/mutation/mutation.json")), "the report is written");
 
-			const closed = await run(new ListeningStryker("the report"), { ...mutation, network: "denied" });
-			assert.match(closed.stderr, /listen failed: EPERM/);
-			assert.equal(existsSync(join(closed.ws, "reports/mutation/mutation.json")), false);
-			assert.notEqual(closed.evidence.verdict, "PASS");
+		const closed = await run(new ListeningStryker("the report"), { ...mutation, network: "denied" });
+		assert.match(closed.stderr, /listen failed: EPERM/);
+		assert.equal(existsSync(join(closed.ws, "reports/mutation/mutation.json")), false);
+		assert.notEqual(closed.evidence.verdict, "PASS");
 
-			const outside = await run(new ListeningStryker("a file outside the writable paths"), mutation);
-			assert.match(outside.stderr, /write failed: EPERM/);
-			assert.equal(existsSync(join(outside.ws, "elsewhere.txt")), false, "the sandbox refused the write");
-			assert.notEqual(outside.evidence.verdict, "PASS");
-		});
-	},
-);
+		const outside = await run(new ListeningStryker("a file outside the writable paths"), mutation);
+		assert.match(outside.stderr, /write failed: EPERM/);
+		assert.equal(existsSync(join(outside.ws, "elsewhere.txt")), false, "the sandbox refused the write");
+		assert.notEqual(outside.evidence.verdict, "PASS");
+	});
+});

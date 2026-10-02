@@ -12,7 +12,7 @@ import {
 } from "../../src/adapters/sandbox/backends.ts";
 import { incidentOf, parseExitCode } from "../../src/adapters/execution/parsers.ts";
 import type { SandboxProfile } from "../../src/ports/execution.ts";
-import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { darwinOnly, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
 let root: string;
@@ -36,11 +36,10 @@ function profile(over: Partial<SandboxProfile> = {}): SandboxProfile {
 	};
 }
 
-const darwinOnly = process.platform === "darwin" ? it : it.skip;
-
 describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
-	darwinOnly(
+	it(
 		"seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network",
+		darwinOnly,
 		async () => {
 			const sbx = new SeatbeltSandbox({ denied_read_paths: [join(root, "secret")] });
 			const q = sbx.qualify(profile());
@@ -88,7 +87,7 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		assert.ok(text.includes(`(allow file-write* (subpath "${join(realpathSync(root), "real")}"))`), text);
 		assert.equal(text.includes(join(root, "link")), false, text);
 	});
-	darwinOnly("mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM", async () => {
+	it("mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM", darwinOnly, async () => {
 		mkdirSync(join(root, "real"));
 		symlinkSync(join(root, "real"), join(root, "link"));
 		const sbx = new SeatbeltSandbox({ temp_paths: [] });
@@ -116,7 +115,7 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		assert.equal(made.exit_code, 0, new TextDecoder().decode(made.stderr));
 		assert.equal(existsSync(join(root, "real", "new")), true);
 	});
-	darwinOnly("seatbelt lets a loopback profile reach itself and no other host (VER-04)", async () => {
+	it("seatbelt lets a loopback profile reach itself and no other host (VER-04)", darwinOnly, async () => {
 		// A mutation engine forks worker processes and talks to them over a socket. The narrowest grant
 		// that lets such a tool run is the loopback interface: the confinement SEC-02 claims is kept,
 		// because no host but this one is reachable.
@@ -144,7 +143,7 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 			new TextDecoder().decode(obs.stderr),
 		);
 	});
-	darwinOnly("seatbelt allows network only when the mandate says so", async () => {
+	it("seatbelt allows network only when the mandate says so", darwinOnly, async () => {
 		const sbx = new SeatbeltSandbox();
 		const obs = await sbx.run(profile({ network: "allowed" }), {
 			command: [NODE, "-e", 'require("net").connect(9,"127.0.0.1").on("error",e=>{console.log(e.code)})'],
