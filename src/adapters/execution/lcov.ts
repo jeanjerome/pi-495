@@ -2,6 +2,7 @@ import { hasControlCharacter } from "../../application/coverage.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
 import {
 	judgeIntroducedLines,
+	MAX_NAMED_PATHS,
 	type ParsedFinding,
 	undecidedCoverage,
 	unknownIntroducedLines,
@@ -85,7 +86,6 @@ function measurementOf(files: Map<string, FileRecord>): CoverageMeasurement {
 	return measurement;
 }
 
-const MAX_NAMED_PATHS = 10;
 export const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
 /** A declaration file has no executable line, and a runner reports none. */
 export const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;

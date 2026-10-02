@@ -318,14 +318,14 @@ export interface CoverageMeasurement {
 export const COVERAGE_RULE_UNCOVERED = "coverage:introduced-line-not-exercised";
 export const COVERAGE_RULE_PARTIAL = "coverage:introduced-branch-not-taken";
 
-const MAX_NAMED_PATHS = 10;
+export const MAX_NAMED_PATHS = 10;
 
 /** Compilation units JaCoCo instruments. */
 const MEASURABLE_SOURCE = /\.(java|kt|scala|groovy)$/;
 /** Declarations without an executable line: no report mentions them, and none should. */
-const DECLARATION_ONLY = /(^|\/)(module-info|package-info)\.[a-z]+$/;
+export const JVM_DECLARATION_ONLY = /(^|\/)(module-info|package-info)\.[a-z]+$/;
 /** A test is what measures; it is never what is measured. */
-const TEST_SOURCE = /(^|\/)src\/test\//;
+export const JVM_TEST_SOURCE = /(^|\/)src\/test\//;
 
 /**
  * Introduced paths a coverage report is expected to mention. A path outside this set is not an
@@ -333,7 +333,7 @@ const TEST_SOURCE = /(^|\/)src\/test\//;
  */
 export function measurableIntroducedPaths(introduced: IntroducedLines): string[] {
 	return Object.keys(introduced)
-		.filter((path) => MEASURABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path))
+		.filter((path) => MEASURABLE_SOURCE.test(path) && !JVM_DECLARATION_ONLY.test(path) && !JVM_TEST_SOURCE.test(path))
 		.sort();
 }
 

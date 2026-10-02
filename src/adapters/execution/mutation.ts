@@ -42,6 +42,9 @@ import {
 	decodeXml,
 	incidentOf,
 	incidentReport,
+	JVM_DECLARATION_ONLY,
+	JVM_TEST_SOURCE,
+	MAX_NAMED_PATHS,
 	MAX_REPORT_BYTES,
 	moduleOf,
 	resolveSourcePath,
@@ -67,14 +70,9 @@ const STRYKER_SILENCING: SilencingRule = {
 };
 
 const MAX_MUTATION_FINDINGS = 200;
-const MAX_NAMED_PATHS = 10;
 
 /** Compilation units a JVM mutation engine rewrites. */
 const MUTABLE_SOURCE = /\.java$/;
-/** Declarations without an executable instruction: no mutant is generated from them, and none should. */
-const DECLARATION_ONLY = /(^|\/)(module-info|package-info)\.java$/;
-/** A test is what kills a mutant; it is never what is mutated. */
-const TEST_SOURCE = /(^|\/)src\/test\//;
 
 /** PITest statuses that say a test noticed the change. A timeout is a behaviour the suite imposed. */
 const DETECTED = new Set(["KILLED", "TIMED_OUT"]);
@@ -103,7 +101,7 @@ const STRYKER_STATUS: Readonly<Record<string, string>> = {
  */
 export function mutableIntroducedPaths(introduced: IntroducedLines): string[] {
 	return Object.keys(introduced)
-		.filter((path) => MUTABLE_SOURCE.test(path) && !DECLARATION_ONLY.test(path) && !TEST_SOURCE.test(path))
+		.filter((path) => MUTABLE_SOURCE.test(path) && !JVM_DECLARATION_ONLY.test(path) && !JVM_TEST_SOURCE.test(path))
 		.sort();
 }
 

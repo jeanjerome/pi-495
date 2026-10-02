@@ -503,7 +503,7 @@ Statut : versée
 
 ## R61 — Les bornes et motifs des lecteurs de rapports sont déclarés une seule fois
 
-Statut : à faire
+Statut : versée
 
 - Où : execution/parsers.ts:304,309-311 · mutation.ts:68,73-75 · lcov.ts:88
 - Constat : MAX_NAMED_PATHS = 10 déclaré trois fois ; la paire de regex de parsers.ts:309-311 et mutation.ts:73-75 quasi identique.
