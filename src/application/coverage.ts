@@ -14,7 +14,7 @@
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { IntroducedLines } from "../ports/execution.ts";
 import { diffLines, splitLines } from "./diff.ts";
-import { FILE_READ_BUDGET_BYTES } from "./review.ts";
+import { FILE_READ_BUDGET_BYTES, isBinary } from "./review.ts";
 
 /**
  * Bytes above which a file is not diffed. It is the same budget the review reads under: a line map
@@ -63,13 +63,6 @@ export function introducedLines(referenceText: string, candidateText: string): n
 		for (let i = 0; i < segment.lines.length; i++) out.push(segment.new_start + i);
 	}
 	return out;
-}
-
-/** A tree carries bytes that are not text; a diff of them would be meaningless, not empty. */
-function isBinary(bytes: Uint8Array): boolean {
-	const n = Math.min(bytes.byteLength, 8000);
-	for (let i = 0; i < n; i++) if (bytes[i] === 0) return true;
-	return false;
 }
 
 /** The bytes of a path on one side, or null when that side does not hold it. */

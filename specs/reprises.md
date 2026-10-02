@@ -346,7 +346,7 @@ Statut : versée
 
 ## R43 — La détection d'un fichier binaire n'existe qu'une fois
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/review.ts:96-100 = src/application/coverage.ts:69-73
 - Constat : isBinary identique dans les deux fichiers ; coverage.ts importe déjà de review.ts.

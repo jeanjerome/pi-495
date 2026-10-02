@@ -97,7 +97,8 @@ export const FILE_READ_BUDGET_BYTES = 2 * 1024 * 1024;
  */
 export const CONTENT_PAGE_LINES = 2000;
 
-function isBinary(bytes: Uint8Array): boolean {
+/** A tree carries bytes that are not text; a diff of them would be meaningless, not empty. */
+export function isBinary(bytes: Uint8Array): boolean {
 	const n = Math.min(bytes.byteLength, 8000);
 	for (let i = 0; i < n; i++) if (bytes[i] === 0) return true;
 	return false;
