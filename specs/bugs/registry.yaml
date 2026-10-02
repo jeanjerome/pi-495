@@ -1145,3 +1145,64 @@ bugs:
       Have the reader name the files of its passing cases and require one in the positive witness's files, with a
       test on a skipped positive case beside a passing project test.
     status: open
+  - bug_id: BUG-2026-10-02T200000
+    date: "2026-10-02"
+    title: "A survey lists every frozen control with its verdict, an unqualified one included, so a sensor that detects nothing reads as a PASS of the project"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      Introduced by the change that surveys the project. `surveyReference` in `src/application/verification.ts`
+      runs every control of the frozen protocol on the reference, and the `controls` section of the survey carries
+      each one with its verdict and evidence. G2 only requires the controls an obligation names to be qualified, so
+      a control no requirement uses is frozen with `qualified: false` and still appears in the survey with a
+      verdict. On the `fixtureTs` project, whose lint does not detect its negative witness ("negative witness gave
+      PASS"), a survey asking only whether the tests pass carries `lint` with verdict PASS.
+    what_expected: >
+      A control whose qualification failed measures nothing the survey can report: it is either left out of the
+      survey or named a blind spot with the qualification note as its reason, never presented with a verdict
+      (`D-74` §2 and §3).
+    steps_to_reproduce:
+      - "In a v2-kernel test, start a change with `deliverable: \"state\"` on `trackedProject(fixtureTs)`, with one requirement of category `functional`, and advance it."
+      - "The adopted survey's `controls` holds `{ control_id: \"lint\", verdict: \"PASS\", blind_spot: null }`, while the protocol's qualification of `lint` is `qualified: false`."
+    root_cause: >
+      The survey reads the controls of the protocol, not the qualified ones; the requirement rows are safe because
+      G2 refuses an obligation naming an unqualified control, but the control rows have no such guard.
+    evidence: >
+      Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
+    risk_level: medium
+    follow_ups: >
+      Name an unqualified control a blind spot in the survey, with its qualification notes, and assert it in the
+      survey tests; `e29s02` presents the survey to the owner and must not show such a verdict.
+    status: open
+  - bug_id: BUG-2026-10-02T200100
+    date: "2026-10-02"
+    title: "A change with a candidate on a project whose own test already fails stops at G2, its test sensor refused for a failure the change did not cause"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `qualifyControlDetailed` in `src/application/qualification.ts` requires the positive witness, a copy of the
+      reference plus a passing witness test, to give PASS. When a test of the project already fails on the
+      reference, the positive witness gives FAIL, the test control is not qualified, and G2 refuses to freeze the
+      protocol: the change blocks with `capability_missing`, "positive witness gave FAIL: greet says goodbye
+      (test/farewell.test.js)". The survey qualifies its test sensor by the witnesses' own cases; a change with a
+      candidate keeps the old rule, so no change can be made on a project that has a red test, although the
+      comparison of the two passes (VER-08) already treats such a failure as preexisting.
+    what_expected: >
+      Either the change proceeds, the failing project test being an inherited finding that does not block, or it
+      stops saying that the reference fails its own test and naming it — not that the sensor cannot be qualified.
+    steps_to_reproduce:
+      - "In a v2-kernel test, start a change (default deliverable) on `trackedProject` with `fixtureTs` plus `test/farewell.test.js` asserting `greet(\"x\") === \"Goodbye, x\"`, and advance it."
+      - "The change stops in `verification_design`, blocked `capability_missing`, G2 FAIL with \"control unit: positive witness gave FAIL, expected PASS\"."
+    root_cause: >
+      The witnesses qualify the sensor through the verdict of the whole run, which mixes the project's own result
+      with the witness's.
+    evidence: >
+      Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
+    risk_level: medium
+    follow_ups: >
+      Product decision first: whether 495 changes a project whose suite is already red. If it does, qualify the
+      sensor by the witnesses' cases for every change, as the survey does (see BUG-2026-10-02T190000 for the
+      weakness of that reading).
+    status: open
