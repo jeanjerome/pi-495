@@ -70,6 +70,10 @@ export interface ReviewSources {
 	reference: ReferenceSnapshot;
 	manifest: CandidateManifest | null;
 	maxBytes: number;
+	/** The candidate bytes of a changed file, as the dossier holds them (`files_<candidate_id>`). */
+	candidateBytes(path: string): Promise<Uint8Array | null>;
+	/** The reference bytes of a file the candidate changed, as the dossier holds them (`base_files_<candidate_id>`). */
+	referenceBytes(path: string): Promise<Uint8Array | null>;
 }
 
 /**
@@ -286,11 +290,14 @@ export function findNode(root: ReviewNode, path: string): ReviewNode | null {
 	return null;
 }
 
-async function readSide(
-	sources: ReviewSources,
-	path: string,
-	side: "old" | "new",
-): Promise<{ kind: ContentPage["kind"]; text: string; bytes: number; metadata: Record<string, unknown> }> {
+interface SideContent {
+	kind: ContentPage["kind"];
+	text: string;
+	bytes: number;
+	metadata: Record<string, unknown>;
+}
+
+async function readSide(sources: ReviewSources, path: string, side: "old" | "new"): Promise<SideContent> {
 	const entries = side === "old" ? sources.reference.entries : (sources.manifest?.entries ?? sources.reference.entries);
 	const entry = entries.find((e) => e.path === path && (side === "old" ? true : e.baseline_state !== "deleted"));
 	if (!entry) return { kind: "missing", text: "", bytes: 0, metadata: {} };
@@ -309,21 +316,41 @@ async function readSide(
 	if (entry.kind !== "file") return { kind: "special", text: "", bytes: entry.size, metadata: meta };
 	if (entry.size > Math.min(sources.maxBytes, FILE_READ_BUDGET_BYTES))
 		return { kind: "too_large", text: "", bytes: entry.size, metadata: meta };
+	// A file the candidate changed is shown on both sides as it was frozen and verified, from the
+	// dossier, so the review outlives the working copy of its attempt and the integration that rewrites
+	// the project. The dossier holds the bytes of the paths that are files in the candidate.
+	const changed = sources.manifest?.entries.some(
+		(e) => e.path === path && e.kind === "file" && e.baseline_state !== "unchanged",
+	);
+	if (changed) {
+		const bytes = await (side === "new" ? sources.candidateBytes : sources.referenceBytes)(path);
+		if (!bytes)
+			return {
+				kind: "missing",
+				text: "",
+				bytes: 0,
+				metadata: { ...meta, note: "the dossier does not hold the bytes of this file" },
+			};
+		return sideContentOf(bytes, meta);
+	}
 	const base = side === "old" ? sources.referencePath : (sources.workspacePath ?? sources.referencePath);
 	if (side === "new" && !sources.workspacePath && sources.manifest)
 		return { kind: "missing", text: "", bytes: 0, metadata: { ...meta, note: "workspace no longer available" } };
 	try {
-		const bytes = new Uint8Array(await readFile(join(base, path)));
-		if (isBinary(bytes)) return { kind: "binary", text: "", bytes: bytes.byteLength, metadata: meta };
-		return {
-			kind: "text",
-			text: new TextDecoder("utf-8", { fatal: false }).decode(bytes),
-			bytes: bytes.byteLength,
-			metadata: meta,
-		};
+		return sideContentOf(new Uint8Array(await readFile(join(base, path))), meta);
 	} catch (error) {
 		return { kind: "missing", text: "", bytes: 0, metadata: { ...meta, error: messageOf(error) } };
 	}
+}
+
+function sideContentOf(bytes: Uint8Array, metadata: Record<string, unknown>): SideContent {
+	if (isBinary(bytes)) return { kind: "binary", text: "", bytes: bytes.byteLength, metadata };
+	return {
+		kind: "text",
+		text: new TextDecoder("utf-8", { fatal: false }).decode(bytes),
+		bytes: bytes.byteLength,
+		metadata,
+	};
 }
 
 export async function readContent(
@@ -440,12 +467,16 @@ export async function openReview(
 		newer_candidate: newer,
 		now: deps.now(),
 	});
-	const sources = {
+	const sources: ReviewSources = {
 		referencePath: reference.project_path,
 		workspacePath,
 		reference,
 		manifest,
 		maxBytes: FILE_READ_BUDGET_BYTES,
+		candidateBytes: manifest ? await deps.artifacts.storedFiles(`files_${manifest.candidate_id}`) : async () => null,
+		referenceBytes: manifest
+			? await deps.artifacts.storedFiles(`base_files_${manifest.candidate_id}`)
+			: async () => null,
 	};
 	return {
 		snapshot,

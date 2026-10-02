@@ -240,7 +240,15 @@ describe("large-file budgets (§10.5, §16)", () => {
 	const between = "assets/inventoried.bin";
 	const sources = (entries: ManifestEntry[]) => {
 		const { reference, manifest } = snapshotOf(entries);
-		return { referencePath: "/p", workspacePath: "/w", reference, manifest, maxBytes: FILE_READ_BUDGET_BYTES };
+		return {
+			referencePath: "/p",
+			workspacePath: "/w",
+			reference,
+			manifest,
+			maxBytes: FILE_READ_BUDGET_BYTES,
+			candidateBytes: async () => null,
+			referenceBytes: async () => null,
+		};
 	};
 
 	it("a file above the read budget is typed, sized and never read", async () => {

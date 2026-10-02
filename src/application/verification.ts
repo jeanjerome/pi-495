@@ -68,6 +68,8 @@ export interface VerificationDeps {
 	id(prefix: string): string;
 	/** Reads an artifact the ledger holds, by identifier and revision. */
 	readArtifact<T>(ref: { artifact_id: string; revision: number }): Promise<T>;
+	/** The bytes of each file a `files_` or `base_files_` index names, read from the store. */
+	storedFiles(indexId: string): Promise<(path: string) => Promise<Uint8Array | null>>;
 	progress(message: string): void;
 }
 
@@ -589,22 +591,9 @@ export class VerificationCoordinator {
 		shape: CandidateShape,
 		complements: readonly AdoptedComplement[],
 	): Promise<IntroducedLinesResult> {
-		// An index never written leaves the calculation without those bytes; an altered one is evidence a
-		// verdict would rest on, so its refusal stops the change instead of reading as empty (RM-070).
-		const index = async (artifactId: string) =>
-			await this.deps
-				.readArtifact<Record<string, { digest: string }>>({ artifact_id: artifactId, revision: 1 })
-				.catch((error: unknown) => {
-					if (error instanceof DomainError && error.code === "EVIDENCE_MISSING") return {};
-					throw error;
-				});
-		const candidateFiles = await index(`files_${manifest.candidate_id}`);
-		const referenceFiles = await index(`base_files_${manifest.candidate_id}`);
-		const bytesOf = (files: Record<string, { digest: string }>) => async (path: string) => {
-			const entry = files[path];
-			return entry ? await this.deps.objects.get(entry.digest) : null;
-		};
-		return introducedLinesOf(manifest, shape.renames, bytesOf(referenceFiles), bytesOf(candidateFiles), complements);
+		const candidateBytes = await this.deps.storedFiles(`files_${manifest.candidate_id}`);
+		const referenceBytes = await this.deps.storedFiles(`base_files_${manifest.candidate_id}`);
+		return introducedLinesOf(manifest, shape.renames, referenceBytes, candidateBytes, complements);
 	}
 
 	/** A qualification an earlier protocol of this change established for this exact sensor. */

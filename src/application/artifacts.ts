@@ -275,6 +275,26 @@ export class ArtifactRepository {
 		return opened ? await this.read<PreparedWorkspace>(opened.ref) : null;
 	}
 
+	/**
+	 * The bytes of each file a `files_` or `base_files_` index names, read from the store: an index
+	 * never written names no file, and a path it does not name reads as null. An altered index is
+	 * evidence a verdict would rest on, so its refusal stops the reader instead of reading as empty
+	 * (RM-070).
+	 */
+	async storedFiles(indexId: string): Promise<(path: string) => Promise<Uint8Array | null>> {
+		const index: Record<string, { digest: string }> = await this.read<Record<string, { digest: string }>>({
+			artifact_id: indexId,
+			revision: 1,
+		}).catch((error: unknown) => {
+			if (error instanceof DomainError && error.code === "EVIDENCE_MISSING") return {};
+			throw error;
+		});
+		return async (path) => {
+			const entry = index[path];
+			return entry ? await this.deps.objects.get(entry.digest) : null;
+		};
+	}
+
 	/** Makes sure the bytes of each file are in the store, reading them back from the tree if not. */
 	async ensureBytes(root: string, files: readonly { path: string; digest: string }[]): Promise<void> {
 		for (const f of files) {

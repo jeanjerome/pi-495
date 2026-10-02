@@ -113,7 +113,15 @@ describe("the boundary of a submodule is inventoried with its commit (§9.1, UX-
 		const manifest = await ws.snapshotCandidate(handle, reference, DEFAULT_WORKSPACE_POLICY);
 
 		const page = await readContent(
-			{ referencePath: project, workspacePath: handle.path, reference, manifest, maxBytes: 1024 * 1024 },
+			{
+				referencePath: project,
+				workspacePath: handle.path,
+				reference,
+				manifest,
+				maxBytes: 1024 * 1024,
+				candidateBytes: async () => null,
+				referenceBytes: async () => null,
+			},
 			"vendor/sub-lib",
 			"new",
 			{ start_line: 1, limit: 50 },

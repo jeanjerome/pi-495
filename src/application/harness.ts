@@ -220,6 +220,7 @@ export class Harness {
 			readArtifact<T>(ref: { artifact_id: string; revision: number }): Promise<T> {
 				return harness.artifacts.read<T>(ref);
 			},
+			storedFiles: (indexId: string) => harness.artifacts.storedFiles(indexId),
 			progress: (message: string) => harness.progress(message),
 		});
 		this.phase = {

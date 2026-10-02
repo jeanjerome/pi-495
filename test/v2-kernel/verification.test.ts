@@ -135,6 +135,7 @@ function coordinatorOver(controls: ControlExecutionPort, workspace: GitWorkspace
 		readArtifact: async () => {
 			throw new DomainError("EVIDENCE_MISSING", "no file index for this candidate");
 		},
+		storedFiles: async () => async () => null,
 		progress: () => {},
 	});
 }
