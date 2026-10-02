@@ -2,7 +2,7 @@
 
 Story : e06s03
 Epic : e06
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

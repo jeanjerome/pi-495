@@ -125,6 +125,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 				stack.push(abs);
 				continue;
 			}
+			// A special file has no content to leave out: its kind, mode and state are observed whole.
 			if (!st.isFile()) {
 				entries.push({
 					path: rel,
@@ -136,7 +137,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 					baseline_state: "unchanged",
 					origin: "unknown",
 					limits: {
-						truncated: true,
+						truncated: false,
 						bytes_read: 0,
 						bytes_total: null,
 						exclusions: [],
