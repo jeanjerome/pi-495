@@ -1,0 +1,159 @@
+TAP version 13
+# Subtest: a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+    # Subtest: un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+    ok 1 - un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+      ---
+      duration_ms: 66.346125
+      type: 'test'
+      ...
+    1..1
+ok 1 - a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+  ---
+  duration_ms: 66.762292
+  type: 'suite'
+  ...
+# Subtest: the Git plumbing below the root is not content of the project (§9.1)
+    # Subtest: la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+    not ok 1 - la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+      ---
+      duration_ms: 206.820334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-di5FuZ/test/v2-kernel/tree-special-cases.test.ts:48:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + [
+        +   {
+        +     baseline_state: 'unchanged',
+        +     content_digest: 'sha256:f0dabac70a9951eb8f50d2ed340e3a4d77a267600ec984dafb2f6fd8a4fe0961',
+        +     kind: 'file',
+        +     limits: null,
+        +     mode: '000644',
+        +     origin: 'unknown',
+        +     path: 'vendor/sub-lib/.git',
+        +     size: 42,
+        +     symlink_target: null
+        +   }
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0:
+          path: 'vendor/sub-lib/.git'
+          kind: 'file'
+          content_digest: 'sha256:f0dabac70a9951eb8f50d2ed340e3a4d77a267600ec984dafb2f6fd8a4fe0961'
+          size: 42
+          mode: '000644'
+          symlink_target: ~
+          baseline_state: 'unchanged'
+          origin: 'unknown'
+          limits: ~
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-di5FuZ/test/v2-kernel/tree-special-cases.test.ts:54:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+    not ok 2 - la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+      ---
+      duration_ms: 35.538875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-di5FuZ/test/v2-kernel/tree-special-cases.test.ts:60:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + [
+        +   'nested/.git/COMMIT_EDITMSG',
+        +   'nested/.git/HEAD',
+        +   'nested/.git/config',
+        +   'nested/.git/description',
+        +   'nested/.git/hooks/applypatch-msg.sample',
+        +   'nested/.git/hooks/commit-msg.sample',
+        +   'nested/.git/hooks/fsmonitor-watchman.sample',
+        +   'nested/.git/hooks/post-update.sample',
+        +   'nested/.git/hooks/pre-applypatch.sample',
+        +   'nested/.git/hooks/pre-commit.sample',
+        +   'nested/.git/hooks/pre-merge-commit.sample',
+        +   'nested/.git/hooks/pre-push.sample',
+        +   'nested/.git/hooks/pre-rebase.sample',
+        +   'nested/.git/hooks/pre-receive.sample',
+        +   'nested/.git/hooks/prepare-commit-msg.sample',
+        +   'nested/.git/hooks/push-to-checkout.sample',
+        +   'nested/.git/hooks/sendemail-validate.sample',
+        +   'nested/.git/hooks/update.sample',
+        +   'nested/.git/index',
+        +   'nested/.git/info/exclude',
+        +   'nested/.git/logs/HEAD',
+        +   'nested/.git/logs/refs/heads/main',
+        +   'nested/.git/objects/5b/db01e717911e447e1a8c6d213951459983a573',
+        +   'nested/.git/objects/62/701b1d16e54247eabd4016b8abe15c74a803b1',
+        +   'nested/.git/objects/8b/a3a16384aacc37d01564b28401755ce8053f51',
+        +   'nested/.git/refs/heads/main'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'nested/.git/COMMIT_EDITMSG'
+        1: 'nested/.git/HEAD'
+        2: 'nested/.git/config'
+        3: 'nested/.git/description'
+        4: 'nested/.git/hooks/applypatch-msg.sample'
+        5: 'nested/.git/hooks/commit-msg.sample'
+        6: 'nested/.git/hooks/fsmonitor-watchman.sample'
+        7: 'nested/.git/hooks/post-update.sample'
+        8: 'nested/.git/hooks/pre-applypatch.sample'
+        9: 'nested/.git/hooks/pre-commit.sample'
+        10: 'nested/.git/hooks/pre-merge-commit.sample'
+        11: 'nested/.git/hooks/pre-push.sample'
+        12: 'nested/.git/hooks/pre-rebase.sample'
+        13: 'nested/.git/hooks/pre-receive.sample'
+        14: 'nested/.git/hooks/prepare-commit-msg.sample'
+        15: 'nested/.git/hooks/push-to-checkout.sample'
+        16: 'nested/.git/hooks/sendemail-validate.sample'
+        17: 'nested/.git/hooks/update.sample'
+        18: 'nested/.git/index'
+        19: 'nested/.git/info/exclude'
+        20: 'nested/.git/logs/HEAD'
+        21: 'nested/.git/logs/refs/heads/main'
+        22: 'nested/.git/objects/5b/db01e717911e447e1a8c6d213951459983a573'
+        23: 'nested/.git/objects/62/701b1d16e54247eabd4016b8abe15c74a803b1'
+        24: 'nested/.git/objects/8b/a3a16384aacc37d01564b28401755ce8053f51'
+        25: 'nested/.git/refs/heads/main'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-di5FuZ/test/v2-kernel/tree-special-cases.test.ts:67:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 2 - the Git plumbing below the root is not content of the project (§9.1)
+  ---
+  duration_ms: 242.610709
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-di5FuZ/test/v2-kernel/tree-special-cases.test.ts:47:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 3
+# suites 2
+# pass 1
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 381.327584

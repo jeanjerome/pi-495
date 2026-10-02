@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un candidat qui laisse le sous-module intact passe G4",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 220,
+    "constat": "Aucun test ne fait échouer le remplacement de `?.isDirectory() === true` par `!== undefined` dans `uncopied`. La mutation est équivalente sur les chemins de la story : quand le chemin du sous-module est remplacé par un fichier ou un lien, le parcours l'observe déjà, et `present` écarte alors l'entrée reportée. Aucune promesse n'est découverte.",
+    "mutation": "lstatSync(...)?.isDirectory() === true → lstatSync(...) !== undefined : les 11 tests passent"
+   }
+  ],
+  "resume": "J'ai relu les 7 promesses sur le diff 7540a35...948737d. Le code les tient toutes, et pour chacune au moins une mutation fait échouer le test qui affirme son Then, avec les mots de la story. Tous les tests sont dans test/v2-kernel/tree-special-cases.test.ts, qui passe 11/11 à 948737d.\n\nMutations essayées, une à la fois ; chacune a été remise en place et l'arbre est propre :\n- M1, retrait de la reprise du genre `special` dans `uncopied` : le test du tube échoue (1 test).\n- M2, `.git` ignoré seulement à la racine : 6 tests échouent, dont ceux du sous-module (référence et copie de travail) et celui du dépôt imbriqué.\n- M3, plus d'entrée de frontière : 7 tests échouent (frontière, G4, revue).\n- M4, une note qui ne nomme plus le commit : les tests de la frontière et de la revue échouent.\n- M5, la frontière n'est plus reprise dans la copie : les tests « unchanged », « passe G4 » et « revue » échouent.\n- M6, raison G4 retirée : les 3 refus (modifie, ajoute, supprime) échouent.\n- M7, les entrées inchangées ne sont plus écartées : le test « passe G4 » échoue.\n- M8, `submodule_paths` vidé dans implement.ts : les 3 refus échouent.\n- M9, notes retirées des métadonnées de la revue : le test de la revue échoue.\n- M10, préfixe sans `/` : le test vendor/sub-lib-fork échoue.\n\nUne seule mutation survit, M11 (`isDirectory` remplacé par « existe »). Elle est équivalente sur les chemins de la story, d'où le seul constat, à peser.\n\nAutres vérifications :\n- `candidate.freeze` n'est construit qu'à un seul endroit (implement.ts), et G4 n'est évalué qu'au moment de la commande.\n- La copie de travail est recréée entrée par entrée depuis la référence, donc sans `.git` de sous-module.\n\nAucun constat bloquant ou à corriger, introduit ou rendu atteignable."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Relecteur B, tour 1, e06s01 (diff 7540a35...948737d). Les sept promesses sont tenues par le code, et chacune est tenue par un test de test/v2-kernel/tree-special-cases.test.ts : 11 tests sur 11 passent à la révision relue. Pour chaque promesse, une mutation de la ligne qui la porte a fait échouer le test qui l'assert ; chaque ligne mutée a ensuite été remise, et l'arbre est propre.\n\n(1) Tube nommé : uncopied() (git-workspace.ts) reprend tel quel l'entrée special que la copie ne recrée pas. M1 remplace `e.kind === \"special\"` par false : le test du tube échoue.\n\n(2)(3) Plomberie Git d'un sous-module et d'un dépôt imbriqué : walk.ts ignore désormais `.git` à toute profondeur, et createWorkspace ne copie que les entrées de la référence. M2 remet l'ancienne exclusion, limitée à la racine : les tests du sous-module et de nested/.git échouent, avec quatre autres.\n\n(4) Frontière du sous-module : submoduleEntry nomme le commit extrait. Trois mutations, trois échecs : M3 (frontière jamais détectée), M4 (note sans le commit) et M5 (fichiers du sous-module plus parcourus, lib.txt cesse d'être un fichier).\n\n(5) Refus par G4 : submodulePathsChanged est branché dans implement.ts, et evaluateG4 en tire la raison. M6 retire le push de la raison, M7 inverse le filtre unchanged, M8 coupe le câblage (submodule_paths: []) : chaque fois, les trois cas modifier, ajouter et supprimer échouent. Ces trois tests vérifient aussi qu'aucune vérification n'est ouverte et que le HEAD et le statut du projet n'ont pas bougé.\n\n(6) Sous-module intact : uncopied() reprend la frontière tant que son répertoire existe dans la copie. M9 retire cette clause : les tests unchanged et G4 PASS sans raison sur le sous-module échouent.\n\n(7) Revue : readSide renvoie special, sans texte, et ses métadonnées portent les notes de l'entrée, donc le commit. M10 retire les notes des métadonnées : le test de la page échoue.\n\nAucun constat introduit ou rendu atteignable. Le seul écart vu, un .git d'une dépendance installée lu comme sous-module, est déjà ouvert au registre (BUG-2026-10-02T180000) et n'est pas compté."
+ }
+]

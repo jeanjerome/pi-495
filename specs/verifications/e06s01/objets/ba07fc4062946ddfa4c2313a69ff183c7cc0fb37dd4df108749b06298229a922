@@ -1,0 +1,131 @@
+TAP version 13
+# Subtest: a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+    # Subtest: un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+    ok 1 - un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+      ---
+      duration_ms: 66.463666
+      type: 'test'
+      ...
+    1..1
+ok 1 - a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+  ---
+  duration_ms: 66.901625
+  type: 'suite'
+  ...
+# Subtest: the Git plumbing below the root is not content of the project (§9.1)
+    # Subtest: la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+    ok 1 - la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+      ---
+      duration_ms: 204.977958
+      type: 'test'
+      ...
+    # Subtest: la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+    ok 2 - la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+      ---
+      duration_ms: 31.773083
+      type: 'test'
+      ...
+    1..2
+ok 2 - the Git plumbing below the root is not content of the project (§9.1)
+  ---
+  duration_ms: 236.894208
+  type: 'suite'
+  ...
+# Subtest: the boundary of a submodule is inventoried with its commit (§9.1, UX-10)
+    # Subtest: la référence d'un projet portant un sous-module a une entrée submodule à vendor/sub-lib qui nomme le commit extrait, et vendor/sub-lib/lib.txt reste un fichier
+    not ok 1 - la référence d'un projet portant un sous-module a une entrée submodule à vendor/sub-lib qui nomme le commit extrait, et vendor/sub-lib/lib.txt reste un fichier
+      ---
+      duration_ms: 191.703083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:76:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'submodule'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'submodule'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:82:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un candidat qui ne modifie que a.txt garde l'entrée submodule de vendor/sub-lib unchanged
+    not ok 2 - un candidat qui ne modifie que a.txt garde l'entrée submodule de vendor/sub-lib unchanged
+      ---
+      duration_ms: 205.73125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:89:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        +   undefined,
+        +   undefined
+        -   'submodule',
+        -   'unchanged'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'submodule'
+        1: 'unchanged'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:98:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: la page de contenu de vendor/sub-lib côté candidat n'a pas de texte et ses métadonnées disent submodule et le commit
+    not ok 3 - la page de contenu de vendor/sub-lib côté candidat n'a pas de texte et ses métadonnées disent submodule et le commit
+      ---
+      duration_ms: 207.623166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:101:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        {"path":"vendor/sub-lib","side":"new","kind":"missing","lines":[],"start_line":1,"total_lines":0,"truncated":false,"metadata":{}}
+        + actual - expected
+        
+        + undefined
+        - 'submodule'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'submodule'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:114:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 3 - the boundary of a submodule is inventoried with its commit (§9.1, UX-10)
+  ---
+  duration_ms: 605.334959
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-p7tILN/test/v2-kernel/tree-special-cases.test.ts:75:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 6
+# suites 3
+# pass 3
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 983.205708

@@ -1,0 +1,134 @@
+TAP version 13
+# Subtest: a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+    # Subtest: un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+    ok 1 - un projet portant un tube nommé donne, sans action de l'agent, un candidat dont l'entrée pipe.fifo est special et unchanged et dont selected_paths est vide
+      ---
+      duration_ms: 64.002417
+      type: 'test'
+      ...
+    1..1
+ok 1 - a special file the working copy cannot hold is not a deletion (§9.1, UX-10)
+  ---
+  duration_ms: 64.4505
+  type: 'suite'
+  ...
+# Subtest: the Git plumbing below the root is not content of the project (§9.1)
+    # Subtest: la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+    ok 1 - la référence d'un projet portant un sous-module n'a aucune entrée sous vendor/sub-lib/.git et sa copie de travail ne porte pas vendor/sub-lib/.git
+      ---
+      duration_ms: 208.042459
+      type: 'test'
+      ...
+    # Subtest: la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+    ok 2 - la référence d'un projet portant un dépôt imbriqué n'a aucune entrée sous nested/.git
+      ---
+      duration_ms: 36.209083
+      type: 'test'
+      ...
+    1..2
+ok 2 - the Git plumbing below the root is not content of the project (§9.1)
+  ---
+  duration_ms: 244.411917
+  type: 'suite'
+  ...
+# Subtest: the boundary of a submodule is inventoried with its commit (§9.1, UX-10)
+    # Subtest: la référence d'un projet portant un sous-module a une entrée submodule à vendor/sub-lib qui nomme le commit extrait, et vendor/sub-lib/lib.txt reste un fichier
+    ok 1 - la référence d'un projet portant un sous-module a une entrée submodule à vendor/sub-lib qui nomme le commit extrait, et vendor/sub-lib/lib.txt reste un fichier
+      ---
+      duration_ms: 197.408542
+      type: 'test'
+      ...
+    # Subtest: un candidat qui ne modifie que a.txt garde l'entrée submodule de vendor/sub-lib unchanged
+    ok 2 - un candidat qui ne modifie que a.txt garde l'entrée submodule de vendor/sub-lib unchanged
+      ---
+      duration_ms: 206.831583
+      type: 'test'
+      ...
+    # Subtest: la page de contenu de vendor/sub-lib côté candidat n'a pas de texte et ses métadonnées disent submodule et le commit
+    ok 3 - la page de contenu de vendor/sub-lib côté candidat n'a pas de texte et ses métadonnées disent submodule et le commit
+      ---
+      duration_ms: 209.538542
+      type: 'test'
+      ...
+    1..3
+ok 3 - the boundary of a submodule is inventoried with its commit (§9.1, UX-10)
+  ---
+  duration_ms: 613.9765
+  type: 'suite'
+  ...
+# Subtest: G4 refuses a candidate that touches a submodule (§9.1)
+    # Subtest: un candidat qui modifie vendor/sub-lib/lib.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+    not ok 1 - un candidat qui modifie vendor/sub-lib/lib.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+      ---
+      duration_ms: 887.129834
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:164:3'
+      failureType: 'testCodeFailure'
+      error: '[{"decided_at":"2026-09-16T12:00:00.000Z","evaluated":{"base":"sha256:773116e4db8f5478a33498f10d47b1c7338514ec7b110e15afd35efb12c6c63b","candidate":"sha256:f9a0dc4fb90ed782bb93dce2f8e3406d8209c6e2932b1cca37a53baf8308a281","protocol":"sha256:54db12ee3bf4d9031f85c263a0d948f0b8d68dde71cfd12343ef9ba6e62feec8"},"evidence_ignored":[],"evidence_missing":[],"evidence_retained":[],"fail_requirements":[],"gate":"G4","indeterminate_requirements":[],"next_action":"verify","reasons":[],"state_revision":35,"verdict":"PASS"}]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:168:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un candidat qui ajoute vendor/sub-lib/added.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+    not ok 2 - un candidat qui ajoute vendor/sub-lib/added.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+      ---
+      duration_ms: 850.423125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:164:3'
+      failureType: 'testCodeFailure'
+      error: '[{"decided_at":"2026-09-16T12:00:00.000Z","evaluated":{"base":"sha256:0d82b151d3665ed37bc01d7904094c2cb6f18ba532dbefba23ab510a89b39b39","candidate":"sha256:a345ed185229d99587750c335e1cab5dbb59716a2c946e85f1e782eafbe7d987","protocol":"sha256:54db12ee3bf4d9031f85c263a0d948f0b8d68dde71cfd12343ef9ba6e62feec8"},"evidence_ignored":[],"evidence_missing":[],"evidence_retained":[],"fail_requirements":[],"gate":"G4","indeterminate_requirements":[],"next_action":"verify","reasons":[],"state_revision":35,"verdict":"PASS"}]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:168:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un candidat qui supprime vendor/sub-lib/lib.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+    not ok 3 - un candidat qui supprime vendor/sub-lib/lib.txt échoue à G4 avec une raison qui nomme ce chemin et le sous-module vendor/sub-lib, aucune vérification n'est lancée et le projet est inchangé
+      ---
+      duration_ms: 855.288833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:164:3'
+      failureType: 'testCodeFailure'
+      error: '[{"decided_at":"2026-09-16T12:00:00.000Z","evaluated":{"base":"sha256:30c2daaf01821e307d6d9df3d44bba8f3567af4fe7b06d75cf6668772871d753","candidate":"sha256:cd4fa8dc413f6339e7495f6693fbc41f9fc19e4ed10ae003d16e99182971d623","protocol":"sha256:df44da0c4bd6104165d63b0345ccbcbdd73882363a54ed2f0c5f8623ef8b2b37"},"evidence_ignored":[],"evidence_missing":[],"evidence_retained":[],"fail_requirements":[],"gate":"G4","indeterminate_requirements":[],"next_action":"verify","reasons":[],"state_revision":35,"verdict":"PASS"}]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:168:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 4 - G4 refuses a candidate that touches a submodule (§9.1)
+  ---
+  duration_ms: 2593.11925
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TxyJyr/test/v2-kernel/tree-special-cases.test.ts:128:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..4
+# tests 9
+# suites 4
+# pass 6
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3691.186667
