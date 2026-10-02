@@ -419,7 +419,7 @@ Statut : versée
 
 ## R52 — Les rapports d'incident des lecteurs de contrôles se construisent par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : execution/parsers.ts:73-74,109,226-227,508-509 · structure.ts:262-263 · jest-report.ts:75-76 · mutation.ts:464-482
 - Constat : { verdict: "INDETERMINATE", facts: { exit_code, incident }, notes: [incident], failures: [] } écrit sept fois ; le helper outside(...) de FAIL écrit trois fois (parsers.ts:111,229, jest-report.ts:78).

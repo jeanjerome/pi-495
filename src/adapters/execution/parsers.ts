@@ -49,6 +49,21 @@ export function incidentOf(obs: ProcessObservation): string | null {
 	return null;
 }
 
+/** The INDETERMINATE report of a process `incidentOf` named: its exit code, the incident, and nothing read. */
+export function incidentReport(
+	obs: ProcessObservation,
+	incident: string,
+	extraFacts: Record<string, unknown> = {},
+	extraNotes: readonly string[] = [],
+): ParsedReport {
+	return {
+		verdict: "INDETERMINATE",
+		facts: { exit_code: obs.exit_code, incident, ...extraFacts },
+		notes: [incident, ...extraNotes],
+		failures: [],
+	};
+}
+
 const BUILD_ERROR_LINE = /^\s*(?:\[ERROR\]|\[FATAL\]|error:|ERROR:)\s*(.+)$/;
 
 /**
@@ -68,11 +83,30 @@ export function buildErrors(output: string, max = 10): string[] {
 	return out;
 }
 
+/**
+ * The FAIL of a runner that exited non-zero with no failing test to explain it. What it points at is
+ * the failures already read, else the build errors of its output, else its exit code.
+ */
+export function exitedOutsideTests(
+	obs: ProcessObservation,
+	facts: Record<string, unknown>,
+	note: string,
+	output = "",
+	failures: string[] = [],
+): ParsedReport {
+	const errors = failures.length > 0 ? failures : buildErrors(output);
+	return {
+		verdict: "FAIL",
+		facts,
+		notes: [note],
+		failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`],
+	};
+}
+
 /** Contract: exit code 0 means PASS, any other exit code means FAIL, an incident means INDETERMINATE (RM-016). */
 export function parseExitCode(obs: ProcessObservation): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident) return incidentReport(obs, incident);
 	return {
 		verdict: obs.exit_code === 0 ? "PASS" : "FAIL",
 		facts: { exit_code: obs.exit_code },
@@ -109,17 +143,7 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 	const facts = { exit_code: obs.exit_code, tests, pass, fail, skipped, todo, stdout_truncated: obs.stdout_truncated };
 	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };
 	const broke = obs.exit_code !== 0;
-	const outside = (note: string): ParsedReport => ({
-		verdict: "FAIL",
-		facts,
-		notes: [note],
-		failures:
-			failures.length > 0
-				? failures
-				: buildErrors(stdout).length > 0
-					? buildErrors(stdout)
-					: [`exit code ${obs.exit_code}`],
-	});
+	const outside = (note: string): ParsedReport => exitedOutsideTests(obs, facts, note, stdout, failures);
 	if (tests === null || pass === null || fail === null) {
 		// A truncated stream is a reading limit, not a property of the candidate.
 		if (obs.stdout_truncated)
@@ -224,18 +248,10 @@ function intAttr(attrs: string, name: string): number {
  */
 export function parseJUnit(obs: ProcessObservation, documents: string[] | null, output = ""): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident) return incidentReport(obs, incident);
 	const broke = obs.exit_code !== 0;
-	const outside = (facts: Record<string, unknown>, note: string): ParsedReport => {
-		const errors = buildErrors(output);
-		return {
-			verdict: "FAIL",
-			facts,
-			notes: [note],
-			failures: errors.length > 0 ? errors : [`exit code ${obs.exit_code}`],
-		};
-	};
+	const outside = (facts: Record<string, unknown>, note: string): ParsedReport =>
+		exitedOutsideTests(obs, facts, note, output);
 	if (!documents || documents.length === 0) {
 		const facts = { exit_code: obs.exit_code, reports: 0 };
 		if (broke) return outside(facts, `the runner exited with ${obs.exit_code} before producing any test report`);
@@ -506,8 +522,7 @@ export function judgeIntroducedLines(
  */
 export function undecidedCoverage(obs: ProcessObservation, reports: number): ParsedReport | null {
 	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident) return incidentReport(obs, incident);
 	if (obs.exit_code !== 0)
 		return {
 			verdict: "INDETERMINATE",

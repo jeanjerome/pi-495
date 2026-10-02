@@ -1,6 +1,13 @@
 import type { ProcessObservation } from "../../ports/execution.ts";
 import { messageOf } from "../../domain/errors.ts";
-import { incidentOf, MAX_FAILURES, MAX_REPORT_BYTES, type ParsedReport } from "./parsers.ts";
+import {
+	exitedOutsideTests,
+	incidentOf,
+	incidentReport,
+	MAX_FAILURES,
+	MAX_REPORT_BYTES,
+	type ParsedReport,
+} from "./parsers.ts";
 
 interface JestTestResult {
 	/** Path of the test file. */
@@ -73,15 +80,9 @@ function summarizeJest(files: JestTestResult[]): JestSummary {
 /** Jest's JSON report, read from the file the control declared, and the exit of the process that wrote it. */
 export function parseJestJson(obs: ProcessObservation, documents: string[] | null): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident) return incidentReport(obs, incident);
 	const broke = obs.exit_code !== 0;
-	const outside = (facts: Record<string, unknown>, note: string): ParsedReport => ({
-		verdict: "FAIL",
-		facts,
-		notes: [note],
-		failures: [`exit code ${obs.exit_code}`],
-	});
+	const outside = (facts: Record<string, unknown>, note: string): ParsedReport => exitedOutsideTests(obs, facts, note);
 	const unreadable = (reason: string): ParsedReport => {
 		const facts = { exit_code: obs.exit_code, reports: documents?.length ?? 0 };
 		if (broke)

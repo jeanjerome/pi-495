@@ -41,6 +41,7 @@ import {
 	buildErrors,
 	decodeXml,
 	incidentOf,
+	incidentReport,
 	MAX_REPORT_BYTES,
 	moduleOf,
 	resolveSourcePath,
@@ -469,17 +470,12 @@ export function analyzeMutation(
 					"the mutation budget ended the run before the report was written: the proof this control owes is missing, and no threshold is lowered to conclude without it (VER-04)",
 				]
 			: [];
-		return {
-			verdict: "INDETERMINATE",
-			facts: {
-				exit_code: obs.exit_code,
-				incident,
-				scoped_classes: scope.classes.length,
-				scoped_files: scope.paths.length,
-			},
-			notes: [incident, ...budget],
-			failures: [],
-		};
+		return incidentReport(
+			obs,
+			incident,
+			{ scoped_classes: scope.classes.length, scoped_files: scope.paths.length },
+			budget,
+		);
 	}
 	if (introduced === null) return unscopedMutation();
 	if (scope.unaddressable.length > 0) return unaddressableMutation(scope);

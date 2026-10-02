@@ -21,7 +21,7 @@ import { join, resolve } from "node:path";
 import type { StructureRule } from "../../contracts/v1/protocol.ts";
 import { messageOf } from "../../domain/errors.ts";
 import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
-import { incidentOf, type ParsedFinding, type ParsedReport } from "./parsers.ts";
+import { incidentOf, incidentReport, type ParsedFinding, type ParsedReport } from "./parsers.ts";
 
 export interface JavaImport {
 	/** The imported name as written, a trailing `.*` removed: `a.b.C`, `a.b` or `a.b.C.member`. */
@@ -260,8 +260,7 @@ export function analyzeJavaStructure(
 	readNotes: readonly string[] = [],
 ): ParsedReport {
 	const incident = incidentOf(obs);
-	if (incident)
-		return { verdict: "INDETERMINATE", facts: { exit_code: obs.exit_code, incident }, notes: [incident], failures: [] };
+	if (incident) return incidentReport(obs, incident);
 	const facts: Record<string, unknown> = { exit_code: obs.exit_code, rules: rules.length, sources: sources.length };
 	if (obs.exit_code !== 0)
 		return {
