@@ -41,7 +41,11 @@ export const EXECUTOR: ActorRef = {
 
 export const ENV = digestValue({ os: "darwin", arch: "arm64", pi: "0.85.1" });
 
-let clock = Date.parse("2026-09-16T10:00:00.000Z");
+const CLOCK_START = Date.parse("2026-09-16T10:00:00.000Z");
+let clock = CLOCK_START;
+function resetClock(): void {
+	clock = CLOCK_START;
+}
 export function tick(): string {
 	clock += 1000;
 	return new Date(clock).toISOString();
@@ -229,9 +233,10 @@ export function candidate(seed: string, base = `sha256:${"0".repeat(64)}`): Cand
 	};
 }
 
+let evidenceSequence = 0;
 export function evidence(over: Partial<EvidenceFact> & { control_id: string; subject_digest: string }): EvidenceFact {
 	return {
-		evidence_id: `evd_${over.control_id}_${Math.random().toString(36).slice(2, 8)}`,
+		evidence_id: `evd_${over.control_id}_${++evidenceSequence}`,
 		control_version: "1",
 		requirement_ids: over.control_id === "unit" ? ["R1"] : ["R2"],
 		protocol_revision: 1,
@@ -252,6 +257,7 @@ export class Runner {
 			adoption?: Partial<ActivePolicy["adoption"]>;
 		} = {},
 	) {
+		resetClock();
 		this.policy = {
 			...DEFAULT_POLICY,
 			...policy,

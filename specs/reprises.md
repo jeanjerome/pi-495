@@ -585,7 +585,7 @@ Statut : versée
 
 ## R70 — L'horloge et les identifiants du banc des règles du changement sont déterministes
 
-Statut : à faire
+Statut : versée
 
 - Où : test/helpers/change-fixture.ts:44-48 (let clock + tick()) · :234 (Math.random() dans evidence_id)
 - Constat : Horloge mutable de module partagée par tous les it d'un fichier ; v0/change-rules.test.ts:2413 compte sur le fait qu'elle a dépassé 10:00:00 (expires_at). Identifiants aléatoires non reproductibles (aucun test ne les affirme, inoffensif aujourd'hui).
