@@ -215,6 +215,9 @@ epics:
     objet: >
       L'inventaire d'un arbre traite le sous-module et le fichier spécial, et la revue ne dépend plus
       d'un workspace que rien ne réclame.
+    stories:
+      - { id: e06s01, status: "à faire", title: "Un fichier spécial et un sous-module sont inventoriés tels qu'ils sont" }
+      - { id: e06s02, status: "à faire", title: "La revue d'un candidat se lit dans le dossier, après intégration comme après retrait de sa copie" }
 
   - id: e07
     title: "Lisibilité d'un changement arrêté"
