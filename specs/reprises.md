@@ -521,7 +521,7 @@ Statut : versée
 
 ## R63 — La surface de revue attend ses chargements sans chaîne de then
 
-Statut : à faire
+Statut : versée
 
 - Où : src/presentation/tui/review-surface.ts:171-218
 - Constat : .then / .finally dans settle et diffFor : lancer-et-oublier voulu (le rendu ne doit pas bloquer), mais en chaîne.

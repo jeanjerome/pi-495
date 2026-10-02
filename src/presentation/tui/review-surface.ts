@@ -16,6 +16,7 @@ import {
 	type ReviewNode,
 	type ReviewSnapshot,
 } from "../../application/review.ts";
+import { messageOf } from "../../domain/errors.ts";
 import { renderHeader } from "./review/header.ts";
 import { handleKey, renderKeyHelp } from "./review/keymap.ts";
 import { NARROW_THRESHOLD, fit } from "./review/measure.ts";
@@ -149,7 +150,7 @@ export class ReviewSurface implements ReviewView {
 			const key = `changes:${node.path}`;
 			if (this.cache.has(key) || this.loading === key) return;
 			this.loading = key;
-			this.settle(key, this.query.changes(node.path, node.status, node.old_path));
+			void this.settle(key, this.query.changes(node.path, node.status, node.old_path));
 			return;
 		}
 		if (this.mode !== "new" && this.mode !== "old") return;
@@ -158,13 +159,13 @@ export class ReviewSurface implements ReviewView {
 		const loaded = this.cache.get(key);
 		if (loaded === undefined) {
 			this.loading = key;
-			this.settle(key, this.query.content(node.path, this.mode, 1, CONTENT_PAGE_LINES));
+			void this.settle(key, this.query.content(node.path, this.mode, 1, CONTENT_PAGE_LINES));
 			return;
 		}
 		if ("error" in loaded || !("lines" in loaded) || !loaded.truncated) return;
 		if (this.readerScroll + rows < loaded.lines.length) return;
 		this.loading = key;
-		this.settle(
+		void this.settle(
 			key,
 			this.query
 				.content(node.path, this.mode, loaded.start_line + loaded.lines.length, CONTENT_PAGE_LINES)
@@ -184,38 +185,35 @@ export class ReviewSurface implements ReviewView {
 		if (this.drawing.has(key)) return null;
 		this.drawing.add(key);
 		const labels = this.opts.language === "en" ? EN : FR;
-		renderHunks(page, this.foldContext, (hidden) => this.st.dim(`… ${hidden} ${labels.folded}`))
-			.then(
-				(result) => {
-					this.diffs.set(key, result);
-				},
-				(error: Error) => {
-					this.diffs.set(key, { lines: [], starts: [], error: error.message });
-				},
-			)
-			.finally(() => {
-				this.drawing.delete(key);
-				this.invalidate();
-				this.opts.requestRender();
-			});
+		void this.draw(
+			key,
+			renderHunks(page, this.foldContext, (hidden) => this.st.dim(`… ${hidden} ${labels.folded}`)),
+		);
 		return null;
 	}
 
-	private settle(key: string, page: Promise<LoadedPage>): void {
-		page
-			.then(
-				(p) => {
-					this.cache.set(key, p);
-				},
-				(error: Error) => {
-					this.cache.set(key, { error: error.message });
-				},
-			)
-			.finally(() => {
-				this.loading = null;
-				this.invalidate();
-				this.opts.requestRender();
-			});
+	private async draw(key: string, drawing: Promise<RenderedDiff>): Promise<void> {
+		try {
+			this.diffs.set(key, await drawing);
+		} catch (error) {
+			this.diffs.set(key, { lines: [], starts: [], error: messageOf(error) });
+		} finally {
+			this.drawing.delete(key);
+			this.invalidate();
+			this.opts.requestRender();
+		}
+	}
+
+	private async settle(key: string, page: Promise<LoadedPage>): Promise<void> {
+		try {
+			this.cache.set(key, await page);
+		} catch (error) {
+			this.cache.set(key, { error: messageOf(error) });
+		} finally {
+			this.loading = null;
+			this.invalidate();
+			this.opts.requestRender();
+		}
 	}
 
 	render(width: number): string[] {
