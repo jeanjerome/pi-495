@@ -399,6 +399,47 @@ const ADOPT_COMPLEMENT = {
 	},
 } as const;
 
+/**
+ * IH-10 asked on a survey rather than on a candidate: there is nothing to correct, so the owner accepts
+ * the state of the project as presented, or refuses it and says why.
+ */
+const SURVEY_ACCEPTANCE = {
+	fr: {
+		question: "Accepter cet état des lieux ?",
+		options: [
+			{
+				id: "accept",
+				label: "Accepter",
+				effect: "Le changement est clos accepté ; l'état des lieux est adopté tel qu'il est présenté.",
+				risky: false,
+			},
+			{
+				id: "refuse",
+				label: "Refuser (motif en texte libre)",
+				effect: "Le changement est clos rejeté avec votre motif ; rien n'est corrigé ni retenté.",
+				risky: false,
+			},
+		],
+	},
+	en: {
+		question: "Accept this survey of the project?",
+		options: [
+			{
+				id: "accept",
+				label: "Accept",
+				effect: "The change is closed accepted; the survey is adopted as presented.",
+				risky: false,
+			},
+			{
+				id: "refuse",
+				label: "Refuse (reason as free text)",
+				effect: "The change is closed rejected with your reason; nothing is corrected or retried.",
+				risky: false,
+			},
+		],
+	},
+} as const;
+
 export function buildDecisionRequest(args: {
 	decision_id: string;
 	change_id: string;
@@ -412,7 +453,9 @@ export function buildDecisionRequest(args: {
 	adoptable?: Adoptable;
 	requested_at: string;
 }): DecisionRequest {
-	const t = T[args.language][args.interaction](args.arg ?? "");
+	// The only IH-10 asked on an artifact is the acceptance of a survey; a candidate's is asked on the candidate.
+	const surveyed = args.interaction === "IH-10" && args.subject.kind === "artifact";
+	const t = surveyed ? SURVEY_ACCEPTANCE[args.language] : T[args.language][args.interaction](args.arg ?? "");
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
 	const options =
 		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)
@@ -432,7 +475,8 @@ export function buildDecisionRequest(args: {
 			args.interaction === "IH-01" ||
 			args.interaction === "IH-02" ||
 			args.interaction === "IH-04" ||
-			args.interaction === "IH-07",
+			args.interaction === "IH-07" ||
+			surveyed,
 		requested_at: args.requested_at,
 		expires_at: null,
 		language: args.language,

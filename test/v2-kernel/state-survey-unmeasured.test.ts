@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { writeFiles } from "../helpers/fixtures.ts";
-import { makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
+import { acceptSurvey, makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
 
 /** What a survey says of one control and of one requirement, as this test reads it from the dossier. */
 interface SurveyedControl {
@@ -70,7 +70,9 @@ describe("a control that measures nothing of the reference", () => {
 			actor: HUMAN,
 			deliverable: "state",
 		});
-		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const conducted = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const result = await acceptSurvey(t, change.change_id);
+		result.steps.unshift(...conducted.steps);
 		const state = t.ledger.loadChange(change.change_id)!.state;
 
 		assert.ok(state.adopted.survey, `a survey is adopted: ${result.steps.join(" | ")} ${state.stop_detail ?? ""}`);

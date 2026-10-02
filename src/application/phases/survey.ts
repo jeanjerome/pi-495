@@ -5,7 +5,7 @@
  */
 import type { Protocol } from "../../contracts/v1/protocol.ts";
 import { DomainError } from "../../domain/errors.ts";
-import { surveyOf, type Survey } from "../../domain/survey.ts";
+import { surveyFacts, surveyOf, type Survey } from "../../domain/survey.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "../actors.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
@@ -59,11 +59,14 @@ export async function surveyReference(
 	);
 }
 
-/** G5 judges the survey last proposed; the kernel adopts it, or stops the change on what it cannot conclude. */
+/**
+ * G5 judges the survey last proposed, and puts it in front of the owner, who accepts or refuses it;
+ * the kernel stops the change on what the survey cannot conclude.
+ */
 export async function judgeSurvey(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const survey = await ctx.artifacts.latest<Survey>(unit.state, "survey");
 	if (!survey) throw new DomainError("EVIDENCE_MISSING", "no survey of the reference");
-	return ctx.commit(
+	unit = ctx.commit(
 		unit,
 		{
 			type: "gate.evaluate",
@@ -75,4 +78,17 @@ export async function judgeSurvey(ctx: PhaseContext, unit: Unit, cor: string): P
 		},
 		cor,
 	);
+	if (unit.state.gates.G5?.next_action !== "request_decision:IH-10") return unit;
+	return ctx.requestDecision(unit, cor, {
+		interaction: "IH-10",
+		subject: {
+			kind: "artifact",
+			id: survey.ref.artifact_id,
+			revision: survey.ref.revision,
+			digest: survey.ref.content_digest,
+		},
+		facts: surveyFacts(survey.content),
+		recommendation: null,
+		language: ctx.language(unit.state),
+	});
 }

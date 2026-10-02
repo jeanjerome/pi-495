@@ -6,7 +6,14 @@
  * The reducer reads no clock, no file system and no model. Time, identifiers, digests and
  * observations are provided as facts inside the command (AT-01, AT-02, ADR-003).
  */
-import { type ActorRef, type EffectState, type Phase, PHASES, type StopReason } from "../../contracts/v1/common.ts";
+import {
+	type ActorRef,
+	type EffectState,
+	type Phase,
+	PHASES,
+	type StopReason,
+	type SubjectRef,
+} from "../../contracts/v1/common.ts";
 import type { HumanOrigin } from "../../contracts/v1/decision.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
@@ -778,9 +785,10 @@ class Ctx {
 	}
 
 	/**
-	 * G5 of a change that delivers the state of the project: the survey is adopted once every frozen
-	 * control has a valid evidence on the reference, and the change closes accepted with nothing to
-	 * integrate. A control that concluded nothing stops the change, naming it.
+	 * G5 of a change that delivers the state of the project: once every frozen control has a valid
+	 * evidence on the reference, the survey waits on the owner, who accepts or refuses it (IH-10)
+	 * whatever the acceptance policy of a candidate. A control that concluded nothing stops the change,
+	 * naming it.
 	 */
 	gateG5Survey(c: Extract<ChangeCommand, { gate: "G5" }>): Decision {
 		if (!c.survey) this.fail("PRECONDITION_FAILED", "a survey is required to judge the state of the project");
@@ -791,19 +799,55 @@ class Ctx {
 			protocol: this.state.protocol.ref.content_digest,
 			environment: this.state.environment_digest ?? "",
 		};
-		this.decideGate("G5", result.verdict, evaluated, result.reasons, result.next_action, {
+		const lists = {
 			evidence_retained: result.retained,
 			evidence_missing: result.missing,
 			indeterminate_requirements: result.indeterminate_controls,
-		});
+		};
 		if (result.verdict !== "PASS") {
+			this.decideGate("G5", result.verdict, evaluated, result.reasons, result.next_action, lists);
 			this.block("execution_error", `the survey does not conclude: ${result.reasons.join("; ")}`);
 			return ok(this.events);
 		}
-		this.emit({ type: "artifact.adopted", ...this.base(), kind: "survey", ref: c.survey.ref, gate: "G5" });
-		this.emit({ type: "outcome.set", ...this.base(), outcome: "accepted" });
-		this.enter("closed", "G5 passed, the state of the project is surveyed", "completed");
+		this.decideGate(
+			"G5",
+			"INDETERMINATE",
+			evaluated,
+			["the owner's acceptance of the survey is pending (IH-10)"],
+			"request_decision:IH-10",
+			{ ...lists, evidence_missing: [...result.missing, "human:IH-10"] },
+		);
 		return ok(this.events);
+	}
+
+	/**
+	 * The owner's answer to a survey closes the change: accepted, the survey is adopted under that
+	 * decision; refused, the change is rejected with the reason given, and nothing is corrected.
+	 */
+	settleSurvey(subject: SubjectRef, humanDecisionId: string, optionId: string | null, reason: string | null): void {
+		const g5 = this.state.gates.G5;
+		const evaluated = { ...(g5?.evaluated ?? {}), decision: humanDecisionId };
+		const retained = [...(g5?.evidence_retained ?? []), humanDecisionId];
+		if (optionId === "accept") {
+			const ref = this.state.proposals.survey?.find((r) => r.content_digest === subject.digest);
+			if (!ref) this.fail("EVIDENCE_MISSING", `the survey ${subject.id} accepted is not proposed on this change`);
+			this.decideGate("G5", "PASS", evaluated, [], "close_accepted", { evidence_retained: retained });
+			this.emit({ type: "artifact.adopted", ...this.base(), kind: "survey", ref, gate: "G5" });
+			this.emit({ type: "outcome.set", ...this.base(), outcome: "accepted" });
+			this.enter("closed", "G5 passed, the owner accepts the survey of the project", "completed");
+			return;
+		}
+		const why = `the owner refuses the survey${reason ? `: ${reason}` : ""}`;
+		this.decideGate("G5", "FAIL", evaluated, [why], "close", { evidence_retained: retained });
+		this.emit({ type: "outcome.set", ...this.base(), outcome: "rejected" });
+		this.emit({
+			type: "status.changed",
+			...this.base(),
+			status: "completed",
+			stop_reason: "policy_denied",
+			detail: why,
+		});
+		this.enter("closed", `rejected: ${why}`, "completed");
 	}
 
 	gateG6(c: Extract<ChangeCommand, { gate: "G6" }>): Decision {
@@ -1386,6 +1430,11 @@ class Ctx {
 						this.emit({ type: "operation.closed", ...this.base(), operation_id: this.state.operation.operation_id });
 					}
 				}
+				break;
+			}
+			case "IH-10": {
+				if (surveysTheProject(this.state))
+					this.settleSurvey(pending.subject, c.human_decision_id, c.response.option_id, c.response.free_text);
 				break;
 			}
 			default:

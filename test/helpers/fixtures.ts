@@ -79,6 +79,15 @@ export function fixtureTs(root: string): void {
 	});
 }
 
+/** F-TS with a test that fails on the reference: greet does not return what `test/farewell.test.js` asserts. */
+export function fixtureTsWithFailingTest(root: string): void {
+	fixtureTs(root);
+	writeFiles(root, {
+		"test/farewell.test.js":
+			'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet says goodbye", () => {\n  assert.equal(greet("x"), "Goodbye, x");\n});\n',
+	});
+}
+
 /** F-TS without any test: greet exists, shout does not. */
 export function fixtureTsWithoutTests(root: string): void {
 	writeFiles(root, {

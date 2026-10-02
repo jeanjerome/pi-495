@@ -109,6 +109,9 @@ const R = {
 		risks: "Risques résiduels",
 		none: "aucun",
 		decidedByOwner: "décidée par le propriétaire",
+		survey: "État des lieux",
+		findings: "Constats",
+		blindSpots: "Angles morts",
 		outcome: "Résultat",
 		candidate: "Candidat",
 		authority: { kernel: "noyau", model: "modèle", human: "humain" },
@@ -121,6 +124,9 @@ const R = {
 		risks: "Residual risks",
 		none: "none",
 		decidedByOwner: "decided by the owner",
+		survey: "Survey",
+		findings: "Findings",
+		blindSpots: "Blind spots",
 		outcome: "Outcome",
 		candidate: "Candidate",
 		authority: { kernel: "kernel", model: "model", human: "human" },
@@ -143,6 +149,23 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 			? t.decidedByOwner
 			: q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(", ");
 		lines.push(`  ${q.requirement_id}: ${q.statement}${verdicts ? ` — ${verdicts}` : ""}`);
+	}
+	if (report.survey) {
+		lines.push("", `## ${t.survey}`);
+		for (const q of report.survey.requirements) {
+			const answer = [
+				...q.controls.map((k) => `${k.control_id}=${k.verdict}`),
+				...(q.blind_spot === null ? [] : [q.blind_spot]),
+			].join("; ");
+			lines.push(`  ${q.requirement_id}: ${q.statement}${answer ? ` — ${answer}` : ""}`);
+		}
+		lines.push(`  ${t.findings}:`);
+		if (report.survey.findings.length === 0) lines.push(`    ${t.none}`);
+		for (const f of report.survey.findings)
+			lines.push(`    ${f.control_id}${f.path === null ? "" : ` ${f.path}`}: ${f.message}`);
+		lines.push(`  ${t.blindSpots}:`);
+		if (report.survey.blind_spots.length === 0) lines.push(`    ${t.none}`);
+		for (const b of report.survey.blind_spots) lines.push(`    ${b.control_id}: ${b.reason}`);
 	}
 	lines.push("", `## ${t.observations}`);
 	if (report.observations.length === 0) lines.push(`  ${t.none}`);

@@ -19,6 +19,7 @@ import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
+import { tuiOrigin } from "./change-fixture.ts";
 import { fixtureTs, initRepo, outputDir, removedAfterEach, tempDir } from "./fixtures.ts";
 
 /** The roots `makeHarness` and `trackedProject` allocate, removed after each test. */
@@ -308,4 +309,25 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 export function reopenHarness(previous: TestHarness, options: Omit<HarnessOptions, "root" | "ids"> = {}): TestHarness {
 	previous.ledger.close();
 	return makeHarness({ ...options, root: previous.root, ids: randomIds });
+}
+
+/** The owner accepts the survey the change waits on (IH-10), and the change is conducted on. */
+export async function acceptSurvey(t: TestHarness, changeId: string): Promise<AdvanceResult> {
+	const asked = t.harness.pendingDecisions(changeId).find((d) => d.interaction === "IH-10");
+	assert.ok(asked, "the survey awaits the owner's acceptance");
+	const answered = t.harness.answerDecision(
+		changeId,
+		{
+			decision_id: asked.decision_id,
+			option_id: "accept",
+			free_text: null,
+			reason: null,
+			subject_revision: asked.subject.revision,
+			scope: null,
+			expires_at: null,
+		},
+		tuiOrigin(),
+	);
+	assert.equal(answered.error, null, answered.error?.message);
+	return t.harness.advance(changeId, { max_steps: 10 });
 }

@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { fixtureTs, writeFiles } from "../helpers/fixtures.ts";
-import { makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
+import { fixtureTsWithFailingTest } from "../helpers/fixtures.ts";
+import { acceptSurvey, makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
 
 /** What a survey says of one control, as this test reads it from the dossier. */
 interface SurveyedControl {
@@ -13,16 +13,9 @@ interface SurveyedControl {
 
 const QUESTION = "où en sont les tests ?";
 
-/** A test of the project that fails on the reference: greet does not return what it asserts. */
-const FAILING_TEST =
-	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet says goodbye", () => {\n  assert.equal(greet("x"), "Goodbye, x");\n});\n';
-
 describe("the survey of a project whose test fails", () => {
 	it("l'état des lieux d'un projet dont un test échoue passe G2, porte FAIL pour le contrôle de tests avec un constat qui nomme le fichier du test en échec, et est clos accepted", async () => {
-		const p = trackedProject((root) => {
-			fixtureTs(root);
-			writeFiles(root, { "test/farewell.test.js": FAILING_TEST });
-		});
+		const p = trackedProject(fixtureTsWithFailingTest);
 		const t = makeHarness({
 			defaultScript: {
 				steps: [
@@ -51,7 +44,9 @@ describe("the survey of a project whose test fails", () => {
 			actor: HUMAN,
 			deliverable: "state",
 		});
-		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const conducted = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const result = await acceptSurvey(t, change.change_id);
+		result.steps.unshift(...conducted.steps);
 		const state = t.ledger.loadChange(change.change_id)!.state;
 
 		assert.equal(

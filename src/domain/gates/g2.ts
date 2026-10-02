@@ -1,5 +1,5 @@
 import type { Protocol } from "../../contracts/v1/protocol.ts";
-import type { ChangeState, NextAction } from "../change/state.ts";
+import { surveysTheProject, type ChangeState, type NextAction } from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G2Result {
@@ -83,7 +83,8 @@ export function evaluateG2(state: ChangeState, protocol: Protocol, policy: Activ
 			reasons: [],
 			uncovered_requirements: [],
 			missing_capabilities: [],
-			next_action: "design_change",
+			// A survey has no change to design: the frozen controls measure the reference next.
+			next_action: surveysTheProject(state) ? "verify" : "design_change",
 		};
 	const next =
 		missing.length > 0 || uncovered.length > 0 ? "prepare_capabilities_or_assign_human_decision" : "revise_protocol";

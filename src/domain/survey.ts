@@ -95,14 +95,19 @@ export function controlsOfNature(
 }
 
 /**
- * Why a control measures nothing of the reference, or null when it does. A differential control reads
- * the lines a subject introduces, and the reference introduces none; a test control measures nothing
- * when the capability diagnosis found no case of the project's own executed there.
+ * Why a control measures nothing of the reference, or null when it does. A control whose qualification
+ * failed does not answer as its witnesses require, so its verdict says nothing; a differential control
+ * reads the lines a subject introduces, and the reference introduces none; a test control measures
+ * nothing when the capability diagnosis found no case of the project's own executed there.
  */
 function unmeasured(
-	control: Pick<ControlDefinition, "parser">,
-	diagnosis: Protocol["capability_diagnosis"],
+	control: Pick<ControlDefinition, "control_id" | "parser">,
+	protocol: Pick<Protocol, "capability_diagnosis" | "qualifications">,
 ): string | null {
+	const qualification = protocol.qualifications[control.control_id];
+	if (qualification && !qualification.qualified)
+		return `blind spot: the control is not qualified: ${qualification.notes.join("; ") || "its witnesses did not answer as required"}`;
+	const diagnosis = protocol.capability_diagnosis;
 	if (isDifferentialParser(control.parser))
 		return "blind spot: it measures only the lines a change introduces, and the reference introduces none";
 	if (PARSER_NATURES[control.parser] === "behaviour" && diagnosis.executed === 0)
@@ -115,14 +120,14 @@ export function surveyOf(input: {
 	change_id: string;
 	reference_digest: string;
 	protocol_revision: number;
-	protocol: Pick<Protocol, "obligations" | "capability_diagnosis"> & {
+	protocol: Pick<Protocol, "obligations" | "capability_diagnosis" | "qualifications"> & {
 		controls: readonly Pick<ControlDefinition, "control_id" | "parser">[];
 	};
 	passes: readonly (SurveyMeasure & { findings: readonly SurveyFinding[] })[];
 }): Survey {
 	const controls = input.passes.map((p) => {
 		const control = input.protocol.controls.find((c) => c.control_id === p.control_id);
-		const blindSpot = control ? unmeasured(control, input.protocol.capability_diagnosis) : null;
+		const blindSpot = control ? unmeasured(control, input.protocol) : null;
 		return {
 			control_id: p.control_id,
 			evidence_id: p.evidence_id,
@@ -151,6 +156,26 @@ export function surveyOf(input: {
 			};
 		}),
 	};
+}
+
+/**
+ * What the owner reads of a survey before accepting or refusing it: one fact per requirement, giving
+ * the verdict of each control that measures it, with the files its findings name, or why none does.
+ */
+export function surveyFacts(survey: Pick<Survey, "controls" | "requirements">): string[] {
+	return survey.requirements.map((r) => {
+		const measured = r.measures.map((m) => {
+			const files = [
+				...new Set(
+					(survey.controls.find((c) => c.control_id === m.control_id)?.findings ?? []).flatMap((f) =>
+						f.path === null ? [] : [f.path],
+					),
+				),
+			];
+			return `${m.control_id} ${m.verdict}${files.length > 0 ? ` (${files.join(", ")})` : ""}`;
+		});
+		return `${r.requirement_id}: ${[...measured, ...(r.blind_spot === null ? [] : [r.blind_spot])].join("; ")}`;
+	});
 }
 
 export interface SurveyGateResult {

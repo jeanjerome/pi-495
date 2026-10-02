@@ -2,7 +2,7 @@
 
 Story : e29s02
 Epic : e29
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

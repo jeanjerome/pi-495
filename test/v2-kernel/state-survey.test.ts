@@ -5,7 +5,7 @@ import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/ex
 import type { Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
-import { makeHarness, specReport, trackedProject, type TestHarness } from "../helpers/harness-fixture.ts";
+import { acceptSurvey, makeHarness, specReport, trackedProject, type TestHarness } from "../helpers/harness-fixture.ts";
 
 /** What a survey says of one requirement, as this test reads it from the dossier. */
 interface SurveyedRequirement {
@@ -63,7 +63,7 @@ class IndeterminateOnReference implements ControlExecutionPort {
 	}
 }
 
-/** Starts a survey of the project and conducts it until it stops. */
+/** Starts a survey of the project and conducts it until it stops, the owner accepting the survey it presents. */
 async function survey(t: TestHarness, projectPath: string) {
 	const { change } = await t.harness.start({
 		project_path: projectPath,
@@ -71,7 +71,9 @@ async function survey(t: TestHarness, projectPath: string) {
 		actor: HUMAN,
 		deliverable: "state",
 	});
-	const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+	const conducted = await t.harness.advance(change.change_id, { max_steps: 40 });
+	const result =
+		conducted.stopped_because === "decision_required" ? await acceptSurvey(t, change.change_id) : conducted;
 	return { changeId: change.change_id, result, state: t.ledger.loadChange(change.change_id)!.state };
 }
 
@@ -175,13 +177,13 @@ describe("a change whose deliverable is the state of the project", () => {
 		const p = trackedProject();
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: testsReport }] },
-			controls: (real) => new IndeterminateOnReference(real, "lint"),
+			controls: (real) => new IndeterminateOnReference(real, "unit"),
 		});
 		const { result, state } = await survey(t, p);
 
 		assert.equal(result.stopped_because, "blocked", result.steps.join(" | "));
 		assert.equal(state.status, "blocked");
-		assert.ok(state.stop_detail?.includes("lint"), `the stop names the control: ${state.stop_detail}`);
+		assert.ok(state.stop_detail?.includes("unit"), `the stop names the control: ${state.stop_detail}`);
 		assert.notEqual(state.outcome, "accepted");
 		assert.equal(state.adopted.survey, undefined, "no survey is adopted");
 	});

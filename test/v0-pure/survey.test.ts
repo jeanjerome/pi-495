@@ -57,6 +57,7 @@ describe("the survey of the reference", () => {
 				controls: NODE_CONTROLS,
 				obligations: [obligation("R1", ["unit"]), obligation("R2", ["coverage"])],
 				capability_diagnosis: { ...diagnosis, executed },
+				qualifications: {},
 			},
 			passes: [
 				{ control_id: "unit", verdict: "PASS", evidence_id: "evr_1", findings: [] },

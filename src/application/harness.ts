@@ -30,6 +30,7 @@ import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
+import type { Survey } from "../domain/survey.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type {
@@ -545,11 +546,13 @@ export class Harness {
 		const requirements = await this.artifacts
 			.latest<RequirementsDocument>(loaded.state, "requirements")
 			.catch(() => null);
+		const survey = await this.artifacts.latest<Survey>(loaded.state, "survey").catch(() => null);
 		return engineeringReport(
 			loaded.state,
 			this.deps.ledger.listEvidence(changeId),
 			protocol?.content ?? null,
 			requirements?.content ?? null,
+			survey?.content ?? null,
 		);
 	}
 

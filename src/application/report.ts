@@ -12,6 +12,7 @@ import type { Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
 import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
+import type { Survey } from "../domain/survey.ts";
 
 /** Measured: a control ran on a subject and answered. No interpretation is carried here. */
 export interface MechanicalObservation {
@@ -57,15 +58,50 @@ export interface RequirementLine {
 	controls: { control_id: string; verdict: EvidenceEntry["verdict"] }[];
 }
 
+/**
+ * The state of the project a survey gives: each requirement with what its controls answered on the
+ * reference or why none measures it, what the controls found there, and the controls that measure
+ * nothing of it.
+ */
+export interface SurveySection {
+	requirements: {
+		requirement_id: string;
+		statement: string;
+		controls: { control_id: string; verdict: Verdict }[];
+		blind_spot: string | null;
+	}[];
+	findings: { control_id: string; message: string; path: string | null }[];
+	blind_spots: { control_id: string; reason: string }[];
+}
+
 export interface EngineeringReport {
 	schema_version: 1;
 	change_id: string;
 	outcome: Outcome;
 	candidate: { candidate_id: string; manifest_digest: string } | null;
 	requirements: RequirementLine[];
+	/** The survey of a change that delivers the state of the project, adopted or last proposed. */
+	survey: SurveySection | null;
 	observations: MechanicalObservation[];
 	judgments: Judgment[];
 	residual_risks: ResidualRisk[];
+}
+
+function surveySection(survey: Survey, requirements: RequirementsDocument | null): SurveySection {
+	return {
+		requirements: survey.requirements.map((r) => ({
+			requirement_id: r.requirement_id,
+			statement: requirements?.requirements.find((q) => q.requirement_id === r.requirement_id)?.statement ?? "",
+			controls: r.measures.map((m) => ({ control_id: m.control_id, verdict: m.verdict })),
+			blind_spot: r.blind_spot,
+		})),
+		findings: survey.controls.flatMap((c) =>
+			c.findings.map((f) => ({ control_id: c.control_id, message: f.message, path: f.path })),
+		),
+		blind_spots: survey.controls.flatMap((c) =>
+			c.blind_spot === null ? [] : [{ control_id: c.control_id, reason: c.blind_spot }],
+		),
+	};
 }
 
 function reviewStatement(conclusion: string, blocking: number, valid: boolean): string {
@@ -78,6 +114,7 @@ export function engineeringReport(
 	evidence: readonly Evidence[],
 	protocol: Protocol | null,
 	requirements: RequirementsDocument | null = null,
+	survey: Survey | null = null,
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
 	const onCandidateEntries = state.evidence.filter(
@@ -249,6 +286,7 @@ export function engineeringReport(
 			? { candidate_id: state.candidate.candidate_id, manifest_digest: state.candidate.manifest_digest }
 			: null,
 		requirements: asked,
+		survey: survey ? surveySection(survey, requirements) : null,
 		observations,
 		judgments,
 		residual_risks: risks,
