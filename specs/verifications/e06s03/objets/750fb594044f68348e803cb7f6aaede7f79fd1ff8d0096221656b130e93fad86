@@ -1,0 +1,67 @@
+TAP version 13
+# Subtest: a special file leaves the observation of a candidate complete (§9.1, UX-10)
+    # Subtest: un projet portant un tube nommé, dont l'agent ne modifie que a.txt, passe G4 sans raison qui dise l'observation incomplète
+    not ok 1 - un projet portant un tube nommé, dont l'agent ne modifie que a.txt, passe G4 sans raison qui dise l'observation incomplète
+      ---
+      duration_ms: 499.675125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-x8LA7c/test/v2-kernel/special-file-completeness.test.ts:43:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        [{"decided_at":"2026-09-16T12:00:00.000Z","evaluated":{"base":"sha256:8e329a064b250112f28f3391a345cc8715f6a39f35900d97bed570a62c47fc06","candidate":"sha256:b6f420f608b3e9562b84e3bae990ee8a4575464e575b2a0ebe1880c9def59360","protocol":"sha256:acedcb4ee2a9a3d09326899272940d960e3714f0bab2747d4b7befeb30fb3b0e"},"evidence_ignored":[],"evidence_missing":[],"evidence_retained":[],"fail_requirements":[],"gate":"G4","indeterminate_requirements":[],"next_action":"correct_or_reject","reasons":["candidate observation incomplete: unknown limit"],"state_revision":35,"verdict":"FAIL"}]
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-x8LA7c/test/v2-kernel/special-file-completeness.test.ts:48:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: la revue du candidat d'un projet portant un tube nommé ne se dit pas incomplète, et la page de pipe.fifo n'a pas de texte et ses métadonnées disent special
+    not ok 2 - la revue du candidat d'un projet portant un tube nommé ne se dit pas incomplète, et la page de pipe.fifo n'a pas de texte et ses métadonnées disent special
+      ---
+      duration_ms: 480.044417
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-x8LA7c/test/v2-kernel/special-file-completeness.test.ts:63:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        []
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-x8LA7c/test/v2-kernel/special-file-completeness.test.ts:69:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a special file leaves the observation of a candidate complete (§9.1, UX-10)
+  ---
+  duration_ms: 980.3665
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-x8LA7c/test/v2-kernel/special-file-completeness.test.ts:42:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1153.353417

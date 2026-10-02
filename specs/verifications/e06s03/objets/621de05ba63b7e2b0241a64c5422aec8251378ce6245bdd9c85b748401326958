@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: a special file leaves the observation of a candidate complete (§9.1, UX-10)
+    # Subtest: un projet portant un tube nommé, dont l'agent ne modifie que a.txt, passe G4 sans raison qui dise l'observation incomplète
+    ok 1 - un projet portant un tube nommé, dont l'agent ne modifie que a.txt, passe G4 sans raison qui dise l'observation incomplète
+      ---
+      duration_ms: 733.396666
+      type: 'test'
+      ...
+    # Subtest: la revue du candidat d'un projet portant un tube nommé ne se dit pas incomplète, et la page de pipe.fifo n'a pas de texte et ses métadonnées disent special
+    ok 2 - la revue du candidat d'un projet portant un tube nommé ne se dit pas incomplète, et la page de pipe.fifo n'a pas de texte et ses métadonnées disent special
+      ---
+      duration_ms: 721.426833
+      type: 'test'
+      ...
+    1..2
+ok 1 - a special file leaves the observation of a candidate complete (§9.1, UX-10)
+  ---
+  duration_ms: 1455.33775
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1629.773792
