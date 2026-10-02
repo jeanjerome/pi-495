@@ -43,6 +43,8 @@ export type ChangeEvent =
 			reference: { reference_id: string; kind: string; digest: string };
 			environment_digest: string | null;
 			max_attempts?: number;
+			/** Absent from a change created before the deliverable was recorded, which delivers a candidate. */
+			deliverable?: "state";
 	  })
 	| (Base & { type: "phase.entered"; phase: Phase; status: ExecStatus; reason: string })
 	// `retryable` is absent from every status change but a block, and from blocks written before the

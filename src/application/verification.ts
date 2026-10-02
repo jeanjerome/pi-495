@@ -38,6 +38,7 @@ import {
 import type { EvidenceFact } from "../domain/change/commands.ts";
 import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
+import { controlsOfNature } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import type { ControlExecutionPort, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
@@ -97,6 +98,8 @@ export interface QualifyInput {
 	prior_protocol_refs: readonly { artifact_id: string; revision: number }[];
 	/** The complements the owner had applied: each witness copy carries them, as the positive one does. */
 	complements: readonly AdoptedComplement[];
+	/** The witnesses are judged by their own cases, as a survey judges them, rather than by the run's verdict. */
+	by_cases: boolean;
 }
 
 export interface QualificationOutcome {
@@ -123,6 +126,8 @@ export interface FreezeInput {
 	complements: readonly AdoptedComplement[];
 	/** The packages the adopted install added, which the owner reads before accepting the integration. */
 	installed: readonly InstalledPackage[];
+	/** A requirement is measured by the controls of its nature alone, as a survey measures it. */
+	by_nature: boolean;
 }
 
 export interface RunInput {
@@ -148,6 +153,21 @@ async function writeWitness(workspacePath: string, files: Record<string, string>
 		await mkdir(dirname(target), { recursive: true });
 		await writeFile(target, content);
 	}
+}
+
+/** What the kernel commits of one sealed evidence, with the blocking findings the frozen rule leaves. */
+function factOf(evidence: Evidence, findingsBlocking: number): EvidenceFact {
+	return {
+		evidence_id: evidence.evidence_id,
+		control_id: evidence.control_id,
+		control_version: evidence.control_version,
+		requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id),
+		subject_digest: evidence.subject.digest,
+		protocol_revision: evidence.protocol_revision.revision,
+		environment_digest: evidence.environment_digest,
+		verdict: evidence.verdict,
+		findings_blocking: findingsBlocking,
+	};
 }
 
 export class VerificationCoordinator {
@@ -242,6 +262,7 @@ export class VerificationCoordinator {
 							negative_path: ownHandle?.path ?? negative.path,
 							positive_files: input.witnesses.positive,
 							negative_files: negativeFiles,
+							by_cases: input.by_cases,
 						},
 						base,
 						producers,
@@ -345,6 +366,18 @@ export class VerificationCoordinator {
 					human_interaction: "IH-10",
 					not_applicable_reason: null,
 				};
+			if (input.by_nature) {
+				// A survey answers each requirement with what measures its nature, or names it a blind spot.
+				const measured = controlsOfNature(r.category, controls, input.lint_control_ids);
+				return {
+					requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
+					mandatory: r.mandatory,
+					control_ids: "control_ids" in measured ? measured.control_ids : [],
+					combination: "all_pass",
+					human_interaction: null,
+					not_applicable_reason: "blind_spot" in measured ? measured.blind_spot : null,
+				};
+			}
 			const preferred =
 				r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint")
 					? controls.filter((c) => input.lint_control_ids.includes(c.control_id))
@@ -460,17 +493,7 @@ export class VerificationCoordinator {
 			const blocking = evidence.baseline
 				? evidence.baseline.blocking_findings
 				: blockingCount(evidence.findings, "block_any");
-			facts.push({
-				evidence_id: evidenceId,
-				control_id: evidence.control_id,
-				control_version: evidence.control_version,
-				requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id),
-				subject_digest: evidence.subject.digest,
-				protocol_revision: evidence.protocol_revision.revision,
-				environment_digest: evidence.environment_digest,
-				verdict: evidence.verdict,
-				findings_blocking: blocking,
-			});
+			facts.push(factOf(evidence, blocking));
 		}
 		// Evidence is about the snapshot the protocol froze: the kernel says whether the tree the
 		// controls left behind is still that one (VER-03).
@@ -532,10 +555,54 @@ export class VerificationCoordinator {
 				});
 			else pending.push(control);
 		}
-		if (pending.length === 0) return passes;
+		for (const stored of await this.runOnReference(changeId, pending, protocol, protocolRef, reference))
+			passes.set(stored.control_id, {
+				reference_id: reference.reference_id,
+				reference_digest: reference.tree_digest,
+				verdict: stored.verdict,
+				findings: stored.findings,
+				evidence_id: stored.evidence_id,
+				reused: false,
+			});
+		return passes;
+	}
+
+	/**
+	 * The survey of the project: every frozen control runs on a copy of the reference, and what each
+	 * observed is recorded as evidence about the reference. Nothing runs in the project itself.
+	 */
+	async surveyReference(input: {
+		change_id: string;
+		protocol: Protocol;
+		protocol_ref: ProtocolRef;
+		reference: ReferenceSnapshot;
+	}): Promise<{ fact: EvidenceFact; findings: Evidence["findings"] }[]> {
+		const passes = await this.runOnReference(
+			input.change_id,
+			input.protocol.controls,
+			input.protocol,
+			input.protocol_ref,
+			input.reference,
+		);
+		return passes.map((evidence) => ({
+			fact: factOf(evidence, blockingCount(evidence.findings, "block_any")),
+			findings: evidence.findings,
+		}));
+	}
+
+	/** Runs each control, in order, in one copy of the reference, and seals what each observed as a reference pass. */
+	private async runOnReference(
+		changeId: string,
+		controls: readonly ControlDefinition[],
+		protocol: Protocol,
+		protocolRef: ProtocolRef,
+		reference: ReferenceSnapshot,
+	): Promise<Evidence[]> {
+		if (controls.length === 0) return [];
+		const stored: Evidence[] = [];
 		const handle = await openWorkspaceWithComplements(this.deps, reference, protocol.complements ?? []);
 		try {
-			for (const control of pending) {
+			for (const control of controls) {
 				this.deps.progress(`running control ${control.control_id} on the reference`);
 				// The reference introduces nothing: that is the whole content of this pass for a differential
 				// control, and it is why such a control carries no preexisting finding of its own (QLT-04).
@@ -555,30 +622,23 @@ export class VerificationCoordinator {
 					producer: EXECUTOR_ACTOR,
 					introduced_lines: {},
 				});
-				const evidenceId = this.deps.id("evr");
 				// Observed on the initial tree: every finding of this pass is a defect the change inherited.
-				const stored = this.storeEvidence(
-					changeId,
-					{
-						...evidence,
-						facts: { ...evidence.facts, run: "reference" },
-						findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })),
-					},
-					evidenceId,
+				stored.push(
+					this.storeEvidence(
+						changeId,
+						{
+							...evidence,
+							facts: { ...evidence.facts, run: "reference" },
+							findings: evidence.findings.map((finding) => ({ ...finding, baseline_state: "preexisting" as const })),
+						},
+						this.deps.id("evr"),
+					),
 				);
-				passes.set(control.control_id, {
-					reference_id: reference.reference_id,
-					reference_digest: reference.tree_digest,
-					verdict: stored.verdict,
-					findings: stored.findings,
-					evidence_id: evidenceId,
-					reused: false,
-				});
 			}
 		} finally {
 			await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
 		}
-		return passes;
+		return stored;
 	}
 
 	/**

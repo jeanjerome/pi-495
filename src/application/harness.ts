@@ -24,6 +24,7 @@ import {
 	subjectOfChange,
 	unknownCost,
 	type ChangeState,
+	type Deliverable,
 } from "../domain/change/state.ts";
 import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
@@ -88,6 +89,8 @@ export interface StartArgs {
 	title?: string;
 	actor: ActorRef;
 	language?: "fr" | "en";
+	/** A candidate an agent writes, by default, or the state of the project measured on the reference. */
+	deliverable?: Deliverable;
 }
 
 export interface AdvanceResult {
@@ -489,6 +492,7 @@ export class Harness {
 					request: requestRef,
 					reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest },
 					environment_digest: this.deps.environment.digest,
+					deliverable: args.deliverable ?? "candidate",
 				},
 				this.deps.policy,
 			);

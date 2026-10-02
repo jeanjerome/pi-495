@@ -32,7 +32,8 @@ export type ArtifactKind =
 	| "candidate"
 	| "context"
 	| "output"
-	| "integration";
+	| "integration"
+	| "survey";
 
 export interface AdoptedArtifact {
 	kind: ArtifactKind;
@@ -264,11 +265,19 @@ export interface MandateTerms {
 	language: "fr" | "en";
 }
 
+/**
+ * What a change delivers: a candidate an agent writes, or the state of the project as the frozen
+ * controls measure it on the reference, with no candidate and nothing written into the project.
+ */
+export type Deliverable = "candidate" | "state";
+
 export interface ChangeState {
 	schema_version: 1;
 	change_id: string;
 	program_id: string;
 	increment_id: string;
+	/** Absent from a dossier written before this field existed — read with `surveysTheProject`. */
+	deliverable?: Deliverable;
 	revision: number;
 	created_at: string;
 	updated_at: string;
@@ -306,6 +315,11 @@ export interface ChangeState {
 	integration_authorization_id: string | null;
 	last_actor: ActorRef | null;
 	feedback: { attempt_id: string; digest: string; bytes: number }[];
+}
+
+/** Whether the change delivers the state of the project; a dossier written before the field delivers a candidate. */
+export function surveysTheProject(state: Pick<ChangeState, "deliverable">): boolean {
+	return state.deliverable === "state";
 }
 
 export function isActive(state: ChangeState): boolean {

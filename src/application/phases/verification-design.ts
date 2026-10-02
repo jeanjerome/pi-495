@@ -14,7 +14,7 @@ import type {
 	RecommendedComplement,
 	RequirementsDocument,
 } from "../../contracts/v1/protocol.ts";
-import type { HumanDecisionEntry } from "../../domain/change/state.ts";
+import { surveysTheProject, type HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
@@ -316,7 +316,11 @@ function takenByOwner(requirements: ArtifactRef, unit: Unit, diagnosis: ControlC
 	return requirementsTakenByOwner(unit.state.human_decisions, requirements, diagnosis.undiscriminated_requirements);
 }
 
-/** A requirement no control can judge opens a preparation when the target has room for one and the owner did not take it on. */
+/**
+ * A requirement no control can judge opens a preparation when the target has room for one and the
+ * owner did not take it on. A survey opens none: it measures the project as it stands, and writes
+ * nothing into it.
+ */
 function needsPreparation(
 	detection: StackDetection,
 	requirements: ArtifactRef,
@@ -324,6 +328,7 @@ function needsPreparation(
 	diagnosis: ControlCapabilityDiagnosis,
 ): boolean {
 	return (
+		!surveysTheProject(unit.state) &&
 		diagnosis.undiscriminated_requirements.length > 0 &&
 		detection.preparation_paths.length > 0 &&
 		takenByOwner(requirements, unit, diagnosis).length === 0
@@ -455,6 +460,8 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			requirement_refs: refs,
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 			complements,
+			// A survey answers for a project whose own test may fail: that failure is a finding, not a sensor that cannot tell.
+			by_cases: surveysTheProject(unit.state),
 		});
 		diagnosis = diagnose(detection, requirements.content, reference, prepared, qualified.observation);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
@@ -487,6 +494,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			recommendations: detection.recommendations,
 			complements,
 			installed,
+			by_nature: surveysTheProject(unit.state),
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

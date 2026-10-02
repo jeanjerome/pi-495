@@ -13,6 +13,7 @@ import type { ActivePolicy } from "../policy.ts";
 import { evaluateG5 } from "../gates/g5.ts";
 import { evaluateG2 } from "../gates/g2.ts";
 import { evaluateG4 } from "../gates/g4.ts";
+import { evaluateSurvey } from "../survey.ts";
 import { invalidationFor, type InvalidationCause } from "../invalidation.ts";
 import { unobservedEnd } from "../imposed-layers.ts";
 import type { ChangeCommand, CommandOf } from "./commands.ts";
@@ -26,6 +27,7 @@ import {
 	resumeLiftsStop,
 	runningIntervention,
 	subjectOfChange,
+	surveysTheProject,
 	unknownCost,
 	type ChangeState,
 	type GateDecisionState,
@@ -54,6 +56,7 @@ export function decide(state: ChangeState | null, command: ChangeCommand, policy
 					reference: command.reference,
 					environment_digest: command.environment_digest,
 					max_attempts: policy.budgets.max_attempts,
+					...(command.deliverable === "state" ? { deliverable: "state" as const } : {}),
 				},
 				{
 					type: "phase.entered",
@@ -697,7 +700,9 @@ class Ctx {
 				environment_digest: c.protocol.environment_digest,
 			},
 		});
-		this.enter("designing", "G2 passed");
+		// A survey has no candidate to design: the frozen controls run on the reference next.
+		if (surveysTheProject(this.state)) this.enter("verifying", "G2 passed, the reference is surveyed");
+		else this.enter("designing", "G2 passed");
 		return ok(this.events);
 	}
 
@@ -738,12 +743,12 @@ class Ctx {
 		return ok(this.events);
 	}
 
-	// biome-ignore lint/correctness/noUnusedFunctionParameters: the six gate methods share one signature so the dispatcher can treat them alike
 	gateG5(c: Extract<ChangeCommand, { gate: "G5" }>): Decision {
 		this.requirePhase("deciding");
 		if (this.state.status === "blocked" || this.state.status === "paused") this.requireNotBlocked();
 		if (runningIntervention(this.state))
 			this.fail("PRECONDITION_FAILED", "a producer is still active on the candidate");
+		if (surveysTheProject(this.state)) return this.gateG5Survey(c);
 		if (!this.state.candidate) this.fail("PRECONDITION_FAILED", "no candidate frozen");
 		if (!this.state.protocol) this.fail("PROTOCOL_NOT_FROZEN", "no protocol frozen");
 		const result = evaluateG5(this.state, this.state.protocol, this.state.candidate, this.policy);
@@ -769,6 +774,35 @@ class Ctx {
 			}
 			return ok(this.events);
 		}
+		return ok(this.events);
+	}
+
+	/**
+	 * G5 of a change that delivers the state of the project: the survey is adopted once every frozen
+	 * control has a valid evidence on the reference, and the change closes accepted with nothing to
+	 * integrate. A control that concluded nothing stops the change, naming it.
+	 */
+	gateG5Survey(c: Extract<ChangeCommand, { gate: "G5" }>): Decision {
+		if (!c.survey) this.fail("PRECONDITION_FAILED", "a survey is required to judge the state of the project");
+		if (!this.state.protocol) this.fail("PROTOCOL_NOT_FROZEN", "no protocol frozen");
+		const result = evaluateSurvey(this.state, this.state.protocol, c.survey.content);
+		const evaluated = {
+			survey: c.survey.ref.content_digest,
+			protocol: this.state.protocol.ref.content_digest,
+			environment: this.state.environment_digest ?? "",
+		};
+		this.decideGate("G5", result.verdict, evaluated, result.reasons, result.next_action, {
+			evidence_retained: result.retained,
+			evidence_missing: result.missing,
+			indeterminate_requirements: result.indeterminate_controls,
+		});
+		if (result.verdict !== "PASS") {
+			this.block("execution_error", `the survey does not conclude: ${result.reasons.join("; ")}`);
+			return ok(this.events);
+		}
+		this.emit({ type: "artifact.adopted", ...this.base(), kind: "survey", ref: c.survey.ref, gate: "G5" });
+		this.emit({ type: "outcome.set", ...this.base(), outcome: "accepted" });
+		this.enter("closed", "G5 passed, the state of the project is surveyed", "completed");
 		return ok(this.events);
 	}
 
@@ -964,7 +998,7 @@ class Ctx {
 		this.requireNotBlocked();
 		this.requireKernelAuthority();
 		if (this.state.operation) this.fail("OPERATION_ACTIVE", `operation ${this.state.operation.operation_id} is active`);
-		if (!this.state.candidate) this.fail("PRECONDITION_FAILED", "no candidate");
+		if (!this.state.candidate && !surveysTheProject(this.state)) this.fail("PRECONDITION_FAILED", "no candidate");
 		this.emit({
 			type: "operation.opened",
 			...this.base(),
@@ -979,13 +1013,15 @@ class Ctx {
 	verificationRecord(c: CommandOf<"verification.record">): Decision {
 		this.requirePhase("verifying");
 		this.requireKernelAuthority();
-		const candidate = this.state.candidate;
 		const protocol = this.state.protocol;
-		if (!candidate || !protocol) this.fail("PRECONDITION_FAILED", "candidate and protocol required");
+		// A survey's subject is the reference itself; a candidate change's is its frozen candidate.
+		const subject = surveysTheProject(this.state)
+			? { digest: this.state.reference.digest, name: "the reference" }
+			: this.state.candidate && { digest: this.state.candidate.manifest_digest, name: "the frozen candidate" };
+		if (!subject || !protocol) this.fail("PRECONDITION_FAILED", "candidate and protocol required");
 		for (const e of c.evidence) {
 			const reasons: string[] = [];
-			if (e.subject_digest !== candidate.manifest_digest)
-				reasons.push("subject digest does not match the frozen candidate");
+			if (e.subject_digest !== subject.digest) reasons.push(`subject digest does not match ${subject.name}`);
 			if (e.protocol_revision !== protocol.ref.revision)
 				reasons.push("protocol revision does not match the frozen protocol");
 			if (this.state.environment_digest && e.environment_digest !== this.state.environment_digest)
@@ -1025,7 +1061,8 @@ class Ctx {
 		this.requireKernelAuthority();
 		if (this.state.operation && this.state.operation.operation_id === c.operation_id)
 			this.emit({ type: "operation.closed", ...this.base(), operation_id: c.operation_id });
-		const needsReview = (this.state.protocol?.required_reviews.length ?? 0) > 0;
+		// No model reviews a survey: what the controls measured is its whole content.
+		const needsReview = !surveysTheProject(this.state) && (this.state.protocol?.required_reviews.length ?? 0) > 0;
 		this.enter(needsReview ? "reviewing" : "deciding", "controls terminated");
 		return ok(this.events);
 	}

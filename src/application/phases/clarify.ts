@@ -14,6 +14,7 @@ import {
 	requestedLanguage,
 	specificationStanding,
 	subjectOfChange,
+	surveysTheProject,
 } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
@@ -112,7 +113,8 @@ export async function clarify(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		assumptions: report.assumptions,
 		open_questions: mandateQuestions(unit, report),
 		allowed_paths: [],
-		integration: ctx.policy.integration_enabled ? "local_branch" : "disabled",
+		// A survey writes nothing into the project, so it has nothing to integrate.
+		integration: ctx.policy.integration_enabled && !surveysTheProject(unit.state) ? "local_branch" : "disabled",
 		language,
 	};
 	validate(MandateSchema, mandate, "mandate");
@@ -182,7 +184,13 @@ export async function writeSpecification(
 	let report: SpecificationReport;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		const objective = specificationObjective(request, unit.state.open_questions, declared, instruction);
+		const objective = specificationObjective(
+			request,
+			unit.state.deliverable ?? "candidate",
+			unit.state.open_questions,
+			declared,
+			instruction,
+		);
 		const r = await ctx.runIntervention(unit, cor, "specify", objective, handle.path, {});
 		unit = r.unit;
 		if (unit.state.status === "blocked") return { unit, report: null };

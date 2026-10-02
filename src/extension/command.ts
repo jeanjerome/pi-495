@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { VERSION, type ExtensionAPI, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
+import type { Deliverable } from "../domain/change/state.ts";
 import { DomainError, messageOf } from "../domain/errors.ts";
 import { formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
@@ -18,6 +19,7 @@ import { type ExtensionSession, VERSION_495, kernelUser, safeUser } from "./sess
 
 const SUBCOMMANDS = [
 	"start",
+	"state",
 	"status",
 	"resume",
 	"review",
@@ -55,7 +57,7 @@ type Handler = (call: Call) => Promise<void> | void;
 export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession): void {
 	pi.registerCommand("495", {
 		description:
-			"495 harness: start|status|resume|review|report|verify|decide|integrate|export|pause|close|revoke|cancel|bind|unbind",
+			"495 harness: start|state|status|resume|review|report|verify|decide|integrate|export|pause|close|revoke|cancel|bind|unbind",
 		getArgumentCompletions: (prefix) => {
 			const items = SUBCOMMANDS.filter((s) => s.startsWith(prefix.trim())).map((s) => ({ value: s, label: s }));
 			return items.length ? items : null;
@@ -84,34 +86,43 @@ function bound(session: ExtensionSession, ctx: ExtensionCommandContext): Extensi
 	return session.binding;
 }
 
+/**
+ * Creates a change from the text after the subcommand, binds the session to it and conducts it. Its
+ * deliverable is a candidate an agent writes, or the state of the project measured on the reference.
+ */
+async function openChange(
+	{ session, ctx, rt, text }: Call,
+	deliverable: Deliverable,
+	usage: string,
+	loader: string,
+): Promise<void> {
+	if (!text) {
+		session.emit(ctx, usage);
+		return;
+	}
+	if (session.binding) {
+		session.emit(ctx, T[session.lang()].alreadyBound(session.binding.change_id));
+		return;
+	}
+	const origin = session.humanOrigin(ctx);
+	const actor: ActorRef = origin?.actor ?? {
+		actor_id: safeUser(),
+		actor_type: "human",
+		role: "requester",
+		origin: ctx.mode === "json" ? "json" : "print",
+		authentication_level: "none",
+	};
+	const created = await session.withLoader(ctx, loader, async () =>
+		rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: session.lang(), deliverable }),
+	);
+	session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
+	session.emit(ctx, `${T[session.lang()].programCreated}: ${created.program.program_id} / ${created.change.change_id}`);
+	await conduct(session, ctx, created.change.change_id);
+}
+
 const HANDLERS: Record<Subcommand, Handler> = {
-	start: async ({ session, ctx, rt, text }) => {
-		if (!text) {
-			session.emit(ctx, "usage: /495 start <request text>");
-			return;
-		}
-		if (session.binding) {
-			session.emit(ctx, T[session.lang()].alreadyBound(session.binding.change_id));
-			return;
-		}
-		const origin = session.humanOrigin(ctx);
-		const actor: ActorRef = origin?.actor ?? {
-			actor_id: safeUser(),
-			actor_type: "human",
-			role: "requester",
-			origin: ctx.mode === "json" ? "json" : "print",
-			authentication_level: "none",
-		};
-		const created = await session.withLoader(ctx, "495 start", async () =>
-			rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: session.lang() }),
-		);
-		session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
-		session.emit(
-			ctx,
-			`${T[session.lang()].programCreated}: ${created.program.program_id} / ${created.change.change_id}`,
-		);
-		await conduct(session, ctx, created.change.change_id);
-	},
+	start: (call) => openChange(call, "candidate", "usage: /495 start <request text>", "495 start"),
+	state: (call) => openChange(call, "state", "usage: /495 state <question about the project>", "495 state"),
 	status: ({ session, ctx }) => {
 		const view = session.currentView();
 		session.updateFooter(ctx, view);
@@ -268,7 +279,7 @@ const HANDLERS: Record<Subcommand, Handler> = {
 	help: ({ session, ctx }) => {
 		session.emit(
 			ctx,
-			`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${T[session.lang()].request} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
+			`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${T[session.lang()].request} · status · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
 		);
 	},
 };

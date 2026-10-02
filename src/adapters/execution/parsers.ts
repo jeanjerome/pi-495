@@ -115,7 +115,15 @@ export function parseExitCode(obs: ProcessObservation): ParsedReport {
 	};
 }
 
-/** TAP output of `node --test --test-reporter=tap`. Skipped or todo tests never count as PASS (§6.5). */
+/**
+ * TAP output of `node --test --test-reporter=tap`. Skipped or todo tests never count as PASS (§6.5).
+ * A failing test is followed by the file its diagnostics locate it in, without line or column: a
+ * finding whose test name carries no path then points at the file of the test, and one whose name
+ * carries a path keeps pointing at that path. A passing test carries no location.
+ *
+ * node:test reports a test file that declares no case as one passing top-level test named after the
+ * file. Such an entry runs code without asserting anything, so it is not counted as a test.
+ */
 export function parseNodeTestTap(obs: ProcessObservation, stdout: string): ParsedReport {
 	const incident = incidentOf(obs);
 	const lines = stdout.split(/\r?\n/);
@@ -125,8 +133,19 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 	let skipped: number | null = null;
 	let todo: number | null = null;
 	const failures: string[] = [];
+	// Whether the diagnostics being read belong to the failure last named, which they then locate.
+	let locating = false;
+	let caseless = 0;
 	for (const raw of lines) {
+		if (/^ok\s+\d+\s*-\s*\S+\.[cm]?[jt]sx?\s*$/.test(raw)) caseless++;
 		const line = raw.trim();
+		const location = /^location:\s*'(.+?)(?::\d+){0,2}'$/.exec(line);
+		if (location && locating && failures.length > 0) {
+			failures[failures.length - 1] = `${failures.at(-1)} (${location[1]})`;
+			locating = false;
+			continue;
+		}
+		if (/^(not )?ok\s+\d+/.test(line)) locating = false;
 		const m = /^#\s+(tests|pass|fail|skipped|todo)\s+(\d+)$/.exec(line);
 		if (m) {
 			const n = Number.parseInt(m[2]!, 10);
@@ -138,9 +157,23 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 			continue;
 		}
 		const nok = /^not ok\s+\d+\s*-?\s*(.*)$/.exec(line);
-		if (nok && failures.length < MAX_FAILURES) failures.push(nok[1] ?? "unnamed test");
+		if (nok && failures.length < MAX_FAILURES) {
+			failures.push(nok[1] ?? "unnamed test");
+			locating = true;
+		}
 	}
-	const facts = { exit_code: obs.exit_code, tests, pass, fail, skipped, todo, stdout_truncated: obs.stdout_truncated };
+	if (tests !== null) tests -= caseless;
+	if (pass !== null) pass -= caseless;
+	const facts = {
+		exit_code: obs.exit_code,
+		tests,
+		pass,
+		fail,
+		skipped,
+		todo,
+		files_without_cases: caseless,
+		stdout_truncated: obs.stdout_truncated,
+	};
 	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };
 	const broke = obs.exit_code !== 0;
 	const outside = (note: string): ParsedReport => exitedOutsideTests(obs, facts, note, stdout, failures);

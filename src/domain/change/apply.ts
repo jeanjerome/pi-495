@@ -10,6 +10,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			change_id: event.change_id,
 			program_id: event.program_id,
 			increment_id: event.increment_id,
+			deliverable: event.deliverable ?? "candidate",
 			revision: 1,
 			created_at: event.at,
 			updated_at: event.at,

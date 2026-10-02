@@ -16,7 +16,7 @@ import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
-import { type ChangeState, isQuestionClosed } from "../domain/change/state.ts";
+import { type ChangeState, type Deliverable, isQuestionClosed } from "../domain/change/state.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
 import type { ContextManifest } from "../ports/execution.ts";
 import { runsNothing } from "./stacks/stack.ts";
@@ -251,6 +251,10 @@ export function buildContext(input: ContextInput): {
 
 // --- what an intervention is asked ---------------------------------------------------------------
 
+/** What the specification of a survey is told: the requirements are questions the controls answer, not work to do. */
+const SURVEY_DELIVERABLE =
+	"The deliverable of this change is the state of the project, measured by the controls on the reference: no file of the project will be modified. Write each requirement as a property of the project as it stands that a control can measure.";
+
 /**
  * The request, with the answers a human has already given beside it. An answer an earlier report
  * already bound is carried by the kernel: the next report is told which requirements hold it and
@@ -258,6 +262,7 @@ export function buildContext(input: ContextInput): {
  */
 export function specificationObjective(
 	request: string,
+	deliverable: Deliverable,
 	questions: readonly { id: string; question: string; answer: string | null; closed_at?: string | null }[],
 	declared: ReadonlyMap<string, string[]>,
 	instruction: string | null = null,
@@ -271,7 +276,8 @@ export function specificationObjective(
 			const standing = d ? `already declared, carried by ${d.join(", ")}` : "to declare in `answers`";
 			return `Q ${q.id}: ${q.question} -> ${q.answer} [${standing}]`;
 		});
-	return `${request}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}${instruction ? `\n\n${instruction}` : ""}`;
+	const survey = deliverable === "state" ? `\n\n${SURVEY_DELIVERABLE}` : "";
+	return `${request}${survey}${answered.length ? `\n\nAnswered questions:\n${answered.join("\n")}` : ""}${instruction ? `\n\n${instruction}` : ""}`;
 }
 
 /**

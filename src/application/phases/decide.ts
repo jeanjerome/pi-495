@@ -5,10 +5,12 @@
 import { digestBytes } from "../../contracts/digest.ts";
 import type { SubjectRef } from "../../contracts/v1/common.ts";
 import { retryCanDiffer } from "../../domain/baseline.ts";
+import { surveysTheProject } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
 import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
+import { judgeSurvey } from "./survey.ts";
 
 async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
 	const state = unit.state;
@@ -38,6 +40,7 @@ async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: st
 }
 
 export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
+	if (surveysTheProject(unit.state)) return judgeSurvey(ctx, unit, cor);
 	const g4 = unit.state.gates.G4;
 	if (g4 && g4.verdict === "FAIL" && !unit.state.gates.G5) {
 		return correctOrStop(ctx, unit, cor, `G4 failed: ${g4.reasons.join("; ")}`);

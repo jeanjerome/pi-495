@@ -11,9 +11,11 @@ import type {
 import type { DecisionRequest, DecisionResponse, HumanOrigin } from "../../contracts/v1/decision.ts";
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import type { ImposedLayersRecord } from "../imposed-layers.ts";
+import type { Survey } from "../survey.ts";
 import type {
 	ArtifactKind,
 	AttemptCounters,
+	Deliverable,
 	InterventionCost,
 	InterventionResult,
 	ModelIdentity,
@@ -65,6 +67,7 @@ export type ChangeCommand =
 			request: ArtifactRef;
 			reference: { reference_id: string; kind: string; digest: string };
 			environment_digest: string | null;
+			deliverable?: Deliverable;
 	  })
 	| (Base & { type: "artifact.propose"; kind: ArtifactKind; ref: ArtifactRef })
 	| (Base & { type: "question.open"; id: string; question: string; material: boolean; decision_id: string | null })
@@ -87,7 +90,13 @@ export type ChangeCommand =
 	  })
 	| (Base & { type: "gate.evaluate"; gate: "G2"; protocol_ref: ArtifactRef; protocol: Protocol })
 	| (Base & { type: "gate.evaluate"; gate: "G3"; design_ref: ArtifactRef; design: Design })
-	| (Base & { type: "gate.evaluate"; gate: "G5"; decision_id: string | null })
+	| (Base & {
+			type: "gate.evaluate";
+			gate: "G5";
+			decision_id: string | null;
+			/** What a change that delivers the state of the project is judged on, in place of a candidate. */
+			survey?: { ref: ArtifactRef; content: Survey };
+	  })
 	| (Base & {
 			type: "gate.evaluate";
 			gate: "G6";

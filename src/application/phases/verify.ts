@@ -3,13 +3,16 @@
  */
 import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
 import type { Protocol } from "../../contracts/v1/protocol.ts";
+import { surveysTheProject } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { EXECUTOR_ACTOR, KERNEL_ACTOR } from "../actors.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
+import { surveyReference } from "./survey.ts";
 
 /** A verification runs the frozen controls and opens no intervention. */
 export async function verify(ctx: Omit<PhaseContext, "runIntervention">, unit: Unit, cor: string): Promise<Unit> {
 	const state = unit.state;
+	if (surveysTheProject(state)) return surveyReference(ctx, unit, cor);
 	if (!state.candidate || !state.protocol)
 		throw new DomainError("PRECONDITION_FAILED", "candidate and protocol required");
 	const protocol = await ctx.artifacts.latest<Protocol>(state, "protocol");

@@ -246,6 +246,7 @@ describe("the protocol frozen from a detection", () => {
 			recommendations,
 			complements: [],
 			installed: [],
+			by_nature: false,
 		});
 	};
 
@@ -300,6 +301,7 @@ describe("the paths the frozen protocol protects, whatever the stack of the targ
 			recommendations: [],
 			complements: [],
 			installed: [],
+			by_nature: false,
 		});
 		const protectedPaths = protocol.controls.flatMap((c) => c.protected_paths);
 		assert.ok(protectedPaths.includes("node_modules/"), "the frozen protocol protects node_modules/");
@@ -369,6 +371,7 @@ describe("the workspaces of a qualification, once a complement is adopted", () =
 			requirement_refs: [],
 			prior_protocol_refs: [],
 			complements: [complement],
+			by_cases: false,
 		});
 	}
 
