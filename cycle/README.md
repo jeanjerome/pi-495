@@ -184,7 +184,9 @@ font. `npm run cycle -- reprises` les conduit l'une après l'autre, depuis `main
 La course s'arrête, et rend la main, à la première vérification qui échoue ou à la relecture qui voit
 un changement : la branche reste extraite pour qu'on la lise, `main` et la liste ne bougent pas. On
 reprend en revenant sur `main` (`git checkout main`) : la course suivante repart la même reprise d'une
-branche neuve, ou on l'écarte à la main dans la liste avec la raison. `CYCLE_495_REPRISES_MAX` borne le
+branche neuve, ou on l'écarte à la main dans la liste avec la raison. Quand la relecture refuse ce que la
+reprise elle-même demande, relancer rejoue le même refus : on réduit la reprise à sa part constante, en
+disant dans `Limite` ce qu'elle ne fait pas, et le reste va au registre ou à une story. `CYCLE_495_REPRISES_MAX` borne le
 nombre de reprises d'une course. Rien n'est poussé.
 
 ## L'outil

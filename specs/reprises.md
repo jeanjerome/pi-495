@@ -1,21 +1,25 @@
 # Les reprises à comportement constant
 
-Les reprises que l'audit de `src/` et `test/` du 2026-10-01 a retenues, dans l'ordre où elles se
-font : les deux nettoyages de répertoires temporaires des tests, la passe sur les erreurs, puis les
-suppressions de duplications, de jumeaux de types, de code mort et de commentaires qui citent une
-décision. Une reprise ne change aucun comportement : elle prend le chemin court de `D-80`, conduit par
+Les reprises que l'audit de `src/` et `test/` du 2026-10-01 a retenues (`R06` à `R75`), dans l'ordre où
+elles se sont faites : les deux nettoyages de répertoires temporaires des tests, la passe sur les erreurs,
+puis les suppressions de duplications, de jumeaux de types, de code mort et de commentaires qui citent une
+décision. Une reprise ajoutée ensuite s'écrit à la fin de la liste, avec `Statut : à faire`. Une reprise ne change aucun comportement : elle prend le chemin court de `D-80`, conduit par
 `npm run cycle -- reprises` (`cycle/README.md` § Les reprises), et arrive sur `main` en un commit.
 
 Chaque section est une reprise : `Où` situe le code, `Constat` dit ce que l'audit a lu, `Reprise` dit
 le changement minimal, `Règle` dit la règle de `CONVENTIONS.md` ou d'un skill du dépôt qu'il fait
 tenir, et `Limite`, quand elle est là, dit ce que la reprise ne fait pas. Les numéros de ligne sont
 ceux de `main` à `75e98ef` : ils glissent à mesure que les reprises sont versées, et le code fait foi.
+Les chemins `test/v0/` à `test/v4/` des reprises écrites avant `R82` sont les noms d'avant `R82`, qui a
+renommé ces répertoires `test/v0-pure/`, `test/v1-adapters/`, `test/v2-kernel/`, `test/v3-pi/` et
+`test/v4-platform/`.
 
 `Statut` vaut `à faire` à l'écriture. L'outil l'écrit ensuite : `versée` au versement, dont le commit porte la reprise,
 `écartée — <raison>` quand la session constate que la reprise changerait un comportement ou que le
 code la dément. Une reprise écartée n'est pas perdue : son défaut va au registre ou à une story.
 
-Les numéros suivent ceux des constats de l'audit. Ce qui manque à la liste a pris un autre chemin :
+Les numéros jusqu'à 81 suivent ceux des constats de l'audit ; une reprise ajoutée ensuite prend le
+numéro qui suit la dernière de la liste, à partir de `R82`. Ce qui manque de 1 à 81 a pris un autre chemin :
 
 - 1 : au registre (`BUG-2026-10-01T200000`), porté par `e10s04` ;
 - 2, 3 et 33 : la story `e30s01` ; 4 : `e30s02` ; 5 : `e30s03` ;
@@ -641,7 +645,7 @@ Statut : versée
 - Reprise : Réécrire les 29 commentaires en comportement ; laisser les noms.
 - Règle : § Comments : décrire le comportement, jamais le processus.
 
-## R76 — Les répertoires de test disent le niveau de vérification qu'ils portent
+## R82 — Les répertoires de test disent le niveau de vérification qu'ils portent
 
 Statut : versée
 
