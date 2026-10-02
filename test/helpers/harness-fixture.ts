@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
+import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { ScriptedAgent, type AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
@@ -155,7 +156,8 @@ export interface HarnessOptions {
 	defaultScript?: AgentScript;
 	/** Replaces the scripted agent built from `scripts` and `defaultScript`, e.g. one that judges the model it is given. */
 	agent?: ScriptedAgent;
-	sandbox?: "unconfined" | "platform";
+	/** `unqualified` is the unconfined backend declared not qualified, so a producing intervention is refused. */
+	sandbox?: "unconfined" | "unqualified" | "platform";
 	/** Wraps the unconfined backend, e.g. with one that stands for the package repository an install reaches. */
 	backend?: (real: SandboxPort) => SandboxPort;
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
@@ -170,6 +172,8 @@ export interface HarnessOptions {
 	model?: Partial<ModelSelection>;
 	/** Opens the ledger at the given path, e.g. one whose storage fails where a test needs it to. */
 	ledger?: (path: string) => SqliteLedger;
+	/** Wires the Git integrator as the extension does, so an adopted candidate is integrated into the project. */
+	integration?: boolean;
 }
 
 /**
@@ -239,8 +243,9 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 							env_allowlist: [],
 							env: {},
 						}),
-						qualified: true,
-						reasons: ["test-only: unconfined backend declared qualified for V2"],
+						...(options.sandbox === "unqualified"
+							? { qualified: false, reasons: ["backend not qualified"] }
+							: { qualified: true, reasons: ["test-only: unconfined backend declared qualified for V2"] }),
 					},
 				};
 	const real = new GenericControlRunner(sandbox.backend, objects);
@@ -287,7 +292,9 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		location: "on_machine",
 		...(options.model ?? {}),
 	};
-	return { harness: new HarnessWithModel(deps, model), ledger, objects, agent, root, requested, progress };
+	const harness = new HarnessWithModel(deps, model);
+	if (options.integration) harness.integrator = new GitIntegrator(harness).step;
+	return { harness, ledger, objects, agent, root, requested, progress };
 }
 
 /**

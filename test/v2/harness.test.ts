@@ -1260,12 +1260,10 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	it("an unqualified sandbox blocks before any producing intervention, and the status names the cancel as its only way out (capability_missing, ADR-013)", async () => {
 		const p = trackedProject();
-		const t = makeHarness({ scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } } });
-		t.harness.deps.sandbox.qualification = {
-			...t.harness.deps.sandbox.qualification,
-			qualified: false,
-			reasons: ["backend not qualified"],
-		};
+		const t = makeHarness({
+			sandbox: "unqualified",
+			scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } },
+		});
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));

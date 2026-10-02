@@ -576,7 +576,7 @@ Statut : versée
 
 ## R69 — Les tests règlent le bac à sable et l'intégrateur par les options du harnais
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v2/harness.test.ts:1293 · v2/verifiability-arbitration.test.ts:682,833 (harness.deps.sandbox.qualification = …) · verifiability:1057 (harness.integrator = new GitIntegrator(…).step)
 - Constat : Mutation de la dépendance injectée après construction : deps est readonly mais son objet est écrit, integrator est un champ public mutable (harness.ts:703). D'autres tests obtiennent le même effet par makeHarness({ sandbox: "platform" }).

@@ -26,7 +26,6 @@ import { FakeNpmSandbox, FakeVitestControls, PROVIDER_FILES } from "../helpers/f
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { exportChange, verifyExport } from "../../src/export/export-service.ts";
-import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 
 const cleanups = removedAfterEach();
 const origin = (): HumanOrigin => ({
@@ -40,11 +39,12 @@ const RIGHT =
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
 /** A harness whose producer writes `content` to src/greet.js and reports that one path done. */
-function writingHarness(content: string, policy?: PolicyOverride): TestHarness {
+function writingHarness(content: string, policy?: PolicyOverride, integration = false): TestHarness {
 	return makeHarness({
 		// `exactOptionalPropertyTypes` refuses an explicit `policy: undefined`, so the key is omitted
 		// rather than passed empty.
 		...(policy ? { policy } : {}),
+		integration,
 		scripts: {
 			implement: {
 				steps: [
@@ -180,10 +180,11 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () => {
 	it("integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6", async () => {
 		const p = trackedProject();
-		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n", {
-			integration_enabled: true,
-		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const t = writingHarness(
+			"export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n",
+			{ integration_enabled: true },
+			true,
+		);
 		const { change, result } = await acceptedChange(t, p);
 		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
 		assert.equal(t.requested.at(-1)?.interaction, "IH-11");
@@ -218,10 +219,11 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	});
 	it("a destination that advanced before integration is detected and re-verified, never merged silently", async () => {
 		const p = trackedProject();
-		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n", {
-			integration_enabled: true,
-		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const t = writingHarness(
+			"export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n",
+			{ integration_enabled: true },
+			true,
+		);
 		const { change } = await acceptedChange(t, p);
 		writeFileSync(join(p, "README.md"), "# advanced by the user\n");
 		gitCmd(p, ["commit", "-qam", "user moved on"]);
@@ -249,10 +251,11 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 	});
 	it("export-only declines integration and keeps the change accepted", async () => {
 		const p = trackedProject();
-		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n", {
-			integration_enabled: true,
-		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
+		const t = writingHarness(
+			"export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n",
+			{ integration_enabled: true },
+			true,
+		);
 		const { change } = await acceptedChange(t, p);
 		const req = t.requested.at(-1)!;
 		const a = t.harness.answerDecision(
@@ -283,6 +286,7 @@ describe("what the integration indexes of the files it copies", () => {
 		initRepo(p);
 		const t = makeHarness({
 			policy: { integration_enabled: true },
+			integration: true,
 			scripts: {
 				implement: {
 					steps: [
@@ -292,7 +296,6 @@ describe("what the integration indexes of the files it copies", () => {
 				},
 			},
 		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
 		return { p, t };
 	}
 
@@ -379,6 +382,7 @@ describe("what the integration indexes of the files it copies", () => {
 		const files = { "src/greet.js": SHOUT_IMPL, [dependency]: "module.exports = 1;\n" };
 		const t = makeHarness({
 			policy: { integration_enabled: true },
+			integration: true,
 			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
 			scripts: {
 				prepare: { steps: [{ kind: "complete", output: report([]) }] },
@@ -390,7 +394,6 @@ describe("what the integration indexes of the files it copies", () => {
 				},
 			},
 		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);
 			const answered = t.harness.answerDecision(
@@ -446,6 +449,7 @@ describe("what the integration indexes of the files it copies", () => {
 		const introducedOnCandidate: (Record<string, number[]> | null | undefined)[] = [];
 		const t = makeHarness({
 			policy: { integration_enabled: true },
+			integration: true,
 			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
 			scripts: {
 				prepare: { steps: [{ kind: "complete", output: report([]) }] },
@@ -467,7 +471,6 @@ describe("what the integration indexes of the files it copies", () => {
 				};
 			},
 		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);
 			const answered = t.harness.answerDecision(
@@ -539,6 +542,7 @@ describe("what the integration indexes of the files it copies", () => {
 		});
 		const t = makeHarness({
 			policy: { integration_enabled: true },
+			integration: true,
 			defaultScript: { steps: [{ kind: "complete", output: unjudgeable }] },
 			scripts: {
 				prepare: { steps: [{ kind: "complete", output: report([]) }] },
@@ -552,7 +556,6 @@ describe("what the integration indexes of the files it copies", () => {
 			backend: (real) => new FakeMavenSandbox(real, "resolves"),
 			controls: (real) => new FakeMavenControls(real),
 		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const answer = (optionId: string): void => {
 			const [pending] = t.harness.pendingDecisions(changeId);
 			const answered = t.harness.answerDecision(

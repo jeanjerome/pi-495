@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
 	makeHarness,
+	reopenHarness,
 	specificationRounds,
 	specReport,
 	type TestHarness,
@@ -45,7 +46,6 @@ import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { buildDecisionRequest } from "../../src/application/decisions.ts";
 import { editedFile } from "../../src/application/complement.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import { arbitrationSubject, requirementsTakenByOwner } from "../../src/application/phases/verification-design.ts";
 import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
@@ -465,9 +465,11 @@ function mavenProjectWithManagedPluginsOnly(): string {
 function mavenHarness(
 	mode: MavenMode,
 	implement?: Record<string, string>,
+	sandbox?: "unqualified",
 ): { t: TestHarness; maven: FakeMavenSandbox } {
 	let maven: FakeMavenSandbox | undefined;
 	const t = makeHarness({
+		...(sandbox === undefined ? {} : { sandbox }),
 		defaultScript: { steps: [{ kind: "complete", output: spec }] },
 		scripts: {
 			prepare: emptyPreparation,
@@ -656,12 +658,7 @@ describe("the IH-04 decision offers to adopt a complement that is the declaratio
 
 describe("a Maven target on a sandbox backend that is not qualified", () => {
 	it("given a sandbox backend that is not qualified, then Maven is not asked for its local repository, and no Maven command reaches the backend", async () => {
-		const { t, maven } = mavenHarness("resolves");
-		t.harness.deps.sandbox.qualification = {
-			...t.harness.deps.sandbox.qualification,
-			qualified: false,
-			reasons: ["backend not qualified"],
-		};
+		const { t, maven } = mavenHarness("resolves", undefined, "unqualified");
 		const { change } = await t.harness.start({
 			project_path: mavenProjectWithoutTests(false),
 			request_text: "add shout",
@@ -789,6 +786,17 @@ describe("adopting a complement that is an install", () => {
 		return { t, npm: npm! };
 	}
 
+	/** A new session on the same data directory and the same fake npm, whose sandbox backend is not qualified. */
+	function reopenedUnqualified(previous: TestHarness, npm: FakeNpmSandbox): TestHarness {
+		return reopenHarness(previous, {
+			sandbox: "unqualified",
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: emptyPreparation },
+			backend: () => npm,
+			controls: (real) => new FakeVitestControls(real),
+		});
+	}
+
 	async function askedAdoption(mode: NpmMode) {
 		const { t, npm } = vitestHarness(mode);
 		const project = vitestProjectWithoutProvider("package-lock.json");
@@ -801,15 +809,15 @@ describe("adopting a complement that is an install", () => {
 	}
 
 	it("given a sandbox backend that is not qualified, then the adopted install does not run, nothing is adopted and the reason names the backend", async () => {
-		const { t, npm } = vitestHarness("installs");
+		const { t: qualified, npm } = vitestHarness("installs");
 		const project = vitestProjectWithoutProvider("package-lock.json");
-		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
-		await t.harness.advance(change.change_id, { max_steps: 40 });
-		t.harness.deps.sandbox.qualification = {
-			...t.harness.deps.sandbox.qualification,
-			qualified: false,
-			reasons: ["backend not qualified"],
-		};
+		const { change } = await qualified.harness.start({
+			project_path: project,
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await qualified.harness.advance(change.change_id, { max_steps: 40 });
+		const t = reopenedUnqualified(qualified, npm);
 		answerPending(t, change.change_id, "adopt_complement");
 		await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(npm.installs(), 0, "no install command reaches an unqualified backend");
@@ -1013,6 +1021,7 @@ describe("the candidate that carries an adopted complement", () => {
 		const project = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			policy: { integration_enabled: true },
+			integration: true,
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
 				prepare: emptyPreparation,
@@ -1027,7 +1036,6 @@ describe("the candidate that carries an adopted complement", () => {
 				},
 			},
 		});
-		t.harness.integrator = new GitIntegrator(t.harness).step;
 		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 40 });
 		answerPending(t, change.change_id, "adopt_complement");
