@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
 import type { ActorRef, ArtifactRef, CandidateRef } from "../../src/contracts/v1/common.ts";
+import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import type { Design, Mandate, Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
@@ -247,6 +248,29 @@ export function evidence(over: Partial<EvidenceFact> & { control_id: string; sub
 	};
 }
 
+/**
+ * The request that puts interaction `interaction` of change `chg_1` to the change owner, in French,
+ * with no facts, recommendation, free text or expiry unless `over` sets them.
+ */
+export function decisionRequest<I extends DecisionRequest["interaction"]>(
+	interaction: I,
+	over: Pick<DecisionRequest, "decision_id" | "subject" | "question" | "options"> &
+		Partial<Omit<DecisionRequest, "interaction">>,
+): DecisionRequest & { interaction: I } {
+	return {
+		change_id: "chg_1",
+		facts: [],
+		recommendation: null,
+		required_authority: "change_owner",
+		allow_free_text: false,
+		requested_at: tick(),
+		expires_at: null,
+		language: "fr",
+		...over,
+		interaction,
+	};
+}
+
 export class Runner {
 	state: ChangeState | null = null;
 	events: ChangeEvent[] = [];
@@ -412,4 +436,84 @@ export class Runner {
 			facts.push(evidence({ control_id: "lint", subject_digest: c.manifest_digest, verdict: verdicts.lint ?? "PASS" }));
 		return this.verify(facts);
 	}
+}
+
+export const tuiOrigin = (): HumanOrigin => ({ actor: HUMAN, host: "tui", session_id: "s1", asserted_at: tick() });
+
+/** Puts `request` to the owner and records their choice under `humanDecisionId`. */
+export function ownerDecides(
+	r: Runner,
+	request: DecisionRequest,
+	optionId: string,
+	freeText: string | null,
+	humanDecisionId: string,
+): void {
+	r.run({ type: "decision.request", at: tick(), actor: KERNEL, request });
+	ownerAnswers(r, request.decision_id, optionId, freeText, humanDecisionId);
+}
+
+/** Records the owner's choice on the pending decision `decisionId`, under `humanDecisionId`. */
+export function ownerAnswers(
+	r: Runner,
+	decisionId: string,
+	optionId: string,
+	freeText: string | null,
+	humanDecisionId: string,
+): void {
+	const pending = r.s.pending_decisions.find((d) => d.decision_id === decisionId)!;
+	r.run({
+		type: "decision.answer",
+		at: tick(),
+		actor: HUMAN,
+		human_decision_id: humanDecisionId,
+		response: {
+			decision_id: decisionId,
+			option_id: optionId,
+			free_text: freeText,
+			reason: null,
+			subject_revision: pending.subject.revision,
+			scope: null,
+			expires_at: null,
+		},
+		origin: tuiOrigin(),
+	});
+}
+
+/**
+ * From a change implemented under a mandate that integrates on a local branch: the candidate `c1`
+ * frozen, verified and accepted by G5 into the integration, the owner's IH-11 recorded under `hd_i`,
+ * and the integration prepared under `op_i`.
+ */
+export function integrationPrepared(r: Runner): ReturnType<typeof candidate> {
+	const c = candidate("c1");
+	r.freeze(c)
+		.verify([
+			evidence({ control_id: "unit", subject_digest: c.manifest_digest }),
+			evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
+		])
+		.g5();
+	assert.equal(r.s.phase, "integrating");
+	ownerDecides(
+		r,
+		decisionRequest("IH-11", {
+			decision_id: "dec_i",
+			subject: { kind: "candidate", id: c.candidate_id, revision: 1, digest: c.manifest_digest },
+			question: "?",
+			options: [{ id: "integrate", label: "", effect: "", risky: true }],
+		}),
+		"integrate",
+		null,
+		"hd_i",
+	);
+	r.run({
+		type: "integration.prepare",
+		at: tick(),
+		actor: KERNEL,
+		operation_id: "op_i",
+		idempotency_key: "k",
+		destination: "main",
+		destination_before: "a".repeat(40),
+		plan_digest: digestValue("plan"),
+	});
+	return c;
 }

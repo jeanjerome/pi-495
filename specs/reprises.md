@@ -614,7 +614,7 @@ Statut : versée
 
 ## R73 — Les règles du changement se testent dans trois fichiers
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v0/change-rules.test.ts (2 815 lignes, 10 describe, 93 it)
 - Constat : Trois sujets sans lien : clôture et révocation de questions (l.175-1738, 55 it, 60 % du fichier), gates G2/G4/G5 (l.1740-2028), budgets, décisions, intégration, pause (l.2030-2815). Le littéral DecisionRequest de 16 lignes est inliné neuf fois (l.191, 296, 490, 744, 936, 1077, 1111, 2086, 2137). Les six it « revoked / paused earlier build » (l.1365-1479) partagent mise en place et assertion à un événement près.
