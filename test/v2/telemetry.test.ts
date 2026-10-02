@@ -12,19 +12,10 @@ import net from "node:net";
 import { join, relative } from "node:path";
 import tls from "node:tls";
 import { describe, it } from "node:test";
-import { makeHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { makeHarness, trackedProject } from "../helpers/harness-fixture.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 
-const cleanups = removedAfterEach();
-
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`;\n}\n";
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
@@ -81,7 +72,7 @@ function codeOf(text: string): string[] {
 
 describe("observability without imposed surveillance (NFR-06, REC-24)", () => {
 	it("an instrumented change, from the request to the redacted export, opens no connection and resolves no host", async () => {
-		const p = project();
+		const p = trackedProject();
 		const profiles: string[] = [];
 		const t = makeHarness({
 			scripts: {

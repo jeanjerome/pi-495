@@ -10,18 +10,12 @@ import {
 	reopenHarness,
 	specificationRounds,
 	specReport,
+	trackedProject,
 	type TestHarness,
 } from "../helpers/harness-fixture.ts";
 import { imposedLayersFor } from "../../src/domain/imposed-layers.ts";
 import type { ContextManifest } from "../../src/ports/execution.ts";
-import {
-	fixtureTs,
-	fixtureTsWithoutTests,
-	initRepo,
-	tempDir,
-	writeFiles,
-	removedAfterEach,
-} from "../helpers/fixtures.ts";
+import { fixtureTsWithoutTests, initRepo, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
@@ -33,12 +27,6 @@ import type { Mandate, Protocol, RequirementsDocument } from "../../src/contract
 
 const cleanups = removedAfterEach();
 
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
 	host: "tui",
@@ -52,7 +40,7 @@ const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, te
 
 describe("full change cycle with real ledger, workspace, runner and scripted agent (REC-01, REC-02, REC-04, SA-015)", () => {
 	it("accepts a conforming change end to end and keeps the project untouched", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
 				implement: {
@@ -122,7 +110,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made", async () => {
-		const p = project();
+		const p = trackedProject();
 		const recommended = detectStack(p, []).recommendations;
 		assert.deepEqual(
 			recommended.map((r) => r.test_type),
@@ -252,7 +240,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a producer claiming success without passing tests is refused at G5, then corrected on a second attempt with bounded feedback (REC-02, SA-015, DEC-02)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let attempt = 0;
 		const t = makeHarness();
 		t.agent.scripts.set("implement", { steps: [] });
@@ -307,7 +295,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a control that answers differently on two passes of the same candidate keeps INDETERMINATE and is not run again (VER-08, REC-25)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let candidatePasses = 0;
 		const t = makeHarness({
 			scripts: {
@@ -383,7 +371,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("allows new tests while keeping frozen test content protected", async () => {
-		const p = project();
+		const p = trackedProject();
 		writeFiles(p, {
 			"src/main/resources/schema.sql": "CREATE TABLE ITEM (id INT);\n",
 			"src/test/resources/schema.sql": "CREATE TABLE ITEM (id INT);\n",
@@ -425,7 +413,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("un changement démarré sous max_attempts à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce Tentatives: 0/2", async () => {
-		const p = project();
+		const p = trackedProject();
 		const first = makeHarness({ policy: { budgets: { max_attempts: 2 } } });
 		const { change } = await first.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
 		const created = first.ledger
@@ -439,7 +427,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness();
 		let n = 0;
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -489,7 +477,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a material question suspends the change with IH-01 and resumes after a human answer; a model output cannot answer (SA-004, SA-005, SA-030)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let calls = 0;
 		const t = makeHarness();
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -607,7 +595,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		});
 
 	it("an answer to a material question reopens the specification, and the requirements adopted at G1 carry it rather than the report written before it (SA-004, RM-010)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let calls = 0;
 		const t = makeHarness();
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -688,7 +676,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a specification that keeps ignoring a recorded answer stops the change before G0, naming the question (RM-011)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let calls = 0;
 		const t = makeHarness();
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -733,7 +721,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// each round, so a reopening budget counted in advance stops a specification that was converging.
 	// What bounds it is progress — a report that accounts for an answer the one before it did not.
 	it("reopens the specification again when a round of answers opens new material questions, and stops when a report gives the same ground back (RM-010)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const QA = { id: "q-status", question: "400 ou 422 ?", material: true };
 		const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
 		const round = (over: Parameters<typeof specReport>[0]) =>
@@ -833,7 +821,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// Observed on java-flashnext-L: the specification bound a decision to `r-threshold-trimmed` while
 	// declaring `r-threshold-trimbed`. The answer reads as carried and is carried by nothing.
 	it("does not count an answer bound to a requirement the report does not carry as carried, and counts one bound to a non-mandatory requirement beside a mandatory one (RM-011)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const Q = { id: "q-seuil", question: "chaîne brute ou trimée ?", material: true };
 		const requirements = [
 			{
@@ -940,7 +928,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	const QB = { id: "q-scope", question: "création seule, ou aussi mise à jour ?", material: true };
 
 	it("carries an answer declaration from one report to the next, and asks the reopened report only for the answer it has not declared (RM-010)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness();
 		const { objectives, calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
@@ -1007,7 +995,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("stops carrying a declaration as soon as the report drops the requirement that held it, reopens that report once, and stops the change before G0 when the next one gains nothing (RM-011)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness();
 		const { calls } = specificationRounds(t, [
 			specReport({ questions: [QA], answers: [], requirements: CARRIED }),
@@ -1058,7 +1046,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// `retry_specification`, `resume` only lifted `execution_error`, and nothing could take the action.
 	// The stop now names the subcommands that lead out of it, and no step of the kernel.
 	it("lifts a block the kernel declared retryable, which the status names with the cancel, and the change redoes the step that threw (DEC-05)", async () => {
-		const p = project();
+		const p = trackedProject();
 		let calls = 0;
 		const t = makeHarness();
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -1112,7 +1100,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// digest; without the bytes behind that digest it holds the instructions and the objective and
 	// nothing of what was actually sent, and the workspace an intervention ran in is deleted after it.
 	it("keeps the exact text every intervention was handed addressable in the store (CTX-01)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
 				implement: {
@@ -1159,7 +1147,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// composes. The dossier must say so — a manifest silent on it would be a manifest that lies about
 	// having composed the whole of what the model saw (CTX-02).
 	it("names the layer the retained provider imposes, and never emits it itself (CTX-02, D-48)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			model: { provider_id: "anthropic", model_id: "claude-x", thinking_level: "off" },
 			scripts: {
@@ -1194,7 +1182,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a target that requires the human adoption of its requirements is asked, and the adoption is bound to the exact text (IH-02)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: { adoption: { requirements: "human" } },
 			scripts: {
@@ -1241,7 +1229,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a mandate whose human adoption is refused stops the change with the reason, and nothing is adopted at G0 (IH-02)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({ policy: { adoption: { mandate: "human" } } });
 		const { change } = await t.harness.start({ project_path: p, request_text: "greet", actor: HUMAN });
 		const first = await t.harness.advance(change.change_id, { max_steps: 30 });
@@ -1271,7 +1259,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("an unqualified sandbox blocks before any producing intervention, and the status names the cancel as its only way out (capability_missing, ADR-013)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({ scripts: { implement: { steps: [{ kind: "complete", output: report([]) }] } } });
 		t.harness.deps.sandbox.qualification = {
 			...t.harness.deps.sandbox.qualification,
@@ -1291,7 +1279,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
 				implement: {
@@ -1323,7 +1311,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		t.agent.startIntervention = async () => {
 			throw new DomainError("EVIDENCE_MISSING", "the adopted report is gone");
 		};
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const blocked = await t.harness.advance(change.change_id);
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
 		assert.throws(() => t.harness.pause(change.change_id, HUMAN), {
@@ -1345,7 +1333,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		t.agent.startIntervention = async () => {
 			throw new DomainError("CAPABILITY_MISSING", "the selected model cannot call tools");
 		};
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const blocked = await t.harness.advance(change.change_id);
 		assert.equal(blocked.stopped_because, "capability_missing", blocked.steps.join(" | "));
 		assert.equal(t.harness.resume(change.change_id, HUMAN).change?.status, "blocked");
@@ -1365,7 +1353,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			controls: (real) =>
 				new ThrowsOnFirstCandidateRun(real, new DomainError("CONFIGURATION_ERROR", "the control's toolchain is gone")),
 		});
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const blocked = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(blocked.stopped_because, "blocked", blocked.steps.join(" | "));
 		assert.equal(t.ledger.loadChange(change.change_id)!.state.phase, "verifying");
@@ -1379,7 +1367,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	it("records a failure that is not the pause's own conflict, even when the change is paused under the step", async () => {
 		const t = makeHarness();
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		t.agent.startIntervention = async () => {
 			t.harness.pause(change.change_id, HUMAN);
 			throw new DomainError("CAPABILITY_MISSING", "the selected model cannot call tools");
@@ -1403,7 +1391,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			// is recorded, and the verification is left open in the ledger.
 			controls: (real) => new ThrowsOnFirstCandidateRun(real, new Error("the session ended while the controls ran")),
 		});
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		await assert.rejects(t.harness.advance(change.change_id, { max_steps: 30 }), /the session ended/);
 		const cutShort = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(cutShort.phase, "verifying");
@@ -1435,7 +1423,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			},
 			controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
 		});
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
 		const stopped = await t.harness.advance(changeId, { max_steps: 30 });
 		assert.equal(stopped.stopped_because, "paused", stopped.steps.join(" | "));
@@ -1494,7 +1482,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 					);
 				}),
 		});
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
 
 		const conducted = await t.harness.advance(changeId, { max_steps: 30 });
@@ -1515,7 +1503,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	// lint and benchmark scripts, build manifests, and not one file of the module the request named,
 	// for about a third of the median prompt.
 	it("puts no project file in a prompt: an intervention reads the tree with its own tools", async () => {
-		const p = project();
+		const p = trackedProject();
 		writeFiles(p, { "modules/core/src/main/java/io/demo/user/UserRepository.java": "class UserRepository {}\n" });
 		const t = makeHarness({
 			scripts: {
@@ -1552,7 +1540,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a step that fails after writing still records the block, so the change cannot silently restart", async () => {
-		const p = project();
+		const p = trackedProject();
 		// G1 refuses a specification with no requirement. The step has already appended two events by
 		// then, so the block must be written against the revision those events produced, not against
 		// the one the step started from — otherwise it loses the race and is dropped in silence.
@@ -1577,7 +1565,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a producer stopped by the duration budget resumes on its own workspace instead of starting over", async () => {
-		const p = project();
+		const p = trackedProject();
 		// Two interrupted sessions, each leaving a piece behind, then a finished one: nothing may be
 		// rebuilt from the reference in between, or the first two pieces would be gone.
 		const t = makeHarness({
@@ -1620,7 +1608,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("a candidate that cannot build is corrected, never re-verified: an identical re-run proves nothing", async () => {
-		const p = project();
+		const p = trackedProject();
 		// The producer leaves a source the runner cannot load. Re-running a frozen tree through a
 		// frozen protocol is a pure function, so the failure must reach the producer as feedback and
 		// leave the technical retry budget untouched.
@@ -1661,7 +1649,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 	});
 
 	it("explicit /verify re-runs the frozen controls on the frozen candidate without any model; human acceptance then closes (SA-013, IH-10)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: { g5_human_acceptance: true },
 			scripts: {
@@ -1706,7 +1694,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 describe("what a change introduces, recomputed from the store (QLT-04)", () => {
 	it("hands every control the lines the candidate wrote, an empty set on the reference, and keeps both texts in the dossier", async () => {
-		const p = project();
+		const p = trackedProject();
 		const seen: { run: string; control: string; introduced: Record<string, number[]> | null | undefined }[] = [];
 		const t = makeHarness({
 			scripts: {
@@ -1787,7 +1775,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 	}
 
 	it("a session opened on the same ledger restores the same normative revisions, the same remaining budgets and the bounded feedback, with no model memory", async () => {
-		const p = project();
+		const p = trackedProject();
 		// The first session spends an attempt on a candidate the controls refuse and opens the
 		// correction; the second session is a different process with a different agent.
 		const first = makeHarness({
@@ -1905,7 +1893,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 
 describe("the report an engineer reads, on a conducted change (IMP-05)", () => {
 	it("separates what the controls measured, what was concluded from it and what stays unestablished, from the ledger alone", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
 				implement: {
@@ -1962,7 +1950,7 @@ describe("the report an engineer reads, on a conducted change (IMP-05)", () => {
 
 describe("a profile that cannot do the work is refused before it is paid for (AGT-01, AGT-02, D-46)", () => {
 	it("an endpoint that does not call the tools it is given blocks before any intervention", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: specReport() }], calls_tools: false },
 		});
@@ -1978,7 +1966,7 @@ describe("a profile that cannot do the work is refused before it is paid for (AG
 	});
 
 	it("a thinking level the model does not accept blocks before any intervention, and is never converted", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			model: { thinking_level: "xhigh" },
 			defaultScript: { steps: [{ kind: "complete", output: specReport() }], thinking_levels: ["off", "low"] },
@@ -1994,7 +1982,7 @@ describe("a profile that cannot do the work is refused before it is paid for (AG
 	});
 
 	it("a level the model does accept opens the intervention with that level, unchanged", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			model: { thinking_level: "low" },
 			defaultScript: { steps: [{ kind: "complete", output: specReport() }], thinking_levels: ["off", "low"] },
@@ -2008,7 +1996,7 @@ describe("a profile that cannot do the work is refused before it is paid for (AG
 
 describe("the language a change was started in", () => {
 	it("is the one the first intervention is told to write in, before a mandate records it", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness();
 		const prompts: { role: string; system: string }[] = [];
 		const original = t.agent.startIntervention.bind(t.agent);
@@ -2032,7 +2020,7 @@ describe("the language a change was started in", () => {
 	});
 
 	it("also offers the close option among IH-01's three issues in English (BES-02)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			scripts: {
 				specify: {
@@ -2064,7 +2052,7 @@ describe("the language a change was started in", () => {
 
 describe("what the specify role is told about a declaration that fixes nothing observable (BES-02)", () => {
 	it("is instructed that observable: false is a proposal the owner confirms or refuses, not a decision it makes on its own", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness();
 		let specifySystemPrompt = "";
 		const original = t.agent.startIntervention.bind(t.agent);

@@ -540,7 +540,7 @@ Statut : versée
 
 ## R65 — Les projets de test du harnais se créent et se nettoient par une seule aide
 
-Statut : à faire
+Statut : versée
 
 - Où : project() ×10, track() ×8 : v2/harness.test.ts:27-42, telemetry:20-35, export-integration:24-38, answer-revocation:25-40, observed-layers-dossier:17-28, tool-call-budget:9-24, specification-reopening:16-31, verifiability-arbitration:49-56, preparation:33-40
 - Constat : Corps identiques : tempDir("495-proj-") → push → fixtureTs → initRepo, et track pousse t.root ; chacun avec son bloc cleanups + afterEach. answer-revocation ajoute seulement un paramètre de fixture. v3/question-closure délègue déjà à commandProject() ; v3/model-select:66 et v1/target-registry:19 sont les deux vraiment différents.

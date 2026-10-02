@@ -3,18 +3,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import type { ArtifactRef } from "../../src/contracts/v1/common.ts";
-import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import {
+	makeHarness,
+	specificationRounds,
+	specReport,
+	type TestHarness,
+	trackedProject,
+} from "../helpers/harness-fixture.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 
-const cleanups = removedAfterEach();
-
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const IMPLEMENTS_GREET = {
 	implement: {
 		steps: [
@@ -87,7 +84,11 @@ function alter(t: TestHarness, artifactId: string): string {
 describe("an altered piece of evidence a decision reads stops the change instead of being read as absent (RM-070)", () => {
 	it("un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet", async () => {
 		const t = makeHarness({ scripts: IMPLEMENTS_GREET });
-		const { change } = await t.harness.start({ project_path: project(), request_text: "tidy greet", actor: HUMAN });
+		const { change } = await t.harness.start({
+			project_path: trackedProject(),
+			request_text: "tidy greet",
+			actor: HUMAN,
+		});
 		await untilVerifying(t, change.change_id);
 		const candidateId = t.ledger.loadChange(change.change_id)!.state.candidate!.candidate_id;
 		const digest = alter(t, `files_${candidateId}`);
@@ -113,7 +114,11 @@ describe("an altered piece of evidence a decision reads stops the change instead
 				},
 			}),
 		});
-		const { change } = await t.harness.start({ project_path: project(), request_text: "tidy greet", actor: HUMAN });
+		const { change } = await t.harness.start({
+			project_path: trackedProject(),
+			request_text: "tidy greet",
+			actor: HUMAN,
+		});
 
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 
@@ -134,7 +139,7 @@ describe("an altered piece of evidence a decision reads stops the change instead
 			specReport({ questions: [first, second], answers: [bound(first.id)] }),
 			specReport({ answers: [bound(first.id), bound(second.id)] }),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerPending();

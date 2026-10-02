@@ -3,7 +3,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { makeHarness, specReport, type PolicyOverride, type TestHarness } from "../helpers/harness-fixture.ts";
+import {
+	makeHarness,
+	specReport,
+	type PolicyOverride,
+	type TestHarness,
+	trackedProject,
+} from "../helpers/harness-fixture.ts";
 import {
 	fixtureJava,
 	fixtureTs,
@@ -23,12 +29,6 @@ import { exportChange, verifyExport } from "../../src/export/export-service.ts";
 import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
 
 const cleanups = removedAfterEach();
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
 	host: "tui",
@@ -64,7 +64,7 @@ async function acceptedChange(t: TestHarness, p: string) {
 
 describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 	it("writes a self-contained, verifiable dossier; redaction removes sentinels and says so", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness(RIGHT);
 		const { change, result } = await acceptedChange(t, p);
 		assert.equal(result.view.change?.outcome, "accepted");
@@ -108,7 +108,7 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 	});
 
 	it("names what a redaction removed by location and count only, never by value (SEC-05)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness(RIGHT);
 		const { change } = await acceptedChange(t, p);
 		const red = await exportChange(t.ledger, t.objects, {
@@ -139,7 +139,7 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 	});
 
 	it("carries its own verifier, which a third party runs with nothing but Node (RM-072)", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness(RIGHT);
 		const { change } = await acceptedChange(t, p);
 		const full = await exportChange(t.ledger, t.objects, {
@@ -179,7 +179,7 @@ describe("export dossier (EVD-01, SA-036, RM-071, RM-072)", () => {
 
 describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () => {
 	it("integrates the exact accepted candidate as a local commit after IH-11, with a receipt and G6", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // integrated\n}\n", {
 			integration_enabled: true,
 		});
@@ -217,7 +217,7 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 		assert.ok(t.ledger.listArtifacts(change.change_id, "integration").length === 1);
 	});
 	it("a destination that advanced before integration is detected and re-verified, never merged silently", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; // v2\n}\n", {
 			integration_enabled: true,
 		});
@@ -248,7 +248,7 @@ describe("git integration (GIT-03, GIT-05, SA-020, SA-021, REC-08, REC-09)", () 
 		assert.equal(res.stopped_because, "blocked");
 	});
 	it("export-only declines integration and keeps the change accepted", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = writingHarness("export function greet(name) {\n  return `Hello, ${name}`; //x\n}\n", {
 			integration_enabled: true,
 		});

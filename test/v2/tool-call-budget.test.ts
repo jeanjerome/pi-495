@@ -1,18 +1,18 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { makeHarness, reopenHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
-import { fixtureTs, initRepo, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import {
+	makeHarness,
+	reopenHarness,
+	specReport,
+	type TestHarness,
+	trackedProject,
+} from "../helpers/harness-fixture.ts";
+import { initRepo, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { ChangeState } from "../../src/domain/change/state.ts";
 
 const cleanups = removedAfterEach();
 
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 const write = (n: number) => ({ kind: "write" as const, path: `src/w${n}.js`, content: `// session piece ${n}\n` });
 const read = { kind: "tool" as const, tool: "read" };
@@ -64,7 +64,7 @@ function assertStoppedOnTheBound(state: ChangeState): void {
 
 describe("an intervention that reaches its tool-call bound stops the change until its owner resumes it (NFR-04)", () => {
 	it("an implementation past its bound stops under budget_exhausted, and nothing starts before a resume", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: TWO_CALLS,
 			scripts: { implement: { steps: [write(1), write(2), write(3), { kind: "complete", output: report([]) }] } },
@@ -82,7 +82,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 	});
 
 	it("the producer resumed by its owner goes on in the same attempt, on the same workspace, and is told so", async () => {
-		const p = project();
+		const p = trackedProject();
 		const first = makeHarness({
 			policy: TWO_CALLS,
 			scripts: { implement: { steps: [write(1), write(2), write(3), { kind: "complete", output: report([]) }] } },
@@ -126,7 +126,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 	});
 
 	it("a resume that leaves the bound where it was stops again as soon as the bound is reached", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: TWO_CALLS,
 			scripts: { implement: { steps: [write(1), write(2), write(3), { kind: "complete", output: report([]) }] } },
@@ -140,7 +140,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 	});
 
 	it("a specification past its bound stops under budget_exhausted, not as a configuration error", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: TWO_CALLS,
 			scripts: { specify: { steps: [read, read, read, { kind: "complete", output: specReport() }] } },
@@ -151,7 +151,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 	});
 
 	it("the resume that lifts the stop is recorded under the owner who gave it", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: TWO_CALLS,
 			scripts: { specify: { steps: [read, read, read, { kind: "complete", output: specReport() }] } },
@@ -217,7 +217,7 @@ describe("an intervention that reaches its tool-call bound stops the change unti
 	});
 
 	it("a review past its bound stops the change instead of recording an invalid review", async () => {
-		const p = project();
+		const p = trackedProject();
 		const t = makeHarness({
 			policy: { ...TWO_CALLS, required_reviews: ["security"] },
 			scripts: {

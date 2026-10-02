@@ -6,7 +6,13 @@ import { strict as assert } from "node:assert";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { makeHarness, specificationRounds, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import {
+	makeHarness,
+	specificationRounds,
+	specReport,
+	type TestHarness,
+	trackedProject,
+} from "../helpers/harness-fixture.ts";
 import {
 	fixtureJava,
 	fixtureTsWithoutTests,
@@ -48,14 +54,8 @@ import type { Protocol, RequirementsDocument } from "../../src/contracts/v1/prot
 import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
 
 const cleanups = removedAfterEach();
-/** A target without any test: `shout` does not exist, so R1 asks for behaviour no control can detect. */
-function projectWithoutTests(): string {
-	const p = tempDir("495-arbitration-", cleanups);
-	fixtureTsWithoutTests(p);
-	initRepo(p);
-	return p;
-}
 
+/** Played on a target without any test: `shout` does not exist, so R1 asks for behaviour no control can detect. */
 const spec = specReport({
 	objective: "add shout(name) returning the greeting in upper case",
 	requirements: [
@@ -147,7 +147,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	it("given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare, assign_review and revise, and the change is not blocked", async () => {
 		const t = harnessWithEmptyPreparations();
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -186,7 +186,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	it("given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation", async () => {
 		const t = harnessWithEmptyPreparations();
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -223,7 +223,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		});
 		const { objectives } = specificationRounds(t, [spec, revisedSpec]);
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -275,7 +275,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		});
 		specificationRounds(t, [spec, revisedSpec]);
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -317,7 +317,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		});
 		const { objectives } = specificationRounds(t, [specWithRequirementSeenLater, revisedSpec]);
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -346,7 +346,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 	it("given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again", async () => {
 		const t = harnessWithEmptyPreparations();
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -403,7 +403,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 			scripts: { prepare: emptyPreparation },
 		});
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -544,7 +544,7 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 	}
 
 	it("given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today", async () => {
-		const options = await optionsAsked(projectWithoutTests());
+		const options = await optionsAsked(trackedProject(fixtureTsWithoutTests));
 		assert.deepEqual(
 			options.map((o) => o.id),
 			["prepare", "assign_review", "revise", "adopt_complement"],
@@ -580,7 +580,7 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 			assert.match(offered.at(-1)!.effect, /package\.json/, language);
 			assert.match(offered.at(-1)!.effect, language === "fr" ? /ne juge pas/ : /does not judge/, language);
 		}
-		const duplicated = projectWithoutTests();
+		const duplicated = trackedProject(fixtureTsWithoutTests);
 		writeFileSync(
 			join(duplicated, "package.json"),
 			'{"name":"f-notests","type":"module","scripts":{"test":"node --test","test":"node --test"}}\n',
@@ -966,7 +966,7 @@ describe("adopting a complement that is a file edit", () => {
 
 	it("given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes", async () => {
 		const t = harnessWithEmptyPreparations();
-		const project = projectWithoutTests();
+		const project = trackedProject(fixtureTsWithoutTests);
 		const { change } = await t.harness.start({ project_path: project, request_text: "add shout", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 40 });
 		answerPending(t, change.change_id, "adopt_complement");
@@ -1010,7 +1010,7 @@ describe("the candidate that carries an adopted complement", () => {
 	async function adoptedAndImplemented(
 		files: Record<string, string>,
 	): Promise<{ t: TestHarness; project: string; changeId: string }> {
-		const project = projectWithoutTests();
+		const project = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			policy: { integration_enabled: true },
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
@@ -1123,7 +1123,7 @@ describe("what adopting a complement holds for", () => {
 	/** The change frozen with the complement adopted, then its requirements rewritten. */
 	async function adoptedThenRevised(t: TestHarness): Promise<string> {
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -1190,7 +1190,7 @@ describe("what adopting a complement holds for", () => {
 	it("given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only", async () => {
 		const t = harnessWithEmptyPreparations();
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -1233,7 +1233,7 @@ describe("what adopting a complement holds for", () => {
 			return startIntervention(mandate);
 		};
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});

@@ -18,9 +18,9 @@ import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
-import { outputDir, removedAfterEach } from "./fixtures.ts";
+import { fixtureTs, initRepo, outputDir, removedAfterEach, tempDir } from "./fixtures.ts";
 
-/** The roots `makeHarness` allocates, removed after each test. */
+/** The roots `makeHarness` and `trackedProject` allocate, removed after each test. */
 const harnessRoots = removedAfterEach();
 
 /**
@@ -36,6 +36,14 @@ class HarnessWithModel extends Harness {
 	override advance(changeId: string, options: Partial<Parameters<Harness["advance"]>[1]> = {}): Promise<AdvanceResult> {
 		return super.advance(changeId, { ...options, readModel: options.readModel ?? (() => this.model) });
 	}
+}
+
+/** A committed git repository written by `fixture`, under the system's temporary directory, removed after each test. */
+export function trackedProject(fixture: (root: string) => void = fixtureTs): string {
+	const p = tempDir("495-proj-", harnessRoots);
+	fixture(p);
+	initRepo(p);
+	return p;
 }
 
 export interface TestHarness {

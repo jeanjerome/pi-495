@@ -8,18 +8,11 @@ import {
 	makeHarness,
 	specificationRounds,
 	specReport,
+	trackedProject,
 	type TestHarness,
 } from "../helpers/harness-fixture.ts";
 import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
-import {
-	initRepo,
-	fixtureTs,
-	fixtureTsWithoutTests,
-	tempDir,
-	SHOUT_IMPL,
-	SHOUT_TEST,
-	removedAfterEach,
-} from "../helpers/fixtures.ts";
+import { fixtureTsWithoutTests, SHOUT_IMPL, SHOUT_TEST } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import type { ArtifactRef } from "../../src/contracts/v1/common.ts";
@@ -30,14 +23,6 @@ import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { exportChange } from "../../src/export/export-service.ts";
 
-const cleanups = removedAfterEach();
-
-function project(fixture: (root: string) => void = fixtureTs): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixture(p);
-	initRepo(p);
-	return p;
-}
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
 	host: "tui",
@@ -108,7 +93,7 @@ async function awaitingAcceptance(
 	t: TestHarness,
 	{
 		reports = [POSES_Q1, BINDS_Q1_TO_400],
-		projectPath = project(),
+		projectPath = trackedProject(),
 		language,
 	}: { reports?: SpecificationReport[]; projectPath?: string; language?: "fr" | "en" } = {},
 ): Promise<{ changeId: string; answeredBy: string; rounds: ReturnType<typeof specificationRounds> }> {
@@ -257,7 +242,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 			controls: (real) => new ActsOnFirstCandidateRun(real, () => t.harness.pause(changeId, HUMAN)),
 		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
 		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
 		resolvePresented(t, changeId, "answer", "400");
@@ -281,7 +266,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 				),
 		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const changeId = change.change_id;
 		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
 		resolvePresented(t, changeId, "answer", "400");
@@ -323,7 +308,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 				}),
 		});
 		specificationRounds(t, [POSES_Q1, BINDS_Q1_TO_400]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		changeId = change.change_id;
 		assert.equal((await t.harness.advance(changeId)).stopped_because, "decision_required");
 		resolvePresented(t, changeId, "answer", "400");
@@ -538,7 +523,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT],
-			projectPath: project(fixtureTsWithoutTests),
+			projectPath: trackedProject(fixtureTsWithoutTests),
 		});
 
 		for (const answer of ["422", "418"]) {
@@ -573,7 +558,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 		implementWith(t, SHOUT_IMPL);
 		specificationRounds(t, [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT]);
 		const { change } = await t.harness.start({
-			project_path: project(fixtureTsWithoutTests),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "x",
 			actor: HUMAN,
 		});
@@ -625,7 +610,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 		implementWith(t, SHOUT_IMPL);
 		const { changeId } = await awaitingAcceptance(t, {
 			reports: [POSES_Q1_ON_SHOUT, BINDS_Q1_TO_SHOUT],
-			projectPath: project(fixtureTsWithoutTests),
+			projectPath: trackedProject(fixtureTsWithoutTests),
 		});
 		assert.deepEqual(await preparedSuiteNotes(t, changeId), [], "qualified afresh beside the suite prepared");
 		const firstPreparation = adoptedPreparationRef(t, changeId);

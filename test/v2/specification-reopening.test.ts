@@ -5,22 +5,14 @@ import {
 	makeHarness,
 	specificationRounds,
 	specReport,
+	trackedProject,
 	type TestHarness,
 } from "../helpers/harness-fixture.ts";
-import { initRepo, fixtureTs, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { Mandate, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 
-const cleanups = removedAfterEach();
-
-function project(): string {
-	const p = tempDir("495-proj-", cleanups);
-	fixtureTs(p);
-	initRepo(p);
-	return p;
-}
 const origin = (): HumanOrigin => ({
 	actor: HUMAN,
 	host: "tui",
@@ -119,7 +111,7 @@ const BINDS_CLOSED_Q1_TO_UPDATE = specReport({
 
 /** Starts the change and answers the questions of the first two rounds. */
 async function throughTwoRounds(t: TestHarness): Promise<string> {
-	const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+	const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 	const answerPending = answerer(t, change.change_id);
 	assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 	answerPending();
@@ -192,7 +184,7 @@ describe("a specification report is judged against every recorded material answe
 			carriesB,
 			carriesA,
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerer(t, change.change_id)();
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
@@ -217,7 +209,7 @@ describe("a specification report is judged against every recorded material answe
 			requirements: [RB],
 		});
 		const t = makeHarness();
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		// The fourth run is paused as `/495 pause` does it: the running session is aborted, then the
 		// change is paused.
 		const start = t.agent.startIntervention.bind(t.agent);
@@ -273,7 +265,7 @@ describe("a specification report is judged against every recorded material answe
 				requirements: [RA, RB, RC],
 			}),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		for (const asked of [QA, QB, QC]) {
 			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
@@ -313,7 +305,7 @@ describe("a specification report is judged against every recorded material answe
 			// Carries A, which the report C was answered on already carried, and still loses C.
 			specReport({ questions: [], answers: [bindsA], requirements: [RA] }),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		for (let round = 0; round < 2; round++) {
 			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
@@ -344,7 +336,7 @@ describe("a specification report is judged against every recorded material answe
 				requirements: [RA, RB],
 			}),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		for (const asked of [QA, QB]) {
 			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
@@ -374,7 +366,7 @@ describe("a specification report is judged against every recorded material answe
 			// Restates A, keeps B, and still loses C.
 			specReport({ questions: [], answers: [bindsA], requirements: [RA, RB] }),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		for (const asked of [QA, QB, QC]) {
 			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
@@ -397,7 +389,7 @@ describe("a specification report is judged against every recorded material answe
 				requirements: [UPDATE],
 			}),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerer(t, change.change_id)();
 		const stop = await t.harness.advance(change.change_id, { max_steps: 30 });
@@ -431,7 +423,7 @@ describe("a specification report is judged against every recorded material answe
 				requirements: [UPDATE],
 			}),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerer(t, change.change_id)();
 		assert.equal((await t.harness.advance(change.change_id, { max_steps: 30 })).stopped_because, "blocked");
@@ -652,7 +644,7 @@ describe("a declaration carries an answer only when it holds in the requirements
 
 	/** Answers Q1 on the first report, then Q6 on the second, and advances to wherever the change stops. */
 	async function throughQ1AndQ6(t: TestHarness): Promise<{ changeId: string; stoppedBecause: string }> {
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const answerPending = answerer(t, change.change_id);
 		for (const asked of [Q1, Q6]) {
 			assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
@@ -756,7 +748,7 @@ describe("a refusal at G1 names the only way out a command holds once the mandat
 				requirements: [MESSAGE, MESSAGE, UPDATE],
 			}),
 		]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		assert.equal((await t.harness.advance(change.change_id)).stopped_because, "decision_required");
 		answerer(t, change.change_id)();
 		const last = await t.harness.advance(change.change_id, { max_steps: 30 });
@@ -783,7 +775,7 @@ describe("the owner closes a material question through IH-01 instead of answerin
 		const t = makeHarness();
 		const Q = { id: "q-scope", question: "faut-il aussi la mise à jour ?", material: true };
 		const { calls } = specificationRounds(t, [specReport({ questions: [Q], answers: [] })]);
-		const { change } = await t.harness.start({ project_path: project(), request_text: "x", actor: HUMAN });
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
 		const first = await t.harness.advance(change.change_id);
 		assert.equal(first.stopped_because, "decision_required");
 		const req = t.requested[0]!;

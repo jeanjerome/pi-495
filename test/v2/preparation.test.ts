@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
+import { makeHarness, specReport, type TestHarness, trackedProject } from "../helpers/harness-fixture.ts";
 import {
 	fixtureTs,
 	fixtureTsWithoutTests,
@@ -32,13 +32,6 @@ import {
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 
 const cleanups = removedAfterEach();
-/** F-TS without any test: greet exists, shout does not. */
-function projectWithoutTests(): string {
-	const p = tempDir("495-notests-", cleanups);
-	fixtureTsWithoutTests(p);
-	initRepo(p);
-	return p;
-}
 
 const spec = specReport({
 	objective: "add shout(name) returning the greeting in upper case",
@@ -66,7 +59,7 @@ const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, te
 
 describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)", () => {
 	it("opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -150,7 +143,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			}),
 		});
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
@@ -174,7 +167,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -223,7 +216,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(state.outcome, "accepted");
 	});
 	it("what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -276,7 +269,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(state.outcome, "accepted");
 	});
 	it("a preparation that retains no test stays refused, the owner is asked after two, and the producer is told the paths written outside the mandate", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -481,7 +474,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -577,7 +570,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.doesNotMatch(instruction, / -e /, `neither coverage nor structure is lent a command to run: ${instruction}`);
 	});
 	it("a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -952,7 +945,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 	});
 	it("a prepared suite that already passes on the reference is not adopted as discriminant", async () => {
-		const p = projectWithoutTests();
+		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -1029,7 +1022,7 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 			}),
 		});
 		const { change } = await t.harness.start({
-			project_path: projectWithoutTests(),
+			project_path: trackedProject(fixtureTsWithoutTests),
 			request_text: "add shout",
 			actor: HUMAN,
 		});
