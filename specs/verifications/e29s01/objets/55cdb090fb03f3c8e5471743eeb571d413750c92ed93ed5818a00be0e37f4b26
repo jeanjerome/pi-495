@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Un état des lieux traverse ses portes sans candidat et laisse le projet intact",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/state-survey.test.ts",
+    "ligne": 134,
+    "constat": "The new test does hold the guard that skips the review for a survey. Remove the guard and the test fails, but on `outcome` (pending ≠ accepted), not on the list of interventions. Without the guard, the survey enters `reviewing` and stops on PRECONDITION_FAILED \"candidate and protocol required\" before any review intervention is opened, so the assertion on roles (`[\"specify\"]`) cannot fail by itself.",
+    "mutation": "decide.ts:1065 `const needsReview = !surveysTheProject(this.state) && …` → `const needsReview = …` : the test fails (outcome 'pending'), steps `verifying -> reviewing/ready | reviewing: PRECONDITION_FAILED candidate and protocol required`"
+   }
+  ],
+  "resume": "This round's diff adds only tests, and it answers the three findings from round 1 (A1-1/B1-1, A1-2/B1-3, A1-3/B1-2). (1) The v1 test `qualification by the witnesses' cases…` fails under each of five mutations of `witnessCases` and `qualifyControlDetailed`: both cases reduced to constants PASS/FAIL; the check that no failure sits in a positive file removed; the check that the negative's failure is not in a positive file removed; a failure located anywhere counted for the negative; the `by_cases` switch turned off. It passes on the reviewed code. (2) The blind-spot test now uses `satisfied_by_reference: false` and fails once the `!surveysTheProject` guard of `needsPreparation` (verification-design.ts:331) is removed: it goes preparing, then IH-04. (3) The new test under `required_reviews: [\\\"security\\\"]` fails once the guard of decide.ts:1065 is removed. It fails on the outcome rather than on the absence of a review intervention, which is weighed in A2-1. No promise goes unkept or unheld by a test in what this round changes. The code is unchanged since round 1. All mutations were reverted and the tree is clean."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Un test qui échoue dans le projet est un constat de l'état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 67,
+    "constat": "La nouvelle épreuve v1 tient « qualifié par les cas de ses témoins » : quatre des cinq mutations de `witnessCases` la font échouer. Seule la condition `positive.facts.pass > 0` échappe à toute épreuve. Elle ne juge d'ailleurs que le compte de toute la passe, pas le cas propre au témoin positif. Si ce cas ne s'exécutait pas, alors que d'autres tests du projet passent, le témoin serait quand même jugé PASS. Le scénario n'est pas pris en défaut pour autant, puisque le cas positif de l'épreuve s'exécute et passe.",
+    "mutation": "retrait de `&& positive.facts.pass > 0` : l'épreuve « qualification by the witnesses' cases… » reste verte. Mutations attrapées : verdicts constants PASS/FAIL, retrait de `!inFiles(positive, positiveFiles)`, retrait de `!inFiles(negative, positiveFiles)`, `inFiles(negative, negativeOnly)` remplacé par `negative.findings.length > 0`."
+   }
+  ],
+  "resume": "Aucun bloquant ni à corriger : verdict pass. Les trois commits de test du tour 2 répondent aux constats du tour 1, et chacune des promesses visées échoue désormais sous mutation. `witnessCases` réduit à deux constantes fait échouer la nouvelle épreuve v1, sur « a failing positive case is not a PASS ». Le retrait de la garde du survey dans `needsPreparation` (verification-design.ts:331) fait échouer l'épreuve d'architecture, où l'exigence est désormais `satisfied_by_reference: false`, ainsi que l'épreuve de couverture. Le retrait de la garde de relecture (decide.ts:1065) fait échouer la nouvelle épreuve qui pose `required_reviews: [\\\"security\\\"]`. Le câblage `by_cases: surveysTheProject(...)` remplacé par `false` fait échouer l'épreuve du test en échec. Deux contrôles hors du diff tiennent aussi : forcer le passage du G5 du survey fait échouer l'épreuve INDETERMINATE, et retirer le passage de G2 vers la vérification fait échouer les épreuves du parcours. Un seul point reste à peser : la condition `pass > 0` des cas du témoin positif, qu'aucune épreuve ne tient. Toutes les mutations ont été annulées, l'arbre est propre."
+ }
+]

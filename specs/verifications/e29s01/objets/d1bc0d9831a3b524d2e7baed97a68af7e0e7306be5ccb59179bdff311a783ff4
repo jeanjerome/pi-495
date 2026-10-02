@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a requirement no control of its nature measures
+    # Subtest: une exigence d'architecture d'un projet Node est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04
+    ok 1 - une exigence d'architecture d'un projet Node est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04
+      ---
+      duration_ms: 548.275167
+      type: 'test'
+      ...
+    1..1
+ok 1 - a requirement no control of its nature measures
+  ---
+  duration_ms: 548.796292
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 725.4085

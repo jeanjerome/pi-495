@@ -1,0 +1,43 @@
+TAP version 13
+# Subtest: `/495 state` opens a survey of the project
+    # Subtest: /495 state avec une question crée un changement dont le livrable est l'état du projet, lie la session et le conduit ; sans texte il affiche son usage et ne crée rien ; /495 start ouvre toujours un changement à candidat
+    not ok 1 - /495 state avec une question crée un changement dont le livrable est l'état du projet, lie la session et le conduit ; sans texte il affiche son usage et ne crée rien ; /495 start ouvre toujours un changement à candidat
+      ---
+      duration_ms: 689.8955
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4Ct9yr/test/v3-pi/state-entry.test.ts:77:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the session is bound: 495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4Ct9yr/test-output/state-entry-2Ds21M/state-agent.json; no model is called | 495 — the spec-driven agentic harness — v0.3.0-dev
+        /495 start <demande> · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: ~
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4Ct9yr/test/v3-pi/state-entry.test.ts:81:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - `/495 state` opens a survey of the project
+  ---
+  duration_ms: 690.289125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4Ct9yr/test/v3-pi/state-entry.test.ts:65:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1197.64875

@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: a requirement no control of its nature measures
+    # Subtest: une exigence d'architecture d'un projet Node est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04
+    not ok 1 - une exigence d'architecture d'un projet Node est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04
+      ---
+      duration_ms: 540.033833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xD0a9y/test/v2-kernel/state-survey-blind-spots.test.ts:16:2'
+      failureType: 'testCodeFailure'
+      error: 'the survey names the requirement as a blind spot, with its reason'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xD0a9y/test/v2-kernel/state-survey-blind-spots.test.ts:53:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a requirement no control of its nature measures
+  ---
+  duration_ms: 540.726666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xD0a9y/test/v2-kernel/state-survey-blind-spots.test.ts:15:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 718.132917

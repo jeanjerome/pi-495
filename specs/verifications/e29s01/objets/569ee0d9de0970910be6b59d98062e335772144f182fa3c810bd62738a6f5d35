@@ -1,0 +1,109 @@
+TAP version 13
+# Subtest: a change whose deliverable is the state of the project
+    # Subtest: un état des lieux d'un projet dont la suite passe traverse G0, G1, G2 et G5, n'ouvre aucune intervention de production ni de relecture, n'a aucun candidat, porte un survey qui relie chaque exigence à ses contrôles avec verdict et preuve, est clos accepted et laisse le digest du projet inchangé
+    not ok 1 - un état des lieux d'un projet dont la suite passe traverse G0, G1, G2 et G5, n'ouvre aucune intervention de production ni de relecture, n'a aucun candidat, porte un survey qui relie chaque exigence à ses contrôles avec verdict et preuve, est clos accepted et laisse le digest du projet inchangé
+      ---
+      duration_ms: 732.433083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:76:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        G3, G4 and G6 are never evaluated: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> designing/ready | designing -> implementing/ready | implementing -> verifying/ready | verifying -> deciding/ready | deciding -> closed/completed
+        + actual - expected
+        
+          [
+            'G0',
+            'G1',
+            'G2',
+        +   'G3',
+        +   'G4',
+            'G5'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'G0'
+        1: 'G1'
+        2: 'G2'
+        3: 'G5'
+      actual:
+        0: 'G0'
+        1: 'G1'
+        2: 'G2'
+        3: 'G3'
+        4: 'G4'
+        5: 'G5'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:82:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: la consigne de spécification d'un état des lieux dit que le livrable est l'état du projet et qu'aucun fichier ne sera modifié
+    not ok 2 - la consigne de spécification d'un état des lieux dit que le livrable est l'état du projet et qu'aucun fichier ne sera modifié
+      ---
+      duration_ms: 697.483125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:131:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /the deliverable of this change is the state of the project/i. Input:
+        
+        'où en sont les tests ?'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'où en sont les tests ?'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:145:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un état des lieux dont un contrôle rend INDETERMINATE sur la référence s'arrête bloqué en nommant le contrôle, sans survey adopté
+    not ok 3 - un état des lieux dont un contrôle rend INDETERMINATE sur la référence s'arrête bloqué en nommant le contrôle, sans survey adopté
+      ---
+      duration_ms: 706.660958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:150:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> designing/ready | designing -> implementing/ready | implementing -> verifying/ready | verifying -> deciding/ready | deciding -> closed/completed
+        + actual - expected
+        
+        + 'closed'
+        - 'blocked'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'blocked'
+      actual: 'closed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:158:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - a change whose deliverable is the state of the project
+  ---
+  duration_ms: 2137.348583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-z4oFy7/test/v2-kernel/state-survey.test.ts:75:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2308.548083

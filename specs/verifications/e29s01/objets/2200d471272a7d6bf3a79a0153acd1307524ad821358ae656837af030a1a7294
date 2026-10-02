@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: the survey of a project whose test fails
+    # Subtest: l'état des lieux d'un projet dont un test échoue passe G2, porte FAIL pour le contrôle de tests avec un constat qui nomme le fichier du test en échec, et est clos accepted
+    not ok 1 - l'état des lieux d'un projet dont un test échoue passe G2, porte FAIL pour le contrôle de tests avec un constat qui nomme le fichier du test en échec, et est clos accepted
+      ---
+      duration_ms: 438.521458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Pu9SyV/test/v2-kernel/state-survey-failing-test.test.ts:21:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        G2 qualifies the test sensor by the cases of its witnesses: control unit: positive witness gave FAIL, expected PASS; control unit: qualification not adopted CAPABILITY_MISSING: protocol not frozen: control unit: positive witness gave FAIL, expected PASS; control unit: qualification not adopted; unit: positive witness gave FAIL: greet says goodbye, qualification evidence: positive=evq_0015, negative=evq_0016, incident=evq_0017; lint: negative witness gave PASS: the control does not detect the defect it claims to cover; exit_code=0, command=["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","scripts/lint.js"], cwd=., sandbox=unconfined, duration_ms=28, qualification evidence: positive=evq_0018, negative=evq_0019, incident=evq_0020 (next: cancel)
+        
+        'FAIL' !== 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      actual: 'FAIL'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Pu9SyV/test/v2-kernel/state-survey-failing-test.test.ts:57:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the survey of a project whose test fails
+  ---
+  duration_ms: 439.34875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Pu9SyV/test/v2-kernel/state-survey-failing-test.test.ts:20:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 612.24325

@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a control that measures nothing of the reference
+    # Subtest: l'état des lieux d'un projet Node qui demande sa couverture et dont les tests ne déclarent aucun cas propre nomme le contrôle de tests et le contrôle de couverture comme angles morts, chacun avec sa raison, et ne présente aucun des deux avec PASS
+    ok 1 - l'état des lieux d'un projet Node qui demande sa couverture et dont les tests ne déclarent aucun cas propre nomme le contrôle de tests et le contrôle de couverture comme angles morts, chacun avec sa raison, et ne présente aucun des deux avec PASS
+      ---
+      duration_ms: 806.662916
+      type: 'test'
+      ...
+    1..1
+ok 1 - a control that measures nothing of the reference
+  ---
+  duration_ms: 807.154958
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 982.112917

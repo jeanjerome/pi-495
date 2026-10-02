@@ -2,7 +2,7 @@
 
 Story : e29s01
 Epic : e29
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

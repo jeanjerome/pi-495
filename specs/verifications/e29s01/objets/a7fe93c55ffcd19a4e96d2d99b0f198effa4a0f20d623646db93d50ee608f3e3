@@ -1,0 +1,74 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un test qui échoue dans le projet est un constat de l'état des lieux",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 66,
+    "constat": "La promesse que le contrôle de tests est « qualifié par les cas de ses témoins » n'est tenue par aucun test. Seul l'interrupteur `by_cases` l'est : on peut réduire `witnessCases` à deux constantes, positif PASS et négatif FAIL, sans qu'aucun test ne rougisse, et ce test-là ne dit plus si le capteur distingue un cas réussi d'un cas échoué. Aucun test v1 n'appelle `qualifyControlDetailed` avec `by_cases: true`. Le test noyau n'assert que G2 PASS, sur un projet où le cas positif passe et où le cas négatif échoue dans un fichier propre au témoin négatif.",
+    "mutation": "Survivent sur les cinq tests survey du noyau, verification.test.ts et state-entry.test.ts : (a) qualification.ts:67, branche positive remplacée par \"PASS\" ; (b) qualification.ts:68-72, branche négative remplacée par \"FAIL\" ; (c) les deux ensemble ; (d) `&& !inFiles(positive, positiveFiles)` retiré ; (e) `&& !inFiles(negative, positiveFiles)` retiré. Est attrapé : `by_cases: false` dans verification-design.ts:464."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une exigence qu'aucun contrôle de sa nature ne mesure est un angle mort nommé",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 331,
+    "constat": "Aucun test ne tient « aucune préparation n'est ouverte, aucune décision IH-04 n'est demandée ». Le test pose l'exigence d'architecture avec `satisfied_by_reference: true` : le diagnostic ne la compte alors pas comme non discriminée, et `needsPreparation` est faux même sans la garde du survey. On peut retirer la garde, le test reste vert. Une sonde jetable, la même avec `satisfied_by_reference: false`, passe sur le code relu et échoue dès que la garde est retirée : le code tient la promesse, mais aucun test commité ne la tient.",
+    "mutation": "Ligne `!surveysTheProject(unit.state) &&` retirée de needsPreparation (verification-design.ts:331) : state-survey-blind-spots.test.ts reste vert. Avec `satisfied_by_reference: false` dans une copie jetable du test, il échoue."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Un état des lieux traverse ses portes sans candidat et laisse le projet intact",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/decide.ts",
+    "ligne": 1065,
+    "constat": "Sous la politique par défaut, que suppose le scénario, le test tient « aucune intervention de relecture n'est ouverte ». La garde qui saute la relecture pour un survey n'est atteinte que sous une politique dont `required_reviews` n'est pas vide, et aucun test n'en pose une. Une sonde jetable avec `required_reviews: [\"code\"]` passe sur le code relu et échoue sans la garde.",
+    "mutation": "`!surveysTheProject(this.state) &&` retiré de needsReview : state-survey.test.ts reste vert. Il échoue dans une copie jetable du test qui pose `policy: { required_reviews: [\"code\"] }`."
+   }
+  ],
+  "resume": "Le verdict est fail : le code tient les sept scénarios, mais deux promesses introduites par la branche ne sont tenues par aucun test (à corriger).\n\n- **Scénario 4 (A1-1).** La qualification du contrôle de tests « par les cas de ses témoins » n'est tenue par aucun test. On peut remplacer `witnessCases` par deux constantes, positif PASS et négatif FAIL, et tous les tests restent verts. Seul l'interrupteur `by_cases` est tenu.\n- **Scénario 5 (A1-2).** La garde du survey dans `needsPreparation` peut être retirée sans qu'aucun test ne rougisse : le test pose `satisfied_by_reference: true`, ce qui n'ouvre jamais de préparation. Une sonde jetable avec `false` montre que la garde tient bien la promesse, mais aucun test commité ne l'atteint.\n- **Scénario 1 (A1-3, à peser).** La garde qui saute la relecture n'est exercée que sous une politique qui exige des relectures. Aucun test n'en pose ; sous la politique par défaut, le scénario reste tenu.\n\nLes autres mutations ont toutes été attrapées par le test qui assert le `Then` :\n- **Scénario 1 :** changement de phase après G2, identifiant de preuve, `outcome.set`, branchements de `verify` et de `decide`, digest de sujet.\n- **Scénario 2 :** condition et texte de la consigne, appel depuis clarify, enregistrement du livrable dans apply et dans decide.\n- **Scénario 3 :** blocage, condition PASS, condition INDETERMINATE, raison qui nomme le contrôle.\n- **Scénario 4 :** `by_cases`, localisation TAP.\n- **Scénario 5 :** `by_nature`, expression de catégorie, `not_applicable_reason`.\n- **Scénario 6 :** `executed === 0`, contrôle différentiel, verdict nul, cas déclarés hors fichier, mesures vides.\n- **Scénario 7 :** livrable de state et de start, usage, liaison, conduite, défaut du harnais.\n\nSécurité : aucune décision IH-04 n'est demandée pendant un survey, donc aucun complément n'est adopté ni installé. Le G5 du survey clôt sans passer par l'intégration. Les contrôles tournent dans des copies de la référence, par le même chemin que la passe de référence existante.\n\nArbre laissé propre : mutations remises par `git checkout`, sondes jetables supprimées, rien de commité."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un test qui échoue dans le projet est un constat de l'état des lieux",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 70,
+    "constat": "Le code juge bien les témoins par leurs cas. Une sonde sur le projet au test en échec donne positive PASS (aucun échec dans test/495-positive-witness.test.js) et negative FAIL (échec situé dans test/495-negative-witness.test.js). Mais aucun test ne tient la clause « qualifié par les cas de ses témoins » : le test v2 ne vérifie que G2 PASS, et rien ne vérifie que witnessCases refuse un capteur qui ne distingue pas un cas qui passe d'un cas qui échoue. Une qualification par les cas devenue inconditionnelle passe les 18 tests des états des lieux.",
+    "mutation": "Trois mutations, chacune passe test/v2-kernel/state-survey*.test.ts, state-entry.test.ts et verification.test.ts (18/18 verts). (1) Ligne 70 `inFiles(negative, negativeOnly) && !inFiles(negative, positiveFiles)` remplacé par `true`. (2) Ligne 67 réduite à `reports(positive) ? \"PASS\" : positive.verdict`. (3) `return { positive: \"PASS\", negative: \"FAIL\" };` en tête du retour de witnessCases."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un état des lieux traverse ses portes sans candidat et laisse le projet intact",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/decide.ts",
+    "ligne": 1065,
+    "constat": "La garde `!surveysTheProject(this.state)` empêche d'ouvrir une relecture. Aucun test ne la tient : les tests tournent sous la politique par défaut, où `required_reviews` est vide. Sous une politique de configuration qui exige une relecture (`policy.required_reviews`, accepté par le schéma de config), la promesse « aucune intervention de relecture » ne repose que sur cette ligne. Sous la politique par défaut, la promesse est tenue et testée.",
+    "mutation": "`const needsReview = (this.state.protocol?.required_reviews.length ?? 0) > 0;` (garde retirée) : state-survey.test.ts reste vert (3/3)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une exigence qu'aucun contrôle de sa nature ne mesure est un angle mort nommé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 331,
+    "constat": "Le test du scénario déclare l'exigence d'architecture `satisfied_by_reference: true` sur un projet dont les tests s'exécutent. Elle n'est donc jamais « undiscriminated », et ni préparation ni IH-04 ne pourraient s'ouvrir, avec ou sans la garde de l'état des lieux. Ses assertions « aucune préparation, aucune IH-04 » ne peuvent pas échouer. La garde est quand même tenue par le test du scénario « contrôle qui ne mesure rien », qui échoue quand on la retire.",
+    "mutation": "Retrait de `!surveysTheProject(unit.state) &&` dans needsPreparation : state-survey-blind-spots.test.ts reste vert, state-survey-unmeasured.test.ts échoue."
+   }
+  ],
+  "resume": "J'ai lu les sept scénarios dans le code et lancé 28 mutations, chaque fois sur les tests concernés. L'arbre est remis propre ensuite (seul `node_modules` reste non suivi).\n\nCe que le code tient, et les mutations qui le montrent :\n- **Scénario 1.** Les gates évaluées se limitent à G0, G1, G2 et G5 : la mutation qui envoie G2 vers designing échoue. Le survey porte les preuves et les verdicts : les mutations sur evidence_id et sur les measures échouent. Le digest du projet est contrôlé : une écriture dans project_path fait échouer le test.\n- **Scénario 2.** La consigne de spécification : la mutation du texte échoue.\n- **Scénario 3.** Le blocage à G5 nomme lint : une sonde le confirme. Les mutations du blocage G5 et du décompte INDETERMINATE échouent.\n- **Scénario 4.** La localisation TAP et `by_cases` sont tenus.\n- **Scénario 5.** `by_nature` et la raison de l'angle mort sont tenus.\n- **Scénario 6.** Les deux angles morts, le verdict null et le décompte des fichiers sans cas sont tenus.\n- **Scénario 7.** Les deux livrables, l'usage sans texte et la conduite : toutes les mutations échouent.\n\nUn constat à corriger, introduit par la branche (B1-1). Au scénario 4, la qualification par les cas des témoins (witnessCases) est juste à la sonde, mais aucun test ne la tient : la rendre inconditionnelle laisse les 18 tests verts. D'où le verdict fail.\n\nDeux constats à peser :\n- **B1-2.** Aucun test ne tient la garde qui empêche une relecture sous une politique qui l'exige.\n- **B1-3.** Le test du scénario 5 ne peut pas échouer sur « aucune préparation, aucune IH-04 ». La garde est quand même tenue par le test du scénario 6.\n\nHors sujet et antérieur : dans control-runner.test.ts, le test Seatbelt « candidate read-only » échoue déjà à la révision relue dans cet arbre temporaire."
+ }
+]
