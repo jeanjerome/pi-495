@@ -466,7 +466,7 @@ Statut : versée
 
 ## R57 — Les outils du worker sont typés sans any
 
-Statut : à faire
+Statut : écartée — La compilation dément le constat : Pi déclare renderCall et renderResult comme des propriétés fonctions, donc contravariantes, si bien que les définitions renvoyées par createLs/Find/Grep/BashToolDefinition ne s'assignent pas à ToolDefinition, et le customTools: ToolDefinition[] du SDK ne les accepte que par un any (celui d'AnyToolDefinition, que defineTool ne fait que déplacer dans Pi).
 
 - Où : src/adapters/pi-worker/worker-main.ts:153,172-180
 - Constat : biome-ignore pour ToolDefinition<any, any, any>. Pi déclare TState = any par défaut et execute comme méthode (bivariante), donc ToolDefinition<TSchema, unknown> accepte peut-être déjà chaque résultat de create*ToolDefinition ; Pi déclare aussi AnyToolDefinition (types.d.ts:378) sans l'exporter.
