@@ -1,3 +1,5 @@
+/node
+
 Pas 3 du cycle, l'autocontrôle, pour la story {{id}} sur la branche `{{branche}}` (base `{{base}}`).
 Relis `git diff {{base}}...HEAD` contre les standards de CONVENTIONS.md, avec la liste ci-dessous.
 Corrige sur la branche tout ce que tu trouves, en commits séparés, sans ajouter de comportement ; une

@@ -1,3 +1,5 @@
+/node
+
 Pas 5 du cycle, la recette de la story {{id}}, sur la branche `{{branche}}` à `{{tete}}`. La
 relecture est passée ; Preflight est verte à cette révision.
 
