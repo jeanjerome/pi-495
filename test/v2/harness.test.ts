@@ -548,9 +548,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(second.view.change?.outcome, "accepted");
 	});
 
-	// A recorded answer that contradicts the report it answers is the case the Flash-Next campaign
-	// carried to acceptance: the mandate held "422" while the requirement adopted eight milliseconds
-	// later still said "400", and the frozen suite then demanded the status the owner had replaced.
+	// A recorded answer can contradict the report it answers: the mandate holds "422" while the
+	// requirement adopted after it still says "400", and a suite frozen on that requirement would
+	// demand the status the owner replaced.
 	const QUESTION = { id: "q-refus", question: "Quel statut pour un refus de longueur : 400 ou 422 ?", material: true };
 	const ANSWER = "422 avec le message 'Name cannot be longer than 50 characters'";
 	const beforeTheAnswer = () =>
@@ -703,8 +703,8 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		await assertStoppedBeforeG0(t, change.change_id, [QUESTION.id]);
 	});
 
-	// Measured on the java-flashnext-L campaign: a real specification asks new material questions at
-	// each round, so a reopening budget counted in advance stops a specification that was converging.
+	// A specification can ask new material questions at each round, so a reopening budget counted in
+	// advance would stop a specification that is converging.
 	// What bounds it is progress — a report that accounts for an answer the one before it did not.
 	it("reopens the specification again when a round of answers opens new material questions, and stops when a report gives the same ground back (RM-010)", async () => {
 		const p = trackedProject();
@@ -798,8 +798,8 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		);
 	});
 
-	// Observed on java-flashnext-L: the specification bound a decision to `r-threshold-trimmed` while
-	// declaring `r-threshold-trimbed`. The answer reads as carried and is carried by nothing.
+	// A specification can bind a decision to `r-threshold-trimmed` while declaring
+	// `r-threshold-trimbed`: the answer reads as carried and is carried by nothing.
 	it("does not count an answer bound to a requirement the report does not carry as carried, and counts one bound to a non-mandatory requirement beside a mandatory one (RM-011)", async () => {
 		const p = trackedProject();
 		const Q = { id: "q-seuil", question: "chaîne brute ou trimée ?", material: true };
@@ -877,9 +877,9 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		);
 	});
 
-	// Every reopening made the report redeclare each answer already taken, so it grew at each round
-	// until the fifth was refused on its structured output. The kernel recorded those
-	// answers and read those declarations: it carries them, and asks the next report for what is new.
+	// A report that redeclared each answer already taken would grow at every reopening until its
+	// structured output is refused. The kernel records those answers and reads those declarations:
+	// it carries them, and asks the next report for what is new.
 	const CARRIED = [
 		{
 			requirement_id: "R1",
@@ -1016,9 +1016,10 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		await assertStoppedBeforeG0(t, change.change_id, [QA.id]);
 	});
 
-	// The first campaign lost five changes this way: the kernel declared the error retryable and named
-	// `retry_specification`, `resume` only lifted `execution_error`, and nothing could take the action.
-	// The stop now names the subcommands that lead out of it, and no step of the kernel.
+	// A block the kernel declares retryable must be liftable: were `resume` to lift only
+	// `execution_error`, a stop naming `retry_specification` would leave no action that takes it, and
+	// the change would be lost. The stop names the subcommands that lead out of it, and no step of the
+	// kernel.
 	it("lifts a block the kernel declared retryable, which the status names with the cancel, and the change redoes the step that threw (DEC-05)", async () => {
 		const p = trackedProject();
 		let calls = 0;
@@ -1106,7 +1107,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		}
 	});
 
-	// D-48: on the OAuth subscription path the provider writes its own system block above what 495
+	// On the OAuth subscription path the provider writes its own system block above what 495
 	// composes. The dossier must say so — a manifest silent on it would be a manifest that lies about
 	// having composed the whole of what the model saw (CTX-02).
 	it("names the layer the retained provider imposes, and never emits it itself (CTX-02, D-48)", async () => {

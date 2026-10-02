@@ -1,6 +1,6 @@
 /**
  * V3 — what the installed Pi reports of a model, and what only the endpoint can answer (AGT-01,
- * AGT-02, D-55). A local server stands in for a compatible endpoint: one variant calls the tool it
+ * AGT-02). A local server stands in for a compatible endpoint: one variant calls the tool it
  * is given, the other answers in prose. No model is called and nothing leaves the machine.
  */
 import { strict as assert } from "node:assert";

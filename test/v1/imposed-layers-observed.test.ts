@@ -1,6 +1,6 @@
 /**
  * What a provider wrote around 495's instructions, read out of the request payload the host hands
- * over once the provider has built it (CTX-02, D-55). The payloads below reproduce the two shapes
+ * over once the provider has built it (CTX-02). The payloads below reproduce the two shapes
  * Pi 0.87.0 builds: `anthropic-messages` puts the system part in a list of text blocks, the imposed
  * one first on the subscription path; `openai-completions` puts it in the leading messages. Pi
  * passes the payload untyped, so a shape the reader does not know is never taken for an absence.

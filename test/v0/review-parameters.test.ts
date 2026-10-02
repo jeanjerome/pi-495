@@ -112,11 +112,10 @@ describe("narrow-terminal threshold (SA-025, §16)", () => {
 		// pane that can navigate. `narrowThreshold: 0` keeps two panes at any width so the criterion
 		// can be measured on the layout itself.
 		//
-		// What this measured before: the width at which a 0.4 split happened to reach the columns the
-		// tree needs. That is no longer what decides — the tree now states its need and the split
-		// honours it at any width — so the derivation it encoded is superseded (`D-33`). What remains
-		// true, and is what the threshold owes the reviewer, is that it never sits below the width
-		// where two panes stop being able to show a name whole.
+		// The threshold is not the width at which a 0.4 split reaches the columns the tree needs: the
+		// tree states its need and the split honours it at any width. What the threshold owes the
+		// reviewer is that it never sits below the width where two panes stop being able to show a
+		// name whole.
 		const needed = treeRowOverhead(REVIEW_CORPUS.max_depth) + REVIEW_CORPUS.name.p95;
 		assert.equal(needed, 36, "2*3 + 4 + 26 columns for the deepest p95 name");
 		let smallest = 0;

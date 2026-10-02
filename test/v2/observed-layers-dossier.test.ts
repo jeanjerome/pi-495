@@ -1,6 +1,6 @@
 /**
  * V2 — each intervention's end record carries what was observed in the requests of its session, as a
- * fact read from the request and apart from the manifest's expectation (CTX-02, D-55). The manifest
+ * fact read from the request and apart from the manifest's expectation (CTX-02). The manifest
  * is sealed before the intervention and a request payload exists only when it is sent, so what was
  * observed travels as an intervention event and lands in the ledger with the intervention's end.
  */

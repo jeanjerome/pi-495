@@ -1,6 +1,6 @@
 /**
- * V3 — what a Pi session reports of itself, and what the worker was leaving unread (CTX-02, AGT-02,
- * D-55). A local server stands in for a compatible endpoint, declared with a context window small
+ * V3 — what a Pi session reports of itself, and what the worker was leaving unread (CTX-02, AGT-02).
+ * A local server stands in for a compatible endpoint, declared with a context window small
  * enough that Pi rewrites the conversation. No model is called and nothing leaves the machine.
  */
 import { strict as assert } from "node:assert";

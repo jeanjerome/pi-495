@@ -1,6 +1,6 @@
 /**
  * V3 — the worker observes each provider request through the hook Pi publishes,
- * `before_provider_request`, and the request leaves as the provider built it (CTX-02, D-55).
+ * `before_provider_request`, and the request leaves as the provider built it (CTX-02).
  *
  * A local server stands in for both providers and keeps every body it receives. The subscription
  * path is the real one: the host reads an OAuth credential whose token carries the subscription

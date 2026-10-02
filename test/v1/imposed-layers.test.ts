@@ -1,6 +1,6 @@
 /**
  * What a provider writes above the instructions 495 composes, declared as a pure fact of the
- * domain (CTX-02, D-48). No provider is asked and no package is read here: the declaration is the
+ * domain (CTX-02). No provider is asked and no package is read here: the declaration is the
  * expectation, a lookup against what this harness once verified, and what a request actually showed
  * is held against it by `test/v2/imposed-layers-divergence.test.ts`.
  */

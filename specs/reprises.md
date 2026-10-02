@@ -634,7 +634,7 @@ Statut : versée
 
 ## R75 — Les commentaires des tests disent le comportement
 
-Statut : à faire
+Statut : versée
 
 - Où : 11 commentaires avec D-xx (v0/review-parameters:130, v2/harness:1171, en-têtes de v1/imposed-layers*, v3/session-*) · 18 commentaires de campagne (v2/harness:582-584,743-745,844-845,929-931,1068-1070 : « Measured on the java-flashnext-L campaign »)
 - Constat : Commentaires qui citent une décision ou racontent une campagne. Les noms de tests portent des tags d'exigence (66 it dans 18 fichiers, 113 describe sur 226) : CONVENTIONS § Comments ne dit rien des noms, et ces tags sont le seul lien exigence ↔ test depuis le retrait de la matrice ; ils restent.

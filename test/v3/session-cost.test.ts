@@ -1,5 +1,5 @@
 /**
- * V3 — what an intervention cost, as the host totals it for the session (AGT-07, NFR-06, D-55).
+ * V3 — what an intervention cost, as the host totals it for the session (AGT-07, NFR-06).
  * A local server stands in for a compatible endpoint and reports the same usage for every answer;
  * the catalogue rates are the ones declared for it. No model is called and nothing leaves the
  * machine: the subscription case writes a credential the host reads without refreshing it, and the

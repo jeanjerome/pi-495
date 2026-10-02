@@ -1,7 +1,7 @@
 /**
  * V3 — the reference path through the two entries `pi-entries` leaves out: an RPC client driving
  * `pi --mode rpc`, and a host loading the package through the Pi SDK (C-PI, F-PIHOST, UX-02,
- * UX-11, REC-39, SA-029, SA-030, SA-031, D-12). Real `pi`, scripted agent, no model called.
+ * UX-11, REC-39, SA-029, SA-030, SA-031). Real `pi`, scripted agent, no model called.
  */
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";

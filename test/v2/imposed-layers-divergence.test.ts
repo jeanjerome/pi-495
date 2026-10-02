@@ -1,6 +1,6 @@
 /**
  * V2 — a disagreement between what the manifest expected a provider to impose and what the request
- * showed is written to the dossier, never left silent (CTX-02, D-55). The manifest's imposed layers
+ * showed is written to the dossier, never left silent (CTX-02). The manifest's imposed layers
  * are an expectation: the provider is declared to impose its block on one authentication path only,
  * so a request that shows no block is a disagreement to name, not an error, and it stops nothing.
  */
