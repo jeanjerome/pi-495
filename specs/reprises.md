@@ -530,7 +530,7 @@ Statut : versée
 
 ## R64 — La requête de revue a un seul type
 
-Statut : à faire
+Statut : versée
 
 - Où : presentation/tui/review-command.ts:6-10 · review-text.ts:12-16 · review/view.ts:12-15 · review/reader-pane.ts:72,87 · review/tree-pane.ts:93
 - Constat : Le type { changes(), content() } écrit en ligne trois fois ; deux volets codent du français en dur alors que Labels existe.

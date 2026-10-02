@@ -1,13 +1,9 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
-import type { ChangePage, ContentPage, PathStatus, ReviewSnapshot } from "../application/review.ts";
+import type { ReviewQuery, ReviewSnapshot } from "../application/review.ts";
 import { ReviewSurface, type Styles } from "../presentation/tui/review-surface.ts";
 
-type Review = {
-	snapshot: ReviewSnapshot;
-	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
-	content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
-};
+type Review = ReviewQuery & { snapshot: ReviewSnapshot };
 
 /** Opens the two-pane review with `ctx.ui.custom()` (no experimental overlay, ADR-010). Purely read-only. */
 export async function openReviewTui(ctx: ExtensionCommandContext, review: Review, lang: "fr" | "en"): Promise<void> {

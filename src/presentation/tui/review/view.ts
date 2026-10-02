@@ -9,11 +9,6 @@
 import type { ChangePage, ContentPage, PathStatus, ReviewNode, ReviewSnapshot } from "../../../application/review.ts";
 import type { RenderedDiff } from "./diff-view.ts";
 
-export interface ReviewQuery {
-	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
-	content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
-}
-
 export interface Styles {
 	added(s: string): string;
 	modified(s: string): string;

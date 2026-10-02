@@ -395,6 +395,12 @@ export async function readChanges(
 	return { path, status, kind, hunks: h, intraline: intra, metadata, notes };
 }
 
+/** The paged reads every review renderer asks of an opened review. */
+export interface ReviewQuery {
+	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
+	content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
+}
+
 /** What opening a review reads: the change's artifacts, the candidate's workspace and its evidence. */
 export interface ReviewDeps {
 	readonly artifacts: ArtifactRepository;
@@ -409,11 +415,7 @@ export async function openReview(
 	state: ChangeState,
 	changeId: string,
 	candidateId?: string,
-): Promise<{
-	snapshot: ReviewSnapshot;
-	changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
-	content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
-}> {
+): Promise<ReviewQuery & { snapshot: ReviewSnapshot }> {
 	const reference = await deps.artifacts.reference(state);
 	const wanted = candidateId ?? state.candidate?.candidate_id ?? null;
 	const manifest = wanted

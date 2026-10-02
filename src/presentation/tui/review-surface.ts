@@ -14,6 +14,7 @@ import {
 	type ChangePage,
 	flatten,
 	type ReviewNode,
+	type ReviewQuery,
 	type ReviewSnapshot,
 } from "../../application/review.ts";
 import { messageOf } from "../../domain/errors.ts";
@@ -31,14 +32,14 @@ import {
 	type LoadedPage,
 	type PaneContext,
 	type ReaderMode,
-	type ReviewQuery,
 	type ReviewView,
 	type Styles,
 } from "./review/view.ts";
 
 export { decodeKey } from "./review/keymap.ts";
 export { NARROW_THRESHOLD, fit, stripSequences, treeRowOverhead, visibleLength } from "./review/measure.ts";
-export { PLAIN, type ReaderMode, type ReviewQuery, type Styles } from "./review/view.ts";
+export type { ReviewQuery } from "../../application/review.ts";
+export { PLAIN, type ReaderMode, type Styles } from "./review/view.ts";
 
 export interface SurfaceOptions {
 	snapshot: ReviewSnapshot;

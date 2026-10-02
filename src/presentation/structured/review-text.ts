@@ -1,19 +1,8 @@
-import {
-	flatten,
-	neutralize,
-	type ChangePage,
-	type ContentPage,
-	type PathStatus,
-	type ReviewSnapshot,
-} from "../../application/review.ts";
+import { flatten, neutralize, type ReviewQuery, type ReviewSnapshot } from "../../application/review.ts";
 
 /** Textual review for print/JSON/RPC (UX-11, §10.6): same identities, statuses, portions and limits; no widget. */
 export async function summarizeReview(
-	review: {
-		snapshot: ReviewSnapshot;
-		changes(path: string, status: PathStatus, oldPath: string | null): Promise<ChangePage>;
-		content(path: string, side: "old" | "new", start: number, limit: number): Promise<ContentPage>;
-	},
+	review: ReviewQuery & { snapshot: ReviewSnapshot },
 	path: string | null,
 	lang: "fr" | "en",
 ): Promise<string> {
