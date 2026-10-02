@@ -457,7 +457,7 @@ Statut : versée
 
 ## R56 — Le protocole du worker n'exporte que ce qu'on lit
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/pi-worker/protocol.ts:27-43
 - Constat : ProducerReport, ReviewReport, ObservationReport, SpecificationReport et leurs quatre alias …Type sont réexportés et lus par personne (grep sur src, test, scripts) ; check-exports.ts:29 ne voit que export function | const, le gate est aveugle aux réexports.

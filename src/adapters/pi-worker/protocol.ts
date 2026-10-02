@@ -25,19 +25,9 @@ export type WorkerMessage =
 	| { type: "log"; level: "info" | "warn" | "error"; message: string };
 
 export {
-	ProducerReport,
-	ReviewReport,
-	ObservationReport,
-	SpecificationReport,
 	OUTPUT_SCHEMAS,
 	TOOLS_FOR_ROLE,
 	extractJsonOutput,
 	normalizeOutput,
 	retainedRefusedText,
-} from "../../contracts/v1/reports.ts";
-export type {
-	ProducerReport as ProducerReportType,
-	ReviewReport as ReviewReportType,
-	ObservationReport as ObservationReportType,
-	SpecificationReport as SpecificationReportType,
 } from "../../contracts/v1/reports.ts";
