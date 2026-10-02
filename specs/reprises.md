@@ -410,7 +410,7 @@ Statut : versée
 
 ## R51 — L'arrêt d'un groupe de processus s'écrit une seule fois
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/sandbox/process.ts:48-64 vs src/adapters/pi-worker/supervisor.ts:97-104,115-116,185-190
 - Constat : killGroup (kill du groupe de processus avec ESRCH avalé) et la paire SIGTERM → setTimeout(SIGKILL, grace).unref() sont écrits deux fois, trois paires de timers.

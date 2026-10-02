@@ -11,6 +11,7 @@ import type {
 	ModelSelection,
 } from "../../ports/execution.ts";
 import { unknownCost } from "../../domain/change/state.ts";
+import { killGroup, terminateGroup } from "../sandbox/process.ts";
 import { PiModelDescription, type PiModelCatalogue } from "./capabilities.ts";
 import type { SupervisorMessage, WorkerConfig, WorkerMessage } from "./protocol.ts";
 
@@ -94,14 +95,6 @@ export class PiWorkerAgent implements AgentPort {
 		const startedAt = Date.now();
 		let toolCalls = 0;
 		let lastSignal = Date.now();
-		const killGroup = (sig: NodeJS.Signals) => {
-			try {
-				if (process.platform !== "win32" && child.pid) process.kill(-child.pid, sig);
-				else child.kill(sig);
-			} catch {
-				/* gone */
-			}
-		};
 		const silence = setInterval(() => {
 			if (done) return;
 			if (Date.now() - lastSignal > this.options.silence_timeout_ms) {
@@ -112,8 +105,7 @@ export class PiWorkerAgent implements AgentPort {
 					counters: counters(),
 					cost: unreported,
 				});
-				killGroup("SIGTERM");
-				setTimeout(() => killGroup("SIGKILL"), this.options.grace_ms).unref();
+				terminateGroup(child, this.options.grace_ms);
 			}
 		}, 1000);
 		silence.unref();
@@ -186,10 +178,10 @@ export class PiWorkerAgent implements AgentPort {
 					/* stdin closed */
 				}
 				setTimeout(() => {
-					if (!done) killGroup("SIGTERM");
+					if (!done) killGroup(child, "SIGTERM");
 				}, this.options.grace_ms).unref();
 				setTimeout(() => {
-					if (!done) killGroup("SIGKILL");
+					if (!done) killGroup(child, "SIGKILL");
 				}, this.options.grace_ms * 2).unref();
 			},
 		};

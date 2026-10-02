@@ -2,7 +2,7 @@
  * Sandbox runner (CMP-SBX): materializes a permission profile as a spawn plan, starts the process
  * under it, bounds its output and reports what it observed. `backends.ts` chooses the backend.
  */
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import type { ExecutableRequest, ProcessObservation } from "../../ports/execution.ts";
 import { messageOf } from "../../domain/errors.ts";
 
@@ -33,7 +33,7 @@ export function runProcess(
 		const stderr = new Collector(request.max_output_bytes);
 		let timedOut = false;
 		let settled = false;
-		let child: ReturnType<typeof spawn>;
+		let child: ChildProcess;
 		try {
 			child = spawn(file, args, {
 				cwd: plan.cwd,
@@ -46,23 +46,11 @@ export function runProcess(
 			resolve(finish(null, null, false, messageOf(error)));
 			return;
 		}
-		const killGroup = (sig: NodeJS.Signals) => {
-			try {
-				if (process.platform !== "win32" && child.pid) process.kill(-child.pid, sig);
-				else child.kill(sig);
-			} catch {
-				/* already gone */
-			}
-		};
 		const timer = setTimeout(() => {
 			timedOut = true;
-			killGroup("SIGTERM");
-			setTimeout(() => killGroup("SIGKILL"), graceMs).unref();
+			terminateGroup(child, graceMs);
 		}, request.timeout_ms);
-		const onAbort = () => {
-			killGroup("SIGTERM");
-			setTimeout(() => killGroup("SIGKILL"), graceMs).unref();
-		};
+		const onAbort = () => terminateGroup(child, graceMs);
 		signal?.addEventListener("abort", onAbort, { once: true });
 		child.stdout?.on("data", (d: Buffer) => stdout.push(d));
 		child.stderr?.on("data", (d: Buffer) => stderr.push(d));
@@ -106,6 +94,22 @@ export function runProcess(
 			};
 		}
 	});
+}
+
+/** Signals the child's process group, or the child alone on Windows; a group already gone is ignored. */
+export function killGroup(child: ChildProcess, sig: NodeJS.Signals): void {
+	try {
+		if (process.platform !== "win32" && child.pid) process.kill(-child.pid, sig);
+		else child.kill(sig);
+	} catch {
+		/* already gone */
+	}
+}
+
+/** Sends SIGTERM to the child's process group, then SIGKILL after `graceMs` without holding the event loop. */
+export function terminateGroup(child: ChildProcess, graceMs: number): void {
+	killGroup(child, "SIGTERM");
+	setTimeout(() => killGroup(child, "SIGKILL"), graceMs).unref();
 }
 
 class Collector {
