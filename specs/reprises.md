@@ -448,7 +448,7 @@ Statut : versée
 
 ## R55 — La vérification d'un dossier exporté réutilise l'empreinte du noyau
 
-Statut : à faire
+Statut : versée
 
 - Où : src/export/export-service.ts:289,308-311
 - Constat : await import("node:fs/promises") alors que writeFile et mkdir sont importés statiquement l.6 ; await import("node:crypto") dans la boucle par événement, recalculant à la main ce que digestBytes (importé l.9) fait.

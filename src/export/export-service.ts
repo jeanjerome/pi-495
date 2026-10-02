@@ -3,7 +3,7 @@
  * without Pi or a model, with a manifest of every file (size, type, SHA-256), the event stream,
  * the referenced objects and, when redacted, an explicit `redactions.json`.
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalize } from "../contracts/canonical.ts";
 import { digestBytes } from "../contracts/digest.ts";
@@ -286,7 +286,6 @@ export async function exportChange(
 
 /** Offline verification of an exported dossier (RM-072). */
 export async function verifyExport(root: string): Promise<{ ok: boolean; problems: string[] }> {
-	const { readFile } = await import("node:fs/promises");
 	const problems: string[] = [];
 	const manifestBytes = await readFile(join(root, "manifest.json"));
 	const verify = JSON.parse(await readFile(join(root, "verify-integrity.json"), "utf8")) as { manifest_sha256: string };
@@ -305,10 +304,7 @@ export async function verifyExport(root: string): Promise<{ ok: boolean; problem
 		.map((l) => JSON.parse(l) as { hash: string; previous_hash: string | null; event: unknown });
 	let previous: string | null = null;
 	for (const e of events) {
-		const { createHash } = await import("node:crypto");
-		const expected: string = `sha256:${createHash("sha256")
-			.update(`${previous ?? ""}${canonicalize(e.event)}`)
-			.digest("hex")}`;
+		const expected: string = digestBytes(`${previous ?? ""}${canonicalize(e.event)}`);
 		if (e.previous_hash !== previous || e.hash !== expected) problems.push(`chain broken at ${e.hash}`);
 		previous = e.hash;
 	}
