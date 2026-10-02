@@ -303,7 +303,7 @@ epics:
       `e10` et `e11`, qui s'appuient sur lui. Les portes qu'un état des lieux passe sont à concevoir par sa
       première story.
     stories:
-      - { id: e29s01, status: "à faire", title: "Un changement dont le livrable est l'état du projet traverse ses portes sans candidat" }
+      - { id: e29s01, status: "versée", title: "Un changement dont le livrable est l'état du projet traverse ses portes sans candidat" }
       - { id: e29s02, status: "à faire", title: "Le propriétaire lit l'état des lieux, ses angles morts nommés, et l'accepte ou le refuse" }
 
   - id: e10
