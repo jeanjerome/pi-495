@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: a change on a project whose test already fails on the reference
+    # Subtest: un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+    ok 1 - un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+      ---
+      duration_ms: 732.767917
+      type: 'test'
+      ...
+    # Subtest: un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+    ok 2 - un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+      ---
+      duration_ms: 712.680042
+      type: 'test'
+      ...
+    # Subtest: un candidat qui fait rendre Ciao, x à farewell, dont le test échouait déjà sur Bye, x, est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/farewell.test.js
+    ok 3 - un candidat qui fait rendre Ciao, x à farewell, dont le test échouait déjà sur Bye, x, est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/farewell.test.js
+      ---
+      duration_ms: 711.901834
+      type: 'test'
+      ...
+    1..3
+ok 1 - a change on a project whose test already fails on the reference
+  ---
+  duration_ms: 2157.949125
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2333.154917

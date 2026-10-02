@@ -1,0 +1,68 @@
+TAP version 13
+# Subtest: a change on a project whose test already fails on the reference
+    # Subtest: un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+    not ok 1 - un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+      ---
+      duration_ms: 440.261375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aw8kXC/test/v2-kernel/change-on-failing-project.test.ts:29:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        G2 qualifies the test sensor by the cases of its witnesses: control unit: positive witness gave FAIL, expected PASS; control unit: qualification not adopted CAPABILITY_MISSING: protocol not frozen: control unit: positive witness gave FAIL, expected PASS; control unit: qualification not adopted; unit: positive witness gave FAIL: greet says goodbye (test/farewell.test.js), qualification evidence: positive=evq_0015, negative=evq_0016, incident=evq_0017; lint: negative witness gave PASS: the control does not detect the defect it claims to cover; exit_code=0, command=["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","scripts/lint.js"], cwd=., sandbox=unconfined, duration_ms=30, qualification evidence: positive=evq_0018, negative=evq_0019, incident=evq_0020 (next: cancel)
+        
+        'FAIL' !== 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      actual: 'FAIL'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aw8kXC/test/v2-kernel/change-on-failing-project.test.ts:42:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+    not ok 2 - un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+      ---
+      duration_ms: 415.491792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aw8kXC/test/v2-kernel/change-on-failing-project.test.ts:60:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        G5 is evaluated and refuses: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design: CAPABILITY_MISSING protocol not frozen: control unit: positive witness gave FAIL, expected PASS; control unit: qualification not adopted; unit: positive witness gave FAIL: greet says goodbye (test/farewell.test.js), qualification evidence: positive=evq_0015, negative=evq_0016, incident=evq_0017; lint: negative witness gave PASS: the control does not detect the defect it claims to cover; exit_code=0, command=["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","scripts/lint.js"], cwd=., sandbox=unconfined, duration_ms=32, qualification evidence: positive=evq_0018, negative=evq_0019, incident=evq_0020
+        + actual - expected
+        
+        + undefined
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aw8kXC/test/v2-kernel/change-on-failing-project.test.ts:74:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a change on a project whose test already fails on the reference
+  ---
+  duration_ms: 856.416458
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aw8kXC/test/v2-kernel/change-on-failing-project.test.ts:28:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1051.315833

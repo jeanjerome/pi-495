@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le témoin positif est jugé par son propre cas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 64,
+    "constat": "Le cas du témoin est reconnu quand le nom d'un cas qui passe, entre guillemets doubles, apparaît n'importe où dans le texte du témoin, pas seulement dans son titre. Le témoin que la stack Node génère contient aussi les littéraux \"node:test\" et \"node:assert\". Un cas du projet qui porterait l'un de ces noms et qui passe compterait donc pour le témoin. Le cas est artificiel, et le scénario de la story, avec un témoin dont l'unique cas est sauté, est bien tenu.",
+    "mutation": "Remplacer `text.includes(JSON.stringify(name))` par `text.length > 0` : le test du témoin sauté échoue, comme attendu."
+   }
+  ],
+  "resume": "Les quatre promesses sont tenues par le code, et chacune par au moins un test que des mutations font échouer. J'ai lancé les deux fichiers de test de la story : 33 tests sur 34 passent. Le seul échec est le test Seatbelt « runs the same control under seatbelt… », déjà inscrit au registre (BUG-2026-09-29T160000, le dépôt est sous le répertoire temporaire) et donc non compté.\n\nMutations, toutes remises en place ensuite :\n1. Revenir au verdict du run au lieu des cas des témoins (`cases = null`) fait échouer les trois tests de bout en bout (scénarios 1 à 3), car G2 n'est plus PASS.\n2. Rendre le message d'un échec différent à chaque exécution fait échouer le constat `preexisting` du scénario 1.\n3. Retirer `describing = true` dans le lecteur TAP fait échouer le scénario 3 (le test v2 et le test du lecteur).\n4. Faire que le lecteur n'enregistre aucun cas qui passe fait échouer les scénarios 1 à 3.\n5. Remettre `pass > 0` à la place du cas du témoin fait échouer le test du témoin sauté (scénario 4), qui vérifie aussi [FAIL, FAIL, non qualifié] et la note « positive witness gave FAIL ».\n6. Retirer l'exclusion de SKIP/TODO dans le lecteur fait échouer le test qui liste les cas nommés.\n\nUn seul point à peser, sans blocage : un cas est reconnu par son nom n'importe où dans le texte du témoin (A1-1). L'arbre est propre après les sondes."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les quatre scénarios sont tenus par le code et chacun par un test qu'une mutation fait échouer ; l'arbre est rendu propre après chaque mutation.\n\nS1 (G2 PASS, unit qualifié, constat preexisting sur test/farewell.test.js, clos accepted) : `qualification.ts` juge désormais les témoins par leurs cas, sans le drapeau `by_cases`. Le test v2 `change-on-failing-project` échoue sous trois mutations :\n- `cases` forcé à null ;\n- le lecteur TAP qui ne nomme plus que les suites (`'suite'` au lieu de `'test'`) ;\n- un message d'échec rendu instable (`Math.random()` dans `describeLastFailure`), qui transforme le constat preexisting en new.\n\nS2 (G5 FAIL « requirement R1: FAIL (unit=FAIL) », constat new sur test/greet.test.js) : le test v2 passe, et il échoue quand `classifyFindings` marque preexisting ce qui n'est pas apparié.\n\nS3 (message différent, donc constat new sur test/farewell.test.js) : `parseNodeTestTap` ajoute le message du champ `error` au constat. Le test v2 échoue quand on retire `describing = true`. Le test v1 du lecteur couvre le message en bloc, le message entre apostrophes et le message en fin de flux.\n\nS4 (témoin positif dont le cas est sauté : pas PASS, non qualifié, note « positive witness gave … ») : `witnessCases` exige qu'un cas nommé dans `passing_cases` soit déclaré par un fichier du témoin positif. Le test v1 échoue quand on remet `pass > 0` et quand on change le libellé de la note.\n\nLes cas des témoins ne s'appliquent qu'au lecteur node --test, le seul qui rapporte un fait `pass` numérique : les autres lecteurs gardent le verdict du run. Aucun constat."
+ }
+]

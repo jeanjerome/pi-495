@@ -1,0 +1,287 @@
+TAP version 13
+# Subtest: parsers (VER-02, RM-016, RM-017, SA-014)
+    # Subtest: node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+    ok 1 - node-test TAP: pass, fail, skip, no test, truncated summary, timeout
+      ---
+      duration_ms: 1.326375
+      type: 'test'
+      ...
+    # Subtest: node-test TAP: a failing test is followed by the file its diagnostics locate it in, without line or column
+    ok 2 - node-test TAP: a failing test is followed by the file its diagnostics locate it in, without line or column
+      ---
+      duration_ms: 0.267917
+      type: 'test'
+      ...
+    # Subtest: node-test TAP: a failing test is followed by the message it reports, from a block or a quoted error field
+    ok 3 - node-test TAP: a failing test is followed by the message it reports, from a block or a quoted error field
+      ---
+      duration_ms: 0.620209
+      type: 'test'
+      ...
+    # Subtest: node-test TAP: a passing case is named, and a skipped or todo case, a suite and a file without cases are not
+    ok 4 - node-test TAP: a passing case is named, and a skipped or todo case, a suite and a file without cases are not
+      ---
+      duration_ms: 0.310583
+      type: 'test'
+      ...
+    # Subtest: node-test TAP: a test file that declares no case is not counted as a test
+    ok 5 - node-test TAP: a test file that declares no case is not counted as a test
+      ---
+      duration_ms: 0.217041
+      type: 'test'
+      ...
+    # Subtest: junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+    ok 6 - junit-xml: sums suites, lists failed cases, refuses skips and empty reports
+      ---
+      duration_ms: 1.164959
+      type: 'test'
+      ...
+    1..6
+ok 1 - parsers (VER-02, RM-016, RM-017, SA-014)
+  ---
+  duration_ms: 4.415625
+  type: 'suite'
+  ...
+# Subtest: generic runner on F-TS (C-EXE, VER-01, PRE-03)
+    # Subtest: runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+    ok 1 - runs node --test in the workspace and produces a canonical PASS evidence with raw outputs in the store
+      ---
+      duration_ms: 86.429208
+      type: 'test'
+      ...
+    # Subtest: a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+    ok 2 - a failing feature gives FAIL with the failing test as a blocking finding; an absent feature is FAIL not INDETERMINATE (SA-010)
+      ---
+      duration_ms: 86.15475
+      type: 'test'
+      ...
+    # Subtest: timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+    ok 3 - timeout, broken runner and unknown cwd give INDETERMINATE, never PASS (SA-014, REC-05)
+      ---
+      duration_ms: 313.263917
+      type: 'test'
+      ...
+    # Subtest: exit-code parser follows its contract only: lint script
+    ok 4 - exit-code parser follows its contract only: lint script
+      ---
+      duration_ms: 101.051417
+      type: 'test'
+      ...
+    # Subtest: aggregates Surefire reports from every module in a Maven reactor
+    ok 5 - aggregates Surefire reports from every module in a Maven reactor
+      ---
+      duration_ms: 48.562708
+      type: 'test'
+      ...
+    # Subtest: a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+    ok 6 - a non-zero exit no test failure explains is a FAIL naming the build error, not an incident
+      ---
+      duration_ms: 0.582333
+      type: 'test'
+      ...
+    # Subtest: qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+    ok 7 - qualification requires a positive PASS, a negative FAIL and an incident INDETERMINATE (SA-009, VER-05)
+      ---
+      duration_ms: 339.143625
+      type: 'test'
+      ...
+    # Subtest: qualification by the witnesses' cases tells a passing case from a failing one beside a failing project test
+    ok 8 - qualification by the witnesses' cases tells a passing case from a failing one beside a failing project test
+      ---
+      duration_ms: 866.311333
+      type: 'test'
+      ...
+    # Subtest: un témoin positif dont l'unique cas est sauté, à côté de test/greet.test.js qui passe et de test/farewell.test.js qui échoue, n'est pas un PASS : la qualification est [FAIL, FAIL, non qualifié] et porte la note positive witness gave FAIL
+    ok 9 - un témoin positif dont l'unique cas est sauté, à côté de test/greet.test.js qui passe et de test/farewell.test.js qui échoue, n'est pas un PASS : la qualification est [FAIL, FAIL, non qualifié] et porte la note positive witness gave FAIL
+      ---
+      duration_ms: 177.139125
+      type: 'test'
+      ...
+    # Subtest: an established qualification is reused for the same sensor, never across a changed sensor or environment
+    ok 10 - an established qualification is reused for the same sensor, never across a changed sensor or environment
+      ---
+      duration_ms: 0.5
+      type: 'test'
+      ...
+    # Subtest: runs the same control under seatbelt with the candidate read-only
+    ok 11 - runs the same control under seatbelt with the candidate read-only
+      ---
+      duration_ms: 131.516916
+      type: 'test'
+      ...
+    1..11
+ok 2 - generic runner on F-TS (C-EXE, VER-01, PRE-03)
+  ---
+  duration_ms: 2151.260084
+  type: 'suite'
+  ...
+# Subtest: a sensor that reads the report another control writes (VER-05, PRE-03)
+    # Subtest: orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+    ok 1 - orders the controls by what each declares it writes and reads, names a cycle and lets an external report through
+      ---
+      duration_ms: 0.422625
+      type: 'test'
+      ...
+    # Subtest: runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+    ok 2 - runs the producing control in each witness workspace, so the sensor's own negative witness holds a report to judge
+      ---
+      duration_ms: 200.984958
+      type: 'test'
+      ...
+    1..2
+ok 3 - a sensor that reads the report another control writes (VER-05, PRE-03)
+  ---
+  duration_ms: 201.509584
+  type: 'suite'
+  ...
+# Subtest: the derived vitest control through the runner
+    # Subtest: given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+    ok 1 - given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written
+      ---
+      duration_ms: 102.611166
+      type: 'test'
+      ...
+    # Subtest: given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS
+    ok 2 - given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS
+      ---
+      duration_ms: 43.608125
+      type: 'test'
+      ...
+    1..2
+ok 4 - the derived vitest control through the runner
+  ---
+  duration_ms: 146.354834
+  type: 'suite'
+  ...
+# Subtest: the derived mocha control through the runner
+    # Subtest: given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written
+    ok 1 - given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written
+      ---
+      duration_ms: 100.837583
+      type: 'test'
+      ...
+    1..1
+ok 5 - the derived mocha control through the runner
+  ---
+  duration_ms: 100.916375
+  type: 'suite'
+  ...
+# Subtest: the derived jest control through the runner
+    # Subtest: given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, FAIL for a red report or an unloaded suite even when the runner exits 0, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error
+    ok 1 - given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, FAIL for a red report or an unloaded suite even when the runner exits 0, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error
+      ---
+      duration_ms: 301.766416
+      type: 'test'
+      ...
+    1..1
+ok 6 - the derived jest control through the runner
+  ---
+  duration_ms: 301.874417
+  type: 'suite'
+  ...
+# Subtest: an unreadable jest report through the runner
+    # Subtest: given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error
+    ok 1 - given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error
+      ---
+      duration_ms: 126.318209
+      type: 'test'
+      ...
+    1..1
+ok 7 - an unreadable jest report through the runner
+  ---
+  duration_ms: 126.411042
+  type: 'suite'
+  ...
+# Subtest: a jest report of another shape through the runner
+    # Subtest: given a JSON document that is not a jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL when it exits with an error, never PASS
+    ok 1 - given a JSON document that is not a jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL when it exits with an error, never PASS
+      ---
+      duration_ms: 461.371916
+      type: 'test'
+      ...
+    1..1
+ok 8 - a jest report of another shape through the runner
+  ---
+  duration_ms: 461.465542
+  type: 'suite'
+  ...
+# Subtest: the derived jest control under the verification sandbox
+    # Subtest: given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox
+    ok 1 - given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox
+      ---
+      duration_ms: 100.508
+      type: 'test'
+      ...
+    1..1
+ok 9 - the derived jest control under the verification sandbox
+  ---
+  duration_ms: 100.598833
+  type: 'suite'
+  ...
+# Subtest: the mutation control reading Stryker's report through the runner
+    # Subtest: given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record
+    ok 1 - given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record
+      ---
+      duration_ms: 38.5405
+      type: 'test'
+      ...
+    1..1
+ok 10 - the mutation control reading Stryker's report through the runner
+  ---
+  duration_ms: 38.629375
+  type: 'suite'
+  ...
+# Subtest: the mutation control reading the introduced source through the runner
+    # Subtest: given a mutation control and a candidate whose introduced source carries a Stryker disable comment, and a stand-in for Stryker that writes a complete report with no survivor, then the evidence is FAIL with the finding at the comment
+    ok 1 - given a mutation control and a candidate whose introduced source carries a Stryker disable comment, and a stand-in for Stryker that writes a complete report with no survivor, then the evidence is FAIL with the finding at the comment
+      ---
+      duration_ms: 37.420334
+      type: 'test'
+      ...
+    1..1
+ok 11 - the mutation control reading the introduced source through the runner
+  ---
+  duration_ms: 37.483791
+  type: 'suite'
+  ...
+# Subtest: the mutation control reading a Stryker report that cannot be trusted through the runner
+    # Subtest: given a valid report larger than the read bound, then the control is INDETERMINATE naming the bound and the report is not kept in the record
+    ok 1 - given a valid report larger than the read bound, then the control is INDETERMINATE naming the bound and the report is not kept in the record
+      ---
+      duration_ms: 141.274625
+      type: 'test'
+      ...
+    # Subtest: given a failing initial run that writes no report and logs an error, then the control is FAIL and the error of Stryker is among its failures
+    ok 2 - given a failing initial run that writes no report and logs an error, then the control is FAIL and the error of Stryker is among its failures
+      ---
+      duration_ms: 39.93125
+      type: 'test'
+      ...
+    1..2
+ok 12 - the mutation control reading a Stryker report that cannot be trusted through the runner
+  ---
+  duration_ms: 181.3165
+  type: 'suite'
+  ...
+# Subtest: the mutation control under the verification sandbox
+    # Subtest: given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp
+    ok 1 - given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp
+      ---
+      duration_ms: 137.296625
+      type: 'test'
+      ...
+    1..1
+ok 13 - the mutation control under the verification sandbox
+  ---
+  duration_ms: 137.377458
+  type: 'suite'
+  ...
+1..13
+# tests 31
+# suites 13
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4128.606708

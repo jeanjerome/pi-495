@@ -1,0 +1,55 @@
+TAP version 13
+# Subtest: a change on a project whose test already fails on the reference
+    # Subtest: un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+    ok 1 - un changement sur un projet dont test/farewell.test.js échoue déjà passe G2, la preuve du contrôle unit porte un constat preexisting qui nomme test/farewell.test.js, et le changement est clos accepted
+      ---
+      duration_ms: 782.181625
+      type: 'test'
+      ...
+    # Subtest: un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+    ok 2 - un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js
+      ---
+      duration_ms: 781.262208
+      type: 'test'
+      ...
+    # Subtest: un candidat qui fait rendre Ciao, x à farewell, dont le test échouait déjà sur Bye, x, est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/farewell.test.js
+    not ok 3 - un candidat qui fait rendre Ciao, x à farewell, dont le test échouait déjà sur Bye, x, est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/farewell.test.js
+      ---
+      duration_ms: 731.673334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-me76Ym/test/v2-kernel/change-on-failing-project.test.ts:96:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        G5 is evaluated and refuses: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> designing/ready | designing -> implementing/ready | implementing -> verifying/ready | verifying -> deciding/ready | deciding -> closed/completed
+        
+        'PASS' !== 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-me76Ym/test/v2-kernel/change-on-failing-project.test.ts:124:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - a change on a project whose test already fails on the reference
+  ---
+  duration_ms: 2295.93975
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-me76Ym/test/v2-kernel/change-on-failing-project.test.ts:38:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2487.800708
