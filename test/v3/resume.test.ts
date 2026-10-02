@@ -8,7 +8,6 @@ import { strict as assert } from "node:assert";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { selectedModel } from "../../src/extension/conduct.ts";
@@ -75,16 +74,16 @@ async function atVerification(
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
 	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
-	const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-	registerCommand495(pi as unknown as ExtensionAPI, session);
+	const session = new ExtensionSession(pi.host());
+	registerCommand495(pi.host(), session);
 	const ctx = new FakeContext(cwd, "rpc", sessionId);
-	session.openedAt(ctx as unknown as ExtensionContext);
+	session.openedAt(ctx.asCommand());
 	const rt = session.runtime();
-	const owner = session.humanOrigin(ctx as unknown as ExtensionContext)!.actor;
+	const owner = session.humanOrigin(ctx.asCommand())!.actor;
 	const { program, change } = await rt.harness.start({ project_path: cwd, request_text: "x", actor: owner });
 	const changeId = change.change_id;
-	session.bind(ctx as unknown as ExtensionContext, { program_id: program.program_id, change_id: changeId });
-	const readModel = () => selectedModel(ctx as unknown as ExtensionCommandContext);
+	session.bind(ctx.asCommand(), { program_id: program.program_id, change_id: changeId });
+	const readModel = () => selectedModel(ctx.asCommand());
 	for (let step = 0; rt.ledger.loadChange(changeId)!.state.phase !== "verifying"; step++) {
 		assert.ok(step < 20, `the change never reaches its verification: ${rt.ledger.loadChange(changeId)!.state.phase}`);
 		await rt.harness.advance(changeId, { max_steps: 1, readModel });
@@ -102,7 +101,7 @@ async function pausedDuringVerificationByAnEarlierBuild(
 ): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
 	const { pi, session, ctx, changeId } = await atVerification(dataDir, cwd, "s-resume-earlier-build");
 	const rt = session.runtime();
-	const owner = session.humanOrigin(ctx as unknown as ExtensionContext)!.actor;
+	const owner = session.humanOrigin(ctx.asCommand())!.actor;
 	const verifying = rt.harness.commit(
 		rt.ledger.loadChange(changeId)!,
 		{
@@ -135,7 +134,7 @@ describe("`/495 resume` ends a pause or lifts a stop, then conducts the change",
 			const before = ledger.loadChange(changeId)!.revision;
 			session.busy = true;
 			try {
-				await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+				await pi.run("resume", ctx);
 			} finally {
 				session.busy = false;
 			}
@@ -164,13 +163,13 @@ describe("`/495 resume` ends a pause or lifts a stop, then conducts the change",
 			let revisionAfterResume: number | undefined;
 			// `/495 close` holds the session while its confirmation is put to the owner.
 			ctx.onConfirm = async () => {
-				await pi.command!("verify", ctx as unknown as ExtensionCommandContext);
+				await pi.run("verify", ctx);
 				heldAfterVerify = session.busy;
-				await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+				await pi.run("resume", ctx);
 				revisionAfterResume = ledger.loadChange(changeId)!.revision;
 			};
 
-			await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close q1", ctx);
 
 			assert.equal(heldAfterVerify, true, "the close still holds the session once /495 verify returns");
 			assert.equal(revisionAfterResume, before, "the resume inscribes nothing while the close holds the session");
@@ -192,7 +191,7 @@ describe("`/495 resume` ends a pause or lifts a stop, then conducts the change",
 				[paused.phase, paused.status, paused.operation?.operation_id],
 				["verifying", "paused", "op_earlier_build"],
 			);
-			await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+			await pi.run("resume", ctx);
 			assert.ok(
 				pi.said.some((m) => m.startsWith("495 error: PRECONDITION_FAILED: change is paused")),
 				pi.said.join(" | "),
@@ -200,8 +199,8 @@ describe("`/495 resume` ends a pause or lifts a stop, then conducts the change",
 
 			// Pausing again closes the verification the earlier build left open, then the resume verifies
 			// the change again.
-			await pi.command!("pause", ctx as unknown as ExtensionCommandContext);
-			await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+			await pi.run("pause", ctx);
+			await pi.run("resume", ctx);
 
 			assert.ok(
 				!pi.said.some((m) => m === session.busyRefusal()),
@@ -228,7 +227,7 @@ describe("a refusal on a blocked change names only the ways out `/495` offers", 
 					`cor_${reason}`,
 				);
 				const before = pi.said.length;
-				await pi.command!("verify", ctx as unknown as ExtensionCommandContext);
+				await pi.run("verify", ctx);
 				const refused = pi.said.findIndex((m, i) => i >= before && m.startsWith("495 error: PRECONDITION_FAILED"));
 				assert.ok(refused >= 0, pi.said.slice(before).join(" | "));
 				return (pi.details[refused] as { error: { next_actions: string[] } }).error.next_actions;

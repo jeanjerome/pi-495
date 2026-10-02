@@ -203,6 +203,24 @@ class FakePi {
 		if (message.display) this.displayed.push(message.content);
 	}
 	appendEntry(): void {}
+
+	/** This fake as the extension API 495 is registered on: it implements only what 495 reaches. */
+	host(): ExtensionAPI {
+		return this as unknown as ExtensionAPI;
+	}
+
+	/** Runs `/495 <args>` in `ctx`, once the command is registered. */
+	async run(args: string, ctx: { asCommand(): ExtensionCommandContext }): Promise<void> {
+		assert.ok(this.command, "/495 is registered");
+		await this.command(args, ctx.asCommand());
+	}
+
+	/** Emits `event` to the hook 495 registered for its type, as Pi does. */
+	async fire<E extends { type: string }>(event: E, ctx: { asCommand(): ExtensionCommandContext }): Promise<unknown> {
+		const hook = this.hooks.get(event.type);
+		assert.ok(hook, `495 listens on ${event.type}`);
+		return hook(event, ctx.asCommand());
+	}
 }
 
 /** Pi's context for a client with no screen, whose model is read when it is asked for, as Pi does. */
@@ -220,6 +238,10 @@ class FakeRpcContext {
 	}
 	get model(): { provider: string; id: string; baseUrl: string } | undefined {
 		return this.selected();
+	}
+	/** This fake as the context Pi hands a command, which is also the one it hands a hook. */
+	asCommand(): ExtensionCommandContext {
+		return this as unknown as ExtensionCommandContext;
 	}
 }
 
@@ -246,16 +268,13 @@ describe("a session opened with no model selected (AGT-07, 6a)", () => {
 		if (process.platform !== "darwin") env("HARNESS495_ALLOW_UNCONFINED", "1");
 		const cwd = project();
 		const pi = new FakePi();
-		const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-		registerCommand495(pi as unknown as ExtensionAPI, session);
+		const session = new ExtensionSession(pi.host());
+		registerCommand495(pi.host(), session);
 		let selected: { provider: string; id: string; baseUrl: string } | undefined;
 		try {
-			session.openedAt(new FakeRpcContext(cwd, () => selected) as unknown as ExtensionContext);
+			session.openedAt(new FakeRpcContext(cwd, () => selected).asCommand());
 			selected = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
-			await pi.command!(
-				"start tidy greet",
-				new FakeRpcContext(cwd, () => selected) as unknown as ExtensionCommandContext,
-			);
+			await pi.run("start tidy greet", new FakeRpcContext(cwd, () => selected));
 			const changeId = session.binding?.change_id;
 			assert.ok(changeId, pi.said.join(" | "));
 			assert.deepEqual(startedWith(session.runtime().ledger, changeId), [FIRST], pi.said.join(" | "));
@@ -283,21 +302,18 @@ describe("a session whose runtime could not be created (SEC-05, 6i)", () => {
 		process.env.HARNESS495_DATA_DIR = dataDir;
 		const cwd = project();
 		const pi = new FakePi();
-		harness495(pi as unknown as ExtensionAPI);
+		harness495(pi.host());
 		const selected = { provider: REMOTE.provider, id: REMOTE.id, baseUrl: `https://${REMOTE.host}/v1` };
 		const ctx = new FakeRpcContext(cwd, () => selected);
 		try {
-			await pi.hooks.get("session_start")!(
-				{ type: "session_start", reason: "startup" },
-				ctx as unknown as ExtensionContext,
-			);
-			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
+			await pi.fire({ type: "session_start", reason: "startup" }, ctx);
+			await pi.run("status", ctx);
 			const said = pi.said.join(" | ");
 			assert.match(said, /config\.json cannot be read/, said);
 			assert.equal(pi.said.filter((m) => m.includes(OFF_MACHINE)).length, 1, said);
 			assert.doesNotMatch(said, new RegExp(REMOTE.host.replaceAll(".", "\\.")), "the address is never said");
 		} finally {
-			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			await pi.fire({ type: "session_shutdown" }, ctx);
 		}
 	});
 });
@@ -324,6 +340,10 @@ class FakeTuiContext {
 	get model(): { provider: string; id: string; baseUrl: string } | undefined {
 		return this.selected();
 	}
+	/** This fake as the context Pi hands a command, which is also the one it hands a hook. */
+	asCommand(): ExtensionCommandContext {
+		return this as unknown as ExtensionCommandContext;
+	}
 }
 
 describe("a model reached off this machine, on the screen of Pi's terminal interface (SEC-05)", () => {
@@ -344,27 +364,21 @@ describe("a model reached off this machine, on the screen of Pi's terminal inter
 		process.env.HARNESS495_DATA_DIR = join(root, "data");
 		const cwd = project();
 		const pi = new FakePi();
-		harness495(pi as unknown as ExtensionAPI);
+		harness495(pi.host());
 		const notices: string[] = [];
 		let selected = opening;
 		const ctx = new FakeTuiContext(cwd, () => selected, notices);
 		try {
-			await pi.hooks.get("session_start")!(
-				{ type: "session_start", reason: "startup" },
-				ctx as unknown as ExtensionContext,
-			);
+			await pi.fire({ type: "session_start", reason: "startup" }, ctx);
 			if (selectedLater) {
 				selected = selectedLater;
-				await pi.hooks.get("model_select")!(
-					{ type: "model_select", model: selectedLater, source: "set" },
-					ctx as unknown as ExtensionContext,
-				);
+				await pi.fire({ type: "model_select", model: selectedLater, source: "set" }, ctx);
 			}
-			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
-			await pi.command!("status", ctx as unknown as ExtensionCommandContext);
+			await pi.run("status", ctx);
+			await pi.run("status", ctx);
 			return { screen: [...notices, ...pi.displayed], said: pi.said };
 		} finally {
-			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			await pi.fire({ type: "session_shutdown" }, ctx);
 		}
 	}
 
@@ -418,18 +432,15 @@ describe("the help /495 gives when it is called with no known operation", () => 
 		process.env.HARNESS495_LANGUAGE = language;
 		const cwd = project();
 		const pi = new FakePi();
-		harness495(pi as unknown as ExtensionAPI);
+		harness495(pi.host());
 		const local = { provider: FIRST.provider_id, id: FIRST.model_id, baseUrl: "http://127.0.0.1:9/v1" };
 		const ctx = new FakeTuiContext(cwd, () => local, []);
 		try {
-			await pi.hooks.get("session_start")!(
-				{ type: "session_start", reason: "startup" },
-				ctx as unknown as ExtensionContext,
-			);
-			await pi.command!("", ctx as unknown as ExtensionCommandContext);
+			await pi.fire({ type: "session_start", reason: "startup" }, ctx);
+			await pi.run("", ctx);
 			return pi.said.at(-1)!;
 		} finally {
-			await pi.hooks.get("session_shutdown")!({ type: "session_shutdown" }, ctx as unknown as ExtensionContext);
+			await pi.fire({ type: "session_shutdown" }, ctx);
 		}
 	}
 

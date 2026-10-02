@@ -6,7 +6,6 @@ import { strict as assert } from "node:assert";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR } from "../helpers/command-fixture.ts";
@@ -76,8 +75,8 @@ describe("answering revise to the IH-04 decision from Pi", () => {
 		process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
 		if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 		const pi = new FakePi();
-		const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-		registerCommand495(pi as unknown as ExtensionAPI, session);
+		const session = new ExtensionSession(pi.host());
+		registerCommand495(pi.host(), session);
 		const ctx = new FakeContext(cwd, "rpc", "s-requirement-revision-dialog");
 		const inputs: string[] = [];
 		const choose = ctx.ui.select;
@@ -89,11 +88,10 @@ describe("answering revise to the IH-04 decision from Pi", () => {
 			inputs.push(prompt);
 			return OWNER_TEXT;
 		};
-		session.openedAt(ctx as unknown as ExtensionContext);
+		session.openedAt(ctx.asCommand());
 		try {
-			await pi.command!("start x", ctx as unknown as ExtensionCommandContext);
-			for (let round = 0; round < 6 && inputs.length === 0; round++)
-				await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+			await pi.run("start x", ctx);
+			for (let round = 0; round < 6 && inputs.length === 0; round++) await pi.run("resume", ctx);
 
 			assert.deepEqual(inputs, ["Ce que l'exigence doit devenir"], pi.said.join(" | "));
 			const state = session.runtime().ledger.loadChange(session.binding!.change_id)!.state;

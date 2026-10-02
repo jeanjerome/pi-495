@@ -5,7 +5,7 @@
 import { strict as assert } from "node:assert";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { fixtureTs, initRepo, tempDir } from "./fixtures.ts";
@@ -75,6 +75,17 @@ export class FakePi {
 		this.details.push(message.details);
 	}
 	appendEntry(): void {}
+
+	/** This fake as the extension API 495 is registered on: it implements only what 495 reaches. */
+	host(): ExtensionAPI {
+		return this as unknown as ExtensionAPI;
+	}
+
+	/** Runs `/495 <args>` in `ctx`, once the command is registered. */
+	async run(args: string, ctx: FakeContext): Promise<void> {
+		assert.ok(this.command, "/495 is registered");
+		await this.command(args, ctx.asCommand());
+	}
 }
 
 /**
@@ -129,6 +140,11 @@ export class FakeContext {
 			setStatus: () => undefined,
 		};
 	}
+
+	/** This fake as the context Pi hands a command, which is also the one it hands a hook. */
+	asCommand(): ExtensionCommandContext {
+		return this as unknown as ExtensionCommandContext;
+	}
 }
 
 /** Starts a change whose only material question is asked, answered, then lost by the report that
@@ -151,14 +167,14 @@ export async function stalledOnQ1(
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
 	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
-	const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-	registerCommand495(pi as unknown as ExtensionAPI, session);
+	const session = new ExtensionSession(pi.host());
+	registerCommand495(pi.host(), session);
 	const ctx = new FakeContext(cwd, "rpc", sessionId);
-	session.openedAt(ctx as unknown as ExtensionContext);
+	session.openedAt(ctx.asCommand());
 	// `start` conducts the change itself (`conduct` -> `advance` then `presentDecisions`): the fake UI
 	// already answers Q1 there, so no separate `/495 decide` is needed. What it does not do is drive
 	// `advance` again on the answer just given; `resume` does, reaching the round that loses it.
-	await pi.command!("start x", ctx as unknown as ExtensionCommandContext);
+	await pi.run("start x", ctx);
 	if (!session.binding) throw new Error(`start did not bind: ${pi.said.join(" | ")}`);
 	const changeId = session.binding.change_id;
 	assert.ok(
@@ -168,7 +184,7 @@ export async function stalledOnQ1(
 			.state.open_questions.find((q) => q.id === "q1")?.answer,
 		pi.said.join(" | "),
 	);
-	await pi.command!("resume", ctx as unknown as ExtensionCommandContext);
+	await pi.run("resume", ctx);
 	const state = session.runtime().ledger.loadChange(changeId)!.state;
 	assert.equal(state.status, "blocked", pi.said.join(" | "));
 	assert.equal(state.stop_reason, "stagnation", pi.said.join(" | "));

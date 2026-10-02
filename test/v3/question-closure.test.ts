@@ -8,7 +8,7 @@
 import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { registerTool495 } from "../../src/extension/tool.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
@@ -48,12 +48,12 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const cwd = project();
 		process.env.HARNESS495_DATA_DIR = join(root, "data-unbound");
 		const pi = new FakePi();
-		const session = new ExtensionSession(pi as unknown as ExtensionAPI);
-		registerCommand495(pi as unknown as ExtensionAPI, session);
+		const session = new ExtensionSession(pi.host());
+		registerCommand495(pi.host(), session);
 		const ctx = new FakeContext(cwd, "rpc", "s-unbound");
-		session.openedAt(ctx as unknown as ExtensionContext);
+		session.openedAt(ctx.asCommand());
 		try {
-			await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close q1", ctx);
 			assert.ok(
 				pi.said.some((m) => m === "no binding"),
 				pi.said.join(" | "),
@@ -67,7 +67,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const cwd = project();
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd);
 		try {
-			await pi.command!("close", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close", ctx);
 			assert.ok(
 				pi.said.some((m) => m.includes("usage: /495 close")),
 				pi.said.join(" | "),
@@ -84,7 +84,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		try {
 			session.busy = true;
 			try {
-				await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+				await pi.run("close q1", ctx);
 			} finally {
 				session.busy = false;
 			}
@@ -109,7 +109,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.equal(session.lang(), "en");
 			session.busy = true;
 			try {
-				await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+				await pi.run("close q1", ctx);
 			} finally {
 				session.busy = false;
 			}
@@ -154,7 +154,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 				return advance(...args);
 			};
 
-			await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close q1", ctx);
 
 			assert.equal(busyDuringConfirm, true, "busy is held while the confirmation is put to the owner");
 			assert.deepEqual(
@@ -177,7 +177,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const { pi, session, changeId } = await stalledOnQ1(root, cwd);
 		try {
 			const jsonCtx = new FakeContext(cwd, "json", "s-question-closure");
-			await pi.command!("close q1", jsonCtx as unknown as ExtensionCommandContext);
+			await pi.run("close q1", jsonCtx);
 			assert.ok(
 				pi.said.some((m) => /human origin|provenance humaine/.test(m)),
 				pi.said.join(" | "),
@@ -195,7 +195,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const { pi, session, changeId } = await stalledOnQ1(root, cwd);
 		try {
 			const refusing = new FakeContext(cwd, "rpc", "s-question-closure", false);
-			await pi.command!("close q1", refusing as unknown as ExtensionCommandContext);
+			await pi.run("close q1", refusing);
 			assert.equal(refusing.confirmations, 1, "the closure is put to the owner before anything is inscribed");
 			const state = session.runtime().ledger.loadChange(changeId)!.state;
 			assert.equal(state.open_questions.find((q) => q.id === "q1")?.closed_at, null, "nothing is inscribed");
@@ -209,7 +209,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const cwd = project();
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd);
 		try {
-			await pi.command!("close not-a-question", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close not-a-question", ctx);
 			assert.ok(
 				pi.said.some((m) => m.includes("495 error:") && m.includes("UNKNOWN_REFERENCE")),
 				pi.said.join(" | "),
@@ -223,7 +223,7 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 		const cwd = project();
 		const { pi, session, ctx, changeId } = await stalledOnQ1(root, cwd);
 		try {
-			await pi.command!("close q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("close q1", ctx);
 			assert.ok(!pi.said.some((m) => m.startsWith("495 error:")), pi.said.join(" | "));
 			const state = session.runtime().ledger.loadChange(changeId)!.state;
 			const q1 = state.open_questions.find((q) => q.id === "q1")!;

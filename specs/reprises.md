@@ -595,7 +595,7 @@ Statut : versée
 
 ## R71 — Les tests de l'extension passent par des doubles typés de Pi
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v3/*.test.ts : 65 as unknown as ExtensionAPI / ExtensionContext / ExtensionCommandContext (model-select 18, resume 15, question-closure 13, answer-revocation 11…) et 36 pi.command!(…)
 - Constat : ExtensionSession et registerCommand495 prennent l'ExtensionAPI entière (session.ts:92, command.ts:36) ; FakePi et FakeContext sont partiels, chaque site d'appel caste.

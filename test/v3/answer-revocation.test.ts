@@ -6,7 +6,6 @@
  */
 import { strict as assert } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
 	ASKS_Q1,
 	FakeContext,
@@ -84,7 +83,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 			const interventions = ledger.loadChange(changeId)!.state.interventions.length;
 			const presented = ctx.selections.length;
 
-			await pi.command!("revoke q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("revoke q1", ctx);
 
 			assert.deepEqual(
 				ctx.selections
@@ -117,7 +116,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		process.env.HARNESS495_LANGUAGE = "en";
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd, SESSION);
 		try {
-			await pi.command!("revoke q1", ctx as unknown as ExtensionCommandContext);
+			await pi.run("revoke q1", ctx);
 
 			assert.equal(ctx.confirmations, 1);
 			assert.match(ctx.confirmed[0]!, /asked again/, "the confirmation says the question will be asked again");
@@ -131,9 +130,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		const { pi, session, changeId } = await stalledOnQ1(root, cwd, SESSION);
 		try {
 			const printing = new FakeContext(cwd, "print", SESSION);
-			const printed = await new CapturedStandardOutput().during(() =>
-				pi.command!("revoke q1", printing as unknown as ExtensionCommandContext),
-			);
+			const printed = await new CapturedStandardOutput().during(() => pi.run("revoke q1", printing));
 			assert.match(printed, /human origin|provenance humaine/);
 			assertNothingInscribed(session, changeId);
 		} finally {
@@ -145,7 +142,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		const { pi, session, changeId } = await stalledOnQ1(root, cwd, SESSION);
 		try {
 			const refusing = new FakeContext(cwd, "rpc", SESSION, false);
-			await pi.command!("revoke q1", refusing as unknown as ExtensionCommandContext);
+			await pi.run("revoke q1", refusing);
 			assert.equal(refusing.confirmations, 1, "the revocation is put to the owner before anything is inscribed");
 			assertNothingInscribed(session, changeId);
 		} finally {
@@ -159,16 +156,16 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 			const rt = session.runtime();
 			// The stop lifted without a conduct: the change is ready, and a conduct would run its
 			// specification again.
-			rt.harness.resume(changeId, session.humanOrigin(ctx as unknown as ExtensionCommandContext)!.actor);
+			rt.harness.resume(changeId, session.humanOrigin(ctx.asCommand())!.actor);
 			const ready = rt.ledger.loadChange(changeId)!;
 			assert.deepEqual([ready.state.phase, ready.state.status], ["clarifying", "ready"]);
 
 			const declining = new FakeContext(cwd, "rpc", SESSION, false);
-			await pi.command!("revoke q1", declining as unknown as ExtensionCommandContext);
+			await pi.run("revoke q1", declining);
 			assert.equal(declining.confirmations, 1, "the revocation is put to the owner, who declines it");
 			assert.equal(rt.ledger.loadChange(changeId)!.revision, ready.revision, "a declined revocation conducts nothing");
 
-			await pi.command!("revoke not-a-question", ctx as unknown as ExtensionCommandContext);
+			await pi.run("revoke not-a-question", ctx);
 			assert.ok(
 				pi.said.some((m) => m.includes("495 error: UNKNOWN_REFERENCE")),
 				pi.said.join(" | "),
@@ -182,7 +179,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 	it("displays the code and the reason of a revocation the kernel refuses (6h)", async () => {
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd, SESSION);
 		try {
-			await pi.command!("revoke not-a-question", ctx as unknown as ExtensionCommandContext);
+			await pi.run("revoke not-a-question", ctx);
 			assert.ok(
 				pi.said.some((m) => m.includes("495 error: UNKNOWN_REFERENCE")),
 				pi.said.join(" | "),
@@ -197,7 +194,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		try {
 			session.busy = true;
 			try {
-				await pi.command!("revoke q1", ctx as unknown as ExtensionCommandContext);
+				await pi.run("revoke q1", ctx);
 			} finally {
 				session.busy = false;
 			}
@@ -216,12 +213,12 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd, SESSION);
 		try {
 			assert.match(pi.description, /\brevoke\b/);
-			await pi.command!("help", ctx as unknown as ExtensionCommandContext);
+			await pi.run("help", ctx);
 			assert.ok(
 				pi.said.some((m) => m.includes("revoke <question>")),
 				pi.said.join(" | "),
 			);
-			await pi.command!("revoke", ctx as unknown as ExtensionCommandContext);
+			await pi.run("revoke", ctx);
 			assert.ok(
 				pi.said.some((m) => m === "usage: /495 revoke <question>"),
 				pi.said.join(" | "),
