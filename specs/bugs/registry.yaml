@@ -1145,39 +1145,6 @@ bugs:
       Have the reader name the files of its passing cases and require one in the positive witness's files, with a
       test on a skipped positive case beside a passing project test.
     status: open
-  - bug_id: BUG-2026-10-02T200100
-    date: "2026-10-02"
-    title: "A change with a candidate on a project whose own test already fails stops at G2, its test sensor refused for a failure the change did not cause"
-    severity: medium
-    priority: p2
-    scope: application
-    what_happened: >
-      `qualifyControlDetailed` in `src/application/qualification.ts` requires the positive witness, a copy of the
-      reference plus a passing witness test, to give PASS. When a test of the project already fails on the
-      reference, the positive witness gives FAIL, the test control is not qualified, and G2 refuses to freeze the
-      protocol: the change blocks with `capability_missing`, "positive witness gave FAIL: greet says goodbye
-      (test/farewell.test.js)". The survey qualifies its test sensor by the witnesses' own cases; a change with a
-      candidate keeps the old rule, so no change can be made on a project that has a red test, although the
-      comparison of the two passes (VER-08) already treats such a failure as preexisting.
-    what_expected: >
-      The change proceeds: a project test that already fails on the reference is an inherited finding that does
-      not block, a test that starts failing blocks, and a test that still fails with another message counts as a
-      new finding (owner's decision, 2026-10-02).
-    steps_to_reproduce:
-      - "In a v2-kernel test, start a change (default deliverable) on `trackedProject` with `fixtureTs` plus `test/farewell.test.js` asserting `greet(\"x\") === \"Goodbye, x\"`, and advance it."
-      - "The change stops in `verification_design`, blocked `capability_missing`, G2 FAIL with \"control unit: positive witness gave FAIL, expected PASS\"."
-    root_cause: >
-      The witnesses qualify the sensor through the verdict of the whole run, which mixes the project's own result
-      with the witness's.
-    evidence: >
-      Reproduced on main at 71178db with a throwaway probe test, removed afterwards.
-    risk_level: medium
-    follow_ups: >
-      Decided by the owner on 2026-10-02: 495 changes a project whose suite is already red. Qualify the test sensor
-      by the witnesses' cases for every change, as the survey does; let the failure message enter the comparison of
-      the two passes, so a test failing otherwise is new; fix BUG-2026-10-02T190000 in the same correction, since
-      the reading it weakens then judges every change.
-    status: open
   - bug_id: BUG-2026-10-02T230000
     date: "2026-10-02"
     title: "The blind-spot list of a survey's report names only controls and says none while a requirement is a blind spot"
