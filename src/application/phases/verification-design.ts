@@ -460,8 +460,6 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			requirement_refs: refs,
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 			complements,
-			// A survey answers for a project whose own test may fail: that failure is a finding, not a sensor that cannot tell.
-			by_cases: surveysTheProject(unit.state),
 		});
 		diagnosis = diagnose(detection, requirements.content, reference, prepared, qualified.observation);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))

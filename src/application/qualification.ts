@@ -22,12 +22,6 @@ export interface QualificationFixtures {
 	 */
 	positive_files?: Record<string, string>;
 	negative_files?: Record<string, string>;
-	/**
-	 * The witnesses are judged by their own cases rather than by the run's verdict, wherever the
-	 * parser reports cases: a test of the project that fails in every copy of the reference then does
-	 * not hide whether the sensor tells a passing case from a failing one.
-	 */
-	by_cases?: boolean;
 }
 
 export interface DetailedQualification {
@@ -46,10 +40,12 @@ function technicalDetail(evidence: EvidenceCandidate): string {
 }
 
 /**
- * What the witnesses' own cases gave, read off a parser that reports cases and locates its failures,
- * or null when it does not. The positive witness's case passed when the run reports passing cases and
- * no failure in a file the positive witness wrote; the negative witness's case failed when a failure
- * is located in a file only the negative witness wrote.
+ * What the witnesses' own cases gave, read off a parser that names its passing cases and locates its
+ * failures, or null when it does not, or when a witness wrote no file its case could be read in. The
+ * positive witness's case passed when a passing case is one a file the positive witness wrote
+ * declares, by its name, and no failure is located in such a file: a passing case of the project
+ * does not stand for it. The negative witness's case failed when a failure is located in a file only
+ * the negative witness wrote.
  */
 function witnessCases(
 	positive: EvidenceCandidate,
@@ -59,12 +55,17 @@ function witnessCases(
 	if (typeof positive.facts.pass !== "number" || typeof negative.facts.pass !== "number") return null;
 	const positiveFiles = new Set(Object.keys(fixtures.positive_files ?? {}));
 	const negativeOnly = new Set(Object.keys(fixtures.negative_files ?? {}).filter((path) => !positiveFiles.has(path)));
+	if (positiveFiles.size === 0 || negativeOnly.size === 0) return null;
 	const inFiles = (evidence: EvidenceCandidate, files: Set<string>) =>
 		evidence.findings.some((f) => f.path !== null && files.has(f.path));
+	const witnessTexts = Object.values(fixtures.positive_files ?? {});
+	const passingCases = positive.facts.passing_cases;
+	const witnessPassed =
+		Array.isArray(passingCases) &&
+		passingCases.some((name) => witnessTexts.some((text) => text.includes(JSON.stringify(name))));
 	const reports = (evidence: EvidenceCandidate) => evidence.verdict === "PASS" || evidence.verdict === "FAIL";
 	return {
-		positive:
-			reports(positive) && positive.facts.pass > 0 && !inFiles(positive, positiveFiles) ? "PASS" : positive.verdict,
+		positive: reports(positive) && witnessPassed && !inFiles(positive, positiveFiles) ? "PASS" : positive.verdict,
 		negative: !reports(negative)
 			? negative.verdict
 			: inFiles(negative, negativeOnly) && !inFiles(negative, positiveFiles)
@@ -107,7 +108,10 @@ export async function qualifyControlDetailed(
 		{ ...control, command: ["/nonexistent/495-broken-runner", ...control.command.slice(1)] },
 		fixtures.positive_files ?? {},
 	);
-	const cases = fixtures.by_cases ? witnessCases(positiveEvidence, negativeEvidence, fixtures) : null;
+	// The witnesses are judged by their own cases rather than by the run's verdict, wherever the parser
+	// reports cases: a test of the project that fails in every copy of the reference then does not hide
+	// whether the sensor tells a passing case from a failing one.
+	const cases = witnessCases(positiveEvidence, negativeEvidence, fixtures);
 	const positive = cases?.positive ?? positiveEvidence.verdict;
 	const negative = cases?.negative ?? negativeEvidence.verdict;
 	const incident = incidentEvidence.verdict;

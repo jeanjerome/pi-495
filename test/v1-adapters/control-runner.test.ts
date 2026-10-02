@@ -39,6 +39,40 @@ function control(over: Partial<ControlDefinition> = {}): ControlDefinition {
 	});
 }
 
+/** A node:test file with one case, `name`, which holds or not. */
+const caseOf = (name: string, holds: boolean) =>
+	`import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("${name}", () => { assert.equal(1, ${holds ? 1 : 2}); });\n`;
+const POSITIVE = "test/495-positive-witness.test.js";
+const NEGATIVE = "test/495-negative-witness.test.js";
+
+/**
+ * Qualifies the test control by the witnesses' cases, in witness workspaces on F-TS whose own test
+ * `test/farewell.test.js` fails, plus `reference`.
+ */
+async function qualifyByCases(
+	positiveFiles: Record<string, string>,
+	negativeFiles: Record<string, string>,
+	reference: Record<string, string> = {},
+): Promise<Qualification> {
+	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const pos = mkdtempSync(join(root, "pos-"));
+	const neg = mkdtempSync(join(root, "neg-"));
+	for (const [ws, files] of [
+		[pos, positiveFiles],
+		[neg, negativeFiles],
+	] as const) {
+		fixtureTs(ws);
+		writeFiles(ws, { "test/farewell.test.js": caseOf("greet says goodbye", false), ...reference, ...files });
+	}
+	return qualifyControl(
+		runner,
+		control(),
+		{ positive_path: pos, negative_path: neg, positive_files: positiveFiles, negative_files: negativeFiles },
+		base(),
+	);
+}
+const verdicts = (q: Qualification) => [q.positive, q.negative, q.qualified];
+
 /**
  * Installs `stand` in a new workspace under the test root and runs `control` there through `runner`,
  * on the lines `introduced` when given.
@@ -91,6 +125,24 @@ describe("parsers (VER-02, RM-016, RM-017, SA-014)", () => {
 			"ok 1 - passes\n  ---\n  type: 'test'\n  ...\nnot ok 2 - greet says goodbye\n  ---\n  location: '/ws/test/farewell.test.js:5:1'\n  ...\nnot ok 3 - unlocated\n# tests 3\n# pass 1\n# fail 2\n",
 		);
 		assert.deepEqual(located.failures, ["greet says goodbye (/ws/test/farewell.test.js)", "unlocated"]);
+	});
+	it("node-test TAP: a failing test is followed by the message it reports, from a block or a quoted error field", () => {
+		const described = parseNodeTestTap(
+			obs({ exit_code: 1 }),
+			"not ok 1 - farewell says goodbye\n  ---\n  location: '/ws/test/farewell.test.js:5:1'\n  error: |-\n    Expected values to be strictly equal:\n    \n    + 'Bye, x'\n    - 'Goodbye, x'\n  code: 'ERR_ASSERTION'\n  ...\nnot ok 2 - throws\n  ---\n  error: 'it''s broken'\n  ...\nnot ok 3 - last\n  ---\n  error: |-\n    at the end\n# tests 3\n# pass 0\n# fail 3\n",
+		);
+		assert.deepEqual(described.failures, [
+			"farewell says goodbye (/ws/test/farewell.test.js): Expected values to be strictly equal: + 'Bye, x' - 'Goodbye, x'",
+			"throws: it's broken",
+			"last: at the end",
+		]);
+	});
+	it("node-test TAP: a passing case is named, and a skipped or todo case, a suite and a file without cases are not", () => {
+		const named = parseNodeTestTap(
+			obs(),
+			"ok 1 - test/empty.test.js\nok 2 - passes\n  ---\n  type: 'test'\n  ...\nok 3 - skipped # SKIP\n  ---\n  type: 'test'\n  ...\nok 4 - later # TODO\n  ---\n  type: 'test'\n  ...\n    ok 1 - inner\n      ---\n      type: 'test'\n      ...\nok 5 - suite\n  ---\n  type: 'suite'\n  ...\n# tests 5\n# pass 3\n# fail 0\n# skipped 1\n# todo 1\n",
+		);
+		assert.deepEqual(named.facts.passing_cases, ["passes", "inner"]);
 	});
 	it("node-test TAP: a test file that declares no case is not counted as a test", () => {
 		const caseless = parseNodeTestTap(obs(), "ok 1 - test/greet.test.js\n# tests 1\n# pass 1\n# fail 0\n");
@@ -271,41 +323,6 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 		assert.match(qi.notes[0] ?? "", /before producing any test report/);
 	});
 	it("qualification by the witnesses' cases tells a passing case from a failing one beside a failing project test", async () => {
-		const caseOf = (name: string, holds: boolean) =>
-			`import { test } from "node:test";\nimport { strict as assert } from "node:assert";\ntest("${name}", () => { assert.equal(1, ${holds ? 1 : 2}); });\n`;
-		const POSITIVE = "test/495-positive-witness.test.js";
-		const NEGATIVE = "test/495-negative-witness.test.js";
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
-		/** Witness workspaces on a reference whose own test `test/farewell.test.js` fails, plus `reference`. */
-		const qualifyByCases = async (
-			positiveFiles: Record<string, string>,
-			negativeFiles: Record<string, string>,
-			reference: Record<string, string> = {},
-		) => {
-			const pos = mkdtempSync(join(root, "pos-"));
-			const neg = mkdtempSync(join(root, "neg-"));
-			for (const [ws, files] of [
-				[pos, positiveFiles],
-				[neg, negativeFiles],
-			] as const) {
-				fixtureTs(ws);
-				writeFiles(ws, { "test/farewell.test.js": caseOf("greet says goodbye", false), ...reference, ...files });
-			}
-			return qualifyControl(
-				runner,
-				control(),
-				{
-					positive_path: pos,
-					negative_path: neg,
-					positive_files: positiveFiles,
-					negative_files: negativeFiles,
-					by_cases: true,
-				},
-				base(),
-			);
-		};
-		const verdicts = (q: Qualification) => [q.positive, q.negative, q.qualified];
-
 		const sound = await qualifyByCases(
 			{ [POSITIVE]: caseOf("positive", true) },
 			{ [NEGATIVE]: caseOf("negative", false) },
@@ -348,6 +365,21 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 			{ [POSITIVE]: caseOf("positive", false), [NEGATIVE]: caseOf("negative", false) },
 		);
 		assert.deepEqual(verdicts(bothFail), ["PASS", "PASS", false]);
+	});
+	it("un témoin positif dont l'unique cas est sauté, à côté de test/greet.test.js qui passe et de test/farewell.test.js qui échoue, n'est pas un PASS : la qualification est [FAIL, FAIL, non qualifié] et porte la note positive witness gave FAIL", async () => {
+		const skipped = await qualifyByCases(
+			{ [POSITIVE]: 'import { test } from "node:test";\ntest.skip("positive", () => {});\n' },
+			{ [NEGATIVE]: caseOf("negative", false) },
+		);
+		assert.deepEqual(
+			verdicts(skipped),
+			["FAIL", "FAIL", false],
+			`the passing case of test/greet.test.js does not stand for the positive witness's: ${JSON.stringify(skipped.notes)}`,
+		);
+		assert.ok(
+			skipped.notes.some((n) => n.startsWith("positive witness gave FAIL")),
+			`the qualification carries the note positive witness gave FAIL: ${JSON.stringify(skipped.notes)}`,
+		);
 	});
 	it("an established qualification is reused for the same sensor, never across a changed sensor or environment", () => {
 		const qualified: Qualification = {

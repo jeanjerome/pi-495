@@ -98,8 +98,6 @@ export interface QualifyInput {
 	prior_protocol_refs: readonly { artifact_id: string; revision: number }[];
 	/** The complements the owner had applied: each witness copy carries them, as the positive one does. */
 	complements: readonly AdoptedComplement[];
-	/** The witnesses are judged by their own cases, as a survey judges them, rather than by the run's verdict. */
-	by_cases: boolean;
 }
 
 export interface QualificationOutcome {
@@ -262,7 +260,6 @@ export class VerificationCoordinator {
 							negative_path: ownHandle?.path ?? negative.path,
 							positive_files: input.witnesses.positive,
 							negative_files: negativeFiles,
-							by_cases: input.by_cases,
 						},
 						base,
 						producers,

@@ -371,7 +371,6 @@ describe("the workspaces of a qualification, once a complement is adopted", () =
 			requirement_refs: [],
 			prior_protocol_refs: [],
 			complements: [complement],
-			by_cases: false,
 		});
 	}
 

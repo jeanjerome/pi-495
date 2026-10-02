@@ -1207,3 +1207,61 @@ bugs:
       Gather the requirements' blind spots into the list, with a report test on a survey whose only blind spot is a
       requirement.
     status: open
+  - bug_id: BUG-2026-10-02T234700
+    date: "2026-10-02"
+    title: "The node --test reader keeps the name of every passing case in the evidence facts, without bound"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      Introduced by the branch that judges the positive witness by its own case. `parseNodeTestTap` in
+      `src/adapters/execution/parsers.ts` collects the name of every passing case into `facts.passing_cases`, and
+      the runner copies the facts into every evidence of the test control, reference and candidate passes included.
+      The failures beside them are capped at `MAX_FAILURES`; the passing cases are not. Only the qualification reads
+      the list, and only to find the positive witness's case.
+    what_expected: >
+      The evidence of a test control stays bounded whatever the size of the project's suite, while the
+      qualification can still tell whether the positive witness's own case passed.
+    steps_to_reproduce:
+      - "Parse with `parseNodeTestTap` a TAP stream of 3000 passing cases, each followed by `type: 'test'`."
+      - "`facts.passing_cases` holds 3000 names and the serialised facts weigh 131 036 bytes, carried by each evidence of the control."
+    root_cause: >
+      The reader cannot know which case is the witness's, so it reports them all, and the facts it returns are the
+      ones every evidence stores.
+    evidence: >
+      Measured on the branch with a throwaway script calling `parseNodeTestTap`, removed afterwards.
+    risk_level: low
+    follow_ups: >
+      Bound what the evidence keeps, for instance by letting the qualification ask the reader for the cases of the
+      witness files only, or by capping the list in a way that cannot drop the witness's case; with a test on a
+      large passing suite.
+    status: open
+  - bug_id: BUG-2026-10-03T090000
+    date: "2026-10-03"
+    title: "The positive witness's case is recognised by a passing case name found anywhere in the witness text, not only in its title"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Introduced by the branch that judges the positive witness by its own case. `witnessCases` in
+      `src/application/qualification.ts` takes the positive witness's case as passed when the name of any passing
+      case, quoted with `JSON.stringify`, occurs anywhere in a file the positive witness writes. The node:test
+      witness of `src/application/stacks/node.ts` also carries the double-quoted literals `"node:test"` and
+      `"node:assert"` in its imports, so a project case named `node:test` or `node:assert` that passes would stand
+      for a witness whose own case did not pass.
+    what_expected: >
+      Only a passing case whose name is the title of a case the positive witness declares stands for the witness.
+    steps_to_reproduce:
+      - "Qualify the node:test sensor on a project with a passing case titled `node:test`, and a positive witness whose only case is skipped."
+      - "`passing_cases` holds `node:test`, the witness text contains `\"node:test\"`, and the positive witness is judged PASS."
+    root_cause: >
+      The match is a substring search over the whole witness text, which knows nothing of where a case title sits.
+    evidence: >
+      Read on the branch: the node:test witness source in `nodeTestWitnesses` and the `text.includes(JSON.stringify(name))`
+      match in `witnessCases`. The case is contrived; the story's scenario, a witness whose only case is skipped
+      beside a passing project test, is held.
+    risk_level: low
+    follow_ups: >
+      Let the stack name the titles its positive witness declares and match the passing cases against those, with a
+      test on a project case named after an import of the witness.
+    status: open
