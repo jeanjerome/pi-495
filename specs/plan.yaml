@@ -210,7 +210,7 @@ epics:
 
   - id: e06
     title: "Inventaire des cas particuliers d'un arbre"
-    status: à faire
+    status: versé
     source: chantiers/H
     objet: >
       L'inventaire d'un arbre traite le sous-module et le fichier spécial, et la revue ne dépend plus
