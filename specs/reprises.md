@@ -476,7 +476,7 @@ Statut : écartée — La compilation dément le constat : Pi déclare renderCal
 
 ## R58 — Le commentaire orphelin des options de l'exécuteur est retiré
 
-Statut : à faire
+Statut : versée
 
 - Où : src/adapters/execution/runner.ts:42-45
 - Constat : RunnerOptions se termine par un doc-commentaire (« Absolute paths never readable… ») qui ne documente aucun champ.

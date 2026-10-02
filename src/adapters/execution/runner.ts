@@ -42,7 +42,6 @@ import { analyzeJavaStructure, readJavaSources } from "./structure.ts";
 
 export interface RunnerOptions {
 	max_output_bytes: number;
-	/** Absolute paths never readable by controls (data dir); passed to the sandbox at construction. */
 }
 
 /**
