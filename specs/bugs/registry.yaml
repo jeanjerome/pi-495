@@ -1030,3 +1030,58 @@ bugs:
     follow_ups: >
       Draw one correlation id at the start of `pause()`, with a test that reads both rows.
     status: open
+  - bug_id: BUG-2026-10-02T140000
+    date: "2026-10-02"
+    title: "Two Pi sessions opening the same data directory at once often fail to create the 495 runtime"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      Two processes that open `SqliteLedger` on the same `state.sqlite` at the same instant fail with
+      `ERR_SQLITE_ERROR`: most often `database is locked`, sometimes `UNIQUE constraint failed:
+      schema_migrations.version`. In Pi this surfaces as "the 495 runtime cannot be created", on a new data
+      directory and on an existing one alike.
+    what_expected: >
+      Both sessions open the ledger, one waiting for the other, and the schema is migrated once.
+    steps_to_reproduce:
+      - "Start two Node processes that each run `new SqliteLedger(<same path>).close()` at the same time, fifteen times on fresh directories."
+      - "18 of the 30 opens failed with `database is locked`, and one with the UNIQUE constraint on `schema_migrations.version`."
+    root_cause: >
+      In the `SqliteLedger` constructor (`src/adapters/storage-sqlite/ledger.ts`), `PRAGMA journal_mode = WAL` and
+      `PRAGMA synchronous = FULL` run before `PRAGMA busy_timeout = 5000`, so the connection gives up at once on a
+      lock the other one holds; and `migrate()` checks and applies a version outside a single write transaction,
+      so both processes can apply the same version.
+    evidence: >
+      Seen during the acceptance runs of the lease work, on main 3f8f635 and on the branch alike, and reproduced on
+      main 51080e6 with the two-process script above.
+    risk_level: low
+    follow_ups: >
+      Set `busy_timeout` before any other pragma and run the migration check and apply in one `BEGIN IMMEDIATE`
+      transaction, with a test that opens the ledger from two processes at once.
+    status: open
+  - bug_id: BUG-2026-10-02T140100
+    date: "2026-10-02"
+    title: "Pausing one's own running intervention reports a REVISION_CONFLICT step although the change is paused as asked"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `/495 pause` in the session whose intervention is running pauses the change, and the reply lists among its
+      steps `clarifying: REVISION_CONFLICT aggregate <change> is at revision 9, expected 6`. The conflict is the one
+      the pause itself causes under the running step, which `advance` already recognises and stops on without
+      writing; nothing wrong is written to the journal, but the owner reads a storage error.
+    what_expected: >
+      The reply of a pause says the change is paused, without a storage error the pause caused.
+    steps_to_reproduce:
+      - "Drive a change in one Pi session with a scripted agent whose intervention keeps running."
+      - "Type `/495 pause` in that session: the reply carries the REVISION_CONFLICT step line."
+    root_cause: >
+      `advance` in `src/application/harness.ts` pushes the error of the failing step into `steps` before it reads that
+      the conflict comes from a pause, and the steps are shown to the owner.
+    evidence: >
+      Seen in the acceptance runs of the lease work, on main 3f8f635 with one session and on the branch at ad87139 and
+      f23a9cc (`~/.495-campagnes/e09s01-p0-*/driver.log`, `logs/e09s01-f23a9cc/p1-tete.out`).
+    risk_level: low
+    follow_ups: >
+      Leave the conflict out of the steps when the change is found stopped by the act that caused it.
+    status: open

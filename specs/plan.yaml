@@ -234,7 +234,7 @@ epics:
 
   - id: e09
     title: "État d'arrêt et session conductrice"
-    status: à faire
+    status: versé
     source: chantiers/M
     objet: >
       Clore une intervention ne rend plus prêt un changement bloqué, et une seule session conduit un
