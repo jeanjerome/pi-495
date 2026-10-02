@@ -86,8 +86,8 @@ fichier sous une racine reste refusée. Le test existant « a producer that impl
 inside the preparation, or writes outside test/, is refused » est réécrit sur le second scénario :
 sa promesse s'inverse.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path »
 - Rouge : `prepare` n'adopte la suite que si `out_of_scope` est vide ; la préparation est refusée sur « change outside the preparation mandate refused: .verify-scratch/run.log » et un second essai est ouvert
 
 ### Tâche 2 — Le mandat dit ce qui est retenu
@@ -95,8 +95,8 @@ sa promesse s'inverse.
 L'objectif du mandat de préparation dit que seuls les fichiers sous les racines de test seront
 retenus, et que ce qui est écrit ailleurs pour se vérifier est ignoré.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « the preparation objective says only files under its roots are retained and anything written elsewhere is ignored »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « the preparation objective says only files under its roots are retained and anything written elsewhere is ignored »
 - Rouge : `preparationMandateObjective` écrit « only files under … may be created or modified »
 
 ### Tâche 3 — Un contrôle qui ne lance rien n'est pas présenté comme une commande
@@ -104,8 +104,8 @@ retenus, et que ce qui est écrit ailleurs pour se vérifier est ignoré.
 La consigne de vérification d'un rôle qui écrit ne nomme comme commande à lancer que celles qui
 exécutent quelque chose ; un contrôle qui lit un rapport ou le code y est nommé avec ce qu'il lit.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e »
 - Rouge : `buildContext` rend « `<node> -e ` in the workspace root (coverage) » et la même chose pour structure
 
 ### Tâche 4 — Le producteur reçoit l'environnement des contrôles
@@ -113,8 +113,8 @@ exécutent quelque chose ; un contrôle qui lit un rapport ou le code y est nomm
 Le profil des rôles `prepare` et `implement` laisse passer les variables que les contrôles de la
 cible reçoivent ; celui des rôles qui lisent ne change pas.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not »
 - Rouge : `profileFor` rend `env_allowlist: ["PATH", "HOME", "TMPDIR", "LANG"]` pour tous les rôles
 
 ### Tâche 5 — La décision est écrite

@@ -119,8 +119,8 @@ Scenario: Avec un vrai modèle, une cible en vitest passe G2 et le changement va
 l'endroit qu'il déclare, le fait lire par le lecteur JUnit, porte la provenance dans son titre, et
 ne déclare en écriture que ce rapport et le répertoire temporaire de Vite.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title »
 - Rouge : `detectNodeStack` déclare `unit` comme `node --test --test-reporter=tap`, lu par `node-test`, quelle que soit `scripts.test`
 
 ### Tâche 2 — Le contrôle de vitest protège la configuration de vitest
@@ -128,8 +128,8 @@ ne déclare en écriture que ce rapport et le répertoire temporaire de Vite.
 Le contrôle `unit` de vitest ajoute les fichiers de configuration de vitest et de Vite à ses chemins
 protégés.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a vitest target, then its unit control protects tests/, package.json and the vitest and vite configuration files »
 - Rouge : le contrôle `unit` d'une cible Node ne protège que `test/`, `tests/` et `package.json`, et aucun contrôle vitest n'existe
 
 ### Tâche 3 — Un lanceur inconnu est refusé, node:test reste pour le reste
@@ -138,8 +138,8 @@ Quand `scripts.test` est présent et n'est ni `node --test …` ni `vitest [run]
 déclare pas de contrôle `unit` et nomme le lanceur dans la capacité manquante. Sans `scripts.test`,
 ou avec `node --test`, le contrôle node:test est inchangé.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest » et « given no scripts.test, or node --test, then unit is the node:test control »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given scripts.test is jest, when the stack is detected, then no unit control is declared and the missing capability names jest » et « given no scripts.test, or node --test, then unit is the node:test control »
 - Rouge : `detectNodeStack` déclare `unit` en node:test pour une cible dont `scripts.test` vaut `jest` et ne déclare aucune capacité manquante
 
 ### Tâche 4 — Les témoins de vitest sont des tests vitest
@@ -147,8 +147,8 @@ ou avec `node --test`, le contrôle node:test est inchangé.
 Pour une cible vitest, le témoin positif et le témoin négatif sont des fichiers de test qui importent
 `vitest`, placés dans le dossier de tests de la cible (`tests/` s'il existe, sinon `test/`).
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing »
 - Rouge : les témoins de l'adaptateur Node importent `node:test` et vivent sous `test/`, que vitest ne lit pas quand la cible fixe `include` sur `tests/`
 
 ### Tâche 5 — L'exécuteur lit ce que vitest écrit
@@ -157,8 +157,8 @@ Le contrôle dérivé, exécuté par l'exécuteur de contrôles contre un progra
 les rapports JUnit enregistrés depuis vitest 5.0.0 (vert, en échec, absent), rend PASS, FAIL
 nommant le test, INDETERMINATE.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the derived vitest control run against a recorded vitest report, then the evidence is PASS for a green report, FAIL naming the failed case for a failing one, and INDETERMINATE when no report is written »
 - Rouge : la détection ne dérive aucun contrôle vitest, donc la commande exécutée est `node --test` et le programme de remplacement n'est jamais lancé
 
 ### Tâche 6 — La copie garde le dist/ d'une dépendance
@@ -166,8 +166,8 @@ nommant le test, INDETERMINATE.
 Un motif d'exclusion qui nomme un seul dossier ne s'applique pas sous `node_modules/`. Il retire
 toujours le `dist/`, le `target/` ou le `build/` du projet, à la racine comme dans un module.
 
-- Vérifie : `node --test test/v2/workspace.test.ts`
-- Tient : `test/v2/workspace.test.ts`, « given the default exclusions, then a copy keeps node_modules/vitest/dist/index.js and drops dist/index.js and module/target/classes »
+- Vérifie : `node --test test/v2-kernel/workspace.test.ts`
+- Tient : `test/v2-kernel/workspace.test.ts`, « given the default exclusions, then a copy keeps node_modules/vitest/dist/index.js and drops dist/index.js and module/target/classes »
 - Rouge : `isExcluded("node_modules/vitest/dist/index.js", ["dist/"])` rend `true`, et la copie ne porte pas ce fichier
 
 ### Tâche 7 — Le README dit ce que l'adaptateur Node lit
@@ -185,8 +185,8 @@ tout autre lanceur est refusé en étant nommé.
 Le contrôle unit de vitest écrit son rapport à un endroit que la sandbox de vérification le laisse
 créer, dossier parent compris, et le déclare en écriture.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output, then the report is read and the verdict is PASS »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output, then the report is read and the verdict is PASS »
 - Rouge : le contrôle déclare `target/495-vitest/junit.xml` avec `target/495-vitest` en écriture ; `target/` n'existe pas dans la copie, la sandbox refuse de créer ce dossier parent et le programme de remplacement s'arrête avant d'écrire, si bien que le verdict n'est pas PASS
 
 ### Tâche 9 — Un fichier de dépendance au-dessus du plafond est observé
@@ -194,24 +194,24 @@ créer, dossier parent compris, et le déclare en écriture.
 Sous `node_modules/`, l'observation d'un fichier n'est pas bornée par le plafond de taille par fichier ;
 hors de `node_modules/`, le plafond reste.
 
-- Vérifie : `node --test test/v2/workspace.test.ts`
-- Tient : `test/v2/workspace.test.ts`, « given a node_modules file above the file limit, when the candidate is observed, then its entry carries a digest and the limits note no excess, while the same file outside node_modules is still noted »
+- Vérifie : `node --test test/v2-kernel/workspace.test.ts`
+- Tient : `test/v2-kernel/workspace.test.ts`, « given a node_modules file above the file limit, when the candidate is observed, then its entry carries a digest and the limits note no excess, while the same file outside node_modules is still noted »
 - Rouge : `walkTree` note `node_modules/x/big.node exceeds 8388608 bytes`, n'en prend pas l'empreinte et marque l'observation tronquée
 
 ### Tâche 10 — Le contrôle de vitest protège les dépendances installées
 
 Le contrôle unit de vitest ajoute `node_modules/` à ses chemins protégés.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a vitest target, then its unit control protects node_modules/ beside the tests, package.json and the configuration files, and a candidate that modifies node_modules/vitest/dist/index.js is refused naming that path »
 - Rouge : les chemins protégés du contrôle unit de vitest ne contiennent pas `node_modules/`, et un candidat qui modifie ce fichier n'est pas refusé
 
 ### Tâche 11 — Le cache de vitest n'est pas une modification de dépendance
 
 Les exclusions par défaut de la copie couvrent `node_modules/.vite/` et `node_modules/.vite-temp/`.
 
-- Vérifie : `node --test test/v2/workspace.test.ts`
-- Tient : `test/v2/workspace.test.ts`, « given the default exclusions, when a candidate rewrites node_modules/.vite/vitest/x/results.json and adds a file under node_modules/.vite-temp/, then its manifest carries neither, while a change to node_modules/vitest/dist/index.js is still in it »
+- Vérifie : `node --test test/v2-kernel/workspace.test.ts`
+- Tient : `test/v2-kernel/workspace.test.ts`, « given the default exclusions, when a candidate rewrites node_modules/.vite/vitest/x/results.json and adds a file under node_modules/.vite-temp/, then its manifest carries neither, while a change to node_modules/vitest/dist/index.js is still in it »
 - Rouge : les exclusions par défaut ne nomment aucun de ces deux répertoires, et le manifeste du candidat porte `node_modules/.vite/vitest/x/results.json` comme fichier modifié, que G4 refuse comme chemin protégé
 
 ### Tâche 12 — Un fichier ajouté sous une dépendance est refusé
@@ -220,8 +220,8 @@ Sous `node_modules/`, un fichier ajouté est refusé comme un fichier modifié, 
 `tests/` un fichier ajouté reste un test neuf autorisé. Les répertoires `node_modules/.vite/` et
 `node_modules/.vite-temp/` restent hors de l'observation.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a vitest target, when a candidate adds node_modules/vitest/node_modules/tinyrainbow/index.js, which shadows a package the vitest control loads, then it is refused naming that path »
 - Rouge : `protectedPathsChanged` range un fichier ajouté sous un dossier protégé parmi les ajouts autorisés, si bien que le fichier ajouté sous `node_modules/` n'est pas refusé et que la liste des chemins protégés modifiés reste vide
 
 ## 5. Hors périmètre

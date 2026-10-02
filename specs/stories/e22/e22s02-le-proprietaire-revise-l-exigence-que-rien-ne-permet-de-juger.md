@@ -63,8 +63,8 @@ Scenario: Avec un agent scripté déclaré, une exigence réécrite en comportem
 Le constructeur de demandes de décision ajoute l'option « réviser l'exigence » à IH-04, avec son effet,
 et autorise le texte libre pour cette réponse.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « the IH-04 request offers prepare, assign_review and revise, and accepts a free text for revise »
 - Rouge : `buildDecisionRequest` construit IH-04 avec deux options seulement, et n'autorise le texte libre que pour IH-01, IH-02 et IH-07
 
 ### Tâche 2 — La réponse « réviser » rouvre la spécification avec la consigne du propriétaire
@@ -73,8 +73,8 @@ Une réponse « réviser l'exigence » ramène le changement à la spécificatio
 exigences précédentes avaient adopté, et remet le texte du propriétaire à l'intervention de
 spécification en nommant l'exigence.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold »
 - Rouge : la réponse est enregistrée et rien d'autre ne se passe : le changement reste à la conception de la vérification, et `artifact.revise` exige une révision déjà écrite (`ref`) que le propriétaire ne fournit pas
 
 ### Tâche 3 — Les exigences révisées reçoivent leurs deux préparations
@@ -82,8 +82,8 @@ spécification en nommant l'exigence.
 Les préparations s'ouvrent depuis la dernière révision des exigences, pas depuis la dernière
 révocation : la nouvelle formulation reçoit ses deux tours avant qu'IH-04 soit redemandée.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given requirements revised at the owner's request and still not judgeable, then two preparations open before IH-04 is asked again, on the revision of the new requirements »
 - Rouge : `openPreparation` compte les préparations écrites depuis la dernière révocation d'une question (`proposedSinceRevocation`), et une révision des exigences n'en est pas une : les deux préparations d'avant comptent pour la nouvelle formulation, et IH-04 est redemandée sans qu'aucune préparation s'ouvre
 
 ## 5. Hors périmètre

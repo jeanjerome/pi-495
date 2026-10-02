@@ -56,8 +56,8 @@ de déclarer le contrôle. Un script sans syntaxe de shell garde sa commande. Le
 la commande du lint et le cas inatteignable d'un script vide disparaissent avec la branche du shell,
 et le commentaire de la fonction dit ce que le code fait.
 
-- Vérifie : `node --test test/v1/node-lint.test.ts`
-- Tient : `test/v1/node-lint.test.ts`, « un lint `eslint . && prettier --check .` ne déclare aucun contrôle `lint`, garde le contrôle `unit`, et les capacités manquantes nomment scripts.lint chains commands through a shell » et « un lint `node scripts/lint.js` déclare un contrôle `lint` dont la commande est le binaire Node suivi de `scripts/lint.js`, et aucune capacité manquante ne nomme scripts.lint »
+- Vérifie : `node --test test/v1-adapters/node-lint.test.ts`
+- Tient : `test/v1-adapters/node-lint.test.ts`, « un lint `eslint . && prettier --check .` ne déclare aucun contrôle `lint`, garde le contrôle `unit`, et les capacités manquantes nomment scripts.lint chains commands through a shell » et « un lint `node scripts/lint.js` déclare un contrôle `lint` dont la commande est le binaire Node suivi de `scripts/lint.js`, et aucune capacité manquante ne nomme scripts.lint »
 - Rouge : `commandFromScript` rend `["/bin/sh", "-c", script]` pour un script à syntaxe de shell : la détection déclare un contrôle `lint` et ses capacités manquantes ne nomment pas `scripts.lint`
 
 ### Tâche 2 — Un lint qui n'est pas une chaîne ne fait pas tomber la détection
@@ -65,8 +65,8 @@ et le commentaire de la fonction dit ce que le code fait.
 La détection ne lit `scripts.lint` que s'il est une chaîne, comme elle le fait déjà pour
 `scripts.test` ; sinon la cible n'a pas de lint.
 
-- Vérifie : `node --test test/v1/node-lint.test.ts`
-- Tient : `test/v1/node-lint.test.ts`, « un `scripts.lint` qui vaut 42 laisse la détection déclarer le contrôle `unit` et aucun contrôle `lint` »
+- Vérifie : `node --test test/v1-adapters/node-lint.test.ts`
+- Tient : `test/v1-adapters/node-lint.test.ts`, « un `scripts.lint` qui vaut 42 laisse la détection déclarer le contrôle `unit` et aucun contrôle `lint` »
 - Rouge : `scripts.lint` est vrai, donc `commandFromScript` appelle `script.trim()` sur un nombre et la détection lève `TypeError: script.trim is not a function` au lieu de rendre ses contrôles
 
 ## 5. Hors périmètre

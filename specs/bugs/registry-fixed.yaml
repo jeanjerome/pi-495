@@ -25,8 +25,8 @@ bugs:
       same code is on main for every stop a resume lifts; a stalled specification relies on that
       resume for its recourse.
     evidence: >
-      test/v0/change-rules.test.ts, "refuses to pause a blocked change, which keeps its stop, its detail
-      and its retryability", and test/v2/specification-reopening.test.ts, "refuses to pause a stopped
+      test/v0-pure/change-rules.test.ts, "refuses to pause a blocked change, which keeps its stop, its detail
+      and its retryability", and test/v2-kernel/specification-reopening.test.ts, "refuses to pause a stopped
       change, whose stop a resume still lifts into a rewriting (6a)": red at 0d67f46 (2 failures out
       of 59, the pause accepted), green at 6d5a3e3, both in a detached worktree. Preflight green under
       Node 26.9.0, 486 tests.
@@ -67,7 +67,7 @@ bugs:
       finishes a running intervention first, `intervention.finished` sets the status to `ready`, and
       the branch that lifts a block by `change.unblock` never ran. The code is on main.
     evidence: >
-      test/v2/harness.test.ts, "does not lift on resume a stop no resume lifts, when the step failed
+      test/v2-kernel/harness.test.ts, "does not lift on resume a stop no resume lifts, when the step failed
       while its intervention ran": red at 287123c, green at d6b0bd5, both in a detached worktree.
     risk_level: medium
     follow_ups: "none"
@@ -101,7 +101,7 @@ bugs:
       Seen in a vhs recording of Pi 0.87.1 in the TUI with 495 loaded
       (~/.495-campagnes/demo-readme-bench/f2.png): the off-machine warning, then the same text in a
       "Custom · 495" box, then the /495 status reply in a box and again as a notice.
-      test/v3/model-select.test.ts, four tests under "on the screen of Pi's terminal interface" that
+      test/v3-pi/model-select.test.ts, four tests under "on the screen of Pi's terminal interface" that
       count notices and displayed messages together: red before the fix (2 !== 1 three times, 4 !== 2),
       green after it, Preflight green (456 tests).
     risk_level: low
@@ -145,7 +145,7 @@ bugs:
       kept as avant-1.log and apres-1.log. First probed on the code with
       ExtensionSession under a fake context in `tui` mode (hasUI true): after `modelSelected` with a
       non-loopback model, one warning notice; after `flushDiagnostics`, the same text again as an info
-      notice, and one message. test/v3/model-select.test.ts, two tests under "on the screen of Pi's
+      notice, and one message. test/v3-pi/model-select.test.ts, two tests under "on the screen of Pi's
       terminal interface", red at 447df46 (2 failures of 2), green at 3a9ef82 with Preflight green
       (454 tests); a third, for an ordinary opening diagnostic, red on the code of a888f48 and green
       at 4591fe8. Pi 0.87.1 sets `mode: "tui"` in the interactive context
@@ -186,7 +186,7 @@ bugs:
     evidence: >
       Reproduced by a scratch test during review: `advance` with an empty selection gives
       `capability_missing`; after `resume`, `advance` with a selectable model gives
-      `capability_missing` again, with no step. test/v3/model-select.test.ts, "a change refused for
+      `capability_missing` again, with no step. test/v3-pi/model-select.test.ts, "a change refused for
       its model is resumed with the model selected since (6e)", red at 6bd0ba5 (1 failure of 7),
       green at 144d371 with Preflight green (396 tests).
     risk_level: low
@@ -219,14 +219,14 @@ bugs:
       loss of the other settings could not take effect. Without the list, nothing is refused.
     evidence: >
       Probe of loadConfig on 2026-09-23 against the branch that removes the egress list; spec e25s01 §6b
-      stated the fallback without weighing the other settings. After the fix, test/v1/model-admitted.test.ts
+      stated the fallback without weighing the other settings. After the fix, test/v1-adapters/model-admitted.test.ts
       ("refuses an unreadable file instead of running under the defaults") holds the refusal, and a cold
       start of the built extension on a file keeping `adoption.design: human`, closing brace missing,
       answers `/495 start` with `CONFIGURATION_ERROR: config.json cannot be read: it is not valid JSON;
       no change runs until it is fixed or removed` and creates no ledger. Since 2908ec6 the refusal
       lasts until a new session is started, since a runtime created later in the same session would
       run unbound and announce nothing, and a config.json that is a dangling link is refused rather
-      than read as absent; test/v3/pi-rpc-sdk.test.ts holds the first, test/v1/model-admitted.test.ts
+      than read as absent; test/v3-pi/pi-rpc-sdk.test.ts holds the first, test/v1-adapters/model-admitted.test.ts
       the second. Since 0b6539d the refusal names /reload, which replaces the extension runtime as a
       new session does, and a file that is not a regular file, or whose directory cannot be searched,
       is refused without its path.
@@ -302,7 +302,7 @@ bugs:
       The load reported the caught error's message as is. The same code is on main; the egress-list
       echo was bounded, this path never was.
     evidence: >
-      test/v1/model-admitted.test.ts, "says an unreadable file is ignored without reproducing any of its
+      test/v1-adapters/model-admitted.test.ts, "says an unreadable file is ignored without reproducing any of its
       text", red before the fix. Cold start of the built extension on that file after the fix:
       `495: config.json ignored: it is not valid JSON`. Since bda51c7 such a file is refused rather
       than ignored, and the test that holds it, "refuses an unreadable file instead of running under
@@ -351,7 +351,7 @@ bugs:
       `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 2, R2-2):
       `/495 verify`, refused by the kernel while a conduct holds the session, leaves `busy` false, and
       a `/495 resume` asked next passes the refusal that branch gives it and is inscribed.
-      test/v3/resume.test.ts, "stays refused after a /495 verify refused while another operation holds
+      test/v3-pi/resume.test.ts, "stays refused after a /495 verify refused while another operation holds
       the session, which keeps its hold": red at 45cce76, green at c06ad23, both in a detached
       worktree.
     risk_level: low
@@ -545,7 +545,7 @@ bugs:
       B3-1 and A3-P1: probes of reviewers A and B on 82ff627, and the coordinator's probe on main
       (`REVISION_CONFLICT`, revision 59 against 48 expected; eight `clarifying -> clarifying/ready`
       steps). Declared in BUG-2026-09-28T081300, "Not covered".
-      test/v2/answer-revocation.test.ts, "a revoked change blocked over its question asked again comes
+      test/v2-kernel/answer-revocation.test.ts, "a revoked change blocked over its question asked again comes
       back to that question once its stop is lifted": red at f17f5a6, green at 89d6ecf; "a block
       written by a session whose record lost to the owner's revocation does not overwrite it": red at
       fad0ad9, green at 4532f55; both in a detached worktree.
@@ -576,7 +576,7 @@ bugs:
     evidence: >
       Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
       P3-1 (reviewer B), read in `decide.ts` by the coordinator.
-      test/v3/resume.test.ts, "`/495 verify` on a change blocked in its verification names the resume
+      test/v3-pi/resume.test.ts, "`/495 verify` on a change blocked in its verification names the resume
       and the cancel, or the cancel alone": red at a23a019, green at 3a6da04, in a detached worktree.
     risk_level: low
     follow_ups: "none"
@@ -607,7 +607,7 @@ bugs:
     evidence: >
       Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
       R3-7: probe P-gap of reviewer B, from a microtask; `git show 5c32195` read by the coordinator.
-      test/v3/question-closure.test.ts, "holds the session from the confirmation through the conduct
+      test/v3-pi/question-closure.test.ts, "holds the session from the confirmation through the conduct
       of the closure, as one operation (BES-02)", which replaces the test that pinned the release
       before the conduct: red at 11a7225, green at 521e91b, in a detached worktree.
     risk_level: low
@@ -637,7 +637,7 @@ bugs:
     evidence: >
       Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 3,
       R3-8 (reviewer B), read in `ledger.ts` by the coordinator.
-      test/v2/ledger.test.ts, "does not record as succeeded a verification the pause or the block
+      test/v2-kernel/ledger.test.ts, "does not record as succeeded a verification the pause or the block
       closes before its record": red at f0e74e8, green at 6dada98, in a detached worktree.
     risk_level: low
     follow_ups: "none"
@@ -674,9 +674,9 @@ bugs:
       `src/presentation/structured/text.ts` by the coordinator. Not reproduced in a live session.
       `abort_intervention` reaches only the supervisor, which reads the message of a budget refusal, and
       `request_decision` only the conduct, which prints the code and the reason of a refused answer.
-      test/v2/harness.test.ts, "an unqualified sandbox blocks before any producing intervention, and the
+      test/v2-kernel/harness.test.ts, "an unqualified sandbox blocks before any producing intervention, and the
       status names the cancel as its only way out" and "lifts a block the kernel declared retryable,
-      which the status names with the cancel", and test/v3/model-select.test.ts, "a change refused for
+      which the status names with the cancel", and test/v3-pi/model-select.test.ts, "a change refused for
       its model names Pi's model selection, then the resume or the cancel, and no kernel command": red
       at 40dc901, green at 37626c6, in a detached worktree.
     risk_level: low
@@ -750,7 +750,7 @@ bugs:
       A throwaway probe of `detectStack` on the package above returned `controls: ["lint"]` and
       `capability_missing: ["scripts.test runs jest, whose output 495 cannot read: ..."]`; the reading
       of `designVerification` shows the only `CAPABILITY_MISSING` raise guarded by
-      `detection.controls.length === 0`. test/v1/node-stack.test.ts, "given scripts.test is jest and a
+      `detection.controls.length === 0`. test/v1-adapters/node-stack.test.ts, "given scripts.test is jest and a
       lint script is declared, when the stack is detected, then no control at all is declared and the
       missing capability names jest": red at ade7e44 (`["lint"]`), green at 3876a7d. Preflight green under
       Node 24.21.0.

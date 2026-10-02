@@ -71,8 +71,8 @@ la deuxième préparation. Le constructeur de demandes de décision sait constru
 nomme l'exigence, les faits portent la lacune du diagnostic et le risque, et les options sont
 « préparer » et « assigner à une revue humaine », avec l'effet de chacune.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare and assign_review, and the change is not blocked »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given two preparation interventions that retained no discriminant test, when the verification design resumes, then an IH-04 decision is pending naming the requirement, the gap and the risk, with the options prepare and assign_review, and the change is not blocked »
 - Rouge : `openPreparation` lève `CAPABILITY_MISSING` (« no discriminant test could be prepared after two preparation interventions ») avec `cancel` pour seule issue, et `IH-04` est exclu du domaine de `buildDecisionRequest` et de `requestDecision`
 
 ### Tâche 2 — « Préparer » accorde une préparation de plus
@@ -80,8 +80,8 @@ nomme l'exigence, les faits portent la lacune du diagnostic et le risque, et les
 Une réponse « préparer » à IH-04 lève d'un cran la borne de deux préparations, pour cette décision
 seulement. Si la préparation accordée échoue, IH-04 est demandée de nouveau.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an IH-04 answered prepare, then a third preparation opens, and when it retains no discriminant test either, then IH-04 is asked again instead of a fourth preparation »
 - Rouge : la borne est fixée à deux (`alreadyTried >= 2`) et aucune réponse ne la déplace, si bien qu'une réponse « préparer » n'ouvre aucune préparation
 
 ### Tâche 3 — « Assigner à une revue humaine » produit l'obligation et la dit au rapport
@@ -90,8 +90,8 @@ Une réponse « assigner à une revue humaine » fait geler, pour l'exigence con
 combinaison `human_decision` assignée à IH-10. La réponse porte la révision des exigences qui l'a
 motivée : une révision les fait tomber. Le rapport liste l'exigence parmi les risques résiduels.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an IH-04 answered assign_review, then the frozen protocol holds a human_decision obligation on IH-10 for that requirement, G2 passes and the report lists requirement_decided_by_a_human, and a revision of the requirements asks IH-04 again »
 - Rouge : `freeze` donne à chaque obligation les contrôles du protocole en `all_pass` et ne produit jamais `human_decision` ; sans contrôle qui la juge, l'exigence fait échouer G2 avec « has no control and no assigned human decision »
 
 ### Tâche 4 — La ligne d'une exigence décidée par le propriétaire ne montre aucun verdict de contrôle
@@ -99,8 +99,8 @@ motivée : une révision les fait tomber. Le rapport liste l'exigence parmi les 
 Le rapport lit l'obligation de chaque exigence : quand c'est une décision humaine, sa ligne dit qu'elle
 est décidée par le propriétaire au lieu de lister les verdicts des contrôles qui citent l'exigence.
 
-- Vérifie : `node --test test/v0/engineering-report.test.ts`
-- Tient : `test/v0/engineering-report.test.ts`, « given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts »
+- Vérifie : `node --test test/v0-pure/engineering-report.test.ts`
+- Tient : `test/v0-pure/engineering-report.test.ts`, « given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts »
 - Rouge : `buildEngineeringReport` construit les contrôles de chaque exigence depuis les preuves qui la citent, sans lire son obligation, si bien que la ligne d'une exigence décidée par un humain affiche `unit=PASS`
 
 ## 5. Hors périmètre

@@ -110,8 +110,8 @@ le protocole gelé peut porter les compléments adoptés (le chemin, l'empreinte
 et l'outil). Les deux champs sont optionnels : un protocole ou un diagnostic gelé avant la story reste valide.
 `npm run contracts` régénère le contrat publié.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a recommendation carrying a file edit and a protocol carrying an adopted complement, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a recommendation carrying a file edit and a protocol carrying an adopted complement, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis »
 - Rouge : le schéma d'une recommandation refuse un champ `edit`, et celui du protocole refuse un champ `complements`, comme propriétés inconnues
 
 ### Tâche 2 — Node décrit la modification de `scripts.test`
@@ -120,8 +120,8 @@ Pour une cible `node --test` dont `scripts.test` existe, la recommandation de co
 suffixe la valeur par `--experimental-test-coverage`. Sans `scripts.test`, ou pour une recommandation qui demande
 une installation, elle n'en porte aucune.
 
-- Vérifie : `node --test test/v1/recommendations.test.ts`
-- Tient : `test/v1/recommendations.test.ts`, « given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none »
+- Vérifie : `node --test test/v1-adapters/recommendations.test.ts`
+- Tient : `test/v1-adapters/recommendations.test.ts`, « given scripts.test node --test and node --test test/, then the coverage recommendation carries the edit suffixing the value, and given no scripts.test or a vitest provider to install, then it carries none »
 - Rouge : la recommandation de couverture d'une cible node:test ne porte que du texte : aucun champ ne décrit la modification que le propriétaire devrait faire
 
 ### Tâche 3 — La modification s'applique octet pour octet, ou pas du tout
@@ -130,8 +130,8 @@ Une fonction pure applique la modification à un `package.json` : elle remplace 
 valeur voulue et rend le texte obtenu, ou rien quand la valeur actuelle n'est pas celle que la modification
 décrit ou que la clé apparaît deux fois.
 
-- Vérifie : `node --test test/v0/complement.test.ts`
-- Tient : `test/v0/complement.test.ts`, « given a package.json of two-space indentation with keys before and after scripts, then the result differs from the original by the bytes of the scripts.test value only », « given a current value the edit does not describe, then nothing is applied » et « given scripts.test appearing twice, then nothing is applied »
+- Vérifie : `node --test test/v0-pure/complement.test.ts`
+- Tient : `test/v0-pure/complement.test.ts`, « given a package.json of two-space indentation with keys before and after scripts, then the result differs from the original by the bytes of the scripts.test value only », « given a current value the edit does not describe, then nothing is applied » et « given scripts.test appearing twice, then nothing is applied »
 - Rouge : aucun module n'applique une modification à un fichier de la cible : le noyau n'écrit aucun fichier du projet ni de ses copies en dehors des fichiers préparés
 
 ### Tâche 4 — La décision offre d'adopter quand une modification est possible
@@ -140,8 +140,8 @@ Le constructeur de demandes de décision reçoit, pour IH-04, les compléments a
 le complément » qui nomme le fichier modifié et dit qu'elle ne juge pas l'exigence. Sans complément adoptable, les
 options sont celles d'aujourd'hui.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an IH-04 on a target whose recommendation carries an edit, then the options are prepare, assign_review, revise and adopt_complement naming package.json and saying it does not judge the requirement, and without an adoptable complement the options are those of today »
 - Rouge : `buildDecisionRequest` ne connaît pour IH-04 que les trois options `prepare`, `assign_review` et `revise`, quelle que soit la cible
 
 ### Tâche 5 — Adopter fait entrer le capteur et le complément dans le protocole
@@ -151,8 +151,8 @@ copie où elle détecte la pile, range le fichier écrit dans le magasin d'objet
 la modification demande, et gèle le protocole avec le complément adopté. Le rapport ne liste plus ce complément
 comme recommandé et non adopté.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts test/v0/engineering-report.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes » ; `test/v0/engineering-report.test.ts`, « given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts test/v0-pure/engineering-report.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an IH-04 answered adopt_complement on a node --test target, then the frozen protocol declares the coverage control, carries the adopted complement with the file and its digest, and G2 passes » ; `test/v0-pure/engineering-report.test.ts`, « given a protocol carrying an adopted complement, then the report does not list it as recommended and not adopted »
 - Rouge : `designVerification` ne lit aucune réponse d'adoption : la détection se fait sur la référence nue, le contrôle coverage n'est jamais déclaré pour une cible node:test, et le protocole ne porte aucun complément
 
 ### Tâche 6 — La modification fait partie du candidat
@@ -160,8 +160,8 @@ comme recommandé et non adopté.
 L'ouverture d'une tentative d'implémentation écrit dans le workspace du candidat les fichiers des compléments du
 protocole gelé, comme elle écrit les fichiers préparés ; un workspace ouvert avant l'adoption n'est pas réutilisé.
 
-- Vérifie : `node --test test/v2/harness.test.ts`
-- Tient : `test/v2/harness.test.ts`, « given a frozen protocol carrying an adopted complement, then a new attempt's workspace carries the modified package.json before the producer reads anything, and a workspace opened before the adoption is not reused »
+- Vérifie : `node --test test/v2-kernel/harness.test.ts`
+- Tient : `test/v2-kernel/harness.test.ts`, « given a frozen protocol carrying an adopted complement, then a new attempt's workspace carries the modified package.json before the producer reads anything, and a workspace opened before the adoption is not reused »
 - Rouge : `implement` ne remet dans le workspace que les fichiers de la préparation adoptée, si bien que le `package.json` du candidat est celui de la référence et que le contrôle coverage n'a aucun fichier à lire
 
 ### Tâche 7 — Seule la modification adoptée est permise sur `package.json`
@@ -169,8 +169,8 @@ protocole gelé, comme elle écrit les fichiers préparés ; un workspace ouvert
 À G4, un chemin protégé dont le fichier a l'empreinte du complément adopté n'est pas une modification refusée ; toute
 autre modification de ce fichier l'est.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given an adopted complement on package.json, then a candidate keeping that file as the complement wrote it is allowed, and one modifying another line is refused naming package.json »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given an adopted complement on package.json, then a candidate keeping that file as the complement wrote it is allowed, and one modifying another line is refused naming package.json »
 - Rouge : `protectedPathsChanged` ne reçoit que les fichiers de la préparation : `package.json` modifié par le complément est refusé comme chemin protégé altéré, et le candidat ne passe pas G4
 
 ### Tâche 8 — Une révision des exigences défait l'adoption
@@ -178,8 +178,8 @@ autre modification de ce fichier l'est.
 La réponse d'adoption suit le sort des autres réponses à IH-04 : une révision des exigences la révoque, le protocole
 suivant ne porte plus le complément et la recommandation est présentée de nouveau.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an adopted complement then a revision of the requirements, then the next protocol carries none, the recommendation is presented again and adoption is offered again »
 - Rouge : aucune réponse d'adoption n'existe : la révision n'a rien à révoquer, et un complément écrit au protocole survivrait à la réponse qui l'a permis
 
 ### Tâche 9 — Adopter ne juge pas l'exigence
@@ -187,8 +187,8 @@ suivant ne porte plus le complément et la recommandation est présentée de nou
 Quand l'exigence reste sans juge après l'adoption, la décision est reposée sans l'issue d'adoption, puisque plus aucun
 complément adoptable ne manque.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given an adopted complement and a requirement the new sensor does not make judgeable, then IH-04 is asked again with prepare, assign_review and revise only »
 - Rouge : les options d'IH-04 sont fixes et aucune réponse ne modifie la cible : la question reposée offrirait les mêmes issues, dont une adoption déjà faite
 
 ### Tâche 10 — Le producteur ne défait pas l'adoption en remettant le fichier de la référence
@@ -197,8 +197,8 @@ complément adoptable ne manque.
 protégé altéré : le complément est absent du candidat, et le protocole gelé le porte. Le fichier gardé tel que le
 complément l'a écrit reste permis.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed »
 - Rouge : `protectedPathsChanged` ne juge que les entrées dont `baseline_state` n'est pas `unchanged` : un `package.json` remis à la référence octet pour octet n'est ni dans `changed` ni dans `altered`, si bien que `altered` reste vide au lieu de nommer `package.json`, et que `evaluateG4` rend PASS
 
 ## 5. Hors périmètre

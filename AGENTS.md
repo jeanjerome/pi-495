@@ -72,7 +72,9 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 
 ## Test
 
-`npm test` runs `node --test` across `test/v0` .. `test/v4`. Run one generation at a time with `npm run test:v0` .. `test:v3` while iterating.
+`npm test` runs `node --test` across `test/v0-pure` .. `test/v4-platform` and `test/cycle`. Run one generation at a time with `npm run test:v0` .. `test:v4` or `npm run test:cycle` while iterating.
+
+Each generation carries one verification level of `specs/amont/conception-verification.md` §6: `v0-pure` pure functions, schemas and rules, `v1-adapters` port contracts and adapters, `v2-kernel` kernel integration with storage, execution and Git, `v3-pi` journeys through the Pi entry points, `v4-platform` real stacks and platforms.
 
 ## Lint
 

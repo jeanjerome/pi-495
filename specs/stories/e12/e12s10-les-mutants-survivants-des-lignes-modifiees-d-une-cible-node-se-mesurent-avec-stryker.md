@@ -142,8 +142,8 @@ Scenario: Dans un vrai Pi, un test sans assertion est refusé et un test qui ass
 `stryker-json` rejoint la liste des lecteurs du contrat et celle des lecteurs différentiels, qui jugent les lignes
 introduites. `npm run contracts` régénère le contrat publié.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a control declaring the stryker-json parser, then the protocol schema accepts it and the parser is differential »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a control declaring the stryker-json parser, then the protocol schema accepts it and the parser is differential »
 - Rouge : le schéma du protocole refuse un contrôle dont le lecteur est `stryker-json`, absent de la liste des lecteurs
 
 ### Tâche 2 — Le lecteur juge les mutants des lignes introduites
@@ -153,8 +153,8 @@ ligne introduite est un constat bloquant qui nomme le fichier, la ligne et l'op�
 détectés ; `CompileError` est exclu ; `RuntimeError` laisse le verdict INDETERMINATE ; `Ignored` par la configuration
 n'est pas un constat ; un mutant hors des lignes introduites est compté comme dette et jamais opposé.
 
-- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
-- Tient : `test/v1/stryker-mutation.test.ts`, « given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed »
+- Vérifie : `node --test test/v1-adapters/stryker-mutation.test.ts`
+- Tient : `test/v1-adapters/stryker-mutation.test.ts`, « given recorded Stryker reports, then a Survived or NoCoverage mutant on an introduced line is a blocking finding naming file, line and operator, Killed and Timeout are detected, CompileError is excluded, RuntimeError leaves the verdict INDETERMINATE, a config-ignored mutant is no finding, and a survivor off the introduced lines is counted as debt and never opposed »
 - Rouge : aucun lecteur ne connaît le format de Stryker : `analyzeMutation` ne lit que le XML de PIT, et un rapport Stryker n'y produit ni constat ni verdict
 
 ### Tâche 3 — Un rapport qu'on ne peut vérifier complet n'est jamais un succès
@@ -164,8 +164,8 @@ pour une exécution arrêtée par son budget ; il rend FAIL, avec la sortie de S
 échoue et qu'aucun rapport n'est écrit. Un rapport complet sans mutant sur les lignes introduites est un PASS dont la
 note dit que rien n'était à conclure.
 
-- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
-- Tient : `test/v1/stryker-mutation.test.ts`, « given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing »
+- Vérifie : `node --test test/v1-adapters/stryker-mutation.test.ts`
+- Tient : `test/v1-adapters/stryker-mutation.test.ts`, « given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing »
 - Rouge : le lecteur de mutation n'a pas de cas pour un rapport JSON : un rapport tronqué n'est reconnu comme incomplet par aucun code et l'exécution passe pour un succès
 
 ### Tâche 4 — La portée de Stryker vient des lignes introduites, ou le contrôle dit qu'il ne peut la désigner
@@ -175,8 +175,8 @@ Une fonction pure rend, pour les lignes introduites, l'argument de portée de St
 déclarations `.d.ts` et ce qui n'est pas du code ; un chemin que Stryker lirait comme un motif est refusé en le
 nommant, et la portée vide ne lance rien.
 
-- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
-- Tient : `test/v1/stryker-mutation.test.ts`, « given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE »
+- Vérifie : `node --test test/v1-adapters/stryker-mutation.test.ts`
+- Tient : `test/v1-adapters/stryker-mutation.test.ts`, « given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE »
 - Rouge : la portée d'une mutation est calculée pour des classes Java (`mutationScopeOf` ne retient que `.java`) : un candidat qui introduit un `.js` a une portée vide
 
 ### Tâche 5 — L'exécuteur lit le rapport de Stryker, et ne lance rien sans portée
@@ -185,8 +185,8 @@ L'exécuteur générique traite le lecteur `stryker-json` : il calcule la porté
 elle est vide, ajoute l'argument de portée à la commande figée, lit `reports/mutation/mutation.json` et conserve le
 rapport et la sortie au dossier.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given a mutation control with the stryker-json parser and a stand-in for Stryker, then the command carries the scope, nothing is spawned for an empty scope, and the report at reports/mutation/mutation.json is read and kept in the record »
 - Rouge : `runControl` ne connaît que `pitest-xml` pour une mutation : un contrôle qui déclare `stryker-json` tombe dans le cas par défaut et n'a ni portée, ni lecture de rapport
 
 ### Tâche 6 — Le Node d'une cible qui a installé Stryker déclare le contrôle mutation
@@ -197,8 +197,8 @@ installé, lancé par le Node de l'hôte, avec `--reporters json` et un seul pro
 `stryker.config.*` protégés. Sans Stryker, aucun contrôle et une recommandation qui porte l'outil, sa version, sa date,
 sa source et le changement.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source »
 - Rouge : l'adaptateur Node ne déclare aucun contrôle de mutation et ne recommande pas Stryker : une cible qui l'a installé n'a que ses contrôles de test, de couverture et de lint
 
 ### Tâche 7 — Les témoins d'un capteur de mutation
@@ -206,8 +206,8 @@ sa source et le changement.
 Quand Stryker est installé, le témoin positif ajoute un module `.mjs` dont le test asserte tous les résultats, et le
 contrôle `mutation` a un témoin négatif propre : un module dont le test appelle la fonction sans asserter.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a target that installed Stryker, then the positive witness adds a module whose test asserts every result and the mutation control has its own negative witness whose test calls the function without asserting »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a target that installed Stryker, then the positive witness adds a module whose test asserts every result and the mutation control has its own negative witness whose test calls the function without asserting »
 - Rouge : les témoins de l'adaptateur Node n'ont de témoin propre que pour la couverture : `own_negative_witness` n'a pas d'entrée `mutation`
 
 ### Tâche 8 — Stryker tourne sous le confinement de vérification
@@ -216,8 +216,8 @@ Le contrôle `mutation` déclaré à la tâche 6 est lancé sous le bac à sable
 écoute sur toutes les interfaces et écrit un rapport sous `reports/mutation` : il l'écrit avec le profil de bouclage,
 échoue à écouter avec le profil sans réseau, et échoue à écrire hors de ses deux chemins.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the mutation control run under the verification sandbox against a stand-in that listens on 0.0.0.0 and writes a report under reports/mutation, then it succeeds under loopback, fails to listen under the no-network profile, and fails when writing outside reports/mutation and .stryker-tmp »
 - Rouge : aucun contrôle Node ne demande le profil de bouclage : le programme de remplacement ne peut pas écouter, et le contrôle `mutation` n'existe pas pour être lancé
 
 ### Tâche 9 — Les sorties de Stryker ne sont pas des changements
@@ -226,8 +226,8 @@ La politique du workspace exclut `reports/mutation/` et `.stryker-tmp/` de l'inv
 sorties de l'outil, réécrites à chaque exécution, et un candidat qui n'a fait que lancer les contrôles ne doit pas
 être refusé pour elles.
 
-- Vérifie : `node --test test/v0/candidate.test.ts`
-- Tient : `test/v0/candidate.test.ts`, « given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed »
+- Vérifie : `node --test test/v0-pure/candidate.test.ts`
+- Tient : `test/v0-pure/candidate.test.ts`, « given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed »
 - Rouge : la politique n'exclut que `target/`, `dist/`, `.pi/`, `__pycache__/`, `build/` et les deux dossiers de vitest : un `.stryker-tmp/` laissé dans la copie apparaît au candidat comme des centaines de fichiers ajoutés
 
 ### Tâche 10 — Le README dit ce que l'adaptateur Node mesure

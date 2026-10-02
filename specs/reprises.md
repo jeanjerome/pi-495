@@ -643,7 +643,7 @@ Statut : versée
 
 ## R76 — Les répertoires de test disent le niveau de vérification qu'ils portent
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v0 · test/v1 · test/v2 · test/v3 · test/v4 · package.json:59-63 · AGENTS.md:75 · .claude/skills/node/SKILL.md:25,29 · .claude/skills/node/rules/testing.md:144-147 · .claude/skills/node/rules/typescript.md:135 · cycle/format-de-story.md:95-96 · test/v1/imposed-layers.test.ts:5 · specs/stories · specs/bugs · specs/plan.yaml:131,133
 - Constat : Les répertoires de test portent le numéro du niveau de vérification de `specs/amont/conception-verification.md` §6 (V0 à V4) et rien d'autre : leur nom ne dit pas ce qu'ils vérifient. `package.json` n'a ni `test:v4` ni `test:cycle`, alors que `npm test` exécute `test/v4` et `test/cycle`.

@@ -52,8 +52,8 @@ scénario tient que l'accord ne dépasse pas le dossier déclaré. Aucun secret 
 `real` résout le plus profond ancêtre existant du chemin et lui rend les segments absents, au lieu de
 rendre le chemin tel quel quand il n'existe pas ; un chemin qui existe se résout comme avant.
 
-- Vérifie : `node --test test/v1/sandbox.test.ts`
-- Tient : `test/v1/sandbox.test.ts`, « un dossier à créer derrière un lien est accordé sous sa forme résolue : le profil porte le chemin résolu suivi de `/new` et pas `link/new` » et, sur macOS, « `mkdir` sur `link/new` sort à 0 et crée `real/new`, une écriture dans `real/autre` reste `EPERM` » ; « un chemin qui existe est accordé sous sa forme résolue »
+- Vérifie : `node --test test/v1-adapters/sandbox.test.ts`
+- Tient : `test/v1-adapters/sandbox.test.ts`, « un dossier à créer derrière un lien est accordé sous sa forme résolue : le profil porte le chemin résolu suivi de `/new` et pas `link/new` » et, sur macOS, « `mkdir` sur `link/new` sort à 0 et crée `real/new`, une écriture dans `real/autre` reste `EPERM` » ; « un chemin qui existe est accordé sous sa forme résolue »
 - Rouge : `real` rend le chemin inchangé quand `realpathSync` échoue : le profil porte `link/new` et non `real/new`, et `mkdir` sur `link/new` sort à 1 avec `Operation not permitted`
 
 ## 5. Hors périmètre

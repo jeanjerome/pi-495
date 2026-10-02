@@ -51,8 +51,8 @@ fait seulement porter à l'événement de création une borne que la configurati
 lit pour initialiser `budgets.max_attempts`, et retombe sur la borne par défaut du noyau quand
 l'événement n'en porte pas, pour que les registres déjà écrits se rejouent comme avant.
 
-- Vérifie : `node --test test/v0/change-rules.test.ts test/v2/harness.test.ts`
-- Tient : `test/v0/change-rules.test.ts`, « un changement s'ouvre avec le budget de tentatives de la politique : l'événement `change.created` et l'état portent 2, et une extension IH-07 d'une tentative écrit `new_max_attempts` à 3 » et « un `change.created` sans `max_attempts` se rejoue à 3 » ; `test/v2/harness.test.ts`, « un changement démarré sous `max_attempts` à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce `Tentatives: 0/2` »
+- Vérifie : `node --test test/v0-pure/change-rules.test.ts test/v2-kernel/harness.test.ts`
+- Tient : `test/v0-pure/change-rules.test.ts`, « un changement s'ouvre avec le budget de tentatives de la politique : l'événement `change.created` et l'état portent 2, et une extension IH-07 d'une tentative écrit `new_max_attempts` à 3 » et « un `change.created` sans `max_attempts` se rejoue à 3 » ; `test/v2-kernel/harness.test.ts`, « un changement démarré sous `max_attempts` à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce `Tentatives: 0/2` »
 - Rouge : `decide` écrit `change.created` sans champ de budget et `apply` initialise `budgets.max_attempts` depuis `DEFAULT_POLICY` : sous une politique à 2, l'événement ne porte pas `max_attempts`, l'état porte 3, l'extension écrit `new_max_attempts` à 4 et la vue annonce `Tentatives: 0/3`
 
 ## 5. Hors périmètre

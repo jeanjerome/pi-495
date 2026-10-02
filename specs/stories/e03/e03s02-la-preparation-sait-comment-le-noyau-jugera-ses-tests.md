@@ -53,8 +53,8 @@ contrôles lus, est tenue par le test de e03s01 « on a Maven reactor with JaCoC
 to run mvn -B -q -o test… ». Le test de cette tâche tient l'acheminement : les contrôles détectés
 atteignent le contexte de `prepare` avant le gel, et celui de `specify` n'en reçoit aucun.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none »
 - Rouge : le harnais construit les contrôles du contexte à partir du dernier protocole, absent pendant la préparation ; les consignes de confiance de l'intervention `prepare` ne portent aucune ligne « The kernel will judge your work »
 
 ## 5. Hors périmètre

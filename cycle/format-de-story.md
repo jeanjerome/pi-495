@@ -92,8 +92,8 @@ Sans objet : la story ne touche ni provenance, ni confinement, ni sortie de donn
 
 Le noyau retire la réponse et …
 
-- Vérifie : `node --test test/v2/answer-revocation.test.ts`
-- Tient : `test/v2/answer-revocation.test.ts`, « une décision IH-01 repose Q1 avec ses trois issues »
+- Vérifie : `node --test test/v2-kernel/answer-revocation.test.ts`
+- Tient : `test/v2-kernel/answer-revocation.test.ts`, « une décision IH-01 repose Q1 avec ses trois issues »
 - Rouge : `revokeQuestion` n'existe pas ; `pendingDecisions` rend une liste vide après la révocation
 
 ## 5. Hors périmètre

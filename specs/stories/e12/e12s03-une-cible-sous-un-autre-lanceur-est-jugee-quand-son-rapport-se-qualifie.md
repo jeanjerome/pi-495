@@ -114,8 +114,8 @@ Scenario: Avec un vrai modèle, une cible en mocha et une cible en jest passent 
 de `node_modules` de la copie avec le rapporteur xunit, écrit son rapport sous `target/`, le fait lire
 par le lecteur JUnit, porte la provenance dans son titre, et ne déclare en écriture que `target`.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title »
 - Rouge : `detectNodeStack` refuse `mocha` en disant que sa sortie ne se lit pas, ne déclare aucun contrôle `unit` et remplit la capacité manquante
 
 ### Tâche 2 — Le rapport xunit de mocha se lit
@@ -124,8 +124,8 @@ Le contrôle dérivé, exécuté par l'exécuteur de contrôles contre un progra
 les rapports xunit enregistrés depuis mocha 12.0.2 (vert, en échec compté sous `errors`, absent avec
 une sortie en erreur), rend PASS, FAIL nommant le test, FAIL nommant la sortie avant rapport.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the derived mocha control run against a recorded mocha report, then the evidence is PASS for a green report, FAIL naming the failed case when mocha counts it under errors, and FAIL saying the runner exited before writing a report when none is written »
 - Rouge : la détection ne dérive aucun contrôle mocha, si bien que le test ne trouve pas de contrôle `unit` à exécuter et que le programme de remplacement n'est jamais lancé
 
 ### Tâche 3 — Le lecteur jest-json est un identifiant de lecteur du contrat
@@ -134,8 +134,8 @@ une sortie en erreur), rend PASS, FAIL nommant le test, FAIL nommant la sortie a
 est accepté par le schéma, et `npm run contracts` régénère le contrat publié. La lecture elle-même est
 la tâche 5.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a control declaring the jest-json parser, then the protocol schema accepts it, and a control declaring a parser no reader covers is still refused »
 - Rouge : le schéma du protocole refuse `jest-json` comme identifiant de lecteur inconnu
 
 ### Tâche 4 — scripts.test qui lance jest devient le contrôle unit
@@ -144,8 +144,8 @@ Quand `scripts.test` est `jest`, le contrôle `unit` lance le jest de `node_modu
 sortie JSON écrite dans `495-jest-report.json`, la lit avec le lecteur `jest-json`, porte la provenance
 dans son titre, et ne déclare en écriture que ce fichier.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title »
 - Rouge : `detectNodeStack` refuse `jest` en disant que sa sortie ne se lit pas, ne déclare aucun contrôle `unit` et remplit la capacité manquante
 
 ### Tâche 5 — L'exécuteur lit ce que jest écrit
@@ -154,8 +154,8 @@ Le contrôle dérivé, exécuté contre un programme de remplacement qui écrit 
 depuis jest 30.5.2, rend PASS, FAIL nommant le test ou le fichier de la suite, INDETERMINATE pour un
 test ignoré, un test todo ou aucun test, et FAIL quand un rapport vert accompagne une sortie en erreur.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the derived jest control run against recorded jest reports, then the evidence is PASS for a green report, FAIL naming the failed case, FAIL naming the file of a suite that did not load, INDETERMINATE for a skipped test, a todo test and an empty run, and FAIL when a green report comes with an exit in error »
 - Rouge : l'exécuteur n'a pas de lecteur `jest-json` : l'évidence du contrôle dit INDETERMINATE avec la note « parser jest-json is not qualified », quel que soit le rapport
 
 ### Tâche 6 — Un rapport jest illisible ou absent n'est jamais un succès
@@ -163,8 +163,8 @@ test ignoré, un test todo ou aucun test, et FAIL quand un rapport vert accompag
 Un fichier tronqué ou absent donne INDETERMINATE quand le programme sort avec le code 0, et FAIL en
 disant que le lanceur est sorti avant d'écrire un rapport lisible quand il sort en erreur.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given a truncated or absent jest report, then the evidence is INDETERMINATE when the runner exits 0 and FAIL saying it exited before writing a readable report when it exits with an error »
 - Rouge : sans lecteur `jest-json`, l'évidence dit INDETERMINATE pour la sortie en erreur, là où la promesse veut FAIL
 
 ### Tâche 7 — Le rapport de jest s'écrit sous le bac à sable, hors de la sortie standard
@@ -172,8 +172,8 @@ disant que le lanceur est sorti avant d'écrire un rapport lisible quand il sort
 Le contrôle de jest déclare en écriture le fichier de son rapport, et lit ce fichier, jamais la sortie
 standard.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given the derived jest control run under the verification sandbox against a stand-in that prints a stray line on stdout before writing a green report to the declared file, then the verdict is PASS, and a stand-in that writes the report elsewhere under the root of the copy fails under the sandbox »
 - Rouge : le fichier n'est déclaré par aucun contrôle, si bien que le programme de remplacement ne peut pas l'écrire sous le bac à sable et que le verdict n'est pas PASS
 
 ### Tâche 8 — Un fichier déclaré inscriptible n'est pas une modification du candidat
@@ -181,8 +181,8 @@ standard.
 Le noyau laisse hors des deux côtés de la comparaison un chemin déclaré inscriptible qui nomme un fichier,
 comme il le fait pour un dossier.
 
-- Vérifie : `node --test test/v0/candidate.test.ts`
-- Tient : `test/v0/candidate.test.ts`, « given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it »
+- Vérifie : `node --test test/v0-pure/candidate.test.ts`
+- Tient : `test/v0-pure/candidate.test.ts`, « given a control declaring a file writable, when a candidate is observed after that file was written at the root, then the candidate is not moved, and a different added file moves it »
 - Rouge : `candidateMoved` range le fichier écrit parmi les différences, parce qu'un chemin déclaré sans barre finale n'est lu que comme un dossier, et rend `true`
 
 ### Tâche 9 — Les témoins de mocha et de jest sont des tests de leur lanceur
@@ -191,8 +191,8 @@ Pour une cible mocha ou jest, le témoin positif et le témoin négatif sont des
 avec les seules globales du lanceur, sans import, placés dans le dossier de tests de la cible (`tests/`
 s'il existe, sinon `test/`).
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a mocha target and a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/ »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a mocha target and a jest target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/ »
 - Rouge : sans contrôle mocha ni jest, les témoins de l'adaptateur Node sont ceux de `node --test`, qui importent `node:test` et vivent sous `test/`
 
 ### Tâche 10 — Les contrôles de mocha et de jest protègent leur configuration
@@ -200,8 +200,8 @@ s'il existe, sinon `test/`).
 Le contrôle `unit` de mocha ajoute `.mocharc.*` et `node_modules/` à ses chemins protégés, celui de jest
 `jest.config.*` et `node_modules/`.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a mocha target and a jest target, then their unit control protects the test directories, package.json and node_modules/, and adds .mocharc.* for mocha and jest.config.* for jest »
 - Rouge : aucun contrôle mocha ni jest n'existe ; les chemins protégés du contrôle `unit` d'une cible Node en `node --test` ne nomment ni `.mocharc.*` ni `jest.config.*`
 
 ### Tâche 11 — Un lanceur lu avec des arguments, ou non lu, est refusé et nommé
@@ -210,8 +210,8 @@ Un lanceur lu (vitest, mocha, jest) qui reçoit des arguments est refusé en dis
 sans argument ; tout autre lanceur est refusé en nommant les quatre qui sont lus. Les deux tests de
 l'adaptateur Node qui prennent jest pour le lanceur non lu prennent ava.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given scripts.test is jest --ci or mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments » et « given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given scripts.test is jest --ci or mocha --exit, then no unit control is declared and the missing capability says the runner is read only without arguments » et « given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read »
 - Rouge : `jest --ci` est refusé avec « whose output 495 cannot read: only node --test and vitest [run] are read », qui dit que jest ne se lit pas alors que la story le lit, et ne parle ni de mocha ni d'arguments
 
 ### Tâche 12 — Le README dit ce que l'adaptateur Node lit

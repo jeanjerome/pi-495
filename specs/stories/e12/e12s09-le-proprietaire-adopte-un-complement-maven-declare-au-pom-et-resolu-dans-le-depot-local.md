@@ -141,8 +141,8 @@ Scenario: Dans un vrai Pi, adopter le greffon de couverture d'une cible Maven m�
 `e12s08` a donné à une recommandation un champ d'installation (paquet, version, gestionnaire). Le gestionnaire peut
 valoir `maven`. `npm run contracts` régénère le contrat publié.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it »
 - Rouge : le schéma d'une recommandation refuse le gestionnaire `maven`, qui n'est pas dans la liste des gestionnaires
 
 ### Tâche 2 — Maven décrit la déclaration du greffon et sa résolution
@@ -152,8 +152,8 @@ profil et hors `pluginManagement`, la modification qui insère la déclaration d
 qu'une fois, remplacé par lui-même suivi de la déclaration) et la résolution du greffon avec Maven ; sinon elle ne
 porte que du texte.
 
-- Vérifie : `node --test test/v1/recommendations.test.ts`
-- Tient : `test/v1/recommendations.test.ts`, « given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither »
+- Vérifie : `node --test test/v1-adapters/recommendations.test.ts`
+- Tient : `test/v1-adapters/recommendations.test.ts`, « given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither »
 - Rouge : la recommandation de couverture d'une cible Maven ne porte que du texte dans `change` : aucun champ ne décrit la modification du POM ni la résolution
 
 ### Tâche 3 — La déclaration s'insère dans le POM octet pour octet, ou pas du tout
@@ -162,8 +162,8 @@ La fonction qui applique la modification d'une recommandation sait aussi remplac
 présent une seule fois par ce même texte suivi de la déclaration, et rend le texte obtenu, ou rien quand le texte
 n'est pas présent exactement une fois.
 
-- Vérifie : `node --test test/v1/recommendations.test.ts`
-- Tient : `test/v1/recommendations.test.ts`, « given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied »
+- Vérifie : `node --test test/v1-adapters/recommendations.test.ts`
+- Tient : `test/v1-adapters/recommendations.test.ts`, « given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied »
 - Rouge : `applyScriptsTestEdit` ne lit que `scripts.test` d'un `package.json` et rend rien pour un `pom.xml`
 
 ### Tâche 4 — La résolution se planifie, et son résultat s'inspecte
@@ -174,8 +174,8 @@ ligne qui l'annonce, le dépôt local de Maven, ou rend qu'il n'est pas établi.
 n'accepte qu'un `pom.xml` modifié comme la modification le voulait, et refuse tout autre fichier de la copie touché en
 nommant le fichier.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it »
 - Rouge : le plan d'installation de `e12s08` ne connaît que npm, et rien ne lit un dépôt local dans une sortie de Maven ni n'inspecte un `pom.xml` : une résolution Maven ne se planifie ni ne s'inspecte
 
 ### Tâche 5 — L'étape s'exécute réseau ouvert et n'écrit hors de la copie que dans le dépôt local que Maven a annoncé
@@ -186,8 +186,8 @@ qui ouvre le réseau, écrit la copie et ce chemin, remis tel quel, et laisse à
 pas le contenu du dépôt : la sortie de Maven est conservée au dossier. Quand Maven n'annonce rien, l'étape ne s'exécute
 pas. Les contrôles gardent le profil sans réseau.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network »
 - Rouge : le profil de l'étape n'écrit que la copie et un cache d'installation npm : Maven ne peut écrire dans son dépôt local, et aucun code n'interroge Maven sur ce dépôt
 
 ### Tâche 6 — L'option d'adoption est offerte pour une cible Maven, et dit ce qu'elle écrit sur la machine
@@ -197,8 +197,8 @@ dépôt local ; le texte de l'option nomme le fichier, le greffon et sa version,
 seule étape, et que les fichiers téléchargés sont écrits dans le dépôt local que Maven désigne dès l'adoption et y
 restent si l'intégration est refusée. Sinon l'option n'est pas offerte et le rapport dit le motif.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given a Maven target whose recommendation carries an applicable edit, then the decision offers to adopt the complement, its effect naming pom.xml, the plugin and version, the network and the local repository, and given a target whose edit does not apply or whose maven announces no local repository, then the options are today's and the report gives the reason »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given a Maven target whose recommendation carries an applicable edit, then the decision offers to adopt the complement, its effect naming pom.xml, the plugin and version, the network and the local repository, and given a target whose edit does not apply or whose maven announces no local repository, then the options are today's and the report gives the reason »
 - Rouge : `adoptableFiles` ne compte pas les recommandations d'une cible Maven : la décision de couverture n'offre jamais l'adoption
 
 ### Tâche 7 — L'adoption applique, résout, inspecte et gèle
@@ -209,8 +209,8 @@ Maven au dossier, puis relit la pile : le contrôle JaCoCo se déclare et se qua
 inspection qui refuse n'adopte rien : le dossier porte le motif, le complément reste recommandé et non adopté, et la décision est
 reposée sans l'issue d'adoption.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given the answer adopt the complement on a Maven target, then the protocol carries pom.xml as an adopted complement, the record keeps maven's output and the JaCoCo control is declared qualified, and given a failing resolution or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given the answer adopt the complement on a Maven target, then the protocol carries pom.xml as an adopted complement, the record keeps maven's output and the JaCoCo control is declared qualified, and given a failing resolution or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption »
 - Rouge : la réponse d'adoption applique les modifications de la seule famille `package.json` : sur une cible Maven elle ne résout rien, le protocole ne porte aucun complément et aucun contrôle de couverture ne se déclare
 
 ### Tâche 8 — La recette dans un vrai Pi, avec le dépôt Maven de la machine
@@ -232,8 +232,8 @@ sortie standard de Maven, et la fin de sa sortie d'erreur seulement quand la sor
 avertissement de la JVM sur la sortie d'erreur et sa cause sur la sortie standard, pour les trois causes : réseau
 injoignable, accès refusé, version inconnue.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output »
 - Rouge : `runInstall` compose le motif avec `tail(observed.stderr) || tail(observed.stdout)` : l'avertissement de la JVM rend la sortie d'erreur non vide, donc le motif d'un Maven en échec est cet avertissement et ne contient jamais « Could not transfer artifact » écrit sur la sortie standard
 
 ## 5. Hors périmètre

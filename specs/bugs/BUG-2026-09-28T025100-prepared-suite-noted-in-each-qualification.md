@@ -33,7 +33,7 @@ Security impact: NONE — no security exploit path identified.
 ## Diagnosis
 
 **Reproduce.** A throwaway harness probe on `8f683d9`: the preparation scenario of
-`test/v2/preparation.test.ts` (a project without tests, a `prepare` intervention writing a discriminant
+`test/v2-kernel/preparation.test.ts` (a project without tests, a `prepare` intervention writing a discriminant
 suite), with a control runner that answers FAIL for every qualification run of the `unit` control. The
 change stops `capability_missing`, and both the stop detail and the report end the reasons of `control
 unit is not qualified` with `prepared suite on the bare reference: FAIL (discriminant)`.
@@ -69,19 +69,19 @@ suite stays recorded by the preparation artifact.
 
 ## TDD Fix Plan
 
-1. **RED** — `test/v2/preparation.test.ts`: "the reasons a control is not qualified name what its
+1. **RED** — `test/v2-kernel/preparation.test.ts`: "the reasons a control is not qualified name what its
    witnesses answered, not the prepared suite judged beside it". The probe's scenario; asserts the stop
    detail and the report's `control unit is not qualified` line do not mention the prepared suite, and
    that the adopted preparation record says FAIL on the reference and discriminant. Fails today: both
    end with `prepared suite on the bare reference: FAIL (discriminant)`.
-   The three take-up tests of `test/v2/answer-revocation.test.ts` ("… notes the prepared suite of the
+   The three take-up tests of `test/v2-kernel/answer-revocation.test.ts` ("… notes the prepared suite of the
    rebuilt change alone", "… without a preparation notes no prepared suite …", "… with a preparation
    notes its prepared suite …") are rewritten in the same test-only commit: they hold that no
    qualification of the frozen protocol, first build or rebuilt, notes a prepared suite, and that the
    rebuilt change's adopted preparation is its own or absent. They fail today on the first build's
    note.
    **GREEN** — remove the note and its prefix from the verification coordinator.
-   **verify**: `node --test test/v2/preparation.test.ts test/v2/answer-revocation.test.ts`
+   **verify**: `node --test test/v2-kernel/preparation.test.ts test/v2-kernel/answer-revocation.test.ts`
 
 **REFACTOR**: the coordinator's comment on qualifying says the prepared suite is judged separately and
 recorded by the preparation, not noted here.

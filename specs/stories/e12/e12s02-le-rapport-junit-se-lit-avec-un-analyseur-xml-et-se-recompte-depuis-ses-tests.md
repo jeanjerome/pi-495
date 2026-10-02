@@ -67,8 +67,8 @@ Scenario: Un document qui n'est pas du XML lisible n'est jamais un succès
 échec quand il a un enfant `failure` ou `error`, ignoré quand il a un enfant `skipped`, et une suite
 imbriquée n'ajoute rien à ce que ses tests ont déjà compté. Les attributs des suites ne servent plus.
 
-- Vérifie : `node --test test/v1/junit-reader.test.ts test/v1/control-runner.test.ts test/v1/node-stack.test.ts`
-- Tient : `test/v1/junit-reader.test.ts`, « given a report recorded from the node:test junit reporter with two nested suites and three passing tests, then the summary counts three tests », « given a suite declaring tests="0" and two test cases one of which has a failure child, then the summary counts two tests, one failed, and names it » et « given recorded vitest, Surefire and mocha reports, then the counts and the failed case names are those the regular-expression reader gave » ; `test/v1/control-runner.test.ts` et `test/v1/node-stack.test.ts` restent verts sans modification
+- Vérifie : `node --test test/v1-adapters/junit-reader.test.ts test/v1-adapters/control-runner.test.ts test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/junit-reader.test.ts`, « given a report recorded from the node:test junit reporter with two nested suites and three passing tests, then the summary counts three tests », « given a suite declaring tests="0" and two test cases one of which has a failure child, then the summary counts two tests, one failed, and names it » et « given recorded vitest, Surefire and mocha reports, then the counts and the failed case names are those the regular-expression reader gave » ; `test/v1-adapters/control-runner.test.ts` et `test/v1-adapters/node-stack.test.ts` restent verts sans modification
 - Rouge : `summarizeJUnit` additionne les attributs `tests` de chaque `<testsuite>` : il rend quatre tests pour le rapport imbriqué de trois, et zéro test pour le rapport dont l'attribut vaut `tests="0"`
 
 ### Tâche 2 — Un document hostile ou illisible n'est jamais un succès
@@ -78,8 +78,8 @@ d'analyse, y compris un dépassement de pile, et un document illisible se traite
 INDETERMINATE quand le programme sort avec le code 0, FAIL en disant que le rapport n'est pas lisible
 quand il sort en erreur.
 
-- Vérifie : `node --test test/v1/junit-reader.test.ts`
-- Tient : `test/v1/junit-reader.test.ts`, « given a report with a public and a system DOCTYPE, then it is read and no entity is resolved, and one whose DOCTYPE references an external file yields none of that file's content », « given a truncated report, nested entity declarations, two hundred thousand levels of nesting and a report over 16 MiB, then the verdict is INDETERMINATE when the program exits 0 and FAIL saying the report is not readable when it exits with an error »
+- Vérifie : `node --test test/v1-adapters/junit-reader.test.ts`
+- Tient : `test/v1-adapters/junit-reader.test.ts`, « given a report with a public and a system DOCTYPE, then it is read and no entity is resolved, and one whose DOCTYPE references an external file yields none of that file's content », « given a truncated report, nested entity declarations, two hundred thousand levels of nesting and a report over 16 MiB, then the verdict is INDETERMINATE when the program exits 0 and FAIL saying the report is not readable when it exits with an error »
 - Rouge : `parseJUnit` lit un document tronqué comme un rapport sans test et renvoie « JUnit reports contain no test », et aucune borne de taille ne s'applique avant la lecture
 
 ### Tâche 3 — La dépendance est déclarée et attribuée

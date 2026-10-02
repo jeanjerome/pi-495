@@ -128,9 +128,9 @@ epics:
       A tué deux lancements sur quatre.
     position: >
       Versé sans story : le code tenait déjà l'objet quand le plan l'a repris. Un blocage réessayable
-      est levé par resume depuis `e71b2f6` (`D-38`, `test/v2/harness.test.ts`), éprouvé en campagne
+      est levé par resume depuis `e71b2f6` (`D-38`, `test/v2-kernel/harness.test.ts`), éprouvé en campagne
       sur `java-flashnext-L2` ; un rapport sans bloc est lu depuis sa première accolade depuis
-      `03f24c6` (`test/v0/reports.test.ts`). Aucune campagne réelle n'a encore lu un rapport sans bloc
+      `03f24c6` (`test/v0-pure/reports.test.ts`). Aucune campagne réelle n'a encore lu un rapport sans bloc
       depuis ce correctif.
 
   - id: e03

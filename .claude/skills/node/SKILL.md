@@ -22,11 +22,11 @@ wrap a library behind a port, attribute it in `NOTICE`.
 - `tsconfig.json` sets `erasableSyntaxOnly`, `verbatimModuleSyntax`, `noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`. Relative imports carry `.ts`.
 - Tests: `node:test`, `describe`/`it`, `import { strict as assert } from "node:assert"`, under
-  `test/v0` .. `test/v4`, run with `--test-concurrency=1`. A fake for external I/O is a class in
+  `test/v0-pure` .. `test/v4-platform`, run with `--test-concurrency=1`. A fake for external I/O is a class in
   `test/helpers/`. The test is written first and seen failing before the code.
 - Errors: `DomainError` (`src/domain/errors.ts`) with a code and a category in the domain; a plain
   `Error` with `cause` in the adapters. No global handlers.
-- Commands: `npm run typecheck`, `npm test` or `npm run test:v0` .. `test:v3`, `npm run check`
+- Commands: `npm run typecheck`, `npm test` or `npm run test:v0` .. `test:v4` and `test:cycle`, `npm run check`
   (Preflight, green before forward work and before every commit).
 
 ## Common workflows

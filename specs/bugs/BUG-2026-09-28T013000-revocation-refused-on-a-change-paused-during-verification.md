@@ -92,25 +92,25 @@ returns `paused`, as it already does today.
 Write cycle 1's red beside cycle 2's red of BUG-2026-09-28T081300, after that bug's cycle 1: both are
 held by the same change to the pause.
 
-1. **RED** — `test/v0/change-rules.test.ts`, in the revocation block: "a change paused while its
+1. **RED** — `test/v0-pure/change-rules.test.ts`, in the revocation block: "a change paused while its
    verification ran has its answer revoked, and stays paused". Asserts `question.revoke` is accepted,
    the change is `clarifying paused` with the IH-01 asking Q1 again, and no operation is left open.
    Fails today: refused `OPERATION_ACTIVE`, verification operation in progress.
    Same file: "a change whose session ended during its verification is revocable once paused" — the
    verification started and never finished, then `change.pause`, then `question.revoke` accepted.
    Fails today the same way.
-   `test/v2/answer-revocation.test.ts`: "the owner revokes an answer on a change paused during its
+   `test/v2-kernel/answer-revocation.test.ts`: "the owner revokes an answer on a change paused during its
    verification" — the harness path of probe 4. Fails today the same way.
    **GREEN** — the kernel's pause emits the close of an open verification operation before it saves
    the resume point.
-   **verify**: `node --test test/v0/change-rules.test.ts test/v2/answer-revocation.test.ts`
+   **verify**: `node --test test/v0-pure/change-rules.test.ts test/v2-kernel/answer-revocation.test.ts`
 
-2. **RED** — `test/v0/change-rules.test.ts`: "a revocation refused while a verification or an
+2. **RED** — `test/v0-pure/change-rules.test.ts`: "a revocation refused while a verification or an
    intervention is open names the pause that stops it". Asserts the refusal's next actions are
    `["pause"]`, once with a verification operation open and once with an intervention running. Fails
    today: the refusal carries no next action.
    **GREEN** — both `OPERATION_ACTIVE` refusals of the revocation carry `pause` as next action.
-   **verify**: `node --test test/v0/change-rules.test.ts`
+   **verify**: `node --test test/v0-pure/change-rules.test.ts`
 
 **REFACTOR**: none expected.
 

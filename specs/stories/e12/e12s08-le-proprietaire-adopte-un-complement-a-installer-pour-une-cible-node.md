@@ -129,8 +129,8 @@ Une recommandation peut porter une installation (le paquet, la version, le gesti
 porter la liste des paquets installés (nom, version, intégrité). Les deux champs sont optionnels : un protocole ou
 un diagnostic gelé avant la story reste valide. `npm run contracts` régénère le contrat publié.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a recommendation carrying an install and a protocol carrying installed packages, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a recommendation carrying an install and a protocol carrying installed packages, then the schema accepts them, and given neither, then it still accepts the protocol and the diagnosis »
 - Rouge : le schéma d'une recommandation refuse un champ `install`, et celui du protocole refuse un champ `installed_packages`, comme propriétés inconnues
 
 ### Tâche 2 — Node décrit l'installation du fournisseur de couverture de vitest
@@ -139,8 +139,8 @@ La recommandation de couverture d'une cible vitest sans fournisseur porte l'inst
 la version de vitest installée, avec le gestionnaire npm, en plus du texte d'aujourd'hui, et aucune modification de
 fichier.
 
-- Vérifie : `node --test test/v1/recommendations.test.ts`
-- Tient : `test/v1/recommendations.test.ts`, « given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit »
+- Vérifie : `node --test test/v1-adapters/recommendations.test.ts`
+- Tient : `test/v1-adapters/recommendations.test.ts`, « given a vitest target without a coverage provider, then the coverage recommendation carries the install of @vitest/coverage-v8 at the installed vitest version with npm, and no file edit »
 - Rouge : la recommandation de couverture d'une cible vitest ne porte que du texte dans `change` : aucun champ ne décrit le paquet, la version ni le gestionnaire
 
 ### Tâche 3 — L'installation se planifie, ou se refuse en disant pourquoi
@@ -149,8 +149,8 @@ Une fonction pure lit la liste des fichiers de la référence et rend soit la co
 explicites : sans scripts d'installation, version exacte, dépendance de développement, sans audit ni message de
 financement), soit le motif du refus : un verrou d'un autre gestionnaire, aucun `package-lock.json`.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command »
 - Rouge : aucun code ne décide d'un gestionnaire de paquets : une cible avec un verrou pnpm ou sans verrou n'est distinguée d'aucune autre, et l'adoption d'une installation ne se refuse pour aucun motif
 
 ### Tâche 4 — L'inspection du résultat accepte l'ajout et refuse le reste
@@ -158,8 +158,8 @@ financement), soit le motif du refus : un verrou d'un autre gestionnaire, aucun 
 Une fonction pure compare l'inventaire de la copie avant et après l'installation, avec le `package.json` avant et après,
 et rend soit la liste des paquets ajoutés (lue dans le verrou), soit le motif du refus qui nomme le fichier ou l'entrée fautive.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit »
 - Rouge : aucune inspection n'existe : rien ne compare les fichiers ni `package.json` avant et après une installation, et un résultat qui modifie un fichier de `node_modules/` ne peut être refusé
 
 ### Tâche 5 — L'étape d'installation s'exécute confinée, réseau ouvert et lui seul
@@ -170,8 +170,8 @@ du plan dans la copie, avec un profil de confinement qui ouvre le réseau et n'�
 remis tel quel ; npm lit lui-même sa configuration et son authentification. 495 ne choisit pas le cache, n'a pas
 d'emplacement par défaut et ne vérifie pas qu'il existe. Les contrôles gardent le profil sans réseau.
 
-- Vérifie : `node --test test/v1/installation.test.ts`
-- Tient : `test/v1/installation.test.ts`, « given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network »
+- Vérifie : `node --test test/v1-adapters/installation.test.ts`
+- Tient : `test/v1-adapters/installation.test.ts`, « given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network »
 - Rouge : aucun appelant ne pose le profil `allowed` : toute commande d'une cible s'exécute avec le réseau fermé, aucun code n'interroge npm sur son cache et aucun code n'exécute d'installation
 
 ### Tâche 6 — L'option d'adoption est offerte quand le plan est une commande, et nomme le réseau
@@ -180,8 +180,8 @@ L'ensemble des compléments adoptables compte ceux dont l'installation se planif
 paquet, sa version et le fait que le réseau s'ouvre à cette seule étape. Quand le plan est un refus, l'option n'est
 pas offerte et le rapport dit le motif.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given three vitest targets, one with package-lock.json, one with only pnpm-lock.yaml and one with no lock, then only the first offers to adopt the complement, naming the package, its version and the network, and the report gives the reason for the other two »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given three vitest targets, one with package-lock.json, one with only pnpm-lock.yaml and one with no lock, then only the first offers to adopt the complement, naming the package, its version and the network, and the report gives the reason for the other two »
 - Rouge : `adoptableFiles` ne compte que les recommandations qui portent une modification de fichier : une recommandation d'installation n'offre jamais l'adoption
 
 ### Tâche 7 — G4 refuse le fichier d'un complément que le candidat n'a plus
@@ -189,8 +189,8 @@ pas offerte et le rapport dit le motif.
 Un fichier qu'un complément a écrit, absent de la référence, et que le candidat ne contient plus, est un chemin
 protégé altéré, nommé dans le motif du refus.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a complement that wrote a file absent from the reference, then a candidate that no longer holds that file is refused naming it, and one that keeps it as written passes »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a complement that wrote a file absent from the reference, then a candidate that no longer holds that file is refused naming it, and one that keeps it as written passes »
 - Rouge : `protectedPathsChanged` ne relit que les fichiers de complément présents dans le candidat tels que la référence les a : un fichier ajouté par le complément puis supprimé par le producteur n'apparaît nulle part, et le candidat passe
 
 ### Tâche 8 — L'adoption installe, inspecte, conserve et gèle
@@ -202,8 +202,8 @@ qualifie. Une installation qui échoue ou une inspection qui refuse n'adopte rie
 complément reste recommandé et non adopté, et la décision est reposée sans l'issue d'adoption. Le rapport liste les
 paquets installés.
 
-- Vérifie : `node --test test/v2/verifiability-arbitration.test.ts`
-- Tient : `test/v2/verifiability-arbitration.test.ts`, « given the answer adopt the complement on a vitest target, then the protocol carries package.json, package-lock.json and the added node_modules files as complements with the installed packages and declares the coverage control qualified, and given a failing install or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption »
+- Vérifie : `node --test test/v2-kernel/verifiability-arbitration.test.ts`
+- Tient : `test/v2-kernel/verifiability-arbitration.test.ts`, « given the answer adopt the complement on a vitest target, then the protocol carries package.json, package-lock.json and the added node_modules files as complements with the installed packages and declares the coverage control qualified, and given a failing install or a refused inspection, then nothing is adopted, the record gives the reason and the decision is asked again without the adoption »
 - Rouge : la réponse d'adoption n'écrit que les modifications de fichier des recommandations : sur une cible vitest, elle n'installe rien, le protocole ne porte aucun complément et aucun contrôle coverage ne se déclare
 
 ### Tâche 9 — L'arbre installé arrive dans le projet à l'intégration, hors du commit
@@ -211,8 +211,8 @@ paquets installés.
 Le candidat qui porte le complément installé est intégré : `package.json` et `package-lock.json` entrent dans le
 commit local, `node_modules/` est copié dans le projet et jamais indexé.
 
-- Vérifie : `node --test test/v2/export-integration.test.ts`
-- Tient : `test/v2/export-integration.test.ts`, « given an accepted candidate carrying an installed complement, then the local commit holds package.json and package-lock.json and no node_modules path, and the installed provider is in the project »
+- Vérifie : `node --test test/v2-kernel/export-integration.test.ts`
+- Tient : `test/v2-kernel/export-integration.test.ts`, « given an accepted candidate carrying an installed complement, then the local commit holds package.json and package-lock.json and no node_modules path, and the installed provider is in the project »
 - Rouge : aucun test ne porte un `node_modules/` à la racine du projet à l'intégration avec un candidat qui installe (défaut `T201000`) : le comportement de l'intégrateur sur cet arbre n'est observé nulle part
 
 ### Tâche 10 — La recette dans un vrai Pi, avec le vrai dépôt de paquets

@@ -125,7 +125,7 @@ Not covered:
 Do this bug's cycle 1 before BUG-2026-09-28T013000: that bug's fix makes the resume of a paused change
 reach the reused key, so the key must be fixed first.
 
-1. **RED** — `test/v2/harness.test.ts`: "a verification cut short by the end of its session is run
+1. **RED** — `test/v2-kernel/harness.test.ts`: "a verification cut short by the end of its session is run
    again after a resume, and the change reaches its decision". A control runner throws a plain error
    on the first control run on the candidate; `advance` rejects; `resume`, then `advance`. Asserts the
    change stops for its acceptance decision or closes, holds evidence on the candidate, and is not
@@ -133,16 +133,16 @@ reach the reused key, so the key must be fixed first.
    the reused key.
    **GREEN** — the verification step's idempotency key names the change's revision instead of the
    evidence count.
-   **verify**: `node --test test/v2/harness.test.ts`
+   **verify**: `node --test test/v2-kernel/harness.test.ts`
 
-2. **RED** — `test/v2/harness.test.ts`: "a change paused during its verification is resumed and its
+2. **RED** — `test/v2-kernel/harness.test.ts`: "a change paused during its verification is resumed and its
    verification is run again". A control runner calls `pause` during the first control run on the
    candidate; `advance` returns `paused`; `resume`, then `advance`. Asserts the resume is accepted, and
    the change reaches its decision with evidence on the candidate. Fails today: `resume` throws
    `PRECONDITION_FAILED: change is paused`.
    **GREEN** — the kernel's pause closes the verification operation it suspends (the same change as
    BUG-2026-09-28T013000's cycle 1, written once).
-   **verify**: `node --test test/v2/harness.test.ts test/v0/change-rules.test.ts`
+   **verify**: `node --test test/v2-kernel/harness.test.ts test/v0-pure/change-rules.test.ts`
 
 **REFACTOR**: none expected.
 

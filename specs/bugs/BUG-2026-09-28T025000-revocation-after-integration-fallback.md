@@ -93,20 +93,20 @@ change as differing from its replay; no path of the extension runs that check.
 
 ## TDD Fix Plan
 
-1. **RED** — `test/v0/change-rules.test.ts`, in the revocation block: "a revocation after an
+1. **RED** — `test/v0-pure/change-rules.test.ts`, in the revocation block: "a revocation after an
    integration fallback keeps the reconciliation of the Git effect valid (M5)", and "a revision of the
    mandate after an integration fallback keeps it valid too". Assert the IH-12 decision stays valid and
    no `decision.revoked` names it. Fail today: the IH-12 decision is revoked.
    **GREEN** — the shared plan excludes IH-12 beside IH-01 and IH-07.
-   **verify**: `node --test test/v0/change-rules.test.ts`
+   **verify**: `node --test test/v0-pure/change-rules.test.ts`
 
-2. **RED** — `test/v0/change-rules.test.ts`, in the integration block: "a destination that advanced with
+2. **RED** — `test/v0-pure/change-rules.test.ts`, in the integration block: "a destination that advanced with
    a different combined tree withdraws the accepted outcome, and a failed re-verification is not said
    accepted"; in the revocation block: "a change taken back to clarification by a revocation after an
    integration fallback holds a pending outcome". Assert outcome `pending` after the fallback, after
    G5 FAIL, and after the revocation. Fail today: `accepted` in all three.
    **GREEN** — the derivation of a G5 invalidation sets an `accepted` outcome back to `pending`.
-   **verify**: `node --test test/v0/change-rules.test.ts`
+   **verify**: `node --test test/v0-pure/change-rules.test.ts`
 
 **REFACTOR**: the comment on the shared plan names IH-12 beside IH-07, with the reason.
 
@@ -119,4 +119,4 @@ change as differing from its replay; no path of the extension runs that check.
 
 ## Resolution
 
-Fixed on the branch `reprise-de-verification-et-revocation` (`04e4450`, `1f36ec6`): a revocation or a revised mandate keeps the owner's reconciliation of a Git effect valid, and an integration fallback withdraws the accepted outcome. Held by `test/v0/change-rules.test.ts`; not exercised in a real Pi. Accepted by the owner on 2026-09-28.
+Fixed on the branch `reprise-de-verification-et-revocation` (`04e4450`, `1f36ec6`): a revocation or a revised mandate keeps the owner's reconciliation of a Git effect valid, and an integration fallback withdraws the accepted outcome. Held by `test/v0-pure/change-rules.test.ts`; not exercised in a real Pi. Accepted by the owner on 2026-09-28.

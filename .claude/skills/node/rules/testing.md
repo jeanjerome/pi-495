@@ -142,9 +142,9 @@ read-only for every test in it.
 ```bash
 npm test                                  # whole suite, concurrency 1, what Preflight runs
 npm run test:v2                           # one generation while iterating
-node --test test/v2/foo.test.ts           # one file
-node --test --test-name-pattern "digest" test/v2/foo.test.ts
-node --test --test-only test/v2/foo.test.ts   # with it.only / test.only on the one to isolate
+node --test test/v2-kernel/foo.test.ts           # one file
+node --test --test-name-pattern "digest" test/v2-kernel/foo.test.ts
+node --test --test-only test/v2-kernel/foo.test.ts   # with it.only / test.only on the one to isolate
 ```
 
 No coverage tool is configured, and no snapshot testing is used. Never skip a test without a written

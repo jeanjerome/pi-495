@@ -132,5 +132,5 @@ would not load.
 npm run typecheck        # tsc --noEmit over the whole tree
 npm run build            # dist/ from src/, before any npm run check
 node scripts/x.ts        # a script, directly
-node --test test/v2/foo.test.ts
+node --test test/v2-kernel/foo.test.ts
 ```

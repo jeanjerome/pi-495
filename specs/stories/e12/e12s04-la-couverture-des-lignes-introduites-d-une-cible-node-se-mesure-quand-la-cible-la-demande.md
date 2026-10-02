@@ -126,8 +126,8 @@ Scenario: Sur une cible node:test et sur une cible vitest, une ligne introduite 
 différentiels : il ne juge que les lignes que le changement introduit. `npm run contracts` régénère le
 contrat publié.
 
-- Vérifie : `node --test test/v0/contracts.test.ts`
-- Tient : `test/v0/contracts.test.ts`, « given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential »
+- Vérifie : `node --test test/v0-pure/contracts.test.ts`
+- Tient : `test/v0-pure/contracts.test.ts`, « given a control declaring the lcov parser, then the protocol schema accepts it and the parser is differential »
 - Rouge : le schéma du protocole refuse `lcov` comme identifiant de lecteur inconnu, et `isDifferentialParser("lcov")` n'existe pas comme lecteur
 
 ### Tâche 2 — Le lecteur juge les lignes introduites
@@ -137,8 +137,8 @@ localisé pour une ligne introduite jamais exécutée, PASS avec un constat de g
 non prise, nomme comme toléré ce que le changement n'a pas écrit, et fusionne les enregistrements d'un même
 fichier.
 
-- Vérifie : `node --test test/v0/lcov.test.ts`
-- Tient : `test/v0/lcov.test.ts`, « given recorded LCOV reports and a change introducing three lines one of which is never executed, then the verdict is FAIL with a finding at that file and line and the earlier unexecuted line is named as tolerated », « given an introduced line executed with a branch never taken, then the verdict is PASS with a major finding at that line » et « given a file that appears in two records, then a line executed in either counts as executed »
+- Vérifie : `node --test test/v0-pure/lcov.test.ts`
+- Tient : `test/v0-pure/lcov.test.ts`, « given recorded LCOV reports and a change introducing three lines one of which is never executed, then the verdict is FAIL with a finding at that file and line and the earlier unexecuted line is named as tolerated », « given an introduced line executed with a branch never taken, then the verdict is PASS with a major finding at that line » et « given a file that appears in two records, then a line executed in either counts as executed »
 - Rouge : l'exécuteur n'a pas de lecteur `lcov` : l'évidence du contrôle dit INDETERMINATE avec la note « parser lcov is not qualified », quel que soit le rapport
 
 ### Tâche 3 — Ce qui est attendu du rapport, et ce que l'absence veut dire
@@ -148,8 +148,8 @@ configuration, ni une déclaration de types ; il rend INDETERMINATE quand un de 
 le rapport est absent ou l'ensemble de lignes inconnu, et le passage sur la référence est décidé sans
 rapport.
 
-- Vérifie : `node --test test/v0/lcov.test.ts`
-- Tient : `test/v0/lcov.test.ts`, « given changes introducing a test, a vitest configuration, a declaration file and one source file, then only the source file is expected in the report », « given an introduced source file the report does not cite, an absent report and an unknown introduced set, then each verdict is INDETERMINATE and the first names the file » et « given a reference pass that introduces nothing, then no report is looked for and the verdict is PASS »
+- Vérifie : `node --test test/v0-pure/lcov.test.ts`
+- Tient : `test/v0-pure/lcov.test.ts`, « given changes introducing a test, a vitest configuration, a declaration file and one source file, then only the source file is expected in the report », « given an introduced source file the report does not cite, an absent report and an unknown introduced set, then each verdict is INDETERMINATE and the first names the file » et « given a reference pass that introduces nothing, then no report is looked for and the verdict is PASS »
 - Rouge : sans lecteur `lcov`, l'évidence dit INDETERMINATE avec « parser lcov is not qualified » pour le passage sur la référence, là où la promesse veut PASS
 
 ### Tâche 4 — Un chemin qui porte un caractère de contrôle rend le rapport illisible
@@ -157,8 +157,8 @@ rapport.
 Un chemin introduit qui contient un caractère de contrôle donne INDETERMINATE, en le nommant, avant toute
 lecture des enregistrements.
 
-- Vérifie : `node --test test/v0/lcov.test.ts`
-- Tient : `test/v0/lcov.test.ts`, « given the report Node 24.21.0 wrote for a directory whose name embeds a second SF record and a change adding that file, then the verdict is INDETERMINATE naming the path and src/victim.js is not judged covered »
+- Vérifie : `node --test test/v0-pure/lcov.test.ts`
+- Tient : `test/v0-pure/lcov.test.ts`, « given the report Node 24.21.0 wrote for a directory whose name embeds a second SF record and a change adding that file, then the verdict is INDETERMINATE naming the path and src/victim.js is not judged covered »
 - Rouge : sans lecteur `lcov`, l'évidence dit INDETERMINATE avec la note « parser lcov is not qualified », qui ne nomme aucun chemin
 
 ### Tâche 5 — Un commentaire de silence introduit est un constat bloquant
@@ -167,8 +167,8 @@ Pour chaque fichier de code introduit, l'exécuteur lit les lignes introduites e
 localisé au commentaire, pour `v8 ignore`, `istanbul ignore`, `c8 ignore` et `node:coverage disable` ou
 `ignore` ; un commentaire déjà présent avant le changement est nommé comme toléré.
 
-- Vérifie : `node --test test/v1/lcov-control.test.ts`
-- Tient : `test/v1/lcov-control.test.ts`, « given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated »
+- Vérifie : `node --test test/v1-adapters/lcov-control.test.ts`
+- Tient : `test/v1-adapters/lcov-control.test.ts`, « given introduced files carrying v8 ignore start, istanbul ignore next and node:coverage disable, then the evidence is FAIL with a blocking finding at each comment, and a comment already present before the change is named as tolerated »
 - Rouge : l'exécuteur ne lit aucun fichier source pour la couverture, si bien qu'un fichier introduit sous `/* v8 ignore start */` a ses lignes absentes du rapport et n'est pas jugé
 
 ### Tâche 6 — node:test qui demande la couverture reçoit un contrôle de couverture
@@ -178,8 +178,8 @@ lance alors `node --test` avec la couverture, le rapporteur tap sur la sortie st
 dans `495-lcov.info`, fournit ce rapport, ne déclare en écriture que ce fichier ; un contrôle `coverage`
 lit ce fichier. Sans le drapeau, la commande et le lecteur de `unit` ne changent pas et la capacité manquante dit pourquoi ; les assertions existantes qui attendent aucune capacité manquante pour une cible node:test sans le drapeau attendent cette note.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage » et « given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage » et « given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage »
 - Rouge : `detectNodeStack` ne déclare jamais de contrôle `coverage` pour une cible Node, et ne nomme aucune capacité manquante pour la couverture
 
 ### Tâche 7 — vitest avec son fournisseur reçoit un contrôle de couverture
@@ -189,8 +189,8 @@ ajoute la couverture avec ce fournisseur et le rapporteur lcov sous `target/cove
 `coverage` lit `target/coverage/lcov.info`. Sans fournisseur, aucun contrôle, et la capacité manquante nomme
 `@vitest/coverage-v8`. Jest et mocha n'en ont pas, et la capacité manquante le dit.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a vitest target whose node_modules carries a coverage provider, then unit adds that provider with the lcov reporter under target/coverage and coverage reads target/coverage/lcov.info », « given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8 » et « given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a vitest target whose node_modules carries a coverage provider, then unit adds that provider with the lcov reporter under target/coverage and coverage reads target/coverage/lcov.info », « given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8 » et « given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage »
 - Rouge : le contrôle `unit` de vitest ne passe aucune option de couverture, et aucune capacité manquante ne nomme un fournisseur
 
 ### Tâche 8 — Les témoins d'un capteur de couverture
@@ -199,8 +199,8 @@ Quand la couverture est demandée, le témoin positif ajoute un fichier `.mjs` s
 test appelle entièrement, et le contrôle `coverage` a un témoin négatif propre : un fichier `.mjs` que le
 test charge et dont une fonction n'est jamais appelée.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given node:test and vitest targets that ask for coverage, then the positive witness adds a .mjs module called in full and its test, and the coverage control has its own negative witness whose module is loaded with a function never called »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given node:test and vitest targets that ask for coverage, then the positive witness adds a .mjs module called in full and its test, and the coverage control has its own negative witness whose module is loaded with a function never called »
 - Rouge : les témoins de l'adaptateur Node n'ajoutent aucun fichier de code et `own_negative_witness` est vide pour une cible Node
 
 ### Tâche 9 — Le rapport de couverture s'écrit sous le bac à sable de vérification
@@ -208,8 +208,8 @@ test charge et dont une fonction n'est jamais appelée.
 Les deux contrôles `unit` écrivent leur rapport LCOV à un endroit que le bac à sable de vérification leur laisse
 créer, et le contrôle `coverage` le lit.
 
-- Vérifie : `node --test test/v1/lcov-control.test.ts`
-- Tient : `test/v1/lcov-control.test.ts`, « given the derived unit control of each runner run under the verification sandbox against a stand-in that writes the recorded LCOV report at the declared path, then coverage reads and judges it, and a stand-in that writes it elsewhere under the root of the copy fails under the sandbox »
+- Vérifie : `node --test test/v1-adapters/lcov-control.test.ts`
+- Tient : `test/v1-adapters/lcov-control.test.ts`, « given the derived unit control of each runner run under the verification sandbox against a stand-in that writes the recorded LCOV report at the declared path, then coverage reads and judges it, and a stand-in that writes it elsewhere under the root of the copy fails under the sandbox »
 - Rouge : aucun contrôle Node ne déclare de fichier de couverture, si bien que le programme de remplacement ne peut pas écrire son rapport sous le bac à sable et que le contrôle coverage n'existe pas
 
 ### Tâche 10 — Le README dit ce que l'adaptateur Node mesure

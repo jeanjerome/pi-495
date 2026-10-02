@@ -75,8 +75,8 @@ localisé au commentaire, pour `Stryker disable`, sous ses formes `//` et `/* */
 un commentaire déjà présent avant le changement est nommé comme toléré, et ni un fichier de test, ni une déclaration,
 ni un texte hors du code ne sont lus.
 
-- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
-- Tient : `test/v1/stryker-mutation.test.ts`, « given introduced files carrying Stryker disable, Stryker disable next-line and a block comment Stryker disable, then the evidence is FAIL with a blocking finding at each comment even when the report is complete and without survivor, a comment already present before the change is named as tolerated, and a test file, a declaration file, a README and the words Stryker disabled in a string are not read »
+- Vérifie : `node --test test/v1-adapters/stryker-mutation.test.ts`
+- Tient : `test/v1-adapters/stryker-mutation.test.ts`, « given introduced files carrying Stryker disable, Stryker disable next-line and a block comment Stryker disable, then the evidence is FAIL with a blocking finding at each comment even when the report is complete and without survivor, a comment already present before the change is named as tolerated, and a test file, a declaration file, a README and the words Stryker disabled in a string are not read »
 - Rouge : le lecteur de mutation de `e12s10` ne lit aucune ligne source : un candidat qui introduit « // Stryker disable next-line all » au-dessus d'une ligne dont les mutants sont ignorés reçoit un PASS
 
 ### Tâche 2 — L'exécuteur donne au lecteur les lignes introduites
@@ -84,8 +84,8 @@ ni un texte hors du code ne sont lus.
 L'exécuteur générique lit les fichiers de code introduits du candidat gelé et de la référence, comme il le fait pour la
 couverture, et les donne au lecteur `stryker-json`.
 
-- Vérifie : `node --test test/v1/control-runner.test.ts`
-- Tient : `test/v1/control-runner.test.ts`, « given a mutation control and a candidate whose introduced source carries a Stryker disable comment, and a stand-in for Stryker that writes a complete report with no survivor, then the evidence is FAIL with the finding at the comment »
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « given a mutation control and a candidate whose introduced source carries a Stryker disable comment, and a stand-in for Stryker that writes a complete report with no survivor, then the evidence is FAIL with the finding at the comment »
 - Rouge : le cas `stryker-json` de l'exécuteur ne lit que le rapport de Stryker : il ne charge aucune source introduite, si bien que la même exécution rend un PASS
 
 ### Tâche 3 — La recette dans un vrai Pi, sur la construction de `e12s10` et sur celle-ci
@@ -105,8 +105,8 @@ ligne : une directive `Stryker disable` seule sur sa ligne à l'intérieur d'un 
 localisé à la ligne de la directive, tandis que la même ligne hors de tout commentaire, ou portant un mot voisin
 (`disabled`, `restore`), n'en est pas un.
 
-- Vérifie : `node --test test/v1/stryker-mutation.test.ts`
-- Tient : `test/v1/stryker-mutation.test.ts`, « given an introduced source whose block comment opens on one line, carries Stryker disable all alone on the next line and closes on a third, above a line whose mutant the complete report marks Ignored, then the evidence is FAIL with one blocking finding located at the line of the directive and not at the opening of the block, the same directive alone on a line outside any comment and Stryker disabled alone in a block are not findings, and the directive alone in a block of a file already present before the change is named as tolerated »
+- Vérifie : `node --test test/v1-adapters/stryker-mutation.test.ts`
+- Tient : `test/v1-adapters/stryker-mutation.test.ts`, « given an introduced source whose block comment opens on one line, carries Stryker disable all alone on the next line and closes on a third, above a line whose mutant the complete report marks Ignored, then the evidence is FAIL with one blocking finding located at the line of the directive and not at the opening of the block, the same directive alone on a line outside any comment and Stryker disabled alone in a block are not findings, and the directive alone in a block of a file already present before the change is named as tolerated »
 - Rouge : `silencingComments` (`src/adapters/execution/lcov.ts`) coupe le source en lignes et applique à chacune le motif de `STRYKER_SILENCING` (`src/adapters/execution/mutation.ts`), qui exige `//` ou `/*` devant `Stryker disable` sur la même ligne : la ligne « Stryker disable all » d'un bloc n'en porte aucun, si bien que le même rapport complet, sans survivant et à mutant ignoré, rend un PASS sans constat (mesuré : verdict PASS, findings vide)
 
 ## 5. Hors périmètre

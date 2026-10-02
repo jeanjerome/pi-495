@@ -50,8 +50,8 @@ La lecture de l'index des fichiers du candidat et de celui de la référence ne 
 `EVIDENCE_MISSING` ; toute autre erreur remonte, et la boucle de conduite arrête le changement comme
 pour toute erreur du noyau.
 
-- Vérifie : `node --test test/v2/altered-evidence.test.ts`
-- Tient : `test/v2/altered-evidence.test.ts`, « un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet » et « un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites »
+- Vérifie : `node --test test/v2-kernel/altered-evidence.test.ts`
+- Tient : `test/v2-kernel/altered-evidence.test.ts`, « un changement dont l'objet de `files_<candidat>` est altéré est arrêté, et le détail de l'arrêt nomme EVIDENCE_STALE et l'empreinte de l'objet » et « un changement dont `files_<candidat>` n'existe pas n'est pas arrêté par le calcul des lignes introduites »
 - Rouge : `introducedLines` rattrape toute erreur de lecture par `.catch(() => ({}))` : l'index altéré est lu comme vide, la vérification continue et le changement n'est pas arrêté
 
 ### Tâche 2 — Un rapport de spécification altéré arrête le changement
@@ -59,8 +59,8 @@ pour toute erreur du noyau.
 La relecture des rapports de spécification ne rattrape plus que `EVIDENCE_MISSING` ; une altération
 remonte et arrête le changement.
 
-- Vérifie : `node --test test/v2/altered-evidence.test.ts`
-- Tient : `test/v2/altered-evidence.test.ts`, « un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE »
+- Vérifie : `node --test test/v2-kernel/altered-evidence.test.ts`
+- Tient : `test/v2-kernel/altered-evidence.test.ts`, « un changement dont l'objet d'un rapport de spécification antérieur est altéré est arrêté à la relecture des rapports, et le détail de l'arrêt nomme EVIDENCE_STALE »
 - Rouge : `readReports` rattrape toute erreur par `.catch(() => null)` et retire le rapport altéré de la liste : la spécification est jugée sans lui et le changement n'est pas arrêté
 
 ## 5. Hors périmètre

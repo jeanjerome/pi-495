@@ -61,8 +61,8 @@ Scenario: Avec un vrai modèle, le changement qui contredit un test existant abo
 L'objectif de la préparation demande d'écrire les tests qui manquent et de mettre à jour un test
 existant qui affirme le comportement que les exigences changent. Il ne dit plus « only add tests ».
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « the preparation objective asks to update an existing test that asserts the behaviour the requirements change, not only to add tests »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « the preparation objective asks to update an existing test that asserts the behaviour the requirements change, not only to add tests »
 - Rouge : `preparationObjective` écrit « only add tests that will fail until it exists »
 
 ### Tâche 2 — Le relevé nomme le test existant modifié
@@ -70,8 +70,8 @@ existant qui affirme le comportement que les exigences changent. Il ne dit plus 
 Le relevé d'une préparation distingue, parmi les fichiers retenus, ceux qui existaient sur la
 référence et qu'elle a modifiés.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « a preparation that rewrites an existing test is adopted, and its record names the test it modified, while one that only adds a test names none »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « a preparation that rewrites an existing test is adopted, and its record names the test it modified, while one that only adds a test names none »
 - Rouge : `PreparationRecord` ne porte que `files`, sans dire lequel existait sur la référence ; le relevé ne nomme aucun test modifié
 
 ## 5. Hors périmètre

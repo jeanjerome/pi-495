@@ -40,8 +40,8 @@ Le superviseur vérifie qu'une ligne analysée est un objet dont le type est `ev
 est un objet avant de lire son type ; sinon il l'ignore, comme une ligne qui n'est pas du JSON. Le
 worker factice des tests gagne un mode qui écrit ces lignes mal formées avant de terminer.
 
-- Vérifie : `node --test test/v1/worker-malformed-line.test.ts`
-- Tient : `test/v1/worker-malformed-line.test.ts`, « un worker qui écrit `{"type":"event"}` puis termine voit ses événements relayés `started`, `tool_started`, `tool_finished`, `completed` » et « un worker qui écrit `null` puis termine voit ses événements se terminer par `completed` »
+- Vérifie : `node --test test/v1-adapters/worker-malformed-line.test.ts`
+- Tient : `test/v1-adapters/worker-malformed-line.test.ts`, « un worker qui écrit `{"type":"event"}` puis termine voit ses événements relayés `started`, `tool_started`, `tool_finished`, `completed` » et « un worker qui écrit `null` puis termine voit ses événements se terminer par `completed` »
 - Rouge : l'écouteur de lignes de `PiWorkerAgent` lit `msg.event.type` sur `{"type":"event"}` et lève `TypeError: Cannot read properties of undefined (reading 'type')`, que rien ne rattrape : le test échoue sur cette exception avant que l'intervention ne se termine ; sur `null`, `msg.type` lève de même
 
 ## 5. Hors périmètre

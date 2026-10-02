@@ -99,16 +99,16 @@ La couche application ouvre une copie de travail avec les compléments adoptés 
 depuis le magasin d'objets ; la qualification l'emploie pour ses trois copies (positive, négative, négative propre
 à un contrôle).
 
-- Vérifie : `node --test test/v2/verification.test.ts`
-- Tient : `test/v2/verification.test.ts`, « given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written »
+- Vérifie : `node --test test/v2-kernel/verification.test.ts`
+- Tient : `test/v2-kernel/verification.test.ts`, « given an adopted complement, then the positive, negative and control-specific negative workspaces of the qualification each carry it before the witness is written »
 - Rouge : `qualify` ouvre la copie négative et la copie négative propre à un contrôle depuis la référence nue et n'y écrit que les fichiers du témoin
 
 ### Tâche 2 — La passe sur la référence porte le complément
 
 La copie où le noyau rejoue un contrôle sur la référence est ouverte avec les compléments du protocole gelé.
 
-- Vérifie : `node --test test/v2/verification.test.ts`
-- Tient : `test/v2/verification.test.ts`, « given a frozen protocol carrying an adopted complement, then the workspace of a reference pass carries it »
+- Vérifie : `node --test test/v2-kernel/verification.test.ts`
+- Tient : `test/v2-kernel/verification.test.ts`, « given a frozen protocol carrying an adopted complement, then the workspace of a reference pass carries it »
 - Rouge : `referencePasses` ouvre une copie nue de la référence, sans lire les compléments du protocole
 
 ### Tâche 3 — La préparation porte le complément
@@ -116,8 +116,8 @@ La copie où le noyau rejoue un contrôle sur la référence est ouverte avec le
 La copie du producteur de la préparation et la copie où le noyau juge la suite préparée sont ouvertes avec les
 compléments adoptés.
 
-- Vérifie : `node --test test/v2/preparation.test.ts`
-- Tient : `test/v2/preparation.test.ts`, « given an adopted complement, then the producer's workspace and the bare workspace judging the prepared suite both carry it »
+- Vérifie : `node --test test/v2-kernel/preparation.test.ts`
+- Tient : `test/v2-kernel/preparation.test.ts`, « given an adopted complement, then the producer's workspace and the bare workspace judging the prepared suite both carry it »
 - Rouge : `prepare` ouvre ses deux copies depuis la référence nue et n'y écrit, pour la seconde, que les fichiers préparés
 
 ### Tâche 4 — Un fichier du complément est permis à G4 à n'importe quel chemin protégé
@@ -125,24 +125,24 @@ compléments adoptés.
 Les fichiers des compléments sont donnés à `protectedPathsChanged` avec les fichiers préparés : un fichier remis
 à l'identique est permis, y compris sous `node_modules/`, et toute autre modification est refusée.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a complement carrying package.json and two files under node_modules/, then a candidate keeping them as written is allowed and one modifying one of them is refused naming that file »
 - Rouge : `implement` ne donne à `protectedPathsChanged` que les fichiers de la préparation : un fichier ajouté sous `node_modules/` n'est jamais permis, et le candidat qui porte le complément est refusé à G4
 
 ### Tâche 5 — L'intégration laisse hors du commit ce que git ignore
 
 L'intégrateur copie tous les fichiers du candidat, puis n'indexe que les chemins que git n'ignore pas.
 
-- Vérifie : `node --test test/v2/export-integration.test.ts`
-- Tient : `test/v2/export-integration.test.ts`, « given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/a.ts, then the file is in the project, the commit holds src/a.ts only and the receipt says the integration is done »
+- Vérifie : `node --test test/v2-kernel/export-integration.test.ts`
+- Tient : `test/v2-kernel/export-integration.test.ts`, « given a project ignoring coverage/ and a candidate adding coverage/report.txt and modifying src/a.ts, then the file is in the project, the commit holds src/a.ts only and the receipt says the integration is done »
 - Rouge : l'intégrateur exécute `git add -A` sur tous les chemins du candidat sans tolérer d'échec : git répond que `coverage/report.txt` est ignoré et sort avec le code 1, et l'intégration finit `uncertain`
 
 ### Tâche 6 — L'intégration n'indexe jamais un chemin de `node_modules/`
 
 Un chemin de `node_modules/` est copié dans le projet et n'est jamais indexé, que le projet l'ignore ou non.
 
-- Vérifie : `node --test test/v2/export-integration.test.ts`
-- Tient : `test/v2/export-integration.test.ts`, « given a project that does not ignore node_modules/ and a candidate modifying package.json and adding node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/ », et « given a project with no ignored path and two modified files, then the commit holds exactly those two files »
+- Vérifie : `node --test test/v2-kernel/export-integration.test.ts`
+- Tient : `test/v2-kernel/export-integration.test.ts`, « given a project that does not ignore node_modules/ and a candidate modifying package.json and adding node_modules/x/index.js, then the file is in the project and the commit holds package.json and no path of node_modules/ », et « given a project with no ignored path and two modified files, then the commit holds exactly those two files »
 - Rouge : l'intégrateur indexe tous les chemins du candidat : dans un projet qui n'ignore pas `node_modules/`, le commit contient `node_modules/x/index.js`
 
 ### Tâche 7 — Un fichier de `node_modules/` est un chemin protégé d'une cible `node:test`
@@ -151,8 +151,8 @@ Le contrôle `unit` d'une cible `node --test` protège `node_modules/` comme ceu
 ajouté sous `node_modules/` n'est permis à G4 que remis tel qu'un complément adopté l'a écrit, et tout autre est
 refusé.
 
-- Vérifie : `node --test test/v1/node-stack.test.ts`
-- Tient : `test/v1/node-stack.test.ts`, « given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
+- Vérifie : `node --test test/v1-adapters/node-stack.test.ts`
+- Tient : `test/v1-adapters/node-stack.test.ts`, « given a node --test target and no adopted complement, then a candidate adding node_modules/x/index.js and src/greet.js is refused naming node_modules/x/index.js and not src/greet.js, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
 - Rouge : `nodeTestControl` déclare `protected_paths: ["test/", "tests/", "package.json"]` : sur une cible `node --test`, `protectedPathsChanged` rend `altered: []` pour `node_modules/x/index.js` ajouté, et G4 passe
 
 ### Tâche 8 — Le protocole gelé protège `node_modules/` quelle que soit la pile de la cible
@@ -161,8 +161,8 @@ Le protocole gelé protège `node_modules/` en plus de ce que les contrôles de 
 contrôle ne le nomme, Maven par exemple, refuse à G4 un fichier de `node_modules/` qu'aucun complément adopté n'a écrit,
 et permet celui qu'un complément adopté a écrit, remis tel quel.
 
-- Vérifie : `node --test test/v2/verification.test.ts`
-- Tient : `test/v2/verification.test.ts`, « given the controls of a Maven target and no adopted complement, then the frozen protocol protects node_modules/, a candidate adding node_modules/x/index.js and src/main/java/Greet.java is refused naming node_modules/x/index.js and not src/main/java/Greet.java, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
+- Vérifie : `node --test test/v2-kernel/verification.test.ts`
+- Tient : `test/v2-kernel/verification.test.ts`, « given the controls of a Maven target and no adopted complement, then the frozen protocol protects node_modules/, a candidate adding node_modules/x/index.js and src/main/java/Greet.java is refused naming node_modules/x/index.js and not src/main/java/Greet.java, and one keeping a node_modules/x/index.js written by an adopted complement is allowed »
 - Rouge : `freeze` ne complète le `protected_paths` de chaque contrôle qu'avec les fichiers de préparation, et ceux de `maven-test` sont les fichiers de préparation et les `pom.xml` : le protocole gelé ne contient pas `node_modules/`, `protectedPathsChanged` rend `altered: []` pour `node_modules/x/index.js` ajouté, et G4 passe
 
 ## 5. Hors périmètre

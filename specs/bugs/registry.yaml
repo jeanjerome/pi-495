@@ -282,7 +282,7 @@ bugs:
       the last round leaves goes to the registry.
     evidence: >
       Review record of the branch, round 6, R6-1 and R6-2: mutations M9 to M12 and M14 of reviewer A,
-      M11 to M14, M16, M21 and M22 of reviewer B survive at 37626c6. `test/v2/preparation.test.ts:168`
+      M11 to M14, M16, M21 and M22 of reviewer B survive at 37626c6. `test/v2-kernel/preparation.test.ts:168`
       already reaches the stop of a protocol that does not freeze and reads only its first word.
     risk_level: low
     follow_ups: "what the exhausted-budget test asserts depends on BUG-2026-09-28T163400"
@@ -385,15 +385,15 @@ bugs:
       `test-output/`; in a repository hosted under `$TMPDIR` the write succeeds and the assertion of a
       FAIL verdict fails, so the test says nothing about the confinement there. `seatbelt qualifies on
       macOS and confines writes, sensitive reads, symlink escapes and network` in
-      `test/v1/sandbox.test.ts` builds the same sandbox and fails the same way on its `outside:EPERM`
+      `test/v1-adapters/sandbox.test.ts` builds the same sandbox and fails the same way on its `outside:EPERM`
       assertion.
     what_expected: >
       The tests hold wherever the repository lives, because they grant no temporary directory to the
       sandbox they build.
     steps_to_reproduce:
-      - "Clone the repository under `$TMPDIR` and run `node --test test/v1/control-runner.test.ts` on macOS."
+      - "Clone the repository under `$TMPDIR` and run `node --test test/v1-adapters/control-runner.test.ts` on macOS."
       - "The candidate read-only test fails on the assertion that the write is refused."
-      - "Run `node --test test/v1/sandbox.test.ts` from the same clone: the confinement test fails on the write outside the workspace."
+      - "Run `node --test test/v1-adapters/sandbox.test.ts` from the same clone: the confinement test fails on the write outside the workspace."
     root_cause: >
       The test builds `new SeatbeltSandbox()` with its default `temp_paths` (`src/adapters/sandbox/backends.ts`),
       which include the temporary directory the workspace may sit in. The vitest tests of the same file
@@ -501,7 +501,7 @@ bugs:
       finds, without a `stat` size check; the bound sits in `parseReport` (`src/adapters/execution/parsers.ts`),
       after the read. The same read is used by the JaCoCo and PIT controls.
     evidence: >
-      Read on 2026-09-30; not run. The JUnit reader is bounded by test/v1/junit-reader.test.ts, which passes the
+      Read on 2026-09-30; not run. The JUnit reader is bounded by test/v1-adapters/junit-reader.test.ts, which passes the
       oversized document as a string and so does not exercise the file read.
     risk_level: low
     follow_ups: >
@@ -567,8 +567,8 @@ bugs:
       by the branch e12s07, which added the property.
     evidence: >
       Mutation run by the reviewer on 2026-09-30, and the code read on the same date in
-      `src/application/phases/verification-design.ts`; the test names of `test/v2/verification.test.ts` and
-      `test/v2/preparation.test.ts` call `qualify` or `prepare` with `complements` given directly.
+      `src/application/phases/verification-design.ts`; the test names of `test/v2-kernel/verification.test.ts` and
+      `test/v2-kernel/preparation.test.ts` call `qualify` or `prepare` with `complements` given directly.
     risk_level: low
     follow_ups: >
       A test on `designVerification` with an adopted complement that reads the files of the qualification copy
@@ -583,7 +583,7 @@ bugs:
     what_happened: >
       The integration stage never indexes a path of `node_modules/` (`inInstalledDependencies` in
       `indexablePaths`, `src/adapters/git/integrator.ts`), whether or not the project ignores it. The test of
-      that promise in `test/v2/export-integration.test.ts` adds `packages/app/node_modules/x/index.js`, a nested
+      that promise in `test/v2-kernel/export-integration.test.ts` adds `packages/app/node_modules/x/index.js`, a nested
       path, because G4 now refuses a root `node_modules/` no complement wrote. The root path the story names, and
       the one an adopted complement really writes, is not exercised by any integration test. The predicate is the
       same for both paths, so the code keeps the promise; only the test is narrower than the promise.
@@ -597,7 +597,7 @@ bugs:
       The test moved to a nested path to stay reachable under G4 and kept that path. Introduced by the branch
       e12s07.
     evidence: >
-      Read on 2026-09-30 in `src/adapters/git/integrator.ts` and `test/v2/export-integration.test.ts`; the
+      Read on 2026-09-30 in `src/adapters/git/integrator.ts` and `test/v2-kernel/export-integration.test.ts`; the
       reviewer's mutation fails the nested test only. A root-path variant was not run.
     risk_level: low
     follow_ups: >
@@ -615,7 +615,7 @@ bugs:
       the candidate returns unchanged (`restored`). A complement file absent from the reference, under
       `node_modules/` for instance, that the producer deletes has no entry in the manifest, so G4 judges nothing
       about it. The test "a manifest without the complement file judges nothing about it"
-      (`test/v1/node-stack.test.ts`) asserts that silence.
+      (`test/v1-adapters/node-stack.test.ts`) asserts that silence.
     what_expected: >
       A producer can neither undo nor extend the complement: deleting one of its files is refused as a
       modification, whatever path it sits on.
@@ -778,7 +778,7 @@ bugs:
     evidence: >
       Mutation of the reviewers on 2026-09-30: removing the check `editedFile(...) !== null` from
       `adoptable.files` fails the npm test "an edit that does not apply to the file is not offered for adoption"
-      in `test/v2/verifiability-arbitration.test.ts` and no Maven test; no test builds a Maven recommendation
+      in `test/v2-kernel/verifiability-arbitration.test.ts` and no Maven test; no test builds a Maven recommendation
       whose edit does not apply, so the link between that check and `adoptable.installs` is held by none.
     risk_level: low
     follow_ups: >
@@ -862,7 +862,7 @@ bugs:
       are what tells the subject whether a test runs the line or runs it without noticing the change.
     steps_to_reproduce:
       - "In `src/adapters/execution/mutation.ts`, replace `\"no test exercises\"` with `\"no test notices\"` in the `what` of the finding."
-      - "Run `npm run test:v1`: `test/v1/stryker-mutation.test.ts`, `mutation.test.ts` and `control-runner.test.ts` stay green."
+      - "Run `npm run test:v1`: `test/v1-adapters/stryker-mutation.test.ts`, `mutation.test.ts` and `control-runner.test.ts` stay green."
     root_cause: >
       The test of the NoCoverage mutant asserts `MUTATION_RULE_UNCOVERED` and the line, and the rule already
       tells the two statuses apart, so the test holds the distinction by the rule and not by the message.
@@ -889,13 +889,13 @@ bugs:
       A test fails when a path carrying any one of the ten characters is designated to the engine as a scope.
     steps_to_reproduce:
       - "In `src/adapters/execution/mutation.ts`, remove `*` from `STRYKER_PATTERN_CHARACTER`, or `{}` from it."
-      - "Run `npm run test:v1`: `test/v1/stryker-mutation.test.ts` stays green in both cases."
+      - "Run `npm run test:v1`: `test/v1-adapters/stryker-mutation.test.ts` stays green in both cases."
     root_cause: >
       The test lists the three paths of the story's scenario; the pattern of the code names ten characters and
       nothing asserts the other seven. Introduced by the branch e12s10.
     evidence: >
       Mutation run by the reviewers on 2026-10-01: `/[?[\]{}()!,]/` and `/[*?[\]()!,]/` in place of the
-      pattern both pass `test/v1/stryker-mutation.test.ts`.
+      pattern both pass `test/v1-adapters/stryker-mutation.test.ts`.
     risk_level: low
     follow_ups: >
       Run the scope test over one path per character of the pattern.
