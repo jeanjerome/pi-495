@@ -980,3 +980,53 @@ bugs:
     follow_ups: >
       Treat a `scripts.lint` that is blank after trimming as absent, with a test.
     status: open
+  - bug_id: BUG-2026-10-02T022400
+    date: "2026-10-02"
+    title: "The harness's verify reports max_steps as its stop reason when the verification ran to its end"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `verify()` in `src/application/harness.ts` returns `stopped_because: "blocked"` when the change is blocked and
+      `"max_steps"` otherwise, including when the verification ran to its end, the change is waiting for a decision,
+      or it is paused. `conduct()` names the same states through `stopOf`.
+    what_expected: >
+      `verify()` names why it stopped the way the conduct of a change does, and no result reads as a step budget
+      reached when no step budget was in play.
+    steps_to_reproduce:
+      - "Call `harness.verify(changeId)` on a change whose verification passes."
+      - "Read `stopped_because`: it is `max_steps`."
+    root_cause: >
+      The ternary was written for the blocked case alone and reuses `max_steps` as the default.
+    evidence: >
+      Read on main at 7fd4f8d, `src/application/harness.ts:677`; the refactoring R45 of `specs/reprises.md` asked for
+      the fix and its review refused it as a behaviour change. No caller under `src/` reads the field today
+      (`extension/tool.ts` and `extension/command.ts` read only `.view`). Not reproduced by a run.
+    risk_level: low
+    follow_ups: >
+      Return `stopOf(state)` with a value for a verification that ran to its end, with a test per state.
+    status: open
+  - bug_id: BUG-2026-10-02T022401
+    date: "2026-10-02"
+    title: "Pausing a change with a running intervention records its two events under two correlation ids"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `pause()` in `src/application/harness.ts` commits `intervention.finish` and `change.pause` each under a fresh
+      `this.id("cor")`, while `resume()` commits the same pair under one correlation id.
+    what_expected: >
+      The events one operation writes share one correlation id, so the journal groups a pause as it groups a resume.
+    steps_to_reproduce:
+      - "Pause a change while an intervention is running."
+      - "Read the `correlation_id` of the `intervention.finish` and `change.pause` rows of the `events` table: they differ."
+    root_cause: >
+      `pause()` draws an id at each commit instead of once at the start of the operation.
+    evidence: >
+      Read on main at 7fd4f8d, `src/application/harness.ts:681-702` against `resume()` below it; the refactoring R45
+      asked for the fix and its review refused it as a behaviour change, since the rows and every id drawn after
+      them change. Not reproduced by a run.
+    risk_level: low
+    follow_ups: >
+      Draw one correlation id at the start of `pause()`, with a test that reads both rows.
+    status: open

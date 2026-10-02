@@ -367,9 +367,10 @@ Statut : versée
 Statut : à faire
 
 - Où : src/application/harness.ts:483-489,902,923-925,73
-- Constat : Ternaire imbriqué code d'erreur → raison ; verify() rapporte stopped_because: "max_steps" sur succès ; pause utilise deux identifiants de corrélation là où resume en utilise un ; Finding importé d'un module déjà importé l.13.
-- Reprise : Une table Record ; une valeur "completed" ou réutiliser stopOf ; un seul cor ; fusionner l'import.
+- Constat : Ternaire imbriqué code d'erreur → raison ; Finding importé d'un module déjà importé l.13.
+- Reprise : Une table Record ; fusionner l'import.
 - Règle : Lisibilité.
+- Limite : `verify()` qui rapporte `stopped_because: "max_steps"` sur un succès, et `pause()` qui écrit sous deux identifiants de corrélation là où `resume()` en utilise un, changent ce que le harnais rend ou écrit : ils sont au registre (`BUG-2026-10-02T022400`, `BUG-2026-10-02T022401`). N'y touche pas.
 
 ## R47 — Les commentaires du code disent le comportement au lieu de citer une décision
 
