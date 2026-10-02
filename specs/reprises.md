@@ -364,7 +364,7 @@ Statut : versée
 
 ## R45 — Le harnais lit ses raisons d'arrêt dans une table
 
-Statut : à faire
+Statut : versée
 
 - Où : src/application/harness.ts:483-489,902,923-925,73
 - Constat : Ternaire imbriqué code d'erreur → raison ; Finding importé d'un module déjà importé l.13.

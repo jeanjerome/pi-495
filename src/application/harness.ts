@@ -10,7 +10,7 @@
  * on the failure of a step, and records what an entry point asks of it: a decision, a verification,
  * a pause, a resume, a cancellation, a question closed or revoked.
  */
-import type { ActorRef, EnvironmentRef, HumanInteraction, Phase } from "../contracts/v1/common.ts";
+import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, StopReason } from "../contracts/v1/common.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
@@ -25,7 +25,7 @@ import {
 	unknownCost,
 	type ChangeState,
 } from "../domain/change/state.ts";
-import { DomainError } from "../domain/errors.ts";
+import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
@@ -123,6 +123,13 @@ const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string)
 	reviewing: review,
 	deciding: decidePhase,
 	integrating: integrate,
+};
+
+/** The reason a step's failure blocks the change under; any code not listed is an execution error. */
+const BLOCK_REASONS: Partial<Record<DomainErrorCode, StopReason>> = {
+	CAPABILITY_MISSING: "capability_missing",
+	CONFIGURATION_ERROR: "configuration_error",
+	POLICY_DENIED: "policy_denied",
 };
 
 /** What an answer does to the change once it is recorded, for an option that acts at once. */
@@ -520,14 +527,7 @@ export class Harness {
 							type: "change.block",
 							at: this.now(),
 							actor: KERNEL_ACTOR,
-							reason:
-								error.code === "CAPABILITY_MISSING"
-									? "capability_missing"
-									: error.code === "CONFIGURATION_ERROR"
-										? "configuration_error"
-										: error.code === "POLICY_DENIED"
-											? "policy_denied"
-											: "execution_error",
+							reason: BLOCK_REASONS[error.code] ?? "execution_error",
 							detail,
 							retryable: error.retryable,
 						},
