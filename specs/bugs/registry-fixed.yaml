@@ -1131,3 +1131,34 @@ bugs:
       the reading it weakens then judges every change.
     status: fixed
     fixed_in: 8e0b74f
+  - bug_id: BUG-2026-10-02T190000
+    date: "2026-10-02"
+    title: "Qualification by the witnesses' cases counts the passing cases of the whole run, so a positive witness whose own case never runs is a PASS"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Introduced by the branch that qualifies a survey's test sensor by the cases of its witnesses. `witnessCases`
+      in `src/application/qualification.ts` gives the positive witness PASS when the run reports `pass > 0` and no
+      failure located in a file the positive witness wrote. `pass` counts every passing case of the run, the
+      project's own tests included, so a positive witness whose case is skipped or never discovered is a PASS as
+      soon as one test of the reference passes, and the sensor is qualified without having been seen to report
+      the witness's passing case.
+    what_expected: >
+      The positive witness is a PASS when its own case is reported passing, not when any case of the run passes.
+    steps_to_reproduce:
+      - "In the test « qualification by the witnesses' cases… » of `test/v1-adapters/control-runner.test.ts`, qualify with a positive witness `test/495-positive-witness.test.js` holding only `test.skip(\"positive\", () => {})`, a failing negative case, on the default reference whose `test/greet.test.js` passes."
+      - "The qualification is `[PASS, FAIL, qualified]`."
+    root_cause: >
+      The node-test reader reports a count of passing cases and locates failures by file, but names no passing
+      case, so `witnessCases` has no fact that the positive witness's own case passed and stands the run's count
+      for it.
+    evidence: >
+      Reproduced on the branch with that sub-case added to the test and reverted afterwards; the test kept on the
+      branch only covers a run where no case passes at all.
+    risk_level: low
+    follow_ups: >
+      Have the reader name the files of its passing cases and require one in the positive witness's files, with a
+      test on a skipped positive case beside a passing project test.
+    status: fixed
+    fixed_in: 8e0b74f
