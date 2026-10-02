@@ -8,6 +8,7 @@ import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { locateModel } from "../domain/policy.ts";
 import type { ModelSelection } from "../ports/execution.ts";
 import { formatDecision, formatStatus } from "../presentation/structured/text.ts";
+import { T } from "./labels.ts";
 import type { ExtensionSession } from "./session.ts";
 
 /**
@@ -86,25 +87,19 @@ export async function presentDecisions(
 	const rt = session.runtime();
 	const pending = rt.harness.pendingDecisions(changeId);
 	if (pending.length === 0) {
-		session.emit(ctx, session.lang() === "fr" ? "Aucune décision en attente." : "No pending decision.");
+		session.emit(ctx, T[session.lang()].noPendingDecision);
 		return;
 	}
 	const origin = session.humanOrigin(ctx);
 	for (const req of pending) {
 		session.emit(ctx, formatDecision(req), { decision: req });
 		if (!origin || !ctx.hasUI) {
-			session.emit(
-				ctx,
-				session.lang() === "fr"
-					? `decision_required: ${req.decision_id} — répondez dans le TUI Pi avec /495 decide (reprise: /495 resume dans une session liée).`
-					: `decision_required: ${req.decision_id} — answer in the Pi TUI with /495 decide.`,
-				{ decision_required: req.decision_id },
-			);
+			session.emit(ctx, T[session.lang()].decisionRequired(req.decision_id), { decision_required: req.decision_id });
 			continue;
 		}
 		const choice = await ctx.ui.select(req.question, [
 			...req.options.map((o) => `${o.id} — ${o.label}${o.risky ? " ⚠" : ""}`),
-			session.lang() === "fr" ? "(plus tard)" : "(later)",
+			T[session.lang()].later,
 		]);
 		if (!choice || choice.startsWith("(")) continue;
 		const optionId = choice.split(" — ")[0]!;
@@ -127,15 +122,8 @@ export async function presentDecisions(
 			origin,
 		);
 		if (answer.error)
-			session.emit(
-				ctx,
-				`${session.lang() === "fr" ? "Décision refusée" : "Decision refused"}: ${answer.error.code} ${answer.error.message}`,
-			);
-		else
-			session.emit(
-				ctx,
-				`${session.lang() === "fr" ? "Décision enregistrée" : "Decision recorded"}: ${answer.decision?.human_decision_id}`,
-			);
+			session.emit(ctx, `${T[session.lang()].decisionRefused}: ${answer.error.code} ${answer.error.message}`);
+		else session.emit(ctx, `${T[session.lang()].decisionRecorded}: ${answer.decision?.human_decision_id}`);
 		session.updateFooter(ctx, answer.view);
 	}
 }

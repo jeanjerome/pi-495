@@ -11,7 +11,9 @@ import { DomainError, messageOf } from "../domain/errors.ts";
 import { formatReport, formatStatus } from "../presentation/structured/text.ts";
 import { exportChange, verifyExport } from "../export/export-service.ts";
 import { conduct, drive, presentDecisions } from "./conduct.ts";
+import { T } from "./labels.ts";
 import { openReviewTui } from "./review-command.ts";
+import type { HarnessRuntime } from "./runtime.ts";
 import { type ExtensionSession, VERSION_495, kernelUser, safeUser } from "./session.ts";
 
 const SUBCOMMANDS = [
@@ -33,6 +35,23 @@ const SUBCOMMANDS = [
 	"help",
 ] as const;
 
+type Subcommand = (typeof SUBCOMMANDS)[number];
+
+function isSubcommand(word: string | undefined): word is Subcommand {
+	return (SUBCOMMANDS as readonly (string | undefined)[]).includes(word);
+}
+
+/** One `/495` invocation: the session and context it runs in, the runtime, and the words after the subcommand. */
+interface Call {
+	session: ExtensionSession;
+	ctx: ExtensionCommandContext;
+	rt: HarnessRuntime;
+	rest: string[];
+	text: string;
+}
+
+type Handler = (call: Call) => Promise<void> | void;
+
 export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession): void {
 	pi.registerCommand("495", {
 		description:
@@ -47,267 +66,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 			session.flushDiagnostics(ctx);
 			try {
 				const rt = session.runtime();
-				switch (sub) {
-					case "start": {
-						if (!text) {
-							session.emit(ctx, "usage: /495 start <request text>");
-							return;
-						}
-						if (session.binding) {
-							session.emit(
-								ctx,
-								session.lang() === "fr"
-									? `Cette session est déjà liée à ${session.binding.change_id} ; /495 status, /495 resume ou /495 unbind.`
-									: `This session is bound to ${session.binding.change_id}; use /495 status, resume or unbind.`,
-							);
-							return;
-						}
-						const origin = session.humanOrigin(ctx);
-						const actor: ActorRef = origin?.actor ?? {
-							actor_id: safeUser(),
-							actor_type: "human",
-							role: "requester",
-							origin: ctx.mode === "json" ? "json" : "print",
-							authentication_level: "none",
-						};
-						const created = await session.withLoader(ctx, "495 start", async () =>
-							rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: session.lang() }),
-						);
-						session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
-						session.emit(
-							ctx,
-							`${session.lang() === "fr" ? "Programme créé" : "Program created"}: ${created.program.program_id} / ${created.change.change_id}`,
-						);
-						await conduct(session, ctx, created.change.change_id);
-						return;
-					}
-					case "status": {
-						const view = session.currentView();
-						session.updateFooter(ctx, view);
-						session.emit(
-							ctx,
-							view
-								? formatStatus(view, session.lang())
-								: session.lang() === "fr"
-									? "Aucun programme lié à cette session. /495 start <demande> ou /495 bind <change_id>."
-									: "No program bound. /495 start <request> or /495 bind <change_id>.",
-							{ view },
-						);
-						return;
-					}
-					case "resume": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const changeId = session.binding.change_id;
-						await conduct(session, ctx, changeId, () =>
-							rt.harness.resume(changeId, session.humanOrigin(ctx)?.actor ?? kernelUser()),
-						);
-						return;
-					}
-					case "verify": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const changeId = session.binding.change_id;
-						await session.hold(ctx, async () => {
-							const result = await session.withLoader(ctx, "495 verify", async () => rt.harness.verify(changeId));
-							session.emit(ctx, formatStatus(result.view, session.lang()), { view: result.view });
-							session.updateFooter(ctx, result.view);
-						});
-						return;
-					}
-					case "decide": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						await presentDecisions(session, ctx, session.binding.change_id);
-						return;
-					}
-					case "review": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const review = await rt.harness.openReview(
-							session.binding.change_id,
-							rest[0]?.startsWith("cand_") ? rest[0] : undefined,
-						);
-						if (ctx.mode === "tui") await openReviewTui(ctx, review, session.lang());
-						else {
-							const { summarizeReview } = await import("../presentation/structured/review-text.ts");
-							session.emit(
-								ctx,
-								await summarizeReview(review, rest[0] && !rest[0].startsWith("cand_") ? rest[0] : null, session.lang()),
-								{ snapshot: review.snapshot },
-							);
-						}
-						return;
-					}
-					case "report": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const report = await rt.harness.report(session.binding.change_id);
-						session.emit(ctx, formatReport(report, session.lang()), { report });
-						return;
-					}
-					case "integrate": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						if (!rt.config.policy.integration_enabled) {
-							session.emit(
-								ctx,
-								session.lang() === "fr"
-									? "L'intégration est désactivée par la politique (HARNESS495_INTEGRATION=1 ou config.json)."
-									: "Integration is disabled by policy.",
-							);
-							return;
-						}
-						await conduct(session, ctx, session.binding.change_id);
-						return;
-					}
-					case "export": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const redact = rest.includes("--redact");
-						const dest = join(
-							rt.dataDir,
-							"exports",
-							`${session.binding.change_id}-${redact ? "redacted" : "full"}-${Date.now()}`,
-						);
-						const result = await exportChange(rt.ledger, rt.objects, {
-							change_id: session.binding.change_id,
-							destination: dest,
-							redact,
-							now: new Date().toISOString(),
-							producer: `495 ${VERSION}`,
-						});
-						const check = await verifyExport(dest);
-						session.emit(
-							ctx,
-							`${session.lang() === "fr" ? "Export" : "Export"}: ${result.path}\n${result.files} files, ${result.bytes} bytes, ${result.redactions} redactions${result.missing.length ? `, missing: ${result.missing.join(", ")}` : ""}\nverify: ${check.ok ? "ok" : check.problems.join("; ")}`,
-							{ export: result, verify: check },
-						);
-						return;
-					}
-					case "pause": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						await rt.harness.abortCurrent("pause");
-						session.emit(
-							ctx,
-							formatStatus(
-								rt.harness.pause(session.binding.change_id, session.humanOrigin(ctx)?.actor ?? kernelUser()),
-								session.lang(),
-							),
-						);
-						return;
-					}
-					case "close":
-						await actOnQuestion(session, ctx, text, {
-							usage: "usage: /495 close <question>",
-							noOrigin: {
-								fr: "La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
-								en: "Closing a question requires a human origin.",
-							},
-							confirmation: (question) => ({
-								fr: `Clore la question ${question} ? Elle n'est plus matérielle ; sa réponse ne liera plus aucune exigence.`,
-								en: `Close question ${question}? It is no longer material; its answer will no longer bind any requirement.`,
-							}),
-							inscribe: (changeId, question, origin) => rt.harness.closeQuestion(changeId, question, origin),
-						});
-						return;
-					case "revoke":
-						await actOnQuestion(session, ctx, text, {
-							usage: "usage: /495 revoke <question>",
-							noOrigin: {
-								fr: "La révocation exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
-								en: "Revoking a question's resolution requires a human origin.",
-							},
-							confirmation: (question) => ({
-								fr: `Révoquer ce que vous avez décidé de la question ${question} ? Elle vous sera reposée, et le mandat, les exigences et tout ce qui a été adopté depuis ne le seront plus.`,
-								en: `Revoke what you decided on question ${question}? It will be asked again, and the mandate, the requirements and everything adopted since will no longer be adopted.`,
-							}),
-							inscribe: (changeId, question, origin) => rt.harness.revokeQuestion(changeId, question, origin),
-						});
-						return;
-					case "cancel": {
-						if (!session.binding) {
-							session.emit(ctx, "no binding");
-							return;
-						}
-						const origin = session.humanOrigin(ctx);
-						if (!origin) {
-							session.emit(
-								ctx,
-								session.lang() === "fr"
-									? "L'annulation exige une provenance humaine (TUI ou hôte RPC qualifié)."
-									: "Cancellation requires a human origin.",
-							);
-							return;
-						}
-						if (
-							ctx.hasUI &&
-							!(await ctx.ui.confirm(
-								"495",
-								session.lang() === "fr"
-									? "Annuler le changement ? Le dossier est conservé."
-									: "Cancel the change? The dossier is kept.",
-							))
-						)
-							return;
-						await rt.harness.abortCurrent("cancel");
-						session.emit(
-							ctx,
-							formatStatus(
-								rt.harness.cancel(session.binding.change_id, origin.actor, text || "cancelled from Pi"),
-								session.lang(),
-							),
-						);
-						return;
-					}
-					case "bind": {
-						const target = rest[0];
-						if (!target) {
-							const list = rt.ledger
-								.listChanges()
-								.filter((c) => c.phase !== "closed")
-								.map((c) => `${c.change_id} ${c.phase}/${c.status} (${c.program_id})`);
-							session.emit(ctx, list.length ? list.join("\n") : "no change recorded");
-							return;
-						}
-						const loaded = rt.ledger.loadChange(target);
-						if (!loaded) {
-							session.emit(ctx, `unknown change ${target}`);
-							return;
-						}
-						session.bind(ctx, { program_id: loaded.state.program_id, change_id: target });
-						session.emit(ctx, formatStatus(rt.harness.status(target), session.lang()));
-						return;
-					}
-					case "unbind":
-						rt.ledger.unbindSession(ctx.sessionManager.getSessionId());
-						session.binding = null;
-						session.updateFooter(ctx, null);
-						session.emit(ctx, "unbound");
-						return;
-					default:
-						session.emit(
-							ctx,
-							`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${session.lang() === "fr" ? "<demande>" : "<request>"} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
-						);
-				}
+				await HANDLERS[isSubcommand(sub) ? sub : "help"]({ session, ctx, rt, rest, text });
 			} catch (error) {
 				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : messageOf(error);
 				session.emit(ctx, `495 error: ${msg}`, {
@@ -318,6 +77,201 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 		},
 	});
 }
+
+/** The change the session is bound to, or null once the session has said it has none. */
+function bound(session: ExtensionSession, ctx: ExtensionCommandContext): ExtensionSession["binding"] {
+	if (!session.binding) session.emit(ctx, "no binding");
+	return session.binding;
+}
+
+const HANDLERS: Record<Subcommand, Handler> = {
+	start: async ({ session, ctx, rt, text }) => {
+		if (!text) {
+			session.emit(ctx, "usage: /495 start <request text>");
+			return;
+		}
+		if (session.binding) {
+			session.emit(ctx, T[session.lang()].alreadyBound(session.binding.change_id));
+			return;
+		}
+		const origin = session.humanOrigin(ctx);
+		const actor: ActorRef = origin?.actor ?? {
+			actor_id: safeUser(),
+			actor_type: "human",
+			role: "requester",
+			origin: ctx.mode === "json" ? "json" : "print",
+			authentication_level: "none",
+		};
+		const created = await session.withLoader(ctx, "495 start", async () =>
+			rt.harness.start({ project_path: ctx.cwd, request_text: text, actor, language: session.lang() }),
+		);
+		session.bind(ctx, { program_id: created.program.program_id, change_id: created.change.change_id });
+		session.emit(
+			ctx,
+			`${T[session.lang()].programCreated}: ${created.program.program_id} / ${created.change.change_id}`,
+		);
+		await conduct(session, ctx, created.change.change_id);
+	},
+	status: ({ session, ctx }) => {
+		const view = session.currentView();
+		session.updateFooter(ctx, view);
+		session.emit(ctx, view ? formatStatus(view, session.lang()) : T[session.lang()].noProgram, { view });
+	},
+	resume: async ({ session, ctx, rt }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const changeId = binding.change_id;
+		await conduct(session, ctx, changeId, () =>
+			rt.harness.resume(changeId, session.humanOrigin(ctx)?.actor ?? kernelUser()),
+		);
+	},
+	review: async ({ session, ctx, rt, rest }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const review = await rt.harness.openReview(binding.change_id, rest[0]?.startsWith("cand_") ? rest[0] : undefined);
+		if (ctx.mode === "tui") await openReviewTui(ctx, review, session.lang());
+		else {
+			const { summarizeReview } = await import("../presentation/structured/review-text.ts");
+			session.emit(
+				ctx,
+				await summarizeReview(review, rest[0] && !rest[0].startsWith("cand_") ? rest[0] : null, session.lang()),
+				{ snapshot: review.snapshot },
+			);
+		}
+	},
+	report: async ({ session, ctx, rt }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const report = await rt.harness.report(binding.change_id);
+		session.emit(ctx, formatReport(report, session.lang()), { report });
+	},
+	verify: async ({ session, ctx, rt }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const changeId = binding.change_id;
+		await session.hold(ctx, async () => {
+			const result = await session.withLoader(ctx, "495 verify", async () => rt.harness.verify(changeId));
+			session.emit(ctx, formatStatus(result.view, session.lang()), { view: result.view });
+			session.updateFooter(ctx, result.view);
+		});
+	},
+	decide: async ({ session, ctx }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		await presentDecisions(session, ctx, binding.change_id);
+	},
+	integrate: async ({ session, ctx, rt }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		if (!rt.config.policy.integration_enabled) {
+			session.emit(ctx, T[session.lang()].integrationDisabled);
+			return;
+		}
+		await conduct(session, ctx, binding.change_id);
+	},
+	export: async ({ session, ctx, rt, rest }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const redact = rest.includes("--redact");
+		const dest = join(rt.dataDir, "exports", `${binding.change_id}-${redact ? "redacted" : "full"}-${Date.now()}`);
+		const result = await exportChange(rt.ledger, rt.objects, {
+			change_id: binding.change_id,
+			destination: dest,
+			redact,
+			now: new Date().toISOString(),
+			producer: `495 ${VERSION}`,
+		});
+		const check = await verifyExport(dest);
+		session.emit(
+			ctx,
+			`Export: ${result.path}\n${result.files} files, ${result.bytes} bytes, ${result.redactions} redactions${result.missing.length ? `, missing: ${result.missing.join(", ")}` : ""}\nverify: ${check.ok ? "ok" : check.problems.join("; ")}`,
+			{ export: result, verify: check },
+		);
+	},
+	pause: async ({ session, ctx, rt }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		await rt.harness.abortCurrent("pause");
+		session.emit(
+			ctx,
+			formatStatus(
+				rt.harness.pause(binding.change_id, session.humanOrigin(ctx)?.actor ?? kernelUser()),
+				session.lang(),
+			),
+		);
+	},
+	close: ({ session, ctx, rt, text }) =>
+		actOnQuestion(session, ctx, text, {
+			usage: "usage: /495 close <question>",
+			noOrigin: {
+				fr: "La clôture exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
+				en: "Closing a question requires a human origin.",
+			},
+			confirmation: (question) => ({
+				fr: `Clore la question ${question} ? Elle n'est plus matérielle ; sa réponse ne liera plus aucune exigence.`,
+				en: `Close question ${question}? It is no longer material; its answer will no longer bind any requirement.`,
+			}),
+			inscribe: (changeId, question, origin) => rt.harness.closeQuestion(changeId, question, origin),
+		}),
+	revoke: ({ session, ctx, rt, text }) =>
+		actOnQuestion(session, ctx, text, {
+			usage: "usage: /495 revoke <question>",
+			noOrigin: {
+				fr: "La révocation exige une provenance humaine (TUI ou hôte RPC ou SDK qualifié).",
+				en: "Revoking a question's resolution requires a human origin.",
+			},
+			confirmation: (question) => ({
+				fr: `Révoquer ce que vous avez décidé de la question ${question} ? Elle vous sera reposée, et le mandat, les exigences et tout ce qui a été adopté depuis ne le seront plus.`,
+				en: `Revoke what you decided on question ${question}? It will be asked again, and the mandate, the requirements and everything adopted since will no longer be adopted.`,
+			}),
+			inscribe: (changeId, question, origin) => rt.harness.revokeQuestion(changeId, question, origin),
+		}),
+	cancel: async ({ session, ctx, rt, text }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		const origin = session.humanOrigin(ctx);
+		if (!origin) {
+			session.emit(ctx, T[session.lang()].cancelNoOrigin);
+			return;
+		}
+		if (ctx.hasUI && !(await ctx.ui.confirm("495", T[session.lang()].cancelConfirmation))) return;
+		await rt.harness.abortCurrent("cancel");
+		session.emit(
+			ctx,
+			formatStatus(rt.harness.cancel(binding.change_id, origin.actor, text || "cancelled from Pi"), session.lang()),
+		);
+	},
+	bind: ({ session, ctx, rt, rest }) => {
+		const target = rest[0];
+		if (!target) {
+			const list = rt.ledger
+				.listChanges()
+				.filter((c) => c.phase !== "closed")
+				.map((c) => `${c.change_id} ${c.phase}/${c.status} (${c.program_id})`);
+			session.emit(ctx, list.length ? list.join("\n") : "no change recorded");
+			return;
+		}
+		const loaded = rt.ledger.loadChange(target);
+		if (!loaded) {
+			session.emit(ctx, `unknown change ${target}`);
+			return;
+		}
+		session.bind(ctx, { program_id: loaded.state.program_id, change_id: target });
+		session.emit(ctx, formatStatus(rt.harness.status(target), session.lang()));
+	},
+	unbind: ({ session, ctx, rt }) => {
+		rt.ledger.unbindSession(ctx.sessionManager.getSessionId());
+		session.binding = null;
+		session.updateFooter(ctx, null);
+		session.emit(ctx, "unbound");
+	},
+	help: ({ session, ctx }) => {
+		session.emit(
+			ctx,
+			`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${T[session.lang()].request} · status · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
+		);
+	},
+};
 
 /** An owner's act on one material question: what it says, what it confirms, and how it is inscribed. */
 interface QuestionAct {
@@ -340,15 +294,13 @@ async function actOnQuestion(
 	question: string,
 	act: QuestionAct,
 ): Promise<void> {
-	if (!session.binding) {
-		session.emit(ctx, "no binding");
-		return;
-	}
+	const binding = bound(session, ctx);
+	if (!binding) return;
 	if (!question) {
 		session.emit(ctx, act.usage);
 		return;
 	}
-	const changeId = session.binding.change_id;
+	const changeId = binding.change_id;
 	// Held from here to the end of the conduct that follows the act: a conduct running concurrently commits
 	// between two of its own steps, and an act landing in that gap either loses a race to
 	// REVISION_CONFLICT, or lands between the end of an intervention and the artifact it paid for, losing

@@ -439,7 +439,7 @@ Statut : écartée — Lire JaCoCo et PIT avec parseXml changerait des verdicts 
 
 ## R54 — La commande /495 répartit ses sous-commandes par une table
 
-Statut : à faire
+Statut : versée
 
 - Où : src/extension/command.ts:44-318 · conduct.ts
 - Constat : Un switch de 270 lignes à 16 cas ; if (!session.binding) { emit("no binding"); return } dix fois ; session.lang() === "fr" ? … : … treize fois alors que presentation/structured/text.ts:5-44 utilise des tables L[lang] ; l.197 un ternaire mort ("Export" : "Export").
