@@ -654,3 +654,13 @@ Statut : versée
 - Reprise : `git mv` des cinq répertoires : `test/v0` → `test/v0-pure`, `test/v1` → `test/v1-adapters`, `test/v2` → `test/v2-kernel`, `test/v3` → `test/v3-pi`, `test/v4` → `test/v4-platform`. Mettre à jour les scripts `test:v0` .. `test:v3` de `package.json` et ajouter `test:v4` et `test:cycle` sur le modèle des autres, avec `--test-concurrency=1`. Remplacer chaque chemin `test/vN/` par le nouveau dans les fichiers de `Où`, et dire dans `AGENTS.md:75` ce que porte chaque niveau, en une ligne qui renvoie à `conception-verification.md` §6.
 - Règle : Lisibilité : un nom dit ce qu'il désigne.
 - Limite : Ne touche ni `specs/verifications`, ni `specs/archive`, ni `specs/adr`, ni `specs/reprises.md` : ce sont des relevés datés ou la liste que l'outil écrit, leurs anciens chemins restent ceux de leur date. Ne touche pas l'exemple de story de `test/cycle/story.test.ts` ni le commentaire d'exemple de `cycle/src/story.ts:68` : ce sont des données d'exemple, pas des chemins lus. Le glob de `npm test` (`test/**/*.test.ts`) ne change pas.
+
+## R83 — Le banc des tests Maven sur la plateforme est écrit une fois
+
+Statut : à faire
+
+- Où : test/v4-platform/maven-quality.test.ts:66-84 · test/v4-platform/maven-quality-reactor.test.ts:95-113 · test/v4-platform/java-stack.test.ts:45-66,161-181
+- Constat : Quatre tests montent le même banc à la main : le runner générique sur le sandbox de la plateforme et un magasin d'objets sous la racine du test, l'élargissement de `env_allowlist` à `M2_HOME`, `MAVEN_HOME`, `JAVA_TOOL_OPTIONS` et `USER`, et la même requête de base (protocole, candidat, sujet, environnement, producteur). Les deux tests de qualité Maven répètent en outre la copie de référence où la déclaration de PMD est écrite et ses greffons résolus, et la boucle qui qualifie `pmd` et `cpd` par leurs témoins.
+- Reprise : Un module de `test/helpers/` qui rend le runner, l'élargissement et la requête de base d'un banc Maven, lus par les quatre tests ; les deux tests de qualité y prennent aussi la copie de référence et la qualification d'un contrôle par ses témoins.
+- Règle : § Code Style : ne jamais dupliquer une logique.
+- Limite : Ne change ni les assertions, ni les délais propres à chaque test, ni les titres.

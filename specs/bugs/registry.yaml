@@ -1390,3 +1390,31 @@ bugs:
     follow_ups: >
       Put the change id in the key, with the same fix as the verification key, and a test of two surveys of one tree.
     status: open
+  - bug_id: BUG-2026-10-03T233000
+    date: "2026-10-03"
+    title: "The Maven adoption does not fetch the site skin the PMD report needs, so pmd and cpd cannot run offline on a machine whose local repository lacks it"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `planInstall` in `src/application/installation.ts` resolves the plugins of the copy with
+      `maven-dependency-plugin:resolve-plugins`, which does not fetch `org.apache.maven.skins:maven-fluido-skin:2.0.0-M9`.
+      `pmd:pmd` and `pmd:cpd` render their report with that skin, so on a local repository that never received it both goals
+      exit 1 offline ("The skin does not exist ... offline mode"), with or without a `compile` phase before them, and the
+      controls are not qualified.
+    what_expected: >
+      The adoption fetches everything the declared pmd and cpd goals use, so they run offline on a fresh local repository.
+    steps_to_reproduce:
+      - "Copy a Maven reactor where 495 declared maven-pmd-plugin, and run the adoption's resolve-plugins with -Dmaven.repo.local pointing to an empty directory."
+      - "Run `mvn -o compile pmd:pmd` (or `pmd:cpd`) against the same local repository: it exits 1 on the missing skin."
+      - "Copy only the skin into that repository: `mvn -o compile pmd:pmd` exits 0 and writes the classes under infrastructure/target/classes."
+    root_cause: >
+      resolve-plugins fetches the plugins and their dependencies, not the site skin a report goal resolves at run time.
+    evidence: >
+      Probed independently by both reviewers of e28s04 on an empty local repository; the v4 tests of
+      `test/v4-platform/maven-quality*.test.ts` miss it because they reuse the machine's ~/.m2, where the skin is present.
+    risk_level: medium
+    follow_ups: >
+      Make the adoption fetch the skin (or run the report goals without site rendering), with a v4 test on an empty local
+      repository.
+    status: open

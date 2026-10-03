@@ -500,6 +500,8 @@ function qualityOffer(projectPath: string, declaration: PmdDeclaration, reactor:
  * The controls of the referential, once 495 declared PMD in the copy they run in: one per analyser, each
  * applying the rules of the referential it is the oracle of, with the network closed. PMD reads the rule
  * set the runner writes from the frozen rules at each run; CPD is given its threshold on its command line.
+ * Each goal runs behind `compile` in the same invocation, so a module that depends on another module of
+ * the reactor resolves it from the reactor: offline, the local repository never received it.
  */
 function qualityControls(requirementRefs: RequirementRef[], reactor: MavenReactor): ControlDefinition[] {
 	const rulesOf = (controlId: string) => PMD_REFERENTIAL.filter((rule) => rule.control_id === controlId);
@@ -508,7 +510,7 @@ function qualityControls(requirementRefs: RequirementRef[], reactor: MavenReacto
 		...baseControl(requirementRefs),
 		control_id: controlId,
 		title,
-		command: ["mvn", "-B", "-q", "-o", goal, argument],
+		command: ["mvn", "-B", "-q", "-o", "compile", goal, argument],
 		timeout_ms: 10 * 60_000,
 		parser: controlId === "pmd" ? "pmd-xml" : "cpd-xml",
 		report_path: "**/target",

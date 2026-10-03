@@ -96,8 +96,16 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 
 		const controls = detectStack(project, REFS, NODE).controls;
 		const commandOf = (id: string) => controls.find((c) => c.control_id === id)?.command;
-		assert.deepEqual(commandOf("pmd"), ["mvn", "-B", "-q", "-o", "pmd:pmd", `-Dpmd495.ruleset=${RULESET_PLACEHOLDER}`]);
-		assert.deepEqual(commandOf("cpd"), ["mvn", "-B", "-q", "-o", "pmd:cpd", "-DminimumTokens=100"]);
+		assert.deepEqual(commandOf("pmd"), [
+			"mvn",
+			"-B",
+			"-q",
+			"-o",
+			"compile",
+			"pmd:pmd",
+			`-Dpmd495.ruleset=${RULESET_PLACEHOLDER}`,
+		]);
+		assert.deepEqual(commandOf("cpd"), ["mvn", "-B", "-q", "-o", "compile", "pmd:cpd", "-DminimumTokens=100"]);
 		for (const id of ["pmd", "cpd"])
 			assert.equal(controls.find((c) => c.control_id === id)?.network, "denied", `${id} runs with the network closed`);
 	});
