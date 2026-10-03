@@ -505,6 +505,7 @@ epics:
       - { id: e28s02, status: "versée", title: "Un dossier inscriptible que la commande crée est accordé sous sa forme résolue" }
       - { id: e28s03, status: "versée", title: "Un changement procède sur un projet dont un test échoue déjà" }
       - { id: e28s04, status: "versée", title: "PMD et CPD mesurent un réacteur Maven dont un module dépend d'un autre" }
+      - { id: e28s05, status: "à faire", title: "Deux changements d'un dossier vérifient chacun leur candidat, même identique" }
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
