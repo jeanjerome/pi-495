@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: `/495 measure` judges the program on a survey of the integrated project
+    # Subtest: sur une session liée au programme dont A et B sont intégrés, mesurer avec l'état des lieux accepté du projet intégré qui ne compte plus aucun écart inscrit une évaluation du jalon final PASS qui cite cet état des lieux, clôt le programme, et le statut annonce la conformité dans le périmètre contrôlé
+    ok 1 - sur une session liée au programme dont A et B sont intégrés, mesurer avec l'état des lieux accepté du projet intégré qui ne compte plus aucun écart inscrit une évaluation du jalon final PASS qui cite cet état des lieux, clôt le programme, et le statut annonce la conformité dans le périmètre contrôlé
+      ---
+      duration_ms: 3053.378083
+      type: 'test'
+      ...
+    # Subtest: un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de B, dont pmd a gardé moins de constats que son rapport, ou dont le référentiel diffère par le seuil d'une règle, la version de PMD ou un module mesuré, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite
+    ok 2 - un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de B, dont pmd a gardé moins de constats que son rapport, ou dont le référentiel diffère par le seuil d'une règle, la version de PMD ou un module mesuré, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite
+      ---
+      duration_ms: 6978.509666
+      type: 'test'
+      ...
+    1..2
+ok 1 - `/495 measure` judges the program on a survey of the integrated project
+  ---
+  duration_ms: 10032.508625
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10551.83275

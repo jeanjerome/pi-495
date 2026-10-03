@@ -1,0 +1,146 @@
+TAP version 13
+# Subtest: a trajectory reads its gaps in the dossier of the survey it cites
+    # Subtest: adopter une trajectoire qui cite l'état des lieux accepté du réacteur inscrit au programme l'état des lieux, le digest de l'arbre mesuré et ses trois écarts du code propriétaire avec leur nombre, et la demande du changement de A nomme ses deux écarts avec leur règle, leur seuil, leur module et leur nombre
+    ok 1 - adopter une trajectoire qui cite l'état des lieux accepté du réacteur inscrit au programme l'état des lieux, le digest de l'arbre mesuré et ses trois écarts du code propriétaire avec leur nombre, et la demande du changement de A nomme ses deux écarts avec leur règle, leur seuil, leur module et leur nombre
+      ---
+      duration_ms: 793.508958
+      type: 'test'
+      ...
+    # Subtest: l'écart du code généré écarté par une décision de périmètre motivée est inscrit avec sa raison
+    ok 2 - l'écart du code généré écarté par une décision de périmètre motivée est inscrit avec sa raison
+      ---
+      duration_ms: 720.702667
+      type: 'test'
+      ...
+    # Subtest: un document qui cite un changement inconnu ou un état des lieux encore ouvert est refusé en nommant le changement, et une décision de périmètre qui écarte un écart que l'état des lieux ne porte pas est refusée en nommant l'écart, sans programme créé
+    ok 3 - un document qui cite un changement inconnu ou un état des lieux encore ouvert est refusé en nommant le changement, et une décision de périmètre qui écarte un écart que l'état des lieux ne porte pas est refusée en nommant l'écart, sans programme créé
+      ---
+      duration_ms: 744.172541
+      type: 'test'
+      ...
+    # Subtest: un écart que rien ne prend en charge et un incrément qui supprime un écart que l'état des lieux ne porte pas sont refusés en nommant l'écart, sans programme ni changement créé
+    ok 4 - un écart que rien ne prend en charge et un incrément qui supprime un écart que l'état des lieux ne porte pas sont refusés en nommant l'écart, sans programme ni changement créé
+      ---
+      duration_ms: 737.847875
+      type: 'test'
+      ...
+    # Subtest: un document qui cite un changement à candidat, un état des lieux refusé, sans référentiel adopté, d'un autre projet ou dont pmd n'est pas qualifié est refusé avec un message qui nomme le changement et la raison, sans programme créé
+    ok 5 - un document qui cite un changement à candidat, un état des lieux refusé, sans référentiel adopté, d'un autre projet ou dont pmd n'est pas qualifié est refusé avec un message qui nomme le changement et la raison, sans programme créé
+      ---
+      duration_ms: 2430.226709
+      type: 'test'
+      ...
+    # Subtest: un état des lieux dont un contrôle du référentiel manque à la liste des contrôles mesurés est refusé en nommant le changement et le contrôle, sans programme créé
+    ok 6 - un état des lieux dont un contrôle du référentiel manque à la liste des contrôles mesurés est refusé en nommant le changement et le contrôle, sans programme créé
+      ---
+      duration_ms: 697.948291
+      type: 'test'
+      ...
+    # Subtest: un état des lieux dont le contrôle pmd a gardé 1000 des 1001 constats de son rapport est refusé avec un message qui nomme le changement, le contrôle et les deux comptes, sans programme ni changement créé
+    ok 7 - un état des lieux dont le contrôle pmd a gardé 1000 des 1001 constats de son rapport est refusé avec un message qui nomme le changement, le contrôle et les deux comptes, sans programme ni changement créé
+      ---
+      duration_ms: 5954.154208
+      type: 'test'
+      ...
+    # Subtest: un document qui cite l'état des lieux accepté du réacteur et pose sur CyclomaticComplexity dans infrastructure une exception avec propriétaire, échéance et raison est adopté, et le programme inscrit l'écart avec son exception
+    not ok 8 - un document qui cite l'état des lieux accepté du réacteur et pose sur CyclomaticComplexity dans infrastructure une exception avec propriétaire, échéance et raison est adopté, et le programme inscrit l'écart avec son exception
+      ---
+      duration_ms: 681.029292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:390:2'
+      failureType: 'testCodeFailure'
+      error: 'trajectory document refused: /baseline/exceptions schema is false; /baseline must not have additional properties'
+      code: 'PRECONDITION_FAILED'
+      name: 'DomainError'
+      stack: |-
+        readTrajectory (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/src/application/trajectory.ts:46:9)
+        HarnessWithModel.adopt (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/src/application/harness.ts:594:22)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:395:39)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une exception sans propriétaire ou sans échéance est refusée avec un message qui nomme CyclomaticComplexity dans infrastructure et ce qui lui manque, sans programme créé
+    not ok 9 - une exception sans propriétaire ou sans échéance est refusée avec un message qui nomme CyclomaticComplexity dans infrastructure et ce qui lui manque, sans programme créé
+      ---
+      duration_ms: 673.354583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:411:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          Comparison {
+        +   message: 'trajectory document refused: /baseline/exceptions schema is false; /baseline must not have additional properties'
+        -   message: 'exception on gap CyclomaticComplexity in infrastructure (proprietary code) has no owner'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        message: 'exception on gap CyclomaticComplexity in infrastructure (proprietary code) has no owner'
+      actual:
+      error: 'trajectory document refused: /baseline/exceptions schema is false; /baseline must not have additional properties'
+      stack: |-
+        readTrajectory (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/src/application/trajectory.ts:46:9)
+        HarnessWithModel.adopt (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/src/application/harness.ts:594:22)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:425:15)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      operator: 'rejects'
+      stack: |-
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:424:4)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: deux méthodes de complexité 11 dans domain font un écart de 2 violations, que le programme inscrit et que la demande du changement de A nomme, quel que soit le document
+    ok 10 - deux méthodes de complexité 11 dans domain font un écart de 2 violations, que le programme inscrit et que la demande du changement de A nomme, quel que soit le document
+      ---
+      duration_ms: 716.713042
+      type: 'test'
+      ...
+    1..10
+not ok 1 - a trajectory reads its gaps in the dossier of the survey it cites
+  ---
+  duration_ms: 14150.590041
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SGWktl/test/v2-kernel/program-baseline.test.ts:131:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the milestone of a trajectory adopted on a survey
+    # Subtest: A puis B intégrés, la demande du changement de B nomme son écart, le programme inscrit une évaluation du jalon final INDETERMINATE qui nomme chacun des trois écarts comme non mesuré sur le projet intégré, et le programme n'est pas clos, ce que dit le statut
+    ok 1 - A puis B intégrés, la demande du changement de B nomme son écart, le programme inscrit une évaluation du jalon final INDETERMINATE qui nomme chacun des trois écarts comme non mesuré sur le projet intégré, et le programme n'est pas clos, ce que dit le statut
+      ---
+      duration_ms: 1742.738208
+      type: 'test'
+      ...
+    1..1
+ok 2 - the milestone of a trajectory adopted on a survey
+  ---
+  duration_ms: 1742.845333
+  type: 'suite'
+  ...
+# Subtest: a dossier written before increments named gaps
+    # Subtest: le statut d'un programme dont la projection stockée a été écrite avant que ses incréments nomment des écarts liste chacun avec son titre et son statut, sans écart ni état des lieux, et le dossier reste intègre
+    ok 1 - le statut d'un programme dont la projection stockée a été écrite avant que ses incréments nomment des écarts liste chacun avec son titre et son statut, sans écart ni état des lieux, et le dossier reste intègre
+      ---
+      duration_ms: 74.094708
+      type: 'test'
+      ...
+    1..1
+ok 3 - a dossier written before increments named gaps
+  ---
+  duration_ms: 74.196292
+  type: 'suite'
+  ...
+1..3
+# tests 12
+# suites 3
+# pass 10
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16150.259792

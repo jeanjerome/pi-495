@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: statut d'un programme
+    # Subtest: le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+    ok 1 - le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+      ---
+      duration_ms: 2.661042
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme sans évaluation dit le jalon sans évaluation
+    ok 2 - le statut d'un programme sans évaluation dit le jalon sans évaluation
+      ---
+      duration_ms: 0.113375
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont le jalon final est PASS dit le programme clos
+    ok 3 - le statut d'un programme dont le jalon final est PASS dit le programme clos
+      ---
+      duration_ms: 0.1975
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+    ok 4 - le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+      ---
+      duration_ms: 0.164958
+      type: 'test'
+      ...
+    1..4
+ok 1 - statut d'un programme
+  ---
+  duration_ms: 3.565541
+  type: 'suite'
+  ...
+# Subtest: statut d'un programme de remise aux standards
+    # Subtest: le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+    ok 1 - le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+      ---
+      duration_ms: 0.29825
+      type: 'test'
+      ...
+    # Subtest: A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+    ok 2 - A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+      ---
+      duration_ms: 0.1515
+      type: 'test'
+      ...
+    1..2
+ok 2 - statut d'un programme de remise aux standards
+  ---
+  duration_ms: 0.521458
+  type: 'suite'
+  ...
+# Subtest: statut d'un programme mesuré sur le projet intégré
+    # Subtest: le statut d'un programme dont le jalon final est PASS sur une mesure annonce la conformité dans le périmètre contrôlé, nomme chaque règle avec son outil et sa version, les modules mesurés, ce qui reste hors de la mesure, l'écart écarté avec sa raison, l'exception en cours avec son propriétaire, son échéance et sa raison, et l'exception retirée, en français et en anglais
+    not ok 1 - le statut d'un programme dont le jalon final est PASS sur une mesure annonce la conformité dans le périmètre contrôlé, nomme chaque règle avec son outil et sa version, les modules mesurés, ce qui reste hors de la mesure, l'écart écarté avec sa raison, l'exception en cours avec son propriétaire, son échéance et sa raison, et l'exception retirée, en français et en anglais
+      ---
+      duration_ms: 0.824375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:429:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - {
+        -   modules: [
+        -     'domain',
+        -     'infrastructure'
+        -   ],
+        -   rules: [
+        -     {
+        -       rule_id: 'CyclomaticComplexity',
+        -       tool: 'PMD 7.17.0'
+        -     },
+        -     {
+        -       rule_id: 'UnusedPrivateMethod',
+        -       tool: 'PMD 7.17.0'
+        -     }
+        -   ],
+        -   unmeasured: [
+        -     {
+        -       reason: 'test sources, which maven-pmd-plugin does not read',
+        -       subject: 'domain/src/test/java'
+        -     }
+        -   ]
+        - }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        rules:
+          0:
+            rule_id: 'CyclomaticComplexity'
+            tool: 'PMD 7.17.0'
+          1:
+            rule_id: 'UnusedPrivateMethod'
+            tool: 'PMD 7.17.0'
+        modules:
+          0: 'domain'
+          1: 'infrastructure'
+        unmeasured:
+          0:
+            subject: 'domain/src/test/java'
+            reason: 'test sources, which maven-pmd-plugin does not read'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:439:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: le statut d'un jalon FAIL sur une mesure nomme l'écart restant avec ses deux comptes et n'annonce aucune conformité
+    not ok 2 - le statut d'un jalon FAIL sur une mesure nomme l'écart restant avec ses deux comptes et n'annonce aucune conformité
+      ---
+      duration_ms: 0.184167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:495:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no perimeter is announced
+        + actual - expected
+        
+        + undefined
+        - null
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: ~
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:505:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: le statut d'un programme dont les écarts n'ont aucun champ d'exception liste ses écarts et son jalon INDETERMINATE, sans exception ni annonce de conformité
+    not ok 3 - le statut d'un programme dont les écarts n'ont aucun champ d'exception liste ses écarts et son jalon INDETERMINATE, sans exception ni annonce de conformité
+      ---
+      duration_ms: 0.130167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:527:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a dossier without exceptions reads as one
+        
+        undefined !== []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:557:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 3 - statut d'un programme mesuré sur le projet intégré
+  ---
+  duration_ms: 1.263708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-e3bxO7/test/v0-pure/program-status.test.ts:335:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 9
+# suites 3
+# pass 6
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 129.715125

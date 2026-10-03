@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le jalon d'une remise aux standards est franchi sur la mesure du projet intégré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 217,
+    "constat": "Le code tient la promesse : sondé en vrai depuis Pi, le statut nomme les six règles avec « PMD 7.17.0 », les modules domain et infrastructure, et ce qui reste hors de la mesure avec sa raison. Mais aucun test ne tient le périmètre que `measureOf` construit à partir du référentiel de l'état des lieux. Le test v3 n'assert que la ligne « PASS — conforme… », et le test v0 du statut écrit son périmètre à la main.",
+    "mutation": "Dans measureOf, perimeter remplacé par { rules: [], modules: [], unmeasured: [] } : les 45 tests de program-measure-entry, program-status, program et program-baseline passent tous."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un état des lieux qui ne mesure pas le projet intégré au même référentiel n'est pas une mesure",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 175,
+    "constat": "Le code refuse un référentiel qui diffère par une règle, présente dans un seul des deux états des lieux. Mais aucun test n'exerce ce cas : les refus testés ne couvrent que le seuil, la version de PMD et un module mesuré. Une mesure dont le référentiel a perdu une règle pourrait donc être acceptée sans qu'aucun test ne le voie.",
+    "mutation": "`if (!before || !after) return null;` à la place du message de refus : program-measure-entry, program-baseline et program passent (36/36)."
+   }
+  ],
+  "resume": "Le code tient les dix scénarios. J'ai lu chaque chemin, et sondé le statut réel depuis Pi après une mesure PASS : il nomme les règles avec l'outil et sa version, les modules mesurés et ce qui reste hors de la mesure avec sa raison. La plupart des promesses sont aussi tenues par un test : la conformité refusée sur un FAIL, l'exception tolérée, échue puis retirée, le vieux dossier sans exception, l'exception refusée à l'adoption et le refus d'un programme clos. Côté référentiel différent, sont aussi testés les refus d'un changement à candidat, d'un état des lieux refusé, d'un autre projet, d'un arbre sans B, d'un rapport tronqué, d'un autre seuil, d'une autre version d'outil et d'un module en moins. Deux promesses introduites par la branche ne sont tenues par aucun test. D'abord le périmètre contrôlé que la mesure construit pour le statut (A1-1) : le vider ne fait échouer aucun test. Ensuite le refus d'un référentiel qui diffère par une règle (A1-2) : faire accepter ce cas ne fait échouer aucun test. Les deux sont à corriger, d'où le verdict fail. Toutes les mutations ont été remises : l'arbre est propre, seul node_modules n'est pas suivi."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le jalon d'une remise aux standards est franchi sur la mesure du projet intégré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 217,
+    "constat": "Le code tient la promesse : measureOf construit le périmètre contrôlé à partir du référentiel de l'état des lieux cité (règles avec outil et version, modules mesurés, ce qui est hors mesure). Mais aucun test ne vérifie le périmètre que produit une vraie mesure. Le test v3 ne vérifie que la ligne « PASS — conforme… », et le test v0 du statut part d'un PERIMETER écrit à la main. Le statut peut donc perdre chaque règle, les modules `domain`/`infrastructure` ou les exclusions et leurs raisons sans qu'un test échoue.",
+    "mutation": "Trois mutations, chacune lancée sur les 4 fichiers de test touchés (v0 program, v0 program-status, v2 program-baseline, v3 program-measure-entry) : `rules: referential.rules.map(...)` → `rules: []` (l.217), `modules: modulesOf(referential)` → `modules: []` (l.218), `unmeasured: referential.perimeter?.unmeasured ?? []` → `unmeasured: []` (l.219). Les trois passent au vert (45/45)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un état des lieux qui ne mesure pas le projet intégré au même référentiel n'est pas une mesure",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 175,
+    "constat": "Le code refuse bien un état des lieux dont le référentiel n'a pas les mêmes règles que celui de départ (une règle présente dans un seul des deux). Aucun test ne tient ce cas. Le test v3 des refus couvre le seuil, la version de PMD et un module mesuré, jamais une règle ajoutée ou retirée.",
+    "mutation": "`if (!before || !after) return \\`rule ${id} is in the referential of only one of the two surveys\\`;` → `if (!before || !after) continue;` : 45/45 au vert."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une exception en cours tolère son écart jusqu'à son échéance",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/program/program.ts",
+    "ligne": 685,
+    "constat": "L'exception tolère son écart jusqu'à son échéance incluse (`today <= due`), mais les tests ne mesurent qu'au 2026-12-01 et au 2027-04-01. Le jour même de l'échéance, rien ne fixe qu'elle est encore en cours. Les dates de la story ne tranchent pas non plus ce jour-là.",
+    "mutation": "`today <= gap.exception.due` → `today < gap.exception.due` : 45/45 au vert."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Une exception sans propriétaire ou sans échéance n'est pas adoptée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/program/program.ts",
+    "ligne": 509,
+    "constat": "Une échéance « déjà passée » est refusée si elle tombe strictement avant le jour de l'adoption. Une échéance fixée au jour même est donc acceptée, et aucun test ne fixe cette limite : le test v0 n'essaie que le 2026-09-01.",
+    "mutation": "`exception.due < day(at)` → `exception.due <= day(at)` : 45/45 au vert."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "Un état des lieux qui ne mesure pas le projet intégré au même référentiel n'est pas une mesure",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 79,
+    "constat": "La mesure refuse un état des lieux dont un contrôle n'a rien mesuré par la même vérification que l'adoption (acceptedSurvey). Seul le test d'adoption de e10s05 attrape la mutation. Aucun test ne vérifie le refus de /495 measure dans ce cas, ni son message (« the measure cites change … »).",
+    "mutation": "`if (!measured || measured.blind_spot !== null)` → `if (!measured)` : seul le test v2 d'adoption échoue, le test v3 de la mesure reste vert."
+   }
+  ],
+  "resume": "Le code tient les dix scénarios lus. Le verdict est fail : deux promesses ne sont tenues par aucun test, toutes deux introduites par la branche.\n\n1. Scénario 1 (B1-1) : le périmètre contrôlé qu'une vraie mesure donne au statut n'est vérifié par aucun test. Vider les règles, les modules ou les exclusions dans measureOf laisse tous les tests verts.\n2. Scénario 9 (B1-2) : aucun test ne couvre un référentiel dont une règle est ajoutée ou retirée. Retirer ce refus laisse tous les tests verts.\n\nTrois points sont à peser :\n- B1-3 : le jour même de l'échéance d'une exception, rien ne fixe qu'elle est encore en cours.\n- B1-4 : à l'adoption, rien ne fixe ce qui se passe pour une échéance égale au jour même.\n- B1-5 : le refus d'un contrôle qui n'a rien mesuré n'est tenu que par le test d'adoption, pas par celui de /495 measure.\n\nLes autres mutations ont fait échouer au moins un test : périmètre affiché sur un jalon FAIL, contrôle du programme clos retiré, écart apparu ignoré, écarts sous exception non jugés, statut d'exception forcé à null, contrôle de l'arbre intégré retiré, écart écarté compté dans le verdict, version de l'outil ignorée.\n\nRien n'a été commité et l'arbre est propre."
+ }
+]
