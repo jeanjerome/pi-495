@@ -2,7 +2,7 @@
 
 Story : e10s06
 Epic : e10
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -152,7 +152,7 @@ la mesure comme ceux du départ et réévalue chaque jalon du programme sur cett
 jour.
 
 - Vérifie : `node --test test/v3-pi/program-measure-entry.test.ts`
-- Tient : `test/v3-pi/program-measure-entry.test.ts`, « sur une session liée au programme dont A et B sont intégrés, mesurer avec l'état des lieux accepté du projet intégré qui ne compte plus aucun écart inscrit une évaluation du jalon final PASS qui cite cet état des lieux, clôt le programme, et le statut annonce la conformité dans le périmètre contrôlé » et « un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de B, dont pmd a gardé moins de constats que son rapport, ou dont le référentiel diffère par le seuil d'une règle, la version de PMD ou un module mesuré, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite »
+- Tient : `test/v3-pi/program-measure-entry.test.ts`, « sur une session liée au programme dont A et B sont intégrés, mesurer avec l'état des lieux accepté du projet intégré qui ne compte plus aucun écart inscrit une évaluation du jalon final PASS qui cite cet état des lieux, clôt le programme, et le statut annonce la conformité dans le périmètre contrôlé, qu'il nomme par les six règles avec PMD 7.17.0, les modules domain et infrastructure, et la duplication entre modules que CPD ne mesure pas » et « un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de B, dont pmd n'a rien mesuré ou a gardé moins de constats que son rapport, ou dont le référentiel diffère par une règle absente, le seuil d'une règle, la version de PMD ou un module mesuré, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite »
 - Rouge : `SUBCOMMANDS` (`src/extension/command.ts`) ne connaît aucune sous-commande de mesure : le gestionnaire retombe sur `help`, qui n'écrit que la ligne d'usage. Le seul émetteur de `milestone.evaluate` hors du noyau est `recordIncrementResult` (`src/application/harness.ts`), qui ne lui passe que `global_verdicts: {}`. La dernière évaluation du jalon final reste donc INDETERMINATE, avec les trois écarts « not measured on the integrated project », et le programme n'est pas clos.
 
 ### Tâche 5 — Le statut annonce la conformité dans le seul périmètre contrôlé

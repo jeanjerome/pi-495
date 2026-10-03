@@ -55,14 +55,27 @@ export interface GapKey {
 }
 
 /**
- * A gap the cited survey counts: the threshold of its rule, its violations on the measured tree, and the
- * scope decision that sets it aside with its reason, if any. Adoption requires each one removed by an
- * increment or set aside (QLT-03).
+ * What tolerates a gap until a date: who answers for it, the last day it excuses the gap, and why. The
+ * owner is a name the document gives, never an authenticated actor.
+ */
+export interface GapException {
+	owner: string;
+	/** The last day the exception tolerates its gap, as `YYYY-MM-DD`. */
+	due: string;
+	reason: string;
+}
+
+/**
+ * A gap the cited survey counts: the threshold of its rule, its violations on the measured tree, the
+ * scope decision that sets it aside with its reason, if any, and the exception that tolerates it, if any.
+ * Adoption requires each one removed by an increment, set aside, or under an exception (QLT-03).
  */
 export interface BaselineGap extends GapKey {
 	threshold: string;
 	violations: number;
 	scope_decision: { reason: string } | null;
+	/** Absent from a gap no exception tolerates, and from every gap adopted before exceptions existed. */
+	exception?: GapException;
 }
 
 /** The accepted survey a trajectory starts from: the change that took it, the tree it measured and its gaps. */
@@ -70,6 +83,44 @@ export interface Baseline {
 	change_id: string;
 	reference_digest: string;
 	gaps: BaselineGap[];
+}
+
+/** A gap a survey of the integrated project counts, by rule, module and the code it lies in. */
+interface MeasuredGap extends GapKey {
+	violations: number;
+}
+
+/**
+ * What the analysers of a measure controlled: each rule of its referential with the analyser and version
+ * that checks it, the modules they read, and what they leave out with the reason.
+ */
+export interface ControlledPerimeter {
+	rules: { rule_id: string; tool: string }[];
+	modules: string[];
+	unmeasured: { subject: string; reason: string }[];
+}
+
+/** The accepted survey of the integrated project a milestone is judged on, the gaps it counts, and its perimeter. */
+export interface Measure {
+	change_id: string;
+	gaps: MeasuredGap[];
+	perimeter: ControlledPerimeter;
+}
+
+export type ExceptionStanding = "current" | "expired" | "withdrawn";
+
+/**
+ * A gap as a measure judges it, with its count at the starting survey and on the integrated project:
+ * removed when the measure no longer counts it, remaining when it still does, tolerated while a current
+ * exception excuses it, appeared when the starting survey did not carry it, set aside when a scope
+ * decision leaves it out of the controlled perimeter. Its exception is current until its due date,
+ * expired after it, and withdrawn once its gap is gone.
+ */
+export interface JudgedGap extends GapKey {
+	outcome: "removed" | "remaining" | "tolerated" | "appeared" | "set_aside";
+	surveyed: number;
+	measured: number;
+	exception?: GapException & { standing: ExceptionStanding };
 }
 
 export interface MilestoneEvaluation {
@@ -81,6 +132,8 @@ export interface MilestoneEvaluation {
 	indeterminate: string[];
 	evaluated_at: string;
 	integrated_digest: string | null;
+	/** The survey the gaps were judged on; absent from an evaluation taken without a measure. */
+	measure?: { change_id: string; gaps: JudgedGap[]; perimeter: ControlledPerimeter };
 }
 
 export interface ProgramState {
@@ -163,6 +216,8 @@ export type ProgramCommand =
 			milestone_id: string;
 			global_verdicts: Record<string, Verdict>;
 			integrated_digest: string | null;
+			/** The accepted survey of the integrated project; without one, no gap is measured. */
+			measure?: Measure;
 	  })
 	| (Base & { type: "program.close"; reason: string });
 
@@ -321,7 +376,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							)
 							.join("; "),
 					);
-				checkGaps(command.increments, command.baseline ?? null);
+				checkGaps(command.increments, command.baseline ?? null, command.at);
 				return {
 					ok: true,
 					events: [
@@ -373,7 +428,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 			case "milestone.evaluate": {
 				const m = state.milestones.find((x) => x.milestone_id === command.milestone_id);
 				if (!m) throw new DomainError("UNKNOWN_REFERENCE", `unknown milestone ${command.milestone_id}`);
-				const evaluation = evaluateMilestone(state, m, command.global_verdicts, command.integrated_digest, command.at);
+				const evaluation = evaluateMilestone(state, m, command);
 				const events: ProgramEvent[] = [{ type: "milestone.evaluated", ...base, evaluation }];
 				if (m.final && evaluation.verdict === "PASS")
 					events.push({ type: "program.closed", ...base, reason: "final milestone passed" });
@@ -418,10 +473,11 @@ export function gapName(gap: GapKey): string {
 
 /**
  * Refuses an increment that removes a gap the survey does not carry, or any gap when the trajectory
- * cites no survey, then every gap of the survey no increment removes and no reasoned scope decision
- * sets aside, naming each.
+ * cites no survey, then an exception without an owner or a due date or already expired on the day of
+ * the adoption, then every gap of the survey no increment removes, no reasoned scope decision sets
+ * aside and no exception tolerates, naming each.
  */
-function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | null): void {
+function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | null, at: string): void {
 	for (const inc of increments)
 		for (const g of inc.gaps)
 			if (!baseline?.gaps.some((b) => sameGap(b, g)))
@@ -429,8 +485,9 @@ function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | nu
 					"UNKNOWN_REFERENCE",
 					`increment ${inc.increment_id} removes ${gapName(g)} (${g.authorship} code), ${baseline ? "a gap the cited survey does not carry" : "a gap no cited survey carries"}`,
 				);
+	for (const b of baseline?.gaps ?? []) if (b.exception) checkException(b, b.exception, at);
 	const unhandled = (baseline?.gaps ?? []).filter(
-		(b) => !setAside(b) && !increments.some((i) => i.gaps.some((g) => sameGap(b, g))),
+		(b) => !setAside(b) && !b.exception && !increments.some((i) => i.gaps.some((g) => sameGap(b, g))),
 	);
 	if (unhandled.length > 0)
 		throw new DomainError(
@@ -442,6 +499,19 @@ function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | nu
 				)
 				.join("; "),
 		);
+}
+
+function checkException(gap: GapKey, exception: GapException, at: string): void {
+	const refused = (why: string) =>
+		new DomainError("PRECONDITION_FAILED", `exception on gap ${gapName(gap)} (${gap.authorship} code) ${why}`);
+	if (!exception.owner.trim()) throw refused("has no owner");
+	if (!exception.due.trim()) throw refused("has no due date");
+	if (exception.due < day(at)) throw refused(`expired on ${exception.due}, before the adoption`);
+}
+
+/** The calendar day of an instant, as an exception's due date is written. */
+function day(at: string): string {
+	return at.slice(0, 10);
 }
 
 /** Increment ready when every dependency is accepted or integrated; blocked dependencies only block descendants (RM-009, SA-007). */
@@ -530,9 +600,7 @@ export function findCycle(increments: readonly IncrementSpec[]): string[] | null
 function evaluateMilestone(
 	state: ProgramState,
 	m: Milestone,
-	globalVerdicts: Record<string, Verdict>,
-	integratedDigest: string | null,
-	at: string,
+	command: Extract<ProgramCommand, { type: "milestone.evaluate" }>,
 ): MilestoneEvaluation {
 	const satisfied: string[] = [];
 	const remaining: string[] = [];
@@ -549,20 +617,36 @@ function evaluateMilestone(
 		else remaining.push(`increment:${id}`);
 	}
 	for (const rid of m.global_requirement_ids) {
-		const v = globalVerdicts[rid] ?? "NOT_RUN";
+		const v = command.global_verdicts[rid] ?? "NOT_RUN";
 		if (v === "PASS") satisfied.push(`global:${rid}`);
 		else if (v === "NOT_APPLICABLE") satisfied.push(`global:${rid}:not_applicable`);
 		else if (v === "FAIL") remaining.push(`global:${rid}:FAIL`);
 		else indeterminate.push(`global:${rid}:${v}`);
 	}
-	// A gap one of its increments removes is verified on the integrated project; no measure gives it a verdict yet.
 	const removing = state.increments.filter((i) => m.increment_ids.includes(i.increment_id));
-	for (const gap of state.baseline?.gaps ?? [])
-		if (!setAside(gap) && removing.some((i) => i.gaps.some((g) => sameGap(g, gap))))
-			indeterminate.push(`gap:${gapName(gap)} (${gap.authorship} code): not measured on the integrated project`);
-	if (!integratedDigest && m.increment_ids.length > 0) indeterminate.push("integrated_candidate:missing");
+	// A gap no increment removes and an exception tolerates is the final milestone's to judge.
+	const judged = (state.baseline?.gaps ?? []).filter(
+		(gap) => setAside(gap) || (m.final && gap.exception) || removing.some((i) => i.gaps.some((g) => sameGap(g, gap))),
+	);
+	const measure = command.measure
+		? {
+				change_id: command.measure.change_id,
+				gaps: judgeGaps(judged, state.baseline?.gaps ?? [], command.measure, day(command.at)),
+				perimeter: command.measure.perimeter,
+			}
+		: null;
+	// Without a measure, a gap one of its increments removes is not verified on the integrated project.
+	if (!measure)
+		for (const gap of judged)
+			if (!setAside(gap))
+				indeterminate.push(`gap:${gapName(gap)} (${gap.authorship} code): not measured on the integrated project`);
+	if (!command.integrated_digest && m.increment_ids.length > 0) indeterminate.push("integrated_candidate:missing");
 	let verdict: Verdict;
-	if (remaining.some((r) => r.endsWith(":FAIL"))) verdict = "FAIL";
+	if (
+		remaining.some((r) => r.endsWith(":FAIL")) ||
+		measure?.gaps.some((g) => g.outcome === "remaining" || g.outcome === "appeared")
+	)
+		verdict = "FAIL";
 	else if (remaining.length > 0 || indeterminate.length > 0)
 		verdict = remaining.length > 0 && indeterminate.length === 0 ? "NOT_RUN" : "INDETERMINATE";
 	else verdict = "PASS";
@@ -573,7 +657,37 @@ function evaluateMilestone(
 		remaining,
 		abandoned,
 		indeterminate,
-		evaluated_at: at,
-		integrated_digest: integratedDigest,
+		evaluated_at: command.at,
+		integrated_digest: command.integrated_digest,
+		...(measure ? { measure } : {}),
 	};
+}
+
+/**
+ * Judges each gap of the milestone on the measure taken on `today`, with its two counts, then names as
+ * appeared each gap the measure counts that the starting survey did not carry. A gap set aside stays
+ * out of the verdict; a gap under an exception is tolerated until its due date, included.
+ */
+function judgeGaps(
+	judged: readonly BaselineGap[],
+	surveyed: readonly BaselineGap[],
+	measure: Measure,
+	today: string,
+): JudgedGap[] {
+	const counted = (gap: GapKey) => measure.gaps.find((g) => sameGap(g, gap))?.violations ?? 0;
+	const key = (g: GapKey): GapKey => ({ rule_id: g.rule_id, module: g.module, authorship: g.authorship });
+	return [
+		...judged.map((gap): JudgedGap => {
+			const now = counted(gap);
+			const counts = { surveyed: gap.violations, measured: now };
+			if (setAside(gap)) return { ...key(gap), outcome: "set_aside", ...counts };
+			if (!gap.exception) return { ...key(gap), outcome: now > 0 ? "remaining" : "removed", ...counts };
+			const standing = now === 0 ? "withdrawn" : today <= gap.exception.due ? "current" : "expired";
+			const outcome = standing === "withdrawn" ? "removed" : standing === "current" ? "tolerated" : "remaining";
+			return { ...key(gap), outcome, ...counts, exception: { ...gap.exception, standing } };
+		}),
+		...measure.gaps
+			.filter((g) => g.violations > 0 && !surveyed.some((b) => sameGap(b, g)))
+			.map((g): JudgedGap => ({ ...key(g), outcome: "appeared", surveyed: 0, measured: g.violations })),
+	];
 }

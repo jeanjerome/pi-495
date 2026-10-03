@@ -34,6 +34,7 @@ import {
 	unknownCost,
 	type ChangeState,
 	type Deliverable,
+	type IntegrationState,
 } from "../domain/change/state.ts";
 import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
@@ -74,7 +75,7 @@ import { verify as verifyPhase } from "./phases/verify.ts";
 import { designVerification } from "./phases/verification-design.ts";
 import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
-import { baselineOf, type CitedSurvey } from "./baseline.ts";
+import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -432,7 +433,7 @@ export class Harness {
 		const increment = program?.increments.find((i) => i.change_id === change.change_id && i.status === "active");
 		if (!program || !increment) return;
 		const at = this.now();
-		const integrated = this.latestIntegration(program.program_id);
+		const integrated = this.latestIntegration(program.program_id)?.receipt_digest ?? null;
 		this.commitProgram(
 			program.program_id,
 			[
@@ -461,12 +462,12 @@ export class Harness {
 		);
 	}
 
-	/** The receipt digest of the latest integration of a change of the program, or null before any. */
-	private latestIntegration(programId: string): string | null {
+	/** The latest integration of a change of the program that left a receipt, or null before any. */
+	private latestIntegration(programId: string): IntegrationState | null {
 		const integrated = this.deps.ledger.listChanges(programId).filter((c) => c.outcome === "integrated");
 		for (const c of integrated.reverse()) {
-			const receipt = this.deps.ledger.loadChange(c.change_id)?.state.integration?.receipt_digest;
-			if (receipt) return receipt;
+			const integration = this.deps.ledger.loadChange(c.change_id)?.state.integration;
+			if (integration?.receipt_digest) return integration;
 		}
 		return null;
 	}
@@ -601,6 +602,7 @@ export class Harness {
 					await this.citedSurvey(trajectory.baseline.change_id),
 					reference.project_path,
 					trajectory.baseline.scope_decisions,
+					trajectory.baseline.exceptions,
 				)
 			: null;
 		const programId = this.id("prg");
@@ -664,6 +666,7 @@ export class Harness {
 	private async citedSurvey(changeId: string): Promise<CitedSurvey> {
 		const change = this.deps.ledger.loadChange(changeId)?.state ?? null;
 		const survey = change ? ((await this.artifacts.latest<Survey>(change, "survey"))?.content ?? null) : null;
+		const reference = change ? (await this.artifacts.latest<ReferenceSnapshot>(change, "reference"))?.content : null;
 		return {
 			change_id: changeId,
 			change,
@@ -676,7 +679,45 @@ export class Harness {
 					return typeof counted === "number" ? [[c.control_id, counted]] : [];
 				}),
 			),
+			reference_commit: reference?.kind === "git_clean_head" ? reference.head_commit : null,
 		};
+	}
+
+	/**
+	 * Judges each milestone of the program on the accepted survey of the integrated project that the change
+	 * `change_id` took, on the day it is asked. The survey is read from its dossier and nothing is run: it
+	 * must measure the program's project on the tree of its latest integration, under the referential of
+	 * the survey the program starts from. A program that cites no survey, or is closed, is refused.
+	 */
+	async measure(args: { program_id: string; change_id: string; actor: ActorRef }): Promise<ProgramState> {
+		const program = this.deps.ledger.loadProgram(args.program_id)?.state;
+		if (!program) throw new DomainError("UNKNOWN_REFERENCE", `program ${args.program_id} does not exist`);
+		if (!program.baseline)
+			throw new DomainError("PRECONDITION_FAILED", `program ${program.program_id} cites no survey to measure against`);
+		if (program.closed) throw new DomainError("INVALID_TRANSITION", `program ${program.program_id} is closed`);
+		const integration = this.latestIntegration(program.program_id);
+		const measure = measureOf(
+			await this.citedSurvey(args.change_id),
+			await this.citedSurvey(program.baseline.change_id),
+			program.project_path,
+			integration?.destination_after ?? null,
+		);
+		const at = this.now();
+		return this.commitProgram(
+			program.program_id,
+			program.milestones.map(
+				(m): ProgramCommand => ({
+					type: "milestone.evaluate",
+					at,
+					actor: args.actor,
+					milestone_id: m.milestone_id,
+					global_verdicts: {},
+					integrated_digest: integration?.receipt_digest ?? null,
+					measure,
+				}),
+			),
+			this.id("cor"),
+		);
 	}
 
 	/**

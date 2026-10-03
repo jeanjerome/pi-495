@@ -206,6 +206,7 @@ See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and
 | `/495 start <request>` | Capture the project and drive a new change. |
 | `/495 adopt <trajectory.json>` | Adopt a trajectory of several increments you wrote, and drive the change of its first ready increment. |
 | `/495 next` | Drive the change of the next ready increment of the bound program. |
+| `/495 measure <change_id>` | Judge each milestone of the bound program on the accepted survey of the integrated project that change took. |
 | `/495 status` | Show phase, gates, attempts, evidence and next action. |
 | `/495 resume` | Resume from the recorded state. |
 | `/495 decide` | Present and answer pending human decisions. |

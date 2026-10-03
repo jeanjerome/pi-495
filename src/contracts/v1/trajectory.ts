@@ -66,6 +66,24 @@ const TrajectoryBaseline = Type.Object(
 		scope_decisions: Type.Optional(
 			Type.Array(Type.Object({ ...GapProperties, reason: Text }, { additionalProperties: false })),
 		),
+		/**
+		 * Each tolerates a gap of that survey until its due date, under the owner it names, for the reason it
+		 * states. An exception without its owner or its due date is refused naming its gap.
+		 */
+		exceptions: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						...GapProperties,
+						owner: Type.Optional(Type.String()),
+						/** The last day the exception tolerates its gap. */
+						due: Type.Optional(Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" })),
+						reason: Text,
+					},
+					{ additionalProperties: false },
+				),
+			),
+		),
 	},
 	{ additionalProperties: false },
 );

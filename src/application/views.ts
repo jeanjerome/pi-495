@@ -3,12 +3,26 @@ import {
 	sameGap,
 	setAside,
 	type BaselineGap,
+	type ControlledPerimeter,
+	type ExceptionStanding,
+	type GapException,
+	type JudgedGap,
 	type IncrementStatus,
 	type ProgramState,
 } from "../domain/program/program.ts";
 
 /** A gap of the cited survey as the status names it: its rule, module and code, and its count at the survey. */
 export type StatusGap = Pick<BaselineGap, "rule_id" | "module" | "authorship" | "violations">;
+
+/**
+ * The survey of the integrated project a milestone was judged on, each gap it judged, and the perimeter
+ * its analysers controlled once the milestone passed on it.
+ */
+export interface StatusMeasure {
+	change_id: string;
+	gaps: JudgedGap[];
+	perimeter: ControlledPerimeter | null;
+}
 
 /** Canonical status projection shared by every Pi entry (AT-07, UX-03). */
 export interface StatusView {
@@ -23,6 +37,11 @@ export interface StatusView {
 		increments: { increment_id: string; title: string; status: IncrementStatus; gaps: StatusGap[] }[];
 		/** The gaps of the survey a scope decision sets aside, with its reason. */
 		set_aside: (StatusGap & { reason: string })[];
+		/**
+		 * The gaps of the survey an exception tolerates, each with its exception and the standing the latest
+		 * measure that judged it gave it: null before any did.
+		 */
+		exceptions: (StatusGap & GapException & { standing: ExceptionStanding | null })[];
 		/** Each milestone with its latest evaluation, or null before the program evaluated it. */
 		milestones: {
 			milestone_id: string;
@@ -34,6 +53,8 @@ export interface StatusView {
 				remaining: string[];
 				indeterminate: string[];
 				integrated_digest: string | null;
+				/** Null for an evaluation taken without a measure. */
+				measure: StatusMeasure | null;
 			} | null;
 		}[];
 		closed: boolean;
@@ -135,8 +156,23 @@ function latestEvaluation(
 				remaining: e.remaining,
 				indeterminate: e.indeterminate,
 				integrated_digest: e.integrated_digest,
+				measure: e.measure
+					? {
+							change_id: e.measure.change_id,
+							gaps: e.measure.gaps,
+							perimeter: e.verdict === "PASS" ? e.measure.perimeter : null,
+						}
+					: null,
 			}
 		: null;
+}
+
+/** The standing of the exception on `gap` the latest measure that judged it gave, or null before any did. */
+function standingOf(program: ProgramState, gap: BaselineGap): ExceptionStanding | null {
+	const judged = program.milestone_evaluations
+		.flatMap((e) => e.measure?.gaps ?? [])
+		.findLast((g) => g.exception && sameGap(g, gap));
+	return judged?.exception?.standing ?? null;
 }
 
 export function statusView(
@@ -166,6 +202,9 @@ export function statusView(
 					})),
 					set_aside: (program.baseline?.gaps ?? []).flatMap((g) =>
 						setAside(g) ? [{ ...statusGap(g), reason: g.scope_decision.reason }] : [],
+					),
+					exceptions: (program.baseline?.gaps ?? []).flatMap((g) =>
+						g.exception ? [{ ...statusGap(g), ...g.exception, standing: standingOf(program, g) }] : [],
 					),
 					milestones: program.milestones.map((m) => ({
 						milestone_id: m.milestone_id,

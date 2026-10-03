@@ -1,8 +1,8 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
-import type { IncrementStatus } from "../../domain/program/program.ts";
+import type { IncrementStatus, JudgedGap } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, SurveySection } from "../../application/report.ts";
-import type { Consumption, StatusGap, StatusView } from "../../application/views.ts";
+import type { Consumption, StatusGap, StatusMeasure, StatusView } from "../../application/views.ts";
 
 const L = {
 	fr: {
@@ -35,6 +35,28 @@ const L = {
 		notEvaluated: "sans évaluation",
 		remaining: "reste",
 		indeterminate: "indéterminé",
+		conform: "conforme au référentiel dans le périmètre contrôlé",
+		exceptTolerated: ", sauf les écarts tolérés par une exception",
+		measure: "Mesure",
+		onIntegrated: "sur le projet intégré",
+		judged: {
+			removed: "supprimé",
+			remaining: "reste",
+			tolerated: "toléré",
+			appeared: "apparu",
+		} satisfies Record<Exclude<JudgedGap["outcome"], "set_aside">, string>,
+		perimeter: "Périmètre contrôlé:",
+		rule: "règle",
+		modules: "modules mesurés",
+		unmeasured: "hors de la mesure",
+		outside: "hors du périmètre contrôlé",
+		due: "échéance",
+		exception: {
+			current: "Exception en cours",
+			expired: "Exception échue",
+			withdrawn: "Exception retirée, son écart n'est plus mesuré",
+			unjudged: "Exception",
+		},
 		increments: {
 			planned: "planifié",
 			ready: "prêt",
@@ -75,6 +97,28 @@ const L = {
 		notEvaluated: "not evaluated",
 		remaining: "remaining",
 		indeterminate: "indeterminate",
+		conform: "conforms to the referential within the controlled perimeter",
+		exceptTolerated: ", except the gaps an exception tolerates",
+		measure: "Measure",
+		onIntegrated: "on the integrated project",
+		judged: {
+			removed: "removed",
+			remaining: "remaining",
+			tolerated: "tolerated",
+			appeared: "appeared",
+		} satisfies Record<Exclude<JudgedGap["outcome"], "set_aside">, string>,
+		perimeter: "Controlled perimeter:",
+		rule: "rule",
+		modules: "measured modules",
+		unmeasured: "outside the measure",
+		outside: "outside the controlled perimeter",
+		due: "due",
+		exception: {
+			current: "Current exception",
+			expired: "Expired exception",
+			withdrawn: "Withdrawn exception, its gap is no longer measured",
+			unjudged: "Exception",
+		},
 		increments: {
 			planned: "planned",
 			ready: "ready",
@@ -128,7 +172,8 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 
 /**
  * The program and the survey it starts from, then each increment with its status and the gaps it
- * removes, then the gaps set aside with their reason, then each milestone with its verdict and what is left.
+ * removes, then the gaps set aside with their reason, then each milestone with its verdict and what is
+ * left, then each exception with its owner, due date, reason and standing.
  */
 function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | "en"): string[] {
 	const t = L[lang];
@@ -146,6 +191,9 @@ function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | 
 	for (const g of program.set_aside) lines.push(`  ${t.setAside}: ${t.gap(g)} — ${g.reason}`);
 	for (const m of program.milestones) {
 		const e = m.evaluation;
+		// Conformity is announced only for a milestone a survey of the integrated project passed.
+		const tolerated = e?.measure?.gaps.some((g) => g.outcome === "tolerated") ? t.exceptTolerated : "";
+		const conform = e?.verdict === "PASS" && e.measure ? [`${t.conform}${tolerated}`] : [];
 		const left = e
 			? [
 					...(e.remaining.length ? [`${t.remaining}: ${e.remaining.join(", ")}`] : []),
@@ -153,9 +201,38 @@ function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | 
 				]
 			: [];
 		lines.push(
-			`  ${t.milestone} ${m.milestone_id} (${m.title}): ${[e ? e.verdict : t.notEvaluated, ...left].join(" — ")}`,
+			`  ${t.milestone} ${m.milestone_id} (${m.title}): ${[e ? e.verdict : t.notEvaluated, ...conform, ...left].join(" — ")}`,
 		);
+		if (e?.measure) lines.push(...measureLines(e.measure, program.set_aside, lang));
 	}
+	for (const x of program.exceptions)
+		lines.push(`  ${t.exception[x.standing ?? "unjudged"]}: ${t.gap(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`);
+	return lines;
+}
+
+/**
+ * The survey a milestone was measured on and each gap it judged with its two counts, then, once the
+ * milestone passed, the perimeter its analysers controlled and the gaps set aside out of it.
+ */
+function measureLines(
+	measure: StatusMeasure,
+	setAside: NonNullable<StatusView["program"]>["set_aside"],
+	lang: "fr" | "en",
+): string[] {
+	const t = L[lang];
+	const lines = [`    ${t.measure}: ${measure.change_id}`];
+	for (const g of measure.gaps)
+		if (g.outcome !== "set_aside")
+			lines.push(
+				`    ${t.judged[g.outcome]}: ${t.gap({ ...g, violations: g.surveyed })}, ${g.measured} ${t.onIntegrated}`,
+			);
+	const perimeter = measure.perimeter;
+	if (!perimeter) return lines;
+	lines.push(`    ${t.perimeter}`);
+	for (const r of perimeter.rules) lines.push(`      ${t.rule} ${r.rule_id}: ${r.tool}`);
+	lines.push(`      ${t.modules}: ${perimeter.modules.join(", ")}`);
+	for (const u of perimeter.unmeasured) lines.push(`      ${t.unmeasured}: ${u.subject} — ${u.reason}`);
+	for (const g of setAside) lines.push(`      ${t.outside}: ${t.gap(g)} — ${g.reason}`);
 	return lines;
 }
 

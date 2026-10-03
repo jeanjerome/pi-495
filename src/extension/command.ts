@@ -24,6 +24,7 @@ const SUBCOMMANDS = [
 	"adopt",
 	"next",
 	"state",
+	"measure",
 	"status",
 	"resume",
 	"review",
@@ -61,7 +62,7 @@ type Handler = (call: Call) => Promise<void> | void;
 export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession): void {
 	pi.registerCommand("495", {
 		description:
-			"495 harness: start|adopt|next|state|status|resume|review|report|verify|decide|integrate|export|pause|close|revoke|cancel|bind|unbind",
+			"495 harness: start|adopt|next|state|measure|status|resume|review|report|verify|decide|integrate|export|pause|close|revoke|cancel|bind|unbind",
 		getArgumentCompletions: (prefix) => {
 			const items = SUBCOMMANDS.filter((s) => s.startsWith(prefix.trim())).map((s) => ({ value: s, label: s }));
 			return items.length ? items : null;
@@ -171,6 +172,19 @@ const HANDLERS: Record<Subcommand, Handler> = {
 			`${T[session.lang()].incrementStarted}: ${started.change.increment_id} / ${started.change.change_id}`,
 		);
 		await conduct(session, ctx, started.change.change_id);
+	},
+	// The survey is named, never run: the measure reads its dossier and judges the program on it.
+	measure: async ({ session, ctx, rt, text }) => {
+		const binding = bound(session, ctx);
+		if (!binding) return;
+		if (!text) {
+			session.emit(ctx, "usage: /495 measure <change of the survey of the integrated project>");
+			return;
+		}
+		await rt.harness.measure({ program_id: binding.program_id, change_id: text, actor: requester(session, ctx) });
+		const view = rt.harness.status(binding.change_id);
+		session.updateFooter(ctx, view);
+		session.emit(ctx, formatStatus(view, session.lang()), { view });
 	},
 	status: ({ session, ctx }) => {
 		const view = session.currentView();
@@ -328,7 +342,7 @@ const HANDLERS: Record<Subcommand, Handler> = {
 	help: ({ session, ctx }) => {
 		session.emit(
 			ctx,
-			`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${T[session.lang()].request} · status · adopt <trajectory.json> · next · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
+			`495 — the spec-driven agentic harness — v${VERSION_495}\n/495 start ${T[session.lang()].request} · status · adopt <trajectory.json> · next · state <question> · measure <survey change_id> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind`,
 		);
 	},
 };

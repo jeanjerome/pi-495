@@ -103,6 +103,7 @@ describe("statut d'un programme", () => {
 					remaining: ["increment:B", "increment:C"],
 					indeterminate: [],
 					integrated_digest: DIGEST,
+					measure: null,
 				},
 			},
 		]);
@@ -328,5 +329,239 @@ describe("statut d'un programme de remise aux standards", () => {
 		const en = formatStatus(view, "en").split("\n");
 		assert.ok(en.includes("Program: Standards (prg_2) — /tmp/reactor"), en.join("\n"));
 		assert.ok(en.includes(`  Milestone M1 (Standards): INDETERMINATE — indeterminate: ${unmeasured}`), en.join("\n"));
+	});
+});
+
+describe("statut d'un programme mesuré sur le projet intégré", () => {
+	const REASON = "the generated mappers are rewritten by their generator on every build";
+	const BROKER = "the message broker client is replaced with the next platform release";
+	const LEGACY = "the legacy helpers are deleted with the domain rewrite";
+	const gap = (rule_id: string, module: string, over: Partial<BaselineGap> = {}): BaselineGap => ({
+		rule_id,
+		threshold: `${rule_id} threshold`,
+		module,
+		authorship: "proprietary",
+		violations: 1,
+		scope_decision: null,
+		...over,
+	});
+	const key = (rule_id: string, module: string) => ({ rule_id, module, authorship: "proprietary" as const });
+	const PERIMETER = {
+		rules: [
+			{ rule_id: "CyclomaticComplexity", tool: "PMD 7.17.0" },
+			{ rule_id: "UnusedPrivateMethod", tool: "PMD 7.17.0" },
+		],
+		modules: ["domain", "infrastructure"],
+		unmeasured: [{ subject: "domain/src/test/java", reason: "test sources, which maven-pmd-plugin does not read" }],
+	};
+
+	/**
+	 * A removes CyclomaticComplexity of domain; an exception tolerates UnusedPrivateMethod of domain, another
+	 * CyclomaticComplexity of infrastructure; the gap of the generated code is set aside with its reason.
+	 */
+	function measured(
+		counts: { rule_id: string; module: string; violations: number; authorship?: "generated" }[],
+		at: string,
+	): ProgramState {
+		let p = run(null, {
+			type: "program.create",
+			at: tick(),
+			actor: HUMAN,
+			program_id: "prg_3",
+			project_path: "/tmp/reactor",
+			objective: ref("obj", "standards"),
+			title: "Standards",
+		});
+		p = run(p, {
+			type: "trajectory.adopt",
+			at: tick(),
+			actor: HUMAN,
+			increments: [{ ...increment("A", "Domain"), gaps: [key("CyclomaticComplexity", "domain")] }],
+			milestones: [
+				{ milestone_id: "M1", title: "Standards", increment_ids: ["A"], global_requirement_ids: [], final: true },
+			],
+			global_requirements: [],
+			baseline: {
+				change_id: "chg_survey",
+				reference_digest: `sha256:${"b".repeat(64)}`,
+				gaps: [
+					gap("CyclomaticComplexity", "domain", { violations: 2 }),
+					gap("CyclomaticComplexity", "domain", { authorship: "generated", scope_decision: { reason: REASON } }),
+					gap("CyclomaticComplexity", "infrastructure", {
+						exception: { owner: "équipe infrastructure", due: "2027-03-31", reason: BROKER },
+					}),
+					gap("UnusedPrivateMethod", "domain", {
+						exception: { owner: "équipe domaine", due: "2027-01-15", reason: LEGACY },
+					}),
+				],
+			},
+			reason: "init",
+		});
+		p = run(p, { type: "increment.bind", at: tick(), actor: KERNEL, increment_id: "A", change_id: "chg_A" });
+		p = run(p, {
+			type: "increment.result",
+			at: tick(),
+			actor: KERNEL,
+			increment_id: "A",
+			status: "integrated",
+			note: null,
+		});
+		return run(p, {
+			type: "milestone.evaluate",
+			at,
+			actor: HUMAN,
+			milestone_id: "M1",
+			global_verdicts: {},
+			integrated_digest: DIGEST,
+			measure: {
+				change_id: "chg_integrated",
+				gaps: counts.map((c) => ({ authorship: "proprietary" as const, ...c })),
+				perimeter: PERIMETER,
+			},
+		});
+	}
+	const at = (lines: string[], line: string) => {
+		const index = lines.indexOf(line);
+		assert.ok(index >= 0, `${line}\n---\n${lines.join("\n")}`);
+		return index;
+	};
+
+	it("le statut d'un programme dont le jalon final est PASS sur une mesure annonce la conformité dans le périmètre contrôlé, nomme chaque règle avec son outil et sa version, les modules mesurés, ce qui reste hors de la mesure, l'écart écarté avec sa raison, l'exception en cours avec son propriétaire, son échéance et sa raison, et l'exception retirée, en français et en anglais", () => {
+		const p = measured(
+			[
+				{ rule_id: "CyclomaticComplexity", module: "infrastructure", violations: 1 },
+				{ rule_id: "CyclomaticComplexity", module: "domain", violations: 1, authorship: "generated" },
+			],
+			"2026-12-01T09:00:00.000Z",
+		);
+		const view = statusView(p, null);
+		assert.equal(view.program?.closed, true);
+		assert.deepEqual(view.program?.milestones[0]?.evaluation?.measure?.perimeter, PERIMETER);
+		assert.deepEqual(
+			view.program?.exceptions.map((e) => [e.rule_id, e.module, e.owner, e.due, e.reason, e.standing]),
+			[
+				["CyclomaticComplexity", "infrastructure", "équipe infrastructure", "2027-03-31", BROKER, "current"],
+				["UnusedPrivateMethod", "domain", "équipe domaine", "2027-01-15", LEGACY, "withdrawn"],
+			],
+		);
+
+		const fr = formatStatus(view, "fr").split("\n");
+		const m = at(
+			fr,
+			"  Jalon M1 (Standards): PASS — conforme au référentiel dans le périmètre contrôlé, sauf les écarts tolérés par une exception",
+		);
+		assert.deepEqual(fr.slice(m + 1, m + 12), [
+			"    Mesure: chg_integrated",
+			"    supprimé: CyclomaticComplexity dans domain, code propriétaire: 2 violations à l'état des lieux, 0 sur le projet intégré",
+			"    toléré: CyclomaticComplexity dans infrastructure, code propriétaire: 1 violation à l'état des lieux, 1 sur le projet intégré",
+			"    supprimé: UnusedPrivateMethod dans domain, code propriétaire: 1 violation à l'état des lieux, 0 sur le projet intégré",
+			"    Périmètre contrôlé:",
+			"      règle CyclomaticComplexity: PMD 7.17.0",
+			"      règle UnusedPrivateMethod: PMD 7.17.0",
+			"      modules mesurés: domain, infrastructure",
+			"      hors de la mesure: domain/src/test/java — test sources, which maven-pmd-plugin does not read",
+			`      hors du périmètre contrôlé: CyclomaticComplexity dans domain, code généré: 1 violation à l'état des lieux — ${REASON}`,
+			`  Exception en cours: CyclomaticComplexity dans infrastructure, code propriétaire: 1 violation à l'état des lieux — équipe infrastructure, échéance 2027-03-31 — ${BROKER}`,
+		]);
+		at(
+			fr,
+			`  Exception retirée, son écart n'est plus mesuré: UnusedPrivateMethod dans domain, code propriétaire: 1 violation à l'état des lieux — équipe domaine, échéance 2027-01-15 — ${LEGACY}`,
+		);
+
+		const en = formatStatus(view, "en").split("\n");
+		const e = at(
+			en,
+			"  Milestone M1 (Standards): PASS — conforms to the referential within the controlled perimeter, except the gaps an exception tolerates",
+		);
+		assert.deepEqual(en.slice(e + 1, e + 12), [
+			"    Measure: chg_integrated",
+			"    removed: CyclomaticComplexity in domain, proprietary code: 2 violations at the survey, 0 on the integrated project",
+			"    tolerated: CyclomaticComplexity in infrastructure, proprietary code: 1 violation at the survey, 1 on the integrated project",
+			"    removed: UnusedPrivateMethod in domain, proprietary code: 1 violation at the survey, 0 on the integrated project",
+			"    Controlled perimeter:",
+			"      rule CyclomaticComplexity: PMD 7.17.0",
+			"      rule UnusedPrivateMethod: PMD 7.17.0",
+			"      measured modules: domain, infrastructure",
+			"      outside the measure: domain/src/test/java — test sources, which maven-pmd-plugin does not read",
+			`      outside the controlled perimeter: CyclomaticComplexity in domain, generated code: 1 violation at the survey — ${REASON}`,
+			`  Current exception: CyclomaticComplexity in infrastructure, proprietary code: 1 violation at the survey — équipe infrastructure, due 2027-03-31 — ${BROKER}`,
+		]);
+		at(
+			en,
+			`  Withdrawn exception, its gap is no longer measured: UnusedPrivateMethod in domain, proprietary code: 1 violation at the survey — équipe domaine, due 2027-01-15 — ${LEGACY}`,
+		);
+	});
+
+	it("le statut d'un jalon FAIL sur une mesure nomme l'écart restant avec ses deux comptes et n'annonce aucune conformité", () => {
+		const p = measured(
+			[
+				{ rule_id: "CyclomaticComplexity", module: "domain", violations: 1 },
+				{ rule_id: "CyclomaticComplexity", module: "infrastructure", violations: 1 },
+			],
+			"2027-04-01T09:00:00.000Z",
+		);
+		const view = statusView(p, null);
+		assert.equal(view.program?.milestones[0]?.evaluation?.verdict, "FAIL");
+		assert.equal(view.program?.milestones[0]?.evaluation?.measure?.perimeter, null, "no perimeter is announced");
+		const fr = formatStatus(view, "fr").split("\n");
+		const m = at(fr, "  Jalon M1 (Standards): FAIL");
+		assert.deepEqual(fr.slice(m + 1, m + 5), [
+			"    Mesure: chg_integrated",
+			"    reste: CyclomaticComplexity dans domain, code propriétaire: 2 violations à l'état des lieux, 1 sur le projet intégré",
+			"    reste: CyclomaticComplexity dans infrastructure, code propriétaire: 1 violation à l'état des lieux, 1 sur le projet intégré",
+			"    supprimé: UnusedPrivateMethod dans domain, code propriétaire: 1 violation à l'état des lieux, 0 sur le projet intégré",
+		]);
+		at(
+			fr,
+			`  Exception échue: CyclomaticComplexity dans infrastructure, code propriétaire: 1 violation à l'état des lieux — équipe infrastructure, échéance 2027-03-31 — ${BROKER}`,
+		);
+		assert.ok(!fr.some((l) => l.includes("conforme") || l.includes("Périmètre contrôlé")), fr.join("\n"));
+		const en = formatStatus(view, "en").split("\n");
+		at(
+			en,
+			"    remaining: CyclomaticComplexity in domain, proprietary code: 2 violations at the survey, 1 on the integrated project",
+		);
+		assert.ok(!en.some((l) => l.includes("conforms") || l.includes("Controlled perimeter")), en.join("\n"));
+	});
+
+	it("le statut d'un programme dont les écarts n'ont aucun champ d'exception liste ses écarts et son jalon INDETERMINATE, sans exception ni annonce de conformité", () => {
+		let p = run(null, {
+			type: "program.create",
+			at: tick(),
+			actor: HUMAN,
+			program_id: "prg_4",
+			project_path: "/tmp/reactor",
+			objective: ref("obj", "standards"),
+			title: "Standards",
+		});
+		p = run(p, {
+			type: "trajectory.adopt",
+			at: tick(),
+			actor: HUMAN,
+			increments: [{ ...increment("A", "Domain"), gaps: [key("CyclomaticComplexity", "domain")] }],
+			milestones: [
+				{ milestone_id: "M1", title: "Standards", increment_ids: ["A"], global_requirement_ids: [], final: true },
+			],
+			global_requirements: [],
+			baseline: {
+				change_id: "chg_survey",
+				reference_digest: `sha256:${"b".repeat(64)}`,
+				gaps: [gap("CyclomaticComplexity", "domain")],
+			},
+			reason: "init",
+		});
+		// The journal of a dossier recorded before exceptions: no gap carries the field.
+		assert.equal("exception" in p.baseline!.gaps[0]!, false);
+		p = integrate(p, "A");
+		const view = statusView(p, null);
+		assert.deepEqual(view.program?.exceptions, [], "a dossier without exceptions reads as one");
+		assert.equal(view.program?.milestones[0]?.evaluation?.measure, null);
+		const fr = formatStatus(view, "fr").split("\n");
+		at(fr, "    supprime CyclomaticComplexity dans domain, code propriétaire: 1 violation à l'état des lieux");
+		at(
+			fr,
+			"  Jalon M1 (Standards): INDETERMINATE — indéterminé: gap:CyclomaticComplexity in domain (proprietary code): not measured on the integrated project",
+		);
+		assert.ok(!fr.some((l) => l.includes("Exception") || l.includes("conforme")), fr.join("\n"));
 	});
 });

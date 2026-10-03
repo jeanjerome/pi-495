@@ -32,6 +32,11 @@ export function produces(t: TestHarness, mark: string): void {
 /** Conducts the change to its acceptance, then answers the integration question with `integrate`. */
 export async function integrated(t: TestHarness, changeId: string, mark: string): Promise<string> {
 	produces(t, mark);
+	return integrate(t, changeId);
+}
+
+/** Conducts the change, its producer already scripted, to its acceptance, then integrates it, and returns the receipt. */
+export async function integrate(t: TestHarness, changeId: string): Promise<string> {
 	const accepted = await t.harness.advance(changeId, { max_steps: 30 });
 	const asked = t.harness.pendingDecisions(changeId).find((d) => d.interaction === "IH-11");
 	assert.ok(asked, `the change asks to integrate: ${accepted.steps.join(" | ")}`);

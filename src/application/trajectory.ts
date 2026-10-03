@@ -10,6 +10,7 @@ import {
 	sameGap,
 	type Baseline,
 	type BaselineGap,
+	type GapException,
 	type GapKey,
 	type GlobalRequirement,
 	type IncrementSpec,
@@ -21,8 +22,12 @@ export interface ReadTrajectory {
 	increments: IncrementSpec[];
 	milestones: Milestone[];
 	global_requirements: GlobalRequirement[];
-	/** The survey the document cites and the gaps it sets aside, or null when it cites none. */
-	baseline: { change_id: string; scope_decisions: (GapKey & { reason: string })[] } | null;
+	/** The survey the document cites, the gaps it sets aside and the exceptions it grants, or null when it cites none. */
+	baseline: {
+		change_id: string;
+		scope_decisions: (GapKey & { reason: string })[];
+		exceptions: (GapKey & GapException)[];
+	} | null;
 }
 
 /** A gap as the document names it, in proprietary code unless it says otherwise. */
@@ -71,6 +76,13 @@ export function readTrajectory(document: unknown): ReadTrajectory {
 			? {
 					change_id: document.baseline.change_id,
 					scope_decisions: (document.baseline.scope_decisions ?? []).map((d) => ({ ...gapKey(d), reason: d.reason })),
+					// A missing owner or due date reaches the kernel blank, which refuses it naming the gap.
+					exceptions: (document.baseline.exceptions ?? []).map((e) => ({
+						...gapKey(e),
+						owner: e.owner ?? "",
+						due: e.due ?? "",
+						reason: e.reason,
+					})),
 				}
 			: null,
 	};

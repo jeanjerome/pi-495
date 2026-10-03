@@ -371,6 +371,75 @@ describe("a trajectory reads its gaps in the dossier of the survey it cites", ()
 		await refused(t, project, document, changeId, /its control pmd kept 1000 of the 1001 findings its report counts/);
 	});
 
+	const exception = {
+		owner: "équipe infrastructure",
+		due: "2027-03-31",
+		reason: "the message broker client is replaced with the next platform release",
+	};
+	/** A document that cites the survey `changeId`: A removes the two gaps of domain, an exception tolerates the gap of infrastructure. */
+	const underException = (changeId: string, granted: Partial<typeof exception>) => {
+		const document = standards(changeId);
+		return {
+			...document,
+			baseline: { change_id: changeId, exceptions: [{ ...gap("CyclomaticComplexity", "infrastructure"), ...granted }] },
+			increments: [document.increments[0]!],
+			milestones: [{ ...document.milestones[0]!, increment_ids: ["A"] }],
+		};
+	};
+
+	it("un document qui cite l'état des lieux accepté du réacteur et pose sur CyclomaticComplexity dans infrastructure une exception avec propriétaire, échéance et raison est adopté, et le programme inscrit l'écart avec son exception", async () => {
+		const project = reactor();
+		const { t, changeId } = await surveyed(project);
+		await closeSurvey(t, changeId, "adopt_referential", "accept");
+
+		const { program } = await t.harness.adopt({
+			project_path: project,
+			trajectory: underException(changeId, exception),
+			actor: HUMAN,
+		});
+		assert.deepEqual(
+			program.baseline?.gaps.map((g) => [g.rule_id, g.module, g.violations, g.exception ?? null]),
+			[
+				["CyclomaticComplexity", "domain", 1, null],
+				["CyclomaticComplexity", "infrastructure", 1, exception],
+				["UnusedPrivateMethod", "domain", 1, null],
+			],
+			"the gap of infrastructure is recorded with its exception",
+		);
+	});
+
+	it("une exception sans propriétaire ou sans échéance est refusée avec un message qui nomme CyclomaticComplexity dans infrastructure et ce qui lui manque, sans programme créé", async () => {
+		const project = reactor();
+		const { t, changeId } = await surveyed(project);
+		await closeSurvey(t, changeId, "adopt_referential", "accept");
+		const programs = t.ledger.listPrograms().length;
+		const changes = t.ledger.listChanges().length;
+		const { owner: _owner, ...ownerless } = exception;
+		const { due: _due, ...undated } = exception;
+
+		for (const [granted, lacks] of [
+			[ownerless, "has no owner"],
+			[undated, "has no due date"],
+		] as const)
+			await assert.rejects(
+				t.harness.adopt({ project_path: project, trajectory: underException(changeId, granted), actor: HUMAN }),
+				{ message: `exception on gap CyclomaticComplexity in infrastructure (proprietary code) ${lacks}` },
+			);
+		await assert.rejects(
+			t.harness.adopt({
+				project_path: project,
+				trajectory: {
+					...underException(changeId, exception),
+					baseline: { change_id: changeId, exceptions: [{ ...gap("CPD", "domain"), ...exception }] },
+				},
+				actor: HUMAN,
+			}),
+			{ message: "an exception tolerates CPD in domain (proprietary code), a gap the cited survey does not carry" },
+		);
+		assert.equal(t.ledger.listPrograms().length, programs, "no program is created");
+		assert.equal(t.ledger.listChanges().length, changes, "no change is created");
+	});
+
 	it("deux méthodes de complexité 11 dans domain font un écart de 2 violations, que le programme inscrit et que la demande du changement de A nomme, quel que soit le document", async () => {
 		const project = qualityReactor({
 			"domain/src/main/java/io/h495/Grader.java": QUALITY_SOURCES[GRADER]!,
@@ -491,6 +560,27 @@ describe("a dossier written before increments named gaps", () => {
 			(await t.ledger.verifyIntegrity()).problems.filter((p) => p.subject === program.program_id).length,
 			0,
 			"the projection of the dossier is the replay of its journal",
+		);
+	});
+});
+
+describe("the measure of a program that cites no survey", () => {
+	it("mesurer un programme dont la trajectoire ne cite aucun état des lieux est refusé en le disant, sans évaluation inscrite", async () => {
+		const t = programHarness(false);
+		const { program } = await t.harness.adopt({
+			project_path: trackedProject(),
+			trajectory: threeIncrements(),
+			actor: HUMAN,
+		});
+		const evaluations = programOf(t, program.program_id).milestone_evaluations.length;
+		await assert.rejects(
+			t.harness.measure({ program_id: program.program_id, change_id: "chg-unknown", actor: HUMAN }),
+			new RegExp(`program ${program.program_id} cites no survey to measure against`),
+		);
+		assert.equal(
+			programOf(t, program.program_id).milestone_evaluations.length,
+			evaluations,
+			"no evaluation is recorded",
 		);
 	});
 });

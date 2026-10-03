@@ -12,6 +12,7 @@ import {
 	type IncrementSpec,
 	type ProgramState,
 } from "../../src/domain/program/program.ts";
+import type { CodeAuthorship } from "../../src/domain/survey.ts";
 import { KERNEL, HUMAN, ref, tick } from "../helpers/change-fixture.ts";
 
 function inc(id: string, depends_on: string[] = [], over: Partial<IncrementSpec> = {}): IncrementSpec {
@@ -488,6 +489,203 @@ describe("écarts de l'état des lieux d'une trajectoire (QLT-03)", () => {
 			p.events.some((e) => e.type === "program.closed"),
 			false,
 		);
+	});
+	const integrate = (p: P, ids: string[]) => {
+		for (const id of ids) {
+			p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: id, change_id: `chg_${id}` });
+			p.run({
+				type: "increment.result",
+				at: tick(),
+				actor: KERNEL,
+				increment_id: id,
+				status: "integrated",
+				note: null,
+			});
+		}
+	};
+	const measured = (
+		rule_id: string,
+		module: string,
+		violations: number,
+		authorship: CodeAuthorship = "proprietary",
+	) => ({
+		rule_id,
+		module,
+		authorship,
+		violations,
+	});
+	const measureBy = (gaps: ReturnType<typeof measured>[], at = tick()) => ({
+		type: "milestone.evaluate" as const,
+		at,
+		actor: HUMAN,
+		milestone_id: "M1",
+		global_verdicts: {},
+		integrated_digest: `sha256:${"a".repeat(64)}`,
+		measure: {
+			change_id: "chg_integrated",
+			gaps,
+			perimeter: { rules: [], modules: ["domain", "infrastructure"], unmeasured: [] },
+		},
+	});
+	const generatedSetAside = gap("CyclomaticComplexity", "domain", {
+		authorship: "generated",
+		scope_decision: { reason: "the generated mappers are rewritten by their generator on every build" },
+	});
+	it("A et B intégrés, une mesure qui ne compte plus aucun des trois écarts rend le jalon final PASS, nomme chacun supprimé avec son compte de départ et zéro, et clôt le programme", () => {
+		const p = new P().create();
+		const domainComplexity = gap("CyclomaticComplexity", "domain", { violations: 3 });
+		p.run(standards([A, B], [domainComplexity, ...surveyed.slice(1), generatedSetAside]));
+		integrate(p, ["A", "B"]);
+		p.run(measureBy([measured("CyclomaticComplexity", "domain", 1, "generated")]));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "PASS", "a measure that counts none of the three gaps passes the final milestone");
+		assert.equal(final.measure?.change_id, "chg_integrated");
+		assert.deepEqual(final.measure?.gaps, [
+			{ ...key("CyclomaticComplexity", "domain"), outcome: "removed", surveyed: 3, measured: 0 },
+			{ ...key("UnusedPrivateMethod", "domain"), outcome: "removed", surveyed: 1, measured: 0 },
+			{ ...key("CyclomaticComplexity", "infrastructure"), outcome: "removed", surveyed: 1, measured: 0 },
+			{
+				...key("CyclomaticComplexity", "domain"),
+				authorship: "generated",
+				outcome: "set_aside",
+				surveyed: 1,
+				measured: 1,
+			},
+		]);
+		assert.deepEqual(final.indeterminate, []);
+		assert.equal(p.state!.closed, true);
+		assert.equal(p.events.at(-1)?.type, "program.closed");
+		assert.deepEqual(replayProgram(p.events), p.state);
+	});
+	it("une mesure qui compte encore CyclomaticComplexity 1 dans infrastructure rend le jalon FAIL en le nommant restant avec ses deux comptes, sans clôture", () => {
+		const p = new P().create();
+		p.run(standards([A, B]));
+		integrate(p, ["A", "B"]);
+		p.run(measureBy([measured("CyclomaticComplexity", "infrastructure", 1)]));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "FAIL", "a gap the integrated project still counts fails the milestone");
+		assert.deepEqual(final.measure?.gaps, [
+			{ ...key("CyclomaticComplexity", "domain"), outcome: "removed", surveyed: 1, measured: 0 },
+			{ ...key("UnusedPrivateMethod", "domain"), outcome: "removed", surveyed: 1, measured: 0 },
+			{ ...key("CyclomaticComplexity", "infrastructure"), outcome: "remaining", surveyed: 1, measured: 1 },
+		]);
+		assert.equal(p.state!.closed, false);
+		assert.equal(
+			p.events.some((e) => e.type === "program.closed"),
+			false,
+		);
+	});
+	it("une mesure qui compte UnusedPrivateField dans infrastructure, absent de l'état des lieux de départ, rend le jalon FAIL en le nommant apparu", () => {
+		const p = new P().create();
+		p.run(standards([A, B]));
+		integrate(p, ["A", "B"]);
+		p.run(measureBy([measured("UnusedPrivateField", "infrastructure", 1)]));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "FAIL", "a gap the starting survey did not carry fails the milestone");
+		assert.deepEqual(final.measure?.gaps.at(-1), {
+			...key("UnusedPrivateField", "infrastructure"),
+			outcome: "appeared",
+			surveyed: 0,
+			measured: 1,
+		});
+		assert.deepEqual(
+			final.measure?.gaps.slice(0, 3).map((g) => g.outcome),
+			["removed", "removed", "removed"],
+		);
+		assert.equal(p.state!.closed, false);
+	});
+	const exception = {
+		owner: "équipe infrastructure",
+		due: "2027-03-31",
+		reason: "the message broker client is replaced with the next platform release",
+	};
+	const excepted = (over: Partial<typeof exception> = {}) => [
+		...surveyed.slice(0, 2),
+		gap("CyclomaticComplexity", "infrastructure", { exception: { ...exception, ...over } }),
+	];
+	const adoptedUnderException = () => {
+		const p = new P().create();
+		p.run(standards([A], excepted()));
+		integrate(p, ["A"]);
+		return p;
+	};
+	it("une trajectoire dont l'écart CyclomaticComplexity dans infrastructure porte une exception avec propriétaire et échéance à venir est adoptée, et l'événement d'adoption porte l'exception ; sans propriétaire, ou échue à la date de l'adoption, elle est refusée en nommant l'écart et ce qui manque", () => {
+		const p = new P().create();
+		const d = decideProgram(p.state, standards([A], excepted()));
+		assert.ok(d.ok, d.ok ? "" : d.error.message);
+		const adopted = d.events.find((e) => e.type === "trajectory.adopted");
+		assert.ok(adopted && adopted.type === "trajectory.adopted");
+		assert.deepEqual(adopted.baseline?.gaps.at(-1)?.exception, exception);
+		const refusals: [Partial<typeof exception>, RegExp][] = [
+			[{ owner: " " }, /exception on gap CyclomaticComplexity in infrastructure \(proprietary code\) has no owner/],
+			[{ due: "" }, /exception on gap CyclomaticComplexity in infrastructure \(proprietary code\) has no due date/],
+			[
+				{ due: "2026-09-01" },
+				/exception on gap CyclomaticComplexity in infrastructure \(proprietary code\) expired on 2026-09-01, before the adoption/,
+			],
+		];
+		for (const [over, message] of refusals) {
+			const blank = new P().create();
+			const refused = decideProgram(blank.state, standards([A], excepted(over)));
+			assert.equal(refused.ok, false, `an exception ${JSON.stringify(over)} is refused`);
+			if (!refused.ok) {
+				assert.equal(refused.error.code, "PRECONDITION_FAILED");
+				assert.match(refused.error.message, message);
+			}
+			assert.equal(blank.state?.trajectory_revision, 0);
+		}
+	});
+	it("mesuré avant l'échéance, l'écart sous exception laisse le jalon PASS et l'évaluation le nomme toléré ; mesuré après, le jalon est FAIL et nomme l'exception échue avec son propriétaire", () => {
+		const before = adoptedUnderException();
+		before.run(measureBy([measured("CyclomaticComplexity", "infrastructure", 1)], "2026-12-01T09:00:00.000Z"));
+		const tolerated = before.state!.milestone_evaluations.at(-1)!;
+		assert.equal(tolerated.verdict, "PASS", "a gap under a current exception does not fail the milestone");
+		assert.deepEqual(tolerated.measure?.gaps.at(-1), {
+			...key("CyclomaticComplexity", "infrastructure"),
+			outcome: "tolerated",
+			surveyed: 1,
+			measured: 1,
+			exception: { ...exception, standing: "current" },
+		});
+		assert.equal(before.state!.closed, true);
+		const after = adoptedUnderException();
+		after.run(measureBy([measured("CyclomaticComplexity", "infrastructure", 1)], "2027-04-01T09:00:00.000Z"));
+		const expired = after.state!.milestone_evaluations.at(-1)!;
+		assert.equal(expired.verdict, "FAIL", "an expired exception excuses its gap no longer");
+		assert.deepEqual(expired.measure?.gaps.at(-1), {
+			...key("CyclomaticComplexity", "infrastructure"),
+			outcome: "remaining",
+			surveyed: 1,
+			measured: 1,
+			exception: { ...exception, standing: "expired" },
+		});
+		assert.equal(after.state!.closed, false);
+	});
+	it("une exception dont l'échéance tombe le jour de l'adoption est adoptée : son échéance n'est pas encore passée", () => {
+		const p = new P().create();
+		const adoption = standards([A]);
+		const d = decideProgram(p.state, { ...adoption, baseline: baseline(excepted({ due: adoption.at.slice(0, 10) })) });
+		assert.ok(d.ok, d.ok ? "" : d.error.message);
+	});
+	it("mesuré le jour de son échéance, l'écart sous exception est encore toléré et le jalon PASS", () => {
+		const p = adoptedUnderException();
+		p.run(measureBy([measured("CyclomaticComplexity", "infrastructure", 1)], "2027-03-31T23:00:00.000Z"));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "PASS", "an exception still excuses its gap on its due date");
+		assert.deepEqual(final.measure?.gaps.at(-1)?.exception, { ...exception, standing: "current" });
+	});
+	it("mesuré à zéro, l'écart d'une exception fait nommer l'exception retirée", () => {
+		const p = adoptedUnderException();
+		p.run(measureBy([], "2026-12-01T09:00:00.000Z"));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "PASS");
+		assert.deepEqual(final.measure?.gaps.at(-1), {
+			...key("CyclomaticComplexity", "infrastructure"),
+			outcome: "removed",
+			surveyed: 1,
+			measured: 0,
+			exception: { ...exception, standing: "withdrawn" },
+		});
 	});
 	it("une trajectoire qui ne cite aucun état des lieux et dont l'incrément A supprime CPD dans domain est refusée en nommant l'incrément et l'écart, sans événement d'adoption", () => {
 		const p = new P().create();
