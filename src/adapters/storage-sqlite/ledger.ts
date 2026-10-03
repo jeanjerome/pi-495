@@ -14,7 +14,15 @@ import { apply, replay } from "../../domain/change/apply.ts";
 import type { ChangeEvent } from "../../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../../domain/change/state.ts";
 import { DomainError, messageOf } from "../../domain/errors.ts";
-import { applyProgram, replayProgram, type ProgramEvent, type ProgramState } from "../../domain/program/program.ts";
+import {
+	applyProgram,
+	type Baseline,
+	type GapKey,
+	type IncrementState,
+	replayProgram,
+	type ProgramEvent,
+	type ProgramState,
+} from "../../domain/program/program.ts";
 import type {
 	AppendMeta,
 	CommitReceipt,
@@ -403,7 +411,17 @@ export class SqliteLedger implements LedgerPort {
 			programId,
 		);
 		if (!projected) return null;
-		return { state: JSON.parse(projected.state) as ProgramState, revision: projected.revision };
+		// A projection stored before increments named gaps carries neither their gaps nor a baseline.
+		const stored = JSON.parse(projected.state) as Omit<ProgramState, "increments" | "baseline"> & {
+			increments: (Omit<IncrementState, "gaps"> & { gaps?: GapKey[] })[];
+			baseline?: Baseline | null;
+		};
+		const state: ProgramState = {
+			...stored,
+			increments: stored.increments.map((i) => ({ ...i, gaps: i.gaps ?? [] })),
+			baseline: stored.baseline ?? null,
+		};
+		return { state, revision: projected.revision };
 	}
 
 	readProgramEvents(programId: string): StoredEvent<ProgramEvent>[] {

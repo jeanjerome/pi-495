@@ -121,33 +121,34 @@ export class FakeMavenControls implements ControlExecutionPort {
 			return this.real.runControl({ ...invocation, control }, signal);
 		}
 		const out = await this.real.runControl({ ...invocation, control }, signal);
-		const has = (path: string): boolean => {
-			try {
-				readFileSync(join(invocation.workspace_path, path));
-				return true;
-			} catch {
-				return false;
-			}
-		};
+		// A reactor carries the witnesses in its first module, a single project at its root.
+		const files = javaFiles(invocation.workspace_path);
+		const has = (path: string): boolean => files.some((file) => file === path || file.endsWith(`/${path}`));
 		const negative =
 			has("src/test/java/witness495/NegativeWitness495Test.java") ||
-			has("src/main/java/witness495/Witness495Uncovered.java");
+			has("src/main/java/witness495/Witness495Uncovered.java") ||
+			has("witness495/a/Witness495CycleA.java");
 		return { ...out, evidence: { ...out.evidence, verdict: negative ? "FAIL" : "PASS" } };
 	}
 }
 
-/** The Java sources under each `src/main/java` of a tree, by their path relative to it. */
-function mainSources(root: string): string[] {
+/** The Java files of a tree, outside its build directories, by their path relative to it. */
+function javaFiles(root: string): string[] {
 	const found: string[] = [];
 	const walk = (relative: string): void => {
 		for (const entry of readdirSync(join(root, relative), { withFileTypes: true })) {
 			const path = relative ? `${relative}/${entry.name}` : entry.name;
 			if (entry.isDirectory() && entry.name !== "target" && entry.name !== ".git") walk(path);
-			else if (entry.isFile() && path.endsWith(".java") && path.includes("src/main/java/")) found.push(path);
+			else if (entry.isFile() && path.endsWith(".java")) found.push(path);
 		}
 	};
 	walk("");
 	return found.sort();
+}
+
+/** The Java sources under each `src/main/java` of a tree, by their path relative to it. */
+function mainSources(root: string): string[] {
+	return javaFiles(root).filter((path) => path.includes("src/main/java/"));
 }
 
 /**

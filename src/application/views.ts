@@ -1,5 +1,14 @@
 import type { ChangeState } from "../domain/change/state.ts";
-import type { IncrementStatus, ProgramState } from "../domain/program/program.ts";
+import {
+	sameGap,
+	setAside,
+	type BaselineGap,
+	type IncrementStatus,
+	type ProgramState,
+} from "../domain/program/program.ts";
+
+/** A gap of the cited survey as the status names it: its rule, module and code, and its count at the survey. */
+export type StatusGap = Pick<BaselineGap, "rule_id" | "module" | "authorship" | "violations">;
 
 /** Canonical status projection shared by every Pi entry (AT-07, UX-03). */
 export interface StatusView {
@@ -8,7 +17,12 @@ export interface StatusView {
 		program_id: string;
 		title: string;
 		project_path: string;
-		increments: { increment_id: string; title: string; status: IncrementStatus }[];
+		/** The survey the program starts from, and the tree it measured; null when it cites none. */
+		baseline: { change_id: string; reference_digest: string } | null;
+		/** Each increment with the gaps of the survey it removes. */
+		increments: { increment_id: string; title: string; status: IncrementStatus; gaps: StatusGap[] }[];
+		/** The gaps of the survey a scope decision sets aside, with its reason. */
+		set_aside: (StatusGap & { reason: string })[];
 		/** Each milestone with its latest evaluation, or null before the program evaluated it. */
 		milestones: {
 			milestone_id: string;
@@ -105,6 +119,10 @@ function nextActionOf(s: ChangeState): string {
 	}
 }
 
+function statusGap(g: BaselineGap): StatusGap {
+	return { rule_id: g.rule_id, module: g.module, authorship: g.authorship, violations: g.violations };
+}
+
 function latestEvaluation(
 	program: ProgramState,
 	milestoneId: string,
@@ -134,11 +152,21 @@ export function statusView(
 					program_id: program.program_id,
 					title: program.title,
 					project_path: program.project_path,
+					baseline: program.baseline
+						? { change_id: program.baseline.change_id, reference_digest: program.baseline.reference_digest }
+						: null,
 					increments: program.increments.map((i) => ({
 						increment_id: i.increment_id,
 						title: i.title,
 						status: i.status,
+						gaps: i.gaps.flatMap((g) => {
+							const surveyed = program.baseline?.gaps.find((b) => sameGap(b, g));
+							return surveyed ? [statusGap(surveyed)] : [];
+						}),
 					})),
+					set_aside: (program.baseline?.gaps ?? []).flatMap((g) =>
+						setAside(g) ? [{ ...statusGap(g), reason: g.scope_decision.reason }] : [],
+					),
 					milestones: program.milestones.map((m) => ({
 						milestone_id: m.milestone_id,
 						title: m.title,

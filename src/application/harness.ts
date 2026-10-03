@@ -74,6 +74,7 @@ import { verify as verifyPhase } from "./phases/verify.ts";
 import { designVerification } from "./phases/verification-design.ts";
 import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
+import { baselineOf, type CitedSurvey } from "./baseline.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -559,6 +560,7 @@ export class Harness {
 							required_capabilities: [],
 							requirement_ids: [],
 							closure_criterion: "change accepted at G5",
+							gaps: [],
 						},
 					],
 					milestones: [],
@@ -585,7 +587,8 @@ export class Harness {
 	/**
 	 * Creates a program from the trajectory document the owner wrote, adopts the trajectory, and starts
 	 * the change of its first ready increment. The document is kept in the object store as the program's
-	 * objective. A trajectory the kernel refuses writes neither the program nor a change.
+	 * objective. A trajectory that cites a survey starts from the gaps read in that survey's dossier. A
+	 * trajectory the kernel refuses writes neither the program nor a change.
 	 */
 	async adopt(args: AdoptArgs): Promise<{ program: ProgramState; change: ChangeState }> {
 		const trajectory = readTrajectory(args.trajectory);
@@ -593,6 +596,13 @@ export class Harness {
 		const at = this.now();
 		this.progress("capturing the reference");
 		const reference = await this.deps.workspace.captureReference(args.project_path, this.deps.workspacePolicy);
+		const baseline = trajectory.baseline
+			? baselineOf(
+					await this.citedSurvey(trajectory.baseline.change_id),
+					reference.project_path,
+					trajectory.baseline.scope_decisions,
+				)
+			: null;
 		const programId = this.id("prg");
 		const changeId = this.id("chg");
 		const objective = await this.artifacts.store(
@@ -621,6 +631,7 @@ export class Harness {
 					increments: trajectory.increments,
 					milestones: trajectory.milestones,
 					global_requirements: trajectory.global_requirements,
+					...(baseline ? { baseline } : {}),
 					reason: "trajectory adopted by the owner",
 				},
 			],
@@ -632,7 +643,7 @@ export class Harness {
 			"request",
 			changeId,
 			this.id("req"),
-			incrementRequest(first, language),
+			incrementRequest(first, language, program.baseline),
 			args.actor.actor_id,
 		);
 		return this.openIncrementChange({
@@ -647,6 +658,25 @@ export class Harness {
 			at,
 			cor,
 		});
+	}
+
+	/** What the dossier of the change a trajectory cites holds of its survey. */
+	private async citedSurvey(changeId: string): Promise<CitedSurvey> {
+		const change = this.deps.ledger.loadChange(changeId)?.state ?? null;
+		const survey = change ? ((await this.artifacts.latest<Survey>(change, "survey"))?.content ?? null) : null;
+		return {
+			change_id: changeId,
+			change,
+			surveyed_path: change ? (this.deps.ledger.loadProgram(change.program_id)?.state.project_path ?? null) : null,
+			protocol: change ? ((await this.artifacts.latest<Protocol>(change, "protocol"))?.content ?? null) : null,
+			survey,
+			reported_findings: Object.fromEntries(
+				(survey?.controls ?? []).flatMap((c) => {
+					const counted = this.deps.ledger.getEvidence(c.evidence_id)?.facts.findings;
+					return typeof counted === "number" ? [[c.control_id, counted]] : [];
+				}),
+			),
+		};
 	}
 
 	/**
@@ -667,7 +697,7 @@ export class Harness {
 			"request",
 			changeId,
 			this.id("req"),
-			incrementRequest(increment, language),
+			incrementRequest(increment, language, program.baseline),
 			args.actor.actor_id,
 		);
 		return this.openIncrementChange({

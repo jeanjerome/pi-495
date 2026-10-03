@@ -10,6 +10,7 @@ import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
 import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { answer, GRADER, onlyComplex, QUALITY_SOURCES, qualityReactor, surveyed } from "../helpers/quality-survey.ts";
 import { increment, threeIncrements } from "../helpers/trajectory.ts";
 
 let root: string;
@@ -19,8 +20,10 @@ beforeEach(() => {
 });
 
 /** A session over a Git project, whose scripted agent fails at once: the change stops where it starts. */
-function sessionOnProject(name: string): { pi: FakePi; session: ExtensionSession; ctx: FakeContext } {
-	const cwd = commandProject("495-program-entry-", cleanups);
+function sessionOnProject(
+	name: string,
+	cwd = commandProject("495-program-entry-", cleanups),
+): { pi: FakePi; session: ExtensionSession; ctx: FakeContext } {
 	const agentScript = join(root, `${name}-agent.json`);
 	writeFileSync(agentScript, JSON.stringify({ default: { steps: [{ kind: "fail", error: "not reached" }] } }));
 	process.env.HARNESS495_DATA_DIR = join(root, `${name}-data`);
@@ -33,6 +36,48 @@ function sessionOnProject(name: string): { pi: FakePi; session: ExtensionSession
 	const ctx = new FakeContext(cwd, "rpc", `s-${name}`);
 	session.openedAt(ctx.asCommand());
 	return { pi, session, ctx };
+}
+
+/**
+ * A Maven reactor whose survey the owner accepted, recorded in the data directory the session `name`
+ * opens: `domain` carries a method of complexity 11 and a private method nothing calls, `infrastructure`
+ * a method of complexity 11.
+ */
+async function acceptedSurvey(name: string): Promise<{ project: string; changeId: string }> {
+	const project = qualityReactor({
+		"domain/src/main/java/io/h495/Grader.java": QUALITY_SOURCES[GRADER]!,
+		"infrastructure/src/main/java/io/h495/Router.java": onlyComplex("Router"),
+	});
+	const { t, changeId } = await surveyed(project, { root: join(root, `${name}-data`) });
+	answer(t, changeId, "adopt_referential");
+	await t.harness.advance(changeId, { max_steps: 40 });
+	answer(t, changeId, "accept");
+	assert.equal(t.ledger.loadChange(changeId)!.state.outcome, "accepted", "the survey is accepted");
+	t.ledger.close();
+	return { project, changeId };
+}
+
+/** A document citing the survey `changeId`: A removes the two gaps of domain, B, on A, the gap of infrastructure. */
+function standards(changeId: string) {
+	const gap = (rule_id: string, module: string) => ({ rule_id, module });
+	return {
+		title: "Bring the reactor to standards",
+		baseline: { change_id: changeId },
+		increments: [
+			{
+				...increment("A", "Domain to standards"),
+				gaps: [gap("CyclomaticComplexity", "domain"), gap("UnusedPrivateMethod", "domain")],
+			},
+			{
+				...increment("B", "Infrastructure to standards", ["A"]),
+				gaps: [gap("CyclomaticComplexity", "infrastructure")],
+			},
+		],
+		milestones: [
+			{ milestone_id: "M1", title: "Standards", increment_ids: ["A", "B"], global_requirement_ids: [], final: true },
+		],
+		global_requirements: [],
+	};
 }
 
 /** Writes the document outside the project, and returns its path. */
@@ -176,6 +221,110 @@ describe("`/495 adopt` adopts a trajectory of several increments", () => {
 			assert.equal(session.binding, null, "the session stays unbound");
 			assert.deepEqual(session.runtime().ledger.listChanges(), [], "no change is created");
 			assert.deepEqual(session.runtime().ledger.listPrograms(), [], "no program is created");
+		} finally {
+			await session.close();
+		}
+	});
+
+	it("un document qui ne cite aucun état des lieux et dont l'incrément A supprime CPD dans domain est refusé depuis Pi en nommant A et l'écart, sans programme, changement ni liaison", async () => {
+		const { pi, session, ctx } = sessionOnProject("gap");
+		try {
+			const document = {
+				...threeIncrements(),
+				increments: [
+					{ ...increment("A", "Common base"), gaps: [{ rule_id: "CPD", module: "domain" }] },
+					increment("B", "Export", ["A"], ["R1"]),
+					increment("C", "Import", ["A"], ["R1"]),
+				],
+			};
+			await pi.run(`adopt ${documentAt("gap", document)}`, ctx);
+			assert.ok(
+				pi.said.some((m) =>
+					m.includes("increment A removes CPD in domain (proprietary code), a gap no cited survey carries"),
+				),
+				pi.said.join(" | "),
+			);
+			assert.equal(session.binding, null, "the session stays unbound");
+			assert.deepEqual(session.runtime().ledger.listChanges(), [], "no change is created");
+			assert.deepEqual(session.runtime().ledger.listPrograms(), [], "no program is created");
+		} finally {
+			await session.close();
+		}
+	});
+
+	it("adopter depuis Pi une trajectoire qui cite l'état des lieux accepté du réacteur inscrit ses trois écarts, lie la session au changement de A dont la demande nomme ses deux écarts, et le statut liste sous A et sous B les écarts que chacun supprime", async () => {
+		const { project, changeId } = await acceptedSurvey("standards");
+		const { pi, session, ctx } = sessionOnProject("standards", project);
+		try {
+			await pi.run(`adopt ${documentAt("standards", standards(changeId))}`, ctx);
+			assert.ok(session.binding, `the session is bound: ${pi.said.join(" | ")}`);
+			const rt = session.runtime();
+			const program = rt.ledger.loadProgram(session.binding.program_id)?.state;
+			assert.equal(program?.baseline?.change_id, changeId, "the program names the cited survey");
+			assert.deepEqual(
+				program?.baseline?.gaps.map((g) => [g.rule_id, g.module, g.authorship, g.violations]),
+				[
+					["CyclomaticComplexity", "domain", "proprietary", 1],
+					["CyclomaticComplexity", "infrastructure", "proprietary", 1],
+					["UnusedPrivateMethod", "domain", "proprietary", 1],
+				],
+			);
+			const change = rt.ledger.loadChange(session.binding.change_id)!.state;
+			assert.equal(change.increment_id, "A");
+			const request = (await rt.harness.artifacts.read<string>(change.request)).split("\n");
+			for (const line of [
+				"- CyclomaticComplexity dans domain, code propriétaire : 1 violation à l'état des lieux (seuil : a method whose cyclomatic complexity is 10 or more)",
+				"- UnusedPrivateMethod dans domain, code propriétaire : 1 violation à l'état des lieux (seuil : any occurrence)",
+			])
+				assert.ok(request.includes(line), `${line}\n${request.join("\n")}`);
+			await pi.run("status", ctx);
+			const status = pi.said.at(-1)!.split("\n");
+			const a = status.indexOf("  Incrément A (Domain to standards): actif");
+			const b = status.indexOf("  Incrément B (Infrastructure to standards): planifié");
+			assert.ok(a >= 0 && b > a, status.join("\n"));
+			assert.deepEqual(status.slice(a + 1, b), [
+				"    supprime CyclomaticComplexity dans domain, code propriétaire: 1 violation à l'état des lieux",
+				"    supprime UnusedPrivateMethod dans domain, code propriétaire: 1 violation à l'état des lieux",
+			]);
+			assert.equal(
+				status[b + 1],
+				"    supprime CyclomaticComplexity dans infrastructure, code propriétaire: 1 violation à l'état des lieux",
+			);
+		} finally {
+			await session.close();
+		}
+	});
+
+	it("adopter depuis Pi une trajectoire sans l'incrément B, dont rien n'écarte CyclomaticComplexity dans infrastructure, est refusé en nommant l'écart, sans programme, changement ni liaison", async () => {
+		const { project, changeId } = await acceptedSurvey("unhandled");
+		const { pi, session, ctx } = sessionOnProject("unhandled", project);
+		try {
+			const document = standards(changeId);
+			const withoutB = {
+				...document,
+				increments: document.increments.slice(0, 1),
+				milestones: [{ ...document.milestones[0]!, increment_ids: ["A"] }],
+			};
+			const programs = session.runtime().ledger.listPrograms().length;
+			await pi.run(`adopt ${documentAt("unhandled", withoutB)}`, ctx);
+			assert.ok(
+				pi.said.some((m) =>
+					m.includes(
+						"gap CyclomaticComplexity in infrastructure (proprietary code, 1 violation) is removed by no increment and set aside by no scope decision",
+					),
+				),
+				pi.said.join(" | "),
+			);
+			assert.equal(session.binding, null, "the session stays unbound");
+			assert.equal(session.runtime().ledger.listPrograms().length, programs, "no program is created");
+			assert.deepEqual(
+				session
+					.runtime()
+					.ledger.listChanges()
+					.map((c) => c.change_id),
+				[changeId],
+				"no change but the survey",
+			);
 		} finally {
 			await session.close();
 		}

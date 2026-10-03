@@ -5,6 +5,7 @@
  */
 import type { ActorRef, ArtifactRef, Verdict } from "../../contracts/v1/common.ts";
 import { DomainError } from "../errors.ts";
+import type { CodeAuthorship } from "../survey.ts";
 
 export type IncrementStatus = "planned" | "ready" | "active" | "accepted" | "integrated" | "blocked" | "abandoned";
 export type IncrementKind = "functional" | "preparatory" | "remediation";
@@ -18,6 +19,8 @@ export interface IncrementSpec {
 	required_capabilities: string[];
 	requirement_ids: string[];
 	closure_criterion: string;
+	/** The gaps of the cited survey the increment removes. */
+	gaps: GapKey[];
 }
 
 export interface IncrementState extends IncrementSpec {
@@ -43,6 +46,32 @@ export interface GlobalRequirement {
 	scope_decision: { reason: string } | null;
 }
 
+/** A gap of a survey as an increment names it: a rule of the adopted referential, a module, and the code it lies in. */
+export interface GapKey {
+	rule_id: string;
+	/** Null for the violations no measured source root holds. */
+	module: string | null;
+	authorship: CodeAuthorship;
+}
+
+/**
+ * A gap the cited survey counts: the threshold of its rule, its violations on the measured tree, and the
+ * scope decision that sets it aside with its reason, if any. Adoption requires each one removed by an
+ * increment or set aside (QLT-03).
+ */
+export interface BaselineGap extends GapKey {
+	threshold: string;
+	violations: number;
+	scope_decision: { reason: string } | null;
+}
+
+/** The accepted survey a trajectory starts from: the change that took it, the tree it measured and its gaps. */
+export interface Baseline {
+	change_id: string;
+	reference_digest: string;
+	gaps: BaselineGap[];
+}
+
 export interface MilestoneEvaluation {
 	milestone_id: string;
 	verdict: Verdict;
@@ -65,6 +94,7 @@ export interface ProgramState {
 	increments: IncrementState[];
 	milestones: Milestone[];
 	global_requirements: GlobalRequirement[];
+	baseline: Baseline | null;
 	milestone_evaluations: MilestoneEvaluation[];
 	budgets: { max_increments: number; increments_started: number; program_ms: number; program_ms_used: number };
 	closed: boolean;
@@ -90,9 +120,11 @@ export type ProgramEvent =
 	| (Base & {
 			type: "trajectory.adopted";
 			revision: number;
-			increments: IncrementSpec[];
+			/** An adoption recorded before increments named gaps carries neither their gaps nor a baseline. */
+			increments: (Omit<IncrementSpec, "gaps"> & { gaps?: GapKey[] })[];
 			milestones: Milestone[];
 			global_requirements: GlobalRequirement[];
+			baseline?: Baseline | null;
 			reason: string;
 	  })
 	| (Base & { type: "increment.bound"; increment_id: string; change_id: string })
@@ -115,6 +147,8 @@ export type ProgramCommand =
 			increments: IncrementSpec[];
 			milestones: Milestone[];
 			global_requirements: GlobalRequirement[];
+			/** The survey the trajectory starts from, when it brings a project to standards. */
+			baseline?: Baseline;
 			reason: string;
 	  })
 	| (Base & { type: "increment.bind"; increment_id: string; change_id: string })
@@ -147,6 +181,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			increments: [],
 			milestones: [],
 			global_requirements: [],
+			baseline: null,
 			milestone_evaluations: [],
 			budgets: event.budgets,
 			closed: false,
@@ -165,6 +200,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 				const old = previous.get(spec.increment_id);
 				return {
 					...spec,
+					gaps: spec.gaps ?? [],
 					status: old?.status ?? "planned",
 					change_id: old?.change_id ?? null,
 					result_note: old?.result_note ?? null,
@@ -172,6 +208,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			});
 			s.milestones = event.milestones;
 			s.global_requirements = event.global_requirements;
+			s.baseline = event.baseline ?? null;
 			return recomputeEligibility(s);
 		}
 		case "increment.bound":
@@ -284,6 +321,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							)
 							.join("; "),
 					);
+				checkGaps(command.increments, command.baseline ?? null);
 				return {
 					ok: true,
 					events: [
@@ -294,6 +332,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							increments: command.increments,
 							milestones: command.milestones,
 							global_requirements: command.global_requirements,
+							baseline: command.baseline ?? null,
 							reason: command.reason,
 						},
 					],
@@ -362,6 +401,47 @@ function unassignedGlobalRequirements(command: Extract<ProgramCommand, { type: "
 	return command.global_requirements
 		.filter((r) => !carried.has(r.requirement_id) && !r.scope_decision?.reason.trim())
 		.map((r) => r.requirement_id);
+}
+
+/** A gap a scope decision sets aside: only a decision that states its reason does. */
+export function setAside(gap: BaselineGap): gap is BaselineGap & { scope_decision: { reason: string } } {
+	return Boolean(gap.scope_decision?.reason.trim());
+}
+
+export function sameGap(a: GapKey, b: GapKey): boolean {
+	return a.rule_id === b.rule_id && a.module === b.module && a.authorship === b.authorship;
+}
+
+export function gapName(gap: GapKey): string {
+	return `${gap.rule_id} in ${gap.module ?? "no measured module"}`;
+}
+
+/**
+ * Refuses an increment that removes a gap the survey does not carry, or any gap when the trajectory
+ * cites no survey, then every gap of the survey no increment removes and no reasoned scope decision
+ * sets aside, naming each.
+ */
+function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | null): void {
+	for (const inc of increments)
+		for (const g of inc.gaps)
+			if (!baseline?.gaps.some((b) => sameGap(b, g)))
+				throw new DomainError(
+					"UNKNOWN_REFERENCE",
+					`increment ${inc.increment_id} removes ${gapName(g)} (${g.authorship} code), ${baseline ? "a gap the cited survey does not carry" : "a gap no cited survey carries"}`,
+				);
+	const unhandled = (baseline?.gaps ?? []).filter(
+		(b) => !setAside(b) && !increments.some((i) => i.gaps.some((g) => sameGap(b, g))),
+	);
+	if (unhandled.length > 0)
+		throw new DomainError(
+			"PRECONDITION_FAILED",
+			unhandled
+				.map(
+					(b) =>
+						`gap ${gapName(b)} (${b.authorship} code, ${b.violations} violation${b.violations === 1 ? "" : "s"}) is removed by no increment and set aside by no scope decision`,
+				)
+				.join("; "),
+		);
 }
 
 /** Increment ready when every dependency is accepted or integrated; blocked dependencies only block descendants (RM-009, SA-007). */
@@ -475,6 +555,11 @@ function evaluateMilestone(
 		else if (v === "FAIL") remaining.push(`global:${rid}:FAIL`);
 		else indeterminate.push(`global:${rid}:${v}`);
 	}
+	// A gap one of its increments removes is verified on the integrated project; no measure gives it a verdict yet.
+	const removing = state.increments.filter((i) => m.increment_ids.includes(i.increment_id));
+	for (const gap of state.baseline?.gaps ?? [])
+		if (!setAside(gap) && removing.some((i) => i.gaps.some((g) => sameGap(g, gap))))
+			indeterminate.push(`gap:${gapName(gap)} (${gap.authorship} code): not measured on the integrated project`);
 	if (!integratedDigest && m.increment_ids.length > 0) indeterminate.push("integrated_candidate:missing");
 	let verdict: Verdict;
 	if (remaining.some((r) => r.endsWith(":FAIL"))) verdict = "FAIL";

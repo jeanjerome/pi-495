@@ -1,12 +1,22 @@
 /**
  * Contract v1 — the trajectory document the owner writes to conduct a program of several increments:
  * the increments and their dependencies, the milestones that gather them, and the requirements the
- * program answers for as a whole. It is read and kept, never executed.
+ * program answers for as a whole; and, when it brings a project to standards, the accepted survey it
+ * starts from and the gaps of that survey each increment removes. It is read and kept, never executed.
  */
 import { Type, type Static } from "typebox";
 import { Closed, contractId, Identifier } from "./common.ts";
 
 const Text = Type.String({ minLength: 1 });
+
+/** A gap of the cited survey: a rule of its adopted referential, the module that holds it, and the code it lies in. */
+const GapProperties = {
+	rule_id: Identifier,
+	/** Null for the violations no measured source root holds. */
+	module: Type.Union([Text, Type.Null()]),
+	/** Proprietary when absent. */
+	authorship: Type.Optional(Closed(["proprietary", "generated"] as const)),
+};
 
 const TrajectoryIncrement = Type.Object(
 	{
@@ -20,6 +30,8 @@ const TrajectoryIncrement = Type.Object(
 		/** The global requirements the increment carries. */
 		requirement_ids: Type.Array(Identifier),
 		kind: Type.Optional(Closed(["functional", "preparatory", "remediation"] as const)),
+		/** The gaps of the cited survey the increment removes; their counts are read in the survey, never here. */
+		gaps: Type.Optional(Type.Array(Type.Object(GapProperties, { additionalProperties: false }))),
 	},
 	{ additionalProperties: false },
 );
@@ -46,6 +58,18 @@ const TrajectoryGlobalRequirement = Type.Object(
 	{ additionalProperties: false },
 );
 
+const TrajectoryBaseline = Type.Object(
+	{
+		/** The change whose accepted survey the trajectory starts from. */
+		change_id: Identifier,
+		/** Each sets a gap of that survey aside from the program, for the reason it states. */
+		scope_decisions: Type.Optional(
+			Type.Array(Type.Object({ ...GapProperties, reason: Text }, { additionalProperties: false })),
+		),
+	},
+	{ additionalProperties: false },
+);
+
 export const TrajectoryDocument = Type.Object(
 	{
 		/** Lets an editor point at the published schema. */
@@ -54,6 +78,7 @@ export const TrajectoryDocument = Type.Object(
 		increments: Type.Array(TrajectoryIncrement, { minItems: 1 }),
 		milestones: Type.Array(TrajectoryMilestone),
 		global_requirements: Type.Array(TrajectoryGlobalRequirement),
+		baseline: Type.Optional(TrajectoryBaseline),
 	},
 	{ $id: contractId("trajectory"), additionalProperties: false },
 );

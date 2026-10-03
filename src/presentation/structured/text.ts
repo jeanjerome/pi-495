@@ -2,7 +2,7 @@ import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { IncrementStatus } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, SurveySection } from "../../application/report.ts";
-import type { Consumption, StatusView } from "../../application/views.ts";
+import type { Consumption, StatusGap, StatusView } from "../../application/views.ts";
 
 const L = {
 	fr: {
@@ -26,6 +26,12 @@ const L = {
 		closed: "clos",
 		increment: "Incrément",
 		milestone: "Jalon",
+		survey: "État des lieux",
+		tree: "arbre",
+		removes: "supprime",
+		setAside: "Écarté",
+		gap: (g: StatusGap) =>
+			`${g.rule_id} dans ${g.module ?? "aucun module mesuré"}, ${g.authorship === "generated" ? "code généré" : "code propriétaire"}: ${g.violations} violation${g.violations === 1 ? "" : "s"} à l'état des lieux`,
 		notEvaluated: "sans évaluation",
 		remaining: "reste",
 		indeterminate: "indéterminé",
@@ -60,6 +66,12 @@ const L = {
 		closed: "closed",
 		increment: "Increment",
 		milestone: "Milestone",
+		survey: "Survey",
+		tree: "tree",
+		removes: "removes",
+		setAside: "Set aside",
+		gap: (g: StatusGap) =>
+			`${g.rule_id} in ${g.module ?? "no measured module"}, ${g.authorship} code: ${g.violations} violation${g.violations === 1 ? "" : "s"} at the survey`,
 		notEvaluated: "not evaluated",
 		remaining: "remaining",
 		indeterminate: "indeterminate",
@@ -114,14 +126,24 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 	return lines.join("\n");
 }
 
-/** The program, then each increment with its status, then each milestone with its verdict and what is left. */
+/**
+ * The program and the survey it starts from, then each increment with its status and the gaps it
+ * removes, then the gaps set aside with their reason, then each milestone with its verdict and what is left.
+ */
 function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | "en"): string[] {
 	const t = L[lang];
 	const lines = [
 		`${t.program}: ${program.title} (${program.program_id}) — ${program.project_path}${program.closed ? ` — ${t.closed}` : ""}`,
 	];
-	for (const i of program.increments)
+	if (program.baseline)
+		lines.push(
+			`  ${t.survey}: ${program.baseline.change_id}, ${t.tree} ${program.baseline.reference_digest.slice(0, 23)}`,
+		);
+	for (const i of program.increments) {
 		lines.push(`  ${t.increment} ${i.increment_id} (${i.title}): ${t.increments[i.status]}`);
+		for (const g of i.gaps) lines.push(`    ${t.removes} ${t.gap(g)}`);
+	}
+	for (const g of program.set_aside) lines.push(`  ${t.setAside}: ${t.gap(g)} — ${g.reason}`);
 	for (const m of program.milestones) {
 		const e = m.evaluation;
 		const left = e

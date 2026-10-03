@@ -2,7 +2,7 @@
 
 Story : e10s05
 Epic : e10
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -65,12 +65,32 @@ Scenario: Le jalon d'une remise aux standards n'est pas franchi sur la seule cl�
   Then le programme inscrit une évaluation du jalon final INDETERMINATE, qui nomme chacun des trois écarts comme non mesuré sur le projet intégré
   And le programme n'est pas clos, et le statut le dit
 
+Scenario: Un état des lieux dont un analyseur a coupé son rapport n'est pas un point de départ
+  Given un projet Maven dont le rapport PMD porte 1001 violations, la dernière la seule `UnusedPrivateMethod` du module `infrastructure`, dont l'état des lieux au référentiel adopté a été accepté alors que son contrôle `pmd` n'a gardé que les 1000 premiers constats
+  And un document qui cite cet état des lieux, dont aucun incrément ne supprime `UnusedPrivateMethod` dans `infrastructure`
+  When le propriétaire adopte cette trajectoire depuis Pi
+  Then l'adoption est refusée avec un message qui nomme le changement cité, le contrôle `pmd`, les 1001 constats que compte son rapport et les 1000 que l'état des lieux a gardés
+  And aucun programme ni changement n'est créé
+
+Scenario: Un incrément ne nomme pas d'écart quand la trajectoire ne cite aucun état des lieux
+  Given un document de trajectoire qui ne cite aucun état des lieux, dont l'incrément A dit supprimer `CPD` dans `domain`
+  When le propriétaire adopte cette trajectoire depuis Pi
+  Then l'adoption est refusée avec un message qui nomme l'incrément A et `CPD` dans `domain` comme un écart qu'aucun état des lieux cité ne porte
+  And aucun programme ni changement n'est créé
+
+Scenario: Un programme adopté avant que ses incréments nomment des écarts garde son statut
+  Given un programme dont le journal inscrit une trajectoire adoptée sans état des lieux, avec des incréments qui ne portent aucun champ d'écarts, comme tout dossier créé avant cette story
+  When le propriétaire demande `/495 status`
+  Then le statut liste chacun de ses incréments avec son titre et son statut, sans écart ni état des lieux, et aucune erreur « Cannot read properties of undefined » n'est levée
+
 ## 3. Sécurité
 
 Le document de trajectoire ne fait que nommer l'état des lieux qu'il cite et les écarts que chaque
 incrément supprime. Les écarts et leur nombre sont lus dans le dossier de cet état des lieux, au magasin
-d'objets et au journal de 495. Un document ne peut donc ni inventer un écart, ni en réduire un, ni en
-taire un. L'état des lieux cité doit être celui du même projet, accepté par le propriétaire, avec un
+d'objets et au journal de 495, sur tout le rapport de chaque analyseur : un état des lieux dont un
+contrôle du référentiel a gardé moins de constats que son rapport n'en compte n'est pas un point de
+départ, et un incrément ne nomme un écart que d'un état des lieux cité. Un document ne peut donc ni
+inventer un écart, ni en réduire un, ni en taire un. L'état des lieux cité doit être celui du même projet, accepté par le propriétaire, avec un
 référentiel adopté dont chaque contrôle a mesuré la référence : un analyseur absent ou non qualifié
 n'est jamais lu comme l'absence d'écart (`QLT-02`, `D-74`). L'adoption ne lance aucun contrôle et
 n'ouvre pas le réseau. Elle ne passe que par la commande `/495`, que l'outil conversationnel
@@ -127,6 +147,19 @@ chaque incrément, puis les écarts écartés, en français et en anglais.
 - Tient : `test/v0-pure/program-status.test.ts`, « le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais »
 - Rouge : `statusView` (`src/application/views.ts`) ne donne de chaque incrément que son identifiant, son titre et son statut, et `formatStatus` (`src/presentation/structured/text.ts`) n'écrit aucun écart ni aucune décision de périmètre.
 
+### Tâche 5 — Aucun écart ne se perd entre le rapport, le document et le statut
+
+À l'adoption, le harnais lit la preuve de chaque contrôle du référentiel de l'état des lieux cité, et
+refuse ce point de départ, en nommant le changement, le contrôle et les deux comptes, quand le fait
+`findings` de cette preuve compte plus de constats que l'état des lieux n'en a gardés. Le noyau refuse
+une trajectoire qui ne cite aucun état des lieux dès qu'un de ses incréments nomme un écart, en nommant
+l'incrément et l'écart. La vue de statut lit un incrément sans champ d'écarts, inscrit par un dossier
+antérieur, comme un incrément qui n'en supprime aucun.
+
+- Vérifie : `node --test test/v2-kernel/program-baseline.test.ts test/v0-pure/program.test.ts test/v0-pure/program-status.test.ts`
+- Tient : `test/v2-kernel/program-baseline.test.ts`, « un état des lieux dont le contrôle pmd a gardé 1000 des 1001 constats de son rapport est refusé avec un message qui nomme le changement, le contrôle et les deux comptes, sans programme ni changement créé » ; `test/v0-pure/program.test.ts`, « une trajectoire qui ne cite aucun état des lieux et dont l'incrément A supprime CPD dans domain est refusée en nommant l'incrément et l'écart, sans événement d'adoption » ; `test/v0-pure/program-status.test.ts`, « le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux »
+- Rouge : la preuve n'est jamais lue. `baseline` (`src/application/harness.ts`) ne passe à `baselineOf` (`src/application/baseline.ts`) que l'état, le projet, le protocole et l'état des lieux. `notAStartingPoint` ne refuse qu'un contrôle absent ou nommé angle mort, et `surveyGaps` compte les 1000 constats que `judgedQualityFindings` (`src/adapters/execution/parsers.ts`) garde sous `MAX_QUALITY_FINDINGS`, si bien que l'adoption passe et inscrit le programme. `decideProgram` (`src/domain/program/program.ts`) n'appelle `checkGaps` que sous `command.baseline` : sondé, `trajectory.adopt` sans état des lieux dont l'incrément nomme `CPD` dans `domain` rend `ok: true`. `statusView` (`src/application/views.ts`) lit `i.gaps.flatMap` : sondé sur un `trajectory.adopted` dont l'incrément n'a pas de `gaps`, il lève « Cannot read properties of undefined (reading 'flatMap') ».
+
 ## 5. Hors périmètre
 
 - Mesurer les écarts sur le projet intégré pour leur donner un verdict, et annoncer la conformité dans
@@ -152,3 +185,11 @@ chaque incrément, puis les écarts écartés, en français et en anglais.
   un écart le supprime. Une cible chiffrée par écart serait un seuil que nul texte ne fixe.
 - Un écart plus fin que la règle dans un module, comme un fichier ou une violation : l'état des lieux
   compte par module, et l'identité d'une violation ne garde pas sa ligne (`D-23`).
+- Compter les écarts sur tout le rapport d'un analyseur qui dépasse 1000 constats, pour adopter quand
+  même la remise aux standards d'un projet qui en porte plus : l'état des lieux ne garde que les 1000
+  premiers, et le refuser est le comportement qui arrête. Garder par règle et par module le compte entier
+  à côté des constats bornés revient à une story que le plan ne porte pas encore.
+- Relever ou supprimer la borne de 1000 constats d'un analyseur, ou la note qui la signale dans la preuve
+  d'un changement à candidat : seule l'adoption d'une trajectoire lit le compte d'un état des lieux.
+- Reprendre un dossier antérieur pour donner à ses incréments des écarts ou un état des lieux : son
+  programme reste celui d'une trajectoire sans état des lieux.

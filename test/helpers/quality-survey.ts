@@ -10,6 +10,7 @@ import { join } from "node:path";
 import type { Clock } from "../../src/application/ids.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 import type { Survey } from "../../src/domain/survey.ts";
+import type { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { HUMAN, tuiOrigin } from "./change-fixture.ts";
 import { FakeMavenControls, FakeMavenSandbox, type MavenMode } from "./fake-maven.ts";
 import { fixtureJava, writeFiles } from "./fixtures.ts";
@@ -193,15 +194,24 @@ interface SurveyOptions {
 	clock?: Clock;
 	/** The specification the model answers the question with; one requirement about quality otherwise. */
 	report?: SpecificationReport;
+	/** The ledger the harness writes the dossier to; a SQLite ledger otherwise. */
+	ledger?: (path: string) => SqliteLedger;
+	/** Whether the policy permits local integration, so a change of the project can be integrated. */
+	integration?: boolean;
+	/** The data directory the harness writes to, so that another runtime can open the dossier afterwards. */
+	root?: string;
 }
 
-function surveyHarness({ mode = "resolves", clock, report = QUALITY_SPEC }: SurveyOptions): {
+function surveyHarness({ mode = "resolves", clock, report = QUALITY_SPEC, ledger, integration, root }: SurveyOptions): {
 	t: TestHarness;
 	maven: FakeMavenSandbox;
 } {
 	let maven: FakeMavenSandbox | undefined;
 	const t = makeHarness({
 		...(clock ? { clock } : {}),
+		...(ledger ? { ledger } : {}),
+		...(integration ? { integration, policy: { integration_enabled: true } } : {}),
+		...(root ? { root } : {}),
 		defaultScript: { steps: [{ kind: "complete", output: report }] },
 		backend: (real) => {
 			maven = new FakeMavenSandbox(real, mode);
@@ -212,9 +222,8 @@ function surveyHarness({ mode = "resolves", clock, report = QUALITY_SPEC }: Surv
 	return { t, maven: maven! };
 }
 
-/** A survey of the quality of `project`, conducted until it stops, at the time `clock` reads when given. */
-export async function surveyed(project: string, options: SurveyOptions = {}) {
-	const { t, maven } = surveyHarness(options);
+/** Starts a survey of the quality of `project` on the harness `t`, and conducts it until it stops. */
+export async function surveyOn(t: TestHarness, project: string) {
 	const { change } = await t.harness.start({
 		project_path: project,
 		request_text: QUALITY_QUESTION,
@@ -222,7 +231,13 @@ export async function surveyed(project: string, options: SurveyOptions = {}) {
 		deliverable: "state",
 	});
 	const first = await t.harness.advance(change.change_id, { max_steps: 40 });
-	return { t, maven, changeId: change.change_id, first };
+	return { changeId: change.change_id, first };
+}
+
+/** A survey of the quality of `project`, conducted until it stops, at the time `clock` reads when given. */
+export async function surveyed(project: string, options: SurveyOptions = {}) {
+	const { t, maven } = surveyHarness(options);
+	return { t, maven, ...(await surveyOn(t, project)) };
 }
 
 export function answer(t: TestHarness, changeId: string, optionId: string): void {

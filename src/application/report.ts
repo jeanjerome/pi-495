@@ -115,7 +115,7 @@ function moduleOf(path: string | null, measured: QualityPerimeter["measured"]): 
 }
 
 /** How many of `findings` each module holds, by module name, the unlocated ones last. */
-function countByModule(
+export function countByModule(
 	findings: readonly { path: string | null }[],
 	measured: QualityPerimeter["measured"],
 ): { module: string | null; violations: number }[] {
@@ -134,7 +134,7 @@ function countByModule(
  * proprietary or generated code, and the count of the proprietary violations by module. A finding of a
  * survey taken before findings were ranged counts as proprietary: nothing set it apart.
  */
-function referentialSection(survey: Survey, protocol: Protocol | null): SurveySection["referential"] {
+export function referentialSection(survey: Survey, protocol: Protocol | null): SurveySection["referential"] {
 	const adopted = protocol?.quality_referential;
 	if (!adopted) return null;
 	const measured = adopted.perimeter?.measured ?? [];

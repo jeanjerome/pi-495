@@ -7,6 +7,7 @@ import {
 	dependentsOf,
 	findCycle,
 	replayProgram,
+	type BaselineGap,
 	type GlobalRequirement,
 	type IncrementSpec,
 	type ProgramState,
@@ -23,6 +24,7 @@ function inc(id: string, depends_on: string[] = [], over: Partial<IncrementSpec>
 		required_capabilities: [],
 		requirement_ids: [`REQ-${id}`],
 		closure_criterion: "accepted",
+		gaps: [],
 		...over,
 	};
 }
@@ -343,5 +345,162 @@ describe("exigences globales d'une trajectoire (PRG-03)", () => {
 		const d = decideProgram(blank.state, trajectory([{ requirement_id: "R2", scope_decision: { reason: "  " } }]));
 		assert.equal(d.ok, false, "a scope decision without its reason does not set R2 aside");
 		if (!d.ok) assert.match(d.error.message, /R2/);
+	});
+});
+
+describe("écarts de l'état des lieux d'une trajectoire (QLT-03)", () => {
+	const THRESHOLDS: Record<string, string> = {
+		CyclomaticComplexity: "a method's cyclomatic complexity is at most 10",
+		UnusedPrivateMethod: "no private method is left uncalled",
+	};
+	const gap = (rule_id: string, module: string, over: Partial<BaselineGap> = {}): BaselineGap => ({
+		rule_id,
+		threshold: THRESHOLDS[rule_id] ?? rule_id,
+		module,
+		authorship: "proprietary",
+		violations: 1,
+		scope_decision: null,
+		...over,
+	});
+	const key = (rule_id: string, module: string) => ({ rule_id, module, authorship: "proprietary" as const });
+	const surveyed = [
+		gap("CyclomaticComplexity", "domain"),
+		gap("UnusedPrivateMethod", "domain"),
+		gap("CyclomaticComplexity", "infrastructure"),
+	];
+	const baseline = (gaps: BaselineGap[]) => ({
+		change_id: "chg_survey",
+		reference_digest: `sha256:${"b".repeat(64)}`,
+		gaps,
+	});
+	const A = inc("A", [], {
+		kind: "remediation",
+		gaps: [key("CyclomaticComplexity", "domain"), key("UnusedPrivateMethod", "domain")],
+	});
+	const B = inc("B", ["A"], { kind: "remediation", gaps: [key("CyclomaticComplexity", "infrastructure")] });
+	const standards = (increments: IncrementSpec[], gaps: BaselineGap[] = surveyed) => ({
+		type: "trajectory.adopt" as const,
+		at: tick(),
+		actor: HUMAN,
+		increments,
+		milestones: [
+			{
+				milestone_id: "M1",
+				title: "standards",
+				increment_ids: increments.map((i) => i.increment_id),
+				global_requirement_ids: [],
+				final: true,
+			},
+		],
+		global_requirements: [],
+		baseline: baseline(gaps),
+		reason: "init",
+	});
+	it("une trajectoire dont l'état des lieux porte CyclomaticComplexity dans infrastructure, qu'aucun incrément ne supprime et qu'aucune décision de périmètre n'écarte, est refusée en nommant la règle, le module, le périmètre et son nombre de violations", () => {
+		const p = new P().create();
+		const d = decideProgram(p.state, standards([A]));
+		assert.equal(d.ok, false, "a gap of the survey that nothing takes on refuses the adoption");
+		if (!d.ok) {
+			assert.equal(d.error.code, "PRECONDITION_FAILED");
+			assert.match(
+				d.error.message,
+				/gap CyclomaticComplexity in infrastructure \(proprietary code, 1 violation\) is removed by no increment and set aside by no scope decision/,
+			);
+			assert.doesNotMatch(d.error.message, /in domain/);
+		}
+		assert.equal(p.state?.trajectory_revision, 0);
+	});
+	it("un incrément qui supprime CPD dans domain, que l'état des lieux ne porte pas, est refusé en nommant l'incrément et l'écart", () => {
+		const p = new P().create();
+		const withCpd = { ...A, gaps: [...A.gaps, key("CPD", "domain")] };
+		const d = decideProgram(p.state, standards([withCpd, B]));
+		assert.equal(d.ok, false, "an increment cannot remove a gap the survey does not carry");
+		if (!d.ok) {
+			assert.equal(d.error.code, "UNKNOWN_REFERENCE");
+			assert.match(
+				d.error.message,
+				/increment A removes CPD in domain \(proprietary code\), a gap the cited survey does not carry/,
+			);
+		}
+		assert.equal(p.state?.trajectory_revision, 0);
+	});
+	it("une trajectoire dont chaque écart est supprimé par un incrément ou écarté avec sa raison est adoptée, et l'événement d'adoption porte l'état des lieux cité, ses écarts et leurs décisions", () => {
+		const p = new P().create();
+		const gaps = [
+			...surveyed,
+			gap("CyclomaticComplexity", "domain", {
+				authorship: "generated",
+				scope_decision: { reason: "the generated mappers are rewritten by their generator on every build" },
+			}),
+		];
+		p.run(standards([A, B], gaps));
+		const adopted = p.events.find((e) => e.type === "trajectory.adopted");
+		assert.ok(adopted && adopted.type === "trajectory.adopted");
+		assert.deepEqual(adopted.baseline, baseline(gaps));
+		assert.deepEqual(
+			adopted.increments.map((i) => i.gaps),
+			[A.gaps, B.gaps],
+		);
+		assert.deepEqual(p.state!.baseline, baseline(gaps));
+		assert.deepEqual(replayProgram(p.events), p.state);
+		const blank = new P().create();
+		const unreasoned = gaps.map((g) => (g.authorship === "generated" ? { ...g, scope_decision: { reason: " " } } : g));
+		const d = decideProgram(blank.state, standards([A, B], unreasoned));
+		assert.equal(d.ok, false, "a scope decision without its reason sets no gap aside");
+		if (!d.ok) assert.match(d.error.message, /gap CyclomaticComplexity in domain \(generated code, 1 violation\)/);
+	});
+	it("A et B intégrés, le jalon final d'une trajectoire adoptée sur un état des lieux est INDETERMINATE, nomme chacun des trois écarts comme non mesuré sur le projet intégré, et le programme n'est pas clos", () => {
+		const p = new P().create();
+		const setAside = gap("CyclomaticComplexity", "domain", {
+			authorship: "generated",
+			scope_decision: { reason: "the generated mappers are rewritten by their generator on every build" },
+		});
+		p.run(standards([A, B], [...surveyed, setAside]));
+		for (const id of ["A", "B"]) {
+			p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: id, change_id: `chg_${id}` });
+			p.run({
+				type: "increment.result",
+				at: tick(),
+				actor: KERNEL,
+				increment_id: id,
+				status: "integrated",
+				note: null,
+			});
+			p.run({
+				type: "milestone.evaluate",
+				at: tick(),
+				actor: KERNEL,
+				milestone_id: "M1",
+				global_verdicts: {},
+				integrated_digest: `sha256:${"a".repeat(64)}`,
+			});
+		}
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "INDETERMINATE", "the final milestone is not passed on the closures of its increments");
+		assert.deepEqual(final.satisfied, ["increment:A", "increment:B"]);
+		assert.deepEqual(final.indeterminate, [
+			"gap:CyclomaticComplexity in domain (proprietary code): not measured on the integrated project",
+			"gap:UnusedPrivateMethod in domain (proprietary code): not measured on the integrated project",
+			"gap:CyclomaticComplexity in infrastructure (proprietary code): not measured on the integrated project",
+		]);
+		assert.equal(p.state!.closed, false);
+		assert.equal(
+			p.events.some((e) => e.type === "program.closed"),
+			false,
+		);
+	});
+	it("une trajectoire qui ne cite aucun état des lieux et dont l'incrément A supprime CPD dans domain est refusée en nommant l'incrément et l'écart, sans événement d'adoption", () => {
+		const p = new P().create();
+		const { baseline: _cited, ...withoutSurvey } = standards([inc("A", [], { gaps: [key("CPD", "domain")] })]);
+		const d = decideProgram(p.state, withoutSurvey);
+		assert.equal(d.ok, false, "an increment cannot remove a gap when the trajectory cites no survey");
+		if (!d.ok) {
+			assert.equal(d.error.code, "UNKNOWN_REFERENCE");
+			assert.match(
+				d.error.message,
+				/increment A removes CPD in domain \(proprietary code\), a gap no cited survey carries/,
+			);
+		}
+		assert.equal(p.state?.trajectory_revision, 0);
 	});
 });
