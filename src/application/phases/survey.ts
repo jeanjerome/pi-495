@@ -28,7 +28,7 @@ export async function surveyReference(
 			at: ctx.now(),
 			actor: KERNEL_ACTOR,
 			operation_id: opId,
-			idempotency_key: `survey:${state.reference.digest}:${state.revision}`,
+			idempotency_key: `survey:${state.change_id}:${state.reference.digest}:${state.revision}`,
 		},
 		cor,
 	);

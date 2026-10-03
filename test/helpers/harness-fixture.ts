@@ -16,6 +16,7 @@ import type {
 } from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type Clock, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
+import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
@@ -311,16 +312,21 @@ export function reopenHarness(previous: TestHarness, options: Omit<HarnessOption
 	return makeHarness({ ...options, root: previous.root, ids: randomIds });
 }
 
-/** The owner accepts the survey the change waits on (IH-10), and the change is conducted on. */
-export async function acceptSurvey(t: TestHarness, changeId: string): Promise<AdvanceResult> {
+/** The owner answers the survey the change waits on (IH-10), and the change is conducted on. */
+async function answerSurvey(
+	t: TestHarness,
+	changeId: string,
+	option_id: "accept" | "refuse",
+	free_text: string | null,
+): Promise<AdvanceResult> {
 	const asked = t.harness.pendingDecisions(changeId).find((d) => d.interaction === "IH-10");
 	assert.ok(asked, "the survey awaits the owner's acceptance");
 	const answered = t.harness.answerDecision(
 		changeId,
 		{
 			decision_id: asked.decision_id,
-			option_id: "accept",
-			free_text: null,
+			option_id,
+			free_text,
 			reason: null,
 			subject_revision: asked.subject.revision,
 			scope: null,
@@ -330,4 +336,27 @@ export async function acceptSurvey(t: TestHarness, changeId: string): Promise<Ad
 	);
 	assert.equal(answered.error, null, answered.error?.message);
 	return t.harness.advance(changeId, { max_steps: 10 });
+}
+
+/** The owner accepts the survey the change waits on (IH-10), and the change is conducted on. */
+export function acceptSurvey(t: TestHarness, changeId: string): Promise<AdvanceResult> {
+	return answerSurvey(t, changeId, "accept", null);
+}
+
+/** The owner refuses the survey the change waits on (IH-10) for `why`, and the change is conducted on. */
+export function refuseSurvey(t: TestHarness, changeId: string, why: string): Promise<AdvanceResult> {
+	return answerSurvey(t, changeId, "refuse", why);
+}
+
+/** The verification the change opened: its key, and the operation the register holds under it. */
+export function verificationOpenedBy(t: TestHarness, changeId: string) {
+	const opened = t.ledger
+		.readChangeEvents(changeId)
+		.map((e) => e.event)
+		.find(
+			(e): e is Extract<ChangeEvent, { type: "operation.opened" }> =>
+				e.type === "operation.opened" && e.kind === "verification",
+		);
+	assert.ok(opened, `${changeId} opened no verification`);
+	return { key: opened.idempotency_key, operation: t.ledger.getOperationByKey(opened.idempotency_key) };
 }

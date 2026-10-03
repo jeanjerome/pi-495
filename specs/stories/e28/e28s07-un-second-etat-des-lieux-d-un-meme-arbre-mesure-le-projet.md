@@ -2,7 +2,7 @@
 
 Story : e28s07
 Epic : e28
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

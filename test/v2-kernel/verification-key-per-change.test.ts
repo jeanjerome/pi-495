@@ -11,7 +11,7 @@ import type { AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { makeHarness, type TestHarness, trackedProject } from "../helpers/harness-fixture.ts";
+import { makeHarness, trackedProject, verificationOpenedBy } from "../helpers/harness-fixture.ts";
 
 const GREET = "export function greet(name) {\n  return `Hello, ${name}`; // tidied\n}\n";
 const writesGreet: AgentScript = {
@@ -23,19 +23,6 @@ const writesGreet: AgentScript = {
 		},
 	],
 };
-
-/** The verification the change opened: its key, and the operation the register holds under it. */
-function verificationOf(t: TestHarness, changeId: string) {
-	const opened = t.ledger
-		.readChangeEvents(changeId)
-		.map((e) => e.event)
-		.find(
-			(e): e is Extract<ChangeEvent, { type: "operation.opened" }> =>
-				e.type === "operation.opened" && e.kind === "verification",
-		);
-	assert.ok(opened, `${changeId} opened no verification`);
-	return { key: opened.idempotency_key, operation: t.ledger.getOperationByKey(opened.idempotency_key) };
-}
 
 describe("two changes of one dossier whose candidates are identical (VER-03)", () => {
 	it("deux changements d'un dossier dont les candidats sont identiques vérifient chacun le leur : B inscrit ses preuves et se clôt accepté, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une vérification pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A", async () => {
@@ -66,8 +53,8 @@ describe("two changes of one dossier whose candidates are identical (VER-03)", (
 			"B records the evidence of its own verification",
 		);
 
-		const ofA = verificationOf(t, a.change_id);
-		const ofB = verificationOf(t, b.change_id);
+		const ofA = verificationOpenedBy(t, a.change_id);
+		const ofB = verificationOpenedBy(t, b.change_id);
 		assert.equal(ofA.operation?.aggregate_id, a.change_id, "the register holds a verification for A");
 		assert.equal(ofB.operation?.aggregate_id, b.change_id, "the register holds a verification for B");
 
