@@ -16,6 +16,7 @@ import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from
 import {
 	isDifferentialParser,
 	type AdoptedComplement,
+	type AdoptedQualityReferential,
 	type InstalledPackage,
 	type ControlCapabilityDiagnosis,
 	type ControlDefinition,
@@ -38,7 +39,7 @@ import {
 import type { EvidenceFact } from "../domain/change/commands.ts";
 import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
-import { controlsOfNature } from "../domain/survey.ts";
+import { asksAboutQuality, controlsOfNature } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import type { ControlExecutionPort, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
@@ -126,6 +127,13 @@ export interface FreezeInput {
 	installed: readonly InstalledPackage[];
 	/** A requirement is measured by the controls of its nature alone, as a survey measures it. */
 	by_nature: boolean;
+	/** The quality referential the owner adopted, frozen with the protocol; absent when none was. */
+	quality_referential?: AdoptedQualityReferential;
+	/**
+	 * Why a requirement about the quality of the code that no control measures is a blind spot, when
+	 * the fate of the proposed quality referential says more than the absence of a control.
+	 */
+	quality_blind_spot?: string;
 }
 
 export interface RunInput {
@@ -366,13 +374,19 @@ export class VerificationCoordinator {
 			if (input.by_nature) {
 				// A survey answers each requirement with what measures its nature, or names it a blind spot.
 				const measured = controlsOfNature(r.category, controls, input.lint_control_ids);
+				const blindSpot =
+					"blind_spot" in measured
+						? input.quality_blind_spot !== undefined && asksAboutQuality(r.category)
+							? input.quality_blind_spot
+							: measured.blind_spot
+						: null;
 				return {
 					requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
 					mandatory: r.mandatory,
 					control_ids: "control_ids" in measured ? measured.control_ids : [],
 					combination: "all_pass",
 					human_interaction: null,
-					not_applicable_reason: "blind_spot" in measured ? measured.blind_spot : null,
+					not_applicable_reason: blindSpot,
 				};
 			}
 			const preferred =
@@ -405,6 +419,7 @@ export class VerificationCoordinator {
 			environment_digest: this.deps.environment.digest,
 			...(input.complements.length > 0 ? { complements: [...input.complements] } : {}),
 			...(input.installed.length > 0 ? { installed_packages: [...input.installed] } : {}),
+			...(input.quality_referential ? { quality_referential: input.quality_referential } : {}),
 		};
 	}
 

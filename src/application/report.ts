@@ -10,7 +10,7 @@
  */
 import type { Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
+import type { Protocol, QualityRule, RequirementsDocument } from "../contracts/v1/protocol.ts";
 import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
 import type { Survey } from "../domain/survey.ts";
 
@@ -72,6 +72,16 @@ export interface SurveySection {
 	}[];
 	findings: { control_id: string; message: string; path: string | null }[];
 	blind_spots: { control_id: string; reason: string }[];
+	/**
+	 * The quality referential the owner adopted, each rule with its oracle, its threshold, its source and
+	 * the date of the adoption, and what its oracle found under the rule it names; null when none was.
+	 */
+	referential: {
+		adopted_on: string;
+		rules: (Pick<QualityRule, "rule_id" | "nature" | "control_id" | "threshold" | "tool" | "source"> & {
+			findings: { message: string; path: string | null }[];
+		})[];
+	} | null;
 }
 
 export interface EngineeringReport {
@@ -87,7 +97,31 @@ export interface EngineeringReport {
 	residual_risks: ResidualRisk[];
 }
 
-function surveySection(survey: Survey, requirements: RequirementsDocument | null): SurveySection {
+/** Each rule of the adopted referential, with what its oracle found under the rule it names. */
+function referentialSection(survey: Survey, protocol: Protocol | null): SurveySection["referential"] {
+	const adopted = protocol?.quality_referential;
+	if (!adopted) return null;
+	return {
+		adopted_on: adopted.adopted_on,
+		rules: adopted.rules.map((rule) => ({
+			rule_id: rule.rule_id,
+			nature: rule.nature,
+			control_id: rule.control_id,
+			threshold: rule.threshold,
+			tool: rule.tool,
+			source: rule.source,
+			findings: (survey.controls.find((c) => c.control_id === rule.control_id)?.findings ?? [])
+				.filter((f) => f.rule_id === rule.rule_id)
+				.map((f) => ({ message: f.message, path: f.path })),
+		})),
+	};
+}
+
+function surveySection(
+	survey: Survey,
+	requirements: RequirementsDocument | null,
+	protocol: Protocol | null,
+): SurveySection {
 	return {
 		requirements: survey.requirements.map((r) => ({
 			requirement_id: r.requirement_id,
@@ -101,6 +135,7 @@ function surveySection(survey: Survey, requirements: RequirementsDocument | null
 		blind_spots: survey.controls.flatMap((c) =>
 			c.blind_spot === null ? [] : [{ control_id: c.control_id, reason: c.blind_spot }],
 		),
+		referential: referentialSection(survey, protocol),
 	};
 }
 
@@ -286,7 +321,7 @@ export function engineeringReport(
 			? { candidate_id: state.candidate.candidate_id, manifest_digest: state.candidate.manifest_digest }
 			: null,
 		requirements: asked,
-		survey: survey ? surveySection(survey, requirements) : null,
+		survey: survey ? surveySection(survey, requirements, protocol) : null,
 		observations,
 		judgments,
 		residual_risks: risks,

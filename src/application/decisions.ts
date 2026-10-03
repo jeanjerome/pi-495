@@ -399,6 +399,58 @@ const ADOPT_COMPLEMENT = {
 	},
 } as const;
 
+/** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the plugin it resolves. */
+export interface ReferentialOffer {
+	stack: string;
+	install: PackageInstall;
+}
+
+const stackName = (stack: string): string => `${stack.charAt(0).toUpperCase()}${stack.slice(1)}`;
+
+/**
+ * IH-04 asked on a survey whose quality requirement no control measures while the adapter proposes a
+ * referential that would: the owner adopts it, which resolves its plugin in a copy, or leaves the
+ * requirement a blind spot. Nothing is prepared and nothing is assigned: a survey writes nothing.
+ */
+const REFERENTIAL_ADOPTION = {
+	fr: (requirements: string, { stack, install }: ReferentialOffer) => ({
+		question: `Aucun contrôle ne mesure ${requirements}. Adopter le référentiel de qualité proposé pour ${stackName(stack)} ?`,
+		options: [
+			{
+				id: "adopt_referential",
+				label: `Adopter le référentiel (déclare ${installedName(install)} dans une copie du POM et le résout, réseau ouvert pour cette seule étape)`,
+				effect: `495 déclare ${installedName(install)} dans une copie du POM et résout le greffon avec Maven, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml ; rien n'est écrit dans le projet. Le référentiel est gelé dans le protocole avec la date de cette décision, et l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par Maven. La réponse tombe si les exigences sont révisées.`,
+				risky: true,
+			},
+			{
+				id: "leave_blind_spot",
+				label: "Laisser l'exigence en angle mort",
+				effect:
+					"Rien n'est résolu et le réseau reste fermé ; l'état des lieux nomme l'exigence comme angle mort, parce que le référentiel proposé n'a pas été adopté. La réponse tombe si les exigences sont révisées.",
+				risky: false,
+			},
+		],
+	}),
+	en: (requirements: string, { stack, install }: ReferentialOffer) => ({
+		question: `No control measures ${requirements}. Adopt the quality referential proposed for ${stackName(stack)}?`,
+		options: [
+			{
+				id: "adopt_referential",
+				label: `Adopt the referential (declares ${installedName(install)} in a copy of the POM and resolves it, network open for that step alone)`,
+				effect: `495 declares ${installedName(install)} in a copy of the POM and resolves the plugin with Maven, opening the network for that step alone and running no goal of the plugin; the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml; nothing is written in the project. The referential is frozen in the protocol with the date of this decision, and the survey measures the requirement with it. If the resolution fails, nothing is adopted and the requirement stays a blind spot with the reason Maven gave. The answer lapses if the requirements are revised.`,
+				risky: true,
+			},
+			{
+				id: "leave_blind_spot",
+				label: "Leave the requirement a blind spot",
+				effect:
+					"Nothing is resolved and the network stays closed; the survey names the requirement as a blind spot, because the proposed referential was not adopted. The answer lapses if the requirements are revised.",
+				risky: false,
+			},
+		],
+	}),
+} as const;
+
 /**
  * IH-10 asked on a survey rather than on a candidate: there is nothing to correct, so the owner accepts
  * the state of the project as presented, or refuses it and says why.
@@ -451,11 +503,17 @@ export function buildDecisionRequest(args: {
 	arg?: string;
 	/** What an IH-04 offers to adopt; nothing when no recommended edit can be applied and no install run. */
 	adoptable?: Adoptable;
+	/** The quality referential an IH-04 asked on a survey offers instead of a preparation. */
+	referential?: ReferentialOffer;
 	requested_at: string;
 }): DecisionRequest {
 	// The only IH-10 asked on an artifact is the acceptance of a survey; a candidate's is asked on the candidate.
 	const surveyed = args.interaction === "IH-10" && args.subject.kind === "artifact";
-	const t = surveyed ? SURVEY_ACCEPTANCE[args.language] : T[args.language][args.interaction](args.arg ?? "");
+	const t = surveyed
+		? SURVEY_ACCEPTANCE[args.language]
+		: args.interaction === "IH-04" && args.referential
+			? REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential)
+			: T[args.language][args.interaction](args.arg ?? "");
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
 	const options =
 		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)

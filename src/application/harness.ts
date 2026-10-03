@@ -675,7 +675,7 @@ export class Harness {
 	private async requestDecision(
 		unit: Unit,
 		cor: string,
-		{ interaction, subject, facts, recommendation, arg, decisionId, language, adoptable }: DecisionOptions,
+		{ interaction, subject, facts, recommendation, arg, decisionId, language, adoptable, referential }: DecisionOptions,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
 			decision_id: decisionId ?? this.id("dec"),
@@ -687,6 +687,7 @@ export class Harness {
 			recommendation,
 			...(arg !== undefined ? { arg } : {}),
 			...(adoptable ? { adoptable } : {}),
+			...(referential ? { referential } : {}),
 			requested_at: this.now(),
 		});
 		this.deps.ledger.putDecisionRequest(request);

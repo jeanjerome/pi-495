@@ -16,7 +16,7 @@ import type { ActivePolicy } from "../../domain/policy.ts";
 import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
 import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
-import type { Adoptable, PhaseInteraction } from "../decisions.ts";
+import type { Adoptable, PhaseInteraction, ReferentialOffer } from "../decisions.ts";
 import type { InstallRun } from "../installation.ts";
 import type { VerificationCoordinator } from "../verification.ts";
 
@@ -54,6 +54,7 @@ export interface DecisionOptions {
 	decisionId?: string;
 	language: "fr" | "en";
 	adoptable?: Adoptable;
+	referential?: ReferentialOffer;
 }
 
 export interface PhaseContext {

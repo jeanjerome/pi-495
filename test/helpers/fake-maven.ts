@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { emptyTrigger } from "../../src/application/stacks/stack.ts";
 import type {
@@ -101,7 +101,7 @@ export class FakeMavenSandbox implements SandboxPort {
  * Stands for a Maven and a JDK that the machine running the suite need not have: the control runner
  * runs for real on a command that does nothing, and the verdict of the qualification witnesses is set
  * from the tree they were given, the negative witnesses being the ones that carry a failing test or a
- * class no test calls.
+ * class no test calls. PMD and CPD write the reports the real readers then read.
  */
 export class FakeMavenControls implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
@@ -115,6 +115,11 @@ export class FakeMavenControls implements ControlExecutionPort {
 		if (invocation.control.command.some((part) => part.includes("495-broken-runner")))
 			return this.real.runControl(invocation, signal);
 		const control = { ...invocation.control, command: emptyTrigger(process.execPath) };
+		// PMD and CPD leave a report the real reader reads, written from the sources of the tree.
+		if (control.parser === "pmd-xml" || control.parser === "cpd-xml") {
+			writeQualityReports(invocation.workspace_path);
+			return this.real.runControl({ ...invocation, control }, signal);
+		}
 		const out = await this.real.runControl({ ...invocation, control }, signal);
 		const has = (path: string): boolean => {
 			try {
@@ -129,4 +134,66 @@ export class FakeMavenControls implements ControlExecutionPort {
 			has("src/main/java/witness495/Witness495Uncovered.java");
 		return { ...out, evidence: { ...out.evidence, verdict: negative ? "FAIL" : "PASS" } };
 	}
+}
+
+/** The Java sources under each `src/main/java` of a tree, by their path relative to it. */
+function mainSources(root: string): string[] {
+	const found: string[] = [];
+	const walk = (relative: string): void => {
+		for (const entry of readdirSync(join(root, relative), { withFileTypes: true })) {
+			const path = relative ? `${relative}/${entry.name}` : entry.name;
+			if (entry.isDirectory() && entry.name !== "target" && entry.name !== ".git") walk(path);
+			else if (entry.isFile() && path.endsWith(".java") && path.includes("src/main/java/")) found.push(path);
+		}
+	};
+	walk("");
+	return found.sort();
+}
+
+/**
+ * What the fake PMD reports a line of source for: a rule and the text PMD gives its violation, which
+ * does not name the rule, or a block CPD finds in every file that holds it.
+ */
+const PMD_RULES: readonly [RegExp, string, string][] = [
+	[/\bint grade\(/, "CyclomaticComplexity", "The method 'grade' has a cyclomatic complexity of 11."],
+	[/\bprivate static int never\(/, "UnusedPrivateMethod", "Avoid unused private methods such as 'never()'."],
+];
+const CPD_BLOCKS: readonly RegExp[] = [/\bcompute\(int\[\] values\)/, /\bwitness495Checksum\(/];
+
+/**
+ * Stands for PMD and CPD as `maven-pmd-plugin` runs them: the reports they write in the build directory,
+ * naming each file by its absolute path, a violation where a method of complexity 11 or a private method
+ * nothing calls sits, and a duplication of each block two files repeat.
+ */
+function writeQualityReports(workspace: string): void {
+	const base = realpathSync(workspace);
+	const violations: string[] = [];
+	const blocks = CPD_BLOCKS.map(() => [] as string[]);
+	for (const path of mainSources(base)) {
+		const lines = readFileSync(join(base, path), "utf8").split("\n");
+		const own: string[] = [];
+		lines.forEach((line, index) => {
+			for (const [pattern, rule, text] of PMD_RULES)
+				if (pattern.test(line))
+					own.push(
+						`<violation beginline="${index + 1}" endline="${index + 1}" rule="${rule}" ruleset="Design" priority="3">\n${text}\n</violation>\n`,
+					);
+			CPD_BLOCKS.forEach((pattern, b) => {
+				if (pattern.test(line)) blocks[b]!.push(`<file line="${index + 1}" path="${base}/${path}"/>`);
+			});
+		});
+		if (own.length > 0) violations.push(`<file name="${base}/${path}">\n${own.join("")}</file>\n`);
+	}
+	const duplications = blocks
+		.filter((places) => places.length > 1)
+		.map((places) => `<duplication lines="18" tokens="106">\n${places.join("\n")}\n</duplication>\n`);
+	mkdirSync(join(base, "target"), { recursive: true });
+	writeFileSync(
+		join(base, "target/pmd.xml"),
+		`<?xml version="1.0" encoding="UTF-8"?>\n<pmd version="7.17.0">\n${violations.join("")}</pmd>\n`,
+	);
+	writeFileSync(
+		join(base, "target/cpd.xml"),
+		`<?xml version="1.0" encoding="UTF-8"?>\n<pmd-cpd pmdVersion="7.17.0">\n${duplications.join("")}</pmd-cpd>\n`,
+	);
 }

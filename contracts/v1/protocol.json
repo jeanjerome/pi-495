@@ -102,7 +102,9 @@
               "jacoco-xml",
               "java-imports",
               "pitest-xml",
-              "stryker-json"
+              "stryker-json",
+              "pmd-xml",
+              "cpd-xml"
             ]
           },
           "report_path": {
@@ -157,6 +159,79 @@
                 }
               },
               "$id": "urn:495:contract:structure-rule:1",
+              "additionalProperties": false
+            }
+          },
+          "quality_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "rule_id",
+                "nature",
+                "control_id",
+                "reference",
+                "threshold",
+                "properties",
+                "tool",
+                "source",
+                "established_on"
+              ],
+              "properties": {
+                "rule_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "nature": {
+                  "type": "string",
+                  "enum": [
+                    "complexity",
+                    "dead_code",
+                    "duplication"
+                  ]
+                },
+                "control_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "reference": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "threshold": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "properties": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^.*$": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "tool": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "established_on": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -672,6 +747,100 @@
         },
         "additionalProperties": false
       }
+    },
+    "quality_referential": {
+      "type": "object",
+      "required": [
+        "adopted_on",
+        "decision_id",
+        "rules"
+      ],
+      "properties": {
+        "adopted_on": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule_id",
+              "nature",
+              "control_id",
+              "reference",
+              "threshold",
+              "properties",
+              "tool",
+              "source",
+              "established_on"
+            ],
+            "properties": {
+              "rule_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "nature": {
+                "type": "string",
+                "enum": [
+                  "complexity",
+                  "dead_code",
+                  "duplication"
+                ]
+              },
+              "control_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "threshold": {
+                "type": "string",
+                "minLength": 1
+              },
+              "properties": {
+                "type": "object",
+                "patternProperties": {
+                  "^.*$": {
+                    "type": "string"
+                  }
+                }
+              },
+              "tool": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "established_on": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
     }
   },
   "$id": "urn:495:contract:protocol:1",

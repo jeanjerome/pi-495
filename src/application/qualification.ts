@@ -5,7 +5,12 @@
  */
 import { digestValue } from "../contracts/digest.ts";
 import type { Verdict } from "../contracts/v1/common.ts";
-import type { ControlDefinition, Protocol, Qualification } from "../contracts/v1/protocol.ts";
+import {
+	judgesWitnessesByLocation,
+	type ControlDefinition,
+	type Protocol,
+	type Qualification,
+} from "../contracts/v1/protocol.ts";
 import type { EvidenceCandidate } from "../contracts/v1/evidence.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../ports/execution.ts";
 import { introducedByAddedFiles } from "./coverage.ts";
@@ -75,6 +80,31 @@ function witnessCases(
 }
 
 /**
+ * What the witnesses gave, read off a sensor that judges the whole tree and locates what it finds, or
+ * null for any other sensor. The positive witness passed when the run concluded and nothing it found
+ * sits in a file the positive witness wrote; the negative witness failed when something it found sits
+ * in a file the negative witness wrote. A defect the project already carries is in neither, so it
+ * neither disqualifies the sensor nor stands for the defect it must detect.
+ */
+function witnessFindings(
+	control: ControlDefinition,
+	positive: EvidenceCandidate,
+	negative: EvidenceCandidate,
+	fixtures: QualificationFixtures,
+): { positive: Verdict; negative: Verdict } | null {
+	if (!judgesWitnessesByLocation(control.parser)) return null;
+	const positiveFiles = new Set(Object.keys(fixtures.positive_files ?? {}));
+	const negativeFiles = new Set(Object.keys(fixtures.negative_files ?? {}));
+	const inFiles = (evidence: EvidenceCandidate, files: Set<string>) =>
+		evidence.findings.some((f) => f.path !== null && files.has(f.path));
+	const concluded = (evidence: EvidenceCandidate) => evidence.verdict === "PASS" || evidence.verdict === "FAIL";
+	return {
+		positive: !concluded(positive) ? positive.verdict : inFiles(positive, positiveFiles) ? "FAIL" : "PASS",
+		negative: !concluded(negative) ? negative.verdict : inFiles(negative, negativeFiles) ? "FAIL" : "PASS",
+	};
+}
+
+/**
  * Qualifies one control. `prerequisites` are the controls that write the reports it reads, in the
  * order they run in: a sensor that measures nothing of its own is asked nothing meaningful in a
  * workspace where they have not run, and a witness workspace is a fresh copy of the reference. What
@@ -111,7 +141,9 @@ export async function qualifyControlDetailed(
 	// The witnesses are judged by their own cases rather than by the run's verdict, wherever the parser
 	// reports cases: a test of the project that fails in every copy of the reference then does not hide
 	// whether the sensor tells a passing case from a failing one.
-	const cases = witnessCases(positiveEvidence, negativeEvidence, fixtures);
+	const cases =
+		witnessFindings(control, positiveEvidence, negativeEvidence, fixtures) ??
+		witnessCases(positiveEvidence, negativeEvidence, fixtures);
 	const positive = cases?.positive ?? positiveEvidence.verdict;
 	const negative = cases?.negative ?? negativeEvidence.verdict;
 	const incident = incidentEvidence.verdict;

@@ -1,5 +1,5 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
-import type { EngineeringReport } from "../../application/report.ts";
+import type { EngineeringReport, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusView } from "../../application/views.ts";
 
 const L = {
@@ -100,6 +100,9 @@ export function formatDecision(req: DecisionRequest): string {
 	return lines.join("\n");
 }
 
+/** What the text says of one rule of an adopted referential. */
+type RuleLabels = Omit<NonNullable<SurveySection["referential"]>["rules"][number], "findings"> & { adopted_on: string };
+
 const R = {
 	fr: {
 		title: "Rapport",
@@ -112,6 +115,9 @@ const R = {
 		survey: "État des lieux",
 		findings: "Constats",
 		blindSpots: "Angles morts",
+		referential: "Référentiel de qualité adopté",
+		rule: (r: RuleLabels) =>
+			`${r.rule_id} — ${r.nature}, oracle ${r.control_id} (${r.tool}), seuil : ${r.threshold}, source : ${r.source}, adoptée le ${r.adopted_on}`,
 		outcome: "Résultat",
 		candidate: "Candidat",
 		authority: { kernel: "noyau", model: "modèle", human: "humain" },
@@ -127,6 +133,9 @@ const R = {
 		survey: "Survey",
 		findings: "Findings",
 		blindSpots: "Blind spots",
+		referential: "Adopted quality referential",
+		rule: (r: RuleLabels) =>
+			`${r.rule_id} — ${r.nature}, oracle ${r.control_id} (${r.tool}), threshold: ${r.threshold}, source: ${r.source}, adopted on ${r.adopted_on}`,
 		outcome: "Outcome",
 		candidate: "Candidate",
 		authority: { kernel: "kernel", model: "model", human: "human" },
@@ -158,6 +167,14 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 				...(q.blind_spot === null ? [] : [q.blind_spot]),
 			].join("; ");
 			lines.push(`  ${q.requirement_id}: ${q.statement}${answer ? ` — ${answer}` : ""}`);
+		}
+		const referential = report.survey.referential;
+		if (referential) {
+			lines.push(`  ${t.referential}:`);
+			for (const rule of referential.rules) {
+				lines.push(`    ${t.rule({ ...rule, adopted_on: referential.adopted_on })}`);
+				for (const f of rule.findings) lines.push(`      ${f.path === null ? "" : `${f.path}: `}${f.message}`);
+			}
 		}
 		lines.push(`  ${t.findings}:`);
 		if (report.survey.findings.length === 0) lines.push(`    ${t.none}`);

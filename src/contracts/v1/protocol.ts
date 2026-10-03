@@ -12,7 +12,9 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
  * JSON report jest writes to a file. `lcov` reads the LCOV coverage report a Node runner writes and
  * judges only the lines the candidate introduced, as `jacoco-xml` does (QLT-04). `stryker-json` reads
  * the mutation report Stryker writes and judges the mutants sitting on the lines the candidate wrote,
- * as `pitest-xml` does (VER-04). Each is native to its ecosystem, behind the one finding envelope.
+ * as `pitest-xml` does (VER-04). `pmd-xml` reads the violations of the frozen quality rules in the
+ * report PMD writes, and `cpd-xml` the duplicated blocks in the report of its duplication detector;
+ * both judge the whole tree. Each is native to its ecosystem, behind the one finding envelope.
  */
 export const PARSER_IDS = [
 	"exit-code",
@@ -24,6 +26,8 @@ export const PARSER_IDS = [
 	"java-imports",
 	"pitest-xml",
 	"stryker-json",
+	"pmd-xml",
+	"cpd-xml",
 ] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
 
@@ -42,6 +46,20 @@ export function isDifferentialParser(parser: ParserId): boolean {
 
 /** What a `scope_argument` puts the class patterns of the subject in place of. */
 export const SCOPE_PLACEHOLDER = "{classes}";
+
+/** What the runner puts the path of the rule set it writes from a control's `quality_rules` in place of. */
+export const RULESET_PLACEHOLDER = "{ruleset}";
+
+/**
+ * Sensors that judge the whole tree and locate each finding they report. Their witnesses are judged
+ * by the findings sitting in the witnesses' own files, so a defect the target already carries does
+ * not stand for the witness, in either direction.
+ */
+const LOCATED_PARSER_IDS = ["pmd-xml", "cpd-xml"] as const;
+
+export function judgesWitnessesByLocation(parser: ParserId): boolean {
+	return (LOCATED_PARSER_IDS as readonly string[]).includes(parser);
+}
 
 export const STRUCTURE_RULE_KINDS = ["forbidden_dependency", "no_cycle"] as const;
 export type StructureRuleKind = (typeof STRUCTURE_RULE_KINDS)[number];
@@ -67,6 +85,37 @@ export const StructureRule = Type.Object(
 );
 export type StructureRule = Static<typeof StructureRule>;
 
+/** What a rule of a quality referential measures. */
+export const QUALITY_NATURES = ["complexity", "dead_code", "duplication"] as const;
+
+/**
+ * One rule of a quality referential a target adapter offers: what it measures, the rule of the analyser
+ * that checks it and the control that runs that analyser (its oracle), the threshold the analyser
+ * documents, and where and when those were read. Data of the adapter, never of a model.
+ */
+export const QualityRule = Type.Object(
+	{
+		/** The rule as the analyser's report names it. */
+		rule_id: Identifier,
+		nature: Closed(QUALITY_NATURES),
+		/** The control whose analyser checks the rule. */
+		control_id: Identifier,
+		/** Where the analyser's rule set finds the rule; null for a rule the analyser applies without one. */
+		reference: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+		/** The threshold in words, as the owner reads it. */
+		threshold: Type.String({ minLength: 1 }),
+		/** The properties the analyser is given so that the threshold is the one stated. */
+		properties: Type.Record(Type.String(), Type.String()),
+		/** The analyser and its version, whose documentation states the threshold. */
+		tool: Type.String({ minLength: 1 }),
+		/** Where the rule and its threshold are documented, as a host and a path: a reference to read, never an address 495 contacts. */
+		source: Type.String({ minLength: 1 }),
+		established_on: Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" }),
+	},
+	{ additionalProperties: false },
+);
+export type QualityRule = Static<typeof QualityRule>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,
@@ -81,6 +130,11 @@ export const ControlDefinition = Type.Object(
 		report_path: Type.Union([Type.String(), Type.Null()]),
 		/** Architecture rules a structural sensor applies; empty for every other sensor. */
 		structure_rules: Type.Array(StructureRule),
+		/**
+		 * Quality rules a quality sensor applies, written into the analyser's rule set from this frozen
+		 * definition at each run; absent for every other sensor.
+		 */
+		quality_rules: Type.Optional(Type.Array(QualityRule)),
 		/**
 		 * Reports this control leaves in the workspace, named so that another one may read them: the
 		 * Surefire reports and the JaCoCo report a single `mvn test` writes are two of them.
@@ -270,6 +324,22 @@ export const InstalledPackage = Type.Object(
 );
 export type InstalledPackage = Static<typeof InstalledPackage>;
 
+/**
+ * A quality referential the owner adopted: the rules as the adapter offered them, each with its oracle,
+ * its threshold and its source, and the date of the decision that adopted them. Frozen with the protocol
+ * and never read from the analysed tree.
+ */
+export const AdoptedQualityReferential = Type.Object(
+	{
+		adopted_on: Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" }),
+		/** The owner's decision that adopted it. */
+		decision_id: Identifier,
+		rules: Type.Array(QualityRule, { minItems: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type AdoptedQualityReferential = Static<typeof AdoptedQualityReferential>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
@@ -286,6 +356,8 @@ export const Protocol = Type.Object(
 		complements: Type.Optional(Type.Array(AdoptedComplement)),
 		/** Absent from a protocol frozen before an install could be adopted. */
 		installed_packages: Type.Optional(Type.Array(InstalledPackage)),
+		/** Present when the owner adopted the quality referential the target adapter offered. */
+		quality_referential: Type.Optional(AdoptedQualityReferential),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

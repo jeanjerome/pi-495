@@ -37,6 +37,8 @@ export const PARSER_VERSIONS = {
 	"java-imports": "1.0.0",
 	"pitest-xml": "1.0.0",
 	"stryker-json": "1.0.0",
+	"pmd-xml": "1.0.0",
+	"cpd-xml": "1.0.0",
 } as const;
 
 export const MAX_FAILURES = 50;
@@ -278,7 +280,7 @@ function testCasesOf(document: XmlDocument): XmlElement[] {
 /** A report is the output of the process the judged project ran: it is bounded before it is analysed. */
 export const MAX_REPORT_BYTES = 16 * 1024 * 1024;
 
-function parseReport(document: string): XmlDocument {
+export function parseReport(document: string): XmlDocument {
 	if (Buffer.byteLength(document, "utf8") > MAX_REPORT_BYTES)
 		throw new Error(`the report exceeds ${MAX_REPORT_BYTES} bytes`);
 	return parseXml(document);

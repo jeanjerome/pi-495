@@ -3,7 +3,7 @@
  * that qualify them, and what it could not give. One shape for every stack, so the kernel orders
  * and qualifies the controls of a Maven reactor and those of a Node package the same way.
  */
-import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
+import type { ControlDefinition, QualityRule, RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 
 export interface StackDetection {
@@ -34,7 +34,18 @@ export interface StackDetection {
 	 * adapter, never of a model; recommending installs nothing and writes nothing in the target.
 	 */
 	recommendations: RecommendedComplement[];
+	/** The quality referential the adapter offers the owner, or why it offers none; absent when it has none. */
+	quality_referential?: QualityOffer;
 }
+
+/**
+ * A quality referential offered for adoption, with the recommendation that brings its analyser into a
+ * copy of the target; or the note that says why none is offered, when the target configures that
+ * analyser itself and its own rules are not 495's to replace.
+ */
+export type QualityOffer =
+	| { kind: "proposed"; rules: QualityRule[]; recommendation: RecommendedComplement }
+	| { kind: "not_proposed"; note: string };
 
 /**
  * A technology, as the registry sees it: the identifier of its stack, the files at a project root

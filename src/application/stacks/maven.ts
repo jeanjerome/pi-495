@@ -7,14 +7,16 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
+	RULESET_PLACEHOLDER,
 	SCOPE_PLACEHOLDER,
 	type ControlDefinition,
 	type FileEdit,
+	type QualityRule,
 	type RecommendedComplement,
 	type StructureRule,
 } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { baseControl, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
+import { baseControl, emptyTrigger, type QualityOffer, type StackAdapter, type StackDetection } from "./stack.ts";
 
 export const MAVEN_ADAPTER: StackAdapter = { stack: "maven", signal_files: ["pom.xml"], detect: detectMavenStack };
 
@@ -24,6 +26,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 	const jacoco = bindsJacocoReport(projectPath, reactor.pom_paths);
 	const mutation = readsMutationReport(projectPath, reactor.pom_paths);
 	const rules = structureRules(reactor);
+	const pmd = pmdDeclaration(projectPath, reactor.pom_paths);
 	// Both sensors judge introduced production code, so both need a class the suite calls.
 	const measuresIntroducedCode = jacoco || mutation.usable;
 	const controls: ControlDefinition[] = [
@@ -102,6 +105,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 			writable_paths: reactor.target_paths,
 			protected_paths: [...reactor.pom_paths],
 		});
+	if (pmd.by === "495") controls.push(...qualityControls(requirementRefs, reactor));
 	const positive: Record<string, string> = {
 		[`${witnessPrefix}${WITNESS_TEST_ROOT}PositiveWitness495Test.java`]: measuresIntroducedCode
 			? `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\npublic class PositiveWitness495Test {\n    @Test void runnerReportsAPassingTest() { assertEquals(1, 1); }\n    @Test void introducedCodeIsExercised() { assertEquals(4, new Witness495Covered().twice(2)); }\n}\n`
@@ -129,7 +133,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 			architecture_rules: rules.map((rule) => rule.rule_id),
 		},
 		controls,
-		lint_control_ids: [],
+		lint_control_ids: pmd.by === "495" ? ["pmd", "cpd"] : [],
 		positive_witness: positive,
 		witness_tests: measuresIntroducedCode ? 2 : 1,
 		negative_witness: {
@@ -155,6 +159,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 			// is the other control's business — so this one introduces a class the suite calls and
 			// leaves unchecked.
 			...(mutation.usable ? { mutation: mutationNegativeWitness(witnessPrefix) } : {}),
+			...(pmd.by === "495" ? qualityNegativeWitnesses(witnessPrefix) : {}),
 		},
 		preparation_paths: reactor.preparation_paths,
 		capability_missing: [
@@ -171,6 +176,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 					]),
 		],
 		recommendations: [...(jacoco ? [] : [jacocoRecommendation(projectPath)]), ...mutationRecommendation(mutation)],
+		quality_referential: qualityOffer(projectPath, pmd),
 	};
 }
 
@@ -183,29 +189,34 @@ const JACOCO_PLUGIN_VERSION = "0.8.15";
 export const MAVEN_DEPENDENCY_PLUGIN_VERSION = "3.11.0";
 
 /**
- * The declaration of JaCoCo as it is inserted into a POM: `prepare-agent` attaches the agent to the
- * tests, and `report` is bound to the test phase so that `mvn test` leaves the report the control reads.
+ * The declaration of JaCoCo as it is inserted into a POM, one line per entry, each nested level marked
+ * by a leading tab: `prepare-agent` attaches the agent to the tests, and `report` is bound to the test
+ * phase so that `mvn test` leaves the report the control reads.
  */
-function jacocoDeclaration(indent: string, unit: string, eol: string): string {
-	const lines = [
-		"<plugin>",
-		`${unit}<groupId>org.jacoco</groupId>`,
-		`${unit}<artifactId>jacoco-maven-plugin</artifactId>`,
-		`${unit}<version>${JACOCO_PLUGIN_VERSION}</version>`,
-		`${unit}<executions>`,
-		`${unit}${unit}<execution>`,
-		`${unit}${unit}${unit}<id>prepare-agent</id>`,
-		`${unit}${unit}${unit}<goals><goal>prepare-agent</goal></goals>`,
-		`${unit}${unit}</execution>`,
-		`${unit}${unit}<execution>`,
-		`${unit}${unit}${unit}<id>report</id>`,
-		`${unit}${unit}${unit}<phase>test</phase>`,
-		`${unit}${unit}${unit}<goals><goal>report</goal></goals>`,
-		`${unit}${unit}</execution>`,
-		`${unit}</executions>`,
-		"</plugin>",
-	];
-	return lines.map((line) => `${indent}${line}${eol}`).join("");
+const JACOCO_DECLARATION = [
+	"<plugin>",
+	"\t<groupId>org.jacoco</groupId>",
+	"\t<artifactId>jacoco-maven-plugin</artifactId>",
+	`\t<version>${JACOCO_PLUGIN_VERSION}</version>`,
+	"\t<executions>",
+	"\t\t<execution>",
+	"\t\t\t<id>prepare-agent</id>",
+	"\t\t\t<goals><goal>prepare-agent</goal></goals>",
+	"\t\t</execution>",
+	"\t\t<execution>",
+	"\t\t\t<id>report</id>",
+	"\t\t\t<phase>test</phase>",
+	"\t\t\t<goals><goal>report</goal></goals>",
+	"\t\t</execution>",
+	"\t</executions>",
+	"</plugin>",
+];
+
+/** A declaration written at `indent`, each leading tab of its lines replaced by the indentation unit of the POM. */
+function indented(declaration: readonly string[], indent: string, unit: string, eol: string): string {
+	return declaration
+		.map((line) => `${indent}${line.replace(/^\t+/, (tabs) => unit.repeat(tabs.length))}${eol}`)
+		.join("");
 }
 
 /** The profiles of a POM: what they declare exists only when a build activates them. */
@@ -241,16 +252,16 @@ const INACTIVE_REGIONS = [
 const ANCHOR_CONTEXT_LINES = 4;
 
 /**
- * The replacement that declares JaCoCo in the root POM: the line that opens its one `build/plugins`
+ * The replacement that declares a plugin in the root POM: the line that opens its one `build/plugins`
  * section, preceded by as many lines as it takes to occur once, followed by the declaration. Null when
  * the POM does not take it without ambiguity: plugins only in a profile, in `pluginManagement` or in
- * `reporting`, more than one section, JaCoCo already named outside a profile, or an opening line that
- * is not alone on its line.
+ * `reporting`, more than one section, the plugin already named outside a profile, or an opening line
+ * that is not alone on its line.
  */
-function jacocoEdit(pom: string): FileEdit | null {
+function pluginEdit(pom: string, artifactId: string, declaration: readonly string[]): FileEdit | null {
 	// The inactive regions are blanked to the same length, so a position found in `active` is one of `pom`.
 	const active = INACTIVE_REGIONS.reduce((text, region) => text.replace(region, (m) => " ".repeat(m.length)), pom);
-	if (active.includes("jacoco-maven-plugin")) return null;
+	if (active.includes(artifactId)) return null;
 	const opening = active.indexOf("<plugins>");
 	if (opening < 0 || active.indexOf("<plugins>", opening + 1) >= 0) return null;
 	if (!/<build\b/.test(active.slice(0, opening))) return null;
@@ -265,33 +276,210 @@ function jacocoEdit(pom: string): FileEdit | null {
 	}
 	const anchor = pom.slice(start, end);
 	const unit = /^([ \t]*)<plugin>/m.exec(pom.slice(end))?.[1]?.slice(indent.length) || "  ";
-	return { path: "pom.xml", current: anchor, wanted: `${anchor}${jacocoDeclaration(`${indent}${unit}`, unit, eol)}` };
+	return {
+		path: "pom.xml",
+		current: anchor,
+		wanted: `${anchor}${indented(declaration, `${indent}${unit}`, unit, eol)}`,
+	};
 }
 
 /** Recommends JaCoCo, with the edit and the resolution that adopt it when the root POM takes the declaration. */
 function jacocoRecommendation(projectPath: string): RecommendedComplement {
-	const recommendation: RecommendedComplement = {
-		test_type: "coverage",
-		tool: "org.jacoco:jacoco-maven-plugin",
-		version: JACOCO_PLUGIN_VERSION,
-		established_on: CATALOGUE_DATE,
-		source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
-		change:
-			"in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase",
-	};
+	return withPluginEdit(
+		projectPath,
+		{
+			test_type: "coverage",
+			tool: "org.jacoco:jacoco-maven-plugin",
+			version: JACOCO_PLUGIN_VERSION,
+			established_on: CATALOGUE_DATE,
+			source: "www.jacoco.org/jacoco/trunk/doc/maven.html",
+			change:
+				"in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase",
+		},
+		"jacoco-maven-plugin",
+		JACOCO_DECLARATION,
+	);
+}
+
+/** The recommendation with the edit that declares its plugin and the resolution that adopts it, when the root POM takes the declaration. */
+function withPluginEdit(
+	projectPath: string,
+	recommendation: RecommendedComplement,
+	artifactId: string,
+	declaration: readonly string[],
+): RecommendedComplement {
 	let pom: string;
 	try {
 		pom = readFileSync(join(projectPath, "pom.xml"), "utf8");
 	} catch {
 		return recommendation; // an unreadable POM gets the recommendation without an edit to apply
 	}
-	const edit = jacocoEdit(pom);
+	const edit = pluginEdit(pom, artifactId, declaration);
 	if (edit === null) return recommendation;
 	return {
 		...recommendation,
 		edit,
 		install: { package: recommendation.tool, version: recommendation.version, manager: "maven" },
 	};
+}
+
+/** The date the PMD referential below was checked against the sources it cites. */
+const QUALITY_REFERENTIAL_DATE = "2026-10-03";
+
+/** The PMD release `maven-pmd-plugin` 3.28.0 embeds, whose documentation states each threshold below. */
+const PMD = "PMD 7.17.0";
+const PMD_PLUGIN_VERSION = "3.28.0";
+const PMD_DOC = "docs.pmd-code.org/pmd-doc-7.17.0";
+
+/**
+ * The property 495 sets at each run of the PMD control to the rule set it writes from the frozen
+ * protocol. The plugin reads no rule set from its command line, so the declaration names this
+ * property instead, and a POM that names it is one 495 declared PMD in.
+ */
+const PMD_RULESET_PROPERTY = "pmd495.ruleset";
+
+/** The quality referential of a Maven target: each threshold is the default PMD documents, none is chosen here. */
+const PMD_REFERENTIAL: QualityRule[] = [
+	{
+		rule_id: "CyclomaticComplexity",
+		nature: "complexity",
+		control_id: "pmd",
+		reference: "category/java/design.xml/CyclomaticComplexity",
+		threshold: "a method whose cyclomatic complexity is 10 or more",
+		properties: { methodReportLevel: "10" },
+		tool: PMD,
+		source: `${PMD_DOC}/pmd_rules_java_design.html#cyclomaticcomplexity`,
+		established_on: QUALITY_REFERENTIAL_DATE,
+	},
+	{
+		rule_id: "CognitiveComplexity",
+		nature: "complexity",
+		control_id: "pmd",
+		reference: "category/java/design.xml/CognitiveComplexity",
+		threshold: "a method whose cognitive complexity is 15 or more",
+		properties: { reportLevel: "15" },
+		tool: PMD,
+		source: `${PMD_DOC}/pmd_rules_java_design.html#cognitivecomplexity`,
+		established_on: QUALITY_REFERENTIAL_DATE,
+	},
+	...(["UnusedPrivateMethod", "UnusedPrivateField", "UnusedLocalVariable"] as const).map(
+		(rule): QualityRule => ({
+			rule_id: rule,
+			nature: "dead_code",
+			control_id: "pmd",
+			reference: `category/java/bestpractices.xml/${rule}`,
+			threshold: "any occurrence",
+			properties: {},
+			tool: PMD,
+			source: `${PMD_DOC}/pmd_rules_java_bestpractices.html#${rule.toLowerCase()}`,
+			established_on: QUALITY_REFERENTIAL_DATE,
+		}),
+	),
+	{
+		rule_id: "CPD",
+		nature: "duplication",
+		control_id: "cpd",
+		reference: null,
+		threshold: "a duplicated block of at least 100 tokens",
+		properties: { minimumTokens: "100" },
+		tool: PMD,
+		source: "maven.apache.org/plugins/maven-pmd-plugin/cpd-mojo.html#minimumTokens",
+		established_on: QUALITY_REFERENTIAL_DATE,
+	},
+];
+
+/** The declaration of PMD as it is inserted into a POM: no goal is bound, and the rule set is the one 495 names at each run. */
+const PMD_DECLARATION = [
+	"<plugin>",
+	"\t<groupId>org.apache.maven.plugins</groupId>",
+	"\t<artifactId>maven-pmd-plugin</artifactId>",
+	`\t<version>${PMD_PLUGIN_VERSION}</version>`,
+	"\t<configuration>",
+	"\t\t<rulesets>",
+	`\t\t\t<ruleset>\${${PMD_RULESET_PROPERTY}}</ruleset>`,
+	"\t\t</rulesets>",
+	"\t</configuration>",
+	"</plugin>",
+];
+
+/** Who declares PMD in the reactor: nobody, 495 in a copy where the referential was adopted, or the project itself in the POM named. */
+type PmdDeclaration = { by: "nobody" } | { by: "495" } | { by: "project"; pom: string };
+
+function pmdDeclaration(projectPath: string, pomPaths: readonly string[]): PmdDeclaration {
+	for (const rel of pomPaths) {
+		let pom = "";
+		try {
+			pom = readFileSync(join(projectPath, rel), "utf8");
+		} catch {
+			continue; // an unreadable POM declares nothing; the other POMs are still read
+		}
+		const declared = pom.replace(/<!--[\s\S]*?-->/g, "");
+		if (!declared.includes("maven-pmd-plugin")) continue;
+		return declared.includes(`\${${PMD_RULESET_PROPERTY}}`) ? { by: "495" } : { by: "project", pom: rel };
+	}
+	return { by: "nobody" };
+}
+
+/**
+ * The quality referential offered to a target whose POMs do not name PMD, with the recommendation that
+ * declares the plugin in a copy and resolves it; a target that names PMD configures it itself, and its
+ * rules are not replaced by these.
+ */
+function qualityOffer(projectPath: string, declaration: PmdDeclaration): QualityOffer {
+	if (declaration.by === "project")
+		return {
+			kind: "not_proposed",
+			note: `the project configures PMD itself (maven-pmd-plugin is named in ${declaration.pom}): 495 proposes no quality referential of its own (QLT-01)`,
+		};
+	return {
+		kind: "proposed",
+		rules: PMD_REFERENTIAL,
+		recommendation: withPluginEdit(
+			projectPath,
+			{
+				test_type: "quality",
+				tool: "org.apache.maven.plugins:maven-pmd-plugin",
+				version: PMD_PLUGIN_VERSION,
+				established_on: QUALITY_REFERENTIAL_DATE,
+				source: "maven.apache.org/plugins/maven-pmd-plugin/",
+				change: `in a copy of the POM, declare maven-pmd-plugin outside any profile with the rule set named by the property ${PMD_RULESET_PROPERTY}, which 495 writes from the frozen protocol at each run`,
+			},
+			"maven-pmd-plugin",
+			PMD_DECLARATION,
+		),
+	};
+}
+
+/**
+ * The controls of the referential, once 495 declared PMD in the copy they run in: one per analyser, each
+ * applying the rules of the referential it is the oracle of, with the network closed. PMD reads the rule
+ * set the runner writes from the frozen rules at each run; CPD is given its threshold on its command line.
+ */
+function qualityControls(requirementRefs: RequirementRef[], reactor: MavenReactor): ControlDefinition[] {
+	const rulesOf = (controlId: string) => PMD_REFERENTIAL.filter((rule) => rule.control_id === controlId);
+	const minimumTokens = rulesOf("cpd")[0]?.properties.minimumTokens ?? "";
+	const control = (controlId: string, title: string, goal: string, argument: string): ControlDefinition => ({
+		...baseControl(requirementRefs),
+		control_id: controlId,
+		title,
+		command: ["mvn", "-B", "-q", "-o", goal, argument],
+		timeout_ms: 10 * 60_000,
+		parser: controlId === "pmd" ? "pmd-xml" : "cpd-xml",
+		report_path: "**/target",
+		quality_rules: rulesOf(controlId),
+		provides: [],
+		writable_paths: reactor.target_paths,
+		protected_paths: [...reactor.pom_paths],
+	});
+	return [
+		control(
+			"pmd",
+			"violations of the frozen quality rules, read from the PMD report",
+			"pmd:pmd",
+			`-D${PMD_RULESET_PROPERTY}=${RULESET_PLACEHOLDER}`,
+		),
+		control("cpd", "duplicated blocks, read from the CPD report", "pmd:cpd", `-DminimumTokens=${minimumTokens}`),
+	];
 }
 
 /**
@@ -388,6 +576,71 @@ function mutationNegativeWitness(witnessPrefix: string): Record<string, string> 
 			"n / 2",
 		),
 		[`${witnessPrefix}${WITNESS_TEST_ROOT}NegativeMutationWitness495Test.java`]: `package ${WITNESS_PACKAGE};\n\nimport org.junit.jupiter.api.Test;\n\npublic class NegativeMutationWitness495Test {\n    @Test void executesWithoutAsserting() { new Witness495Unasserted().half(4); }\n}\n`,
+	};
+}
+
+/** A method whose cyclomatic complexity is 11: one more than the threshold of the referential. */
+const COMPLEX_WITNESS = `package ${WITNESS_PACKAGE};
+
+public final class Witness495Complex {
+    private Witness495Complex() {}
+
+    public static int grade(int a, int b, int c) {
+        int r = 0;
+        if (a > 0) r++;
+        if (b > 0) r++;
+        if (c > 0) r++;
+        if (a > 1) r++;
+        if (b > 1) r++;
+        if (c > 1) r++;
+        if (a > 2) r++;
+        if (b > 2) r++;
+        if (c > 2) r++;
+        if (a > 3) r++;
+        return r;
+    }
+}
+`;
+
+/** A class carrying a block of more than 100 tokens that only its twin witness repeats. */
+function duplicateWitness(name: string): string {
+	return `package ${WITNESS_PACKAGE};
+
+public final class ${name} {
+    private ${name}() {}
+
+    public static long witness495Checksum(long[] samples) {
+        long witness495Sum = 17L;
+        for (int k = 0; k < samples.length; k++) {
+            if (samples[k] % 3L == 1L) {
+                witness495Sum = witness495Sum * 31L + samples[k];
+            } else {
+                witness495Sum = witness495Sum * 37L - samples[k] / 5L;
+            }
+            if (witness495Sum > 99_991L) {
+                witness495Sum = witness495Sum % 99_991L;
+            }
+        }
+        String witness495Label = "sum=" + witness495Sum + ";n=" + samples.length;
+        return witness495Sum + witness495Label.length();
+    }
+}
+`;
+}
+
+/**
+ * The trees that carry the defects the quality controls claim to detect (VER-05): a method above the
+ * complexity threshold for PMD, and a block two witness classes repeat for CPD. The project may already
+ * carry both; a witness is judged by the findings in its own files.
+ */
+function qualityNegativeWitnesses(witnessPrefix: string): Record<string, Record<string, string>> {
+	const root = `${witnessPrefix}${WITNESS_SOURCE_ROOT}`;
+	return {
+		pmd: { [`${root}Witness495Complex.java`]: COMPLEX_WITNESS },
+		cpd: {
+			[`${root}Witness495DuplicateA.java`]: duplicateWitness("Witness495DuplicateA"),
+			[`${root}Witness495DuplicateB.java`]: duplicateWitness("Witness495DuplicateB"),
+		},
 	};
 }
 

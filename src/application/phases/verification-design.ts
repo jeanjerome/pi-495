@@ -10,7 +10,6 @@ import type {
 	AdoptedComplement,
 	ControlCapabilityDiagnosis,
 	InstalledPackage,
-	PackageInstall,
 	RecommendedComplement,
 	RequirementsDocument,
 } from "../../contracts/v1/protocol.ts";
@@ -25,6 +24,8 @@ import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
 import { detectStack } from "../target.ts";
 import type { StackDetection } from "../target.ts";
+import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
+import { settleQualityReferential } from "./quality-referential.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 import { reviseRequirements } from "./requirements-revision.ts";
 
@@ -82,19 +83,6 @@ function answerHeld(
 /** A valid answer "adopt_complement" holds until the requirements are revised, which revokes it with the others. */
 function complementAdopted(decisions: readonly HumanDecisionEntry[]): boolean {
 	return decisions.some((d) => d.valid && d.interaction === "IH-04" && d.option_id === "adopt_complement");
-}
-
-/** The identifier every record of an install that was not adopted starts with, followed by `_`. */
-const INSTALL_RECORD_PREFIX = "install_";
-/** The identifier of the record that keeps what Maven printed when it resolved a plugin. */
-const RESOLUTION_RECORD_PREFIX = "resolution";
-
-interface InstallFailureRecord {
-	kind: "install-failure";
-	/** The requirements the install was adopted for: another revision of them asks the owner again. */
-	requirements_digest: string;
-	install: PackageInstall;
-	reason: string;
 }
 
 function recommendationFact(r: RecommendedComplement): string {
@@ -197,18 +185,6 @@ interface InstallAdoption {
 	resolved: RecommendedComplement[];
 }
 
-/** The installs that ran for these requirements and were not adopted, from the record each left in the dossier. */
-async function failedInstalls(ctx: PhaseContext, unit: Unit, requirements: ArtifactRef): Promise<FailedInstall[]> {
-	const records = await Promise.all(
-		(unit.state.proposals.output ?? [])
-			.filter((ref) => ref.artifact_id.startsWith(INSTALL_RECORD_PREFIX))
-			.map((ref) => ctx.artifacts.read<InstallFailureRecord>(ref)),
-	);
-	return records
-		.filter((r) => r.requirements_digest === requirements.content_digest)
-		.map((r) => ({ install: r.install, reason: r.reason }));
-}
-
 /**
  * Runs the install of each recommendation the owner adopted in the copy, and keeps what the inspection
  * accepts. An install that fails or is refused adopts nothing: the reason is written in the dossier
@@ -241,24 +217,10 @@ async function adoptInstalls(
 				? await resolveInCopy(deps, reference, r.install, r.edit)
 				: await installInCopy(deps, copyPath, r.install, referenceFiles);
 		if (result.kind === "failed") {
-			const record: InstallFailureRecord = {
-				kind: "install-failure",
-				requirements_digest: requirements.content_digest,
+			adoption.unit = await recordFailedInstall(ctx, adoption.unit, cor, requirements, {
 				install: r.install,
 				reason: result.reason,
-			};
-			const ref = await ctx.artifacts.store(
-				"output",
-				adoption.unit.state.change_id,
-				ctx.id(INSTALL_RECORD_PREFIX.slice(0, -1)),
-				record,
-				KERNEL_ACTOR.actor_id,
-			);
-			adoption.unit = ctx.commit(
-				adoption.unit,
-				{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref },
-				cor,
-			);
+			});
 			return {
 				...adoption,
 				complements: [],
@@ -268,18 +230,7 @@ async function adoptInstalls(
 			};
 		}
 		if (result.kind === "resolved") {
-			const ref = await ctx.artifacts.store(
-				"output",
-				adoption.unit.state.change_id,
-				ctx.id(RESOLUTION_RECORD_PREFIX),
-				{ kind: "resolution", install: r.install, output: result.output },
-				KERNEL_ACTOR.actor_id,
-			);
-			adoption.unit = ctx.commit(
-				adoption.unit,
-				{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref },
-				cor,
-			);
+			adoption.unit = await recordResolution(ctx, adoption.unit, cor, r.install, result.output);
 			adoption.resolved.push(r);
 			continue;
 		}
@@ -373,6 +324,13 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		let detection = detectStack(handle.path, refs);
+		// A survey puts the quality referential its target proposes to the owner before anything runs: the
+		// analyser it adopts is a control the protocol freezes like the others.
+		const quality = surveysTheProject(unit.state)
+			? await settleQualityReferential(ctx, unit, cor, requirements, reference, handle.path, detection)
+			: null;
+		if (quality?.kind === "asked") return quality.unit;
+		if (quality) unit = quality.unit;
 		const referenceFiles = reference.entries.filter((e) => e.kind === "file").map((e) => e.path);
 		let failed = await failedInstalls(ctx, unit, requirements.ref);
 		const localRepository = detection.recommendations.some((r) => r.install?.manager === "maven")
@@ -397,6 +355,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		// The edit is written into this copy alone: the detection that follows reads the sensor the edit
 		// asks for, and the project stays as it is until the candidate that carries the edit is integrated.
 		const complements = [
+			...(quality?.complements ?? []),
 			...(adoption?.complements ?? []),
 			...(adoption !== null
 				? applyRecommendedEdits(
@@ -493,6 +452,8 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			complements,
 			installed,
 			by_nature: surveysTheProject(unit.state),
+			...(quality?.referential ? { quality_referential: quality.referential } : {}),
+			...(quality?.blind_spot ? { quality_blind_spot: quality.blind_spot } : {}),
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

@@ -3,10 +3,11 @@
  * normalizes what it observed into the canonical evidence candidate. It judges nothing.
  */
 import type { Dirent } from "node:fs";
-import { mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
-import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
+import { RULESET_PLACEHOLDER, SCOPE_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
 import { messageOf } from "../../domain/errors.ts";
 import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
@@ -38,6 +39,8 @@ import {
 	MAX_REPORT_BYTES,
 	type ParsedReport,
 } from "./parsers.ts";
+import { parseCpdXml, parsePmdXml } from "./pmd-report.ts";
+import { pmdRuleset } from "./pmd-ruleset.ts";
 import { analyzeJavaStructure, readJavaSources } from "./structure.ts";
 
 export interface RunnerOptions {
@@ -115,11 +118,21 @@ export class GenericControlRunner implements ControlExecutionPort {
 				// directory that holds `reports/mutation` is made here, by the runner, so that the tool can
 				// create the path it was granted without being granted its parent.
 				for (const writable of profile.write_paths) await mkdir(dirname(writable), { recursive: true });
-				observation = await this.sandbox.run(
-					profile,
-					{ command, cwd, timeout_ms: control.timeout_ms, max_output_bytes: this.options.max_output_bytes },
-					signal,
-				);
+				const ruleset = await rulesetOf(control);
+				try {
+					observation = await this.sandbox.run(
+						profile,
+						{
+							command: ruleset ? command.map((arg) => arg.split(RULESET_PLACEHOLDER).join(ruleset.path)) : command,
+							cwd,
+							timeout_ms: control.timeout_ms,
+							max_output_bytes: this.options.max_output_bytes,
+						},
+						signal,
+					);
+				} finally {
+					if (ruleset) await rm(ruleset.directory, { recursive: true, force: true });
+				}
 				const stdoutText = new TextDecoder().decode(observation.stdout);
 				const stderrText = new TextDecoder().decode(observation.stderr);
 				if (observation.stdout.byteLength > 0)
@@ -254,6 +267,20 @@ export class GenericControlRunner implements ControlExecutionPort {
 						);
 						break;
 					}
+					case "pmd-xml":
+					case "cpd-xml": {
+						// The analyser judges the whole tree; what is read back is the report it left in the
+						// build directory of each module, beside which the other analyser's report may lie.
+						const docs = await readReports(invocation.workspace_path, control.report_path);
+						for (const d of docs)
+							artifacts.push({
+								name: `report:${d.name}`,
+								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml"),
+							});
+						const read = control.parser === "pmd-xml" ? parsePmdXml : parseCpdXml;
+						report = read(observation, docs, `${stdoutText}\n${stderrText}`);
+						break;
+					}
 					default:
 						report = {
 							verdict: "INDETERMINATE",
@@ -348,6 +375,19 @@ export class GenericControlRunner implements ControlExecutionPort {
 		};
 		return { evidence, observation };
 	}
+}
+
+/**
+ * The rule set a quality control applies, written from the rules of its frozen definition into a
+ * directory of its own outside the workspace, so that no file of the analysed tree can stand for it.
+ * Null for a control whose command names no rule set.
+ */
+async function rulesetOf(control: ControlDefinition): Promise<{ directory: string; path: string } | null> {
+	if (!control.command.some((arg) => arg.includes(RULESET_PLACEHOLDER))) return null;
+	const directory = await mkdtemp(join(tmpdir(), "495-ruleset-"));
+	const path = join(directory, "ruleset.xml");
+	await writeFile(path, pmdRuleset(control.quality_rules ?? []));
+	return { directory, path };
 }
 
 /**

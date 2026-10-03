@@ -2,7 +2,7 @@
 
 Story : e10s01
 Epic : e10
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -73,6 +73,15 @@ Scenario: Le rapport expose le référentiel adopté
   Given un état des lieux dont le référentiel de qualité a été adopté
   When le propriétaire demande `/495 report`
   Then la section état des lieux nomme chaque règle du référentiel avec son oracle, son seuil, sa source et sa date d'adoption, et chaque violation sous la règle qui la mesure
+
+Scenario: Une exigence de qualité est lue sur ce qu'elle mesure, pas sur le mot que le modèle choisit
+  Given un projet Maven sans PMD dont une méthode a une complexité cyclomatique de 11, dont une méthode privée n'est jamais appelée, et dont deux fichiers portent le même bloc de plus de 100 jetons
+  And une spécification qui écrit ses exigences de complexité, de duplication et de code mort en catégorie « maintainability », et son exigence de couverture des classes en catégorie « coverage »
+  When un état des lieux demande l'état de la qualité du code, et le propriétaire adopte le référentiel proposé
+  Then la consigne de spécification donnée au modèle nomme chaque catégorie que 495 lit et ce qu'elle mesure : « functional » pour le comportement, « quality » pour la complexité, la duplication, le code mort et le style, « coverage », « mutation » et « architecture »
+  And la décision d'adoption du référentiel nomme les trois exigences de complexité, de duplication et de code mort
+  And le `survey` mesure ces trois exigences par `pmd` et `cpd`, en FAIL
+  And le `survey` ne mesure l'exigence de couverture ni par `pmd` ni par `cpd`
 
 ## 3. Sécurité
 
@@ -146,6 +155,17 @@ seuil, sa source et sa date d'adoption. Elle range chaque violation sous la règ
 - Tient : `test/v2-kernel/quality-referential-report.test.ts`, « le rapport d'un état des lieux au référentiel adopté nomme chaque règle avec son oracle, son seuil, sa source et sa date d'adoption, et la violation de complexité sous CyclomaticComplexity »
 - Rouge : la section état des lieux de `engineeringReport` ne lit que les exigences, les contrôles et les angles morts du `survey`, et ne nomme aucune règle.
 
+### Tâche 6 — La nature d'une exigence se lit sur des catégories que la consigne nomme
+
+La consigne de spécification nomme les catégories que 495 lit, chacune avec ce qu'elle mesure, au
+lieu de ne montrer que « functional » dans son exemple. Une exigence écrite « maintainability » se
+lit comme une exigence de qualité : elle reçoit la proposition du référentiel et, adopté, est mesurée
+par `pmd` et `cpd`. Une exigence de couverture n'est mesurée par aucun contrôle de qualité.
+
+- Vérifie : `node --test test/v2-kernel/quality-referential-category.test.ts`
+- Tient : `test/v2-kernel/quality-referential-category.test.ts`, « la consigne de spécification nomme chaque catégorie que 495 lit avec ce qu'elle mesure » et « des exigences de complexité, de duplication et de code mort écrites maintainability reçoivent la décision d'adoption, qui les nomme, et le survey les mesure par pmd et cpd en FAIL, sans mesurer l'exigence de couverture par pmd ni par cpd »
+- Rouge : `natureOf`, dans `src/domain/survey.ts`, ne reconnaît que `/function|behaviou?r/`, `/quality|lint|style/`, `/coverage/`, `/mutation/` et `/architect|structur/`. `asksAboutQuality("maintainability")` rend donc faux : aucune décision n'est demandée, et les trois exigences deviennent l'angle mort « category "maintainability" names no nature a control measures ». La consigne du rôle `specify`, dans `src/application/context.ts`, ne nomme aucune catégorie : seul l'exemple du `specification-report` montre `"functional"`.
+
 ## 5. Hors périmètre
 
 - Séparer code propriétaire, code généré et dépendances, et résumer les écarts par règle et par
@@ -159,3 +179,9 @@ seuil, sa source et sa date d'adoption. Elle range chaque violation sous la règ
 - Adopter les règles qu'un projet configure déjà pour PMD : il reçoit un angle mort nommé.
 - Checkstyle et SpotBugs : écartés au départ par le propriétaire. Ils pourront s'ajouter plus tard
   comme règles du référentiel.
+- Corriger une exigence que le modèle range contre la consigne, comme une couverture écrite
+  « quality », ou une duplication et un code mort écrits « functional » comme le fait le modèle
+  local qwen3.8-27b. 495 lit la catégorie et ne juge pas l'énoncé d'une exigence : la consigne nomme
+  les catégories, mais ce que le modèle range contre elle n'est pas redressé.
+- Fermer la catégorie dans le contrat du rapport de spécification : elle reste une chaîne libre, et
+  une catégorie que 495 ne lit pas reste un angle mort qui la nomme.

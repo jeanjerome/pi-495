@@ -26,6 +26,8 @@ export interface SurveyMeasure {
 export interface SurveyFinding {
 	message: string;
 	path: string | null;
+	/** The rule the tool names; absent from a survey taken before findings carried it. */
+	rule_id?: string;
 }
 
 export interface Survey {
@@ -64,16 +66,27 @@ const PARSER_NATURES: Record<ParserId, Nature | null> = {
 	"java-imports": "structure",
 	"pitest-xml": "mutation",
 	"stryker-json": "mutation",
+	"pmd-xml": "style",
+	"cpd-xml": "style",
 };
 
 /** The words a requirement's category is read on, tried in this order. */
 const CATEGORY_NATURES: readonly (readonly [RegExp, Nature])[] = [
 	[/function|behaviou?r/i, "behaviour"],
-	[/quality|lint|style/i, "style"],
+	[/quality|maintainab|lint|style/i, "style"],
 	[/coverage/i, "coverage"],
 	[/mutation/i, "mutation"],
 	[/architect|structur/i, "structure"],
 ];
+
+function natureOf(category: string): Nature | undefined {
+	return CATEGORY_NATURES.find(([words]) => words.test(category))?.[1];
+}
+
+/** Whether a requirement asks about the quality of the code: the nature a quality referential measures. */
+export function asksAboutQuality(category: string): boolean {
+	return natureOf(category) === "style";
+}
 
 /**
  * The controls of a requirement's nature, or the reason none measures it. The lint controls the
@@ -84,7 +97,7 @@ export function controlsOfNature(
 	controls: readonly Pick<ControlDefinition, "control_id" | "parser">[],
 	lintControlIds: readonly string[],
 ): { control_ids: string[] } | { blind_spot: string } {
-	const nature = CATEGORY_NATURES.find(([words]) => words.test(category))?.[1];
+	const nature = natureOf(category);
 	if (!nature) return { blind_spot: `blind spot: category "${category}" names no nature a control measures` };
 	const measuring = controls.filter(
 		(c) => (lintControlIds.includes(c.control_id) ? "style" : PARSER_NATURES[c.parser]) === nature,
@@ -132,7 +145,11 @@ export function surveyOf(input: {
 			control_id: p.control_id,
 			evidence_id: p.evidence_id,
 			verdict: blindSpot === null ? p.verdict : null,
-			findings: p.findings.map((f) => ({ message: f.message, path: f.path })),
+			findings: p.findings.map((f) => ({
+				message: f.message,
+				path: f.path,
+				...(f.rule_id === undefined ? {} : { rule_id: f.rule_id }),
+			})),
 			blind_spot: blindSpot,
 		};
 	});
