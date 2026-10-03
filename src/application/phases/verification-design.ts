@@ -215,7 +215,7 @@ async function adoptInstalls(
 		const result =
 			r.install.manager === "maven"
 				? await resolveInCopy(deps, reference, r.install, r.edit)
-				: await installInCopy(deps, copyPath, r.install, referenceFiles);
+				: await installInCopy(deps, copyPath, [r.install], referenceFiles);
 		if (result.kind === "failed") {
 			adoption.unit = await recordFailedInstall(ctx, adoption.unit, cor, requirements, {
 				install: r.install,
@@ -234,9 +234,7 @@ async function adoptInstalls(
 			adoption.resolved.push(r);
 			continue;
 		}
-		adoption.complements.push(
-			...result.files.map((f) => ({ path: f.path, digest: f.digest, test_type: r.test_type, tool: r.tool })),
-		);
+		adoption.complements.push(...result.files.map((f) => ({ ...f, test_type: r.test_type, tool: r.tool })));
 		adoption.packages.push(...result.packages);
 	}
 	return adoption;
@@ -364,10 +362,10 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 					)
 				: []),
 		];
-		const installed = adoption?.packages ?? [];
+		const installed = [...(quality?.packages ?? []), ...(adoption?.packages ?? [])];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
-			detection = detectStack(handle.path, refs);
+			detection = detectStack(handle.path, refs, process.execPath, quality?.packages);
 		}
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {

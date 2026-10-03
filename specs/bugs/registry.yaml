@@ -1231,3 +1231,35 @@ bugs:
       Run the goals behind a phase that builds the reactor's modules, with a v4 test on a reactor whose module depends
       on its sibling.
     status: open
+  - bug_id: BUG-2026-10-03T073952
+    date: "2026-10-03"
+    title: "A state request on a Node project whose scripts.test names a runner 495 cannot read stops at verification_design with no survey, so the quality requirement is never named a blind spot"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      When `scripts.test` names a runner 495 cannot read (`tsc && node --test`, or the `echo ... && exit 1` that
+      `npm init` writes), `detectNodeStack` in `src/application/stacks/node.ts` declares no control and only that
+      refusal under `capability_missing`. `verification-design.ts` then throws CAPABILITY_MISSING before any survey is
+      produced: a quality requirement such as QLT-01 is not named a blind spot, neither "the project declares ESLint
+      itself" for a project that declares it, nor any reason for a project that declares nothing, and the runner is
+      the only reason the owner reads.
+    what_expected: >
+      A state request on such a project ends on a survey that names each requirement it cannot measure with its own
+      reason, the unreadable runner among them, instead of stopping on the runner alone.
+    steps_to_reproduce:
+      - "Take a Node project with a package-lock.json, `scripts.test` set to `tsc && node --test`, and `eslint` as a devDependency."
+      - "Ask `/495 state` about the quality of the code: the run stops in verification_design on CAPABILITY_MISSING naming the runner, and no survey exists."
+      - "With a readable runner, the same project's survey names QLT-01 a blind spot because the project declares ESLint itself."
+    root_cause: >
+      A detection with no control is refused as a whole at verification_design, before the survey that would name
+      the requirements left unmeasured; the stop on an unreadable runner predates the Node quality referential.
+    evidence: >
+      Probed in the review of e10s03 (no pending decision, no install, project digest unchanged, stop on
+      capability_missing); the same stop on an unreadable runner exists on main. No adoption could be offered there
+      anyway: the analysers it installs could never be declared without a runner.
+    risk_level: low
+    follow_ups: >
+      Let a state request on a target with no declarable control still end on a survey of blind spots, with a v2 test
+      on a Node project whose scripts.test is refused.
+    status: open

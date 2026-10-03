@@ -53,7 +53,7 @@ function adapter(stack: string, signalFile: string, missing: string): StackAdapt
 describe("Target registry: the adapter list chooses the stack", () => {
 	it("given a project holding Cargo.toml and a list that gains an adapter declaring that file, then the detection is the adapter's", () => {
 		const cargo = adapter("cargo", "Cargo.toml", "cargo qualification pending");
-		const detection = detectStack(project({ "Cargo.toml": "[package]" }), REFS, NODE, [cargo]);
+		const detection = detectStack(project({ "Cargo.toml": "[package]" }), REFS, NODE, [], [cargo]);
 		assert.equal(detection.stack, "cargo");
 		assert.deepEqual(detection.facts, { adapter: "cargo" });
 		assert.deepEqual(
@@ -67,13 +67,13 @@ describe("Target registry: the adapter list chooses the stack", () => {
 		const cargo = adapter("cargo", "Cargo.toml", "cargo");
 		const go = adapter("go", "go.mod", "go");
 		const path = project({ "Cargo.toml": "", "go.mod": "" });
-		assert.equal(detectStack(path, REFS, NODE, [cargo, go]).stack, "cargo");
-		assert.equal(detectStack(path, REFS, NODE, [go, cargo]).stack, "go");
+		assert.equal(detectStack(path, REFS, NODE, [], [cargo, go]).stack, "cargo");
+		assert.equal(detectStack(path, REFS, NODE, [], [go, cargo]).stack, "go");
 	});
 
 	it("given a project no adapter recognises, then the stack is unknown and the missing capability names the files the list declares", () => {
 		const list = [adapter("cargo", "Cargo.toml", "cargo"), adapter("go", "go.mod", "go")];
-		const detection = detectStack(project({ "README.md": "" }), REFS, NODE, list);
+		const detection = detectStack(project({ "README.md": "" }), REFS, NODE, [], list);
 		assert.equal(detection.stack, "unknown");
 		assert.deepEqual(detection.controls, []);
 		assert.equal(detection.capability_missing.length, 1);

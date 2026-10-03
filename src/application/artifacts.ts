@@ -6,7 +6,7 @@
  * collaborator instead of two stores, and bytes that no longer match their digest are refused at
  * the single place that reads them.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { canonicalize } from "../contracts/canonical.ts";
 import { digestBytes } from "../contracts/digest.ts";
@@ -44,12 +44,13 @@ export interface PreparedWorkspace {
 }
 
 /**
- * Writes each file into the tree at `root` from the object store, as it was stored: bytes that are
- * missing, or that no longer match the digest the file was recorded under, are not written.
+ * Writes each file into the tree at `root` from the object store, as it was stored, with its mode when
+ * one was recorded: bytes that are missing, or that no longer match the digest the file was recorded
+ * under, are not written.
  */
 export async function writeStoredFiles(
 	objects: ObjectStorePort,
-	files: readonly { path: string; digest: string }[],
+	files: readonly { path: string; digest: string; mode?: string }[],
 	root: string,
 ): Promise<void> {
 	for (const f of files) {
@@ -59,6 +60,7 @@ export async function writeStoredFiles(
 		const target = join(root, f.path);
 		await mkdir(dirname(target), { recursive: true });
 		await writeFile(target, bytes);
+		if (f.mode !== undefined) await chmod(target, Number.parseInt(f.mode, 8));
 	}
 }
 

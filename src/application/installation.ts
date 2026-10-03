@@ -21,14 +21,14 @@ export type InstallPlan = { kind: "command"; command: string[] } | { kind: "refu
 const OTHER_MANAGERS_LOCKS = ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"];
 
 /**
- * The command that installs `install`. For Maven, the plugins of the copy are resolved with the
+ * The command that installs `installs`. For Maven, the plugins of the copy are resolved with the
  * dependency plugin the catalogue pins, which runs no goal of any plugin it resolves. For npm, it
- * installs `install` as an exact development dependency without running any install script, or
- * gives the reason it is not run: a target locked by another manager, or by none, is
- * not one npm can extend without choosing the tree of its dependencies itself.
+ * installs every package of `installs`, in one install, as an exact development dependency without
+ * running any install script, or gives the reason it is not run: a target locked by another manager, or
+ * by none, is not one npm can extend without choosing the tree of its dependencies itself.
  */
-export function planInstall(files: readonly string[], install: PackageInstall): InstallPlan {
-	if (install.manager === "maven")
+export function planInstall(files: readonly string[], installs: readonly PackageInstall[]): InstallPlan {
+	if (installs.some((install) => install.manager === "maven"))
 		return {
 			kind: "command",
 			command: [
@@ -45,14 +45,14 @@ export function planInstall(files: readonly string[], install: PackageInstall): 
 	return {
 		kind: "command",
 		command: [
-			install.manager,
+			"npm",
 			"install",
 			"--save-dev",
 			"--save-exact",
 			"--ignore-scripts",
 			"--no-audit",
 			"--no-fund",
-			`${install.package}@${install.version}`,
+			...installs.map((install) => `${install.package}@${install.version}`),
 		],
 	};
 }
@@ -95,7 +95,7 @@ export function installableRecommendations(
 		);
 		if (earlier !== undefined)
 			return { ...r, change: `${r.change}; the install ran in a copy and nothing was adopted: ${earlier.reason}` };
-		const plan = planInstall(files, r.install);
+		const plan = planInstall(files, [r.install]);
 		if (r.install.manager === "maven" && localRepository === null)
 			return {
 				...r,
@@ -114,35 +114,82 @@ const NODE_MODULES = "node_modules/";
 /** The files an install rewrites by nature: the two manifests, and the copy of the lock npm keeps under `node_modules/`. */
 const MANIFESTS = ["package.json", "package-lock.json", `${NODE_MODULES}.package-lock.json`];
 
-/** The first file the install touched that it had no reason to touch, or null. */
+/** The directory of the package a file under `node_modules/` belongs to, as the lock names packages. */
+function packageOf(path: string): string {
+	const at = path.lastIndexOf(NODE_MODULES) + NODE_MODULES.length;
+	const [name = "", scoped] = path.slice(at).split("/");
+	return path.slice(0, at) + (name.startsWith("@") && scoped !== undefined ? `${name}/${scoped}` : name);
+}
+
+/** A lockfileVersion 1 entry: its own dependencies sit under its `node_modules/`. */
+interface LegacyLockEntry {
+	dependencies?: Record<string, LegacyLockEntry>;
+}
+
+/** The directory of each package under `dependencies`, nested ones under the `node_modules/` of the one that holds them. */
+function legacyPaths(dependencies: Record<string, LegacyLockEntry>, prefix: string): string[] {
+	return Object.entries(dependencies).flatMap(([name, entry]) => {
+		const path = `${prefix}${NODE_MODULES}${name}`;
+		return [path, ...legacyPaths(entry.dependencies ?? {}, `${path}/`)];
+	});
+}
+
+/**
+ * The directory of each package the lock names, under `packages` from lockfileVersion 2 and under
+ * `dependencies` in lockfileVersion 1, or null when it carries neither and so names nothing that can be told apart.
+ */
+function lockedPackages(text: string): Set<string> | null {
+	const lock = JSON.parse(text) as {
+		packages?: Record<string, unknown>;
+		dependencies?: Record<string, LegacyLockEntry>;
+	};
+	if (lock.packages !== undefined) return new Set(Object.keys(lock.packages));
+	if (lock.dependencies !== undefined) return new Set(legacyPaths(lock.dependencies, ""));
+	return null;
+}
+
+/**
+ * The first file the install touched that it had no reason to touch, or null. npm prunes what the lock
+ * does not name, so a file of a package the lock did not name before the install may be gone after it;
+ * a lock that names no package this way lets no file be removed.
+ */
 function unexpectedFile(before: InstallState, after: InstallState): string | null {
+	const locked = lockedPackages(before.package_lock);
 	const paths = [...new Set([...Object.keys(before.files), ...Object.keys(after.files)])].sort();
 	for (const path of paths) {
 		if (before.files[path] === after.files[path]) continue;
 		if (MANIFESTS.includes(path)) continue;
 		if (!path.startsWith(NODE_MODULES))
 			return `the install wrote ${path}, outside package.json, package-lock.json and node_modules/`;
-		if (path in before.files) return `the install changed ${path}, which already existed under node_modules/`;
+		if (!(path in before.files)) continue;
+		if (!(path in after.files) && locked !== null && !locked.has(packageOf(path))) continue;
+		return `the install changed ${path}, which already existed under node_modules/`;
 	}
 	return null;
 }
 
-/** The first entry of `package.json` that is not the one asked for, or why the one asked for is not as asked. */
-function unexpectedEntry(before: InstallState, after: InstallState, install: PackageInstall): string | null {
+/** The first entry of `package.json` that is not one asked for, or why one asked for is not as asked. */
+function unexpectedEntry(
+	before: InstallState,
+	after: InstallState,
+	installs: readonly PackageInstall[],
+): string | null {
 	const previous = JSON.parse(before.package_json) as Record<string, unknown>;
 	const current = JSON.parse(after.package_json) as Record<string, unknown>;
 	const { devDependencies: wanted = {}, ...rest } = current;
 	const { devDependencies: had = {}, ...restBefore } = previous;
+	const asked = installs.map((install) => install.package);
 	for (const key of new Set([...Object.keys(rest), ...Object.keys(restBefore)]))
 		if (JSON.stringify(rest[key]) !== JSON.stringify(restBefore[key]))
-			return `package.json changed its ${key}, which is not the entry of ${install.package}`;
+			return `package.json changed its ${key}, which is not the entry of ${asked.join(", ")}`;
 	const declared = wanted as Record<string, string>;
 	const declaredBefore = had as Record<string, string>;
 	for (const name of new Set([...Object.keys(declared), ...Object.keys(declaredBefore)]))
-		if (name !== install.package && declared[name] !== declaredBefore[name])
-			return `package.json changed the devDependencies entry ${name}, which is not ${install.package}`;
-	if (declared[install.package] !== install.version)
-		return `package.json declares ${install.package} as ${JSON.stringify(declared[install.package])}, not the exact ${install.version}`;
+		if (!asked.includes(name) && declared[name] !== declaredBefore[name])
+			return `package.json changed the devDependencies entry ${name}, which is not ${asked.join(", ")}`;
+	for (const install of installs)
+		if (declared[install.package] !== install.version)
+			return `package.json declares ${install.package} as ${JSON.stringify(declared[install.package])}, not the exact ${install.version}`;
 	return null;
 }
 
@@ -171,16 +218,21 @@ function addedPackages(before: InstallState, after: InstallState): InstalledPack
 
 /**
  * Accepts an install only when it touched `package.json`, `package-lock.json`, npm's own copy of the lock
- * under `node_modules/` and files that did not exist there, and `package.json` gained the entry of the package asked for at its
- * exact version. Where the packages come from is not judged: that is npm's and its repositories'.
+ * under `node_modules/`, files that did not exist there and the files it pruned of packages the lock did
+ * not name, and `package.json` gained the entry of each package asked for at its exact version. Where the
+ * packages come from is not judged: that is npm's and its repositories'.
  */
-export function inspectInstall(before: InstallState, after: InstallState, install: PackageInstall): InstallInspection {
-	const file = unexpectedFile(before, after);
-	if (file !== null) return { kind: "refused", reason: file };
+export function inspectInstall(
+	before: InstallState,
+	after: InstallState,
+	installs: readonly PackageInstall[],
+): InstallInspection {
 	let entry: string | null;
 	let packages: InstalledPackage[] | string;
 	try {
-		entry = unexpectedEntry(before, after, install);
+		const file = unexpectedFile(before, after);
+		if (file !== null) return { kind: "refused", reason: file };
+		entry = unexpectedEntry(before, after, installs);
 		packages = addedPackages(before, after);
 	} catch {
 		return { kind: "refused", reason: "package.json or package-lock.json is not readable JSON after the install" };
@@ -336,9 +388,9 @@ export async function runInstall(
 	return { kind: "failed", reason: `${command.join(" ")} ${why}` };
 }
 
-/** What the install left in the copy, ready to be kept: each file with its digest, and the packages that were added. */
+/** What the install left in the copy, ready to be kept: each file with its digest and its mode, and the packages that were added. */
 export type InstalledCopy =
-	| { kind: "installed"; files: { path: string; digest: string }[]; packages: InstalledPackage[] }
+	| { kind: "installed"; files: { path: string; digest: string; mode: string }[]; packages: InstalledPackage[] }
 	| { kind: "failed"; reason: string };
 
 export interface InstallDeps {
@@ -349,25 +401,33 @@ export interface InstallDeps {
 	localRepository: (copyPath: string) => Promise<string | null>;
 }
 
-/** Each regular file of the copy by its digest under `policy`, or why the copy cannot be listed in full. */
-async function digestsOf(deps: InstallDeps, copyPath: string, policy: WorkspacePolicy): Promise<CopyFiles | string> {
+/** Each regular file of the copy under `policy`, by its digest and by its mode, or why the copy cannot be listed in full. */
+async function listedCopy(
+	deps: InstallDeps,
+	copyPath: string,
+	policy: WorkspacePolicy,
+): Promise<{ files: CopyFiles; modes: CopyModes } | string> {
 	const snapshot = await deps.workspace.captureReference(copyPath, policy);
 	if (snapshot.limits.truncated)
 		return `the copy could not be listed in full: ${snapshot.limits.notes.join("; ") || "a limit was reached"}`;
 	const files: Record<string, string> = {};
+	const modes: Record<string, string> = {};
 	// A link carries no bytes to keep: the tree that is kept holds regular files only.
 	for (const entry of snapshot.entries)
-		if (entry.kind === "file" && entry.content_digest !== null) files[entry.path] = entry.content_digest;
-	return files;
+		if (entry.kind === "file" && entry.content_digest !== null) {
+			files[entry.path] = entry.content_digest;
+			modes[entry.path] = entry.mode;
+		}
+	return { files, modes };
 }
 
-/** The copy as an install can change it, or why it cannot be listed in full. */
-async function stateOf(deps: InstallDeps, copyPath: string): Promise<InstallState | string> {
-	const files = await digestsOf(deps, copyPath, deps.workspacePolicy);
-	if (typeof files === "string") return files;
+/** The copy as an install can change it, with the mode of each file, or why it cannot be listed in full. */
+async function stateOf(deps: InstallDeps, copyPath: string): Promise<(InstallState & { modes: CopyModes }) | string> {
+	const listed = await listedCopy(deps, copyPath, deps.workspacePolicy);
+	if (typeof listed === "string") return listed;
 	try {
 		return {
-			files,
+			...listed,
 			package_json: readFileSync(join(copyPath, "package.json"), "utf8"),
 			package_lock: readFileSync(join(copyPath, "package-lock.json"), "utf8"),
 		};
@@ -377,16 +437,17 @@ async function stateOf(deps: InstallDeps, copyPath: string): Promise<InstallStat
 }
 
 /**
- * Installs the package in the copy at `copyPath` and keeps the result only when the inspection accepts
- * it. `referenceFiles` are the files of the reference the copy was made from, which decide the plan.
+ * Installs the packages in the copy at `copyPath`, in one install, and keeps the result only when the
+ * inspection accepts it. `referenceFiles` are the files of the reference the copy was made from, which
+ * decide the plan.
  */
 export async function installInCopy(
 	deps: InstallDeps,
 	copyPath: string,
-	install: PackageInstall,
+	installs: readonly PackageInstall[],
 	referenceFiles: readonly string[],
 ): Promise<InstalledCopy> {
-	const plan = planInstall(referenceFiles, install);
+	const plan = planInstall(referenceFiles, installs);
 	if (plan.kind === "refused") return { kind: "failed", reason: plan.reason };
 	const before = await stateOf(deps, copyPath);
 	if (typeof before === "string") return { kind: "failed", reason: before };
@@ -394,11 +455,11 @@ export async function installInCopy(
 	if (run.kind === "failed") return run;
 	const after = await stateOf(deps, copyPath);
 	if (typeof after === "string") return { kind: "failed", reason: after };
-	const inspected = inspectInstall(before, after, install);
+	const inspected = inspectInstall(before, after, installs);
 	if (inspected.kind === "refused") return { kind: "failed", reason: inspected.reason };
 	return {
 		kind: "installed",
-		files: inspected.files.map((path) => ({ path, digest: after.files[path]! })),
+		files: inspected.files.map((path) => ({ path, digest: after.files[path]!, mode: after.modes[path]! })),
 		packages: inspected.packages,
 	};
 }
@@ -416,6 +477,9 @@ export type ResolutionInspection = { kind: "accepted" } | { kind: "refused"; rea
 
 /** The digest of each file of a copy, by path. */
 export type CopyFiles = Readonly<Record<string, string>>;
+
+/** The mode of each file of a copy, by path, as six octal digits. */
+type CopyModes = Readonly<Record<string, string>>;
 
 /**
  * Accepts a resolution only when the copy holds what 495 wrote into it and nothing else changed: each
@@ -454,7 +518,7 @@ export async function resolveInCopy(
 	edit: FileEdit | undefined,
 ): Promise<ResolvedPlugin> {
 	if (edit === undefined) return { kind: "failed", reason: "the recommendation carries no edit of pom.xml to resolve" };
-	const plan = planInstall([], install);
+	const plan = planInstall([], [install]);
 	if (plan.kind === "refused") return { kind: "failed", reason: plan.reason };
 	const handle = await deps.workspace.createWorkspace(reference, deps.workspacePolicy);
 	try {
@@ -465,16 +529,16 @@ export async function resolveInCopy(
 		// The copy is listed with no exclusion: a file the resolution writes under a directory the policy leaves
 		// out of a copy, such as target/, is a change like any other.
 		const whole = { ...deps.workspacePolicy, exclusions: [] };
-		const before = await digestsOf(deps, handle.path, whole);
+		const before = await listedCopy(deps, handle.path, whole);
 		if (typeof before === "string") return { kind: "failed", reason: before };
 		const text = editedFile(handle.path, edit);
 		if (text === null) return { kind: "failed", reason: `the edit of ${edit.path} no longer applies` };
 		writeFileSync(join(handle.path, edit.path), text);
 		const run = await deps.install(handle.path, plan.command, repository);
 		if (run.kind === "failed") return run;
-		const after = await digestsOf(deps, handle.path, whole);
+		const after = await listedCopy(deps, handle.path, whole);
 		if (typeof after === "string") return { kind: "failed", reason: after };
-		const inspected = inspectResolution(before, after, [{ path: edit.path, digest: digestBytes(text) }]);
+		const inspected = inspectResolution(before.files, after.files, [{ path: edit.path, digest: digestBytes(text) }]);
 		return inspected.kind === "refused"
 			? { kind: "failed", reason: inspected.reason }
 			: { kind: "resolved", output: run.output ?? "" };

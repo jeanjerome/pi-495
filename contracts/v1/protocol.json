@@ -104,7 +104,9 @@
               "pitest-xml",
               "stryker-json",
               "pmd-xml",
-              "cpd-xml"
+              "cpd-xml",
+              "eslint-json",
+              "jscpd-json"
             ]
           },
           "report_path": {
@@ -709,6 +711,10 @@
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$",
             "description": "SHA-256 digest, hex, prefixed"
+          },
+          "mode": {
+            "type": "string",
+            "pattern": "^[0-7]{6}$"
           },
           "test_type": {
             "type": "string",

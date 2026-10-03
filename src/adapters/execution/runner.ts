@@ -39,6 +39,8 @@ import {
 	MAX_REPORT_BYTES,
 	type ParsedReport,
 } from "./parsers.ts";
+import { parseEslintJson, parseJscpdJson } from "./eslint-jscpd-report.ts";
+import { jscpdConfig } from "./jscpd-config.ts";
 import { parseCpdXml, parsePmdXml } from "./pmd-report.ts";
 import { pmdRuleset } from "./pmd-ruleset.ts";
 import { analyzeJavaStructure, readJavaSources } from "./structure.ts";
@@ -88,6 +90,13 @@ export class GenericControlRunner implements ControlExecutionPort {
 		let report: ParsedReport;
 		let command = control.command;
 		const artifacts: EvidenceCandidate["artifacts"] = [];
+		// The workspace the run happened to use is stripped from every message: the reference and the
+		// candidate are two directories holding the same project, and a finding that keeps the path of
+		// its run can never be paired with the same finding observed on the other side (VER-08).
+		const roots = [
+			invocation.workspace_path,
+			await realpath(invocation.workspace_path).catch(() => invocation.workspace_path),
+		];
 		try {
 			if (!cwd.startsWith(resolve(invocation.workspace_path)))
 				throw new Error(`control cwd escapes the workspace: ${control.cwd}`);
@@ -281,6 +290,21 @@ export class GenericControlRunner implements ControlExecutionPort {
 						report = read(observation, docs, `${stdoutText}\n${stderrText}`);
 						break;
 					}
+					case "eslint-json":
+					case "jscpd-json": {
+						const docs = await readReports(invocation.workspace_path, control.report_path);
+						for (const d of docs)
+							artifacts.push({
+								name: `report:${d.name}`,
+								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/json"),
+							});
+						const read = control.parser === "eslint-json" ? parseEslintJson : parseJscpdJson;
+						const parsed = read(observation, docs, `${stdoutText}\n${stderrText}`);
+						// ESLint names each file by its absolute path, a file it could not parse included: the note
+						// that names it does so relative to the workspace, as a finding does.
+						report = { ...parsed, notes: parsed.notes.map((note) => relativize(note, ...roots)) };
+						break;
+					}
 					default:
 						report = {
 							verdict: "INDETERMINATE",
@@ -299,13 +323,6 @@ export class GenericControlRunner implements ControlExecutionPort {
 			};
 		}
 		const ended = new Date().toISOString();
-		// The workspace the run happened to use is stripped from every message: the reference and the
-		// candidate are two directories holding the same project, and a finding that keeps the path of
-		// its run can never be paired with the same finding observed on the other side (VER-08).
-		const roots = [
-			invocation.workspace_path,
-			await realpath(invocation.workspace_path).catch(() => invocation.workspace_path),
-		];
 		const finding = (
 			raw: string,
 			ruleId: string,
@@ -379,14 +396,20 @@ export class GenericControlRunner implements ControlExecutionPort {
 
 /**
  * The rule set a quality control applies, written from the rules of its frozen definition into a
- * directory of its own outside the workspace, so that no file of the analysed tree can stand for it.
- * Null for a control whose command names no rule set.
+ * directory of its own outside the workspace, so that no file of the analysed tree can stand for it:
+ * the configuration of jscpd for jscpd, a PMD rule set otherwise. Null for a control whose command names
+ * no rule set.
  */
 async function rulesetOf(control: ControlDefinition): Promise<{ directory: string; path: string } | null> {
 	if (!control.command.some((arg) => arg.includes(RULESET_PLACEHOLDER))) return null;
+	const rules = control.quality_rules ?? [];
+	const file =
+		control.parser === "jscpd-json"
+			? { name: "jscpd.json", text: jscpdConfig(rules) }
+			: { name: "ruleset.xml", text: pmdRuleset(rules) };
 	const directory = await mkdtemp(join(tmpdir(), "495-ruleset-"));
-	const path = join(directory, "ruleset.xml");
-	await writeFile(path, pmdRuleset(control.quality_rules ?? []));
+	const path = join(directory, file.name);
+	await writeFile(path, file.text);
 	return { directory, path };
 }
 

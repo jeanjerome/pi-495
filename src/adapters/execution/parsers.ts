@@ -39,9 +39,31 @@ export const PARSER_VERSIONS = {
 	"stryker-json": "1.0.0",
 	"pmd-xml": "1.0.0",
 	"cpd-xml": "1.0.0",
+	"eslint-json": "1.0.0",
+	"jscpd-json": "1.0.0",
 } as const;
 
 export const MAX_FAILURES = 50;
+
+/** How many findings one report gives; past it, the rest is counted and named in a note. */
+const MAX_QUALITY_FINDINGS = 1000;
+
+/** What the findings of a quality analyser come to: FAIL on any of them, bounded and counted past the bound, PASS on none. */
+export function judgedQualityFindings(
+	facts: Record<string, unknown>,
+	findings: readonly ParsedFinding[],
+): ParsedReport {
+	return {
+		verdict: findings.length > 0 ? "FAIL" : "PASS",
+		facts: { ...facts, findings: findings.length },
+		notes:
+			findings.length > MAX_QUALITY_FINDINGS
+				? [`${findings.length} findings reduced to the first ${MAX_QUALITY_FINDINGS}`]
+				: [],
+		failures: [],
+		findings: findings.slice(0, MAX_QUALITY_FINDINGS),
+	};
+}
 
 /** Verdict from the incident dimension only: timeout, spawn error, signal. */
 export function incidentOf(obs: ProcessObservation): string | null {

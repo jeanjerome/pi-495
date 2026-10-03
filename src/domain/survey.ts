@@ -91,6 +91,8 @@ const PARSER_NATURES: Record<ParserId, Nature | null> = {
 	"stryker-json": "mutation",
 	"pmd-xml": "style",
 	"cpd-xml": "style",
+	"eslint-json": "style",
+	"jscpd-json": "style",
 };
 
 /** The words a requirement's category is read on, tried in this order. */

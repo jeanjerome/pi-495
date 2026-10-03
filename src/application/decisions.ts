@@ -399,56 +399,87 @@ const ADOPT_COMPLEMENT = {
 	},
 } as const;
 
-/** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the plugin it resolves. */
+/** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the plugin it resolves or the packages it installs. */
 export interface ReferentialOffer {
 	stack: string;
-	install: PackageInstall;
+	installs: readonly PackageInstall[];
 }
+
+/** Whether a referential is brought by npm packages installed in a copy, rather than by a Maven plugin resolved there. */
+const installedByNpm = ({ installs }: ReferentialOffer): boolean =>
+	installs.every((install) => install.manager === "npm");
 
 const stackName = (stack: string): string => `${stack.charAt(0).toUpperCase()}${stack.slice(1)}`;
 
 /**
  * IH-04 asked on a survey whose quality requirement no control measures while the adapter proposes a
- * referential that would: the owner adopts it, which resolves its plugin in a copy, or leaves the
- * requirement a blind spot. Nothing is prepared and nothing is assigned: a survey writes nothing.
+ * referential that would: the owner adopts it, which resolves its plugin or installs its packages in a
+ * copy, or leaves the requirement a blind spot. Nothing is prepared and nothing is assigned: a survey
+ * writes nothing.
  */
 const REFERENTIAL_ADOPTION = {
-	fr: (requirements: string, { stack, install }: ReferentialOffer) => ({
-		question: `Aucun contrôle ne mesure ${requirements}. Adopter le référentiel de qualité proposé pour ${stackName(stack)} ?`,
-		options: [
-			{
-				id: "adopt_referential",
-				label: `Adopter le référentiel (déclare ${installedName(install)} dans une copie du POM et le résout, réseau ouvert pour cette seule étape)`,
-				effect: `495 déclare ${installedName(install)} dans une copie du POM et résout le greffon avec Maven, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml ; rien n'est écrit dans le projet. Le référentiel est gelé dans le protocole avec la date de cette décision, et l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par Maven. La réponse tombe si les exigences sont révisées.`,
-				risky: true,
-			},
-			{
-				id: "leave_blind_spot",
-				label: "Laisser l'exigence en angle mort",
-				effect:
-					"Rien n'est résolu et le réseau reste fermé ; l'état des lieux nomme l'exigence comme angle mort, parce que le référentiel proposé n'a pas été adopté. La réponse tombe si les exigences sont révisées.",
-				risky: false,
-			},
-		],
-	}),
-	en: (requirements: string, { stack, install }: ReferentialOffer) => ({
-		question: `No control measures ${requirements}. Adopt the quality referential proposed for ${stackName(stack)}?`,
-		options: [
-			{
-				id: "adopt_referential",
-				label: `Adopt the referential (declares ${installedName(install)} in a copy of the POM and resolves it, network open for that step alone)`,
-				effect: `495 declares ${installedName(install)} in a copy of the POM and resolves the plugin with Maven, opening the network for that step alone and running no goal of the plugin; the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml; nothing is written in the project. The referential is frozen in the protocol with the date of this decision, and the survey measures the requirement with it. If the resolution fails, nothing is adopted and the requirement stays a blind spot with the reason Maven gave. The answer lapses if the requirements are revised.`,
-				risky: true,
-			},
-			{
-				id: "leave_blind_spot",
-				label: "Leave the requirement a blind spot",
-				effect:
-					"Nothing is resolved and the network stays closed; the survey names the requirement as a blind spot, because the proposed referential was not adopted. The answer lapses if the requirements are revised.",
-				risky: false,
-			},
-		],
-	}),
+	fr: (requirements: string, offer: ReferentialOffer) => {
+		const names = installedNames(offer.installs);
+		const npm = installedByNpm(offer);
+		return {
+			question: `Aucun contrôle ne mesure ${requirements}. Adopter le référentiel de qualité proposé pour ${stackName(offer.stack)} ?`,
+			options: [
+				{
+					id: "adopt_referential",
+					label: npm
+						? `Adopter le référentiel (installe ${names} dans une copie, réseau ouvert pour cette seule étape)`
+						: `Adopter le référentiel (déclare ${names} dans une copie du POM et le résout, réseau ouvert pour cette seule étape)`,
+					effect: `${
+						npm
+							? `495 installe ${names} comme dépendances de développement exactes dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation ; la copie est inspectée et l'installation n'est acceptée que si elle ne modifie que package.json, package-lock.json et node_modules/ ; rien n'est écrit dans le projet.`
+							: `495 déclare ${names} dans une copie du POM et résout le greffon avec Maven, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml ; rien n'est écrit dans le projet.`
+					} Le référentiel est gelé dans le protocole avec la date de cette décision, et l'état des lieux mesure l'exigence avec lui. ${
+						npm
+							? "Si l'installation échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par npm."
+							: "Si la résolution échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par Maven."
+					} La réponse tombe si les exigences sont révisées.`,
+					risky: true,
+				},
+				{
+					id: "leave_blind_spot",
+					label: "Laisser l'exigence en angle mort",
+					effect: `${npm ? "Rien n'est installé" : "Rien n'est résolu"} et le réseau reste fermé ; l'état des lieux nomme l'exigence comme angle mort, parce que le référentiel proposé n'a pas été adopté. La réponse tombe si les exigences sont révisées.`,
+					risky: false,
+				},
+			],
+		};
+	},
+	en: (requirements: string, offer: ReferentialOffer) => {
+		const names = installedNames(offer.installs);
+		const npm = installedByNpm(offer);
+		return {
+			question: `No control measures ${requirements}. Adopt the quality referential proposed for ${stackName(offer.stack)}?`,
+			options: [
+				{
+					id: "adopt_referential",
+					label: npm
+						? `Adopt the referential (installs ${names} in a copy, network open for that step alone)`
+						: `Adopt the referential (declares ${names} in a copy of the POM and resolves it, network open for that step alone)`,
+					effect: `${
+						npm
+							? `495 installs ${names} as exact development dependencies in a copy of the project, opening the network for that step alone and running no install script; the copy is inspected and the install is accepted only if it changes nothing but package.json, package-lock.json and node_modules/; nothing is written in the project.`
+							: `495 declares ${names} in a copy of the POM and resolves the plugin with Maven, opening the network for that step alone and running no goal of the plugin; the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml; nothing is written in the project.`
+					} The referential is frozen in the protocol with the date of this decision, and the survey measures the requirement with it. ${
+						npm
+							? "If the install fails, nothing is adopted and the requirement stays a blind spot with the reason npm gave."
+							: "If the resolution fails, nothing is adopted and the requirement stays a blind spot with the reason Maven gave."
+					} The answer lapses if the requirements are revised.`,
+					risky: true,
+				},
+				{
+					id: "leave_blind_spot",
+					label: "Leave the requirement a blind spot",
+					effect: `${npm ? "Nothing is installed" : "Nothing is resolved"} and the network stays closed; the survey names the requirement as a blind spot, because the proposed referential was not adopted. The answer lapses if the requirements are revised.`,
+					risky: false,
+				},
+			],
+		};
+	},
 } as const;
 
 /**

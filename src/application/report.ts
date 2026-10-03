@@ -102,10 +102,15 @@ export interface EngineeringReport {
 	residual_risks: ResidualRisk[];
 }
 
-/** The module whose measured source root holds `path`, the deepest when roots nest; null when none does. */
+/**
+ * The module whose measured source root holds `path`, the deepest when roots nest; null when none does.
+ * The root `.` is the tree itself, which holds every path.
+ */
 function moduleOf(path: string | null, measured: QualityPerimeter["measured"]): string | null {
 	if (path === null) return null;
-	const roots = measured.filter((m) => path.startsWith(m.root)).sort((a, b) => b.root.length - a.root.length);
+	const roots = measured
+		.filter((m) => m.root === "." || path.startsWith(m.root))
+		.sort((a, b) => b.root.length - a.root.length);
 	return roots[0]?.module ?? null;
 }
 

@@ -15,10 +15,11 @@ import { FakeMavenControls, FakeMavenSandbox, type MavenMode } from "./fake-mave
 import { fixtureJava, writeFiles } from "./fixtures.ts";
 import { makeHarness, specReport, trackedProject, type TestHarness } from "./harness-fixture.ts";
 
-const QUESTION = "quel est l'état de la qualité du code ?";
+export const QUALITY_QUESTION = "quel est l'état de la qualité du code ?";
 
-const spec = specReport({
-	objective: QUESTION,
+/** One requirement about the quality of the code, as the model answers the question with. */
+export const QUALITY_SPEC = specReport({
+	objective: QUALITY_QUESTION,
 	requirements: [
 		{
 			requirement_id: "QLT-01",
@@ -194,7 +195,7 @@ interface SurveyOptions {
 	report?: SpecificationReport;
 }
 
-function surveyHarness({ mode = "resolves", clock, report = spec }: SurveyOptions): {
+function surveyHarness({ mode = "resolves", clock, report = QUALITY_SPEC }: SurveyOptions): {
 	t: TestHarness;
 	maven: FakeMavenSandbox;
 } {
@@ -216,7 +217,7 @@ export async function surveyed(project: string, options: SurveyOptions = {}) {
 	const { t, maven } = surveyHarness(options);
 	const { change } = await t.harness.start({
 		project_path: project,
-		request_text: QUESTION,
+		request_text: QUALITY_QUESTION,
 		actor: HUMAN,
 		deliverable: "state",
 	});

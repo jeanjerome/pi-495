@@ -64,7 +64,8 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 		assert.match(offer.rules[0]!.source, /pmd-doc-7\.17\.0\/pmd_rules_java_design\.html#cyclomaticcomplexity$/);
 		assert.match(offer.rules[2]!.source, /pmd-doc-7\.17\.0\/pmd_rules_java_bestpractices\.html#unusedprivatemethod$/);
 
-		const recommendation = offer.recommendation;
+		const [recommendation] = offer.recommendations;
+		assert.ok(recommendation, "the referential is brought by one recommendation");
 		assert.deepEqual(validate(RecommendedComplement, recommendation), recommendation);
 		assert.equal(recommendation.tool, "org.apache.maven.plugins:maven-pmd-plugin");
 		assert.equal(recommendation.version, "3.28.0");
@@ -87,8 +88,9 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 		const project = mavenProject("adopted-pmd");
 		const offer = detectStack(project, REFS, NODE).quality_referential;
 		assert.equal(offer?.kind, "proposed");
-		if (offer?.kind !== "proposed" || !offer.recommendation.edit) return;
-		const pom = editedFile(project, offer.recommendation.edit);
+		const edit = offer?.kind === "proposed" ? offer.recommendations[0]?.edit : undefined;
+		if (edit === undefined) return;
+		const pom = editedFile(project, edit);
 		assert.ok(pom !== null, "the edit applies to the POM of the project");
 		writeFileSync(join(project, "pom.xml"), pom);
 

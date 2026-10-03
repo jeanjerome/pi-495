@@ -478,19 +478,21 @@ function qualityOffer(projectPath: string, declaration: PmdDeclaration, reactor:
 		kind: "proposed",
 		rules: PMD_REFERENTIAL,
 		perimeter: qualityPerimeter(reactor),
-		recommendation: withPluginEdit(
-			projectPath,
-			{
-				test_type: "quality",
-				tool: "org.apache.maven.plugins:maven-pmd-plugin",
-				version: PMD_PLUGIN_VERSION,
-				established_on: QUALITY_REFERENTIAL_DATE,
-				source: "maven.apache.org/plugins/maven-pmd-plugin/",
-				change: `in a copy of the POM, declare maven-pmd-plugin outside any profile with the rule set named by the property ${PMD_RULESET_PROPERTY}, which 495 writes from the frozen protocol at each run`,
-			},
-			"maven-pmd-plugin",
-			PMD_DECLARATION,
-		),
+		recommendations: [
+			withPluginEdit(
+				projectPath,
+				{
+					test_type: "quality",
+					tool: "org.apache.maven.plugins:maven-pmd-plugin",
+					version: PMD_PLUGIN_VERSION,
+					established_on: QUALITY_REFERENTIAL_DATE,
+					source: "maven.apache.org/plugins/maven-pmd-plugin/",
+					change: `in a copy of the POM, declare maven-pmd-plugin outside any profile with the rule set named by the property ${PMD_RULESET_PROPERTY}, which 495 writes from the frozen protocol at each run`,
+				},
+				"maven-pmd-plugin",
+				PMD_DECLARATION,
+			),
+		],
 	};
 }
 

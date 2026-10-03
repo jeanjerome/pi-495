@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { RequirementRef } from "../contracts/v1/evidence.ts";
+import type { InstalledPackage } from "../contracts/v1/protocol.ts";
 import { MAVEN_ADAPTER } from "./stacks/maven.ts";
 import { NODE_ADAPTER } from "./stacks/node.ts";
 import type { StackAdapter, StackDetection } from "./stacks/stack.ts";
@@ -21,10 +22,11 @@ export function detectStack(
 	projectPath: string,
 	requirementRefs: RequirementRef[],
 	nodeBinary = process.execPath,
+	referentialPackages: readonly InstalledPackage[] = [],
 	adapters: readonly StackAdapter[] = STACK_ADAPTERS,
 ): StackDetection {
 	const adapter = adapters.find((a) => a.signal_files.some((file) => existsSync(join(projectPath, file))));
-	if (adapter) return adapter.detect(projectPath, requirementRefs, nodeBinary);
+	if (adapter) return adapter.detect(projectPath, requirementRefs, nodeBinary, referentialPackages);
 	const expected = adapters.flatMap((a) => a.signal_files).join(" or ");
 	return {
 		stack: "unknown",

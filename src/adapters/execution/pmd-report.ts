@@ -12,13 +12,11 @@ import {
 	buildErrors,
 	incidentOf,
 	incidentReport,
+	judgedQualityFindings,
 	parseReport,
 	type ParsedFinding,
 	type ParsedReport,
 } from "./parsers.ts";
-
-/** How many findings one report gives; past it, the rest is counted and named in a note. */
-const MAX_QUALITY_FINDINGS = 1000;
 
 interface QualityReport {
 	/** What the report is, as a note names it. */
@@ -124,15 +122,7 @@ function readQualityReports(
 		notes.push(...read.notes);
 	}
 	if (notes.length > 0) return { verdict: "INDETERMINATE", facts, notes, failures: [] };
-	if (findings.length > MAX_QUALITY_FINDINGS)
-		notes.push(`${findings.length} findings reduced to the first ${MAX_QUALITY_FINDINGS}`);
-	return {
-		verdict: findings.length > 0 ? "FAIL" : "PASS",
-		facts: { ...facts, findings: findings.length },
-		notes,
-		failures: [],
-		findings: findings.slice(0, MAX_QUALITY_FINDINGS),
-	};
+	return judgedQualityFindings(facts, findings);
 }
 
 /** PMD's XML report: one finding per violation, with its rule, its file and its line. */

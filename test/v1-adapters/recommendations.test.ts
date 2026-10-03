@@ -394,7 +394,7 @@ describe("A technology declares its own recommendations", () => {
 		};
 		const project = join(root, "rust");
 		writeFiles(project, { "Cargo.toml": "[package]" });
-		assert.deepEqual(detectStack(project, REFS, NODE, [cargo]).recommendations, [recommendation]);
+		assert.deepEqual(detectStack(project, REFS, NODE, [], [cargo]).recommendations, [recommendation]);
 		assert.deepEqual(detectStack(project, REFS, NODE).recommendations, [], "no central table knows the technology");
 	});
 });

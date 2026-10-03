@@ -34,7 +34,7 @@ const cleanups = removedAfterEach();
 
 describe("planning the install of a recommended package", () => {
 	it("given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command", () => {
-		const plan = planInstall([...BASE_FILES, "package-lock.json"], INSTALL);
+		const plan = planInstall([...BASE_FILES, "package-lock.json"], [INSTALL]);
 		assert.deepEqual(plan, {
 			kind: "command",
 			command: [
@@ -48,16 +48,16 @@ describe("planning the install of a recommended package", () => {
 				"@vitest/coverage-v8@3.2.4",
 			],
 		});
-		assert.deepEqual(planInstall([...BASE_FILES, "package-lock.json", ".npmrc"], INSTALL), plan);
+		assert.deepEqual(planInstall([...BASE_FILES, "package-lock.json", ".npmrc"], [INSTALL]), plan);
 		for (const lock of ["pnpm-lock.yaml", "yarn.lock", "bun.lock"]) {
-			const refused = planInstall([...BASE_FILES, lock], INSTALL);
+			const refused = planInstall([...BASE_FILES, lock], [INSTALL]);
 			assert.equal(refused.kind, "refused", lock);
 			assert.match(refused.kind === "refused" ? refused.reason : "", new RegExp(lock.replace(".", "\\.")), lock);
 		}
-		const noLock = planInstall(BASE_FILES, INSTALL);
+		const noLock = planInstall(BASE_FILES, [INSTALL]);
 		assert.equal(noLock.kind, "refused");
 		assert.match(noLock.kind === "refused" ? noLock.reason : "", /no package-lock\.json/);
-		assert.equal(planInstall([...BASE_FILES, "package-lock.json", "yarn.lock"], INSTALL).kind, "refused");
+		assert.equal(planInstall([...BASE_FILES, "package-lock.json", "yarn.lock"], [INSTALL]).kind, "refused");
 	});
 });
 
@@ -118,7 +118,7 @@ function refusalOf(result: ReturnType<typeof inspectInstall>): string {
 
 describe("inspecting what an install left in the copy", () => {
 	it("given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit", () => {
-		const accepted = inspectInstall(BEFORE, AFTER, INSTALL);
+		const accepted = inspectInstall(BEFORE, AFTER, [INSTALL]);
 		assert.deepEqual(accepted, {
 			kind: "accepted",
 			files: [
@@ -135,15 +135,15 @@ describe("inspecting what an install left in the copy", () => {
 		});
 
 		const modified = { ...AFTER, files: { ...AFTER.files, "node_modules/vitest/package.json": "sha256:changed" } };
-		assert.match(refusalOf(inspectInstall(BEFORE, modified, INSTALL)), /node_modules\/vitest\/package\.json/);
+		assert.match(refusalOf(inspectInstall(BEFORE, modified, [INSTALL])), /node_modules\/vitest\/package\.json/);
 
 		const removed = { ...AFTER, files: { ...AFTER.files } };
 		delete (removed.files as Record<string, string>)["node_modules/vitest/package.json"];
-		assert.match(refusalOf(inspectInstall(BEFORE, removed, INSTALL)), /node_modules\/vitest\/package\.json/);
+		assert.match(refusalOf(inspectInstall(BEFORE, removed, [INSTALL])), /node_modules\/vitest\/package\.json/);
 
 		for (const path of ["src/index.ts", "scripts/postinstall.sh"]) {
 			const outside = { ...AFTER, files: { ...AFTER.files, [path]: "sha256:written" } };
-			assert.match(refusalOf(inspectInstall(BEFORE, outside, INSTALL)), new RegExp(path.replace(".", "\\.")), path);
+			assert.match(refusalOf(inspectInstall(BEFORE, outside, [INSTALL])), new RegExp(path.replace(".", "\\.")), path);
 		}
 
 		const another = {
@@ -153,19 +153,19 @@ describe("inspecting what an install left in the copy", () => {
 				devDependencies: { vitest: "3.2.4", [PROVIDER]: "3.2.4", "left-pad": "1.3.0" },
 			}),
 		};
-		assert.match(refusalOf(inspectInstall(BEFORE, another, INSTALL)), /left-pad/);
+		assert.match(refusalOf(inspectInstall(BEFORE, another, [INSTALL])), /left-pad/);
 
 		const ranged = {
 			...AFTER,
 			package_json: JSON.stringify({ name: "target", devDependencies: { vitest: "3.2.4", [PROVIDER]: "^3.2.4" } }),
 		};
-		assert.match(refusalOf(inspectInstall(BEFORE, ranged, INSTALL)), /\^3\.2\.4/);
+		assert.match(refusalOf(inspectInstall(BEFORE, ranged, [INSTALL])), /\^3\.2\.4/);
 
 		const scripted = {
 			...AFTER,
 			package_json: JSON.stringify({ ...JSON.parse(PACKAGE_JSON_AFTER), scripts: { test: "x" } }),
 		};
-		assert.match(refusalOf(inspectInstall(BEFORE, scripted, INSTALL)), /scripts/);
+		assert.match(refusalOf(inspectInstall(BEFORE, scripted, [INSTALL])), /scripts/);
 	});
 });
 
@@ -174,13 +174,85 @@ describe("what npm rewrites of its own bookkeeping", () => {
 		const hidden = "node_modules/.package-lock.json";
 		const before = { ...BEFORE, files: { ...BEFORE.files, [hidden]: "sha256:hidden0" } };
 		const after = { ...AFTER, files: { ...AFTER.files, [hidden]: "sha256:hidden1" } };
-		const result = inspectInstall(before, after, INSTALL);
+		const result = inspectInstall(before, after, [INSTALL]);
 		assert.equal(result.kind, "accepted", result.kind === "refused" ? result.reason : "");
 		assert.ok(result.kind === "accepted" && result.files.includes(hidden));
 		assert.ok(
 			result.kind === "accepted" && !result.files.includes("node_modules/vitest/package.json"),
 			"a file the install left as it was is not listed",
 		);
+	});
+});
+
+describe("what npm prunes of the packages the lock did not name", () => {
+	it("given an install that removed the files of packages the lock did not name, top-level, scoped or nested, then it is accepted, and given one that removed a file of a scoped package the lock named or changed a file of a package the lock did not name, then it refuses naming that file", () => {
+		const stray = [
+			"node_modules/stray/index.js",
+			"node_modules/@scope/stray/index.js",
+			"node_modules/vitest/node_modules/stray/index.js",
+		];
+		const before = {
+			...BEFORE,
+			files: { ...BEFORE.files, ...Object.fromEntries(stray.map((path) => [path, "sha256:stray"])) },
+		};
+		const pruned = inspectInstall(before, AFTER, [INSTALL]);
+		assert.equal(pruned.kind, "accepted", pruned.kind === "refused" ? pruned.reason : "");
+		assert.ok(
+			pruned.kind === "accepted" && stray.every((path) => !pruned.files.includes(path)),
+			"a pruned file is not a file to keep",
+		);
+		const changed = { ...AFTER, files: { ...AFTER.files, "node_modules/stray/index.js": "sha256:changed" } };
+		assert.match(refusalOf(inspectInstall(before, changed, [INSTALL])), /node_modules\/stray\/index\.js/);
+
+		const kept = "node_modules/@scope/kept/index.js";
+		const lockedBefore = {
+			...BEFORE,
+			files: { ...BEFORE.files, [kept]: "sha256:kept" },
+			package_lock: JSON.stringify({
+				lockfileVersion: 3,
+				packages: {
+					...JSON.parse(LOCK_BEFORE).packages,
+					"node_modules/@scope/kept": { version: "1.0.0", integrity: "sha512-kept" },
+				},
+			}),
+		};
+		assert.match(refusalOf(inspectInstall(lockedBefore, AFTER, [INSTALL])), /node_modules\/@scope\/kept\/index\.js/);
+	});
+
+	it("given a package-lock.json in lockfileVersion 1 that names vitest under dependencies and tinyspy under vitest, then an install that removes node_modules/vitest/index.js, or node_modules/vitest/node_modules/tinyspy/index.js, is refused naming that file, and given a package-lock.json that carries neither packages nor dependencies, then removing a file under node_modules is refused naming that file", () => {
+		const top = "node_modules/vitest/index.js";
+		const nested = "node_modules/vitest/node_modules/tinyspy/index.js";
+		const before = {
+			...BEFORE,
+			files: { ...BEFORE.files, [top]: "sha256:top", [nested]: "sha256:nested" },
+			package_lock: JSON.stringify({
+				lockfileVersion: 1,
+				dependencies: {
+					vitest: {
+						version: "3.2.4",
+						integrity: "sha512-vitest",
+						dependencies: { tinyspy: { version: "4.0.3", integrity: "sha512-tinyspy" } },
+					},
+				},
+			}),
+		};
+		for (const removed of [top, nested]) {
+			const kept = Object.fromEntries(
+				Object.entries({ ...AFTER.files, [top]: "sha256:top", [nested]: "sha256:nested" }).filter(
+					([path]) => path !== removed,
+				),
+			);
+			const reason = refusalOf(inspectInstall(before, { ...AFTER, files: kept }, [INSTALL]));
+			assert.match(reason, new RegExp(removed.replaceAll(".", "\\.")), removed);
+		}
+
+		const stray = "node_modules/stray/index.js";
+		const unnamed = {
+			...BEFORE,
+			files: { ...BEFORE.files, [stray]: "sha256:stray" },
+			package_lock: JSON.stringify({ name: "target", lockfileVersion: 2 }),
+		};
+		assert.match(refusalOf(inspectInstall(unnamed, AFTER, [INSTALL])), /node_modules\/stray\/index\.js/);
 	});
 });
 
@@ -232,7 +304,7 @@ class RecordingSandbox implements SandboxPort {
 
 describe("running the install in the copy", () => {
 	it("given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network", async () => {
-		const plan = planInstall([...BASE_FILES, "package-lock.json"], INSTALL);
+		const plan = planInstall([...BASE_FILES, "package-lock.json"], [INSTALL]);
 		assert.equal(plan.kind, "command");
 		const command = plan.kind === "command" ? plan.command : [];
 		const sandbox = new RecordingSandbox("/machine/npm-cache");
@@ -292,7 +364,7 @@ describe("planning the resolution of a Maven plugin, reading where Maven keeps i
 		result.kind === "refused" ? result.reason : `accepted: ${JSON.stringify(result)}`;
 
 	it("given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it", () => {
-		const plan = planInstall(["pom.xml", "src/main/java/A.java"], MAVEN_INSTALL);
+		const plan = planInstall(["pom.xml", "src/main/java/A.java"], [MAVEN_INSTALL]);
 		assert.equal(plan.kind, "command", plan.kind === "refused" ? plan.reason : "");
 		const command = plan.kind === "command" ? plan.command : [];
 		assert.equal(command[0], "mvn");
@@ -308,7 +380,7 @@ describe("planning the resolution of a Maven plugin, reading where Maven keeps i
 			command.every((part) => !part.includes("jacoco")),
 			"no goal of the adopted plugin is run",
 		);
-		assert.deepEqual(planInstall(["pom.xml", "package-lock.json", "yarn.lock"], MAVEN_INSTALL), plan);
+		assert.deepEqual(planInstall(["pom.xml", "package-lock.json", "yarn.lock"], [MAVEN_INSTALL]), plan);
 
 		assert.equal(
 			readLocalRepository(
@@ -377,7 +449,7 @@ class RecordingMavenSandbox implements SandboxPort {
 }
 
 describe("running the resolution in the copy", () => {
-	const plan = planInstall(["pom.xml"], MAVEN_INSTALL);
+	const plan = planInstall(["pom.xml"], [MAVEN_INSTALL]);
 	const command = plan.kind === "command" ? plan.command : [];
 
 	it("given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network", async () => {
@@ -423,7 +495,7 @@ describe("the reason a resolution that fails gives", () => {
 	const jvmWarning =
 		"WARNING: A terminally deprecated method in sun.misc.Unsafe has been called\nWARNING: Please consider reporting this to the maintainers";
 	const announcement = "[DEBUG] Using local repository at /machine/m2/repository\n";
-	const mavenCommand = planInstall(["pom.xml"], MAVEN_INSTALL);
+	const mavenCommand = planInstall(["pom.xml"], [MAVEN_INSTALL]);
 	const command = mavenCommand.kind === "command" ? mavenCommand.command : [];
 
 	const reasonOf = async (sandbox: SandboxPort, failing: readonly string[]): Promise<string> => {

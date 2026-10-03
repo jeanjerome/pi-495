@@ -14,7 +14,9 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
  * the mutation report Stryker writes and judges the mutants sitting on the lines the candidate wrote,
  * as `pitest-xml` does (VER-04). `pmd-xml` reads the violations of the frozen quality rules in the
  * report PMD writes, and `cpd-xml` the duplicated blocks in the report of its duplication detector;
- * both judge the whole tree. Each is native to its ecosystem, behind the one finding envelope.
+ * both judge the whole tree. `eslint-json` reads the messages of the JSON report ESLint writes, and
+ * `jscpd-json` the duplicated blocks of the JSON report of jscpd; both judge the whole tree too. Each is
+ * native to its ecosystem, behind the one finding envelope.
  */
 export const PARSER_IDS = [
 	"exit-code",
@@ -28,6 +30,8 @@ export const PARSER_IDS = [
 	"stryker-json",
 	"pmd-xml",
 	"cpd-xml",
+	"eslint-json",
+	"jscpd-json",
 ] as const;
 export type ParserId = (typeof PARSER_IDS)[number];
 
@@ -55,7 +59,7 @@ export const RULESET_PLACEHOLDER = "{ruleset}";
  * by the findings sitting in the witnesses' own files, so a defect the target already carries does
  * not stand for the witness, in either direction.
  */
-const LOCATED_PARSER_IDS = ["pmd-xml", "cpd-xml"] as const;
+const LOCATED_PARSER_IDS = ["pmd-xml", "cpd-xml", "eslint-json", "jscpd-json"] as const;
 
 export function judgesWitnessesByLocation(parser: ParserId): boolean {
 	return (LOCATED_PARSER_IDS as readonly string[]).includes(parser);
@@ -334,6 +338,11 @@ export const AdoptedComplement = Type.Object(
 	{
 		path: Type.String({ minLength: 1 }),
 		digest: Digest,
+		/**
+		 * The mode an install gave the file, written with it into every copy a control runs in. Absent from a
+		 * file an edit wrote, or from a complement frozen before modes were kept: it is written with the default mode.
+		 */
+		mode: Type.Optional(Type.String({ pattern: "^[0-7]{6}$" })),
 		test_type: Type.String({ minLength: 1 }),
 		tool: Type.String({ minLength: 1 }),
 	},

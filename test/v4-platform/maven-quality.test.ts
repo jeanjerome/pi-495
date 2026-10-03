@@ -34,7 +34,7 @@ describe("PMD and CPD on a Maven project that already violates the referential",
 		const offer = detectStack(project, [{ requirement_id: "QLT-01", revision: 1 }]).quality_referential;
 		assert.equal(offer?.kind, "proposed");
 		if (offer?.kind !== "proposed") return;
-		const edit = offer.recommendation.edit;
+		const edit = offer.recommendations[0]?.edit;
 		assert.ok(edit, "the recommendation carries the declaration of the plugin");
 
 		// The copy where the controls run declares the plugin; the project itself is never written.

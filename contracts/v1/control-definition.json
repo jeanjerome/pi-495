@@ -77,7 +77,9 @@
         "pitest-xml",
         "stryker-json",
         "pmd-xml",
-        "cpd-xml"
+        "cpd-xml",
+        "eslint-json",
+        "jscpd-json"
       ]
     },
     "report_path": {

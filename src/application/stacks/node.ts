@@ -3,24 +3,39 @@
  * anything. The suite runs under `node --test` unless `scripts.test` declares vitest, mocha or jest
  * run without an argument, each read through the report it writes. A declared lint script becomes a
  * control of its own, refused rather than guessed when it needs a shell. A `scripts.test` that names
- * a runner 495 cannot read leaves no control at all, lint included, so the change stops on that
- * runner rather than freezing a protocol without it. A target that asks its runner for coverage
- * receives a control that judges the lines a change introduces from the LCOV report the runner
- * writes; one that does not is told so instead (QLT-04). A target that installed Stryker
+ * a runner 495 cannot read leaves no control at all, lint included, and offers no quality referential,
+ * so the change stops on that runner rather than freezing a protocol without it. A target that asks
+ * its runner for coverage receives a control that judges the lines a change introduces from the LCOV
+ * report the runner writes; one that does not is told so instead (QLT-04). A target that installed Stryker
  * receives a control that judges the mutants of the lines a change introduces; one that did not is
- * recommended to (VER-04).
+ * recommended to (VER-04). A target that declares neither ESLint nor jscpd is offered a quality
+ * referential that installs both in a copy (QLT-01); one that declares either is told why not. In a copy
+ * where the adopted install put the referential, and there alone, ESLint and jscpd are the quality controls.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SCOPE_PLACEHOLDER, type ControlDefinition, type RecommendedComplement } from "../../contracts/v1/protocol.ts";
+import {
+	RULESET_PLACEHOLDER,
+	SCOPE_PLACEHOLDER,
+	type ControlDefinition,
+	type InstalledPackage,
+	type QualityPerimeter,
+	type QualityRule,
+	type RecommendedComplement,
+} from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import { baseControl, emptyTrigger, type StackAdapter, type StackDetection } from "./stack.ts";
+import { baseControl, emptyTrigger, type QualityOffer, type StackAdapter, type StackDetection } from "./stack.ts";
 
 export const NODE_ADAPTER: StackAdapter = { stack: "node", signal_files: ["package.json"], detect: detectNodeStack };
 
-function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection {
+function detectNodeStack(
+	projectPath: string,
+	requirementRefs: RequirementRef[],
+	nodeBinary: string,
+	referentialPackages: readonly InstalledPackage[],
+): StackDetection {
 	const pkgPath = join(projectPath, "package.json");
-	let pkg: { scripts?: Record<string, unknown> } = {};
+	let pkg: PackageManifest = {};
 	try {
 		pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as typeof pkg;
 	} catch {
@@ -55,6 +70,10 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		? mutationOutcome(projectPath, suite.runner, suite.control, requirementRefs, nodeBinary)
 		: {};
 	if (mutation.control) controls.push(mutation.control);
+	// Nor is a quality referential offered then: the analysers its adoption would install could never be
+	// declared, and a project that declares one itself would see it installed over its own.
+	const analysers = suite.refusal ? null : analyserDeclaration(pkg, referentialPackages);
+	if (analysers?.by === "495") controls.push(...qualityControls(requirementRefs, nodeBinary));
 	const witnesses = suite.runner ? witnessesOf(suite.runner, projectPath) : nodeTestWitnesses();
 	const measured =
 		suite.runner && (suite.coverage?.control || mutation.control) ? moduleWitnesses(suite.runner, projectPath) : null;
@@ -62,12 +81,13 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 		stack: "node",
 		facts: { scripts: Object.keys(scripts), has_test_dir: existsSync(join(projectPath, "test")) },
 		controls,
-		lint_control_ids: lint.command ? ["lint"] : [],
+		lint_control_ids: [...(lint.command ? ["lint"] : []), ...(analysers?.by === "495" ? ["eslint", "jscpd"] : [])],
 		positive_witness: { ...witnesses.positive, ...measured?.positive },
 		witness_tests: measured ? 2 : 1,
 		own_negative_witness: {
 			...(suite.coverage?.control && measured ? { coverage: measured.uncovered } : {}),
 			...(mutation.control && measured ? { mutation: measured.unasserted } : {}),
+			...(analysers?.by === "495" ? QUALITY_NEGATIVE_WITNESSES : {}),
 		},
 		negative_witness: { ...witnesses.negative, "src/495-negative-witness.js": "var forbidden = 1;\n" },
 		preparation_paths: ["test/", "tests/"],
@@ -75,8 +95,292 @@ function detectNodeStack(projectPath: string, requirementRefs: RequirementRef[],
 			? [suite.refusal]
 			: [...(suite.coverage?.missing ?? []), ...(mutation.missing ?? []), ...(lint.refusal ? [lint.refusal] : [])],
 		recommendations: [suite.coverage?.recommendation, mutation.recommendation].filter((r) => r !== undefined),
+		...(analysers ? { quality_referential: qualityOffer(pkg, analysers) } : {}),
 	};
 }
+
+/** What the adapter reads of a `package.json`: its scripts, and the dependencies it declares. */
+interface PackageManifest {
+	scripts?: Record<string, unknown>;
+	dependencies?: Record<string, unknown>;
+	devDependencies?: Record<string, unknown>;
+	optionalDependencies?: Record<string, unknown>;
+	peerDependencies?: Record<string, unknown>;
+}
+
+/** Every package `package.json` declares, whatever the kind of dependency, sorted. */
+function declaredPackages(pkg: PackageManifest): string[] {
+	const maps = [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies, pkg.peerDependencies];
+	return [...new Set(maps.flatMap((map) => (map && typeof map === "object" ? Object.keys(map) : [])))].sort();
+}
+
+/** The date the ESLint and jscpd referential below was checked against the packages it cites. */
+const QUALITY_REFERENTIAL_DATE = "2026-10-03";
+const ESLINT_VERSION = "10.12.0";
+const JSCPD_VERSION = "5.4.0";
+const ESLINT = `ESLint ${ESLINT_VERSION}`;
+const JSCPD = `jscpd ${JSCPD_VERSION}`;
+
+/** Where each ESLint rule is documented: the page the rule's own metadata names in ESLint 10.12.0. */
+const eslintRuleSource = (rule: string): string => `eslint.org/docs/latest/rules/${rule}`;
+
+/** The quality referential of a Node target: each threshold is the default its analyser documents, none is chosen here. */
+const NODE_QUALITY_REFERENTIAL: QualityRule[] = [
+	{
+		rule_id: "complexity",
+		nature: "complexity",
+		control_id: "eslint",
+		reference: "complexity",
+		threshold: "a function whose cyclomatic complexity is more than 20",
+		properties: { max: "20" },
+		tool: ESLINT,
+		source: eslintRuleSource("complexity"),
+		established_on: QUALITY_REFERENTIAL_DATE,
+	},
+	...(["no-unused-vars", "no-unused-private-class-members"] as const).map(
+		(rule): QualityRule => ({
+			rule_id: rule,
+			nature: "dead_code",
+			control_id: "eslint",
+			reference: rule,
+			threshold: "any occurrence",
+			properties: {},
+			tool: ESLINT,
+			source: eslintRuleSource(rule),
+			established_on: QUALITY_REFERENTIAL_DATE,
+		}),
+	),
+	{
+		rule_id: "jscpd",
+		nature: "duplication",
+		control_id: "jscpd",
+		reference: null,
+		threshold: "a duplicated block of at least 50 tokens and 5 lines",
+		properties: { minTokens: "50", minLines: "5" },
+		tool: JSCPD,
+		source: `www.npmjs.com/package/jscpd/v/${JSCPD_VERSION}`,
+		established_on: QUALITY_REFERENTIAL_DATE,
+	},
+];
+
+/**
+ * What ESLint and jscpd read in the package, as the referential runs them: the whole package as one
+ * module, and not its TypeScript and JSX sources for ESLint, which reads them only through a parser of
+ * its own, nor the packages it declares, nor a format jscpd is not given. No marker of generated code is
+ * declared for Node, so nothing tells generated code apart.
+ */
+function nodeQualityPerimeter(pkg: PackageManifest): QualityPerimeter {
+	return {
+		measured: [{ module: ".", root: "." }],
+		generated_annotations: [],
+		unmeasured: [
+			{
+				subject: "TypeScript and JSX sources (.ts, .tsx, .mts, .cts, .jsx)",
+				reason: `${ESLINT} reads only .js, .mjs and .cjs files without a dedicated parser, so their complexity and dead code are not measured`,
+			},
+			...declaredPackages(pkg).map((subject) => ({
+				subject,
+				reason: "a declared dependency, installed under node_modules/ outside the tree ESLint and jscpd analyse",
+			})),
+			{
+				subject: "files in a format other than JavaScript and TypeScript",
+				reason: `${JSCPD} is given the JavaScript and TypeScript formats only, so their duplication is not measured`,
+			},
+			{
+				subject: "the separation of generated code",
+				reason: "no marker of generated code is declared for Node, so every violation is counted as proprietary code",
+			},
+		],
+	};
+}
+
+/** The analysers of the referential as a project may declare them itself, by package and by name. */
+const QUALITY_ANALYSERS = [
+	{ package: "eslint", name: "ESLint", version: ESLINT_VERSION },
+	{ package: "jscpd", name: "jscpd", version: JSCPD_VERSION },
+] as const;
+
+/** Who declares the analysers in the package: nobody, 495 in a copy where the adopted referential was installed, or the project itself. */
+type AnalyserDeclaration =
+	| { by: "nobody" }
+	| { by: "495" }
+	| { by: "project"; analyser: (typeof QUALITY_ANALYSERS)[number] };
+
+/**
+ * Only the adopted install says the referential was installed in this copy, by the packages it added: a
+ * package that pins the same versions and installed them itself configures them itself, like any package
+ * that declares either analyser.
+ */
+function analyserDeclaration(
+	pkg: PackageManifest,
+	referentialPackages: readonly InstalledPackage[],
+): AnalyserDeclaration {
+	const installed = QUALITY_ANALYSERS.every((analyser) =>
+		referentialPackages.some((p) => p.name === analyser.package && p.version === analyser.version),
+	);
+	if (installed) return { by: "495" };
+	const declared = declaredPackages(pkg);
+	const own = QUALITY_ANALYSERS.find((analyser) => declared.includes(analyser.package));
+	return own === undefined ? { by: "nobody" } : { by: "project", analyser: own };
+}
+
+/**
+ * The quality referential offered to a target whose `package.json` declares neither analyser, with the
+ * install of each in a copy; a target that declares one configures it itself, and its rules are not
+ * replaced by these.
+ */
+function qualityOffer(pkg: PackageManifest, declaration: AnalyserDeclaration): QualityOffer {
+	if (declaration.by === "project")
+		return {
+			kind: "not_proposed",
+			note: `the project declares ${declaration.analyser.name} itself (${declaration.analyser.package} is a dependency in package.json): 495 proposes no quality referential of its own (QLT-01)`,
+		};
+	return {
+		kind: "proposed",
+		rules: NODE_QUALITY_REFERENTIAL,
+		perimeter: nodeQualityPerimeter(pkg),
+		recommendations: QUALITY_ANALYSERS.map((analyser) => ({
+			test_type: "quality",
+			tool: analyser.package,
+			version: analyser.version,
+			established_on: QUALITY_REFERENTIAL_DATE,
+			source: `www.npmjs.com/package/${analyser.package}/v/${analyser.version}`,
+			change: `in a copy, install ${analyser.package} ${analyser.version} as an exact devDependency, running no install script`,
+			install: { package: analyser.package, version: analyser.version, manager: "npm" },
+		})),
+	};
+}
+
+/**
+ * Where a runner writes its JUnit report, and an analyser its own. `target/` is excluded from every
+ * snapshot by default, so the copy has none: the directory itself is what the control declares writable,
+ * because the runner creates the parent of its output file and the sandbox refuses to create a directory
+ * it did not open.
+ */
+const REPORT_DIRECTORY = "target";
+
+/** Where ESLint writes its JSON report, and where jscpd writes its own. */
+const ESLINT_REPORT_PATH = `${REPORT_DIRECTORY}/495-eslint.json`;
+const JSCPD_OUTPUT = `${REPORT_DIRECTORY}/495-jscpd`;
+
+/** The source formats jscpd is given: JavaScript and TypeScript, with and without JSX. */
+const JSCPD_FORMATS = "javascript,jsx,typescript,tsx";
+
+/** The ESLint rules of the referential as its `--rule` option takes them: each at error, with the options its threshold needs. */
+function eslintRules(rules: readonly QualityRule[]): string {
+	const entries = rules.flatMap((rule) => {
+		if (rule.reference === null) return [];
+		const options = Object.entries(rule.properties).map(([name, value]) => [name, Number(value)] as const);
+		return [[rule.reference, options.length === 0 ? "error" : ["error", Object.fromEntries(options)]] as const];
+	});
+	return JSON.stringify(Object.fromEntries(entries));
+}
+
+/**
+ * The controls of the referential, once it was installed in the copy they run in: one per analyser, each
+ * run from the copy's `node_modules` and never from the host's PATH, with the network closed, applying the
+ * rules of the referential it is the oracle of. ESLint looks up no configuration and is given its rules on
+ * its command line; jscpd reads the configuration the runner writes from the frozen rules instead of a
+ * `.jscpd.json` of the tree, ignores what a `.gitignore` leaves out, and reads JavaScript and TypeScript
+ * outside `node_modules/` only.
+ */
+function qualityControls(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition[] {
+	const rulesOf = (controlId: string) => NODE_QUALITY_REFERENTIAL.filter((rule) => rule.control_id === controlId);
+	const control = (
+		controlId: "eslint" | "jscpd",
+		title: string,
+		command: string[],
+		reportPath: string,
+	): ControlDefinition => ({
+		...baseControl(requirementRefs),
+		control_id: controlId,
+		title,
+		command: [nodeBinary, ...command],
+		timeout_ms: 10 * 60_000,
+		parser: controlId === "eslint" ? "eslint-json" : "jscpd-json",
+		report_path: reportPath,
+		quality_rules: rulesOf(controlId),
+		provides: [],
+		writable_paths: [REPORT_DIRECTORY],
+		protected_paths: ["package.json", "node_modules/"],
+	});
+	return [
+		control(
+			"eslint",
+			"violations of the frozen quality rules, read from the ESLint report",
+			[
+				"node_modules/eslint/bin/eslint.js",
+				"--no-config-lookup",
+				"--rule",
+				eslintRules(rulesOf("eslint")),
+				// A package with no JavaScript file is one ESLint has nothing to read in, not a failure to read it.
+				"--no-error-on-unmatched-pattern",
+				"--format",
+				"json",
+				"--output-file",
+				ESLINT_REPORT_PATH,
+				".",
+			],
+			ESLINT_REPORT_PATH,
+		),
+		control(
+			"jscpd",
+			"duplicated blocks, read from the jscpd report",
+			[
+				"node_modules/jscpd/run-jscpd.js",
+				"--config",
+				RULESET_PLACEHOLDER,
+				"--format",
+				JSCPD_FORMATS,
+				"--ignore",
+				"**/node_modules/**",
+				"--no-gitignore",
+				"--reporters",
+				"json",
+				"--output",
+				JSCPD_OUTPUT,
+				"--silent",
+				".",
+			],
+			`${JSCPD_OUTPUT}/jscpd-report.json`,
+		),
+	];
+}
+
+/** Twenty conditions on top of the function itself: a cyclomatic complexity of 21, one above the threshold. */
+const COMPLEX_WITNESS = `export function witness495Grade(a, b, c) {
+  let r = 0;
+${Array.from({ length: 20 }, (_, i) => `  if (${["a", "b", "c"][i % 3]} > ${Math.floor(i / 3)}) r++;`).join("\n")}
+  return r;
+}
+`;
+
+/** A block of more than 50 tokens over more than 5 lines that only its twin witness repeats. */
+const DUPLICATE_WITNESS = `export function witness495Checksum(samples) {
+  let witness495Sum = 17;
+  for (let k = 0; k < samples.length; k++) {
+    if (samples[k] % 3 === 1) {
+      witness495Sum = witness495Sum * 31 + samples[k];
+    } else {
+      witness495Sum = witness495Sum * 37 - samples[k] / 5;
+    }
+  }
+  return witness495Sum;
+}
+`;
+
+/**
+ * The trees that carry the defects the quality controls claim to detect (VER-05): a function above the
+ * complexity threshold for ESLint, and a block two witness modules repeat for jscpd. The project may
+ * already carry both; a witness is judged by the findings in its own files.
+ */
+const QUALITY_NEGATIVE_WITNESSES: Record<string, Record<string, string>> = {
+	eslint: { "src/witness495/complex.mjs": COMPLEX_WITNESS },
+	jscpd: {
+		"src/witness495/duplicate-a.mjs": DUPLICATE_WITNESS,
+		"src/witness495/duplicate-b.mjs": DUPLICATE_WITNESS,
+	},
+};
 
 type SuiteRunner = "node-test" | "vitest" | "mocha" | "jest";
 
@@ -240,13 +544,6 @@ function suiteOf(
 		refusal: `scripts.test runs ${command}, whose output 495 cannot read: only node --test, vitest, mocha and jest are read`,
 	};
 }
-
-/**
- * Where a runner writes its JUnit report. `target/` is excluded from every snapshot by default, so the
- * copy has none: the directory itself is what the control declares writable, because the runner creates
- * the parent of its output file and the sandbox refuses to create a directory it did not open.
- */
-const REPORT_DIRECTORY = "target";
 
 function nodeTestControl(requirementRefs: RequirementRef[], nodeBinary: string): ControlDefinition {
 	return {

@@ -5,6 +5,7 @@
  */
 import type {
 	ControlDefinition,
+	InstalledPackage,
 	QualityPerimeter,
 	QualityRule,
 	RecommendedComplement,
@@ -45,22 +46,30 @@ export interface StackDetection {
 
 /**
  * A quality referential offered for adoption, with what its analysers read and leave aside and the
- * recommendation that brings them into a copy of the target; or the note that says why none is offered,
- * when the target configures that analyser itself and its own rules are not 495's to replace.
+ * recommendations that bring them into a copy of the target, one per analyser package; or the note that
+ * says why none is offered, when the target configures that analyser itself and its own rules are not
+ * 495's to replace.
  */
 export type QualityOffer =
-	| { kind: "proposed"; rules: QualityRule[]; perimeter: QualityPerimeter; recommendation: RecommendedComplement }
+	| { kind: "proposed"; rules: QualityRule[]; perimeter: QualityPerimeter; recommendations: RecommendedComplement[] }
 	| { kind: "not_proposed"; note: string };
 
 /**
  * A technology, as the registry sees it: the identifier of its stack, the files at a project root
  * that signal it, and the detection it answers with. Adding a technology is one module that
- * declares its adapter and one line in the list of `target.ts`.
+ * declares its adapter and one line in the list of `target.ts`. `referentialPackages` are the packages
+ * the adopted install of the quality referential put in the copy at `projectPath`, as its lock names
+ * them; empty anywhere else, so a manifest alone never stands for that install.
  */
 export interface StackAdapter {
 	stack: string;
 	signal_files: readonly string[];
-	detect(projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection;
+	detect(
+		projectPath: string,
+		requirementRefs: RequirementRef[],
+		nodeBinary: string,
+		referentialPackages: readonly InstalledPackage[],
+	): StackDetection;
 }
 
 /** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */
