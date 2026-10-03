@@ -1259,33 +1259,6 @@ bugs:
     follow_ups: >
       Store the document only once the kernel has accepted the program, or record the refusal with the document it read.
     status: open
-  - bug_id: BUG-2026-10-03T193000
-    date: "2026-10-03"
-    title: "PMD is never qualified on a project that already carries more than 1000 violations, so a survey of exactly the legacy project a remediation targets is refused with a misleading reason"
-    severity: medium
-    priority: p2
-    scope: application
-    what_happened: >
-      The PMD and CPD readers keep the first 1000 findings of a report (`MAX_QUALITY_FINDINGS`,
-      `src/adapters/execution/parsers.ts`). `witnessFindings` in `src/application/qualification.ts` judges the negative
-      witness failed only when one of the kept findings sits in a file the witness wrote. On a project whose own
-      violations fill the first 1000, the witness's violation is cut, the negative witness is read as passing, pmd is not
-      qualified, and G2 refuses the survey with a reason about the sensor, not about the truncation.
-    what_expected: >
-      The witnesses are judged on the whole report, or a truncation that could hide a witness's finding is named as such.
-    steps_to_reproduce:
-      - "Take a Maven project whose sources carry more than 1000 PMD violations, adopt the quality referential and ask for a quality survey."
-      - "The pmd control is not qualified at G2, although PMD detects the negative witness's violation."
-    root_cause: >
-      The witness judgement reads the truncated finding list, while the total count is kept only as a note.
-    evidence: >
-      Named by the automated arbitration of e10s05 from its acceptance run, as predating the branch; the cut and the
-      judgement are read in `parsers.ts:49-64` and `qualification.ts:89-104`.
-    risk_level: medium
-    follow_ups: >
-      Judge the witnesses before truncating, or keep every finding located in a witness file, with a test on a report of
-      more than 1000 findings whose witness finding comes last.
-    status: open
   - bug_id: BUG-2026-10-03T193100
     date: "2026-10-03"
     title: "In a French status, the explanation of a program's milestone stays in English"
