@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: two surveys of one dossier on the same tree
+    # Subtest: deux états des lieux d'un dossier sur le même arbre mesurent chacun le projet : après le refus de A, B inscrit ses preuves, propose son survey et attend IH-10, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une mesure pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+    not ok 1 - deux états des lieux d'un dossier sur le même arbre mesurent chacun le projet : après le refus de A, B inscrit ses preuves, propose son survey et attend IH-10, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une mesure pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+      ---
+      duration_ms: 895.970667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vVa2dO/test/v2-kernel/survey-key-per-change.test.ts:79:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no step of B names OPERATION_ACTIVE: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> verifying/ready | verifying: OPERATION_ACTIVE operation op_0023 already holds the idempotency key survey:sha256:692e45f4fabdd1a4cc0f0b8aa6d45ab5ecb1c11461edda6bcd20d7556f85f1f4:23; op_0053 would run the same verification a second time
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vVa2dO/test/v2-kernel/survey-key-per-change.test.ts:91:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - two surveys of one dossier on the same tree
+  ---
+  duration_ms: 896.678291
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vVa2dO/test/v2-kernel/survey-key-per-change.test.ts:78:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1083.714458
