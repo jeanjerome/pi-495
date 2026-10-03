@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "PMD est qualifié sur un réacteur dont un module dépend d'un autre (Given : ses greffons résolus) ; Sécurité",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/installation.ts",
+    "ligne": 31,
+    "constat": "La résolution de l'adoption (`dependency:resolve-plugins`) ne rapatrie pas le skin `maven-fluido-skin` que `pmd:pmd` et `pmd:cpd` demandent pour générer leur rapport. Sur un dépôt local vide, les deux buts sortent donc en 1 hors ligne (« The skin does not exist … offline mode »), avec ou sans `compile`. Le test de plateforme ne le voit pas, parce qu'il réutilise le `~/.m2` de la machine où ce skin est déjà présent. En revanche, la phase `compile` que la branche ajoute n'appelle que des greffons que `resolve-plugins` a rapatriés : sondé sur un dépôt local neuf, une fois le seul skin copié, `mvn -o compile pmd:pmd` sort en 0, et les classes sont écrites sous `infrastructure/target/classes`.",
+    "mutation": "Aucune. C'est une sonde jetable : `resolve-plugins` avec `-Dmaven.repo.local` vide, puis `mvn -o compile pmd:pmd|pmd:cpd` sur le même dépôt."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code, et chacune est tenue par le test `test/v4-platform/maven-quality-reactor.test.ts`. J'ai lancé ce test seul : il passe en 14 s, sous Seatbelt. (1) Mutation : retrait de `compile` dans la commande des contrôles (src/application/stacks/maven.ts:513). Le test échoue sur pmd : [INDETERMINATE, INDETERMINATE, false], avec les notes « Could not resolve dependencies … demo-domain ». C'est le rouge que la story décrit. (2) Mutation propre à CPD : `-DminimumTokens=100000`. Le test échoue : « negative witness gave PASS » pour cpd. (3) Mutation dans pmd-report.ts : ligne lue décalée de un (`beginline + 1`). Le test échoue : il ne trouve plus `UnusedPrivateMethod infrastructure/…/UserCache.java:10` et lit `:11`. Sécurité : la branche ne change ni les `writable_paths` (les répertoires `target` des modules) ni les `protected_paths`, et le réseau reste fermé. Sur un dépôt local neuf, la compilation n'a besoin d'aucun greffon que `resolve-plugins` n'ait rapatrié. Un seul constat, antérieur et à peser : le skin que demande le rapport PMD/CPD n'est pas rapatrié par la résolution de l'adoption. Aucun constat introduit ou rendu atteignable n'est bloquant ni à corriger. Les mutations ont été remises et les fichiers de sonde supprimés : l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "CPD est qualifié sur le même réacteur",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 513,
+    "constat": "CPD is qualified on the reactor even without `compile`: `pmd:cpd` does not resolve the module dependencies. For CPD, `compile` only adds a build step the promise does not need. The command test still holds the new command line exactly.",
+    "mutation": "Restored the cpd command alone to `mvn -B -q -o pmd:cpd -DminimumTokens=100`: maven-quality-reactor.test.ts stays green (cpd PASS/FAIL/qualified); quality-referential.test.ts fails on the command."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "PMD est qualifié sur un réacteur dont un module dépend d'un autre",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/installation.ts",
+    "ligne": 37,
+    "constat": "Probe on an empty local repository: the adoption's `resolve-plugins` fetches every plugin the offline `compile` uses (domain and infrastructure compile, classes only under target/). But `pmd:pmd` then fails offline on the skin `org.apache.maven.skins:maven-fluido-skin:2.0.0-M9`, which that resolution does not fetch. The platform tests pass only because ~/.m2 already holds the skin. This predates the branch and concerns the pmd goal, not the build step added here."
+   }
+  ],
+  "resume": "All three promises hold in the code, and a test holds each one. Scenario 1 (pmd on the reactor): removing `compile` from the command fails maven-quality-reactor.test.ts. Both witnesses come back INDETERMINATE with 'Could not resolve dependencies … io.demo:demo-domain', and quality-referential.test.ts fails on the command. Scenario 2 (cpd): the platform test asserts PASS/FAIL/qualified, and the command test holds `compile` in the command line. CPD does not need `compile` to qualify (B1-1, a_peser). Scenario 3: the same platform test asserts the reference verdict is FAIL and that it carries `UnusedPrivateMethod infrastructure/…/UserCache.java:<line>`. Shifting the PMD line by one makes it fail. Security: the Seatbelt backend allows writes only to writable_paths (the target directories) and temp. On an empty local repository, `resolve-plugins` brings in the plugins that the offline `compile` uses, and the classes land under target/ only. A skin that `pmd:pmd` needs offline is not fetched, which predates the branch (B1-2). No finding is bloquant or à corriger. All mutations were reverted; the tree is clean."
+ }
+]

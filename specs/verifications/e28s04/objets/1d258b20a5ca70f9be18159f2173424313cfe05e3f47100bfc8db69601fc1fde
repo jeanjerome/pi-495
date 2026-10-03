@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: PMD and CPD on a Maven reactor where one module depends on another
+    # Subtest: sur un réacteur Maven dont le module infrastructure dépend du module domain, pmd et cpd sont qualifiés par leurs témoins, aucune note ne nomme une dépendance non résolue, et la passe de pmd sur la référence rapporte UnusedPrivateMethod dans le module infrastructure à la ligne de la méthode
+    not ok 1 - sur un réacteur Maven dont le module infrastructure dépend du module domain, pmd et cpd sont qualifiés par leurs témoins, aucune note ne nomme une dépendance non résolue, et la passe de pmd sur la référence rapporte UnusedPrivateMethod dans le module infrastructure à la ligne de la méthode
+      ---
+      duration_ms: 5203.136458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jLVVfc/test/v4-platform/maven-quality-reactor.test.ts:61:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        pmd: ["positive witness gave INDETERMINATE: the analyser exited with 1: Parsing failed in ParseLock#doParse() of ClassStub:java/lang/String; Parsing failed in ParseLock#doParse() of ClassStub:java/lang/Object; Failed to execute goal on project demo-infrastructure: Could not resolve dependencies for project io.demo:demo-infrastructure:jar:1.0.0","negative witness gave INDETERMINATE: the control does not detect the defect it claims to cover; the analyser exited with 1: Parsing failed in ParseLock#doParse() of ClassStub:java/lang/String; Parsing failed in ParseLock#doParse() of ClassStub:java/lang/Object; Failed to execute goal on project demo-infrastructure: Could not resolve dependencies for project io.demo:demo-infrastructure:jar:1.0.0"]
+        + actual - expected
+        
+          [
+        +   'INDETERMINATE',
+        +   'INDETERMINATE',
+        +   false
+        -   'PASS',
+        -   'FAIL',
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+        2: true
+      actual:
+        0: 'INDETERMINATE'
+        1: 'INDETERMINATE'
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jLVVfc/test/v4-platform/maven-quality-reactor.test.ts:133:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - PMD and CPD on a Maven reactor where one module depends on another
+  ---
+  duration_ms: 5203.911542
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jLVVfc/test/v4-platform/maven-quality-reactor.test.ts:57:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5996.731792
