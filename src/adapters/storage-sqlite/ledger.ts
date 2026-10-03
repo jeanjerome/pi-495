@@ -267,7 +267,8 @@ export class SqliteLedger implements LedgerPort {
 	 * a key unique across the whole database. An integration's key names the candidate and the
 	 * destination head it starts from: a second integration of the same candidate onto the same head —
 	 * from a reloaded extension, a forked conversation — is refused here rather than applying the
-	 * effect twice. A verification's key names the revision it starts from, so a second session that
+	 * effect twice. A verification's key names the change and the revision it starts from: another
+	 * change of the dossier whose candidate is identical derives another key, and a second session that
 	 * read the same revision is refused by the revision check before its key is read.
 	 */
 	private projectOperation(changeId: string, event: ChangeEvent): void {

@@ -293,9 +293,9 @@ describe("Pi session lifecycle: reload, fork, and operations that must not run t
 		const first = new SqliteLedger(path);
 		const { revision, digest } = frozen(first);
 		first.bindSession({ session_id: "s1", cwd: "/p", program_id: "prg_1", change_id: "chg_1", bound_at: "t" });
-		// The key names the work, not the session: the candidate and the revision its verification starts
-		// from. Once an operation holds it, an append under it is refused whichever handle makes it.
-		const key = `verify:${digest}:${revision}`;
+		// The key names the work, not the session: the change, the candidate and the revision its verification
+		// starts from. Once an operation holds it, an append under it is refused whichever handle makes it.
+		const key = `verify:chg_1:${digest}:${revision}`;
 		const afterOpen = first.appendChange("chg_1", revision, [opened("op_v1", key, "verification")], {
 			correlation_id: "cor_s1",
 		});
