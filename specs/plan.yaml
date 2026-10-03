@@ -339,7 +339,7 @@ epics:
       - { id: e10s03, status: "versée", title: "Le référentiel et l'état des lieux d'une cible Node" }
       - { id: e10s04, status: "versée", title: "Un programme à plusieurs incréments se conduit depuis Pi jusqu'à son jalon" }
       - { id: e10s05, status: "versée", title: "Les écarts de l'état des lieux deviennent des incréments priorisés" }
-      - { id: e10s06, status: "à faire", title: "La conformité n'est annoncée que dans le périmètre contrôlé, et une exception a un propriétaire et une échéance" }
+      - { id: e10s06, status: "versée", title: "La conformité n'est annoncée que dans le périmètre contrôlé, et une exception a un propriétaire et une échéance" }
 
   - id: e11
     title: "Architecture cible d'une cible"
