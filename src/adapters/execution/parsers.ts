@@ -48,10 +48,15 @@ export const MAX_FAILURES = 50;
 /** How many findings one report gives; past it, the rest is counted and named in a note. */
 const MAX_QUALITY_FINDINGS = 1000;
 
-/** What the findings of a quality analyser come to: FAIL on any of them, bounded and counted past the bound, PASS on none. */
+/**
+ * What the findings of a quality analyser come to: FAIL on any of them, bounded and counted past the
+ * bound, PASS on none. A finding `introduced` names is kept past the bound: what the run itself wrote
+ * is judged on the whole report, however many findings the tree already carries before it.
+ */
 export function judgedQualityFindings(
 	facts: Record<string, unknown>,
 	findings: readonly ParsedFinding[],
+	introduced: (finding: ParsedFinding) => boolean = () => false,
 ): ParsedReport {
 	return {
 		verdict: findings.length > 0 ? "FAIL" : "PASS",
@@ -61,7 +66,7 @@ export function judgedQualityFindings(
 				? [`${findings.length} findings reduced to the first ${MAX_QUALITY_FINDINGS}`]
 				: [],
 		failures: [],
-		findings: findings.slice(0, MAX_QUALITY_FINDINGS),
+		findings: [...findings.slice(0, MAX_QUALITY_FINDINGS), ...findings.slice(MAX_QUALITY_FINDINGS).filter(introduced)],
 	};
 }
 

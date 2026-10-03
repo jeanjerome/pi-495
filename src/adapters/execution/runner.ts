@@ -37,6 +37,7 @@ import {
 	parseJUnit,
 	parseNodeTestTap,
 	MAX_REPORT_BYTES,
+	type ParsedFinding,
 	type ParsedReport,
 } from "./parsers.ts";
 import { parseEslintJson, parseJscpdJson } from "./eslint-jscpd-report.ts";
@@ -286,8 +287,19 @@ export class GenericControlRunner implements ControlExecutionPort {
 								name: `report:${d.name}`,
 								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml"),
 							});
-						const read = control.parser === "pmd-xml" ? parsePmdXml : parseCpdXml;
-						report = read(observation, docs, `${stdoutText}\n${stderrText}`);
+						// A PMD finding on a line the run introduced, a witness's own included, is kept past the
+						// bound of a report, however many findings the tree already carries; one on an older line of
+						// an edited file is bounded as the reference run bounds it.
+						const introduced = invocation.introduced_lines ?? {};
+						const onIntroducedLine = (f: ParsedFinding) => {
+							const { path, region } = locate(relativize(f.message, ...roots));
+							return path !== null && region !== null && (introduced[path] ?? []).includes(region.start_line);
+						};
+						const output = `${stdoutText}\n${stderrText}`;
+						report =
+							control.parser === "pmd-xml"
+								? parsePmdXml(observation, docs, output, onIntroducedLine)
+								: parseCpdXml(observation, docs, output);
 						break;
 					}
 					case "eslint-json":

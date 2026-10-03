@@ -81,6 +81,7 @@ function readQualityReports(
 	obs: ProcessObservation,
 	documents: readonly { name: string; text: string }[],
 	output: string,
+	introduced?: (finding: ParsedFinding) => boolean,
 ): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) return incidentReport(obs, incident);
@@ -122,7 +123,7 @@ function readQualityReports(
 		notes.push(...read.notes);
 	}
 	if (notes.length > 0) return { verdict: "INDETERMINATE", facts, notes, failures: [] };
-	return judgedQualityFindings(facts, findings);
+	return judgedQualityFindings(facts, findings, introduced);
 }
 
 /** PMD's XML report: one finding per violation, with its rule, its file and its line. */
@@ -130,8 +131,9 @@ export function parsePmdXml(
 	obs: ProcessObservation,
 	documents: readonly { name: string; text: string }[],
 	output: string,
+	introduced: (finding: ParsedFinding) => boolean,
 ): ParsedReport {
-	return readQualityReports(PMD_REPORT, obs, documents, output);
+	return readQualityReports(PMD_REPORT, obs, documents, output, introduced);
 }
 
 /** CPD's XML report: one finding per duplicated block, naming the file and line of each of its places. */
