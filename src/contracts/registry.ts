@@ -24,6 +24,7 @@ import {
 	RequirementsDocument,
 	StructureRule,
 } from "./v1/protocol.ts";
+import { TrajectoryDocument } from "./v1/trajectory.ts";
 
 /** Every published contract, keyed by its short name. Used to emit `contracts/v1/*.json`. */
 export const CONTRACTS: Record<string, TSchema> = {
@@ -56,4 +57,5 @@ export const CONTRACTS: Record<string, TSchema> = {
 	mandate: Mandate,
 	design: Design,
 	"harness-config": HarnessConfigFile,
+	trajectory: TrajectoryDocument,
 };

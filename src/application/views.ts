@@ -1,5 +1,5 @@
 import type { ChangeState } from "../domain/change/state.ts";
-import type { ProgramState } from "../domain/program/program.ts";
+import type { IncrementStatus, ProgramState } from "../domain/program/program.ts";
 
 /** Canonical status projection shared by every Pi entry (AT-07, UX-03). */
 export interface StatusView {
@@ -8,7 +8,21 @@ export interface StatusView {
 		program_id: string;
 		title: string;
 		project_path: string;
-		increments: { increment_id: string; title: string; status: string }[];
+		increments: { increment_id: string; title: string; status: IncrementStatus }[];
+		/** Each milestone with its latest evaluation, or null before the program evaluated it. */
+		milestones: {
+			milestone_id: string;
+			title: string;
+			final: boolean;
+			evaluation: {
+				verdict: string;
+				satisfied: string[];
+				remaining: string[];
+				indeterminate: string[];
+				integrated_digest: string | null;
+			} | null;
+		}[];
+		closed: boolean;
 	} | null;
 	change: {
 		change_id: string;
@@ -91,6 +105,22 @@ function nextActionOf(s: ChangeState): string {
 	}
 }
 
+function latestEvaluation(
+	program: ProgramState,
+	milestoneId: string,
+): NonNullable<StatusView["program"]>["milestones"][number]["evaluation"] {
+	const e = program.milestone_evaluations.findLast((x) => x.milestone_id === milestoneId);
+	return e
+		? {
+				verdict: e.verdict,
+				satisfied: e.satisfied,
+				remaining: e.remaining,
+				indeterminate: e.indeterminate,
+				integrated_digest: e.integrated_digest,
+			}
+		: null;
+}
+
 export function statusView(
 	program: ProgramState | null,
 	change: ChangeState | null,
@@ -109,6 +139,13 @@ export function statusView(
 						title: i.title,
 						status: i.status,
 					})),
+					milestones: program.milestones.map((m) => ({
+						milestone_id: m.milestone_id,
+						title: m.title,
+						final: m.final,
+						evaluation: latestEvaluation(program, m.milestone_id),
+					})),
+					closed: program.closed,
 				}
 			: null,
 		change: change

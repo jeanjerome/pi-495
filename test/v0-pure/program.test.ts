@@ -7,6 +7,7 @@ import {
 	dependentsOf,
 	findCycle,
 	replayProgram,
+	type GlobalRequirement,
 	type IncrementSpec,
 	type ProgramState,
 } from "../../src/domain/program/program.ts";
@@ -66,6 +67,7 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 			actor: HUMAN,
 			increments: [inc("A", ["B"]), inc("B", ["C"]), inc("C", ["A"])],
 			milestones: [],
+			global_requirements: [],
 			reason: "init",
 		});
 		assert.equal(d.ok, false);
@@ -89,6 +91,7 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 				inc("C", ["A"]),
 			],
 			milestones: [],
+			global_requirements: [],
 			reason: "init",
 		});
 		assert.deepEqual(
@@ -136,6 +139,7 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 			actor: HUMAN,
 			increments: [inc("A"), inc("B")],
 			milestones: [],
+			global_requirements: [],
 			reason: "init",
 		});
 		p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: "A", change_id: "chg_a" });
@@ -152,12 +156,21 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 			actor: HUMAN,
 			increments: [inc("A"), inc("B", ["A"])],
 			milestones: [],
+			global_requirements: [],
 			reason: "init",
 		});
 		p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: "A", change_id: "chg_a" });
 		p.run({ type: "increment.result", at: tick(), actor: KERNEL, increment_id: "A", status: "accepted", note: null });
 		p.fail(
-			{ type: "trajectory.adopt", at: tick(), actor: HUMAN, increments: [inc("B")], milestones: [], reason: "drop A" },
+			{
+				type: "trajectory.adopt",
+				at: tick(),
+				actor: HUMAN,
+				increments: [inc("B")],
+				milestones: [],
+				global_requirements: [],
+				reason: "drop A",
+			},
 			"PRECONDITION_FAILED",
 		);
 		p.run({
@@ -166,6 +179,7 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 			actor: HUMAN,
 			increments: [inc("A"), inc("B", ["A"]), inc("D", ["A"])],
 			milestones: [],
+			global_requirements: [],
 			reason: "add D",
 		});
 		assert.equal(p.state!.trajectory_revision, 2);
@@ -185,6 +199,7 @@ describe("program DAG (SA-006, SA-007, RM-006, RM-009)", () => {
 				actor: { ...HUMAN, actor_type: "agent", origin: "model_output" },
 				increments: [inc("A")],
 				milestones: [],
+				global_requirements: [],
 				reason: "x",
 			},
 			"POLICY_DENIED",
@@ -209,6 +224,7 @@ describe("milestones (SA-038, RM-007, RM-008, PRG-05)", () => {
 					final: true,
 				},
 			],
+			global_requirements: [],
 			reason: "init",
 		});
 		for (const id of ["A", "B"]) {
@@ -255,6 +271,7 @@ describe("milestones (SA-038, RM-007, RM-008, PRG-05)", () => {
 			milestones: [
 				{ milestone_id: "M1", title: "m", increment_ids: ["A"], global_requirement_ids: ["E2E"], final: false },
 			],
+			global_requirements: [],
 			reason: "init",
 		});
 		p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: "A", change_id: "c" });
@@ -268,5 +285,63 @@ describe("milestones (SA-038, RM-007, RM-008, PRG-05)", () => {
 			integrated_digest: `sha256:${"a".repeat(64)}`,
 		});
 		assert.equal(p.state!.milestone_evaluations[0]!.verdict, "FAIL");
+	});
+});
+
+describe("exigences globales d'une trajectoire (PRG-03)", () => {
+	const trajectory = (global_requirements: GlobalRequirement[], milestoneGlobals: string[] = []) => ({
+		type: "trajectory.adopt" as const,
+		at: tick(),
+		actor: HUMAN,
+		increments: [inc("A"), inc("B", ["A"], { requirement_ids: ["R1"] }), inc("C", ["A"], { requirement_ids: ["R1"] })],
+		milestones: [
+			{
+				milestone_id: "M1",
+				title: "final",
+				increment_ids: ["A", "B", "C"],
+				global_requirement_ids: milestoneGlobals,
+				final: true,
+			},
+		],
+		global_requirements,
+		reason: "init",
+	});
+	it("une trajectoire qui déclare une exigence globale R2 affectée ni à un incrément, ni à une vérification de jalon, ni à une décision de périmètre est refusée en nommant R2", () => {
+		const p = new P().create();
+		const d = decideProgram(
+			p.state,
+			trajectory([
+				{ requirement_id: "R1", scope_decision: null },
+				{ requirement_id: "R2", scope_decision: null },
+			]),
+		);
+		assert.equal(d.ok, false, "a trajectory declaring R2 assigned to nothing is refused");
+		if (!d.ok) {
+			assert.equal(d.error.code, "PRECONDITION_FAILED");
+			assert.match(
+				d.error.message,
+				/global requirement R2 is assigned neither to an increment, nor to a milestone verification, nor to a scope decision/,
+			);
+			assert.doesNotMatch(d.error.message, /R1/);
+		}
+		assert.equal(p.state?.trajectory_revision, 0);
+	});
+	it("une exigence globale écartée par une décision de périmètre avec sa raison, ou vérifiée par un jalon, est adoptée et l'événement d'adoption la porte avec sa décision", () => {
+		const p = new P().create();
+		const globals = [
+			{ requirement_id: "R1", scope_decision: null },
+			{ requirement_id: "R2", scope_decision: { reason: "the legacy export is retired with the next release" } },
+			{ requirement_id: "R3", scope_decision: null },
+		];
+		p.run(trajectory(globals, ["R3"]));
+		const adopted = p.events.find((e) => e.type === "trajectory.adopted");
+		assert.ok(adopted && adopted.type === "trajectory.adopted");
+		assert.deepEqual(adopted.global_requirements, globals);
+		assert.deepEqual(adopted.milestones[0]!.global_requirement_ids, ["R3"]);
+		assert.deepEqual(p.state!.global_requirements, globals);
+		const blank = new P().create();
+		const d = decideProgram(blank.state, trajectory([{ requirement_id: "R2", scope_decision: { reason: "  " } }]));
+		assert.equal(d.ok, false, "a scope decision without its reason does not set R2 aside");
+		if (!d.ok) assert.match(d.error.message, /R2/);
 	});
 });

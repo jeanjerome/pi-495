@@ -10,7 +10,16 @@
  * on the failure of a step, and records what an entry point asks of it: a decision, a verification,
  * a pause, a resume, a cancellation, a question closed or revoked.
  */
-import type { ActorRef, EnvironmentRef, HumanInteraction, Phase, StopReason } from "../contracts/v1/common.ts";
+import type { ReferenceSnapshot } from "../contracts/v1/candidate.ts";
+import type {
+	ActorRef,
+	ArtifactRef,
+	EnvironmentRef,
+	HumanInteraction,
+	Outcome,
+	Phase,
+	StopReason,
+} from "../contracts/v1/common.ts";
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
@@ -29,7 +38,14 @@ import {
 import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
-import { decideProgram, type ProgramCommand, type ProgramState } from "../domain/program/program.ts";
+import {
+	applyProgram,
+	decideProgram,
+	nextIncrement,
+	type ProgramCommand,
+	type ProgramEvent,
+	type ProgramState,
+} from "../domain/program/program.ts";
 import type { Survey } from "../domain/survey.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
@@ -63,6 +79,7 @@ import { askedLocalRepository, runInstall, type InstallRun } from "./installatio
 import type { Clock, IdSource } from "./ids.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
+import { incrementRequest, readTrajectory } from "./trajectory.ts";
 import { openReview as openReviewOf } from "./review.ts";
 
 export interface HarnessDeps {
@@ -92,6 +109,20 @@ export interface StartArgs {
 	language?: "fr" | "en";
 	/** A candidate an agent writes, by default, or the state of the project measured on the reference. */
 	deliverable?: Deliverable;
+}
+
+export interface AdoptArgs {
+	project_path: string;
+	/** The trajectory document as read, checked against its contract before anything is written. */
+	trajectory: unknown;
+	actor: ActorRef;
+	language?: "fr" | "en";
+}
+
+export interface StartNextArgs {
+	program_id: string;
+	actor: ActorRef;
+	language?: "fr" | "en";
 }
 
 export interface AdvanceResult {
@@ -135,6 +166,15 @@ const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string)
 	reviewing: review,
 	deciding: decidePhase,
 	integrating: integrate,
+};
+
+/** What a change's close makes of the increment it conducts: a change rejected or cancelled blocks it. */
+const INCREMENT_RESULTS: Record<Outcome, Extract<ProgramCommand, { type: "increment.result" }>["status"]> = {
+	integrated: "integrated",
+	accepted: "accepted",
+	rejected: "blocked",
+	abandoned: "blocked",
+	pending: "active",
 };
 
 /** The reason a step's failure blocks the change under; any code not listed is an execution error. */
@@ -376,7 +416,58 @@ export class Harness {
 		});
 		let state = unit.state;
 		for (const e of d.events) state = apply(state, e);
+		if (unit.state.phase !== "closed" && state.phase === "closed") this.recordIncrementResult(state, correlation);
 		return { state, revision: receipt.revision };
+	}
+
+	/**
+	 * Writes the result of a closed change to the increment it conducts, then re-evaluates each milestone
+	 * that holds the increment on the latest integration of the program (PRG-05): the program judges the
+	 * integrated project, never the sum of the closures. No global verification runs yet, so a milestone
+	 * that carries one stays unpassed.
+	 */
+	private recordIncrementResult(change: ChangeState, correlation: string): void {
+		const program = this.deps.ledger.loadProgram(change.program_id)?.state;
+		const increment = program?.increments.find((i) => i.change_id === change.change_id && i.status === "active");
+		if (!program || !increment) return;
+		const at = this.now();
+		const integrated = this.latestIntegration(program.program_id);
+		this.commitProgram(
+			program.program_id,
+			[
+				{
+					type: "increment.result",
+					at,
+					actor: KERNEL_ACTOR,
+					increment_id: increment.increment_id,
+					status: INCREMENT_RESULTS[change.outcome],
+					note: `change ${change.change_id} closed ${change.outcome}`,
+				},
+				...program.milestones
+					.filter((m) => m.increment_ids.includes(increment.increment_id))
+					.map(
+						(m): ProgramCommand => ({
+							type: "milestone.evaluate",
+							at,
+							actor: KERNEL_ACTOR,
+							milestone_id: m.milestone_id,
+							global_verdicts: {},
+							integrated_digest: integrated,
+						}),
+					),
+			],
+			correlation,
+		);
+	}
+
+	/** The receipt digest of the latest integration of a change of the program, or null before any. */
+	private latestIntegration(programId: string): string | null {
+		const integrated = this.deps.ledger.listChanges(programId).filter((c) => c.outcome === "integrated");
+		for (const c of integrated.reverse()) {
+			const receipt = this.deps.ledger.loadChange(c.change_id)?.state.integration?.receipt_digest;
+			if (receipt) return receipt;
+		}
+		return null;
 	}
 
 	private tryCommit(
@@ -392,11 +483,21 @@ export class Harness {
 		}
 	}
 
-	private commitProgram(programId: string, command: ProgramCommand, correlation: string): ProgramState {
+	/**
+	 * Decides the commands one after the other on the program as it stands, then appends all their events
+	 * at once: a command the kernel refuses leaves the program as it was, or unwritten.
+	 */
+	private commitProgram(programId: string, commands: readonly ProgramCommand[], correlation: string): ProgramState {
 		const loaded = this.deps.ledger.loadProgram(programId);
-		const d = decideProgram(loaded?.state ?? null, command);
-		if (!d.ok) throw d.error;
-		this.deps.ledger.appendProgram(programId, loaded?.revision ?? 0, d.events, { correlation_id: correlation });
+		let state = loaded?.state ?? null;
+		const events: ProgramEvent[] = [];
+		for (const command of commands) {
+			const d = decideProgram(state, command);
+			if (!d.ok) throw d.error;
+			for (const e of d.events) state = applyProgram(state, e);
+			events.push(...d.events);
+		}
+		this.deps.ledger.appendProgram(programId, loaded?.revision ?? 0, events, { correlation_id: correlation });
 		return this.deps.ledger.loadProgram(programId)!.state;
 	}
 
@@ -431,53 +532,182 @@ export class Harness {
 			args.request_text,
 			args.actor.actor_id,
 		);
+		const title = args.title ?? args.request_text.split("\n")[0]!.slice(0, 80);
+		this.commitProgram(
+			programId,
+			[
+				{
+					type: "program.create",
+					at,
+					actor: args.actor,
+					program_id: programId,
+					project_path: reference.project_path,
+					objective: requestRef,
+					title,
+				},
+				{
+					type: "trajectory.adopt",
+					at,
+					actor: args.actor,
+					increments: [
+						{
+							increment_id: incrementId,
+							title,
+							kind: "functional",
+							value: title,
+							depends_on: [],
+							required_capabilities: [],
+							requirement_ids: [],
+							closure_criterion: "change accepted at G5",
+						},
+					],
+					milestones: [],
+					global_requirements: [],
+					reason: "initial single-increment trajectory",
+				},
+			],
+			cor,
+		);
+		return this.openIncrementChange({
+			programId,
+			incrementId,
+			changeId,
+			requestRef,
+			reference,
+			actor: args.actor,
+			language: args.language,
+			deliverable: args.deliverable ?? "candidate",
+			at,
+			cor,
+		});
+	}
+
+	/**
+	 * Creates a program from the trajectory document the owner wrote, adopts the trajectory, and starts
+	 * the change of its first ready increment. The document is kept in the object store as the program's
+	 * objective. A trajectory the kernel refuses writes neither the program nor a change.
+	 */
+	async adopt(args: AdoptArgs): Promise<{ program: ProgramState; change: ChangeState }> {
+		const trajectory = readTrajectory(args.trajectory);
+		const cor = this.id("cor");
+		const at = this.now();
+		this.progress("capturing the reference");
+		const reference = await this.deps.workspace.captureReference(args.project_path, this.deps.workspacePolicy);
+		const programId = this.id("prg");
+		const changeId = this.id("chg");
+		const objective = await this.artifacts.store(
+			"trajectory",
+			changeId,
+			this.id("trj"),
+			trajectory.document,
+			args.actor.actor_id,
+		);
+		const program = this.commitProgram(
+			programId,
+			[
+				{
+					type: "program.create",
+					at,
+					actor: args.actor,
+					program_id: programId,
+					project_path: reference.project_path,
+					objective,
+					title: trajectory.document.title,
+				},
+				{
+					type: "trajectory.adopt",
+					at,
+					actor: args.actor,
+					increments: trajectory.increments,
+					milestones: trajectory.milestones,
+					global_requirements: trajectory.global_requirements,
+					reason: "trajectory adopted by the owner",
+				},
+			],
+			cor,
+		);
+		const first = nextIncrement(program);
+		const language = args.language ?? "fr";
+		const requestRef = await this.artifacts.store(
+			"request",
+			changeId,
+			this.id("req"),
+			incrementRequest(first, language),
+			args.actor.actor_id,
+		);
+		return this.openIncrementChange({
+			programId,
+			incrementId: first.increment_id,
+			changeId,
+			requestRef,
+			reference,
+			actor: args.actor,
+			language,
+			deliverable: "candidate",
+			at,
+			cor,
+		});
+	}
+
+	/**
+	 * Starts the change of the program's next ready increment, on the project as it stands: once an
+	 * increment is integrated, the next one starts from the tree that carries it.
+	 */
+	async startNext(args: StartNextArgs): Promise<{ program: ProgramState; change: ChangeState }> {
+		const program = this.deps.ledger.loadProgram(args.program_id)?.state;
+		if (!program) throw new DomainError("UNKNOWN_REFERENCE", `program ${args.program_id} does not exist`);
+		const increment = nextIncrement(program);
+		const cor = this.id("cor");
+		const at = this.now();
+		this.progress("capturing the reference");
+		const reference = await this.deps.workspace.captureReference(program.project_path, this.deps.workspacePolicy);
+		const changeId = this.id("chg");
+		const language = args.language ?? "fr";
+		const requestRef = await this.artifacts.store(
+			"request",
+			changeId,
+			this.id("req"),
+			incrementRequest(increment, language),
+			args.actor.actor_id,
+		);
+		return this.openIncrementChange({
+			programId: program.program_id,
+			incrementId: increment.increment_id,
+			changeId,
+			requestRef,
+			reference,
+			actor: args.actor,
+			language,
+			deliverable: "candidate",
+			at,
+			cor,
+		});
+	}
+
+	/** Binds the increment to a new change, then creates that change on the reference, its request already stored. */
+	private async openIncrementChange(o: {
+		programId: string;
+		incrementId: string;
+		changeId: string;
+		requestRef: ArtifactRef;
+		reference: ReferenceSnapshot;
+		actor: ActorRef;
+		language: "fr" | "en" | undefined;
+		deliverable: Deliverable;
+		at: string;
+		cor: string;
+	}): Promise<{ program: ProgramState; change: ChangeState }> {
+		const { changeId, at, cor } = o;
 		const referenceRef = await this.artifacts.store(
 			"reference",
 			changeId,
 			this.id("ref"),
-			reference,
+			o.reference,
 			KERNEL_ACTOR.actor_id,
 		);
-		const title = args.title ?? args.request_text.split("\n")[0]!.slice(0, 80);
-		this.commitProgram(
-			programId,
-			{
-				type: "program.create",
-				at,
-				actor: args.actor,
-				program_id: programId,
-				project_path: reference.project_path,
-				objective: requestRef,
-				title,
-			},
-			cor,
-		);
-		this.commitProgram(
-			programId,
-			{
-				type: "trajectory.adopt",
-				at,
-				actor: args.actor,
-				increments: [
-					{
-						increment_id: incrementId,
-						title,
-						kind: "functional",
-						value: title,
-						depends_on: [],
-						required_capabilities: [],
-						requirement_ids: [],
-						closure_criterion: "change accepted at G5",
-					},
-				],
-				milestones: [],
-				reason: "initial single-increment trajectory",
-			},
-			cor,
-		);
 		const program = this.commitProgram(
-			programId,
-			{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: incrementId, change_id: changeId },
+			o.programId,
+			[{ type: "increment.bind", at, actor: KERNEL_ACTOR, increment_id: o.incrementId, change_id: changeId }],
 			cor,
 		);
 		return this.holdWhile(changeId, () => {
@@ -486,14 +716,18 @@ export class Harness {
 				{
 					type: "change.create",
 					at,
-					actor: args.actor,
+					actor: o.actor,
 					change_id: changeId,
-					program_id: programId,
-					increment_id: incrementId,
-					request: requestRef,
-					reference: { reference_id: reference.reference_id, kind: reference.kind, digest: reference.tree_digest },
+					program_id: o.programId,
+					increment_id: o.incrementId,
+					request: o.requestRef,
+					reference: {
+						reference_id: o.reference.reference_id,
+						kind: o.reference.kind,
+						digest: o.reference.tree_digest,
+					},
 					environment_digest: this.deps.environment.digest,
-					deliverable: args.deliverable ?? "candidate",
+					deliverable: o.deliverable,
 				},
 				this.deps.policy,
 			);
@@ -508,7 +742,7 @@ export class Harness {
 				{ type: "artifact.propose", at, actor: KERNEL_ACTOR, kind: "reference", ref: referenceRef },
 				cor,
 			);
-			if (args.language)
+			if (o.language)
 				unit = this.commit(
 					unit,
 					{
@@ -516,7 +750,7 @@ export class Harness {
 						at,
 						actor: KERNEL_ACTOR,
 						id: "language",
-						question: `language:${args.language}`,
+						question: `language:${o.language}`,
 						material: false,
 						decision_id: null,
 					},

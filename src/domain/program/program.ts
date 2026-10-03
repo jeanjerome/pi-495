@@ -34,6 +34,15 @@ export interface Milestone {
 	final: boolean;
 }
 
+/**
+ * A requirement the program as a whole answers for. Adoption requires each one carried by an increment,
+ * verified by a milestone, or set aside by a scope decision that states its reason (PRG-03).
+ */
+export interface GlobalRequirement {
+	requirement_id: string;
+	scope_decision: { reason: string } | null;
+}
+
 export interface MilestoneEvaluation {
 	milestone_id: string;
 	verdict: Verdict;
@@ -55,6 +64,7 @@ export interface ProgramState {
 	trajectory_revision: number;
 	increments: IncrementState[];
 	milestones: Milestone[];
+	global_requirements: GlobalRequirement[];
 	milestone_evaluations: MilestoneEvaluation[];
 	budgets: { max_increments: number; increments_started: number; program_ms: number; program_ms_used: number };
 	closed: boolean;
@@ -82,6 +92,7 @@ export type ProgramEvent =
 			revision: number;
 			increments: IncrementSpec[];
 			milestones: Milestone[];
+			global_requirements: GlobalRequirement[];
 			reason: string;
 	  })
 	| (Base & { type: "increment.bound"; increment_id: string; change_id: string })
@@ -99,7 +110,13 @@ export type ProgramCommand =
 			title: string;
 			budgets?: Partial<ProgramState["budgets"]>;
 	  })
-	| (Base & { type: "trajectory.adopt"; increments: IncrementSpec[]; milestones: Milestone[]; reason: string })
+	| (Base & {
+			type: "trajectory.adopt";
+			increments: IncrementSpec[];
+			milestones: Milestone[];
+			global_requirements: GlobalRequirement[];
+			reason: string;
+	  })
 	| (Base & { type: "increment.bind"; increment_id: string; change_id: string })
 	| (Base & {
 			type: "increment.result";
@@ -129,6 +146,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			trajectory_revision: 0,
 			increments: [],
 			milestones: [],
+			global_requirements: [],
 			milestone_evaluations: [],
 			budgets: event.budgets,
 			closed: false,
@@ -153,6 +171,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 				};
 			});
 			s.milestones = event.milestones;
+			s.global_requirements = event.global_requirements;
 			return recomputeEligibility(s);
 		}
 		case "increment.bound":
@@ -247,21 +266,24 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							`accepted increment ${inc.increment_id} cannot disappear from the trajectory; mark it abandoned explicitly`,
 						);
 				}
-				const covered = new Set(command.increments.flatMap((i) => i.requirement_ids));
-				for (const m of command.milestones) {
+				for (const m of command.milestones)
 					for (const id of m.increment_ids)
 						if (!ids.has(id))
 							throw new DomainError(
 								"UNKNOWN_REFERENCE",
 								`milestone ${m.milestone_id} references unknown increment ${id}`,
 							);
-					for (const rid of m.global_requirement_ids)
-						if (!covered.has(rid) && !m.global_requirement_ids.includes(rid))
-							throw new DomainError(
-								"PRECONDITION_FAILED",
-								`global requirement ${rid} is neither assigned to an increment nor to a milestone control`,
-							);
-				}
+				const unassigned = unassignedGlobalRequirements(command);
+				if (unassigned.length > 0)
+					throw new DomainError(
+						"PRECONDITION_FAILED",
+						unassigned
+							.map(
+								(rid) =>
+									`global requirement ${rid} is assigned neither to an increment, nor to a milestone verification, nor to a scope decision`,
+							)
+							.join("; "),
+					);
 				return {
 					ok: true,
 					events: [
@@ -271,6 +293,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							revision: state.trajectory_revision + 1,
 							increments: command.increments,
 							milestones: command.milestones,
+							global_requirements: command.global_requirements,
 							reason: command.reason,
 						},
 					],
@@ -330,6 +353,17 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 	}
 }
 
+/** The global requirements no increment carries, no milestone verifies and no reasoned scope decision sets aside. */
+function unassignedGlobalRequirements(command: Extract<ProgramCommand, { type: "trajectory.adopt" }>): string[] {
+	const carried = new Set([
+		...command.increments.flatMap((i) => i.requirement_ids),
+		...command.milestones.flatMap((m) => m.global_requirement_ids),
+	]);
+	return command.global_requirements
+		.filter((r) => !carried.has(r.requirement_id) && !r.scope_decision?.reason.trim())
+		.map((r) => r.requirement_id);
+}
+
 /** Increment ready when every dependency is accepted or integrated; blocked dependencies only block descendants (RM-009, SA-007). */
 function recomputeEligibility(state: ProgramState): ProgramState {
 	const byId = new Map(state.increments.map((i) => [i.increment_id, i] as const));
@@ -347,6 +381,23 @@ function recomputeEligibility(state: ProgramState): ProgramState {
 
 export function eligibleIncrements(state: ProgramState): IncrementState[] {
 	return state.increments.filter((i) => i.status === "ready");
+}
+
+/**
+ * The increment the program starts next: the first ready one in the order of the trajectory. Refused
+ * while the program is closed, while another increment is active, or when none is ready.
+ */
+export function nextIncrement(state: ProgramState): IncrementState {
+	if (state.closed) throw new DomainError("INVALID_TRANSITION", `program ${state.program_id} is closed`);
+	const active = state.increments.find((i) => i.status === "active");
+	if (active)
+		throw new DomainError(
+			"OPERATION_ACTIVE",
+			`the program conducts one increment at a time: increment ${active.increment_id} is active on change ${active.change_id}`,
+		);
+	const ready = eligibleIncrements(state)[0];
+	if (!ready) throw new DomainError("PRECONDITION_FAILED", `no increment of program ${state.program_id} is ready`);
+	return ready;
 }
 
 /** Transitive dependents of an increment (those blocked when it is blocked). */

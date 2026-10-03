@@ -1,4 +1,5 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
+import type { IncrementStatus } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusView } from "../../application/views.ts";
@@ -22,6 +23,21 @@ const L = {
 		intervention: "Dernière intervention",
 		truncated: "interrompue par le budget de durée",
 		continuations: "reprises",
+		closed: "clos",
+		increment: "Incrément",
+		milestone: "Jalon",
+		notEvaluated: "sans évaluation",
+		remaining: "reste",
+		indeterminate: "indéterminé",
+		increments: {
+			planned: "planifié",
+			ready: "prêt",
+			active: "actif",
+			accepted: "accepté",
+			integrated: "intégré",
+			blocked: "bloqué",
+			abandoned: "abandonné",
+		} satisfies Record<IncrementStatus, string>,
 	},
 	en: {
 		program: "Program",
@@ -41,6 +57,21 @@ const L = {
 		intervention: "Last intervention",
 		truncated: "stopped by the duration budget",
 		continuations: "resumptions",
+		closed: "closed",
+		increment: "Increment",
+		milestone: "Milestone",
+		notEvaluated: "not evaluated",
+		remaining: "remaining",
+		indeterminate: "indeterminate",
+		increments: {
+			planned: "planned",
+			ready: "ready",
+			active: "active",
+			accepted: "accepted",
+			integrated: "integrated",
+			blocked: "blocked",
+			abandoned: "abandoned",
+		} satisfies Record<IncrementStatus, string>,
 	},
 };
 
@@ -48,8 +79,7 @@ const L = {
 export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string {
 	const t = L[lang];
 	const lines: string[] = [];
-	if (view.program)
-		lines.push(`${t.program}: ${view.program.title} (${view.program.program_id}) — ${view.program.project_path}`);
+	if (view.program) lines.push(...programLines(view.program, lang));
 	const c = view.change;
 	if (!c) {
 		lines.push(`${t.change}: ${t.none}`);
@@ -82,6 +112,29 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 	lines.push(`${t.next}: ${c.next_action}`);
 	for (const l of view.limits) lines.push(`${t.limits}: ${l}`);
 	return lines.join("\n");
+}
+
+/** The program, then each increment with its status, then each milestone with its verdict and what is left. */
+function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | "en"): string[] {
+	const t = L[lang];
+	const lines = [
+		`${t.program}: ${program.title} (${program.program_id}) — ${program.project_path}${program.closed ? ` — ${t.closed}` : ""}`,
+	];
+	for (const i of program.increments)
+		lines.push(`  ${t.increment} ${i.increment_id} (${i.title}): ${t.increments[i.status]}`);
+	for (const m of program.milestones) {
+		const e = m.evaluation;
+		const left = e
+			? [
+					...(e.remaining.length ? [`${t.remaining}: ${e.remaining.join(", ")}`] : []),
+					...(e.indeterminate.length ? [`${t.indeterminate}: ${e.indeterminate.join(", ")}`] : []),
+				]
+			: [];
+		lines.push(
+			`  ${t.milestone} ${m.milestone_id} (${m.title}): ${[e ? e.verdict : t.notEvaluated, ...left].join(" — ")}`,
+		);
+	}
+	return lines;
 }
 
 export function formatDecision(req: DecisionRequest): string {
