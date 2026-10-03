@@ -1,0 +1,83 @@
+TAP version 13
+# Subtest: `/495 adopt` adopts a trajectory of several increments
+    # Subtest: adopter depuis Pi un document de trois incréments crée le programme, lie la session au changement de A dont la demande porte le titre, la valeur et le critère de clôture de A, et le statut liste A actif, B et C planifiés
+    not ok 1 - adopter depuis Pi un document de trois incréments crée le programme, lie la session au changement de A dont la demande porte le titre, la valeur et le critère de clôture de A, et le statut liste A actif, B et C planifiés
+      ---
+      duration_ms: 745.743166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:57:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the session is bound: 495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test-output/program-entry-yZDvFe/adopt-agent.json; no model is called | 495 — the spec-driven agentic harness — v0.3.0-dev
+        /495 start <demande> · status · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: ~
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:61:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un document qui déclare R2 affectée à rien est refusé avec un message qui nomme R2, sans changement ni liaison
+    not ok 2 - un document qui déclare R2 affectée à rien est refusé avec un message qui nomme R2, sans changement ni liaison
+      ---
+      duration_ms: 621.579916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:99:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test-output/program-entry-aMiQDm/unassigned-agent.json; no model is called | 495 — the spec-driven agentic harness — v0.3.0-dev
+        /495 start <demande> · status · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:106:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un document dont un incrément n'a pas de critère de clôture est refusé avec un message qui le nomme
+    not ok 3 - un document dont un incrément n'a pas de critère de clôture est refusé avec un message qui le nomme
+      ---
+      duration_ms: 646.83975
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:122:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the refusal names B and its missing closure criterion: 495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test-output/program-entry-nz0kDx/malformed-agent.json; no model is called | 495 — the spec-driven agentic harness — v0.3.0-dev
+        /495 start <demande> · status · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:130:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - `/495 adopt` adopts a trajectory of several increments
+  ---
+  duration_ms: 2014.7285
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AhoIoR/test/v3-pi/program-entry.test.ts:45:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2529.933583

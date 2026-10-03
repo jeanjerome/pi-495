@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une exigence globale écartée par une décision de périmètre ou vérifiée par un jalon est adoptée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/trajectory.ts",
+    "ligne": 491,
+    "constat": "The code keeps the promise through Pi: a throwaway probe of `/495 adopt` recorded R2 with `scope_decision: {reason}` and R3 under the final milestone. But only the domain test (`test/v0-pure/program.test.ts`) exercises a scope decision. No test adopts a document that carries one through `adopt`, so dropping the mapping of `scope_decision` from the document to the program goes unnoticed.",
+    "mutation": "`scope_decision: r.scope_decision ?? null` replaced by `scope_decision: null` in readTrajectory: the 21 program tests (v0 program and program-status, v2 program-increments and program-next-increment, v3 program-entry and program-next-entry) stay green, while an R2 set aside by a scope decision would be refused when adopted from Pi."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'incrément suivant démarre depuis Pi sur le projet intégré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/command.ts",
+    "ligne": 168,
+    "constat": "The `next` handler does bind the session to the new increment's change: a probe ran adopt, cancel A, then `/495 next`, and the session and `pi_bindings` moved to B's change. But the only v3 test of `/495 next` covers the refusal; the success path is tested only at v2 through `harness.startNext`. So no test holds \"la session y est liée\" from Pi.",
+    "mutation": "Removed `session.bind(ctx, { program_id: started.program.program_id, change_id: started.change.change_id })` from the `next` handler: test/v3-pi/program-next-entry.test.ts and program-entry.test.ts stay green (4/4)."
+   }
+  ],
+  "resume": "Fail: two promises are kept by the code but held by no test. Both are introduced by the branch; nothing is blocking.\n\n1. **Scope decision through Pi (A1-1).** A probe confirmed that `/495 adopt` keeps R2's scope decision and R3 under the milestone. Only the domain test exercises a scope decision, and a mutation that drops it in readTrajectory leaves all 21 program tests green.\n2. **Binding after `/495 next` (A1-2).** A probe confirmed that `/495 next` binds the session to B's change. No v3 test covers the success path, and a mutation that removes the `session.bind` call leaves the Pi tests green.\n\nFor the other scenarios, the code keeps the promise and a mutation is caught by a test. Mutations tried:\n- latestIntegration without `.reverse()` is caught by the PASS test at the digest of the last integration.\n\nPromises held by assertions read in the tests:\n- Adoption of three increments: increments, dependencies, milestone, R1, A's request, binding, and the status with the milestone not evaluated.\n- R2 assigned to nothing: refused by name with no program, change or binding.\n- Malformed document: missing closure criterion and undeclared dependency.\n- A integrated: NOT_RUN at A's receipt digest, with B and C remaining.\n- One increment at a time, refused from Pi.\n- B cancelled: B blocked, D planned, then C next.\n- PASS and closure, and the status that says so.\n- R3 INDETERMINATE.\n- A accepted without integration: integrated candidate missing.\n\nProgram closure happens only through `commit`; the other append site is the change's creation. The throwaway probe was removed and the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une exigence globale écartée par une décision de périmètre ou vérifiée par un jalon est adoptée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/trajectory.ts",
+    "ligne": 52,
+    "constat": "Le code tient la promesse : une sonde jetable passée par harness.adopt inscrit R2 avec sa décision de périmètre et sa raison, et R3 sous le jalon final. Mais aucun test n'adopte un document qui porte une décision de périmètre, ni depuis Pi ni par le harnais. Seul le test pur de decideProgram la couvre, et il ne passe pas par la lecture du document. Si la lecture perd la décision, l'adoption de R2 est refusée et aucun test ne le voit.",
+    "mutation": "`scope_decision: r.scope_decision ?? null` → `scope_decision: null` : les 21 tests du programme (v0, v2, v3) restent verts."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'incrément suivant démarre depuis Pi sur le projet intégré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/command.ts",
+    "ligne": 168,
+    "constat": "Le gestionnaire `/495 next` lie bien la session au changement de B. Mais le seul test v3 de `/495 next` couvre le refus, et le test v2 appelle harness.startNext sans passer par Pi. Aucun test n'asserte que la session est liée au changement de B après une demande depuis Pi.",
+    "mutation": "`session.bind(ctx, { program_id: started… })` remplacé par une expression sans effet : les 21 tests du programme restent verts."
+   }
+  ],
+  "resume": "J'ai relu les 11 scénarios sur le chemin du code et essayé 16 mutations sur les 6 fichiers de test du programme (v0, v2, v3), tous verts avant mutation (21 tests). Le code tient les 11 promesses. Aucun constat bloquant. Quatorze mutations font échouer le test attendu : choix de la dernière intégration, B annulé inscrit bloqué, digest de l'évaluation, demande de l'incrément, ordre de l'incrément suivant, refus quand le programme est clos ou qu'un incrément est actif, exigences vérifiées par un jalon ou écartées, statut clos, filtre des jalons, message qui nomme l'incrément, résultat intégré. Deux promesses ne sont tenues par aucun test, deux constats à corriger introduits par la branche, d'où le verdict fail. B1-1 : l'adoption d'une décision de périmètre lue dans le document n'a pas de test (scénario 3). Une sonde jetable confirme que le code la tient. B1-2 : la liaison de la session au changement de B après un `/495 next` depuis Pi n'a pas de test (scénario 6). L'arbre est laissé propre."
+ }
+]

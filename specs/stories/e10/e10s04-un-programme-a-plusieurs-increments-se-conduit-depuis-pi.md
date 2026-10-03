@@ -2,7 +2,7 @@
 
 Story : e10s04
 Epic : e10
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

@@ -1,0 +1,43 @@
+TAP version 13
+# Subtest: `/495 next` starts the next increment of the program
+    # Subtest: sur une session liée au programme dont le changement de A attend une décision, demander l'incrément suivant est refusé avec un message qui dit qu'un incrément à la fois est conduit, sans changement créé, la session restant liée à A
+    not ok 1 - sur une session liée au programme dont le changement de A attend une décision, demander l'incrément suivant est refusé avec un message qui dit qu'un incrément à la fois est conduit, sans changement créé, la session restant liée à A
+      ---
+      duration_ms: 737.205375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-yN6iqy/test/v3-pi/program-next-entry.test.ts:33:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the request is refused: 495 — the spec-driven agentic harness — v0.3.0-dev
+        /495 start <demande> · status · adopt <trajectory.json> · state <question> · resume · review [path|cand_id] · report · verify · decide · integrate · export [--redact] · pause · close <question> · revoke <question> · cancel · bind [change_id] · unbind
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-yN6iqy/test/v3-pi/program-next-entry.test.ts:62:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - `/495 next` starts the next increment of the program
+  ---
+  duration_ms: 737.901917
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-yN6iqy/test/v3-pi/program-next-entry.test.ts:21:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1234.018916

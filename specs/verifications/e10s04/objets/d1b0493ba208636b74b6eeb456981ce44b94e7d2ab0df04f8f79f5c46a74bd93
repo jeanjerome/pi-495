@@ -1,0 +1,36 @@
+TAP version 13
+# Subtest: the next increment of a program
+    # Subtest: A intégré, démarrer l'incrément suivant crée le changement de B rattaché au programme et à B, dont la référence porte le commit d'intégration de A ; B annulé, l'incrément suivant est C ; le programme clos, la demande est refusée
+    ok 1 - A intégré, démarrer l'incrément suivant crée le changement de B rattaché au programme et à B, dont la référence porte le commit d'intégration de A ; B annulé, l'incrément suivant est C ; le programme clos, la demande est refusée
+      ---
+      duration_ms: 2597.583125
+      type: 'test'
+      ...
+    1..1
+ok 1 - the next increment of a program
+  ---
+  duration_ms: 2598.078875
+  type: 'suite'
+  ...
+# Subtest: `/495 next` starts the next increment of the program
+    # Subtest: sur une session liée au programme dont le changement de A attend une décision, demander l'incrément suivant est refusé avec un message qui dit qu'un incrément à la fois est conduit, sans changement créé, la session restant liée à A
+    ok 1 - sur une session liée au programme dont le changement de A attend une décision, demander l'incrément suivant est refusé avec un message qui dit qu'un incrément à la fois est conduit, sans changement créé, la session restant liée à A
+      ---
+      duration_ms: 620.830875
+      type: 'test'
+      ...
+    1..1
+ok 2 - `/495 next` starts the next increment of the program
+  ---
+  duration_ms: 621.344625
+  type: 'suite'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2795.753542

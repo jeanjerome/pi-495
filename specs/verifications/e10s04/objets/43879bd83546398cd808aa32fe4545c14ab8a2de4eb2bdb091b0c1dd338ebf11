@@ -1,0 +1,153 @@
+TAP version 13
+# Subtest: the close of an increment's change is written to its program
+    # Subtest: quand le changement de A est intégré, le programme inscrit A intégré, B et C prêts, et une évaluation du jalon NOT_RUN au digest de l'intégration de A qui nomme B et C restants
+    not ok 1 - quand le changement de A est intégré, le programme inscrit A intégré, B et C prêts, et une évaluation du jalon NOT_RUN au digest de l'intégration de A qui nomme B et C restants
+      ---
+      duration_ms: 869.494791
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:73:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            [
+              'A',
+        +     'active'
+        -     'integrated'
+            ],
+            [
+              'B',
+        +     'planned'
+        -     'ready'
+            ],
+            [
+              'C',
+        +     'planned'
+        -     'ready'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'A'
+          1: 'integrated'
+        1:
+          0: 'B'
+          1: 'ready'
+        2:
+          0: 'C'
+          1: 'ready'
+      actual:
+        0:
+          0: 'A'
+          1: 'active'
+        1:
+          0: 'B'
+          1: 'planned'
+        2:
+          0: 'C'
+          1: 'planned'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:82:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: quand le changement de B est annulé, le programme inscrit B bloqué, D reste planifié et l'évaluation nomme B restant
+    not ok 2 - quand le changement de B est annulé, le programme inscrit B bloqué, D reste planifié et l'évaluation nomme B restant
+      ---
+      duration_ms: 840.957083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:95:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        A is integrated
+        + actual - expected
+        
+        + 'active'
+        - 'integrated'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'integrated'
+      actual: 'active'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:110:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: A, B et C intégrés, le jalon final est PASS et le programme est clos ; s'il vérifie R3, il est INDETERMINATE et nomme R3 non exécutée
+    not ok 3 - A, B et C intégrés, le jalon final est PASS et le programme est clos ; s'il vérifie R3, il est INDETERMINATE et nomme R3 non exécutée
+      ---
+      duration_ms: 839.618583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:125:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        A is integrated
+        + actual - expected
+        
+        + 'active'
+        - 'integrated'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'integrated'
+      actual: 'active'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:133:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: A accepté sans intégration, l'évaluation du jalon est INDETERMINATE et nomme le candidat intégré manquant
+    not ok 4 - A accepté sans intégration, l'évaluation du jalon est INDETERMINATE et nomme le candidat intégré manquant
+      ---
+      duration_ms: 746.335625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:161:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'active'
+        - 'accepted'
+             ^
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'accepted'
+      actual: 'active'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:172:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the close of an increment's change is written to its program
+  ---
+  duration_ms: 3297.065834
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-QrFvgm/test/v2-kernel/program-increments.test.ts:72:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3485.001375

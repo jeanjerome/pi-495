@@ -1,0 +1,12 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "The round-2 diff (9f0d905, 26342f3) only adds two v3 tests, which answer A1-1/B1-1 and A1-2/B1-2. Mutation 1: in src/application/trajectory.ts:52, `scope_decision: r.scope_decision ?? null` replaced by `scope_decision: null` — the new test of test/v3-pi/program-entry.test.ts (R2 set aside by a reasoned scope decision, R3 under the final milestone) fails, the three others stay green; line restored. Mutation 2: in src/extension/command.ts:168, the `session.bind(...)` call of the `next` handler removed — the new test of test/v3-pi/program-next-entry.test.ts (B's change attached to the program and to B, session bound to it) fails; line restored. The third scenario and the binding of the session to the new increment's change from Pi are now each held by a test that a one-line mutation makes fail. The v3 test of `/495 next` reaches B through a cancelled A with B independent of A, not through an integrated A; the handler and the binding are the same on both paths, and the reference on the integration commit stays held at v2 as in round 1. No new finding; the tree is clean (only the linked node_modules is untracked)."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Tour 2, relecteur B. Le diff (9f0d905, 26342f3) n'ajoute que deux tests v3, en réponse aux constats A1-1/B1-1 et A1-2/B1-2. Les deux tests passent sur l'arbre non modifié (6 tests sur 6 dans program-entry et program-next-entry), et chacun tombe sous sa mutation. (1) Dans src/application/trajectory.ts:52, `scope_decision: r.scope_decision ?? null` remplacé par `scope_decision: null` : le nouveau test d'adoption depuis Pi, celui où R2 porte une décision de périmètre motivée et où le jalon final vérifie R3, échoue. Les trois autres restent verts. Ligne remise. (2) Dans src/extension/command.ts:168, l'appel `session.bind(...)` du gestionnaire `next` retiré : le nouveau test de `/495 next`, qui annule A puis crée et lie le changement de B, échoue. Le test du refus reste vert. Ligne remise. La promesse « la référence du changement de B est l'arbre qui porte le commit d'intégration de A » est tenue par test/v2-kernel/program-next-increment.test.ts:33, inchangé. Aucun nouveau constat bloquant ni à corriger."
+ }
+]

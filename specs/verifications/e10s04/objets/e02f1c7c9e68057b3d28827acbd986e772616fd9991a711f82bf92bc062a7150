@@ -1,0 +1,160 @@
+TAP version 13
+# Subtest: program DAG (SA-006, SA-007, RM-006, RM-009)
+    # Subtest: refuses a cyclic trajectory and locates the cycle
+    ok 1 - refuses a cyclic trajectory and locates the cycle
+      ---
+      duration_ms: 2.178083
+      type: 'test'
+      ...
+    # Subtest: keeps independent increments eligible while a blocked increment blocks only its descendants
+    ok 2 - keeps independent increments eligible while a blocked increment blocks only its descendants
+      ---
+      duration_ms: 0.412708
+      type: 'test'
+      ...
+    # Subtest: P0 runs one producing increment at a time
+    ok 3 - P0 runs one producing increment at a time
+      ---
+      duration_ms: 0.099916
+      type: 'test'
+      ...
+    # Subtest: an accepted increment cannot vanish from a revised trajectory; revision keeps statuses (PRG-04)
+    ok 4 - an accepted increment cannot vanish from a revised trajectory; revision keeps statuses (PRG-04)
+      ---
+      duration_ms: 0.186334
+      type: 'test'
+      ...
+    # Subtest: an agent cannot write the program
+    ok 5 - an agent cannot write the program
+      ---
+      duration_ms: 0.060375
+      type: 'test'
+      ...
+    1..5
+ok 1 - program DAG (SA-006, SA-007, RM-006, RM-009)
+  ---
+  duration_ms: 3.375667
+  type: 'suite'
+  ...
+# Subtest: milestones (SA-038, RM-007, RM-008, PRG-05)
+    # Subtest: accepted increments with an unverified global requirement do not accept the program
+    ok 1 - accepted increments with an unverified global requirement do not accept the program
+      ---
+      duration_ms: 0.168958
+      type: 'test'
+      ...
+    # Subtest: a failing global control gives FAIL even if all increments are green
+    ok 2 - a failing global control gives FAIL even if all increments are green
+      ---
+      duration_ms: 0.091667
+      type: 'test'
+      ...
+    1..2
+ok 2 - milestones (SA-038, RM-007, RM-008, PRG-05)
+  ---
+  duration_ms: 0.331083
+  type: 'suite'
+  ...
+# Subtest: exigences globales d'une trajectoire (PRG-03)
+    # Subtest: une trajectoire qui déclare une exigence globale R2 affectée ni à un incrément, ni à une vérification de jalon, ni à une décision de périmètre est refusée en nommant R2
+    not ok 1 - une trajectoire qui déclare une exigence globale R2 affectée ni à un incrément, ni à une vérification de jalon, ni à une décision de périmètre est refusée en nommant R2
+      ---
+      duration_ms: 0.420541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-j1H1Ri/test/v0-pure/program.test.ts:292:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a trajectory declaring R2 assigned to nothing is refused
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-j1H1Ri/test/v0-pure/program.test.ts:301:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: une exigence globale écartée par une décision de périmètre avec sa raison, ou vérifiée par un jalon, est adoptée et l'événement d'adoption la porte avec sa décision
+    not ok 2 - une exigence globale écartée par une décision de périmètre avec sa raison, ou vérifiée par un jalon, est adoptée et l'événement d'adoption la porte avec sa décision
+      ---
+      duration_ms: 0.34975
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-j1H1Ri/test/v0-pure/program.test.ts:312:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   {
+        -     requirement_id: 'R1',
+        -     scope_decision: null
+        -   },
+        -   {
+        -     requirement_id: 'R2',
+        -     scope_decision: {
+        -       reason: 'the legacy export is retired with the next release'
+        -     }
+        -   },
+        -   {
+        -     requirement_id: 'R3',
+        -     scope_decision: null
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          requirement_id: 'R1'
+          scope_decision: ~
+        1:
+          requirement_id: 'R2'
+          scope_decision:
+            reason: 'the legacy export is retired with the next release'
+        2:
+          requirement_id: 'R3'
+          scope_decision: ~
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-j1H1Ri/test/v0-pure/program.test.ts:322:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 3 - exigences globales d'une trajectoire (PRG-03)
+  ---
+  duration_ms: 0.866625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-j1H1Ri/test/v0-pure/program.test.ts:274:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 9
+# suites 3
+# pass 7
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.700458

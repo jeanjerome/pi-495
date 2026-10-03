@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the close of an increment's change is written to its program
+    # Subtest: quand le changement de A est intégré, le programme inscrit A intégré, B et C prêts, et une évaluation du jalon NOT_RUN au digest de l'intégration de A qui nomme B et C restants
+    ok 1 - quand le changement de A est intégré, le programme inscrit A intégré, B et C prêts, et une évaluation du jalon NOT_RUN au digest de l'intégration de A qui nomme B et C restants
+      ---
+      duration_ms: 867.039125
+      type: 'test'
+      ...
+    # Subtest: quand le changement de B est annulé, le programme inscrit B bloqué, D reste planifié et l'évaluation nomme B restant
+    ok 2 - quand le changement de B est annulé, le programme inscrit B bloqué, D reste planifié et l'évaluation nomme B restant
+      ---
+      duration_ms: 894.184792
+      type: 'test'
+      ...
+    # Subtest: A, B et C intégrés, le jalon final est PASS et le programme est clos ; s'il vérifie R3, il est INDETERMINATE et nomme R3 non exécutée
+    ok 3 - A, B et C intégrés, le jalon final est PASS et le programme est clos ; s'il vérifie R3, il est INDETERMINATE et nomme R3 non exécutée
+      ---
+      duration_ms: 4801.676792
+      type: 'test'
+      ...
+    # Subtest: A accepté sans intégration, l'évaluation du jalon est INDETERMINATE et nomme le candidat intégré manquant
+    ok 4 - A accepté sans intégration, l'évaluation du jalon est INDETERMINATE et nomme le candidat intégré manquant
+      ---
+      duration_ms: 734.830792
+      type: 'test'
+      ...
+    1..4
+ok 1 - the close of an increment's change is written to its program
+  ---
+  duration_ms: 7298.34
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7490.527792
