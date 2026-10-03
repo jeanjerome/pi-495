@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: two changes of one dossier whose candidates are identical (VER-03)
+    # Subtest: deux changements d'un dossier dont les candidats sont identiques vérifient chacun le leur : B inscrit ses preuves et se clôt accepté, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une vérification pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+    not ok 1 - deux changements d'un dossier dont les candidats sont identiques vérifient chacun le leur : B inscrit ses preuves et se clôt accepté, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une vérification pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+      ---
+      duration_ms: 1108.030334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XR364X/test/v2-kernel/verification-key-per-change.test.ts:41:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no step of B names OPERATION_ACTIVE: clarifying -> specifying/ready | specifying -> verification_design/ready | verification_design -> designing/ready | designing -> implementing/ready | implementing -> verifying/ready | verifying: OPERATION_ACTIVE operation op_0030 already holds the idempotency key verify:sha256:238a5d397ce14bc709f4dae212c61aae23a6400316adbbc54b920949eb0ef311:37; op_0065 would run the same verification a second time
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XR364X/test/v2-kernel/verification-key-per-change.test.ts:52:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - two changes of one dossier whose candidates are identical (VER-03)
+  ---
+  duration_ms: 1108.724333
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XR364X/test/v2-kernel/verification-key-per-change.test.ts:40:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1292.33675

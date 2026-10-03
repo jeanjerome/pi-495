@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: two changes of one dossier whose candidates are identical (VER-03)
+    # Subtest: deux changements d'un dossier dont les candidats sont identiques vérifient chacun le leur : B inscrit ses preuves et se clôt accepté, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une vérification pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+    ok 1 - deux changements d'un dossier dont les candidats sont identiques vérifient chacun le leur : B inscrit ses preuves et se clôt accepté, aucune étape ne nomme OPERATION_ACTIVE, le registre porte une vérification pour A et une pour B, et une seconde ouverture sous la clé de A, dans A, est refusée en nommant l'opération de A
+      ---
+      duration_ms: 1388.663791
+      type: 'test'
+      ...
+    1..1
+ok 1 - two changes of one dossier whose candidates are identical (VER-03)
+  ---
+  duration_ms: 1389.187333
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1576.132667
