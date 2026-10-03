@@ -3,7 +3,12 @@
  * that qualify them, and what it could not give. One shape for every stack, so the kernel orders
  * and qualifies the controls of a Maven reactor and those of a Node package the same way.
  */
-import type { ControlDefinition, QualityRule, RecommendedComplement } from "../../contracts/v1/protocol.ts";
+import type {
+	ControlDefinition,
+	QualityPerimeter,
+	QualityRule,
+	RecommendedComplement,
+} from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 
 export interface StackDetection {
@@ -39,12 +44,12 @@ export interface StackDetection {
 }
 
 /**
- * A quality referential offered for adoption, with the recommendation that brings its analyser into a
- * copy of the target; or the note that says why none is offered, when the target configures that
- * analyser itself and its own rules are not 495's to replace.
+ * A quality referential offered for adoption, with what its analysers read and leave aside and the
+ * recommendation that brings them into a copy of the target; or the note that says why none is offered,
+ * when the target configures that analyser itself and its own rules are not 495's to replace.
  */
 export type QualityOffer =
-	| { kind: "proposed"; rules: QualityRule[]; recommendation: RecommendedComplement }
+	| { kind: "proposed"; rules: QualityRule[]; perimeter: QualityPerimeter; recommendation: RecommendedComplement }
 	| { kind: "not_proposed"; note: string };
 
 /**

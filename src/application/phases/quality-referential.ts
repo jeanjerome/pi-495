@@ -85,7 +85,7 @@ export async function settleQualityReferential(
 	if (unmeasured.length === 0 || offer === undefined) return { kind: "settled", unit, complements: [] };
 	if (offer.kind === "not_proposed")
 		return { kind: "settled", unit, complements: [], blind_spot: `blind spot: ${offer.note}` };
-	const { recommendation, rules } = offer;
+	const { recommendation, rules, perimeter } = offer;
 	const { install, edit } = recommendation;
 	if (install === undefined || edit === undefined)
 		return {
@@ -150,6 +150,6 @@ export async function settleQualityReferential(
 		kind: "settled",
 		unit,
 		complements: applyRecommendedEdits(copyPath, [recommendation]),
-		referential: { adopted_on: answer.recorded_at.slice(0, 10), decision_id: answer.decision_id, rules },
+		referential: { adopted_on: answer.recorded_at.slice(0, 10), decision_id: answer.decision_id, rules, perimeter },
 	};
 }

@@ -2,7 +2,7 @@
 
 Story : e10s02
 Epic : e10
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

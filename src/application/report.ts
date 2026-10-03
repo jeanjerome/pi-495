@@ -10,9 +10,9 @@
  */
 import type { Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { Protocol, QualityRule, RequirementsDocument } from "../contracts/v1/protocol.ts";
+import type { Protocol, QualityPerimeter, QualityRule, RequirementsDocument } from "../contracts/v1/protocol.ts";
 import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
-import type { Survey } from "../domain/survey.ts";
+import type { CodeAuthorship, Survey } from "../domain/survey.ts";
 
 /** Measured: a control ran on a subject and answered. No interpretation is carried here. */
 export interface MechanicalObservation {
@@ -74,13 +74,18 @@ export interface SurveySection {
 	blind_spots: { control_id: string; reason: string }[];
 	/**
 	 * The quality referential the owner adopted, each rule with its oracle, its threshold, its source and
-	 * the date of the adoption, and what its oracle found under the rule it names; null when none was.
+	 * the date of the adoption, what its oracle found under the rule it names, each in proprietary or
+	 * generated code, and how many violations of the proprietary code each module carries; then what the
+	 * referential does not measure, with the reason. Null when none was adopted.
 	 */
 	referential: {
 		adopted_on: string;
 		rules: (Pick<QualityRule, "rule_id" | "nature" | "control_id" | "threshold" | "tool" | "source"> & {
-			findings: { message: string; path: string | null }[];
+			findings: { message: string; path: string | null; authorship: CodeAuthorship }[];
+			/** A null module holds the violations no measured source root contains. */
+			proprietary_by_module: { module: string | null; violations: number }[];
 		})[];
+		unmeasured: QualityPerimeter["unmeasured"];
 	} | null;
 }
 
@@ -97,23 +102,58 @@ export interface EngineeringReport {
 	residual_risks: ResidualRisk[];
 }
 
-/** Each rule of the adopted referential, with what its oracle found under the rule it names. */
+/** The module whose measured source root holds `path`, the deepest when roots nest; null when none does. */
+function moduleOf(path: string | null, measured: QualityPerimeter["measured"]): string | null {
+	if (path === null) return null;
+	const roots = measured.filter((m) => path.startsWith(m.root)).sort((a, b) => b.root.length - a.root.length);
+	return roots[0]?.module ?? null;
+}
+
+/** How many of `findings` each module holds, by module name, the unlocated ones last. */
+function countByModule(
+	findings: readonly { path: string | null }[],
+	measured: QualityPerimeter["measured"],
+): { module: string | null; violations: number }[] {
+	const counts = new Map<string | null, number>();
+	for (const f of findings) {
+		const module = moduleOf(f.path, measured);
+		counts.set(module, (counts.get(module) ?? 0) + 1);
+	}
+	return [...counts]
+		.map(([module, violations]) => ({ module, violations }))
+		.sort((a, b) => (a.module === null ? 1 : b.module === null ? -1 : a.module.localeCompare(b.module)));
+}
+
+/**
+ * Each rule of the adopted referential, with what its oracle found under the rule it names, in
+ * proprietary or generated code, and the count of the proprietary violations by module. A finding of a
+ * survey taken before findings were ranged counts as proprietary: nothing set it apart.
+ */
 function referentialSection(survey: Survey, protocol: Protocol | null): SurveySection["referential"] {
 	const adopted = protocol?.quality_referential;
 	if (!adopted) return null;
+	const measured = adopted.perimeter?.measured ?? [];
 	return {
 		adopted_on: adopted.adopted_on,
-		rules: adopted.rules.map((rule) => ({
-			rule_id: rule.rule_id,
-			nature: rule.nature,
-			control_id: rule.control_id,
-			threshold: rule.threshold,
-			tool: rule.tool,
-			source: rule.source,
-			findings: (survey.controls.find((c) => c.control_id === rule.control_id)?.findings ?? [])
+		rules: adopted.rules.map((rule) => {
+			const findings = (survey.controls.find((c) => c.control_id === rule.control_id)?.findings ?? [])
 				.filter((f) => f.rule_id === rule.rule_id)
-				.map((f) => ({ message: f.message, path: f.path })),
-		})),
+				.map((f) => ({ message: f.message, path: f.path, authorship: f.authorship ?? ("proprietary" as const) }));
+			return {
+				rule_id: rule.rule_id,
+				nature: rule.nature,
+				control_id: rule.control_id,
+				threshold: rule.threshold,
+				tool: rule.tool,
+				source: rule.source,
+				findings,
+				proprietary_by_module: countByModule(
+					findings.filter((f) => f.authorship === "proprietary"),
+					measured,
+				),
+			};
+		}),
+		unmeasured: adopted.perimeter?.unmeasured ?? [],
 	};
 }
 

@@ -11,6 +11,7 @@ import {
 	SCOPE_PLACEHOLDER,
 	type ControlDefinition,
 	type FileEdit,
+	type QualityPerimeter,
 	type QualityRule,
 	type RecommendedComplement,
 	type StructureRule,
@@ -176,7 +177,7 @@ function detectMavenStack(projectPath: string, requirementRefs: RequirementRef[]
 					]),
 		],
 		recommendations: [...(jacoco ? [] : [jacocoRecommendation(projectPath)]), ...mutationRecommendation(mutation)],
-		quality_referential: qualityOffer(projectPath, pmd),
+		quality_referential: qualityOffer(projectPath, pmd, reactor),
 	};
 }
 
@@ -388,6 +389,48 @@ const PMD_REFERENTIAL: QualityRule[] = [
 	},
 ];
 
+/** The annotations a code generator writes on the types it generates, from the JDK, Java EE and Jakarta EE. */
+const GENERATED_ANNOTATIONS = [
+	"javax.annotation.Generated",
+	"javax.annotation.processing.Generated",
+	"jakarta.annotation.Generated",
+];
+
+/**
+ * What PMD and CPD read in the reactor, as `maven-pmd-plugin` runs them by default: the main sources of
+ * each module, and not its test sources, nor the dependencies the POMs declare, which are artifacts
+ * resolved outside the tree, nor a block that two modules repeat, CPD comparing one module at a time.
+ */
+function qualityPerimeter(reactor: MavenReactor): QualityPerimeter {
+	const dependencies = [...new Set(reactor.module_info.flatMap((m) => m.external_dependencies))].sort();
+	return {
+		measured: reactor.module_info.flatMap((m) =>
+			m.source_root === null ? [] : [{ module: m.path || ".", root: m.source_root }],
+		),
+		generated_annotations: GENERATED_ANNOTATIONS,
+		unmeasured: [
+			...reactor.module_info.flatMap((m) =>
+				m.test_root === null
+					? []
+					: [
+							{
+								subject: m.test_root,
+								reason: `test sources, which maven-pmd-plugin ${PMD_PLUGIN_VERSION} does not read (includeTests is false by default)`,
+							},
+						],
+			),
+			...dependencies.map((subject) => ({
+				subject,
+				reason: "a declared dependency, an artifact resolved outside the tree, whose code PMD and CPD do not read",
+			})),
+			{
+				subject: "duplication between two modules",
+				reason: `CPD compares the files of one module with each other only (aggregate is false by default in maven-pmd-plugin ${PMD_PLUGIN_VERSION})`,
+			},
+		],
+	};
+}
+
 /** The declaration of PMD as it is inserted into a POM: no goal is bound, and the rule set is the one 495 names at each run. */
 const PMD_DECLARATION = [
 	"<plugin>",
@@ -425,7 +468,7 @@ function pmdDeclaration(projectPath: string, pomPaths: readonly string[]): PmdDe
  * declares the plugin in a copy and resolves it; a target that names PMD configures it itself, and its
  * rules are not replaced by these.
  */
-function qualityOffer(projectPath: string, declaration: PmdDeclaration): QualityOffer {
+function qualityOffer(projectPath: string, declaration: PmdDeclaration, reactor: MavenReactor): QualityOffer {
 	if (declaration.by === "project")
 		return {
 			kind: "not_proposed",
@@ -434,6 +477,7 @@ function qualityOffer(projectPath: string, declaration: PmdDeclaration): Quality
 	return {
 		kind: "proposed",
 		rules: PMD_REFERENTIAL,
+		perimeter: qualityPerimeter(reactor),
 		recommendation: withPluginEdit(
 			projectPath,
 			{
@@ -661,10 +705,14 @@ interface MavenModule {
 	artifact_id: string | null;
 	/** Artifact ids of the reactor modules this POM declares as dependencies, outside any profile. */
 	depends_on: string[];
+	/** The other dependencies this POM declares outside any profile, as `groupId:artifactId` when the group is written. */
+	external_dependencies: string[];
 	/** The package root the module's own layout declares, when its sources share one. */
 	package_root: string | null;
 	/** Workspace-relative main source root, when the module has one. */
 	source_root: string | null;
+	/** Workspace-relative test source root, when the module has one. */
+	test_root: string | null;
 }
 
 interface MavenReactor {
@@ -683,7 +731,7 @@ function discoverMavenReactor(projectPath: string): MavenReactor {
 	const queue = [""];
 	const seen = new Set<string>();
 	const children = new Map<string, string[]>();
-	const identities = new Map<string, { artifact_id: string | null; dependencies: string[] }>();
+	const identities = new Map<string, PomIdentity>();
 	const ignored: string[] = [];
 	while (queue.length > 0) {
 		const module = queue.shift()!;
@@ -740,13 +788,19 @@ function discoverMavenReactor(projectPath: string): MavenReactor {
 		module_info: modules.map((m) => {
 			const identity = identities.get(m) ?? { artifact_id: null, dependencies: [] };
 			const sourceRoot = pathAt(m, "src/main/java");
+			const testRoot = pathAt(m, "src/test/java");
 			const hasSources = existsSync(join(root, sourceRoot));
+			const inReactor = (d: PomDependency) => reactorArtifacts.has(d.artifact_id);
 			return {
 				path: m,
 				artifact_id: identity.artifact_id,
-				depends_on: identity.dependencies.filter((id) => reactorArtifacts.has(id)).sort(),
+				depends_on: [...new Set(identity.dependencies.filter(inReactor).map((d) => d.artifact_id))].sort(),
+				external_dependencies: identity.dependencies
+					.filter((d) => !inReactor(d))
+					.map((d) => (d.group_id === null ? d.artifact_id : `${d.group_id}:${d.artifact_id}`)),
 				package_root: hasSources ? packageRootOf(join(root, sourceRoot)) : null,
 				source_root: hasSources ? `${sourceRoot}/` : null,
+				test_root: existsSync(join(root, testRoot)) ? `${testRoot}/` : null,
 			};
 		}),
 		pom_paths: modules.map((m) => pathAt(m, "pom.xml")),
@@ -757,32 +811,47 @@ function discoverMavenReactor(projectPath: string): MavenReactor {
 	};
 }
 
+interface PomDependency {
+	/** Null when the POM leaves the group to a property or to nothing. */
+	group_id: string | null;
+	artifact_id: string;
+}
+
+interface PomIdentity {
+	artifact_id: string | null;
+	dependencies: PomDependency[];
+}
+
+/** The text of the first `<name>` element of a POM fragment, null when it is absent or left to a property. */
+function elementText(xml: string, name: string): string | null {
+	const text = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)<\\/${name}>`).exec(xml)?.[1]?.trim();
+	return text && !text.includes("${") ? text : null;
+}
+
 /**
  * What a POM declares about itself: its own artifact and the artifacts it depends on. The blocks a
  * dependency may hide in without `mvn test` resolving it — the parent coordinates, managed versions,
  * plugin dependencies and profiles — are removed first: a dependency that exists only under an
  * activated profile is not one the reactor guarantees, the same reading `bindsJacocoReport` applies.
  */
-function pomIdentity(xml: string): { artifact_id: string | null; dependencies: string[] } {
+function pomIdentity(xml: string): PomIdentity {
 	const own = xml
 		.replace(/<parent\b[\s\S]*?<\/parent>/g, "")
 		.replace(/<dependencyManagement\b[\s\S]*?<\/dependencyManagement>/g, "")
 		.replace(/<build\b[\s\S]*?<\/build>/g, "")
 		.replace(PROFILES, "")
 		.replace(/<reporting\b[\s\S]*?<\/reporting>/g, "");
-	const dependencies: string[] = [];
+	const dependencies: PomDependency[] = [];
 	for (const block of own.matchAll(/<dependencies\b[^>]*>([\s\S]*?)<\/dependencies>/g)) {
-		for (const match of (block[1] ?? "").matchAll(/<artifactId\b[^>]*>([\s\S]*?)<\/artifactId>/g)) {
-			const id = (match[1] ?? "").trim();
-			if (id && !id.includes("${")) dependencies.push(id);
+		for (const match of (block[1] ?? "").matchAll(/<dependency\b[^>]*>([\s\S]*?)<\/dependency>/g)) {
+			// An exclusion names an artifact the dependency does not bring.
+			const declared = (match[1] ?? "").replace(/<exclusions\b[\s\S]*?<\/exclusions>/g, "");
+			const artifact = elementText(declared, "artifactId");
+			if (artifact !== null) dependencies.push({ group_id: elementText(declared, "groupId"), artifact_id: artifact });
 		}
 	}
 	const withoutDependencies = own.replace(/<dependencies\b[\s\S]*?<\/dependencies>/g, "");
-	const artifact = /<artifactId\b[^>]*>([\s\S]*?)<\/artifactId>/.exec(withoutDependencies)?.[1]?.trim() ?? null;
-	return {
-		artifact_id: artifact && !artifact.includes("${") ? artifact : null,
-		dependencies: [...new Set(dependencies)],
-	};
+	return { artifact_id: elementText(withoutDependencies, "artifactId"), dependencies };
 }
 
 /**

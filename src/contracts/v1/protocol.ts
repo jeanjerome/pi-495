@@ -116,6 +116,34 @@ export const QualityRule = Type.Object(
 );
 export type QualityRule = Static<typeof QualityRule>;
 
+/**
+ * What the analysers of a quality referential read and what they leave aside, as the target adapter
+ * declares it from the build files: never from a file of the analysed tree, so nothing there can widen
+ * or narrow it.
+ */
+export const QualityPerimeter = Type.Object(
+	{
+		/** The source roots the analysers read, workspace-relative, each with the module it belongs to. */
+		measured: Type.Array(
+			Type.Object(
+				{ module: Type.String({ minLength: 1 }), root: Type.String({ minLength: 1 }) },
+				{ additionalProperties: false },
+			),
+		),
+		/** The annotations, fully qualified, whose presence on a top-level type marks its file as generated code. */
+		generated_annotations: Type.Array(Type.String({ minLength: 1 })),
+		/** What no analyser of the referential reads, each with the reason. */
+		unmeasured: Type.Array(
+			Type.Object(
+				{ subject: Type.String({ minLength: 1 }), reason: Type.String({ minLength: 1 }) },
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
+export type QualityPerimeter = Static<typeof QualityPerimeter>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,
@@ -335,6 +363,8 @@ export const AdoptedQualityReferential = Type.Object(
 		/** The owner's decision that adopted it. */
 		decision_id: Identifier,
 		rules: Type.Array(QualityRule, { minItems: 1 }),
+		/** What its analysers read and leave aside; absent from a referential adopted before the adapter declared it. */
+		perimeter: Type.Optional(QualityPerimeter),
 	},
 	{ additionalProperties: false },
 );

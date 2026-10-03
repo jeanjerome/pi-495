@@ -1,4 +1,5 @@
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
+import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusView } from "../../application/views.ts";
 
@@ -101,7 +102,10 @@ export function formatDecision(req: DecisionRequest): string {
 }
 
 /** What the text says of one rule of an adopted referential. */
-type RuleLabels = Omit<NonNullable<SurveySection["referential"]>["rules"][number], "findings"> & { adopted_on: string };
+type RuleLabels = Omit<
+	NonNullable<SurveySection["referential"]>["rules"][number],
+	"findings" | "proprietary_by_module"
+> & { adopted_on: string };
 
 const R = {
 	fr: {
@@ -118,6 +122,11 @@ const R = {
 		referential: "Référentiel de qualité adopté",
 		rule: (r: RuleLabels) =>
 			`${r.rule_id} — ${r.nature}, oracle ${r.control_id} (${r.tool}), seuil : ${r.threshold}, source : ${r.source}, adoptée le ${r.adopted_on}`,
+		proprietary: "code propriétaire :",
+		generated: "code généré :",
+		inModule: (violations: number, module: string | null) =>
+			`${violations} ${module === null ? "hors des sources mesurées" : `dans ${module}`}`,
+		unmeasured: "non mesuré par le référentiel :",
 		outcome: "Résultat",
 		candidate: "Candidat",
 		authority: { kernel: "noyau", model: "modèle", human: "humain" },
@@ -136,6 +145,11 @@ const R = {
 		referential: "Adopted quality referential",
 		rule: (r: RuleLabels) =>
 			`${r.rule_id} — ${r.nature}, oracle ${r.control_id} (${r.tool}), threshold: ${r.threshold}, source: ${r.source}, adopted on ${r.adopted_on}`,
+		proprietary: "proprietary code:",
+		generated: "generated code:",
+		inModule: (violations: number, module: string | null) =>
+			`${violations} ${module === null ? "outside the measured sources" : `in ${module}`}`,
+		unmeasured: "not measured by the referential:",
 		outcome: "Outcome",
 		candidate: "Candidate",
 		authority: { kernel: "kernel", model: "model", human: "human" },
@@ -173,8 +187,20 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 			lines.push(`  ${t.referential}:`);
 			for (const rule of referential.rules) {
 				lines.push(`    ${t.rule({ ...rule, adopted_on: referential.adopted_on })}`);
-				for (const f of rule.findings) lines.push(`      ${f.path === null ? "" : `${f.path}: `}${f.message}`);
+				const located = (authorship: CodeAuthorship) =>
+					rule.findings
+						.filter((f) => f.authorship === authorship)
+						.map((f) => `        ${f.path === null ? "" : `${f.path}: `}${f.message}`);
+				const generated = located("generated");
+				const counts = rule.proprietary_by_module.map((c) => t.inModule(c.violations, c.module));
+				lines.push(`      ${t.proprietary} ${counts.length === 0 ? t.none : counts.join(", ")}`);
+				lines.push(...located("proprietary"));
+				lines.push(`      ${t.generated} ${generated.length === 0 ? t.none : generated.length}`);
+				lines.push(...generated);
 			}
+			lines.push(`    ${t.unmeasured}`);
+			if (referential.unmeasured.length === 0) lines.push(`      ${t.none}`);
+			for (const u of referential.unmeasured) lines.push(`      ${u.subject}: ${u.reason}`);
 		}
 		lines.push(`  ${t.findings}:`);
 		if (report.survey.findings.length === 0) lines.push(`    ${t.none}`);

@@ -22,12 +22,35 @@ export interface SurveyMeasure {
 	evidence_id: string;
 }
 
+/** Who wrote the code a violation of the adopted quality referential sits in: a hand, or a generator that says so. */
+export type CodeAuthorship = "proprietary" | "generated";
+
 /** What a control found on the reference: the tool's words, and the file they point at when they name one. */
 export interface SurveyFinding {
 	message: string;
 	path: string | null;
 	/** The rule the tool names; absent from a survey taken before findings carried it. */
 	rule_id?: string;
+	/** Present on a finding of a control of the adopted quality referential, absent on any other. */
+	authorship?: CodeAuthorship;
+}
+
+/** Where a finding sits: its own file, and every other `path:line` its message names, as a duplication names each of its places. */
+export function placesOf(finding: Pick<SurveyFinding, "message" | "path">): string[] {
+	const named = [...finding.message.matchAll(/(?:^|[\s,])([^\s,:]+):\d+/g)].map((m) => m[1]!);
+	return [...new Set([...(finding.path === null ? [] : [finding.path]), ...named])];
+}
+
+/**
+ * The authorship of a finding of the referential: generated when every place it names is in a file a
+ * generator declares it wrote, proprietary otherwise. It ranges the finding and removes nothing from it.
+ */
+function authorshipOf(
+	finding: Pick<SurveyFinding, "message" | "path">,
+	generated: ReadonlySet<string>,
+): CodeAuthorship {
+	const places = placesOf(finding);
+	return places.length > 0 && places.every((place) => generated.has(place)) ? "generated" : "proprietary";
 }
 
 export interface Survey {
@@ -133,11 +156,15 @@ export function surveyOf(input: {
 	change_id: string;
 	reference_digest: string;
 	protocol_revision: number;
-	protocol: Pick<Protocol, "obligations" | "capability_diagnosis" | "qualifications"> & {
+	protocol: Pick<Protocol, "obligations" | "capability_diagnosis" | "qualifications" | "quality_referential"> & {
 		controls: readonly Pick<ControlDefinition, "control_id" | "parser">[];
 	};
 	passes: readonly (SurveyMeasure & { findings: readonly SurveyFinding[] })[];
+	/** The files of the reference a generator declares it wrote; none when absent. */
+	generated_files?: readonly string[];
 }): Survey {
+	const generated = new Set(input.generated_files ?? []);
+	const referentialControls = new Set(input.protocol.quality_referential?.rules.map((r) => r.control_id) ?? []);
 	const controls = input.passes.map((p) => {
 		const control = input.protocol.controls.find((c) => c.control_id === p.control_id);
 		const blindSpot = control ? unmeasured(control, input.protocol) : null;
@@ -149,6 +176,7 @@ export function surveyOf(input: {
 				message: f.message,
 				path: f.path,
 				...(f.rule_id === undefined ? {} : { rule_id: f.rule_id }),
+				...(referentialControls.has(p.control_id) ? { authorship: authorshipOf(f, generated) } : {}),
 			})),
 			blind_spot: blindSpot,
 		};

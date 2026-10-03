@@ -838,6 +838,66 @@
             "additionalProperties": false
           },
           "minItems": 1
+        },
+        "perimeter": {
+          "type": "object",
+          "required": [
+            "measured",
+            "generated_annotations",
+            "unmeasured"
+          ],
+          "properties": {
+            "measured": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "module",
+                  "root"
+                ],
+                "properties": {
+                  "module": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "root": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "generated_annotations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "unmeasured": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "subject",
+                  "reason"
+                ],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

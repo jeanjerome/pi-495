@@ -6,8 +6,8 @@
  * It writes no verdict about the change. It records evidence and returns the facts the application
  * controller commits through the domain reducer, so no verdict is ever written outside it (AT-01).
  */
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { digestValue } from "../contracts/digest.ts";
 import { validate } from "../contracts/validate.ts";
 import type { CandidateRef, EnvironmentRef, ProtocolRef } from "../contracts/v1/common.ts";
@@ -39,7 +39,8 @@ import {
 import type { EvidenceFact } from "../domain/change/commands.ts";
 import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
-import { asksAboutQuality, controlsOfNature } from "../domain/survey.ts";
+import { declaresGenerated } from "../domain/generated-code.ts";
+import { asksAboutQuality, controlsOfNature, placesOf } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import type { ControlExecutionPort, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
@@ -588,27 +589,39 @@ export class VerificationCoordinator {
 		protocol: Protocol;
 		protocol_ref: ProtocolRef;
 		reference: ReferenceSnapshot;
-	}): Promise<{ fact: EvidenceFact; findings: Evidence["findings"] }[]> {
+	}): Promise<{ passes: { fact: EvidenceFact; findings: Evidence["findings"] }[]; generated_files: string[] }> {
+		const annotations = input.protocol.quality_referential?.perimeter?.generated_annotations ?? [];
+		let generated: string[] = [];
 		const passes = await this.runOnReference(
 			input.change_id,
 			input.protocol.controls,
 			input.protocol,
 			input.protocol_ref,
 			input.reference,
+			async (workspacePath, stored) => {
+				if (annotations.length > 0) generated = await generatedFiles(workspacePath, stored, annotations);
+			},
 		);
-		return passes.map((evidence) => ({
-			fact: factOf(evidence, blockingCount(evidence.findings, "block_any")),
-			findings: evidence.findings,
-		}));
+		return {
+			passes: passes.map((evidence) => ({
+				fact: factOf(evidence, blockingCount(evidence.findings, "block_any")),
+				findings: evidence.findings,
+			})),
+			generated_files: generated,
+		};
 	}
 
-	/** Runs each control, in order, in one copy of the reference, and seals what each observed as a reference pass. */
+	/**
+	 * Runs each control, in order, in one copy of the reference, and seals what each observed as a reference
+	 * pass; `inspect` then reads the copy the controls ran in, before it is deleted.
+	 */
 	private async runOnReference(
 		changeId: string,
 		controls: readonly ControlDefinition[],
 		protocol: Protocol,
 		protocolRef: ProtocolRef,
 		reference: ReferenceSnapshot,
+		inspect?: (workspacePath: string, stored: readonly Evidence[]) => Promise<void>,
 	): Promise<Evidence[]> {
 		if (controls.length === 0) return [];
 		const stored: Evidence[] = [];
@@ -647,6 +660,7 @@ export class VerificationCoordinator {
 					),
 				);
 			}
+			await inspect?.(handle.path, stored);
 		} finally {
 			await this.deps.workspace.closeWorkspace(handle.workspace_id, "delete");
 		}
@@ -727,4 +741,26 @@ export class VerificationCoordinator {
 		this.deps.ledger.putEvidence(evidence, changeId);
 		return evidence;
 	}
+}
+
+/**
+ * The files the findings of `passes` name that a generator declares it wrote, read in the copy the
+ * controls ran in without writing anything there. A place outside the copy, or that cannot be read,
+ * declares nothing.
+ */
+async function generatedFiles(
+	workspacePath: string,
+	passes: readonly Evidence[],
+	annotations: readonly string[],
+): Promise<string[]> {
+	const root = resolve(workspacePath);
+	const places = new Set(passes.flatMap((evidence) => evidence.findings.flatMap(placesOf)));
+	const generated: string[] = [];
+	for (const place of places) {
+		const inside = relative(root, resolve(root, place));
+		if (inside === "" || inside === ".." || inside.startsWith(`..${sep}`)) continue;
+		const source = await readFile(join(root, inside), "utf8").catch(() => "");
+		if (declaresGenerated(source, annotations)) generated.push(place);
+	}
+	return generated.sort();
 }

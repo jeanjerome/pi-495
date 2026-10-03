@@ -32,7 +32,7 @@ export async function surveyReference(
 		},
 		cor,
 	);
-	const passes = await ctx.verification.surveyReference({
+	const { passes, generated_files } = await ctx.verification.surveyReference({
 		change_id: state.change_id,
 		protocol: protocol.content,
 		protocol_ref: state.protocol.ref,
@@ -49,6 +49,7 @@ export async function surveyReference(
 		protocol_revision: state.protocol.ref.revision,
 		protocol: protocol.content,
 		passes: passes.map((p) => ({ ...p.fact, findings: p.findings })),
+		generated_files,
 	});
 	const ref = await ctx.artifacts.store("survey", state.change_id, ctx.id("srv"), survey, KERNEL_ACTOR.actor_id);
 	unit = ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "survey", ref }, cor);
