@@ -1,12 +1,27 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { accepter, conduirePas, rouvrir } from "../../cycle/src/cycle.ts";
 import { brancheCourante, revision } from "../../cycle/src/git.ts";
 import { lireStory } from "../../cycle/src/story.ts";
-import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
-import { COMMIT, PASSING_TEST, SHOUT_CODE, SHOUT_TEST, contexte, depot, fauxClaude } from "../helpers/cycle.ts";
+import { fixtureTs, gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import {
+	COMMIT,
+	NODE,
+	PASSING_TEST,
+	SHOUT_CODE,
+	SHOUT_TEST,
+	STORY,
+	contexte,
+	depot,
+	depotDe,
+	fauxClaude,
+} from "../helpers/cycle.ts";
+
+const WHISPER_TEST =
+	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { whisper } from "../src/greet.js";\n\ntest("greet whispers", () => {\n  assert.equal(whisper("X"), "hello, x");\n});\n';
+const WHISPER_CODE = `${SHOUT_CODE}export function whisper(name) {\n  return greet(name).toLowerCase();\n}\n`;
 
 const cleanups = removedAfterEach();
 
@@ -66,6 +81,39 @@ export default (invite, cwd) => {
 		assert.equal(issue.statut, "bloque");
 		assert.match(issue.statut === "bloque" ? issue.motif : "", /no failing test read at this test-only commit/);
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
+	});
+
+	it("replays a test-only commit against each task whose test file it touches, so a red for one task is read even when it also edits another task's green test", async () => {
+		const root = depotDe((r) => {
+			fixtureTs(r);
+			mkdirSync(join(r, "specs", "stories", "e01"), { recursive: true });
+			writeFileSync(
+				join(r, "specs", "stories", "e01", "e01s05-greet-shouts.md"),
+				STORY.replace(
+					"## 5. Hors périmètre",
+					`### Tâche 2 — greet whispers\n\ngreet returns its greeting lower-cased.\n\n- Vérifie : \`${NODE} --test test/whisper.test.js\`\n- Tient : \`test/whisper.test.js\`, « the greeting is lower case »\n- Rouge : greet has no whisper\n\n## 5. Hors périmètre`,
+				),
+			);
+		});
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+  commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE)} }, "feat: greet shouts");
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(`// shared helper moved\n${SHOUT_TEST}`)}, "test/whisper.test.js": ${JSON.stringify(WHISPER_TEST)} }, "test: greet whispers");
+  commit(cwd, { "src/greet.js": ${JSON.stringify(WHISPER_CODE)} }, "feat: greet whispers");
+  return { status: "fini", taches: [{ numero: 1 }, { numero: 2 }], resume: "done" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), { statut: "fini" });
+		const rouges = ctx.journal.depuisReouverture().filter((e) => e.genre === "rouge");
+		assert.deepEqual(
+			rouges.map((e) => [e.sujet, e.rouge]),
+			[
+				["test: greet shouts", true],
+				["test: greet whispers", true],
+			],
+		);
 	});
 
 	it("replays only the test-only commits of the pass, so a green test a later step left on the branch does not block a reopened story", async () => {

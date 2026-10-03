@@ -172,9 +172,15 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 	// Every test-only commit of the pass, so one left by an earlier launch of it is replayed too. A
 	// green test that a later step left on the branch is not a red the pass owes.
 	for (const c of commitsEntre(ctx.root, passe).filter(estCommitDeTestSeul)) {
-		const command = commandeDuCommit(ctx, c.fichiers);
-		if (!command) continue;
-		const preuve = await controle(ctx, "rouge-vert", command, c.sha);
+		const commandes = commandesDuCommit(ctx, c.fichiers);
+		if (commandes.length === 0) continue;
+		// A test-only commit may also edit the green test of an earlier task: it is a red when one of
+		// the tasks it touches fails at it.
+		let preuve = await controle(ctx, "rouge-vert", commandes[0]!, c.sha);
+		for (const command of commandes.slice(1)) {
+			if (estUnRouge(preuve)) break;
+			preuve = await controle(ctx, "rouge-vert", command, c.sha);
+		}
 		ctx.journal.inscrire("rouge-vert", "rouge", {
 			commit: c.sha,
 			sujet: c.sujet,
@@ -196,10 +202,11 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 	return FINI;
 }
 
-/** The task whose test file a test-only commit touches, so its command replays the red. */
-function commandeDuCommit(ctx: Contexte, fichiers: string[]): Controle | null {
-	const t = ctx.story.taches.find((t) => t.verifie && fichiers.some((f) => t.verifie!.includes(f)));
-	return t?.verifie ? controleDeTache(t.numero, t.verifie) : null;
+/** The tasks whose test file a test-only commit touches, so their commands replay the red. */
+function commandesDuCommit(ctx: Contexte, fichiers: string[]): Controle[] {
+	return ctx.story.taches.flatMap((t) =>
+		t.verifie && fichiers.some((f) => t.verifie!.includes(f)) ? [controleDeTache(t.numero, t.verifie)] : [],
+	);
 }
 
 // --- 3. l'autocontrôle ------------------------------------------------------------------------------
