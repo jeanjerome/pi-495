@@ -308,7 +308,7 @@ epics:
 
   - id: e10
     title: "Référentiel de qualité d'une cible"
-    status: à faire
+    status: versé
     prete: oui
     source: chantiers/N
     objet: >
