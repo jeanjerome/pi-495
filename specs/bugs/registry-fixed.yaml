@@ -1249,3 +1249,30 @@ bugs:
       more than 1000 findings whose witness finding comes last.
     status: fixed
     fixed_in: 3eeb1ca
+  - bug_id: BUG-2026-10-03T220000
+    date: "2026-10-03"
+    title: "A second survey of the same tree is blocked on the survey's idempotency key, so an owner who refuses the survey of the integrated project cannot take another without changing the tree"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `survey` in `src/application/phases/survey.ts` keys its operation `survey:<reference digest>:<revision>`, a key that
+      names neither the change nor the program. A second state request on an unchanged tree reaches the same key, and the
+      ledger refuses it with OPERATION_ACTIVE. Since a remediation milestone is now judged on an accepted survey of the
+      integrated project, an owner who refuses that survey cannot measure the program again until the tree changes.
+    what_expected: >
+      Each state request runs its own survey; a repeat is recognised only within the change that ran it.
+    steps_to_reproduce:
+      - "Integrate the increments of a remediation program, run `/495 state` on the integrated project and refuse the survey."
+      - "Run `/495 state` again on the same tree: the second survey stops on OPERATION_ACTIVE for the reused key."
+    root_cause: >
+      The idempotency key is scoped to the reference tree and a per-change revision counter, not to the change. Same
+      shape as the verification key of BUG-2026-10-03T134500.
+    evidence: >
+      Named by the automated arbitration of e10s06 from its acceptance run; the key's composition is read in
+      `survey.ts:31`. Not reproduced outside that run.
+    risk_level: medium
+    follow_ups: >
+      Put the change id in the key, with the same fix as the verification key, and a test of two surveys of one tree.
+    status: fixed
+    fixed_in: 9d370b4
