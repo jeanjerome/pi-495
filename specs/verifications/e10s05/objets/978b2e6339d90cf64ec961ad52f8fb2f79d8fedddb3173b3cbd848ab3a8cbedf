@@ -1,0 +1,116 @@
+TAP version 13
+# Subtest: program DAG (SA-006, SA-007, RM-006, RM-009)
+    # Subtest: refuses a cyclic trajectory and locates the cycle
+    ok 1 - refuses a cyclic trajectory and locates the cycle
+      ---
+      duration_ms: 1.408667
+      type: 'test'
+      ...
+    # Subtest: keeps independent increments eligible while a blocked increment blocks only its descendants
+    ok 2 - keeps independent increments eligible while a blocked increment blocks only its descendants
+      ---
+      duration_ms: 0.43575
+      type: 'test'
+      ...
+    # Subtest: P0 runs one producing increment at a time
+    ok 3 - P0 runs one producing increment at a time
+      ---
+      duration_ms: 0.101958
+      type: 'test'
+      ...
+    # Subtest: an accepted increment cannot vanish from a revised trajectory; revision keeps statuses (PRG-04)
+    ok 4 - an accepted increment cannot vanish from a revised trajectory; revision keeps statuses (PRG-04)
+      ---
+      duration_ms: 0.192875
+      type: 'test'
+      ...
+    # Subtest: an agent cannot write the program
+    ok 5 - an agent cannot write the program
+      ---
+      duration_ms: 0.065625
+      type: 'test'
+      ...
+    1..5
+ok 1 - program DAG (SA-006, SA-007, RM-006, RM-009)
+  ---
+  duration_ms: 2.632
+  type: 'suite'
+  ...
+# Subtest: milestones (SA-038, RM-007, RM-008, PRG-05)
+    # Subtest: accepted increments with an unverified global requirement do not accept the program
+    ok 1 - accepted increments with an unverified global requirement do not accept the program
+      ---
+      duration_ms: 0.204375
+      type: 'test'
+      ...
+    # Subtest: a failing global control gives FAIL even if all increments are green
+    ok 2 - a failing global control gives FAIL even if all increments are green
+      ---
+      duration_ms: 0.084875
+      type: 'test'
+      ...
+    1..2
+ok 2 - milestones (SA-038, RM-007, RM-008, PRG-05)
+  ---
+  duration_ms: 0.361708
+  type: 'suite'
+  ...
+# Subtest: exigences globales d'une trajectoire (PRG-03)
+    # Subtest: une trajectoire qui déclare une exigence globale R2 affectée ni à un incrément, ni à une vérification de jalon, ni à une décision de périmètre est refusée en nommant R2
+    ok 1 - une trajectoire qui déclare une exigence globale R2 affectée ni à un incrément, ni à une vérification de jalon, ni à une décision de périmètre est refusée en nommant R2
+      ---
+      duration_ms: 0.134083
+      type: 'test'
+      ...
+    # Subtest: une exigence globale écartée par une décision de périmètre avec sa raison, ou vérifiée par un jalon, est adoptée et l'événement d'adoption la porte avec sa décision
+    ok 2 - une exigence globale écartée par une décision de périmètre avec sa raison, ou vérifiée par un jalon, est adoptée et l'événement d'adoption la porte avec sa décision
+      ---
+      duration_ms: 0.146458
+      type: 'test'
+      ...
+    1..2
+ok 3 - exigences globales d'une trajectoire (PRG-03)
+  ---
+  duration_ms: 0.367042
+  type: 'suite'
+  ...
+# Subtest: écarts de l'état des lieux d'une trajectoire (QLT-03)
+    # Subtest: une trajectoire dont l'état des lieux porte CyclomaticComplexity dans infrastructure, qu'aucun incrément ne supprime et qu'aucune décision de périmètre n'écarte, est refusée en nommant la règle, le module, le périmètre et son nombre de violations
+    ok 1 - une trajectoire dont l'état des lieux porte CyclomaticComplexity dans infrastructure, qu'aucun incrément ne supprime et qu'aucune décision de périmètre n'écarte, est refusée en nommant la règle, le module, le périmètre et son nombre de violations
+      ---
+      duration_ms: 0.212333
+      type: 'test'
+      ...
+    # Subtest: un incrément qui supprime CPD dans domain, que l'état des lieux ne porte pas, est refusé en nommant l'incrément et l'écart
+    ok 2 - un incrément qui supprime CPD dans domain, que l'état des lieux ne porte pas, est refusé en nommant l'incrément et l'écart
+      ---
+      duration_ms: 0.080417
+      type: 'test'
+      ...
+    # Subtest: une trajectoire dont chaque écart est supprimé par un incrément ou écarté avec sa raison est adoptée, et l'événement d'adoption porte l'état des lieux cité, ses écarts et leurs décisions
+    ok 3 - une trajectoire dont chaque écart est supprimé par un incrément ou écarté avec sa raison est adoptée, et l'événement d'adoption porte l'état des lieux cité, ses écarts et leurs décisions
+      ---
+      duration_ms: 0.130709
+      type: 'test'
+      ...
+    # Subtest: A et B intégrés, le jalon final d'une trajectoire adoptée sur un état des lieux est INDETERMINATE, nomme chacun des trois écarts comme non mesuré sur le projet intégré, et le programme n'est pas clos
+    ok 4 - A et B intégrés, le jalon final d'une trajectoire adoptée sur un état des lieux est INDETERMINATE, nomme chacun des trois écarts comme non mesuré sur le projet intégré, et le programme n'est pas clos
+      ---
+      duration_ms: 0.144
+      type: 'test'
+      ...
+    1..4
+ok 4 - écarts de l'état des lieux d'une trajectoire (QLT-03)
+  ---
+  duration_ms: 0.626375
+  type: 'suite'
+  ...
+1..4
+# tests 13
+# suites 4
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 125.99075

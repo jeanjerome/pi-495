@@ -1,0 +1,97 @@
+TAP version 13
+# Subtest: a trajectory reads its gaps in the dossier of the survey it cites
+    # Subtest: adopter une trajectoire qui cite l'état des lieux accepté du réacteur inscrit au programme l'état des lieux, le digest de l'arbre mesuré et ses trois écarts du code propriétaire avec leur nombre, et la demande du changement de A nomme ses deux écarts avec leur règle, leur seuil, leur module et leur nombre
+    ok 1 - adopter une trajectoire qui cite l'état des lieux accepté du réacteur inscrit au programme l'état des lieux, le digest de l'arbre mesuré et ses trois écarts du code propriétaire avec leur nombre, et la demande du changement de A nomme ses deux écarts avec leur règle, leur seuil, leur module et leur nombre
+      ---
+      duration_ms: 768.009666
+      type: 'test'
+      ...
+    # Subtest: l'écart du code généré écarté par une décision de périmètre motivée est inscrit avec sa raison
+    ok 2 - l'écart du code généré écarté par une décision de périmètre motivée est inscrit avec sa raison
+      ---
+      duration_ms: 715.629834
+      type: 'test'
+      ...
+    # Subtest: un document qui cite un changement inconnu ou un état des lieux encore ouvert est refusé en nommant le changement, et une décision de périmètre qui écarte un écart que l'état des lieux ne porte pas est refusée en nommant l'écart, sans programme créé
+    ok 3 - un document qui cite un changement inconnu ou un état des lieux encore ouvert est refusé en nommant le changement, et une décision de périmètre qui écarte un écart que l'état des lieux ne porte pas est refusée en nommant l'écart, sans programme créé
+      ---
+      duration_ms: 749.895208
+      type: 'test'
+      ...
+    # Subtest: un écart que rien ne prend en charge et un incrément qui supprime un écart que l'état des lieux ne porte pas sont refusés en nommant l'écart, sans programme ni changement créé
+    ok 4 - un écart que rien ne prend en charge et un incrément qui supprime un écart que l'état des lieux ne porte pas sont refusés en nommant l'écart, sans programme ni changement créé
+      ---
+      duration_ms: 742.473792
+      type: 'test'
+      ...
+    # Subtest: un document qui cite un changement à candidat, un état des lieux refusé, sans référentiel adopté, d'un autre projet ou dont pmd n'est pas qualifié est refusé avec un message qui nomme le changement et la raison, sans programme créé
+    ok 5 - un document qui cite un changement à candidat, un état des lieux refusé, sans référentiel adopté, d'un autre projet ou dont pmd n'est pas qualifié est refusé avec un message qui nomme le changement et la raison, sans programme créé
+      ---
+      duration_ms: 2427.551333
+      type: 'test'
+      ...
+    # Subtest: un état des lieux dont un contrôle du référentiel manque à la liste des contrôles mesurés est refusé en nommant le changement et le contrôle, sans programme créé
+    ok 6 - un état des lieux dont un contrôle du référentiel manque à la liste des contrôles mesurés est refusé en nommant le changement et le contrôle, sans programme créé
+      ---
+      duration_ms: 704.566083
+      type: 'test'
+      ...
+    # Subtest: un état des lieux dont le contrôle pmd a gardé 1000 des 1001 constats de son rapport est refusé avec un message qui nomme le changement, le contrôle et les deux comptes, sans programme ni changement créé
+    ok 7 - un état des lieux dont le contrôle pmd a gardé 1000 des 1001 constats de son rapport est refusé avec un message qui nomme le changement, le contrôle et les deux comptes, sans programme ni changement créé
+      ---
+      duration_ms: 6061.4405
+      type: 'test'
+      ...
+    # Subtest: deux méthodes de complexité 11 dans domain font un écart de 2 violations, que le programme inscrit et que la demande du changement de A nomme, quel que soit le document
+    ok 8 - deux méthodes de complexité 11 dans domain font un écart de 2 violations, que le programme inscrit et que la demande du changement de A nomme, quel que soit le document
+      ---
+      duration_ms: 745.515375
+      type: 'test'
+      ...
+    1..8
+ok 1 - a trajectory reads its gaps in the dossier of the survey it cites
+  ---
+  duration_ms: 12915.960625
+  type: 'suite'
+  ...
+# Subtest: a dossier written before increments named gaps
+    # Subtest: le statut d'un programme dont la projection stockée a été écrite avant que ses incréments nomment des écarts liste chacun avec son titre et son statut, sans écart ni état des lieux, et le dossier reste intègre
+    not ok 1 - le statut d'un programme dont la projection stockée a été écrite avant que ses incréments nomment des écarts liste chacun avec son titre et son statut, sans écart ni état des lieux, et le dossier reste intègre
+      ---
+      duration_ms: 74.405916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/test/v2-kernel/program-baseline.test.ts:409:2'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of undefined (reading 'flatMap')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/src/application/views.ts:162:20
+        Array.map (<anonymous>)
+        statusView (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/src/application/views.ts:158:37)
+        HarnessWithModel.status (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/src/application/harness.ts:796:10)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/test/v2-kernel/program-baseline.test.ts:427:26)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 2 - a dossier written before increments named gaps
+  ---
+  duration_ms: 75.000542
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-nj3w5m/test/v2-kernel/program-baseline.test.ts:408:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 9
+# suites 2
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13173.581875

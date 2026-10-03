@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Un écart que rien ne prend en charge bloque l'adoption ; Un incrément ne supprime pas un écart que l'état des lieux ne porte pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/program-baseline.test.ts",
+    "ligne": 1,
+    "constat": "Le code tient les deux refus. Une sonde jetable par harness.adopt a obtenu « gap CyclomaticComplexity in infrastructure (proprietary code, 1 violation) is removed by no increment and set aside by no scope decision » et « increment A removes CPD in domain (proprietary code), a gap the cited survey does not carry », et aucun programme ni changement n'a été créé. Mais les tests n'assertent ces deux refus que sur decideProgram (v0). Le fait que rien ne soit écrit et que la session reste sans liaison n'est tenu que par le test v3 commun d'un refus d'adoption (cas R2), venu de la story précédente.",
+    "mutation": "Retirer `if (command.baseline) checkGaps(...)` dans program.ts fait échouer 3 tests v0. Aucune mutation du code de la story ne peut, à elle seule, faire écrire un programme lors d'un refus."
+   }
+  ],
+  "resume": "Les six scénarios sont tenus par le code, et chacun est tenu par un test qu'une mutation fait échouer. 23 mutations sur 24 ont été tuées.\n\n- **Scénario 1** (digest, nombre lu dans le dossier, périmètre généré par défaut, baseline transmise par harness, liste filtrée et seuil dans la demande, écarts du statut) : chaque mutation échoue en v0 ou en v2. Une constante 1 à la place du nombre de violations est maintenant tuée par le nouveau test v2 qui compte 2 violations, ce qui répond à B1-2.\n- **Scénarios 2 et 4** : retirer checkGaps, la branche des écarts non pris en charge, la branche des écarts inconnus ou le nombre dans le message fait échouer les tests v0. Une sonde v2 par harness.adopt confirme les messages et l'absence d'écriture (voir A2-1, à peser).\n- **Scénario 3** : la décision de périmètre est inscrite, avec le set_aside et la raison dans le statut ; chaque mutation est tuée.\n- **Scénario 5** : retirer chacune des conditions (candidat, autre projet, état des lieux non accepté, sans référentiel, pmd non qualifié, contrôle absent) fait échouer un test. Le contrôle absent est tenu par le nouveau test, ce qui répond à B1-3.\n- **Scénario 6** : supprimer l'entrée « gap: », retirer la liste « indéterminé » du texte, afficher « clos » à tort ou clore le programme sur INDETERMINATE fait échouer un test. Le nouveau test de statut v0 répond à A1-1 et B1-1.\n\nA1-2 est désormais inscrit au registre (BUG-2026-10-03T190000) et n'est pas recompté.\n\nLa seule mutation survivante retire `!setAside(gap)` dans evaluateMilestone. Elle n'est pas un constat : aucun scénario ne fait supprimer par un incrément un écart que l'on a écarté. La sonde jetable a été supprimée et l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Tour 2 sur le diff f47c0b0...eb7a2ee : deux tests ajoutés, plus l'entrée de registre BUG-2026-10-03T190000 (A1-2), déjà ouverte et donc non comptée. La branche ne change aucune ligne de src/. Les tests de program-status, program et program-baseline passent tous à eb7a2ee (24 au total). Pour chaque constat traité, j'ai muté le code qui tient la promesse, puis remis la ligne ; l'arbre est revenu propre. A1-1 et B1-1 (« le statut le dit ») : inverser la condition `program.closed` dans text.ts:136 fait échouer le nouveau test de statut, en plus du test PASS-clos. Retirer la liste « indéterminé » de la ligne du jalon le fait aussi échouer. Neutraliser le `indeterminate.push` de program.ts:559 fait échouer à la fois le test de domaine et le nouveau test de statut. B1-3 : réécrire la condition en `measured && measured.blind_spot !== null` dans baseline.ts fait accepter un contrôle absent, et le nouveau test v2 qui retire pmd des contrôles échoue. B1-2 : remplacer `violations` par la constante 1 dans surveyGaps fait échouer le nouveau test v2. Ce test passe par un vrai dossier, avec 2 violations de CyclomaticComplexity dans domain, au programme comme dans la demande de A. Aucune promesse non tenue par le code, aucune promesse sans test : pas de nouveau constat."
+ }
+]

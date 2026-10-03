@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le jalon d'une remise aux standards n'est pas franchi sur la seule clôture de ses incréments",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v0-pure/program.test.ts",
+    "ligne": 440,
+    "constat": "Le code tient la promesse : `recordIncrementResult` (harness.ts:430), qui existait déjà, évalue le jalon par `decideProgram`, et c'est là que `evaluateMilestone` ajoute chaque écart comme indéterminé. Mais seul un test du domaine (v0) tient la promesse, en émettant lui-même `milestone.evaluate`. Aucun test v2 n'intègre A puis B à travers le noyau pour lire l'évaluation inscrite et le statut.",
+    "mutation": "`indeterminate.push(`gap:` → `satisfied.push(`gap:` dans evaluateMilestone : tuée par program.test.ts et program-status.test.ts (v0)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une trajectoire de remise aux standards est adoptée sur les écarts de son état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/program-baseline.test.ts",
+    "ligne": 131,
+    "constat": "Les scénarios 1 à 5 et 7 disent « depuis Pi », mais leurs tests appellent `harness.adopt` directement. Seul le scénario 8 passe par `/495 adopt` (test/v3-pi/program-entry.test.ts). Ce câblage existait avant la branche, et l'adoption sur un état des lieux ne le change pas."
+   }
+  ],
+  "resume": "J'ai relu les neuf scénarios et la section Sécurité dans le diff 4b9ac76...e840235. Chaque promesse est tenue par le code. J'ai lancé 26 mutations sur les lignes qui tiennent ces promesses, contre les cinq fichiers de test concernés (v0 program, program-status, increment-request ; v2 program-baseline ; v3 program-entry). Les 26 ont été tuées, et l'arbre est revenu propre après chacune.\n\nCe que couvrent ces mutations :\n- **Refus de l'état des lieux cité :** changement à candidat, autre projet, état des lieux non accepté, sans référentiel, point aveugle de pmd, rapport coupé à 1000 constats, comptage lu dans les faits de la preuve.\n- **Refus des écarts :** incrément qui nomme un écart sans état des lieux cité ou absent de l'état des lieux, écart non pris en charge, décision de périmètre sans raison, décision qui nomme un écart inconnu.\n- **Ce que l'adoption inscrit :** comptage par module et par périmètre (code propriétaire ou généré), digest de l'arbre mesuré, état des lieux passé à l'adoption, raison de la décision de périmètre.\n- **Demande et statut :** demande de A (filtre et objectif), statut (écarts sous chaque incrément, écart écarté, lignes du texte), jalon indéterminé.\n- **Anciens dossiers :** valeurs par défaut de la projection SQLite et de l'événement d'adoption, quand ils datent d'avant les écarts.\n\nJ'ai aussi vérifié deux choses :\n- Le compte comparé à la coupe correspond bien à toutes les violations du rapport : `judgedQualityFindings` le compte avant de garder les 1000 premiers constats, pour pmd et pour les rapports ESLint/jscpd, et `surveyOf` ne filtre aucun constat.\n- Un contrôle dont la passe sur la référence est INDETERMINATE ne peut pas donner un état des lieux accepté : le G5 de l'état des lieux arrête alors le changement.\n\nLa promesse que la session reste sans liaison après un refus (scénario 2) est déjà ouverte au registre (BUG-2026-10-03T210000) et n'est pas comptée. Les deux constats sont à peser : le jalon des scénarios n'est tenu qu'au niveau du domaine, et l'entrée depuis Pi n'est testée que pour le scénario 8."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une trajectoire de remise aux standards est adoptée sur les écarts de son état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/harness.ts",
+    "ligne": 700,
+    "constat": "La demande du changement d'un incrément suivant (B, ouvert par startNext) reçoit les écarts de l'état des lieux par `program.baseline`, mais aucun test ne le vérifie. Si on passe `null` à cet endroit, aucun test n'échoue. La story ne promet que la demande de A, que les tests tiennent ; B n'est donc pas une promesse non tenue.",
+    "mutation": "incrementRequest(increment, language, program.baseline) → incrementRequest(increment, language, null) dans startNext : 0 échec sur program.test, program-status.test, increment-request.test, program-baseline.test, program-entry.test"
+   }
+  ],
+  "resume": "Les neuf scénarios sont tenus par le code, et chaque promesse est tenue par au moins un test. J'ai essayé 27 mutations, une par ligne qui porte une promesse, sur cinq fichiers de test : program, program-status, increment-request, program-baseline et program-entry. Les 26 mutations qui touchent une promesse font toutes échouer au moins un test.\n\nCe que couvrent ces mutations :\n- l'adoption : le digest de l'arbre mesuré, les écarts du code généré, le filtre des écarts dans la demande de A, le seuil en français et en anglais, l'état des lieux inscrit au programme ;\n- le statut : les écarts listés sous chaque incrément et les écarts écartés avec leur raison ;\n- les refus : un écart que rien ne prend en charge, un incrément qui nomme un écart que l'état des lieux ne porte pas, et chacune des cinq raisons pour lesquelles un changement cité n'est pas un point de départ ;\n- le jalon INDETERMINATE après intégration de A et B ;\n- le rapport PMD coupé : la comparaison des deux comptes, et la lecture de `facts.findings` qui donne le total du rapport (posé par `judgedQualityFindings` pour pmd et cpd) ;\n- l'incrément qui nomme un écart sans état des lieux cité, testé depuis Pi ;\n- les dossiers anciens : la projection stockée et le rejeu du journal pour un programme dont les incréments n'ont pas de champ d'écarts.\n\nUne seule mutation survit, et elle est hors promesse : retirer l'état des lieux de la demande du changement de B (startNext) ne fait échouer aucun test. C'est relevé comme à peser.\n\nLa session reste sans liaison après un refus parce que `/495 adopt` passe par openChange, qui ne lie la session qu'en cas de succès. Qu'aucun test ne le tienne est déjà ouvert au registre (BUG-2026-10-03T210000), donc ne compte pas ici.\n\nAucun constat introduit ou rendu atteignable n'est bloquant ou à corriger. L'arbre est laissé propre."
+ }
+]

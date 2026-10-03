@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le jalon d'une remise aux standards n'est pas franchi sur la seule clôture de ses incréments",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 136,
+    "constat": "Aucun test ne vérifie la partie « le statut le dit ». Le code la tient : la ligne du jalon affiche INDETERMINATE suivi de la liste « indéterminé: gap:… not measured on the integrated project », et l'en-tête ne porte pas « — clos ». Mais le test v0 du jalon final (program.test.ts) n'assert que l'état du domaine (verdict, entrées indeterminate, closed=false, aucun program.closed). Aucun test de statut ne rend un programme de remise aux standards après l'intégration de A et de B.",
+    "mutation": "(1) text.ts:150 : la liste indéterminée est retirée de la ligne du jalon (`...(false ? …)` à la place de `e.indeterminate.length ? …`) ; program-status, harness et toute la génération v3-pi restent verts (141/141). (2) text.ts:136 : l'en-tête affiche toujours « — clos », même pour un programme ouvert ; 141/141 verts aussi."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une trajectoire de remise aux standards est adoptée sur les écarts de son état des lieux (Sécurité : un document ne peut ni réduire un écart ni en taire un)",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 44,
+    "constat": "surveyGaps compte les violations sur les findings que le survey garde. Ces findings viennent de la preuve du contrôle, que le lecteur PMD borne aux 1000 premières (parsers.ts:64 ; le dépassement n'est noté que dans une note). Sur un existant de plus de 1000 violations, la ligne de base sous-compte. Un couple règle/module dont toutes les violations tombent après la borne disparaît : un document peut alors l'omettre et l'adoption passe. Ce chemin a été lu, il n'a pas été sondé par un test.",
+    "mutation": ""
+   }
+  ],
+  "resume": "Six scénarios relus sur le diff 4b9ac76...f47c0b0. Le code tient chaque promesse, et 19 mutations sur 21 font échouer un test qui dit le Then. Tests vus échouer : program.test.ts pour les écarts non pris en charge, l'incrément qui cite CPD, une décision sans raison et le jalon INDETERMINATE ; program-status.test.ts pour les écarts listés sous A et B et l'écart écarté avec sa raison ; increment-request.test.ts et program-baseline.test.ts pour la demande de A ; program-baseline.test.ts aussi pour le digest, les trois écarts et leurs nombres, la décision de périmètre sur le code généré et les cinq refus de point de départ (candidat, refusé, ouvert, sans référentiel, autre projet, pmd non qualifié). Deux mutations survivent, toutes deux sur le scénario 6, « le statut le dit » : retirer du statut la liste des écarts indéterminés, ou afficher le programme « clos » alors qu'il ne l'est pas, laisse tous les tests de statut verts. C'est à corriger, introduit, d'où le verdict fail. À peser : la borne de 1000 findings du lecteur PMD peut sous-compter ou taire un écart de la ligne de base sur un gros existant. Arbre laissé propre, rien de commité."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le jalon d'une remise aux standards n'est pas franchi sur la seule clôture de ses incréments",
+    "categorie": "a_corriger",
+    "placement": "rendu_atteignable",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 152,
+    "constat": "Le code tient la promesse « le statut le dit ». Une sonde jetable a affiché, après A et B intégrés, la ligne du programme sans « clos » et la ligne du jalon « INDETERMINATE — indéterminé: gap:… » avec les trois écarts, en français et en anglais. Mais aucun test ne vérifie le statut de ce programme : le test v0 du scénario s'arrête à l'état du domaine (verdict, indeterminate, closed), et aucun test v0, v2 ou v3 ne vérifie la liste « indéterminé » d'une ligne de jalon.",
+    "mutation": "Retrait de `...(e.indeterminate.length ? [`${t.indeterminate}: ...`] : [])` dans programLines : test/v0-pure/*.test.ts et test/v3-pi/program-entry.test.ts restent verts (0 échec)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une trajectoire de remise aux standards est adoptée sur les écarts de son état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 56,
+    "constat": "Le nombre de violations d'un écart est lu dans le dossier par countByModule. Mais dans chaque test qui passe par un vrai dossier (v2), ce nombre vaut 1. Une constante 1 passe donc tous les tests du chemin réel, alors que la section Sécurité promet que le document ne peut pas réduire un écart. Seuls les tests purs (increment-request, avec 3 violations) emploient un autre nombre, et ils ne lisent pas de dossier.",
+    "mutation": "`violations,` → `violations: 1,` dans surveyGaps : test/v2-kernel/program-baseline.test.ts reste vert (0 échec)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Un état des lieux qui n'a pas mesuré l'existant n'est pas un point de départ (section Sécurité : un analyseur absent n'est jamais lu comme l'absence d'écart)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/baseline.ts",
+    "ligne": 37,
+    "constat": "Un état des lieux dont un contrôle du référentiel manque dans la liste des contrôles est bien refusé. Mais aucun test n'exerce ce cas : seul celui d'un pmd présent mais non qualifié l'est. Le cas que le scénario énumère, pmd non qualifié, reste tenu par un test.",
+    "mutation": "`if (!measured || measured.blind_spot !== null)` → `if (measured && measured.blind_spot !== null)` : program-baseline.test.ts reste vert (0 échec)."
+   }
+  ],
+  "resume": "Le code tient les six scénarios. Une sonde jetable, supprimée ensuite, a lancé l'adoption depuis le harnais sur un vrai dossier :\n- sans B, refus « gap CyclomaticComplexity in infrastructure (proprietary code, 1 violation) is removed by no increment and set aside by no scope decision », sans programme ni changement créé ;\n- avec CPD dans domain, refus « increment A removes CPD in domain … », sans programme ni changement créé ;\n- après l'intégration de A et B, le statut affiche un jalon INDETERMINATE qui nomme les trois écarts, et le programme n'est pas clos.\n\nSur 36 mutations, 32 font échouer un test du scénario visé. Elles portent sur : les conditions de point de départ (candidat, autre projet, non accepté, sans référentiel, pmd non qualifié), la lecture par périmètre, le digest, la raison de la décision de périmètre, les deux refus de checkGaps, setAside, le jalon et le câblage de la demande de A. Elles portent aussi sur les écarts du statut et sur les lignes du statut qui les affichent.\n\nQuatre mutations survivent :\n- Retirer la liste « indéterminé » de la ligne de jalon : aucun test ne vérifie le statut du scénario 6. C'est le constat B1-1, à corriger, ce qui fait échouer le verdict.\n- Remplacer par la constante 1 le nombre de violations lu dans le dossier (B1-2, à peser).\n- Ne plus refuser un contrôle absent de l'état des lieux (B1-3, à peser).\n- Retirer `!setAside(gap)` dans le jalon : mutation sans effet ici, car un écart écarté ne figure dans aucun incrément. Ce n'est pas un constat.\n\nLa demande du changement de B, ouvert par startNext, n'est vérifiée par aucun test. Aucune promesse ne la couvre, donc ce n'est pas un constat. L'arbre est propre."
+ }
+]

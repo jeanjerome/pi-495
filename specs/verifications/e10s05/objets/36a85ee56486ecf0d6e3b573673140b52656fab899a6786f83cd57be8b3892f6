@@ -1,0 +1,53 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un programme adopté avant que ses incréments nomment des écarts garde son statut",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/views.ts",
+    "ligne": 162,
+    "constat": "`/495 status` lit le programme dans la projection que SQLite a stockée (`SqliteLedger.loadProgram`, ledger.ts:406, un `JSON.parse` sans rejeu du journal). Un dossier écrit avant cette story y garde des incréments sans champ `gaps`, et `i.gaps.flatMap` lève « Cannot read properties of undefined (reading 'flatMap') », l'erreur même que le scénario exclut. Sonde : dossier créé par `harness.adopt` avec le code de 4b9ac76, rouvert avec le code de 366b7ad. Les clés projetées de l'incrément n'ont pas `gaps`, et `harness.status` lève cette erreur. Le défaut `gaps: spec.gaps ?? []` de `applyProgram` ne vaut qu'au rejeu, que `loadProgram` ne fait pas. Le test de program-status.test.ts passe ses événements à `applyProgram` sur un état neuf : il ne passe jamais par la projection stockée, donc il ne tient pas cette promesse sur le chemin réel.",
+    "mutation": "Sonde, pas une mutation : dossier pré-story écrit par le code de main, puis `harness.status` sous la branche : erreur levée. La mutation qui retire `gaps: spec.gaps ?? []` de `applyProgram` fait bien échouer le test v0, mais ce test n'exerce pas le chemin de la projection."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un écart que rien ne prend en charge bloque l'adoption (et les autres scénarios « depuis Pi »)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/program-baseline.test.ts",
+    "constat": "Les refus et les adoptions sont exercés par `harness.adopt`, pas par `/495 adopt`. « La session reste sans liaison » n'est vérifié pour aucun refus lié à un écart. Le code le tient par construction (`openChange` ne lie la session qu'après la création), et les tests v3 qui existent déjà pour les autres refus d'adoption tiendraient la liaison faite avant création.",
+    "mutation": ""
+   }
+  ],
+  "resume": "J'ai relu les neuf scénarios et essayé 30 mutations sur les tests de la story : 29 font échouer un test. La seule qui survit (passer `null` au lieu de `program.baseline` dans `startNext`) touche la demande de B, qu'aucune promesse ne couvre. Les scénarios 1 à 8 sont tenus par le code et par un test. Le verdict est fail à cause du scénario 9 (A1-1, bloquant, introduit). `/495 status` lit la projection SQLite stockée (`views.ts:162`), sans rejouer le journal. Sur un dossier écrit par le code de `main`, les incréments n'ont pas de champ `gaps`, et le statut lève « Cannot read properties of undefined (reading 'flatMap') ». Je l'ai vérifié sur un dossier réel créé à 4b9ac76 puis rouvert à 366b7ad. Le test v0 du scénario rejoue les événements et ne passe jamais par cette projection. J'ai retiré mes sondes et mon arbre temporaire ; il reste dans /tmp/a1-e10s05 le dossier de sonde et le script de mutations."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un programme adopté avant que ses incréments nomment des écarts garde son statut",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/views.ts",
+    "ligne": 162,
+    "constat": "`/495 status` lit l'état du programme dans la projection stockée en SQLite (`ledger.loadProgram`, qui fait `JSON.parse(programs.state)`), pas en rejouant le journal. Or un dossier créé avant cette story a une projection dont les incréments n'ont pas de champ `gaps`, si bien que `statusView` lève « Cannot read properties of undefined (reading 'flatMap') » sur `i.gaps.flatMap`. Le correctif `spec.gaps ?? []` de `applyProgram` ne protège que le rejeu, et le test de ce scénario (program-status.test.ts) passe par `applyProgram` et non par la projection persistée. Sonde jetable : adoption de `threeIncrements`, puis retrait de `gaps` et de `baseline` dans `programs.state`, comme le laisse un dossier antérieur ; `harness.status` lève alors l'erreur, et `verifyIntegrity` signale « projection differs from replay ».",
+    "mutation": "Sonde jetable test/v2-kernel/zz-probe-b1.test.ts (supprimée) : réécriture de la projection stockée sans `gaps` ni `baseline`, puis harness.status → TypeError reading 'flatMap'."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une trajectoire de remise aux standards est adoptée sur les écarts de son état des lieux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 34,
+    "constat": "Le nombre de violations affiché par le statut sous chaque incrément n'est vérifié que sur des écarts à 1 violation. Une ligne de statut qui écrirait toujours « 1 violation » passe le test, alors que le test v2 à 2 violations ne contrôle que le programme et la demande, pas le statut. La promesse reste tenue au pied de la lettre, puisque le scénario ne compte que des écarts à 1.",
+    "mutation": "Ligne `gap` en français : `${g.violations} violation${…}` remplacé par `1 violation` → program-status.test.ts reste vert."
+   }
+  ],
+  "resume": "J'ai relu les neuf scénarios et essayé environ trente mutations, sur baseline.ts, program.ts, harness.ts, trajectory.ts, views.ts et text.ts. Toutes font échouer un test, sauf celle qui fige à 1 le nombre affiché par le statut (B1-2, à peser). Le constat bloquant est B1-1, introduit par la branche : un programme créé avant la story fait planter `/495 status` avec « Cannot read properties of undefined (reading 'flatMap') ». En effet, le statut lit la projection stockée en SQLite, dont les incréments n'ont pas de champ `gaps`, et non un rejeu du journal ; le test du scénario 9 ne passe que par le rejeu. Je l'ai reproduit par une sonde jetable, depuis supprimée. Verdict : fail."
+ }
+]

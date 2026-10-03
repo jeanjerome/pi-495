@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: statut d'un programme
+    # Subtest: le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+    ok 1 - le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+      ---
+      duration_ms: 3.009166
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme sans évaluation dit le jalon sans évaluation
+    ok 2 - le statut d'un programme sans évaluation dit le jalon sans évaluation
+      ---
+      duration_ms: 0.129792
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont le jalon final est PASS dit le programme clos
+    ok 3 - le statut d'un programme dont le jalon final est PASS dit le programme clos
+      ---
+      duration_ms: 0.221916
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+    ok 4 - le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+      ---
+      duration_ms: 0.186459
+      type: 'test'
+      ...
+    1..4
+ok 1 - statut d'un programme
+  ---
+  duration_ms: 4.034167
+  type: 'suite'
+  ...
+# Subtest: statut d'un programme de remise aux standards
+    # Subtest: le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+    ok 1 - le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+      ---
+      duration_ms: 0.305083
+      type: 'test'
+      ...
+    # Subtest: A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+    ok 2 - A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+      ---
+      duration_ms: 0.173208
+      type: 'test'
+      ...
+    1..2
+ok 2 - statut d'un programme de remise aux standards
+  ---
+  duration_ms: 0.550334
+  type: 'suite'
+  ...
+1..2
+# tests 6
+# suites 2
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 145.28075
