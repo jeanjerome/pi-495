@@ -1,0 +1,131 @@
+TAP version 13
+# Subtest: a survey of quality proposes the referential of the Maven adapter
+    # Subtest: un état des lieux de la qualité d'un projet Maven sans PMD demande l'adoption du référentiel avec un fait par règle et deux issues
+    not ok 1 - un état des lieux de la qualité d'un projet Maven sans PMD demande l'adoption du référentiel avec un fait par règle et deux issues
+      ---
+      duration_ms: 407.542541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:178:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /référentiel de qualité/. Input:
+        
+        'Accepter cet état des lieux ?'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'Accepter cet état des lieux ?'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:184:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par pmd et cpd en FAIL avec un constat par violation, sans changer le digest du projet
+    not ok 2 - l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par pmd et cpd en FAIL avec un constat par violation, sans changer le digest du projet
+      ---
+      duration_ms: 364.522458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:214:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'closed'
+        - 'decision_required'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'decision_required'
+      actual: 'closed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:220:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: laisser l'exigence en angle mort ne lance aucune résolution et le survey dit que le référentiel n'a pas été adopté
+    not ok 3 - laisser l'exigence en angle mort ne lance aucune résolution et le survey dit que le référentiel n'a pas été adopté
+      ---
+      duration_ms: 367.43
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:298:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /quality referential was not adopted/. Input:
+        
+        'blind spot: no control of the target measures its nature (style)'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: no control of the target measures its nature (style)'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:304:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une résolution qui échoue n'adopte rien et le survey rend la raison de Maven
+    not ok 4 - une résolution qui échoue n'adopte rien et le survey rend la raison de Maven
+      ---
+      duration_ms: 363.32025
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:316:2'
+      failureType: 'testCodeFailure'
+      error: 'the reason Maven gave'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: no control of the target measures its nature (style)'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:328:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un projet qui configure déjà PMD ne reçoit aucune proposition et le survey dit que le projet configure PMD lui-même
+    not ok 5 - un projet qui configure déjà PMD ne reçoit aucune proposition et le survey dit que le projet configure PMD lui-même
+      ---
+      duration_ms: 358.8135
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:331:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /configures PMD itself/. Input:
+        
+        'blind spot: no control of the target measures its nature (style)'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: no control of the target measures its nature (style)'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:347:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..5
+not ok 1 - a survey of quality proposes the referential of the Maven adapter
+  ---
+  duration_ms: 1862.300042
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sCz7Wz/test/v2-kernel/quality-referential-adoption.test.ts:177:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2037.604041

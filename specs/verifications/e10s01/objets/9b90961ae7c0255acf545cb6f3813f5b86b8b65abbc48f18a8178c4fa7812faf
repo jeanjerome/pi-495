@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: the reports of PMD and CPD are read
+    # Subtest: un rapport PMD donne un constat par violation avec sa règle, son fichier et sa ligne
+    ok 1 - un rapport PMD donne un constat par violation avec sa règle, son fichier et sa ligne
+      ---
+      duration_ms: 87.327167
+      type: 'test'
+      ...
+    # Subtest: un rapport CPD donne un constat par duplication qui nomme ses emplacements
+    ok 2 - un rapport CPD donne un constat par duplication qui nomme ses emplacements
+      ---
+      duration_ms: 40.739667
+      type: 'test'
+      ...
+    # Subtest: un rapport absent ou illisible rend INDETERMINATE
+    ok 3 - un rapport absent ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 120.117792
+      type: 'test'
+      ...
+    1..3
+ok 1 - the reports of PMD and CPD are read
+  ---
+  duration_ms: 248.774791
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 387.156833

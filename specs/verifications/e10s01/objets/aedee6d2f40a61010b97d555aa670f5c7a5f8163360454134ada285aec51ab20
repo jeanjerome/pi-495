@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the Maven adapter declares its quality referential and recommends PMD
+    # Subtest: la détection d'un projet Maven sans PMD porte le référentiel de qualité, chaque règle avec sa nature, sa règle PMD, son seuil, la version de PMD, sa source et sa date, et recommande maven-pmd-plugin 3.28.0 avec la modification du POM et sa résolution
+    ok 1 - la détection d'un projet Maven sans PMD porte le référentiel de qualité, chaque règle avec sa nature, sa règle PMD, son seuil, la version de PMD, sa source et sa date, et recommande maven-pmd-plugin 3.28.0 avec la modification du POM et sa résolution
+      ---
+      duration_ms: 4.550375
+      type: 'test'
+      ...
+    # Subtest: un POM qui déclare déjà maven-pmd-plugin ne reçoit ni référentiel ni recommandation, et une note dit que le projet configure PMD lui-même
+    ok 2 - un POM qui déclare déjà maven-pmd-plugin ne reçoit ni référentiel ni recommandation, et une note dit que le projet configure PMD lui-même
+      ---
+      duration_ms: 2.180083
+      type: 'test'
+      ...
+    1..2
+ok 1 - the Maven adapter declares its quality referential and recommends PMD
+  ---
+  duration_ms: 7.14725
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 181.002291

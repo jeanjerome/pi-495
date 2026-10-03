@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: a survey of quality proposes the referential of the Maven adapter
+    # Subtest: un état des lieux de la qualité d'un projet Maven sans PMD demande l'adoption du référentiel avec un fait par règle et deux issues
+    ok 1 - un état des lieux de la qualité d'un projet Maven sans PMD demande l'adoption du référentiel avec un fait par règle et deux issues
+      ---
+      duration_ms: 149.214291
+      type: 'test'
+      ...
+    # Subtest: l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par pmd et cpd en FAIL avec un constat par violation, sans changer le digest du projet
+    ok 2 - l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par pmd et cpd en FAIL avec un constat par violation, sans changer le digest du projet
+      ---
+      duration_ms: 719.053834
+      type: 'test'
+      ...
+    # Subtest: laisser l'exigence en angle mort ne lance aucune résolution et le survey dit que le référentiel n'a pas été adopté
+    ok 3 - laisser l'exigence en angle mort ne lance aucune résolution et le survey dit que le référentiel n'a pas été adopté
+      ---
+      duration_ms: 376.578792
+      type: 'test'
+      ...
+    # Subtest: une résolution qui échoue n'adopte rien et le survey rend la raison de Maven
+    ok 4 - une résolution qui échoue n'adopte rien et le survey rend la raison de Maven
+      ---
+      duration_ms: 411.52125
+      type: 'test'
+      ...
+    # Subtest: un projet qui configure déjà PMD ne reçoit aucune proposition et le survey dit que le projet configure PMD lui-même
+    ok 5 - un projet qui configure déjà PMD ne reçoit aucune proposition et le survey dit que le projet configure PMD lui-même
+      ---
+      duration_ms: 362.674125
+      type: 'test'
+      ...
+    1..5
+ok 1 - a survey of quality proposes the referential of the Maven adapter
+  ---
+  duration_ms: 2019.708083
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2200.496583

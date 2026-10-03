@@ -1,0 +1,63 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le référentiel adopté mesure la qualité du projet",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 103,
+    "constat": "Aucun test ne vérifie qu'un contrôle pmd ou cpd est qualifié parce qu'il détecte le défaut de son propre témoin négatif. Si l'on remplace le jugement du témoin négatif par « FAIL dès que l'exécution conclut », les tests v2 et le test réel v4 (vrai Maven, vrai PMD) restent verts. Un capteur qui ne trouve rien dans le fichier du témoin, par exemple avec un jeu de règles vide, serait alors qualifié. Les tests ne tiennent que la moitié « une violation du projet ne disqualifie pas » de la promesse « qualifiés par leurs témoins, bien que le code du projet viole déjà des règles ».",
+    "mutation": "`inFiles(negative, negativeOnly) ? \"FAIL\" : \"PASS\"` → `\"FAIL\"` : quality-referential-adoption, pmd-reports et v4-platform/maven-quality restent tous verts"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le référentiel adopté mesure la qualité du projet",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/quality-referential.ts",
+    "ligne": 153,
+    "constat": "La date d'adoption est bien celle de la décision (`answer.recorded_at`). Mais l'horloge de test avance d'une seconde par appel : aucun test ne distingue la date de la décision de la date du gel. Les deux ne diffèrent que si la réponse et la reprise tombent de part et d'autre de minuit.",
+    "mutation": "`adopted_on: answer.recorded_at.slice(0, 10)` → `ctx.now().slice(0, 10)` : adoption et rapport restent verts (la mutation vers la date du catalogue, elle, fait échouer les deux tests)"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le rapport expose le référentiel adopté",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 120,
+    "constat": "Le test du rapport ne rend le texte qu'en anglais. Le gabarit français de la ligne de règle (seuil, source, date d'adoption) n'est tenu par aucun test, alors que la question de la story est posée en français.",
+    "mutation": "retrait de `, seuil : ${r.threshold}` du gabarit fr : quality-referential-report reste vert (la même mutation sur le gabarit en fait échouer le test)"
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Le référentiel adopté mesure la qualité du projet",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/helpers/fake-maven.ts",
+    "constat": "Le test v2 vérifie que le message du constat contient le nom de la règle, mais le faux PMD écrit ce nom dans le texte même de la violation : l'assertion passe quel que soit le lecteur. La règle reste tenue par `rule_id`, que les tests v1, v4 et le rapport v2 assertent.",
+    "mutation": "retrait de `${rule}: ` du message dans pmd-report.ts : quality-referential-adoption et pmd-reports restent verts ; `rule_id: \"PMD\"`, lui, fait échouer le rapport v2"
+   }
+  ],
+  "resume": "Le code tient les six scénarios et la section sécurité. Tous les tests de la story passent, y compris le test v4 sur un vrai Maven 3.9.9 avec PMD 7.17.0 (le greffon 3.28.0 embarque bien cette version, vérifié dans son POM). Sur 38 mutations, 33 font échouer un test. Elles couvrent : les faits par règle (nature, seuil, outil, source, date), la version 3.28.0, le texte de l'issue d'adoption, les deux issues, l'empreinte du projet, le gel du référentiel, la raison donnée par Maven, la note « configures PMD itself », le rangement des constats sous leur règle, et le jeu de règles écrit hors de l'arbre depuis les règles gelées puis retiré. Une seule mutation survivante compte : forcer le témoin négatif à FAIL laisse verts les tests v2 et v4, si bien qu'aucun test ne vérifie que pmd et cpd sont qualifiés parce qu'ils détectent le défaut de leur propre témoin (A1-1, à corriger, introduit). Les autres survivantes sont à peser : la date d'adoption qu'on ne distingue pas de la date du gel, le gabarit français du rapport sans test, et l'assertion sur le nom de la règle rendue vide par le faux PMD."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le référentiel adopté mesure la qualité du projet",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 103,
+    "constat": "Pour un contrôle qui juge ses témoins par l'emplacement de ses constats (pmd, cpd), aucun test ne vérifie la branche qui fait échouer le témoin positif quand un constat tombe dans ses propres fichiers. Sur Maven, les fichiers du témoin positif sont des sources de test, que PMD n'analyse pas par défaut, donc aucun test ne peut montrer cette vérification à l'œuvre. La promesse (pmd et cpd qualifiés bien que le projet viole déjà des règles) reste tenue et testée.",
+    "mutation": "`inFiles(positive, positiveFiles) ? \"FAIL\"` remplacé par `false ? \"FAIL\"` : quality-referential-adoption.test.ts et maven-quality.test.ts (vrai Maven) restent verts."
+   }
+  ],
+  "resume": "J'ai lu le chemin de code de chaque scénario. Les quatre fichiers de test v1/v2 de la story passent (14 tests), ainsi que le test v4, qui lance un vrai Maven. Sur 19 mutations d'une ligne, 18 font échouer un test, et j'ai remis chaque ligne. Mutations détectées :\n- date d'adoption remplacée par la date propre du référentiel ;\n- l'issue « laisser » qui retombe sur l'adoption ;\n- la raison de Maven retirée de l'angle mort ;\n- la raison de l'angle mort de qualité ignorée par le gel ;\n- le jugement des témoins par emplacement désactivé ;\n- le PMD déclaré par le projet non détecté ;\n- jeu de règles écrit sans règles, ou non supprimé après l'exécution ;\n- réseau ouvert pour pmd et cpd ;\n- second emplacement d'une duplication retiré ;\n- règle PMD perdue dans le lecteur ;\n- tri des violations par règle retiré du rapport ;\n- date d'adoption retirée du texte ;\n- source retirée des faits ;\n- phrase « rien n'est écrit dans le projet » retirée de l'issue d'adoption ;\n- déclaration non écrite dans la copie ;\n- seuil de complexité passé à 12, puis seuil CPD fixé à 200 jetons, tous deux contre le vrai Maven.\nJ'ai aussi vérifié que maven-pmd-plugin 3.28.0 embarque PMD 7.17.0. Seule la vérification du témoin positif des contrôles pmd et cpd échappe à toute mutation ; c'est un point à peser, qui ne contredit aucune promesse. Aucun constat bloquant ni à corriger."
+ }
+]

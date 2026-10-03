@@ -1,0 +1,77 @@
+TAP version 13
+# Subtest: the nature of a requirement is read on a category the specification instruction names
+    # Subtest: la consigne de spécification nomme chaque catégorie que 495 lit avec ce qu'elle mesure
+    not ok 1 - la consigne de spécification nomme chaque catégorie que 495 lit avec ce qu'elle mesure
+      ---
+      duration_ms: 161.729125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-77hvtM/test/v2-kernel/quality-referential-category.test.ts:56:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        "functional" says what it measures: "functional",
+              
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        "functional",
+              
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-77hvtM/test/v2-kernel/quality-referential-category.test.ts:68:43)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: des exigences de complexité, de duplication et de code mort écrites maintainability reçoivent la décision d'adoption, qui les nomme, et le survey les mesure par pmd et cpd en FAIL, sans mesurer l'exigence de couverture par pmd ni par cpd
+    not ok 2 - des exigences de complexité, de duplication et de code mort écrites maintainability reçoivent la décision d'adoption, qui les nomme, et le survey les mesure par pmd et cpd en FAIL, sans mesurer l'exigence de couverture par pmd ni par cpd
+      ---
+      duration_ms: 372.150875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-77hvtM/test/v2-kernel/quality-referential-category.test.ts:72:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the referential is proposed: Accepter cet état des lieux ?
+        + actual - expected
+        
+          [
+        +   'accept',
+        +   'refuse'
+        -   'adopt_referential',
+        -   'leave_blind_spot'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'adopt_referential'
+        1: 'leave_blind_spot'
+      actual:
+        0: 'accept'
+        1: 'refuse'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-77hvtM/test/v2-kernel/quality-referential-category.test.ts:77:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the nature of a requirement is read on a category the specification instruction names
+  ---
+  duration_ms: 534.438125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-77hvtM/test/v2-kernel/quality-referential-category.test.ts:55:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 707.886375

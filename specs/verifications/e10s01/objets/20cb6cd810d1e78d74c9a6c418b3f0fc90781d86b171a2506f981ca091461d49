@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le référentiel adopté mesure la qualité du projet",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/qualification.ts",
+    "ligne": 103,
+    "constat": "La mutation qui fait juger le témoin négatif sur tous ses fichiers, ceux du témoin positif compris, survit à tous les tests. Dans les faits, elle ne change rien : un constat dans un fichier du témoin positif fait déjà échouer le témoin positif, et le contrôle n'est pas qualifié. Aucune promesse n'en dépend.",
+    "mutation": "inFiles(negative, negativeOnly) → inFiles(negative, new Set(Object.keys(fixtures.negative_files ?? {}))) : quality-referential-adoption et pmd-reports restent verts"
+   }
+  ],
+  "resume": "Le code tient les sept scénarios et la section Sécurité, et un test tient chacun d'eux : 30 des 31 mutations sont tuées. J'ai lancé pour de vrai les tests v1 et v2 de la story (18 au vert) et le test v4 maven-quality, avec le vrai mvn et le bac à sable Seatbelt : pmd et cpd y sont qualifiés malgré les violations du projet, et la passe sur la référence rend FAIL avec les règles, les fichiers et les lignes attendus.\n\nMutations tuées, par scénario :\n- Proposition : version de PMD, source, date et version 3.28.0 du greffon retirées des faits, mention du réseau retirée de l'issue d'adoption.\n- Adoption : date du gel prise à la place de celle de la décision (le test qui franchit minuit l'attrape), témoins jugés sur le verdict global, ligne, règle et second emplacement retirés des constats, verdict PASS forcé, déclaration écrite aussi dans le projet (le digest de l'arbre l'attrape), réseau ouvert pour les contrôles.\n- Angle mort laissé : la branche « laisser » qui tombe dans la résolution.\n- Résolution en échec : la déclaration appliquée malgré l'échec, la raison de Maven retirée, la raison de l'angle mort non transmise au survey.\n- Projet qui configure PMD : sa détection désactivée.\n- Rapport : rangement par règle retiré, source, date et violations retirées du texte, rule_id perdu dans le survey.\n- Catégories : « dead code » retiré de la consigne, « maintainab » retiré de la lecture, exigences absentes de la question, pmd et cpd comptés pour toute nature.\n- Sécurité : jeu de règles pas substitué dans la commande, pas retiré après l'exécution, ou écrit sans ses propriétés.\n\nUne seule mutation survit (A1-1, à peser) : elle ne change rien dans les faits. Aucun constat introduit ou rendu atteignable n'est bloquant ou à corriger. Aucun fichier de l'arbre n'est modifié."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — le jeu de règles est écrit à partir du protocole gelé à chaque exécution : un fichier de l'arbre analysé ne peut pas le remplacer",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 481,
+    "mutation": "`-D${PMD_RULESET_PROPERTY}=${RULESET_PLACEHOLDER}` remplacé par `-Dpmd495.ruleset=ruleset.xml`, un chemin relatif à l'arbre analysé : aucun test v1 ni v2 n'échoue ; seul test/v4-platform/maven-quality.test.ts échoue, et ce test est sauté quand `mvn` n'est pas sur le PATH",
+    "constat": "Le code tient la promesse. Mais sur une machine sans Maven, aucun test n'oblige la commande du contrôle `pmd` à nommer le jeu de règles que le runner écrit, puisque les contrôles factices des tests v2 remplacent la commande. Une assertion v1 sur la commande détectée suffirait à tenir la promesse partout."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — les contrôles pmd et cpd tournent avec le réseau fermé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/maven.ts",
+    "ligne": 466,
+    "mutation": "`-o` retiré de `[\"mvn\", \"-B\", \"-q\", \"-o\", goal, argument]` : aucun test n'échoue (v1, v2). Ajouter `network: \"allowed\"` au contrôle fait bien échouer le test d'adoption v2",
+    "constat": "La fermeture du réseau est tenue par le profil du bac à sable (`network: \"denied\"`), et un test le vérifie. L'option hors ligne de Maven n'est qu'une seconde barrière, et aucun test ne la tient ; elle peut disparaître sans bruit. Ce n'est pas un écart à la promesse."
+   }
+  ],
+  "resume": "Review B, round 1, of e10s01, verdict pass: the code keeps every promise of the story and a test holds each one. I read every path the seven scenarios and the security section describe: the Maven adapter (maven.ts), quality-referential.ts, verification-design.ts, decisions.ts, qualification.ts, pmd-report.ts, pmd-ruleset.ts, the rule-set handling in runner.ts, survey.ts, report.ts and text.ts.\n\nThe new tests pass: 18 in v1 and v2, and the real-Maven test in v4 (mvn is installed here, 12 s).\n\nI made 41 one-line mutations and restored each file afterwards; the tree is clean. 38 were caught by a test of the story:\n- Scenario 1 (proposed referential): 9 of 9. The PMD version, documentation page, date or nature dropped from a fact; a fact dropped; a wrong plugin version; the adoption text without its network or nothing-written wording; the question without Maven.\n- Scenario 2 (adopted referential): 11 of 12. The decision date replaced by the freeze date; the referential not frozen; a rule's source emptied; the positive-witness judgement, the negative-witness judgement and the whole by-location judgement each mutated; the line, the rule or the second place dropped from a finding; PASS forced on a report with violations; the edit also written into the project (caught by the project digest). The 12th is equivalent: CPD reads as a quality control through both its parser and the lint list.\n- Scenario 3 (blind spot left): 3 of 3. Scenario 4 (failed resolution): 2 of 2. Scenario 5 (project configures PMD): 2 of 2. Scenario 6 (report): 5 of 5. Scenario 7 (categories): 5 of 5, including coverage measured by a lint control.\n- Security: 4 of 6. Network opened for pmd/cpd; rule set not removed; rule set written without the frozen rules; the rule-set path pointed into the analysed tree, caught only by the v4 test.\n\nTwo mutations survive, both noted as à peser:\n- **B1-1.** The rule-set placeholder in the pmd command is held only by the v4 test, which is skipped on a machine without Maven.\n- **B1-2.** Removing Maven's offline flag `-o` breaks no test. The network stays closed because the sandbox profile denies it, and that is tested.\n\nNo finding is bloquant or à corriger."
+ }
+]

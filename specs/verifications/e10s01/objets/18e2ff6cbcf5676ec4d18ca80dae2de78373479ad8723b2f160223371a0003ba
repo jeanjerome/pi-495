@@ -1,0 +1,89 @@
+TAP version 13
+# Subtest: the reports of PMD and CPD are read
+    # Subtest: un rapport PMD donne un constat par violation avec sa règle, son fichier et sa ligne
+    not ok 1 - un rapport PMD donne un constat par violation avec sa règle, son fichier et sa ligne
+      ---
+      duration_ms: 31.6975
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:75:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser pmd-xml is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:81:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un rapport CPD donne un constat par duplication qui nomme ses emplacements
+    not ok 2 - un rapport CPD donne un constat par duplication qui nomme ses emplacements
+      ---
+      duration_ms: 29.226542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:102:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser cpd-xml is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:108:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un rapport absent ou illisible rend INDETERMINATE
+    not ok 3 - un rapport absent ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 28.225542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:118:2'
+      failureType: 'testCodeFailure'
+      error: 'pmd-xml: the note says the report is absent'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser pmd-xml is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:125:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the reports of PMD and CPD are read
+  ---
+  duration_ms: 89.7585
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-4W38LU/test/v1-adapters/pmd-reports.test.ts:74:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 216.924333
