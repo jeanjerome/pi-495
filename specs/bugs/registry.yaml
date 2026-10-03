@@ -1202,3 +1202,32 @@ bugs:
       Let the stack name the titles its positive witness declares and match the passing cases against those, with a
       test on a project case named after an import of the witness.
     status: open
+  - bug_id: BUG-2026-10-03T060500
+    date: "2026-10-03"
+    title: "The pmd and cpd controls of a Maven reactor in which one module depends on another cannot run, so the quality referential is refused at G2"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `pmdControls` in `src/application/stacks/maven.ts` runs `mvn -B -q -o pmd:pmd` and `mvn -B -q -o pmd:cpd`, a
+      plugin goal with no lifecycle phase. On a reactor where a module declares a sibling module as a dependency,
+      Maven 3.9 does not resolve that sibling from the reactor when no phase builds it, the offline run cannot find it
+      in the local repository either, and the control fails before PMD reads any source. G2 then stops on
+      `capability_missing` for the adopted quality referential.
+    what_expected: >
+      A reactor whose modules depend on one another is measured by pmd and cpd like a reactor of independent modules.
+    steps_to_reproduce:
+      - "Take a Maven reactor of two modules where module b declares module a as a dependency, with no PMD configured."
+      - "Ask `/495 state` about the quality of the code and adopt the proposed referential."
+      - "The pmd control fails on the unresolved sibling artifact and G2 stops on capability_missing; the same on main at e10s01."
+    root_cause: >
+      The control invokes the plugin goal alone; the reactor's own artifacts are only visible to a goal when a phase
+      that produces them (at least `compile`) runs in the same invocation.
+    evidence: >
+      Seen in the acceptance run of e10s02 (`~/.495-campagnes`, target `reacteur`), and on main as a negative control;
+      the acceptance then used a reactor of independent modules. Named by the automated arbitration of e10s02.
+    risk_level: medium
+    follow_ups: >
+      Run the goals behind a phase that builds the reactor's modules, with a v4 test on a reactor whose module depends
+      on its sibling.
+    status: open
