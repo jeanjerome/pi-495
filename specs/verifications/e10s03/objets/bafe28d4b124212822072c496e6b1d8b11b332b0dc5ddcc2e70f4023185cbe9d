@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Ce qu'une vraie installation npm laisse est adopté et tourne dans chaque copie (§ Sécurité : « un fichier qui existait déjà n'est jamais changé »)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 137,
+    "constat": "Le code refuse bien une installation qui modifie sur place un fichier d'un paquet que le verrou ne nommait pas. Une sonde jetable donne « the install changed node_modules/stray/index.js, which already existed under node_modules/ ». Mais aucun test ne tient cette règle : le seul cas de fichier modifié porte sur vitest, que le verrou nomme. La branche a introduit la distinction par le verrou, et une modification d'un paquet hors du verrou peut être acceptée sans qu'aucun test ne tombe.",
+    "mutation": "`if (!(path in after.files) && locked[packageOf(path)] === undefined) continue;` devient `if (locked[packageOf(path)] === undefined) continue;` (accepte la modification d'un fichier existant d'un paquet absent du verrou) : test/v1-adapters/installation.test.ts reste vert, 10/10."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un fichier de l'arbre ne change pas le référentiel (§ Sécurité : « Leurs règles et leurs seuils viennent du protocole gelé »)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 274,
+    "constat": "Les seuils gelés (complexity max 20 ; jscpd minTokens 50, minLines 5) sont aussi les valeurs par défaut d'ESLint et de jscpd. On peut donc couper leur transmission aux analyseurs sans qu'aucun test ne le voie, et le comportement observable ne change pas aujourd'hui. Le remplacement par la configuration de l'arbre reste tenu : retirer `--config {ruleset}` fait échouer le test v4 qui pose un .jscpd.json à 5000.",
+    "mutation": "`eslintRules` passe chaque règle en simple \"error\", sans ses options : node-quality.test.ts et node-quality-referential.test.ts restent verts. `jscpdConfig` (src/adapters/execution/jscpd-config.ts:12) rend \"{}\" : node-quality.test.ts et eslint-jscpd-reports.test.ts restent verts."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le référentiel adopté mesure la qualité du projet (« la date de la décision d'adoption »)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/node-quality-referential-adoption.test.ts",
+    "ligne": 88,
+    "constat": "Dans le test Node, le propriétaire répond le 2026-10-03, le jour même où le référentiel a été établi. Le test ne distingue donc pas la date de la décision de la date d'établissement des règles. La ligne commune de quality-referential.ts reste tenue par le test Maven du rapport (quality-referential-report).",
+    "mutation": "`adopted_on: answer.recorded_at.slice(0, 10)` devient `adopted_on: rules[0]!.established_on` : le test Node reste vert (9/9) ; parmi les tests v2 de qualité, seul le test Maven du rapport tombe."
+   }
+  ],
+  "resume": "J'ai relu le diff c12d4a9...993d3f8 sur les neuf scénarios et la section Sécurité. Le code tient chaque promesse. J'ai essayé 25 mutations, chacune lancée sur les tests v1, v2 et v4 de la story (npm et le vrai registre sont joignables), et la plupart tombent. Elles portent sur `--ignore-scripts` et `--save-exact`, les témoins jugés à leur emplacement, la ligne dans les constats ESLint, le module `.` du rapport, les dépendances déclarées non mesurées, le mode gelé et le chmod dans les copies, la raison npm, le refus sans package-lock.json, la déclaration par le projet, la déclaration par l'installation et non par le package.json, l'élagage accepté et le retrait d'un paquet du verrou refusé, `--config {ruleset}`, `--ignore node_modules` et le témoin de complexité. Seule promesse qu'aucun test ne tient (à corriger, introduit) : la règle de la section Sécurité selon laquelle une installation ne modifie jamais un fichier qui existait déjà, pour un paquet absent du verrou. Le code la respecte, une sonde l'a vérifié, mais la mutation qui l'accepte laisse tous les tests verts. Deux points à peser. D'abord, les seuils transmis à ESLint et jscpd ne sont vérifiés par aucun test, puisqu'ils égalent les valeurs par défaut des analyseurs. Ensuite, dans le test Node, la date de la décision tombe le jour où le référentiel a été établi ; le test Maven tient la ligne commune. Aucune modification n'est restée dans l'arbre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Ce qu'une vraie installation npm laisse est adopté et tourne dans chaque copie",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 137,
+    "constat": "`unexpectedFile` cherche les paquets du verrou d'avant seulement sous `packages`, la clé des verrous v2 et v3. Avec un `package-lock.json` en `lockfileVersion: 1`, qui nomme ses paquets sous `dependencies`, `locked` est vide. Une installation qui retire un fichier d'un paquet que ce verrou nommait est alors acceptée, alors qu'avant la branche tout retrait était refusé. Une sonde jetable l'a montré : un verrou v1 nomme `vitest`, l'installation retire `node_modules/vitest/index.js`, et `inspectInstall` rend `accepted`. Le scénario part d'un verrou écrit par un npm récent (v3, comme dans les fixtures), donc le cas se situe hors de son Given ; c'est pourquoi je le classe à peser.",
+    "mutation": "Aucune mutation. Sonde jetable non commitée : `inspectInstall` avec un verrou `lockfileVersion: 1` qui nomme vitest, et un état d'après sans `node_modules/vitest/index.js`. Résultat : `kind: accepted`."
+   }
+  ],
+  "resume": "J'ai relu les neuf scénarios de e10s03 sur le diff c12d4a9...993d3f8. Le code tient chaque promesse, et chaque promesse est tenue par au moins un test.\n\n28 mutations, toutes tuées par au moins un test de la story (v1, v2, ou v4 avec une vraie installation npm). En voici les principales :\n- la détection lit un projet qui épingle eslint comme une copie installée par 495 ;\n- `chmod` est retiré de `writeStoredFiles` ;\n- le mode est retiré des compléments du référentiel, ou rendu constant ;\n- l'inspection accepte tout retrait, ou en refuse tout ;\n- `--no-config-lookup`, `--config {ruleset}` ou `--ignore **/node_modules/**` est retiré des commandes ;\n- la racine `.` est retirée de `moduleOf` ;\n- les dépendances déclarées sont retirées du périmètre ;\n- le refus est retiré pour une cible sans `package-lock.json` ;\n- les identifiants `eslint` et `jscpd` sont retirés de `lint_control_ids` ;\n- la ligne d'un constat ESLint, ou le second emplacement d'un constat jscpd, est retiré ;\n- la note `not_proposed` est supprimée ;\n- la nouvelle détection est faite sans les paquets de l'installation adoptée ;\n- la raison de npm, ou `--ignore-scripts`, est retiré ;\n- les témoins ne sont plus jugés par emplacement ;\n- le témoin de complexité tombe à 20 ;\n- l'identifiant de règle jscpd change ;\n- l'installation est faite dans le projet au lieu de la copie.\n\nLes deux tests de plateforme passent avec une vraie installation npm. Une sonde confirme que les paquets hors du verrou atteignent bien la copie, si bien que l'élagage est réellement exercé.\n\nIl reste un seul constat, à peser et introduit : un verrou au format v1, qui ne nomme pas ses paquets sous `packages`, laisse accepter le retrait d'un fichier d'un paquet que ce verrou nommait. Le cas sort du Given du scénario.\n\nJe n'ai aucun constat bloquant ou à corriger, introduit ou rendu atteignable."
+ }
+]

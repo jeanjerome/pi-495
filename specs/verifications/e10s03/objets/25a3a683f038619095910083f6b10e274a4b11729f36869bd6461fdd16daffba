@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: a survey of quality proposes the referential of the Node adapter
+    # Subtest: un état des lieux de la qualité d'un projet Node demande l'adoption du référentiel avec un fait par règle et deux issues, l'adoption disant qu'eslint et jscpd sont installés dans une copie
+    ok 1 - un état des lieux de la qualité d'un projet Node demande l'adoption du référentiel avec un fait par règle et deux issues, l'adoption disant qu'eslint et jscpd sont installés dans une copie
+      ---
+      duration_ms: 138.98225
+      type: 'test'
+      ...
+    # Subtest: l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par eslint et jscpd en FAIL avec un constat par violation, sans changer le digest du projet
+    ok 2 - l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par eslint et jscpd en FAIL avec un constat par violation, sans changer le digest du projet
+      ---
+      duration_ms: 696.441375
+      type: 'test'
+      ...
+    # Subtest: le rapport compte une violation du module . sous complexity, no-unused-vars, no-unused-private-class-members et jscpd, et nomme ce que le référentiel ne mesure pas avec sa raison
+    ok 3 - le rapport compte une violation du module . sous complexity, no-unused-vars, no-unused-private-class-members et jscpd, et nomme ce que le référentiel ne mesure pas avec sa raison
+      ---
+      duration_ms: 677.281959
+      type: 'test'
+      ...
+    # Subtest: une installation qui échoue n'adopte rien et le survey rend la raison de npm
+    ok 4 - une installation qui échoue n'adopte rien et le survey rend la raison de npm
+      ---
+      duration_ms: 408.840417
+      type: 'test'
+      ...
+    # Subtest: un projet sans package-lock.json ne reçoit aucune décision d'adoption du référentiel et le survey dit que la cible n'a pas de package-lock.json
+    ok 5 - un projet sans package-lock.json ne reçoit aucune décision d'adoption du référentiel et le survey dit que la cible n'a pas de package-lock.json
+      ---
+      duration_ms: 366.319292
+      type: 'test'
+      ...
+    # Subtest: un projet qui déclare eslint, dont scripts.test nomme un lanceur que 495 ne lit pas, ne reçoit aucune décision d'adoption du référentiel et rien n'est installé
+    ok 6 - un projet qui déclare eslint, dont scripts.test nomme un lanceur que 495 ne lit pas, ne reçoit aucune décision d'adoption du référentiel et rien n'est installé
+      ---
+      duration_ms: 126.208042
+      type: 'test'
+      ...
+    1..6
+ok 1 - a survey of quality proposes the referential of the Node adapter
+  ---
+  duration_ms: 2414.756584
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2595.817416

@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une installation qui retire un fichier d'un paquet qu'un verrou en lockfileVersion 1 nommait est refusée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/installation.test.ts",
+    "ligne": 222,
+    "constat": "Aucun test ne fait passer un verrou en lockfileVersion 1 par l'état des lieux. Le refus est tenu au niveau de inspectInstall. Le « rien n'est adopté, angle mort avec ce message » n'est tenu que par composition : un refus d'inspection devient un échec d'installCopy (verifiability-arbitration), et cet échec devient l'angle mort avec sa raison (test « une installation qui échoue »). Chaque maillon a une mutation qui fait échouer un test, mais aucun test ne suit le scénario de bout en bout.",
+    "mutation": "legacyPaths sans récursion, lockedPackages qui rend un ensemble vide au lieu de null, clés de dependencies non préfixées par node_modules/ : chacune fait échouer le test lockfileVersion 1. Raison du refus d'inspection remplacée par \"x\" dans installInCopy : le test de verifiability-arbitration échoue."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un fichier de l'arbre ne change pas le référentiel",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/node-quality.test.ts",
+    "ligne": 178,
+    "constat": "Sous node_modules, la story ne met que des blocs dupliqués, sans violation ESLint. L'assertion « aucun constat ne nomme node_modules » ne peut donc échouer que par jscpd : pour ESLint, elle tient par construction du Given, pas par une mesure.",
+    "mutation": "Retrait de --ignore **/node_modules/** dans la commande jscpd : les deux tests de node-quality.test.ts échouent."
+   }
+  ],
+  "resume": "J'ai relu les dix scénarios et la section Sécurité de e10s03 à 82d0452, sans relancer la Preflight. Les tests de base passent : v1 et v2 (stored-files-mode, et les 9 tests de node-quality-referential-adoption), et les 4 tests v4 avec un vrai npm. J'ai essayé 30 mutations sur le code qui tient les promesses, chacune remise en place, l'arbre laissé propre. Chaque mutation a fait échouer au moins un test.\n\n**Points couverts, avec une mutation tuée pour chacun :**\n- **Présentation du référentiel :** le fait de chaque règle (sa source, son seuil), l'issue d'adoption (pas de script d'installation, réseau ouvert pour la seule installation, rien écrit dans le projet), et les deux issues de la décision.\n- **Gel du référentiel :** la date d'adoption est celle de la décision, testée à minuit passé.\n- **Témoins :** ils sont jugés par emplacement, si bien que les deux contrôles sont qualifiés même si le projet viole déjà les règles.\n- **Fichiers de l'arbre :** `--no-config-lookup`, `--config` de jscpd, la configuration jscpd écrite depuis les seuils gelés, et `--ignore **/node_modules/**`.\n- **Lecteurs de rapports :** ligne d'ESLint, second emplacement de jscpd, codes de sortie acceptés.\n- **Rapport :** le module `.` (`m.root === \".\"`) et le périmètre non mesuré (les dépendances déclarées).\n- **Élagage :** l'élagage des paquets absents du verrou est accepté ; la mutation fait échouer le test unitaire et le test v4 avec un vrai npm, donc ce dernier n'est pas vacuitaire.\n- **Modes :** le mode est gelé à l'installation, propagé par `{ ...f }`, et appliqué par `chmod` dans `writeStoredFiles`. Le test v2 compte toutes les copies où jscpd tourne, témoins compris.\n- **Détection :** seule l'installation adoptée déclare eslint et jscpd, jamais le `package.json` ; et ce passage est câblé dans la conception de la vérification.\n- **Refus :** projet sans `package-lock.json`, projet qui déclare ESLint, raison donnée par npm.\n- **Verrou en lockfileVersion 1 :** paquets imbriqués compris, et refus de tout retrait quand le verrou ne nomme aucun paquet.\n\nAucun constat bloquant ni à corriger. Il reste deux constats à peser :\n- **A1-1 :** la partie « état des lieux » du scénario lockfileVersion 1 n'est tenue que par composition de tests, aucun ne la suit de bout en bout.\n- **A1-2 :** pour ESLint, « aucun constat ne nomme node_modules » tient par construction du Given, pas par une mesure."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une installation qui retire un fichier d'un paquet qu'un verrou en lockfileVersion 1 nommait est refusée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/installation.test.ts",
+    "ligne": 222,
+    "constat": "Aucun test ne fait passer un verrou en lockfileVersion 1 par tout le chemin du survey, jusqu'à l'angle mort qui porte le message. La promesse est tenue par trois maillons testés à part : le refus d'`inspectInstall` (test v1), le passage d'un refus d'inspection à « rien n'est adopté » (test v2 existant du complément vitest), et la raison recopiée dans l'angle mort (test v2 d'une installation qui échoue). Chaque mutation de ces maillons fait échouer son test.",
+    "mutation": "legacyPaths sans les paquets imbriqués, et lockedPackages qui rend un ensemble vide au lieu de null : le test v1 lockfileVersion 1 échoue. installInCopy qui accepte une inspection refusée : le test v2 « adopting a complement that is an install » échoue. Raison retirée de notAdopted : le test v2 « une installation qui échoue » échoue."
+   }
+  ],
+  "resume": "Relecteur B, tour 1, e10s03 à 82d0452. J'ai relu les dix scénarios dans le code et je les ai sondés par 24 mutations, chacune remise en place ensuite ; l'arbre est propre, seul node_modules reste non suivi. Les tests de base sont verts : 26 tests en v1/v2, et les 4 tests v4 avec le vrai npm et le registre joignable.\n\nScénarios 1 à 3, ce que j'ai muté et le test qui échoue :\n- Faits de la décision : outil, source ou date retirés. Échoue : le test v2 de la décision.\n- Texte npm de l'issue d'adoption. Échoue : le même test v2.\n- Date d'adoption prise sur l'horloge au lieu de la décision. Échoue : le test v2 avec horloge.\n- eslint-json et jscpd-json retirés des lecteurs jugés par emplacement. Échouent : la qualification v2 et v4.\n- Racine `.` dans le module du rapport. Échoue : le test v2 du rapport.\n- Dépendances déclarées retirées du périmètre. Échouent : les tests v1 et v2.\n- Second emplacement de la duplication retiré. Échouent : les tests v1 et v2.\n\nScénario 4 : retirer `--ignore **/node_modules/**` ou `--config {ruleset}` fait échouer le test v4. Retirer `--no-config-lookup` fait échouer seulement le premier test v4. Le test de l'eslint.config.js qui désactive complexity reste vert, parce que `--rule` l'emporte sur la configuration : la promesse est tenue quand même.\n\nScénario 5 :\n- Le chmod de writeStoredFiles retiré fait échouer le test v2 du mode et stored-files-mode.\n- Un mode fixé à 000644 fait échouer le test v2 du mode.\n- L'élagage avec une vraie installation npm est tenu par le test v4.\n\nScénarios 6 à 9 :\n- Raison de npm retirée : le test v2 échoue.\n- Refus de planInstall sans package-lock.json neutralisé : le test v2 échoue.\n- Offre « not_proposed » neutralisée : les tests v1 et v2 échouent.\n- Détection fondée sur la version épinglée du package.json au lieu des paquets installés : trois tests échouent.\n- Paquets installés non passés à la détection dans verification-design : trois tests v2 échouent.\n\nScénario 10 : retirer les paquets imbriqués de lockfileVersion 1, ou accepter un retrait quand le verrou ne nomme aucun paquet, fait échouer le test v1. Retirer la branche lockfileVersion 1 ne change rien aux promesses, puisque le retrait reste alors refusé.\n\nUne mutation ne fait rien échouer : mettre la nature de eslint-json à null dans PARSER_NATURES. Elle ne change pas le comportement, car `lint_control_ids` classe déjà ces deux contrôles en style ; ce n'est pas un constat.\n\nAucun constat bloquant ni à corriger. Un seul constat à peser : le chemin complet d'un verrou en lockfileVersion 1 jusqu'à l'angle mort du survey n'a pas de test qui le parcourt d'un bout à l'autre, mais chacun de ses maillons est tenu par un test."
+ }
+]

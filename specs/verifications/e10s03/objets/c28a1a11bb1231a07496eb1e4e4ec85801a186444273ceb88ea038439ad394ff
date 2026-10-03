@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: the Node adapter declares its quality referential and recommends ESLint and jscpd
+    # Subtest: la détection d'un projet Node qui ne déclare ni eslint ni jscpd porte le référentiel de qualité, chaque règle avec sa nature, sa règle, son seuil, l'outil et sa version, sa source et sa date, et recommande l'installation d'eslint 10.12.0 et de jscpd 5.4.0
+    ok 1 - la détection d'un projet Node qui ne déclare ni eslint ni jscpd porte le référentiel de qualité, chaque règle avec sa nature, sa règle, son seuil, l'outil et sa version, sa source et sa date, et recommande l'installation d'eslint 10.12.0 et de jscpd 5.4.0
+      ---
+      duration_ms: 2.447083
+      type: 'test'
+      ...
+    # Subtest: le périmètre déclaré mesure le module . et nomme comme non mesurés les sources TypeScript et JSX, lodash, vitest, les fichiers d'un autre format et la séparation du code généré, chacun avec sa raison
+    ok 2 - le périmètre déclaré mesure le module . et nomme comme non mesurés les sources TypeScript et JSX, lodash, vitest, les fichiers d'un autre format et la séparation du code généré, chacun avec sa raison
+      ---
+      duration_ms: 0.889084
+      type: 'test'
+      ...
+    # Subtest: un package.json qui déclare eslint ne reçoit ni référentiel ni recommandation, et une note dit que le projet déclare ESLint lui-même
+    ok 3 - un package.json qui déclare eslint ne reçoit ni référentiel ni recommandation, et une note dit que le projet déclare ESLint lui-même
+      ---
+      duration_ms: 2.07525
+      type: 'test'
+      ...
+    # Subtest: un package.json qui épingle eslint 10.12.0 et jscpd 5.4.0, installés sous node_modules avec son propre eslint.config.js, ne reçoit ni contrôle eslint ni jscpd ni référentiel, et une note dit que le projet déclare ESLint lui-même ; seule la détection d'une copie où l'installation adoptée a posé le référentiel déclare les deux contrôles
+    ok 4 - un package.json qui épingle eslint 10.12.0 et jscpd 5.4.0, installés sous node_modules avec son propre eslint.config.js, ne reçoit ni contrôle eslint ni jscpd ni référentiel, et une note dit que le projet déclare ESLint lui-même ; seule la détection d'une copie où l'installation adoptée a posé le référentiel déclare les deux contrôles
+      ---
+      duration_ms: 3.003166
+      type: 'test'
+      ...
+    # Subtest: les seuils gelés du référentiel sont ceux que reçoivent les analyseurs : eslint reçoit complexity avec max 20 et les deux autres règles à error, jscpd une configuration à minTokens 50 et minLines 5
+    ok 5 - les seuils gelés du référentiel sont ceux que reçoivent les analyseurs : eslint reçoit complexity avec max 20 et les deux autres règles à error, jscpd une configuration à minTokens 50 et minLines 5
+      ---
+      duration_ms: 1.012041
+      type: 'test'
+      ...
+    1..5
+ok 1 - the Node adapter declares its quality referential and recommends ESLint and jscpd
+  ---
+  duration_ms: 9.897833
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 153.95975

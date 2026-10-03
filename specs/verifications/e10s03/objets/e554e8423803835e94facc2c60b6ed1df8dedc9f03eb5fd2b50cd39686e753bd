@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Un projet qui déclare déjà ESLint ou jscpd ne reçoit pas le référentiel de 495 (et, par le même chemin, Le référentiel proposé se présente règle par règle)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 69,
+    "constat": "Quand `scripts.test` est refusé (`tsc && node --test`, ou le `echo … && exit 1` de `npm init`), le correctif ne propose plus le référentiel et n'installe rien : c'est sondé (aucune décision en attente, 0 installation, digest du projet inchangé). Mais la demande s'arrête dans `verification_design` sur CAPABILITY_MISSING, avec le lanceur pour seule raison, et aucun survey n'est produit. QLT-01 n'est donc jamais nommée comme angle mort « le projet déclare ESLint lui-même », et un projet qui ne déclare rien ne reçoit pas non plus la question du scénario 1. Avec un lanceur lisible, la sonde rend bien l'angle mort `the project declares ESLint itself` dans le survey. L'arrêt sur un lanceur illisible existait avant la branche. Une question d'adoption suivie d'une installation n'aurait de toute façon rien pu mesurer.",
+    "mutation": "`suite.refusal ? null : analyserDeclaration(...)` remplacé par `suite.refusal ? { by: \"nobody\" as const } : analyserDeclaration(...)`. Le test v1 « un package.json qui déclare eslint … » et le test v2 « un projet qui déclare eslint, dont scripts.test nomme un lanceur que 495 ne lit pas … » échouent ; la ligne a été remise."
+   }
+  ],
+  "resume": "J'ai relu le diff du tour 2 (`a39b64c...1b1b02f`), qui corrige A1-1 et B1-1. A1-2 n'est pas recompté : il est inscrit au registre sous BUG-2026-10-03T190000.\n\n**Ce que tient le correctif.** Un `scripts.test` refusé ne déclenche plus aucune proposition du référentiel. Ma sonde v2 jetable le confirme sur trois cas :\n- **ESLint déclaré, lanceur refusé :** aucune décision IH-04 en attente, 0 installation npm, digest du projet inchangé, arrêt CAPABILITY_MISSING sur le lanceur.\n- **Test par défaut de `npm init` :** même résultat.\n- **ESLint déclaré, lanceur lisible :** le survey donne pour QLT-01 l'angle mort « the project declares ESLint itself ».\n\n**Mutation.** J'ai remplacé `null` par `{ by: \"nobody\" }` dans la ligne du correctif. Cela fait échouer le test v1 de détection et le nouveau test v2 ; la ligne a été remise. La sonde est supprimée et l'arbre est propre.\n\n**Constat restant (à peser, antérieur à la branche).** Sur un lanceur refusé, l'exigence n'est nommée angle mort pour aucune raison, parce que la demande s'arrête avant tout survey. Cet arrêt existait avant la branche.\n\nAucun constat introduit ou rendu atteignable n'est bloquant ni à corriger : verdict pass."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Le référentiel proposé se présente règle par règle",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 69,
+    "constat": "Depuis le correctif, un `scripts.test` refusé retire aussi l'offre (`analysers = null`, aucun `quality_referential`). Un projet qui remplit le Given du scénario (un `package-lock.json`, aucun script `lint`, ni `eslint` ni `jscpd`) mais dont `scripts.test` est refusé, par exemple le `echo … && exit 1` de `npm init`, ne reçoit donc plus la question d'adoption : l'état des lieux s'arrête directement sur `capability_missing`. C'est voulu par la réponse à B1-1, puisque l'installation ne pourrait jamais être déclarée. Mais le scénario, qui ne dit rien de `scripts.test`, ne nomme pas cette exception.",
+    "mutation": "Aucune : l'écart est délibéré et ne demande pas de test."
+   }
+  ],
+  "resume": "Le diff relu est le correctif de A1-1 et B1-1. Quand `scripts.test` est refusé, `detectNodeStack` n'appelle plus `analyserDeclaration` et ne publie aucun `quality_referential`. `settleQualityReferential` s'arrête alors sur `offer === undefined` : aucune décision IH-04, aucune installation, et le changement s'arrête sur le lanceur refusé. La sous-promesse du scénario 7 sur ce chemin est tenue par le code (rien n'est proposé, rien n'est installé) et par deux tests. Mutation essayée : remettre `suite.refusal ? { by: \\\"nobody\\\" } : …` à la place de `null`. Le test v1 (`refusedRunner.quality_referential?.kind` ≠ `proposed`) et le test v2 (aucune option `adopt_referential`, `npm.installs() === 0`) échouent tous deux ; la ligne a été remise et l'arbre est propre. Le chemin principal des autres scénarios n'est pas touché par le diff. Le seul constat, à peser : un projet sans ESLint dont `scripts.test` est refusé ne reçoit plus la question du scénario 1, ce qui suit la réponse à B1-1. Le constat ouvert du registre sur un projet qui épingle lui-même les deux versions (BUG-2026-10-03T190000) n'est pas recompté. Verdict : pass."
+ }
+]

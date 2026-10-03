@@ -1,0 +1,137 @@
+TAP version 13
+# Subtest: a survey of quality proposes the referential of the Node adapter
+    # Subtest: un état des lieux de la qualité d'un projet Node demande l'adoption du référentiel avec un fait par règle et deux issues, l'adoption disant qu'eslint et jscpd sont installés dans une copie
+    not ok 1 - un état des lieux de la qualité d'un projet Node demande l'adoption du référentiel avec un fait par règle et deux issues, l'adoption disant qu'eslint et jscpd sont installés dans une copie
+      ---
+      duration_ms: 400.709291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:39:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        two ways out: adopt it, or leave the requirement a blind spot: Accepter cet état des lieux ?
+        + actual - expected
+        
+          [
+        +   'accept',
+        +   'refuse'
+        -   'adopt_referential',
+        -   'leave_blind_spot'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'adopt_referential'
+        1: 'leave_blind_spot'
+      actual:
+        0: 'accept'
+        1: 'refuse'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:45:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par eslint et jscpd en FAIL avec un constat par violation, sans changer le digest du projet
+    not ok 2 - l'adoption gèle le référentiel avec la date de la décision et le survey mesure l'exigence par eslint et jscpd en FAIL avec un constat par violation, sans changer le digest du projet
+      ---
+      duration_ms: 371.567958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:82:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'closed'
+        - 'decision_required'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'decision_required'
+      actual: 'closed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:97:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: le rapport compte une violation du module . sous complexity, no-unused-vars, no-unused-private-class-members et jscpd, et nomme ce que le référentiel ne mesure pas avec sa raison
+    not ok 3 - le rapport compte une violation du module . sous complexity, no-unused-vars, no-unused-private-class-members et jscpd, et nomme ce que le référentiel ne mesure pas avec sa raison
+      ---
+      duration_ms: 371.300625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:169:2'
+      failureType: 'testCodeFailure'
+      error: 'the survey section names the adopted referential'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: ~
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:175:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une installation qui échoue n'adopte rien et le survey rend la raison de npm
+    not ok 4 - une installation qui échoue n'adopte rien et le survey rend la raison de npm
+      ---
+      duration_ms: 371.594959
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:222:2'
+      failureType: 'testCodeFailure'
+      error: 'the reason npm gave'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: the proposed quality referential cannot be adopted on this target: eslint, jscpd cannot be declared in its build without ambiguity'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:234:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un projet sans package-lock.json ne reçoit aucune décision et le survey dit que la cible n'a pas de package-lock.json
+    not ok 5 - un projet sans package-lock.json ne reçoit aucune décision et le survey dit que la cible n'a pas de package-lock.json
+      ---
+      duration_ms: 366.049958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:237:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /no package-lock\.json/. Input:
+        
+        'blind spot: the proposed quality referential cannot be adopted on this target: eslint, jscpd cannot be declared in its build without ambiguity'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: the proposed quality referential cannot be adopted on this target: eslint, jscpd cannot be declared in its build without ambiguity'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:247:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..5
+not ok 1 - a survey of quality proposes the referential of the Node adapter
+  ---
+  duration_ms: 1881.897208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Yva3u7/test/v2-kernel/node-quality-referential-adoption.test.ts:38:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2061.021083

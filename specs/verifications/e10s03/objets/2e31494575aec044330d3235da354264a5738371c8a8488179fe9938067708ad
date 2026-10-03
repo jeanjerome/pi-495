@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un projet qui déclare déjà ESLint ou jscpd ne reçoit pas le référentiel de 495",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 67,
+    "constat": "Quand `scripts.test` est refusé, le code ne lit pas ce que déclare le `package.json` : `suite.refusal ? { by: \"nobody\" } : analyserDeclaration(...)` fait passer un projet qui déclare `eslint` pour un projet qui ne déclare rien. `qualityOffer` propose donc le référentiel. Sondé avec le harnais v2 sur un projet qui a un `package-lock.json`, aucun script `lint`, `devDependencies.eslint` à 9.0.0 et `scripts.test` à `tsc && node --test`. Résultat : la détection rend `proposed`, l'état des lieux s'arrête sur IH-04 « Adopter le référentiel de qualité proposé pour Node ? ». À l'adoption, `npm install … eslint@10.12.0 jscpd@5.4.0` tourne réseau ouvert et remplace dans la copie la version d'ESLint du projet ; l'état des lieux finit ensuite en CAPABILITY_MISSING, sans rien mesurer. La story promet l'inverse : aucun référentiel proposé, rien d'installé, et un angle mort dont la raison est que le projet déclare ESLint lui-même. Le `test` par défaut de `npm init` (`echo … && exit 1`) suffit à déclencher ce chemin.",
+    "mutation": "Aucune mutation : défaut prouvé par une sonde jetable (test v2, `nodeSurveyed` sur le projet décrit), supprimée ensuite. Le test v1 du scénario n'essaie qu'un projet sans `scripts.test`."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un projet qui déclare déjà ESLint ou jscpd ne reçoit pas le référentiel de 495",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 210,
+    "constat": "`analyserDeclaration` identifie une copie où 495 a installé les deux analyseurs par trois signes : `eslint` 10.12.0 et `jscpd` 5.4.0 en devDependencies exactes, et les deux présents sous `node_modules/`. Or le snapshot de la cible garde `node_modules/`. Un projet qui épingle lui-même ces deux versions et les a installées est donc lu comme une copie adoptée. Sonde sur un tel projet, avec son propre `eslint.config.js` : `controls = [unit, eslint, jscpd]`, `lint_control_ids = [eslint, jscpd]`. Ses contrôles appliquent alors les règles de 495 sans adoption ni référentiel gelé, et l'exigence n'est pas un angle mort. L'état est étroit, mais il entre dans le Given du scénario.",
+    "mutation": "Aucune mutation : sonde jetable `detectStack`, supprimée."
+   }
+  ],
+  "resume": "Le verdict est `fail` : le scénario 7 n'est pas tenu dans un cas courant (constat A1-1, bloquant). Quand `scripts.test` est refusé, un projet qui déclare `eslint` se voit quand même proposer le référentiel. Le cas a été prouvé par une sonde du harnais v2 : à l'adoption, eslint 10.12.0 et jscpd 5.4.0 sont installés dans la copie, réseau ouvert, puis l'état des lieux finit en CAPABILITY_MISSING sans rien mesurer. Le constat A1-2 est à peser : un projet qui épingle lui-même eslint 10.12.0 et jscpd 5.4.0, installés, est pris pour une copie adoptée et reçoit les contrôles de 495, qui passent outre sa propre configuration.\n\nLes autres promesses sont tenues par le code et par au moins un test. Chaque mutation ci-dessous a fait échouer un test, puis la ligne a été remise :\n- **Scénario 1 :** source retirée des faits, mention « sans exécuter de script d'installation » retirée, `--ignore-scripts` et `--save-exact` retirés.\n- **Scénario 2 :** date d'adoption remplacée par celle du gel, `eslint-json` retiré des lecteurs qui jugent les témoins à leur emplacement, témoin négatif d'ESLint retiré, ligne du constat ESLint retirée, second emplacement de la duplication retiré.\n- **Scénario 3 :** racine `.` retirée de `moduleOf`, dépendances déclarées retirées de ce qui n'est pas mesuré.\n- **Scénario 4 (v4 réel, réseau disponible) :** `--no-config-lookup`, `--config {ruleset}` de jscpd et `--ignore **/node_modules/**` retirés.\n- **Scénario 5 :** raison de npm retirée de l'angle mort.\n- **Scénario 6 :** refus du plan sans `package-lock.json` neutralisé.\n- **Scénario 7 :** note du projet qui déclare ESLint modifiée, et branchement de cette note en angle mort retiré (le test Maven échoue).\n\nDeux mutations ont d'abord survécu par erreur de ma part : la première touchait une autre phrase identique dans le fichier, la seconde remplaçait la date par la même date. Refaites correctement, toutes deux ont fait échouer le test. L'arbre est rendu propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un projet qui déclare déjà ESLint ou jscpd ne reçoit pas le référentiel de 495",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/stacks/node.ts",
+    "ligne": 67,
+    "constat": "`analysers` vaut `{ by: \"nobody\" }` dès que `suite.refusal` est posé (un `scripts.test` que 495 ne lit pas, par exemple `tsc && node --test`). Dans ce cas, `qualityOffer` propose le référentiel à un projet qui déclare `eslint` : le propriétaire reçoit la question d'adoption, et l'adoption lance `npm install … eslint@10.12.0 jscpd@5.4.0`, réseau ouvert, par-dessus l'ESLint du projet. L'état des lieux s'arrête ensuite sur `capability_missing`, et l'exigence n'est jamais nommée comme angle mort pour la raison que le projet déclare ESLint lui-même. Le même chemin pose la question puis installe sans qu'aucun contrôle `eslint`/`jscpd` ne puisse jamais être déclaré, puisque `analyserDeclaration` n'est pas appelé quand la suite est refusée.",
+    "mutation": "Aucune mutation : une sonde jetable le prouve. En v1, `detectStack` sur `package.json` `{scripts:{test:\"tsc && node --test\"}, devDependencies:{eslint:\"9.0.0\"}}` rend `quality_referential.kind === \"proposed\"`. En v2, `nodeSurveyed` sur ce même projet, avec un `package-lock.json`, s'arrête d'abord sur `decision_required` avec `adopt_referential`/`leave_blind_spot`. Après l'adoption, le faux npm a reçu `npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund eslint@10.12.0 jscpd@5.4.0`, puis l'état des lieux s'arrête sur `capability_missing`."
+   }
+  ],
+  "resume": "J'ai trouvé un défaut bloquant introduit par la branche, d'où le verdict `fail` : le scénario 7 n'est pas tenu dès que le `scripts.test` du projet ne peut pas être lu par 495. Dans ce cas, `src/application/stacks/node.ts:67` considère que personne ne déclare les analyseurs. Un projet qui déclare `eslint` reçoit alors la question d'adoption, et l'adopter installe eslint 10.12.0 et jscpd 5.4.0, réseau ouvert, par-dessus son propre ESLint. Une sonde v2 jetable le montre, et elle est supprimée. Les autres promesses sont tenues par le code et par un test, et chaque mutation a été remise en place. Scénario 1 : retirer « dépendances de développement exactes » ou « sans exécuter de script d'installation » de l'issue d'adoption fait échouer le test v2. Scénario 2 : retirer `--ignore-scripts`, retirer `eslint-json` des parseurs localisés (témoins) ou retirer le second emplacement d'une duplication fait échouer les tests v1, v2 et v4. La date d'adoption est tenue par le test Maven du chemin partagé. Scénario 3 : annuler la racine `.` de `moduleOf` ou retirer une entrée non mesurée fait échouer les tests v1 et v2. Scénario 4 : retirer `--config {ruleset}` ou `--ignore **/node_modules/**` de jscpd fait échouer le test v4 réel. Retirer `--no-config-lookup` ne casse que le premier cas v4 : l'option `--rule` passée en ligne de commande prime déjà sur l'`eslint.config.js`, donc la promesse tient. Scénario 5 : retirer la raison de npm fait échouer le test v2. Scénario 6 : retirer le refus sans `package-lock.json` fait échouer le test v2. Scénario 7 sur un `scripts.test` lisible : inverser `declaration.by === \\\"project\\\"` fait échouer le test v1, et retirer le motif d'angle mort fait échouer le test Maven du chemin partagé. L'arbre de relecture est revenu propre."
+ }
+]

@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Ce qu'une vraie installation npm laisse est adopté et tourne dans chaque copie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/quality-referential.ts",
+    "ligne": 141,
+    "constat": "Sur le chemin de l'adoption, `bring()` recopie le mode de chaque fichier installé dans le complément que le protocole gèle. C'est cette ligne qui garde exécutable le binaire natif de jscpd dans les copies des témoins et de la passe de référence. Aucun test ne la tient : le test v4 appelle `installInCopy` directement et refait le mappage lui-même, et le test v2 utilise un faux npm et de faux analyseurs qui n'assertent ni le mode du protocole ni le droit d'exécution. Une sonde jetable confirme que le code tient la promesse (les compléments gelés portent bien `mode: \"000644\"`).",
+    "mutation": "Ligne `mode: f.mode,` retirée du mappage des fichiers installés dans `bring()`. Les suites v2 et v3 complètes (384 tests), plus node-quality-install.test.ts et stored-files-mode.test.ts, restent vertes. Seule la sonde non commitée échoue. Sans cette ligne, `writeStoredFiles` écrit le binaire de jscpd sans droit d'exécution dans les copies des témoins : jscpd s'arrête sur EACCES et le contrôle n'est pas qualifié."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un projet qui déclare déjà ESLint ou jscpd ne reçoit pas le référentiel de 495",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/node-quality-referential-adoption.test.ts",
+    "ligne": 243,
+    "constat": "Le seul test de bout en bout Node pour ce scénario prend un `scripts.test` que 495 ne sait pas lire, alors que le Given de la story exige un lanceur lisible. Ce test s'arrête sur capability_missing, sans survey. La promesse reste tenue, maillon par maillon : le test v1 tient la note « declares ESLint itself » (node-quality-referential.test.ts), et le test Maven « un projet qui configure déjà PMD » tient la propagation de cette note en angle mort du survey. Une sonde jetable sur un projet Node qui déclare eslint, avec un lanceur lisible, rend l'angle mort attendu, sans décision ni installation.",
+    "mutation": "Dans `settleQualityReferential`, le cas `not_proposed` rend `nothing` au lieu de `nothing` augmenté de l'angle mort. Le test Maven échoue ; aucun test Node n'échoue."
+   }
+  ],
+  "resume": "Relecture A, tour 1, de e10s03 : verdict fail, sur un seul constat « à corriger ».\n\nLe code tient les huit scénarios. Les sondes jetables le confirment pour le projet qui déclare eslint avec un lanceur lisible, et pour les modes gelés dans le protocole.\n\nUn test tue chacune de ces mutations :\n- l'élagage des paquets absents du verrou, et le refus d'un fichier de paquet verrouillé, scopé compris ;\n- le `chmod` de `writeStoredFiles` ;\n- le mode relevé par `installInCopy` ;\n- `--config`, `--no-config-lookup` et `--ignore **/node_modules/**` sur les lignes de commande ;\n- le module `.` de `moduleOf` ;\n- le jugement des témoins par emplacement ;\n- la propagation de la note `not_proposed`.\n\nLes tests v4 tournent ici, avec un vrai npm et les vrais eslint et jscpd.\n\nLe constat A1-1 porte sur `bring()` : le report du mode de chaque fichier installé dans les compléments gelés n'est tenu par aucun test. Avec la ligne retirée, les 384 tests v2 et v3 et les tests v4 d'installation restent verts. Or c'est ce mode qui garde le binaire natif de jscpd exécutable dans les copies des témoins, quand l'adoption passe par le noyau.\n\nA1-2 est à peser : pour le scénario du projet qui déclare ESLint, aucun test Node ne passe par le Given de la story. La promesse reste tenue maillon par maillon.\n\nLa Preflight n'a pas été relancée. Aucun fichier n'a été laissé dans l'arbre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Ce qu'une vraie installation npm laisse est adopté et tourne dans chaque copie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/quality-referential.ts",
+    "ligne": 141,
+    "constat": "Le code tient la promesse : une sonde jetable montre que le protocole gelé porte un mode pour chaque fichier installé. Mais aucun test ne tient le passage du mode de l'installation au protocole gelé quand le propriétaire adopte. Les tests v4 appellent `installInCopy` directement et construisent eux-mêmes les compléments, sans passer par `bring`. Le faux npm du test v2 n'écrit que des fichiers en 644, et aucun test n'assert le mode dans `protocol.complements`. Si ce champ manque, le binaire natif de jscpd est réécrit sans droit d'exécution dans chaque copie de témoin et de référence, et aucun test ne le voit.",
+    "mutation": "Ligne `mode: f.mode,` retirée dans `bring` : `npm run test:v1`, `test:v2` et `test:v3` restent verts (685 réussis ; les deux seuls échecs sont les tests Seatbelt du runner générique et des backends, étrangers à la mutation)."
+   }
+  ],
+  "resume": "J'ai relu les huit scénarios contre le code, sondé deux d'entre eux par un test jetable non commité, et fait 18 mutations.\n\n**Ce que le code et les tests tiennent :**\n- **Scénario 1 (proposition règle par règle)** : la proposition, un fait par règle et le texte de l'option d'adoption sont tenus par les tests v1 et v2. Changer la date du référentiel fait échouer ces tests.\n- **Scénario 2 (le référentiel adopté mesure la qualité)** :\n  - la date d'adoption gelée est tenue : la remplacer par une constante fait échouer le test v2 ;\n  - les témoins sont jugés sur leurs propres fichiers : retirer `eslint-json` de `LOCATED_PARSER_IDS` fait échouer les tests v2 ;\n  - la mesure en FAIL, un constat par violation et le digest inchangé du projet sont tenus par le test v2 ;\n  - la qualification réelle est tenue par le test v4.\n- **Scénario 3 (le rapport)** : le module `.` (mutation de `moduleOf`) et les dépendances déclarées non mesurées (mutation de `declaredPackages`) font échouer les tests v1 et v2.\n- **Scénario 4 (un fichier de l'arbre ne change pas le référentiel)** :\n  - remplacer `--ignore **/node_modules/**`, `--config {ruleset}` ou `--no-gitignore` fait échouer les deux tests v4 ;\n  - retirer `--no-config-lookup` ne fait échouer que le premier : sur le second, le `--rule` passé en ligne de commande l'emporte déjà sur `eslint.config.js`, donc la promesse tient.\n- **Scénario 5 (une vraie installation npm)** :\n  - élaguer un paquet absent du verrou, refuser un paquet scopé ou un fichier existant que le verrou nommait : les trois mutations de `unexpectedFile` et `packageOf` font échouer le test v1 ;\n  - le mode relevé par `installInCopy` est tenu : le forcer à 644 fait échouer les deux tests v4 ;\n  - l'appel à `chmod` de `writeStoredFiles` est tenu : le retirer fait échouer le test v2 des modes.\n- **Scénario 6 (installation qui échoue)** : tenu par le test v2.\n- **Scénario 7 (sans `package-lock.json`)** : tenu ; neutraliser le refus du plan fait échouer le test v2.\n- **Scénario 8 (le projet déclare ESLint)** : la sonde, avec un lanceur que 495 sait lire, confirme qu'aucune adoption n'est demandée, que l'angle mort dit « declares ESLint itself » et que rien n'est installé. La ligne commune qui fait du refus de proposer un angle mort est tenue par le test Maven, et le texte propre à Node par le test v1.\n\n**Seul écart (B1-1, à corriger, introduit)** : aucun test ne tient le mode de chaque fichier installé tel qu'il passe dans le protocole gelé au moment de l'adoption (`mode: f.mode` dans `bring`). Le code le porte bien, la sonde l'a vérifié, mais la mutation passe inaperçue en v1, v2 et v3. Sans ce champ, le binaire natif de jscpd perdrait son droit d'exécution dans les copies des témoins et de la référence.\n\n**Hors du sujet de la story** : les mêmes deux tests Seatbelt (runner générique, backends de bac à sable) échouent dans cet arbre placé sous le dossier temporaire. Ils échouaient pendant une mutation sans aucun rapport avec eux ; je ne les ai pas relancés seuls sur l'arbre intact.\n\nL'arbre est remis propre : aucune mutation ni sonde ne reste."
+ }
+]

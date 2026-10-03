@@ -1,0 +1,168 @@
+TAP version 13
+# Subtest: planning the install of a recommended package
+    # Subtest: given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+    ok 1 - given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command
+      ---
+      duration_ms: 0.614875
+      type: 'test'
+      ...
+    1..1
+ok 1 - planning the install of a recommended package
+  ---
+  duration_ms: 0.959083
+  type: 'suite'
+  ...
+# Subtest: inspecting what an install left in the copy
+    # Subtest: given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+    ok 1 - given an install that only added files, then the inspection returns the added packages, and given a modified existing node_modules file, a file outside package.json, package-lock.json and node_modules, or another entry in package.json, then it refuses naming the culprit
+      ---
+      duration_ms: 0.40875
+      type: 'test'
+      ...
+    1..1
+ok 2 - inspecting what an install left in the copy
+  ---
+  duration_ms: 0.450333
+  type: 'suite'
+  ...
+# Subtest: what npm rewrites of its own bookkeeping
+    # Subtest: given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+    ok 1 - given an install that rewrote the hidden lock npm keeps under node_modules, then it is accepted and the rewritten file is listed with the added ones
+      ---
+      duration_ms: 0.116708
+      type: 'test'
+      ...
+    1..1
+ok 3 - what npm rewrites of its own bookkeeping
+  ---
+  duration_ms: 0.167041
+  type: 'suite'
+  ...
+# Subtest: what npm prunes of the packages the lock did not name
+    # Subtest: given an install that removed the files of packages the lock did not name, top-level, scoped or nested, then it is accepted, and given one that removed a file of a scoped package the lock named or changed a file of a package the lock did not name, then it refuses naming that file
+    ok 1 - given an install that removed the files of packages the lock did not name, top-level, scoped or nested, then it is accepted, and given one that removed a file of a scoped package the lock named or changed a file of a package the lock did not name, then it refuses naming that file
+      ---
+      duration_ms: 0.167959
+      type: 'test'
+      ...
+    # Subtest: given a package-lock.json in lockfileVersion 1 that names vitest under dependencies and tinyspy under vitest, then an install that removes node_modules/vitest/index.js, or node_modules/vitest/node_modules/tinyspy/index.js, is refused naming that file, and given a package-lock.json that carries neither packages nor dependencies, then removing a file under node_modules is refused naming that file
+    not ok 2 - given a package-lock.json in lockfileVersion 1 that names vitest under dependencies and tinyspy under vitest, then an install that removes node_modules/vitest/index.js, or node_modules/vitest/node_modules/tinyspy/index.js, is refused naming that file, and given a package-lock.json that carries neither packages nor dependencies, then removing a file under node_modules is refused naming that file
+      ---
+      duration_ms: 0.514292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2HLNW1/test/v1-adapters/installation.test.ts:222:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'accepted'
+        - 'refused'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'refused'
+      actual: 'accepted'
+      operator: 'strictEqual'
+      stack: |-
+        refusalOf (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2HLNW1/test/v1-adapters/installation.test.ts:115:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2HLNW1/test/v1-adapters/installation.test.ts:245:19)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 4 - what npm prunes of the packages the lock did not name
+  ---
+  duration_ms: 0.773708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2HLNW1/test/v1-adapters/installation.test.ts:187:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: running the install in the copy
+    # Subtest: given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+    ok 1 - given a plan, then the install runs under a profile allowing the network, writing only the copy and the cache directory as npm announced it, and a control profile still denies the network
+      ---
+      duration_ms: 1.972375
+      type: 'test'
+      ...
+    # Subtest: given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered
+    ok 2 - given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered
+      ---
+      duration_ms: 0.2085
+      type: 'test'
+      ...
+    1..2
+ok 5 - running the install in the copy
+  ---
+  duration_ms: 2.245
+  type: 'suite'
+  ...
+# Subtest: planning the resolution of a Maven plugin, reading where Maven keeps its files and inspecting what it left
+    # Subtest: given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it
+    ok 1 - given a maven recommendation, then the plan resolves the plugins of the copy with the pinned dependency plugin and runs no goal of the adopted plugin, given the output announcing a local repository, then that path is read as is, and given none, then it is not established, and given a copy where a file other than pom.xml changed, then the inspection refuses naming it
+      ---
+      duration_ms: 0.217
+      type: 'test'
+      ...
+    1..1
+ok 6 - planning the resolution of a Maven plugin, reading where Maven keeps its files and inspecting what it left
+  ---
+  duration_ms: 0.242375
+  type: 'suite'
+  ...
+# Subtest: running the resolution in the copy
+    # Subtest: given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network
+    ok 1 - given a maven plan and a copy whose maven announces a local repository, then the step runs with the network allowed and writes only the copy and that path as announced, and keeps maven's output, given no announcement, then the step does not run, while a control profile still denies the network
+      ---
+      duration_ms: 2.96575
+      type: 'test'
+      ...
+    1..1
+ok 7 - running the resolution in the copy
+  ---
+  duration_ms: 2.991291
+  type: 'suite'
+  ...
+# Subtest: the reason a resolution that fails gives
+    # Subtest: given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output
+    ok 1 - given a maven resolution that fails with a JVM warning on its error output and its cause on its standard output, then the reason carries the cause for an unreachable network, a refused access and an unknown version and not the warning, given an empty standard output, then the reason carries the error output, and given npm failing on its error output, then the reason is still that output
+      ---
+      duration_ms: 0.225583
+      type: 'test'
+      ...
+    1..1
+ok 8 - the reason a resolution that fails gives
+  ---
+  duration_ms: 0.249125
+  type: 'suite'
+  ...
+# Subtest: the pom.xml an adopted complement wrote, judged at G4
+    # Subtest: given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml
+    ok 1 - given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml
+      ---
+      duration_ms: 2.308292
+      type: 'test'
+      ...
+    1..1
+ok 9 - the pom.xml an adopted complement wrote, judged at G4
+  ---
+  duration_ms: 2.330292
+  type: 'suite'
+  ...
+1..9
+# tests 11
+# suites 9
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 144.213333

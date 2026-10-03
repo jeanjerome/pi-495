@@ -1,0 +1,89 @@
+TAP version 13
+# Subtest: the reports of ESLint and jscpd are read
+    # Subtest: un rapport ESLint donne un constat par message avec sa règle, son fichier et sa ligne
+    not ok 1 - un rapport ESLint donne un constat par message avec sa règle, son fichier et sa ligne
+      ---
+      duration_ms: 32.105875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:113:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser eslint-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:117:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un rapport jscpd donne un constat par duplication qui nomme ses deux emplacements
+    not ok 2 - un rapport jscpd donne un constat par duplication qui nomme ses deux emplacements
+      ---
+      duration_ms: 29.47525
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:139:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser jscpd-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:142:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un rapport absent ou illisible, ou un message fatal d'ESLint, rend INDETERMINATE
+    not ok 3 - un rapport absent ou illisible, ou un message fatal d'ESLint, rend INDETERMINATE
+      ---
+      duration_ms: 27.78375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:156:2'
+      failureType: 'testCodeFailure'
+      error: 'eslint-json: the note says the report is absent'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser eslint-json is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:163:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the reports of ESLint and jscpd are read
+  ---
+  duration_ms: 89.91475
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-voeONu/test/v1-adapters/eslint-jscpd-reports.test.ts:112:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 218.32

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: ESLint and jscpd on a Node project that already violates the referential
+    # Subtest: sur un projet Node dont une fonction a une complexité de 21 et dont deux fichiers TypeScript dupliquent un bloc, eslint et jscpd sont qualifiés par leurs témoins et la passe de référence rapporte la complexité et la duplication à leur place
+    ok 1 - sur un projet Node dont une fonction a une complexité de 21 et dont deux fichiers TypeScript dupliquent un bloc, eslint et jscpd sont qualifiés par leurs témoins et la passe de référence rapporte la complexité et la duplication à leur place
+      ---
+      duration_ms: 2760.186917
+      type: 'test'
+      ...
+    # Subtest: un eslint.config.js qui désactive complexity, un .jscpd.json qui porte minTokens à 5000 et un bloc dupliqué sous node_modules ne changent rien aux constats de la passe de référence, dont aucun ne nomme node_modules
+    ok 2 - un eslint.config.js qui désactive complexity, un .jscpd.json qui porte minTokens à 5000 et un bloc dupliqué sous node_modules ne changent rien aux constats de la passe de référence, dont aucun ne nomme node_modules
+      ---
+      duration_ms: 1010.651041
+      type: 'test'
+      ...
+    1..2
+ok 1 - ESLint and jscpd on a Node project that already violates the referential
+  ---
+  duration_ms: 3771.476916
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3948.615083
