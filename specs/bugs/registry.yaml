@@ -1263,3 +1263,56 @@ bugs:
       Let a state request on a target with no declarable control still end on a survey of blind spots, with a v2 test
       on a Node project whose scripts.test is refused.
     status: open
+  - bug_id: BUG-2026-10-03T134500
+    date: "2026-10-03"
+    title: "Two changes of one dossier whose candidates are identical collide on the verification's idempotency key, so the second is blocked"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `verify` in `src/application/phases/verify.ts` keys its operation `verify:<manifest digest>:<revision>`, and the
+      ledger refuses a second operation that holds the same key (`src/adapters/storage-sqlite/ledger.ts`, "already holds
+      the idempotency key"). The key names neither the change nor the program, while the operations of every change of a
+      dossier share one table: a second change whose candidate has the same manifest at the same revision is refused as a
+      repeat of the first and stays blocked.
+    what_expected: >
+      Each change verifies its own candidate, whatever another change of the dossier produced; a repeat is recognised only
+      within the change that ran it.
+    steps_to_reproduce:
+      - "Adopt a trajectory of two increments in one dossier and let both increments produce the same candidate tree."
+      - "Verify the first increment's candidate, close it, start the second and verify: the ledger refuses the operation on the reused key."
+    root_cause: >
+      The idempotency key is scoped to the candidate and a per-change revision counter, not to the change.
+    evidence: >
+      Named by the automated arbitration of e10s04 from its acceptance run, which noted it predates the branch and that a
+      multi-increment program makes it easier to reach; the key's composition is read in `verify.ts:37`. Not reproduced
+      outside that run.
+    risk_level: medium
+    follow_ups: >
+      Put the change id in the key, with a v2 test of two changes of one dossier verifying the same candidate.
+    status: open
+  - bug_id: BUG-2026-10-03T134600
+    date: "2026-10-03"
+    title: "A trajectory document the kernel refuses stays in the object store, filed under a change that is never created"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `adopt` in `src/application/harness.ts` stores the trajectory document as an artifact of a freshly drawn change id
+      before `commitProgram` submits the program to the kernel. When the kernel refuses the trajectory (an unassigned
+      global requirement, an increment with no closing criterion), neither the program nor the change is written, but the
+      stored document remains, attached to a change id no record names.
+    what_expected: >
+      A refused trajectory leaves nothing behind, or what it leaves is named by the refusal.
+    steps_to_reproduce:
+      - "Run `/495 adopt` on a trajectory whose global requirement no increment carries, no milestone verifies and no scope decision sets aside."
+      - "The adoption is refused, no program or change exists, and the object store holds the document under the unused change id."
+    root_cause: >
+      The artifact is stored before the kernel decides, and nothing removes or names it after a refusal.
+    evidence: >
+      Named by the automated arbitration of e10s04 from its acceptance run (dossiers c2 and c4); the order of operations is
+      read in `harness.ts` (`artifacts.store` of the trajectory before `commitProgram`).
+    risk_level: low
+    follow_ups: >
+      Store the document only once the kernel has accepted the program, or record the refusal with the document it read.
+    status: open
