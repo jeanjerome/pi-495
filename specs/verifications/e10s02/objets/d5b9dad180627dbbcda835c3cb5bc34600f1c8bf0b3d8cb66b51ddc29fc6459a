@@ -1,0 +1,116 @@
+TAP version 13
+# Subtest: the report of a survey separates perimeters, counts by module and names what is not measured
+    # Subtest: sous chaque règle, le rapport sépare les violations du code propriétaire de celles du code généré
+    not ok 1 - sous chaque règle, le rapport sépare les violations du code propriétaire de celles du code généré
+      ---
+      duration_ms: 745.822917
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:54:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        [{"message":"src/main/java/io/h495/GeneratedGrader.java:9: CyclomaticComplexity: The method 'grade' has a cyclomatic complexity of 11.","path":"src/main/java/io/h495/GeneratedGrader.java"},{"message":"src/main/java/io/h495/Grader.java:8: CyclomaticComplexity: The method 'grade' has a cyclomatic complexity of 11.","path":"src/main/java/io/h495/Grader.java"}]
+        + actual - expected
+        
+        + undefined
+        - 'proprietary'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietary'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:65:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: le rapport d'un réacteur de deux modules compte CyclomaticComplexity 1 dans domain et 1 dans infrastructure, UnusedPrivateMethod 1 dans domain
+    not ok 2 - le rapport d'un réacteur de deux modules compte CyclomaticComplexity 1 dans domain et 1 dans infrastructure, UnusedPrivateMethod 1 dans domain
+      ---
+      duration_ms: 780.67
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:98:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        [{"rule_id":"CyclomaticComplexity","nature":"complexity","control_id":"pmd","threshold":"a method whose cyclomatic complexity is 10 or more","tool":"PMD 7.17.0","source":"docs.pmd-code.org/pmd-doc-7.17.0/pmd_rules_java_design.html#cyclomaticcomplexity","findings":[{"message":"domain/src/main/java/io/h495/Grader.java:8: CyclomaticComplexity: The method 'grade' has a cyclomatic complexity of 11.","path":"domain/src/main/java/io/h495/Grader.java"},{"message":"infrastructure/src/main/java/io/h495/Router.java:6: CyclomaticComplexity: The method 'grade' has a cyclomatic complexity of 11.","path":"infrastructure/src/main/java/io/h495/Router.java"}]},{"rule_id":"CognitiveComplexity","nature":"complexity","control_id":"pmd","threshold":"a method whose cognitive complexity is 15 or more","tool":"PMD 7.17.0","source":"docs.pmd-code.org/pmd-doc-7.17.0/pmd_rules_java_design.html#cognitivecomplexity","findings":[]},{"rule_id":"UnusedPrivateMethod","nature":"dead_code","control_id":"pmd","threshold":"any occurrence","tool":"PMD 7.17.0","source":"docs.pmd-code.org/pmd-doc-7.17.0/pmd_rules_java_bestpractices.html#unusedprivatemethod","findings":[{"message":"domain/src/main/java/io/h495/Grader.java:6: UnusedPrivateMethod: Avoid unused private methods such as 'never()'.","path":"domain/src/main/java/io/h495/Grader.java"}]},{"rule_id":"UnusedPrivateField","nature":"dead_code","control_id":"pmd","threshold":"any occurrence","tool":"PMD 7.17.0","source":"docs.pmd-code.org/pmd-doc-7.17.0/pmd_rules_java_bestpractices.html#unusedprivatefield","findings":[]},{"rule_id":"UnusedLocalVariable","nature":"dead_code","control_id":"pmd","threshold":"any occurrence","tool":"PMD 7.17.0","source":"docs.pmd-code.org/pmd-doc-7.17.0/pmd_rules_java_bestpractices.html#unusedlocalvariable","findings":[]},{"rule_id":"CPD","nature":"duplication","control_id":"cpd","threshold":"a duplicated block of at least 100 tokens","tool":"PMD 7.17.0","source":"maven.apache.org/plugins/maven-pmd-plugin/cpd-mojo.html#minimumTokens","findings":[]}]
+        + actual - expected
+        
+        + []
+        - [
+        -   {
+        -     module: 'domain',
+        -     violations: 1
+        -   },
+        -   {
+        -     module: 'infrastructure',
+        -     violations: 1
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          module: 'domain'
+          violations: 1
+        1:
+          module: 'infrastructure'
+          violations: 1
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:106:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: le rapport nomme sous le référentiel adopté les sources de test, org.junit.jupiter:junit-jupiter et la duplication entre modules comme non mesurées, avec leur raison, en anglais et en français
+    not ok 3 - le rapport nomme sous le référentiel adopté les sources de test, org.junit.jupiter:junit-jupiter et la duplication entre modules comme non mesurées, avec leur raison, en anglais et en français
+      ---
+      duration_ms: 680.260708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:129:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the referential names what it does not measure
+        + actual - expected
+        
+        + []
+        - [
+        -   'src/test/java/',
+        -   'org.junit.jupiter:junit-jupiter',
+        -   'duplication between two modules'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'src/test/java/'
+        1: 'org.junit.jupiter:junit-jupiter'
+        2: 'duplication between two modules'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:132:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the report of a survey separates perimeters, counts by module and names what is not measured
+  ---
+  duration_ms: 2207.366166
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-y4VkA4/test/v2-kernel/quality-baseline-report.test.ts:53:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2383.949333

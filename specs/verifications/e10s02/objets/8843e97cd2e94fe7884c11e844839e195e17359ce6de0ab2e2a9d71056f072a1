@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les violations du code généré sont rangées à part (And : la section état des lieux du rapport présente, sous chaque règle, les violations du code propriétaire et celles du code généré séparément), avec le compte du code propriétaire par module promis par « L'étendue des écarts se lit par règle et par module »",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/report.ts",
+    "ligne": 151,
+    "mutation": "Retrait du filtre `findings.filter((f) => f.authorship === \"proprietary\")` : `countByModule` reçoit `findings` entiers. Les trois tests de quality-baseline-report.test.ts et les trois de quality-baseline-perimeter.test.ts restent verts.",
+    "constat": "Le code tient la promesse : la sonde montre « proprietary code: 1 in . » sous CyclomaticComplexity quand GeneratedGrader porte la seconde violation. Mais aucun test ne vérifie que le compte affiché sous « code propriétaire » exclut le code généré. Le test du réacteur n'a aucune classe générée, et celui du scénario 1 ne vérifie que l'ordre des lignes, pas le compte. Avec la mutation, le rapport du scénario 1 affiche « proprietary code: 2 in . » et range ainsi la violation générée dans le compte du code propriétaire."
+   }
+  ],
+  "resume": "Le code tient les quatre scénarios. Une sonde du texte réel le montre : sous chaque règle, une ligne « code propriétaire » avec le compte par module, puis les lignes de ces violations, puis « code généré » et les siennes. La duplication GenA/GenB est rangée dans le code généré, pmd reste en FAIL quand la seule violation est générée, et la liste de ce qui n'est pas mesuré suit les règles, chaque point avec sa raison. 21 mutations essayées. Les tests en font échouer 19 : reconnaissance de l'annotation qualifiée puis importée, every→some, retrait de l'inspection de la copie, authorship jamais posée ou forcée à proprietary dans le rapport, filtre du texte inversé, lignes propriétaires puis générées non imprimées, moduleOf null, nom de module, sources de test, dépendances, duplication entre modules, raison, unmeasured vidé ou non imprimé, perimeter non porté au référentiel adopté. Deux survivent. Le tri des racines imbriquées dans moduleOf n'est couvert par aucune promesse, donc hors sujet. L'autre survivante est le retrait du filtre « proprietary » avant le compte par module : aucun test ne vérifie que le compte affiché sous « code propriétaire » exclut le code généré (A1-1, à corriger, introduit). Verdict fail sur ce seul constat. Aucun fichier n'a été modifié ni commité ; la sonde et le script de mutation ont été supprimés."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les violations du code généré sont rangées à part (third And: the report shows proprietary and generated violations separately under each rule), and L'étendue des écarts se lit par règle et par module (the count is of proprietary violations)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/report.ts",
+    "ligne": 141,
+    "mutation": "In `referentialSection`, `countByModule(findings.filter((f) => f.authorship === \"proprietary\"), measured)` replaced by `countByModule(findings, measured)`: all 10 tests of the story's four files stay green.",
+    "constat": "The code keeps the promise: the per-module count covers proprietary violations only. No test holds it. With the mutation, the report for the scenario-1 project says « code propriétaire : 2 dans . », which counts the violation of the `@Generated` class as proprietary, above the single proprietary line and next to « code généré : 1 ». A throwaway probe confirmed this output. The report test checks only the order of the headings and paths, and the reactor test has no generated class, so neither one tells the two counts apart."
+   }
+  ],
+  "resume": "Verdict: fail, on one finding to fix that the branch introduced. Under scenario 1's « code propriétaire » heading, the report gives a per-module count of proprietary violations. If that count is changed to include generated violations too, no story test fails. All four scenarios are kept by the code. I read the path from the survey in the reference copy (`generatedFiles` → `surveyOf`/`authorshipOf` → `referentialSection` → `formatReport`, wired to `/495 report`) and from the POM read in `qualityPerimeter`. Fifteen mutations were tried. Fourteen make a story test fail: every→some on a duplication's places, authorship forced to proprietary, the referential filter negated, no file recorded as generated, module never found, unmeasured list emptied, generated/proprietary lines swapped in the text, an unmeasured line dropped, test root, dependencies, cross-module duplication, perimeter not adopted, and an annotation on a member read as the file's. The verdict (pmd stays FAIL when the only violation is generated) is unchanged by the branch and is asserted. The only mutation that survives is the one above. No file was committed and the tree is clean."
+ }
+]

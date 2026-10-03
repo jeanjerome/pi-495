@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the Maven adapter declares what its quality referential measures
+    # Subtest: la détection d'un projet Maven sans PMD déclare avec le référentiel proposé les sources principales de chaque module comme mesurées, les trois annotations Generated comme marques du code généré, et comme non mesurées ses sources de test, org.junit.jupiter:junit-jupiter et la duplication entre deux modules, chacune avec sa raison
+    ok 1 - la détection d'un projet Maven sans PMD déclare avec le référentiel proposé les sources principales de chaque module comme mesurées, les trois annotations Generated comme marques du code généré, et comme non mesurées ses sources de test, org.junit.jupiter:junit-jupiter et la duplication entre deux modules, chacune avec sa raison
+      ---
+      duration_ms: 13.7055
+      type: 'test'
+      ...
+    1..1
+ok 1 - the Maven adapter declares what its quality referential measures
+  ---
+  duration_ms: 14.099667
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 129.648541
