@@ -335,7 +335,7 @@ epics:
       écartés au départ.
     stories:
       - { id: e10s01, status: "versée", title: "Le référentiel d'une cible Maven est adopté par le propriétaire, chaque règle avec son oracle, sa source et sa date" }
-      - { id: e10s02, status: "à faire", title: "L'état des lieux d'une cible Maven mesure l'existant avec ce référentiel et sépare code propriétaire, code généré et dépendances" }
+      - { id: e10s02, status: "versée", title: "L'état des lieux d'une cible Maven mesure l'existant avec ce référentiel et sépare code propriétaire, code généré et dépendances" }
       - { id: e10s03, status: "à faire", title: "Le référentiel et l'état des lieux d'une cible Node" }
       - { id: e10s04, status: "à faire", title: "Un programme à plusieurs incréments se conduit depuis Pi jusqu'à son jalon" }
       - { id: e10s05, status: "à faire", title: "Les écarts de l'état des lieux deviennent des incréments priorisés" }
