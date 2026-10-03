@@ -1192,3 +1192,32 @@ bugs:
       on its sibling.
     status: fixed
     fixed_in: b3a6844
+  - bug_id: BUG-2026-10-03T134500
+    date: "2026-10-03"
+    title: "Two changes of one dossier whose candidates are identical collide on the verification's idempotency key, so the second is blocked"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `verify` in `src/application/phases/verify.ts` keys its operation `verify:<manifest digest>:<revision>`, and the
+      ledger refuses a second operation that holds the same key (`src/adapters/storage-sqlite/ledger.ts`, "already holds
+      the idempotency key"). The key names neither the change nor the program, while the operations of every change of a
+      dossier share one table: a second change whose candidate has the same manifest at the same revision is refused as a
+      repeat of the first and stays blocked.
+    what_expected: >
+      Each change verifies its own candidate, whatever another change of the dossier produced; a repeat is recognised only
+      within the change that ran it.
+    steps_to_reproduce:
+      - "Adopt a trajectory of two increments in one dossier and let both increments produce the same candidate tree."
+      - "Verify the first increment's candidate, close it, start the second and verify: the ledger refuses the operation on the reused key."
+    root_cause: >
+      The idempotency key is scoped to the candidate and a per-change revision counter, not to the change.
+    evidence: >
+      Named by the automated arbitration of e10s04 from its acceptance run, which noted it predates the branch and that a
+      multi-increment program makes it easier to reach; the key's composition is read in `verify.ts:37`. Not reproduced
+      outside that run.
+    risk_level: medium
+    follow_ups: >
+      Put the change id in the key, with a v2 test of two changes of one dossier verifying the same candidate.
+    status: fixed
+    fixed_in: 72d0b02
