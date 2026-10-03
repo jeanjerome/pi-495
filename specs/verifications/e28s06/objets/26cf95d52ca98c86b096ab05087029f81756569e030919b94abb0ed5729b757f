@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: the witnesses of PMD are judged on the whole report
+    # Subtest: pmd est qualifié quand la violation du témoin négatif vient après 1000 violations du projet, sans note disant que le contrôle ne détecte pas le défaut, et ne l'est pas, avec la note positive witness gave FAIL, quand c'est une violation du témoin positif qui vient après elles
+    not ok 1 - pmd est qualifié quand la violation du témoin négatif vient après 1000 violations du projet, sans note disant que le contrôle ne détecte pas le défaut, et ne l'est pas, avec la note positive witness gave FAIL, quand c'est une violation du témoin positif qui vient après elles
+      ---
+      duration_ms: 120.027167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7fAuxA/test/v1-adapters/pmd-witness-past-bound.test.ts:73:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the negative witness's violation past the project's 1000 is seen: negative witness gave PASS: the control does not detect the defect it claims to cover; 1001 findings reduced to the first 1000; src/main/java/io/h495/Grader.java:1: CyclomaticComplexity: The method 'grade(int, int, int)' has a cyclomatic complexity of 11.; src/main/java/io/h495/Grader.java:2: CyclomaticComplexity: The method 'grade(int, int, int)' has a cyclomatic complexity of 11.; src/main/java/io/h495/Grader.java:3: CyclomaticComplexity: The method 'grade(int, int, int)' has a cyclomatic complexity of 11.
+        + actual - expected
+        
+          [
+            'PASS',
+        +   'PASS',
+        +   false
+        -   'FAIL',
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+        2: true
+      actual:
+        0: 'PASS'
+        1: 'PASS'
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7fAuxA/test/v1-adapters/pmd-witness-past-bound.test.ts:75:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the witnesses of PMD are judged on the whole report
+  ---
+  duration_ms: 120.690833
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7fAuxA/test/v1-adapters/pmd-witness-past-bound.test.ts:72:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 258.561709
