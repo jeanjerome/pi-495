@@ -28,7 +28,11 @@ export class PiRpcClient {
 	raw = "";
 	private readonly child: ChildProcessWithoutNullStreams;
 	private buffer = "";
-	private readonly waiters: { predicate: (e: RpcEvent) => boolean; resolve: (e: RpcEvent) => void }[] = [];
+	private readonly waiters: {
+		predicate: (e: RpcEvent) => boolean;
+		resolve: (e: RpcEvent) => void;
+		reject: (error: Error) => void;
+	}[] = [];
 	private exited: { code: number | null; signal: NodeJS.Signals | null } | null = null;
 	private lastEventAt = Date.now();
 
@@ -50,6 +54,11 @@ export class PiRpcClient {
 		this.child.stderr.on("data", (chunk: string) => this.stderr.push(chunk));
 		this.child.on("exit", (code, signal) => {
 			this.exited = { code, signal };
+		});
+		// A Pi that exits answers nothing more: every wait fails once its streams are closed, so the
+		// error carries all it wrote on stderr.
+		this.child.on("close", () => {
+			for (const waiter of this.waiters.splice(0)) waiter.reject(this.sortie());
 		});
 	}
 
@@ -88,10 +97,16 @@ export class PiRpcClient {
 		this.child.stdin.write(`${JSON.stringify(command)}\n`);
 	}
 
+	private sortie(): Error {
+		const comment = this.exited?.signal ? `on signal ${this.exited.signal}` : `with code ${this.exited?.code}`;
+		return new Error(`Pi exited ${comment} before a matching RPC event; stderr: ${this.stderr.join("").slice(0, 500)}`);
+	}
+
 	/** Resolves on the first event matching `predicate`, including events already received. */
 	waitFor(predicate: (e: RpcEvent) => boolean, timeoutMs = 120_000): Promise<RpcEvent> {
 		const already = this.events.find(predicate);
 		if (already) return Promise.resolve(already);
+		if (this.exited) return Promise.reject(this.sortie());
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(
 				() =>
@@ -105,6 +120,10 @@ export class PiRpcClient {
 				resolve: (e) => {
 					clearTimeout(timer);
 					resolve(e);
+				},
+				reject: (error) => {
+					clearTimeout(timer);
+					reject(error);
 				},
 			});
 		});
