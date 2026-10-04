@@ -1420,3 +1420,33 @@ bugs:
     follow_ups: "what the exhausted-budget test asserts depends on BUG-2026-09-28T163400"
     status: fixed
     fixed_in: 1fa29ab
+  - bug_id: BUG-2026-09-28T013100
+    date: "2026-09-28"
+    title: "The engineering report lists requirements refused at G1 as the change's requirements"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `Harness.report` reads the requirements and the protocol through `ArtifactRepository.latest`,
+      which falls back on the last proposal when nothing is adopted. After a refusal at G1 the report
+      lists under Requirements a document G1 refused, although `RequirementLine`
+      (`src/application/report.ts`) is defined as an adopted requirement. The part a revocation made
+      reachable is fixed: nothing proposed before a revocation is served any more.
+    what_expected: >
+      The report lists the requirements adopted at G1, and none while none is adopted.
+    steps_to_reproduce:
+      - "Take a change whose requirements G1 refuses."
+      - "Run `/495 report`: the refused requirements are listed as the change's."
+    root_cause: >
+      The report asks for the latest requirements rather than the adopted ones. Present on main before
+      the revocation branch.
+    evidence: >
+      `src/application/harness.ts` `report` reads `latest(state, "requirements")`;
+      `src/application/report.ts` documents `RequirementLine` as an adopted requirement. Review record
+      `specs/verifications/e01s04-relecture.md`, round 1, P1.
+    risk_level: low
+    follow_ups: >
+      Decide what the report shows before G1 adopts anything, then read the adoption alone, with a red
+      test on a refusal at G1.
+    status: fixed
+    fixed_in: 29605dc
