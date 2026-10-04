@@ -314,6 +314,29 @@ export default (invite, cwd) => {
 		]);
 	});
 
+	it("reviews, after a gap, only the diff made since the story was reopened", async () => {
+		const root = depot();
+		const claude = fauxClaude(`export default (invite) => {
+  if (invite.startsWith("Tu es le relecteur")) return { verdict: "pass", constats: [], resume: "" };
+  throw new Error("unexpected prompt: " + invite.slice(0, 60));
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		writeFileSync(join(root, "src", "greet.js"), SHOUT_CODE);
+		gitCmd(root, ["commit", "-q", "-am", "feat: greet shouts"]);
+		for (const pas of ["rouge-vert", "autocontrole", "relecture", "recette"] as const)
+			ctx.journal.inscrire(pas, "fini");
+		const auReouvert = revision(root);
+		rouvrir(ctx, "the greeting lacks its exclamation mark");
+		writeFileSync(join(root, "src", "greet.js"), SHOUT_CODE.replace("toUpperCase()", 'toUpperCase() + "!"'));
+		gitCmd(root, ["commit", "-q", "-am", "feat: greet shouts with an exclamation mark"]);
+		for (const pas of ["rouge-vert", "autocontrole"] as const) ctx.journal.inscrire(pas, "fini");
+		assert.deepEqual(await conduirePas(ctx, "relecture"), { statut: "fini" });
+		const tour = ctx.journal.dernier("tour", "relecture");
+		assert.equal(tour?.base, auReouvert);
+		assert.equal(tour?.tete, revision(root));
+	});
+
 	it("keeps the tree of a reviewer running until it ends when the other reviewer's session fails", async () => {
 		const root = depot();
 		const dir = tempDir("495-", cleanups);

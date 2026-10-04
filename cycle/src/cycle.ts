@@ -310,7 +310,9 @@ async function reponse(ctx: Contexte, tour: number, constats: unknown[], mode: s
 
 async function pasRelecture(ctx: Contexte): Promise<Issue> {
 	const toursMax = ctx.journal.rouvert() ? 1 : TOURS_MAX;
-	let b = base(ctx);
+	// After a gap, the one round reads the diff made since the story was reopened.
+	const rouvert = ctx.journal.dernier("rouvert");
+	let b = typeof rouvert?.tete === "string" ? rouvert.tete : base(ctx);
 	let precedent = "";
 	for (let tour = 1; tour <= toursMax; tour += 1) {
 		const tete = revision(ctx.root);
@@ -433,7 +435,7 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 }
 
 export function rouvrir(ctx: Contexte, motif: string): void {
-	ctx.journal.inscrire("recette", "rouvert", { motif });
+	ctx.journal.inscrire("recette", "rouvert", { motif, tete: revision(ctx.root) });
 	ctx.journal.inscrire("story", "fini");
 }
 
