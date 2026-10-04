@@ -1,6 +1,11 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { jugerCampagne, type EtatLu, type PreuveLue } from "../../cycle/src/verdict-campagne.ts";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { jugerCampagne, lireEtat, type EtatLu, type PreuveLue } from "../../cycle/src/verdict-campagne.ts";
+import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 const ACCEPTE: EtatLu = { statut: "completed", arret: null, portes: { G2: "PASS", G5: "PASS" } };
 const preuve = (
@@ -92,5 +97,17 @@ describe("Campaign verdict: what only the harness can have caused", () => {
 		]);
 		assert.deepEqual(verdict.defauts, []);
 		assert.deepEqual(verdict.constats.slice(3), ["unit PASS on the candidate"]);
+	});
+});
+
+describe("Campaign dossier: what the campaign left to read", () => {
+	it("given a dossier where no change was recorded, then reading its state names the database and says no change is there", () => {
+		const dossier = tempDir("495-", cleanups);
+		const base = new DatabaseSync(join(dossier, "state.sqlite"));
+		base.exec("create table changes (state text)");
+		base.close();
+		assert.throws(() => lireEtat(dossier), {
+			message: `${join(dossier, "state.sqlite")} holds no change: the campaign stopped before /495 start created one`,
+		});
 	});
 });

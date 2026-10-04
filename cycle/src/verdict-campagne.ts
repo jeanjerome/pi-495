@@ -78,7 +78,11 @@ function lireBase<T>(dossier: string, lecture: (base: DatabaseSync) => T): T {
 /** The state of the one change a campaign dossier holds. */
 export function lireEtat(dossier: string): EtatLu {
 	return lireBase(dossier, (base) => {
-		const ligne = base.prepare("select state from changes").get() as { state: string };
+		const ligne = base.prepare("select state from changes").get() as { state: string } | undefined;
+		if (!ligne)
+			throw new Error(
+				`${join(dossier, "state.sqlite")} holds no change: the campaign stopped before /495 start created one`,
+			);
 		const etat = JSON.parse(ligne.state) as {
 			status: string;
 			stop_reason?: string | null;
