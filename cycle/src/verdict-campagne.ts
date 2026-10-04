@@ -4,6 +4,8 @@
  * is judged is the harness — whether it qualified every control it declared, ran each on the candidate
  * and read a report where one was due — because those are the failures a model cannot cause.
  */
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 export interface EtatLu {
 	statut: string;
@@ -62,4 +64,51 @@ export function jugerCampagne(etat: EtatLu, preuves: PreuveLue[]): VerdictCampag
 		if (rapportAbsent(preuve)) defauts.push(`${preuve.controle} read no report although the candidate introduced code`);
 	}
 	return { constats, defauts };
+}
+
+function lireBase<T>(dossier: string, lecture: (base: DatabaseSync) => T): T {
+	const base = new DatabaseSync(join(dossier, "state.sqlite"), { readOnly: true });
+	try {
+		return lecture(base);
+	} finally {
+		base.close();
+	}
+}
+
+/** The state of the one change a campaign dossier holds. */
+export function lireEtat(dossier: string): EtatLu {
+	return lireBase(dossier, (base) => {
+		const ligne = base.prepare("select state from changes").get() as { state: string };
+		const etat = JSON.parse(ligne.state) as {
+			status: string;
+			stop_reason?: string | null;
+			gates?: Record<string, { verdict: string }>;
+		};
+		const portes = Object.fromEntries(Object.entries(etat.gates ?? {}).map(([nom, porte]) => [nom, porte.verdict]));
+		return { statut: etat.status, arret: etat.stop_reason ?? null, portes };
+	});
+}
+
+/** The evidence a campaign dossier holds, in the order it was recorded. */
+export function lirePreuves(dossier: string): PreuveLue[] {
+	return lireBase(dossier, (base) =>
+		(
+			base.prepare("select control_id, verdict, document from evidence order by recorded_at").all() as {
+				control_id: string;
+				verdict: string;
+				document: string;
+			}[]
+		).map((ligne) => {
+			const document = JSON.parse(ligne.document) as {
+				protocol_revision?: { protocol_id?: string };
+				facts?: Record<string, unknown>;
+			};
+			return {
+				controle: ligne.control_id,
+				verdict: ligne.verdict,
+				protocole: document.protocol_revision?.protocol_id ?? "",
+				faits: document.facts ?? {},
+			};
+		}),
+	);
 }

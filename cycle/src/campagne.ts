@@ -14,9 +14,8 @@ import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 import { PiRpcClient } from "../../test/helpers/rpc-client.ts";
-import { jugerCampagne, type EtatLu, type PreuveLue } from "./verdict-campagne.ts";
+import { type EtatLu, jugerCampagne, lireEtat, lirePreuves } from "./verdict-campagne.ts";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MODELE_PAR_DEFAUT = "anthropic/claude-sonnet-5-5";
@@ -81,51 +80,6 @@ function preparerCible(technologie: string, cible: Cible, dossierCible: string):
 	git("add", "-A");
 	git("commit", "-q", "-m", "initial");
 	for (const commande of cible.preparation) executer(commande, dossierCible, cible.env());
-}
-
-function lireBase<T>(dossier: string, lecture: (base: DatabaseSync) => T): T {
-	const base = new DatabaseSync(join(dossier, "state.sqlite"), { readOnly: true });
-	try {
-		return lecture(base);
-	} finally {
-		base.close();
-	}
-}
-
-function lireEtat(dossier: string): EtatLu {
-	return lireBase(dossier, (base) => {
-		const ligne = base.prepare("select state from changes").get() as { state: string };
-		const etat = JSON.parse(ligne.state) as {
-			status: string;
-			stop_reason?: string | null;
-			gates?: Record<string, { verdict: string }>;
-		};
-		const portes = Object.fromEntries(Object.entries(etat.gates ?? {}).map(([nom, porte]) => [nom, porte.verdict]));
-		return { statut: etat.status, arret: etat.stop_reason ?? null, portes };
-	});
-}
-
-function lirePreuves(dossier: string): PreuveLue[] {
-	return lireBase(dossier, (base) =>
-		(
-			base.prepare("select control_id, verdict, document from evidence order by recorded_at").all() as {
-				control_id: string;
-				verdict: string;
-				document: string;
-			}[]
-		).map((ligne) => {
-			const document = JSON.parse(ligne.document) as {
-				protocol_revision?: { protocol_id?: string };
-				facts?: Record<string, unknown>;
-			};
-			return {
-				controle: ligne.control_id,
-				verdict: ligne.verdict,
-				protocole: document.protocol_revision?.protocol_id ?? "",
-				faits: document.facts ?? {},
-			};
-		}),
-	);
 }
 
 /** Whether the change can go no further without a human or a new attempt. */
