@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the engineering report lists only the requirements G1 adopted
+    # Subtest: lists REQ-400, adopted at G1, for a change awaiting IH-10
+    ok 1 - lists REQ-400, adopted at G1, for a change awaiting IH-10
+      ---
+      duration_ms: 793.022125
+      type: 'test'
+      ...
+    # Subtest: lists no requirement, and shows none under Requirements, for a change whose specification repeating REQ-400 G1 refused
+    ok 2 - lists no requirement, and shows none under Requirements, for a change whose specification repeating REQ-400 G1 refused
+      ---
+      duration_ms: 164.318333
+      type: 'test'
+      ...
+    1..2
+ok 1 - the engineering report lists only the requirements G1 adopted
+  ---
+  duration_ms: 957.9255
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1153.452166
