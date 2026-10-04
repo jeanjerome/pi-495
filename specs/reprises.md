@@ -746,7 +746,7 @@ Statut : versée
 
 ## R92 — La suite et la phase de correction reçoivent leurs options d'une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/main.ts:74-80, 92-99 ; le littéral `"main"` aux lignes 50, 77, 96, 115
 - Constat : `lancerSuite` et `lancerDefauts` écrivent le même objet `OptionsSuite` champ pour champ ; la cible `"main"` est écrite quatre fois.

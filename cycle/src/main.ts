@@ -31,8 +31,11 @@ import { commiter, commitsEntre, revision } from "./git.ts";
 import { Journal, type Pas, racineCycle } from "./journal.ts";
 import { marquerStoryListee } from "./plan.ts";
 import { reprendre } from "./reprise.ts";
-import { corrigerDefauts, suite } from "./suite.ts";
+import { type OptionsSuite, corrigerDefauts, suite } from "./suite.ts";
 import { lireStory } from "./story.ts";
+
+/** The branch every story, defect and refactoring lands on. */
+const CIBLE = "main";
 
 function contexte(id: string): Contexte {
 	const root = process.cwd();
@@ -42,7 +45,7 @@ function contexte(id: string): Contexte {
 		story: lireStory(id, root),
 		journal: new Journal(id, racine),
 		executeur: executeurNonConfine(racine),
-		cible: "main",
+		cible: CIBLE,
 		preflight: PREFLIGHT,
 	};
 }
@@ -70,17 +73,21 @@ function defautsMax(): { defautsMax?: number } {
 		: {};
 }
 
-/** The ready epics, one after the other, the stories driven unattended. */
-async function lancerSuite(): Promise<number> {
-	const root = process.cwd();
-	const code = await suite({
-		root,
+/** The options of the unattended run and of one phase of repairs, the stories driven unattended. */
+function optionsSuite(): OptionsSuite {
+	return {
+		root: process.cwd(),
 		racine: racineCycle(),
-		cible: "main",
+		cible: CIBLE,
 		deroulerStory: async (id) => derouler(contexte(id), id, true),
 		...defautsMax(),
 		annonce: (texte) => console.log(annonce(texte)),
-	});
+	};
+}
+
+/** The ready epics, one after the other, the stories driven unattended. */
+async function lancerSuite(): Promise<number> {
+	const code = await suite(optionsSuite());
 	sonner(code === 0 ? "la suite est finie" : "la suite est arrêtée");
 	return code;
 }
@@ -91,16 +98,8 @@ async function lancerDefauts(seuil: string | undefined): Promise<number> {
 		console.error("usage: cycle defauts [low | medium | high]");
 		return 2;
 	}
-	const root = process.cwd();
 	const r = await corrigerDefauts(
-		{
-			root,
-			racine: racineCycle(),
-			cible: "main",
-			deroulerStory: async (id) => derouler(contexte(id), id, true),
-			...defautsMax(),
-			annonce: (texte) => console.log(annonce(texte)),
-		},
+		optionsSuite(),
 		seuil ?? "medium",
 		"le propriétaire a demandé la correction des défauts ouverts",
 	);
@@ -116,7 +115,7 @@ async function lancerReprises(): Promise<number> {
 	const code = await reprendre({
 		root,
 		racine,
-		cible: "main",
+		cible: CIBLE,
 		executeur: executeurNonConfine(racine),
 		preflight: PREFLIGHT,
 		build: { id: "build", commande: ["npm", "run", "build"], reseau: "denied", timeout_ms: 300_000 },
