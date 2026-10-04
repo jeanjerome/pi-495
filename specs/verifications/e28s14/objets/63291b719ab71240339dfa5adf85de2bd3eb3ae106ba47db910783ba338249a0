@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: a JUnit report past the read bound
+    # Subtest: a declared report one byte past the bound is not readable, named with its size and the bound, and not kept
+    ok 1 - a declared report one byte past the bound is not readable, named with its size and the bound, and not kept
+      ---
+      duration_ms: 31.599916
+      type: 'test'
+      ...
+    # Subtest: a declared report larger than a string can hold is not readable, and is not said to be missing
+    ok 2 - a declared report larger than a string can hold is not readable, and is not said to be missing
+      ---
+      duration_ms: 28.653792
+      type: 'test'
+      ...
+    # Subtest: a Surefire report found by a reactor scan one byte past the bound is not readable, named, and not kept
+    ok 3 - a Surefire report found by a reactor scan one byte past the bound is not readable, named, and not kept
+      ---
+      duration_ms: 28.852917
+      type: 'test'
+      ...
+    # Subtest: a green report of exactly the bound is read as before and kept
+    ok 4 - a green report of exactly the bound is read as before and kept
+      ---
+      duration_ms: 107.064875
+      type: 'test'
+      ...
+    1..4
+ok 1 - a JUnit report past the read bound
+  ---
+  duration_ms: 196.718375
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 327.035042
