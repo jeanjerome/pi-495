@@ -6,7 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { arbrePropre, brancheCourante, commiter, git } from "./git.ts";
-import { type Gravite, defautDeLaStory, defautsOuverts, marquerCorrige } from "./registre.ts";
+import { type Defaut, type Gravite, defautDeLaStory, defautsOuverts, marquerCorrige } from "./registre.ts";
 import { invite } from "./invite.ts";
 import { Journal } from "./journal.ts";
 import {
@@ -125,6 +125,88 @@ function storyDuCorrectif(o: OptionsSuite): { id: string; titre: string } | null
 	return s ? { id: s.id, titre: s.titre } : null;
 }
 
+/** The defect a story cites, read from its file. */
+function defautCite(root: string, id: string): string | null {
+	return defautDeLaStory(readFileSync(lireStory(id, root).chemin, "utf8"));
+}
+
+/**
+ * The fix story a session wrote and committed for one of `ouverts`, `null` when it finds none to
+ * repair, or the reason it stops. The defects the session sets aside come back with its answer.
+ */
+type Correctif =
+	| { story: { id: string; titre: string } | null; aDecider: Ecartes[] }
+	| { motif: string; aDecider?: Ecartes[] };
+
+async function ecrireCorrectif(
+	o: OptionsSuite,
+	journal: Journal,
+	seuil: Gravite,
+	contexte: string,
+	ouverts: Defaut[],
+): Promise<Correctif> {
+	o.annonce?.(`choix du prochain défaut à corriger (${ouverts.length} ouvert(s) de gravité ${seuil} ou plus)…`);
+	const s = await sessionInscrite(
+		journal,
+		"story",
+		"correctif",
+		{
+			invite: invite("correctif", {
+				seuil,
+				contexte,
+				defauts: ouverts.map((d) => `- ${d.id} (${d.gravite}) : ${d.titre}`).join("\n"),
+			}),
+			schema: {
+				type: "object",
+				properties: {
+					status: { type: "string", enum: ["ecrite", "aucun"] },
+					story_id: { type: "string" },
+					bug_id: { type: "string" },
+					message: { type: "string" },
+					resume: { type: "string" },
+					a_decider: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: { bug_id: { type: "string" }, raison: { type: "string" } },
+							required: ["bug_id", "raison"],
+						},
+					},
+				},
+				required: ["status", "story_id", "bug_id", "message", "resume", "a_decider"],
+			},
+			cwd: o.root,
+		},
+		o,
+	);
+	if (!s.ok || !s.sortie) return { motif: `session de correctif : ${s.resume}` };
+	const sortie = s.sortie as {
+		status: string;
+		story_id: string;
+		bug_id: string;
+		message: string;
+		a_decider: Ecartes[];
+	};
+	const aDecider = sortie.a_decider;
+	if (sortie.status === "aucun") return { story: null, aDecider };
+	const autre = horsDeLaRedaction(o.root);
+	const ecrite = storyDuCorrectif(o);
+	const cite = ecrite ? defautCite(o.root, ecrite.id) : null;
+	if (
+		autre.length > 0 ||
+		!ecrite ||
+		ecrite.id !== sortie.story_id ||
+		cite !== sortie.bug_id ||
+		!ouverts.some((d) => d.id === cite)
+	)
+		return {
+			motif: `la session de correctif n'a pas laissé une story lisible qui cite un défaut ouvert (${autre.join(", ") || sortie.story_id})`,
+			aDecider,
+		};
+	commiter(o.root, sortie.message.split("\n")[0]!.trim(), ["specs"]);
+	return { story: ecrite, aDecider };
+}
+
 /**
  * Repairs the open defects of at least `seuil` severity that need no product decision, one story
  * each, until none is left or the phase's ceiling is reached. The defects the session sets aside are
@@ -143,77 +225,18 @@ export async function corrigerDefauts(
 		if (!story) {
 			const ouverts = defautsOuverts(o.root, seuil);
 			if (ouverts.length === 0) break;
-			o.annonce?.(`choix du prochain défaut à corriger (${ouverts.length} ouvert(s) de gravité ${seuil} ou plus)…`);
-			const s = await sessionInscrite(
-				journal,
-				"story",
-				"correctif",
-				{
-					invite: invite("correctif", {
-						seuil,
-						contexte,
-						defauts: ouverts.map((d) => `- ${d.id} (${d.gravite}) : ${d.titre}`).join("\n"),
-					}),
-					schema: {
-						type: "object",
-						properties: {
-							status: { type: "string", enum: ["ecrite", "aucun"] },
-							story_id: { type: "string" },
-							bug_id: { type: "string" },
-							message: { type: "string" },
-							resume: { type: "string" },
-							a_decider: {
-								type: "array",
-								items: {
-									type: "object",
-									properties: { bug_id: { type: "string" }, raison: { type: "string" } },
-									required: ["bug_id", "raison"],
-								},
-							},
-						},
-						required: ["status", "story_id", "bug_id", "message", "resume", "a_decider"],
-					},
-					cwd: o.root,
-				},
-				o,
-			);
-			if (!s.ok || !s.sortie) {
-				o.annonce?.(`⛔ session de correctif : ${s.resume}`);
+			const r = await ecrireCorrectif(o, journal, seuil, contexte, ouverts);
+			aDecider = r.aDecider ?? aDecider;
+			if ("motif" in r) {
+				o.annonce?.(`⛔ ${r.motif}`);
 				return { code: 1, aDecider };
 			}
-			const sortie = s.sortie as {
-				status: string;
-				story_id: string;
-				bug_id: string;
-				message: string;
-				a_decider: Ecartes[];
-			};
-			aDecider = sortie.a_decider;
-			if (sortie.status === "aucun") break;
-			const autre = horsDeLaRedaction(o.root);
-			const ecrite = storyDuCorrectif(o);
-			const cite =
-				ecrite && fichierDeLaStory(o.root, ecrite.id)
-					? defautDeLaStory(readFileSync(lireStory(ecrite.id, o.root).chemin, "utf8"))
-					: null;
-			if (
-				autre.length > 0 ||
-				!ecrite ||
-				ecrite.id !== sortie.story_id ||
-				cite !== sortie.bug_id ||
-				!ouverts.some((d) => d.id === cite)
-			) {
-				o.annonce?.(
-					`⛔ la session de correctif n'a pas laissé une story lisible qui cite un défaut ouvert (${autre.join(", ") || sortie.story_id})`,
-				);
-				return { code: 1, aDecider };
-			}
-			commiter(o.root, sortie.message.split("\n")[0]!.trim(), ["specs"]);
-			story = ecrite;
+			if (!r.story) break;
+			story = r.story;
 		}
 		const code = await o.deroulerStory(story.id);
 		if (code !== 0) return { code, aDecider };
-		const bug = defautDeLaStory(readFileSync(lireStory(story.id, o.root).chemin, "utf8"));
+		const bug = defautCite(o.root, story.id);
 		const sha = new Journal(story.id, o.racine).dernier("verse", "versement")?.commit;
 		if (!bug || typeof sha !== "string") {
 			o.annonce?.(

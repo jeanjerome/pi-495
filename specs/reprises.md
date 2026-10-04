@@ -765,7 +765,7 @@ Statut : versée
 
 ## R94 — La phase de correction confie l'écriture d'une story de correctif à une fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/suite.ts:151-249 (`corrigerDefauts`), 220-224, 242
 - Constat : La boucle de `corrigerDefauts` mêle sur environ 80 lignes l'orchestration et le détail (schéma, lancement, journal, vérifications), là où `rediger` isole le même travail pour une epic. Le test `fichierDeLaStory(o.root, ecrite.id)` est déjà garanti par `storyDuCorrectif`, qui ne rend qu'une story au fichier lisible. `defautDeLaStory(readFileSync(lireStory(id, root).chemin, "utf8"))` est écrit deux fois.
