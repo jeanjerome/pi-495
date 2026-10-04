@@ -1389,3 +1389,34 @@ bugs:
       in that case.
     status: fixed
     fixed_in: 2568afa
+  - bug_id: BUG-2026-09-28T163300
+    date: "2026-09-28"
+    title: "Four stops that name only the cancel, and the removal of IH-07 from the exhausted increment budget, have no test"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The stops raised at `src/application/phases/verification-design.ts` (no detectable control, a
+      protocol that does not freeze, a preparation that cannot run) and `src/application/verification.ts`
+      name `cancel` as the only way out, and the exhausted increment duration budget in
+      `src/domain/change/decide.ts` no longer names `request_decision:IH-07`. Mutations that put the
+      former names back, or name `resume, cancel`, survive the whole suite.
+    what_expected: >
+      A test holds each of these five lines: putting a former name back, or naming a resume no
+      resume lifts, fails a test that reads the stop as `/495 status` shows it.
+    steps_to_reproduce:
+      - "Replace `cancel` by `prepare_capabilities` at `verification-design.ts:79` and run `npm test`."
+      - "The suite passes."
+    root_cause: >
+      The fix of BUG-2026-09-28T143500 changed seven stops and tested three; the four others and the
+      removal at `decide.ts:984` were left to the reviewers' mutations. Left open by the sixth review
+      round of the branch that reruns a verification cut short, past the cap, under the rule that what
+      the last round leaves goes to the registry.
+    evidence: >
+      Review record of the branch, round 6, R6-1 and R6-2: mutations M9 to M12 and M14 of reviewer A,
+      M11 to M14, M16, M21 and M22 of reviewer B survive at 37626c6. `test/v2-kernel/preparation.test.ts:168`
+      already reaches the stop of a protocol that does not freeze and reads only its first word.
+    risk_level: low
+    follow_ups: "what the exhausted-budget test asserts depends on BUG-2026-09-28T163400"
+    status: fixed
+    fixed_in: 1fa29ab
