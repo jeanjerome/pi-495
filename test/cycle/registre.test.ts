@@ -57,6 +57,14 @@ describe("the registry as the cycle reads it", () => {
 		);
 	});
 
+	it("lists only the high defects at the high threshold, and none when the registry is absent", () => {
+		assert.deepEqual(
+			defautsOuverts(racine(), "high").map((d) => d.id),
+			["BUG-2026-09-04T100000"],
+		);
+		assert.deepEqual(defautsOuverts(tempDir("495-", cleanups), "low"), []);
+	});
+
 	it("moves an entry fixed at a revision to the archive, and touches no other line of the registry", () => {
 		const root = racine();
 		marquerCorrige(root, "BUG-2026-09-02T100000", "def5678");

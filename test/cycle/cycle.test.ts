@@ -83,6 +83,86 @@ export default (invite, cwd) => {
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
 	});
 
+	it("blocks, naming the task and its verdict, when a task's command is red at the head", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)}, "README.md": "# f-ts, shouted\\n" }, "feat: greet shouts");
+  return { status: "fini", taches: [{ numero: 1 }], resume: "done" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		const issue = await conduirePas(ctx, "rouge-vert");
+		assert.equal(issue.statut, "bloque");
+		assert.match(issue.statut === "bloque" ? issue.motif : "", /^tâche 1: .* test\/shout\.test\.js is FAIL at HEAD$/);
+		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
+	});
+
+	it("blocks when the red-green session committed nothing", async () => {
+		const root = depot();
+		const ctx = contexte(root, fauxClaude(`export default () => ({ status: "fini", taches: [], resume: "nothing" })`));
+		await conduirePas(ctx, "story");
+		assert.deepEqual(await conduirePas(ctx, "rouge-vert"), {
+			statut: "bloque",
+			motif: "the red-green session committed nothing",
+		});
+		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
+	});
+
+	it("blocks a story already versée before it opens a branch", async () => {
+		const root = depotDe((r) => {
+			fixtureTs(r);
+			mkdirSync(join(r, "specs", "stories", "e01"), { recursive: true });
+			writeFileSync(
+				join(r, "specs", "stories", "e01", "e01s05-greet-shouts.md"),
+				STORY.replace("Statut : à faire", "Statut : versée"),
+			);
+		});
+		const ctx = contexte(root, fauxClaude("export default () => ({})"));
+		assert.deepEqual(await conduirePas(ctx, "story"), { statut: "bloque", motif: "e01s05 is already versée" });
+		assert.equal(brancheCourante(root), "main");
+	});
+
+	it("runs the self-review session, then Preflight at the head it leaves", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "test/more.test.js": "// held\\n" }, "test: more");
+  return { status: "fini", constats: [{ point: "a case is not held", corrige: true }], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		ctx.journal.inscrire("rouge-vert", "fini");
+		assert.deepEqual(await conduirePas(ctx, "autocontrole"), { statut: "fini" });
+		const events = ctx.journal.lire().filter((e) => e.pas === "autocontrole");
+		assert.deepEqual(
+			events.map((e) => e.genre),
+			["debute", "session", "controle", "fini"],
+		);
+		assert.equal(events[1]?.nom, "autocontrole");
+		assert.deepEqual(
+			[events[2]?.controle, events[2]?.verdict, events[2]?.revision],
+			["preflight", "PASS", revision(root)],
+		);
+		assert.equal(ctx.journal.prochainPas(), "relecture");
+	});
+
+	it("blocks when Preflight is red after the self-review session", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+  return { status: "fini", constats: [], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		ctx.journal.inscrire("rouge-vert", "fini");
+		const issue = await conduirePas(ctx, "autocontrole");
+		assert.equal(issue.statut, "bloque");
+		assert.match(issue.statut === "bloque" ? issue.motif : "", new RegExp(`^Preflight FAIL at ${revision(root)}: `));
+		assert.equal(ctx.journal.prochainPas(), "autocontrole");
+	});
+
 	it("replays a test-only commit against each task whose test file it touches, so a red for one task is read even when it also edits another task's green test", async () => {
 		const root = depotDe((r) => {
 			fixtureTs(r);
@@ -276,6 +356,35 @@ export default async (invite, cwd) => {
 		accepter(ctx, "vu");
 		assert.equal(ctx.journal.prochainPas(), "versement");
 		rouvrir(ctx, "the negative control still accepts");
+		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
+	});
+
+	it("blocks, with the account of the acceptance session, when that session cannot run the acceptance", async () => {
+		const root = depot();
+		const claude = fauxClaude(
+			`export default () => ({ status: "bloque", campagnes: [], ecarts: [], compte_rendu: "no Pi could start" })`,
+		);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		for (const pas of ["rouge-vert", "autocontrole", "relecture"] as const) ctx.journal.inscrire(pas, "fini");
+		assert.deepEqual(await conduirePas(ctx, "recette"), { statut: "bloque", motif: "recette: no Pi could start" });
+		assert.equal(ctx.journal.prochainPas(), "recette");
+	});
+
+	it("reopens the story at the red-green when the acceptance session finds a gap, and names the gap", async () => {
+		const root = depot();
+		const claude = fauxClaude(
+			`export default () => ({ status: "ecart", campagnes: [], ecarts: [{ scenario: "greet shouts", constat: "the greeting is lower case" }], compte_rendu: "" })`,
+		);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		for (const pas of ["rouge-vert", "autocontrole", "relecture"] as const) ctx.journal.inscrire(pas, "fini");
+		assert.deepEqual(await conduirePas(ctx, "recette"), {
+			statut: "bloque",
+			motif:
+				"la recette trouve un écart ; la story est rouverte au rouge-vert :\n- greet shouts : the greeting is lower case\nRelancez `cycle e01s05`.",
+		});
+		assert.equal(ctx.journal.dernier("rouvert", "recette")?.motif, "greet shouts : the greeting is lower case");
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
 	});
 

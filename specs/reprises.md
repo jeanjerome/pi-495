@@ -824,7 +824,7 @@ Statut : versée
 
 ## R100 — Chaque arrêt des pas, de la suite et de l'arbitrage est tenu par un test
 
-Statut : à faire
+Statut : versée
 
 - Où : test/cycle/{cycle,suite,automate,registre}.test.ts · cycle/src/cycle.ts:113, 171, 195-200, 214-239, 388-393, 435-442 · cycle/src/suite.ts:109-122, 206-209, 244-249 · cycle/src/automate.ts:120-126 · cycle/src/registre.ts (fichier absent, seuil `high`)
 - Constat : Aucun test n'atteint les arrêts « already versée », « committed nothing », « tâche N … at HEAD », « left the tree modified », « no longer holds its format », « with no story landed », « did not leave a readable story ». `pasAutocontrole` n'est jamais conduit (les tests inscrivent seulement son `fini`) ; `pasRecette` ne l'est que sur `prete`. Le test intitulé « … or when a task's command is red at the head » n'exerce que la première moitié. Ce sont les branches par lesquelles un déroulement sans propriétaire s'arrête.

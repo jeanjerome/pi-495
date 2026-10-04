@@ -129,6 +129,29 @@ export default (invite, cwd) => {
 		assert.match(messages.join("\n"), /modified files beyond the story and the plan: src\/greet\.js/);
 	});
 
+	it("stops when the drafting session finds the epic complete while no story of it has landed", async () => {
+		const root = depotSuite('      - { id: e01s07, status: "à faire", title: "greet whispers" }');
+		const appels: string[] = [];
+		const messages: string[] = [];
+		assert.equal(await suite({ ...options(root, COMPLETE, appels), annonce: (t) => messages.push(t) }), 1);
+		assert.deepEqual(appels, []);
+		assert.match(messages.join("\n"), /⛔ e01: the drafting session finds the epic complete with no story landed/);
+		assert.equal(lirePlan(root)[0]?.statut, "à faire");
+	});
+
+	it("stops when the drafting session says it wrote a story the plan does not list pending", async () => {
+		const root = depotSuite(LANDED);
+		const rien = `export default () => ({ status: "ecrite", story_id: "e01s06", message: "docs: x", resume: "written" });`;
+		const appels: string[] = [];
+		const messages: string[] = [];
+		assert.equal(await suite({ ...options(root, rien, appels), annonce: (t) => messages.push(t) }), 1);
+		assert.deepEqual(appels, []);
+		assert.match(
+			messages.join("\n"),
+			/⛔ e01: the drafting session did not leave a readable story e01s06 listed pending in the plan/,
+		);
+	});
+
 	it("does not start from a branch other than main, or from a modified tree", async () => {
 		const root = depotSuite(PENDING);
 		const appels: string[] = [];
@@ -292,6 +315,42 @@ describe("the repair of the registry's defects", () => {
 		const r = await corrigerDefauts({ ...options(root, faux, []), annonce: (t) => messages.push(t) }, "medium", "test");
 		assert.equal(r.code, 1);
 		assert.match(messages.join("\n"), /n'a pas laissé une story lisible qui cite un défaut ouvert/);
+	});
+
+	it("stops when the session that chooses the defect fails", async () => {
+		const root = depotCorrectifs();
+		const appels: string[] = [];
+		const messages: string[] = [];
+		const r = await corrigerDefauts(
+			{ ...options(root, PAS_DE_SESSION, appels), annonce: (t) => messages.push(t) },
+			"medium",
+			"test",
+		);
+		assert.equal(r.code, 1);
+		assert.deepEqual(appels, []);
+		assert.match(messages.join("\n"), /⛔ session de correctif : /);
+	});
+
+	it("stops, leaving the registry as it was, when a correction story lands without the revision it landed at", async () => {
+		const root = depotCorrectifs();
+		const appels: string[] = [];
+		const messages: string[] = [];
+		const r = await corrigerDefauts(
+			{ ...options(root, CHOISIT, appels), annonce: (t) => messages.push(t) },
+			"medium",
+			"test",
+		);
+		assert.equal(r.code, 1);
+		assert.deepEqual(appels, ["e28s01"]);
+		assert.match(
+			messages.join("\n"),
+			/⛔ e28s01 est versée sans le défaut qu'elle corrige ou sans sa révision : le registre n'est pas mis à jour/,
+		);
+		assert.deepEqual(
+			defautsOuverts(root, "medium").map((d) => d.id),
+			["BUG-2026-09-10T100000", "BUG-2026-09-11T100000"],
+		);
+		assert.equal(lirePlan(root).find((e) => e.id === "e28")?.stories[0]?.statut, "à faire");
 	});
 
 	it("resumes a correction story an earlier run left pending before asking any session", async () => {

@@ -103,6 +103,36 @@ describe("the cycle answers in the owner's place", () => {
 		assert.match(suite.continuer ? "" : suite.motif, /neither a scenario nor a task/);
 	});
 
+	it("stops, with the session's account, when the gap cannot be written into the story", async () => {
+		const refus = 'return { status: "bloque", message: "", resume: "the story has no room for it" };';
+		const ctx = await enRecette(arbitre({ decision: "ecart", note: "n", ecart: "a gap", raisons: "r" }, refus));
+		assert.deepEqual(await apresIssue(ctx, "recette", QUESTION, 0), {
+			continuer: false,
+			motif: "the gap could not be written into the story: the story has no room for it",
+		});
+	});
+
+	it("stops when writing the gap into the story leaves the tree modified", async () => {
+		const sale = `writeFileSync(cwd + "/specs/stories/e01/e01s05-greet-shouts.md", readFileSync(cwd + "/specs/stories/e01/e01s05-greet-shouts.md", "utf8") + "\\nUncommitted.\\n");
+return { status: "fini", message: "docs: x", resume: "written" };`;
+		const ctx = await enRecette(arbitre({ decision: "ecart", note: "n", ecart: "a gap", raisons: "r" }, sale));
+		assert.deepEqual(await apresIssue(ctx, "recette", QUESTION, 0), {
+			continuer: false,
+			motif: "writing the gap into the story left the tree modified",
+		});
+	});
+
+	it("stops when the story no longer holds its format after the gap was written", async () => {
+		const casse = `const file = "specs/stories/e01/e01s05-greet-shouts.md";
+commit(cwd, { [file]: readFileSync(cwd + "/" + file, "utf8").replace("Statut : en cours", "Statut : perdu") }, "docs: x");
+return { status: "fini", message: "docs: x", resume: "written" };`;
+		const ctx = await enRecette(arbitre({ decision: "ecart", note: "n", ecart: "a gap", raisons: "r" }, casse));
+		assert.deepEqual(await apresIssue(ctx, "recette", QUESTION, 0), {
+			continuer: false,
+			motif: "the story no longer holds its format after the gap was written: unknown statut: perdu",
+		});
+	});
+
 	it("stops when the arbitration names a gap without saying which", async () => {
 		const ctx = await enRecette(arbitre({ decision: "ecart", note: "n", ecart: "  ", raisons: "r" }));
 		const suite = await apresIssue(ctx, "recette", QUESTION, 0);
