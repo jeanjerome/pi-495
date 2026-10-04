@@ -1,0 +1,22 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arrêt sur un cycle de rapports ne nomme que l'annulation",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 387,
+    "constat": "Le test du cycle appelle `orderOf` directement. Aucun test n'atteint ce refus en faisant avancer un changement, et aucune pile ne déclare de cycle, comme la story le dit elle-même. Le fait que le harnais inscrive `toText()` au détail de l'arrêt n'est tenu que par les deux tests des scénarios 1 et 2, qui passent par le même `catch` (`harness.ts:935`). Retirer l'appel à `orderOf` de la conception de la vérification ne ferait pas échouer le test du scénario 3."
+   }
+  ],
+  "resume": "J'ai lu les trois promesses dans le code et chacune est tenue par un test qu'une mutation fait échouer. Scénario 1 : la mutation `nextActions` → `prepare_capabilities` (`verification-design.ts:372`), la raison `CAPABILITY_MISSING` remplacée par `execution_error` dans `BLOCK_REASONS` (`harness.ts:184`) et le texte du refus changé (`node.ts:537`) font chacune échouer l'égalité exacte sur la prochaine action. Scénario 2 : `[\"resume\", \"cancel\"]` et l'ajout de `retryable: true` (`verification-design.ts:481`) font échouer le test sur la fin « (next: cancel) ». Sans le FAIL imposé au contrôle `unit`, le changement finit `blocked` et non `capability_missing`, donc l'arrêt vient bien du Given. Scénario 3 : `prepare_capabilities` à `verification.ts:198` fait échouer le test sur le texte exact. Toutes les lignes ont été remises en place et rien n'est commité. Il ne reste qu'un constat à peser, antérieur à la branche : le cycle n'est atteint par aucun test qui fait avancer un changement."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Je n'ai aucun constat : le code tient les trois promesses, et au moins un test échoue pour chacune quand on mute la ligne qui la tient. Chaque mutation a été annulée par git checkout ; l'arbre est propre, seul node_modules n'est pas suivi.\n\nScénario 1, projet dont scripts.test vaut « tsc && node --test » :\n- Le refus de détection de src/application/stacks/node.ts:537 passe par l'arrêt de verification-design.ts:371-373, qui ne nomme que l'annulation. Le harnais l'inscrit ensuite au détail de l'arrêt par error.toText() (harness.ts:935).\n- Le test test/v2-kernel/cancel-only-stops.test.ts compare la ligne « Next action » de formatStatus(view, \"en ») au texte exact de la story.\n- Deux mutations le font échouer sur ce texte : remplacer cancel par prepare_capabilities à la ligne 372, et retirer « (${command}) » du refus de node.ts:537.\n\nScénario 2, protocole qui ne se gèle pas :\n- Chaque témoin de qualification du contrôle unit est forcé à FAIL ; l'arrêt est levé à verification-design.ts:478-482.\n- Le test vérifie que la prochaine action commence par « blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: » et finit par « (next: cancel) ».\n- Remplacer cancel par « resume, cancel » à la ligne 481 le fait échouer. Le message d'échec montre que les raisons viennent bien du contrôle unit non qualifié.\n\nScénario 3, cycle de rapports entre x et y :\n- C'est VerificationCoordinator.orderOf, à src/application/verification.ts:192-201, qui lève l'erreur.\n- Le test de test/v2-kernel/verification.test.ts lit toText() à travers assert.throws et le compare au texte exact.\n- Deux mutations le font échouer : remplacer cancel par prepare_capabilities à la ligne 198, et neutraliser la condition sur les cycles à la ligne 194. Dans ce second cas, le message dit qu'aucune exception n'a été levée.\n- La clause « celui que le harnais inscrit au détail de l'arrêt » est elle aussi tenue. Remplacer error.toText() par error.message à harness.ts:935 fait échouer 5 tests sur 46 dans cancel-only-stops et harness.test.\n\nJe n'ai pas relancé la Preflight, comme demandé. J'ai seulement exécuté les deux fichiers de test, une fois avant les mutations (3 tests verts) puis après chacune."
+ }
+]
