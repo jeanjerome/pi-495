@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: PMD and CPD offline on a local Maven repository the adoption alone filled
+    # Subtest: sur un dépôt local de Maven vide que seule l'adoption du référentiel PMD a rempli, la résolution est resolved, pmd et cpd sont qualifiés par leurs témoins le réseau fermé, et aucune note ne nomme le skin de site
+    ok 1 - sur un dépôt local de Maven vide que seule l'adoption du référentiel PMD a rempli, la résolution est resolved, pmd et cpd sont qualifiés par leurs témoins le réseau fermé, et aucune note ne nomme le skin de site
+      ---
+      duration_ms: 37971.690291
+      type: 'test'
+      ...
+    1..1
+ok 1 - PMD and CPD offline on a local Maven repository the adoption alone filled
+  ---
+  duration_ms: 37972.325917
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 38584.019709
