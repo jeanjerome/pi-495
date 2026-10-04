@@ -120,6 +120,60 @@ describe("the entry point of the cycle", () => {
 		assert.match(r.sortie, /correctif +je lis le registre/);
 	});
 
+	it("on Ctrl-C after a story of a phase of repairs has landed, names no step of that story to resume", async () => {
+		const b = banc();
+		const story = STORY.replace(/e01s05/g, "e28s01")
+			.replace("Epic : e01", "Epic : e28")
+			.replace("Whoever calls greet", "Corrige BUG-2026-10-04T120000 : whoever calls greet");
+		mkdirSync(join(b.root, "specs", "stories", "e28"), { recursive: true });
+		writeFileSync(join(b.root, "specs", "stories", "e28", "e28s01-greet-shouts.md"), story);
+		writeFileSync(
+			join(b.root, "specs", "plan.yaml"),
+			'epics:\n  - id: e28\n    title: "Correctifs"\n    status: à faire\n    stories:\n      - { id: e28s01, status: "à faire", title: "greet shouts" }\n',
+		);
+		mkdirSync(join(b.root, "specs", "bugs"), { recursive: true });
+		const entree = (id: string) => `  - bug_id: ${id}\n    title: "a defect"\n    severity: low\n    status: open\n`;
+		writeFileSync(
+			join(b.root, "specs", "bugs", "registry.yaml"),
+			`bugs:\n${entree("BUG-2026-10-04T120000")}${entree("BUG-2026-10-04T130000")}`,
+		);
+		execFileSync("git", ["add", "-A"], { cwd: b.root });
+		execFileSync("git", ["commit", "-q", "-m", "docs: a correction story waits"], { cwd: b.root });
+		// The story has run every step: driving it lands it at once, and the phase goes on to the next defect.
+		mkdirSync(join(b.racine, "e28s01"), { recursive: true });
+		const pas = ["story", "rouge-vert", "autocontrole", "relecture", "recette", "versement"];
+		writeFileSync(
+			join(b.racine, "e28s01", "journal.jsonl"),
+			[
+				{ at: "2026-10-04T08:00:00.000Z", pas: "versement", genre: "verse", commit: "abcdef1234567890" },
+				...pas.map((p) => ({ at: "2026-10-04T08:00:00.000Z", pas: p, genre: "fini" })),
+			]
+				.map((e) => `${JSON.stringify(e)}\n`)
+				.join(""),
+		);
+		const claude = join(b.env.PATH!, "claude");
+		writeFileSync(claude, `#!${NODE}\nsetTimeout(() => {}, 60_000);\n`);
+		chmodSync(claude, 0o755);
+		const enfant = spawn(NODE, [MAIN, "defauts", "low"], {
+			cwd: b.root,
+			env: b.env,
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		let sortie = "";
+		enfant.stdout.on("data", (c: Buffer) => {
+			sortie += c.toString("utf8");
+		});
+		const fin = new Promise<number | null>((resolve) => enfant.once("exit", (code) => resolve(code)));
+		for (let i = 0; i < 200 && !sortie.includes("choix du prochain défaut"); i++)
+			await new Promise((r) => setTimeout(r, 50));
+		assert.match(sortie, /e28s01 : versée/);
+		enfant.kill("SIGINT");
+		const code = await Promise.race([fin, new Promise<"toujours là">((r) => setTimeout(() => r("toujours là"), 5000))]);
+		if (code === "toujours là") enfant.kill("SIGKILL");
+		assert.equal(code, 130);
+		assert.doesNotMatch(sortie, /npm run cycle -- e28s01/);
+	});
+
 	it("leaves on Ctrl-C while it follows a story from another terminal", async () => {
 		const b = banc();
 		const enfant = spawn(NODE, [MAIN, "e01s05", "suivre"], {

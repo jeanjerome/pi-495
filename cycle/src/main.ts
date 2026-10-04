@@ -257,45 +257,51 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		sortie.ecrire(`\n${texte}`);
 		return code;
 	};
-	for (;;) {
-		const pas = ctx.journal.prochainPas();
-		if (!pas) {
+	// Once the story hands back, Ctrl-C no longer names it: a run of epics or of repairs goes on to
+	// other work, where resuming this story's step would be the wrong advice.
+	try {
+		for (;;) {
+			const pas = ctx.journal.prochainPas();
+			if (!pas) {
+				titre.arreter();
+				sonner(`${id} est versée`);
+				sortie.ecrire(`\n${id} : versée. Le push de ${ctx.cible} est à vous.`);
+				return 0;
+			}
+			if (auto && coutTotal(ctx) > plafond()) {
+				return rendre(
+					1,
+					"⛔",
+					"plafond de coût atteint",
+					`⛔ ${id} a dépensé ${coutTotal(ctx).toFixed(2)} $, au-delà de ${plafond()} $ (CYCLE_495_PLAFOND_USD) : le propriétaire décide de la suite.`,
+				);
+			}
+			const started = Date.now();
+			const avant = revision(ctx.root);
+			const reouvertAvant = ctx.journal.reouvertures();
+			courant = pas;
+			sortie.ecrire(ouverture(id, pas, premier ? null : started - lancement, depense));
+			premier = false;
+			titre.suivre(`▶ ${id} · ${pas}`);
+			const issue = await conduirePas(ctx, pas);
 			titre.arreter();
-			sonner(`${id} est versée`);
-			sortie.ecrire(`\n${id} : versée. Le push de ${ctx.cible} est à vous.`);
-			return 0;
+			const sessions = ctx.journal.depuisReouverture().filter((e) => e.pas === pas && e.genre === "session");
+			const cout = sessions.reduce((sum, e) => sum + Number(e.cout_usd), 0);
+			sortie.ecrire(cloture(pas, issue.statut, Date.now() - started, cout, commitsEntre(ctx.root, avant)));
+			if (auto && issue.statut !== "fini") {
+				const poursuite = await apresIssue(ctx, pas, issue, reouvertAvant);
+				if (poursuite.continuer) continue;
+				return rendre(1, "⛔", `${pas} arrêté`, `⛔ ${poursuite.motif}`);
+			}
+			if (issue.statut === "proprietaire") {
+				return rendre(0, "?", `${pas} attend votre décision`, issue.question);
+			}
+			if (issue.statut === "bloque") {
+				return rendre(1, "⛔", `${pas} bloqué`, `⛔ ${issue.motif}`);
+			}
 		}
-		if (auto && coutTotal(ctx) > plafond()) {
-			return rendre(
-				1,
-				"⛔",
-				"plafond de coût atteint",
-				`⛔ ${id} a dépensé ${coutTotal(ctx).toFixed(2)} $, au-delà de ${plafond()} $ (CYCLE_495_PLAFOND_USD) : le propriétaire décide de la suite.`,
-			);
-		}
-		const started = Date.now();
-		const avant = revision(ctx.root);
-		const reouvertAvant = ctx.journal.reouvertures();
-		courant = pas;
-		sortie.ecrire(ouverture(id, pas, premier ? null : started - lancement, depense));
-		premier = false;
-		titre.suivre(`▶ ${id} · ${pas}`);
-		const issue = await conduirePas(ctx, pas);
-		titre.arreter();
-		const sessions = ctx.journal.depuisReouverture().filter((e) => e.pas === pas && e.genre === "session");
-		const cout = sessions.reduce((sum, e) => sum + Number(e.cout_usd), 0);
-		sortie.ecrire(cloture(pas, issue.statut, Date.now() - started, cout, commitsEntre(ctx.root, avant)));
-		if (auto && issue.statut !== "fini") {
-			const poursuite = await apresIssue(ctx, pas, issue, reouvertAvant);
-			if (poursuite.continuer) continue;
-			return rendre(1, "⛔", `${pas} arrêté`, `⛔ ${poursuite.motif}`);
-		}
-		if (issue.statut === "proprietaire") {
-			return rendre(0, "?", `${pas} attend votre décision`, issue.question);
-		}
-		if (issue.statut === "bloque") {
-			return rendre(1, "⛔", `${pas} bloqué`, `⛔ ${issue.motif}`);
-		}
+	} finally {
+		interruption = null;
 	}
 }
 
