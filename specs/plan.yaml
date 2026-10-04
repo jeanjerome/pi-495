@@ -509,6 +509,7 @@ epics:
       - { id: e28s06, status: "versée", title: "PMD est qualifié sur un projet qui porte déjà plus de 1000 violations" }
       - { id: e28s07, status: "versée", title: "Un second état des lieux d'un même arbre mesure le projet à nouveau" }
       - { id: e28s08, status: "versée", title: "PMD et CPD tournent hors ligne sur un dépôt local que seule l'adoption a rempli" }
+      - { id: e28s09, status: "à faire", title: "Le texte d'un refus du noyau nomme les actions qui en sortent" }
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
