@@ -1450,3 +1450,32 @@ bugs:
       test on a refusal at G1.
     status: fixed
     fixed_in: 29605dc
+  - bug_id: BUG-2026-09-30T180000
+    date: "2026-09-30"
+    title: "A test report is read whole into memory before the size bound of the JUnit reader applies"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The runner reads each JUnit report file in full into a string, stores it in the object store, and only
+      then hands it to the JUnit reader, which refuses a document over 16 MiB. A project that writes a report
+      of several gigabytes makes 495 hold it in memory, twice, before the reader can call it unreadable.
+    what_expected: >
+      A report over the bound is not read: the file size is checked before its content is, and the control
+      ends as an unreadable report.
+    steps_to_reproduce:
+      - "Run a `junit-xml` control whose command writes a report file larger than the memory of the process."
+      - "The runner reads the file into a string before any bound is applied."
+    root_cause: >
+      `readReports` (`src/adapters/execution/runner.ts`) calls `readFile(abs, "utf8")` on every file it
+      finds, without a `stat` size check; the bound sits in `parseReport` (`src/adapters/execution/parsers.ts`),
+      after the read. The same read is used by the JaCoCo and PIT controls.
+    evidence: >
+      Read on 2026-09-30; not run. The JUnit reader is bounded by test/v1-adapters/junit-reader.test.ts, which passes the
+      oversized document as a string and so does not exercise the file read.
+    risk_level: low
+    follow_ups: >
+      Check the size of each report file with `stat` before reading it, and end the control as an unreadable
+      report over the bound; a test on a report file over the bound.
+    status: fixed
+    fixed_in: 3fb3fce
