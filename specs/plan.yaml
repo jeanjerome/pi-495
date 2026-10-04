@@ -512,6 +512,7 @@ epics:
       - { id: e28s09, status: "versée", title: "Le texte d'un refus du noyau nomme les actions qui en sortent" }
       - { id: e28s10, status: "versée", title: "L'arrêt sur le budget de durée de l'incrément nomme ce qui le lève" }
       - { id: e28s11, status: "versée", title: "Un refus hors de sa phase dit la phase attendue sans la donner pour une action" }
+      - { id: e28s12, status: "à faire", title: "Les arrêts qui ne nomment que l'annulation sont tenus par un test" }
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
