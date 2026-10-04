@@ -688,7 +688,7 @@ Statut : versée
 
 ## R86 — Le journal est seul à compter et à lire les réouvertures
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/journal.ts:88-90 · cycle/src/automate.ts:23-25, 48-50 · cycle/src/main.ts:236 · cycle/src/cycle.ts:128-131
 - Constat : main.ts:236 et `reouvertures()` d'automate.ts recopient `lire().filter((e) => e.genre === "rouvert").length`, et `apresIssue` compare les deux résultats (automate.ts:40) : la comparaison ne tient que tant que les deux copies restent identiques. `ecartEnCours` (cycle.ts:129) refait par `lire().findLast(...)` ce que `journal.dernier("rouvert")` fait déjà (automate.ts:49) ; `journal.rouvert()` est la version booléenne du même comptage.

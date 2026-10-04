@@ -107,7 +107,7 @@ async function pasStory(ctx: Contexte): Promise<Issue> {
 // --- 2. le rouge-vert -------------------------------------------------------------------------------
 
 function ecartEnCours(ctx: Contexte): string {
-	const rouvert = ctx.journal.lire().findLast((e) => e.genre === "rouvert");
+	const rouvert = ctx.journal.dernier("rouvert");
 	return rouvert ? `\n\nÉcart trouvé à la recette, seul objet de ce passage :\n${String(rouvert.motif)}\n` : "";
 }
 

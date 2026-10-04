@@ -20,10 +20,6 @@ export type Suite = { continuer: true } | { continuer: false; motif: string };
 
 const CONTINUER: Suite = { continuer: true };
 
-function reouvertures(ctx: Contexte): number {
-	return ctx.journal.lire().filter((e) => e.genre === "rouvert").length;
-}
-
 function arret(motif: string): Suite {
 	return { continuer: false, motif };
 }
@@ -37,7 +33,7 @@ export async function apresIssue(ctx: Contexte, pas: Pas, issue: Issue, reouvert
 			// A promise the review left unkept is corrected, never waived: the story already says it.
 			return reouvrirSous(ctx, issue.question, false);
 		}
-		if (reouvertures(ctx) > reouvertAvant) return await epingler(ctx, String(lastReouverture(ctx)));
+		if (ctx.journal.reouvertures() > reouvertAvant) return await epingler(ctx, String(lastReouverture(ctx)));
 		return arret(issue.motif);
 	} catch (e) {
 		if (e instanceof Blocage) return arret(e.message);
@@ -50,7 +46,7 @@ function lastReouverture(ctx: Contexte): unknown {
 }
 
 async function reouvrirSous(ctx: Contexte, motif: string, epingle: boolean): Promise<Suite> {
-	if (reouvertures(ctx) >= ECARTS_MAX)
+	if (ctx.journal.reouvertures() >= ECARTS_MAX)
 		return arret(`the story went back to the red-green ${ECARTS_MAX} times: the owner decides what is left\n${motif}`);
 	rouvrir(ctx, motif);
 	return epingle ? await epingler(ctx, motif) : CONTINUER;

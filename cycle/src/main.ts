@@ -232,7 +232,7 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		}
 		const started = Date.now();
 		const avant = revision(ctx.root);
-		const reouvertAvant = ctx.journal.lire().filter((e) => e.genre === "rouvert").length;
+		const reouvertAvant = ctx.journal.reouvertures();
 		courant = pas;
 		sortie.ecrire(ouverture(id, pas, started === lancement ? null : started - lancement, depense));
 		titre.suivre(`▶ ${id} · ${pas}`);

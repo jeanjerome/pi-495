@@ -85,8 +85,13 @@ export class Journal {
 		return typeof debut?.revision === "string" ? debut.revision : null;
 	}
 
+	/** How many times the story went back to the red-green: the `rouvert` events of the journal. */
+	reouvertures(): number {
+		return this.lire().filter((e) => e.genre === "rouvert").length;
+	}
+
 	rouvert(): boolean {
-		return this.lire().some((e) => e.genre === "rouvert");
+		return this.reouvertures() > 0;
 	}
 
 	/** The step to run next: the first one no `fini` event closes since the last reopening. */
