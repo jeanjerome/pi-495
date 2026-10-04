@@ -848,15 +848,17 @@ export class Harness {
 		const loaded = this.deps.ledger.loadChange(changeId);
 		if (!loaded) throw new DomainError("UNKNOWN_REFERENCE", `change ${changeId} not found`);
 		const protocol = await this.artifacts.latest<Protocol>(loaded.state, "protocol").catch(() => null);
-		const requirements = await this.artifacts
-			.latest<RequirementsDocument>(loaded.state, "requirements")
-			.catch(() => null);
+		// Only what G1 adopted: a proposal it refused is not the change's requirements.
+		const adoptedRef = loaded.state.adopted.requirements?.ref;
+		const requirements = adoptedRef
+			? await this.artifacts.read<RequirementsDocument>(adoptedRef).catch(() => null)
+			: null;
 		const survey = await this.artifacts.latest<Survey>(loaded.state, "survey").catch(() => null);
 		return engineeringReport(
 			loaded.state,
 			this.deps.ledger.listEvidence(changeId),
 			protocol?.content ?? null,
-			requirements?.content ?? null,
+			requirements,
 			survey?.content ?? null,
 		);
 	}
