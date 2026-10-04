@@ -936,7 +936,10 @@ class Ctx {
 		if (!c.model.provider_id || !c.model.model_id)
 			this.fail("CONFIGURATION_ERROR", "provider and model must be explicit (RM-022)");
 		if (this.state.budgets.increment_ms_used >= this.policy.budgets.increment_ms)
-			this.fail("BUDGET_EXHAUSTED", "increment duration budget exhausted");
+			this.fail(
+				"BUDGET_EXHAUSTED",
+				"increment duration budget exhausted; a raised policy.budgets.increment_ms takes effect in a new session",
+			);
 		let attemptId: string | null = c.attempt_id;
 		if (c.role === "implement") {
 			if (!this.state.protocol)
