@@ -195,3 +195,123 @@ export default (invite, cwd) => {
 		);
 	});
 });
+
+/** Runs the list and asserts the run stops with code 1, leaves main where it was, and announces `texte`. */
+async function arreteSur(d: ReturnType<typeof depotReprises>, texte: string): Promise<void> {
+	const avant = gitCmd(d.root, ["rev-parse", "main"]).trim();
+	assert.equal(await reprendre(d.options), 1);
+	assert.equal(gitCmd(d.root, ["rev-parse", "main"]).trim(), avant);
+	assert.ok(d.annonces.includes(`⛔ ${texte}`), d.annonces.join("\n"));
+}
+
+/** A session that must never run: the run stops before it. */
+const AUCUNE_SESSION = `export default () => { throw new Error("no session expected"); };`;
+
+describe("what the tool refuses without believing the session", () => {
+	it("stops when the session leaves the tree modified", async () => {
+		await arreteSur(
+			depotReprises(`
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+export default (invite, cwd) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  writeFileSync(join(cwd, "src/greet.js"), "export function greet(name) {\\n  return \`Hello, \${name}\`;\\n}\\n// uncommitted\\n");
+  return { status: "faite", message: "refactor: greet is tidied", raison: "", resume: "done" };
+};`),
+			"R01: the session left the tree modified",
+		);
+	});
+
+	it("stops when the session sets a refactoring aside on a branch that carries commits", async () => {
+		await arreteSur(
+			depotReprises(`${COMMIT}
+export default (invite, cwd) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  commit(cwd, { "src/greet.js": "export function greet(name) {\\n  return \`Hello, \${name}\`;\\n}\\n// R01\\n" }, "refactor: wip");
+  return { status: "ecartee", message: "", raison: "it would change what greet returns", resume: "set aside" };
+};`),
+			"R01: set aside, but the branch carries commits",
+		);
+	});
+
+	it("stops when the commit message is not of the cycle's form", async () => {
+		await arreteSur(
+			depotReprises(`${COMMIT}
+export default (invite, cwd) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  commit(cwd, { "src/greet.js": "export function greet(name) {\\n  return \`Hello, \${name}\`;\\n}\\n// R01\\n" }, "refactor: wip");
+  return { status: "faite", message: "greet is tidied", raison: "", resume: "done" };
+};`),
+			"R01: the commit message is not one line of the cycle's form: greet is tidied",
+		);
+	});
+
+	it("stops when the session commits nothing", async () => {
+		await arreteSur(
+			depotReprises(`
+export default (invite) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  return { status: "faite", message: "refactor: greet is tidied", raison: "", resume: "done" };
+};`),
+			"R01: the session committed nothing",
+		);
+	});
+
+	it("stops when the session modifies the list of refactorings", async () => {
+		await arreteSur(
+			depotReprises(`${COMMIT}
+export default (invite, cwd) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  commit(cwd, { "specs/reprises.md": "# Les reprises\\n" }, "docs: wip");
+  return { status: "faite", message: "docs: the list is shorter", raison: "", resume: "done" };
+};`),
+			"R01: the session modified specs/reprises.md, which the tool writes",
+		);
+	});
+
+	it("stops when Preflight runs fewer tests than before the refactoring", async () => {
+		const d = depotReprises(`${COMMIT}
+export default (invite, cwd) => {
+  if (invite.includes("Relecture d'une reprise")) throw new Error("no review expected");
+  git(cwd, ["rm", "-q", "src/greet.check.test.js"]);
+  git(cwd, ["commit", "-q", "-m", "refactor: wip"]);
+  return { status: "faite", message: "refactor: greet loses a check", raison: "", resume: "done" };
+};`);
+		writeFileSync(
+			join(d.root, "src", "greet.check.test.js"),
+			'import { test } from "node:test";\nimport { greet } from "./greet.js";\n\ntest("greet is a function", () => {\n  if (typeof greet !== "function") throw new Error("greet");\n});\n',
+		);
+		gitCmd(d.root, ["add", "-A"]);
+		gitCmd(d.root, ["commit", "-q", "-m", "test: a check outside test/"]);
+		await arreteSur(d, "R01: Preflight ran 1 tests, 2 before");
+	});
+
+	it("stops before any session when the run does not start from main", async () => {
+		const d = depotReprises(AUCUNE_SESSION);
+		gitCmd(d.root, ["checkout", "-q", "-b", "ailleurs"]);
+		await arreteSur(d, "the run starts from main, not ailleurs");
+	});
+
+	it("stops before any session when the run starts from a modified tree", async () => {
+		const d = depotReprises(AUCUNE_SESSION);
+		writeFileSync(join(d.root, "README.md"), "# modified\n");
+		await arreteSur(d, "the run starts from a clean tree: files are modified");
+	});
+
+	it("hands back after as many refactorings as its ceiling, leaving the next to do", async () => {
+		const { root, options, annonces } = depotReprises(CONSTANT);
+		assert.equal(await reprendre({ ...options, max: 1 }), 0);
+		assert.deepEqual(sujets(root, 2), [
+			"refactor: greet reads its greeting from a constant (R01)",
+			"docs: the refactoring list",
+		]);
+		assert.deepEqual(statuts(root), [
+			["R01", "versée"],
+			["R02", "à faire"],
+		]);
+		assert.ok(
+			annonces.includes("1 reprise(s) traitées : la course rend la main (CYCLE_495_REPRISES_MAX)"),
+			annonces.join("\n"),
+		);
+	});
+});

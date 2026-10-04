@@ -814,7 +814,7 @@ Statut : versée
 
 ## R99 — Chaque refus du chemin court des reprises est tenu par un test
 
-Statut : à faire
+Statut : versée
 
 - Où : test/cycle/reprise.test.ts · cycle/src/reprise.ts:221, 223, 234-238, 245, 275-291
 - Constat : Les tests n'exercent que le versement, l'écart, la relecture qui voit un changement et l'assertion réécrite. Aucun ne déclenche : un arbre laissé modifié par la session, une reprise écartée dont la branche porte des commits, un message hors de la forme attendue, une session qui ne commite rien, une session qui modifie `specs/reprises.md`, une Preflight qui compte moins de tests, un départ hors de `main` ou sur un arbre sale, le plafond `max`. Ce sont les vérifications que cycle/README.md présente comme faites sans croire la session.
