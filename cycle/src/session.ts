@@ -30,7 +30,7 @@ export interface Demande {
 	suivi?: (ligne: string) => void;
 }
 
-export const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody answers it live and no
+const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody answers it live and no
 question tool exists. Read cycle/README.md, CONVENTIONS.md and AGENTS.md first. Carry the step named
 in the prompt to its end and return the structured output the prompt asks for; the next step runs in
 another session. Never push to a remote. Never kill a process by name or pattern (pkill, killall, pkill -f): other sessions

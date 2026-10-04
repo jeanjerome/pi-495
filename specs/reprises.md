@@ -795,7 +795,7 @@ Statut : versée
 
 ## R97 — Les modules de l'outil n'exportent que ce qu'un autre module lit
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/affichage.ts:100 (`argent`) · cycle/src/export.ts:10 (`TAILLE_MAX_EXPORTEE`) · cycle/src/session.ts:34 (`CONSIGNES_COMMUNES`)
 - Constat : Ces trois noms ne sont lus que dans leur module (grep sur cycle/, test/, scripts/) ; `lint:exports` ne parcourt que `src/`.

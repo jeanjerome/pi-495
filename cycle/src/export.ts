@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Journal } from "./journal.ts";
 
-export const TAILLE_MAX_EXPORTEE = 256 * 1024;
+const TAILLE_MAX_EXPORTEE = 256 * 1024;
 
 interface Ref {
 	digest: string;
