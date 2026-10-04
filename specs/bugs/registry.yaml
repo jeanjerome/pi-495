@@ -1227,3 +1227,35 @@ bugs:
       Find which goal of the offline run needs the test dependency, and either resolve the project's dependencies during
       the adoption or name the missing artifact in the refusal.
     status: open
+  - bug_id: BUG-2026-10-04T120000
+    date: "2026-10-04"
+    title: "No test reaches the refusal of a cycle of reports by advancing a change"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The refusal of controls that declare a cycle of reports is read by a test that calls `orderOf` of the
+      verification coordinator directly (`test/v2-kernel/verification.test.ts`). The design of the verification
+      (`src/application/phases/verification-design.ts`, `ctx.verification.orderOf(detection.controls)`) is what
+      brings that refusal to a change, and the harness writes its `toText()` into the stop detail; the second step
+      is held only by the tests of the other cancel-only stops, which go through the same `catch` of
+      `src/application/harness.ts`. Removing the call to `orderOf` from the design of the verification fails no
+      test of the cycle.
+    what_expected: >
+      A test advances a change whose detected controls declare a cycle of reports and reads the stop and its next
+      action in `/495 status`.
+    steps_to_reproduce:
+      - "Replace `ctx.verification.orderOf(detection.controls)` in `verification-design.ts` by an order that does not check for cycles."
+      - "Run `node --test test/v2-kernel/verification.test.ts`: the test of the cycle stays green."
+    root_cause: >
+      No stack adapter declares two controls that read each other's report (the only report, LCOV, is written by
+      one control and read by another), and the detection is not injectable into the harness, so no change can
+      reach the refusal through `advance`.
+    evidence: >
+      Named by the review of e28s12, which added the direct test of `orderOf`; the call in `verification-design.ts`
+      predates that story.
+    risk_level: low
+    follow_ups: >
+      Reach the refusal through `advance`, with a stack fixture or a detection seam the harness fixture can set,
+      once a stack can declare a report another control reads back.
+    status: open

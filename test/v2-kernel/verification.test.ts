@@ -446,3 +446,21 @@ describe("the workspace of a reference pass, once a complement is adopted", () =
 		assert.deepEqual(seenOnReference, [COMPLEMENT_TEXT], "the control ran once on the reference, over the complement");
 	});
 });
+
+describe("the order of controls that wait on each other's reports", () => {
+	it("two controls each of which reads the report of the other are refused with the text CONFIGURATION_ERROR: controls declare a cycle of reports: x, y (next: cancel)", () => {
+		const coordinator = coordinatorOver(writingControl(null), new GitWorkspace(join(root, "workspaces")));
+		const x = control({ control_id: "x", provides: ["a"], requires: ["b"] });
+		const y = control({ control_id: "y", provides: ["b"], requires: ["a"] });
+
+		assert.throws(
+			() => coordinator.orderOf([x, y]),
+			(refused) => {
+				assert.ok(refused instanceof DomainError);
+				assert.equal(refused.toText(), "CONFIGURATION_ERROR: controls declare a cycle of reports: x, y (next: cancel)");
+				return true;
+			},
+			"the coordinator gives the cycle no order",
+		);
+	});
+});
