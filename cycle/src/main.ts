@@ -63,6 +63,13 @@ function etat(ctx: Contexte): void {
 	console.log(`prochain pas : ${ctx.journal.prochainPas() ?? "aucun, la story est versée"}`);
 }
 
+/** The ceiling of one phase of repairs, when the environment sets one. */
+function defautsMax(): { defautsMax?: number } {
+	return process.env.CYCLE_495_DEFAUTS_MAX !== undefined
+		? { defautsMax: Number(process.env.CYCLE_495_DEFAUTS_MAX) }
+		: {};
+}
+
 /** The ready epics, one after the other, the stories driven unattended. */
 async function lancerSuite(): Promise<number> {
 	const root = process.cwd();
@@ -71,6 +78,7 @@ async function lancerSuite(): Promise<number> {
 		racine: racineCycle(),
 		cible: "main",
 		deroulerStory: async (id) => derouler(contexte(id), id, true),
+		...defautsMax(),
 		annonce: (texte) => console.log(annonce(texte)),
 	});
 	sonner(code === 0 ? "la suite est finie" : "la suite est arrêtée");
@@ -90,6 +98,7 @@ async function lancerDefauts(seuil: string | undefined): Promise<number> {
 			racine: racineCycle(),
 			cible: "main",
 			deroulerStory: async (id) => derouler(contexte(id), id, true),
+			...defautsMax(),
 			annonce: (texte) => console.log(annonce(texte)),
 		},
 		seuil ?? "medium",

@@ -327,14 +327,9 @@ export default (invite) => {
 
 	it("hands back after the ceiling of one phase", async () => {
 		const root = depotCorrectifs();
-		process.env.CYCLE_495_DEFAUTS_MAX = "0";
-		try {
-			const appels: string[] = [];
-			const r = await corrigerDefauts(options(root, PAS_DE_SESSION, appels), "low", "test");
-			assert.deepEqual(r, { code: 0, aDecider: [] });
-			assert.deepEqual(appels, []);
-		} finally {
-			delete process.env.CYCLE_495_DEFAUTS_MAX;
-		}
+		const appels: string[] = [];
+		const r = await corrigerDefauts({ ...options(root, PAS_DE_SESSION, appels), defautsMax: 0 }, "low", "test");
+		assert.deepEqual(r, { code: 0, aDecider: [] });
+		assert.deepEqual(appels, []);
 	});
 });

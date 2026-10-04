@@ -726,7 +726,7 @@ Statut : versée
 
 ## R90 — Le plafond d'une phase de correction est passé en option, comme celui des reprises
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/suite.ts:130-133, 158 · cycle/src/main.ts:72-106 · test/cycle/suite.test.ts:328-339
 - Constat : `defautsMax()` lit `process.env.CYCLE_495_DEFAUTS_MAX` au cœur du module, et le test qui le règle mute `process.env` puis le restaure dans un `finally`. Le plafond des reprises est déjà une option lue par main.ts:119.

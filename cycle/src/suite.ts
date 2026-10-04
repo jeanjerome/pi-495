@@ -22,6 +22,8 @@ export interface OptionsSuite {
 	/** Drives a story to its landing and answers 0, or the code it stopped with. */
 	deroulerStory: (id: string) => Promise<number>;
 	claude?: string;
+	/** How many defects one phase repairs before it hands back, so a long registry does not run without end. */
+	defautsMax?: number;
 	annonce?: (texte: string) => void;
 	suivi?: (nom: string, ligne: string) => void;
 }
@@ -113,11 +115,6 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 /** The epic the cycle drives itself, never marked ready: the stories that repair the registry's defects. */
 const EPIC_DES_CORRECTIFS = "e28";
 
-/** How many defects one phase repairs before it hands back, so a long registry does not run without end. */
-function defautsMax(): number {
-	return Number(process.env.CYCLE_495_DEFAUTS_MAX ?? 5);
-}
-
 export interface Ecartes {
 	bug_id: string;
 	raison: string;
@@ -141,7 +138,8 @@ export async function corrigerDefauts(
 ): Promise<{ code: number; aDecider: Ecartes[] }> {
 	const journal = new Journal(EPIC_DES_CORRECTIFS, o.racine);
 	let aDecider: Ecartes[] = [];
-	for (let corriges = 0; corriges < defautsMax(); ) {
+	const max = o.defautsMax ?? 5;
+	for (let corriges = 0; corriges < max; ) {
 		let story = storyDuCorrectif(o);
 		if (!story) {
 			const ouverts = defautsOuverts(o.root, seuil);
