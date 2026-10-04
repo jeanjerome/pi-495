@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une reprise dans la même session retombe sur le même arrêt, qui nomme la même sortie",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/increment-budget.test.ts",
+    "ligne": 22,
+    "constat": "Le test ne vérifie pas que la reprise a bien levé l'arrêt avant le second advance. Si `resume` ne faisait rien, le changement resterait `blocked` avec le texte du premier arrêt, et les asserts sur le second arrêt passeraient quand même. Le code tient la promesse : une sonde jetable montre `ready` après la reprise, puis un nouvel arrêt `blocked` qui nomme `policy.budgets.increment_ms`. Le texte du message est tenu sur les deux arrêts (mutation M1) et la condition qui arrête sur le budget l'est aussi (M2). Seul le « de nouveau » n'est pas distingué d'une reprise restée sans effet.",
+    "mutation": "M3 : `resume` dans src/application/harness.ts:1127 rend tout de suite `this.status(changeId)` sans rien faire. Le test reste vert. M1 (retrait de « ; a raised policy.budgets.increment_ms takes effect in a new session » dans decide.ts:941) et M2 (`>=` changé en `>` dans decide.ts:938) le font échouer."
+   }
+  ],
+  "resume": "Les deux promesses sont tenues par le code. `decide.ts:938-942` refuse de lancer l'intervention quand `increment_ms_used >= policy.budgets.increment_ms` et donne le texte promis. `views.ts:114` en fait « blocked: execution_error — BUDGET_EXHAUSTED: … », et `/495 status` l'affiche tel quel (`text.ts:168`). Une sonde jetable confirme le parcours du second scénario : arrêt `blocked`, puis `ready` après la reprise, puis nouvel arrêt `blocked` qui nomme `policy.budgets.increment_ms` et « takes effect in a new session ». Le nouveau test `test/v2-kernel/increment-budget.test.ts` échoue quand on retire la phrase ajoutée au message (M1) et quand on inverse la borne du budget (M2). Il reste vert quand la reprise ne fait plus rien (M3), d'où un seul constat à peser, introduit par la branche. Aucun constat bloquant ou à corriger ; toutes les mutations ont été remises et l'arbre est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une reprise dans la même session retombe sur le même arrêt, qui nomme la même sortie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/increment-budget.test.ts",
+    "ligne": 22,
+    "constat": "Le code tient le scénario : une sonde jetable montre `ready` après `resume`, puis un second `change.block` dont la prochaine action est la même ligne. Le test, lui, ne vérifie jamais que la reprise a eu lieu. Il ignore la vue que renvoie `resume` et ne lit que le statut final, si bien qu'un changement jamais repris, encore figé sur son premier arrêt, passe les assertions de la seconde moitié. Le « s'arrête de nouveau » de la promesse n'est donc tenu par aucun test. Il suffirait d'asserter que `resume` renvoie `ready`, ou que le second `advance` inscrit une étape BUDGET_EXHAUSTED, pour tuer la mutation.",
+    "mutation": "`if (changeId) return this.status(changeId);` en tête de `Harness.resume` (src/application/harness.ts:1127), ce qui fait de la reprise une opération sans effet : le test passe toujours (pass 1, fail 0)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arrêt sur le budget de durée épuisé nomme le budget à relever",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/contracts/v1/config.ts",
+    "ligne": 22,
+    "constat": "Le Given « une configuration où `policy.budgets.increment_ms` vaut 0 » ne s'obtient pas par un vrai `config.json` : le contrat déclare `increment_ms` en `PositiveInt` (minimum 1) et refuse 0. Le test injecte la politique directement par `makeHarness`. Le code tient la promesse sous ce montage, mais une recette dans un vrai Pi devra épuiser un budget d'au moins 1 ms par une intervention réelle, et non le fixer à 0."
+   }
+  ],
+  "resume": "Le code tient les deux scénarios. Le refus de `interventionStart` (src/domain/change/decide.ts:938-942) porte le nouveau texte. Le harnais l'inscrit par `error.toText()`, et `nextActionOf` le montre tel quel : « blocked: execution_error — BUDGET_EXHAUSTED: increment duration budget exhausted; a raised policy.budgets.increment_ms takes effect in a new session ». Une sonde jetable montre qu'après `resume` le changement est `ready`, puis qu'un second `advance` le rebloque sur la même ligne. Le texte dit vrai : la politique est relue par `loadConfig` à la création du runtime. Le test introduit tue quatre mutations du chemin de l'arrêt : le texte rendu à l'ancien, `>=` changé en `>`, le détail retiré de la vue, `toText()` remplacé par `message`. En revanche, une reprise rendue sans effet survit au test : le second arrêt promis par le scénario 2 n'est tenu par aucun test (B1-1, à corriger). Un seul constat de moindre poids : le Given à 0 n'est pas atteignable par un vrai config.json (B1-2, à peser, antérieur)."
+ }
+]
