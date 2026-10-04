@@ -1,8 +1,6 @@
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
-import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
-import { Executeur } from "../../cycle/src/controls.ts";
+import { executeurNonConfine } from "../../cycle/src/controls.ts";
 import type { Contexte } from "../../cycle/src/cycle.ts";
 import { Journal } from "../../cycle/src/journal.ts";
 import { lireStory } from "../../cycle/src/story.ts";
@@ -109,7 +107,7 @@ export function contexte(root: string, claude: string): Contexte {
 		root,
 		story: lireStory("e01s05", root),
 		journal: new Journal("e01s05", racine),
-		executeur: new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects"))),
+		executeur: executeurNonConfine(racine),
 		cible: "main",
 		preflight: { id: "preflight", commande: [NODE, "--test"], reseau: "denied", timeout_ms: 60_000 },
 		claude,

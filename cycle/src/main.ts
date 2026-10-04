@@ -11,8 +11,6 @@
  * where the story stands.
  */
 import { join } from "node:path";
-import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
-import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import {
 	Sortie,
 	Titre,
@@ -26,7 +24,7 @@ import {
 	sonner,
 	suivre,
 } from "./affichage.ts";
-import { PREFLIGHT, Executeur } from "./controls.ts";
+import { PREFLIGHT, executeurNonConfine } from "./controls.ts";
 import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
 import { commiter, commitsEntre, revision } from "./git.ts";
@@ -39,14 +37,11 @@ import { lireStory } from "./story.ts";
 function contexte(id: string): Contexte {
 	const root = process.cwd();
 	const racine = racineCycle();
-	// The suite of this repository qualifies Seatbelt itself, and a sandbox does not nest: the
-	// controls run unconfined through the kernel's runner, and every evidence says so.
-	const executeur = new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects")));
 	return {
 		root,
 		story: lireStory(id, root),
 		journal: new Journal(id, racine),
-		executeur,
+		executeur: executeurNonConfine(racine),
 		cible: "main",
 		preflight: PREFLIGHT,
 	};
@@ -113,7 +108,7 @@ async function lancerReprises(): Promise<number> {
 		root,
 		racine,
 		cible: "main",
-		executeur: new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects"))),
+		executeur: executeurNonConfine(racine),
 		preflight: PREFLIGHT,
 		build: { id: "build", commande: ["npm", "run", "build"], reseau: "denied", timeout_ms: 300_000 },
 		...(process.env.CYCLE_495_REPRISES_MAX ? { max: Number(process.env.CYCLE_495_REPRISES_MAX) } : {}),

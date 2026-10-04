@@ -10,8 +10,10 @@ import type { ObjectRef } from "../../src/contracts/v1/common.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ObjectStorePort } from "../../src/ports/object-store.ts";
 import type { ControlExecutionPort, SandboxPort } from "../../src/ports/execution.ts";
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
+import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
+import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { arbreDetache, retirerArbre, revision } from "./git.ts";
 
 export interface Controle {
@@ -139,6 +141,13 @@ export class Executeur {
 			retirerArbre(depot, arbre);
 		}
 	}
+}
+
+/** The executor of the cycle's controls, its outputs kept in the object store under `racine`. */
+export function executeurNonConfine(racine: string): Executeur {
+	// The suite of this repository qualifies Seatbelt itself, and a sandbox does not nest: the
+	// controls run unconfined through the kernel's runner, and every evidence says so.
+	return new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects")));
 }
 
 /**

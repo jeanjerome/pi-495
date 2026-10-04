@@ -697,7 +697,7 @@ Statut : versée
 
 ## R87 — L'exécuteur non confiné de l'outil se construit en un seul endroit, qui dit pourquoi
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/main.ts:42-44, 116 · test/helpers/cycle.ts:112
 - Constat : `new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects")))` est écrit trois fois ; la raison de l'absence de confinement (main.ts:42-43, un bac à sable ne s'imbrique pas) n'accompagne que la première copie, et `lancerReprises` (main.ts:116) lance ses contrôles sans confinement sans le dire.
