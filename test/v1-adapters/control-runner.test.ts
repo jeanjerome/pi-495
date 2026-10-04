@@ -460,7 +460,10 @@ describe("generic runner on F-TS (C-EXE, VER-01, PRE-03)", () => {
 	it("runs the same control under seatbelt with the candidate read-only", darwinOnly, async () => {
 		const ws = join(root, "ws");
 		fixtureTs(ws);
-		const runner = new GenericControlRunner(new SeatbeltSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new SeatbeltSandbox({ temp_paths: [] }),
+			new CasObjectStore(join(root, "objects")),
+		);
 		const { evidence } = await runner.runControl({ ...base(), control: control(), workspace_path: ws });
 		assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence));
 		const mutate = await runner.runControl({

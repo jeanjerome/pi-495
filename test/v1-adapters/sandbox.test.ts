@@ -41,7 +41,7 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		"seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network",
 		darwinOnly,
 		async () => {
-			const sbx = new SeatbeltSandbox({ denied_read_paths: [join(root, "secret")] });
+			const sbx = new SeatbeltSandbox({ denied_read_paths: [join(root, "secret")], temp_paths: [] });
 			const q = sbx.qualify(profile());
 			assert.equal(q.qualified, true, q.reasons.join(";"));
 			const script = [
