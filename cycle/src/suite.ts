@@ -192,15 +192,21 @@ async function ecrireCorrectif(
 	const autre = horsDeLaRedaction(o.root);
 	const ecrite = storyDuCorrectif(o);
 	const cite = ecrite ? defautCite(o.root, ecrite.id) : null;
-	if (
-		autre.length > 0 ||
-		!ecrite ||
-		ecrite.id !== sortie.story_id ||
-		cite !== sortie.bug_id ||
-		!ouverts.some((d) => d.id === cite)
-	)
+	const raison =
+		autre.length > 0
+			? `elle a modifié hors de la story et du plan ${autre.join(", ")}`
+			: !ecrite
+				? `aucune story lisible de ${EPIC_DES_CORRECTIFS} n'attend au plan, la session annonce ${sortie.story_id}`
+				: ecrite.id !== sortie.story_id
+					? `la story lisible est ${ecrite.id}, la session annonce ${sortie.story_id}`
+					: cite !== sortie.bug_id
+						? `${ecrite.id} cite ${cite ?? "aucun défaut"}, la session annonce ${sortie.bug_id}`
+						: !ouverts.some((d) => d.id === cite)
+							? `${cite} n'est pas un défaut ouvert de gravité ${seuil} ou plus`
+							: null;
+	if (raison !== null)
 		return {
-			motif: `la session de correctif n'a pas laissé une story lisible qui cite un défaut ouvert (${autre.join(", ") || sortie.story_id})`,
+			motif: `la session de correctif n'a pas laissé une story lisible qui cite un défaut ouvert : ${raison}`,
 			aDecider,
 		};
 	commiter(o.root, sortie.message.split("\n")[0]!.trim(), ["specs"]);

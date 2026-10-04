@@ -78,8 +78,15 @@ describe("a story read from its file", () => {
 	});
 
 	it("refuses a story whose header lacks a line, or names a status the cycle does not know", () => {
-		assert.throws(() => parseStory(STORY.replace("Epic : e01\n", "")), /Epic/);
-		assert.throws(() => parseStory(STORY.replace("Statut : à faire", "Statut : done")), /unknown statut/);
+		const chemin = "specs/stories/e01/e01s05-x.md";
+		assert.throws(
+			() => parseStory(STORY.replace("Epic : e01\n", ""), chemin),
+			/^Error: specs\/stories\/e01\/e01s05-x\.md: story header "Epic" is missing$/,
+		);
+		assert.throws(
+			() => parseStory(STORY.replace("Statut : à faire", "Statut : done"), chemin),
+			/^Error: specs\/stories\/e01\/e01s05-x\.md: unknown statut "done"/,
+		);
 	});
 
 	it("is found by its id under specs/stories, whatever its epic directory, and its status line alone is rewritten", () => {

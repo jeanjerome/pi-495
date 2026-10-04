@@ -74,15 +74,16 @@ export function prochaineStory(epic: EpicDuPlan): StoryDuPlan | null {
 	return epic.stories.find((s) => s.statut !== "versée") ?? null;
 }
 
-function reecrire(root: string, transforme: (lignes: string[]) => boolean): void {
+/** Applies `transforme` to the plan's lines; `absente` says what is missing when it finds no line to change. */
+function reecrire(root: string, absente: string, transforme: (lignes: string[]) => boolean): void {
 	const chemin = cheminDuPlan(root);
 	const lignes = readFileSync(chemin, "utf8").split("\n");
-	if (!transforme(lignes)) throw new Error("specs/plan.yaml: the line to update was not found");
+	if (!transforme(lignes)) throw new Error(`specs/plan.yaml: ${absente}`);
 	writeFileSync(chemin, lignes.join("\n"));
 }
 
 export function marquerStory(root: string, storyId: string, statut: "versée"): void {
-	reecrire(root, (lignes) => {
+	reecrire(root, `the story ${storyId} is not listed`, (lignes) => {
 		const i = lignes.findIndex((l) => STORY.exec(l)?.[1] === storyId);
 		if (i < 0) return false;
 		lignes[i] = lignes[i]!.replace(/status: "[^"]+"/, `status: "${statut}"`);
@@ -101,7 +102,7 @@ export function marquerStoryListee(root: string, storyId: string): boolean {
 }
 
 export function marquerEpic(root: string, epicId: string, statut: "versé"): void {
-	reecrire(root, (lignes) => {
+	reecrire(root, `the epic ${epicId} has no status line`, (lignes) => {
 		const debut = lignes.findIndex((l) => EPIC.exec(l)?.[1] === epicId);
 		if (debut < 0) return false;
 		for (let i = debut + 1; i < lignes.length && !EPIC.test(lignes[i]!); i++) {

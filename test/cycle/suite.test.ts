@@ -314,7 +314,10 @@ describe("the repair of the registry's defects", () => {
 		const messages: string[] = [];
 		const r = await corrigerDefauts({ ...options(root, faux, []), annonce: (t) => messages.push(t) }, "medium", "test");
 		assert.equal(r.code, 1);
-		assert.match(messages.join("\n"), /n'a pas laissé une story lisible qui cite un défaut ouvert/);
+		assert.match(
+			messages.join("\n"),
+			/n'a pas laissé une story lisible qui cite un défaut ouvert : e28s01 cite BUG-2026-01-01T000000, la session annonce BUG-2026-09-10T100000/,
+		);
 	});
 
 	it("stops when the session that chooses the defect fails", async () => {

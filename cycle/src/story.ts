@@ -53,9 +53,9 @@ function sections(markdown: string): Map<string, string[]> {
 	return found;
 }
 
-function header(preamble: string, key: string): string {
+function header(preamble: string, key: string, source: string): string {
 	const m = new RegExp(`^${key} : (.+)$`, "m").exec(preamble);
-	if (!m) throw new Error(`story header "${key}" is missing`);
+	if (!m) throw new Error(`${source}: story header "${key}" is missing`);
 	return m[1]!.trim();
 }
 
@@ -104,17 +104,19 @@ function taches(lines: string[]): Tache[] {
 }
 
 export function parseStory(markdown: string, chemin = ""): Story {
+	// What an error names: the file, or the story itself when it was not read from one.
+	const source = chemin || "story";
 	const preamble = markdown.split("\n## ")[0]!;
 	const titre = /^# (.+)$/m.exec(preamble)?.[1]?.trim() ?? "";
-	const statut = header(preamble, "Statut");
+	const statut = header(preamble, "Statut", source);
 	if (statut !== "à faire" && statut !== "en cours" && statut !== "versée")
-		throw new Error(`unknown statut: ${statut}`);
+		throw new Error(`${source}: unknown statut "${statut}" (à faire, en cours or versée)`);
 	const s = sections(markdown);
 	const text = (name: string): string => (s.get(name) ?? []).join("\n").trim();
 	const promesses = text("Promesses");
 	return {
-		id: header(preamble, "Story"),
-		epic: header(preamble, "Epic"),
+		id: header(preamble, "Story", source),
+		epic: header(preamble, "Epic", source),
 		titre,
 		statut,
 		chemin,

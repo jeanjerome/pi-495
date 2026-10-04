@@ -187,7 +187,7 @@ return { status: "fini", message: "docs: x", resume: "written" };`;
 		const ctx = await enRecette(arbitre({ decision: "ecart", note: "n", ecart: "a gap", raisons: "r" }, casse));
 		assert.deepEqual(await apresIssue(ctx, "recette", QUESTION, 0), {
 			continuer: false,
-			motif: "the story no longer holds its format after the gap was written: unknown statut: perdu",
+			motif: `the story no longer holds its format after the gap was written: ${ctx.story.chemin}: unknown statut "perdu" (à faire, en cours or versée)`,
 		});
 	});
 

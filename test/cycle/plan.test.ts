@@ -101,8 +101,8 @@ describe("the plan as the cycle reads it", () => {
 
 	it("refuses to update a story or an epic the plan does not list", () => {
 		const root = racine();
-		assert.throws(() => marquerStory(root, "e09s01", "versée"), /line to update was not found/);
-		assert.throws(() => marquerEpic(root, "e09", "versé"), /line to update was not found/);
+		assert.throws(() => marquerStory(root, "e09s01", "versée"), /specs\/plan\.yaml: the story e09s01 is not listed/);
+		assert.throws(() => marquerEpic(root, "e09", "versé"), /specs\/plan\.yaml: the epic e09 has no status line/);
 	});
 
 	it("marks a landed story only when the plan lists it as pending", () => {
