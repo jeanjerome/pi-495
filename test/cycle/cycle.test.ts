@@ -314,6 +314,30 @@ export default (invite, cwd) => {
 		]);
 	});
 
+	it("gives the reviewers every open entry of the registry with its own title", async () => {
+		const root = depot();
+		mkdirSync(join(root, "specs", "bugs"), { recursive: true });
+		writeFileSync(
+			join(root, "specs", "bugs", "registry.yaml"),
+			'bugs:\n  - bug_id: BUG-2026-10-04T120000\n    title: greet forgets the name\n    severity: low\n    status: open\n  - bug_id: BUG-2026-10-04T130000\n    title: "shout drops the comma"\n    severity: low\n    status: open\n',
+		);
+		gitCmd(root, ["add", "-A"]);
+		gitCmd(root, ["commit", "-q", "-m", "docs: the registry lists two defects"]);
+		const invite = join(tempDir("495-", cleanups), "invite.txt");
+		const claude = fauxClaude(`import { writeFileSync } from "node:fs";
+export default (texte) => {
+  if (texte.startsWith("Tu es le relecteur A")) writeFileSync(${JSON.stringify(invite)}, texte);
+  return { verdict: "pass", constats: [], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		for (const pas of ["rouge-vert", "autocontrole"] as const) ctx.journal.inscrire(pas, "fini");
+		assert.deepEqual(await conduirePas(ctx, "relecture"), { statut: "fini" });
+		const texte = readFileSync(invite, "utf8");
+		assert.match(texte, /- BUG-2026-10-04T120000 — greet forgets the name\n/);
+		assert.match(texte, /- BUG-2026-10-04T130000 — shout drops the comma\n/);
+	});
+
 	it("reviews, after a gap, only the diff made since the story was reopened", async () => {
 		const root = depot();
 		const claude = fauxClaude(`export default (invite) => {

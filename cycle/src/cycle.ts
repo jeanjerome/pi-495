@@ -22,6 +22,7 @@ import {
 } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Journal, Pas } from "./journal.ts";
+import { defautsOuverts } from "./registre.ts";
 import { type Rapport, SCHEMA_RAPPORT, TOURS_MAX, apresDernierTour, trier } from "./relecture.ts";
 import { type Session, sessionInscrite } from "./session.ts";
 import { type Story, avecStatut, lireStory } from "./story.ts";
@@ -226,15 +227,8 @@ async function pasAutocontrole(ctx: Contexte): Promise<Issue> {
 // --- 4. la relecture --------------------------------------------------------------------------------
 
 function registreOuvert(ctx: Contexte): string {
-	try {
-		const yaml = readFileSync(`${ctx.root}/specs/bugs/registry.yaml`, "utf8");
-		const open = [...yaml.matchAll(/bug_id: (\S+)[\s\S]*?title: "([^"]*)"[\s\S]*?status: (\w+)/g)].filter(
-			(m) => m[3] === "open",
-		);
-		return open.length === 0 ? "aucune" : open.map((m) => `- ${m[1]} — ${m[2]}`).join("\n");
-	} catch {
-		return "aucune";
-	}
+	const ouverts = defautsOuverts(ctx.root, "low");
+	return ouverts.length === 0 ? "aucune" : ouverts.map((d) => `- ${d.id} — ${d.titre}`).join("\n");
 }
 
 async function relecteurs(ctx: Contexte, tour: number, b: string, tete: string, precedent: string): Promise<Rapport[]> {
