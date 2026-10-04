@@ -664,3 +664,170 @@ Statut : à faire
 - Reprise : Un module de `test/helpers/` qui rend le runner, l'élargissement et la requête de base d'un banc Maven, lus par les quatre tests ; les deux tests de qualité y prennent aussi la copie de référence et la qualification d'un contrôle par ses témoins.
 - Règle : § Code Style : ne jamais dupliquer une logique.
 - Limite : Ne change ni les assertions, ni les délais propres à chaque test, ni les titres.
+
+
+## R84 — Une session de l'outil se lance et s'inscrit au journal par une seule fonction
+
+Statut : à faire
+
+- Où : cycle/src/cycle.ts:60-91 (`session`) · cycle/src/reprise.ts:149-179 (`sessionDeReprise`) · cycle/src/suite.ts:66-103 (`rediger`), 164-205 (la session de correctif de `corrigerDefauts`)
+- Constat : Le même bloc est écrit quatre fois : `lancerSession({ invite, schema, cwd, ...(claude ? { claude } : {}), ...(suivi ? { suivi: … } : {}) }, journal)`, puis `journal.inscrire(<pas>, "session", { nom, ok, cout_usd, duree_ms, tours, session_id, transcript, resume: s.resume.slice(0, 2000) })`, avec les mêmes clés dans le même ordre. Le plafond de coût (main.ts:181-186), `etat` (main.ts:59-60), l'affichage (affichage.ts:238) et l'export lisent cet événement : un champ changé dans une copie dériverait des trois autres.
+- Reprise : Une fonction de session.ts qui lance la session et inscrit l'événement `session` avec les mêmes clés dans le même ordre, appelée aux quatre sites.
+- Règle : Principe 6 ; CONVENTIONS « Extract shared logic into one function or module. Never duplicate logic. »
+- Limite : Chaque site garde son traitement de l'échec (`Blocage`, `Arret`, `arret(...)` de code 1), ses conditions `!s.ok` / `!s.sortie` et ses messages, mot pour mot.
+
+## R85 — Un commit de l'outil passe par une seule fonction de git.ts
+
+Statut : à faire
+
+- Où : cycle/src/suite.ts:47-50 et cycle/src/reprise.ts:204-207 (deux `commiter` identiques) · cycle/src/reprise.ts:264-265 · cycle/src/cycle.ts:118-119, 497-498 · cycle/src/main.ts:167-168
+- Constat : La paire `git add -- …chemins` puis `git commit -q -m message` est écrite six fois, dont deux fois comme une fonction `commiter` identique ; le versement d'une reprise (reprise.ts:264-265) réécrit à la main ce que la fonction du même fichier fait déjà.
+- Reprise : `commiter(cwd, message, chemins)` exportée par git.ts, appelée aux six sites ; les deux copies locales sont retirées.
+- Règle : Principe 6.
+- Limite : L'extraction de la première ligne d'un message n'est pas unifiée : cycle.ts:489-491 et suite.ts coupent puis retirent les blancs, reprise.ts:233 retire les blancs puis coupe, ce qui diffère pour un message qui commence par un saut de ligne.
+
+## R86 — Le journal est seul à compter et à lire les réouvertures
+
+Statut : à faire
+
+- Où : cycle/src/journal.ts:88-90 · cycle/src/automate.ts:23-25, 48-50 · cycle/src/main.ts:236 · cycle/src/cycle.ts:128-131
+- Constat : main.ts:236 et `reouvertures()` d'automate.ts recopient `lire().filter((e) => e.genre === "rouvert").length`, et `apresIssue` compare les deux résultats (automate.ts:40) : la comparaison ne tient que tant que les deux copies restent identiques. `ecartEnCours` (cycle.ts:129) refait par `lire().findLast(...)` ce que `journal.dernier("rouvert")` fait déjà (automate.ts:49) ; `journal.rouvert()` est la version booléenne du même comptage.
+- Reprise : `Journal.reouvertures(): number`, appelé par main.ts et automate.ts (la fonction locale disparaît) ; `rouvert()` s'écrit `this.reouvertures() > 0` ; `ecartEnCours` lit `ctx.journal.dernier("rouvert")`.
+- Règle : Principe 6.
+
+## R87 — L'exécuteur non confiné de l'outil se construit en un seul endroit, qui dit pourquoi
+
+Statut : à faire
+
+- Où : cycle/src/main.ts:42-44, 116 · test/helpers/cycle.ts:112
+- Constat : `new Executeur(new UnconfinedSandbox(), new CasObjectStore(join(racine, "objects")))` est écrit trois fois ; la raison de l'absence de confinement (main.ts:42-43, un bac à sable ne s'imbrique pas) n'accompagne que la première copie, et `lancerReprises` (main.ts:116) lance ses contrôles sans confinement sans le dire.
+- Reprise : Une fonction de controls.ts qui construit cet exécuteur pour une racine et porte le commentaire actuel, appelée aux trois sites.
+- Règle : Principes 6 et 9.
+
+## R88 — Les options et les champs qu'aucun appelant ne passe ni ne lit sont retirés
+
+Statut : à faire
+
+- Où : cycle/src/session.ts:31, 117, 120 (`timeout_ms`) · cycle/src/controls.ts:83 (`writable_paths`) · cycle/src/git.ts:30, 39, 57 (`head = "HEAD"`) · cycle/src/suite.ts:64, 104, 316 (`Redaction.code`) · cycle/src/export.ts:28-51 (`objets`, `laisses`) · cycle/src/journal.ts:40 (racine par défaut)
+- Constat : `Demande.timeout_ms` arme un SIGTERM qu'aucun des quatre appelants de `lancerSession` ni aucun test ne passe. `writable_paths` déclare `TMPDIR` et `~/.npm`, que `GenericControlRunner.profileFor` (src/adapters/execution/runner.ts:67-70) élimine toujours puisqu'il ne garde que les chemins sous l'arbre de travail : deux lectures de `process.env` sans effet. Aucun appelant ne passe `head` à `baseDe`, `commitsEntre` ni `fichiersChanges`. Le seul constructeur d'une rédaction refusée met `code: 1`. `exporterDossier` rend `{ dir, objets, laisses }` et son seul appelant (cycle.ts:495) ne lit que `dir`. Les quinze `new Journal(` passent tous la racine, et la valeur par défaut lit l'environnement.
+- Reprise : Retirer le champ `timeout_ms` et son minuteur ; écrire `writable_paths: [arbre]` ; retirer le paramètre `head` et écrire `HEAD` dans la commande ; retirer `Redaction.code` et rendre 1 à l'appel ; faire rendre le dossier à `exporterDossier` ; retirer la valeur par défaut de la racine du journal.
+- Règle : Principe 5 (une option jamais passée, une configuration sans effet) ; principe 3.
+- Limite : `consignes` de `Demande`, que seul session.test.ts passe, et `ref` de `revision`, qu'une assertion passe, restent. `writable_paths` ne rend pas `TMPDIR` inscriptible sous un bac à sable confiné : `profileFor` le refuse aujourd'hui.
+
+## R89 — L'arbre détaché lie node_modules sans lancer de programme
+
+Statut : à faire
+
+- Où : cycle/src/git.ts:66
+- Constat : `execFileSync("ln", ["-s", …])` lance un processus résolu par le PATH pour une opération que `node:fs` fait.
+- Reprise : `symlinkSync(join(cwd, "node_modules"), join(path, "node_modules"))`.
+- Règle : Principes 3 et 5.
+- Limite : Le lien créé est le même ; seul le texte d'une erreur de création changerait.
+
+## R90 — Le plafond d'une phase de correction est passé en option, comme celui des reprises
+
+Statut : à faire
+
+- Où : cycle/src/suite.ts:130-133, 158 · cycle/src/main.ts:72-106 · test/cycle/suite.test.ts:328-339
+- Constat : `defautsMax()` lit `process.env.CYCLE_495_DEFAUTS_MAX` au cœur du module, et le test qui le règle mute `process.env` puis le restaure dans un `finally`. Le plafond des reprises est déjà une option lue par main.ts:119.
+- Reprise : `defautsMax?: number` dans `OptionsSuite` (5 par défaut), lu par main.ts avec la même expression ; le test passe l'option au lieu de muter l'environnement.
+- Règle : Principe 3 ; CONVENTIONS § Dependencies ; F.I.R.S.T. (Independent).
+- Limite : Aucune ligne `assert` ne change, seule la mise en place du test. Une valeur non numérique se comporte comme aujourd'hui.
+
+## R91 — Le texte d'une epic se lit dans plan.ts
+
+Statut : à faire
+
+- Où : cycle/src/suite.ts:39-45 (`bloc`) · cycle/src/plan.ts
+- Constat : `bloc` relit `specs/plan.yaml` par un chemin recomposé, alors que plan.ts se déclare la part du plan que l'outil lit et écrit et porte `cheminDuPlan`.
+- Reprise : Déplacer la fonction dans plan.ts en réutilisant `cheminDuPlan`.
+- Règle : Principes 6 et 7.
+- Limite : Ses prédicats restent exacts (`indexOf` de la ligne exacte, arrêt sur une clé de premier niveau) : le motif `EPIC` de plan.ts accepte des blancs en fin de ligne et changerait le texte rendu.
+
+## R92 — La suite et la phase de correction reçoivent leurs options d'une seule fonction
+
+Statut : à faire
+
+- Où : cycle/src/main.ts:74-80, 92-99 ; le littéral `"main"` aux lignes 50, 77, 96, 115
+- Constat : `lancerSuite` et `lancerDefauts` écrivent le même objet `OptionsSuite` champ pour champ ; la cible `"main"` est écrite quatre fois.
+- Reprise : Une fonction qui construit ces options et une constante pour la cible, utilisées aux quatre sites.
+- Règle : Principe 6.
+- Limite : N'ajoute pas `suivi`, qui manque aujourd'hui : l'ajouter changerait l'affichage.
+
+## R93 — Le déroulement d'une story rend la main par une seule fonction
+
+Statut : à faire
+
+- Où : cycle/src/main.ts:226-264 (`derouler`)
+- Constat : Quatre sorties de la boucle répètent le même trio `sonner(…)`, `titre.arreter(…)`, `sortie.ecrire(…)` puis `return code` : la conduite des pas se mêle au détail des trois canaux.
+- Reprise : Une fonction locale de `derouler` qui sonne, titre, écrit et rend le code, appelée aux quatre sites avec des textes identiques.
+- Règle : Principes 1 et 6.
+
+## R94 — La phase de correction confie l'écriture d'une story de correctif à une fonction
+
+Statut : à faire
+
+- Où : cycle/src/suite.ts:151-249 (`corrigerDefauts`), 220-224, 242
+- Constat : La boucle de `corrigerDefauts` mêle sur environ 80 lignes l'orchestration et le détail (schéma, lancement, journal, vérifications), là où `rediger` isole le même travail pour une epic. Le test `fichierDeLaStory(o.root, ecrite.id)` est déjà garanti par `storyDuCorrectif`, qui ne rend qu'une story au fichier lisible. `defautDeLaStory(readFileSync(lireStory(id, root).chemin, "utf8"))` est écrit deux fois.
+- Reprise : Extraire l'écriture du correctif dans une fonction qui rend la story écrite ou l'arrêt ; retirer la garde redondante ; une fonction pour le défaut qu'une story cite.
+- Règle : Principes 1, 5 et 6.
+- Limite : Les messages annoncés et les codes rendus restent identiques.
+
+## R95 — Les noms et les commentaires de l'outil disent ce que le code fait
+
+Statut : à faire
+
+- Où : cycle/src/automate.ts:19 et cycle/src/main.ts:36, 246 (`Suite`) · cycle/src/campagne.ts:23, 137 (`REPRISES_MAX`) · cycle/src/controls.ts:99-100, 137 (`story`) · cycle/src/suite.ts:52 · cycle/src/journal.ts:5, 18 · cycle/src/affichage.ts:170, 310
+- Constat : main.ts importe la fonction `suite` puis la masque par `const suite = await apresIssue(...)` dans `derouler`, et le type `Suite` d'automate.ts entretient la confusion. `REPRISES_MAX` de campagne.ts compte des `/495 resume`, alors que « reprise » désigne partout ailleurs le refactoring à comportement constant que borne `CYCLE_495_REPRISES_MAX`. `executer(controle, arbre, story)` reçoit aussi l'identifiant d'une reprise ou `"reprises"` (reprise.ts:183), et son commentaire parle de la branche d'une story. Le commentaire de `horsDeLaRedaction` annonce les chemins que la rédaction peut laisser modifiés, alors que la fonction rend les chemins modifiés hors de la story et du plan. journal.ts cite `(ADR-005)` et `(D-80)` après une phrase qui dit déjà la chose. Deux abandons d'erreur de l'affichage (`catch { return []; }`, `.on("error", () => {})`) ne disent pas pourquoi ils sont sans conséquence.
+- Reprise : Renommer le type et la variable locale (par exemple `Poursuite`), la constante de campagne (`RELANCES_MAX`) et le paramètre d'`executer` (`dossier`, avec un commentaire qui dit son rôle) ; réécrire le commentaire de `horsDeLaRedaction` ; retirer les deux citations ; une phrase de raison sur chaque abandon (une ligne du flux qui n'est pas du JSON n'a rien à montrer ; un son qui échoue ne doit pas arrêter un cycle).
+- Règle : Principes 4, 7 et 9 ; R47.
+- Limite : Les variables `suite` de test/cycle/automate.test.ts restent : elles figurent dans des lignes `assert`.
+
+## R96 — L'outil lit une erreur et la position de la branche par les fonctions qui existent
+
+Statut : à faire
+
+- Où : cycle/src/main.ts:144 · cycle/src/automate.ts:68-69, 106, 125
+- Constat : `(e as Error).message` sur un `catch` de type `unknown`, alors que `messageOf` (src/domain/errors.ts) existe et que R09 l'a imposé à `src/`. automate.ts redit par `git(["rev-parse", …])` ce que `brancheCourante` et `revision` de git.ts font, et que cycle.ts utilise pour les mêmes champs d'invite.
+- Reprise : `messageOf(e)` aux deux sites ; `revision(ctx.root)` pour la tête ; `brancheCourante(ctx.root)` pour la branche.
+- Règle : Principe 6 ; R09.
+- Limite : Sur une tête détachée, `branch --show-current` rend une chaîne vide là où `--abbrev-ref` rend `HEAD` ; l'arbitrage ne tourne que sur la branche que `pasStory` a créée. Si la relecture voit un chemin détaché atteignable, garder `--abbrev-ref` pour la branche.
+
+## R97 — Les modules de l'outil n'exportent que ce qu'un autre module lit
+
+Statut : à faire
+
+- Où : cycle/src/affichage.ts:100 (`argent`) · cycle/src/export.ts:10 (`TAILLE_MAX_EXPORTEE`) · cycle/src/session.ts:34 (`CONSIGNES_COMMUNES`)
+- Constat : Ces trois noms ne sont lus que dans leur module (grep sur cycle/, test/, scripts/) ; `lint:exports` ne parcourt que `src/`.
+- Reprise : Retirer les trois `export`.
+- Règle : Principe 5 ; CONVENTIONS `lint:exports`.
+
+## R98 — Les lignes que le terminal montre sont tenues par des tests
+
+Statut : à faire
+
+- Où : cycle/src/affichage.ts · test/cycle/ (aucun test ne cite `lignesDuFlux`, `ligneDuJournal`, `duree`, `ouverture` ni `cloture`)
+- Constat : `lignesDuFlux` interprète le flux `stream-json` de Claude Code, la sortie de `git commit` (affichage.ts:148) et les totaux de node:test (86-91) ; `ligneDuJournal`, `duree`, `ouverture` et `cloture` mettent en forme les événements. Un changement du format du flux rendrait l'affichage muet sans qu'aucun test le dise.
+- Reprise : test/cycle/affichage.test.ts, par les fonctions exportées : ligne non JSON, texte d'assistant, appel Bash avec description, `StructuredOutput` masqué, `tool_result` d'un `git commit`, `# fail 1`, `duree` à 59 499, 59 500 et 3 600 000 ms, `cloture` pour chaque statut, `ligneDuJournal` d'un contrôle avec ses échecs.
+- Règle : Principe 11 ; CONVENTIONS « Give every new function a test », « Test every boundary condition ».
+- Limite : N'ajoute que des tests ; aucun code de cycle/src ne change.
+
+## R99 — Chaque refus du chemin court des reprises est tenu par un test
+
+Statut : à faire
+
+- Où : test/cycle/reprise.test.ts · cycle/src/reprise.ts:221, 223, 234-238, 245, 275-291
+- Constat : Les tests n'exercent que le versement, l'écart, la relecture qui voit un changement et l'assertion réécrite. Aucun ne déclenche : un arbre laissé modifié par la session, une reprise écartée dont la branche porte des commits, un message hors de la forme attendue, une session qui ne commite rien, une session qui modifie `specs/reprises.md`, une Preflight qui compte moins de tests, un départ hors de `main` ou sur un arbre sale, le plafond `max`. Ce sont les vérifications que cycle/README.md présente comme faites sans croire la session.
+- Reprise : Un `it` par refus, sur le modèle des cas existants, qui affirme le code 1, que `main` n'a pas bougé et le texte annoncé.
+- Règle : Principe 11 ; CONVENTIONS § Tests.
+- Limite : N'ajoute que des tests ; aucune assertion existante n'est touchée.
+
+## R100 — Chaque arrêt des pas, de la suite et de l'arbitrage est tenu par un test
+
+Statut : à faire
+
+- Où : test/cycle/{cycle,suite,automate,registre}.test.ts · cycle/src/cycle.ts:113, 171, 195-200, 214-239, 388-393, 435-442 · cycle/src/suite.ts:109-122, 206-209, 244-249 · cycle/src/automate.ts:120-126 · cycle/src/registre.ts (fichier absent, seuil `high`)
+- Constat : Aucun test n'atteint les arrêts « already versée », « committed nothing », « tâche N … at HEAD », « left the tree modified », « no longer holds its format », « with no story landed », « did not leave a readable story ». `pasAutocontrole` n'est jamais conduit (les tests inscrivent seulement son `fini`) ; `pasRecette` ne l'est que sur `prete`. Le test intitulé « … or when a task's command is red at the head » n'exerce que la première moitié. Ce sont les branches par lesquelles un déroulement sans propriétaire s'arrête.
+- Reprise : Un `it` par arrêt avec les helpers existants (`depot`, `fauxClaude`, `contexte`, `depotSuite`, `depotCorrectifs`), qui affirme l'issue et le motif.
+- Règle : Principe 11 ; CONVENTIONS § Tests.
+- Limite : N'ajoute que des tests. N'écrit aucun test du diff que relit le tour de relecture d'après un écart : il figerait un défaut connu (le tour relit toute la branche, cycle/README.md promet le diff de l'écart).
