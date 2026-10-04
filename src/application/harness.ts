@@ -932,7 +932,7 @@ export class Harness {
 					if (stopped) return this.result(current, steps, stopped);
 					// The action the error names is of no use to anyone unless the block records that it can
 					// be retried and says so where the operator reads the change.
-					const detail = `${error.code}: ${error.message}${error.nextActions.length > 0 ? ` (next: ${error.nextActions.join(", ")})` : ""}`;
+					const detail = error.toText();
 					const blocked = this.tryCommit(
 						current,
 						{

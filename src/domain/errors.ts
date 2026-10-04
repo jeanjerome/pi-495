@@ -86,6 +86,10 @@ export class DomainError extends Error {
 		this.effectState = options.effectState ?? "none";
 		this.nextActions = options.nextActions ?? [];
 	}
+	/** The code, the reason and the next actions, if any, as the operator reads them. */
+	toText(): string {
+		return `${this.code}: ${this.message}${this.nextActions.length > 0 ? ` (next: ${this.nextActions.join(", ")})` : ""}`;
+	}
 	toCanonical(): CanonicalError {
 		return {
 			code: this.code,

@@ -75,7 +75,7 @@ export function registerCommand495(pi: ExtensionAPI, session: ExtensionSession):
 				const rt = session.runtime();
 				await HANDLERS[isSubcommand(sub) ? sub : "help"]({ session, ctx, rt, rest, text });
 			} catch (error) {
-				const msg = error instanceof DomainError ? `${error.code}: ${error.message}` : messageOf(error);
+				const msg = error instanceof DomainError ? error.toText() : messageOf(error);
 				session.emit(ctx, `495 error: ${msg}`, {
 					error: error instanceof DomainError ? error.toCanonical() : { message: msg },
 				});
@@ -360,7 +360,8 @@ interface QuestionAct {
 /**
  * `/495 close` and `/495 revoke`: a binding, a question and a free session required, a human origin
  * required, the act confirmed on a dialog-capable session, then the change conducted onward. A
- * refusal of the kernel is displayed with its code and reason, and nothing else happens.
+ * refusal of the kernel is displayed with its code, its reason and its next actions, and nothing else
+ * happens.
  */
 async function actOnQuestion(
 	session: ExtensionSession,
@@ -389,7 +390,7 @@ async function actOnQuestion(
 		if (ctx.hasUI && !(await ctx.ui.confirm("495", act.confirmation(question)[session.lang()]))) return;
 		const { error } = act.inscribe(changeId, question, origin);
 		if (error) {
-			session.emit(ctx, `495 error: ${error.code}: ${error.message}`, { error: error.toCanonical() });
+			session.emit(ctx, `495 error: ${error.toText()}`, { error: error.toCanonical() });
 			return;
 		}
 		await drive(session, ctx, changeId);

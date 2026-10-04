@@ -7,6 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { registerCommand495 } from "../../src/extension/command.ts";
+import { selectedModel } from "../../src/extension/conduct.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { fixtureTs, initRepo, tempDir } from "./fixtures.ts";
 
@@ -189,5 +190,55 @@ export async function stalledOnQ1(
 	assert.equal(state.status, "blocked", pi.said.join(" | "));
 	assert.equal(state.stop_reason, "stagnation", pi.said.join(" | "));
 	assert.ok(state.stop_detail?.includes("q1"), state.stop_detail ?? "");
+	return { pi, session, ctx, changeId };
+}
+
+/** Takes a change with no question to its frozen candidate, in its verification with no control run yet. */
+export async function atVerification(
+	dataDir: string,
+	cwd: string,
+	sessionId: string,
+): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
+	const agentScript = join(dataDir, "agent.json");
+	writeFileSync(
+		agentScript,
+		JSON.stringify({
+			default: { steps: [{ kind: "complete", output: { ...ASKS_Q1, questions: [] } }] },
+			roles: {
+				implement: {
+					steps: [
+						{
+							kind: "write",
+							path: "src/greet.js",
+							content: "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n",
+						},
+						{
+							kind: "complete",
+							output: { summary: "tidy", changed_paths: ["src/greet.js"], tests_claimed: false, notes: [] },
+						},
+					],
+				},
+			},
+		}),
+	);
+	process.env.HARNESS495_DATA_DIR = join(dataDir, "data");
+	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
+	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
+	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	const pi = new FakePi();
+	const session = new ExtensionSession(pi.host());
+	registerCommand495(pi.host(), session);
+	const ctx = new FakeContext(cwd, "rpc", sessionId);
+	session.openedAt(ctx.asCommand());
+	const rt = session.runtime();
+	const owner = session.humanOrigin(ctx.asCommand())!.actor;
+	const { program, change } = await rt.harness.start({ project_path: cwd, request_text: "x", actor: owner });
+	const changeId = change.change_id;
+	session.bind(ctx.asCommand(), { program_id: program.program_id, change_id: changeId });
+	const readModel = () => selectedModel(ctx.asCommand());
+	for (let step = 0; rt.ledger.loadChange(changeId)!.state.phase !== "verifying"; step++) {
+		assert.ok(step < 20, `the change never reaches its verification: ${rt.ledger.loadChange(changeId)!.state.phase}`);
+		await rt.harness.advance(changeId, { max_steps: 1, readModel });
+	}
 	return { pi, session, ctx, changeId };
 }
