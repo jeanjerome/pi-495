@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: a refusal outside its phase names the phases that allow the operation, and no next action
+    # Subtest: `/495 close q1` on a change in `verifying` says it is allowed in clarifying, with no next action
+    ok 1 - `/495 close q1` on a change in `verifying` says it is allowed in clarifying, with no next action
+      ---
+      duration_ms: 996.9905
+      type: 'test'
+      ...
+    # Subtest: `/495 verify` on a change stopped on q1 in `clarifying` names every phase that allows it, with no next action
+    ok 2 - `/495 verify` on a change stopped on q1 in `clarifying` names every phase that allows it, with no next action
+      ---
+      duration_ms: 604.608458
+      type: 'test'
+      ...
+    1..2
+ok 1 - a refusal outside its phase names the phases that allow the operation, and no next action
+  ---
+  duration_ms: 1602.166292
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2134.034334
