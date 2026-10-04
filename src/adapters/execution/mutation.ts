@@ -189,7 +189,7 @@ export async function mutationScopeOf(
 	return { classes: [...new Set(classes)].sort(), paths, notes, unaddressable: [] };
 }
 
-export interface MutationReportDocument {
+export interface ReportDocument {
 	/** Workspace-relative path of the report, which names the module it comes from. */
 	name: string;
 	text: string;
@@ -250,7 +250,7 @@ export interface MutationSummary {
  * resolved the same way a coverage report is: from the package of the mutated class and the source
  * file it names, looked up among the paths the candidate touched, one match or nothing.
  */
-function summarizeMutations(documents: readonly MutationReportDocument[], paths: readonly string[]): MutationSummary {
+function summarizeMutations(documents: readonly ReportDocument[], paths: readonly string[]): MutationSummary {
 	const mutants: Mutant[] = [];
 	const ambiguous = new Set<string>();
 	let outOfScope = 0;
@@ -330,7 +330,7 @@ function readStrykerReport(text: string): { report: StrykerReport } | { unreadab
  * Reads the mutants of a Stryker report. Stryker lays a report out by file, relative to where it ran,
  * which is the workspace: no path has to be resolved, and a mutant sits on the line it starts on.
  */
-function summarizeStryker(documents: readonly MutationReportDocument[]): MutationSummary {
+function summarizeStryker(documents: readonly ReportDocument[]): MutationSummary {
 	const mutants: Mutant[] = [];
 	for (const doc of documents) {
 		const read = readStrykerReport(doc.text);
@@ -353,7 +353,7 @@ function summarizeStryker(documents: readonly MutationReportDocument[]): Mutatio
 }
 
 /** Why a document present at the report path cannot be checked complete, or null when it can. */
-function unreadableStrykerReport(doc: MutationReportDocument): string | null {
+function unreadableStrykerReport(doc: ReportDocument): string | null {
 	if (doc.oversized_bytes !== undefined)
 		return `the Stryker report is ${doc.oversized_bytes} bytes, past the read bound of ${MAX_REPORT_BYTES}: it was not read`;
 	const read = readStrykerReport(doc.text);
@@ -368,7 +368,7 @@ function unreadableStrykerReport(doc: MutationReportDocument): string | null {
  */
 function withoutStrykerReport(
 	obs: ProcessObservation,
-	documents: readonly MutationReportDocument[],
+	documents: readonly ReportDocument[],
 	facts: Record<string, unknown>,
 	output: string,
 ): ParsedReport {
@@ -454,7 +454,7 @@ export function nothingToMutate(scope: MutationScope): ParsedReport {
  */
 export function analyzeMutation(
 	obs: ProcessObservation,
-	documents: readonly MutationReportDocument[] | null,
+	documents: readonly ReportDocument[] | null,
 	introduced: IntroducedLines | null,
 	scope: MutationScope,
 	output = "",

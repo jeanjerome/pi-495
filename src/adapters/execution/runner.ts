@@ -28,7 +28,7 @@ import {
 	unaddressableMutation,
 	unscopedMutation,
 	type MutationScope,
-	type MutationReportDocument,
+	type ReportDocument,
 } from "./mutation.ts";
 import {
 	PARSER_VERSIONS,
@@ -163,16 +163,17 @@ export class GenericControlRunner implements ControlExecutionPort {
 						report = parseNodeTestTap(observation, stdoutText);
 						break;
 					case "junit-xml": {
-						const docs = await readReports(invocation.workspace_path, control.report_path);
+						const docs = await readReports(invocation.workspace_path, control.report_path, true);
 						for (const d of docs)
-							artifacts.push({
-								name: `report:${d.name}`,
-								ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml"),
-							});
+							if (d.oversized_bytes === undefined)
+								artifacts.push({
+									name: `report:${d.name}`,
+									ref: await this.objects.put(new TextEncoder().encode(d.text), "application/xml"),
+								});
 						// Build tools name a compilation failure on stdout; the parser needs it to point at a file.
 						report = parseJUnit(
 							observation,
-							docs.map((d) => d.text),
+							docs.map((d) => (d.oversized_bytes === undefined ? d.text : { path: d.name, bytes: d.oversized_bytes })),
 							`${stdoutText}\n${stderrText}`,
 						);
 						break;
@@ -453,21 +454,34 @@ async function introducedSources(workspace: string, paths: readonly string[]): P
 	return sources;
 }
 
-async function readReports(workspace: string, reportPath: string | null): Promise<{ name: string; text: string }[]> {
+/**
+ * The report files a control declares. When `bounded`, a file past the read bound is returned unread with
+ * its size, as `readBoundedReport` does, instead of being loaded.
+ */
+async function readReports(workspace: string, reportPath: string | null, bounded = false): Promise<ReportDocument[]> {
 	if (!reportPath) return [];
-	if (reportPath.startsWith("**/")) return readRecursiveReports(workspace, reportPath.slice(3));
+	if (reportPath.startsWith("**/")) return readRecursiveReports(workspace, reportPath.slice(3), bounded);
 	const abs = resolve(workspace, reportPath);
 	if (!abs.startsWith(resolve(workspace))) return [];
 	try {
 		const st = await stat(abs);
-		if (st.isFile()) return [{ name: reportPath, text: await readFile(abs, "utf8") }];
-		const out: { name: string; text: string }[] = [];
+		if (st.isFile()) return [await readReportFile(abs, reportPath, bounded)];
+		const out: ReportDocument[] = [];
 		for (const f of (await readdir(abs)).sort())
-			if (f.endsWith(".xml")) out.push({ name: `${reportPath}/${f}`, text: await readFile(join(abs, f), "utf8") });
+			if (f.endsWith(".xml")) out.push(await readReportFile(join(abs, f), `${reportPath}/${f}`, bounded));
 		return out;
 	} catch {
 		return []; // a missing or unreadable report path yields no report, which the parser judges as such
 	}
+}
+
+/** One report file, read whole; when `bounded`, its size is read first and a file past the bound is not read. */
+async function readReportFile(absolute: string, name: string, bounded: boolean): Promise<ReportDocument> {
+	if (bounded) {
+		const { size } = await stat(absolute);
+		if (size > MAX_REPORT_BYTES) return { name, text: "", oversized_bytes: size };
+	}
+	return { name, text: await readFile(absolute, "utf8") };
 }
 
 /**
@@ -475,14 +489,13 @@ async function readReports(workspace: string, reportPath: string | null): Promis
  * returned unread with its size: the reader then says it could not check it, instead of this function
  * loading what the project judged chose to write.
  */
-async function readBoundedReport(workspace: string, reportPath: string | null): Promise<MutationReportDocument[]> {
+async function readBoundedReport(workspace: string, reportPath: string | null): Promise<ReportDocument[]> {
 	if (!reportPath) return [];
 	const absolute = resolve(workspace, reportPath);
 	if (!absolute.startsWith(`${resolve(workspace)}${sep}`)) return [];
 	const stats = await stat(absolute).catch(() => null);
 	if (!stats?.isFile()) return [];
-	if (stats.size > MAX_REPORT_BYTES) return [{ name: reportPath, text: "", oversized_bytes: stats.size }];
-	return [{ name: reportPath, text: await readFile(absolute, "utf8") }];
+	return [await readReportFile(absolute, reportPath, true)];
 }
 
 /** The bound on the XML files a recursive scan reads; it escapes the catch that skips unreadable directories. */
@@ -491,9 +504,10 @@ class ScanBound extends Error {}
 async function readRecursiveReports(
 	workspace: string,
 	directorySuffix: string,
-): Promise<{ name: string; text: string }[]> {
+	bounded: boolean,
+): Promise<ReportDocument[]> {
 	const root = resolve(workspace);
-	const out: { name: string; text: string }[] = [];
+	const out: ReportDocument[] = [];
 	const stack: { absolute: string; relative: string }[] = [{ absolute: root, relative: "" }];
 	let visited = 0;
 	while (stack.length > 0) {
@@ -515,7 +529,7 @@ async function readRecursiveReports(
 					for (const file of (await readdir(abs)).sort()) {
 						if (!file.endsWith(".xml")) continue;
 						if (out.length >= 500) throw new ScanBound("JUnit report scan exceeded 500 XML files");
-						out.push({ name: `${rel}/${file}`, text: await readFile(join(abs, file), "utf8") });
+						out.push(await readReportFile(join(abs, file), `${rel}/${file}`, bounded));
 					}
 				} catch (error) {
 					if (error instanceof ScanBound) throw error;

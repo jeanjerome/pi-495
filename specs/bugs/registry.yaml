@@ -1200,3 +1200,62 @@ bugs:
       Reach the refusal through `advance`, with a stack fixture or a detection seam the harness fixture can set,
       once a stack can declare a report another control reads back.
     status: open
+  - bug_id: BUG-2026-10-04T192807
+    date: "2026-10-04"
+    title: "The note on a JUnit report past the read bound loses the end of a report path longer than about 150 characters"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      A JUnit report left unread because it passed the read bound is named in the note "a JUnit report is not
+      readable" by its size, the bound and its path. `parseJUnit` (`src/adapters/execution/parsers.ts`) keeps the
+      first 200 characters of the reader's message, and the path comes after about 50 characters of size and bound:
+      a Surefire report found deep in a Maven reactor, whose path runs past about 150 characters, is named by a
+      truncated path that no longer reaches its file name.
+    what_expected: >
+      The note names the whole path of the report it could not read, whatever its length.
+    steps_to_reproduce:
+      - "Call `parseJUnit` with an exit code of 0 and one unread report `{ path, bytes: 16777217 }` whose path is 202 characters long, ending in `TEST-com.example.billing.InvoiceServiceIntegrationTest.xml`."
+      - "The note ends at `target/surefire-reports/TEST`, without the class name."
+    root_cause: >
+      The unread report reaches the note through the same branch as a document the XML parser refuses, which cuts
+      the first line of the error message at 200 characters so that a parser error stays short; the path of an
+      unread report is cut by the same bound.
+    evidence: >
+      Reproduced on 2026-10-04 at the head of the branch e28s14 with the call above under Node 24. Introduced by the
+      branch e28s14, which names the path of an unread report in that message.
+    risk_level: low
+    follow_ups: >
+      Keep the path of an unread report whole in the note, the 200-character cut applying to the parser's own
+      message only; a test with a report path past 200 characters.
+    status: open
+  - bug_id: BUG-2026-10-04T195535
+    date: "2026-10-04"
+    title: "A provider that refuses the capability probe with an error, an expired OAuth token included, is reported as an endpoint that answered without calling the tool"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      The tool-call probe of `PiModelDescription.toolCallFormat` (`src/adapters/pi-worker/capabilities.ts`) reads
+      only whether the answer of `catalogue.complete` holds a `toolCall` block. Pi's `complete` returns a provider
+      error as an assistant message with `stopReason: "error"` and an `errorMessage` rather than throwing, so a
+      refused request — Pi's Anthropic subscription with an expired OAuth access token — is recorded as "the
+      endpoint answered without calling the tool it was given", and the intervention refuses with
+      `capability_missing` instead of naming the authentication error.
+    what_expected: >
+      An answer whose `stopReason` is `error` is reported as a tool-call format that could not be observed, naming
+      the provider's `errorMessage`, as the probe already does when `complete` throws.
+    steps_to_reproduce:
+      - "Let the OAuth access token of Pi's Anthropic login expire, without logging in again."
+      - "Run `npm run campagne -- npm` with that login: the run stops before any control on `capability_missing`, with the note \"the endpoint answered without calling the tool it was given\", while Pi reports \"OAuth access token has expired\"."
+    root_cause: >
+      `toolCallFormat` tells an answer with a tool call from one without, and treats only a thrown error as an
+      unobserved format; the `stopReason` and `errorMessage` of the answer are not read.
+    evidence: >
+      Observed on 2026-10-04 during the acceptance run of the story e28s14, whose two reference campaigns stopped
+      this way; the probe code is the same on main at b31d9b1, so the defect predates the branch.
+    risk_level: low
+    follow_ups: >
+      Read `stopReason` in the probe and report an `error` answer with its `errorMessage` as an unobserved format;
+      a test with a catalogue whose `complete` returns an error message.
+    status: open

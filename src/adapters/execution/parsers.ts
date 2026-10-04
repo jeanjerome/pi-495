@@ -313,15 +313,26 @@ export function parseReport(document: string): XmlDocument {
 	return parseXml(document);
 }
 
+/** A report left unread because it passed the read bound: its workspace-relative path and its size in bytes. */
+export interface UnreadReport {
+	path: string;
+	bytes: number;
+}
+
 /**
  * JUnit/Surefire reader: every `<testcase>` is one test, failed on a `failure` or `error` child and
  * skipped on a `skipped` child. The counts of the enclosing `<testsuite>` elements are not read: a
  * nested suite repeats the tests of its parent, and an emitter may omit or fill an attribute as it likes.
- * Throws when a document is over the bound or is not XML the parser reads, deep nesting included.
+ * Throws when a document is over the bound, was left unread, or is not XML the parser reads, deep
+ * nesting included.
  */
-export function summarizeJUnit(documents: string[]): JUnitSummary {
+export function summarizeJUnit(documents: readonly (string | UnreadReport)[]): JUnitSummary {
 	const s: JUnitSummary = { tests: 0, failures: 0, errors: 0, skipped: 0, failed_cases: [], files: documents.length };
 	for (const doc of documents) {
+		if (typeof doc !== "string")
+			throw new Error(
+				`${doc.bytes} bytes, past the read bound of ${MAX_REPORT_BYTES}, at ${doc.path}: it was not read`,
+			);
 		for (const testcase of testCasesOf(parseReport(doc))) {
 			s.tests += 1;
 			const outcomes = testcase.children.flatMap((child) => (child instanceof XmlElement ? [child.name] : []));
@@ -349,7 +360,11 @@ function intAttr(attrs: string, name: string): number {
  * properties of the frozen tree. Only `incidentOf` — spawn error, timeout, signal — is INDETERMINATE,
  * because only those can give a different answer on an identical re-run.
  */
-export function parseJUnit(obs: ProcessObservation, documents: string[] | null, output = ""): ParsedReport {
+export function parseJUnit(
+	obs: ProcessObservation,
+	documents: readonly (string | UnreadReport)[] | null,
+	output = "",
+): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) return incidentReport(obs, incident);
 	const broke = obs.exit_code !== 0;
