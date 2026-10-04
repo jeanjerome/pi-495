@@ -514,6 +514,7 @@ epics:
       - { id: e28s11, status: "versée", title: "Un refus hors de sa phase dit la phase attendue sans la donner pour une action" }
       - { id: e28s12, status: "versée", title: "Les arrêts qui ne nomment que l'annulation sont tenus par un test" }
       - { id: e28s13, status: "versée", title: "Le rapport d'ingénierie ne liste que les exigences que G1 a adoptées" }
+      - { id: e28s14, status: "à faire", title: "Un rapport JUnit au-delà de la borne de lecture n'est pas lu" }
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
