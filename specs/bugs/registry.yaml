@@ -138,34 +138,6 @@ bugs:
       Mark an observation on the candidate that the kernel never recorded as not recorded, with a red
       test on the paused path. The fix adds a behavior, so it follows the review gate.
     status: open
-  - bug_id: BUG-2026-09-28T103200
-    date: "2026-09-28"
-    title: "The next action a kernel refusal names reaches only the structured channel, never the text a screen shows"
-    severity: low
-    priority: p3
-    scope: extension
-    what_happened: >
-      `/495` shows a kernel refusal as `495 error: CODE: message` (`src/extension/command.ts`, the
-      command's catch and `actOnQuestion`). The next actions travel only in the details, which an RPC or
-      JSON host reads. On a screen, a revocation refused while a verification is open does not say that
-      the pause is the way on. The display predates the branch that reruns a verification cut short,
-      which gives the revocation's refusal its next actions.
-    what_expected: >
-      The text of a refusal names its next actions, as the detail of a block already does
-      (`(next: …)`).
-    steps_to_reproduce:
-      - "In the TUI, take a change whose verification is open, and run `/495 revoke q1`."
-      - "The screen shows `495 error: OPERATION_ACTIVE: …` and no next action."
-    root_cause: >
-      The text of the refusal is built from its code and message alone.
-    evidence: >
-      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
-      R1-8, read in `command.ts` by the coordinator.
-    risk_level: low
-    follow_ups: >
-      Append `(next: …)` to the refusal text when it carries next actions, with a red test on a
-      `/495 revoke` refused. The fix adds a behavior, so it follows the review gate.
-    status: open
   - bug_id: BUG-2026-09-28T103300
     date: "2026-09-28"
     title: "Two changes on the same candidate content collide on the verification key when they start their verification at the same revision"
