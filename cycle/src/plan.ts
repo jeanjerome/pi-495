@@ -52,6 +52,18 @@ export function lirePlan(root: string): EpicDuPlan[] {
 	return epics;
 }
 
+/**
+ * The lines of one epic as the plan writes them, from its `- id:` line to the next epic or top-level
+ * key. The epic line is matched exactly rather than through `EPIC`, which tolerates trailing blanks.
+ */
+export function texteDeLEpic(root: string, epic: string): string {
+	const lignes = readFileSync(cheminDuPlan(root), "utf8").split("\n");
+	const debut = lignes.indexOf(`  - id: ${epic}`);
+	let fin = debut + 1;
+	while (fin < lignes.length && !/^ {2}- id: /.test(lignes[fin]!) && !/^[a-z]/.test(lignes[fin]!)) fin++;
+	return lignes.slice(debut, fin).join("\n").trimEnd();
+}
+
 /** The first epic in plan order that the owner marked ready and that is not landed yet. */
 export function prochaineEpic(plan: EpicDuPlan[]): EpicDuPlan | null {
 	return plan.find((e) => e.prete && e.statut !== "versé") ?? null;

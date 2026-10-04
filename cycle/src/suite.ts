@@ -5,12 +5,19 @@
  * stops, with the reason, at the first story that blocks. Nothing is pushed.
  */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { arbrePropre, brancheCourante, commiter, git } from "./git.ts";
 import { type Gravite, defautDeLaStory, defautsOuverts, marquerCorrige } from "./registre.ts";
 import { invite } from "./invite.ts";
 import { Journal } from "./journal.ts";
-import { type EpicDuPlan, lirePlan, marquerEpic, marquerStory, prochaineEpic, prochaineStory } from "./plan.ts";
+import {
+	type EpicDuPlan,
+	lirePlan,
+	marquerEpic,
+	marquerStory,
+	prochaineEpic,
+	prochaineStory,
+	texteDeLEpic,
+} from "./plan.ts";
 import { sessionInscrite } from "./session.ts";
 import { lireStory } from "./story.ts";
 
@@ -36,14 +43,6 @@ function fichierDeLaStory(root: string, id: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-function bloc(root: string, epic: string): string {
-	const lignes = readFileSync(join(root, "specs", "plan.yaml"), "utf8").split("\n");
-	const debut = lignes.indexOf(`  - id: ${epic}`);
-	let fin = debut + 1;
-	while (fin < lignes.length && !/^ {2}- id: /.test(lignes[fin]!) && !/^[a-z]/.test(lignes[fin]!)) fin++;
-	return lignes.slice(debut, fin).join("\n").trimEnd();
 }
 
 /** Paths a drafting session may leave modified: the story and the plan, nothing else. */
@@ -72,7 +71,7 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 			invite: invite("redaction", {
 				epic: epic.id,
 				attendue: attendue ?? "aucune : décide si les stories versées livrent l'objet de l'epic",
-				epic_plan: bloc(o.root, epic.id),
+				epic_plan: texteDeLEpic(o.root, epic.id),
 				versees: versees.length === 0 ? "(aucune)" : versees.map((v) => `- ${v.id} : ${v.titre}`).join("\n"),
 			}),
 			schema: {

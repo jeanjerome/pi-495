@@ -736,7 +736,7 @@ Statut : versée
 
 ## R91 — Le texte d'une epic se lit dans plan.ts
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/suite.ts:39-45 (`bloc`) · cycle/src/plan.ts
 - Constat : `bloc` relit `specs/plan.yaml` par un chemin recomposé, alors que plan.ts se déclare la part du plan que l'outil lit et écrit et porte `cheminDuPlan`.
