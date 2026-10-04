@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the text of a kernel refusal names the next actions it carries
+    # Subtest: a revocation of an unknown question keeps its text; a revocation refused while an intervention runs names the pause, and its details still carry it
+    ok 1 - a revocation of an unknown question keeps its text; a revocation refused while an intervention runs names the pause, and its details still carry it
+      ---
+      duration_ms: 605.626709
+      type: 'test'
+      ...
+    # Subtest: `/495 verify` on a change stopped `execution_error` in its verification names the resume and the cancel
+    ok 2 - `/495 verify` on a change stopped `execution_error` in its verification names the resume and the cancel
+      ---
+      duration_ms: 993.1465
+      type: 'test'
+      ...
+    1..2
+ok 1 - the text of a kernel refusal names the next actions it carries
+  ---
+  duration_ms: 1599.34675
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2120.650917
