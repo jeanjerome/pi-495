@@ -477,7 +477,7 @@ async function pasVersement(ctx: Contexte): Promise<Issue> {
 	ctx.journal.inscrire("versement", "fini");
 	commiter(ctx.root, `docs: the story ${ctx.story.id} is landed and its dossier recorded`, [
 		ctx.story.chemin,
-		relative(ctx.root, dossier.dir),
+		relative(ctx.root, dossier),
 	]);
 	return FINI;
 }

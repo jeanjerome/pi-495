@@ -25,28 +25,19 @@ function refs(value: unknown, found: Ref[] = []): Ref[] {
 	return found;
 }
 
-export async function exporterDossier(
-	journal: Journal,
-	root: string,
-): Promise<{ dir: string; objets: number; laisses: number }> {
+export async function exporterDossier(journal: Journal, root: string): Promise<string> {
 	const dir = join(root, "specs", "verifications", journal.story);
 	mkdirSync(join(dir, "objets"), { recursive: true });
 	const events = journal.lire();
 	writeFileSync(join(dir, "journal.jsonl"), `${events.map((e) => JSON.stringify(e)).join("\n")}\n`);
-	let objets = 0;
-	let laisses = 0;
 	const seen = new Set<string>();
 	for (const ref of refs(events)) {
 		if (seen.has(ref.digest)) continue;
 		seen.add(ref.digest);
-		if (ref.size_bytes > TAILLE_MAX_EXPORTEE) {
-			laisses += 1;
-			continue;
-		}
+		if (ref.size_bytes > TAILLE_MAX_EXPORTEE) continue;
 		const bytes = await journal.objets.get(ref.digest);
 		if (!bytes) continue;
 		writeFileSync(join(dir, "objets", ref.digest.replace("sha256:", "")), bytes);
-		objets += 1;
 	}
-	return { dir, objets, laisses };
+	return dir;
 }

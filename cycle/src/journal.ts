@@ -37,7 +37,7 @@ export class Journal {
 	/** Told each event as it is written, for whoever watches the story run. */
 	observateur: ((e: Evenement) => void) | null = null;
 
-	constructor(story: string, racine: string = racineCycle()) {
+	constructor(story: string, racine: string) {
 		this.story = story;
 		this.dir = join(racine, story);
 		mkdirSync(this.dir, { recursive: true });

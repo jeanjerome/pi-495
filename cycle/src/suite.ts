@@ -56,7 +56,7 @@ function horsDeLaRedaction(root: string): string[] {
 	);
 }
 
-type Redaction = { fait: true; epicVersee?: true } | { fait: false; code: number; motif: string };
+type Redaction = { fait: true; epicVersee?: true } | { fait: false; motif: string };
 
 async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | null): Promise<Redaction> {
 	const journal = new Journal(epic.id, o.racine);
@@ -87,7 +87,7 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 		},
 		o,
 	);
-	const arret = (motif: string): Redaction => ({ fait: false, code: 1, motif });
+	const arret = (motif: string): Redaction => ({ fait: false, motif });
 	if (!s.ok || !s.sortie) return arret(`drafting session for ${epic.id}: ${s.resume}`);
 	const sortie = s.sortie as { status: string; story_id: string; message: string; resume: string };
 	if (sortie.status === "bloque") return arret(`${epic.id} is not ready to run unattended: ${sortie.resume}`);
@@ -290,7 +290,7 @@ export async function suite(o: OptionsSuite): Promise<number> {
 			const r = await rediger(o, epic, story ? `${story.id} : ${story.titre}` : null);
 			if (!r.fait) {
 				o.annonce?.(`⛔ ${r.motif}`);
-				return r.code;
+				return 1;
 			}
 			if (r.epicVersee) {
 				epicsVersees++;

@@ -27,17 +27,17 @@ export function brancheCourante(cwd: string): string {
 }
 
 /** The commit the branch forked from `cible` at. */
-export function baseDe(cwd: string, cible: string, head = "HEAD"): string {
-	return git(cwd, ["merge-base", cible, head]);
+export function baseDe(cwd: string, cible: string): string {
+	return git(cwd, ["merge-base", cible, "HEAD"]);
 }
 
 export function arbrePropre(cwd: string): boolean {
 	return git(cwd, ["status", "--porcelain"]) === "";
 }
 
-/** The commits `base..head`, oldest first, each with the paths it changed. */
-export function commitsEntre(cwd: string, base: string, head = "HEAD"): Commit[] {
-	const out = git(cwd, ["log", "--reverse", "--format=%H%x00%s", "--name-only", `${base}..${head}`]);
+/** The commits `base..HEAD`, oldest first, each with the paths it changed. */
+export function commitsEntre(cwd: string, base: string): Commit[] {
+	const out = git(cwd, ["log", "--reverse", "--format=%H%x00%s", "--name-only", `${base}..HEAD`]);
 	if (out === "") return [];
 	const commits: Commit[] = [];
 	for (const line of out.split("\n")) {
@@ -54,8 +54,8 @@ export function estCommitDeTestSeul(commit: Commit): boolean {
 	return commit.fichiers.length > 0 && commit.fichiers.every((f) => f.startsWith("test/"));
 }
 
-export function fichiersChanges(cwd: string, base: string, head = "HEAD"): string[] {
-	const out = git(cwd, ["diff", "--name-only", `${base}...${head}`]);
+export function fichiersChanges(cwd: string, base: string): string[] {
+	const out = git(cwd, ["diff", "--name-only", `${base}...HEAD`]);
 	return out === "" ? [] : out.split("\n");
 }
 

@@ -82,7 +82,7 @@ function definition(controle: Controle, arbre: string): ControlDefinition {
 		requires: [],
 		scope_argument: null,
 		network: controle.reseau,
-		writable_paths: [arbre, process.env.TMPDIR ?? "/tmp", `${process.env.HOME}/.npm`],
+		writable_paths: [arbre],
 		requirement_refs: [],
 		protected: false,
 		protected_paths: [],

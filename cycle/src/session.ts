@@ -28,7 +28,6 @@ export interface Demande {
 	claude?: string;
 	/** Each line of the stream as it arrives, for whoever watches the session run. */
 	suivi?: (ligne: string) => void;
-	timeout_ms?: number;
 }
 
 export const CONSIGNES_COMMUNES = `This session runs one step of the development cycle of 495 unattended: nobody answers it live and no
@@ -114,10 +113,8 @@ export async function lancerSession(demande: Demande, journal: Journal): Promise
 			for (const ligne of lignes) demande.suivi(ligne);
 		});
 		child.stderr.on("data", (c: Buffer) => errs.push(c));
-		const timer = demande.timeout_ms ? setTimeout(() => child.kill("SIGTERM"), demande.timeout_ms) : null;
 		child.on("error", reject);
 		child.on("close", () => {
-			if (timer) clearTimeout(timer);
 			resolve(`${Buffer.concat(chunks).toString("utf8")}\n${Buffer.concat(errs).toString("utf8")}`);
 		});
 	});

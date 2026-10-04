@@ -706,7 +706,7 @@ Statut : versée
 
 ## R88 — Les options et les champs qu'aucun appelant ne passe ni ne lit sont retirés
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/session.ts:31, 117, 120 (`timeout_ms`) · cycle/src/controls.ts:83 (`writable_paths`) · cycle/src/git.ts:30, 39, 57 (`head = "HEAD"`) · cycle/src/suite.ts:64, 104, 316 (`Redaction.code`) · cycle/src/export.ts:28-51 (`objets`, `laisses`) · cycle/src/journal.ts:40 (racine par défaut)
 - Constat : `Demande.timeout_ms` arme un SIGTERM qu'aucun des quatre appelants de `lancerSession` ni aucun test ne passe. `writable_paths` déclare `TMPDIR` et `~/.npm`, que `GenericControlRunner.profileFor` (src/adapters/execution/runner.ts:67-70) élimine toujours puisqu'il ne garde que les chemins sous l'arbre de travail : deux lectures de `process.env` sans effet. Aucun appelant ne passe `head` à `baseDe`, `commitsEntre` ni `fichiersChanges`. Le seul constructeur d'une rédaction refusée met `code: 1`. `exporterDossier` rend `{ dir, objets, laisses }` et son seul appelant (cycle.ts:495) ne lit que `dir`. Les quinze `new Journal(` passent tous la racine, et la valeur par défaut lit l'environnement.
