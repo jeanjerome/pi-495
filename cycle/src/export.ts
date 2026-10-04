@@ -1,7 +1,8 @@
 /**
  * The dossier of a landed story, written once under `specs/verifications/<story>/`: the journal,
  * and the objects it cites that fit in a repository — findings, outputs of controls, accounts. A
- * transcript of several megabytes stays in `~/.495/cycle/objects`, cited by its digest.
+ * transcript of several megabytes stays in `~/.495/cycle/objects`, cited by its digest. An object the
+ * store no longer holds is named in an `objets-absents` event, so the dossier says what it lacks.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,16 +29,26 @@ function refs(value: unknown, found: Ref[] = []): Ref[] {
 export async function exporterDossier(journal: Journal, root: string): Promise<string> {
 	const dir = join(root, "specs", "verifications", journal.story);
 	mkdirSync(join(dir, "objets"), { recursive: true });
-	const events = journal.lire();
-	writeFileSync(join(dir, "journal.jsonl"), `${events.map((e) => JSON.stringify(e)).join("\n")}\n`);
 	const seen = new Set<string>();
-	for (const ref of refs(events)) {
+	const absents: string[] = [];
+	for (const ref of refs(journal.lire())) {
 		if (seen.has(ref.digest)) continue;
 		seen.add(ref.digest);
-		if (ref.size_bytes > TAILLE_MAX_EXPORTEE) continue;
+		if (ref.size_bytes > TAILLE_MAX_EXPORTEE) {
+			if (!(await journal.objets.has(ref.digest))) absents.push(ref.digest);
+			continue;
+		}
 		const bytes = await journal.objets.get(ref.digest);
-		if (!bytes) continue;
-		writeFileSync(join(dir, "objets", ref.digest.replace("sha256:", "")), bytes);
+		if (bytes) writeFileSync(join(dir, "objets", ref.digest.replace("sha256:", "")), bytes);
+		else absents.push(ref.digest);
 	}
+	if (absents.length > 0) journal.inscrire("versement", "objets-absents", { digests: absents });
+	writeFileSync(
+		join(dir, "journal.jsonl"),
+		`${journal
+			.lire()
+			.map((e) => JSON.stringify(e))
+			.join("\n")}\n`,
+	);
 	return dir;
 }
