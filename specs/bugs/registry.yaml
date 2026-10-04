@@ -109,34 +109,6 @@ bugs:
       Mark an observation on the candidate that the kernel never recorded as not recorded, with a red
       test on the paused path. The fix adds a behavior, so it follows the review gate.
     status: open
-  - bug_id: BUG-2026-09-28T103300
-    date: "2026-09-28"
-    title: "Two changes on the same candidate content collide on the verification key when they start their verification at the same revision"
-    severity: low
-    priority: p3
-    scope: application
-    what_happened: >
-      The verification key is `verify:<candidate digest>:<revision>`
-      (`src/application/phases/verify.ts`). The ledger is shared by every change of the machine
-      (`~/.495/state.sqlite`) and the manifest digest follows from the content, so two changes on the
-      same content that start their verification at the same revision derive the same key: the second
-      is refused `OPERATION_ACTIVE` by the ledger and blocked. On main the collision, at `:0`, blocked
-      for good; the branch that reruns a verification cut short narrows it to equal revisions, and a
-      resume lifts it.
-    what_expected: >
-      One change's verification never refuses another's.
-    steps_to_reproduce:
-      - "Take two changes on the same project content to their verification at the same revision."
-      - "The second verification is refused by the key the first one holds."
-    root_cause: >
-      The key names the work but not the change it belongs to.
-    evidence: >
-      Review record `specs/verifications/reprise-de-verification-et-revocation-relecture.md`, round 1,
-      P1: probes P4 (reviewer A) and P3 (reviewer B).
-    risk_level: low
-    follow_ups: >
-      Name the change in the key, with a red test of two changes on the same content.
-    status: open
   - bug_id: BUG-2026-09-28T103400
     date: "2026-09-28"
     title: "An integration run again after the owner confirmed its Git effect not applied is refused for good by its reused key"
@@ -231,39 +203,6 @@ bugs:
       Name the modified existing tests in the IH-10 facts, or in `/495 status`, or both; the
       candidate is still a proposal that only the kernel adopts, so this changes what the owner sees,
       not what the kernel decides.
-    status: open
-  - bug_id: BUG-2026-09-29T160000
-    date: "2026-09-29"
-    title: "The Seatbelt tests of the generic runner and of the sandbox backends cannot fail when the repository lives under the temporary directory"
-    severity: low
-    priority: p3
-    scope: adapters
-    what_happened: >
-      `runs the same control under seatbelt with the candidate read-only` expects the write to
-      `src/greet.js` to be refused. `SeatbeltSandbox` grants the write to the temporary directory of the
-      process and to `/private/tmp` by default, and the test builds its workspace under
-      `test-output/`; in a repository hosted under `$TMPDIR` the write succeeds and the assertion of a
-      FAIL verdict fails, so the test says nothing about the confinement there. `seatbelt qualifies on
-      macOS and confines writes, sensitive reads, symlink escapes and network` in
-      `test/v1-adapters/sandbox.test.ts` builds the same sandbox and fails the same way on its `outside:EPERM`
-      assertion.
-    what_expected: >
-      The tests hold wherever the repository lives, because they grant no temporary directory to the
-      sandbox they build.
-    steps_to_reproduce:
-      - "Clone the repository under `$TMPDIR` and run `node --test test/v1-adapters/control-runner.test.ts` on macOS."
-      - "The candidate read-only test fails on the assertion that the write is refused."
-      - "Run `node --test test/v1-adapters/sandbox.test.ts` from the same clone: the confinement test fails on the write outside the workspace."
-    root_cause: >
-      The test builds `new SeatbeltSandbox()` with its default `temp_paths` (`src/adapters/sandbox/backends.ts`),
-      which include the temporary directory the workspace may sit in. The vitest tests of the same file
-      pass `temp_paths: []` for this reason.
-    evidence: >
-      Read in `backends.ts` (`temp_paths` default, profile line that allows the write); the reviewers of
-      the branch observed the failure in a tree under `$TMPDIR` and its pass in a copy under `$HOME`.
-      Existed before the branch, which does not touch this test.
-    risk_level: low
-    follow_ups: "Build the sandbox of those tests with `{ temp_paths: [] }`."
     status: open
   - bug_id: BUG-2026-09-29T190000
     date: "2026-09-29"
