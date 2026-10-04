@@ -7,8 +7,9 @@
  * judges it. A run stops, and says why, when the gaps exceed the ceiling or a session fails.
  */
 import { readFileSync } from "node:fs";
+import { messageOf } from "../../src/domain/errors.ts";
 import { type Contexte, type Issue, Blocage, accepter, rouvrir, session } from "./cycle.ts";
-import { arbrePropre, baseDe, git } from "./git.ts";
+import { arbrePropre, baseDe, git, revision } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Pas } from "./journal.ts";
 import { lireStory } from "./story.ts";
@@ -62,7 +63,7 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 		invite("arbitrage", {
 			id: ctx.story.id,
 			branche: git(ctx.root, ["rev-parse", "--abbrev-ref", "HEAD"]),
-			tete: git(ctx.root, ["rev-parse", "HEAD"]),
+			tete: revision(ctx.root),
 			compte_rendu: String(preparee?.compte_rendu ?? question),
 			registre: registre.slice(0, 30_000) || "(aucune entrée)",
 			story: readFileSync(ctx.story.chemin, "utf8"),
@@ -118,7 +119,7 @@ async function epingler(ctx: Contexte, ecart: string): Promise<Poursuite> {
 	try {
 		ctx.story = lireStory(ctx.story.id, ctx.root);
 	} catch (e) {
-		return arret(`the story no longer holds its format after the gap was written: ${(e as Error).message}`);
+		return arret(`the story no longer holds its format after the gap was written: ${messageOf(e)}`);
 	}
 	if (ctx.story.taches.length + ctx.story.scenarios.length <= avant)
 		return arret("writing the gap into the story added neither a scenario nor a task");

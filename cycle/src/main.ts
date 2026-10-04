@@ -11,6 +11,7 @@
  * where the story stands.
  */
 import { join } from "node:path";
+import { messageOf } from "../../src/domain/errors.ts";
 import {
 	Sortie,
 	Titre,
@@ -144,7 +145,7 @@ async function main(argv: string[]): Promise<number> {
 	try {
 		ctx = contexte(id);
 	} catch (e) {
-		console.error(`⛔ ${(e as Error).message}`);
+		console.error(`⛔ ${messageOf(e)}`);
 		return 2;
 	}
 	const direct = join(ctx.journal.dir, "en-direct.log");

@@ -785,7 +785,7 @@ Statut : versée
 
 ## R96 — L'outil lit une erreur et la position de la branche par les fonctions qui existent
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/main.ts:144 · cycle/src/automate.ts:68-69, 106, 125
 - Constat : `(e as Error).message` sur un `catch` de type `unknown`, alors que `messageOf` (src/domain/errors.ts) existe et que R09 l'a imposé à `src/`. automate.ts redit par `git(["rev-parse", …])` ce que `brancheCourante` et `revision` de git.ts font, et que cycle.ts utilise pour les mêmes champs d'invite.
