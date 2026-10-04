@@ -217,6 +217,13 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		sortie.ecrire(`\nCycle interrompu. \`npm run cycle -- ${id}\` reprend au pas en cours.`);
 		process.exit(130);
 	};
+	// Hands back to the owner: the bell and the title name the step's state, the stream says why.
+	const rendre = (code: number, marque: string, etat: string, texte: string): number => {
+		sonner(`${id} · ${etat}`);
+		titre.arreter(`${marque} ${id} · ${etat}`);
+		sortie.ecrire(`\n${texte}`);
+		return code;
+	};
 	for (;;) {
 		const pas = ctx.journal.prochainPas();
 		if (!pas) {
@@ -226,12 +233,12 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 			return 0;
 		}
 		if (auto && coutTotal(ctx) > plafond()) {
-			sonner(`${id} · plafond de coût atteint`);
-			titre.arreter(`⛔ ${id} · plafond de coût atteint`);
-			sortie.ecrire(
-				`\n⛔ ${id} a dépensé ${coutTotal(ctx).toFixed(2)} $, au-delà de ${plafond()} $ (CYCLE_495_PLAFOND_USD) : le propriétaire décide de la suite.`,
+			return rendre(
+				1,
+				"⛔",
+				"plafond de coût atteint",
+				`⛔ ${id} a dépensé ${coutTotal(ctx).toFixed(2)} $, au-delà de ${plafond()} $ (CYCLE_495_PLAFOND_USD) : le propriétaire décide de la suite.`,
 			);
-			return 1;
 		}
 		const started = Date.now();
 		const avant = revision(ctx.root);
@@ -247,22 +254,13 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		if (auto && issue.statut !== "fini") {
 			const suite = await apresIssue(ctx, pas, issue, reouvertAvant);
 			if (suite.continuer) continue;
-			sonner(`${id} · ${pas} arrêté`);
-			titre.arreter(`⛔ ${id} · ${pas} arrêté`);
-			sortie.ecrire(`\n⛔ ${suite.motif}`);
-			return 1;
+			return rendre(1, "⛔", `${pas} arrêté`, `⛔ ${suite.motif}`);
 		}
 		if (issue.statut === "proprietaire") {
-			sonner(`${id} · ${pas} attend votre décision`);
-			titre.arreter(`? ${id} · ${pas} attend votre décision`);
-			sortie.ecrire(`\n${issue.question}`);
-			return 0;
+			return rendre(0, "?", `${pas} attend votre décision`, issue.question);
 		}
 		if (issue.statut === "bloque") {
-			sonner(`${id} · ${pas} bloqué`);
-			titre.arreter(`⛔ ${id} · ${pas} bloqué`);
-			sortie.ecrire(`\n⛔ ${issue.motif}`);
-			return 1;
+			return rendre(1, "⛔", `${pas} bloqué`, `⛔ ${issue.motif}`);
 		}
 	}
 }

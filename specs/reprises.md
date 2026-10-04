@@ -756,7 +756,7 @@ Statut : versée
 
 ## R93 — Le déroulement d'une story rend la main par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/main.ts:226-264 (`derouler`)
 - Constat : Quatre sorties de la boucle répètent le même trio `sonner(…)`, `titre.arreter(…)`, `sortie.ecrire(…)` puis `return code` : la conduite des pas se mêle au détail des trois canaux.
