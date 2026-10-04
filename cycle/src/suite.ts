@@ -45,6 +45,17 @@ function fichierDeLaStory(root: string, id: string): boolean {
 	}
 }
 
+/**
+ * The message a written story is committed under. The commit holds a story and a line of the plan, so
+ * it is `docs:` whatever type the session gave its sentence: a `fix:` or `feat:` there would claim a
+ * change of behaviour the commit does not make.
+ */
+function messageDeLaStory(id: string, message: string): string {
+	const ligne = message.split("\n")[0]!.trim();
+	if (ligne.startsWith("docs: ")) return ligne;
+	return `docs: the story ${id} promises that ${ligne.replace(/^\w+(\([^)]*\))?!?: /, "")}`;
+}
+
 /** Paths left modified outside the stories and the plan, the only files a drafting session may change. */
 function horsDeLaRedaction(root: string): string[] {
 	return (
@@ -107,7 +118,7 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 		return arret(
 			`${epic.id}: the drafting session did not leave a readable story ${sortie.story_id} listed pending in the plan`,
 		);
-	commiter(o.root, sortie.message.split("\n")[0]!.trim(), ["specs"]);
+	commiter(o.root, messageDeLaStory(prochaine.id, sortie.message), ["specs"]);
 	return { fait: true };
 }
 
@@ -204,12 +215,13 @@ async function ecrireCorrectif(
 						: !ouverts.some((d) => d.id === cite)
 							? `${cite} n'est pas un défaut ouvert de gravité ${seuil} ou plus`
 							: null;
-	if (raison !== null)
+	// `!ecrite` already gives a reason; testing it again lets the type know the story exists below.
+	if (raison !== null || !ecrite)
 		return {
 			motif: `la session de correctif n'a pas laissé une story lisible qui cite un défaut ouvert : ${raison}`,
 			aDecider,
 		};
-	commiter(o.root, sortie.message.split("\n")[0]!.trim(), ["specs"]);
+	commiter(o.root, messageDeLaStory(ecrite.id, sortie.message), ["specs"]);
 	return { story: ecrite, aDecider };
 }
 

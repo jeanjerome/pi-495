@@ -19,7 +19,7 @@ Ta sortie :
 - `ecrite` quand tu as écrit la story `specs/stories/{{epic}}/<id>-<titre>.md` et l'as inscrite au plan
   sous l'epic (`stories:`, `status: "à faire"`, ordre d'exécution respecté). Lance
   `npm run lint:story-format` et lis son code de sortie. Ne commite pas : l'outil le fait avec ton
-  `message`, une ligne en anglais qui dit le comportement que la story promet.
+  `message`, une ligne en anglais de la forme `docs: the story <id> promises that <le comportement promis>`.
 - `bloque` avec ce qui manque.
 
 Ne modifie aucun autre fichier, ne pousse rien.

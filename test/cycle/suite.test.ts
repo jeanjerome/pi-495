@@ -99,6 +99,23 @@ export default (invite, cwd) => {
 		]);
 	});
 
+	it("commits the next story it had written under docs:, whatever type the session's message carries", async () => {
+		const root = depotSuite(LANDED);
+		const ecrit = `${COMMIT}
+import { existsSync, readFileSync } from "node:fs";
+export default (invite, cwd) => {
+  const file = cwd + "/specs/stories/e01/e01s06-greet-shouts-twice.md";
+  if (existsSync(file)) return { status: "complete", story_id: "", message: "", resume: "delivered" };
+  const story = readFileSync(cwd + "/specs/stories/e01/e01s05-greet-shouts.md", "utf8").replace(/e01s05/g, "e01s06");
+  const plan = readFileSync(cwd + "/specs/plan.yaml", "utf8").replace(${JSON.stringify(LANDED)}, ${JSON.stringify(`${LANDED}\n      - { id: e01s06, status: "à faire", title: "greet shouts twice" }`)});
+  writeFileSync(file, story);
+  writeFileSync(cwd + "/specs/plan.yaml", plan);
+  return { status: "ecrite", story_id: "e01s06", message: "feat(greet): greet shouts twice", resume: "written" };
+};`;
+		assert.equal(await suite(options(root, ecrit, [])), 0);
+		assert.equal(sujets(root, 3)[2], "docs: the story e01s06 promises that greet shouts twice");
+	});
+
 	it("stops with the code of a story that blocks, and leaves the plan as it was", async () => {
 		const root = depotSuite(PENDING);
 		const appels: string[] = [];
@@ -297,6 +314,17 @@ describe("the repair of the registry's defects", () => {
 			"docs: the plan marks e28s01 landed and the registry marks its defect fixed",
 			"docs: the story e28s01 repairs the medium defect",
 		]);
+	});
+
+	it("commits the story it wrote under docs:, whatever type the session's message carries", async () => {
+		const root = depotCorrectifs();
+		const faux = CHOISIT.replace(
+			"docs: the story e28s01 repairs the medium defect",
+			"fix: greet shouts at whoever calls it",
+		);
+		const o = options(root, faux, []);
+		await corrigerDefauts({ ...o, deroulerStory: atterrit(o.racine, []) }, "medium", "test");
+		assert.equal(sujets(root, 2)[1], "docs: the story e28s01 promises that greet shouts at whoever calls it");
 	});
 
 	it("names the defects it sets aside and repairs none when every one needs the owner", async () => {
