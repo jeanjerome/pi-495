@@ -4,7 +4,7 @@
  * squashed commit a branch lands as.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -63,7 +63,7 @@ export function fichiersChanges(cwd: string, base: string): string[] {
 export function arbreDetache(cwd: string, sha: string): string {
 	const path = mkdtempSync(join(tmpdir(), "cycle-arbre-"));
 	git(cwd, ["worktree", "add", "-q", "--detach", path, sha]);
-	execFileSync("ln", ["-s", join(cwd, "node_modules"), join(path, "node_modules")]);
+	symlinkSync(join(cwd, "node_modules"), join(path, "node_modules"));
 	return path;
 }
 

@@ -716,7 +716,7 @@ Statut : versée
 
 ## R89 — L'arbre détaché lie node_modules sans lancer de programme
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/git.ts:66
 - Constat : `execFileSync("ln", ["-s", …])` lance un processus résolu par le PATH pour une opération que `node:fs` fait.
