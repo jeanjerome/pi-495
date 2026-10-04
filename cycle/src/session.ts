@@ -6,7 +6,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import type { ObjectRef } from "../../src/contracts/v1/common.ts";
-import type { Journal } from "./journal.ts";
+import type { Etape, Journal } from "./journal.ts";
 
 export interface Session {
 	ok: boolean;
@@ -136,4 +136,36 @@ export async function lancerSession(demande: Demande, journal: Journal): Promise
 		session_id: resultat?.session_id ?? null,
 		transcript,
 	};
+}
+
+/**
+ * Runs one session named `nom` and records it as a `session` event of `pas`, whatever its outcome:
+ * the cost ceiling, the state, the display and the export all read this event.
+ */
+export async function sessionInscrite(
+	journal: Journal,
+	pas: Etape,
+	nom: string,
+	demande: { invite: string; schema: Record<string, unknown>; cwd: string },
+	o: { claude?: string; suivi?: (nom: string, ligne: string) => void },
+): Promise<Session> {
+	const s = await lancerSession(
+		{
+			...demande,
+			...(o.claude ? { claude: o.claude } : {}),
+			...(o.suivi ? { suivi: (ligne: string) => o.suivi?.(nom, ligne) } : {}),
+		},
+		journal,
+	);
+	journal.inscrire(pas, "session", {
+		nom,
+		ok: s.ok,
+		cout_usd: s.cout_usd,
+		duree_ms: s.duree_ms,
+		tours: s.tours,
+		session_id: s.session_id,
+		transcript: s.transcript,
+		resume: s.resume.slice(0, 2000),
+	});
+	return s;
 }

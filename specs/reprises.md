@@ -668,7 +668,7 @@ Statut : versée
 
 ## R84 — Une session de l'outil se lance et s'inscrit au journal par une seule fonction
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/cycle.ts:60-91 (`session`) · cycle/src/reprise.ts:149-179 (`sessionDeReprise`) · cycle/src/suite.ts:66-103 (`rediger`), 164-205 (la session de correctif de `corrigerDefauts`)
 - Constat : Le même bloc est écrit quatre fois : `lancerSession({ invite, schema, cwd, ...(claude ? { claude } : {}), ...(suivi ? { suivi: … } : {}) }, journal)`, puis `journal.inscrire(<pas>, "session", { nom, ok, cout_usd, duree_ms, tours, session_id, transcript, resume: s.resume.slice(0, 2000) })`, avec les mêmes clés dans le même ordre. Le plafond de coût (main.ts:181-186), `etat` (main.ts:59-60), l'affichage (affichage.ts:238) et l'export lisent cet événement : un champ changé dans une copie dériverait des trois autres.

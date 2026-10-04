@@ -22,7 +22,7 @@ import {
 import { invite } from "./invite.ts";
 import type { Journal, Pas } from "./journal.ts";
 import { type Rapport, SCHEMA_RAPPORT, TOURS_MAX, apresDernierTour, trier } from "./relecture.ts";
-import { type Session, lancerSession } from "./session.ts";
+import { type Session, sessionInscrite } from "./session.ts";
 import { type Story, avecStatut, lireStory } from "./story.ts";
 
 export interface Contexte {
@@ -65,26 +65,7 @@ export async function session(
 	schema: Record<string, unknown>,
 	cwd = ctx.root,
 ): Promise<Session> {
-	const s = await lancerSession(
-		{
-			invite: texte,
-			schema,
-			cwd,
-			...(ctx.claude ? { claude: ctx.claude } : {}),
-			...(ctx.suivi ? { suivi: (ligne: string) => ctx.suivi?.(nom, ligne) } : {}),
-		},
-		ctx.journal,
-	);
-	ctx.journal.inscrire(pas, "session", {
-		nom,
-		ok: s.ok,
-		cout_usd: s.cout_usd,
-		duree_ms: s.duree_ms,
-		tours: s.tours,
-		session_id: s.session_id,
-		transcript: s.transcript,
-		resume: s.resume.slice(0, 2000),
-	});
+	const s = await sessionInscrite(ctx.journal, pas, nom, { invite: texte, schema, cwd }, ctx);
 	if (!s.ok) throw new Blocage(`session ${nom}: ${s.resume}`);
 	return s;
 }

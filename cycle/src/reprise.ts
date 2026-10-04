@@ -21,7 +21,7 @@ import {
 } from "./git.ts";
 import { invite } from "./invite.ts";
 import { Journal } from "./journal.ts";
-import { lancerSession, type Session } from "./session.ts";
+import { sessionInscrite, type Session } from "./session.ts";
 
 export interface Reprise {
 	id: string;
@@ -154,26 +154,7 @@ async function sessionDeReprise(
 	schema: Record<string, unknown>,
 	cwd: string,
 ): Promise<Session> {
-	const s = await lancerSession(
-		{
-			invite: texte,
-			schema,
-			cwd,
-			...(o.claude ? { claude: o.claude } : {}),
-			...(o.suivi ? { suivi: (ligne: string) => o.suivi?.(nom, ligne) } : {}),
-		},
-		journal,
-	);
-	journal.inscrire("reprise", "session", {
-		nom,
-		ok: s.ok,
-		cout_usd: s.cout_usd,
-		duree_ms: s.duree_ms,
-		tours: s.tours,
-		session_id: s.session_id,
-		transcript: s.transcript,
-		resume: s.resume.slice(0, 2000),
-	});
+	const s = await sessionInscrite(journal, "reprise", nom, { invite: texte, schema, cwd }, o);
 	if (!s.ok || !s.sortie) throw new Arret(`session ${nom}: ${s.resume}`);
 	return s;
 }

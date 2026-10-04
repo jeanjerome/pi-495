@@ -11,7 +11,7 @@ import { type Gravite, defautDeLaStory, defautsOuverts, marquerCorrige } from ".
 import { invite } from "./invite.ts";
 import { Journal } from "./journal.ts";
 import { type EpicDuPlan, lirePlan, marquerEpic, marquerStory, prochaineEpic, prochaineStory } from "./plan.ts";
-import { lancerSession } from "./session.ts";
+import { sessionInscrite } from "./session.ts";
 import { lireStory } from "./story.ts";
 
 export interface OptionsSuite {
@@ -67,7 +67,10 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 	const journal = new Journal(epic.id, o.racine);
 	const versees = epic.stories.filter((s) => s.statut === "versée");
 	o.annonce?.(`rédaction de la prochaine story de ${epic.id}…`);
-	const s = await lancerSession(
+	const s = await sessionInscrite(
+		journal,
+		"story",
+		"redaction",
 		{
 			invite: invite("redaction", {
 				epic: epic.id,
@@ -86,21 +89,9 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 				required: ["status", "story_id", "message", "resume"],
 			},
 			cwd: o.root,
-			...(o.claude ? { claude: o.claude } : {}),
-			...(o.suivi ? { suivi: (ligne: string) => o.suivi?.("redaction", ligne) } : {}),
 		},
-		journal,
+		o,
 	);
-	journal.inscrire("story", "session", {
-		nom: "redaction",
-		ok: s.ok,
-		cout_usd: s.cout_usd,
-		duree_ms: s.duree_ms,
-		tours: s.tours,
-		session_id: s.session_id,
-		transcript: s.transcript,
-		resume: s.resume.slice(0, 2000),
-	});
 	const arret = (motif: string): Redaction => ({ fait: false, code: 1, motif });
 	if (!s.ok || !s.sortie) return arret(`drafting session for ${epic.id}: ${s.resume}`);
 	const sortie = s.sortie as { status: string; story_id: string; message: string; resume: string };
@@ -161,7 +152,10 @@ export async function corrigerDefauts(
 			const ouverts = defautsOuverts(o.root, seuil);
 			if (ouverts.length === 0) break;
 			o.annonce?.(`choix du prochain défaut à corriger (${ouverts.length} ouvert(s) de gravité ${seuil} ou plus)…`);
-			const s = await lancerSession(
+			const s = await sessionInscrite(
+				journal,
+				"story",
+				"correctif",
 				{
 					invite: invite("correctif", {
 						seuil,
@@ -188,21 +182,9 @@ export async function corrigerDefauts(
 						required: ["status", "story_id", "bug_id", "message", "resume", "a_decider"],
 					},
 					cwd: o.root,
-					...(o.claude ? { claude: o.claude } : {}),
-					...(o.suivi ? { suivi: (ligne: string) => o.suivi?.("correctif", ligne) } : {}),
 				},
-				journal,
+				o,
 			);
-			journal.inscrire("story", "session", {
-				nom: "correctif",
-				ok: s.ok,
-				cout_usd: s.cout_usd,
-				duree_ms: s.duree_ms,
-				tours: s.tours,
-				session_id: s.session_id,
-				transcript: s.transcript,
-				resume: s.resume.slice(0, 2000),
-			});
 			if (!s.ok || !s.sortie) {
 				o.annonce?.(`⛔ session de correctif : ${s.resume}`);
 				return { code: 1, aDecider };
