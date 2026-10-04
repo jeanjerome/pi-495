@@ -1280,3 +1280,31 @@ bugs:
     follow_ups: >
       Find where the status takes the milestone explanation and translate it like the other status lines.
     status: open
+  - bug_id: BUG-2026-10-04T030500
+    date: "2026-10-04"
+    title: "On a Maven project with a test dependency never downloaded, pmd still fails offline after the referential is adopted"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The adoption of the PMD referential resolves the plugins and, since e28s08, the site skin the report goals load,
+      with the network open for that step alone. The pmd control then runs offline behind a build of the reactor. A
+      project whose test-scoped dependency is absent from the local repository fails that offline run, so pmd is not
+      qualified on it.
+    what_expected: >
+      What the offline pmd and cpd runs need is in the local repository once the adoption has run, or the refusal names
+      the missing artifact.
+    steps_to_reproduce:
+      - "On an empty local Maven repository, take a project with a test-scoped dependency it never downloaded, adopt the PMD referential and ask for a quality survey."
+      - "The adoption succeeds, and pmd fails offline on the unresolved test dependency."
+    root_cause: >
+      Not traced: the adoption fetches the plugins and the skin, not the project's own dependencies, which the offline
+      control's build then needs.
+    evidence: >
+      Named by the automated arbitration of e28s08 as outside that story's scope; not reproduced outside its acceptance
+      run.
+    risk_level: low
+    follow_ups: >
+      Find which goal of the offline run needs the test dependency, and either resolve the project's dependencies during
+      the adoption or name the missing artifact in the refusal.
+    status: open
