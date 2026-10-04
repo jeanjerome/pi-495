@@ -678,7 +678,7 @@ Statut : versée
 
 ## R85 — Un commit de l'outil passe par une seule fonction de git.ts
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/suite.ts:47-50 et cycle/src/reprise.ts:204-207 (deux `commiter` identiques) · cycle/src/reprise.ts:264-265 · cycle/src/cycle.ts:118-119, 497-498 · cycle/src/main.ts:167-168
 - Constat : La paire `git add -- …chemins` puis `git commit -q -m message` est écrite six fois, dont deux fois comme une fonction `commiter` identique ; le versement d'une reprise (reprise.ts:264-265) réécrit à la main ce que la fonction du même fichier fait déjà.

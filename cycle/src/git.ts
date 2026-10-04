@@ -71,6 +71,12 @@ export function retirerArbre(cwd: string, path: string): void {
 	git(cwd, ["worktree", "remove", "--force", path]);
 }
 
+/** Stages `chemins` and commits them with `message`. */
+export function commiter(cwd: string, message: string, chemins: string[]): void {
+	git(cwd, ["add", "--", ...chemins]);
+	git(cwd, ["commit", "-q", "-m", message]);
+}
+
 /** Lands `branche` on `cible` as one squashed commit carrying `message`; the branch is kept. */
 export function versementEcrase(cwd: string, branche: string, cible: string, message: string): string {
 	git(cwd, ["checkout", "-q", cible]);

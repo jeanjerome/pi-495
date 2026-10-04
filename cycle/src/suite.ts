@@ -6,7 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { arbrePropre, brancheCourante, git } from "./git.ts";
+import { arbrePropre, brancheCourante, commiter, git } from "./git.ts";
 import { type Gravite, defautDeLaStory, defautsOuverts, marquerCorrige } from "./registre.ts";
 import { invite } from "./invite.ts";
 import { Journal } from "./journal.ts";
@@ -42,11 +42,6 @@ function bloc(root: string, epic: string): string {
 	let fin = debut + 1;
 	while (fin < lignes.length && !/^ {2}- id: /.test(lignes[fin]!) && !/^[a-z]/.test(lignes[fin]!)) fin++;
 	return lignes.slice(debut, fin).join("\n").trimEnd();
-}
-
-function commiter(root: string, message: string, chemins: string[]): void {
-	git(root, ["add", "--", ...chemins]);
-	git(root, ["commit", "-q", "-m", message]);
 }
 
 /** Paths a drafting session may leave modified: the story and the plan, nothing else. */

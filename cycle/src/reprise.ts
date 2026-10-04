@@ -13,6 +13,7 @@ import {
 	arbreDetache,
 	arbrePropre,
 	brancheCourante,
+	commiter,
 	commitsEntre,
 	fichiersChanges,
 	git,
@@ -182,11 +183,6 @@ async function preflightVerte(o: OptionsReprises, journal: Journal, id: string):
 	return n;
 }
 
-function commiter(root: string, message: string, chemins: string[]): void {
-	git(root, ["add", "--", ...chemins]);
-	git(root, ["commit", "-q", "-m", message]);
-}
-
 type Issue = { versee: true; tests: number } | { versee: false };
 
 /** One refactoring, from its branch to its landing or its setting aside. */
@@ -242,8 +238,7 @@ async function conduire(o: OptionsReprises, r: Reprise, testsAvant: number): Pro
 	git(o.root, ["checkout", "-q", o.cible]);
 	git(o.root, ["merge", "--squash", "-q", branche]);
 	marquerReprise(o.root, r.id, "versée");
-	git(o.root, ["add", "--", "specs/reprises.md"]);
-	git(o.root, ["commit", "-q", "-m", message]);
+	commiter(o.root, message, ["specs/reprises.md"]);
 	git(o.root, ["branch", "-q", "-D", branche]);
 	journal.inscrire("reprise", "versement", { commit: revision(o.root), message });
 	o.annonce?.(`${r.id} versée : ${message}`);

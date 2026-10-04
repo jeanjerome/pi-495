@@ -12,6 +12,7 @@ import {
 	arbreDetache,
 	baseDe,
 	brancheCourante,
+	commiter,
 	commitsEntre,
 	estCommitDeTestSeul,
 	git,
@@ -96,8 +97,7 @@ async function pasStory(ctx: Contexte): Promise<Issue> {
 	await preflightVerte(ctx, "story");
 	if (ctx.story.statut === "à faire") {
 		writeFileSync(ctx.story.chemin, avecStatut(storyMarkdown(ctx), "en cours"));
-		git(ctx.root, ["add", "--", ctx.story.chemin]);
-		git(ctx.root, ["commit", "-q", "-m", `docs: the story ${ctx.story.id} is in progress`]);
+		commiter(ctx.root, `docs: the story ${ctx.story.id} is in progress`, [ctx.story.chemin]);
 		ctx.story = lireStory(ctx.story.id, ctx.root);
 	}
 	ctx.journal.inscrire("story", "branche", { nom: brancheCourante(ctx.root), base: base(ctx) });
@@ -475,8 +475,10 @@ async function pasVersement(ctx: Contexte): Promise<Issue> {
 	writeFileSync(ctx.story.chemin, avecStatut(storyMarkdown(ctx), "versée"));
 	const dossier = await exporterDossier(ctx.journal, ctx.root);
 	ctx.journal.inscrire("versement", "fini");
-	git(ctx.root, ["add", "--", ctx.story.chemin, relative(ctx.root, dossier.dir)]);
-	git(ctx.root, ["commit", "-q", "-m", `docs: the story ${ctx.story.id} is landed and its dossier recorded`]);
+	commiter(ctx.root, `docs: the story ${ctx.story.id} is landed and its dossier recorded`, [
+		ctx.story.chemin,
+		relative(ctx.root, dossier.dir),
+	]);
 	return FINI;
 }
 

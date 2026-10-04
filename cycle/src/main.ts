@@ -29,7 +29,7 @@ import {
 import { PREFLIGHT, Executeur } from "./controls.ts";
 import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
-import { commitsEntre, git, revision } from "./git.ts";
+import { commiter, commitsEntre, revision } from "./git.ts";
 import { Journal, type Pas, racineCycle } from "./journal.ts";
 import { marquerStoryListee } from "./plan.ts";
 import { reprendre } from "./reprise.ts";
@@ -164,8 +164,7 @@ async function main(argv: string[]): Promise<number> {
 	const code = await derouler(ctx, id, commande === "auto");
 	// The suite marks the plan itself after each story it drives; a story driven alone is marked here.
 	if (code === 0 && ctx.journal.prochainPas() === null && marquerStoryListee(ctx.root, id)) {
-		git(ctx.root, ["add", "--", "specs/plan.yaml"]);
-		git(ctx.root, ["commit", "-q", "-m", `docs: the plan marks ${id} landed`]);
+		commiter(ctx.root, `docs: the plan marks ${id} landed`, ["specs/plan.yaml"]);
 	}
 	return code;
 }
