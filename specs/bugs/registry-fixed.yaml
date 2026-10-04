@@ -1361,3 +1361,31 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: 426dba3
+  - bug_id: BUG-2026-09-28T163500
+    date: "2026-09-28"
+    title: "A phase refusal names `expected_phase:<phase>` in its structured details, which no /495 subcommand offers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `requirePhase` in `src/domain/change/decide.ts` refuses with `next_actions:
+      ['expected_phase:clarifying']`, which `/495 close` and `/495 revoke` carry in the structured
+      details of their message, the channel an RPC client reads. The text line does not show it.
+    what_expected: >
+      A refusal names only actions the operator can take, in its structured details as in its text.
+    steps_to_reproduce:
+      - "Ask `/495 close q1` on a change in `specifying`."
+      - "The message details carry `next_actions: ['expected_phase:clarifying']`."
+    root_cause: >
+      Present since f48dddf, before the branch that reruns a verification cut short, and reachable
+      independently of it.
+    evidence: >
+      Review record of the branch, round 6, R6-5, reproduced by reviewer A at 37626c6.
+    risk_level: low
+    follow_ups: >
+      R6-6 of the same round: the actions of a stop come from the error, not from the stop's resume
+      rule; a non-retryable error whose code is none of CAPABILITY_MISSING, CONFIGURATION_ERROR or
+      POLICY_DENIED gives a stop a resume lifts that may name only `cancel`; no site of the branch is
+      in that case.
+    status: fixed
+    fixed_in: 2568afa

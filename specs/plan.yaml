@@ -511,7 +511,7 @@ epics:
       - { id: e28s08, status: "versée", title: "PMD et CPD tournent hors ligne sur un dépôt local que seule l'adoption a rempli" }
       - { id: e28s09, status: "versée", title: "Le texte d'un refus du noyau nomme les actions qui en sortent" }
       - { id: e28s10, status: "versée", title: "L'arrêt sur le budget de durée de l'incrément nomme ce qui le lève" }
-      - { id: e28s11, status: "à faire", title: "Un refus hors de sa phase dit la phase attendue sans la donner pour une action" }
+      - { id: e28s11, status: "versée", title: "Un refus hors de sa phase dit la phase attendue sans la donner pour une action" }
 
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
