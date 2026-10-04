@@ -20,7 +20,7 @@ import { jugerCampagne, type EtatLu, type PreuveLue } from "./verdict-campagne.t
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MODELE_PAR_DEFAUT = "anthropic/claude-sonnet-5-5";
-const REPRISES_MAX = 10;
+const RELANCES_MAX = 10;
 const DELAI_COMMANDE_MS = 60 * 60_000;
 /** The options a human answers with in a campaign: adopt the mandate, accept the candidate. */
 const REPONSES = ["adopt", "accept"];
@@ -134,7 +134,7 @@ function termine(etat: EtatLu): boolean {
 }
 
 async function conduire(client: PiRpcClient, dossier: string, objectif: string): Promise<void> {
-	const commandes = [`/495 start ${objectif}`, ...Array.from({ length: REPRISES_MAX }, () => "/495 resume")];
+	const commandes = [`/495 start ${objectif}`, ...Array.from({ length: RELANCES_MAX }, () => "/495 resume")];
 	for (const [i, commande] of commandes.entries()) {
 		if (i > 0 && termine(lireEtat(dossier))) return;
 		console.log(`> ${commande}`);

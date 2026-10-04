@@ -2,7 +2,7 @@
  * The dossier of a story: an append-only journal, one JSON line per event written when it is
  * observed, beside a content-addressed store for what the events point at — a transcript, the output
  * of a control, the findings of a review. The same discipline as the kernel's ledger and object
- * store (ADR-005): nothing is rewritten, and a record cites an object by its digest.
+ * store: nothing is rewritten, and a record cites an object by its digest.
  *
  * The dossier lives under `~/.495/cycle/<story>/` while the story runs, and is exported once, at
  * the landing, under `specs/verifications/<story>/`.
@@ -15,7 +15,7 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 
 export type Pas = "story" | "rouge-vert" | "autocontrole" | "relecture" | "recette" | "versement";
 export const PAS: Pas[] = ["story", "rouge-vert", "autocontrole", "relecture", "recette", "versement"];
-/** A step of a story, or `reprise`, the short path of a refactoring that changes no behaviour (D-80). */
+/** A step of a story, or `reprise`, the short path of a refactoring that changes no behaviour. */
 export type Etape = Pas | "reprise";
 
 export interface Evenement {

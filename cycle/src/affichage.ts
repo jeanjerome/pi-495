@@ -168,6 +168,7 @@ export function lignesDuFlux(brut: string, repo: string): string[] {
 	try {
 		e = JSON.parse(brut) as Ligne;
 	} catch {
+		// A line of the stream that is not JSON carries no event, so it has nothing to show.
 		return [];
 	}
 	const pad = e.parent_tool_use_id ? "    ↳ " : "  ";
@@ -307,6 +308,7 @@ export function sonner(message: string): void {
 		["osascript", ["-e", `display notification ${JSON.stringify(message)} with title "Cycle 495"`]],
 	] as const)
 		spawn(cmd, args, { stdio: "ignore", detached: true })
+			// A sound or a notification that fails must not stop a cycle.
 			.on("error", () => {})
 			.unref();
 }

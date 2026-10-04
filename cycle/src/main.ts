@@ -252,9 +252,9 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		const cout = sessions.reduce((sum, e) => sum + Number(e.cout_usd), 0);
 		sortie.ecrire(cloture(pas, issue.statut, Date.now() - started, cout, commitsEntre(ctx.root, avant)));
 		if (auto && issue.statut !== "fini") {
-			const suite = await apresIssue(ctx, pas, issue, reouvertAvant);
-			if (suite.continuer) continue;
-			return rendre(1, "⛔", `${pas} arrêté`, `⛔ ${suite.motif}`);
+			const poursuite = await apresIssue(ctx, pas, issue, reouvertAvant);
+			if (poursuite.continuer) continue;
+			return rendre(1, "⛔", `${pas} arrêté`, `⛔ ${poursuite.motif}`);
 		}
 		if (issue.statut === "proprietaire") {
 			return rendre(0, "?", `${pas} attend votre décision`, issue.question);

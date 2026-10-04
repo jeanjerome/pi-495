@@ -98,13 +98,16 @@ export class Executeur {
 		this.backend = sandbox.backend;
 	}
 
-	/** Runs `controle` on the tree at `arbre`, a checkout of `story`'s branch. */
-	async executer(controle: Controle, arbre: string, story: string): Promise<Preuve> {
+	/**
+	 * Runs `controle` on the tree at `arbre`. `dossier` names the run the proof belongs to — a story,
+	 * a refactoring, or the run of refactorings — and keys the protocol and the candidate digest.
+	 */
+	async executer(controle: Controle, arbre: string, dossier: string): Promise<Preuve> {
 		const rev = revision(arbre);
-		const digest = digestValue({ story, rev });
+		const digest = digestValue({ story: dossier, rev });
 		const { evidence } = await this.runner.runControl({
 			control: definition(controle, arbre),
-			protocol: { protocol_id: `cycle:${story}`, revision: 1, content_digest: digestValue(controle) },
+			protocol: { protocol_id: `cycle:${dossier}`, revision: 1, content_digest: digestValue(controle) },
 			candidate: { candidate_id: rev, manifest_digest: digest, base_digest: digest, workspace_id: arbre },
 			subject: { kind: "candidate", id: rev, revision: 1, digest },
 			workspace_path: arbre,
@@ -133,10 +136,10 @@ export class Executeur {
 	}
 
 	/** Runs `controle` at `sha` in a detached tree of `depot`, which is removed afterwards. */
-	async executerA(controle: Controle, depot: string, sha: string, story: string): Promise<Preuve> {
+	async executerA(controle: Controle, depot: string, sha: string, dossier: string): Promise<Preuve> {
 		const arbre = arbreDetache(depot, sha);
 		try {
-			return await this.executer(controle, arbre, story);
+			return await this.executer(controle, arbre, dossier);
 		} finally {
 			retirerArbre(depot, arbre);
 		}

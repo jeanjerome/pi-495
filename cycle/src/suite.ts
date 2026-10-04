@@ -45,7 +45,7 @@ function fichierDeLaStory(root: string, id: string): boolean {
 	}
 }
 
-/** Paths a drafting session may leave modified: the story and the plan, nothing else. */
+/** Paths left modified outside the stories and the plan, the only files a drafting session may change. */
 function horsDeLaRedaction(root: string): string[] {
 	return (
 		git(root, ["status", "--porcelain"])

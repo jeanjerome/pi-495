@@ -16,16 +16,16 @@ import { lireStory } from "./story.ts";
 /** How many times a story may go back to the red-green before the run gives it to the owner. */
 export const ECARTS_MAX = 3;
 
-export type Suite = { continuer: true } | { continuer: false; motif: string };
+export type Poursuite = { continuer: true } | { continuer: false; motif: string };
 
-const CONTINUER: Suite = { continuer: true };
+const CONTINUER: Poursuite = { continuer: true };
 
-function arret(motif: string): Suite {
+function arret(motif: string): Poursuite {
 	return { continuer: false, motif };
 }
 
 /** What follows a step that would have waited for the owner or stopped on a gap it reopened. */
-export async function apresIssue(ctx: Contexte, pas: Pas, issue: Issue, reouvertAvant: number): Promise<Suite> {
+export async function apresIssue(ctx: Contexte, pas: Pas, issue: Issue, reouvertAvant: number): Promise<Poursuite> {
 	if (issue.statut === "fini") return CONTINUER;
 	try {
 		if (issue.statut === "proprietaire") {
@@ -45,14 +45,14 @@ function lastReouverture(ctx: Contexte): unknown {
 	return ctx.journal.dernier("rouvert")?.motif ?? "";
 }
 
-async function reouvrirSous(ctx: Contexte, motif: string, epingle: boolean): Promise<Suite> {
+async function reouvrirSous(ctx: Contexte, motif: string, epingle: boolean): Promise<Poursuite> {
 	if (ctx.journal.reouvertures() >= ECARTS_MAX)
 		return arret(`the story went back to the red-green ${ECARTS_MAX} times: the owner decides what is left\n${motif}`);
 	rouvrir(ctx, motif);
 	return epingle ? await epingler(ctx, motif) : CONTINUER;
 }
 
-async function arbitrer(ctx: Contexte, question: string): Promise<Suite> {
+async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 	const preparee = ctx.journal.dernier("preparee", "recette");
 	const registre = git(ctx.root, ["diff", `${baseDe(ctx.root, ctx.cible)}...HEAD`, "--", "specs/bugs/registry.yaml"]);
 	const s = await session(
@@ -89,7 +89,7 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Suite> {
 }
 
 /** Writes a gap into the story, checks the story still holds its format, and leaves the tree clean. */
-async function epingler(ctx: Contexte, ecart: string): Promise<Suite> {
+async function epingler(ctx: Contexte, ecart: string): Promise<Poursuite> {
 	const avant = ctx.story.taches.length + ctx.story.scenarios.length;
 	const s = await session(
 		ctx,

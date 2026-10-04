@@ -775,7 +775,7 @@ Statut : versée
 
 ## R95 — Les noms et les commentaires de l'outil disent ce que le code fait
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/automate.ts:19 et cycle/src/main.ts:36, 246 (`Suite`) · cycle/src/campagne.ts:23, 137 (`REPRISES_MAX`) · cycle/src/controls.ts:99-100, 137 (`story`) · cycle/src/suite.ts:52 · cycle/src/journal.ts:5, 18 · cycle/src/affichage.ts:170, 310
 - Constat : main.ts importe la fonction `suite` puis la masque par `const suite = await apresIssue(...)` dans `derouler`, et le type `Suite` d'automate.ts entretient la confusion. `REPRISES_MAX` de campagne.ts compte des `/495 resume`, alors que « reprise » désigne partout ailleurs le refactoring à comportement constant que borne `CYCLE_495_REPRISES_MAX`. `executer(controle, arbre, story)` reçoit aussi l'identifiant d'une reprise ou `"reprises"` (reprise.ts:183), et son commentaire parle de la branche d'une story. Le commentaire de `horsDeLaRedaction` annonce les chemins que la rédaction peut laisser modifiés, alors que la fonction rend les chemins modifiés hors de la story et du plan. journal.ts cite `(ADR-005)` et `(D-80)` après une phrase qui dit déjà la chose. Deux abandons d'erreur de l'affichage (`catch { return []; }`, `.on("error", () => {})`) ne disent pas pourquoi ils sont sans conséquence.
