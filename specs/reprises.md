@@ -804,7 +804,7 @@ Statut : versée
 
 ## R98 — Les lignes que le terminal montre sont tenues par des tests
 
-Statut : à faire
+Statut : versée
 
 - Où : cycle/src/affichage.ts · test/cycle/ (aucun test ne cite `lignesDuFlux`, `ligneDuJournal`, `duree`, `ouverture` ni `cloture`)
 - Constat : `lignesDuFlux` interprète le flux `stream-json` de Claude Code, la sortie de `git commit` (affichage.ts:148) et les totaux de node:test (86-91) ; `ligneDuJournal`, `duree`, `ouverture` et `cloture` mettent en forme les événements. Un changement du format du flux rendrait l'affichage muet sans qu'aucun test le dise.
