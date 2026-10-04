@@ -3,7 +3,8 @@
  * one of the reference targets under `cycle/campagnes/`, and the dossier it leaves is read back to say
  * whether 495 qualified, ran and read every control it declared (`verdict-campagne.ts`).
  *
- * Usage: `npm run campagne -- <npm|maven> [--thinking <level>] [--model <provider/id>]`.
+ * Usage: `npm run campagne -- <npm|maven> [--thinking <level>] [--model <provider/id>] [--extension <path>]`.
+ * `--extension` loads one more Pi extension beside 495, such as the provider the model comes from.
  *
  * The campaign lives under `~/.495/campagnes/<target>-<timestamp>/`: `cible/` is the copy a change is
  * made in, `dossier/` is 495's data directory. The first needs the network once, to install what the
@@ -112,7 +113,9 @@ async function main(): Promise<number> {
 	const technologie = args[0] ?? "";
 	const cible = CIBLES[technologie];
 	if (!cible) {
-		console.error(`usage: npm run campagne -- <${Object.keys(CIBLES).join("|")}> [--thinking <level>] [--model <id>]`);
+		console.error(
+			`usage: npm run campagne -- <${Object.keys(CIBLES).join("|")}> [--thinking <level>] [--model <id>] [--extension <path>]`,
+		);
 		return 2;
 	}
 	execFileSync("npm", ["run", "build"], { cwd: RACINE, stdio: "inherit" });
@@ -148,6 +151,7 @@ async function main(): Promise<number> {
 			option(args, "--thinking", "high"),
 			"-e",
 			extension,
+			...(args.includes("--extension") ? ["-e", option(args, "--extension", "")] : []),
 		],
 		cwd: dossierCible,
 		env: {

@@ -18,8 +18,10 @@ npm run campagne -- npm
 npm run campagne -- maven
 ```
 
-Options : `--thinking <niveau>` (`high` par défaut) et `--model <fournisseur/id>`
-(`anthropic/claude-sonnet-5-5` par défaut). La commande reconstruit `dist/`, copie la cible sous
+Options : `--thinking <niveau>` (`high` par défaut), `--model <fournisseur/id>`
+(`anthropic/claude-sonnet-5-5` par défaut) et `--extension <chemin>`, qui charge une extension Pi de plus
+à côté de 495. Pi est lancé sans les extensions de sa configuration (`-ne`) : un fournisseur qu'une
+extension déclare ne se charge que par cette option. La commande reconstruit `dist/`, copie la cible sous
 `~/.495/campagnes/<cible>-<horodatage>/cible`, y installe ce qu'elle déclare (le réseau est ouvert pour
 cela seul ; Maven remplit `~/.m2`), conduit `/495 start` puis `/495 resume` jusqu'à ce que le
 changement s'arrête, et lit le dossier laissé sous `…/dossier`. Un projet npm demande `npm`, un projet
