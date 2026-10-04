@@ -97,7 +97,7 @@ export function duree(ms: number): string {
 	return `${sec} s`;
 }
 
-function argent(usd: number): string {
+export function argent(usd: number): string {
 	return `${usd.toFixed(2).replace(".", ",")} $`;
 }
 

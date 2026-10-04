@@ -16,6 +16,7 @@ import {
 	Sortie,
 	Titre,
 	annonce,
+	argent,
 	cloture,
 	duree,
 	etiquetee,
@@ -56,22 +57,35 @@ function etat(ctx: Contexte): void {
 	for (const e of ctx.journal.lire()) {
 		const extra =
 			e.genre === "session"
-				? ` ${e.nom} · ${duree(Number(e.duree_ms))} · ${Number(e.cout_usd).toFixed(2)} $`
+				? ` ${e.nom} · ${duree(Number(e.duree_ms))} · ${argent(Number(e.cout_usd))}`
 				: e.genre === "controle"
 					? ` ${e.controle} · ${e.verdict}`
 					: e.genre === "tour"
 						? ` tour ${e.tour} · porte ${e.porte} · ${e.constats} constat(s)`
 						: "";
-		console.log(`  ${e.at.slice(11, 19)}  ${e.pas.padEnd(12)} ${e.genre.padEnd(10)}${extra}`);
+		console.log(`  ${new Date(e.at).toLocaleTimeString("fr-FR")}  ${e.pas.padEnd(12)} ${e.genre.padEnd(10)}${extra}`);
 	}
 	console.log(`prochain pas : ${ctx.journal.prochainPas() ?? "aucun, la story est versée"}`);
 }
 
+/**
+ * A number the environment sets for the run, or `undefined` when it sets none. Anything else is
+ * refused: a ceiling read as `NaN` would never be reached, and an unattended run would not stop.
+ */
+function reglage(nom: string): number | undefined {
+	const brut = process.env[nom];
+	if (brut === undefined) return undefined;
+	if (!/^\d+(\.\d+)?$/.test(brut))
+		throw new Error(`${nom}=${JSON.stringify(brut)} : un nombre positif ou nul est attendu`);
+	return Number(brut);
+}
+
+const REGLAGES = ["CYCLE_495_PLAFOND_USD", "CYCLE_495_REPRISES_MAX", "CYCLE_495_DEFAUTS_MAX"];
+
 /** The ceiling of one phase of repairs, when the environment sets one. */
 function defautsMax(): { defautsMax?: number } {
-	return process.env.CYCLE_495_DEFAUTS_MAX !== undefined
-		? { defautsMax: Number(process.env.CYCLE_495_DEFAUTS_MAX) }
-		: {};
+	const max = reglage("CYCLE_495_DEFAUTS_MAX");
+	return max !== undefined ? { defautsMax: max } : {};
 }
 
 /** The options of the unattended run and of one phase of repairs, the stories driven unattended. */
@@ -113,6 +127,7 @@ async function lancerDefauts(seuil: string | undefined): Promise<number> {
 async function lancerReprises(): Promise<number> {
 	const root = process.cwd();
 	const racine = racineCycle();
+	const max = reglage("CYCLE_495_REPRISES_MAX");
 	const code = await reprendre({
 		root,
 		racine,
@@ -120,7 +135,7 @@ async function lancerReprises(): Promise<number> {
 		executeur: executeurNonConfine(racine),
 		preflight: PREFLIGHT,
 		build: { id: "build", commande: ["npm", "run", "build"], reseau: "denied", timeout_ms: 300_000 },
-		...(process.env.CYCLE_495_REPRISES_MAX ? { max: Number(process.env.CYCLE_495_REPRISES_MAX) } : {}),
+		...(max !== undefined ? { max } : {}),
 		annonce: (texte) => console.log(annonce(texte)),
 		suivi: (nom, brut) => {
 			for (const ligne of lignesDuFlux(brut, root)) console.log(etiquetee(nom, ligne));
@@ -130,17 +145,29 @@ async function lancerReprises(): Promise<number> {
 	return code;
 }
 
+const USAGE =
+	"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]";
+const COMMANDES = ["etat", "suivre", "auto", "accepte", "ecart"];
+
 async function main(argv: string[]): Promise<number> {
 	const [id, commande, ...reste] = argv;
 	if (!id) {
-		console.error(
-			"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]",
-		);
+		console.error(USAGE);
+		return 2;
+	}
+	try {
+		for (const nom of REGLAGES) reglage(nom);
+	} catch (e) {
+		console.error(`⛔ ${messageOf(e)}`);
 		return 2;
 	}
 	if (id === "suite") return await lancerSuite();
 	if (id === "defauts") return await lancerDefauts(commande);
 	if (id === "reprises") return await lancerReprises();
+	if (commande !== undefined && !COMMANDES.includes(commande)) {
+		console.error(USAGE);
+		return 2;
+	}
 	let ctx: Contexte;
 	try {
 		ctx = contexte(id);
@@ -153,7 +180,7 @@ async function main(argv: string[]): Promise<number> {
 		etat(ctx);
 		return 0;
 	}
-	if (commande === "suivre") await suivre(direct, id);
+	if (commande === "suivre") return await suivre(direct, id);
 	if (commande === "accepte") {
 		accepter(ctx, reste.join(" "));
 		console.log(`${id} : recette acceptée.`);
@@ -174,11 +201,12 @@ async function main(argv: string[]): Promise<number> {
 }
 
 let interruption: (() => void) | null = null;
-process.on("SIGINT", () => interruption?.());
+// A run in progress says how to resume it; anything else, such as following a story, just leaves.
+process.on("SIGINT", () => (interruption ? interruption() : process.exit(130)));
 
 /** The most one story may spend before an unattended run gives it back to the owner. */
 function plafond(): number {
-	return Number(process.env.CYCLE_495_PLAFOND_USD ?? 80);
+	return reglage("CYCLE_495_PLAFOND_USD") ?? 80;
 }
 
 function coutTotal(ctx: Contexte): number {
@@ -197,6 +225,7 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 	const sortie = new Sortie(direct);
 	const titre = new Titre();
 	const lancement = Date.now();
+	let premier = true;
 	let depense = 0;
 	let courant: Pas | null = null;
 	ctx.journal.observateur = (e) => {
@@ -245,7 +274,8 @@ async function derouler(ctx: Contexte, id: string, auto: boolean): Promise<numbe
 		const avant = revision(ctx.root);
 		const reouvertAvant = ctx.journal.reouvertures();
 		courant = pas;
-		sortie.ecrire(ouverture(id, pas, started === lancement ? null : started - lancement, depense));
+		sortie.ecrire(ouverture(id, pas, premier ? null : started - lancement, depense));
+		premier = false;
 		titre.suivre(`▶ ${id} · ${pas}`);
 		const issue = await conduirePas(ctx, pas);
 		titre.arreter();
