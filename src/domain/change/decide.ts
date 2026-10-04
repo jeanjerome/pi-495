@@ -126,9 +126,10 @@ class Ctx {
 	}
 	requirePhase(...phases: Phase[]): void {
 		if (!phases.includes(this.state.phase))
-			this.fail("INVALID_TRANSITION", `operation ${this.command.type} is not allowed in phase ${this.state.phase}`, [
-				`expected_phase:${phases.join("|")}`,
-			]);
+			this.fail(
+				"INVALID_TRANSITION",
+				`operation ${this.command.type} is not allowed in phase ${this.state.phase}; it is allowed in ${phases.join(", ")}`,
+			);
 	}
 	requireActive(): void {
 		if (!isActive(this.state))
