@@ -24,7 +24,11 @@ Une question de produit que la story ne tranche pas, deux comportements égaleme
 prends celui qui arrête plutôt que celui qui laisse passer, et dis-le dans la note. Ne tranche pas
 au nom du propriétaire ce que la story ne lui a pas fait décider.
 
-Ne modifie aucun fichier, ne lance aucune commande `cycle`, ne pousse rien.
+Un défaut que tu constates et que le registre `specs/bugs/registry.yaml` ne porte pas encore, plus
+ancien que la branche ou introduit sans affaiblir une garantie de la story : inscris-le au registre,
+au format des entrées qui y sont, et commite ce seul fichier (`docs: the registry records <le
+défaut, en anglais>`). La note le nomme. Ne modifie aucun autre fichier, ne lance aucune commande
+`cycle`, ne pousse rien.
 
 Ta sortie structurée : `decision` (`accepte` ou `ecart`), `note` (une ou deux phrases en français
 simple, qui iront au journal comme l'accord ou l'écart), `ecart` (ce qui manque, en français, avec

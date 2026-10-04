@@ -6,7 +6,7 @@ import { ECARTS_MAX, apresIssue } from "../../cycle/src/automate.ts";
 import { conduirePas, rouvrir } from "../../cycle/src/cycle.ts";
 import { revision } from "../../cycle/src/git.ts";
 import { COMMIT, contexte, depot, fauxClaude } from "../helpers/cycle.ts";
-import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
+import { gitCmd, removedAfterEach, tempDir } from "../helpers/fixtures.ts";
 
 const cleanups = removedAfterEach();
 
@@ -26,6 +26,15 @@ import { readFileSync } from "node:fs";
 export default (invite, cwd) => {
   if (invite.startsWith("Arbitrage de la recette")) return ${JSON.stringify(sortie)};
   if (invite.startsWith("La story e01s05 est rouverte")) { ${epingle} }
+  throw new Error("unexpected prompt: " + invite.slice(0, 60));
+};`;
+}
+
+/** An arbitration that accepts after `action`, run in the repository as `invite` and `cwd`. */
+function accepteApres(action: string): string {
+	return `${COMMIT}
+export default (invite, cwd) => {
+  if (invite.startsWith("Arbitrage de la recette")) { mkdirSync(cwd + "/specs/bugs", { recursive: true }); ${action} return { decision: "accepte", note: "tenu", ecart: "", raisons: "r" }; }
   throw new Error("unexpected prompt: " + invite.slice(0, 60));
 };`;
 }
@@ -55,6 +64,34 @@ describe("the cycle answers in the owner's place", () => {
 		assert.equal(arbitrage?.decision, "accepte");
 		assert.equal(ctx.journal.dernier("acceptee", "recette")?.note, "arbitrage automatique : tout est tenu");
 		assert.equal(ctx.journal.prochainPas(), "versement");
+	});
+
+	it("lets the arbitration record in the registry a defect it finds there missing, and accepts", async () => {
+		const ctx = await enRecette(
+			accepteApres(
+				`if (invite.includes("inscris-le au registre")) commit(cwd, { "specs/bugs/registry.yaml": "bugs:\\n  - bug_id: BUG-X\\n" }, "docs: the registry records X");`,
+			),
+		);
+		assert.deepEqual(await apresIssue(ctx, "recette", QUESTION, 0), { continuer: true });
+		assert.equal(gitCmd(ctx.root, ["log", "-1", "--format=%s"]).trim(), "docs: the registry records X");
+		assert.equal(ctx.journal.prochainPas(), "versement");
+	});
+
+	it("stops when the arbitration changes a file other than the registry, naming it", async () => {
+		const ctx = await enRecette(
+			accepteApres(`commit(cwd, { "src/greet.js": "export const greet = () => 1;\\n" }, "fix: greet");`),
+		);
+		const poursuite = await apresIssue(ctx, "recette", QUESTION, 0);
+		assert.equal(poursuite.continuer, false);
+		assert.match(poursuite.continuer ? "" : poursuite.motif, /beyond the registry: src\/greet\.js/);
+		assert.equal(ctx.journal.prochainPas(), "recette");
+	});
+
+	it("stops when the arbitration leaves the tree modified", async () => {
+		const ctx = await enRecette(accepteApres(`writeFileSync(cwd + "/specs/bugs/registry.yaml", "bugs:\\n");`));
+		const poursuite = await apresIssue(ctx, "recette", QUESTION, 0);
+		assert.deepEqual(poursuite, { continuer: false, motif: "the arbitration left the tree modified" });
+		assert.equal(ctx.journal.prochainPas(), "recette");
 	});
 
 	it("names a gap, writes it into the story, and sends the story back to the red-green", async () => {

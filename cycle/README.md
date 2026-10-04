@@ -132,7 +132,9 @@ Trois réponses du propriétaire sont déléguées, chacune un acte inscrit au d
   décide `accepte` ou `ecart` (`prompts/arbitrage.md`). Un écart est celui d'une promesse écrite ou
   d'une garantie de sécurité non tenue, d'un cas que le code d'avant arrêtait et que la branche laisse
   passer, ou d'un défaut de la branche qui affaiblit une garantie de la story ; sinon l'accord
-  emporte une note qui nomme ce qui reste au registre et ce que la recette n'a pas exercé. Une
+  emporte une note qui nomme ce qui reste au registre et ce que la recette n'a pas exercé. Un défaut
+  que l'arbitrage constate et que le registre ne porte pas, il l'y inscrit et le commite ; l'outil
+  s'arrête s'il touche un autre fichier ou laisse l'arbre modifié. Une
   question de produit que la story ne tranche pas se règle par le comportement qui arrête. La décision
   est inscrite avec `origine: automate`.
 - **L'écart.** Que l'arbitrage le nomme ou que la recette le rouvre, une session l'écrit dans la story

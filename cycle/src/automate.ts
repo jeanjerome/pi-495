@@ -9,10 +9,12 @@
 import { readFileSync } from "node:fs";
 import { messageOf } from "../../src/domain/errors.ts";
 import { type Contexte, type Issue, Blocage, accepter, rouvrir, session } from "./cycle.ts";
-import { arbrePropre, baseDe, git, revision } from "./git.ts";
+import { arbrePropre, baseDe, fichiersChanges, git, revision } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Pas } from "./journal.ts";
 import { lireStory } from "./story.ts";
+
+const REGISTRE = "specs/bugs/registry.yaml";
 
 /** How many times a story may go back to the red-green before the run gives it to the owner. */
 export const ECARTS_MAX = 3;
@@ -60,7 +62,8 @@ async function reouvrirSous(
 
 async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 	const preparee = ctx.journal.dernier("preparee", "recette");
-	const registre = git(ctx.root, ["diff", `${baseDe(ctx.root, ctx.cible)}...HEAD`, "--", "specs/bugs/registry.yaml"]);
+	const registre = git(ctx.root, ["diff", `${baseDe(ctx.root, ctx.cible)}...HEAD`, "--", REGISTRE]);
+	const avant = revision(ctx.root);
 	const s = await session(
 		ctx,
 		"recette",
@@ -85,6 +88,10 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 		},
 	);
 	const sortie = s.sortie as { decision: string; note: string; ecart: string; raisons: string };
+	// The arbitration may record in the registry a defect it finds missing there, and nothing else.
+	if (!arbrePropre(ctx.root)) return arret("the arbitration left the tree modified");
+	const autres = fichiersChanges(ctx.root, avant).filter((f) => f !== REGISTRE);
+	if (autres.length > 0) return arret(`the arbitration changed files beyond the registry: ${autres.join(", ")}`);
 	ctx.journal.inscrire("recette", "arbitrage", { ...sortie, origine: "automate" });
 	if (sortie.decision === "accepte") {
 		accepter(ctx, `arbitrage automatique : ${sortie.note}`);
