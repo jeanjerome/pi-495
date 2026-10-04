@@ -43,7 +43,8 @@ export interface Contexte {
 
 export type Issue =
 	| { statut: "fini" }
-	| { statut: "proprietaire"; question: string }
+	// `nonTenues`: the promises the review left unkept, when the review is what asks the owner.
+	| { statut: "proprietaire"; question: string; nonTenues?: string }
 	| { statut: "bloque"; motif: string };
 
 const FINI: Issue = { statut: "fini" };
@@ -108,7 +109,10 @@ async function pasStory(ctx: Contexte): Promise<Issue> {
 
 function ecartEnCours(ctx: Contexte): string {
 	const rouvert = ctx.journal.dernier("rouvert");
-	return rouvert ? `\n\nÉcart trouvé à la recette, seul objet de ce passage :\n${String(rouvert.motif)}\n` : "";
+	if (!rouvert) return "";
+	const origine =
+		rouvert.pas === "relecture" ? "Promesses que la relecture a laissées non tenues" : "Écart trouvé à la recette";
+	return `\n\n${origine}, seul objet de ce passage :\n${String(rouvert.motif)}\n`;
 }
 
 async function pasRougeVert(ctx: Contexte): Promise<Issue> {
@@ -340,11 +344,14 @@ async function pasRelecture(ctx: Contexte): Promise<Issue> {
 						? "La porte est passée : corrige ce qui n'ajoute aucun comportement, inscris le reste au registre."
 						: "C'était le dernier tour : ce qui reste s'inscrit au registre, rien ne se corrige ici.",
 				);
-			if (tri.porte === "fail" && fin.proprietaire.length > 0)
+			if (tri.porte === "fail" && fin.proprietaire.length > 0) {
+				const nonTenues = fin.proprietaire.map((c) => `- ${c.id} (${c.scenario}) : ${c.constat}`).join("\n");
 				return {
 					statut: "proprietaire",
-					question: `Après ${tour} tours, le code ne tient pas ${fin.proprietaire.length} promesse(s) :\n${fin.proprietaire.map((c) => `- ${c.id} (${c.scenario}) : ${c.constat}`).join("\n")}\nDécidez : \`cycle ${ctx.story.id} accepte\` verse tel quel, sinon corrigez et relancez.`,
+					question: `Après ${tour} tours, le code ne tient pas ${fin.proprietaire.length} promesse(s) :\n${nonTenues}\nDécidez : \`cycle ${ctx.story.id} accepte\` verse tel quel, sinon corrigez et relancez.`,
+					nonTenues,
 				};
+			}
 			return FINI;
 		}
 		await reponse(
@@ -434,8 +441,9 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 	};
 }
 
-export function rouvrir(ctx: Contexte, motif: string): void {
-	ctx.journal.inscrire("recette", "rouvert", { motif, tete: revision(ctx.root) });
+/** Sends the story back to the red-green, for a gap of the acceptance run or a promise the review left unkept. */
+export function rouvrir(ctx: Contexte, motif: string, origine: "recette" | "relecture" = "recette"): void {
+	ctx.journal.inscrire(origine, "rouvert", { motif, tete: revision(ctx.root) });
 	ctx.journal.inscrire("story", "fini");
 }
 

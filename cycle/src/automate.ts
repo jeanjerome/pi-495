@@ -32,7 +32,7 @@ export async function apresIssue(ctx: Contexte, pas: Pas, issue: Issue, reouvert
 		if (issue.statut === "proprietaire") {
 			if (pas === "recette") return await arbitrer(ctx, issue.question);
 			// A promise the review left unkept is corrected, never waived: the story already says it.
-			return reouvrirSous(ctx, issue.question, false);
+			return reouvrirSous(ctx, issue.nonTenues ?? issue.question, false, "relecture");
 		}
 		if (ctx.journal.reouvertures() > reouvertAvant) return await epingler(ctx, String(lastReouverture(ctx)));
 		return arret(issue.motif);
@@ -46,10 +46,15 @@ function lastReouverture(ctx: Contexte): unknown {
 	return ctx.journal.dernier("rouvert")?.motif ?? "";
 }
 
-async function reouvrirSous(ctx: Contexte, motif: string, epingle: boolean): Promise<Poursuite> {
+async function reouvrirSous(
+	ctx: Contexte,
+	motif: string,
+	epingle: boolean,
+	origine: "recette" | "relecture" = "recette",
+): Promise<Poursuite> {
 	if (ctx.journal.reouvertures() >= ECARTS_MAX)
 		return arret(`the story went back to the red-green ${ECARTS_MAX} times: the owner decides what is left\n${motif}`);
-	rouvrir(ctx, motif);
+	rouvrir(ctx, motif, origine);
 	return epingle ? await epingler(ctx, motif) : CONTINUER;
 }
 

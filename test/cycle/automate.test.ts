@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ECARTS_MAX, apresIssue } from "../../cycle/src/automate.ts";
 import { conduirePas, rouvrir } from "../../cycle/src/cycle.ts";
 import { revision } from "../../cycle/src/git.ts";
 import { COMMIT, contexte, depot, fauxClaude } from "../helpers/cycle.ts";
+import { removedAfterEach, tempDir } from "../helpers/fixtures.ts";
+
+const cleanups = removedAfterEach();
 
 /** The pass of a session that writes a scenario and a task into the story, and commits the story. */
 const EPINGLE = `
@@ -73,10 +78,26 @@ describe("the cycle answers in the owner's place", () => {
 
 	it("sends a promise the review left unkept back to the red-green without asking any session", async () => {
 		const ctx = await enRecette("export default () => { throw new Error('no session expected'); };");
-		const question = "Après 2 tours, le code ne tient pas 1 promesse(s)";
-		assert.deepEqual(await apresIssue(ctx, "relecture", { statut: "proprietaire", question }, 0), { continuer: true });
-		assert.equal(ctx.journal.dernier("rouvert", "recette")?.motif, question);
+		const nonTenues = "- A2-1 (greet shouts) : the greeting is lower case";
+		const question = `Après 2 tours, le code ne tient pas 1 promesse(s) :\n${nonTenues}\nDécidez : \`cycle e01s05 accepte\` verse tel quel, sinon corrigez et relancez.`;
+		assert.deepEqual(await apresIssue(ctx, "relecture", { statut: "proprietaire", question, nonTenues }, 0), {
+			continuer: true,
+		});
+		assert.equal(ctx.journal.dernier("rouvert", "relecture")?.motif, nonTenues);
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
+	});
+
+	it("tells the red-green that the promises it reopens on come from the review, not from the acceptance run", async () => {
+		const invite = join(tempDir("495-", cleanups), "invite.txt");
+		const ctx = await enRecette(`import { writeFileSync } from "node:fs";
+export default (texte) => { writeFileSync(${JSON.stringify(invite)}, texte); return { status: "bloque", taches: [], resume: "stop" }; };`);
+		const nonTenues = "- A2-1 (greet shouts) : the greeting is lower case";
+		await apresIssue(ctx, "relecture", { statut: "proprietaire", question: "Décidez", nonTenues }, 0);
+		await conduirePas(ctx, "rouge-vert");
+		const texte = readFileSync(invite, "utf8");
+		assert.match(texte, /Promesses que la relecture a laissées non tenues, seul objet de ce passage :\n- A2-1/);
+		assert.doesNotMatch(texte, /recette/i);
+		assert.doesNotMatch(texte, /accepte/);
 	});
 
 	it("writes into the story a gap the acceptance run reopened by itself", async () => {
