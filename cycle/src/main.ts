@@ -97,6 +97,9 @@ function optionsSuite(): OptionsSuite {
 		deroulerStory: async (id) => derouler(contexte(id), id, true),
 		...defautsMax(),
 		annonce: (texte) => console.log(annonce(texte)),
+		suivi: (nom, brut) => {
+			for (const ligne of lignesDuFlux(brut, process.cwd())) console.log(etiquetee(nom, ligne));
+		},
 	};
 }
 

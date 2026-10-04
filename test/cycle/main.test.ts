@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { brancheCourante } from "../../cycle/src/git.ts";
@@ -93,6 +93,31 @@ describe("the entry point of the cycle", () => {
 		const direct = readFileSync(join(b.racine, "e01s05", "en-direct.log"), "utf8");
 		assert.match(direct, /▶ e01s05 · story/);
 		assert.doesNotMatch(direct, /depuis/);
+	});
+
+	it("shows, during a phase of repairs, the stream of the session that chooses the defect", () => {
+		const b = banc();
+		mkdirSync(join(b.root, "specs", "bugs"), { recursive: true });
+		writeFileSync(
+			join(b.root, "specs", "bugs", "registry.yaml"),
+			'bugs:\n  - bug_id: BUG-2026-10-04T120000\n    title: "greet forgets the name"\n    severity: high\n    status: open\n',
+		);
+		writeFileSync(
+			join(b.root, "specs", "plan.yaml"),
+			'epics:\n  - id: e28\n    title: "Correctifs"\n    status: à faire\n    stories: []\n',
+		);
+		execFileSync("git", ["add", "-A"], { cwd: b.root });
+		execFileSync("git", ["commit", "-q", "-m", "docs: the plan and the registry list a defect"], { cwd: b.root });
+		const sortie = { status: "aucun", story_id: "", bug_id: "", message: "", resume: "none", a_decider: [] };
+		const claude = join(b.env.PATH!, "claude");
+		writeFileSync(
+			claude,
+			`#!${NODE}\nconsole.log(${JSON.stringify(JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "je lis le registre" }] } }))});\nconsole.log(${JSON.stringify(JSON.stringify({ type: "result", is_error: false, structured_output: sortie }))});\n`,
+		);
+		chmodSync(claude, 0o755);
+		const r = cycle(["defauts", "low"], b);
+		assert.equal(r.code, 0, r.erreur);
+		assert.match(r.sortie, /correctif +je lis le registre/);
 	});
 
 	it("leaves on Ctrl-C while it follows a story from another terminal", async () => {
