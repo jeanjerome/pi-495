@@ -1334,3 +1334,30 @@ bugs:
       `/495 revoke` refused. The fix adds a behavior, so it follows the review gate.
     status: fixed
     fixed_in: 5f57243
+  - bug_id: BUG-2026-09-28T163400
+    date: "2026-09-28"
+    title: "The exhausted increment duration budget names no way out, and a resume in the same session loops on it"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `BUDGET_EXHAUSTED` on the increment duration becomes an `execution_error` stop
+      (`src/application/harness.ts`), which a resume always lifts: `/495 status` reads `blocked:
+      execution_error — BUDGET_EXHAUSTED: increment duration budget exhausted` with no action,
+      `/495 resume` returns `ready`, and the next step blocks on the same refusal. IH-07 extends the
+      attempts, not the duration.
+    what_expected: >
+      The stop says what lifts it: a raised `policy.budgets.increment_ms` in the configuration,
+      which takes effect in a new session, as the tool-call bound's stop already says.
+    steps_to_reproduce:
+      - "Run a change with `policy.budgets.increment_ms: 0`."
+      - "`/495 advance` blocks on BUDGET_EXHAUSTED; `/495 resume` returns ready; the next advance blocks again."
+    root_cause: >
+      The loop predates the branch that reruns a verification cut short; that branch removed the
+      only indication the stop carried, `request_decision:IH-07`, which was wrong.
+    evidence: >
+      Review record of the branch, round 6, R6-3, probe of reviewer B with `increment_ms: 0` at 37626c6.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 426dba3
