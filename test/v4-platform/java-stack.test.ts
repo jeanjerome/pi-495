@@ -7,16 +7,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
-import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
-import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
-import { digestValue } from "../../src/contracts/digest.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
-import { EXECUTOR, ENV } from "../helpers/change-fixture.ts";
+import { mavenBench, widenForMaven } from "../helpers/maven-bench.ts";
 
 const enabled = process.env.HARNESS495_RUN_JAVA === "1";
 
@@ -42,28 +38,10 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 		for (const ws of [pos, neg, cov]) write(ws, detection.positive_witness);
 		write(neg, detection.negative_witness);
 		write(cov, detection.own_negative_witness.coverage!);
-		const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
-		const runner = new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")));
-		const widen = (c: ControlDefinition): ControlDefinition => ({
-			...c,
-			env_allowlist: [...c.env_allowlist, "M2_HOME", "MAVEN_HOME", "JAVA_TOOL_OPTIONS", "USER"],
-			timeout_ms: 15 * 60_000,
-		});
+		const { runner, base } = mavenBench(root);
+		const widen = (c: ControlDefinition): ControlDefinition => ({ ...widenForMaven(c), timeout_ms: 15 * 60_000 });
 		const test = widen(detection.controls.find((c) => c.control_id === "maven-test")!);
 		const coverage = widen(detection.controls.find((c) => c.control_id === "coverage")!);
-		const base = {
-			protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") },
-			candidate: {
-				candidate_id: "c",
-				manifest_digest: digestValue("c"),
-				base_digest: digestValue("b"),
-				workspace_id: "w",
-			},
-			subject: { kind: "fixture" as const, id: "f", revision: 1, digest: digestValue("f") },
-			environment: { environment_id: "e", digest: ENV, profile_id: "verify" },
-			requirement_refs: [],
-			producer: EXECUTOR,
-		};
 
 		const q = await qualifyControl(
 			runner,
@@ -158,27 +136,9 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 		};
 		for (const ws of [pos, mut]) write(ws, detection.positive_witness);
 		write(mut, detection.own_negative_witness.mutation!);
-		const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
-		const runner = new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")));
+		const { runner, base } = mavenBench(root);
 		const declared = detection.controls.find((c) => c.control_id === "mutation")!;
-		const control: ControlDefinition = {
-			...declared,
-			env_allowlist: [...declared.env_allowlist, "M2_HOME", "MAVEN_HOME", "JAVA_TOOL_OPTIONS", "USER"],
-			timeout_ms: 20 * 60_000,
-		};
-		const base = {
-			protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") },
-			candidate: {
-				candidate_id: "c",
-				manifest_digest: digestValue("c"),
-				base_digest: digestValue("b"),
-				workspace_id: "w",
-			},
-			subject: { kind: "fixture" as const, id: "f", revision: 1, digest: digestValue("f") },
-			environment: { environment_id: "e", digest: ENV, profile_id: "verify" },
-			requirement_refs: [],
-			producer: EXECUTOR,
-		};
+		const control: ControlDefinition = { ...widenForMaven(declared), timeout_ms: 20 * 60_000 };
 
 		const positiveFiles = detection.positive_witness;
 		const negativeFiles = { ...detection.positive_witness, ...detection.own_negative_witness.mutation! };

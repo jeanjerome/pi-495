@@ -657,7 +657,7 @@ Statut : versée
 
 ## R83 — Le banc des tests Maven sur la plateforme est écrit une fois
 
-Statut : à faire
+Statut : versée
 
 - Où : test/v4-platform/maven-quality.test.ts:66-84 · test/v4-platform/maven-quality-reactor.test.ts:95-113 · test/v4-platform/java-stack.test.ts:45-66,161-181
 - Constat : Quatre tests montent le même banc à la main : le runner générique sur le sandbox de la plateforme et un magasin d'objets sous la racine du test, l'élargissement de `env_allowlist` à `M2_HOME`, `MAVEN_HOME`, `JAVA_TOOL_OPTIONS` et `USER`, et la même requête de base (protocole, candidat, sujet, environnement, producteur). Les deux tests de qualité Maven répètent en outre la copie de référence où la déclaration de PMD est écrite et ses greffons résolus, et la boucle qui qualifie `pmd` et `cpd` par leurs témoins.
