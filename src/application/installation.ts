@@ -11,7 +11,7 @@ import type { FileEdit, InstalledPackage, PackageInstall, RecommendedComplement 
 import { messageOf } from "../domain/errors.ts";
 import type { SandboxPort, SandboxProfile, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import { editedFile } from "./complement.ts";
-import { MAVEN_DEPENDENCY_PLUGIN_VERSION } from "./stacks/maven.ts";
+import { mavenResolutionCommand } from "./stacks/maven.ts";
 import { BASE_ENV } from "./stacks/stack.ts";
 
 /** What installing a package comes to: the command to run in the copy, or why it cannot be run. */
@@ -22,21 +22,15 @@ const OTHER_MANAGERS_LOCKS = ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lo
 
 /**
  * The command that installs `installs`. For Maven, the plugins of the copy are resolved with the
- * dependency plugin the catalogue pins, which runs no goal of any plugin it resolves. For npm, it
- * installs every package of `installs`, in one install, as an exact development dependency without
- * running any install script, or gives the reason it is not run: a target locked by another manager, or
- * by none, is not one npm can extend without choosing the tree of its dependencies itself.
+ * dependency plugin the catalogue pins, which runs no goal of any plugin it resolves, along with what
+ * their goals load that resolving them does not fetch. For npm, it installs every package of
+ * `installs`, in one install, as an exact development dependency without running any install script, or
+ * gives the reason it is not run: a target locked by another manager, or by none, is not one npm can
+ * extend without choosing the tree of its dependencies itself.
  */
 export function planInstall(files: readonly string[], installs: readonly PackageInstall[]): InstallPlan {
 	if (installs.some((install) => install.manager === "maven"))
-		return {
-			kind: "command",
-			command: [
-				"mvn",
-				"-B",
-				`org.apache.maven.plugins:maven-dependency-plugin:${MAVEN_DEPENDENCY_PLUGIN_VERSION}:resolve-plugins`,
-			],
-		};
+		return { kind: "command", command: mavenResolutionCommand(installs) };
 	const foreign = OTHER_MANAGERS_LOCKS.find((lock) => files.includes(lock));
 	if (foreign !== undefined)
 		return { kind: "refused", reason: `${foreign} is the lock of a manager other than npm, and only npm is run` };

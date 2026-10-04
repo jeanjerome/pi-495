@@ -11,6 +11,7 @@ import {
 	SCOPE_PLACEHOLDER,
 	type ControlDefinition,
 	type FileEdit,
+	type PackageInstall,
 	type QualityPerimeter,
 	type QualityRule,
 	type RecommendedComplement,
@@ -187,7 +188,22 @@ const CATALOGUE_DATE = "2026-09-30";
 const JACOCO_PLUGIN_VERSION = "0.8.15";
 
 /** The dependency plugin that resolves the plugins of a POM without running any of them, at the release checked on the date above. */
-export const MAVEN_DEPENDENCY_PLUGIN_VERSION = "3.11.0";
+const MAVEN_DEPENDENCY_PLUGIN = "org.apache.maven.plugins:maven-dependency-plugin:3.11.0";
+
+/**
+ * The command that resolves the plugins of a copy without running any goal of them. When the PMD plugin
+ * 495 declares is among `installs`, the site skin its report goals render with is fetched too, without its
+ * dependencies: resolving the plugins does not fetch it, and the goals stop offline without it.
+ */
+export function mavenResolutionCommand(installs: readonly PackageInstall[]): string[] {
+	const pmd = installs.some((install) => install.package === PMD_PLUGIN && install.version === PMD_PLUGIN_VERSION);
+	return [
+		"mvn",
+		"-B",
+		`${MAVEN_DEPENDENCY_PLUGIN}:resolve-plugins`,
+		...(pmd ? [`${MAVEN_DEPENDENCY_PLUGIN}:get`, `-Dartifact=${PMD_SITE_SKIN}`, "-Dtransitive=false"] : []),
+	];
+}
 
 /**
  * The declaration of JaCoCo as it is inserted into a POM, one line per entry, each nested level marked
@@ -329,7 +345,10 @@ const QUALITY_REFERENTIAL_DATE = "2026-10-03";
 
 /** The PMD release `maven-pmd-plugin` 3.28.0 embeds, whose documentation states each threshold below. */
 const PMD = "PMD 7.17.0";
+const PMD_PLUGIN = "org.apache.maven.plugins:maven-pmd-plugin";
 const PMD_PLUGIN_VERSION = "3.28.0";
+/** The site skin the `pmd` and `cpd` goals of `maven-pmd-plugin` 3.28.0 load to render their report, as they name it when it is missing. */
+const PMD_SITE_SKIN = "org.apache.maven.skins:maven-fluido-skin:2.0.0-M9";
 const PMD_DOC = "docs.pmd-code.org/pmd-doc-7.17.0";
 
 /**
@@ -483,7 +502,7 @@ function qualityOffer(projectPath: string, declaration: PmdDeclaration, reactor:
 				projectPath,
 				{
 					test_type: "quality",
-					tool: "org.apache.maven.plugins:maven-pmd-plugin",
+					tool: PMD_PLUGIN,
 					version: PMD_PLUGIN_VERSION,
 					established_on: QUALITY_REFERENTIAL_DATE,
 					source: "maven.apache.org/plugins/maven-pmd-plugin/",

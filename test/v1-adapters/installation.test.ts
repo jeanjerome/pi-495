@@ -381,6 +381,25 @@ describe("planning the resolution of a Maven plugin, reading where Maven keeps i
 			"no goal of the adopted plugin is run",
 		);
 		assert.deepEqual(planInstall(["pom.xml", "package-lock.json", "yarn.lock"], [MAVEN_INSTALL]), plan);
+		assert.ok(
+			command.every((part) => !part.includes("fluido")),
+			"no site skin is fetched for a plugin whose goals do not load one",
+		);
+		const pmdPlan = planInstall(
+			["pom.xml"],
+			[{ package: "org.apache.maven.plugins:maven-pmd-plugin", version: "3.28.0", manager: "maven" }],
+		);
+		const pmdCommand = pmdPlan.kind === "command" ? pmdPlan.command : [];
+		assert.ok(
+			pmdCommand
+				.filter((part) => !part.startsWith("-") && part !== "mvn")
+				.every((goal) => goal.startsWith("org.apache.maven.plugins:maven-dependency-plugin:")),
+			`every goal of the PMD resolution is one of the dependency plugin: ${pmdCommand.join(" ")}`,
+		);
+		assert.ok(
+			pmdCommand.includes("-Dartifact=org.apache.maven.skins:maven-fluido-skin:2.0.0-M9"),
+			`the site skin the PMD report goals load is fetched: ${pmdCommand.join(" ")}`,
+		);
 
 		assert.equal(
 			readLocalRepository(
