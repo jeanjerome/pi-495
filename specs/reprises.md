@@ -789,9 +789,9 @@ Statut : à faire
 
 - Où : cycle/src/main.ts:144 · cycle/src/automate.ts:68-69, 106, 125
 - Constat : `(e as Error).message` sur un `catch` de type `unknown`, alors que `messageOf` (src/domain/errors.ts) existe et que R09 l'a imposé à `src/`. automate.ts redit par `git(["rev-parse", …])` ce que `brancheCourante` et `revision` de git.ts font, et que cycle.ts utilise pour les mêmes champs d'invite.
-- Reprise : `messageOf(e)` aux deux sites ; `revision(ctx.root)` pour la tête ; `brancheCourante(ctx.root)` pour la branche.
+- Reprise : `messageOf(e)` aux deux sites ; `revision(ctx.root)` pour la tête. La branche reste lue par `git(ctx.root, ["rev-parse", "--abbrev-ref", "HEAD"])` aux deux invites.
 - Règle : Principe 6 ; R09.
-- Limite : Sur une tête détachée, `branch --show-current` rend une chaîne vide là où `--abbrev-ref` rend `HEAD` ; l'arbitrage ne tourne que sur la branche que `pasStory` a créée. Si la relecture voit un chemin détaché atteignable, garder `--abbrev-ref` pour la branche.
+- Limite : `brancheCourante` n'est pas utilisée pour la branche : sur une tête détachée, `branch --show-current` rend une chaîne vide là où `--abbrev-ref` rend `HEAD`, et `cycle <story> auto` lancé sur une tête détachée atteint l'arbitrage, ce qui changerait le texte de l'invite.
 
 ## R97 — Les modules de l'outil n'exportent que ce qu'un autre module lit
 
