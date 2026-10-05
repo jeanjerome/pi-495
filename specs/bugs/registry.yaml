@@ -1170,3 +1170,40 @@ bugs:
       Read `stopReason` in the probe and report an `error` answer with its `errorMessage` as an unobserved format;
       a test with a catalogue whose `complete` returns an error message.
     status: open
+  - bug_id: BUG-2026-10-05T103037
+    date: "2026-10-05"
+    title: "A prepared test that no implementation can satisfy is frozen at G2, and every later attempt fails on it with no way to say the test is wrong"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      The prepare intervention wrote `tests/lastfit.test.ts` for the npm reference target with a case whose
+      expected value is a busy range: for `busy = [slot(100, 200), slot(300, 1411)]` and 30 minutes it expects
+      `slot(1381, 1411)`, where the latest free slot is `slot(270, 300)`. The preparation was qualified because
+      the suite failed on the reference (`on_reference: FAIL`), which only shows that `lastFit` did not exist yet,
+      and the protocol froze with it. The seven candidates that followed all failed `unit` on that one case alone
+      (39 tests, 1 failure), `coverage` and `mutation` failing with it, and each IH-07 offered only to extend
+      the attempt budget or to stop.
+    what_expected: >
+      A frozen test that contradicts the adopted requirements does not hold the change in a loop of attempts that
+      cannot pass: the case is put before a decision that can send the preparation back, or the qualification
+      refuses a prepared case that fails for another reason than the missing behaviour.
+    steps_to_reproduce:
+      - "Copy `cycle/campagnes/npm` to a fresh git repository of one commit and run `npm install` there."
+      - "Start Pi with a data directory whose `config.json` holds `{\"policy\":{\"adoption\":{\"mandate\":\"human\"}}}` and `HARNESS495_HUMAN_ACCEPTANCE=1`."
+      - "Run `/495 start add lastFit(busy, minutes) beside firstFit: …`, adopt the mandate, then `/495 resume`: whether the prepared suite holds a wrong case depends on the model, and when it does, every candidate fails `unit` on that case."
+    root_cause: >
+      The qualification of a preparation reads that the suite fails on the reference, not why each case fails;
+      once the protocol is frozen, G5 judges every candidate against it, and the decision on an exhausted budget
+      has no option that reopens the preparation. The prepare intervention could not run its own tests either:
+      its `bash` tool killed every command given a timeout, a defect fixed separately.
+    evidence: >
+      Observed on 2026-10-05 in a Pi 1.0.2 terminal session at main 9f0f0e9, change chg_muuz37c98d577ab21d of a
+      throwaway data directory; the unit evidence of candidates cand_158b8da1e318 to cand_07aefd6a8c9d names the
+      same failed case. The same target passed G0-G5 twice the same morning with a prepared suite that was right.
+    risk_level: medium
+    follow_ups: >
+      Decide whether an exhausted budget whose failures all come from prepared cases offers to reopen the
+      preparation, or whether qualification runs each prepared case against the reference and refuses one that
+      fails on an assertion rather than on the missing export; either adds an option or a refusal.
+    status: open
