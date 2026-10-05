@@ -1201,9 +1201,15 @@ bugs:
       Observed on 2026-10-05 in a Pi 1.0.2 terminal session at main 9f0f0e9, change chg_muuz37c98d577ab21d of a
       throwaway data directory; the unit evidence of candidates cand_158b8da1e318 to cand_07aefd6a8c9d names the
       same failed case. The same target passed G0-G5 twice the same morning with a prepared suite that was right.
+      Seen again at main bfaa799, once the prepare intervention could run its tests: change chg_muv0e36w9742a71b3d
+      froze `lastFit([slot(0, 540), slot(600, 1400)], 40)` expected as `slot(560, 600)`, where the final gap
+      1400-1440 fits exactly; the suite failed on the reference only because `lastFit` was missing, which hid the
+      wrong case. Each of the three implement interventions named that case in its notes as contradicting the
+      mandate and asked for a human, and the IH-07 that followed showed none of those notes.
     risk_level: medium
     follow_ups: >
       Decide whether an exhausted budget whose failures all come from prepared cases offers to reopen the
       preparation, or whether qualification runs each prepared case against the reference and refuses one that
-      fails on an assertion rather than on the missing export; either adds an option or a refusal.
+      fails on an assertion rather than on the missing export; either adds an option or a refusal. In both
+      cases, the notes in which implement interventions contest a prepared case reach the decision.
     status: open
