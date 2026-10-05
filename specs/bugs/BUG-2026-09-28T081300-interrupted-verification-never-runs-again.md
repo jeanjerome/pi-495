@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-2026-09-28T081300
-status: open
+status: fixed
 severity: medium
 scope: application
 title: A verification cut short by a pause or by the end of its session is never run again, so the change can only be cancelled

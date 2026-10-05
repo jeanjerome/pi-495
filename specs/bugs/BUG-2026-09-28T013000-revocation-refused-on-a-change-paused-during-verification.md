@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-2026-09-28T013000
-status: open
+status: fixed
 severity: low
 scope: domain
 title: A change paused while its verification ran cannot have a question's resolution revoked, though nothing runs

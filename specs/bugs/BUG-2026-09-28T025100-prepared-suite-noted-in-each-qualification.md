@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-2026-09-28T025100
-status: open
+status: fixed
 severity: low
 scope: application
 title: The prepared suite is written as a free-text note of every control's qualification, found again by its prefix and read as a reason the control is not qualified

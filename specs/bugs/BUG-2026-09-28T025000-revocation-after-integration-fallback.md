@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-2026-09-28T025000
-status: open
+status: fixed
 severity: low
 scope: domain
 title: After an integration fallback, a revocation says revoked the reconciliation of the Git effect, whose effect holds, and leaves the outcome accepted
