@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Records the README demonstration of pi-495: a real change on a copy of the reference npm target
-# (vitest, v8 coverage, Stryker), driven in Pi's terminal by vhs and scripts/demo/demo.tape.
+# (vitest, v8 coverage, Stryker), typed into Pi by scripts/demo/drive.py and recorded by asciinema in a
+# real pseudo-terminal, then rendered by agg (GIF) and ffmpeg (MP4).
 #
 # Pi runs under an agent directory of its own that declares this repository and the titanium theme of
 # pi-omp-theme, with the theme's own status line off so the footer is Pi's and 495's,
@@ -57,7 +58,12 @@ cp -R "$racine/cycle/campagnes/npm" "$cible"
 )
 mkdir -p "$data"
 
-DEMO_CIBLE=$cible PI_CODING_AGENT_DIR=$agent HARNESS495_DATA_DIR=$data HARNESS495_LANGUAGE=en \
-	vhs "$racine/scripts/demo/demo.tape" -o "$demo/demo.gif" -o "$demo/demo.mp4"
+PI_CODING_AGENT_DIR=$agent HARNESS495_DATA_DIR=$data HARNESS495_LANGUAGE=en \
+	python3 "$racine/scripts/demo/drive.py" "$cible" "$demo"
+
+agg --font-dir "$HOME/Library/Fonts" --font-family "JetBrainsMono Nerd Font Mono" --font-size 16 \
+	--theme dracula --fps-cap 15 --last-frame-duration 5 "$demo/demo.cast" "$demo/demo.gif"
+ffmpeg -loglevel error -y -i "$demo/demo.gif" -movflags faststart -pix_fmt yuv420p \
+	-vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "$demo/demo.mp4"
 
 echo "recorded $demo/demo.gif and $demo/demo.mp4; the change's dossier is in $data"
