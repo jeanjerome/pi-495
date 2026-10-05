@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Round 2, reviewer A, on 7d9b5b2...bb87ee2: the code keeps all six promises and each one is held by a test that a one-line mutation makes fail. All 14 mutations were killed, then reverted, and the tree is clean. Scenario 1: changing the trigger from `turn_end` to `agent_end` in worker-main fails the new two-answer test (one report instead of two, A1-1/B1-2 handled). `usage.tokens ?? 0` fails the new `observeContextUsage` test (B1-3 handled). A fixed window fails the 128,000 test, and removing the send fails both tests. Scenarios 2, 3 and 4: `Math.round` instead of `Math.floor`, removing the null branch, `aboveEditor` placement, removing the forwarding of the `context` event in the supervisor, and `<=` on the k/M threshold all fail the v3 gauge test. Scenario 5: removing `agentContext(null)` from the `finally` fails all three endings. Clearing only on `completed` fails the \"fails\" and \"is stopped\" tests, which confirms that the tool-call bound really ends on a non-completed terminal (A1-3/B1-1 handled). Dropping the consumption from the footer fails the assertion `· 1.2k tokens · ~$0.05` (A1-2 handled). The `updateFooter` in `drive` that no test holds is already in the registry (BUG-2026-10-05T185728) and is not counted. Scenario 6: the French label and the French `%` each fail the French test. Remaining findings: none."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "La jauge disparaît quand l'intervention se termine",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/agent-context-gauge.test.ts",
+    "ligne": 128,
+    "constat": "Le code tient la promesse sur les trois issues. Une sonde montre qu'après l'échec comme après l'arrêt par la borne d'appels d'outils, la dernière ligne du pied de page est « 495 clarifying/blocked · 1.2k tokens · ~$0.05 ». Mais les deux tests ajoutés pour l'échec et l'arrêt ne vérifient que le retrait de la ligne, pas le pied de page. Aucune ligne de code n'écrit ce pied de page selon l'issue, donc aucune mutation ne passe sans être vue : la mutation M8 est attrapée par le test de l'aboutissement, et la suppression de `updateFooter` dans `drive` est déjà au registre (BUG-2026-10-05T185728).",
+    "mutation": "M8 : `footer()` rendu sans la consommation (`setStatus(\"495\", head)`). Le test de l'aboutissement échoue, ceux de l'échec et de l'arrêt restent verts."
+   }
+  ],
+  "resume": "I found no blocking finding and nothing to correct; one finding is left to weigh. The code keeps all six promises, and each one is held by a test. I tried eleven mutations, and each made at least one test fail; every line was restored afterwards and the tree is clean.\n\n- **Scenario 1 (report after each answer):** with the filter set to `agent_end` instead of `turn_end`, the new two-answer test fails while the one-answer test stays green. Turning a null token count into `?? 0` fails the new `observeContextUsage` test. Hard-coding the window fails the 128,000-token test.\n- **Scenarios 2 to 4 and 6 (the gauge text):** `Math.ceil` in place of `Math.floor`, the unknown-tokens case cut out, `aboveEditor` in place of `belowEditor`, the French ` %` replaced by `%`, and the 520,000 report skipped are each caught by the gauge test.\n- **Scenario 5 (the gauge disappears):** removing the clearing call in the `finally` fails all three ending tests. A probe confirmed the new endings really finish as `failed` and as `cancelled` under the tool-call bound. Dropping the consumption from the footer fails the completed-ending test.\n\nThe finding to weigh (B2-1): the fail and stop tests don't check the footer. The code still writes it correctly in both cases, and no line of code depends on how the intervention ended. Removing the footer update in `drive` is already in the registry (BUG-2026-10-05T185728)."
+ }
+]

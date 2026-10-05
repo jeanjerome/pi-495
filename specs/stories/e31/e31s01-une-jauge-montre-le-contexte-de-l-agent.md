@@ -2,7 +2,7 @@
 
 Story : e31s01
 Epic : e31
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

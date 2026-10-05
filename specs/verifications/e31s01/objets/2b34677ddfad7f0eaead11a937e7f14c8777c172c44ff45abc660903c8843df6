@@ -1,0 +1,89 @@
+TAP version 13
+# Subtest: a gauge under the editor shows the context of the working agent during an intervention
+    # Subtest: an intervention whose scripted agent reports 340,000 then 520,000 tokens on a window of 1,000,000, then an unknown context, shows each line in turn under the editor, then removes the line at the end of the intervention
+    not ok 1 - an intervention whose scripted agent reports 340,000 then 520,000 tokens on a window of 1,000,000, then an unknown context, shows each line in turn under the editor, then removes the line at the end of the intervention
+      ---
+      duration_ms: 722.718
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XUjHe9/test/v3-pi/agent-context-gauge.test.ts:70:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the line under the editor follows each context the agent reports
+        + actual - expected
+        
+        + []
+        - [
+        -   [
+        -     'Agent context  ██████░░░░░░░░░░░░░░  34%   340.0k / 1.0M'
+        -   ],
+        -   [
+        -     'Agent context  ██████████░░░░░░░░░░  52%   520.0k / 1.0M'
+        -   ],
+        -   [
+        -     'Agent context  ░░░░░░░░░░░░░░░░░░░░  ?   ? / 1.0M'
+        -   ]
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'Agent context  ██████░░░░░░░░░░░░░░  34%   340.0k / 1.0M'
+        1:
+          0: 'Agent context  ██████████░░░░░░░░░░  52%   520.0k / 1.0M'
+        2:
+          0: 'Agent context  ░░░░░░░░░░░░░░░░░░░░  ?   ? / 1.0M'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XUjHe9/test/v3-pi/agent-context-gauge.test.ts:72:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: in French, the first line is the French one
+    not ok 2 - in French, the first line is the French one
+      ---
+      duration_ms: 687.586417
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XUjHe9/test/v3-pi/agent-context-gauge.test.ts:98:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the gauge speaks the language of the session
+        + actual - expected
+        
+        + undefined
+        - [
+        -   "Contexte de l'agent  ██████░░░░░░░░░░░░░░  34 %   340,0 k / 1,0 M"
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: "Contexte de l'agent  ██████░░░░░░░░░░░░░░  34 %   340,0 k / 1,0 M"
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XUjHe9/test/v3-pi/agent-context-gauge.test.ts:100:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a gauge under the editor shows the context of the working agent during an intervention
+  ---
+  duration_ms: 1411.015834
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XUjHe9/test/v3-pi/agent-context-gauge.test.ts:58:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1902.154125

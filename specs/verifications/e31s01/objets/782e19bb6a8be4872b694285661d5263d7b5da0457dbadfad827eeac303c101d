@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'agent rapporte le contexte de sa session après chaque réponse",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/pi-worker/worker-main.ts",
+    "ligne": 337,
+    "constat": "Le code tient la promesse. À `turn_end`, Pi (1.0.2) a déjà ajouté à la session la réponse et les résultats d'outils, et pi-agent-core attend ses écouteurs ; `getContextUsage()` rend donc le compte de ce moment. Mais le seul test, `test/v3-pi/agent-context.test.ts`, joue une intervention à une seule réponse, et aucun test ne vérifie le « après chaque réponse » : une version qui ne rapporte qu'une fois, en fin d'intervention, passe. Or c'est ce qui fait bouger la jauge en vrai : avec cette version, la ligne n'apparaîtrait qu'à la fin et serait retirée aussitôt.",
+    "mutation": "`event.type !== \"turn_end\"` remplacé par `event.type !== \"agent_end\"` : le test reste vert (1 pass, 0 fail). Avec `\"message_end\"`, il échoue, ce qui est attendu."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La jauge disparaît quand l'intervention se termine",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/agent-context-gauge.test.ts",
+    "ligne": 92,
+    "constat": "Le code tient la promesse : `updateFooter` après `drive` écrit la phase, le statut et la consommation. Mais aucun test ne vérifie que la ligne 495 reprend la consommation. Le test de la jauge ne vérifie que `^495 phase/statut`, et l'agent scripté ne consomme rien : sonde faite, le dernier statut est « 495 clarifying/ready », sans consommation. Aucun autre test ne lit `setStatus`.",
+    "mutation": "Dans `src/extension/session.ts:220`, `ctx.ui.setStatus(\"495\", used ? `${head} · ${used}` : head)` remplacé par `ctx.ui.setStatus(\"495\", head)` : le test de la jauge reste vert (2 pass)."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La jauge disparaît quand l'intervention se termine",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/intervention.ts",
+    "ligne": 201,
+    "constat": "Le test ne joue que la fin par aboutissement ; l'échec et l'arrêt ne sont pas joués. Le `finally` retire la jauge sur les trois issues, et sur une exception du flux. Aucune mutation d'une ligne existante ne distingue ces issues (retirer `failed` ou `cancelled` de la condition de fin laisse le `finally` s'exécuter). La promesse est tenue par la structure du code, pas par un test qui nomme ces deux issues.",
+    "mutation": "`agentContext(null)` retiré du `finally` : le test échoue, ce qui est attendu."
+   }
+  ],
+  "resume": "J'ai relu les six promesses. Le code les tient toutes : la jauge passe par `setWidget` en `belowEditor`, que Pi 1.0.2 rend hors du conteneur de l'éditeur remplacé par le loader, et elle est retirée dans un `finally`. Les mutations qui échouent comme attendu touchent l'appel `agentContext` de la boucle, le `finally`, le placement, la langue de la session, la branche du contexte inconnu, l'arrondi des cases, le « % » français, la fenêtre envoyée par le worker et le choix de `message_end`. Deux mutations survivent, d'où deux constats à corriger, introduits par la branche. D'abord, rapporter le contexte seulement à `agent_end` passe le test du worker, qui ne joue qu'une réponse : rien ne vérifie « après chaque réponse ». Ensuite, retirer la consommation de la ligne 495 du pied de page passe le test de la jauge, dont l'agent scripté ne consomme rien. Un constat à peser : l'échec et l'arrêt de l'intervention ne sont tenus que par la structure du `finally`, pas par un test. Verdict : fail."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La jauge disparaît quand l'intervention se termine",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/intervention.ts",
+    "ligne": 201,
+    "constat": "Le code tient la promesse : le `finally` envoie `null` quel que soit le terminal, et un test jetable dont l'agent scripté rapporte trois contextes puis `fail` voit bien la ligne retirée. En revanche, aucun test commité ne fait finir une intervention par un échec ou un arrêt : le seul test du retrait (agent-context-gauge) finit sur `complete`. Les cas « échoue ou soit arrêtée » ne sont donc tenus par aucun test.",
+    "mutation": "`finally { if (terminal?.type === \"completed\") this.deps.agentContext(null); }` : test/v3-pi/agent-context-gauge.test.ts reste vert (2/2). Le test jetable sur `fail` échoue sous ce mutant (la dernière ligne reste affichée)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'agent rapporte le contexte de sa session après chaque réponse",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/pi-worker/worker-main.ts",
+    "ligne": 337,
+    "constat": "Le vrai agent envoie bien un rapport à chaque `turn_end`, donc après chaque réponse. Mais le seul test du vrai worker (test/v3-pi/agent-context.test.ts) ne passe que par une session à une seule réponse. Un worker qui ne rapporterait qu'une fois, en fin de session, passe ce test. « Après chaque réponse », dont dépend le suivi de la jauge (scénario 3), n'est tenu que par l'agent scripté, qui émet ses événements tel qu'on les a écrits.",
+    "mutation": "`event.type !== \"turn_end\"` → `event.type !== \"agent_end\"` : test/v3-pi/agent-context.test.ts reste vert. Avec `message_end`, il échoue : l'ordre décrit dans le commentaire est tenu."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Un contexte que Pi ne connaît plus n'est jamais montré vide",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/pi-worker/worker-main.ts",
+    "ligne": 346,
+    "constat": "Côté affichage, le cas des jetons inconnus est tenu par le test v3 de la jauge, via l'agent scripté. Côté vrai worker, rien ne vérifie qu'un `tokens: null` rendu par `getContextUsage()` arrive tel quel dans l'événement : le test n'exerce qu'une valeur connue. Le code transmet bien `usage.tokens` sans le modifier.",
+    "mutation": "`tokens: usage.tokens,` → `tokens: usage.tokens ?? 0,` : test/v3-pi/agent-context.test.ts reste vert."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "La jauge disparaît quand l'intervention se termine",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "test/v3-pi/agent-context-gauge.test.ts",
+    "ligne": 92,
+    "constat": "Le pied de page retrouve la phase et le statut par les appels `updateFooter` qui existaient avant la branche ; la jauge, elle, est un widget séparé qui n'y touche jamais. L'assertion ne lit que `phase/statut`. La consommation n'y est pas vérifiée : l'agent scripté ne consomme rien, donc `formatConsumption` rend une chaîne vide.",
+    "mutation": "Retrait de `session.updateFooter(ctx, result.view)` dans conduct.ts : le test reste vert, car un autre `updateFooter` du parcours de décision réécrit `495 clarifying/ready`."
+   }
+  ],
+  "resume": "J'ai relu le diff 7a7430f...7d9b5b2 contre les six promesses de la story, en mutant le code et avec deux sondes jetables (un test sur une intervention qui échoue, une impression des statuts du pied de page). Les mutations ont toutes été annulées et l'arbre est propre.\n\nLe code tient les six scénarios :\n- **Le rapport après chaque réponse** : le vrai worker envoie le rapport à `turn_end`, avec les valeurs de `getContextUsage()`. Les mutations sur `message_end`, sur les jetons et sur la fenêtre font échouer le test.\n- **Les lignes 34 %, 52 % et « ? »** sont exactes en anglais comme en français, et la ligne est placée sous l'éditeur. Les mutations sur l'arrondi, la branche des jetons inconnus, l'étiquette, le « % » français, la virgule décimale et le placement font toutes échouer un test.\n- **Le retrait de la jauge** passe par le `finally` du superviseur, quelle que soit la façon dont l'intervention se termine.\n\nDeux promesses ne sont tenues par aucun test, d'où le verdict `fail` :\n- **B1-1** : l'échec et l'arrêt d'une intervention. Un mutant qui ne retire la jauge que sur `completed` passe le test commité.\n- **B1-2** : « chaque réponse » pour le vrai agent. Le test du worker n'a qu'une réponse, donc un mutant `agent_end` le passe.\n\nDeux constats sont à peser : un `null` de Pi transmis tel quel par le worker n'est vérifié par aucun test (B1-3), et la consommation du pied de page n'est pas lue par le test, sur un comportement antérieur à la branche (B1-4)."
+ }
+]
