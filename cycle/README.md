@@ -92,7 +92,7 @@ sa révision et son heure plutôt que la relancer. Seule compte une exécution s
 
 Un échec reproductible rencontré en chemin est un défaut découvert, jamais un bruit de fond. Il se
 corrige tout de suite, dans son propre commit, avec son test de non-régression, quand la correction
-n'ajoute aucun comportement ; sinon il reçoit une fiche `specs/bugs/BUG-*.md` et son propre cycle.
+n'ajoute aucun comportement ; sinon il reçoit une entrée de `specs/bugs/registry.yaml` et son propre cycle.
 Il ne s'inscrit sans correction que si sa reproduction échoue après un essai de bonne foi. « Déjà là
 avant », « sans rapport avec la session », « hors périmètre » ne sont pas des réponses.
 

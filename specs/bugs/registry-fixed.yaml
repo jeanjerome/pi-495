@@ -390,12 +390,16 @@ bugs:
       closing the verification operation, as a temporary patch, makes both accepted. Review record
       `specs/verifications/e01s04-relecture.md`, round 1, R1-7.
     risk_level: low
-    file: specs/bugs/BUG-2026-09-28T013000-revocation-refused-on-a-change-paused-during-verification.md
     follow_ups: >
       The pause closes the verification operation it suspends, and the revocation's refusal names the
-      pause; red tests and order in the bug file, after BUG-2026-09-28T081300's first cycle.
+      pause, after BUG-2026-09-28T081300's first cycle.
     status: fixed
     fixed_in: ded5f28
+    resolution: >
+      Pausing a change closes the verification it suspends, so a paused change runs nothing and its
+      answer can be revoked; the resume runs the verification again. Shown in a real Pi on 2026-09-28:
+      a revocation asked while the change was paused during its controls is accepted with the fix and
+      refused by the build before it. Accepted by the owner the same day.
   - bug_id: BUG-2026-09-28T025000
     date: "2026-09-28"
     title: "After an integration fallback, a revocation says revoked the reconciliation of the Git effect, whose effect holds, and leaves the outcome accepted"
@@ -434,12 +438,15 @@ bugs:
       temporary patch, give IH-12 valid and `pending` in all three. Review record
       `specs/verifications/e01s04-relecture.md`, round 2, R2-3.
     risk_level: low
-    file: specs/bugs/BUG-2026-09-28T025000-revocation-after-integration-fallback.md
     follow_ups: >
       Keep IH-12 out of the plan the revocation shares with the mandate revision, as IH-07 is, and set
       an accepted outcome back to pending where G5 is invalidated rather than in the revocation alone.
     status: fixed
     fixed_in: 04e4450, 1f36ec6
+    resolution: >
+      A revocation or a revised mandate keeps the owner's reconciliation of a Git effect valid, and an
+      integration fallback withdraws the accepted outcome. Held by `test/v0-pure/change-rules.test.ts`;
+      not exercised in a real Pi. Accepted by the owner on 2026-09-28.
   - bug_id: BUG-2026-09-28T025100
     date: "2026-09-28"
     title: "The prepared suite is written as a free-text note of every control's qualification, found again by its prefix and read as a reason the control is not qualified"
@@ -470,7 +477,6 @@ bugs:
       note removed, as a temporary patch, only the three take-up tests that count the note fail.
       Review record `specs/verifications/e01s04-relecture.md`, round 2, R2-10.
     risk_level: low
-    file: specs/bugs/BUG-2026-09-28T025100-prepared-suite-noted-in-each-qualification.md
     follow_ups: >
       Remove the note rather than add a field to the protocol contract, which would hold a second copy
       of what the preparation artifact holds.
@@ -504,13 +510,18 @@ bugs:
       path, with the results above. A key naming the revision the verification starts from, and a
       pause closing the verification operation, as a temporary patch, make both reach the decision.
     risk_level: low
-    file: specs/bugs/BUG-2026-09-28T081300-interrupted-verification-never-runs-again.md
     follow_ups: >
       A change a build before the fix paused during its verification keeps its operation open, and its
       resume stays refused until it is paused again, which closes that verification. One such a build
       blocked during its verification has its resume lift any stop (BUG-2026-09-28T113000).
     status: fixed
     fixed_in: c258255, 897ff02
+    resolution: >
+      A verification derives its idempotency key from the revision it starts from, and a pause, a block,
+      a revocation or a rerun closes the verification it stops, so a resume runs it again on the same
+      frozen candidate. Shown in a real Pi on 2026-09-28: Pi killed while the candidate's controls ran,
+      then `/495 resume` reruns the verification and reaches the acceptance with the fix, and blocks on
+      `OPERATION_ACTIVE` with no way out on the build before it. Accepted by the owner the same day.
   - bug_id: BUG-2026-09-28T130000
     date: "2026-09-28"
     title: "With two live sessions, a revocation is overwritten by the other session's block, and the resume then reruns the specification without presenting the question again"
