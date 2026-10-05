@@ -19,6 +19,7 @@ import { type InterventionCost, unknownCost } from "../../domain/change/state.ts
 import { messageOf } from "../../domain/errors.ts";
 import { observeSessionEvent, readSessionCost, type SessionEventRead } from "./session-observer.ts";
 import { RequestLayerObserver, loadRequestObserver } from "./provider-request.ts";
+import { sandboxedBashOperations } from "./sandboxed-bash.ts";
 import {
 	OUTPUT_SCHEMAS,
 	TOOLS_FOR_ROLE,
@@ -265,32 +266,7 @@ async function main(): Promise<void> {
 					wrap(
 						pi.createBashToolDefinition(workspace, {
 							exposeSessionEnvironment: false,
-							operations: {
-								exec: async (
-									command: string,
-									cwd: string,
-									options: { onData: (d: Buffer) => void; signal?: AbortSignal; timeout?: number },
-								) => {
-									const safeCwd = await guard.inside(cwd, false);
-									const obs = await sandbox.run(
-										{
-											...m.profile,
-											write_paths: m.profile.write_paths.length > 0 ? m.profile.write_paths : [workspace],
-										},
-										{
-											command: ["/bin/bash", "-c", command],
-											cwd: safeCwd,
-											timeout_ms: Math.min(options.timeout ?? 300_000, 300_000),
-											max_output_bytes: 512 * 1024,
-										},
-										options.signal,
-									);
-									if (obs.stdout.byteLength > 0) options.onData(Buffer.from(obs.stdout));
-									if (obs.stderr.byteLength > 0) options.onData(Buffer.from(obs.stderr));
-									if (obs.spawn_error) options.onData(Buffer.from(`\n[495] ${obs.spawn_error}\n`));
-									return { exitCode: obs.timed_out ? null : obs.exit_code };
-								},
-							},
+							operations: sandboxedBashOperations(sandbox, m.profile, workspace, (p) => guard.inside(p, false)),
 						}),
 					),
 				);
