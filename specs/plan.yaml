@@ -14,7 +14,7 @@
 contraintes:
   - "Aucune CI : tout se qualifie sur la machine de référence, `npm run check` en local avant chaque commit."
   - >
-    Machine de référence macOS arm64, Node 24, Pi 0.87.1 ; Linux non revendiqué. `node` alimente
+    Machine de référence macOS arm64, Node 24, Pi 1.0.2 ; Linux non revendiqué. `node` alimente
     `environment_digest` autant que `pi_version`, et la machine présente Node 24 par un épinglage qui vit
     hors du dépôt, dans `~/.zshenv` (`D-50`) : aucun contrôle ne le vérifie.
   - >

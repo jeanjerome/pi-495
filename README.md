@@ -52,7 +52,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 
 ## Quick start
 
-You need **Node.js 24+**, **Pi 0.87**, **Git**, and **macOS on Apple Silicon**. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
+You need **Node.js 24+**, **Pi 1.0**, **Git**, and **macOS on Apple Silicon**. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
 
 ### 1. Install the extension
 
@@ -158,7 +158,7 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 
 | Area | Current scope |
 | --- | --- |
-| **Host** | Pi 0.87; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
+| **Host** | Pi 1.0; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
 | **Java / Maven** | Surefire tests; JaCoCo coverage and PIT mutation when the project declares the required reports; structural checks derived from supported Maven and Java declarations. Maven verification uses offline mode. |
 | **Node** | `scripts.test` run by `node --test` (or absent), or by `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. A target that asks for coverage (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed) also receives a control on the coverage of the lines a change introduces, read from the LCOV report of the run; otherwise coverage is not measured and the report says so. A target that installed Stryker (`@stryker-mutator/core`) also receives a control on the mutants of the lines a change introduces, read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it. |
