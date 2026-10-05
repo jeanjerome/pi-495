@@ -359,7 +359,7 @@ epics:
       0.3.1 : la jauge se verra à l'écran, et elle remplace l'extension de barre d'état que la
       démonstration chargeait pour en montrer une.
     stories:
-      - { id: e31s01, status: "à faire", title: "Une jauge sous l'éditeur montre le contexte de l'agent pendant une intervention" }
+      - { id: e31s01, status: "versée", title: "Une jauge sous l'éditeur montre le contexte de l'agent pendant une intervention" }
 
   - id: e11
     title: "Architecture cible d'une cible"
