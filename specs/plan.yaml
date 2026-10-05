@@ -341,6 +341,26 @@ epics:
       - { id: e10s05, status: "versée", title: "Les écarts de l'état des lieux deviennent des incréments priorisés" }
       - { id: e10s06, status: "versée", title: "La conformité n'est annoncée que dans le périmètre contrôlé, et une exception a un propriétaire et une échéance" }
 
+  - id: e31
+    title: "Le terminal de Pi montre le travail de l'agent"
+    status: à faire
+    source: arbitrage du propriétaire, 2026-10-05
+    objet: >
+      Pendant une intervention, le terminal de Pi montre ce que consomme l'agent qui travaille, et non la
+      session où le propriétaire tape ses commandes : le remplissage du contexte de l'agent, d'après ce que
+      Pi en dit, sur une ligne à lui.
+    motif: >
+      L'agent travaille dans une session Pi à part ; la session où le propriétaire tape `/495` n'envoie
+      rien au modèle. Toute jauge de contexte du pied de page, celle de Pi comme celle d'une extension de
+      barre d'état, reste donc à 0 % pendant qu'une intervention consomme des centaines de milliers de
+      jetons. La ligne 495 donne les jetons cumulés et le coût, pas la place qui reste à l'agent.
+    position: >
+      Engagé par le propriétaire le 2026-10-05, avant d'enregistrer la démonstration du README pour la
+      0.3.1 : la jauge se verra à l'écran, et elle remplace l'extension de barre d'état que la
+      démonstration chargeait pour en montrer une.
+    stories:
+      - { id: e31s01, status: "à faire", title: "Une jauge sous l'éditeur montre le contexte de l'agent pendant une intervention" }
+
   - id: e11
     title: "Architecture cible d'une cible"
     status: à faire
