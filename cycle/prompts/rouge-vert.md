@@ -26,8 +26,8 @@ Pour chaque tâche :
 5. Une tâche `Vérifie à la main :` se fait à la main, et ta sortie dit ce qui a été fait et observé.
 
 À la fin, `npm run check` doit être vert ; ne pipe pas sa sortie, lis son code de sortie. Un échec
-reproductible rencontré en chemin se corrige dans son propre commit (cycle/README.md § Preflight et
-défauts découverts). Ne pousse rien.
+reproductible rencontré en chemin se corrige dans son propre commit (cycle/README.md § Preflight and
+defects found along the way). Ne pousse rien.
 
 Le contrôle qui suit cette session rejoue chaque commit de test seul de la passe, ceux d'un lancement
 antérieur compris, dans un arbre détaché et lit quels tests y échouent, puis lance chaque commande

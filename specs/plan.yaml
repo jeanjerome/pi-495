@@ -3,7 +3,7 @@
 # specs/amont/expression-besoins.md ; ce fichier ne le restitue pas.
 #
 # Un epic marqué `prete: oui` sous son `status:` se déroule sans le propriétaire par
-# `npm run cycle -- suite` (cycle/README.md § Le cycle sans le propriétaire) ; sans ce champ, le
+# `npm run cycle -- suite` (cycle/README.md § The cycle without the owner) ; sans ce champ, le
 # cycle n'y touche pas.
 #
 # Un epic est `versé` quand toutes ses stories le sont, `en cours` quand une story l'est, sinon

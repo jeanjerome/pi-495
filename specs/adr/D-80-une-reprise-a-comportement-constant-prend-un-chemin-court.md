@@ -41,4 +41,4 @@ reprises directement sur `main`, une par commit, avec les tests existants pour f
 Une reprise coûte une session de modification, une session de relecture et deux contrôles, sans
 recette ni second tour. Le filet est la suite de tests : une reprise sur du code qu'aucun test
 n'exerce n'est jugée que par la relecture, qui le sait. La règle « tout changement passe par les six
-pas » vaut pour tout changement de comportement ; `cycle/README.md` § Les reprises porte l'exception.
+pas » vaut pour tout changement de comportement ; `cycle/README.md` § Refactorings porte l'exception.

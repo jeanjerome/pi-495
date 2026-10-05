@@ -61,7 +61,7 @@ test/
 Tests are not colocated with sources. A new function gets a test; a bug fix gets a regression test.
 
 A test is written before the code it pins and seen failing on the assertion the story states, then
-the code is written (`cycle/README.md` § Les six pas). The tool replays each test-only commit in a
+the code is written (`cycle/README.md` § The six steps). The tool replays each test-only commit in a
 detached tree and refuses a red that does not fail on a read test.
 
 ## Fakes, not mocks

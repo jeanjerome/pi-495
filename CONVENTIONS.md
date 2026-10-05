@@ -55,7 +55,7 @@ integration, 100× in production: fix a red gate now.
 - Assert only through the public interface — return values, contracts, view state. Never assert on
   private state.
 - A test is written before the code it pins, and fails on the assertion the story states before
-  that code exists (`cycle/README.md` § Les six pas).
+  that code exists (`cycle/README.md` § The six steps).
 
 ## Dependencies
 

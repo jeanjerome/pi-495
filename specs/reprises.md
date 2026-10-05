@@ -4,7 +4,7 @@ Les reprises que l'audit de `src/` et `test/` du 2026-10-01 a retenues (`R06` à
 elles se sont faites : les deux nettoyages de répertoires temporaires des tests, la passe sur les erreurs,
 puis les suppressions de duplications, de jumeaux de types, de code mort et de commentaires qui citent une
 décision. Une reprise ajoutée ensuite s'écrit à la fin de la liste, avec `Statut : à faire`. Une reprise ne change aucun comportement : elle prend le chemin court de `D-80`, conduit par
-`npm run cycle -- reprises` (`cycle/README.md` § Les reprises), et arrive sur `main` en un commit.
+`npm run cycle -- reprises` (`cycle/README.md` § Refactorings), et arrive sur `main` en un commit.
 
 Chaque section est une reprise : `Où` situe le code, `Constat` dit ce que l'audit a lu, `Reprise` dit
 le changement minimal, `Règle` dit la règle de `CONVENTIONS.md` ou d'un skill du dépôt qu'il fait

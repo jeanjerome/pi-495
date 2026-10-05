@@ -1,237 +1,302 @@
-# Le cycle de développement de 495
+# The 495 development cycle
 
-Ce répertoire porte la façon dont un changement de 495 est fait : les six pas, les règles de
-relecture et de versement, le format de story, et l'outil qui conduit le tout. Il ne dit rien du
-produit. Ce que 495 est, ce qui lui reste à faire et ce qu'il a prouvé vivent dans `specs/`.
+This directory holds the way a change to 495 is made: the six steps, the review and landing rules,
+the story format, and the tool that drives them all. It says nothing about the product. What 495 is,
+what it still has to do and what it has proved live in `specs/`.
 
-Le cycle ne dépend d'aucun paquet extérieur. Il a remplacé le 2026-09-28 les skills bigpowers et le
-script qui les enchaînait, après mesure : une story de 3 900 lignes coûtait 5 h d'agent et 88 $, et
-le cycle de correction de ses quatre défauts 7 h et 105 $, arrêté à un plafond de cinq tours de
-relecture. Plus de la moitié du temps allait à des relecteurs qui rejouaient des mutations à la
-main et trouvaient à chaque tour un autre coin de la machine à états ; par story, mille lignes de
-relevés étaient écrites à la main et relues par chaque session ; sur tout `specs/`, un seul fichier
-de suivi était lu par un contrôle.
+The cycle depends on no outside package. On 2026-09-28 it replaced the bigpowers skills and the script
+that chained them, after measurement: a 3,900-line story cost 5 hours of agent time and $88, and the
+fix cycle for its four defects 7 hours and $105, stopped at a cap of five review rounds. More than
+half of that time went to reviewers who replayed mutations by hand and found another corner of the
+state machine at every round; per story, a thousand lines of records were written by hand and read
+again by every session; across all of `specs/`, a single tracking file was read by a check.
 
-## Les six pas
+## A dedicated cycle, and a laboratory
 
-Une story part d'une branche de `main`, sur une Preflight verte, et y revient en un commit.
+495 drives a software change through gated, evidence-backed phases, but it cannot yet drive its own.
+Until 495 can be used to develop 495, its changes go through this dedicated cycle, with its own tool
+and Claude Code sessions in place of 495's confined Pi worker.
 
-1. **La story.** Écrite avec le propriétaire au format de `format-de-story.md` : ce que le lecteur
-   gagne, les promesses en scénarios, la sécurité, les tâches, le hors-périmètre. Chaque tâche dit
-   la commande qui la tient, écrite rouge parce qu'elle nomme un test qui n'existe pas encore, le
-   test et son assertion dans les mots de la story, et ce que le code fait aujourd'hui qui la fait
-   échouer. Ce qui exige une main s'écrit comme tel. `scripts/check-story-format.ts` refuse une
-   story qui manque à cette forme.
-2. **Le rouge-vert.** Tâche par tâche : le test d'abord, son rouge vu sur l'assertion annoncée, un
-   commit de test seul, puis le code et un commit vert. Un fichier absent, une erreur d'import ou de
-   type, ou un rouge obtenu en mettant du code de côté n'est pas ce rouge. L'outil rejoue chaque
-   commit de test seul de la passe dans un arbre détaché et lit quels tests échouent, pas seulement
-   le code de sortie. Un test qu'un pas ultérieur ajoute, déjà vert parce que le code tient la
-   promesse, n'est pas un commit du passage. Le pas finit sur une Preflight verte.
-3. **L'autocontrôle.** Une relecture du diff de la branche contre les standards de
-   `CONVENTIONS.md`, avec la liste de `prompts/autocontrole.md` : périmètre tenu, code mort, types,
-   un test par fonction, une seule responsabilité, noms uniques. Ce qu'il trouve se corrige sur la
-   branche avant la relecture.
-4. **La relecture.** Deux relecteurs neufs, sans contexte commun, en parallèle, chacun dans sa copie
-   de l'arbre. Le premier tour relit la branche contre `main` ; le second, le diff depuis la révision
-   relue et les constats déjà traités. Il n'y a pas de troisième tour.
-5. **La recette.** Une exécution réelle : l'extension chargée depuis `dist/` dans un vrai Pi, un
-   modèle réel ou un agent scripté déclaré comme tel, une campagne menée jusqu'à son verdict, puis
-   le dossier relu depuis SQLite et le magasin d'objets. Un contrôle négatif accompagne la campagne
-   verte : la même configuration privée de ce que la story ajoute, et le refus qu'elle produit. Une
-   liste adossée à des tests n'est pas une recette. Une story qui touche `src/application/stacks/`, les
-   contrôles ou l'exécuteur ajoute à la recette les deux campagnes de référence de `cycle/campagnes/`
-   (`npm run campagne -- npm` et `-- maven`), qui n'ont pas été taillées pour elle ; elles se lancent
-   aussi avant toute release. Le propriétaire accepte, ou nomme l'écart.
-6. **Le versement.** La branche arrive sur `main` en un commit écrasé, dont le message dit le
-   comportement obtenu, en anglais, sur une ligne. La branche est gardée : le dossier cite ses
-   commits. Le dossier de la story est exporté sous `specs/verifications/<story>/`, la story passe
-   `versée`, et rien n'est poussé : le push est au propriétaire.
+The cycle is also a laboratory. Each change it carries tries out ways of driving a change an agent
+makes, and shows which hold and which fail under real work and real cost:
+- a story written before the code;
+- a red seen on the announced assertion;
+- two independent reviewers bounded to two rounds;
+- a registry for what review leaves;
+- an acceptance run with a negative control;
+- an independent session that accepts in the owner's place.
 
-Un écart trouvé à la recette retourne au pas 2 pour l'écart seul, puis à un tour de relecture sur
-son diff, puis à la recette.
+A practice that holds is a candidate for 495's own phases. One that fails is dropped together with
+the measurement that sank it, so that 495 does not inherit it. The cycle itself came out of such a
+measurement. The decisions that shape it are recorded in `specs/adr/`, like those of the product.
 
-## La relecture
+## How the cycle differs from 495
 
-Ce que les relecteurs vérifient : les promesses de la story, et rien d'autre. Pour chaque scénario,
-le code le tient-il, et un test le tient-il, qu'une mutation d'une ligne qui tient la promesse doit
-faire échouer. Une promesse que le code ne tient pas est bloquante ; une promesse qu'aucun test ne
-tient est à corriger. Les conventions, la conception et les odeurs reviennent à l'autocontrôle, qui
-passe avant. La consigne ne propose aux relecteurs ni scénario, ni état, ni entrelacement de son
-cru : un défaut sur un chemin qu'aucune promesse ne couvre sera trouvé par la recette, par l'usage
-ou par la story qui en fera la promesse.
+The cycle and 495 answer the same question, how to accept a change an agent made, and they do not
+answer it the same way. Each difference below is one of three kinds:
+- **interim**: it goes away once 495 drives its own changes;
+- **under trial**: a different choice that the laboratory weighs against 495's;
+- **deliberate**: the cycle keeps it whatever 495 does.
 
-Un constat est situé avant d'être traité. Un défaut que la branche introduit ou rend atteignable
-lui appartient, même si la ligne fautive la précède ; un défaut qu'elle n'introduit ni ne rend
-atteignable va au registre et ne retient pas la relecture.
+495's side is stated by the text that holds it, and only cited here.
 
-La réponse à un tour corrige ce qui est bloquant ou à corriger. Une suggestion dont la correction
-n'ajoute aucun comportement se corrige dans le tour ; une suggestion dont la correction ajouterait un
-refus, un état ou un mécanisme va au registre. Une correction qui ajoute un mécanisme est conçue
-avant d'être posée : où l'état naît, qui le lit, combien d'entrées y mènent ; retirer une seconde
-entrée vaut mieux que la garder. Un constat qui ne touche que du texte se corrige sans être relu par
-des relecteurs neufs : le coordinateur vérifie la correction contre son constat.
+- **Who writes the tests: under trial.**
+  - The cycle: the session that writes the code writes its tests first, and the tool replays the
+    test-only commit to see it fail.
+  - 495: a separate preparation intervention writes the tests before any candidate exists, and the
+    kernel judges them on the bare reference and freezes them with the protocol at G2
+    (`src/application/phases/prepare.ts`, `D-14`).
+  - At stake: the separation keeps tests from being cut to fit the code. It costs a frozen test that
+    no implementation can satisfy, which today stops the change (`specs/bugs/registry.yaml`).
+- **Who reviews: under trial.**
+  - The cycle: every story gets two model reviewers, for two rounds, and a promise the code does not
+    keep blocks it.
+  - 495: a review is a role the frozen protocol may require (`required_reviews`, empty by default).
+    When one is required, a rejection or a blocking finding fails G5 (`src/domain/gates/g5.ts`).
+  - At stake: whether systematic review earns what it costs.
+- **Who accepts: under trial.**
+  - The cycle: the owner accepts or names a gap. In an unattended run, a fresh model session decides
+    in the owner's place, and the record says `origine: automate`.
+  - 495: G5 combines evidence, reviews and human decisions deterministically against the frozen
+    protocol. Acceptance follows from G5 by default, or from an IH-10 decision when the policy asks
+    for one. A model call never yields a human decision (`ADR-014`), and only a human undoes what a
+    human decided (`D-70`).
+  - At stake: the cycle lets a model stand in for the owner, which 495 refuses by design. The
+    laboratory measures what that substitution gets right and what it lets through.
+- **Where a human answer comes from: interim.**
+  - The cycle: whoever types `accepte` or `ecart`.
+  - 495: an answer counts only through a Pi dialogue whose provenance the host vouches for, and never
+    through JSON or print mode (`ADR-014`, `D-08`, `D-12`).
+- **Where the agent runs: interim.**
+  - The cycle: Claude Code sessions with the whole repository in reach.
+  - 495: a confined Pi worker that cannot reach the normative storage (`ADR-004`).
+- **Where the checks run: deliberate.**
+  - The cycle: checks run unconfined, because this repository's suite qualifies Seatbelt itself and
+    sandboxes do not nest.
+  - 495: checks run under explicit sandbox profiles and refuse rather than run unconfined
+    (`ADR-013`).
+- **What makes a check an authority: interim.**
+  - The cycle: Preflight is trusted as it stands.
+  - 495: every check used as an authority is qualified first by a positive, a targeted negative and,
+    when it has a runner, an incident case (`specs/amont/conception-verification.md` §2.1).
+- **What the record is: interim.**
+  - The cycle: an append-only journal of JSON lines beside 495's object store, exported at landing.
+  - 495: a SQLite ledger whose events form a digest chain, with the same object store (`ADR-005`).
 
-La porte se ferme sans pourcentage. Après le second tour, ce qui reste va au registre
-`specs/bugs/registry.yaml`, nommé comme introduit par la branche quand il l'est, sauf une promesse
-que le code ne tient pas, qui est présentée au propriétaire : il décide du versement ou d'un
-correctif, qui repasse par le pas 2 et un tour sur son diff.
+## The six steps
 
-Les relevés ne bougent pas pendant la relecture. La révision, les horodatages et le nombre de tests
-d'un dossier sont posés quand la porte passe. Un relevé en retard sur la révision relue n'est pas un
-constat, pas plus que le sujet d'un commit de la branche, qui n'atteint jamais `main`.
+A story starts on a branch from `main`, on a green Preflight, and comes back to it in one commit.
 
-## Preflight et défauts découverts
+1. **The story.** Written with the owner in the format of `format-de-story.md`: what the reader
+   gains, the promises as scenarios, security, the tasks, what is out of scope. Each task gives the
+   command that holds it, written red because it names a test that does not exist yet, the test and
+   its assertion in the words of the story, and what the code does today that makes it fail. What
+   needs a hand is written as such. `scripts/check-story-format.ts` refuses a story that misses this
+   shape.
+2. **Red-green.** Task by task: the test first, its red seen on the announced assertion, a test-only
+   commit, then the code and a green commit. A missing file, an import or type error, or a red
+   obtained by setting code aside is not that red. The tool replays each test-only commit of the
+   pass in a detached tree and reads which tests fail, not only the exit code. A test that a later
+   step adds, already green because the code keeps the promise, is not a commit of the pass. The step
+   ends on a green Preflight.
+3. **Self-review.** A review of the branch diff against the standards of `CONVENTIONS.md`, with the
+   checklist of `prompts/autocontrole.md`: scope kept, dead code, types, one test per function, a
+   single responsibility, unique names. What it finds is fixed on the branch before review.
+4. **Review.** Two fresh reviewers, with no shared context, in parallel, each in its own copy of the
+   tree. The first round reviews the branch against `main`; the second, the diff since the reviewed
+   revision and the findings already handled. There is no third round.
+5. **The acceptance run.** A real execution: the extension loaded from `dist/` into a real Pi, a real
+   model or a scripted agent declared as such, a campaign carried to its verdict, then the record
+   read back from SQLite and the object store. A negative control goes with the green campaign: the
+   same setup deprived of what the story adds, and the refusal it produces. A list backed by tests is
+   not an acceptance run. A story that touches `src/application/stacks/`, the controls or the
+   executor adds to its acceptance run the two reference campaigns of `cycle/campagnes/`
+   (`npm run campagne -- npm` and `-- maven`), which were not cut to fit it; they also run before
+   every release. The owner accepts, or names the gap.
+6. **Landing.** The branch reaches `main` as one squashed commit, whose message states the resulting
+   behaviour, in English, on one line. The branch is kept: the record cites its commits. The story's
+   record is exported under `specs/verifications/<story>/`, the story becomes `versée`, and nothing
+   is pushed: pushing is the owner's.
 
-Preflight est `npm run check`. Elle est verte avant tout pas, et avant tout commit qui touche
+A gap found at the acceptance run goes back to step 2 for the gap alone, then to one review round on
+its diff, then to the acceptance run.
+
+## Review
+
+What reviewers check: the promises of the story, and nothing else. For each scenario: does the code
+keep it, and does a test hold it, one that a one-line mutation of the line keeping the promise must
+make fail. A promise the code does not keep is blocking; a promise no test holds is to be fixed.
+Conventions, design and smells belong to the self-review, which comes first. The prompt offers the
+reviewers no scenario, state or interleaving of its own invention: a defect on a path no promise
+covers will be found by the acceptance run, by use, or by the story that makes it a promise.
+
+A finding is located before it is handled. A defect the branch introduces or makes reachable belongs
+to it, even when the faulty line predates it; a defect it neither introduces nor makes reachable goes
+to the registry and does not hold the review back.
+
+The answer to a round fixes what is blocking or to be fixed. A suggestion whose fix adds no behaviour
+is fixed in the round; a suggestion whose fix would add a refusal, a state or a mechanism goes to the
+registry. A fix that adds a mechanism is designed before it is put in: where the state is born, who
+reads it, how many entries lead to it; removing a second entry is better than keeping it. A finding
+that touches only text is fixed without being reviewed by fresh reviewers: the coordinator checks the
+fix against its finding.
+
+The gate closes without a percentage. After the second round, what remains goes to the registry
+`specs/bugs/registry.yaml`, named as introduced by the branch when it is, except a promise the code
+does not keep, which is put to the owner: they decide between landing and a fix, which goes back
+through step 2 and one round on its diff.
+
+Records do not move during review. The revision, timestamps and test count of a record are set when
+the gate passes. A record lagging behind the reviewed revision is not a finding, any more than the
+subject of a branch commit, which never reaches `main`.
+
+## Preflight and defects found along the way
+
+Preflight is `npm run check`. It is green before every step, and before every commit that touches
 `src/`, `test/`, `scripts/`, `bench/`, `contracts/`, `README.md`, `NOTICE`, `LICENSE`,
-`package.json`, `package-lock.json`, un `tsconfig*.json` ou `biome.json`. Une story sous
-`specs/stories/` appelle `npm run lint:story-format` ; un fichier de l'archive appelle le contrôle
-qui le lit. Une Preflight verte tient tant qu'aucun fichier de la première liste n'a changé : citer
-sa révision et son heure plutôt que la relancer. Seule compte une exécution sous Node 24.
+`package.json`, `package-lock.json`, a `tsconfig*.json` or `biome.json`. A story under
+`specs/stories/` calls for `npm run lint:story-format`; an archive file calls for the check that
+reads it. A green Preflight holds as long as no file of the first list has changed: cite its
+revision and time rather than run it again. Only a run under Node 24 counts.
 
-Un échec reproductible rencontré en chemin est un défaut découvert, jamais un bruit de fond. Il se
-corrige tout de suite, dans son propre commit, avec son test de non-régression, quand la correction
-n'ajoute aucun comportement ; sinon il reçoit une entrée de `specs/bugs/registry.yaml` et son propre cycle.
-Il ne s'inscrit sans correction que si sa reproduction échoue après un essai de bonne foi. « Déjà là
-avant », « sans rapport avec la session », « hors périmètre » ne sont pas des réponses.
+A reproducible failure met along the way is a defect found, never background noise. It is fixed at
+once, in its own commit, with its regression test, when the fix adds no behaviour; otherwise it gets
+an entry in `specs/bugs/registry.yaml` and its own cycle. It is recorded without a fix only if its
+reproduction fails after a good-faith attempt. "Already there before", "unrelated to the session",
+"out of scope" are not answers.
 
-## Git et commits
+## Git and commits
 
-Une branche par story ou par cycle de correction. Message de commit : `<type>: <description>`, une
-ligne, en anglais, quelle que soit la langue de la session ou du fichier changé ; les types sont
-`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`. Le message dit le comportement
-obtenu, jamais le processus qui l'a produit : ni chantier, ni tour de relecture, ni attribution, ni
-`Co-Authored-By`. Rien n'est poussé par un automate ; `gh` pour toute opération GitHub, jamais l'API
-directement ; aucune issue créée par un automate.
+One branch per story or per fix cycle. Commit message: `<type>: <description>`, one line, in English,
+whatever the language of the session or of the file changed; the types are `feat`, `fix`,
+`refactor`, `docs`, `test`, `chore`, `perf`, `ci`. The message states the resulting behaviour, never
+the process that produced it: no work-package reference, no review round, no attribution, no
+`Co-Authored-By`. Nothing is pushed by an automaton; `gh` for every GitHub operation, never the API
+directly; no issue is created by an automaton.
 
-## Ce qui s'écrit à la main, et ce qui s'observe
+## What is written by hand, and what is observed
 
-À la main : une décision du produit dans `specs/adr/`, et l'ordre du travail dans `specs/plan.yaml`,
-où le propriétaire marque `prete: oui` les epics qui se déroulent sans lui. La story et l'entrée du
-registre s'écrivent à la main quand le propriétaire conduit la story lui-même ; dans une suite sans
-lui, une session les écrit sous les règles de ce fichier. Tout le reste est observé et inscrit par
-l'outil au moment où il l'observe : un rouge et son message, une Preflight et sa révision, un tour de relecture et ses
-constats, la recette et l'accord du propriétaire, le versement. Une preuve s'écrit une fois, dans le
-dossier du pas qui l'a produite ; ailleurs on la cite. Une copie dérive du code qu'elle décrit.
+By hand: a product decision in `specs/adr/`, and the order of the work in `specs/plan.yaml`, where
+the owner marks `prete: oui` the epics that run without them. The story and the registry entry are
+written by hand when the owner drives the story; in a run without them, a session writes them under
+the rules of this file. Everything else is observed and recorded by the tool at the moment it
+observes it: a red and its message, a Preflight and its revision, a review round and its findings,
+the acceptance run and the owner's agreement, the landing. Evidence is written once, in the record of
+the step that produced it; elsewhere it is cited. A copy drifts from the code it describes.
 
-## Le cycle sans le propriétaire
+## The cycle without the owner
 
-`npm run cycle -- suite` déroule, l'une après l'autre, les epics que `specs/plan.yaml` marque
-`prete: oui`, dans l'ordre du plan. Pour chacune : la prochaine story du plan est écrite par une
-session quand aucune n'est listée à faire, elle est conduite jusqu'au versement comme ci-dessus, le
-plan la marque versée, et l'epic passe à `versé` quand une session constate que ses stories livrent
-son objet. La suite part de `main` avec un arbre propre et s'arrête au premier blocage, en disant
-pourquoi ; elle ne pousse jamais. `npm run cycle -- <story> auto` fait de même pour une seule
-story.
+`npm run cycle -- suite` runs, one after the other, the epics that `specs/plan.yaml` marks
+`prete: oui`, in the order of the plan. For each: the next story of the plan is written by a session
+when none is listed to do, it is driven to landing as above, the plan marks it landed, and the epic
+becomes `versé` when a session finds that its stories deliver its purpose. The run starts from `main`
+with a clean tree and stops at the first block, saying why; it never pushes.
+`npm run cycle -- <story> auto` does the same for a single story.
 
-Trois réponses du propriétaire sont déléguées, chacune un acte inscrit au dossier :
+Three of the owner's answers are delegated, each an act recorded in the record:
 
-- **L'accord après la recette.** Une session neuve, qui n'a conduit ni la recette ni la relecture,
-  lit la story, le compte rendu de la recette et les défauts que la branche inscrit au registre, puis
-  décide `accepte` ou `ecart` (`prompts/arbitrage.md`). Un écart est celui d'une promesse écrite ou
-  d'une garantie de sécurité non tenue, d'un cas que le code d'avant arrêtait et que la branche laisse
-  passer, ou d'un défaut de la branche qui affaiblit une garantie de la story ; sinon l'accord
-  emporte une note qui nomme ce qui reste au registre et ce que la recette n'a pas exercé. Un défaut
-  que l'arbitrage constate et que le registre ne porte pas, il l'y inscrit et le commite ; l'outil
-  s'arrête s'il touche un autre fichier ou laisse l'arbre modifié. Une
-  question de produit que la story ne tranche pas se règle par le comportement qui arrête. La décision
-  est inscrite avec `origine: automate`.
-- **L'écart.** Que l'arbitrage le nomme ou que la recette le rouvre, une session l'écrit dans la story
-  (un scénario, la phrase de sécurité, une tâche dont le rouge se vérifie dans le code) et le
-  commite avant que le rouge-vert reparte : sans promesse écrite, la relecture ne juge pas le
-  correctif. L'outil relit la story, exige qu'elle ait gagné un scénario ou une tâche et que l'arbre
-  soit propre.
-- **Une promesse que la relecture n'a pas fait tenir.** Elle retourne au rouge-vert : elle n'était pas
-  au propriétaire de la lever.
+- **Agreement after the acceptance run.** A fresh session, which drove neither the acceptance run
+  nor the review, reads the story, the report of the acceptance run and the defects the branch
+  records in the registry, then decides `accepte` or `ecart` (`prompts/arbitrage.md`). A gap is a
+  written promise or a security guarantee not kept, a case the previous code stopped and the branch
+  lets through, or a defect of the branch that weakens a guarantee of the story; otherwise the
+  agreement carries a note naming what remains in the registry and what the acceptance run did not
+  exercise. A defect the arbitration finds and the registry does not carry, it records there and
+  commits; the tool stops if it touches another file or leaves the tree modified. A product question
+  the story does not settle is settled by the behaviour that stops. The decision is recorded with
+  `origine: automate`.
+- **The gap.** Whether the arbitration names it or the acceptance run reopens it, a session writes it
+  into the story (a scenario, the security sentence, a task whose red is checked in the code) and
+  commits it before red-green starts again: without a written promise, review cannot judge the fix.
+  The tool reads the story again, requires that it gained a scenario or a task and that the tree is
+  clean.
+- **A promise review did not get kept.** It goes back to red-green: it was not the owner's to waive.
 
-**Les défauts du registre** se corrigent aussi, au bon moment (`D-73`) : à la fin de chaque epic, avant
-la suivante, ceux de gravité moyenne ou haute ; à la fin de la suite, les faibles. Une session choisit
-le premier défaut ouvert qui ne demande aucune décision de produit, écrit sa story de correction sous
-l'epic `e28` (que le plan ne marque jamais prête) en citant l'entrée du registre, et l'outil la conduit
-par les six pas ; au versement, l'entrée passe du registre à `specs/bugs/registry-fixed.yaml`, marquée corrigée à la révision livrée. Les défauts que la
-session écarte parce qu'ils demandent le propriétaire sont nommés à la fin de la suite, avec la
-raison, sans l'arrêter. Une phase corrige au plus `CYCLE_495_DEFAUTS_MAX` défauts (5 par défaut) ;
-`npm run cycle -- defauts [gravité]` lance cette phase seule.
+**Registry defects** are fixed too, at the right time (`D-73`): at the end of each epic, before the
+next one, those of medium or high severity; at the end of the run, the low ones. A session picks the
+first open defect that needs no product decision, writes its fix story under epic `e28` (which the
+plan never marks ready) citing the registry entry, and the tool drives it through the six steps; at
+landing, the entry moves from the registry to `specs/bugs/registry-fixed.yaml`, marked fixed at the
+landed revision. The defects the session sets aside because they need the owner are named at the end
+of the run, with the reason, without stopping it. One phase fixes at most `CYCLE_495_DEFAUTS_MAX`
+defects (5 by default); `npm run cycle -- defauts [severity]` runs that phase alone.
 
-La suite s'arrête, et rend la main, quand une story est retournée au rouge-vert trois fois, quand elle
-a dépensé plus que `CYCLE_495_PLAFOND_USD` (80 $ par défaut), quand une session ne rend pas sa
-sortie, ou quand un pas bloque : un défaut de l'outil lui-même, un test qui ne peut pas être rouge,
-une Preflight rouge. La rédaction d'une story s'arrête de même sur ce qu'elle ne peut pas écrire sans
-choisir à la place du propriétaire (`bloque`, avec le choix nommé), et une epic sans première story
-possible reste à lui.
+The run stops, and hands back control, when a story has been sent back to red-green three times,
+when it has spent more than `CYCLE_495_PLAFOND_USD` ($80 by default), when a session does not return
+its output, or when a step blocks: a defect of the tool itself, a test that cannot be red, a red
+Preflight. Writing a story stops the same way on what it cannot write without choosing in the owner's
+place (`bloque`, with the choice named), and an epic with no possible first story stays the owner's.
 
-## Les reprises
+## Refactorings
 
-Une reprise ne change aucun comportement : mêmes événements, mêmes artefacts, mêmes verdicts, mêmes
-refus, mêmes contrats, mêmes textes destinés au propriétaire ou au modèle. Elle n'a ni promesse à
-relire, ni rouge à voir, ni rien à montrer en recette ; elle ne passe donc pas par les six pas, et
-prend le chemin court de `D-80`. Ce qui change un comportement, même peu, est une story.
+A refactoring changes no behaviour: same events, same artifacts, same verdicts, same refusals, same
+contracts, same texts meant for the owner or the model. It has no promise to review, no red to see,
+nothing to show at an acceptance run; so it does not go through the six steps, and takes the short
+path of `D-80`. What changes a behaviour, even slightly, is a story.
 
-Les reprises sont écrites dans `specs/reprises.md`, une section par reprise, dans l'ordre où elles se
-font. `npm run cycle -- reprises` les conduit l'une après l'autre, depuis `main` et un arbre propre :
+Refactorings are written in `specs/reprises.md`, one section per refactoring, in the order they are
+done. `npm run cycle -- reprises` drives them one after the other, from `main` and a clean tree:
 
-1. Preflight est verte sur `main`, après reconstruction de `dist/`, et l'outil lit son nombre de tests.
-2. Une session fait la reprise sur la branche `reprise-<id>` (`prompts/reprise.md`). Elle peut
-   l'écarter, avec la raison, quand la reprise changerait un comportement ou que le code la dément :
-   l'outil l'écrit dans la liste, commite, et passe à la suivante.
-3. L'outil vérifie, sans croire la session : un commit au moins, un arbre propre, la liste intacte,
-   aucune ligne d'assertion de `test/` retirée sans revenir à l'identique, Preflight verte après
-   reconstruction de `dist/`, et pas moins de tests qu'avant.
-4. Une session neuve relit le diff dans une copie détachée (`prompts/reprise-relecture.md`) et dit si
-   un comportement change ou si le diff déborde de la reprise. Il n'y a pas de second tour.
-5. La branche arrive sur `main` en un commit, qui marque la reprise `versée` dans la liste ; la branche
-   est supprimée, le journal de `~/.495/cycle/<id>/` garde les transcriptions.
+1. Preflight is green on `main`, after rebuilding `dist/`, and the tool reads its test count.
+2. A session does the refactoring on the branch `reprise-<id>` (`prompts/reprise.md`). It may set it
+   aside, with the reason, when the refactoring would change a behaviour or the code contradicts it:
+   the tool writes that into the list, commits, and moves to the next one.
+3. The tool checks, without trusting the session: at least one commit, a clean tree, the list
+   untouched, no assertion line of `test/` removed without coming back identical, Preflight green
+   after rebuilding `dist/`, and no fewer tests than before.
+4. A fresh session reviews the diff in a detached copy (`prompts/reprise-relecture.md`) and says
+   whether a behaviour changes or the diff overflows the refactoring. There is no second round.
+5. The branch reaches `main` in one commit, which marks the refactoring `versée` in the list; the
+   branch is deleted, the log under `~/.495/cycle/<id>/` keeps the transcripts.
 
-La course s'arrête, et rend la main, à la première vérification qui échoue ou à la relecture qui voit
-un changement : la branche reste extraite pour qu'on la lise, `main` et la liste ne bougent pas. On
-reprend en revenant sur `main` (`git checkout main`) : la course suivante repart la même reprise d'une
-branche neuve, ou on l'écarte à la main dans la liste avec la raison. Quand la relecture refuse ce que la
-reprise elle-même demande, relancer rejoue le même refus : on réduit la reprise à sa part constante, en
-disant dans `Limite` ce qu'elle ne fait pas, et le reste va au registre ou à une story. `CYCLE_495_REPRISES_MAX` borne le
-nombre de reprises d'une course. Rien n'est poussé.
+The run stops, and hands back control, at the first check that fails or at a review that sees a
+change: the branch stays checked out so it can be read, `main` and the list do not move. To resume,
+go back to `main` (`git checkout main`): the next run starts the same refactoring from a fresh branch,
+or it is set aside by hand in the list with the reason. When review refuses what the refactoring
+itself asks for, running again replays the same refusal: reduce the refactoring to its constant part,
+saying in `Limite` what it does not do, and the rest goes to the registry or to a story.
+`CYCLE_495_REPRISES_MAX` caps the number of refactorings in one run. Nothing is pushed.
 
-## L'outil
+## The tool
 
-`npm run cycle -- <story>` conduit les pas qui restent, dans l'ordre, jusqu'à ce qu'un pas ait
-besoin du propriétaire ou bloque ; `npm run cycle -- <story> etat` dit où elle en est ;
-`npm run cycle -- <story> suivre` suit, depuis un autre terminal, la story qui tourne ;
-`npm run cycle -- suite` déroule les epics marquées prêtes, sans le propriétaire ;
-`npm run cycle -- defauts [gravité]` corrige les défauts ouverts du registre, sans dérouler d'epic ;
-`npm run cycle -- reprises` conduit les reprises à comportement constant de `specs/reprises.md` ;
-`npm run cycle -- <story> auto` conduit une story de même ;
-`npm run cycle -- <story> accepte [note]` inscrit l'accord après la recette ;
-`npm run cycle -- <story> ecart "<ce qui manque>"` la renvoie au rouge-vert pour l'écart nommé, avec
-un seul tour de relecture sur son diff. Le dossier vit sous `~/.495/cycle/<story>/` pendant la story
-(`CYCLE_495_DIR` le déplace).
+`npm run cycle -- <story>` drives the remaining steps, in order, until a step needs the owner or
+blocks; `npm run cycle -- <story> etat` says where it stands;
+`npm run cycle -- <story> suivre` follows, from another terminal, the story that is running;
+`npm run cycle -- suite` runs the epics marked ready, without the owner;
+`npm run cycle -- defauts [severity]` fixes the open defects of the registry, without running an epic;
+`npm run cycle -- reprises` drives the behaviour-preserving refactorings of `specs/reprises.md`;
+`npm run cycle -- <story> auto` drives a single story the same way;
+`npm run cycle -- <story> accepte [note]` records the agreement after the acceptance run;
+`npm run cycle -- <story> ecart "<what is missing>"` sends it back to red-green for the named gap,
+with a single review round on its diff. The record lives under `~/.495/cycle/<story>/` during the
+story (`CYCLE_495_DIR` moves it).
 
-Pendant qu'elle tourne, la commande montre au terminal où en est la story : chaque pas s'ouvre sur
-sa place parmi les six, avec le temps et le coût déjà engagés ; chaque session déroule une ligne par
-texte de l'agent, appel d'outil, commit, total de tests ou appel en échec, préfixée de son nom quand
-deux relecteurs tournent ensemble ; chaque contrôle dit quand il part et comment il finit ; chaque pas
-se ferme sur son issue, sa durée, son coût et ses commits. Le titre du terminal nomme le pas en cours
-et depuis combien de temps rien ne s'est affiché. Un son et une notification disent qu'un pas attend
-le propriétaire, qu'il bloque ou que la story est versée (`CYCLE_495_SON` change le son). Les mêmes
-lignes vont dans `en-direct.log`, dans le dossier de la story, que `npm run cycle -- <story> suivre`
-suit depuis un autre terminal jusqu'à Ctrl-C ; un nouveau lancement vide ce fichier. Rien de cet
-affichage n'est une preuve : le journal et les transcriptions gardées le sont.
+While it runs, the command shows in the terminal where the story stands: each step opens with its
+place among the six, with the time and cost already spent; each session prints one line per agent
+text, tool call, commit, test total or failed call, prefixed with its name when two reviewers run
+together; each check says when it starts and how it ends; each step closes on its outcome, duration,
+cost and commits. The terminal title names the current step and how long nothing has been printed. A
+sound and a notification say that a step waits for the owner, that it blocks or that the story has
+landed (`CYCLE_495_SON` changes the sound). The same lines go to `en-direct.log`, in the story's
+directory, which `npm run cycle -- <story> suivre` follows from another terminal until Ctrl-C; a new
+run empties that file. Nothing in this display is evidence: the log and the kept transcripts are.
 
-L'outil dépend de 495 et jamais l'inverse. Il reprend du noyau le magasin d'objets, où vont les
-transcriptions, les sorties des contrôles et les rapports des relecteurs ; l'exécuteur de contrôles
-et ses lecteurs de rapports, par lesquels passent Preflight, la commande de chaque tâche et le rejeu
-de chaque rouge ; et la forme des preuves. Les contrôles tournent sans confinement, et chaque preuve
-le dit : la suite de ce dépôt qualifie Seatbelt elle-même, et un bac à sable ne s'emboîte pas.
+The tool depends on 495 and never the reverse. It takes from the kernel the object store, where the
+transcripts, check outputs and reviewer reports go; the check executor and its report readers,
+through which Preflight, each task's command and the replay of each red pass; and the shape of
+evidence. Checks run unconfined, and each piece of evidence says so: this repository's suite
+qualifies Seatbelt itself, and sandboxes do not nest.
 
-Les pas qui demandent un modèle tournent dans des sessions Claude Code, une par pas, lancées sans
-tâche de fond ni question possible, avec une sortie structurée que l'outil lit : le rouge-vert,
-l'autocontrôle, les deux relecteurs de chaque tour en parallèle dans leur arbre détaché, la réponse,
-la recette, le message du versement. Leurs invites sont dans `prompts/`. La story, elle, s'écrit
-avec le propriétaire, dans une session ordinaire.
+The steps that need a model run in Claude Code sessions, one per step, started with no background
+task and no possible question, with a structured output the tool reads: red-green, self-review, the
+two reviewers of each round in parallel in their detached trees, the answer, the acceptance run, the
+landing message. Their prompts are in `prompts/`. The story itself is written with the owner, in an
+ordinary session.
 
-Ce que l'outil vérifie lui-même, sans croire la session : chaque commit de test seul de la passe,
-rejoué dans un arbre détaché, échoue sur un test lu, chaque commande de tâche passe sur la tête de la branche,
-Preflight est verte à la révision citée, la relecture s'arrête à deux tours, la branche arrive sur
-`main` en un commit, le dossier est exporté au versement.
+What the tool checks itself, without trusting the session: each test-only commit of the pass,
+replayed in a detached tree, fails on a test it reads; each task command passes at the branch head;
+Preflight is green at the cited revision; review stops at two rounds; the branch reaches `main` in
+one commit; the record is exported at landing.
 
-Ce qui manque encore : la mutation sur les lignes introduites pour une cible Node, que les
-relecteurs font à la main, et le worker Pi confiné de 495 à la place des sessions Claude Code.
+What is still missing: mutation testing on the lines introduced for a Node target, which reviewers do
+by hand, and 495's confined Pi worker in place of the Claude Code sessions.

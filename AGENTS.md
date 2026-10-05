@@ -113,7 +113,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - **The cycle:** a change goes through the six steps of `cycle/README.md` — story, red-green,
   self-review, review, acceptance run, landing — driven by the tool of `cycle/`; a step the tool does
   not cover yet is done by hand, in that order and under those rules. A refactoring that changes no
-  behaviour takes the short path instead (`specs/adr/D-80`, `cycle/README.md` § Les reprises): it is
+  behaviour takes the short path instead (`specs/adr/D-80`, `cycle/README.md` § Refactorings): it is
   listed in `specs/reprises.md` and run by `npm run cycle -- reprises`, one commit each.
 - **Red before code:** a task says what its test asserts in the words of the story and why that
   fails today; the test is written first and seen failing on that assertion before the code.

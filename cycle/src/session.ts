@@ -37,7 +37,7 @@ another session. Never push to a remote. Never kill a process by name or pattern
 of the cycle run at the same time and their command lines carry the same words as yours; stop only a process
 you started, by its own pid. Run every command and sub-agent in the foreground and read
 its result before going on; give a long command a Bash timeout of up to 60 minutes. Commit messages
-follow cycle/README.md § Git et commits, whatever the harness suggests.`;
+follow cycle/README.md § Git and commits, whatever the harness suggests.`;
 
 function shell(env: NodeJS.ProcessEnv): string {
 	// The agents write bash; the login shell here is zsh, where an unquoted $var is not split.

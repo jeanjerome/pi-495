@@ -2,7 +2,7 @@
 
 Une reprise à comportement constant, {{id}} — {{titre}}, sur la branche `{{branche}}` partie de `main`
 à `{{base}}`. Elle prend le chemin court de `specs/adr/D-80` : lis cette décision et `cycle/README.md`
-§ Les reprises avant de commencer. Quand `npm run typecheck` est rouge, charge le skill
+§ Refactorings avant de commencer. Quand `npm run typecheck` est rouge, charge le skill
 `typescript-magician` avant de corriger le type.
 
 La reprise est décrite plus bas, telle que l'audit l'a écrite dans `specs/reprises.md`. Fais-la, et
