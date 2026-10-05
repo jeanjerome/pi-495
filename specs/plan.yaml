@@ -227,6 +227,8 @@ epics:
     objet: >
       L'état d'un changement, arrêté ou abouti, est lisible : une cause énoncée une fois, une
       notification sur la ligne décisive, des risques résiduels qui portent sur le candidat.
+    stories:
+      - { id: e07s01, status: "à faire", title: "Le statut et le rapport d'un changement se lisent sans connaître le dossier" }
 
   - id: e08
     title: "La revue s'appuie sur ce que Pi rend"
