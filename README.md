@@ -101,6 +101,8 @@ Configure and authenticate your model in Pi, select it with `/model`, then enter
 | Read the findings and remaining risks | `/495 report` |
 | Continue from the recorded state | `/495 resume` |
 
+To survey the project instead of changing it, enter `/495 state` followed by a question about the project, for example `/495 state does the code meet its quality standards?`. 495 runs the checks on the project as it stands, writes no candidate, and asks you to accept or refuse the survey.
+
 Integration is disabled by default. To allow it, set `policy.integration_enabled` to `true` before starting a new session. After acceptance, `/495 integrate` requests local integration and any required authorization. 495 does not push to a remote repository.
 
 ## Features
@@ -112,7 +114,9 @@ Integration is disabled by default. To allow it, set `policy.integration_enabled
 | 🚦 **Evidence gates** | Controls must first demonstrate a passing case, a failing case and a tool failure. The kernel computes acceptance from recorded evidence and the configured review policy. |
 | 🧩 **Context engineering** | Each intervention receives role-specific instructions, adopted artifacts, an explicit output schema and bounded feedback. Context manifests are recorded for inspection. |
 | ⚖️ **Regression-aware verification** | Compare the candidate with the reference to distinguish introduced regressions from inherited findings, under a frozen tolerance policy. |
-| 🧬 **Mutation testing and architecture checks** | On suitable Maven projects, assess surviving mutants on changed code, coverage of introduced lines and declared Java import boundaries. |
+| 🧬 **Coverage, mutation testing and architecture checks** | Measure the coverage of the lines a change introduces and the mutants that survive on them: on Maven with JaCoCo and PIT, on Node with the runner's LCOV report and Stryker. On Maven, also check declared Java import boundaries. |
+| 🔎 **Project surveys** | `/495 state` runs the checks on the project as it stands, without changing it. The survey gives each requirement its verdicts, each finding its file, and each unmeasured area a named blind spot; you accept or refuse it. |
+| 📏 **Quality referentials and trajectories** | When a survey asks about code quality that no check measures, 495 offers a referential for complexity, duplication and dead code: PMD and CPD on Maven, ESLint and jscpd on Node. Adopted, it is installed in a copy, never in your project. A trajectory you write turns the measured gaps into increments, and `/495 measure` judges each milestone on a new survey. |
 | 🛡️ **Sandboxed execution** | Work happens in isolated copies, with phase-specific permissions and Seatbelt confinement. An unavailable required isolation capability blocks execution. |
 | 👀 **Human-in-the-loop review** | Inspect the file tree and candidate content in the terminal, open highlighted diffs, and record human decisions with their origin. |
 | ⏯️ **Resumable workflows** | Pause and resume a change. Bound attempts, intervention duration and tool calls; eligible interrupted producers continue on their existing workspace. |
@@ -160,8 +164,8 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 | --- | --- |
 | **Host** | Pi 1.0; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
-| **Java / Maven** | Surefire tests; JaCoCo coverage and PIT mutation when the project declares the required reports; structural checks derived from supported Maven and Java declarations. Maven verification uses offline mode. |
-| **Node** | `scripts.test` run by `node --test` (or absent), or by `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. A target that asks for coverage (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed) also receives a control on the coverage of the lines a change introduces, read from the LCOV report of the run; otherwise coverage is not measured and the report says so. A target that installed Stryker (`@stryker-mutator/core`) also receives a control on the mutants of the lines a change introduces, read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it. |
+| **Java / Maven** | Tests run by Surefire. Coverage of introduced lines (JaCoCo) and mutation testing (PIT) when the project declares the required reports; a project without JaCoCo is recommended it, and once you adopt it, its plugin declaration is inserted into the candidate's `pom.xml`. Structural checks derived from supported Maven and Java declarations. A survey can adopt a quality referential for complexity, duplication and dead code (PMD and CPD), and tells generated code apart by its `@Generated` annotations. Maven verification uses offline mode; resolving an adopted plugin opens the network for that step alone. |
+| **Node** | Tests run by `scripts.test` with `node --test` (or absent), or with `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. Coverage of the lines a change introduces, when the target asks for it (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed), read from the LCOV report of the run; otherwise coverage is not measured and the report says so. Mutation testing of the lines a change introduces, when the target installed Stryker (`@stryker-mutator/core`), read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it. A survey of a target locked by `package-lock.json` can adopt a quality referential for complexity and dead code (ESLint) and duplication (jscpd); TypeScript and JSX sources are not measured for complexity and dead code. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
 | **Models** | Models configured and authenticated in Pi, including local OpenAI-compatible endpoints with working tool calls. Provider and subscription availability follow Pi and the provider. |
 
@@ -184,7 +188,7 @@ The direction is a broader engineering workflow: understand an existing codebase
 
 | Direction | Planned capabilities |
 | --- | --- |
-| 📏 **Code quality assessment** | Adopt quality rules per technology, measure existing gaps and organize debt reduction into prioritized increments. |
+| 📏 **Code quality assessment** | Extend the quality referentials beyond their first analysers: Checkstyle and SpotBugs on Maven; complexity and dead code in TypeScript sources, and cognitive complexity, on Node. |
 | 🏗️ **Architecture assessment and migration** | Diagnose the current architecture, justify a target and plan reversible migration steps. |
 | 🔍 **Brownfield verification** | Audit what existing tests assert, add characterization tests and strengthen verification as increments progress. |
 | 📚 **Documentation grounding** | Retrieve version-matched sources with provenance, then validate important API uses through compilation, examples or contract tests. |
@@ -204,6 +208,7 @@ See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and
 | Command | Purpose |
 | --- | --- |
 | `/495 start <request>` | Capture the project and drive a new change. |
+| `/495 state <question>` | Survey the project without changing it: run the checks on it as it stands, then accept or refuse the survey. |
 | `/495 adopt <trajectory.json>` | Adopt a trajectory of several increments you wrote, and drive the change of its first ready increment. |
 | `/495 next` | Drive the change of the next ready increment of the bound program. |
 | `/495 measure <change_id>` | Judge each milestone of the bound program on the accepted survey of the integrated project that change took. |
