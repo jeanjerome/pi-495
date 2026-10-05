@@ -1213,3 +1213,32 @@ bugs:
       fails on an assertion rather than on the missing export; either adds an option or a refusal. In both
       cases, the notes in which implement interventions contest a prepared case reach the decision.
     status: open
+  - bug_id: BUG-2026-10-05T130610
+    date: "2026-10-05"
+    title: "The evidence line of /495 status lists the evidence of every candidate in a row, without saying which candidate each one judges"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      After a change whose first candidate failed `mutation` and whose second passed everything, `/495 status`
+      printed `Candidat: cand_44dfe5b9f6c6` and, on the next line, `Preuves: unit=PASS coverage=PASS mutation=FAIL
+      unit=PASS coverage=PASS mutation=PASS`. Nothing tells the evidence of the rejected candidate from that of the
+      accepted one, so a reader takes the accepted candidate for one that failed mutation. After seven attempts the
+      line repeats `unit=FAIL coverage=INDETERMINATE mutation=FAIL` seven times and wraps.
+    what_expected: >
+      The evidence line says which candidate each verdict judges, or shows only the evidence of the current
+      candidate and counts the rest.
+    steps_to_reproduce:
+      - "Run a change on `cycle/campagnes/npm` whose first candidate fails a control and a later one passes, then `/495 status`."
+    root_cause: >
+      The status view (`src/application/views.ts`, `evidence: change.evidence.map(…)`) keeps the control, verdict and
+      validity of every `EvidenceEntry` of the change and drops its `subject_digest`; `renderStatus`
+      (`src/presentation/structured/text.ts`) joins them on one line.
+    evidence: >
+      Observed on 2026-10-05 in a Pi 1.0.2 terminal session at main 9f0f0e9, change chg_muuyq1bj025d2bd6fb (two
+      attempts, accepted); the code is the same at e05eb60.
+    risk_level: low
+    follow_ups: >
+      Choose between grouping the verdicts by candidate and showing the current candidate's alone; either changes
+      what `/495 status` prints.
+    status: open
