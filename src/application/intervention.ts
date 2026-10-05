@@ -15,6 +15,7 @@ import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import type {
 	AgentCapabilities,
+	AgentContext,
 	AgentPort,
 	ContextManifest,
 	InterventionEvent,
@@ -32,6 +33,8 @@ export interface InterventionDeps {
 	policy: ActivePolicy;
 	now(): string;
 	progress(message: string): void;
+	/** The context the agent reports after each answer, then `null` once the intervention has ended. */
+	agentContext(context: AgentContext | null): void;
 }
 
 export interface InterventionRequest {
@@ -177,20 +180,26 @@ export class InterventionSupervisor {
 		let toolCalls = 0;
 		let budgetRefusal: string | null = null;
 		const events: InterventionEvent[] = [];
-		for await (const event of handle.events) {
-			events.push(event);
-			if (event.type === "tool_finished") {
-				toolCalls++;
-				const refused = budget();
-				if (refused) {
-					budgetRefusal ??= refused.message;
-					await handle.abort(refused.message);
+		try {
+			for await (const event of handle.events) {
+				events.push(event);
+				if (event.type === "model_event" && event.kind === "context")
+					this.deps.agentContext({ tokens: event.tokens, context_window: event.context_window });
+				if (event.type === "tool_finished") {
+					toolCalls++;
+					const refused = budget();
+					if (refused) {
+						budgetRefusal ??= refused.message;
+						await handle.abort(refused.message);
+					}
+				}
+				if (event.type === "completed" || event.type === "failed" || event.type === "cancelled") {
+					terminal = event;
+					break;
 				}
 			}
-			if (event.type === "completed" || event.type === "failed" || event.type === "cancelled") {
-				terminal = event;
-				break;
-			}
+		} finally {
+			this.deps.agentContext(null);
 		}
 		this.active = null;
 		const t = terminal ?? {

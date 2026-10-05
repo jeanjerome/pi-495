@@ -55,6 +55,7 @@ export async function conduct(
 export async function drive(session: ExtensionSession, ctx: ExtensionCommandContext, changeId: string): Promise<void> {
 	const rt = session.runtime();
 	rt.harness.deps.onProgress = (m) => session.showProgress(ctx, m);
+	rt.harness.deps.onAgentContext = (context) => session.showAgentContext(ctx, context);
 	const result = await session.withLoader(ctx, "495", async () =>
 		rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
 	);

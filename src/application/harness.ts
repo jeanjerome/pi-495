@@ -51,6 +51,7 @@ import type { Survey } from "../domain/survey.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type {
+	AgentContext,
 	AgentPort,
 	ControlExecutionPort,
 	ModelSelection,
@@ -101,6 +102,8 @@ export interface HarnessDeps {
 	/** Called when a decision is requested (presentation hook, never authoritative). */
 	onDecisionRequested?: (request: DecisionRequest) => void;
 	onProgress?: (message: string) => void;
+	/** Called with the context the working agent reports, then with `null` when its intervention ends. */
+	onAgentContext?: (context: AgentContext | null) => void;
 }
 
 export interface StartArgs {
@@ -305,6 +308,7 @@ export class Harness {
 			policy: deps.policy,
 			now: () => harness.now(),
 			progress: (message: string) => harness.progress(message),
+			agentContext: (context: AgentContext | null) => harness.deps.onAgentContext?.(context),
 		});
 	}
 

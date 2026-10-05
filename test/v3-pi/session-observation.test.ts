@@ -9,7 +9,11 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { ModelRuntime, SessionManager, SettingsManager, createAgentSession } from "@earendil-works/pi-coding-agent";
-import { observeSessionEvent, type SessionEventRead } from "../../src/adapters/pi-worker/session-observer.ts";
+import {
+	observeContextUsage,
+	observeSessionEvent,
+	type SessionEventRead,
+} from "../../src/adapters/pi-worker/session-observer.ts";
 import type { InterventionEvent } from "../../src/ports/execution.ts";
 import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { openaiChunks } from "../helpers/openai-chunks.ts";
@@ -160,5 +164,17 @@ describe("what a session reports of the context it rewrote (CTX-02, D-55)", () =
 				unwritten: "aborted",
 			},
 		]);
+	});
+
+	it("a context whose tokens the host no longer knows, as right after a compaction, is reported unknown and never empty", () => {
+		const at = "2026-09-22T00:00:00.000Z";
+		assert.deepEqual(observeContextUsage({ tokens: null, contextWindow: 1_000_000 }, at), {
+			type: "model_event",
+			at,
+			kind: "context",
+			tokens: null,
+			context_window: 1_000_000,
+		});
+		assert.equal(observeContextUsage(undefined, at), null, "a model with no known window reports no context");
 	});
 });

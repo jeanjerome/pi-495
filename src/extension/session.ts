@@ -19,7 +19,8 @@ import {
 import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
-import { formatConsumption } from "../presentation/structured/text.ts";
+import type { AgentContext } from "../ports/execution.ts";
+import { formatAgentContext, formatConsumption } from "../presentation/structured/text.ts";
 import { DomainError, messageOf } from "../domain/errors.ts";
 import { locateModel } from "../domain/policy.ts";
 import { harnessVersion } from "../application/environment.ts";
@@ -205,6 +206,13 @@ export class ExtensionSession {
 			view = null; // without a readable view the footer shows the progress message alone
 		}
 		this.footer(ctx, `495 ${message}`, view);
+	}
+
+	/** The context of the working agent under the editor, or no line once its intervention has ended. */
+	showAgentContext(ctx: ExtensionContext, context: AgentContext | null): void {
+		if (!ctx.hasUI) return;
+		const line = context ? [formatAgentContext(context, this.lang())] : undefined;
+		ctx.ui.setWidget("495-agent-context", line, { placement: "belowEditor" });
 	}
 
 	private footer(ctx: ExtensionContext, head: string, view: StatusView | null): void {

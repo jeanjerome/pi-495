@@ -18,6 +18,8 @@ export type ScriptStep =
 	| { kind: "delete"; path: string }
 	| { kind: "tool"; tool: string; blocked?: boolean; is_error?: boolean }
 	| { kind: "text"; text: string }
+	/** What the host would count of the session's context after an answer. */
+	| { kind: "context"; tokens: number | null; context_window: number }
 	/** What a request would have shown of the layers around the harness instructions. */
 	| { kind: "observe"; observation: ObservedLayers }
 	| { kind: "complete"; output: unknown; output_valid?: boolean }
@@ -149,6 +151,15 @@ export class ScriptedAgent implements AgentPort {
 							break;
 						case "text":
 							yield { type: "model_event", at: new Date().toISOString(), kind: "text", text: step.text };
+							break;
+						case "context":
+							yield {
+								type: "model_event",
+								at: new Date().toISOString(),
+								kind: "context",
+								tokens: step.tokens,
+								context_window: step.context_window,
+							};
 							break;
 						case "observe":
 							yield { type: "imposed_layers_observed", at: new Date().toISOString(), observation: step.observation };

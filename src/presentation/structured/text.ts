@@ -3,6 +3,7 @@ import type { IncrementStatus, JudgedGap } from "../../domain/program/program.ts
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusGap, StatusMeasure, StatusView } from "../../application/views.ts";
+import type { AgentContext } from "../../ports/execution.ts";
 
 const L = {
 	fr: {
@@ -378,11 +379,35 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 	return lines.join("\n");
 }
 
+/** A count in thousands or millions, at one decimal, written as the language writes it. */
+function scaled(count: number, unit: "k" | "M", lang: "fr" | "en"): string {
+	const value = (count / (unit === "k" ? 1000 : 1_000_000)).toFixed(1);
+	return lang === "fr" ? `${value.replace(".", ",")} ${unit}` : `${value}${unit}`;
+}
+
 /** Tokens as a reader counts them: exact under a thousand, then in thousands with one decimal. */
 function tokenCount(tokens: number, lang: "fr" | "en"): string {
 	if (tokens < 1000) return String(tokens);
-	const k = (tokens / 1000).toFixed(1);
-	return lang === "fr" ? `${k.replace(".", ",")} k` : `${k}k`;
+	return scaled(tokens, "k", lang);
+}
+
+const GAUGE_CELLS = 20;
+
+/**
+ * One line for the gauge under the editor: twenty cells, one full per whole 5 % of the window the
+ * agent's context fills, the rounded percentage, then the tokens against the window. A context the
+ * host does not know is shown as such, never as an empty one.
+ */
+export function formatAgentContext(context: AgentContext, lang: "fr" | "en"): string {
+	const label = lang === "fr" ? "Contexte de l'agent" : "Agent context";
+	const count = (n: number) => scaled(n, n < 1_000_000 ? "k" : "M", lang);
+	const capacity = count(context.context_window);
+	if (context.tokens === null) return `${label}  ${"░".repeat(GAUGE_CELLS)}  ?   ? / ${capacity}`;
+	const percent = (context.tokens / context.context_window) * 100;
+	const full = Math.min(GAUGE_CELLS, Math.floor(percent / 5));
+	const bar = "█".repeat(full) + "░".repeat(GAUGE_CELLS - full);
+	const shown = `${Math.round(percent)}${lang === "fr" ? " %" : "%"}`;
+	return `${label}  ${bar}  ${shown}   ${count(context.tokens)} / ${capacity}`;
 }
 
 /**

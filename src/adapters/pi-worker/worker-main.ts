@@ -17,7 +17,12 @@ import { SeatbeltSandbox, BubblewrapSandbox, UnconfinedSandbox } from "../sandbo
 import { digestValue } from "../../contracts/digest.ts";
 import { type InterventionCost, unknownCost } from "../../domain/change/state.ts";
 import { messageOf } from "../../domain/errors.ts";
-import { observeSessionEvent, readSessionCost, type SessionEventRead } from "./session-observer.ts";
+import {
+	observeContextUsage,
+	observeSessionEvent,
+	readSessionCost,
+	type SessionEventRead,
+} from "./session-observer.ts";
 import { RequestLayerObserver, loadRequestObserver } from "./provider-request.ts";
 import { sandboxedBashOperations } from "./sandboxed-bash.ts";
 import {
@@ -331,6 +336,12 @@ async function main(): Promise<void> {
 				for (const observation of observed.events) send({ type: "event", event: observation });
 				if (observed.text !== undefined) finalText = observed.text;
 				if (observed.error !== undefined) lastError = observed.error;
+				// Pi appends the answer to the session after its public listeners saw `message_end`; at
+				// `turn_end` the answer and its tool results are in, and the count is the host's
+				// (pi-coding-agent 1.0.2, `getContextUsage`).
+				if (event.type !== "turn_end") return;
+				const context = observeContextUsage(session.getContextUsage(), now());
+				if (context) send({ type: "event", event: context });
 			});
 			send({ type: "event", event: { type: "started", at: now() } });
 			// The duration budget suspends the work; it does not condemn it. The partial tree stays in

@@ -191,6 +191,11 @@ export interface InterventionMandate {
 export type InterventionEvent =
 	| { type: "started"; at: string }
 	| { type: "model_event"; at: string; kind: "text" | "thinking" | "usage"; text?: string; tokens?: number }
+	/**
+	 * The context of the agent's session after an answer, as the host counts it against the model's
+	 * window: `tokens` is null when the host does not know it, as right after a compaction.
+	 */
+	| { type: "model_event"; at: string; kind: "context"; tokens: number | null; context_window: number }
 	| { type: "tool_started"; at: string; tool: string; call_id: string; args_digest: string }
 	| { type: "tool_finished"; at: string; tool: string; call_id: string; is_error: boolean; blocked: boolean }
 	| { type: "checkpointed"; at: string }
@@ -241,6 +246,9 @@ export type InterventionEvent =
 			counters: AttemptCounters;
 			cost: InterventionCost;
 	  };
+
+/** What the agent's session counts of its context after an answer, as a model event carries it. */
+export type AgentContext = Pick<Extract<InterventionEvent, { kind: "context" }>, "tokens" | "context_window">;
 
 /**
  * Where a capability value comes from: reported by the host, or restated by 495. Where the host

@@ -1242,3 +1242,31 @@ bugs:
       Choose between grouping the verdicts by candidate and showing the current candidate's alone; either changes
       what `/495 status` prints.
     status: open
+  - bug_id: BUG-2026-10-05T185728
+    date: "2026-10-05"
+    title: "No test holds the footer update that follows a conduct of the change: removing it leaves every test green"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      `drive` (`src/extension/conduct.ts`) writes the 495 footer line from the view `advance` returns, before it says
+      the status and presents the pending decisions. Removing that `session.updateFooter(ctx, result.view)` leaves
+      `test/v3-pi/agent-context-gauge.test.ts` and the rest of the suite green: on every path the tests drive, a
+      later `updateFooter` (after a decision is answered in `presentDecisions`, or by the command itself) rewrites the
+      same line, so the footer still ends on the phase, the status and the consumption.
+    what_expected: >
+      A test in which the conduct of a change stops without a decision presented to the owner (a change stopped, or a
+      decision left for later in a session without a dialogue) asserts the footer line `drive` writes, so that removing
+      it fails.
+    steps_to_reproduce:
+      - "Delete `session.updateFooter(ctx, result.view);` from `drive` in `src/extension/conduct.ts`."
+      - "Run `node --test test/v3-pi/agent-context-gauge.test.ts`: it stays green, as does `npm test`."
+    root_cause: >
+      The command tests read the last footer line only; on the paths they drive, that line is written after `drive`
+      by the decision path, which hides whether `drive` wrote one.
+    evidence: >
+      Found in review of the agent context gauge, at branch e31s01 (7d9b5b2); the line predates that branch.
+    risk_level: low
+    follow_ups: >
+      Add the test only: the code already writes the line.
+    status: open

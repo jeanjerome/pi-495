@@ -99,6 +99,22 @@ export function observeSessionEvent(event: SessionEventRead, at: string): Observ
 	return nothing;
 }
 
+/** What the host counts of a session's window (pi-coding-agent 1.0.2, `getContextUsage`). */
+interface ContextUsageRead {
+	tokens: number | null;
+	contextWindow: number;
+}
+
+/**
+ * The context the session holds, as the host counts it, or nothing when the host knows no window
+ * for the model. Right after a compaction the host has no count until the next answer: the tokens
+ * stay unknown then, never zero.
+ */
+export function observeContextUsage(usage: ContextUsageRead | undefined, at: string): InterventionEvent | null {
+	if (!usage) return null;
+	return { type: "model_event", at, kind: "context", tokens: usage.tokens, context_window: usage.contextWindow };
+}
+
 /** The part of the host's session this reads for the cost (pi-coding-agent 0.87.0, `getSessionStats`). */
 export interface SessionTotalsRead {
 	getSessionStats(): { tokens: { total: number }; cost: number };

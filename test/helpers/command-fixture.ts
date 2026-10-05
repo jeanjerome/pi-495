@@ -116,7 +116,12 @@ export class FakeContext {
 		confirm: (title: string, message: string) => Promise<boolean>;
 		notify: (text: string, level?: string) => void;
 		setStatus: (id: string, text: string) => void;
+		setWidget: (key: string, content: string[] | undefined, options?: { placement?: string }) => void;
 	};
+	/** Each footer status set, in order. */
+	readonly statuses: string[] = [];
+	/** Each widget set or removed, with where it was placed, in order. */
+	readonly widgets: { key: string; content: string[] | undefined; placement: string | undefined }[] = [];
 	/** Each selection put to the owner, with the options offered, in order. */
 	readonly selections: { question: string; options: string[] }[] = [];
 	constructor(cwd: string, mode: "rpc" | "json" | "print", sessionId: string, confirmAnswer = true) {
@@ -138,7 +143,12 @@ export class FakeContext {
 				return this.confirmAnswer;
 			},
 			notify: () => undefined,
-			setStatus: () => undefined,
+			setStatus: (_id, text) => {
+				this.statuses.push(text);
+			},
+			setWidget: (key, content, options) => {
+				this.widgets.push({ key, content, placement: options?.placement });
+			},
 		};
 	}
 
