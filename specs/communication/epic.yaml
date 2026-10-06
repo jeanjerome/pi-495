@@ -4,9 +4,14 @@
 
 id: e26
 title: "Pi-495 est essayé par ceux qu'il sert"
-status: active
+status: en sommeil
 kind: parallel
-activated_on: 2026-09-25   # J1 ; J4 tombe le 2026-09-28
+activated_on: 2026-09-25   # J1 à J3 tenus ; aucune campagne publiée, endormi le 2026-10-06
+reprise: >
+  Un test que la préparation a écrit faux ne bloque plus un changement (BUG-2026-10-05T103037). Le
+  2026-10-05, deux essais réels sur trois du projet de référence npm s'y sont arrêtés : le test faux,
+  gelé avant tout code, fait refuser les candidats justes, et l'utilisateur n'a qu'étendre ou arrêter.
+  La correction est la preuve nouvelle qui rouvre le chantier ; il reprend alors à J4.
 dossier: specs/communication
 
 objet: >
@@ -52,6 +57,10 @@ decisions_du_proprietaire: >
   qu'en second, après l'essai, et seulement sur LinkedIn, Bluesky et Mastodon. LinkedIn se publie en
   français, pour le réseau du propriétaire. L'angle F (le harnais, après le prompt et les skills)
   s'ajoute et prend la place de C sur LinkedIn à J6.
+
+  2026-10-06 : le chantier est remis en sommeil sans qu'aucune campagne soit partie (growth.csv est
+  vide). Un premier essai qui finit dans une impasse coûte plus qu'aucun essai, surtout devant une
+  petite audience comme celle de l'écosystème Pi : il attend la condition de `reprise`.
 
 etat_releve_le_2026_09_25: >
   Relevé par `gh api` et l'API de téléchargements de npm. 0 star. Discussions désactivées. Vingt
