@@ -36,7 +36,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 > **Available today:** an early implementation for macOS on Apple Silicon, with Java/Maven and Node adapters. Models come from your Pi configuration. Start with a small change on a project whose tests already run locally.
 
 <p align="center">
-  <img src=".github/assets/demo.gif" alt="Pi-495 in Pi's terminal: /495 start adds freeMinutes(busy) to a small TypeScript project tested by vitest, with coverage and Stryker; a line under the editor shows the working agent's context, the change is accepted with gates G0 to G5 passed and its tests, coverage and mutation checks passing, then /495 review shows the changed files and /495 report lists what was asked, measured, concluded and what remains uncertain." width="900">
+  <img src=".github/assets/demo.gif" alt="Pi-495 in Pi's terminal: /495 start adds freeMinutes(busy) to a small TypeScript project tested by vitest, with coverage and Stryker; a line under the editor shows the working agent's context; the change is accepted on its first attempt, every phase up to acceptance passed, with its unit, coverage and mutation checks passing; /495 review opens the changed file beside the tree, each line signed, numbered and coloured as Pi draws its own edits; /495 report lists what was asked, measured, concluded and what remains uncertain." width="900">
 </p>
 
 <p align="center"><em>A real run in Pi's terminal: Claude Sonnet 5 adds <code>farewell</code> to a small Node project. The tests are frozen before the code exists, and the change is accepted on their result. The model interventions are sped up 4×; the run took 86 s.</em></p>
