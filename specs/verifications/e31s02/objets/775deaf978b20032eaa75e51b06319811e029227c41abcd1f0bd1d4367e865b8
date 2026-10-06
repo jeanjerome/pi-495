@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: the consumption line of a change's status
+    # Subtest: le statut d'un changement dont les interventions ont consommé 72 000 jetons pour ~0,11 $ sur abonnement a la ligne Spent by agents   72.0k tokens · ~$0.11 (sub) en anglais et Dépensé par les agents   72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation n'a pas de ligne de consommation
+    not ok 1 - le statut d'un changement dont les interventions ont consommé 72 000 jetons pour ~0,11 $ sur abonnement a la ligne Spent by agents   72.0k tokens · ~$0.11 (sub) en anglais et Dépensé par les agents   72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation n'a pas de ligne de consommation
+      ---
+      duration_ms: 0.82775
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-d8Ipke/test/v0-pure/status-agents-consumption.test.ts:59:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        en:
+        495 · add freeMinutes(busy) beside freeSlots
+        … Writing the candidate on attempt 1 of 3
+        
+          ✔ Mandate  ○ Requirements  ○ Checks frozen  ○ Design  ○ Candidate  ○ Acceptance  ○ Integration
+        
+          Used    72.0k tokens · ~$0.11 (sub)
+          Next    implement
+        + actual - expected
+        
+        + undefined
+        - '  Spent by agents   72.0k tokens · ~$0.11 (sub)'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '  Spent by agents   72.0k tokens · ~$0.11 (sub)'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-d8Ipke/test/v0-pure/status-agents-consumption.test.ts:66:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - the consumption line of a change's status
+  ---
+  duration_ms: 1.184875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-d8Ipke/test/v0-pure/status-agents-consumption.test.ts:58:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 108.880125

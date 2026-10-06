@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the consumption line of a change's status
+    # Subtest: le statut d'un changement dont les interventions ont consommé 72 000 jetons pour ~0,11 $ sur abonnement a la ligne Spent by agents   72.0k tokens · ~$0.11 (sub) en anglais et Dépensé par les agents   72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation n'a pas de ligne de consommation
+    ok 1 - le statut d'un changement dont les interventions ont consommé 72 000 jetons pour ~0,11 $ sur abonnement a la ligne Spent by agents   72.0k tokens · ~$0.11 (sub) en anglais et Dépensé par les agents   72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation n'a pas de ligne de consommation
+      ---
+      duration_ms: 0.689917
+      type: 'test'
+      ...
+    1..1
+ok 1 - the consumption line of a change's status
+  ---
+  duration_ms: 1.02825
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 106.913875

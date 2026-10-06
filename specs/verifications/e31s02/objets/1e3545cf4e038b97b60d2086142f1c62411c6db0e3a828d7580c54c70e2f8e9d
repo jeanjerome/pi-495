@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "La ligne 495 du pied de page dit que la consommation est celle des agents",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/footer-agents-consumption.test.ts",
+    "ligne": 91,
+    "constat": "Le constat A1-1 est réglé. Le nouveau test passe par le crochet onProgress que la conduite installe et vérifie la ligne de progression entière, en anglais et en français. Si showProgress perd la vue, si le crochet de conduct.ts:57 n'est plus installé, ou si « agents » disparaît de session.ts:221, le test échoue. À peser seulement : le message de progression est envoyé après la fin de l'intervention et non pendant l'appel du modèle. Mais c'est la même fonction showProgress qui écrit la ligne dans les deux cas.",
+    "mutation": "session.ts:208 footer(..., null) au lieu de view → échec ; conduct.ts:57 crochet onProgress retiré → échec ; session.ts:221 `· ${used}` sans « agents » → les deux tests v3 échouent"
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Le statut dit que la consommation est celle des agents ; La consommation parle la langue de la session ; Avant toute intervention, rien n'est dit de la consommation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 333,
+    "constat": "Le code tient ces promesses et un test les tient : chaque mutation essayée fait échouer status-agents-consumption.test.ts et, selon le cas, status-text.test.ts. Côté pied de page, le cas sans consommation est tenu par la mutation qui nomme toujours les agents. Constat consigné pour mémoire, sans défaut.",
+    "mutation": "libellé anglais remis à « Used » → échec ; libellé français remis à « Utilisé » → échec ; largeur +3 → +4 → échec ; largeur sans le libellé de consommation → échec ; condition de la ligne de consommation inversée → échec ; session.ts:221 « agents » affiché même sans consommation → échec du test v3"
+   }
+  ],
+  "resume": "Tour 2 du relecteur A : verdict pass. Le diff relu n'ajoute qu'un test v3, qui envoie un message de progression par le crochet onProgress installé par la conduite. Il règle A1-1 : si la ligne de progression perd sa vue ou le mot « agents », ou si le crochet disparaît, le test échoue. Les quatre scénarios sont tenus par le code, et chaque mutation essayée sur session.ts, conduct.ts et text.ts fait échouer au moins un test de la story. Toutes les lignes ont été remises en place et l'arbre est propre. Aucun constat bloquant ou à corriger."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "La ligne 495 du pied de page dit que la consommation est celle des agents",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/footer-agents-consumption.test.ts",
+    "ligne": 91,
+    "constat": "Le code tient la promesse, et le nouveau test tient maintenant la ligne de progression : il appelle le hook onProgress que la conduite installe, après l'intervention, puis vérifie que la ligne se termine par « · agents 72.0k tokens · ~$0.11 (sub) » en anglais et par « · agents 72,0 k jetons · ~0,11 $ (abonnement) » en français. Les trois mutations sont tuées. Le hook est appelé après l'intervention et non pendant un vrai rapport du noyau, mais la ligne écrite est la même. C'est une réserve sans défaut, et A1-1 est réglé.",
+    "mutation": "session.ts showProgress : view = null au lieu de currentView() → le nouveau test échoue. conduct.ts:57 : affectation de onProgress retirée → le nouveau test échoue. session.ts:221 : « · agents » retiré → les deux tests échouent."
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Le statut dit que la consommation est celle des agents ; La consommation parle la langue de la session",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 333,
+    "constat": "Le code tient les libellés « Spent by agents » et « Dépensé par les agents », séparés de la valeur par trois espaces et alignés sur Next / Ensuite. /495 status passe bien session.lang() à formatStatus. Le test status-agents-consumption.test.ts tient ces promesses : toutes les mutations sont tuées. Rien à corriger.",
+    "mutation": "Libellé anglais ou français modifié → échec. Largeur +3 changée en +4 ou en +2 → échec. Garde used retirée du calcul de la largeur → échec."
+   },
+   {
+    "id": "B2-3",
+    "scenario": "Avant toute intervention, rien n'est dit de la consommation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/extension/session.ts",
+    "ligne": 221,
+    "constat": "Sans consommation, le pied de page ne nomme pas les agents et le statut n'a pas de ligne de consommation. Un test tient chacun des deux côtés. Rien à corriger.",
+    "mutation": "session.ts:221 : « · agents » toujours ajouté → le test v3 échoue. text.ts : garde if (used) retirée → le test v0 échoue."
+   }
+  ],
+  "resume": "J'ai relu le tour 2 de e31s02. Le diff ne touche que le test v3 du pied de page, et il répond à A1-1 : un test exerce maintenant la ligne de progression écrite par showProgress, en anglais et en français. J'ai relu les quatre scénarios sur le code. Chaque promesse est tenue par le code, et par un test qu'une mutation fait échouer : en tout 10 mutations, toutes tuées, sur session.ts, conduct.ts et text.ts. Aucun constat n'est bloquant ni à corriger. Verdict : pass."
+ }
+]

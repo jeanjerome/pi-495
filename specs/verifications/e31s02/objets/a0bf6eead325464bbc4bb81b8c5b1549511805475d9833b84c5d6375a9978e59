@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the 495 footer line names the agents as the spenders of the consumption
+    # Subtest: une intervention dont l'agent scripté déclare 72 000 jetons et un coût sur abonnement laisse une ligne 495 qui se termine par · agents 72.0k tokens · ~$0.11 (sub) en anglais et · agents 72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation garde une ligne 495 sans agents
+    not ok 1 - une intervention dont l'agent scripté déclare 72 000 jetons et un coût sur abonnement laisse une ligne 495 qui se termine par · agents 72.0k tokens · ~$0.11 (sub) en anglais et · agents 72,0 k jetons · ~0,11 $ (abonnement) en français, et un changement sans consommation garde une ligne 495 sans agents
+      ---
+      duration_ms: 709.924875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JXjvRt/test/v3-pi/footer-agents-consumption.test.ts:70:2'
+      failureType: 'testCodeFailure'
+      error: 'en: 495 — | 495 intervention specify started (stand-in/scripted-1) | 495 clarifying/decision_required ⏸decision · 72.0k tokens · ~$0.11 (sub) | 495 clarifying/ready · 72.0k tokens · ~$0.11 (sub)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JXjvRt/test/v3-pi/footer-agents-consumption.test.ts:77:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the 495 footer line names the agents as the spenders of the consumption
+  ---
+  duration_ms: 710.631583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JXjvRt/test/v3-pi/footer-agents-consumption.test.ts:58:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1185.948542

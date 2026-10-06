@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La ligne 495 du pied de page dit que la consommation est celle des agents",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/session.ts",
+    "ligne": 208,
+    "constat": "Le scénario promet la fin « · agents 72.0k tokens · ~$0.11 (sub) » aussi pendant une intervention, c'est-à-dire sur les lignes de progression écrites par showProgress. Aucun test ne tient cette partie. Le nouveau test v3 ne lit que la dernière ligne, posée après l'intervention : pendant sa seule intervention, la consommation vaut encore zéro. Le test de la jauge ne vérifie, lui aussi, que la ligne posée après la fin. Si la ligne de progression perd sa consommation, toute la suite v3 reste verte.",
+    "mutation": "À la ligne 208 de src/extension/session.ts, showProgress passe null au lieu de view à this.footer : les 112 tests de v3 restent verts (et les 5 des deux fichiers de test du pied de page aussi)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le statut dit que la consommation est celle des agents ; La consommation parle la langue de la session ; Avant toute intervention, rien n'est dit de la consommation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 333,
+    "constat": "Le code tient ces promesses et un test les tient. Les libellés anglais et français, l'alignement sur Next / Ensuite et l'absence de ligne de consommation sans dépense sont vérifiés par test/v0-pure/status-agents-consumption.test.ts et status-text.test.ts. Côté pied de page, « agents » n'apparaît pas sans consommation, ce que tient test/v3-pi/footer-agents-consumption.test.ts. Constat consigné pour mémoire, sans défaut.",
+    "mutation": "Tous ces mutants font échouer au moins un test : largeur t.used.length + 3 → + 4 ; largeur sans le libellé de consommation ; libellé anglais rendu à \"Used\" ; libellé français rendu à \"Utilisé\" ; push de la ligne de consommation sans condition ; « agents » retiré du pied de page ; « agents » ajouté au pied de page sans condition."
+   }
+  ],
+  "resume": "Le code tient les quatre scénarios. Les deux affichages, la ligne du pied de page (pendant une intervention et après) et la ligne du statut, passent chacun par un seul chemin : footer() d'un côté, formatStatus de l'autre. Ces chemins portent les nouveaux libellés, l'alignement et l'absence de ligne sans consommation, en anglais comme en français. Sur huit mutants, sept font échouer un test. Le survivant rend le verdict fail, faute d'un test pour une partie de la promesse : si la ligne de progression du pied de page perd sa consommation pendant une intervention, aucun test ne le voit. Les tests ne lisent la ligne qu'une fois l'intervention finie, et leur seule intervention ne dépense rien avant de se terminer. L'arbre est restauré : seul node_modules est hors suivi."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les quatre promesses sont tenues par le code, et chacune par un test. La ligne 495 du pied de page n'a qu'un seul chemin, `footer` (src/extension/session.ts:218). Les deux affichages y passent : l'état du changement (`updateFooter`) comme la progression d'une intervention (`showProgress`). Ce chemin écrit « · agents » avant la consommation, et seulement quand il y en a une. Le statut tire son libellé de `S.fr.used` / `S.en.used` (« Dépensé par les agents », « Spent by agents »). Sa largeur vaut le plus long libellé plus 3 colonnes quand une consommation est affichée, sinon 4 ; les lignes Last et Next prennent la même largeur, donc elles sont alignées. « Dépensé » est en NFC (é sur un seul caractère), donc `.length` compte juste. `formatConsumption` n'est appelée que par ces deux affichages. Avant les mutations, les quatre fichiers de test passent (16 tests). Huit mutations ont été essayées, chacune remise ensuite ; toutes font échouer au moins un test : M1, « · agents » retiré du pied de page, fait échouer footer-agents-consumption et agent-context-gauge ; M2, le pied de page nomme les agents même sans consommation, fait échouer footer-agents-consumption ; M3, le libellé anglais remis à « Used », fait échouer status-agents-consumption et status-text ; M4, le libellé français remis à « Utilisé », fait échouer status-agents-consumption ; M5, `+3` changé en `+4`, fait échouer status-agents-consumption et status-text ; M6, la ligne de consommation émise sans condition, fait échouer status-agents-consumption ; M7, la largeur comptée sur le libellé des agents même sans consommation, fait échouer status-agents-consumption ; M8, la ligne de consommation retirée, fait échouer status-agents-consumption et status-text. Aucun constat ; l'arbre est laissé propre."
+ }
+]
