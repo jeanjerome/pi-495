@@ -137,7 +137,7 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 	it("names each path status in the language of the surface (UX-06)", () => {
 		const { s } = surface(20, 100, () => {}, "en");
 		const shown = [s.render(120).join("\n")];
-		for (const key of ["down", "down", "down"]) {
+		for (const key of ["\x1b[B", "\x1b[B", "\x1b[B"]) {
 			s.handleInput(key);
 			shown.push(s.render(120).join("\n"));
 		}

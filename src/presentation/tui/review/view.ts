@@ -6,6 +6,7 @@
  * sits, which mode the reader is in, how far each side is scrolled — and it is the only thing a
  * pane writes, because scrolling is what keeps a selection on screen.
  */
+import type { Keybinding, KeybindingsManager } from "@earendil-works/pi-tui";
 import type { ChangePage, ContentPage, PathStatus, ReviewNode, ReviewSnapshot } from "../../../application/review.ts";
 import type { RenderedDiff } from "./diff-view.ts";
 
@@ -74,6 +75,10 @@ export interface PaneContext {
 	readonly pages: ReadonlyMap<string, LoadedPage>;
 	readonly styles: Styles;
 	readonly labels: Labels;
+	/** The keys the user gave Pi's actions, which the review answers to before its own letters. */
+	readonly keybindings: KeybindingsManager;
+	/** The keys of one of Pi's actions as Pi writes them in its own help, joined by `/`. */
+	keyText(action: Keybinding): string;
 	fit(text: string, width: number): string;
 	/** The change body already drawn, or nothing while it is being drawn — drawing it is asynchronous. */
 	diff(page: ChangePage): RenderedDiff | null;
@@ -97,8 +102,19 @@ export const FR = {
 	noSelection: "aucune sélection",
 	tree: "arbre",
 	reader: "lecteur",
-	help: "↑↓ naviguer  ⏎ ouvrir  tab focus  c filtre  m mode  n/p fichier  ]/[ modif  x contexte  +/- largeur  / rechercher  q retour",
-	helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q",
+	keyHelp: {
+		move: "naviguer",
+		open: "ouvrir",
+		focus: "focus",
+		filter: "filtre",
+		mode: "mode",
+		file: "fichier",
+		change: "modif",
+		context: "contexte",
+		width: "largeur",
+		search: "rechercher",
+		back: "retour",
+	},
 	modes: {
 		changes: "Modifications",
 		new: "Contenu (nouveau)",
@@ -142,8 +158,19 @@ export const EN = {
 	noSelection: "no selection",
 	tree: "tree",
 	reader: "reader",
-	help: "↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back",
-	helpKeys: "↑↓ ⏎ tab c m n/p ]/[ x +/- / q",
+	keyHelp: {
+		move: "move",
+		open: "open",
+		focus: "focus",
+		filter: "filter",
+		mode: "mode",
+		file: "file",
+		change: "change",
+		context: "context",
+		width: "width",
+		search: "search",
+		back: "back",
+	},
 	modes: { changes: "Changes", new: "Content (new)", old: "Content (old)", metadata: "Metadata", findings: "Findings" },
 	directory: "Directory",
 	status: "Status",

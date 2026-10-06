@@ -2,7 +2,7 @@
 
 Story : e08s01
 Epic : e08
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -83,6 +83,22 @@ Scenario: La revue ouverte dans Pi lit le réglage de l'utilisateur
   Then `j` déplace la sélection au chemin suivant
   And l'aide commence par « ↑/j move »
 
+Scenario: L'aide nomme les touches du réglage que Pi remet à la revue, même quand 495 porte sa propre copie de Pi
+  Given un Pi qui remet à la revue un gestionnaire de raccourcis donnant `k` à `tui.select.up`, `j` à `tui.select.down` et `space` à `tui.select.confirm`
+  And 495 chargé depuis un dossier dont le `node_modules` contient sa propre copie de Pi, dont le gestionnaire global garde les touches par défaut
+  And une session Pi en anglais
+  When la revue s'ouvre dans le terminal de Pi sur 200 colonnes
+  Then sa ligne d'aide commence par « k/j move  space open  tab focus »
+  And `j` déplace la sélection au chemin suivant
+
+Scenario: En plein écran, la ligne d'aide de la revue arrive au terminal
+  Given un Pi en plein écran, son mode par défaut, sur un terminal de 30 lignes
+  And aucun réglage de touches, et une session Pi en anglais
+  When la revue s'ouvre dans le terminal de Pi
+  Then le terminal reçoit la ligne d'aide « ↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back »
+  And il reçoit aussi la première ligne de la revue, son en-tête
+  And il en va de même sur 24 et sur 50 lignes
+
 ## 3. Sécurité
 
 Sans objet : la revue reste une consultation ; les touches changent le geste qui déplace la vue, jamais ce
@@ -131,6 +147,29 @@ rester vert.
 - Tient : `test/v3-pi/review-keybindings.test.ts`, « la revue que `openReviewTui` ouvre dans un Pi dont le gestionnaire de raccourcis donne `j` à `tui.select.down` passe la sélection au chemin suivant sur `j`, et son aide anglaise commence par `↑/j move` »
 - Rouge : `openReviewTui` reçoit le gestionnaire sous le nom `_keybindings` et ne le transmet pas ; la surface ne connaît que la flèche bas, `j` ne déplace rien et l'aide commence par `↑↓ move`
 
+### Tâche 4 — L'aide écrit les touches du gestionnaire que Pi remet à la revue
+
+`openReviewTui` cesse de passer à la surface le `keyText` importé de `pi-coding-agent` : il écrit les
+touches du gestionnaire global de la copie de Pi que l'import résout, qui n'est celui que `ctx.ui.custom()`
+remet que dans une installation gérée (`npm install --omit=peer`, comme `pi install`). Les touches d'une
+action s'écrivent depuis le gestionnaire remis, comme Pi les écrit dans ses propres aides.
+
+- Vérifie : `node --test test/v3-pi/review-key-help-in-pi.test.ts`
+- Tient : `test/v3-pi/review-key-help-in-pi.test.ts`, « la revue que `openReviewTui` ouvre avec un gestionnaire donnant `k`, `j` et `space` à `tui.select.up`, `tui.select.down` et `tui.select.confirm`, sans que ce gestionnaire soit le global de `pi-tui`, qui garde les touches par défaut, a une aide anglaise sur 200 colonnes qui commence par `k/j move  space open  tab focus`, et `j` y passe la sélection au chemin suivant »
+- Rouge : `openReviewTui` passe à la surface le `keyText` de `pi-coding-agent`, qui écrit `getKeybindings().getKeys(action)`, le gestionnaire global de `pi-tui`, et non celui que `ctx.ui.custom()` remet ; sans `setKeybindings`, ce global est un gestionnaire neuf aux touches par défaut et l'aide commence par `↑↓ move  ⏎ open  tab focus`, alors que `j` déplace bien la sélection. Le test de la tâche 3 installe le gestionnaire remis comme global avant d'ouvrir la revue, ce qui cache l'écart
+
+### Tâche 5 — En plein écran, la revue garde sa ligne d'aide à l'écran
+
+En plein écran, Pi place la revue à la place de son éditeur, sous la conversation, qui garde au moins une
+ligne, et au-dessus de son pied de page (`chat-viewport.js` de `pi-coding-agent` 1.0.4) ; la mise en page
+de `pi-tui` ne garde d'un composant plus haut que sa place que ses premières lignes. `openReviewTui`
+dimensionne la revue selon le mode de Pi (`tui.mode`), pour que son en-tête et sa ligne d'aide tiennent
+dans la place que Pi lui laisse ; en mode regular, rien ne change.
+
+- Vérifie : `node --test test/v3-pi/review-fullscreen.test.ts`
+- Tient : `test/v3-pi/review-fullscreen.test.ts`, « dans un écran plein de `pi-tui` (`TuiAltScreen`) de 30 lignes, agencé comme celui de Pi — la conversation au-dessus, la revue que `openReviewTui` ouvre à la place de l'éditeur, le pied de page de deux lignes dessous —, le terminal reçoit la première ligne de la revue et sa ligne d'aide anglaise, de `↑↓ move` à `q back` ; sur 24 et sur 50 lignes aussi »
+- Rouge : `openReviewTui` rend `Math.max(10, tui.terminal.rows - 2)` lignes quel que soit `tui.mode` ; en plein écran la place de la revue est plus courte (une ligne de conversation au moins, plus les deux lignes du pied de page), et `layoutComponent` de `pi-tui` garde les premières lignes d'un composant qui ne porte pas de `CURSOR_MARKER` : la dernière, la ligne d'aide, n'arrive jamais au terminal
+
 ## 5. Hors périmètre
 
 - Régler les lettres propres à la revue (`c`, `m`, `n`/`p`, `]`/`[`, `x`, `+`/`-`, `/`, `q`, `r`) : Pi
@@ -144,3 +183,9 @@ rester vert.
   gestionnaire qu'il lui remet.
 - La comparaison dessinée comme Pi dessine celles de son outil d'édition : e08s02.
 - L'arbre et le lecteur bâtis sur les listes et le défilement de `pi-tui`, et la molette : e08s03.
+- Supprimer ou signaler la copie de Pi que porte le `node_modules` d'un dépôt ou d'une copie construite
+  par `npm ci` : Pi la charge et 495 s'en accommode ; seule l'aide en dépendait, les gestes suivaient déjà
+  le gestionnaire remis.
+- Les autres lignes que le plein écran pourrait couper hors de la revue (conversation, widgets, pied de
+  page de Pi) : leur place est l'affaire de Pi. La revue dessinée en surimpression (`overlay: true`) reste
+  écartée par `ADR-010`.

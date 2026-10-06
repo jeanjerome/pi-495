@@ -9,6 +9,7 @@
  *
  * It receives an immutable `ReviewSnapshot` and a read-only query; it never touches the workspace.
  */
+import { type Keybinding, KeybindingsManager, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
 import {
 	CONTENT_PAGE_LINES,
 	type ChangePage,
@@ -54,6 +55,10 @@ export interface SurfaceOptions {
 	language?: "fr" | "en";
 	/** How the host measures and pads a styled line; defaults to `fit`. */
 	fit?: (text: string, width: number) => string;
+	/** The keys the user set in Pi; defaults to the keys `pi-tui` ships. */
+	keybindings?: KeybindingsManager;
+	/** How Pi writes the keys of one of its actions in its own help; defaults to their names, joined by `/`. */
+	keyText?: (action: Keybinding) => string;
 }
 
 export class ReviewSurface implements ReviewView {
@@ -61,6 +66,7 @@ export class ReviewSurface implements ReviewView {
 	private readonly query: ReviewQuery;
 	private readonly st: Styles;
 	private readonly fitLine: (text: string, width: number) => string;
+	private readonly keybindings: KeybindingsManager;
 	private readonly opts: SurfaceOptions;
 	expanded = new Set<string>();
 	changedOnly = true;
@@ -89,6 +95,7 @@ export class ReviewSurface implements ReviewView {
 		this.query = options.query;
 		this.st = options.styles ?? PLAIN;
 		this.fitLine = options.fit ?? fit;
+		this.keybindings = options.keybindings ?? new KeybindingsManager(TUI_KEYBINDINGS);
 		this.opts = options;
 		for (const row of flatten(this.snapshot.root, false))
 			if (row.node.kind === "directory") this.expanded.add(row.node.path);
@@ -103,6 +110,8 @@ export class ReviewSurface implements ReviewView {
 			pages: this.cache,
 			styles: this.st,
 			labels: this.opts.language === "en" ? EN : FR,
+			keybindings: this.keybindings,
+			keyText: this.opts.keyText ?? ((action) => this.keybindings.getKeys(action).join("/")),
 			fit: this.fitLine,
 			diff: (page) => this.diffFor(page),
 		};

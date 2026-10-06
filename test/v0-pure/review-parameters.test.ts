@@ -8,7 +8,6 @@ import { describe, it } from "node:test";
 import {
 	CONTENT_PAGE_LINES,
 	FILE_READ_BUDGET_BYTES,
-	buildSnapshot,
 	findNode,
 	readChanges,
 	readContent,
@@ -19,45 +18,12 @@ import { MAX_DIFFED_BYTES } from "../../src/application/coverage.ts";
 import { NARROW_THRESHOLD, ReviewSurface, treeRowOverhead } from "../../src/presentation/tui/review-surface.ts";
 import { summarizeReview } from "../../src/presentation/structured/review-text.ts";
 import { DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
-import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../src/contracts/v1/candidate.ts";
-import { digestValue } from "../../src/contracts/digest.ts";
+import type { ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import { entry } from "../helpers/review-entry.ts";
+import { snapshotOf } from "../helpers/review-change.ts";
 import { splitLines } from "../../src/application/diff.ts";
 import { REVIEW_CORPUS, deepestChangedPath, nameOfLength, tallFile } from "../fixtures/review-corpus.ts";
 
-const noLimits = { truncated: false, bytes_read: 0, bytes_total: 0, exclusions: [], unstable: false, notes: [] };
-function snapshotOf(entries: ManifestEntry[]) {
-	const reference: ReferenceSnapshot = {
-		reference_id: "ref_1",
-		kind: "git_clean_head",
-		project_path: "/p",
-		head_commit: "a".repeat(40),
-		branch: "main",
-		tree_digest: digestValue("t"),
-		entries: entries.map((e) => ({ ...e, baseline_state: "unchanged" })),
-		exclusions: [],
-		captured_at: "t",
-		limits: noLimits,
-	};
-	const manifest: CandidateManifest = {
-		candidate_id: "cand_1",
-		workspace_id: "ws",
-		base_reference_id: "ref_1",
-		base_digest: reference.tree_digest,
-		selected_paths: [],
-		exclusions: [],
-		entries,
-		metadata_policy: "content_and_mode",
-		manifest_digest: digestValue("m"),
-		frozen_at: "t",
-		limits: noLimits,
-	};
-	return {
-		reference,
-		manifest,
-		snapshot: buildSnapshot({ change_id: "chg_1", reference, manifest, findings: [], newer_candidate: null, now: "t" }),
-	};
-}
 /** A reader whose pages come from `text`, recording what width of page it was asked for. */
 function pagedQuery(text: string) {
 	const asked: { start: number; limit: number }[] = [];
