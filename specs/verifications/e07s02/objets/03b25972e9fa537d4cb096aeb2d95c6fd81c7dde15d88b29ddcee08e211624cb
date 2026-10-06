@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: residual risks bear on the current candidate
+    # Subtest: a reference pass and an earlier candidate's limits raise no risk of the accepted candidate, and the reference verdict stays in the table
+    ok 1 - a reference pass and an earlier candidate's limits raise no risk of the accepted candidate, and the reference verdict stays in the table
+      ---
+      duration_ms: 7.885
+      type: 'test'
+      ...
+    # Subtest: counts in the runs that prove nothing only those that observed the current candidate
+    ok 2 - counts in the runs that prove nothing only those that observed the current candidate
+      ---
+      duration_ms: 0.439166
+      type: 'test'
+      ...
+    # Subtest: an INDETERMINATE of the current candidate stays a risk that names the control and its note
+    ok 3 - an INDETERMINATE of the current candidate stays a risk that names the control and its note
+      ---
+      duration_ms: 0.285042
+      type: 'test'
+      ...
+    1..3
+ok 1 - residual risks bear on the current candidate
+  ---
+  duration_ms: 9.042666
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 130.741417

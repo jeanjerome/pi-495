@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le passage d'un contrôle sur la référence n'est pas un risque du candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v0-pure/report-risks-current-candidate.test.ts",
+    "ligne": 110,
+    "constat": "Le nouveau test vérifie bien que la colonne `reference` de la ligne `unit` affiche `?`. Mais `measuredLines` affiche aussi `?` quand il n'y a aucune exécution sur la référence. Cette assertion ne prouve donc pas, à elle seule, que le verdict INDETERMINATE de la référence est lu. Elle survit à la mutation qui retire toute exécution sur la référence du tableau. Cette mutation fait cependant échouer deux tests de texte qui existaient déjà (« un tableau reference/candidate de trois lignes » et « the candidate column holds the current candidate alone »). La promesse est donc tenue par l'ensemble des tests.",
+    "mutation": "text.ts:539 : `onReference` filtre `subject_kind === \"nothing\"`. Le nouveau test passe ; deux tests v0 existants de `the text of a report` échouent."
+   }
+  ],
+  "resume": "J'ai relu le diff 1f23eda...8b8c48c. Le code qui change est `src/application/report.ts`, que `harness.report` appelle seul. Les risques résiduels tirés d'une exécution (`controls_are_not_a_proof`, `indeterminate_control`, `unstable_control`, `truncated_output`, `excluded_from_measure`, `control_limit`, `preexisting_findings_tolerated`) ne lisent plus que les exécutions sur le candidat courant, identifié par son empreinte de manifeste, comme le tableau l'identifie. Les observations, le tableau et les risques qui ne viennent pas d'une exécution sont inchangés. Le code tient les quatre scénarios. Les mutations essayées, une à la fois, chacune remise ensuite :\n- Retirer le filtre sur l'empreinte : les scénarios 1, 2 et 4 échouent.\n- Revenir à l'ancien filtre `!== \\\"fixture\\\"` : les scénarios 1, 2 et 4 échouent, ainsi que le test sans candidat.\n- Changer la condition INDETERMINATE : le scénario 3 échoue.\n- Vider la boucle des notes : le scénario 3 échoue.\n- Compter tous les candidats, ou supprimer le risque de compte : le scénario 4 échoue.\n- Marquer ✔ tout verdict du tableau : le scénario 1 échoue.\n- Vider la colonne `reference` du tableau : le nouveau test passe, mais deux tests v0 existants échouent (constat A1-1, à peser).\n- Retirer la condition `kind === \\\"candidate\\\"` : tous les tests passent. Cette condition est redondante avec le filtre sur l'empreinte et ne porte aucune promesse.\nAucun constat bloquant ni à corriger. L'arbre est revenu propre : seul `node_modules` reste non suivi."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le passage d'un contrôle sur la référence n'est pas un risque du candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v0-pure/report-risks-current-candidate.test.ts",
+    "ligne": 110,
+    "constat": "Le test vérifie le `?` exigé par le Then, mais la cellule affiche aussi `?` quand aucune exécution n'est observée (`verdict === undefined`). L'assertion ne distingue donc pas le verdict INDETERMINATE de la référence d'une exécution perdue. Ce qui tient le verdict, c'est l'assertion `observations.length === stored.length` : elle échouerait si une exécution sur la référence quittait les observations.",
+    "mutation": "Dans text.ts (measuredLines), onReference filtre aussi `o.control_id !== \"unit\"`. Les 4 tests restent verts."
+   }
+  ],
+  "resume": "J'ai relu le diff 1f23eda...8b8c48c, puis j'ai muté `src/application/report.ts` et relancé `test/v0-pure/report-risks-current-candidate.test.ts` à chaque mutation. Chaque ligne a été remise ensuite, l'arbre est propre. Le code tient les quatre scénarios : les risques tirés d'une exécution ne lisent plus que `onCurrentCandidate`, c'est-à-dire les exécutions de type candidate dont l'empreinte est le manifest_digest du candidat courant. C'est la même identité que celle de la colonne candidate de « What was measured ». Les observations, le tableau et les risques qui ne viennent pas d'une exécution sont inchangés. Ces mutations ont toutes fait échouer au moins un test : (1) compter les exécutions sur la référence fait échouer les tests 1 et 4 ; (2) compter tous les candidats, y compris le précédent, fait échouer les tests 1 et 2 ; (3) retirer le risque indeterminate_control et (4) retirer control_limit font échouer le test 3 ; (5) compter toutes les observations sur un candidat fait échouer le test 2. Une seule mutation survit, sur l'assertion du `?` dans la colonne reference : elle tient le mot du Then, mais ne distingue pas un verdict INDETERMINATE d'une exécution absente. C'est à peser, sans effet sur le verdict. Aucun constat bloquant ou à corriger."
+ }
+]

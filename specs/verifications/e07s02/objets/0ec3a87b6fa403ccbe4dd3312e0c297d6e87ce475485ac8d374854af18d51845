@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: residual risks bear on the current candidate
+    # Subtest: a reference pass and an earlier candidate's limits raise no risk of the accepted candidate, and the reference verdict stays in the table
+    not ok 1 - a reference pass and an earlier candidate's limits raise no risk of the accepted candidate, and the reference verdict stays in the table
+      ---
+      duration_ms: 3.549334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PWAmKb/test/v0-pure/report-risks-current-candidate.test.ts:69:2'
+      failureType: 'testCodeFailure'
+      error: 'a residual risk names introduces no line: controls_are_not_a_proof: 5 control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects. | control_limit: control coverage: the candidate introduces no line JaCoCo measures | indeterminate_control: control unit answered INDETERMINATE on reference ref_1; nothing is concluded from it. | indeterminate_control: control unit answered INDETERMINATE on candidate cand_c1; nothing is concluded from it. | truncated_output: the output of control unit was truncated at 4096 bytes; what it did not say was not read. | control_limit: control unit: two passes disagreed'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PWAmKb/test/v0-pure/report-risks-current-candidate.test.ts:109:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: an INDETERMINATE of the current candidate stays a risk that names the control and its note
+    ok 2 - an INDETERMINATE of the current candidate stays a risk that names the control and its note
+      ---
+      duration_ms: 0.34825
+      type: 'test'
+      ...
+    1..2
+not ok 1 - residual risks bear on the current candidate
+  ---
+  duration_ms: 4.308709
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PWAmKb/test/v0-pure/report-risks-current-candidate.test.ts:68:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 125.6365
