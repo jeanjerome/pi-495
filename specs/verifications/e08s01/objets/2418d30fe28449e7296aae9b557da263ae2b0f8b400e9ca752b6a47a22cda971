@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the review help names the keys of the manager Pi hands it
+    # Subtest: names k, j and space while the global manager of pi-tui keeps the default keys
+    ok 1 - names k, j and space while the global manager of pi-tui keeps the default keys
+      ---
+      duration_ms: 3.242083
+      type: 'test'
+      ...
+    # Subtest: writes a key as Pi's own help writes it
+    ok 2 - writes a key as Pi's own help writes it
+      ---
+      duration_ms: 11.460959
+      type: 'test'
+      ...
+    1..2
+ok 1 - the review help names the keys of the manager Pi hands it
+  ---
+  duration_ms: 15.082
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 386.40375

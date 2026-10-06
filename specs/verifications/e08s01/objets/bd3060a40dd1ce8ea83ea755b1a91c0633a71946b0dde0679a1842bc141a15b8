@@ -1,0 +1,92 @@
+TAP version 13
+# Subtest: the review in Pi's fullscreen mode
+    # Subtest: sends its header and its help line to a terminal of 30 rows
+    not ok 1 - sends its header and its help line to a terminal of 30 rows
+      ---
+      duration_ms: 16.133
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:76:3'
+      failureType: 'testCodeFailure'
+      error: 'the terminal receives the help line, from ↑↓ move to q back'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:79:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: sends its header and its help line to a terminal of 24 rows
+    not ok 2 - sends its header and its help line to a terminal of 24 rows
+      ---
+      duration_ms: 0.662666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:76:3'
+      failureType: 'testCodeFailure'
+      error: 'the terminal receives the help line, from ↑↓ move to q back'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:79:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: sends its header and its help line to a terminal of 50 rows
+    not ok 3 - sends its header and its help line to a terminal of 50 rows
+      ---
+      duration_ms: 0.913125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:76:3'
+      failureType: 'testCodeFailure'
+      error: 'the terminal receives the help line, from ↑↓ move to q back'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:79:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the review in Pi's fullscreen mode
+  ---
+  duration_ms: 18.162708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DZA6pu/test/v3-pi/review-fullscreen.test.ts:74:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 134.160375

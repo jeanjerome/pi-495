@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: the review help names the keys of the manager Pi hands it
+    # Subtest: names k, j and space while the global manager of pi-tui keeps the default keys
+    not ok 1 - names k, j and space while the global manager of pi-tui keeps the default keys
+      ---
+      duration_ms: 14.283833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zbXArc/test/v3-pi/review-key-help-in-pi.test.ts:14:2'
+      failureType: 'testCodeFailure'
+      error: '↑↓ move  ⏎ open  tab focus  c filter  m mode  n/p file  ]/[ change  x context  +/- width  / search  q back                                                                                              '
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zbXArc/test/v3-pi/review-key-help-in-pi.test.ts:30:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - the review help names the keys of the manager Pi hands it
+  ---
+  duration_ms: 14.647708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zbXArc/test/v3-pi/review-key-help-in-pi.test.ts:13:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 390.329625

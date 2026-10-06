@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: the review answers to the keys the user set in Pi
+    # Subtest: moves the selection with the keys given to tui.select.up and tui.select.down, and no longer with the arrow
+    ok 1 - moves the selection with the keys given to tui.select.up and tui.select.down, and no longer with the arrow
+      ---
+      duration_ms: 14.292667
+      type: 'test'
+      ...
+    # Subtest: opens, passes the focus, pages, folds and unfolds with the keys set in Pi, and no longer with Enter and Tab
+    ok 2 - opens, passes the focus, pages, folds and unfolds with the keys set in Pi, and no longer with Enter and Tab
+      ---
+      duration_ms: 0.448791
+      type: 'test'
+      ...
+    # Subtest: closes on ctrl+c with no keys set, as Pi's lists do
+    ok 3 - closes on ctrl+c with no keys set, as Pi's lists do
+      ---
+      duration_ms: 0.251083
+      type: 'test'
+      ...
+    # Subtest: closes on the key given to tui.select.cancel, no longer on Escape, and always on q
+    ok 4 - closes on the key given to tui.select.cancel, no longer on Escape, and always on q
+      ---
+      duration_ms: 0.507583
+      type: 'test'
+      ...
+    # Subtest: ends a search with the confirm key and cancels it with the cancel key, the review staying open
+    ok 5 - ends a search with the confirm key and cancels it with the cancel key, the review staying open
+      ---
+      duration_ms: 0.235666
+      type: 'test'
+      ...
+    1..5
+ok 1 - the review answers to the keys the user set in Pi
+  ---
+  duration_ms: 16.1975
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 135.18775

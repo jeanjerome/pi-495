@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "En plein écran, la ligne d'aide de la revue arrive au terminal",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/review-fullscreen.test.ts",
+    "ligne": 33,
+    "mutation": "FULLSCREEN_RESERVE = 5 → 3 (src/extension/review-command.ts:16) : review-fullscreen.test.ts reste vert ; une copie jetable de ce test avec un pied de page de trois lignes échoue sur 24, 30 et 50 lignes. Les valeurs 2 et l'inversion de `tui.mode === \"fullscreen\"` font bien échouer le test ; la valeur 4 le laisse vert, et laisse aussi passer la copie à trois lignes.",
+    "constat": "Dans ce test, le pied de page de Pi a deux lignes. Dans un vrai Pi, il en a toujours trois une fois 495 chargé : 495 écrit son statut (« 495 — » au minimum) depuis openRuntimeAt, et footer.js lui ajoute une ligne. Le code tient la promesse avec ce troisième rang : la sonde passe avec la réserve 5. Le test, lui, laisserait passer une réserve de 3, qui ferait disparaître la ligne d'aide dans un vrai Pi."
+   }
+  ],
+  "resume": "J'ai vérifié les onze promesses de la story e08s01, une par une, dans le code et dans les tests. Le code les tient toutes. Pour chacune, au moins une mutation de la ligne qui la porte fait échouer un test : la verdict est pass, sans constat bloquant ni à corriger.\n\n**Gestes (scénarios 1 à 5).** `handleKey` tient les déplacements, l'ouverture, le focus, les pages, le repli et le dépli. Il tient aussi la fermeture par ctrl+c, ctrl+g et q, et la recherche terminée ou annulée. Neuf mutations de `keymap.ts` font chacune échouer un cas de `test/v0-pure/review-keybindings.test.ts` : retrait du cas `tui.select.cancel`, inversion des touches cancel et confirm pendant la recherche, retrait de confirm, de `tui.select.up` ou de pageUp dans `PI_ACTIONS`, repli neutralisé, ouverture retirée, Tab neutralisé. Une mutation passe : `readerScroll += 20 → += 1` reste verte, car le test compare `f` à Page Down, qui partage cette constante. Elle date d'avant la story et n'invalide pas la promesse, je ne la relève pas.\n\n**Aide (scénarios 6 à 8).** Trois mutations font échouer `review-key-help.test.ts` : retrait du filtre des actions sans touche, perte du signe ↑, forme courte jamais choisie. Cette dernière fait aussi échouer le test « names every action at every width » de `review-parameters.test.ts`.\n\n**Revue ouverte dans Pi (scénarios 9 et 10).** Ne pas transmettre `keybindings` fait échouer les deux tests v3. Relire les touches dans le gestionnaire global, comme le faisait le `keyText` de Pi, fait échouer `review-key-help-in-pi.test.ts`. `writeKey` réduit à l'identité le fait échouer aussi (écriture de alt en option sur macOS). J'ai comparé `writeKey` à `formatKeyText` de pi-coding-agent 1.0.4 : il en reproduit le formatage.\n\n**Plein écran (scénario 11).** J'ai lu dans Pi 1.0.4 `chat-viewport.js`, `renderWidgetContainer`, `footer.js` et `showExtensionCustom`. Les 5 rangs réservés correspondent à la place que Pi laisse : une ligne de conversation au moins, l'espace au-dessus de l'éditeur, et trois lignes de pied de page avec le statut de 495. Une réserve de 2, ou l'inversion du test sur le mode, font échouer les trois tailles du test, et la réserve « regular » reste tenue par le cas à 28 lignes. Seul constat, A1-1, à peser : le test modélise un pied de page de deux lignes. Une réserve de 3 y reste verte, alors qu'elle couperait la ligne d'aide dans un vrai Pi, comme le montre une sonde jetable avec trois lignes.\n\nJe n'ai rien commité. Les sondes et le script de mutation ont été supprimés, et l'arbre est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "En plein écran, la ligne d'aide de la revue arrive au terminal",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/review-fullscreen.test.ts",
+    "ligne": 34,
+    "constat": "Le code tient la promesse : avec FULLSCREEN_RESERVE = 5, la ligne d'aide et l'en-tête arrivent au terminal sur 24, 30 et 50 lignes, y compris dans une mise en page fidèle à Pi 1.0.4 (pied de page de trois lignes, la troisième étant le statut que 495 pose dès session_start, `src/extension/session.ts:345`). Mais le test réduit le pied de page de Pi à deux lignes, alors que le commentaire de la constante en compte trois. La constante n'est donc tenue par aucun test : mise à 3, elle coupe la ligne d'aide dans le vrai Pi et la suite reste verte. Une sonde jetable, identique au test avec une troisième ligne de pied de page, échoue sur les trois hauteurs avec la réserve à 3 et passe avec 5.",
+    "mutation": "`const FULLSCREEN_RESERVE = 5` → 3 (et → 4) : review-fullscreen.test.ts reste vert (7/7). Retirer la condition `tui.mode === \"fullscreen\"` fait échouer les trois cas plein écran. Sonde avec un pied de page de trois lignes : 3 → 3 échecs, 4 et 5 → vert."
+   }
+  ],
+  "resume": "J'ai vérifié les onze scénarios. Le code tient chacune des promesses. Pour le plein écran, j'ai relu dans Pi 1.0.4 la mise en page `chat-viewport.js`, les conteneurs vides, l'espaceur au-dessus de l'éditeur et le pied de page de trois lignes avec le statut 495. J'ai aussi confirmé que le proxy de TUI transmet `mode` et `terminal`. Pour l'aide, l'écriture des touches reproduit celle de `formatKeyText` de Pi.\n\nLes tests tiennent les promesses des dix premiers scénarios. Vingt et une mutations l'ont montré :\n- **Touches de l'aide** : écrire l'aide depuis le gestionnaire global, retirer `option` ou ne plus passer le gestionnaire.\n- **Fermeture et recherche** : retirer `q`, `tui.select.cancel`, la fin de recherche ou le vidage du texte.\n- **Forme de l'aide** : retirer les signes ↑↓⏎, la fusion ↑↓, la forme courte ou le filtre des actions désactivées.\n- **Gestes** : retirer la remontée d'une page, le repli, le dépli, l'ouverture par confirm, le focus, up/down ou `done`.\n\nChacune fait échouer le test qui énonce le `Then` correspondant.\n\nUne seule mutation survit sans constat : un pas de page à 1 ligne. Elle change aussi Page Down, et la promesse ne dit que « comme Page Down ».\n\nUn seul constat reste, introduit et à corriger (B1-1). Le test du plein écran modélise le pied de page de Pi sur deux lignes, sans le statut que 495 y pose. Une réserve de 3, qui couperait la ligne d'aide dans le vrai Pi, le laisse vert.\n\nArbre rendu propre : aucune modification restante hors `node_modules`."
+ }
+]

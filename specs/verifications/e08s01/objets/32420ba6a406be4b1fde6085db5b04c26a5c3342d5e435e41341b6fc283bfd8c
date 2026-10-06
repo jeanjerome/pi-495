@@ -1,0 +1,156 @@
+TAP version 13
+# Subtest: the review answers to the keys the user set in Pi
+    # Subtest: moves the selection with the keys given to tui.select.up and tui.select.down, and no longer with the arrow
+    not ok 1 - moves the selection with the keys given to tui.select.up and tui.select.down, and no longer with the arrow
+      ---
+      duration_ms: 14.392625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:37:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        j passes the selection to the next path of the tree
+        
+        'src' !== 'src/a.js'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'src/a.js'
+      actual: 'src'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:42:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: opens, passes the focus, pages, folds and unfolds with the keys set in Pi, and no longer with Enter and Tab
+    not ok 2 - opens, passes the focus, pages, folds and unfolds with the keys set in Pi, and no longer with Enter and Tab
+      ---
+      duration_ms: 0.431208
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:49:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        h folds the selected directory
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:59:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: closes on ctrl+c with no keys set, as Pi's lists do
+    not ok 3 - closes on ctrl+c with no keys set, as Pi's lists do
+      ---
+      duration_ms: 0.214542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:78:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ctrl+c closes the review
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:81:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: closes on the key given to tui.select.cancel, no longer on Escape, and always on q
+    not ok 4 - closes on the key given to tui.select.cancel, no longer on Escape, and always on q
+      ---
+      duration_ms: 0.206708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:84:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ctrl+g closes the review
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:87:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: ends a search with the confirm key and cancels it with the cancel key, the review staying open
+    not ok 5 - ends a search with the confirm key and cancels it with the cancel key, the review staying open
+      ---
+      duration_ms: 0.267708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:96:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ctrl+g cancels the search
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:106:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..5
+not ok 1 - the review answers to the keys the user set in Pi
+  ---
+  duration_ms: 15.99775
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jv3bbt/test/v0-pure/review-keybindings.test.ts:36:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.47575
