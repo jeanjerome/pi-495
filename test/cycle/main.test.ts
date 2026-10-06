@@ -31,7 +31,9 @@ function banc(statut = "à faire"): { root: string; racine: string; env: NodeJS.
 		);
 	});
 	const racine = tempDir("495-", cleanups);
-	return { root, racine, env: { ...process.env, PATH: chemins(), CYCLE_495_DIR: racine, NO_COLOR: "1" } };
+	// A cycle running this suite sets its own CYCLE_495_ settings; the entry point under test reads only the bench's.
+	const inherited = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith("CYCLE_495_")));
+	return { root, racine, env: { ...inherited, PATH: chemins(), CYCLE_495_DIR: racine, NO_COLOR: "1" } };
 }
 
 function cycle(args: string[], b: { root: string; env: NodeJS.ProcessEnv }, env: NodeJS.ProcessEnv = {}) {

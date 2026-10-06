@@ -2,7 +2,7 @@
 
 Story : e07s02
 Epic : e07
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

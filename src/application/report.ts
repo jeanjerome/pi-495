@@ -200,9 +200,8 @@ export function engineeringReport(
 	title = "",
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
-	const onCandidateEntries = state.evidence.filter(
-		(e) => e.valid && state.candidate !== null && e.subject_digest === state.candidate.manifest_digest,
-	);
+	const currentDigest = state.candidate?.manifest_digest;
+	const onCandidateEntries = state.evidence.filter((e) => e.valid && e.subject_digest === currentDigest);
 	const decidedByOwner = new Set(
 		(protocol?.obligations ?? []).filter((o) => o.human_interaction).map((o) => o.requirement.requirement_id),
 	);
@@ -270,11 +269,13 @@ export function engineeringReport(
 		if (!risks.some((r) => r.code === code && r.statement === statement)) risks.push({ code, statement });
 	};
 
-	const onCandidate = observations.filter((o) => o.subject_kind === "candidate");
-	if (onCandidate.length > 0) {
+	const onCurrentCandidate = evidence.filter(
+		(e) => e.subject.kind === "candidate" && e.subject.digest === currentDigest,
+	);
+	if (onCurrentCandidate.length > 0) {
 		add(
 			"controls_are_not_a_proof",
-			`${onCandidate.length} control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects.`,
+			`${onCurrentCandidate.length} control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects.`,
 		);
 	}
 	if (state.reviews.some((r) => r.valid && r.conclusion === "approve")) {
@@ -326,26 +327,26 @@ export function engineeringReport(
 				`control ${controlId} is not qualified: ${qualification.notes.join("; ") || "witnesses did not answer as required"}.`,
 			);
 	}
-	for (const e of evidence) {
-		// A qualification witness judges the control, not the change: a witness broken on purpose answers
-		// INDETERMINATE, and that says nothing of the candidate. A control left unqualified is a risk above.
-		if (e.subject.kind !== "fixture") {
-			if (e.verdict === "INDETERMINATE")
-				add(
-					"indeterminate_control",
-					`control ${e.control_id} answered INDETERMINATE on ${e.subject.kind} ${e.subject.id}; nothing is concluded from it.`,
-				);
-			if (e.limits.unstable)
-				add("unstable_control", `control ${e.control_id} answered differently on two passes of the same subject.`);
-			if (e.limits.truncated)
-				add(
-					"truncated_output",
-					`the output of control ${e.control_id} was truncated at ${e.limits.bytes_read} bytes; what it did not say was not read.`,
-				);
-			for (const exclusion of e.limits.exclusions)
-				add("excluded_from_measure", `control ${e.control_id} excluded ${exclusion} from what it measured.`);
-			for (const note of e.limits.notes) add("control_limit", `control ${e.control_id}: ${note}`);
-		}
+	// Only a run on the candidate the report judges says something of it. A qualification witness judges
+	// the control, a run on the reference measures the tree before the change, and a run on the candidate
+	// of an earlier attempt measures a candidate set aside: none is a doubt about this one, and each stays
+	// an observation. A control left unqualified is a risk above.
+	for (const e of onCurrentCandidate) {
+		if (e.verdict === "INDETERMINATE")
+			add(
+				"indeterminate_control",
+				`control ${e.control_id} answered INDETERMINATE on ${e.subject.kind} ${e.subject.id}; nothing is concluded from it.`,
+			);
+		if (e.limits.unstable)
+			add("unstable_control", `control ${e.control_id} answered differently on two passes of the same subject.`);
+		if (e.limits.truncated)
+			add(
+				"truncated_output",
+				`the output of control ${e.control_id} was truncated at ${e.limits.bytes_read} bytes; what it did not say was not read.`,
+			);
+		for (const exclusion of e.limits.exclusions)
+			add("excluded_from_measure", `control ${e.control_id} excluded ${exclusion} from what it measured.`);
+		for (const note of e.limits.notes) add("control_limit", `control ${e.control_id}: ${note}`);
 		if ((e.baseline?.preexisting_findings ?? 0) > 0)
 			add(
 				"preexisting_findings_tolerated",
