@@ -23,7 +23,7 @@ import termios
 import time
 
 COLS, ROWS = 140, 45
-REQUEST = "/495 start add freeMinutes(busy) beside freeSlots: it returns how many minutes of the day no busy slot covers"
+REQUEST = "/495 start add freeMinutes(busy): the number of minutes of the day no busy slot covers"
 STOPPED = re.compile(r"495 [a-z_]+/(completed|blocked|paused|failed|cancelled)|⏸")
 WAIT_LIMIT = 25 * 60
 WAIT_PLAYED = 15.0
@@ -96,9 +96,9 @@ while not STOPPED.search(screen):
         sys.exit(f"the change did not stop within {WAIT_LIMIT // 60} minutes")
     pump(1)
 wait_to = time.time() - started
-pump(3)
+# A conduct ends on the status of the change: it stays on screen before the review.
+pump(6)
 
-command("/495 status", 7)
 command("/495 review", 3)
 key(b"\x1b[B", 1)
 key(b"\r", 4)

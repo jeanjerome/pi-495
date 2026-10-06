@@ -58,7 +58,7 @@ cp -R "$racine/cycle/campagnes/npm" "$cible"
 )
 mkdir -p "$data"
 
-PI_CODING_AGENT_DIR=$agent HARNESS495_DATA_DIR=$data HARNESS495_LANGUAGE=en \
+PI_CODING_AGENT_DIR=$agent HARNESS495_DATA_DIR=$data HARNESS495_LANGUAGE=en PI_SKIP_VERSION_CHECK=1 \
 	python3 "$racine/scripts/demo/drive.py" "$cible" "$demo"
 
 agg --font-dir "$HOME/Library/Fonts" --font-family "JetBrainsMono Nerd Font Mono" --font-size 16 \
