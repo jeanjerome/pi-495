@@ -1478,35 +1478,6 @@ bugs:
       Pass an `onRefresh` from `extension/` that ends the current interaction and opens the review on the newer
       candidate, and hold it with a test that presses `r`.
     status: open
-  - bug_id: BUG-2026-10-06T175859
-    date: "2026-10-06"
-    title: "In an install made by `pi install`, the review shows `Cannot find module '@earendil-works/pi-tui'` in place of every change"
-    severity: high
-    priority: p1
-    scope: presentation
-    what_happened: >
-      With 495 installed as Pi installs a package (`npm install --omit=dev --omit=peer`), selecting a modified or added
-      file in `/495 review` draws `error: Cannot find module '@earendil-works/pi-tui'` with the require stack of
-      `node_modules/@xynogen/pix-pretty/src/utils.ts` in the reader, instead of the comparison.
-    what_expected: >
-      The reader draws the comparison of the selected file in a managed install as it does in a copy that carries its
-      own `node_modules`.
-    steps_to_reproduce:
-      - "`npm pack` the package, `npm install --omit=peer` the tarball into an empty folder, load it in Pi 1.0.4, conduct a change to G5, open `/495 review` and select a modified file."
-    root_cause: >
-      `src/presentation/tui/review/diff-view.ts` loads `@xynogen/pix-pretty` through `jiti`, and pix-pretty imports
-      `@earendil-works/pi-tui`, which it declares as a peer dependency. Pi's managed install omits peers
-      (`package-manager.js` of pi-coding-agent 1.0.4), so no `pi-tui` is resolvable from pix-pretty's folder; Pi's own
-      copy is not on that resolution path.
-    evidence: >
-      Seen in the acceptance runs of e08s01 on 2026-10-06 in a real Pi 1.0.4: `~/.495-campagnes/e08s01b-ecrans/s1.txt`
-      on the branch at 0077a03 and `~/.495-campagnes/e08s01-ecrans/n2.txt` on main 76cc2ad, both from builds made by
-      `npm pack` and `npm install --omit=peer`; it predates that branch.
-    risk_level: high
-    follow_ups: >
-      Drawing the change with Pi's `renderDiff` and dropping pix-pretty and jiti (`specs/adr/D-82`, story e08s02)
-      removes the import; hold it with an acceptance run on a managed install.
-    status: open
   - bug_id: BUG-2026-10-06T202203
     date: "2026-10-06"
     title: "Two distant portions of a change follow each other in the review with no mark of the lines skipped between them"
