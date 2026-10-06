@@ -347,7 +347,7 @@ epics:
 
   - id: e31
     title: "Le terminal de Pi montre le travail de l'agent"
-    status: versé
+    status: à faire
     source: arbitrage du propriétaire, 2026-10-05
     objet: >
       Pendant une intervention, le terminal de Pi montre ce que consomme l'agent qui travaille, et non la
@@ -364,6 +364,7 @@ epics:
       démonstration chargeait pour en montrer une.
     stories:
       - { id: e31s01, status: "versée", title: "Une jauge sous l'éditeur montre le contexte de l'agent pendant une intervention" }
+      - { id: e31s02, status: "à faire", title: "La consommation que montre 495 se dit celle de ses agents" }
 
   - id: e11
     title: "Architecture cible d'une cible"
