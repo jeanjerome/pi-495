@@ -1424,3 +1424,30 @@ bugs:
       Cut the title at the last word boundary before the limit and mark the cut, or show the whole first line where the
       screen has room.
     status: open
+  - bug_id: BUG-2026-10-06T102300
+    date: "2026-10-06"
+    title: "In a French session, the progress messages of the 495 footer line stay in English"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      While a change is conducted in a French session, the 495 footer line reads `495 qualifying control unit · agents
+      72,0 k jetons · ~0,11 $ (abonnement)`, then `intervention implement started (…)`, `freezing the candidate`,
+      `running control unit on the reference` and `running control unit`: the consumption is French, the progress
+      message before it is English.
+    what_expected: >
+      Every word of the 495 footer line is in the session's language.
+    steps_to_reproduce:
+      - "Conduct a change to its closure in a French session and read the `setStatus` requests for the key `495`."
+    root_cause: >
+      The progress messages are English literals passed to `progress` in `src/application/verification.ts`,
+      `src/application/intervention.ts` and `src/application/phases/implement.ts`; `ExtensionSession` in
+      `src/extension/session.ts` puts them in the footer as they come, and only the consumption beside them is rendered
+      in the session's language.
+    evidence: >
+      Seen in the acceptance run of e31s02 on 2026-10-06, in `~/.495-campagnes/e31s02-fr-fin/driver.out`, and the same
+      on main 2d3bb9f in `e31s02-main-fr-fin`; it predates that branch.
+    risk_level: low
+    follow_ups: >
+      Pass the progress as a code with its values and render it in the presentation layer, like the status lines.
+    status: open

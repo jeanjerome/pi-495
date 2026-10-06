@@ -155,7 +155,7 @@ const S = {
 			NOT_APPLICABLE: "sans objet",
 		} as Record<string, string>,
 		invalid: "invalide",
-		used: "Utilisé",
+		used: "Dépensé par les agents",
 		last: "Dernière",
 		next: "Ensuite",
 		done: "/495 review pour lire le changement, /495 report pour le détail",
@@ -204,7 +204,7 @@ const S = {
 			NOT_APPLICABLE: "not applicable",
 		} as Record<string, string>,
 		invalid: "invalid",
-		used: "Used",
+		used: "Spent by agents",
 		last: "Last",
 		next: "Next",
 		done: "/495 review to read the change, /495 report for the details",
@@ -312,7 +312,6 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 				`    ${mark(e.verdict)} ${e.control_id.padEnd(10)} ${t.verdicts[e.verdict] ?? e.verdict}${e.valid ? "" : ` (${t.invalid})`}`,
 			);
 	}
-	const width = Math.max(t.used.length, t.last.length, t.next.length) + 4;
 	const facts: [string, string][] = [];
 	const used = formatConsumption(c.consumption, lang);
 	if (used) facts.push([t.used, used]);
@@ -330,6 +329,8 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 	// The next action of a block repeats its cause, which the verdict line already says.
 	const out = c.status === "blocked" && cause ? commandsOutOf(c) : null;
 	facts.push([t.next, out ? out.join(", ") : finished ? t.done : c.next_action]);
+	// The long label of the agents' consumption takes three spaces, so that it does not push every value far right.
+	const width = Math.max(t.last.length + 4, t.next.length + 4, used ? t.used.length + 3 : 0);
 	lines.push("", ...facts.map(([label, value]) => `  ${label.padEnd(width)}${value}`));
 	return lines.join("\n");
 }

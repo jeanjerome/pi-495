@@ -83,8 +83,8 @@ describe("the status of a change", () => {
 				"    ✔ coverage   passed",
 				"    ✔ mutation   passed",
 				"",
-				"  Used    77.7k tokens · ~$0.10 (sub)",
-				"  Next    /495 review to read the change, /495 report for the details",
+				"  Spent by agents   77.7k tokens · ~$0.10 (sub)",
+				"  Next              /495 review to read the change, /495 report for the details",
 			].join("\n"),
 		);
 		assert.doesNotMatch(text, /chg_|cand_|prg_|sha256:|\br69\b/, "no identifier, digest or revision");
@@ -114,7 +114,7 @@ describe("the status of a change", () => {
 			),
 			lines.join("\n"),
 		);
-		assert.ok(lines.includes("  Next    /495 cancel"), lines.join("\n"));
+		assert.ok(lines.includes("  Next              /495 cancel"), lines.join("\n"));
 		assert.equal(lines.filter((l) => l.includes("no test can judge R1")).length, 1, "the cause is said once");
 	});
 
@@ -144,11 +144,11 @@ describe("the status of a change", () => {
 		assert.equal(lines[1], "… Writing the candidate on attempt 1 of 3");
 		assert.ok(
 			lines.includes(
-				"  Last    implement truncated — stopped by the duration budget, 1 resumptions (64s, 12 tool calls)",
+				"  Last              implement truncated — stopped by the duration budget, 1 resumptions (64s, 12 tool calls)",
 			),
 			lines.join("\n"),
 		);
-		assert.ok(lines.includes("  Next    implement"), lines.join("\n"));
+		assert.ok(lines.includes("  Next              implement"), lines.join("\n"));
 	});
 
 	it("a cancelled change is abandoned, with the detail of its stop as its cause", () => {

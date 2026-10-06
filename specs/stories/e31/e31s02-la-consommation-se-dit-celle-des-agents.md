@@ -2,7 +2,7 @@
 
 Story : e31s02
 Epic : e31
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

@@ -217,7 +217,8 @@ export class ExtensionSession {
 
 	private footer(ctx: ExtensionContext, head: string, view: StatusView | null): void {
 		const used = view?.change ? formatConsumption(view.change.consumption, this.lang()) : "";
-		ctx.ui.setStatus("495", used ? `${head} · ${used}` : head);
+		// The consumption is the agents' own, spent in their sessions, not the one the owner types in.
+		ctx.ui.setStatus("495", used ? `${head} · agents ${used}` : head);
 	}
 
 	currentView(): StatusView | null {
