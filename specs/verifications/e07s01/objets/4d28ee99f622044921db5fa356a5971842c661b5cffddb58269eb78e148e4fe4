@@ -1,0 +1,143 @@
+TAP version 13
+# Subtest: the text of a report
+    # Subtest: le rapport du changement accepté à deux exigences et trois contrôles qualifiés chacun sur trois essais commence par 495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted, a les quatre sections dans l'ordre, un tableau reference/candidate de trois lignes, la phrase des essais de qualification, la ligne des portes passées, tient en 30 lignes et ne contient aucune empreinte
+    not ok 1 - le rapport du changement accepté à deux exigences et trois contrôles qualifiés chacun sur trois essais commence par 495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted, a les quatre sections dans l'ordre, un tableau reference/candidate de trois lignes, la phrase des essais de qualification, la ligne des portes passées, tient en 30 lignes et ne contient aucune empreinte
+      ---
+      duration_ms: 0.834583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DPKkXl/test/v0-pure/report-text.test.ts:94:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Report chg_muvojsvvb399c9ce4d — Outcome: accepted
+        Candidate: cand_dbff53b24f15 sha256:cccccccccccccccc
+        
+        ## Requirements
+          R1: freeMinutes(busy) returns the free minutes of the day — unit=PASS, mutation=PASS
+          R2: freeSlots keeps its behaviour — unit=PASS
+        
+        ## Mechanical observations
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          unit vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → FAIL
+          coverage vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → PASS
+          mutation vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → PASS
+          unit vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+          coverage vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+          mutation vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+        
+        ## Judgments
+          [kernel] 495 kernel: G0 PASS
+          [kernel] 495 kernel: G1 PASS
+          [kernel] 495 kernel: G2 PASS
+          [kernel] 495 kernel: G3 PASS
+          [kernel] 495 kernel: G4 PASS
+          [kernel] 495 kernel: G5 PASS
+        
+        ## Residual risks
+          controls_are_not_a_proof: 3 control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects.
+        + actual - expected
+        
+        + 'Report chg_muvojsvvb399c9ce4d — Outcome: accepted'
+        - '495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted'
+      actual: 'Report chg_muvojsvvb399c9ce4d — Outcome: accepted'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DPKkXl/test/v0-pure/report-text.test.ts:97:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: en français, les sections sont Ce qui était demandé, Ce qui a été mesuré, Ce qui a été conclu et Ce qui reste incertain
+    not ok 2 - en français, les sections sont Ce qui était demandé, Ce qui a été mesuré, Ce qui a été conclu et Ce qui reste incertain
+      ---
+      duration_ms: 0.463584
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DPKkXl/test/v0-pure/report-text.test.ts:134:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Rapport chg_muvojsvvb399c9ce4d — Résultat: accepted
+        Candidat: cand_dbff53b24f15 sha256:cccccccccccccccc
+        
+        ## Exigences
+          R1: freeMinutes(busy) returns the free minutes of the day — unit=PASS, mutation=PASS
+          R2: freeSlots keeps its behaviour — unit=PASS
+        
+        ## Observations mécaniques
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          unit vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          coverage vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → PASS
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → FAIL
+          mutation vv1+junit-xml@1.0.0 fixture sha256:ffffffffffff → INDETERMINATE
+          unit vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → FAIL
+          coverage vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → PASS
+          mutation vv1+junit-xml@1.0.0 reference sha256:rrrrrrrrrrrr → PASS
+          unit vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+          coverage vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+          mutation vv1+junit-xml@1.0.0 candidate sha256:cccccccccccc → PASS
+        
+        ## Jugements
+          [noyau] 495 kernel: G0 PASS
+          [noyau] 495 kernel: G1 PASS
+          [noyau] 495 kernel: G2 PASS
+          [noyau] 495 kernel: G3 PASS
+          [noyau] 495 kernel: G4 PASS
+          [noyau] 495 kernel: G5 PASS
+        
+        ## Risques résiduels
+          controls_are_not_a_proof: 3 control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects.
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DPKkXl/test/v0-pure/report-text.test.ts:139:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..2
+not ok 1 - the text of a report
+  ---
+  duration_ms: 1.726708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-DPKkXl/test/v0-pure/report-text.test.ts:93:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 74.983791

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the Next line of a blocked change
+    # Subtest: un changement bloqué dont la prochaine action est blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: … (next: cancel) a un statut dont la ligne du verdict commence par ✘ Blocked sans CAPABILITY_MISSING: ni (next:, dont la ligne Next est Next    /495 cancel, et où la phrase protocol not frozen n'apparaît qu'une fois
+    ok 1 - un changement bloqué dont la prochaine action est blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: … (next: cancel) a un statut dont la ligne du verdict commence par ✘ Blocked sans CAPABILITY_MISSING: ni (next:, dont la ligne Next est Next    /495 cancel, et où la phrase protocol not frozen n'apparaît qu'une fois
+      ---
+      duration_ms: 0.627959
+      type: 'test'
+      ...
+    # Subtest: un arrêt qui nomme (next: resume, cancel) a pour ligne Next    /495 resume, /495 cancel
+    ok 2 - un arrêt qui nomme (next: resume, cancel) a pour ligne Next    /495 resume, /495 cancel
+      ---
+      duration_ms: 0.102667
+      type: 'test'
+      ...
+    1..2
+ok 1 - the Next line of a blocked change
+  ---
+  duration_ms: 1.43225
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.991417

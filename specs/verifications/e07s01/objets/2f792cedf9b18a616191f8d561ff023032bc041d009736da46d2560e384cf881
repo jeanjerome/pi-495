@@ -1,0 +1,53 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La ligne Next d'un changement bloqué ne répète pas la cause",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 241,
+    "constat": "Dans `commandsOutOf`, le filtre `/^[a-z]+$/` écarte les mots du noyau en snake_case de la ligne Next, mais aucun test ne le tient : sans lui, toute la suite reste verte. Aucun arrêt atteignable aujourd'hui ne nomme pourtant un tel mot : les seules actions nommées sont `cancel`, `resume`, `decide`, plus le `next_action` de G1 en échec, qui vaut `cancel`. La promesse n'est donc pas rompue ; seule sa garde n'est pas testée.",
+    "mutation": "Retrait de `.filter((a) => /^[a-z]+$/.test(a))` : status-blocked-next, status-text, cancel-only-stops, model-select et harness restent verts."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/views.ts",
+    "ligne": 72,
+    "constat": "L'objet `view` que reçoivent les surfaces RPC et JSON gagne un champ `resume_lifts_stop`. Aucun identifiant, aucune empreinte ni aucune limite n'en disparaît, et aucun contrat sous `src/contracts` ne décrit cette vue. Mais le texte de la section Sécurité dit que la vue reste « inchangée »."
+   }
+  ],
+  "resume": "Le relecteur A, tour 1, rend un verdict pass : il ne relève rien de bloquant ni d'« à corriger », seulement deux points à peser. Le diff relu va de 7ee2e10 à dc4483d.\n\n**Ce que la branche change.** Elle porte la tâche 6 : pour un changement bloqué, la ligne du verdict dit la cause sans le code d'erreur ni « (next: …) ». La ligne Next donne les sous-commandes `/495` que l'arrêt nomme, plus `/495 resume` quand le noyau dit qu'une reprise lève l'arrêt.\n\n**Les deux scénarios touchés sont tenus par le code.** Il s'agit de « Un changement arrêté dit sa cause une fois » et de « La ligne Next d'un changement bloqué ne répète pas la cause ». Une sonde jetable, tirée de cancel-only-stops, a affiché le vrai statut que compose le noyau. Pour un protocole non gelé, la cause apparaît une fois sur la ligne du verdict et la ligne Next est `/495 cancel`.\n\n**Six mutations sur sept sont tuées.**\n- Next toujours égal à la prochaine action du noyau : 5 fichiers de test échouent.\n- Préfixe du code d'erreur conservé : status-blocked-next et cancel-only-stops échouent.\n- `/495 resume` jamais ajouté : le test de harness sur un arrêt `execution_error` échoue.\n- `resume_lifts_stop` forcé à false dans `views.ts` : le même test échoue.\n- Doublons non retirés : status-blocked-next, model-select et harness échouent.\n- Actions nommées perdues : 5 fichiers de test échouent.\n\n**La mutation survivante** retire le filtre des mots du noyau en snake_case. Aucun arrêt atteignable aujourd'hui ne nomme un tel mot, donc elle reste à peser (A1-1).\n\n**Le renommage `marks` → `mark` dans le rapport ne change pas son comportement.** Deux mutations sur les cellules du tableau et sur la marque des portes font échouer report-text.\n\n**Les autres scénarios ont été vérifiés, pas mutés.** Leur code précède 7ee2e10 et la branche ne les change pas. Leurs tests passent à dc4483d : status-text, report-text, status-current-candidate, report-risks-candidate et conduct-end-message.\n\nUne ligne Next absente quand l'arrêt ne nomme rien et qu'aucune reprise ne le lève est déjà au registre (BUG-2026-10-06T014453) ; ce cas ne compte donc pas. Aucun fichier n'est resté modifié : `git status` ne montre que `node_modules`."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La ligne Next d'un changement bloqué ne répète pas la cause",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 241,
+    "constat": "Aucun test ne tient le filtre `/^[a-z]+$/` de `commandsOutOf`, qui écarte de la ligne Next une étape du noyau en snake_case nommée dans « (next: … ) ». Les promesses de la story sont tenues sans lui, puisque leurs arrêts ne nomment que cancel et resume. Le filtre ne sert que pour un arrêt qui nommerait une étape, par exemple le `next_action` de G1 que `specify.ts:77` met dans ses nextActions. Si on le retire, ce cas afficherait « /495 <étape> » sans qu'aucun test échoue.",
+    "mutation": "Retrait de `.filter((a) => /^[a-z]+$/.test(a))` : status-blocked-next, status-text, harness, cancel-only-stops et model-select restent tous verts (10/10 et 68/68)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/views.ts",
+    "ligne": 72,
+    "constat": "La section Sécurité dit que l'objet `view` reçu par les surfaces RPC et JSON reste inchangé, mais `StatusView.change` y gagne un champ `resume_lifts_stop`. L'ajout ne retire aucun identifiant, aucune empreinte ni aucune limite, ce qui est le fond de la promesse. Il s'écarte seulement de la lettre du mot « inchangés ».",
+    "mutation": ""
+   }
+  ],
+  "resume": "Verdict : pass. Aucun constat introduit ou rendu atteignable n'est bloquant ou à corriger ; il reste deux points à peser.\n\nLe diff 7ee2e10...dc4483d change deux choses dans le statut d'un changement bloqué. La ligne du verdict donne la cause sans le code d'erreur ni « (next: …) » (`stopParts`). La ligne Next donne les commandes `/495` que l'arrêt nomme, plus `/495 resume` quand la vue dit qu'une reprise lève l'arrêt (`commandsOutOf`, `resume_lifts_stop`).\n\n**Scénarios 2 et 3 (la ligne Next).** Le code les tient, et les tests aussi : chaque mutation de la logique les fait échouer, sauf le filtre snake_case (B1-1).\n- Forcer la branche normale de la ligne Next fait échouer 3 tests v0.\n- Garder le code d'erreur dans la cause, ou ne plus retirer « (next: …) », fait échouer le test v0 de status-blocked-next.\n- Retirer le dédoublonnage fait échouer le test de « (next: resume, cancel) ».\n- Ignorer les actions nommées par l'arrêt fait échouer 3 tests.\n- Retirer le resume qu'apporte la vue laisse v0 vert : l'arrêt du test nomme déjà resume. Le test v2 de harness « execution error … /495 resume » échoue, lui.\n- Le cas d'un arrêt sans commande nommée, qu'aucune reprise ne lève, n'a pas de ligne Next. C'est l'entrée ouverte BUG-2026-10-06T014453, que je ne compte pas.\n\n**Autres scénarios, codés avant 7ee2e10.** Je les ai sondés par mutation, et chacune fait échouer le test que la story nomme :\n- candidat courant ;\n- filtre des témoins de qualification, et contrôle non qualifié qui reste un risque ;\n- bac à sable ;\n- décision en attente ;\n- ligne Next d'un changement accepté ;\n- phrase de qualification, marques du tableau, ligne « The kernel passed », titres de section et identifiant dans le rapport ;\n- portes en français ;\n- étapes ajoutées au message de fin de déroulement.\n\nLe refactor bf470c8 remplace `marks([v])` par `mark(v)` ; les deux donnent le même résultat pour un verdict défini.\n\n**Points à peser.**\n- B1-1 : aucun test ne tient le filtre snake_case de `commandsOutOf` (`text.ts:241`). Si on le retire, tous les tests liés restent verts.\n- B1-2 : la vue de statut gagne le champ `resume_lifts_stop`. C'est un ajout : rien ne disparaît, mais cela s'écarte de la lettre de « restent inchangés » dans la section Sécurité.\n\nL'arbre est propre après les mutations ; rien n'a été commité."
+ }
+]

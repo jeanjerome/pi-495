@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: the status of a change
+    # Subtest: le statut d'un changement accepté à la première de trois tentatives, portes G0 à G5 passées, contrôles unit, coverage et mutation réussis, 77 700 jetons pour ~0,10 $ sur abonnement, est exactement le bloc du premier scénario
+    ok 1 - le statut d'un changement accepté à la première de trois tentatives, portes G0 à G5 passées, contrôles unit, coverage et mutation réussis, 77 700 jetons pour ~0,10 $ sur abonnement, est exactement le bloc du premier scénario
+      ---
+      duration_ms: 0.943584
+      type: 'test'
+      ...
+    # Subtest: un changement bloqué sur G2 a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — no test can judge R1, et sa ligne Next reprend la prochaine action du changement
+    ok 2 - un changement bloqué sur G2 a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — no test can judge R1, et sa ligne Next reprend la prochaine action du changement
+      ---
+      duration_ms: 0.168208
+      type: 'test'
+      ...
+    # Subtest: une décision en attente a pour deuxième ligne ⏸ Waiting for your decision — /495 decide
+    ok 3 - une décision en attente a pour deuxième ligne ⏸ Waiting for your decision — /495 decide
+      ---
+      duration_ms: 0.070542
+      type: 'test'
+      ...
+    # Subtest: un bac à sable qualifié n'est pas nommé, un bac à sable non qualifié donne ⚠ The seatbelt sandbox is not qualified sous le verdict
+    ok 4 - un bac à sable qualifié n'est pas nommé, un bac à sable non qualifié donne ⚠ The seatbelt sandbox is not qualified sous le verdict
+      ---
+      duration_ms: 0.131334
+      type: 'test'
+      ...
+    # Subtest: en français, le verdict est ✔ Accepté à la tentative 1 sur 3, les portes et les contrôles sont nommés dans la langue
+    ok 5 - en français, le verdict est ✔ Accepté à la tentative 1 sur 3, les portes et les contrôles sont nommés dans la langue
+      ---
+      duration_ms: 0.070958
+      type: 'test'
+      ...
+    1..5
+ok 1 - the status of a change
+  ---
+  duration_ms: 1.868583
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 72.823625

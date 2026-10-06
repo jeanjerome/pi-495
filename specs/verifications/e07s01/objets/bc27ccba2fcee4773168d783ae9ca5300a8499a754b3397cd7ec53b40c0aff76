@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: the text of a report
+    # Subtest: le rapport du changement accepté à deux exigences et trois contrôles qualifiés chacun sur trois essais commence par 495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted, a les quatre sections dans l'ordre, un tableau reference/candidate de trois lignes, la phrase des essais de qualification, la ligne des portes passées, tient en 30 lignes et ne contient aucune empreinte
+    ok 1 - le rapport du changement accepté à deux exigences et trois contrôles qualifiés chacun sur trois essais commence par 495 report · add freeMinutes(busy) beside freeSlots — ✔ Accepted, a les quatre sections dans l'ordre, un tableau reference/candidate de trois lignes, la phrase des essais de qualification, la ligne des portes passées, tient en 30 lignes et ne contient aucune empreinte
+      ---
+      duration_ms: 6.21925
+      type: 'test'
+      ...
+    # Subtest: a rejected change says the gate the kernel refused with its reasons, apart from the gates it passed, then each review, and counts the controls left unqualified
+    ok 2 - a rejected change says the gate the kernel refused with its reasons, apart from the gates it passed, then each review, and counts the controls left unqualified
+      ---
+      duration_ms: 0.150666
+      type: 'test'
+      ...
+    # Subtest: the candidate column holds the current candidate alone, not a candidate the change replaced
+    ok 3 - the candidate column holds the current candidate alone, not a candidate the change replaced
+      ---
+      duration_ms: 0.124791
+      type: 'test'
+      ...
+    # Subtest: a report with no control run says that nothing was measured
+    ok 4 - a report with no control run says that nothing was measured
+      ---
+      duration_ms: 0.064667
+      type: 'test'
+      ...
+    # Subtest: en français, les sections sont Ce qui était demandé, Ce qui a été mesuré, Ce qui a été conclu et Ce qui reste incertain
+    ok 5 - en français, les sections sont Ce qui était demandé, Ce qui a été mesuré, Ce qui a été conclu et Ce qui reste incertain
+      ---
+      duration_ms: 0.090375
+      type: 'test'
+      ...
+    1..5
+ok 1 - the text of a report
+  ---
+  duration_ms: 7.130833
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77.935542

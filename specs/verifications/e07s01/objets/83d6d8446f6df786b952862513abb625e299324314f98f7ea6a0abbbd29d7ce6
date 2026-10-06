@@ -1,0 +1,81 @@
+TAP version 13
+# Subtest: the Next line of a blocked change
+    # Subtest: un changement bloqué dont la prochaine action est blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: … (next: cancel) a un statut dont la ligne du verdict commence par ✘ Blocked sans CAPABILITY_MISSING: ni (next:, dont la ligne Next est Next    /495 cancel, et où la phrase protocol not frozen n'apparaît qu'une fois
+    ok 1 - un changement bloqué dont la prochaine action est blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: … (next: cancel) a un statut dont la ligne du verdict commence par ✘ Blocked sans CAPABILITY_MISSING: ni (next:, dont la ligne Next est Next    /495 cancel, et où la phrase protocol not frozen n'apparaît qu'une fois
+      ---
+      duration_ms: 0.8815
+      type: 'test'
+      ...
+    # Subtest: un arrêt qui nomme (next: resume, cancel) a pour ligne Next    /495 resume, /495 cancel
+    ok 2 - un arrêt qui nomme (next: resume, cancel) a pour ligne Next    /495 resume, /495 cancel
+      ---
+      duration_ms: 0.102459
+      type: 'test'
+      ...
+    # Subtest: un arrêt qui nomme une étape du noyau, (next: correct_or_reject, cancel), a pour ligne Next    /495 cancel, sans /495 correct_or_reject
+    ok 3 - un arrêt qui nomme une étape du noyau, (next: correct_or_reject, cancel), a pour ligne Next    /495 cancel, sans /495 correct_or_reject
+      ---
+      duration_ms: 0.063292
+      type: 'test'
+      ...
+    1..3
+ok 1 - the Next line of a blocked change
+  ---
+  duration_ms: 1.445583
+  type: 'suite'
+  ...
+# Subtest: a stop that does not come from a gate
+    # Subtest: un changement bloqué à la tentative 2 sur 3, dont G5 a échoué avec requirement R1: FAIL (unit=FAIL), arrêté sur stagnation avec le détail 2 identical candidates without measurable progress et resume_lifts_stop faux, a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress, une ligne Acceptance: requirement R1: FAIL (unit=FAIL), la ligne Next    /495 cancel, aucune /495 resume, et la phrase du détail une seule fois
+    not ok 1 - un changement bloqué à la tentative 2 sur 3, dont G5 a échoué avec requirement R1: FAIL (unit=FAIL), arrêté sur stagnation avec le détail 2 identical candidates without measurable progress et resume_lifts_stop faux, a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress, une ligne Acceptance: requirement R1: FAIL (unit=FAIL), la ligne Next    /495 cancel, aucune /495 resume, et la phrase du détail une seule fois
+      ---
+      duration_ms: 0.4505
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-itQ7yZ/test/v0-pure/status-blocked-next.test.ts:80:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        495 · add freeMinutes(busy) beside freeSlots
+        ✘ Blocked on attempt 2 of 3 — requirement R1: FAIL (unit=FAIL)
+        
+          ✔ Mandate  ✔ Requirements  ✔ Checks frozen  ✔ Design  ✔ Candidate  ✘ Acceptance  ○ Integration
+        
+        + actual - expected
+        
+        + '✘ Blocked on attempt 2 of 3 — requirement R1: FAIL (unit=FAIL)'
+        - '✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress'
+      actual: '✘ Blocked on attempt 2 of 3 — requirement R1: FAIL (unit=FAIL)'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-itQ7yZ/test/v0-pure/status-blocked-next.test.ts:103:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 2 - a stop that does not come from a gate
+  ---
+  duration_ms: 0.517708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-itQ7yZ/test/v0-pure/status-blocked-next.test.ts:79:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 4
+# suites 2
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.370125

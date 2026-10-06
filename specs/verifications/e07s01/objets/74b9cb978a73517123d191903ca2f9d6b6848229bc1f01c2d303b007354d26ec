@@ -1,0 +1,52 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un bac à sable qualifié n'est pas une limite",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 254,
+    "constat": "Le code tient la promesse : une sonde sur un vrai changement accepté a la limite « sandbox:unconfined:qualified » et le statut ne montre aucune ligne de bac à sable. Mais `limitLines` repère un bac à sable qualifié en lisant le texte « sandbox:<backend>:qualified|not-qualified » que fabrique `harness.ts:843`, et seul un test v0 le vérifie, sur une chaîne écrite à la main. Si ce texte change côté noyau, aucun test ne casse, et un bac à sable qualifié redevient une ligne « ⚠ sandbox:… » dans le statut.",
+    "mutation": "src/application/harness.ts:843 `? \"qualified\"` → `? \"ok\"` : status-text, status-current-candidate, conduct-end-message, harness.test et pi-entries restent tous verts (57 réussis, 0 échec)"
+   }
+  ],
+  "resume": "Les neuf scénarios sont tenus par le code, et chacun est tenu par un test qui casse sous mutation. Statut (status-text.test.ts) : la condition qui remplit la ligne Next d'un changement fini, la cause sur la ligne du verdict, la décision en attente, le bac à sable qualifié ou non et un identifiant ajouté au titre font chacun échouer le test du scénario. Contrôles du candidat courant : mettre `current_candidate` à vrai dans views.ts, retirer le filtre dans text.ts ou changer le mot « passed » fait échouer status-current-candidate.test.ts (v2, deux vrais candidats). Fin d'un déroulement : remettre les transitions dans le message de conduct.ts fait échouer conduct-end-message.test.ts sur les lignes « x -> y/z ». Rapport : retirer le filtre des témoins dans report.ts ou le risque control_not_qualified fait échouer report-risks-candidate.test.ts (v2, vrai témoin cassé). Retirer le verdict du titre, inverser deux sections, ajouter l'identifiant d'une exigence ou une empreinte, retirer ses contrôles, lire la colonne reference sur le candidat, lister les essais témoins, fausser leur nombre ou séparer la ligne des portes passées fait échouer report-text.test.ts. Les libellés français tombent sous leurs tests. Une sonde jetable sur un vrai changement accepté (supprimée, arbre propre) donne un statut sans identifiant ni empreinte et un rapport de 19 lignes dans les quatre sections, en anglais comme en français. Un seul constat, à peser : le repérage du bac à sable qualifié dépend d'un texte que fabrique le noyau, et seul un test sur une chaîne écrite à la main le vérifie."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le rapport dit ce qui était demandé, ce qui a été mesuré, conclu, et ce qui reste incertain",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/report.ts",
+    "ligne": 320,
+    "constat": "La section « What remains uncertain » recopie mot pour mot chaque énoncé de risque résiduel. Quand c'est 495 qui a installé le complément de mutation (Stryker par npm), le risque installed_packages cite chaque paquet avec son intégrité npm (sha512-…), qui est une empreinte. Le rapport d'un changement accepté avec `mutation` peut donc contenir une empreinte, alors que la promesse dit « ni empreinte ». Le Given ne dit pas qui a installé Stryker : dans la campagne npm de référence, il est déjà déclaré, et rien n'est installé. Le test du texte ne passe que par un rapport construit à la main, sans ce risque."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le statut et le rapport parlent la langue de la session",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/report.ts",
+    "ligne": 282,
+    "constat": "Sondé sur un vrai changement accepté (harnais, agent scripté) : en français, les quatre sections du rapport sont bien traduites, mais chaque énoncé de risque résiduel reste en anglais (« 2 control run(s) observed the candidate… », « control lint is not qualified… »). Le Then ne promet que les noms de sections et il est tenu. Le titre du scénario, lui, promet un rapport dans la langue de la session."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Le rapport dit ce qui était demandé, ce qui a été mesuré, conclu, et ce qui reste incertain",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 519,
+    "constat": "La colonne `candidate` du tableau ne garde que les observations du candidat courant. Aucun test ne tient cette restriction : le rapport des tests n'a qu'un candidat. Le Then du scénario ne l'exige pas, donc ce n'est pas une promesse non tenue.",
+    "mutation": "`(o) => o.subject_kind === \"candidate\" && o.subject_digest === report.candidate?.manifest_digest` → `(o) => o.subject_kind === \"candidate\"` : test/v0-pure/report-text.test.ts reste vert"
+   }
+  ],
+  "resume": "Le code tient les neuf scénarios. Une sonde jetable a conduit un vrai changement accepté dans le harnais : statut en anglais et en français, titre de la demande en tête, contrôles du seul candidat courant, rapport de 19 lignes en quatre sections. Le rapport n'y montre aucun risque issu d'un témoin et ne nomme pas le témoin cassé ; le contrôle non qualifié y reste nommé. Chaque promesse est tenue par un test qui échoue sous mutation, sur la bonne assertion. 18 mutations tuées sur 19 :\n- titre de l'en-tête ; cause dite une seule fois ; ligne Next ; verdict d'attente ;\n- `current_candidate` dans la vue, et le filtre du texte ;\n- bac à sable qualifié affiché, ou non qualifié masqué ;\n- transitions remises dans le message de fin ;\n- titre passé par le harnais au rapport ; phrase des essais témoins ; portes passées en une ligne ; identifiant d'exigence affiché ;\n- filtre des témoins dans les risques ; risque `control_not_qualified` ;\n- trois libellés français.\nLa seule mutation survivante porte sur une restriction que le Then n'exige pas (B1-3). Côté sécurité, les objets `view` et `report` gagnent deux champs (`current_candidate`, `title`) et n'en perdent aucun. Aucun schéma de contrat ne les fige. Les identifiants et empreintes restent dans les objets, et l'empreinte du candidat reste vérifiée entre les canaux par pi-rpc-sdk. Il reste trois constats à peser, dont aucun n'est bloquant ni à corriger : B1-1 et B1-2 sont antérieurs, B1-3 est introduit. La sonde et le script de mutation sont supprimés, l'arbre est propre."
+ }
+]

@@ -1,0 +1,77 @@
+TAP version 13
+# Subtest: the message a conduct of the change ends on
+    # Subtest: un /495 start qu'un agent scripté conduit jusqu'à l'acceptation affiche un dernier message dont la deuxième ligne est ✔ Accepted on attempt 1 of 3 et qui ne contient aucune ligne de la forme <phase> -> <phase>/<status>
+    not ok 1 - un /495 start qu'un agent scripté conduit jusqu'à l'acceptation affiche un dernier message dont la deuxième ligne est ✔ Accepted on attempt 1 of 3 et qui ne contient aucune ligne de la forme <phase> -> <phase>/<status>
+      ---
+      duration_ms: 1498.334958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtBAFv/test/v3-pi/conduct-end-message.test.ts:81:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        495 · tidy greet without behaviour change
+        ✔ Accepted on attempt 1 of 3
+        
+          ✔ Mandate  ✔ Requirements  ✔ Checks frozen  ✔ Design  ✔ Candidate  ✔ Acceptance  ○ Integration
+        
+          Checks on the candidate
+            ✔ unit       passed
+            ✔ lint       passed
+        
+          Next    /495 review to read the change, /495 report for the details
+        
+        clarifying -> specifying/ready
+        specifying -> verification_design/ready
+        verification_design -> designing/ready
+        designing -> implementing/ready
+        implementing -> verifying/ready
+        verifying -> deciding/ready
+        deciding -> closed/completed
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        495 · tidy greet without behaviour change
+        ✔ Accepted on attempt 1 of 3
+        
+          ✔ Mandate  ✔ Requirements  ✔ Checks frozen  ✔ Design  ✔ Candidate  ✔ Acceptance  ○ Integration
+        
+          Checks on the candidate
+            ✔ unit       passed
+            ✔ lint       passed
+        
+          Next    /495 review to read the change, /495 report for the details
+        
+        clarifying -> specifying/ready
+        specifying -> verification_design/ready
+        verification_design -> designing/ready
+        designing -> implementing/ready
+        implementing -> verifying/ready
+        verifying -> deciding/ready
+        deciding -> closed/completed
+      operator: 'doesNotMatch'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtBAFv/test/v3-pi/conduct-end-message.test.ts:97:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the message a conduct of the change ends on
+  ---
+  duration_ms: 1499.017209
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-UtBAFv/test/v3-pi/conduct-end-message.test.ts:69:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1984.39125

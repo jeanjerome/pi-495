@@ -1,0 +1,50 @@
+TAP version 13
+# Subtest: the residual risks of a report
+    # Subtest: un changement accepté dont les contrôles ont été qualifiés par un témoin cassé qui a répondu INDETERMINATE avec la note spawn error a un rapport dont aucun risque résiduel ne nomme fixture, INDETERMINATE ni /nonexistent/495-broken-runner, et un changement dont un contrôle n'est pas qualifié garde le risque control_not_qualified qui le nomme
+    not ok 1 - un changement accepté dont les contrôles ont été qualifiés par un témoin cassé qui a répondu INDETERMINATE avec la note spawn error a un rapport dont aucun risque résiduel ne nomme fixture, INDETERMINATE ni /nonexistent/495-broken-runner, et un changement dont un contrôle n'est pas qualifié garde le risque control_not_qualified qui le nomme
+      ---
+      duration_ms: 719.754167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7DkBS5/test/v2-kernel/report-risks-candidate.test.ts:13:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no residual risk names fixture:
+        controls_are_not_a_proof: 2 control run(s) observed the candidate under the frozen protocol; they establish what those controls detect, not the absence of defects.
+        recommended_complement_not_adopted: a coverage complement is recommended and not adopted, so the coverage of the introduced lines is not measured: node --experimental-test-coverage 24.21.0; in package.json, add --experimental-test-coverage to scripts.test.
+        recommended_complement_not_adopted: a mutation complement is recommended and not adopted, so the mutation of the introduced lines is not measured: @stryker-mutator/core 10.0.0; install @stryker-mutator/core as a devDependency.
+        control_not_qualified: control lint is not qualified: negative witness gave PASS: the control does not detect the defect it claims to cover; exit_code=0, command=["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","scripts/lint.js"], cwd=., sandbox=unconfined, duration_ms=30; qualification evidence: positive=evq_0018, negative=evq_0019, incident=evq_0020.
+        indeterminate_control: control unit answered INDETERMINATE on fixture ref_692e45f4fabd; nothing is concluded from it.
+        control_limit: control unit: spawn error: spawn /nonexistent/495-broken-runner ENOENT
+        indeterminate_control: control lint answered INDETERMINATE on fixture ref_692e45f4fabd; nothing is concluded from it.
+        control_limit: control lint: spawn error: spawn /nonexistent/495-broken-runner ENOENT
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7DkBS5/test/v2-kernel/report-risks-candidate.test.ts:36:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the residual risks of a report
+  ---
+  duration_ms: 720.427334
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7DkBS5/test/v2-kernel/report-risks-candidate.test.ts:12:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 901.896833

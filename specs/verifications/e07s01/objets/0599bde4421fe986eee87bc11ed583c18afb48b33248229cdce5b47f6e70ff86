@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un changement arrêté par stagnation dit la cause de l'arrêt et la commande qui en sort",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/views.ts",
+    "ligne": 253,
+    "constat": "Driven through the real kernel (the harness case behind the stagnation test, with a throwaway test that was deleted afterwards), the status keeps every promise of the scenario: the verdict line carries the stop's detail, the « Acceptance: requirement R1: FAIL (unit=FAIL) » line sits under the gates, Next is « /495 cancel », and the detail appears once. But « Checks on the candidate » lists `✘ unit failed` and `✔ lint passed` twice. The two identical candidates share one manifest digest, and `current_candidate` is computed by comparing digests, so both verification runs count as current. No Then of the story covers that case: the current-candidate scenario is about two different candidates.",
+    "mutation": ""
+   }
+  ],
+  "resume": "The code and the tests keep the promises the diff 04a23fb...5a2e80d touches. The new stagnation scenario holds on a synthetic view (test/v0-pure/status-blocked-next.test.ts) and through the real kernel, checked with a throwaway test that drove harness.advance to a stagnation stop. The output was the expected verdict line « ✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress », the G5 reason under the gates, « Next    /495 cancel », and the detail once, in English and in French. The killed mutations were: stoppedApart forced to false (killed by the stagnation test); `!stop.includes(reason)` inverted (killed by the stagnation test and by the G2 test of status-text); the « cancel » fallback in commandsOutOf removed (killed by the stagnation test); the Next line of a blocked change replaced by next_action (5 tests); resume_lifts_stop ignored (killed by v2-kernel/harness, the « execution error … /495 resume » test); the fixture filter on residual risks removed (killed by v2-kernel/report-risks-candidate). One mutation was not killed: replacing `c.status === \\\"blocked\\\"` with `!== \\\"cancelled\\\"` in stoppedApart only affects states that no scenario promises anything about (rejected outcome), so it is not a finding. In real flows the G2 stop detail is built from the gate's reasons (verification-design.ts:480), so the G2 scenario keeps its gate cause. The rest of the diff (GATES taken from the contracts, new report tests) changes no behaviour. One point to weigh, predating this diff and outside any promise: a stagnation shows the checks of the two identical candidates twice. The working tree is restored (git status: node_modules only)."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Relecteur B, tour 1, e07s01 (diff 04a23fb...5a2e80d). Le code tient chaque promesse, et un test échoue sous une mutation de chaque ligne qui en tient une. J'ai remis chaque mutation en place ; l'arbre est propre.\n\nLe scénario nouveau est celui de la stagnation. `causeOf` prend le détail de l'arrêt quand ce détail ne reprend pas la raison de la porte qui a échoué. `commandsOutOf` se replie sur `/495 cancel`. Ce comportement correspond au vrai chemin du noyau : `decide.ts:1183` bloque sur `stagnation`, et `resumeLiftsStop` est faux pour cet arrêt. Mutations tuées par `test/v0-pure/status-blocked-next.test.ts` et `status-text.test.ts` :\n- `stoppedApart` forcé à faux ;\n- `!stop.includes(reason)` inversé ;\n- repli `[\"cancel\"]` retiré ;\n- `resume` toujours ajouté ;\n- commandes nommées ignorées ;\n- raisons sous les portes supprimées ou toujours affichées ;\n- `GATES` tronqué, ce qui touche la reprise des portes depuis les contrats (scénarios 1, 2 et français).\n\nLe filtre des essais de qualification du rapport (`report.ts:332`) est tenu par `test/v2-kernel/report-risks-candidate.test.ts`. Les autres scénarios ont chacun un test dans les mots de la story : `status-current-candidate`, `conduct-end-message`, `report-text`.\n\nUne seule mutation survit : retirer la garde `c.status === \"blocked\"` de `stoppedApart`. Elle ne touche que des changements non bloqués, qu'aucune promesse ne couvre, donc je n'en fais pas un constat.\n\nArrêt « protocol not frozen » réel : la ligne du verdict garde la première raison de G2, et les autres raisons restent sous les portes. Ce choix précède la branche et la cause reste dite, donc je n'en fais pas un constat non plus."
+ }
+]

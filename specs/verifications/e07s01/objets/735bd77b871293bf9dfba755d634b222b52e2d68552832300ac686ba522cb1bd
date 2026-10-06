@@ -1,0 +1,65 @@
+TAP version 13
+# Subtest: the status of a change
+    # Subtest: le statut d'un changement accepté à la première de trois tentatives, portes G0 à G5 passées, contrôles unit, coverage et mutation réussis, 77 700 jetons pour ~0,10 $ sur abonnement, est exactement le bloc du premier scénario
+    ok 1 - le statut d'un changement accepté à la première de trois tentatives, portes G0 à G5 passées, contrôles unit, coverage et mutation réussis, 77 700 jetons pour ~0,10 $ sur abonnement, est exactement le bloc du premier scénario
+      ---
+      duration_ms: 0.883667
+      type: 'test'
+      ...
+    # Subtest: un changement bloqué sur G2 a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — no test can judge R1, et sa ligne Next donne les commandes qui sortent de l'arrêt sans en répéter la cause
+    ok 2 - un changement bloqué sur G2 a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — no test can judge R1, et sa ligne Next donne les commandes qui sortent de l'arrêt sans en répéter la cause
+      ---
+      duration_ms: 0.243833
+      type: 'test'
+      ...
+    # Subtest: the reason of a gate that did not pass is shown under the gates when the verdict line does not say it, in progress or waiting for a decision
+    ok 3 - the reason of a gate that did not pass is shown under the gates when the verdict line does not say it, in progress or waiting for a decision
+      ---
+      duration_ms: 0.094167
+      type: 'test'
+      ...
+    # Subtest: a change in progress says its phase in words on its verdict line and its last intervention while it is open
+    ok 4 - a change in progress says its phase in words on its verdict line and its last intervention while it is open
+      ---
+      duration_ms: 0.075375
+      type: 'test'
+      ...
+    # Subtest: a cancelled change is abandoned, with the detail of its stop as its cause
+    ok 5 - a cancelled change is abandoned, with the detail of its stop as its cause
+      ---
+      duration_ms: 0.061583
+      type: 'test'
+      ...
+    # Subtest: une décision en attente a pour deuxième ligne ⏸ Waiting for your decision — /495 decide
+    ok 6 - une décision en attente a pour deuxième ligne ⏸ Waiting for your decision — /495 decide
+      ---
+      duration_ms: 0.056917
+      type: 'test'
+      ...
+    # Subtest: un bac à sable qualifié n'est pas nommé, un bac à sable non qualifié donne ⚠ The seatbelt sandbox is not qualified sous le verdict
+    ok 7 - un bac à sable qualifié n'est pas nommé, un bac à sable non qualifié donne ⚠ The seatbelt sandbox is not qualified sous le verdict
+      ---
+      duration_ms: 0.083791
+      type: 'test'
+      ...
+    # Subtest: en français, le verdict est ✔ Accepté à la tentative 1 sur 3, les portes et les contrôles sont nommés dans la langue
+    ok 8 - en français, le verdict est ✔ Accepté à la tentative 1 sur 3, les portes et les contrôles sont nommés dans la langue
+      ---
+      duration_ms: 0.064875
+      type: 'test'
+      ...
+    1..8
+ok 1 - the status of a change
+  ---
+  duration_ms: 2.050666
+  type: 'suite'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.456667
