@@ -347,7 +347,7 @@ epics:
 
   - id: e31
     title: "Le terminal de Pi montre le travail de l'agent"
-    status: à faire
+    status: versé
     source: arbitrage du propriétaire, 2026-10-05
     objet: >
       Pendant une intervention, le terminal de Pi montre ce que consomme l'agent qui travaille, et non la
