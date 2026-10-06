@@ -99,10 +99,11 @@ wait_to = time.time() - started
 # A conduct ends on the status of the change: it stays on screen before the review.
 pump(6)
 
+# The review shows the change of each of the three files in turn, beside the tree.
 command("/495 review", 3)
-key(b"\x1b[B", 1)
-key(b"\r", 4)
+key(b"\x1b[B", 5)
 key(b"n", 5)
+key(b"n", 6)
 key(b"q", 1.5)
 command("/495 report", 10)
 # Ctrl-D on an empty editor quits Pi, then the shell: no text is ever typed that Pi could send to
