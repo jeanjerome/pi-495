@@ -1,6 +1,6 @@
 # D-56: La comparaison est dessinée par pix-pretty, en gouttière
 
-**Status:** Acceptée
+**Status:** Acceptée ; remplacée par `D-82`
 **Date:** 2026-09-22
 
 ## Context

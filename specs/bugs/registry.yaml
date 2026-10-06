@@ -1451,3 +1451,30 @@ bugs:
     follow_ups: >
       Pass the progress as a code with its values and render it in the presentation layer, like the status lines.
     status: open
+  - bug_id: BUG-2026-10-06T134711
+    date: "2026-10-06"
+    title: "The review header invites `r` to reload on a newer candidate, and `r` does nothing in a real Pi"
+    severity: medium
+    priority: p2
+    scope: extension
+    what_happened: >
+      When a newer candidate exists than the one the review opened on, the header of the review surface reads
+      `newer candidate: cand_… (r)`. Pressing `r` reaches `handleKey`, which calls `actions.refresh()`, which calls
+      `onRefresh` — and `openReviewTui` in `src/extension/review-command.ts` never passes `onRefresh` to
+      `ReviewSurface`. The key is swallowed: the surface stays on the older candidate, with no message.
+    what_expected: >
+      Pressing `r` while the header announces a newer candidate reopens the review on that candidate, or the header
+      does not offer a key that does nothing.
+    steps_to_reproduce:
+      - "Open `/495 review` on a change, let a newer candidate be frozen, and press `r` in the review: nothing changes."
+    root_cause: >
+      `SurfaceOptions.onRefresh` is optional (`src/presentation/tui/review-surface.ts`) and its only caller,
+      `openReviewTui`, omits it; no test of `test/v0-pure/review-surface.test.ts` presses `r`.
+    evidence: >
+      Read on 2026-10-06 at main 8bcf50d while checking the review surface against Pi's terminal UI guide: the only
+      references to `onRefresh` in `src/` are its declaration and its call in `review-surface.ts`.
+    risk_level: medium
+    follow_ups: >
+      Pass an `onRefresh` from `extension/` that ends the current interaction and opens the review on the newer
+      candidate, and hold it with a test that presses `r`.
+    status: open

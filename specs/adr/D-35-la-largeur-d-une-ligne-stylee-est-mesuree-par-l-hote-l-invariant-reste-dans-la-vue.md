@@ -1,6 +1,6 @@
 # D-35: La largeur d'une ligne stylée est mesurée par l'hôte, l'invariant reste dans la vue
 
-**Status:** Acceptée
+**Status:** Acceptée ; ce qu'elle laissait hors de la vue y entre par `D-81`
 
 **Décision.** `SurfaceOptions.fit` reçoit de l'hôte la fonction qui mesure et complète une ligne à
 une largeur annoncée ; `extension/review-command.ts` y passe `truncateToWidth` de `pi-tui`, celle

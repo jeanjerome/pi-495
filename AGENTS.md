@@ -86,7 +86,7 @@ Each generation carries one verification level of `specs/amont/conception-verifi
 
 ## Architecture
 
-Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package. `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `specs/amont/conception-technique.md` §4.1 and refuses import cycles.
+Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `application/phases/`) → `adapters/` (git, object-store, execution, sandbox, storage-sqlite, workspace, pi-worker, platform) → `presentation/` (structured, tui) and `export/`. Only `extension/` and `adapters/pi-worker/` import a Pi package, except `presentation/`, which may import Pi's display library `pi-tui` and nothing else (`specs/adr/D-81`). `scripts/check-layers.ts` enforces the import direction; `scripts/check-architecture.ts` cross-checks every `CMP-*` component id in `src/` against the catalogue in `specs/amont/conception-technique.md` §4.1 and refuses import cycles.
 
 ## Conventions
 
@@ -104,7 +104,7 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
 - Never dismiss a reproducible gate failure as pre-existing or out of scope.
 - Never proceed on a red Preflight (`npm run check`) — fix it before forward work.
 - Never hand-edit `dist/` — rebuild it with `npm run build`.
-- Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, `presentation/`, or `export/`.
+- Never import an `@earendil-works` Pi package from `domain/`, `contracts/`, `ports/`, `application/`, or `export/`, nor any but `pi-tui` from `presentation/`.
 - Never claim a `CMP-*` component id in `src/` without a matching row in `specs/amont/conception-technique.md` §4.1.
 - Never let an unqualified sandbox backend run unconfined. Refuse with `capability_missing` instead.
 

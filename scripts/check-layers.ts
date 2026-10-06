@@ -4,7 +4,9 @@
  * The kernel of requirements and decisions — domain/, contracts/, ports/, application/ and export/ —
  * may not import Pi packages: that is what lets it be tested with no network and no real model
  * (NFR-07), and it is the rule NFR-07 names. presentation/ is not part of that kernel and may use
- * Pi's display library, which is a widget toolkit and not the agent API.
+ * Pi's display library, pi-tui, which is a widget toolkit and not the agent API; what the review
+ * needs from the Pi application itself — theme, keybindings, the drawing of a comparison — is
+ * injected from extension/ (D-81).
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -28,11 +30,16 @@ const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
 	{ layer: "adapters", forbidden: [/\.\.\/(extension|presentation)\//, /\.\.\/\.\.\/(extension|presentation)\//] },
 	// What keeps the same review readable from RPC, JSON, print and an SDK host is that the review
 	// data does not depend on any view (ADR-010, UX-11) — and that data lives in application/ and
-	// presentation/structured/, which this rule does not reach. Forbidding Pi's widget toolkit here
-	// guarded nothing and cost the surface a hand-written copy of what pi-tui already publishes.
+	// presentation/structured/. Forbidding Pi's widget toolkit here guarded nothing and cost the
+	// surface a hand-written copy of what pi-tui already publishes; the agent and application
+	// packages stay out, so a view can be rendered without a running Pi (D-81).
 	{
 		layer: "presentation",
-		forbidden: [/\.\.\/(extension|adapters)\//, /\.\.\/\.\.\/(extension|adapters)\//],
+		forbidden: [
+			/\.\.\/(extension|adapters)\//,
+			/\.\.\/\.\.\/(extension|adapters)\//,
+			/@earendil-works\/(?!pi-tui["'\/])/,
+		],
 	},
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
 ];

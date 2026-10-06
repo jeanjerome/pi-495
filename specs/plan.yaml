@@ -239,6 +239,17 @@ epics:
     objet: >
       La revue cesse de réimplémenter ce que Pi rend déjà, sans affaiblir la règle de couches qui garde
       le modèle de revue indépendant du rendu.
+    position: >
+      La décision que l'epic attendait est écrite (`D-81`) : la surface s'assemble des composants de
+      `pi-tui`, seul paquet Pi que `presentation/` importe, et ce qu'elle tient de l'application Pi entre
+      par `extension/`. Le dessin de la comparaison passe à celui de Pi (`D-82`, arbitrage du
+      2026-10-06), qui remplace `pix-pretty`. La comparaison vient avant les listes : son gain est
+      certain, alors que `ScrollView` doit d'abord montrer qu'il se rend hors de la mise en page d'un
+      vrai TUI.
+    stories:
+      - { id: e08s01, status: "à faire", title: "La revue répond aux raccourcis que l'utilisateur a réglés dans Pi, et son aide nomme les touches actives" }
+      - { id: e08s02, status: "à faire", title: "Une modification se lit à côté de l'arbre, dessinée comme Pi dessine celles de son outil d'édition" }
+      - { id: e08s03, status: "à faire", title: "L'arbre et le lecteur de la revue défilent et se sélectionnent comme les autres listes de Pi" }
 
   - id: e09
     title: "État d'arrêt et session conductrice"
