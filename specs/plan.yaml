@@ -248,7 +248,7 @@ epics:
       vrai TUI.
     stories:
       - { id: e08s01, status: "versée", title: "La revue répond aux raccourcis que l'utilisateur a réglés dans Pi, et son aide nomme les touches actives" }
-      - { id: e08s02, status: "à faire", title: "Une modification se lit à côté de l'arbre, dessinée comme Pi dessine celles de son outil d'édition" }
+      - { id: e08s02, status: "versée", title: "Une modification se lit à côté de l'arbre, dessinée comme Pi dessine celles de son outil d'édition" }
       - { id: e08s03, status: "à faire", title: "L'arbre et le lecteur de la revue défilent et se sélectionnent comme les autres listes de Pi" }
 
   - id: e09
