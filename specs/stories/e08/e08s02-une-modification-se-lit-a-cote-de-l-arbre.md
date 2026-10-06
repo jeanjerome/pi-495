@@ -2,7 +2,7 @@
 
 Story : e08s02
 Epic : e08
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

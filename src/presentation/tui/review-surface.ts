@@ -24,7 +24,7 @@ import { handleKey, renderKeyHelp } from "./review/keymap.ts";
 import { NARROW_THRESHOLD, fit } from "./review/measure.ts";
 import { renderReader } from "./review/reader-pane.ts";
 import { renderContext } from "./review/context-pane.ts";
-import { type RenderedDiff, renderHunks } from "./review/diff-view.ts";
+import { type DrawDiff, type RenderedDiff, renderHunks } from "./review/diff-view.ts";
 import { changedFiles, currentNode, renderTree, selectPath, treeWidthNeeded, visibleRows } from "./review/tree-pane.ts";
 import {
 	EN,
@@ -59,6 +59,8 @@ export interface SurfaceOptions {
 	keybindings?: KeybindingsManager;
 	/** How Pi writes the keys of one of its actions in its own help; defaults to their names, joined by `/`. */
 	keyText?: (action: Keybinding) => string;
+	/** How the host draws a comparison, in its theme; defaults to showing the text as it is. */
+	renderDiff?: DrawDiff;
 }
 
 export class ReviewSurface implements ReviewView {
@@ -85,10 +87,6 @@ export class ReviewSurface implements ReviewView {
 	private cachedLines: string[] | null = null;
 	private cachedWidth = -1;
 	private cachedRows = -1;
-	private diffs = new Map<string, RenderedDiff>();
-	private drawing = new Set<string>();
-	/** The width the last render was asked for: what a key press measures against, between renders. */
-	private lastWidth = 0;
 
 	constructor(options: SurfaceOptions) {
 		this.snapshot = options.snapshot;
@@ -184,34 +182,18 @@ export class ReviewSurface implements ReviewView {
 	}
 
 	/**
-	 * The change body, drawn once per path, fold and width. Drawing is asynchronous and the renderer
-	 * reads the terminal's width itself, so the width the surface was last asked for belongs to the
-	 * key: a body drawn for a wider terminal is folded where the reader no longer is.
+	 * The change body, drawn at every call. Nothing of it is kept beside the rendered lines, which
+	 * `invalidate()` drops: the host's drawing reads the active theme, and a theme changed since the
+	 * last render must show on the next one.
 	 */
-	private diffFor(page: ChangePage): RenderedDiff | null {
-		const key = `${page.path}|${this.foldContext}|${this.lastWidth}`;
-		const drawn = this.diffs.get(key);
-		if (drawn) return drawn;
-		if (this.drawing.has(key)) return null;
-		this.drawing.add(key);
+	private diffFor(page: ChangePage): RenderedDiff {
 		const labels = this.opts.language === "en" ? EN : FR;
-		void this.draw(
-			key,
-			renderHunks(page, this.foldContext, (hidden) => this.st.dim(`… ${hidden} ${labels.folded}`)),
+		return renderHunks(
+			page,
+			this.foldContext,
+			(hidden) => this.st.dim(`… ${hidden} ${labels.folded}`),
+			this.opts.renderDiff ?? ((diffText) => diffText),
 		);
-		return null;
-	}
-
-	private async draw(key: string, drawing: Promise<RenderedDiff>): Promise<void> {
-		try {
-			this.diffs.set(key, await drawing);
-		} catch (error) {
-			this.diffs.set(key, { lines: [], starts: [], error: messageOf(error) });
-		} finally {
-			this.drawing.delete(key);
-			this.invalidate();
-			this.opts.requestRender();
-		}
 	}
 
 	private async settle(key: string, page: Promise<LoadedPage>): Promise<void> {
@@ -232,22 +214,15 @@ export class ReviewSurface implements ReviewView {
 		// the height it had before — short of the terminal, or past its last line.
 		const rows = Math.max(8, this.opts.rows());
 		if (this.cachedLines && this.cachedWidth === width && this.cachedRows === rows) return this.cachedLines;
-		this.lastWidth = width;
 		const narrow = this.isNarrow(width);
 		const ctx = this.pane();
 		const out = renderHeader(ctx, width);
 		const bodyRows = rows - 4;
 		const node = currentNode(ctx);
 		if (node) this.ensureLoaded(node, bodyRows);
-		// A change is read on the whole screen. The renderer that draws it takes no width from its
-		// caller and folds its lines for the terminal's own, so a change shown beside the tree would be
-		// folded for a width it does not have. The tree steps aside while a change is open, and comes
-		// back with every other mode. Below the threshold nothing changes: the panes already alternate,
-		// and taking the reader's turn away would remove the only way to navigate.
-		const whole = !narrow && this.mode === "changes" && node !== null && node.kind !== "directory";
-		if (narrow || whole) {
+		if (narrow) {
 			const single =
-				whole || this.narrowPane === "reader"
+				this.narrowPane === "reader"
 					? renderReader(ctx, node, width, bodyRows)
 					: renderTree(ctx, width, bodyRows).lines;
 			for (let i = 0; i < bodyRows; i++) out.push(single[i] ?? this.fitLine("", width));

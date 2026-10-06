@@ -80,8 +80,8 @@ export interface PaneContext {
 	/** The keys of one of Pi's actions as Pi writes them in its own help, joined by `/`. */
 	keyText(action: Keybinding): string;
 	fit(text: string, width: number): string;
-	/** The change body already drawn, or nothing while it is being drawn — drawing it is asynchronous. */
-	diff(page: ChangePage): RenderedDiff | null;
+	/** The change body, drawn by the host in its theme. */
+	diff(page: ChangePage): RenderedDiff;
 }
 
 /** The node the tree has selected, or nothing when the tree is empty. */

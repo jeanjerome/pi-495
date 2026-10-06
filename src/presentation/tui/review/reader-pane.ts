@@ -2,10 +2,9 @@
  * FileReaderPane (§5.5): what the selection holds, in the mode the reader is in — the changes, the
  * new or the old content, the metadata, or the findings recorded on that path.
  *
- * Changed portions are drawn by `pix-pretty` (see `diff-view.ts`), which puts its signs and line
- * numbers in a gutter left of a separator: what the comparison adds stays outside the code, so a
- * `+` belonging to the program is still a character of the program (UX-07). Drawing is asynchronous
- * and the body says so until it arrives.
+ * Changed portions are drawn by the host the way Pi draws its edit tool's changes (see
+ * `diff-view.ts`): each line leads with its sign and number, so a `+` belonging to the program is
+ * still a character of the program (UX-07). The drawn lines are cut to the pane like any other.
  * The last line says how far into the body the reader sits when it does not all fit.
  */
 import { neutralize, type ChangePage, type ContentPage, type PathStatus } from "../../../application/review.ts";
@@ -72,10 +71,7 @@ function renderChanges(ctx: PaneContext, page: ChangePage, width: number): strin
 		out.push(ctx.styles.dim("aucune différence textuelle"));
 		return out.map((l) => ctx.fit(l, width));
 	}
-	const drawn = ctx.diff(page);
-	if (drawn === null) out.push(ctx.styles.dim(ctx.labels.loading));
-	else if (drawn.error !== undefined) out.push(ctx.styles.warn(`${ctx.labels.error}: ${drawn.error}`));
-	else out.push(...drawn.lines);
+	out.push(...ctx.diff(page).lines);
 	return out.map((l) => ctx.fit(l, width));
 }
 
@@ -95,7 +91,5 @@ function renderContent(ctx: PaneContext, page: ContentPage, width: number): stri
  * counting them a second time here would drift from the drawing the moment either changes.
  */
 export function hunkStarts(ctx: PaneContext, page: ChangePage): number[] {
-	const drawn = ctx.diff(page);
-	if (drawn === null || drawn.error !== undefined) return [];
-	return drawn.starts.map((s) => s + page.notes.length);
+	return ctx.diff(page).starts.map((s) => s + page.notes.length);
 }

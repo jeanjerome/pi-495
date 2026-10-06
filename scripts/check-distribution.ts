@@ -7,9 +7,9 @@
  * build is a failure rather than an installation that silently runs another version.
  *
  * It also holds the inventory: every external module the sources import is a declared peer with a
- * readable licence, every redistributed dependency is attributed in the NOTICE, the JSON contracts
- * beside the build match their sources, and every licence in the installed tree is on the
- * permissive allowlist.
+ * readable licence, every runtime dependency is one the sources import, the NOTICE attributes the
+ * redistributed dependencies and no other package, the JSON contracts beside the build match their
+ * sources, and every licence in the installed tree is on the permissive allowlist.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -117,6 +117,11 @@ const bundled = Object.keys(pkg.dependencies ?? {}).concat(pkg.bundledDependenci
 const unattributed = bundled.filter((name) => !notice.includes(name));
 if (unattributed.length > 0)
 	failures.push(`redistributed dependencies the NOTICE does not name: ${unattributed.join(", ")}`);
+// An attribution outlives the dependency it was written for unless something refuses it: each entry of
+// the third-party section opens on the package name, followed by its licence.
+const thirdParty = notice.split("Third-party software redistributed with this package")[1] ?? "";
+const stale = [...thirdParty.matchAll(/^(\S+) — /gm)].map((m) => m[1]!).filter((name) => !bundled.includes(name));
+if (stale.length > 0) failures.push(`NOTICE attributes packages no longer redistributed: ${stale.join(", ")}`);
 
 // 5. Every external module the sources import is declared, and every peer is installed and
 // permissively licensed. A peer is provided by the Pi host; a runtime dependency travels inside the
@@ -146,6 +151,10 @@ for (const file of walk(join(root, "src"), root).filter((f) => f.endsWith(".ts")
 const undeclared = [...imported].filter((name) => !declared.includes(name)).sort();
 if (undeclared.length > 0)
 	failures.push(`modules imported by src/ that no dependency or peerDependency declares: ${undeclared.join(", ")}`);
+// A runtime dependency installs with every copy of 495, so one the sources no longer import is weight
+// and attack surface paid for nothing.
+const unused = Object.keys(pkg.dependencies ?? {}).filter((name) => !imported.has(name));
+if (unused.length > 0) failures.push(`runtime dependencies src/ does not import: ${unused.join(", ")}`);
 const peerLicences: string[] = [];
 for (const name of peers) {
 	try {

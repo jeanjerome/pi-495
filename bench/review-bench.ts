@@ -3,12 +3,11 @@
  *
  * It registers `/bench-review`, which opens the review surface on a corpus made up here — no
  * workspace, no ledger, no model, nothing written anywhere. It exists to be looked at: what the
- * comparison looks like once `pix-pretty` has drawn it, at the terminal's real width, under the
- * theme the reader actually runs.
+ * comparison looks like once Pi's `renderDiff` has drawn it beside the tree, at the terminal's real
+ * width, under the theme the reader actually runs.
  *
- * It loads `dist/`, not `src/`, on purpose. What ships is compiled ESM that reaches the renderer
- * through a deferred `import()`, and how a host resolves that import is the one thing a test on
- * this machine cannot answer. Run `npm run build` first, then:
+ * It loads `dist/`, not `src/`, on purpose: what Pi loads is the compiled ESM, and it resolves Pi
+ * from the host. Run `npm run build` first, then:
  *
  *     pi -e ./bench/review-bench.ts
  *     /bench-review

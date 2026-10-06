@@ -66,7 +66,7 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 | Run | N/A — Pi loads the built extension; there is no standalone entry point |
 | Test | `npm test` |
 | Build | `npm run build` |
-| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format` |
+| Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:distribution && npm run lint:story-format` |
 | Preflight | `npm run check` |
 | CI | N/A — no CI job configured; before every commit, run the checks the changed files call for (`CONVENTIONS.md` § Always Green) |
 
@@ -78,7 +78,7 @@ Each generation carries one verification level of `specs/amont/conception-verifi
 
 ## Lint
 
-`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:declarations && npm run lint:distribution && npm run lint:story-format`
+`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:distribution && npm run lint:story-format`
 
 ## Build
 

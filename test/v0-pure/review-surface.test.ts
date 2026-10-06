@@ -105,7 +105,7 @@ function surface(rows = 20, narrowThreshold = 100, onExit = () => {}, language: 
 }
 const visible = (lines: string[]) => lines.map((l) => visibleLength(l));
 const tick = () => new Promise((r) => setTimeout(r, 5));
-/** Renders until the change body has arrived: the renderer that draws it is asynchronous. */
+/** Renders until the change body has arrived: the query that loads it is asynchronous. */
 async function drawn(s: ReviewSurface, width: number): Promise<string> {
 	for (let i = 0; i < 200; i++) {
 		const text = s.render(width).join("\n");
@@ -146,15 +146,14 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		assert.doesNotMatch(text, /ajouté|modifié|supprimé|renommé|spécial|inconnu/);
 	});
 
-	it("draws a change in a gutter, keeping the operators the code holds (UX-07)", async () => {
+	it("leads each changed line with its sign and number, keeping the operators the code holds (UX-07)", async () => {
 		const { s } = surface(30);
 		s.selectPath("src/a.js");
 		const text = stripSequences(await drawn(s, 140));
-		// The comparison sits left of the separator — sign and line number — and the code right of it,
-		// so a `+` the program holds is still a character of the program.
-		assert.match(text, /[-+]\s*│.*x = a \+ b;/, "the old line keeps its literal +");
-		assert.match(text, /[-+]\s*│.*x = a - b;/, "the new line is drawn too");
-		assert.match(text, /\d+\s*[-+]\s*│/, "signs and line numbers sit in the gutter");
+		// The sign and the line number lead the line and the code follows them, so a `+` the program
+		// holds is still a character of the program.
+		assert.match(text, /│-2 x = a \+ b;/, "the old line keeps its literal +");
+		assert.match(text, /│\+2 x = a - b;/, "the new line is drawn too");
 		assert.ok(!text.includes("@@"), "no patch headers");
 	});
 	it("renders a terminal sequence held in a reviewed file inert (UX-10)", async () => {
@@ -176,7 +175,7 @@ describe("ReviewSurface rendering (UX-06, UX-07, UX-08, SA-023, SA-025, SA-028)"
 		// unchanged, and a drawing that disagreed with it would be a second opinion in its clothes.
 		const rows = text.split("\n").filter((l) => l.includes("y = 1;"));
 		assert.equal(rows.length, 1, `an unchanged line is drawn once, saw ${rows.length}`);
-		assert.ok(!/[-+]\s*│.*y = 1;/.test(text), "and drawn as context, with no sign against it");
+		assert.match(text, /│ 3 y = 1;/, "and drawn as context, with no sign against it");
 	});
 	it("says how many lines a fold hides, and puts them back (UX-07)", async () => {
 		const { s } = surface(30);

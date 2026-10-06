@@ -116,9 +116,6 @@ most often behind a type error:
 | `erasableSyntaxOnly` | no enum, namespace, parameter property |
 | `noImplicitOverride` | `override` on every overriding method |
 
-`paths` maps `@xynogen/pix-pretty/*` to hand-written declarations under `types/pix-pretty/`,
-because that package ships TypeScript sources and no build; the runtime still loads the package.
-
 ## TypeScript 7
 
 The installed compiler is TypeScript 7, the Go port. `tsc` and the flags above are unchanged. The

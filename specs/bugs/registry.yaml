@@ -1507,3 +1507,30 @@ bugs:
       Drawing the change with Pi's `renderDiff` and dropping pix-pretty and jiti (`specs/adr/D-82`, story e08s02)
       removes the import; hold it with an acceptance run on a managed install.
     status: open
+  - bug_id: BUG-2026-10-06T202203
+    date: "2026-10-06"
+    title: "Two distant portions of a change follow each other in the review with no mark of the lines skipped between them"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      With the context unfolded, `/495 review` draws the last context line of one portion directly above the first
+      context line of the next: on a file changed at lines 3 and 55, ` 6 export const d6 = 6;` is followed by
+      ` 52 export const d52 = 52;` with nothing between them. Only the jump of the line numbers tells the reader that
+      45 lines are not shown.
+    what_expected: >
+      The lines skipped between two portions are marked, as Pi's edit tool marks them with a `...` line in the text it
+      hands `renderDiff`, and as the review's own fold note marks the unchanged lines it hides.
+    steps_to_reproduce:
+      - "Conduct a change that modifies one file at two places more than six lines apart, open `/495 review` on 140 columns, select the file in the changes mode and leave the context unfolded."
+    root_cause: >
+      `renderHunks` (`src/presentation/tui/review/diff-view.ts`) appends each hunk's drawn lines after the previous
+      hunk's and adds a line of its own only for a folded context; nothing is written for the gap between two hunks.
+    evidence: >
+      Seen in the acceptance run of e08s02 at 3f28e5c in a real Pi 1.0.4: `~/.495-campagnes/e08s02-ecrans/t-d.txt`,
+      frames `4:ENTER` and `6:x`. Pi 1.0.4 writes ` ... ` for a skipped region in `core/tools/edit-diff.js`.
+    risk_level: low
+    follow_ups: >
+      Push a line of 495 between two hunks that says the lines in between are not shown, and hold it with a test on a
+      file of two distant portions.
+    status: open

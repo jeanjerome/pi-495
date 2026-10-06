@@ -1,4 +1,4 @@
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { type ExtensionCommandContext, renderDiff } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { ReviewQuery, ReviewSnapshot } from "../application/review.ts";
 import { ReviewSurface, type Styles } from "../presentation/tui/review-surface.ts";
@@ -48,6 +48,8 @@ export async function openReviewTui(ctx: ExtensionCommandContext, review: Review
 			// folder whose `node_modules` carries its own Pi, it would name the default keys.
 			keybindings,
 			keyText: (action) => keybindings.getKeys(action).map(writeKey).join("/"),
+			// A change is drawn the way Pi draws its edit tool's, in the theme Pi has active (`D-82`).
+			renderDiff,
 		});
 		return {
 			render: (w) => surface.render(w),
