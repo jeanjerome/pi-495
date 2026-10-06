@@ -222,7 +222,7 @@ epics:
 
   - id: e07
     title: "Lisibilité d'un changement arrêté"
-    status: en cours
+    status: versé
     prete: oui
     source: chantiers/G
     objet: >
