@@ -1,0 +1,18 @@
+scripts/check-layers.ts:41:34 lint/complexity/noUselessEscapeInRegex  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  i The character doesn't need to be escaped.
+  
+    39 │ 			/\.\.\/(extension|adapters)\//,
+    40 │ 			/\.\.\/\.\.\/(extension|adapters)\//,
+  > 41 │ 			/@earendil-works\/(?!pi-tui["'\/])/,
+       │ 			                              ^^
+    42 │ 		],
+    43 │ 	},
+  
+  i The character should only be escaped if it is outside a character class or under the `v` flag.
+  
+  i Safe fix: Unescape the character.
+  
+    41 │ → → → /@earendil-works\/(?!pi-tui["'\/])/,
+       │                                     -     
+
