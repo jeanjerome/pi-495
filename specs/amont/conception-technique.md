@@ -246,7 +246,7 @@ sous `examples/extensions/`. 495 pose aujourd'hui quatre accroches — `session_
 | `RM-037`, `RM-040` Aucune absence de réponse ne vaut approbation | `ui_prompt_start`, `ui_prompt_end` ; `question.ts`, `questionnaire.ts`, `timed-confirm.ts` |
 | `RM-028`, `RM-029` Délégation bornée, arrêt avec le parent | `agent_start`, `agent_end`, `agent_settled` ; `examples/extensions/subagent/` |
 | `RM-021` Schéma de sortie par intervention | `structured-output.ts` |
-| Surface de revue (`UX-06` à `UX-11`) | `HStack`, `VStack`, `Container`, `ScrollView`, `SelectList`, `KeybindingsManager`, `MouseRegion`, `visibleWidth`, `truncateToWidth`, `sliceByColumn`, `fuzzyFilter` (`pi-tui`) |
+| Surface de revue (`UX-06` à `UX-11`) | `KeybindingsManager`, `parseKey`, `visibleWidth`, `truncateToWidth`, `stripTerminalSequences` (`pi-tui`) ; `renderDiff` (`pi-coding-agent`, remis par `extension/`) ; `ScrollView` et `SelectList` écartés (`D-81`) |
 | `NFR-05` Isolation qualifiée par plateforme | `docs/containerization.md` (quatre motifs), `examples/extensions/sandbox/`, `gondolin/` |
 
 Deux endroits du code sont déjà concernés, et ne sont pas des hypothèses.

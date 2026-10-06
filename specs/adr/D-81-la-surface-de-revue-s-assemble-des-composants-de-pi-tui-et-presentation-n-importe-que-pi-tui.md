@@ -1,6 +1,6 @@
 # D-81: La surface de revue s'assemble des composants de pi-tui, et presentation/ n'importe que pi-tui
 
-**Status:** Acceptée ; lève la réserve de `D-35` sur ce qui restait hors de la vue
+**Status:** Acceptée ; lève la réserve de `D-35` sur ce qui restait hors de la vue ; complétée le 2026-10-06 par ce que la conversion a montré
 **Date:** 2026-10-06
 
 ## Contexte
@@ -51,3 +51,29 @@ envoient des touches. Un composant qui ne rendrait rien hors de la mise en page 
 le montrer par un test avant d'être adopté, et la story qui le rencontre dit ce qui le remplace.
 
 Les stories de `e08` convertissent la surface ; aucune ne touche au modèle de revue.
+
+## Ce que la conversion a montré (2026-10-06)
+
+`e08s01` et `e08s02` ont fait entrer dans la surface le gestionnaire de raccourcis de Pi, son décodage
+des touches, sa mesure et le dessin de comparaison de son outil d'édition. Les deux composants qui
+devaient porter l'arbre et le lecteur ne sont pas repris, et la revue garde sa sélection et son
+défilement. Sondé sur `pi-tui` 1.0.4 :
+
+- **`ScrollView` ne coupe rien par lui-même.** Son `render` rend tout son contenu : un fichier de
+  2 000 lignes rend 2 000 lignes, et `scrollTo` n'y change rien. Seul le moteur du plein écran
+  (`renderLayoutFrame`, dans `tui-alt-screen.js`) lui applique une fenêtre, et ce moteur n'est pas
+  publié. En mode regular, ou sous un test, la revue dessinerait le fichier entier.
+- **`SelectList` est une liste plate.** Sa recherche ne garde que les valeurs qui commencent par le
+  texte cherché (« index » ne trouve pas `src/index.ts`), son message « No matching commands » est
+  écrit en anglais, sa hauteur est fixée à la construction, et la flèche haut repasse du premier
+  élément au dernier. L'arbre a des dossiers à replier, des agrégats, une recherche dans le chemin et
+  une hauteur qui suit le terminal. Les écrans de Pi qui montrent un arbre ou une longue liste —
+  `/tree`, les sessions, les modèles — ne s'en servent pas non plus.
+- **`HStack`** se rend hors d'un vrai TUI, mais placer les deux panneaux avec lui ne change rien à
+  ce que le relecteur voit : ce serait une reprise, pas une story.
+
+Ce que la règle « un composant qui ne rendrait rien hors de la mise en page d'un vrai TUI » remplace
+est donc le défilement et la sélection que la revue tenait déjà, pilotés au clavier dans les deux
+modes. La souris en plein écran, que la conception rattachait à `MouseRegion` et `ScrollView`, reste à
+faire : aujourd'hui, la molette au-dessus de la revue fait défiler la conversation cachée derrière
+elle.
