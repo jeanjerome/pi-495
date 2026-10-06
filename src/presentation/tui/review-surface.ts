@@ -192,6 +192,7 @@ export class ReviewSurface implements ReviewView {
 			page,
 			this.foldContext,
 			(hidden) => this.st.dim(`… ${hidden} ${labels.folded}`),
+			(skipped) => this.st.dim(`… ${skipped} ${labels.skipped}`),
 			this.opts.renderDiff ?? ((diffText) => diffText),
 		);
 	}

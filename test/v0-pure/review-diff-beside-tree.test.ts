@@ -82,7 +82,7 @@ const query = {
 	},
 };
 
-function surface(renderDiff?: (diffText: string) => string): ReviewSurface {
+function surface(renderDiff?: (diffText: string) => string, language: "fr" | "en" = "fr"): ReviewSurface {
 	const snapshot = buildSnapshot({
 		change_id: "chg_1",
 		reference,
@@ -97,17 +97,18 @@ function surface(renderDiff?: (diffText: string) => string): ReviewSurface {
 		rows: () => 40,
 		onExit: () => {},
 		requestRender: () => {},
+		language,
 		...(renderDiff ? { renderDiff } : {}),
 	});
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 5));
-/** Renders until the change has been loaded: the query that reads it is asynchronous. */
+/** Renders until the change has been loaded, in either language: the query that reads it is asynchronous. */
 async function opened(s: ReviewSurface, path: string): Promise<string[]> {
 	s.selectPath(path);
 	for (let i = 0; i < 200; i++) {
 		const lines = s.render(WIDTH);
-		if (!lines.join("\n").includes("chargement…")) return lines;
+		if (!/chargement…|loading…/.test(lines.join("\n"))) return lines;
 		await tick();
 	}
 	throw new Error(`the change of ${path} was never shown`);
@@ -196,13 +197,57 @@ describe("a change is read beside the tree, in lines drawn the way Pi draws its 
 		const s = surface();
 		await opened(s, "src/far.js");
 		s.handleInput("x");
-		const notes = readerBody(s.render(WIDTH), "src/far.js").filter((r) => r.includes("…"));
+		const notes = readerBody(s.render(WIDTH), "src/far.js").filter((r) => r.includes("inchangée(s)"));
 		// The first portion holds l1 and l3..l5 unchanged around l2, the second l22..l24 and l26..l30
 		// around l25: a count per segment rather than per line would announce 2 and 2.
 		assert.deepEqual(
 			notes.map((r) => r.trim()),
 			["… 4 ligne(s) inchangée(s)", "… 8 ligne(s) inchangée(s)"],
 			"each fold names how many unchanged lines it hides",
+		);
+	});
+
+	it("says between the two portions of src/far.js that 16 lines are not shown, then goes on with 22 l22", async () => {
+		const body = readerBody(await opened(surface(), "src/far.js"), "src/far.js");
+		const last = body.indexOf("  5 l5");
+		assert.ok(last >= 0, "the first portion ends on l5");
+		assert.equal(
+			body[last + 1],
+			"… 16 ligne(s) non montrée(s)",
+			"the line after   5 l5 says how many lines are not shown",
+		);
+		assert.equal(body[last + 2], " 22 l22", "the second portion follows that line");
+	});
+
+	it("says it in the language of the session: … 16 line(s) not shown", async () => {
+		const rows = readerRows(await opened(surface(undefined, "en"), "src/far.js"));
+		const last = rows.indexOf("  5 l5");
+		assert.ok(last >= 0, "the first portion ends on l5");
+		assert.equal(rows[last + 1], "… 16 line(s) not shown", "the line after   5 l5 says it in English");
+	});
+
+	it("keeps announcing the skip once the context is folded, before the note … 8 ligne(s) inchangée(s)", async () => {
+		const s = surface();
+		await opened(s, "src/far.js");
+		s.handleInput("x");
+		const body = readerBody(s.render(WIDTH), "src/far.js").filter((r) => r !== "");
+		const skip = body.indexOf("… 16 ligne(s) non montrée(s)");
+		assert.ok(skip > 0, `the skip is announced with the context folded, saw ${JSON.stringify(body)}`);
+		assert.equal(body[skip - 1], "+ 2 l2 changed", "after the last line of the first portion");
+		assert.equal(body[skip + 1], "… 8 ligne(s) inchangée(s)", "before the fold note of the second portion");
+		assert.deepEqual(
+			body.filter((r) => r.includes("inchangée(s)")),
+			["… 4 ligne(s) inchangée(s)", "… 8 ligne(s) inchangée(s)"],
+			"the fold notes stay 4 and 8",
+		);
+	});
+
+	it("announces no skip in src/a.js, changed in one portion", async () => {
+		const body = readerBody(await opened(surface(), "src/a.js"), "src/a.js");
+		assert.deepEqual(
+			body.filter((r) => r.includes("non montrée(s)")),
+			[],
+			"no line of the reader says non montrée(s)",
 		);
 	});
 });

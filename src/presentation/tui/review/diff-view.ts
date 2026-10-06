@@ -65,20 +65,28 @@ function hunkText(hunk: Hunk, fold: boolean, digits: number): { lines: string[];
 }
 
 /**
- * `note` says how many unchanged lines a fold hides. A fold that hid them silently would leave the
- * reader unable to tell a short change from a change shown short (UX-07). The note is a line of 495,
- * not of the comparison, so it is not handed to the drawing.
+ * `note` says how many unchanged lines a fold hides, and `skip` how many lines of the old file lie
+ * between two portions. A fold or a gap passed over silently would leave the reader unable to tell a
+ * short change from a change shown short, or two distant lines from two that follow (UX-07), as Pi's
+ * edit tool marks its own gaps. Both are lines of 495, not of the comparison, so they are not handed
+ * to the drawing. The skip goes before the portion's start, so the change-to-change keys still land
+ * on the portion.
  */
 export function renderHunks(
 	page: ChangePage,
 	fold: boolean,
 	note: (hidden: number) => string,
+	skip: (skipped: number) => string,
 	draw: DrawDiff,
 ): RenderedDiff {
 	const digits = numberDigits(page);
 	const lines: string[] = [];
 	const starts: number[] = [];
+	let previous: Hunk | undefined;
 	for (const hunk of page.hunks) {
+		const skipped = previous ? hunk.old_start - (previous.old_start + previous.old_count) : 0;
+		if (skipped > 0) lines.push(skip(skipped));
+		previous = hunk;
 		starts.push(lines.length);
 		const { lines: rows, hidden } = hunkText(hunk, fold, digits);
 		if (hidden > 0) lines.push(note(hidden));

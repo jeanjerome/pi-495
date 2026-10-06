@@ -131,6 +131,7 @@ export const FR = {
 	error: "erreur",
 	lines: "lignes",
 	folded: "ligne(s) inchangée(s)",
+	skipped: "ligne(s) non montrée(s)",
 	statuses: {
 		intact: "intact",
 		added: "ajouté",
@@ -181,6 +182,7 @@ export const EN = {
 	error: "error",
 	lines: "lines",
 	folded: "unchanged line(s)",
+	skipped: "line(s) not shown",
 	statuses: {
 		intact: "unchanged",
 		added: "added",
