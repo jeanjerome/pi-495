@@ -105,8 +105,8 @@ describe("a gauge under the editor shows the context of the working agent during
 		);
 		assert.match(
 			ctx.statuses.at(-1) ?? "",
-			/^495 [a-z_]+\/[a-z_]+.* · agents 1\.2k tokens · ~\$0\.05$/,
-			"the 495 footer line shows the phase, the status and the consumption again",
+			/^495 [A-Z][a-z]+ · [a-z_]+.* · agents 1\.2k tokens · ~\$0\.05$/,
+			"the 495 footer line shows the step, the status and the consumption again",
 		);
 	});
 
@@ -129,8 +129,8 @@ describe("a gauge under the editor shows the context of the working agent during
 			assert.equal(ctx.widgets.at(-1)?.content, undefined, `no Agent context line is displayed once it ${ending}`);
 			assert.match(
 				ctx.statuses.at(-1) ?? "",
-				/^495 [a-z_]+\/[a-z_]+.* · agents 1\.2k tokens · ~\$0\.05$/,
-				`the 495 footer line shows the phase, the status and the consumption again once it ${ending}`,
+				/^495 [A-Z][a-z]+ · [a-z_]+.* · agents 1\.2k tokens · ~\$0\.05$/,
+				`the 495 footer line shows the step, the status and the consumption again once it ${ending}`,
 			);
 		});
 

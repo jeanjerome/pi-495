@@ -76,7 +76,7 @@ describe("the status of a change", () => {
 				`495 · ${TITLE}`,
 				"✔ Accepted on attempt 1 of 3",
 				"",
-				"  ✔ Mandate  ✔ Requirements  ✔ Checks frozen  ✔ Design  ✔ Candidate  ✔ Acceptance  ○ Integration",
+				"  ✔ Scoping  ✔ Specification  ✔ Qualification  ✔ Design  ✔ Implementation  ✔ Acceptance  ○ Integration",
 				"",
 				"  Checks on the candidate",
 				"    ✔ unit       passed",
@@ -110,7 +110,7 @@ describe("the status of a change", () => {
 		assert.equal(lines[1], "✘ Blocked on attempt 2 of 3 — no test can judge R1");
 		assert.ok(
 			lines.includes(
-				"  ✔ Mandate  ✔ Requirements  ✘ Checks frozen  ○ Design  ○ Candidate  ○ Acceptance  ○ Integration",
+				"  ✔ Scoping  ✔ Specification  ✘ Qualification  ○ Design  ○ Implementation  ○ Acceptance  ○ Integration",
 			),
 			lines.join("\n"),
 		);
@@ -141,7 +141,7 @@ describe("the status of a change", () => {
 			}),
 			"en",
 		).split("\n");
-		assert.equal(lines[1], "… Writing the candidate on attempt 1 of 3");
+		assert.equal(lines[1], "… Implementation · writing the candidate on attempt 1 of 3");
 		assert.ok(
 			lines.includes(
 				"  Last              implement truncated — stopped by the duration budget, 1 resumptions (64s, 12 tool calls)",
@@ -198,7 +198,7 @@ describe("the status of a change", () => {
 		assert.equal(lines[1], "✔ Accepté à la tentative 1 sur 3");
 		assert.ok(
 			lines.includes(
-				"  ✔ Mandat  ✔ Exigences  ✔ Contrôles gelés  ✔ Conception  ✔ Candidat  ✔ Acceptation  ○ Intégration",
+				"  ✔ Cadrage  ✔ Spécification  ✔ Qualification  ✔ Conception  ✔ Implémentation  ✔ Acceptation  ○ Intégration",
 			),
 			lines.join("\n"),
 		);

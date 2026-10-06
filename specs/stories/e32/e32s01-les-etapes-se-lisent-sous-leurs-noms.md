@@ -2,7 +2,7 @@
 
 Story : e32s01
 Epic : e32
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

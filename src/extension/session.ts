@@ -20,7 +20,7 @@ import type { ActorRef } from "../contracts/v1/common.ts";
 import type { HumanOrigin } from "../contracts/v1/decision.ts";
 import type { StatusView } from "../application/views.ts";
 import type { AgentContext } from "../ports/execution.ts";
-import { formatAgentContext, formatConsumption } from "../presentation/structured/text.ts";
+import { formatAgentContext, formatConsumption, formatStep } from "../presentation/structured/text.ts";
 import { DomainError, messageOf } from "../domain/errors.ts";
 import { locateModel } from "../domain/policy.ts";
 import { harnessVersion } from "../application/environment.ts";
@@ -193,7 +193,13 @@ export class ExtensionSession {
 	updateFooter(ctx: ExtensionContext, view: StatusView | null): void {
 		if (!ctx.hasUI) return;
 		const c = view?.change;
-		this.footer(ctx, c ? `495 ${c.phase}/${c.status}${c.pending_decisions.length ? " ⏸decision" : ""}` : "495 —", view);
+		this.footer(
+			ctx,
+			c
+				? `495 ${formatStep(c.phase, this.lang())} · ${c.status}${c.pending_decisions.length ? " ⏸decision" : ""}`
+				: "495 —",
+			view,
+		);
 	}
 
 	/** A progress message in the footer, beside what the bound change has consumed so far. */

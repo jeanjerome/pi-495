@@ -146,11 +146,11 @@ Agents propose artifacts and code. The kernel runs the controls and applies the 
 
 | Gate | What it checks |
 | --- | --- |
-| G0 — Mandate | The objective is explicit and material questions have answers. |
-| G1 — Requirements | Requirements have observable criteria and preserve the human decisions that bind them. |
-| G2 — Verification | Mandatory requirements have qualified controls or assigned human decisions; the protocol is frozen. |
+| G0 — Scoping | The objective is explicit and material questions have answers. |
+| G1 — Specification | Requirements have observable criteria and preserve the human decisions that bind them. |
+| G2 — Qualification | Mandatory requirements have qualified controls or assigned human decisions; the protocol is frozen. |
 | G3 — Design | The design addresses the mandatory requirements within the mandate. |
-| G4 — Candidate | The candidate is complete, within scope and preserves protected paths. |
+| G4 — Implementation | The candidate is complete, within scope and preserves protected paths. |
 | G5 — Acceptance | The applicable evidence, required reviews and human acceptance satisfy the protocol. |
 | G6 — Integration | The locally integrated tree matches the verified candidate. |
 

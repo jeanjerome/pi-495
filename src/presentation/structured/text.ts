@@ -116,15 +116,16 @@ function mark(verdict: string | undefined): string {
 const S = {
 	fr: {
 		gates: {
-			G0: "Mandat",
-			G1: "Exigences",
-			G2: "Contrôles gelés",
+			G0: "Cadrage",
+			G1: "Spécification",
+			G2: "Qualification",
 			G3: "Conception",
-			G4: "Candidat",
+			G4: "Implémentation",
 			G5: "Acceptation",
 			G6: "Intégration",
 		},
 		onAttempt: (used: number, max: number) => ` à la tentative ${used} sur ${max}`,
+		closed: "Clos",
 		accepted: "Accepté",
 		integrated: "Intégré",
 		blocked: "Bloqué",
@@ -132,18 +133,17 @@ const S = {
 		abandoned: "Abandonné",
 		waiting: "En attente de votre décision — /495 decide",
 		phases: {
-			intake: "Prise de la demande",
-			clarifying: "Clarification de la demande",
-			specifying: "Rédaction des exigences",
-			verification_design: "Gel des contrôles",
-			preparing: "Préparation des contrôles",
-			designing: "Conception",
-			implementing: "Écriture du candidat",
-			verifying: "Exécution des contrôles",
-			reviewing: "Relecture du candidat",
-			deciding: "Décision d'acceptation",
-			integrating: "Intégration",
-			closed: "Clos",
+			intake: "prise de la demande",
+			clarifying: "clarification de la demande",
+			specifying: "rédaction des exigences",
+			verification_design: "gel des contrôles",
+			preparing: "préparation des contrôles",
+			designing: "conception du changement",
+			implementing: "écriture du candidat",
+			verifying: "exécution des contrôles",
+			reviewing: "relecture du candidat",
+			deciding: "décision d'acceptation",
+			integrating: "intégration",
 		} as Record<string, string>,
 		sandbox: (backend: string) => `Le bac à sable ${backend} n'est pas qualifié`,
 		checks: "Contrôles du candidat",
@@ -165,15 +165,16 @@ const S = {
 	},
 	en: {
 		gates: {
-			G0: "Mandate",
-			G1: "Requirements",
-			G2: "Checks frozen",
+			G0: "Scoping",
+			G1: "Specification",
+			G2: "Qualification",
 			G3: "Design",
-			G4: "Candidate",
+			G4: "Implementation",
 			G5: "Acceptance",
 			G6: "Integration",
 		},
 		onAttempt: (used: number, max: number) => ` on attempt ${used} of ${max}`,
+		closed: "Closed",
 		accepted: "Accepted",
 		integrated: "Integrated",
 		blocked: "Blocked",
@@ -181,18 +182,17 @@ const S = {
 		abandoned: "Abandoned",
 		waiting: "Waiting for your decision — /495 decide",
 		phases: {
-			intake: "Taking the request",
-			clarifying: "Clarifying the request",
-			specifying: "Writing the requirements",
-			verification_design: "Freezing the checks",
-			preparing: "Preparing the checks",
-			designing: "Designing the change",
-			implementing: "Writing the candidate",
-			verifying: "Running the checks",
-			reviewing: "Reviewing the candidate",
-			deciding: "Deciding acceptance",
-			integrating: "Integrating",
-			closed: "Closed",
+			intake: "taking the request",
+			clarifying: "clarifying the request",
+			specifying: "writing the requirements",
+			verification_design: "freezing the checks",
+			preparing: "preparing the checks",
+			designing: "designing the change",
+			implementing: "writing the candidate",
+			verifying: "running the checks",
+			reviewing: "reviewing the candidate",
+			deciding: "deciding acceptance",
+			integrating: "integrating",
 		} as Record<string, string>,
 		sandbox: (backend: string) => `The ${backend} sandbox is not qualified`,
 		checks: "Checks on the candidate",
@@ -213,6 +213,34 @@ const S = {
 		toolCalls: "tool calls",
 	},
 };
+
+/** The step each phase belongs to, named as its gate (D-83). */
+const STEP_OF_PHASE: Record<string, GateId> = {
+	intake: "G0",
+	clarifying: "G0",
+	specifying: "G1",
+	verification_design: "G2",
+	preparing: "G2",
+	designing: "G3",
+	implementing: "G4",
+	verifying: "G5",
+	reviewing: "G5",
+	deciding: "G5",
+	integrating: "G6",
+};
+
+/** The step that contains a phase, by its name, or Closed once the change is. */
+export function formatStep(phase: string, lang: "fr" | "en"): string {
+	const step = STEP_OF_PHASE[phase];
+	if (step) return S[lang].gates[step];
+	return phase === "closed" ? S[lang].closed : phase;
+}
+
+/** A phase as the owner reads it: the step that contains it, then the activity. */
+function stepAndActivity(phase: string, lang: "fr" | "en"): string {
+	const step = STEP_OF_PHASE[phase];
+	return step ? `${S[lang].gates[step]} · ${S[lang].phases[phase] ?? phase}` : formatStep(phase, lang);
+}
 
 type Cause = { gate: string | null; reason: string };
 
@@ -263,7 +291,7 @@ function verdictLine(c: ChangeView, lang: "fr" | "en"): { line: string; cause: C
 				: c.outcome === "abandoned" || c.status === "cancelled"
 					? t.abandoned
 					: null;
-	if (stopped === null) return { line: `… ${t.phases[c.phase] ?? c.phase}${attempt}`, cause: null };
+	if (stopped === null) return { line: `… ${stepAndActivity(c.phase, lang)}${attempt}`, cause: null };
 	const cause = causeOf(c);
 	return { line: `✘ ${stopped}${attempt}${cause ? ` — ${cause.reason}` : ""}`, cause };
 }

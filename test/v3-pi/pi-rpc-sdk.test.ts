@@ -102,7 +102,15 @@ function factsOf(view: ChangeView): Facts {
 }
 
 const VERDICT_OF_MARK: Record<string, string> = { "✔": "PASS", "✘": "FAIL", "?": "INDETERMINATE" };
-const GATE_WORDS = ["Mandat", "Exigences", "Contrôles gelés", "Conception", "Candidat", "Acceptation", "Intégration"];
+const GATE_WORDS = [
+	"Cadrage",
+	"Spécification",
+	"Qualification",
+	"Conception",
+	"Implémentation",
+	"Acceptation",
+	"Intégration",
+];
 
 /**
  * Print mode has no structured payload: the same facts are read back from the text it prints, in the

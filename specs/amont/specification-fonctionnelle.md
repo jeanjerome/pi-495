@@ -755,11 +755,11 @@ Une relance est interdite si elle peut doubler un effet. Une erreur persistante 
 
 | Gate | Passage | Échec ou indétermination | Action suivante normale |
 | --- | --- | --- | --- |
-| G0 — Mandat | Objectif, périmètre, hypothèses et décisions matérielles établis | Question ou configuration à résoudre | Spécifier les exigences. |
-| G1 — Exigences | Obligations identifiées, cohérentes et observables | Réviser exigences ou mandat | Concevoir la vérification. |
-| G2 — Vérifiabilité | Chaque obligation couverte, contrôles qualifiés et protocole gelé | Préparer les capacités, arbitrer ou réviser | Concevoir le changement. |
+| G0 — Cadrage | Objectif, périmètre, hypothèses et décisions matérielles établis | Question ou configuration à résoudre | Spécifier les exigences. |
+| G1 — Spécification | Obligations identifiées, cohérentes et observables | Réviser exigences ou mandat | Concevoir la vérification. |
+| G2 — Qualification | Chaque obligation couverte, contrôles qualifiés et protocole gelé | Préparer les capacités, arbitrer ou réviser | Concevoir le changement. |
 | G3 — Conception | Plan traçable, compatible, proportionné et exécutable | Réviser conception, protocole ou besoin | Produire un candidat. |
-| G4 — Candidat | Candidat complet, dans le périmètre, contrôles protégés intacts | Corriger ou rejeter | Vérifier et revoir. |
+| G4 — Implémentation | Candidat complet, dans le périmètre, contrôles protégés intacts | Corriger ou rejeter | Vérifier et revoir. |
 | G5 — Acceptation | Toutes les obligations applicables satisfaites avec preuves valides | Corriger, décider ou arrêter | Intégrer ou clôturer accepté. |
 | G6 — Intégration | Candidat accepté appliqué à la destination vérifiée | Réconcilier, résoudre ou revalider | Clôturer intégré. |
 

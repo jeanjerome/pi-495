@@ -50,13 +50,13 @@ An agent proposes. The kernel decides from executed checks. A human arbitrates t
 
 | Gate | Phase |
 |------|-------|
-| G0 | Mandate |
-| G1 | Requirements |
-| G2 | Frozen verification protocol |
+| G0 | Scoping |
+| G1 | Specification |
+| G2 | Qualification |
 | G3 | Design |
-| G4 | Isolated candidate |
-| G5 | Model-free checks |
-| G6 | Local integration |
+| G4 | Implementation |
+| G5 | Acceptance |
+| G6 | Integration |
 Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `node:test`), no framework. Peer deps: `@earendil-works/pi-ai`, `pi-coding-agent`, `pi-tui`, `typebox`.
 
 ## Commands

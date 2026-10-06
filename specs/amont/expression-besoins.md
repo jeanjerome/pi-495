@@ -926,11 +926,11 @@ Ces vocabulaires sont fermés à l’intérieur d’une version de schéma. Les 
 
 | Phase terminée | Passage normal | Condition | Retour ou arrêt |
 | --- | --- | --- | --- |
-| Accueil | Clarification | Dépôt et demande identifiés. | Configuration invalide : bloqué. |
-| Clarification | Spécification | G0 passée. | Question matérielle : décision requise. |
-| Spécification | Protocole de vérification | G1 passée. | Exigence incohérente : révision. |
-| Protocole | Conception ou préparation | G2 passée pour la conception adoptée ; préparation bornée autorisée si moyens manquants. | Vérification insuffisante : préparer les contrôles, documenter ou arbitrer. |
-| Préparation | Protocole | Livrable préparatoire qualifié et adopté. | Échec de préparation : correction bornée ou arrêt ; aucune implémentation métier non vérifiable. |
+| Accueil | Cadrage | Dépôt et demande identifiés. | Configuration invalide : bloqué. |
+| Cadrage | Spécification | G0 passée. | Question matérielle : décision requise. |
+| Spécification | Qualification | G1 passée. | Exigence incohérente : révision. |
+| Qualification | Conception ou préparation | G2 passée pour la conception adoptée ; préparation bornée autorisée si moyens manquants. | Vérification insuffisante : préparer les contrôles, documenter ou arbitrer. |
+| Préparation | Qualification | Livrable préparatoire qualifié et adopté. | Échec de préparation : correction bornée ou arrêt ; aucune implémentation métier non vérifiable. |
 | Conception | Implémentation | G3 passée. | Choix bloquant : réviser conception ou besoin. |
 | Implémentation | Vérification | G4 passée. | Candidat hors contrat : nouvelle tentative bornée. |
 | Vérification | Revue ou décision | Contrôles terminés. | Incident : relance technique bornée ; défaut : correction. |
@@ -968,11 +968,11 @@ Les numéros ci-dessous sont propres à cette expression de besoins et ne repren
 
 | Gate | Objet | Conditions minimales de passage | Preuves |
 | --- | --- | --- | --- |
-| G0 — Mandat | Demande exploitable. | Objectif, périmètre, hypothèses et décisions matérielles identifiés. | Demande et décisions humaines éventuelles. |
-| G1 — Exigences | Référentiel explicite. | Identifiants valides, critères observables, obligations distinguées. | Rapport de schéma et contrôle de cohérence. |
-| G2 — Vérifiabilité | Protocole exploitable. | Couverture de chaque obligation, capacité de contrôle opérationnelle, tests discriminants qualifiés ou décision humaine assignée, règles gelées. Le produit peut encore échouer aux tests. | Matrice exigence-vérification, rapport de préparation, qualification et empreinte du protocole. |
+| G0 — Cadrage | Demande exploitable. | Objectif, périmètre, hypothèses et décisions matérielles identifiés. | Demande et décisions humaines éventuelles. |
+| G1 — Spécification | Référentiel explicite. | Identifiants valides, critères observables, obligations distinguées. | Rapport de schéma et contrôle de cohérence. |
+| G2 — Qualification | Protocole exploitable. | Couverture de chaque obligation, capacité de contrôle opérationnelle, tests discriminants qualifiés ou décision humaine assignée, règles gelées. Le produit peut encore échouer aux tests. | Matrice exigence-vérification, rapport de préparation, qualification et empreinte du protocole. |
 | G3 — Conception | Plan exécutable. | Liens aux exigences, architecture active et cible distinguées, risques et disciplines applicables traités ; documentation suffisante, droits et budgets compatibles. | Conception, revues requises, référentiels architecture/qualité, diagnostic d’environnement. |
-| G4 — Candidat | Résultat recevable. | Identité calculée, diff complet, périmètre respecté, contrôles protégés intacts. | Inventaire et rapport d’observation du candidat. |
+| G4 — Implémentation | Résultat recevable. | Identité calculée, diff complet, périmètre respecté, contrôles protégés intacts. | Inventaire et rapport d’observation du candidat. |
 | G5 — Acceptation | Obligations satisfaites. | Toutes les vérifications requises valides ; revues et décisions satisfaisantes ; règles de non-dégradation et objectifs de remise à niveau respectés ; aucun producteur actif sur le candidat. | Dossier consolidé, mesures avant/après et décision du noyau. |
 | G6 — Intégration | Livraison dans Git. | Autorisation, destination vérifiée, intégration effective du résultat contrôlé. | Références avant/après, contrôles de la combinaison intégrée, reçu d’intégration. |
 

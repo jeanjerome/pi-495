@@ -122,7 +122,7 @@ describe("the text of a report", () => {
 		assert.ok(
 			lines
 				.slice(at[2]! + 1, at[3]!)
-				.includes("  ✔ The kernel passed Mandate, Requirements, Checks frozen, Design, Candidate and Acceptance"),
+				.includes("  ✔ The kernel passed Scoping, Specification, Qualification, Design, Implementation and Acceptance"),
 			text,
 		);
 		assert.ok(lines.length <= 30, `${lines.length} lines: ${text}`);
@@ -153,7 +153,7 @@ describe("the text of a report", () => {
 		assert.equal(lines[0], `495 report · ${TITLE} — ✘ Rejected`);
 		const concluded = lines.slice(lines.indexOf("What was concluded") + 1, lines.indexOf("What remains uncertain"));
 		assert.deepEqual(concluded.filter(Boolean), [
-			"  ✔ The kernel passed Mandate, Requirements, Checks frozen, Design and Candidate",
+			"  ✔ The kernel passed Scoping, Specification, Qualification, Design and Implementation",
 			"  ✘ The kernel refused Acceptance: mutation failed on the candidate",
 			"  · Reviewed by reviewer: approve",
 		]);
@@ -209,16 +209,16 @@ describe("the text of a report", () => {
 		};
 		const en = formatReport(report, "en").split("\n");
 		assert.ok(en.includes("  1 check was qualified on 1 witness run before it was trusted."), en.join("\n"));
-		assert.ok(en.includes("  ✔ The kernel passed Mandate"), en.join("\n"));
+		assert.ok(en.includes("  ✔ The kernel passed Scoping"), en.join("\n"));
 		assert.ok(
-			en.includes("  ? The kernel could not decide Requirements: the requirements could not be read"),
+			en.includes("  ? The kernel could not decide Specification: the requirements could not be read"),
 			en.join("\n"),
 		);
 		const fr = formatReport(report, "fr").split("\n");
 		assert.ok(fr.includes("  1 contrôle a été qualifié sur 1 essai témoin avant d'être retenu."), fr.join("\n"));
-		assert.ok(fr.includes("  ✔ Le noyau a passé Mandat"), fr.join("\n"));
+		assert.ok(fr.includes("  ✔ Le noyau a passé Cadrage"), fr.join("\n"));
 		assert.ok(
-			fr.includes("  ? Le noyau n'a pas pu trancher Exigences: the requirements could not be read"),
+			fr.includes("  ? Le noyau n'a pas pu trancher Spécification: the requirements could not be read"),
 			fr.join("\n"),
 		);
 	});
