@@ -1399,3 +1399,28 @@ bugs:
     follow_ups: >
       Render decisions and risks from their codes and values in the text, as BUG-2026-10-06T002900 asks for the language.
     status: open
+  - bug_id: BUG-2026-10-06T101500
+    date: "2026-10-06"
+    title: "The title of a request longer than 80 characters is cut in the middle of a word, with no mark that it was cut"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The request `add freeMinutes(busy) beside freeSlots: it returns how many minutes of the day no busy slot covers`
+      reads in the status and in the report as `add freeMinutes(busy) beside freeSlots: it returns how many minutes of
+      the day n`, the first line of the status and the heading of the report.
+    what_expected: >
+      A title shortened to fit says that it was shortened, and does not end in the middle of a word.
+    steps_to_reproduce:
+      - "Run `/495 start` with a one-line request longer than 80 characters, then `/495 status` and `/495 report`."
+    root_cause: >
+      `start` in `src/application/harness.ts` takes the first line of the request and keeps its first 80 characters
+      (`slice(0, 80)`), whatever word it falls in, and the status and the report show that title as the request.
+    evidence: >
+      Seen in the README demonstration recorded on 2026-10-06 at main 385032a, on the status that ends a conduct and on
+      the report.
+    risk_level: low
+    follow_ups: >
+      Cut the title at the last word boundary before the limit and mark the cut, or show the whole first line where the
+      screen has room.
+    status: open
