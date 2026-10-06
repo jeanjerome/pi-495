@@ -222,7 +222,8 @@ epics:
 
   - id: e07
     title: "Lisibilité d'un changement arrêté"
-    status: à faire
+    status: en cours
+    prete: oui
     source: chantiers/G
     objet: >
       L'état d'un changement, arrêté ou abouti, est lisible : une cause énoncée une fois, une
