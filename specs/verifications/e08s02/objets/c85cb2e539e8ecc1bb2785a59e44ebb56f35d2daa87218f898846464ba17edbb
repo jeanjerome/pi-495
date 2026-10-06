@@ -1,0 +1,63 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La modification prend les couleurs du thème de Pi",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/review-diff-pi.test.ts",
+    "ligne": 68,
+    "constat": "Le code tient la promesse de la vidéo inverse : la ligne retirée et la ligne ajoutée passent à `renderDiff` dans un seul appel, qui les apparie. Mais `dark.inverse(\"+\")` passe par chalk, qui ne colore rien quand la sortie n'est pas un terminal. `node --test` lancé sans pty (Preflight lancée par l'outil du cycle, ou sortie dans un pipe) fait alors de l'assertion `removed.includes(\"+\")`, toujours vraie : aucun test n'y tient l'opérateur en vidéo inverse. La sonde le montre : sans TTY, `inverse(\"+\")` rend `\"+\"`, et la paire dessinée ne porte aucun `\\x1b[7m`.",
+    "mutation": "diff-view.ts:85, `draw(rows.join(\"\\n\")).split(\"\\n\")` remplacé par `rows.map((r) => draw(r))`, qui dessine chaque ligne à part et supprime l'appariement. Sans TTY, test v3 vert (pass 1, fail 0). Sous `script -q /dev/null` ou avec FORCE_COLOR=1, il échoue sur « the operator removed is shown in inverse video ». Ligne remise."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Installer 495 ne tire plus l'ancien moteur de dessin",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "NOTICE",
+    "ligne": 17,
+    "constat": "Les dépendances d'exécution du paquet se réduisent à `@rgrove/parse-xml`, dans `package.json` comme dans `package-lock.json`, et `NOTICE` ne nomme plus pix-pretty ni jiti. `check-distribution` refuse qu'une dépendance ré-ajoutée manque à `NOTICE`. Aucun contrôle ne refuse en revanche une attribution périmée remise dans `NOTICE`. La story place cette moitié sous une vérification à la main.",
+    "mutation": "`\"jiti\": \"^2.7.0\"` ré-ajouté à `dependencies` : `check-distribution` répond « redistributed dependencies the NOTICE does not name: jiti ». Une attribution de jiti ajoutée à `NOTICE` seule : aucune violation de plus. Fichiers remis."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Installer 495 ne tire plus l'ancien moteur de dessin",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "package.json",
+    "ligne": 92,
+    "constat": "`jiti` n'est plus une dépendance de 495. Mais `@earendil-works/pi-coding-agent`, pair non optionnel, dépend lui-même de `jiti` 2.7.0. Un `npm install` qui installe les pairs (le défaut de npm ≥ 7) l'installe donc encore à côté de 495, par Pi et non par 495. La lecture stricte de « ni jiti ne s'installe avec lui » dépend de ce qu'on compte."
+   }
+  ],
+  "resume": "J'ai relu les sept scénarios sur le code et sous mutation (le dernier, l'installation, sur le paquet et `NOTICE`). L'arbre est propre à la fin : chaque ligne mutée a été remise.\n\nTenus par le code et par un test que la mutation fait échouer :\n- **L'arbre à gauche**, séparé du lecteur par `│` : rendre tout l'écran à la modification, comme avant, fait échouer 11 tests.\n- **Le signe et le numéro en tête de ligne**, alignés : une mauvaise forme ou un mauvais alignement font échouer les tests des signes, de `]` et `[`, et des couleurs.\n- **La ligne `y = 1;` dessinée une fois, sans signe** : un `+` à la place de l'espace fait échouer trois tests.\n- **La neutralisation (UX-10)** : retirer l'appel à `neutralize` fait échouer le test UX-10.\n- **Le dessin de Pi** : retirer `renderDiff` de `openReviewTui` fait échouer le test v3 des couleurs du thème `dark`.\n- **Le redessin après changement de thème** : garder le dessin en mémoire hors de `invalidate` fait échouer les tests v0 et v3.\n- **La coupe par `…`** : retirer les deux appels à `fit` ou le `…` de `measure.ts` fait échouer le test des 140 colonnes. Un seul des deux `fit` retiré ne fait rien échouer : ils font double emploi.\n- **Le pli et `]` / `[`** : retirer la note du pli ou fausser les débuts de portion fait échouer leurs tests.\n\nUn constat à corriger, introduit par la branche (A1-1) : l'assertion de la vidéo inverse ne prouve rien dès que les tests ne tournent pas dans un terminal, ce qui est le cas de la Preflight du cycle. Elle passe par `theme.inverse` de Pi, donc par chalk, qui ne colore rien sans terminal. Le code tient pourtant la promesse : il donne les deux lignes à `renderDiff` en un seul appel.\n\nDeux constats à peser sur l'installation :\n- A1-2 : aucun contrôle ne refuse qu'une attribution périmée revienne dans `NOTICE` ; la story laisse ce point à une vérification à la main.\n- A1-3, antérieur à la branche : `jiti` s'installe encore, par une dépendance de Pi lui-même, quand npm installe les dépendances de pair.\n\nVerdict : fail, à cause de A1-1."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La modification prend les couleurs du thème de Pi",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v3-pi/review-diff-pi.test.ts",
+    "ligne": 68,
+    "constat": "Under `npm test` and Preflight, no test checks the promise that the changed operator shows in inverse video. `dark.inverse(\"+\")` goes through chalk, and chalk adds nothing when stdout is not a TTY, so it returns plain `\"+\"`. Lines 68–69 then pass on any line that contains the operator. When the 495 code stops letting Pi pair the removed line with the added one, the inverse video disappears and every test stays green; the test catches it only with colours forced (FORCE_COLOR=1) or under a pseudo-terminal (`script`). The text colours (`getFgAnsi`) are not affected: they are true-colour regardless of chalk.",
+    "mutation": "diff-view.ts:85: `if (rows.length > 0) lines.push(...draw(rows.join(\"\\n\")).split(\"\\n\"))` → `for (const r of rows) lines.push(...draw(r).split(\"\\n\"))`, i.e. drawing each line alone so Pi's renderDiff can no longer pair -2 with +2. All 18 tests pass under `node --test` piped, as Preflight runs them. With FORCE_COLOR=1, or under `script -q /dev/null`, the v3 test fails with 'the operator removed is shown in inverse video'."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Installer 495 ne tire plus l'ancien moteur de dessin",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "package.json",
+    "ligne": 94,
+    "constat": "The code keeps the promise: `dependencies` holds only `@rgrove/parse-xml`, the lockfile marks no other package as non-dev (jiti remains only as dev=true), and NOTICE no longer names pix-pretty or jiti. No test or gate checks it, though. Point 4 of `lint:distribution` only checks that every dependency is named in NOTICE. Nothing refuses a dependency that src/ does not import, or a NOTICE that attributes a package that is no longer distributed.",
+    "mutation": "After `npm run build` (dist then removed): (a) NOTICE restored from dfd2e68 with its pix-pretty and jiti paragraphs: `lint:distribution` exits 0. (b) `@xynogen/pix-pretty` and `jiti` added back to `dependencies` plus the old NOTICE: exits 0, reporting '3 dependencies redistributed'. (c) dependencies added back without NOTICE: refused ('redistributed dependencies the NOTICE does not name'). So only the half that is not attributed is held."
+   }
+  ],
+  "resume": "The code keeps all seven scenarios; two promises are not held by any test or gate as Preflight runs them.\n\nKept, and tests fail when the code is mutated:\n- **The change opens beside the tree** (mutation: change view on the whole screen again): fails 6 tests, including the 'beside the tree' one.\n- **Sign and number lead each line, context drawn once, + and - stay in the code:**\n  - context line drawn without its leading space: 3 tests fail;\n  - added line numbered with its old number: 6 tests fail;\n  - operators stripped from the code: 4 tests fail.\n- **Theme colours:** the review not handed Pi's renderDiff fails the v3 test.\n- **Theme change redraws:** the drawing cached per path fails the v0 and v3 tests.\n- **A line cut at the reader's edge by …, separator in one column:**\n  - the line fitted in neither the change view nor the reader fails the test;\n  - truncation without the ellipsis fails it too.\n  - Removing the fit in the change view alone survives, but only because the reader fits the line again, so behaviour is unchanged.\n- **Fold says what it hides:** a zero count or a dropped note fails the fold test.\n- **A terminal sequence stays inert:** removing `neutralize` fails the UX-10 test.\n- **] and [ jump between portions:** every portion starting at 0 fails the jump test.\n\nA throwaway probe under Pi's real renderDiff and its dark theme agreed: a 300-character line holding `ESC[2J`, `ESC]0;` and BEL is neutralized and cut by …, every row is at most 140 columns, and the separator sits at column 55.\n\nNot held (à corriger, introduit):\n- **B1-1:** the inverse-video assertion is vacuous outside a TTY. chalk adds nothing there, so `theme.inverse(\"+\")` is just `\"+\"`. Drawing each line on its own loses the inverse video and every test stays green under `npm test`. The same test does fail when colours are forced or under a pseudo-terminal.\n- **B1-2:** the runtime dependency set and NOTICE are held by no gate. Adding pix-pretty and jiti back to the dependencies along with the old NOTICE, or putting back only the old NOTICE, leaves `lint:distribution` green. Only a dependency added back without its attribution is refused.\n\nTree restored after every mutation; `dist/` and the probe were removed; nothing committed."
+ }
+]

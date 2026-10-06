@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Ce que la revue montrait déjà d'une modification reste vrai",
+    "categorie": "a_corriger",
+    "placement": "anterieur",
+    "fichier": "test/v0-pure/review-surface.test.ts",
+    "ligne": 187,
+    "constat": "Le code compte bien les lignes inchangées que le repli cache (`hidden += segment.lines.length`). Mais le test accepte n'importe quel nombre (`/… \\d+ ligne\\(s\\) inchangée\\(s\\)/`) : aucun test ne vérifie que le nombre annoncé est le bon. La ligne de comptage et cette assertion existaient déjà telles quelles avant la story : la branche a seulement réécrit la fonction qui les porte.",
+    "mutation": "diff-view.ts:56 `hidden += segment.lines.length;` → `hidden += 1;` puis → `hidden += segment.lines.length + 5;` : les 18 tests de review-diff-beside-tree, review-surface et review-diff-pi restent verts."
+   }
+  ],
+  "resume": "Tour 2 réussi : un seul constat, antérieur à la branche.\n\n**Les deux corrections du tour 1 tiennent.**\n- **Vidéo inverse :** `test/helpers/force-color.ts` est chargé avant Pi, et le test cherche maintenant `\\x1b[7m` et `\\x1b[27m` explicitement. Mutation : remettre chaque ligne au dessin séparément, ce qui empêche Pi d'apparier la ligne retirée et la ligne ajoutée. Le test échoue, sortie dans un pipe, sans terminal.\n- **Distribution :** `lint:distribution` refuse désormais les deux cas. Remettre l'ancien NOTICE donne « NOTICE attributes packages no longer redistributed: @xynogen/pix-pretty, jiti ». Ajouter `jiti` aux dépendances (avec son attribution) donne « runtime dependencies src/ does not import: jiti ».\n\n**Les autres promesses sont tenues par le code et par des tests.** Chaque mutation ci-dessous fait échouer au moins un test :\n- neutralisation retirée ;\n- repli ignoré ;\n- débuts des portions (`]` et `[`) mis à zéro ;\n- signe du contexte changé ;\n- numérotation forcée sur l'ancien côté ;\n- dessin de l'hôte retiré de `review-surface` ou de `review-command` ;\n- les deux coupes au bord du lecteur retirées ensemble (en retirer une seule ne casse rien, l'autre coupe encore).\n\n**Constat A2-1 (à corriger, antérieur) :** aucun test ne vérifie le nombre de lignes que le repli annonce cacher, seulement qu'il en annonce un. Le comptage et cette assertion datent d'avant la story, donc ils ne pèsent pas sur le verdict.\n\nL'arbre est revenu à son état d'origine : chaque mutation est remise et le `dist/` construit pour lancer `lint:distribution` est supprimé."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Tour 2, relecteur B, à 51c511e. Les deux corrections du tour 1 tiennent, et une mutation le montre pour chacune. (1) Vidéo inverse (B1-1/A1-1) : `test/helpers/force-color.ts` fixe FORCE_COLOR avant que Pi ne charge chalk. Le test assert maintenant `\\x1b[7m+\\x1b[27m` et `\\x1b[7m-\\x1b[27m` en séquences brutes. La mutation de `diff-view.ts:85` remet chaque ligne seule au dessin, sans l'apparier à sa voisine. Lancé sans terminal (sortie redirigée), `review-diff-pi.test.ts` échoue alors sur « the operator removed is shown in inverse video ». Non muté, le test est vert. (2) Dépendances et NOTICE (B1-2/A1-2) : la mutation qui remet `jiti — MIT — …` dans NOTICE fait refuser `lint:distribution` par « NOTICE attributes packages no longer redistributed: jiti ». Celle qui ajoute `@xynogen/pix-pretty` aux dependencies, attribuée dans NOTICE, le fait refuser par « runtime dependencies src/ does not import: @xynogen/pix-pretty ». Non muté, le contrôle ne relève que l'absence de dist/ propre à cette copie. Les autres scénarios sont repassés et tiennent. Tests : l'arbre à gauche avec `│`, l'ordre et les signes des lignes, `y = 1;` dessinée une fois, la coupe par `…`, aucune ligne au-delà de 140 colonnes, le séparateur sur une seule colonne, `]`/`[` et le redessin après invalidate sous le thème light (`review-diff-beside-tree.test.ts`, `review-diff-pi.test.ts`). Deux mutations confirment le reste. Retirer `neutralize(line)` fait échouer « renders a terminal sequence held in a reviewed file inert (UX-10) ». Retirer la note du repli fait échouer « says how many lines a fold hides, and puts them back (UX-07) ». Chaque ligne mutée a été remise en place, et l'arbre est propre (seul `node_modules` reste non suivi). Aucun constat."
+ }
+]

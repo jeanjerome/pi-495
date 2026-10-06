@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the review in Pi draws a change with renderDiff in the active theme
+    # Subtest: paints the removed and added lines in the dark theme's diff colours, then the removed one in light's
+    not ok 1 - paints the removed and added lines in the dark theme's diff colours, then the removed one in light's
+      ---
+      duration_ms: 21.978625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HQfVLj/test/v3-pi/review-diff-pi.test.ts:44:2'
+      failureType: 'testCodeFailure'
+      error: 'removed in toolDiffRemoved: "    M b.js                                             │-2 x = a + b;                                                                       "'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HQfVLj/test/v3-pi/review-diff-pi.test.ts:60:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the review in Pi draws a change with renderDiff in the active theme
+  ---
+  duration_ms: 22.617458
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HQfVLj/test/v3-pi/review-diff-pi.test.ts:43:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 391.198709
