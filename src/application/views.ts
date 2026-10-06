@@ -1,4 +1,4 @@
-import type { ChangeState } from "../domain/change/state.ts";
+import { resumeLiftsStop, type ChangeState } from "../domain/change/state.ts";
 import {
 	sameGap,
 	setAside,
@@ -68,10 +68,19 @@ export interface StatusView {
 		outcome: string;
 		stop_reason: string | null;
 		stop_detail: string | null;
+		/** Whether a resume lifts the stop the change is blocked on. */
+		resume_lifts_stop: boolean;
 		gates: { gate: string; verdict: string; reasons: string[]; next_action: string }[];
 		attempts: { used: number; max: number };
 		candidate: { candidate_id: string; manifest_digest: string } | null;
-		evidence: { evidence_id: string; control_id: string; verdict: string; valid: boolean }[];
+		/** Every piece of evidence of the change, each saying whether it judges the candidate the change now carries. */
+		evidence: {
+			evidence_id: string;
+			control_id: string;
+			verdict: string;
+			valid: boolean;
+			current_candidate: boolean;
+		}[];
 		pending_decisions: { decision_id: string; interaction: string }[];
 		last_intervention: { role: string; result: string; tool_calls: number; duration_ms: number } | null;
 		/** Interventions of the open attempt stopped by the duration budget and resumed since. */
@@ -225,6 +234,7 @@ export function statusView(
 					outcome: change.outcome,
 					stop_reason: change.stop_reason,
 					stop_detail: change.stop_detail,
+					resume_lifts_stop: resumeLiftsStop(change),
 					gates: (["G0", "G1", "G2", "G3", "G4", "G5", "G6"] as const).flatMap((g) => {
 						const decision = change.gates[g];
 						return decision
@@ -240,6 +250,7 @@ export function statusView(
 						control_id: e.control_id,
 						verdict: e.verdict,
 						valid: e.valid,
+						current_candidate: e.subject_digest === change.candidate?.manifest_digest,
 					})),
 					pending_decisions: change.pending_decisions.map((d) => ({
 						decision_id: d.decision_id,

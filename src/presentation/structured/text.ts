@@ -1,7 +1,8 @@
+import { GATES, type GateId } from "../../contracts/v1/common.ts";
 import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { IncrementStatus, JudgedGap } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
-import type { EngineeringReport, SurveySection } from "../../application/report.ts";
+import type { EngineeringReport, MechanicalObservation, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusGap, StatusMeasure, StatusView } from "../../application/views.ts";
 import type { AgentContext } from "../../ports/execution.ts";
 
@@ -9,21 +10,7 @@ const L = {
 	fr: {
 		program: "Programme",
 		change: "Changement",
-		phase: "Phase",
-		status: "Statut",
-		outcome: "Résultat",
-		gates: "Gates",
-		attempts: "Tentatives",
-		candidate: "Candidat",
-		evidence: "Preuves",
-		pending: "Décisions en attente",
-		next: "Prochaine action",
 		none: "aucun",
-		limits: "Limites",
-		stop: "Motif d'arrêt",
-		intervention: "Dernière intervention",
-		truncated: "interrompue par le budget de durée",
-		continuations: "reprises",
 		closed: "clos",
 		increment: "Incrément",
 		milestone: "Jalon",
@@ -71,21 +58,7 @@ const L = {
 	en: {
 		program: "Program",
 		change: "Change",
-		phase: "Phase",
-		status: "Status",
-		outcome: "Outcome",
-		gates: "Gates",
-		attempts: "Attempts",
-		candidate: "Candidate",
-		evidence: "Evidence",
-		pending: "Pending decisions",
-		next: "Next action",
 		none: "none",
-		limits: "Limits",
-		stop: "Stop reason",
-		intervention: "Last intervention",
-		truncated: "stopped by the duration budget",
-		continuations: "resumptions",
 		closed: "closed",
 		increment: "Increment",
 		milestone: "Milestone",
@@ -132,42 +105,232 @@ const L = {
 	},
 };
 
-/** Plain-text status shared by print mode, notifications and the conversational tool (UX-03). */
+type ChangeView = NonNullable<StatusView["change"]>;
+
+/** The mark of a verdict: passed, failed, undecided, or not reached yet. */
+function mark(verdict: string | undefined): string {
+	if (verdict === undefined) return "○";
+	return verdict === "PASS" ? "✔" : verdict === "FAIL" ? "✘" : "?";
+}
+
+const S = {
+	fr: {
+		gates: {
+			G0: "Mandat",
+			G1: "Exigences",
+			G2: "Contrôles gelés",
+			G3: "Conception",
+			G4: "Candidat",
+			G5: "Acceptation",
+			G6: "Intégration",
+		},
+		onAttempt: (used: number, max: number) => ` à la tentative ${used} sur ${max}`,
+		accepted: "Accepté",
+		integrated: "Intégré",
+		blocked: "Bloqué",
+		rejected: "Rejeté",
+		abandoned: "Abandonné",
+		waiting: "En attente de votre décision — /495 decide",
+		phases: {
+			intake: "Prise de la demande",
+			clarifying: "Clarification de la demande",
+			specifying: "Rédaction des exigences",
+			verification_design: "Gel des contrôles",
+			preparing: "Préparation des contrôles",
+			designing: "Conception",
+			implementing: "Écriture du candidat",
+			verifying: "Exécution des contrôles",
+			reviewing: "Relecture du candidat",
+			deciding: "Décision d'acceptation",
+			integrating: "Intégration",
+			closed: "Clos",
+		} as Record<string, string>,
+		sandbox: (backend: string) => `Le bac à sable ${backend} n'est pas qualifié`,
+		checks: "Contrôles du candidat",
+		verdicts: {
+			PASS: "réussi",
+			FAIL: "échoué",
+			INDETERMINATE: "indéterminé",
+			NOT_RUN: "non exécuté",
+			NOT_APPLICABLE: "sans objet",
+		} as Record<string, string>,
+		invalid: "invalide",
+		used: "Utilisé",
+		last: "Dernière",
+		next: "Ensuite",
+		done: "/495 review pour lire le changement, /495 report pour le détail",
+		truncated: "interrompue par le budget de durée",
+		continuations: "reprises",
+		toolCalls: "appels d'outils",
+	},
+	en: {
+		gates: {
+			G0: "Mandate",
+			G1: "Requirements",
+			G2: "Checks frozen",
+			G3: "Design",
+			G4: "Candidate",
+			G5: "Acceptance",
+			G6: "Integration",
+		},
+		onAttempt: (used: number, max: number) => ` on attempt ${used} of ${max}`,
+		accepted: "Accepted",
+		integrated: "Integrated",
+		blocked: "Blocked",
+		rejected: "Rejected",
+		abandoned: "Abandoned",
+		waiting: "Waiting for your decision — /495 decide",
+		phases: {
+			intake: "Taking the request",
+			clarifying: "Clarifying the request",
+			specifying: "Writing the requirements",
+			verification_design: "Freezing the checks",
+			preparing: "Preparing the checks",
+			designing: "Designing the change",
+			implementing: "Writing the candidate",
+			verifying: "Running the checks",
+			reviewing: "Reviewing the candidate",
+			deciding: "Deciding acceptance",
+			integrating: "Integrating",
+			closed: "Closed",
+		} as Record<string, string>,
+		sandbox: (backend: string) => `The ${backend} sandbox is not qualified`,
+		checks: "Checks on the candidate",
+		verdicts: {
+			PASS: "passed",
+			FAIL: "failed",
+			INDETERMINATE: "indeterminate",
+			NOT_RUN: "not run",
+			NOT_APPLICABLE: "not applicable",
+		} as Record<string, string>,
+		invalid: "invalid",
+		used: "Used",
+		last: "Last",
+		next: "Next",
+		done: "/495 review to read the change, /495 report for the details",
+		truncated: "stopped by the duration budget",
+		continuations: "resumptions",
+		toolCalls: "tool calls",
+	},
+};
+
+type Cause = { gate: string | null; reason: string };
+
+/** The stop detail the kernel writes for an error: its code, its sentence, then the actions it names. */
+function stopParts(detail: string): { reason: string; named: string[] } {
+	const [, reason = detail, named] = /^(?:[A-Z_]+: )?(.*?)(?: \(next: ([^)]*)\))?$/s.exec(detail) ?? [];
+	return { reason, named: named?.split(", ") ?? [] };
+}
+
+/** What stopped the change, once: the first reason of the first gate that did not pass, else the stop itself. */
+function causeOf(c: ChangeView): Cause | null {
+	const stop = c.stop_detail ? stopParts(c.stop_detail).reason : c.stop_reason;
+	const failed = c.gates.find((g) => g.verdict !== "PASS" && g.reasons[0]);
+	const reason = failed?.reasons[0];
+	// A block whose detail does not repeat that reason, as a stagnation, stopped for its detail, not for the gate.
+	const stoppedApart = c.status === "blocked" && !!stop && !!reason && !stop.includes(reason);
+	if (failed && reason && !stoppedApart) return { gate: failed.gate, reason };
+	return stop ? { gate: null, reason: stop } : null;
+}
+
+/**
+ * The /495 commands out of a stop: those it names — a bare word is a command, a snake_case word a step
+ * of the kernel — and the resume when the kernel says it lifts the stop; a cancel, which leaves any stop,
+ * when there is neither.
+ */
+function commandsOutOf(c: ChangeView): string[] {
+	const named = c.stop_detail ? stopParts(c.stop_detail).named : [];
+	const resumable = c.resume_lifts_stop ? ["resume"] : [];
+	const commands = [...new Set([...resumable, ...named])].filter((a) => /^[a-z]+$/.test(a));
+	return (commands.length ? commands : ["cancel"]).map((a) => `/495 ${a}`);
+}
+
+/**
+ * Where the request stands, in one line, with the cause of a stop when there is one: a cause said here
+ * is said nowhere else, and a change that has not stopped leaves its gate reasons under the gates.
+ */
+function verdictLine(c: ChangeView, lang: "fr" | "en"): { line: string; cause: Cause | null } {
+	const t = S[lang];
+	const attempt = c.attempts.used > 0 ? t.onAttempt(c.attempts.used, c.attempts.max) : "";
+	if (c.status === "decision_required") return { line: `⏸ ${t.waiting}`, cause: null };
+	if (c.outcome === "accepted" || c.outcome === "integrated")
+		return { line: `✔ ${t[c.outcome]}${attempt}`, cause: null };
+	const stopped =
+		c.status === "blocked"
+			? t.blocked
+			: c.outcome === "rejected"
+				? t.rejected
+				: c.outcome === "abandoned" || c.status === "cancelled"
+					? t.abandoned
+					: null;
+	if (stopped === null) return { line: `… ${t.phases[c.phase] ?? c.phase}${attempt}`, cause: null };
+	const cause = causeOf(c);
+	return { line: `✘ ${stopped}${attempt}${cause ? ` — ${cause.reason}` : ""}`, cause };
+}
+
+/** A limit worth the reader's attention: a qualified sandbox is none, an unqualified one is named. */
+function limitLines(limits: string[], lang: "fr" | "en"): string[] {
+	return limits.flatMap((l) => {
+		const sandbox = /^sandbox:(.+):(qualified|not-qualified)$/.exec(l);
+		if (!sandbox) return [`⚠ ${l}`];
+		return sandbox[2] === "not-qualified" ? [`⚠ ${S[lang].sandbox(sandbox[1]!)}`] : [];
+	});
+}
+
+/**
+ * Plain-text status shared by print mode, notifications and the conversational tool (UX-03): the
+ * request and what became of it, the gates in words, the checks of the candidate, what was used and
+ * what to do next. Identifiers, digests and revisions stay in the view and the dossier.
+ */
 export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string {
-	const t = L[lang];
 	const lines: string[] = [];
-	if (view.program) lines.push(...programLines(view.program, lang));
+	// A program the owner wrote is shown as such; the single increment a request opens says nothing more.
+	const program = view.program;
+	if (program && (program.increments.length > 1 || program.milestones.length > 0 || program.baseline !== null))
+		lines.push(...programLines(program, lang));
 	const c = view.change;
 	if (!c) {
-		lines.push(`${t.change}: ${t.none}`);
-		for (const l of view.limits) lines.push(`${t.limits}: ${l}`);
+		lines.push(`${L[lang].change}: ${L[lang].none}`, ...limitLines(view.limits, lang));
 		return lines.join("\n");
 	}
-	lines.push(`${t.change}: ${c.change_id} r${c.revision} (${c.increment_id})`);
-	lines.push(`${t.phase}: ${c.phase}   ${t.status}: ${c.status}   ${t.outcome}: ${c.outcome}`);
-	if (c.stop_reason) lines.push(`${t.stop}: ${c.stop_reason}${c.stop_detail ? ` — ${c.stop_detail}` : ""}`);
-	lines.push(`${t.gates}: ${c.gates.length ? c.gates.map((g) => `${g.gate}=${g.verdict}`).join(" ") : t.none}`);
+	const t = S[lang];
+	const title = program?.increments.find((i) => i.increment_id === c.increment_id)?.title;
+	const { line: verdict, cause } = verdictLine(c, lang);
+	lines.push(title ? `495 · ${title}` : "495", verdict, ...limitLines(view.limits, lang));
+	const decided = new Map(c.gates.map((g) => [g.gate, g]));
+	lines.push("", `  ${GATES.map((g) => `${mark(decided.get(g)?.verdict)} ${t.gates[g]}`).join("  ")}`);
 	for (const g of c.gates)
-		if (g.verdict !== "PASS") for (const r of g.reasons.slice(0, 6)) lines.push(`  ${g.gate}: ${r}`);
-	lines.push(`${t.attempts}: ${c.attempts.used}/${c.attempts.max}`);
-	// A session cut short is not a proposal: saying so is what tells a slow model from a stuck one.
-	if (c.last_intervention) {
-		const cut = c.last_intervention.result === "truncated" ? ` — ${t.truncated}` : "";
-		const resumed = c.continuations > 0 ? `, ${c.continuations} ${t.continuations}` : "";
-		lines.push(
-			`${t.intervention}: ${c.last_intervention.role}=${c.last_intervention.result}${cut}${resumed} (${Math.round(c.last_intervention.duration_ms / 1000)}s, ${c.last_intervention.tool_calls} tool calls)`,
-		);
+		if (g.verdict !== "PASS")
+			for (const r of g.reasons.slice(0, 6))
+				if (cause?.gate !== g.gate || cause.reason !== r)
+					lines.push(`    ${t.gates[g.gate as GateId] ?? g.gate}: ${r}`);
+	const checks = c.evidence.filter((e) => e.current_candidate);
+	if (checks.length) {
+		lines.push("", `  ${t.checks}`);
+		for (const e of checks)
+			lines.push(
+				`    ${mark(e.verdict)} ${e.control_id.padEnd(10)} ${t.verdicts[e.verdict] ?? e.verdict}${e.valid ? "" : ` (${t.invalid})`}`,
+			);
 	}
-	if (c.candidate)
-		lines.push(`${t.candidate}: ${c.candidate.candidate_id} ${c.candidate.manifest_digest.slice(0, 23)}`);
-	if (c.evidence.length)
-		lines.push(
-			`${t.evidence}: ${c.evidence.map((e) => `${e.control_id}=${e.verdict}${e.valid ? "" : "(invalid)"}`).join(" ")}`,
-		);
-	if (c.pending_decisions.length)
-		lines.push(`${t.pending}: ${c.pending_decisions.map((d) => `${d.interaction} ${d.decision_id}`).join(", ")}`);
-	lines.push(`${t.next}: ${c.next_action}`);
-	for (const l of view.limits) lines.push(`${t.limits}: ${l}`);
+	const width = Math.max(t.used.length, t.last.length, t.next.length) + 4;
+	const facts: [string, string][] = [];
+	const used = formatConsumption(c.consumption, lang);
+	if (used) facts.push([t.used, used]);
+	// A session cut short is not a proposal: saying so is what tells a slow model from a stuck one.
+	if (c.last_intervention && c.phase !== "closed") {
+		const i = c.last_intervention;
+		const cut = i.result === "truncated" ? ` — ${t.truncated}` : "";
+		const resumed = c.continuations > 0 ? `, ${c.continuations} ${t.continuations}` : "";
+		facts.push([
+			t.last,
+			`${i.role} ${i.result}${cut}${resumed} (${Math.round(i.duration_ms / 1000)}s, ${i.tool_calls} ${t.toolCalls})`,
+		]);
+	}
+	const finished = c.phase === "closed" && (c.outcome === "accepted" || c.outcome === "integrated");
+	// The next action of a block repeats its cause, which the verdict line already says.
+	const out = c.status === "blocked" && cause ? commandsOutOf(c) : null;
+	facts.push([t.next, out ? out.join(", ") : finished ? t.done : c.next_action]);
+	lines.push("", ...facts.map(([label, value]) => `  ${label.padEnd(width)}${value}`));
 	return lines.join("\n");
 }
 
@@ -262,11 +425,31 @@ type RuleLabels = Omit<
 
 const R = {
 	fr: {
-		title: "Rapport",
-		requirements: "Exigences",
-		observations: "Observations mécaniques",
-		judgments: "Jugements",
-		risks: "Risques résiduels",
+		title: "rapport",
+		outcomes: {
+			pending: "… En cours",
+			accepted: "✔ Accepté",
+			integrated: "✔ Intégré",
+			rejected: "✘ Rejeté",
+			abandoned: "✘ Abandonné",
+		} satisfies Record<EngineeringReport["outcome"], string>,
+		asked: "Ce qui était demandé",
+		measured: "Ce qui a été mesuré",
+		concluded: "Ce qui a été conclu",
+		uncertain: "Ce qui reste incertain",
+		reference: "référence",
+		candidate: "candidat",
+		nothingMeasured: "rien n'a été mesuré",
+		qualified: (controls: number, runs: number) =>
+			`${controls} contrôle${controls === 1 ? " a été qualifié" : "s ont été qualifiés"} sur ${runs} essai${runs === 1 ? "" : "s"} témoin${runs === 1 ? "" : "s"} avant d'être retenu${controls === 1 ? "" : "s"}.`,
+		tried: (controls: number, runs: number, unqualified: number) =>
+			`${controls} contrôle${controls === 1 ? " a été essayé" : "s ont été essayés"} sur ${runs} essai${runs === 1 ? "" : "s"} témoin${runs === 1 ? "" : "s"} ; ${unqualified} n'${unqualified === 1 ? "a" : "ont"} pas été qualifié${unqualified === 1 ? "" : "s"}.`,
+		and: "et",
+		passed: "Le noyau a passé",
+		failed: "Le noyau a refusé",
+		undecided: "Le noyau n'a pas pu trancher",
+		decidedBy: "Décidé par",
+		reviewedBy: "Relu par",
 		none: "aucun",
 		decidedByOwner: "décidée par le propriétaire",
 		survey: "État des lieux",
@@ -280,16 +463,33 @@ const R = {
 		inModule: (violations: number, module: string | null) =>
 			`${violations} ${module === null ? "hors des sources mesurées" : `dans ${module}`}`,
 		unmeasured: "non mesuré par le référentiel :",
-		outcome: "Résultat",
-		candidate: "Candidat",
-		authority: { kernel: "noyau", model: "modèle", human: "humain" },
 	},
 	en: {
-		title: "Report",
-		requirements: "Requirements",
-		observations: "Mechanical observations",
-		judgments: "Judgments",
-		risks: "Residual risks",
+		title: "report",
+		outcomes: {
+			pending: "… In progress",
+			accepted: "✔ Accepted",
+			integrated: "✔ Integrated",
+			rejected: "✘ Rejected",
+			abandoned: "✘ Abandoned",
+		} satisfies Record<EngineeringReport["outcome"], string>,
+		asked: "What was asked",
+		measured: "What was measured",
+		concluded: "What was concluded",
+		uncertain: "What remains uncertain",
+		reference: "reference",
+		candidate: "candidate",
+		nothingMeasured: "nothing was measured",
+		qualified: (controls: number, runs: number) =>
+			`${controls} check${controls === 1 ? " was" : "s were"} qualified on ${runs} witness run${runs === 1 ? "" : "s"} before ${controls === 1 ? "it was" : "they were"} trusted.`,
+		tried: (controls: number, runs: number, unqualified: number) =>
+			`${controls} check${controls === 1 ? " was" : "s were"} tried on ${runs} witness run${runs === 1 ? "" : "s"}; ${unqualified} ${unqualified === 1 ? "was" : "were"} not qualified.`,
+		and: "and",
+		passed: "The kernel passed",
+		failed: "The kernel refused",
+		undecided: "The kernel could not decide",
+		decidedBy: "Decided by",
+		reviewedBy: "Reviewed by",
 		none: "none",
 		decidedByOwner: "decided by the owner",
 		survey: "Survey",
@@ -303,79 +503,145 @@ const R = {
 		inModule: (violations: number, module: string | null) =>
 			`${violations} ${module === null ? "outside the measured sources" : `in ${module}`}`,
 		unmeasured: "not measured by the referential:",
-		outcome: "Outcome",
-		candidate: "Candidate",
-		authority: { kernel: "kernel", model: "model", human: "human" },
 	},
 };
 
+/** The mark of a set of verdicts: all passed, one failed, or nothing to conclude. */
+function overallMark(verdicts: readonly string[]): string {
+	if (verdicts.includes("FAIL")) return "✘";
+	return verdicts.length > 0 && verdicts.every((v) => v === "PASS") ? "✔" : "?";
+}
+
+/** `a, b and c`, as the language joins the last item. */
+function listed(items: readonly string[], and: string): string {
+	return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} ${and} ${items.at(-1)}`;
+}
+
+/** Each requirement by its statement, the mark of its controls on the candidate, and the controls that carry it. */
+function askedLines(report: EngineeringReport, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	if (report.requirements.length === 0) return [`  ${t.none}`];
+	return report.requirements.map((q) => {
+		if (q.decided_by_owner) return `  ? ${q.statement} — ${t.decidedByOwner}`;
+		const controls = [...new Set(q.controls.map((k) => k.control_id))];
+		const verdict = overallMark(q.controls.map((k) => k.verdict));
+		return `  ${verdict} ${q.statement}${controls.length ? ` — ${controls.join(", ")}` : ""}`;
+	});
+}
+
+/**
+ * One row per control with its latest verdict on the reference and on the current candidate, then how
+ * many controls the qualification witnesses tried and on how many runs. A witness run judges the
+ * control, so it is counted, never listed.
+ */
+function measuredLines(report: EngineeringReport, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	const onReference = report.observations.filter((o) => o.subject_kind === "reference");
+	const onCandidate = report.observations.filter(
+		(o) => o.subject_kind === "candidate" && o.subject_digest === report.candidate?.manifest_digest,
+	);
+	const controls = [...new Set([...onReference, ...onCandidate].map((o) => o.control_id))];
+	const width = Math.max(10, ...controls.map((c) => c.length));
+	const cell = (header: string, observed: readonly MechanicalObservation[], control: string) => {
+		const verdict = observed.findLast((o) => o.control_id === control)?.verdict;
+		const at = Math.floor((header.length - 1) / 2);
+		return `${" ".repeat(at)}${verdict === undefined ? "?" : mark(verdict)}`.padEnd(header.length);
+	};
+	const lines = controls.length
+		? [
+				`  ${"".padEnd(width)}  ${t.reference}  ${t.candidate}`,
+				...controls.map((c) =>
+					`  ${c.padEnd(width)}  ${cell(t.reference, onReference, c)}  ${cell(t.candidate, onCandidate, c)}`.trimEnd(),
+				),
+			]
+		: [`  ${t.nothingMeasured}`];
+	const witnesses = report.observations.filter((o) => o.subject_kind === "fixture");
+	if (witnesses.length === 0) return lines;
+	const tried = new Set(witnesses.map((o) => o.control_id)).size;
+	const unqualified = report.residual_risks.filter((r) => r.code === "control_not_qualified").length;
+	lines.push(`  ${unqualified ? t.tried(tried, witnesses.length, unqualified) : t.qualified(tried, witnesses.length)}`);
+	return lines;
+}
+
+/** The gates the kernel passed in one line, each gate it did not pass with its reasons, then each decision and review. */
+function concludedLines(report: EngineeringReport, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	const gates = report.judgments
+		.filter((j) => j.kind === "gate")
+		.flatMap((j) => {
+			const decided = /^(G\d) (PASS|FAIL|INDETERMINATE)(?:: (.*))?$/s.exec(j.statement);
+			return decided ? [{ gate: decided[1] as GateId, verdict: decided[2]!, reasons: decided[3] ?? "" }] : [];
+		})
+		.sort((a, b) => a.gate.localeCompare(b.gate));
+	const passed = gates.filter((g) => g.verdict === "PASS").map((g) => S[lang].gates[g.gate]);
+	const lines = passed.length ? [`  ✔ ${t.passed} ${listed(passed, t.and)}`] : [];
+	for (const g of gates)
+		if (g.verdict !== "PASS")
+			lines.push(
+				`  ${mark(g.verdict)} ${g.verdict === "FAIL" ? t.failed : t.undecided} ${S[lang].gates[g.gate]}${g.reasons ? `: ${g.reasons}` : ""}`,
+			);
+	for (const j of report.judgments)
+		if (j.kind !== "gate")
+			lines.push(`  · ${j.kind === "review" ? t.reviewedBy : t.decidedBy} ${j.by}: ${j.statement}`);
+	return lines.length ? lines : [`  ${t.none}`];
+}
+
+/** The survey of a change that delivers the state of the project, in its own section. */
+function surveyLines(survey: SurveySection, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	const lines = [`## ${t.survey}`];
+	for (const q of survey.requirements) {
+		const answer = [
+			...q.controls.map((k) => `${k.control_id}=${k.verdict}`),
+			...(q.blind_spot === null ? [] : [q.blind_spot]),
+		].join("; ");
+		lines.push(`  ${q.requirement_id}: ${q.statement}${answer ? ` — ${answer}` : ""}`);
+	}
+	const referential = survey.referential;
+	if (referential) {
+		lines.push(`  ${t.referential}:`);
+		for (const rule of referential.rules) {
+			lines.push(`    ${t.rule({ ...rule, adopted_on: referential.adopted_on })}`);
+			const located = (authorship: CodeAuthorship) =>
+				rule.findings
+					.filter((f) => f.authorship === authorship)
+					.map((f) => `        ${f.path === null ? "" : `${f.path}: `}${f.message}`);
+			const generated = located("generated");
+			const counts = rule.proprietary_by_module.map((c) => t.inModule(c.violations, c.module));
+			lines.push(`      ${t.proprietary} ${counts.length === 0 ? t.none : counts.join(", ")}`);
+			lines.push(...located("proprietary"));
+			lines.push(`      ${t.generated} ${generated.length === 0 ? t.none : generated.length}`);
+			lines.push(...generated);
+		}
+		lines.push(`    ${t.unmeasured}`);
+		if (referential.unmeasured.length === 0) lines.push(`      ${t.none}`);
+		for (const u of referential.unmeasured) lines.push(`      ${u.subject}: ${u.reason}`);
+	}
+	lines.push(`  ${t.findings}:`);
+	if (survey.findings.length === 0) lines.push(`    ${t.none}`);
+	for (const f of survey.findings)
+		lines.push(`    ${f.control_id}${f.path === null ? "" : ` ${f.path}`}: ${f.message}`);
+	lines.push(`  ${t.blindSpots}:`);
+	if (survey.blind_spots.length === 0) lines.push(`    ${t.none}`);
+	for (const b of survey.blind_spots) lines.push(`    ${b.control_id}: ${b.reason}`);
+	return lines;
+}
+
 /**
  * What was asked, then the three natures in three sections, in this order and never merged: what
- * was measured, what was concluded from it, and what remains unestablished (IMP-05).
+ * was measured, what was concluded from it, and what remains unestablished (IMP-05). Codes, digests
+ * and the runs of the qualification witnesses stay in the report object.
  */
 export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"): string {
 	const t = R[lang];
-	const lines = [`${t.title} ${report.change_id} — ${t.outcome}: ${report.outcome}`];
-	if (report.candidate)
-		lines.push(`${t.candidate}: ${report.candidate.candidate_id} ${report.candidate.manifest_digest.slice(0, 23)}`);
-	lines.push("", `## ${t.requirements}`);
-	if (report.requirements.length === 0) lines.push(`  ${t.none}`);
-	for (const q of report.requirements) {
-		const verdicts = q.decided_by_owner
-			? t.decidedByOwner
-			: q.controls.map((k) => `${k.control_id}=${k.verdict}`).join(", ");
-		lines.push(`  ${q.requirement_id}: ${q.statement}${verdicts ? ` — ${verdicts}` : ""}`);
-	}
-	if (report.survey) {
-		lines.push("", `## ${t.survey}`);
-		for (const q of report.survey.requirements) {
-			const answer = [
-				...q.controls.map((k) => `${k.control_id}=${k.verdict}`),
-				...(q.blind_spot === null ? [] : [q.blind_spot]),
-			].join("; ");
-			lines.push(`  ${q.requirement_id}: ${q.statement}${answer ? ` — ${answer}` : ""}`);
-		}
-		const referential = report.survey.referential;
-		if (referential) {
-			lines.push(`  ${t.referential}:`);
-			for (const rule of referential.rules) {
-				lines.push(`    ${t.rule({ ...rule, adopted_on: referential.adopted_on })}`);
-				const located = (authorship: CodeAuthorship) =>
-					rule.findings
-						.filter((f) => f.authorship === authorship)
-						.map((f) => `        ${f.path === null ? "" : `${f.path}: `}${f.message}`);
-				const generated = located("generated");
-				const counts = rule.proprietary_by_module.map((c) => t.inModule(c.violations, c.module));
-				lines.push(`      ${t.proprietary} ${counts.length === 0 ? t.none : counts.join(", ")}`);
-				lines.push(...located("proprietary"));
-				lines.push(`      ${t.generated} ${generated.length === 0 ? t.none : generated.length}`);
-				lines.push(...generated);
-			}
-			lines.push(`    ${t.unmeasured}`);
-			if (referential.unmeasured.length === 0) lines.push(`      ${t.none}`);
-			for (const u of referential.unmeasured) lines.push(`      ${u.subject}: ${u.reason}`);
-		}
-		lines.push(`  ${t.findings}:`);
-		if (report.survey.findings.length === 0) lines.push(`    ${t.none}`);
-		for (const f of report.survey.findings)
-			lines.push(`    ${f.control_id}${f.path === null ? "" : ` ${f.path}`}: ${f.message}`);
-		lines.push(`  ${t.blindSpots}:`);
-		if (report.survey.blind_spots.length === 0) lines.push(`    ${t.none}`);
-		for (const b of report.survey.blind_spots) lines.push(`    ${b.control_id}: ${b.reason}`);
-	}
-	lines.push("", `## ${t.observations}`);
-	if (report.observations.length === 0) lines.push(`  ${t.none}`);
-	for (const o of report.observations)
-		lines.push(
-			`  ${o.control_id} v${o.control_version} ${o.subject_kind} ${o.subject_digest.slice(0, 19)} → ${o.verdict}${o.blocking_findings ? ` (${o.blocking_findings})` : ""}${o.valid ? "" : " (invalid)"}`,
-		);
-	lines.push("", `## ${t.judgments}`);
-	if (report.judgments.length === 0) lines.push(`  ${t.none}`);
-	for (const j of report.judgments)
-		lines.push(`  [${t.authority[j.authority]}] ${j.by}: ${j.statement}${j.binding ? "" : " (—)"}`);
-	lines.push("", `## ${t.risks}`);
+	const lines = [`495 ${t.title}${report.title ? ` · ${report.title}` : ""} — ${t.outcomes[report.outcome]}`];
+	lines.push("", t.asked, ...askedLines(report, lang));
+	if (report.survey) lines.push("", ...surveyLines(report.survey, lang));
+	lines.push("", t.measured, ...measuredLines(report, lang));
+	lines.push("", t.concluded, ...concludedLines(report, lang));
+	lines.push("", t.uncertain);
 	if (report.residual_risks.length === 0) lines.push(`  ${t.none}`);
-	for (const r of report.residual_risks) lines.push(`  ${r.code}: ${r.statement}`);
+	for (const r of report.residual_risks) lines.push(`  · ${r.statement}`);
 	return lines.join("\n");
 }
 

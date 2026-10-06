@@ -93,8 +93,8 @@ describe("Pi entries: print and JSON (C-PI)", { skip: skipWithoutPi }, () => {
 				HARNESS495_SCRIPTED_AGENT: scriptFile(root, SPEC, RIGHT),
 			});
 			if (mode === "print") {
-				assert.match(out, /Résultat: accepted/);
-				assert.match(out, /G5=PASS/);
+				assert.match(out, /^✔ Accepté à la tentative \d+ sur \d+$/m);
+				assert.match(out, /✔ Acceptation {2}/);
 				outcomes.print = "accepted";
 			} else {
 				const lines = out
@@ -131,9 +131,8 @@ describe("Pi entries: print and JSON (C-PI)", { skip: skipWithoutPi }, () => {
 			HARNESS495_SCRIPTED_AGENT: scriptFile(root, SPEC, RIGHT),
 			HARNESS495_HUMAN_ACCEPTANCE: "1",
 		});
-		assert.match(out, /decision_required/);
+		assert.match(out, /^⏸ En attente de votre décision — \/495 decide$/m);
 		assert.match(out, /IH-10/);
-		assert.match(out, /Résultat: pending/);
 		const again = runPi("json", proj, data, "/495 status", {});
 		assert.match(again, /"status":"decision_required"/);
 		assert.match(again, /"outcome":"pending"/);

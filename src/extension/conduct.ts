@@ -60,14 +60,11 @@ export async function drive(session: ExtensionSession, ctx: ExtensionCommandCont
 		rt.harness.advance(changeId, { max_steps: 40, readModel: () => selectedModel(ctx) }),
 	);
 	session.updateFooter(ctx, result.view);
-	session.emit(
-		ctx,
-		`${formatStatus(result.view, session.lang())}\n${result.steps.length ? `\n${result.steps.join("\n")}` : ""}`,
-		{
-			view: result.view,
-			stopped_because: result.stopped_because,
-		},
-	);
+	// The phase transitions of the conduct stay in the journal; the owner reads where the change stands.
+	session.emit(ctx, formatStatus(result.view, session.lang()), {
+		view: result.view,
+		stopped_because: result.stopped_because,
+	});
 	if (result.stopped_because === "decision_required") await presentDecisions(session, ctx, changeId);
 }
 

@@ -1553,3 +1553,63 @@ bugs:
     follow_ups: "Build the sandbox of those tests with `{ temp_paths: [] }`."
     status: fixed
     fixed_in: a9ed2453ef52a3dec08abc553b61613b2e35c081
+  - bug_id: BUG-2026-10-05T130610
+    date: "2026-10-05"
+    title: "The evidence line of /495 status lists the evidence of every candidate in a row, without saying which candidate each one judges"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      After a change whose first candidate failed `mutation` and whose second passed everything, `/495 status`
+      printed `Candidat: cand_44dfe5b9f6c6` and, on the next line, `Preuves: unit=PASS coverage=PASS mutation=FAIL
+      unit=PASS coverage=PASS mutation=PASS`. Nothing tells the evidence of the rejected candidate from that of the
+      accepted one, so a reader takes the accepted candidate for one that failed mutation. After seven attempts the
+      line repeats `unit=FAIL coverage=INDETERMINATE mutation=FAIL` seven times and wraps.
+    what_expected: >
+      The evidence line says which candidate each verdict judges, or shows only the evidence of the current
+      candidate and counts the rest.
+    steps_to_reproduce:
+      - "Run a change on `cycle/campagnes/npm` whose first candidate fails a control and a later one passes, then `/495 status`."
+    root_cause: >
+      The status view (`src/application/views.ts`, `evidence: change.evidence.map(…)`) keeps the control, verdict and
+      validity of every `EvidenceEntry` of the change and drops its `subject_digest`; `renderStatus`
+      (`src/presentation/structured/text.ts`) joins them on one line.
+    evidence: >
+      Observed on 2026-10-05 in a Pi 1.0.2 terminal session at main 9f0f0e9, change chg_muuyq1bj025d2bd6fb (two
+      attempts, accepted); the code is the same at e05eb60.
+    risk_level: low
+    follow_ups: >
+      Choose between grouping the verdicts by candidate and showing the current candidate's alone; either changes
+      what `/495 status` prints.
+    status: fixed
+    fixed_in: 4598314
+  - bug_id: BUG-2026-10-06T014453
+    date: "2026-10-06"
+    title: "The status of a change blocked on a stop that names no command and that no resume lifts has no Next line"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      For a blocked change, `formatStatus` (`src/presentation/structured/text.ts`) writes as its Next line the /495
+      commands the stop names in its `(next: …)`, plus `/495 resume` when a resume lifts the stop. A stop written
+      with a bare detail and no retry, such as `policy_denied` "integration is disabled by policy"
+      (`src/application/phases/integrate.ts`) or `integration_conflict` "integration effect uncertain; reconcile
+      (IH-12) before any retry" (`src/adapters/git/integrator.ts`), names none, so the status ends without a Next
+      line. Before this branch the status printed the kernel's next action there, which repeated the cause.
+    what_expected: >
+      Every blocked change tells the owner at least one way out, such as `/495 cancel`, which applies to any stop.
+    steps_to_reproduce:
+      - "Format the status of a view blocked `policy_denied` with stop_detail \"integration is disabled by policy\", resume_lifts_stop false."
+      - "The status has no line starting with `  Next`."
+    root_cause: >
+      The Next line of a block is built from the actions the stop detail names; a block written outside a
+      `DomainError` carries none, and nothing supplies a default way out.
+    evidence: >
+      Read in the self-review of branch e07s01 at bf470c8; introduced by that branch, which stopped copying the kernel's
+      next action of a block. The cause still shows on the verdict line.
+    risk_level: low
+    follow_ups: >
+      Decide whether the Next line of a block that names no action offers `/495 cancel`, or whether every
+      `change.block` names its way out; either adds what the status says.
+    status: fixed
+    fixed_in: b4ad415

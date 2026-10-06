@@ -250,11 +250,13 @@ describe("engineering report: observations, judgments and residual risks (IMP-05
 			),
 			"fr",
 		);
-		const sections = text.split("\n").filter((line) => line.startsWith("## "));
-		assert.deepEqual(sections, ["## Exigences", "## Observations mécaniques", "## Jugements", "## Risques résiduels"]);
-		assert.ok(text.indexOf("## Observations mécaniques") < text.indexOf("## Jugements"));
-		assert.ok(text.indexOf("## Jugements") < text.indexOf("## Risques résiduels"));
-		assert.match(formatReport(engineeringReport(r.s, [], null), "en"), /## Residual risks/);
+		const sections = ["Ce qui était demandé", "Ce qui a été mesuré", "Ce qui a été conclu", "Ce qui reste incertain"];
+		const at = sections.map((s) => text.split("\n").indexOf(s));
+		assert.ok(
+			at.every((i, n) => i > 0 && (n === 0 || i > at[n - 1]!)),
+			text,
+		);
+		assert.match(formatReport(engineeringReport(r.s, [], null), "en"), /^What remains uncertain$/m);
 	});
 });
 
@@ -297,12 +299,9 @@ describe("engineering report: what was asked (IMP-05)", () => {
 		const text = formatReport(report, "en");
 		assert.match(
 			text,
-			/## Requirements\n {2}R1: greet ends with an exclamation mark — unit=PASS\n {2}R2: the code stays lint-clean — lint=PASS/,
+			/^What was asked\n {2}✔ greet ends with an exclamation mark — unit\n {2}✔ the code stays lint-clean — lint$/m,
 		);
-		assert.ok(
-			text.indexOf("## Requirements") < text.indexOf("## Mechanical observations"),
-			"what was asked comes first",
-		);
+		assert.ok(text.indexOf("What was asked") < text.indexOf("What was measured"), "what was asked comes first");
 	});
 
 	it("given a requirement whose obligation is a human decision, when the report is rendered, then its line says it is decided by the owner and carries no control verdict, while a requirement carried by controls keeps its verdicts", () => {
@@ -351,16 +350,19 @@ describe("engineering report: what was asked (IMP-05)", () => {
 		);
 		assert.match(
 			formatReport(report, "en"),
-			/## Requirements\n {2}R1: greet ends with an exclamation mark — decided by the owner\n {2}R2: the code stays lint-clean — lint=PASS\n/,
+			/^What was asked\n {2}\? greet ends with an exclamation mark — decided by the owner\n {2}✔ the code stays lint-clean — lint\n/m,
 		);
-		assert.match(formatReport(report, "fr"), /R1: greet ends with an exclamation mark — décidée par le propriétaire\n/);
+		assert.match(
+			formatReport(report, "fr"),
+			/^ {2}\? greet ends with an exclamation mark — décidée par le propriétaire$/m,
+		);
 	});
 
 	it("says none when no requirements were adopted", () => {
 		const r = new Runner().toDeciding(c);
 		const report = engineeringReport(r.s, [], null, null);
 		assert.deepEqual(report.requirements, []);
-		assert.match(formatReport(report, "en"), /## Requirements\n {2}none/);
+		assert.match(formatReport(report, "en"), /^What was asked\n {2}none$/m);
 	});
 });
 

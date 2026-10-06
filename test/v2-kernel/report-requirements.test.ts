@@ -100,6 +100,6 @@ describe("the engineering report lists only the requirements G1 adopted", () => 
 			[],
 			"the report lists no requirement G1 refused",
 		);
-		assert.ok(formatReport(report, "en").includes("## Requirements\n  none"), formatReport(report, "en"));
+		assert.ok(formatReport(report, "en").includes("What was asked\n  none"), formatReport(report, "en"));
 	});
 });

@@ -82,7 +82,7 @@ interface ChangeView {
 	status: string;
 	gates: { gate: string; verdict: string }[];
 	candidate: { candidate_id: string; manifest_digest: string } | null;
-	evidence: { control_id: string; verdict: string }[];
+	evidence: { control_id: string; verdict: string; current_candidate: boolean }[];
 }
 /** The facts and verdicts a channel is required to agree on, whatever it looks like on screen. */
 interface Facts {
@@ -101,14 +101,29 @@ function factsOf(view: ChangeView): Facts {
 	};
 }
 
-/** Print mode has no structured payload: the same facts are read back from the text it prints. */
-function factsOfPrint(text: string): Facts {
-	const read = (re: RegExp) => re.exec(text)?.[1]?.trim() ?? "";
+const VERDICT_OF_MARK: Record<string, string> = { "✔": "PASS", "✘": "FAIL", "?": "INDETERMINATE" };
+const GATE_WORDS = ["Mandat", "Exigences", "Contrôles gelés", "Conception", "Candidat", "Acceptation", "Intégration"];
+
+/**
+ * Print mode has no structured payload: the same facts are read back from the text it prints, in the
+ * words it prints them. It names no digest, so the candidate is compared on the other channels only.
+ */
+function factsOfPrint(text: string): Omit<Facts, "candidate"> {
+	const lines = text.split("\n");
+	const row = lines.find((l) => GATE_WORDS.every((w) => l.includes(w))) ?? "";
+	const gates = GATE_WORDS.flatMap((w, i) => {
+		const verdict = VERDICT_OF_MARK[row.match(new RegExp(`(\\S) ${w}`))?.[1] ?? ""];
+		return verdict ? [`G${i}=${verdict}`] : [];
+	});
+	const checks = lines.slice(lines.indexOf("  Contrôles du candidat") + 1);
+	const evidence = checks.flatMap((l) => {
+		const check = /^ {4}(\S) (\S+) /.exec(l);
+		return check ? [`${check[2]}=${VERDICT_OF_MARK[check[1]!]}`] : [];
+	});
 	return {
-		outcome: read(/^Résultat: (\S+)$/m) || read(/Résultat: (\S+)/),
-		gates: read(/^Gates: (.+)$/m),
-		candidate: read(/^Candidat: \S+ (\S+)$/m),
-		evidence: read(/^Preuves: (.+)$/m),
+		outcome: lines.some((l) => l.startsWith("✔ Accepté")) ? "accepted" : "",
+		gates: gates.join(" "),
+		evidence: evidence.join(" "),
 	};
 }
 
@@ -214,7 +229,8 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWit
 	it("the same reference path yields the same facts and the same verdicts in RPC, in an SDK host, in print and in JSON (REC-39, UX-02)", async () => {
 		const rpcChannel = channel("rpc");
 		const client = await runRpc(rpcChannel.project, rpcChannel.env, [REQUEST]);
-		const rpcFacts = factsOf(views(client.messages()).at(-1)!);
+		const rpcView = views(client.messages()).at(-1)!;
+		const rpcFacts = factsOf(rpcView);
 		await client.close();
 
 		const sdkChannel = channel("sdk");
@@ -230,13 +246,12 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWit
 		assert.equal(rpcFacts.gates, "G0=PASS G1=PASS G2=PASS G3=PASS G4=PASS G5=PASS");
 		assert.deepEqual(sdkFacts, rpcFacts, "the SDK host agrees with the RPC client");
 		assert.deepEqual(jsonFacts, rpcFacts, "the JSON entry agrees with the RPC client");
-		// Print truncates the digest it shows; the rest of its facts are compared as they are.
 		assert.equal(printFacts.outcome, rpcFacts.outcome);
 		assert.equal(printFacts.gates, rpcFacts.gates);
-		assert.equal(printFacts.evidence, rpcFacts.evidence);
-		assert.ok(
-			printFacts.candidate.length > 10 && rpcFacts.candidate.startsWith(printFacts.candidate),
-			`${printFacts.candidate} is the prefix of ${rpcFacts.candidate}`,
+		// Print shows the checks of the current candidate only.
+		assert.equal(
+			printFacts.evidence,
+			factsOf({ ...rpcView, evidence: rpcView.evidence.filter((e) => e.current_candidate) }).evidence,
 		);
 		// The digest is derived from the candidate's content alone, so four channels that produced
 		// the same candidate must name the same one.
@@ -304,7 +319,7 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWit
 			(r) => r.method === "select" || r.method === "confirm" || r.method === "input",
 		);
 		await openClient.close();
-		assert.match(openText, /decision_required/);
+		assert.match(openText, /^⏸ En attente de votre décision — \/495 decide$/m);
 		assert.match(openText, /IH-10/);
 		assert.deepEqual(dialogs, [], "no decision dialog is opened for a client that carries no declared identity");
 		const openView = views(openClient.messages()).at(-1)!;
@@ -331,7 +346,7 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWit
 		const text = qualifiedMessages.map((m) => m.content).join("\n");
 		assert.match(text, /Décision enregistrée: hd_/);
 		// The report names the authority that answered: the identity the host declared, not the model.
-		assert.match(qualifiedMessages.at(-1)!.content, /\[humain\] alice: IH-10 accept/);
+		assert.match(qualifiedMessages.at(-1)!.content, /^ {2}· Décidé par alice: IH-10 accept/m);
 	});
 
 	it("a configuration unreadable when the session opened stays refused for that session, and the next session reads it repaired (UX-02)", async () => {

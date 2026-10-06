@@ -92,6 +92,8 @@ export interface SurveySection {
 export interface EngineeringReport {
 	schema_version: 1;
 	change_id: string;
+	/** The request as its program names it; empty when the report was built without it. */
+	title: string;
 	outcome: Outcome;
 	candidate: { candidate_id: string; manifest_digest: string } | null;
 	requirements: RequirementLine[];
@@ -195,6 +197,7 @@ export function engineeringReport(
 	protocol: Protocol | null,
 	requirements: RequirementsDocument | null = null,
 	survey: Survey | null = null,
+	title = "",
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
 	const onCandidateEntries = state.evidence.filter(
@@ -324,21 +327,25 @@ export function engineeringReport(
 			);
 	}
 	for (const e of evidence) {
-		if (e.verdict === "INDETERMINATE")
-			add(
-				"indeterminate_control",
-				`control ${e.control_id} answered INDETERMINATE on ${e.subject.kind} ${e.subject.id}; nothing is concluded from it.`,
-			);
-		if (e.limits.unstable)
-			add("unstable_control", `control ${e.control_id} answered differently on two passes of the same subject.`);
-		if (e.limits.truncated)
-			add(
-				"truncated_output",
-				`the output of control ${e.control_id} was truncated at ${e.limits.bytes_read} bytes; what it did not say was not read.`,
-			);
-		for (const exclusion of e.limits.exclusions)
-			add("excluded_from_measure", `control ${e.control_id} excluded ${exclusion} from what it measured.`);
-		for (const note of e.limits.notes) add("control_limit", `control ${e.control_id}: ${note}`);
+		// A qualification witness judges the control, not the change: a witness broken on purpose answers
+		// INDETERMINATE, and that says nothing of the candidate. A control left unqualified is a risk above.
+		if (e.subject.kind !== "fixture") {
+			if (e.verdict === "INDETERMINATE")
+				add(
+					"indeterminate_control",
+					`control ${e.control_id} answered INDETERMINATE on ${e.subject.kind} ${e.subject.id}; nothing is concluded from it.`,
+				);
+			if (e.limits.unstable)
+				add("unstable_control", `control ${e.control_id} answered differently on two passes of the same subject.`);
+			if (e.limits.truncated)
+				add(
+					"truncated_output",
+					`the output of control ${e.control_id} was truncated at ${e.limits.bytes_read} bytes; what it did not say was not read.`,
+				);
+			for (const exclusion of e.limits.exclusions)
+				add("excluded_from_measure", `control ${e.control_id} excluded ${exclusion} from what it measured.`);
+			for (const note of e.limits.notes) add("control_limit", `control ${e.control_id}: ${note}`);
+		}
 		if ((e.baseline?.preexisting_findings ?? 0) > 0)
 			add(
 				"preexisting_findings_tolerated",
@@ -361,6 +368,7 @@ export function engineeringReport(
 	return {
 		schema_version: 1,
 		change_id: state.change_id,
+		title,
 		outcome: state.outcome,
 		candidate: state.candidate
 			? { candidate_id: state.candidate.candidate_id, manifest_digest: state.candidate.manifest_digest }

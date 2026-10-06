@@ -148,7 +148,7 @@ describe("the model selected in Pi when an intervention starts (AGT-07)", () => 
 		const read = formatStatus(result.view, "en");
 		assert.doesNotMatch(read, /configure_model/, "the status names no kernel command as an action");
 		assert.match(read, /cannot carry this intervention: .*; select another model with \/model/, read);
-		assert.match(read, /^Next action: blocked: .* \(next: resume, cancel\) — resume retries it$/m, read);
+		assert.match(read, /^ {2}Next {4}\/495 resume, \/495 cancel$/m, read);
 	});
 
 	it("a change refused for its model is resumed with the model selected since (6e)", async () => {

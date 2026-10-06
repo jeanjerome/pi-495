@@ -2,7 +2,7 @@
 
 Story : e07s01
 Epic : e07
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -51,7 +51,23 @@ Scenario: Un changement arrêté dit sa cause une fois, sous son verdict
   When le propriétaire tape `/495 status`
   Then la deuxième ligne est « ✘ Blocked on attempt 2 of 3 — no test can judge R1 »
   And la ligne des portes montre « ✔ Mandate  ✔ Requirements  ✘ Checks frozen  ○ Design  ○ Candidate  ○ Acceptance  ○ Integration »
-  And la ligne `Next` reprend la prochaine action du changement
+  And la ligne `Next` donne les commandes qui sortent de l'arrêt, sans en répéter la cause
+
+Scenario: La ligne Next d'un changement bloqué ne répète pas la cause
+  Given un changement bloqué dont le noyau écrit la prochaine action « blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: control unit: positive witness gave FAIL, expected PASS; control unit: negative witness gave PASS, expected FAIL (next: cancel) »
+  When le propriétaire tape `/495 status`
+  Then la ligne du verdict commence par « ✘ Blocked » et ne contient ni « CAPABILITY_MISSING: » ni « (next: »
+  And la ligne `Next` est « Next    /495 cancel », et aucune autre ligne ne répète la phrase de la cause
+  Given un changement bloqué dont l'arrêt nomme « (next: resume, cancel) » et peut être repris
+  Then la ligne `Next` est « Next    /495 resume, /495 cancel »
+
+Scenario: Un changement arrêté par stagnation dit la cause de l'arrêt et la commande qui en sort
+  Given un changement bloqué à la deuxième de trois tentatives, dont G5 a échoué avec la raison « requirement R1: FAIL (unit=FAIL) », que le noyau a arrêté avec le motif `stagnation` et le détail « 2 identical candidates without measurable progress », qu'aucune reprise ne lève, et dont le détail ne nomme aucune commande
+  When le propriétaire tape `/495 status`
+  Then la deuxième ligne est « ✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress »
+  And la raison de G5 reste sous la ligne des portes, « Acceptance: requirement R1: FAIL (unit=FAIL) », et n'est pas sur la ligne du verdict
+  And la ligne `Next` est « Next    /495 cancel », sans `/495 resume`
+  And la phrase « 2 identical candidates without measurable progress » n'apparaît qu'une fois
 
 Scenario: Une décision en attente est le verdict du statut
   Given un changement qui attend une réponse du propriétaire à IH-04
@@ -99,8 +115,11 @@ Scenario: Le statut et le rapport parlent la langue de la session
 ## 3. Sécurité
 
 Aucun identifiant, aucune empreinte ni aucune limite ne disparaît du dossier : le journal, le magasin
-d'objets, l'export et les objets `view` et `report` que reçoivent les surfaces RPC et JSON restent
-inchangés ; seul le texte affiché les omet. Le rapport cesse de compter comme risque résiduel ce que
+d'objets, l'export et les objets `view` et `report` que reçoivent les surfaces RPC et JSON les gardent
+tous ; seul le texte affiché les omet. L'objet `view` gagne seulement un champ, `resume_lifts_stop`,
+qui dit si une reprise lève l'arrêt du changement. Le texte affiché n'omet pas la cause d'un arrêt : un
+changement bloqué la dit sous son verdict, même quand une porte a échoué avant l'arrêt, et sa ligne `Next`
+donne au moins une commande qui en sort, `/495 cancel` quand l'arrêt n'en nomme aucune. Le rapport cesse de compter comme risque résiduel ce que
 produit un essai de qualification sur un témoin, parce que cet essai juge le contrôle et non le
 candidat ; un contrôle qui n'est pas qualifié reste un risque résiduel, et un bac à sable non qualifié
 reste signalé dans le statut.
@@ -161,6 +180,31 @@ des transitions de phase, qui restent au journal.
 - Tient : `test/v3-pi/conduct-end-message.test.ts`, « un `/495 start` qu'un agent scripté conduit jusqu'à l'acceptation affiche un dernier message dont la deuxième ligne est `✔ Accepted on attempt 1 of 3` et qui ne contient aucune ligne de la forme `<phase> -> <phase>/<status>` »
 - Rouge : `conduct` ajoute aujourd'hui au statut les étapes du déroulement (`result.steps`), une ligne `clarifying -> specifying/ready` par transition
 
+### Tâche 6 — La ligne Next d'un changement bloqué donne les commandes qui en sortent
+
+Pour un changement bloqué, le statut ne recopie plus la prochaine action que compose le noyau
+(`nextActionOf`, `src/application/views.ts` : « blocked: <motif> — <détail> », où le détail porte le code
+de l'erreur, sa phrase entière et « (next: …) »). La ligne du verdict dit la cause sans le code ni
+« (next: …) », et la ligne `Next` donne les sous-commandes `/495` que l'arrêt nomme, plus `/495 resume`
+quand l'arrêt peut être repris. Les prochaines actions des autres états ne changent pas.
+
+- Vérifie : `node --test test/v0-pure/status-blocked-next.test.ts`
+- Tient : `test/v0-pure/status-blocked-next.test.ts`, « un changement bloqué dont la prochaine action est `blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: control unit: positive witness gave FAIL, expected PASS; control unit: negative witness gave PASS, expected FAIL (next: cancel)` a un statut dont la ligne du verdict commence par `✘ Blocked` sans `CAPABILITY_MISSING:` ni `(next:`, dont la ligne `Next` est `Next    /495 cancel`, et où la phrase `protocol not frozen` n'apparaît qu'une fois ; un arrêt qui nomme `(next: resume, cancel)` a pour ligne `Next    /495 resume, /495 cancel` »
+- Rouge : sondé par la recette sur la branche à 7ee2e10 : `formatStatus` écrit la prochaine action telle que le noyau la compose, si bien que la ligne `Next` d'un changement bloqué répète en entier, code et « (next: cancel) » compris, la cause que porte déjà la ligne du verdict
+
+### Tâche 7 — Un arrêt qui ne vient pas d'une porte dit sa cause et sa sortie
+
+Pour un changement bloqué dont le détail d'arrêt ne reprend pas la raison de la porte qui a échoué,
+comme la stagnation qu'écrit `src/domain/change/decide.ts` après des candidats identiques, la ligne du
+verdict (`verdictLine`, `src/presentation/structured/text.ts`) dit le détail de l'arrêt, et la raison de
+la porte reste sous la ligne des portes. La ligne `Next` d'un changement bloqué donne `/495 cancel` quand
+l'arrêt ne nomme aucune commande et qu'aucune reprise ne le lève, comme le noyau le fait déjà pour les
+sorties d'un arrêt (`waysOutOfStop`). Les cas des tâches 1 et 6 ne changent pas.
+
+- Vérifie : `node --test test/v0-pure/status-blocked-next.test.ts`
+- Tient : `test/v0-pure/status-blocked-next.test.ts`, « un changement bloqué à la tentative 2 sur 3, dont G5 a échoué avec `requirement R1: FAIL (unit=FAIL)`, arrêté sur `stagnation` avec le détail `2 identical candidates without measurable progress` et `resume_lifts_stop` faux, a pour deuxième ligne `✘ Blocked on attempt 2 of 3 — 2 identical candidates without measurable progress`, une ligne `    Acceptance: requirement R1: FAIL (unit=FAIL)`, la ligne `  Next    /495 cancel`, aucune `/495 resume`, et la phrase du détail une seule fois »
+- Rouge : sondé à 04a23fb sur cette vue : `causeOf` prend d'abord la première raison d'une porte qui n'est pas passée, si bien que la deuxième ligne est `✘ Blocked on attempt 2 of 3 — requirement R1: FAIL (unit=FAIL)` et que le détail de l'arrêt n'apparaît nulle part ; `commandsOutOf` ne lit que le `(next: …)` du détail et `resume_lifts_stop`, rend une liste vide, et le statut n'a aucune ligne `Next`
+
 ## 5. Hors périmètre
 
 - Les phrases que composent le noyau et l'application, comme la prochaine action d'un changement bloqué,
@@ -173,4 +217,9 @@ des transitions de phase, qui restent au journal.
 - Les identifiants dont une commande a besoin (`/495 bind`, `/495 measure`) : `/495 bind` les liste
   toujours, et le statut d'un programme les montre.
 - Le dialogue d'une décision (IH-04, IH-10) et l'écran de revue : leur présentation ne change pas.
+- Le motif et le détail de la stagnation, comme ceux des autres arrêts : le noyau les écrit tels quels,
+  et l'écart ne lui fait nommer ni sa sortie ni son motif. Le mot `stagnation`, code du motif, n'est pas
+  promis dans le texte : le détail dit la cause.
+- Une reprise qui lèverait une stagnation, ou une tentative de plus offerte après elle : l'arrêt reste
+  sans reprise, et seul `/495 cancel` en sort.
 - La démonstration du README : elle sera refaite une fois cette story versée.

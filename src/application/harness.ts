@@ -858,12 +858,14 @@ export class Harness {
 			? await this.artifacts.read<RequirementsDocument>(adoptedRef).catch(() => null)
 			: null;
 		const survey = await this.artifacts.latest<Survey>(loaded.state, "survey").catch(() => null);
+		const program = this.deps.ledger.loadProgram(loaded.state.program_id)?.state;
 		return engineeringReport(
 			loaded.state,
 			this.deps.ledger.listEvidence(changeId),
 			protocol?.content ?? null,
 			requirements,
 			survey?.content ?? null,
+			program?.increments.find((i) => i.increment_id === loaded.state.increment_id)?.title,
 		);
 	}
 

@@ -1213,35 +1213,6 @@ bugs:
       fails on an assertion rather than on the missing export; either adds an option or a refusal. In both
       cases, the notes in which implement interventions contest a prepared case reach the decision.
     status: open
-  - bug_id: BUG-2026-10-05T130610
-    date: "2026-10-05"
-    title: "The evidence line of /495 status lists the evidence of every candidate in a row, without saying which candidate each one judges"
-    severity: low
-    priority: p3
-    scope: presentation
-    what_happened: >
-      After a change whose first candidate failed `mutation` and whose second passed everything, `/495 status`
-      printed `Candidat: cand_44dfe5b9f6c6` and, on the next line, `Preuves: unit=PASS coverage=PASS mutation=FAIL
-      unit=PASS coverage=PASS mutation=PASS`. Nothing tells the evidence of the rejected candidate from that of the
-      accepted one, so a reader takes the accepted candidate for one that failed mutation. After seven attempts the
-      line repeats `unit=FAIL coverage=INDETERMINATE mutation=FAIL` seven times and wraps.
-    what_expected: >
-      The evidence line says which candidate each verdict judges, or shows only the evidence of the current
-      candidate and counts the rest.
-    steps_to_reproduce:
-      - "Run a change on `cycle/campagnes/npm` whose first candidate fails a control and a later one passes, then `/495 status`."
-    root_cause: >
-      The status view (`src/application/views.ts`, `evidence: change.evidence.map(…)`) keeps the control, verdict and
-      validity of every `EvidenceEntry` of the change and drops its `subject_digest`; `renderStatus`
-      (`src/presentation/structured/text.ts`) joins them on one line.
-    evidence: >
-      Observed on 2026-10-05 in a Pi 1.0.2 terminal session at main 9f0f0e9, change chg_muuyq1bj025d2bd6fb (two
-      attempts, accepted); the code is the same at e05eb60.
-    risk_level: low
-    follow_ups: >
-      Choose between grouping the verdicts by candidate and showing the current candidate's alone; either changes
-      what `/495 status` prints.
-    status: open
   - bug_id: BUG-2026-10-05T185728
     date: "2026-10-05"
     title: "No test holds the footer update that follows a conduct of the change: removing it leaves every test green"
@@ -1269,4 +1240,162 @@ bugs:
     risk_level: low
     follow_ups: >
       Add the test only: the code already writes the line.
+    status: open
+  - bug_id: BUG-2026-10-06T002859
+    date: "2026-10-06"
+    title: "The report of a change whose mutation complement 495 installed lists each package's npm integrity, a digest, under what remains uncertain"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `formatReport` (`src/presentation/structured/text.ts`) copies each residual risk statement verbatim under "What
+      remains uncertain". When 495 installed packages into the target (Stryker for a `mutation` complement on npm),
+      the `installed_packages` risk built by `report.ts` names every package as `name@version (sha512-…)`, its npm
+      integrity, so the report of an accepted change carries a digest although it reads without digests.
+    what_expected: >
+      The report names what 495 installed by package and version; the integrity stays in the protocol and the
+      dossier, where the other digests are.
+    steps_to_reproduce:
+      - "On an npm target that does not declare Stryker, carry a change whose frozen protocol adopts the mutation complement, so 495 installs it."
+      - "Run `/495 report`: the line `495 installed N package(s) into the target …` lists `(sha512-…)` after each package."
+    root_cause: >
+      The risk statement is written in `src/application/report.ts` (installed_packages) for the structured report,
+      where the integrity belongs, and the text of the report shows that statement unchanged.
+    evidence: >
+      Read in review of the plain-language report, at branch e07s01 (051e53c); the statement predates that branch. Not
+      reproduced on the reference npm campaign, whose target already declares Stryker, so nothing is installed.
+    risk_level: low
+    follow_ups: >
+      Decide whether the text of the report renders the installed packages itself, by name and version, or whether the
+      statement drops the integrity; either changes what the report says.
+    status: open
+  - bug_id: BUG-2026-10-06T002900
+    date: "2026-10-06"
+    title: "In a French report, every residual risk under Ce qui reste incertain stays in English"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      The report of a change shown in French has its four section names in French, but each line under "Ce qui reste
+      incertain" is in English ("2 control run(s) observed the candidate…", "control lint is not qualified…"): the
+      statements are written in English by `src/application/report.ts` and copied verbatim by `formatReport`.
+    what_expected: >
+      Every line of a report is in the session's language, as the status is.
+    steps_to_reproduce:
+      - "Carry a change to acceptance in a French session, with a scripted agent, and run `/495 report`."
+      - "The lines under Ce qui reste incertain are in English."
+    root_cause: >
+      A residual risk carries a code and an English statement; the text of the report shows the statement rather than
+      rendering the code and its values in the reader's language.
+    evidence: >
+      Probed in review of the plain-language report, at branch e07s01 (051e53c), on a real accepted change; the
+      statements predate that branch, which translates the section names only.
+    risk_level: low
+    follow_ups: >
+      Render each residual risk from its code and values in the language of the session, which needs the values the
+      statement now interpolates to travel with the code.
+    status: open
+  - bug_id: BUG-2026-10-06T032710
+    date: "2026-10-06"
+    title: "The status lists each check twice when two attempts produced identical candidates"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A change stopped on stagnation after two attempts whose candidates are byte-identical shows, under "Checks on the
+      candidate", `✘ unit failed` and `✔ lint passed` twice. Both verification runs judged the same manifest digest, and
+      the status view marks an evidence as current by comparing its subject digest with the candidate's manifest digest,
+      so the evidence of the earlier attempt counts as current too.
+    what_expected: >
+      The status lists each check of the current candidate once, from the run that judged the candidate in place.
+    steps_to_reproduce:
+      - "Carry a change with a scripted agent that writes the same failing candidate on two attempts, so the change stops on stagnation."
+      - "Run `/495 status`: every check under Checks on the candidate appears once per attempt."
+    root_cause: >
+      `current_candidate` in `src/application/views.ts` (`e.subject_digest === change.candidate?.manifest_digest`)
+      identifies the candidate by its content, not by the attempt or candidate id that produced the evidence; two
+      attempts with identical content are indistinguishable there.
+    evidence: >
+      Driven through the real kernel in review of the plain-language status, at branch e07s01 (5a2e80d), on the harness
+      case behind the stagnation test. The branch narrows the list to the current candidate; `main` lists every
+      verification run, so the duplicate predates the branch.
+    risk_level: low
+    follow_ups: >
+      Tie each evidence to the candidate or attempt it judged, or keep one evidence per control for the current digest;
+      either changes which evidence the view reports.
+    status: open
+  - bug_id: BUG-2026-10-06T060000
+    date: "2026-10-06"
+    title: "The Next line of a status waiting for a decision or about to decide acceptance names a code, not the /495 command to type"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      A change waiting for the owner's answer shows `Next    decide: IH-04`, and a change whose attempt budget was
+      just extended shows `Next    G5: evaluate acceptance`, although the command that moves it on is `/495 decide`
+      or `/495 resume`. The status of a blocked change already gives `/495` commands on that line.
+    what_expected: >
+      The Next line of every state gives the `/495` subcommands that move the change on.
+    steps_to_reproduce:
+      - "Carry a change to a pending IH-04 decision, or extend its attempt budget through IH-07, then run `/495 status`."
+      - "The Next line reads `decide: IH-04` or `G5: evaluate acceptance`."
+    root_cause: >
+      `formatStatus` (`src/presentation/structured/text.ts`) rewrites the next action of a blocked change only and
+      copies the one `nextActionOf` (`src/application/views.ts`) composes for every other state.
+    evidence: >
+      Seen in the acceptance run of the plain-language status, at branch e07s01 (79276fa), in a real Pi 1.0.2 with a
+      scripted agent; `main` prints the same next action after `Next action:`, so it predates the branch.
+    risk_level: low
+    follow_ups: >
+      Map each state's next action to the `/495` subcommands that act on it, as the blocked state already does.
+    status: open
+  - bug_id: BUG-2026-10-06T060100
+    date: "2026-10-06"
+    title: "The report of a blocked change says In progress in its header"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      The report of a change blocked on stagnation, or on a protocol that could not be frozen, begins with
+      `495 report · … — … In progress`, while its status says `✘ Blocked`; the stop appears only as the last line under
+      What remains uncertain.
+    what_expected: >
+      The header of the report of a blocked change says it is blocked, as the status does.
+    steps_to_reproduce:
+      - "Carry a change with a scripted agent that writes the same failing candidate twice, so it stops on stagnation."
+      - "Run `/495 report`: the header reads `… In progress`."
+    root_cause: >
+      `formatReport` (`src/presentation/structured/text.ts`) labels the header from the report's outcome alone, and the
+      outcome of a blocked change is `pending`.
+    evidence: >
+      Seen in the acceptance run of the plain-language report, at branch e07s01 (79276fa), on the stagnation and the
+      blocked-at-Checks-frozen campaigns; `main` printed `Outcome: pending` there.
+    risk_level: low
+    follow_ups: >
+      Carry the change's status or stop into the report so its header can say Blocked.
+    status: open
+  - bug_id: BUG-2026-10-06T060200
+    date: "2026-10-06"
+    title: "The text of a report names evidence and change identifiers in its decisions and residual risks"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The report of a change shows `Decided by jeanjerome: IH-07 extend on change chg_…` under What was concluded and
+      `control unit: confirmation pass evc_… answered FAIL again …` under What remains uncertain, although the report
+      otherwise reads without identifiers.
+    what_expected: >
+      The text of the report says what was decided and what was observed without the identifiers, which stay in the
+      structured report and the dossier.
+    steps_to_reproduce:
+      - "Carry a change whose budget the owner extends through IH-07 and whose candidate fails a confirmation pass, then run `/495 report`."
+    root_cause: >
+      The decision and risk statements are composed with their identifiers in `src/application/report.ts` for the
+      structured report, and `formatReport` copies them verbatim.
+    evidence: >
+      Seen in the acceptance run of the plain-language report, at branch e07s01 (79276fa), on the two-candidates and
+      stagnation campaigns; the statements predate that branch.
+    risk_level: low
+    follow_ups: >
+      Render decisions and risks from their codes and values in the text, as BUG-2026-10-06T002900 asks for the language.
     status: open

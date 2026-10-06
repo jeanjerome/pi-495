@@ -23,10 +23,10 @@ const spec = specReport({
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: true, notes: [] });
 
 /** Falls back to the whole status, so a status without that line shows in the failed assertion. */
-const nextAction = (status: string): string => status.match(/^Next action: (.*)$/m)?.[1] ?? status;
+const nextAction = (status: string): string => status.match(/^ {2}Next {4}(.*)$/m)?.[1] ?? status;
 
 describe("the stops no resume lifts name the cancel as their only way out in /495 status", () => {
-	it("a project whose scripts.test is tsc && node --test stops capability_missing, and the next action of /495 status is blocked: capability_missing — CAPABILITY_MISSING: scripts.test chains commands through a shell (tsc && node --test), which 495 cannot run (next: cancel)", async () => {
+	it("a project whose scripts.test is tsc && node --test stops capability_missing, and /495 status says on its verdict line that scripts.test chains commands through a shell, then gives /495 cancel as its next line", async () => {
 		const project = trackedProject((root) => {
 			fixtureTs(root);
 			writeFiles(root, {
@@ -43,13 +43,16 @@ describe("the stops no resume lifts name the cancel as their only way out in /49
 		const stopped = await t.harness.advance(change.change_id, { max_steps: 40 });
 
 		assert.equal(stopped.stopped_because, "capability_missing", stopped.steps.join(" | "));
-		assert.equal(
-			nextAction(formatStatus(stopped.view, "en")),
-			"blocked: capability_missing — CAPABILITY_MISSING: scripts.test chains commands through a shell (tsc && node --test), which 495 cannot run (next: cancel)",
+		const status = formatStatus(stopped.view, "en");
+		assert.match(
+			status.split("\n")[1] ?? "",
+			/^✘ Blocked.* — scripts\.test chains commands through a shell \(tsc && node --test\), which 495 cannot run$/,
+			status,
 		);
+		assert.equal(nextAction(status), "/495 cancel");
 	});
 
-	it("a protocol whose unit control is not qualified stops capability_missing, and the next action of /495 status starts with blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: and ends with (next: cancel)", async () => {
+	it("a protocol whose unit control is not qualified stops capability_missing, and /495 status gives /495 cancel as its next line", async () => {
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: {
@@ -79,8 +82,6 @@ describe("the stops no resume lifts name the cancel as their only way out in /49
 		const stopped = await t.harness.advance(change.change_id, { max_steps: 40 });
 
 		assert.equal(stopped.stopped_because, "capability_missing", stopped.steps.join(" | "));
-		const next = nextAction(formatStatus(stopped.view, "en"));
-		assert.ok(next.startsWith("blocked: capability_missing — CAPABILITY_MISSING: protocol not frozen: "), next);
-		assert.ok(next.endsWith("(next: cancel)"), next);
+		assert.equal(nextAction(formatStatus(stopped.view, "en")), "/495 cancel");
 	});
 });

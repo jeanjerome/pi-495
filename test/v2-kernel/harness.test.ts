@@ -410,7 +410,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(result.view.change?.gates.find((gate) => gate.gate === "G4")?.verdict, "PASS");
 	});
 
-	it("un changement démarré sous max_attempts à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce Tentatives: 0/2", async () => {
+	it("un changement démarré sous max_attempts à 2 porte 2 dans l'événement du registre, une session rouverte relit 2 et la vue d'état annonce 0 tentative utilisée sur 2", async () => {
 		const p = trackedProject();
 		const first = makeHarness({ policy: { budgets: { max_attempts: 2 } } });
 		const { change } = await first.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
@@ -421,7 +421,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(created?.type === "change.created" ? created.max_attempts : undefined, 2);
 		const second = reopenHarness(first);
 		assert.equal(second.ledger.loadChange(change.change_id)!.state.budgets.max_attempts, 2);
-		assert.match(formatStatus(second.harness.status(change.change_id), "fr"), /^Tentatives: 0\/2$/m);
+		assert.deepEqual(second.harness.status(change.change_id).change?.attempts, { used: 0, max: 2 });
 	});
 
 	it("a producer that edits a protected test fails G4; three failures exhaust the attempts and ask IH-07 (REC-04, SA-011, SA-016)", async () => {
@@ -1055,7 +1055,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(state.stop_retryable, true);
 		const read = formatStatus(blocked.view, "en");
 		assert.doesNotMatch(read, /retry_specification/, "the status names no step of the kernel as an action");
-		assert.match(read, /^Next action: blocked: .* \(next: resume, cancel\) — resume retries it$/m, read);
+		assert.match(read, /^ {2}Next {4}\/495 resume, \/495 cancel$/m, read);
 
 		const resumed = t.harness.resume(change.change_id, HUMAN);
 		assert.equal(resumed.change?.status, "ready", resumed.change?.next_action ?? "");
@@ -1227,7 +1227,20 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(state.stop_retryable, false, "no command of the session qualifies a sandbox");
 		const read = formatStatus(result.view, "en");
 		assert.doesNotMatch(read, /qualify_capability|revise_mandate/, "the status names no kernel command as an action");
-		assert.match(read, /^Next action: blocked: .* \(next: cancel\)$/m, "the cancel alone leads out of this stop");
+		assert.match(read, /^ {2}Next {4}\/495 cancel$/m, "the cancel alone leads out of this stop");
+	});
+
+	it("the status of a change under a qualified sandbox names no sandbox, and under an unqualified one says it is not qualified", async () => {
+		const qualified = makeHarness();
+		const a = await qualified.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
+		const read = formatStatus(qualified.harness.status(a.change.change_id), "en");
+		assert.doesNotMatch(read, /sandbox|⚠/, read);
+		const unqualified = makeHarness({ sandbox: "unqualified" });
+		const b = await unqualified.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
+		assert.match(
+			formatStatus(unqualified.harness.status(b.change.change_id), "en"),
+			/^⚠ The unconfined sandbox is not qualified$/m,
+		);
 	});
 
 	it("resume after an interrupted intervention treats it as failed and continues from the same phase (PF-17, DEC-05)", async () => {
@@ -1251,6 +1264,18 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.equal(result.view.change?.outcome, "accepted");
 		assert.equal((await t.ledger.verifyIntegrity()).ok, true);
+	});
+
+	it("the status of a change stopped on an execution error whose detail names no action gives /495 resume as its next line, since a resume lifts that stop", async () => {
+		const t = makeHarness();
+		t.agent.startIntervention = async () => {
+			throw new DomainError("EVIDENCE_MISSING", "the adopted report is gone");
+		};
+		const { change } = await t.harness.start({ project_path: trackedProject(), request_text: "x", actor: HUMAN });
+		const blocked = await t.harness.advance(change.change_id);
+		assert.equal(blocked.view.change?.stop_reason, "execution_error", blocked.steps.join(" | "));
+		const read = formatStatus(blocked.view, "en");
+		assert.match(read, /^ {2}Next {4}\/495 resume$/m, read);
 	});
 
 	it("refuses to pause a change blocked by a step that failed while its intervention ran, keeps its stop and names the resume that lifts it", async () => {
