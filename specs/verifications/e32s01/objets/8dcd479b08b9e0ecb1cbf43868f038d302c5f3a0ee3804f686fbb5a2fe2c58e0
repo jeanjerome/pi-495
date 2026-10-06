@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La documentation nomme les étapes comme l'écran",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/amont/expression-besoins.md",
+    "ligne": 929,
+    "constat": "Le code tient la promesse : les tableaux des gates du README, d'AGENTS.md, d'expression-besoins.md §6.2/§gates et de specification-fonctionnelle.md §12 nomment G0 à G6 comme D-83, et le tableau des transitions dit Cadrage pour l'ancienne Clarification et Qualification pour l'ancien Protocole. Aucun test ne lit ces tableaux : remettre « Mandate » dans le README ne ferait échouer aucun test. La tâche 3 de la story déclare pourtant cette vérification « à la main », ce que cycle/format-de-story.md autorise, d'où la catégorie à peser plutôt qu'à corriger.",
+    "mutation": "Aucune mutation lancée : aucun test ne lit ces fichiers. Constaté par grep sur les tests, scripts/ et cycle/src."
+   }
+  ],
+  "resume": "J'ai relu les cinq scénarios. Le code tient chacun d'eux. Dans text.ts, les noms des gates suivent D-83 en anglais et en français. La ligne d'un changement en cours passe par stepAndActivity et STEP_OF_PHASE, puis formatStep : on y lit « … Implementation · writing the candidate on attempt 1 of 3 » et « … Implémentation · écriture du candidat à la tentative 1 sur 3 ». Le rapport dit « The kernel passed Scoping, …, Implementation and Acceptance ». Dans session.ts, updateFooter écrit « 495 <étape dans la langue de la session> · <statut> », ce qui donne Closed ou Clos pour un changement clos. Les deux tests tournent au vert à 6f89f50 : step-names.test.ts et footer-step-name.test.ts. J'ai lancé 15 mutations et toutes ont fait échouer le test attendu. Côté text.ts, j'ai changé les noms des gates G0, G4 et G6 dans chaque langue, rattaché implementing à G3 et specifying à G0, mis une majuscule à l'activité, retiré le préfixe d'étape de stepAndActivity, rebranché la ligne en cours sur l'ancien t.phases, remplacé listed par join et neutralisé le libellé Closed ou Clos. Côté session.ts, j'ai forcé la langue à \"en\", remis c.phase brut et remis le séparateur « / ». Chaque fichier muté a été restauré et l'arbre est propre. Le seul constat est à peser : la promesse sur la documentation est tenue dans les fichiers, mais par aucun test, puisque la story la déclare vérifiée à la main. Les messages de progression du pied de page restent en anglais (session.ts:214), mais le registre l'a déjà ouvert (BUG-2026-10-06T102300) et je ne le compte pas."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La documentation nomme les étapes comme l'écran",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "README.md",
+    "ligne": 149,
+    "constat": "The documents keep the promise: the gate tables in the README, AGENTS.md, expression-besoins.md §G and specification-fonctionnelle.md §12 name G0 to G6 Scoping…Integration and Cadrage…Intégration, and the transitions table now says Cadrage and Qualification. No automated test reads these tables, though. Reverting a row breaks nothing, and nothing would catch the old names coming back. The story's task 3 chose a reading by hand as the check, so I weigh this rather than count it as a promise no test holds.",
+    "mutation": "No mutation run: grep shows no test or script under test/ or scripts/ reads these tables or the gate names in them."
+   }
+  ],
+  "resume": "The code keeps all five promises, and a test holds each of the four on screen. I ran 17 one-line mutations against step-names, footer-step-name, status-text and report-text, and every one made at least one of those tests fail. Each mutation was put back afterwards, and the tree is clean.\n\n- **The status names the seven steps**: renaming the English or French label of G0, G1, G2 or G4 makes step-names and status-text fail.\n- **The report names the steps the kernel passed**: renaming G0, G1 or G4 in English, or changing \"The kernel passed\", makes report-text and step-names fail.\n- **A change in progress says its step before its activity**: mapping implementing to G5, dropping the step before the \"·\" in stepAndActivity, or capitalising the French activity each makes step-names fail.\n- **The footer names the step**: forcing the language to \"en\" in updateFooter, putting back the \"/\" separator, putting back the raw phase, mapping specifying to G2, returning the raw word for a closed change, or making the French closed label \"Closed\" each makes footer-step-name fail.\n- **The documentation names the steps like the screen**: the tables read as promised. No test reads them, and the story chose a reading by hand as the check, so I weigh it rather than count it (B1-1).\n\nNothing introduced or made reachable by the branch is blocking or to fix, so the verdict is pass."
+ }
+]
