@@ -39,7 +39,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
   <img src=".github/assets/demo.gif" alt="Pi-495 in Pi's terminal: /495 start adds freeMinutes(busy) to a small TypeScript project tested by vitest, with coverage and Stryker; a line under the editor shows the working agent's context; the change is accepted on its first attempt, the steps Scoping to Acceptance passed, with its unit, coverage and mutation checks passing; /495 review opens each of the three changed files beside the tree, each line signed, numbered and coloured as Pi draws its own edits, with a line saying how many lines are not shown between two distant portions; /495 report lists what was asked, measured, concluded and what remains uncertain." width="900">
 </p>
 
-<p align="center"><em>A real run in Pi's terminal: Claude Sonnet 5.5 adds <code>freeMinutes(busy)</code> to a small TypeScript project tested by vitest. The checks are frozen before the code exists, and the change is accepted on their result: tests, coverage and mutation. The 79 s the agents worked are played in 15 s.</em></p>
+<p align="center"><em>A real run in Pi's terminal: Claude Sonnet 5.5 adds <code>freeMinutes(busy)</code> to a small TypeScript project tested by vitest. The checks are frozen before the code exists, and the change is accepted on their result: tests, coverage and mutation. The change took about 98 s, 50 of them by the agents; the 79 s spent waiting for it are played in 15 s.</em></p>
 
 
 <details>
@@ -52,7 +52,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 
 ## Quick start
 
-You need **Node.js 24+**, **Pi 1.0**, **Git**, and **macOS on Apple Silicon**. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
+You need **Node.js 24+**, **Pi 1.0.4** or later, **Git**, and **macOS on Apple Silicon**. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
 
 ### 1. Install the extension
 
@@ -91,7 +91,7 @@ Configure and authenticate your model in Pi, select it with `/model`, then enter
 /495 start add a retry with backoff to the upload client
 ```
 
-495 advances through specification, verification design, implementation and checks. It stops when it needs a decision or cannot proceed, and records the reason.
+495 advances through Scoping, Specification, Qualification, Design, Implementation and Acceptance. It stops when it needs a decision or cannot proceed, and records the reason.
 
 | Next action | Command |
 | --- | --- |
@@ -114,11 +114,11 @@ Integration is disabled by default. To allow it, set `policy.integration_enabled
 | 🚦 **Evidence gates** | Controls must first demonstrate a passing case, a failing case and a tool failure. The kernel computes acceptance from recorded evidence and the configured review policy. |
 | 🧩 **Context engineering** | Each intervention receives role-specific instructions, adopted artifacts, an explicit output schema and bounded feedback. Context manifests are recorded for inspection. |
 | ⚖️ **Regression-aware verification** | Compare the candidate with the reference to distinguish introduced regressions from inherited findings, under a frozen tolerance policy. |
-| 🧬 **Coverage, mutation testing and architecture checks** | Measure the coverage of the lines a change introduces and the mutants that survive on them: on Maven with JaCoCo and PIT, on Node with the runner's LCOV report and Stryker. On Maven, also check declared Java import boundaries. |
+| 🧬 **Coverage, mutation testing and architecture checks** | Measure the coverage of the lines a change introduces and the mutants that survive on them: on Maven with JaCoCo and PIT, on Node with the runner's LCOV report and, under `node --test` or vitest, Stryker. On Maven, also check declared Java import boundaries. |
 | 🔎 **Project surveys** | `/495 state` runs the checks on the project as it stands, without changing it. The survey gives each requirement its verdicts, each finding its file, and each unmeasured area a named blind spot; you accept or refuse it. |
 | 📏 **Quality referentials and trajectories** | When a survey asks about code quality that no check measures, 495 offers a referential for complexity, duplication and dead code: PMD and CPD on Maven, ESLint and jscpd on Node. Adopted, it is installed in a copy, never in your project. A trajectory you write turns the measured gaps into increments, and `/495 measure` judges each milestone on a new survey. |
 | 🛡️ **Sandboxed execution** | Work happens in isolated copies, with phase-specific permissions and Seatbelt confinement. An unavailable required isolation capability blocks execution. |
-| 👀 **Human-in-the-loop review** | Inspect the file tree and candidate content in the terminal, open highlighted diffs, and record human decisions with their origin. |
+| 👀 **Human-in-the-loop review** | Inspect the file tree in the terminal with each change drawn beside it as Pi draws its own edits, using your Pi keybindings, and record human decisions with their origin. |
 | ⏯️ **Resumable workflows** | Pause and resume a change. Bound attempts, intervention duration and tool calls; eligible interrupted producers continue on their existing workspace. |
 | 🔗 **Verifiable audit trail** | Keep artifacts, evidence and hash-chained events. Export a dossier with an offline integrity verifier that runs with Node alone. |
 | 🤖 **Local and hosted models** | Use the model selected in Pi, subject to authentication and capability checks. No silent model substitution. |
@@ -170,10 +170,10 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 
 | Area | Current scope |
 | --- | --- |
-| **Host** | Pi 1.0; Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
+| **Host** | Pi 1.0.4 or later (qualified on 1.0.4); Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
 | **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
 | **Java / Maven** | Tests run by Surefire. Coverage of introduced lines (JaCoCo) and mutation testing (PIT) when the project declares the required reports; a project without JaCoCo is recommended it, and once you adopt it, its plugin declaration is inserted into the candidate's `pom.xml`. Structural checks derived from supported Maven and Java declarations. A survey can adopt a quality referential for complexity, duplication and dead code (PMD and CPD), and tells generated code apart by its `@Generated` annotations. Maven verification uses offline mode; resolving an adopted plugin opens the network for that step alone. |
-| **Node** | Tests run by `scripts.test` with `node --test` (or absent), or with `vitest`, `mocha` or `jest` without an argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. Coverage of the lines a change introduces, when the target asks for it (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed), read from the LCOV report of the run; otherwise coverage is not measured and the report says so. Mutation testing of the lines a change introduces, when the target installed Stryker (`@stryker-mutator/core`), read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it. A survey of a target locked by `package-lock.json` can adopt a quality referential for complexity and dead code (ESLint) and duplication (jscpd); TypeScript and JSX sources are not measured for complexity and dead code. |
+| **Node** | Tests run by `scripts.test` with `node --test` (or absent), or with `vitest` or `vitest run`, `mocha` or `jest` without any other argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. Coverage of the lines a change introduces, when the target asks for it (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed), read from the LCOV report of the run; otherwise coverage is not measured and the report says so. Mutation testing of the lines a change introduces, under `node --test` or vitest, when the target installed Stryker (`@stryker-mutator/core`), read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it; under mocha or jest, mutation is not measured. A survey of a target locked by `package-lock.json` can adopt a quality referential for complexity and dead code (ESLint) and duplication (jscpd); TypeScript and JSX sources are not measured for complexity and dead code. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
 | **Models** | Models configured and authenticated in Pi, including local OpenAI-compatible endpoints with working tool calls. Provider and subscription availability follow Pi and the provider. |
 
@@ -223,7 +223,7 @@ See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and
 | `/495 status` | Show phase, gates, attempts, evidence and next action. |
 | `/495 resume` | Resume from the recorded state. |
 | `/495 decide` | Present and answer pending human decisions. |
-| `/495 review [path\|cand_id]` | Inspect the candidate in the TUI, or obtain a text summary on other surfaces. |
+| `/495 review [path\|cand_id]` | Inspect the candidate in the TUI, or obtain a text summary on other surfaces; `cand_id` picks the candidate everywhere, `path` the file of the text summary. |
 | `/495 report` | Read observations, judgments and residual risks. |
 | `/495 verify` | Rerun the frozen controls on the frozen candidate. |
 | `/495 integrate` | Request authorized local integration after acceptance. |
@@ -231,9 +231,10 @@ See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and
 | `/495 pause` | Pause the current work. |
 | `/495 close <question>` | Declare a material question no longer material when the specification stops without its answer. |
 | `/495 revoke <question>` | Revoke your answer to a material question, or its close, until the candidate is accepted: the question is asked again and nothing adopted since stays adopted. |
-| `/495 cancel` | Cancel the change while retaining its dossier. |
+| `/495 cancel [reason]` | Cancel the change while retaining its dossier. |
 | `/495 bind [change_id]` | List open changes or bind the session to one. |
 | `/495 unbind` | Release the session binding. |
+| `/495 help` | List the commands and the version of 495. |
 
 The conversational `harness495` tool can request status, pending decisions, review summaries, reports, verification, export and start. It cannot adopt artifacts, make human decisions or integrate a change.
 
@@ -244,7 +245,7 @@ The conversational `harness495` tool can request status, pending decisions, revi
 
 Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, otherwise `~/.495`. Workspaces default to `~/.495/workspaces`; set `$HARNESS495_WORKSPACES_DIR` to move them.
 
-`config.json` is optional, and so is each setting in it. The file below holds every setting at its default value. Durations are in milliseconds.
+`config.json` is optional, and so is each setting in it. The file below holds every behavioural setting at its default value; `policy.policy_id` and `policy.revision` only identify the policy. Durations are in milliseconds.
 
 ```json
 {
