@@ -1,6 +1,6 @@
 # D-75: Une technologie s'ajoute par un seul module
 
-**Status:** Acceptée
+**Status:** Acceptée ; point 3 amendé par `D-86`
 **Date:** 2026-09-30
 
 ## Contexte
