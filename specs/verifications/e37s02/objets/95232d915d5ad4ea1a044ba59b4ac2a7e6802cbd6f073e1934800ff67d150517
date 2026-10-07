@@ -1,0 +1,42 @@
+TAP version 13
+# Subtest: the same missing capability gets the same words in every technology
+    # Subtest: given a Maven project with neither JaCoCo nor a mutation engine and a Node project under node --test with neither coverage nor Stryker, then each names its missing coverage and mutation by the common phrase followed by its reason, and the Node project names the structure it does not offer
+    not ok 1 - given a Maven project with neither JaCoCo nor a mutation engine and a Node project under node --test with neither coverage nor Stryker, then each names its missing coverage and mutation by the common phrase followed by its reason, and the Node project names the structure it does not offer
+      ---
+      duration_ms: 4.6315
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gUFupE/test/v1-adapters/blind-spot-wording.test.ts:28:2'
+      failureType: 'testCodeFailure'
+      error: 'no blind spot starts with "the coverage of the introduced lines is not measured on this target: ": no JaCoCo report bound outside a profile: the coverage of the introduced lines is not measured on this target (QLT-04) | no mutation engine declared outside a profile: whether a test would notice a change to the introduced lines is not observed on this target (VER-04) | no two modules of this reactor lay out package roots that could be opposed to each other: no dependency direction between modules is checked on this target (CON-03)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        reasonAfter (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gUFupE/test/v1-adapters/blind-spot-wording.test.ts:21:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gUFupE/test/v1-adapters/blind-spot-wording.test.ts:40:16)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the same missing capability gets the same words in every technology
+  ---
+  duration_ms: 4.985541
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gUFupE/test/v1-adapters/blind-spot-wording.test.ts:27:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 248.287917

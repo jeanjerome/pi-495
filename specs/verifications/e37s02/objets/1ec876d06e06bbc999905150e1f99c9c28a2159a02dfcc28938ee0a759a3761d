@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: a technology reads the project through a view bounded to the copy
+    # Subtest: given a project whose pom.xml is a link to a file outside the copy that declares outside-module, when its technology is detected, then no control is declared, no fact names outside-module, and the blind spot names pom.xml as escaping the copy
+    not ok 1 - given a project whose pom.xml is a link to a file outside the copy that declares outside-module, when its technology is detected, then no control is declared, no fact names outside-module, and the blind spot names pom.xml as escaping the copy
+      ---
+      duration_ms: 3.104375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ElnfCU/test/v1-adapters/project-view.test.ts:22:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + [
+        +   'maven-test',
+        +   'structure'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'maven-test'
+        1: 'structure'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ElnfCU/test/v1-adapters/project-view.test.ts:30:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a technology reads the project through a view bounded to the copy
+  ---
+  duration_ms: 3.456458
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ElnfCU/test/v1-adapters/project-view.test.ts:21:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 246.013417
