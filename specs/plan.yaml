@@ -568,6 +568,50 @@ epics:
       - { id: e28s14, status: "versée", title: "Un rapport JUnit au-delà de la borne de lecture n'est pas lu" }
       - { id: e28s15, status: "versée", title: "Les lignes sautées entre deux portions d'une modification sont annoncées" }
 
+  - id: e33
+    title: "Checkstyle et SpotBugs s'ajoutent au référentiel d'une cible Maven"
+    status: à faire
+    objet: >
+      Le référentiel de qualité d'une cible Maven mesure, au-delà de PMD et CPD, le style par Checkstyle et
+      les défauts probables par SpotBugs, chaque règle avec son oracle, comme les règles de `e10`.
+    position: >
+      Inscrit le 2026-10-07 à la demande du propriétaire, pour que la feuille de route du README ne promette
+      rien que le plan ne porte. `e10` les avait écartés au départ ; aucune story n'est écrite.
+    stories: []
+
+  - id: e34
+    title: "La complexité et le code mort se mesurent dans les sources TypeScript d'une cible Node"
+    status: à faire
+    objet: >
+      Le référentiel d'une cible Node mesure la complexité et le code mort des sources TypeScript et JSX,
+      aujourd'hui hors de son périmètre, et la complexité cognitive en plus de la complexité cyclomatique.
+    position: >
+      Inscrit le 2026-10-07 à la demande du propriétaire, avec la feuille de route du README ; aucune story
+      n'est écrite.
+    stories: []
+
+  - id: e35
+    title: "495 s'exécute qualifié sous Linux"
+    status: à faire
+    objet: >
+      Le bac à sable `bubblewrap` est qualifié comme Seatbelt l'est sous macOS, et un changement se conduit de
+      bout en bout sur une machine Linux de référence.
+    position: >
+      Inscrit le 2026-10-07 à la demande du propriétaire, avec la feuille de route du README. La machine de
+      référence reste macOS arm64 tant que l'epic n'est pas engagé ; aucune story n'est écrite.
+    stories: []
+
+  - id: e36
+    title: "Les tests par propriétés et le fuzzing vérifient un changement"
+    status: à faire
+    objet: >
+      Un changement peut être vérifié par des tests par propriétés et par du fuzzing, qualifiés comme les
+      autres contrôles avant de faire autorité.
+    position: >
+      Inscrit le 2026-10-07 à la demande du propriétaire, avec la feuille de route du README ; aucune story
+      n'est écrite.
+    stories: []
+
 # Chantier mené en parallèle, hors de l'ordre ci-dessus : la communication autour de pi-495,
 # activée par le propriétaire aux moments clés. Son plan, ses règles et ses mesures sont sous
 # specs/communication/.

@@ -200,9 +200,9 @@ The direction is a broader engineering workflow: understand an existing codebase
 | 🏗️ **Architecture assessment and migration** | Diagnose the current architecture, justify a target and plan reversible migration steps. |
 | 🔍 **Brownfield verification** | Audit what existing tests assert, add characterization tests and strengthen verification as increments progress. |
 | 📚 **Documentation grounding** | Retrieve version-matched sources with provenance, then validate important API uses through compilation, examples or contract tests. |
-| 🧩 **Adaptive context engineering** | Assemble versioned skills, prompt templates and documentation by role, phase and model capability; observe provider-imposed instructions. |
+| 🧩 **Adaptive context engineering** | Assemble versioned skills, prompt templates and documentation by role, phase and model capability. |
 | 🧭 **Risk-guided engineering** | Route relevant risks to rules, experiments, specialist reviews or human decisions; record consequential choices and evaluate outcomes. |
-| 🛠️ **Workflow and onboarding** | Improve recovery from rejected outputs, unsupported test commands, incomplete verification and session conflicts; recalibrate budgets for hosted models. |
+| 🛠️ **Workflow and onboarding** | Improve recovery from incomplete verification. |
 
 **Further qualification and deferred work:** Linux execution, additional advanced testing methods such as property-based testing and fuzzing, and indexed documentation retrieval with corpus maintenance. These require further work and qualification; no release date is implied.
 
