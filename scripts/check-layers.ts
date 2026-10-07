@@ -38,7 +38,7 @@ const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
 		forbidden: [
 			/\.\.\/(extension|adapters)\//,
 			/\.\.\/\.\.\/(extension|adapters)\//,
-			/@earendil-works\/(?!pi-tui["'\/])/,
+			/@earendil-works\/(?!pi-tui["'/])/,
 		],
 	},
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
