@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: a complement brought by the package manager of a technology 495 does not carry
+    # Subtest: un état des lieux d'un projet fictif, dont la technologie apporte fict-style 1.0.0 par fictpm, reçoit une décision IH-04 dont l'issue d'adoption porte la phrase de la technologie fictive ; adoptée, le protocole gelé porte le référentiel daté de la décision et le contrôle fict-style, les compléments adoptés sont les fichiers de fict_modules/fict-style/, et le digest du projet n'a pas changé
+    not ok 1 - un état des lieux d'un projet fictif, dont la technologie apporte fict-style 1.0.0 par fictpm, reçoit une décision IH-04 dont l'issue d'adoption porte la phrase de la technologie fictive ; adoptée, le protocole gelé porte le référentiel daté de la décision et le contrôle fict-style, les compléments adoptés sont les fichiers de fict_modules/fict-style/, et le digest du projet n'a pas changé
+      ---
+      duration_ms: 300.414
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-lC4VjA/test/v2-kernel/fictitious-install.test.ts:304:2'
+      failureType: 'testCodeFailure'
+      error: 'an IH-04 decision proposes to adopt the referential: pending: IH-10; blind spots: blind spot: the proposed quality referential cannot be adopted on this target: fict-style cannot be declared in its build without ambiguity'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-lC4VjA/test/v2-kernel/fictitious-install.test.ts:317:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a complement brought by the package manager of a technology 495 does not carry
+  ---
+  duration_ms: 301.029
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-lC4VjA/test/v2-kernel/fictitious-install.test.ts:303:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 551.622708

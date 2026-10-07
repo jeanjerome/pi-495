@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité : la copie est listée avant et après l'installation avec les dépendances installées que la technologie déclare, et non plus avec node_modules écrit en dur",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 325,
+    "constat": "Le code tient la promesse : `bringInstalls` liste la copie avec le répertoire que `installerOf` lit dans la technologie (`fict_modules` pour la technologie fictive). Mais aucun test ne la tient. En remettant `node_modules` écrit en dur comme avant la branche, v1, v2 et v3 restent verts (833 tests, 0 échec), parce que les fichiers que fictpm écrit sont petits et ne passent sous aucun répertoire exclu. Pour npm la valeur est la même dans les deux cas, et Maven ne passe pas par ce chemin.",
+    "mutation": "`installed_dependencies: [...installer.installed_dependencies]` remplacé par `installed_dependencies: [\"node_modules\"]` : fictitious-install.test.ts et toutes les générations v1 à v3 restent vertes."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/complement-presentation.test.ts",
+    "ligne": 107,
+    "constat": "Les écarts A1-1 et B1-1 sont fermés. Le nouveau test fige mot pour mot le libellé et l'effet de l'option d'adoption, en français et en anglais, pour le complément Maven avec dépôt local, npm et Maven ensemble, et les deux référentiels. Chaque mutation d'une phrase de NPM_PHRASES, des phrases Maven ou de la partie générique (« rien n'est écrit dans le projet ») le fait échouer.",
+    "mutation": "« sans rien modifier de ce qui existait » → « sans modifier ce qui existait » ; « as exact development dependencies » → « as development dependencies » ; « installe ${names} dans une copie » → « installe ${names} » ; « aucun but du greffon » → « le greffon » ; ` (${directory})` retiré : le test échoue chaque fois."
+   },
+   {
+    "id": "A2-3",
+    "scenario": "Le gestionnaire d'une technologie ne lit que ses variables et n'écrit hors de la copie que là où il l'a dit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/installation.test.ts",
+    "ligne": 594,
+    "constat": "Les écarts A1-2, A1-3, B1-2 et B1-3 sont fermés. Le nouveau test fixe la liste fermée des variables de npm et de Maven, préfixe npm_config_ compris quelle que soit la casse. Un autre nouveau test vérifie qu'une technologie sans requête n'écrit que dans la copie. Côté fictif, la requête tourne réseau fermé et sans chemin inscriptible, l'installation n'écrit que dans la copie et fict-store, et NPM_TOKEN ne lui parvient pas : chacun de ces points fait échouer un test quand on le mute.",
+    "mutation": "préfixe npm_config_ retiré, NPM_TOKEN retiré, JAVA_HOME retiré de MAVEN_ENV_NAMES, toLowerCase retiré, `/tmp` ajouté aux chemins inscriptibles sans requête ou avec requête, requête passée à \"allowed\" ou à [copyPath], AWS_SECRET_ACCESS_KEY ou NPM_TOKEN ajouté à managerEnv, requête sans répertoire ignorée : un test échoue chaque fois."
+   }
+  ],
+  "resume": "Les tests ajoutés depuis le tour 1 ferment les écarts A1-1 à A1-3 et B1-1 à B1-3 : chaque mutation des phrases, des listes de variables et des chemins inscriptibles fait échouer un test. Les autres promesses sont tenues par du code et par des tests, vérifiés par mutation : l'apport fictif, le refus par l'inspection qui nomme src/greeting.txt, la règle des couches, le contrat ouvert et le gestionnaire inconnu. Reste un écart : le listage de la copie par les dépendances installées que déclare la technologie, promis dans la section Sécurité, n'est tenu par aucun test. Remettre node_modules en dur laisse v1 à v3 verts. C'est à corriger et introduit par la branche, d'où le verdict fail."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Tour 2, relecteur B : aucun constat. Le code tient les cinq scénarios et la section Sécurité, et chacun fait rougir au moins un test quand on le mute. Chaque mutation a été remise en place, et l'arbre est propre en dehors de node_modules.\n\nLes trois manques signalés au tour 1 sont maintenant couverts par des tests :\n- **Libellés et effets IH-04 (A1-1, B1-1).** Le nouveau test complement-presentation fige ces textes mot pour mot, en français et en anglais. Il échoue sur huit phrases mutées : référentielInspected et complementInspected de npm, « comme dépendances de développement exactes », le libellé du référentiel npm, runsNothing de Maven en français, complementLabel de Maven en anglais, « dans une copie du POM ».\n- **Variables reçues par npm et Maven (A1-2, B1-2).** Le nouveau test échoue si l'on retire le préfixe npm_config_, si le préfixe devient sensible à la casse, ou si l'on retire JAVA_HOME.\n- **Technologie sans requête (A1-3, B1-3).** Le nouveau test échoue si l'installation reçoit un chemin inscriptible de plus que la copie.\n\nLes autres promesses tiennent aussi sous mutation :\n- **Technologie fictive.** Le test v2 fictitious-install échoue si l'on accepte malgré le refus de l'inspection, si la requête tourne réseau ouvert ou avec la copie inscriptible, si l'on retire le répertoire fict-store, ou si l'on ignore les noms de variables déclarés par la technologie.\n- **Règle des couches.** Le test layer-rule échoue si runtime.ts n'est plus exempté, ou si la vérification ne s'applique plus qu'aux modules hors des technologies.\n- **Gestionnaire inconnu.** Une recommandation dont aucune technologie ne déclare le gestionnaire reste non installable et dit pourquoi ; le test échoue si l'on retire ce cas.\n- **Contrat ouvert.** Remettre une liste fermée de noms fait échouer open-install-contract. Ce test lit le contrat publié, si bien que retirer seulement la longueur minimale dans src ne le fait pas rougir ; le contrôle de dérive des contrats de la Preflight devrait l'attraper, je ne l'ai pas vérifié.\n- **Listage avec les dépendances installées déclarées.** Vider cette liste dans bringInstalls laisse verts les 204 tests v1/v2 concernés, et c'était déjà vrai avant la branche. En revanche le test v4 node-quality-install rougit, car le binaire natif de jscpd dépasse 8 Mio et la copie ne peut plus être listée en entier. Ce test fait partie de npm test, donc la promesse est tenue.\n\nB1-4 n'est pas recompté, et BUG-2026-10-07T230000 est déjà une entrée ouverte du registre."
+ }
+]

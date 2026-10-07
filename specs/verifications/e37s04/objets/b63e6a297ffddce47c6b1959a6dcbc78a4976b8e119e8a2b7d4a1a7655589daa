@@ -1,0 +1,93 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/install/npm-phrases.ts",
+    "ligne": 6,
+    "constat": "Le code tient la promesse : une sonde jetable compare les options IH-04 rendues avant (45980c7c) et après la branche, pour le complément npm, le complément Maven avec et sans dépôt local, la modification seule et les deux référentiels, en français et en anglais, et les trouve identiques octet pour octet. Mais aucun test ne fige ces libellés et ces effets : seuls quelques fragments sont vérifiés (« sans exécuter de script d'installation », « réseau ouvert pour cette seule étape », le dépôt local de Maven). La plupart des phrases que la branche a déplacées dans NPM_PHRASES et MAVEN_PHRASES peuvent changer sans qu'aucun test ne rougisse.",
+    "mutation": "Mutations appliquées ensemble, suite entière verte (1267 réussis, 0 échec) : complementLabel en de npm `installs X`→`adds X`, complementDoes fr de npm sans « du projet », referentialInspected en de npm réduit à package.json, referentialLabel fr de Maven `déclare X dans une copie du POM et le résout`→`résout X`, referentialDoes en de Maven réduit, title `Maven`→`mvn`. Ont aussi survécu, sur les quatre fichiers v2 concernés : complementInspected fr de npm, runsNothing en de npm, complementInspected en de Maven."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant (profils d'exécution) ; Sécurité : npm garde NPM_ENV_NAMES et le préfixe npm_config_",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/install/npm-install.ts",
+    "ligne": 209,
+    "constat": "Le code tient la promesse : une sonde compare runInstall avant et après la branche, pour npm et pour Maven, avec un succès, des échecs, avec et sans répertoire déjà connu. La liste des variables, préfixe npm_config_ compris quelle que soit la casse, est identique, tout comme le réseau, les chemins inscriptibles et la raison d'un échec. Mais aucun test ne tient les variables que npm reçoit : on peut retirer une variable de NPM_ENV_NAMES ou le préfixe npm_config_ sans qu'aucun test ne rougisse. Les variables de Maven, elles, sont tenues par le test de plateforme sur le dépôt local hors ligne.",
+    "mutation": "Retrait de `\"NPM_TOKEN\"` de NPM_ENV_NAMES et `prefixes: [\"npm_config_\"]`→`prefixes: []`, ensemble : suite entière, le seul test rouge est maven-quality-offline, causé par la troisième mutation appliquée en même temps (retrait de MAVEN_ARGS). Aucun test npm ne rougit. `name.toLowerCase().startsWith(p)`→`name.startsWith(p)` dans managerEnv survit aussi sur les fichiers d'installation."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Sécurité : une technologie qui ne déclare aucune requête n'écrit que dans la copie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 150,
+    "constat": "Le code tient la promesse : sans outside_write, runInstall garde `writable = [copyPath]`. Mais ce chemin est nouveau (avant la branche, un gestionnaire sans requête échouait) et aucun test ne l'emprunte : npm, Maven et fictpm déclarent tous une requête. Un chemin inscriptible de plus pour une technologie sans requête passe donc sans qu'aucun test ne rougisse.",
+    "mutation": "`let writable = [copyPath];`→`let writable = [copyPath, \"/tmp\"];` : suite entière verte (1267 réussis, 0 échec)."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant (raisons d'un refus)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/installation.ts",
+    "ligne": 332,
+    "constat": "Une résolution Maven liste sa copie avec la politique sans exclusion : un fichier écrit sous target/ est donc refusé comme tout autre changement. Le code le tient comme avant la branche, mais aucun test ne tient cette liste sans exclusion. La ligne est reprise telle quelle de l'ancien resolveInCopy.",
+    "mutation": "`const whole = { ...deps.workspacePolicy, exclusions: [] };`→`const whole = deps.workspacePolicy;` : suite entière verte."
+   }
+  ],
+  "resume": "J'ai relu les cinq scénarios et la section sécurité de e37s04, avec 50 mutations environ (perl, remises en place, arbre propre) et deux sondes jetables qui comparent la révision de base 45980c7c et d2410294.\n\nLe code tient toutes les promesses que j'ai pu vérifier. Les tests tiennent les scénarios 1, 2, 3 et 5. Chacune de ces mutations a fait échouer un test : phrase du référentiel fictif, « réseau ouvert pour cette seule étape », « rien n'est écrit dans le projet », date de la décision, fichiers adoptés sous fict_modules, inspection ignorée, raison de l'angle mort, réseau et chemins inscriptibles de la requête et de l'installation, FICTPM_TOKEN, NPM_TOKEN et JAVA_HOME, racine de composition, technologies croisées, nom du module et de l'import.\n\nD'autres promesses de sécurité sont aussi tenues par un test : requête qui ne nomme aucun répertoire, gestionnaire qu'aucune technologie ne lance, répertoire conservé non établi, contrat ouvert à toute chaîne non vide, et liste de la copie avec les dépendances installées (tenue par l'installation npm réelle).\n\nPour le scénario 4, les sondes montrent que les options IH-04 de npm et de Maven, en français et en anglais, sont identiques octet pour octet avant et après la branche. Les commandes, profils, inspections npm et raisons d'échec le sont aussi. Mais aucun test ne fige la plupart de ces phrases (A1-1), ni les variables que npm reçoit (A1-2). La garantie qu'une technologie sans requête n'écrit que dans la copie n'est tenue par aucun test (A1-3). Ces trois constats sont introduits et à corriger, d'où le verdict fail. A1-4 est antérieur, à peser.\n\nHors constat : le changement de raison « no edit of pom.xml » → « no file edit » est inatteignable, car une installation Maven porte toujours sa modification (withPluginEdit). Je n'ai pas lancé les deux campagnes de référence du scénario 4 : elles relèvent de la recette."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/install/npm-phrases.ts",
+    "ligne": 19,
+    "constat": "Le code tient la promesse : une sonde jetable a comparé les options IH-04 du `decisions.ts` de 45980c7c à celles de la branche, pour sept cas en français et en anglais (complément npm, complément Maven avec et sans dépôt local, npm plus Maven, modification seule, référentiel npm, référentiel Maven), et n'a trouvé aucun écart. Aucun test ne tient pourtant « les mêmes libellés et les mêmes effets qu'avant » : les phrases vivent maintenant dans des modules propres à chaque technologie, la branche les y a écrites, et seules quelques-unes sont vérifiées (la phrase npm en français, la mention du dépôt local Maven).",
+    "mutation": "npm-phrases.ts:19, `running no install script` changé en `running install scripts` ; maven-install.ts, `sans exécuter aucun but du greffon` changé en `en exécutant les buts` ; npm-phrases.ts, la phrase anglaise referentialInspected ; maven-install.ts, la phrase française complementInspected. Sur les 76 tests des fichiers d'installation, d'IH-04 et d'adoption du référentiel, les quatre mutations restent vertes, et `grep` ne trouve ces phrases dans aucun fichier sous test/."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant (profils d'exécution) ; Sécurité (liste fermée de variables)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 84,
+    "constat": "`managerEnv` est nouveau. Il lit les préfixes que déclare la technologie, sans tenir compte de la casse, et sert pour npm, pour Maven et pour toute autre technologie. Le code donne la même liste qu'avant. Mais aucun test ne vérifie la liste de variables du profil d'installation pour npm ou Maven : on peut retirer le préfixe `npm_config_`, `NPM_TOKEN` ou `JAVA_HOME`, tout reste vert, y compris les tests v4 qui lancent un vrai npm et un vrai Maven. Le test de la technologie fictive ne déclare aucun préfixe.",
+    "mutation": "installation.ts:85, `...prefixed` retiré du retour : les 76 tests et les deux tests v4 (node-quality-install, maven-quality-offline) restent verts. `NPM_TOKEN` retiré de NPM_ENV_NAMES et `JAVA_HOME` retiré de MAVEN_ENV_NAMES : les 76 tests restent verts. En contrôle, retirer `MAVEN_ARGS` fait bien échouer maven-quality-offline en v4."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Sécurité : une technologie qui ne déclare aucune requête n'écrit que dans la copie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 150,
+    "constat": "Ce chemin est nouveau : avant la branche, un gestionnaire sans requête faisait échouer l'installation. Maintenant il tourne avec la copie pour seul chemin inscriptible. Le code le tient, mais aucun test ne fait tourner une installation dont la technologie ne déclare pas `outside_write`. npm, Maven et fictpm en déclarent tous une.",
+    "mutation": "installation.ts:150, `let writable = [copyPath]` changé en `let writable = [copyPath, \"/\"]` : les 76 tests restent verts."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Les compléments de Node et de Maven s'apportent et se présentent comme avant (raisons d'un refus)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/installation.ts",
+    "ligne": 327,
+    "constat": "La raison donnée quand une résolution n'a pas de modification à appliquer passe de « the recommendation carries no edit of pom.xml to resolve » à « the recommendation carries no file edit to resolve with ». Le cas est aujourd'hui inatteignable : `withPluginEdit` ne pose une installation Maven qu'avec sa modification, et `bringingOf` exige cette modification. Aucun propriétaire ne lit donc cette phrase."
+   }
+  ],
+  "resume": "Relecteur B, tour 1 : verdict « fail ». Le code tient les cinq scénarios, mais trois promesses de la story ne sont tenues par aucun test.\n\nCe qui tient :\n- Les scénarios 1 à 3 sur la technologie fictive sont tenus par test/v2-kernel/fictitious-install.test.ts. Huit mutations y ont échoué comme attendu : phrase de la technologie retirée, fichiers adoptés tronqués, refus de l'inspection ignoré, requête lancée réseau ouvert ou avec un chemin inscriptible, magasin `fict-store` retiré des chemins inscriptibles, variables propres à la technologie retirées, installation lancée réseau fermé.\n- Le scénario 5 est tenu par test/v0-pure/layer-rule.test.ts : quatre mutations de scripts/check-layers.ts y ont échoué.\n- Restent tenus aussi :\n  - l'échec quand la requête ne nomme aucun répertoire ;\n  - la raison donnée pour un gestionnaire inconnu ;\n  - la sortie d'erreur Maven ;\n  - la phrase « Maven's local repository could not be established » ;\n  - la lecture entière des dépendances installées (tenue par le test v4 qui lance un vrai npm) ;\n  - la variable `MAVEN_ARGS` (tenue par le test v4 qui lance un vrai Maven).\n- Le scénario 4 est tenu par le code : une sonde jetable n'a trouvé aucun écart entre les textes IH-04 d'avant et d'après la branche, en français et en anglais, sur sept cas npm et Maven.\n\nÀ corriger (introduit) :\n- B1-1 : aucun test ne compare les libellés et effets IH-04 à ceux d'avant. Quatre phrases npm et Maven, mutées, laissent les 76 tests verts.\n- B1-2 : aucun test ne vérifie les variables du profil d'installation npm et Maven. Retirer le préfixe `npm_config_` (nouveau code de `managerEnv`), `NPM_TOKEN` ou `JAVA_HOME` laisse tout vert, tests v4 compris.\n- B1-3 : aucun test ne couvre une technologie sans requête, qui ne doit écrire que dans la copie. C'est un chemin nouveau.\n\nÀ peser :\n- B1-4 : la raison donnée quand une résolution n'a pas de modification a changé de texte, mais le cas est inatteignable.\n\nLa seconde campagne de référence relève de la recette, pas de cette relecture. Le dépôt a été vérifié propre après chaque mutation."
+ }
+]

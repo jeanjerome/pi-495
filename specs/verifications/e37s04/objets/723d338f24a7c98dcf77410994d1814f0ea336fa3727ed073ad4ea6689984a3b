@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: the layer rule reads every import of a file
+    # Subtest: refuses an import spread over several lines across a layer, naming the module
+    ok 1 - refuses an import spread over several lines across a layer, naming the module
+      ---
+      duration_ms: 61.2995
+      type: 'test'
+      ...
+    # Subtest: refuses an import kept for its side effects across a layer, naming the module
+    ok 2 - refuses an import kept for its side effects across a layer, naming the module
+      ---
+      duration_ms: 59.510583
+      type: 'test'
+      ...
+    # Subtest: refuses a dynamic import across a layer, naming the module
+    ok 3 - refuses a dynamic import across a layer, naming the module
+      ---
+      duration_ms: 60.0905
+      type: 'test'
+      ...
+    # Subtest: refuses a re-export spread over several lines across a layer, naming the module
+    ok 4 - refuses a re-export spread over several lines across a layer, naming the module
+      ---
+      duration_ms: 59.454708
+      type: 'test'
+      ...
+    # Subtest: lets presentation import pi-tui, on one line or several
+    ok 5 - lets presentation import pi-tui, on one line or several
+      ---
+      duration_ms: 60.910041
+      type: 'test'
+      ...
+    1..5
+ok 1 - the layer rule reads every import of a file
+  ---
+  duration_ms: 301.821042
+  type: 'suite'
+  ...
+# Subtest: the layer rule keeps each technology to its own directory
+    # Subtest: la règle des couches refuse, en nommant le module et l'import, un module de src/adapters/execution/ qui importe ../stacks/node/node.ts, et un module de src/adapters/stacks/maven/ qui importe ../node/node.ts ; elle laisse passer src/extension/runtime.ts qui importe ../adapters/stacks/maven/maven.ts
+    not ok 1 - la règle des couches refuse, en nommant le module et l'import, un module de src/adapters/execution/ qui importe ../stacks/node/node.ts, et un module de src/adapters/stacks/maven/ qui importe ../node/node.ts ; elle laisse passer src/extension/runtime.ts qui importe ../adapters/stacks/maven/maven.ts
+      ---
+      duration_ms: 63.452166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w2Ig0v/test/v0-pure/layer-rule.test.ts:68:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        layer rules satisfied
+        
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w2Ig0v/test/v0-pure/layer-rule.test.ts:79:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 2 - the layer rule keeps each technology to its own directory
+  ---
+  duration_ms: 63.540125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w2Ig0v/test/v0-pure/layer-rule.test.ts:67:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 6
+# suites 2
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 448.912792
