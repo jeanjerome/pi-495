@@ -62,7 +62,7 @@ From npm:
 pi install npm:pi-495
 ```
 
-Pi installs the package and its dependencies under its own npm directory. `pi update npm:pi-495` moves it to the latest release; install `npm:pi-495@0.3.0` instead to pin a version.
+Pi installs the package and its dependencies under its own npm directory. `pi update npm:pi-495` moves it to the latest release; install `npm:pi-495@0.4.0` instead to pin a version.
 
 From the Git repository, in a directory where you keep your tools:
 
