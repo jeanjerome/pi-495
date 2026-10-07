@@ -1,0 +1,71 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sous un réseau refusé, la commande n'atteint qu'elle-même",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/sandbox-linux.test.ts",
+    "ligne": 122,
+    "constat": "Le test du réseau `allowed` vérifie que 127.0.0.1:9 répond `ECONNREFUSED`, ce qui est écrit dans le Then, mais il ne peut pas distinguer un réseau ouvert d'un réseau coupé. bwrap active une interface de bouclage dans son propre espace de noms réseau, donc le port local refuse la connexion dans les deux cas. La mutation ne fait échouer que les tests v4 qui installent pour de vrai sous le bac à sable avec le réseau ouvert (eslint/jscpd par npm, résolution PMD par Maven), et ces tests dépendent du registre.",
+    "mutation": "backends.ts:192 `if (profile.network !== \"allowed\") args.push(\"--unshare-net\")` → `if (true) …` : sandbox-linux.test.ts reste vert (7/7) ; node-quality-install.test.ts et maven-quality-offline.test.ts échouent sous Linux (EAI_AGAIN, résolution Maven en échec)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un vrai changement se conduit de bout en bout sous Linux",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagne.ts",
+    "ligne": 51,
+    "constat": "Aucun test ne vérifie cette promesse : la story en confie la vérification aux campagnes réelles `scripts/linux/campagne.sh npm|maven`, que cette relecture n'a pas lancées parce qu'elles utilisent le modèle de l'abonnement. Dans la campagne Maven, le choix de JAVA_HOME selon la plateforme n'est exercé que par cette exécution réelle, que la recette doit montrer."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La documentation dit Linux pris en charge, testé sous arm64",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "README.md",
+    "ligne": 36,
+    "constat": "À la lecture, la promesse est tenue : le badge, l'encart « Available today », les prérequis avec `bwrap`, la ligne Platform et le travail différé, qui ne cite plus Linux. Comme la tâche 3 le prévoit, aucun test ne vérifie ce texte."
+   }
+  ],
+  "resume": "Verdict : pass. Aucun constat bloquant ni à corriger ; trois constats à peser. Les tests Linux ont tourné dans une VM arm64 d'Apple container, sur l'image pi-495-linux. J'ai pris l'arbre à 45fd8d71, sans le node_modules lié.\n\n- **Suite entière sous Linux** : 1214 tests, 1208 réussis, 0 en échec, 6 sautés (Seatbelt réservé à macOS, Java non demandé). NO_QUALIFIED_SANDBOX vaut false, donc les parcours Pi tournent sous `bubblewrap` qualifié.\n- **Test de cette promesse** : en forçant le mode non confiné, test:v3 tombe sur « sandbox backend unconfined is not qualified ». Les parcours vérifient donc bien qu'ils tournent confinés.\n\nMutations de `backends.ts`, chacune attrapée par `sandbox-linux.test.ts` :\n- condition de sortie de la sonde : attrapée ;\n- plateforme `linux-<arch>` (ligne 152) : attrapée ;\n- `--ro-bind /` changé en `--bind` : l'écriture hors de `ws` et dans le répertoire personnel est attrapée ;\n- masque des chemins protégés retiré : l'écriture et les lectures de `secret`, directe ou par lien, sont attrapées ;\n- `--unshare-net` limité à `denied` : le cas `loopback` est attrapé ;\n- code ENOENT : attrapé ;\n- citation de la sortie d'erreur de bwrap : attrapée.\n\nLe refus « bubblewrap requires Linux » sur macOS est tenu par `sandbox.test.ts`, mutation essayée en local.\n\nLes trois points à peser :\n- **Réseau `allowed`** : son test ne distingue pas un réseau ouvert d'un réseau coupé. Couper le réseau à chaque fois ne fait échouer que les tests v4 d'installation réelle, qui dépendent du registre.\n- **Campagnes de référence Linux** : non lancées ici, elles reviennent à la recette.\n- **README** : il tient la promesse à la lecture, et aucun test ne le vérifie.\n\nL'arbre est revenu propre ; seul `node_modules` reste non suivi."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sans bwrap capable de confiner, le refus nomme ce qui manque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 160,
+    "constat": "Aucun test ne vérifie que la sonde de qualification demande à bwrap de créer ses espaces de noms. Le faux bwrap du test sort en 1 quels que soient ses arguments, et la VM réelle sait confiner. Si on remplace la sonde par `bwrap --version`, tous les tests restent verts, alors que sur une machine dont bwrap ne peut pas créer ses espaces de noms la qualification réussirait et le refus promis n'aurait pas lieu (c'est aussi ce que la section Sécurité promet).",
+    "mutation": "M9 : spawnSync(\"bwrap\", [\"--version\"]) au lieu de [...this.confinement({ write_paths: [], network: \"denied\" }), \"--\", \"true\"]. Dans la VM Linux, sandbox-linux.test.ts et sandbox.test.ts passent : 13 réussis, 0 échec."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sous un réseau refusé, la commande n'atteint qu'elle-même",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/sandbox-linux.test.ts",
+    "ligne": 121,
+    "constat": "Sous `allowed`, une connexion à 127.0.0.1:9 répond aussi `ECONNREFUSED` dans un espace de noms réseau privé, parce que bwrap y monte l'interface de bouclage. Le test tient la promesse telle qu'elle est écrite, mais il ne distingue pas `allowed` de `loopback`. Si on applique --unshare-net à tous les profils, aucun test n'échoue.",
+    "mutation": "M8 : `if (profile.network !== \"allowed\")` remplacé par `if (true)`. Dans la VM Linux, les 7 tests de sandbox-linux.test.ts passent."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La documentation dit Linux pris en charge, testé sous arm64",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "README.md",
+    "ligne": 120,
+    "constat": "La ligne « Sandboxed execution » du tableau des capacités ne nomme encore que le confinement par Seatbelt. Pourtant le badge, l'encart « Available today », les prérequis et la ligne « Platform » annoncent désormais bubblewrap sous Linux."
+   }
+  ],
+  "resume": "Verdict : fail. Le code tient les sept scénarios, mais un test manque sur un point que la branche introduit (B1-1).\n\nCe que j'ai fait :\n- J'ai relu le diff.\n- J'ai lancé les mutations dans une VM Linux arm64 (Apple container, image pi-495-linux), parce que les tests Linux sont sautés sous macOS.\n- J'ai lancé la suite entière sous Linux avec scripts/linux/test.sh : 1214 tests, 1208 réussis, 0 échec, 6 sautés. Les sautés sont réservés à Seatbelt ou à Java. Les parcours Pi tournent sous bubblewrap qualifié.\n\nLes mutations détectées par les tests :\n- refus de la sonde (M1) ;\n- plateforme sans architecture (M2) ;\n- branche ENOENT supprimée (M3) ;\n- stderr retiré du motif de refus (M4) ;\n- racine montée en écriture (M5) ;\n- chemins protégés non masqués (M6) ;\n- `loopback` sans espace de noms réseau (M7) ;\n- répertoire personnel accessible en écriture (M10) ;\n- jeton vitest retiré des chemins accessibles en écriture (M11) ;\n- refus « bubblewrap requires Linux » sous macOS (vérifié en local).\n\nSous une qualification refusée, les parcours v3-pi échouent (M12). La promesse « aucun rôle confiné refusé » est donc bien tenue par un test.\n\nLes constats :\n- B1-1 (à corriger, introduit) : si on remplace la sonde par `bwrap --version`, tous les tests restent verts. Aucun test ne vérifie que la qualification demande à bwrap de créer ses espaces de noms.\n- B1-2 (à peser) : sous `allowed`, le test ne distingue pas un réseau ouvert d'un réseau isolé.\n- B1-3 (à peser) : une ligne du README ne nomme encore que Seatbelt.\n\nPas lancées par moi : les campagnes npm et Maven (scripts/linux/campagne.sh), qui demandent l'abonnement et sont vérifiées à la main à la recette. J'ai seulement relu le changement de cycle/src/campagne.ts, où JAVA_HOME n'est fixé que sous macOS."
+ }
+]
