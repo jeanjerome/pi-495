@@ -431,7 +431,7 @@ epics:
       - { id: e37s01, status: "versée", title: "Une technologie fictive, déclarée dans un seul dossier avec son propre format de rapport, conduit un changement jusqu'à l'acceptation" }
       - { id: e37s02, status: "versée", title: "Un étage commun détecte la technologie d'un projet et lui demande chacune de ses capacités, qui répondent dans une même forme" }
       - { id: e37s03, status: "versée", title: "Ce qu'une technologie écarte de la copie, protège, transmet à ses contrôles et appelle un fichier de test est une capacité de son dossier" }
-      - { id: e37s04, status: "à faire", title: "Un complément s'installe ou se résout, s'inspecte et se présente au propriétaire par une capacité de sa technologie" }
+      - { id: e37s04, status: "versée", title: "Un complément s'installe ou se résout, s'inspecte et se présente au propriétaire par une capacité de sa technologie" }
       - { id: e37s05, status: "à faire", title: "Celui qui écrit une technologie dispose d'une interface publiée, d'un test de conformité et d'un exemple documenté" }
 
   - id: e11
