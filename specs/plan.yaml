@@ -390,7 +390,7 @@ epics:
       touche aucun contrat ; les identifiants suivent, avec la lecture des dossiers écrits avant.
     stories:
       - { id: e32s01, status: "versée", title: "Les étapes d'un changement se lisent sous leurs noms, du cadrage à l'intégration" }
-      - { id: e32s02, status: "à faire", title: "Les identifiants de phase portent le nom de l'étape, et un dossier écrit avant reste lisible" }
+      - { id: e32s02, status: "versée", title: "Les identifiants de phase portent le nom de l'étape, et un dossier écrit avant reste lisible" }
 
   - id: e11
     title: "Architecture cible d'une cible"
