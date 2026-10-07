@@ -1,9 +1,9 @@
 <p align="center">
-  <img src=".github/assets/banner.jpg" alt="Pi-495 — Spec-driven agentic development, inside Pi." width="720">
+  <img src=".github/assets/banner.jpg" alt="Pi-495 — Agent-powered. Engineering-driven." width="720">
 </p>
 
 <p align="center">
-  From your request to a verified change — with evidence at every gate.
+  Spec-driven workflows. Automated checks. Quality gates.
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
   <a href="specs/README.md">Documentation</a>
 </p>
 
-**Pi-495 is a Pi extension that turns a software request into a change you can inspect, verify and integrate.** It coordinates the AI work, defines how success will be checked before implementation, and runs those checks on the result. You review the changes and resolve decisions that need human judgment.
+**Pi-495 is a Pi extension that turns a software request into a change you can inspect, verify and integrate.** It writes your request down as a specification with observable acceptance criteria, freezes the checks that will judge it before any code exists, coordinates the agents that produce the change, and runs those checks on the result. Each step passes a gate on recorded evidence. You review the changes and resolve decisions that need human judgment.
 
 Use it to add behavior, fix a bug or refactor a supported project with an explicit record of what was requested, what changed and why it was accepted.
 
