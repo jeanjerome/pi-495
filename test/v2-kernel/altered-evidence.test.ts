@@ -152,7 +152,7 @@ describe("an altered piece of evidence a decision reads stops the change instead
 
 		assert.equal(result.stopped_because, "blocked", result.steps.join(" | "));
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.phase, "clarifying", "the change stops where the specification reports are reread");
+		assert.equal(state.phase, "scoping", "the change stops where the specification reports are reread");
 		const detail = state.stop_detail ?? "";
 		assert.ok(detail.includes("EVIDENCE_STALE"), detail);
 		assert.ok(detail.includes(digest), detail);

@@ -138,7 +138,7 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		assert.equal(r.s.open_questions[0]?.answer, "règle A");
 		assert.equal(r.s.status, "ready");
 		r.g0();
-		assert.equal(r.s.phase, "specifying");
+		assert.equal(r.s.phase, "specification");
 	});
 
 	it("G0 fails while a material question inside the mandate is unanswered", () => {
@@ -146,7 +146,7 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		const m = mandate({ open_questions: [{ id: "q9", question: "?", material: true, answer: null }] });
 		r.run({ type: "gate.evaluate", gate: "G0", at: tick(), actor: KERNEL, mandate_ref: ref("m", m), mandate: m });
 		assert.equal(r.s.gates.G0?.verdict, "FAIL");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(r.s.gates.G0?.next_action, "answer_material_questions");
 	});
 
@@ -420,7 +420,7 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 		const m = mandate({ open_questions: [{ id: "q1", question: "?", material: true, answer: null }] });
 		r.g0(m);
 		assert.equal(r.s.gates.G0?.verdict, "PASS", r.s.gates.G0?.reasons.join(" | "));
-		assert.equal(r.s.phase, "specifying");
+		assert.equal(r.s.phase, "specification");
 	});
 
 	it("an agent, a model output or a tool call cannot lift a stop a resume lifts (RM-031)", () => {
@@ -746,7 +746,7 @@ describe("intake and mandate (SA-004, RM-001, RM-003)", () => {
 			"PRECONDITION_FAILED",
 		);
 		r.g0(mandate({ open_questions: [{ id: "q1", question: "?", material: true, answer: null }] }));
-		assert.equal(r.s.phase, "specifying");
+		assert.equal(r.s.phase, "specification");
 		r.run({
 			type: "question.open",
 			at: tick(),
@@ -1020,7 +1020,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		);
 		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-10 is withdrawn and an IH-01 asks Q1 again");
 		assert.equal(question(r, "q1").decision_id, "dec_q1_again");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		const inscribed = r.events.slice(from).find((e) => e.type === "question.revoked");
 		assert.equal(inscribed?.actor.actor_id, HUMAN.actor_id, "the revocation is inscribed under the owner's name");
 		assert.equal(
@@ -1127,7 +1127,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 			actor: KERNEL,
 			decision_id: null,
 		});
-		assert.equal(integrating.s.phase, "integrating");
+		assert.equal(integrating.s.phase, "integration");
 		refusedFor(integrating, "q1", "INVALID_TRANSITION", /candidate is accepted/);
 
 		const running = new Runner().create();
@@ -1210,7 +1210,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
 
 		assert.equal(r.s.status, "paused", "the owner's pause holds across the revocation");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]]);
 		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
 		assert.equal(r.s.status, "decision_required", "the resume presents the question asked again");
@@ -1225,7 +1225,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		const revoked = revokeResolution(r, "q1", "dec_q1_again");
 
 		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(r.s.status, "paused", "the owner's pause holds across the revocation");
 		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
 		assert.equal(r.s.operation, null, "no operation is left open");
@@ -1243,7 +1243,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		const revoked = revokeResolution(r, "q1", "dec_q1_again");
 
 		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(r.s.status, "paused");
 	});
 
@@ -1292,7 +1292,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		const revoked = revokeResolution(r, "q1", "dec_q1_again");
 
 		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
 		assert.equal(r.s.operation, null, "no operation is left open");
 	});
@@ -1307,7 +1307,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		const revoked = revokeResolution(r, "q1", "dec_q1_again");
 
 		assert.equal(revoked.ok ? "accepted" : `${revoked.error.code} ${revoked.error.message}`, "accepted");
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.deepEqual(pending(r), [["IH-01", "dec_q1_again"]], "IH-01 asks Q1 again");
 		assert.equal(r.s.operation, null, "the revocation closes the verification the earlier build left open");
 	});
@@ -1382,10 +1382,10 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 		);
 	});
 
-	it("a revocation is refused once the owner accepted the candidate, before the change is integrating (6h)", () => {
+	it("a revocation is refused once the owner accepted the candidate, before the change is in integration (6h)", () => {
 		const r = awaitingAcceptance();
 		ownerAnswers(r, "dec_a", "accept", null, "hd_a");
-		assert.notEqual(r.s.phase, "integrating", "the acceptance is recorded before any integration");
+		assert.notEqual(r.s.phase, "integration", "the acceptance is recorded before any integration");
 		const from = r.events.length;
 
 		const refused = revokeResolution(r, "q1", "dec_q1_again");
@@ -1436,7 +1436,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 			null,
 			`the first candidate of the rebuilt change is corrected, not judged a stagnation: ${r.s.stop_detail}`,
 		);
-		assert.equal(r.s.phase, "implementing");
+		assert.equal(r.s.phase, "implementation");
 		r.run({ type: "operation.fail", at: tick(), actor: KERNEL, operation_key: retry });
 		assert.notEqual(
 			r.s.status,
@@ -1504,7 +1504,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 			reason: "objective restated",
 		});
 
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(isValid(r, "hd_b"), true, "the budget extension is not said revoked");
 		assert.equal(r.s.budgets.max_attempts, 4, "and its effect holds");
 	});
@@ -1568,7 +1568,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 			reason: "objective restated",
 		});
 
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(isValid(r, "hd_r"), true, "the IH-12 reconciliation is not said revoked");
 		assert.deepEqual(revokedEvents(r, from, "hd_r"), [], "no decision.revoked names it");
 	});
@@ -1578,7 +1578,7 @@ describe("revoking the resolution of a material question (DEC-06)", () => {
 
 		assert.equal(revokeResolution(r, "q1", "dec_q1_again").ok, true);
 
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(r.s.outcome, "pending");
 	});
 });

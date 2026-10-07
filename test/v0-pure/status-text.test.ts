@@ -93,7 +93,7 @@ describe("the status of a change", () => {
 	it("un changement bloqué sur G2 a pour deuxième ligne ✘ Blocked on attempt 2 of 3 — no test can judge R1, et sa ligne Next donne les commandes qui sortent de l'arrêt sans en répéter la cause", () => {
 		const lines = formatStatus(
 			changed({
-				phase: "verification_design",
+				phase: "qualification",
 				status: "blocked",
 				outcome: "pending",
 				gates: [pass("G0"), pass("G1"), { ...pass("G2"), verdict: "FAIL", reasons: ["no test can judge R1"] }],
@@ -122,7 +122,7 @@ describe("the status of a change", () => {
 		const failedG5 = { ...pass("G5"), verdict: "FAIL", reasons: ["mutation score below 80"] };
 		for (const status of ["running", "decision_required"]) {
 			const lines = formatStatus(
-				changed({ phase: "implementing", status, outcome: "pending", gates: [pass("G0"), failedG5] }),
+				changed({ phase: "implementation", status, outcome: "pending", gates: [pass("G0"), failedG5] }),
 				"en",
 			).split("\n");
 			assert.ok(lines.includes("    Acceptance: mutation score below 80"), `${status}:\n${lines.join("\n")}`);
@@ -132,7 +132,7 @@ describe("the status of a change", () => {
 	it("a change in progress says its phase in words on its verdict line and its last intervention while it is open", () => {
 		const lines = formatStatus(
 			changed({
-				phase: "implementing",
+				phase: "implementation",
 				status: "running",
 				outcome: "pending",
 				last_intervention: { role: "implement", result: "truncated", tool_calls: 12, duration_ms: 64_000 },
@@ -167,7 +167,7 @@ describe("the status of a change", () => {
 	it("une décision en attente a pour deuxième ligne ⏸ Waiting for your decision — /495 decide", () => {
 		const lines = formatStatus(
 			changed({
-				phase: "clarifying",
+				phase: "scoping",
 				status: "decision_required",
 				outcome: "pending",
 				gates: [],

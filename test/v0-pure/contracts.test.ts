@@ -106,7 +106,7 @@ describe("runtime validation (AT-11, NFR-08)", () => {
 			category: "capability",
 			summary: "x",
 			subject: null,
-			phase: "verification_design",
+			phase: "qualification",
 			retryable: false,
 			effect_state: "none",
 			next_actions: ["qualify_capability"],

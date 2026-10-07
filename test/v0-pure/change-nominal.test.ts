@@ -7,20 +7,20 @@ describe("change nominal cycle (SA-001, PF-13, DEC-01)", () => {
 	it("goes from intake to closed/accepted through G0..G5 without integration", () => {
 		const r = new Runner();
 		r.create();
-		assert.equal(r.s.phase, "clarifying");
+		assert.equal(r.s.phase, "scoping");
 		assert.equal(r.s.status, "ready");
 		assert.equal(r.s.adopted.request?.ref.artifact_id, "req_1");
 		r.g0();
-		assert.equal(r.s.phase, "specifying");
+		assert.equal(r.s.phase, "specification");
 		assert.equal(r.s.gates.G0?.verdict, "PASS");
 		r.g1();
-		assert.equal(r.s.phase, "verification_design");
+		assert.equal(r.s.phase, "qualification");
 		r.g2();
-		assert.equal(r.s.phase, "designing");
+		assert.equal(r.s.phase, "design");
 		assert.ok(r.s.protocol);
 		assert.deepEqual(r.s.protocol?.protected_paths, ["test/", "eslint.config.js"]);
 		r.g3();
-		assert.equal(r.s.phase, "implementing");
+		assert.equal(r.s.phase, "implementation");
 		r.implement();
 		assert.equal(r.s.attempts.length, 1);
 		assert.equal(r.s.budgets.attempts_used, 1);
@@ -62,7 +62,7 @@ describe("change nominal cycle (SA-001, PF-13, DEC-01)", () => {
 				evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
 			])
 			.g5();
-		assert.equal(r.s.phase, "integrating");
+		assert.equal(r.s.phase, "integration");
 		assert.equal(r.s.outcome, "accepted");
 		r.expectError(
 			{

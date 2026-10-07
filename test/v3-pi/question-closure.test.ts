@@ -232,10 +232,10 @@ describe("`/495 close <question>` closes a material question from the stop of a 
 			assert.notEqual(state.stop_reason, "stagnation", "the stagnation stop the closure answers is lifted");
 			// Lifting the stop is not conducting: the domain event alone leaves phase and gates untouched.
 			// What only `conduct` reaches is asserted here, so removing its call after the closure (as after
-			// a resume) leaves the change ready but stuck in clarifying, unnoticed by the assertions above.
+			// a resume) leaves the change ready but stuck in scoping, unnoticed by the assertions above.
 			assert.equal(state.gates.G0?.verdict, "PASS", "G0 is evaluated once the closure settles the report");
 			assert.ok(state.adopted.mandate, "the mandate the settled report proposes is carried to adoption");
-			assert.notEqual(state.phase, "clarifying", "the change moves past clarifying, as after a resume");
+			assert.notEqual(state.phase, "scoping", "the change moves past scoping, as after a resume");
 		} finally {
 			await session.close();
 		}

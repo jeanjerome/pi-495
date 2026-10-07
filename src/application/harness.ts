@@ -161,16 +161,16 @@ const CHANGE_LEASE_MS = 60_000;
 /** The phase a change is in decides what runs next; this table is the whole of that order. */
 const PHASES: Partial<Record<Phase, (ctx: PhaseContext, unit: Unit, cor: string) => Promise<Unit>>> = {
 	intake: clarify,
-	clarifying: clarify,
-	specifying: specify,
-	verification_design: designVerification,
+	scoping: clarify,
+	specification: specify,
+	qualification: designVerification,
 	preparing: prepare,
-	designing: design,
-	implementing: implement,
+	design: design,
+	implementation: implement,
 	verifying: verifyPhase,
 	reviewing: review,
 	deciding: decidePhase,
-	integrating: integrate,
+	integration: integrate,
 };
 
 /** What a change's close makes of the increment it conducts: a change rejected or cancelled blocks it. */

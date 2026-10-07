@@ -132,7 +132,7 @@ export function specificationRounds(
 export async function assertStoppedBeforeG0(t: TestHarness, changeId: string, lost: string[]): Promise<void> {
 	const state = t.ledger.loadChange(changeId)!.state;
 	assert.equal(state.status, "blocked");
-	assert.equal(state.phase, "clarifying");
+	assert.equal(state.phase, "scoping");
 	assert.equal(state.stop_reason, "stagnation", state.stop_detail ?? "");
 	assert.equal(state.stop_retryable, true, "a resume lifts the stop");
 	for (const id of [...lost, "resume", "close", "cancel"])

@@ -158,7 +158,7 @@ describe("`/495 revoke <question>` revokes the owner's resolution of a material 
 			// specification again.
 			rt.harness.resume(changeId, session.humanOrigin(ctx.asCommand())!.actor);
 			const ready = rt.ledger.loadChange(changeId)!;
-			assert.deepEqual([ready.state.phase, ready.state.status], ["clarifying", "ready"]);
+			assert.deepEqual([ready.state.phase, ready.state.status], ["scoping", "ready"]);
 
 			const declining = new FakeContext(cwd, "rpc", SESSION, false);
 			await pi.run("revoke q1", declining);

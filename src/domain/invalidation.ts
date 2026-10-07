@@ -51,7 +51,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 		human_decisions: state.human_decisions
 			.filter((d) => d.valid && d.interaction !== "IH-01" && d.interaction !== "IH-07" && d.interaction !== "IH-12")
 			.map((d) => d.human_decision_id),
-		rollback_phase: "clarifying",
+		rollback_phase: "scoping",
 	});
 	switch (cause.kind) {
 		case "artifact_revised":
@@ -65,7 +65,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						evidence: allEvidence,
 						reviews: allReviews,
 						human_decisions: [...candidateDecisions, ...verifiabilityDecisions],
-						rollback_phase: "specifying",
+						rollback_phase: "specification",
 					};
 				case "protocol":
 					return {
@@ -74,7 +74,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						evidence: allEvidence,
 						reviews: allReviews,
 						human_decisions: candidateDecisions,
-						rollback_phase: "verification_design",
+						rollback_phase: "qualification",
 					};
 				case "design":
 					return {
@@ -83,7 +83,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						evidence: allEvidence,
 						reviews: allReviews,
 						human_decisions: candidateDecisions,
-						rollback_phase: "designing",
+						rollback_phase: "design",
 					};
 				default:
 					return {
@@ -102,7 +102,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 				evidence: [],
 				reviews: [],
 				human_decisions: candidateDecisions,
-				rollback_phase: "implementing",
+				rollback_phase: "implementation",
 			};
 		case "environment_changed":
 			return {
@@ -111,7 +111,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 				evidence: allEvidence,
 				reviews: [],
 				human_decisions: [],
-				rollback_phase: "verification_design",
+				rollback_phase: "qualification",
 			};
 		case "destination_advanced":
 			return cause.combined_changed
@@ -129,7 +129,7 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						evidence: [],
 						reviews: [],
 						human_decisions: [],
-						rollback_phase: "integrating",
+						rollback_phase: "integration",
 					};
 		case "evidence_lost": {
 			const consuming = GATES.filter((g) => state.gates[g]?.evidence_retained.includes(cause.evidence_id));

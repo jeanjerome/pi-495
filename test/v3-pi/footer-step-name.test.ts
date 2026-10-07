@@ -26,7 +26,7 @@ function view(change: Partial<ChangeView>): StatusView {
 			change_id: "chg_footer",
 			increment_id: "inc_1",
 			revision: 3,
-			phase: "specifying",
+			phase: "specification",
 			status: "running",
 			outcome: "pending",
 			stop_reason: null,

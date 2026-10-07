@@ -493,7 +493,7 @@ export function integrationPrepared(r: Runner): ReturnType<typeof candidate> {
 			evidence({ control_id: "lint", subject_digest: c.manifest_digest }),
 		])
 		.g5();
-	assert.equal(r.s.phase, "integrating");
+	assert.equal(r.s.phase, "integration");
 	ownerDecides(
 		r,
 		decisionRequest("IH-11", {

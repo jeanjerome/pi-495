@@ -2,7 +2,7 @@
 
 Story : e32s02
 Epic : e32
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -33,7 +33,7 @@ Scenario: Un dossier écrit avant se lit sous les nouveaux identifiants
   Given un journal dont les événements et la projection portent les anciens identifiants, écrit par une version d'avant, avec un changement en pause pendant la spécification et une révision qui l'avait ramené à `verification_design`
   When 495 charge ce changement
   Then sa phase est `specification`, et le retour de la révision se lit `qualification`
-  And `/495 resume` le conduit jusqu'à son acceptation
+  And `/495 status` le dit en pause dans l'étape Specification
   And la vérification d'intégrité du journal ne relève aucun problème : les événements écrits avant gardent leurs octets et leur chaîne d'empreintes
 
 Scenario: Le contrat publié ne connaît que les nouveaux identifiants
@@ -67,7 +67,7 @@ projection d'un changement (`changes.phase`, `changes.state`) est traduit en son
 en un seul endroit ; rien de stocké n'est réécrit.
 
 - Vérifie : `node --test test/v2-kernel/phase-ids.test.ts`
-- Tient : `test/v2-kernel/phase-ids.test.ts`, « un changement conduit jusqu'à l'acceptation par un agent scripté écrit des `phase.entered` qui nomment dans l'ordre `scoping`, `specification`, `qualification`, `design`, `implementation`, `verifying`, `deciding`, `closed`, et aucun ancien identifiant ; un journal dont les événements et la projection portent les anciens identifiants, en pause pendant `specifying` après une révision ramenée à `verification_design`, se charge en phase `specification` avec un retour `qualification`, `/495 resume` le conduit à l'acceptation, et `verifyIntegrity` ne relève aucun problème ; une commande de conception appliquée en spécification est refusée pour la phase `specification`, permise dans `design` »
+- Tient : `test/v2-kernel/phase-ids.test.ts`, « un changement conduit jusqu'à l'acceptation par un agent scripté écrit des `phase.entered` qui nomment dans l'ordre `scoping`, `specification`, `qualification`, `design`, `implementation`, `verifying`, `deciding`, `closed`, et aucun ancien identifiant ; un journal dont les événements et la projection portent les anciens identifiants, en pause pendant `specifying` après une révision ramenée à `verification_design`, se charge en phase `specification` avec un retour `qualification`, et `verifyIntegrity` ne relève aucun problème ; une commande de conception appliquée en spécification est refusée pour la phase `specification`, permise dans `design` »
 - Rouge : `PHASES` vaut aujourd'hui `clarifying`, `specifying`, `verification_design`… ; un changement écrit `phase.entered` `clarifying` puis `specifying`, et un journal ancien se charge en phase `specifying`
 
 ### Tâche 2 — Le contrat et la sortie structurée publient les nouveaux identifiants
@@ -91,6 +91,10 @@ identifiants de `D-83`.
 
 ## 5. Hors périmètre
 
+- Reprendre un changement écrit par une autre version de 495 : comme tout changement en vol après une
+  montée de version, sa reprise s'arrête à la qualification, parce que l'empreinte d'environnement de
+  son protocole gelé porte l'identité du build de 495 (contraintes de `specs/plan.yaml`). Le renommage
+  n'y change rien : la même reprise s'arrête de même sur `main`.
 - Les textes déjà enregistrés qui citent un ancien identifiant, comme la raison d'un arrêt « not allowed in
   phase specifying » : ce sont des faits passés, que la chaîne d'empreintes garde tels quels.
 - Les noms des artefacts et leurs contrats (`mandate.json`, `requirements.json`, `protocol.json`,

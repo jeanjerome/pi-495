@@ -7,16 +7,19 @@
 import { strict as assert } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { KERNEL_ACTOR } from "../../src/application/actors.ts";
-import type { ExtensionSession } from "../../src/extension/session.ts";
+import { registerCommand495 } from "../../src/extension/command.ts";
+import { ExtensionSession } from "../../src/extension/session.ts";
 import {
-	type FakeContext,
-	type FakePi,
+	FakeContext,
+	FakePi,
 	HARNESS_ENV,
+	atPhase,
 	atVerification,
 	commandProject,
 	stalledOnQ1,
 } from "../helpers/command-fixture.ts";
 import { removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { storedRows, writtenBeforeTheRename } from "../helpers/journal-before-rename.ts";
 
 let root: string;
 let cwd: string;
@@ -74,6 +77,64 @@ async function pausedDuringVerificationByAnEarlierBuild(
 }
 
 describe("`/495 resume` ends a pause or lifts a stop, then conducts the change", () => {
+	it("a change whose journal and projection carry the old phase identifiers, paused in specifying after a revision back to verification_design, is said paused in the Specification step by `/495 status`, then conducted to its acceptance, and keeps the bytes of its journal", async () => {
+		const first = await atPhase(root, cwd, "s-resume-before-rename", "design");
+		const { changeId } = first;
+		const before = first.session.runtime();
+		for (const kind of ["protocol", "requirements"] as const) {
+			const loaded = before.ledger.loadChange(changeId)!;
+			const latest = (await before.harness.artifacts.latest(loaded.state, kind))!;
+			await before.harness.conducting(changeId, async () =>
+				before.harness.commit(
+					loaded,
+					{
+						type: "artifact.revise",
+						at: new Date().toISOString(),
+						actor: KERNEL_ACTOR,
+						kind,
+						ref: latest.ref,
+						reason: "revised",
+					},
+					`cor_revise_${kind}`,
+				),
+			);
+		}
+		await first.pi.run("pause", first.ctx);
+		const dataDir = before.dataDir;
+		await first.session.close();
+		const rows = writtenBeforeTheRename(dataDir, changeId);
+		assert.ok(
+			rows.some((r) => r.payload.includes('"phase":"specifying"')),
+			"the journal carries the old identifiers",
+		);
+
+		const pi = new FakePi();
+		const session = new ExtensionSession(pi.host());
+		registerCommand495(pi.host(), session);
+		const ctx = new FakeContext(cwd, "rpc", "s-resume-after-rename");
+		session.openedAt(ctx.asCommand());
+		try {
+			const rt = session.runtime();
+			await pi.run("status", ctx);
+			const view = (pi.details.at(-1) as { view: { change: { phase: string; status: string } } }).view.change;
+			assert.deepEqual([view.phase, view.status], ["specification", "paused"]);
+			const status = pi.said.at(-1)!.split("\n");
+			assert.ok(status.includes("… Spécification · rédaction des exigences"), status.join("\n"));
+			await pi.run("resume", ctx);
+			const state = rt.ledger.loadChange(changeId)!.state;
+			assert.deepEqual([state.phase, state.outcome], ["closed", "accepted"], pi.said.join(" | "));
+			const integrity = await rt.ledger.verifyIntegrity((d) => rt.objects.verify(d));
+			assert.deepEqual(integrity.problems, []);
+			assert.deepEqual(
+				storedRows(dataDir, changeId).slice(0, rows.length),
+				rows,
+				"the events written before keep their bytes",
+			);
+		} finally {
+			await session.close();
+		}
+	});
+
 	it("is refused while another 495 operation holds the session, and inscribes nothing", async () => {
 		const { pi, session, ctx, changeId } = await stalledOnQ1(root, cwd, "s-resume");
 		try {

@@ -191,16 +191,16 @@
                   "type": "string",
                   "enum": [
                     "intake",
-                    "clarifying",
-                    "specifying",
-                    "verification_design",
+                    "scoping",
+                    "specification",
+                    "qualification",
                     "preparing",
-                    "designing",
-                    "implementing",
+                    "design",
+                    "implementation",
                     "verifying",
                     "reviewing",
                     "deciding",
-                    "integrating",
+                    "integration",
                     "closed"
                   ]
                 },

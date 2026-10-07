@@ -124,17 +124,17 @@ function nextActionOf(s: ChangeState): string {
 	if (s.status === "paused") return "resume";
 	if (s.status === "running") return "wait: intervention or verification running";
 	switch (s.phase) {
-		case "clarifying":
+		case "scoping":
 			return "clarify: specification intervention then G0";
-		case "specifying":
+		case "specification":
 			return "G1: adopt requirements";
-		case "verification_design":
+		case "qualification":
 			return "G2: build and qualify the protocol";
 		case "preparing":
 			return "preparation: build the missing capability";
-		case "designing":
+		case "design":
 			return "G3: adopt design";
-		case "implementing":
+		case "implementation":
 			return "produce a candidate";
 		case "verifying":
 			return "run the frozen controls";
@@ -142,7 +142,7 @@ function nextActionOf(s: ChangeState): string {
 			return "run required reviews";
 		case "deciding":
 			return "G5: evaluate acceptance";
-		case "integrating":
+		case "integration":
 			return "integrate locally (G6)";
 		default:
 			return "resume";

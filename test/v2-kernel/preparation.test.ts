@@ -80,10 +80,10 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.ok(
-			result.steps.some((s) => s.startsWith("verification_design -> preparing")),
+			result.steps.some((s) => s.startsWith("qualification -> preparing")),
 			"preparation phase visited",
 		);
-		assert.ok(result.steps.some((s) => s.startsWith("preparing -> verification_design")));
+		assert.ok(result.steps.some((s) => s.startsWith("preparing -> qualification")));
 		const state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.outcome, "accepted");
 		assert.ok(state.adopted.preparation, "prepared suite adopted by the kernel, not by the producer");
@@ -690,7 +690,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			{ correlation_id: "stale-mandate" },
 		);
 		const resumed = await t.harness.advance(change.change_id, { max_steps: 1 });
-		assert.equal(resumed.view.change?.phase, "verification_design", resumed.steps.join(" | "));
+		assert.equal(resumed.view.change?.phase, "qualification", resumed.steps.join(" | "));
 		assert.equal(
 			t.agent.started.some((m) => m.role === "prepare"),
 			false,
@@ -804,7 +804,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.ok(
-			result.steps.some((s) => s.startsWith("verification_design -> preparing")),
+			result.steps.some((s) => s.startsWith("qualification -> preparing")),
 			`a green suite proves nothing about shout: ${result.steps.join(" | ")}`,
 		);
 		const state = t.ledger.loadChange(change.change_id)!.state;

@@ -1478,3 +1478,29 @@ bugs:
       Pass an `onRefresh` from `extension/` that ends the current interaction and opens the review on the newer
       candidate, and hold it with a test that presses `r`.
     status: open
+  - bug_id: BUG-2026-10-07T090000
+    date: "2026-10-07"
+    title: "The status of a paused change reads like that of a change at work, and says the pause only in its Next line"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      `/495 status` on a change paused during its specification shows the line `… Spécification · rédaction des
+      exigences`, the same line as a change running or ready in that step. The pause shows only as `Ensuite /495
+      resume` in the text, and as `status: paused` in the structured view.
+    what_expected: >
+      The verdict line of a paused change says that it is paused, and in which step, as the line of a change
+      waiting for a decision says that it waits.
+    steps_to_reproduce:
+      - "Pause a change during its specification with `/495 pause`, then run `/495 status`: the verdict line reads `… Spécification · rédaction des exigences`."
+    root_cause: >
+      `verdictLine` in `src/presentation/structured/text.ts` has a branch for `decision_required`, for an accepted or
+      integrated outcome and for a stop (blocked, rejected, abandoned, cancelled); a `paused` status falls through to
+      the line of a change at work.
+    evidence: >
+      Read on 2026-10-07 in `verdictLine`, identical on main a7502e0; `test/v3-pi/resume.test.ts` holds the pause by
+      the view's `status` and the step by the text line. It predates the renaming of the phase identifiers.
+    risk_level: low
+    follow_ups: >
+      Give `verdictLine` a branch for `paused` that names the step, with a test on the text of a paused change.
+    status: open

@@ -68,7 +68,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			request_text: "Keep greet behaviour, tidy the implementation",
 			actor: HUMAN,
 		});
-		assert.equal(change.phase, "clarifying");
+		assert.equal(change.phase, "scoping");
 		const result = await t.harness.advance(change.change_id);
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		const view = result.view.change!;
@@ -163,7 +163,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const describeCapabilities = t.agent.describeCapabilities.bind(t.agent);
 		t.agent.describeCapabilities = async (model) => {
 			const described = await describeCapabilities(model);
-			return t.ledger.loadChange(changeId)!.state.phase === "implementing"
+			return t.ledger.loadChange(changeId)!.state.phase === "implementation"
 				? { ...described, available: false, reasons: ["refused by the test"] }
 				: described;
 		};
@@ -1222,7 +1222,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const result = await t.harness.advance(change.change_id, { max_steps: 30 });
 		assert.equal(result.stopped_because, "capability_missing", result.steps.join(" | "));
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.phase, "implementing");
+		assert.equal(state.phase, "implementation");
 		assert.equal(state.interventions.filter((i) => i.role === "implement").length, 0);
 		assert.equal(state.stop_retryable, false, "no command of the session qualifies a sandbox");
 		const read = formatStatus(result.view, "en");
@@ -1253,7 +1253,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 		const { change } = await t.harness.start({ project_path: p, request_text: "x", actor: HUMAN });
 		await t.harness.advance(change.change_id, { max_steps: 4 });
 		let state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.phase, "implementing");
+		assert.equal(state.phase, "implementation");
 		t.harness.pause(change.change_id, HUMAN);
 		state = t.ledger.loadChange(change.change_id)!.state;
 		assert.equal(state.status, "paused");
@@ -1743,7 +1743,7 @@ describe("obligations and budgets across a session change (CTX-04, REC-06)", () 
 			cut = await first.harness.advance(change.change_id, { max_steps: 1 });
 		}
 		const before = first.ledger.loadChange(change.change_id)!.state;
-		assert.equal(before.phase, "implementing", "the first session stopped with a correction open");
+		assert.equal(before.phase, "implementation", "the first session stopped with a correction open");
 		assert.equal(before.attempts[0]?.result, "superseded", "the refused attempt is historised");
 		assert.equal(before.budgets.attempts_used, 2, "the refused attempt is spent and a correction is open");
 		assert.equal(before.feedback.length, 1, "the feedback owed to the next attempt is in the ledger");

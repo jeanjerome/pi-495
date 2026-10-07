@@ -253,7 +253,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 
 		assert.equal(revoked.error ? `${revoked.error.code} ${revoked.error.message}` : "accepted", "accepted");
 		const state = t.ledger.loadChange(changeId)!.state;
-		assert.deepEqual([state.phase, state.status], ["clarifying", "paused"], "the owner's pause holds");
+		assert.deepEqual([state.phase, state.status], ["scoping", "paused"], "the owner's pause holds");
 		assert.equal(state.operation, null, "no operation is left open");
 	});
 
@@ -277,7 +277,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 
 		assert.equal(revoked.error ? `${revoked.error.code} ${revoked.error.message}` : "accepted", "accepted");
 		const state = t.ledger.loadChange(changeId)!.state;
-		assert.equal(state.phase, "clarifying");
+		assert.equal(state.phase, "scoping");
 		assert.deepEqual(
 			t.harness.pendingDecisions(changeId).map((d) => d.interaction),
 			["IH-01"],
@@ -318,7 +318,7 @@ describe("the harness revokes the owner's resolution of a material question (DEC
 		const state = t.ledger.loadChange(changeId)!.state;
 		assert.deepEqual(
 			[state.phase, state.status],
-			["clarifying", "decision_required"],
+			["scoping", "decision_required"],
 			`the revocation is the latest act on the change: ${conducted.steps.join(" | ")}`,
 		);
 		assert.deepEqual(
@@ -570,7 +570,7 @@ describe("after a revocation the change is rebuilt from the owner's new resoluti
 		const describe = t.agent.describeCapabilities.bind(t.agent);
 		t.agent.describeCapabilities = async (model) => {
 			const described = await describe(model);
-			const implementing = t.ledger.loadChange(changeId)!.state.phase === "implementing";
+			const implementing = t.ledger.loadChange(changeId)!.state.phase === "implementation";
 			return refusing && implementing
 				? { ...described, available: false, reasons: ["refused by the test"] }
 				: described;

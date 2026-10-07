@@ -68,7 +68,7 @@ export function decide(state: ChangeState | null, command: ChangeCommand, policy
 				{
 					type: "phase.entered",
 					...base,
-					phase: "clarifying",
+					phase: "scoping",
 					status: "ready",
 					reason: "request and reference identified",
 				},
@@ -407,7 +407,7 @@ class Ctx {
 	 * asked to declare an answer no longer owed.
 	 */
 	questionClose(c: CommandOf<"question.close">): Decision {
-		this.requirePhase("clarifying");
+		this.requirePhase("scoping");
 		const issue = this.humanProvenanceIssue(c.origin);
 		if (issue) this.fail("INVALID_PROVENANCE", issue);
 		const q = this.state.open_questions.find((x) => x.id === c.id);
@@ -458,7 +458,7 @@ class Ctx {
 		this.invalidate({ kind: "resolution_revoked", question_id: q.id });
 		for (const d of this.state.pending_decisions.filter((p) => p.interaction !== "IH-01"))
 			this.emit({ type: "decision.withdrawn", ...this.base(), decision_id: d.decision_id, reason });
-		this.enter("clarifying", reason);
+		this.enter("scoping", reason);
 		this.emit({
 			type: "decision.requested",
 			...this.base(),
@@ -491,7 +491,7 @@ class Ctx {
 		if (!q.material) this.fail("PRECONDITION_FAILED", `question ${c.id} is not material`);
 		if (q.answer === null && !isQuestionClosed(q))
 			this.fail("PRECONDITION_FAILED", `question ${c.id} is neither answered nor closed`);
-		if (this.state.phase === "integrating" || this.state.acceptance_decision_id)
+		if (this.state.phase === "integration" || this.state.acceptance_decision_id)
 			this.fail("INVALID_TRANSITION", "the candidate is accepted; only cancelling the change sets it aside", [
 				"cancel",
 			]);
@@ -529,7 +529,7 @@ class Ctx {
 	}
 
 	gateG0(c: Extract<ChangeCommand, { gate: "G0" }>): Decision {
-		this.requirePhase("clarifying");
+		this.requirePhase("scoping");
 		this.requireNotBlocked();
 		const reasons: string[] = [];
 		if (!c.mandate.objective.trim()) reasons.push("objective is empty");
@@ -580,12 +580,12 @@ class Ctx {
 			integration: c.mandate.integration,
 			language: c.mandate.language,
 		});
-		this.enter("specifying", "G0 passed");
+		this.enter("specification", "G0 passed");
 		return ok(this.events);
 	}
 
 	gateG1(c: Extract<ChangeCommand, { gate: "G1" }>): Decision {
-		this.requirePhase("specifying");
+		this.requirePhase("specification");
 		this.requireNotBlocked();
 		const reasons: string[] = [...c.report.issues];
 		if (!c.report.valid && reasons.length === 0) reasons.push("requirements report is invalid");
@@ -672,12 +672,12 @@ class Ctx {
 			requirement_ids: c.requirements.requirements.map((r) => r.requirement_id),
 			mandatory_requirement_ids: c.requirements.requirements.filter((r) => r.mandatory).map((r) => r.requirement_id),
 		});
-		this.enter("verification_design", "G1 passed");
+		this.enter("qualification", "G1 passed");
 		return ok(this.events);
 	}
 
 	gateG2(c: Extract<ChangeCommand, { gate: "G2" }>): Decision {
-		this.requirePhase("verification_design");
+		this.requirePhase("qualification");
 		this.requireNotBlocked();
 		const result = evaluateG2(this.state, c.protocol, this.policy);
 		const evaluated = {
@@ -710,12 +710,12 @@ class Ctx {
 		});
 		// A survey has no candidate to design: the frozen controls run on the reference next.
 		if (surveysTheProject(this.state)) this.enter("verifying", "G2 passed, the reference is surveyed");
-		else this.enter("designing", "G2 passed");
+		else this.enter("design", "G2 passed");
 		return ok(this.events);
 	}
 
 	gateG3(c: Extract<ChangeCommand, { gate: "G3" }>): Decision {
-		this.requirePhase("designing");
+		this.requirePhase("design");
 		this.requireNotBlocked();
 		const reasons: string[] = [];
 		if (!c.design.compatible_with_mandate) reasons.push("design is not compatible with the mandate");
@@ -747,7 +747,7 @@ class Ctx {
 		}
 		this.decideGate("G3", "PASS", evaluated, [], "produce_candidate");
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "design", ref: c.design_ref, gate: "G3" });
-		this.enter("implementing", "G3 passed");
+		this.enter("implementation", "G3 passed");
 		return ok(this.events);
 	}
 
@@ -776,7 +776,7 @@ class Ctx {
 			this.emit({ type: "outcome.set", ...this.base(), outcome: "accepted" });
 			const wantsIntegration = this.policy.integration_enabled && this.state.mandate?.integration === "local_branch";
 			if (wantsIntegration) {
-				this.enter("integrating", "G5 passed, integration mandated");
+				this.enter("integration", "G5 passed, integration mandated");
 			} else {
 				this.enter("closed", "G5 passed, accepted without integration", "completed");
 			}
@@ -852,7 +852,7 @@ class Ctx {
 	}
 
 	gateG6(c: Extract<ChangeCommand, { gate: "G6" }>): Decision {
-		this.requirePhase("integrating");
+		this.requirePhase("integration");
 		const integ = this.state.integration;
 		if (!integ) this.fail("PRECONDITION_FAILED", "no integration prepared");
 		const reasons: string[] = [];
@@ -895,7 +895,7 @@ class Ctx {
 	// --- preparation -----------------------------------------------------------------------------
 
 	preparationOpen(c: CommandOf<"preparation.open">): Decision {
-		this.requirePhase("verification_design");
+		this.requirePhase("qualification");
 		this.requireNotBlocked();
 		this.requireKernelAuthority();
 		this.emit({ type: "preparation.opened", ...this.base(), mandate_ref: c.mandate_ref });
@@ -912,7 +912,7 @@ class Ctx {
 		if (c.qualified && c.adopted_ref)
 			this.emit({ type: "artifact.adopted", ...this.base(), kind: "preparation", ref: c.adopted_ref, gate: null });
 		this.enter(
-			"verification_design",
+			"qualification",
 			c.qualified
 				? "capability qualified"
 				: `preparation not qualified: ${c.capability_ids.join(", ") || "no capability"}`,
@@ -1015,7 +1015,7 @@ class Ctx {
 	// --- candidate and verification ----------------------------------------------------------------
 
 	candidateFreeze(c: CommandOf<"candidate.freeze">): Decision {
-		this.requirePhase("implementing");
+		this.requirePhase("implementation");
 		this.requireKernelAuthority();
 		if (runningIntervention(this.state))
 			this.fail("PRECONDITION_FAILED", "producers must be stopped before freezing the candidate");
@@ -1203,7 +1203,7 @@ class Ctx {
 			index: this.state.attempts.length + 1,
 		});
 		this.invalidate({ kind: "candidate_replaced" });
-		this.enter("implementing", "correction authorized");
+		this.enter("implementation", "correction authorized");
 		return ok(this.events);
 	}
 
@@ -1484,9 +1484,9 @@ class Ctx {
 		this.invalidate({ kind: "environment_changed" });
 		if (
 			this.state.protocol &&
-			["designing", "implementing", "verifying", "reviewing", "deciding"].includes(this.state.phase)
+			["design", "implementation", "verifying", "reviewing", "deciding"].includes(this.state.phase)
 		) {
-			this.enter("verification_design", "environment changed: protocol qualification must be re-established");
+			this.enter("qualification", "environment changed: protocol qualification must be re-established");
 		}
 		return ok(this.events);
 	}
@@ -1499,7 +1499,7 @@ class Ctx {
 		this.invalidate({ kind: "evidence_lost", evidence_id: c.evidence_id });
 		if (this.state.phase === "deciding" || this.state.phase === "reviewing")
 			this.enter("verifying", "evidence lost: verification must be reproduced");
-		else if (this.state.phase === "integrating")
+		else if (this.state.phase === "integration")
 			this.block("evidence_missing", `evidence ${c.evidence_id} invalidated after acceptance`);
 		return ok(this.events);
 	}
@@ -1525,7 +1525,7 @@ class Ctx {
 	// --- integration -------------------------------------------------------------------------------
 
 	integrationPrepare(c: CommandOf<"integration.prepare">): Decision {
-		this.requirePhase("integrating");
+		this.requirePhase("integration");
 		this.requireNotBlocked();
 		this.requireKernelAuthority();
 		if (!this.policy.integration_enabled) this.fail("POLICY_DENIED", "integration is disabled by policy");
@@ -1643,7 +1643,7 @@ class Ctx {
 	}
 
 	integrationDestinationAdvanced(c: CommandOf<"integration.destination_advanced">): Decision {
-		this.requirePhase("integrating");
+		this.requirePhase("integration");
 		if (
 			this.state.operation &&
 			(this.state.operation.effect_state === "started" || this.state.operation.effect_state === "uncertain")

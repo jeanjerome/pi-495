@@ -132,7 +132,7 @@ L'état d'un changement est composé de quatre axes indépendants.
 
 | Axe | Valeurs fermées | Question résolue |
 | --- | --- | --- |
-| Phase métier | `intake`, `clarifying`, `specifying`, `verification_design`, `preparing`, `designing`, `implementing`, `verifying`, `reviewing`, `deciding`, `integrating`, `closed` | Où se trouve le changement dans son cycle ? |
+| Phase métier | `intake`, `scoping`, `specification`, `qualification`, `preparing`, `design`, `implementation`, `verifying`, `reviewing`, `deciding`, `integration`, `closed` | Où se trouve le changement dans son cycle ? |
 | Statut d'exécution | `ready`, `running`, `paused`, `decision_required`, `blocked`, `completed`, `cancelled` | Peut-il progresser maintenant ? |
 | Résultat courant | `pending`, `accepted`, `rejected`, `integrated`, `abandoned` | Quel résultat normatif est établi ? |
 | Motif d'arrêt | `user_cancelled`, `budget_exhausted`, `attempts_exhausted`, `stagnation`, `configuration_error`, `capability_missing`, `execution_error`, `evidence_missing`, `policy_denied`, `integration_conflict`, `decision_pending` | Pourquoi ne progresse-t-il plus ? |
@@ -144,20 +144,20 @@ Le motif d'arrêt est absent lorsque le changement progresse normalement. Le sta
 ```mermaid
 stateDiagram-v2
     [*] --> intake
-    intake --> clarifying: demande et dépôt identifiés
-    clarifying --> specifying: G0
-    specifying --> verification_design: G1
-    verification_design --> preparing: capacités absentes
-    preparing --> verification_design: capacité qualifiée
-    verification_design --> designing: G2
-    designing --> implementing: G3
-    implementing --> verifying: G4
+    intake --> scoping: demande et dépôt identifiés
+    scoping --> specification: G0
+    specification --> qualification: G1
+    qualification --> preparing: capacités absentes
+    preparing --> qualification: capacité qualifiée
+    qualification --> design: G2
+    design --> implementation: G3
+    implementation --> verifying: G4
     verifying --> reviewing: contrôles terminés
     reviewing --> deciding: revues disponibles
-    deciding --> implementing: correction autorisée
-    deciding --> integrating: G5 + autorisation
+    deciding --> implementation: correction autorisée
+    deciding --> integration: G5 + autorisation
     deciding --> closed: accepté sans intégration
-    integrating --> closed: G6
+    integration --> closed: G6
     closed --> [*]
 ```
 
@@ -165,21 +165,21 @@ stateDiagram-v2
 
 | Origine | Événement | Conditions | Destination | Effet normatif |
 | --- | --- | --- | --- | --- |
-| `intake` | Démarrer | Demande, projet et référence identifiés | `clarifying` | Créer le changement et conserver la demande originale. |
-| `clarifying` | Adopter le mandat | G0 passée | `specifying` | Geler objectifs, périmètre, hypothèses et décisions ouvertes. |
-| `clarifying` | Question matérielle | Réponse nécessaire | même phase + `decision_required` | Persister la question et arrêter au point sûr. |
-| `specifying` | Adopter les exigences | G1 passée | `verification_design` | Référencer les exigences applicables. |
-| `verification_design` | Préparer une capacité | Capteur absent, mandat de préparation adopté | `preparing` | Ouvrir un incrément ou travail préparatoire borné. |
-| `preparing` | Qualifier la capacité | Essais positifs/négatifs concluants | `verification_design` | Adopter et figer la capacité. |
-| `verification_design` | Adopter le protocole | G2 passée | `designing` | Geler contrôles, seuils, combinaisons et arbitrages. |
-| `designing` | Adopter la conception | G3 passée | `implementing` | Autoriser une tentative selon le mandat. |
-| `implementing` | Figer le candidat | Production terminée et observable | `verifying` | Calculer l'identité, fermer les producteurs actifs. |
+| `intake` | Démarrer | Demande, projet et référence identifiés | `scoping` | Créer le changement et conserver la demande originale. |
+| `scoping` | Adopter le mandat | G0 passée | `specification` | Geler objectifs, périmètre, hypothèses et décisions ouvertes. |
+| `scoping` | Question matérielle | Réponse nécessaire | même phase + `decision_required` | Persister la question et arrêter au point sûr. |
+| `specification` | Adopter les exigences | G1 passée | `qualification` | Référencer les exigences applicables. |
+| `qualification` | Préparer une capacité | Capteur absent, mandat de préparation adopté | `preparing` | Ouvrir un incrément ou travail préparatoire borné. |
+| `preparing` | Qualifier la capacité | Essais positifs/négatifs concluants | `qualification` | Adopter et figer la capacité. |
+| `qualification` | Adopter le protocole | G2 passée | `design` | Geler contrôles, seuils, combinaisons et arbitrages. |
+| `design` | Adopter la conception | G3 passée | `implementation` | Autoriser une tentative selon le mandat. |
+| `implementation` | Figer le candidat | Production terminée et observable | `verifying` | Calculer l'identité, fermer les producteurs actifs. |
 | `verifying` | Terminer les contrôles | Tous les contrôles terminaux | `reviewing` ou `deciding` | Enregistrer PASS/FAIL/INDETERMINATE/NOT_RUN/NOT_APPLICABLE. |
 | `reviewing` | Terminer les revues | Revues requises disponibles | `deciding` | Consolider les constats sans voter implicitement. |
-| `deciding` | Accepter | G5 passée | `integrating` ou `closed` | Résultat `accepted`. |
-| `deciding` | Corriger | Défaut corrigeable et budget disponible | `implementing` | Créer une nouvelle tentative ; invalider les preuves dépendantes. |
+| `deciding` | Accepter | G5 passée | `integration` ou `closed` | Résultat `accepted`. |
+| `deciding` | Corriger | Défaut corrigeable et budget disponible | `implementation` | Créer une nouvelle tentative ; invalider les preuves dépendantes. |
 | `deciding` | Rejeter | Défaut confirmé sans correction autorisée | `closed` | Résultat `rejected`. |
-| `integrating` | Confirmer l'intégration | G6 passée | `closed` | Résultat `integrated`, reçu d'intégration. |
+| `integration` | Confirmer l'intégration | G6 passée | `closed` | Résultat `integrated`, reçu d'intégration. |
 | toute phase active | Suspendre | Point cohérent atteint | même phase + `paused` | Sauvegarder l'état reprenable. |
 | toute phase active | Annuler | Demande autorisée | `closed` + `cancelled` | Résultat `abandoned`, sans effacer le dossier. |
 | toute phase active | Bloquer | Précondition impossible | même phase + `blocked` | Enregistrer motif et action attendue. |
@@ -190,12 +190,12 @@ Un retour arrière ne réécrit jamais la phase historique : il crée une transi
 
 | Événement | Retour logique minimal | Éléments invalidés |
 | --- | --- | --- |
-| Sens métier ou exigence modifié | `specifying` | G1 et tout élément dépendant. |
-| Contrôle, seuil ou corpus de vérification modifié | `verification_design` | G2, preuves et gates dépendantes. |
-| Conception modifiant un contrat | `specifying`, `verification_design` ou `designing` selon impact | Décisions affectées par l'analyse d'impact. |
-| Fichier du candidat modifié | `implementing` | G4, mesures, revues, G5 et G6. |
-| Environnement ou outil de contrôle modifié | `verification_design` ou `verifying` | Qualification et résultats concernés. |
-| Destination Git avancée | `integrating` | G6 ; G4/G5 si l'arbre combiné change. |
+| Sens métier ou exigence modifié | `specification` | G1 et tout élément dépendant. |
+| Contrôle, seuil ou corpus de vérification modifié | `qualification` | G2, preuves et gates dépendantes. |
+| Conception modifiant un contrat | `specification`, `qualification` ou `design` selon impact | Décisions affectées par l'analyse d'impact. |
+| Fichier du candidat modifié | `implementation` | G4, mesures, revues, G5 et G6. |
+| Environnement ou outil de contrôle modifié | `qualification` ou `verifying` | Qualification et résultats concernés. |
+| Destination Git avancée | `integration` | G6 ; G4/G5 si l'arbre combiné change. |
 | Preuve perdue ou corrompue | phase de production de la preuve | Toute gate qui la consomme. |
 | Autorisation révoquée | point précédant l'effet | Toute opération future qui l'exige. |
 
@@ -237,7 +237,7 @@ Un test ignoré, un timeout, une erreur de parser ou une sortie partielle ne dev
 - si le projet a changé depuis le dernier instantané, une réconciliation est demandée ;
 - si le chemin est illisible ou hors périmètre, le programme n'est pas créé.
 
-**Sorties :** demande immuable, identité du programme, changement en `clarifying`, diagnostic à réaliser.
+**Sorties :** demande immuable, identité du programme, changement en `scoping`, diagnostic à réaliser.
 
 ### PF-02 — Diagnostiquer le point de départ
 
@@ -774,7 +774,7 @@ Les scénarios utilisent une formulation Gherkin lisible. Ils complètent les te
 Et une demande saisie dans le TUI Pi
 Quand l'utilisateur crée un changement
 Alors la demande originale est conservée sans modification
-Et le changement reçoit un identifiant et la phase clarifying
+Et le changement reçoit un identifiant et la phase scoping
 Et aucun fichier du projet n'est modifié pendant l'accueil
 ```
 

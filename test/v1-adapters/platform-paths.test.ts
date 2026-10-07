@@ -150,7 +150,7 @@ describe("component version change and dependent qualifications (EXT-02, REC-16,
 		assert.ok(r.s.evidence.length > 0 && r.s.evidence.every((e) => e.valid));
 		r.run({ type: "environment.change", at: tick(), actor: KERNEL, digest: after.ref.digest });
 		assert.equal(r.s.environment_digest, after.ref.digest);
-		assert.equal(r.s.phase, "verification_design", "the change goes back to building and qualifying its protocol");
+		assert.equal(r.s.phase, "qualification", "the change goes back to building and qualifying its protocol");
 		assert.ok(
 			r.s.evidence.every((e) => !e.valid),
 			"evidence measured in the former environment no longer counts",

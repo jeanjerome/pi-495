@@ -1,6 +1,35 @@
+import type { Phase } from "../../contracts/v1/common.ts";
 import type { ChangeEvent } from "./events.ts";
 import type { AttemptCounters, ChangeState } from "./state.ts";
 import { DEFAULT_POLICY } from "../policy.ts";
+
+/**
+ * The phase identifiers a journal written before the phases took the name of their step carries, by
+ * the identifier of that step. What is stored keeps its bytes, so its digest chain holds: an old
+ * identifier is read under the new one, and only the new one is written.
+ */
+const PHASES_WRITTEN_BEFORE: Readonly<Record<string, Phase>> = {
+	clarifying: "scoping",
+	specifying: "specification",
+	verification_design: "qualification",
+	designing: "design",
+	implementing: "implementation",
+	integrating: "integration",
+};
+
+/** The phase a stored identifier names, whichever version wrote it. */
+export function currentPhase(phase: Phase): Phase {
+	return PHASES_WRITTEN_BEFORE[phase] ?? phase;
+}
+
+/** A projection read back from storage, its phases named as this version names them. */
+export function withCurrentPhases(state: ChangeState): ChangeState {
+	return {
+		...state,
+		phase: currentPhase(state.phase),
+		resume_point: state.resume_point && { ...state.resume_point, phase: currentPhase(state.resume_point.phase) },
+	};
+}
 
 /** Pure projection of one event onto the aggregate. Never throws for known events. */
 export function apply(state: ChangeState | null, event: ChangeEvent): ChangeState {
@@ -60,7 +89,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 	const s: ChangeState = { ...state, revision: state.revision + 1, updated_at: event.at, last_actor: event.actor };
 	switch (event.type) {
 		case "phase.entered":
-			s.phase = event.phase;
+			s.phase = currentPhase(event.phase);
 			s.status = event.status;
 			if (event.status !== "blocked") {
 				s.stop_reason = null;
@@ -91,7 +120,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			const gates = { ...s.gates };
 			for (const g of event.invalidated_gates) delete gates[g];
 			s.gates = gates;
-			s.phase = event.rollback_phase;
+			s.phase = currentPhase(event.rollback_phase);
 			s.status = "ready";
 			s.stop_reason = null;
 			s.stop_detail = null;
@@ -392,7 +421,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			s.environment_digest = event.digest;
 			return s;
 		case "resume_point.saved":
-			s.resume_point = { phase: event.phase, status: event.status };
+			s.resume_point = { phase: currentPhase(event.phase), status: event.status };
 			return s;
 		case "preparation.opened":
 		case "preparation.closed":

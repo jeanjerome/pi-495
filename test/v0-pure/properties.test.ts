@@ -25,44 +25,44 @@ import {
 } from "../helpers/change-fixture.ts";
 
 const EDGES: Record<Phase, Phase[]> = {
-	intake: ["clarifying"],
-	clarifying: ["specifying", "closed"],
-	specifying: ["verification_design", "closed", "clarifying"],
-	verification_design: ["preparing", "designing", "closed", "clarifying", "specifying"],
-	preparing: ["verification_design", "closed", "clarifying", "specifying"],
-	designing: ["implementing", "closed", "clarifying", "specifying", "verification_design"],
-	implementing: ["verifying", "deciding", "closed", "clarifying", "specifying", "verification_design", "designing"],
+	intake: ["scoping"],
+	scoping: ["specification", "closed"],
+	specification: ["qualification", "closed", "scoping"],
+	qualification: ["preparing", "design", "closed", "scoping", "specification"],
+	preparing: ["qualification", "closed", "scoping", "specification"],
+	design: ["implementation", "closed", "scoping", "specification", "qualification"],
+	implementation: ["verifying", "deciding", "closed", "scoping", "specification", "qualification", "design"],
 	verifying: [
 		"reviewing",
 		"deciding",
 		"closed",
-		"clarifying",
-		"specifying",
-		"verification_design",
-		"designing",
-		"implementing",
+		"scoping",
+		"specification",
+		"qualification",
+		"design",
+		"implementation",
 	],
 	reviewing: [
 		"deciding",
 		"verifying",
 		"closed",
-		"clarifying",
-		"specifying",
-		"verification_design",
-		"designing",
-		"implementing",
+		"scoping",
+		"specification",
+		"qualification",
+		"design",
+		"implementation",
 	],
 	deciding: [
-		"implementing",
-		"integrating",
+		"implementation",
+		"integration",
 		"closed",
 		"verifying",
-		"clarifying",
-		"specifying",
-		"verification_design",
-		"designing",
+		"scoping",
+		"specification",
+		"qualification",
+		"design",
 	],
-	integrating: ["closed", "verifying", "integrating", "clarifying", "specifying", "verification_design", "designing"],
+	integration: ["closed", "verifying", "integration", "scoping", "specification", "qualification", "design"],
 	closed: [],
 };
 
@@ -367,9 +367,9 @@ function checkInvariants(r: Runner, before: ChangeState | null, cmd: ChangeComma
 					"retained evidence is about the current candidate",
 				);
 		}
-	if (s.protocol && s.phase !== "verification_design" && s.phase !== "preparing" && s.gates.G2 === undefined)
-		assert.ok(["clarifying", "specifying", "closed"].includes(s.phase) || true);
-	if (s.phase === "implementing" || s.phase === "verifying") assert.ok(s.protocol, `protocol frozen in ${s.phase}`);
+	if (s.protocol && s.phase !== "qualification" && s.phase !== "preparing" && s.gates.G2 === undefined)
+		assert.ok(["scoping", "specification", "closed"].includes(s.phase) || true);
+	if (s.phase === "implementation" || s.phase === "verifying") assert.ok(s.protocol, `protocol frozen in ${s.phase}`);
 	for (const d of s.human_decisions)
 		if (d.valid && d.interaction === "IH-10")
 			assert.equal(

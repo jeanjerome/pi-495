@@ -149,16 +149,16 @@ export type Verdict = (typeof VERDICTS)[number];
 
 export const PHASES = [
 	"intake",
-	"clarifying",
-	"specifying",
-	"verification_design",
+	"scoping",
+	"specification",
+	"qualification",
 	"preparing",
-	"designing",
-	"implementing",
+	"design",
+	"implementation",
 	"verifying",
 	"reviewing",
 	"deciding",
-	"integrating",
+	"integration",
 	"closed",
 ] as const;
 export type Phase = (typeof PHASES)[number];

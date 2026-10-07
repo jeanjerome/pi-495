@@ -26,7 +26,7 @@ afterEach(() => {
 const cleanups = removedAfterEach();
 
 describe("a refusal outside its phase names the phases that allow the operation, and no next action", () => {
-	it("`/495 close q1` on a change in `verifying` says it is allowed in clarifying, with no next action", async () => {
+	it("`/495 close q1` on a change in `verifying` says it is allowed in scoping, with no next action", async () => {
 		const { pi, session, ctx } = await atVerification(root, cwd, "s-phase-refusal-close");
 		try {
 			const before = pi.said.length;
@@ -34,7 +34,7 @@ describe("a refusal outside its phase names the phases that allow the operation,
 			const refused = pi.said.findIndex((m, i) => i >= before && m.startsWith("495 error:"));
 			assert.equal(
 				pi.said[refused],
-				"495 error: INVALID_TRANSITION: operation question.close is not allowed in phase verifying; it is allowed in clarifying",
+				"495 error: INVALID_TRANSITION: operation question.close is not allowed in phase verifying; it is allowed in scoping",
 				pi.said.slice(before).join(" | "),
 			);
 			assert.deepEqual((pi.details[refused] as { error: { next_actions: string[] } }).error.next_actions, []);
@@ -43,7 +43,7 @@ describe("a refusal outside its phase names the phases that allow the operation,
 		}
 	});
 
-	it("`/495 verify` on a change stopped on q1 in `clarifying` names every phase that allows it, with no next action", async () => {
+	it("`/495 verify` on a change stopped on q1 in `scoping` names every phase that allows it, with no next action", async () => {
 		const { pi, session, ctx } = await stalledOnQ1(root, cwd, "s-phase-refusal-verify");
 		try {
 			const before = pi.said.length;
@@ -51,7 +51,7 @@ describe("a refusal outside its phase names the phases that allow the operation,
 			const refused = pi.said.findIndex((m, i) => i >= before && m.startsWith("495 error:"));
 			assert.equal(
 				pi.said[refused],
-				"495 error: INVALID_TRANSITION: operation verification.rerun is not allowed in phase clarifying; it is allowed in deciding, reviewing, verifying",
+				"495 error: INVALID_TRANSITION: operation verification.rerun is not allowed in phase scoping; it is allowed in deciding, reviewing, verifying",
 				pi.said.slice(before).join(" | "),
 			);
 			assert.deepEqual((pi.details[refused] as { error: { next_actions: string[] } }).error.next_actions, []);

@@ -10,7 +10,7 @@ import { digestBytes, sha256Hex } from "../../contracts/digest.ts";
 import type { ArtifactRef, ObjectRef } from "../../contracts/v1/common.ts";
 import type { DecisionRequest, HumanDecision } from "../../contracts/v1/decision.ts";
 import { evidenceDigest, type Evidence } from "../../contracts/v1/evidence.ts";
-import { apply, replay } from "../../domain/change/apply.ts";
+import { apply, currentPhase, replay, withCurrentPhases } from "../../domain/change/apply.ts";
 import type { ChangeEvent } from "../../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../../domain/change/state.ts";
 import { DomainError, messageOf } from "../../domain/errors.ts";
@@ -329,7 +329,7 @@ export class SqliteLedger implements LedgerPort {
 			changeId,
 		);
 		if (!projected) return null;
-		return { state: JSON.parse(projected.state) as ChangeState, revision: projected.revision };
+		return { state: withCurrentPhases(JSON.parse(projected.state) as ChangeState), revision: projected.revision };
 	}
 
 	/** Rebuilds the projection from events (used after a detected divergence). */
@@ -365,7 +365,7 @@ export class SqliteLedger implements LedgerPort {
 
 	listChanges(programId?: string) {
 		type ChangeRow = ReturnType<LedgerPort["listChanges"]>[number];
-		return programId
+		const listed = programId
 			? rows<ChangeRow>(
 					this.db.prepare(
 						"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes WHERE program_id = ? ORDER BY updated_at",
@@ -377,6 +377,7 @@ export class SqliteLedger implements LedgerPort {
 						"SELECT change_id, program_id, increment_id, phase, status, outcome, updated_at FROM changes ORDER BY updated_at",
 					),
 				);
+		return listed.map((c) => ({ ...c, phase: currentPhase(c.phase) }));
 	}
 
 	// --- program --------------------------------------------------------------------------------

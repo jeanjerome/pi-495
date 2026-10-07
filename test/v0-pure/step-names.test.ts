@@ -130,7 +130,7 @@ describe("the names of the steps", () => {
 	it("un changement qui écrit son candidat à la tentative 1 sur 3 dit son étape avant son activité, en anglais et en français", () => {
 		const writing: ChangeView = {
 			...accepted(),
-			phase: "implementing",
+			phase: "implementation",
 			status: "running",
 			outcome: "pending",
 			next_action: "implement",

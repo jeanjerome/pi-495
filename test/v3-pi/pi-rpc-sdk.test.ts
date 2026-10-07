@@ -78,6 +78,7 @@ function channel(name: string): { project: string; env: Record<string, string> }
 }
 
 interface ChangeView {
+	phase: string;
 	outcome: string;
 	status: string;
 	gates: { gate: string; verdict: string }[];
@@ -355,6 +356,21 @@ describe("Pi entries: RPC client and SDK host (C-PI, F-PIHOST)", { skip: skipWit
 		assert.match(text, /Décision enregistrée: hd_/);
 		// The report names the authority that answered: the identity the host declared, not the model.
 		assert.match(qualifiedMessages.at(-1)!.content, /^ {2}· Décidé par alice: IH-10 accept/m);
+	});
+
+	it("the status asked in RPC of a change waiting for a decision during its specification names the phase specification", async () => {
+		const human = channel("status-phase");
+		mkdirSync(human.env.HARNESS495_DATA_DIR!, { recursive: true });
+		writeFileSync(
+			join(human.env.HARNESS495_DATA_DIR!, "config.json"),
+			JSON.stringify({ policy: { adoption: { requirements: "human" } } }),
+		);
+		const client = await runRpc(human.project, human.env, [REQUEST, "/495 status"]);
+		const said = client.messages();
+		await client.close();
+		const status = views(said.slice(-1)).at(-1);
+		assert.ok(status, `the status carries the view of the change: ${said.map((m) => m.content).join(" | ")}`);
+		assert.deepEqual([status.phase, status.status], ["specification", "decision_required"]);
 	});
 
 	it("a configuration unreadable when the session opened stays refused for that session, and the next session reads it repaired (UX-02)", async () => {

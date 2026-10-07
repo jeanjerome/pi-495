@@ -6,6 +6,7 @@ import { strict as assert } from "node:assert";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { Phase } from "../../src/contracts/v1/common.ts";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { selectedModel } from "../../src/extension/conduct.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
@@ -204,10 +205,20 @@ export async function stalledOnQ1(
 }
 
 /** Takes a change with no question to its frozen candidate, in its verification with no control run yet. */
-export async function atVerification(
+export function atVerification(
 	dataDir: string,
 	cwd: string,
 	sessionId: string,
+): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
+	return atPhase(dataDir, cwd, sessionId, "verifying");
+}
+
+/** Conducts a change with no question, one step at a time, until it enters `phase`. */
+export async function atPhase(
+	dataDir: string,
+	cwd: string,
+	sessionId: string,
+	phase: Phase,
 ): Promise<{ pi: FakePi; session: ExtensionSession; ctx: FakeContext; changeId: string }> {
 	const agentScript = join(dataDir, "agent.json");
 	writeFileSync(
@@ -246,8 +257,8 @@ export async function atVerification(
 	const changeId = change.change_id;
 	session.bind(ctx.asCommand(), { program_id: program.program_id, change_id: changeId });
 	const readModel = () => selectedModel(ctx.asCommand());
-	for (let step = 0; rt.ledger.loadChange(changeId)!.state.phase !== "verifying"; step++) {
-		assert.ok(step < 20, `the change never reaches its verification: ${rt.ledger.loadChange(changeId)!.state.phase}`);
+	for (let step = 0; rt.ledger.loadChange(changeId)!.state.phase !== phase; step++) {
+		assert.ok(step < 20, `the change never reaches ${phase}: ${rt.ledger.loadChange(changeId)!.state.phase}`);
 		await rt.harness.advance(changeId, { max_steps: 1, readModel });
 	}
 	return { pi, session, ctx, changeId };

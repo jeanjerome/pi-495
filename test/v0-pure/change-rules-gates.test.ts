@@ -23,7 +23,7 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 		assert.ok(r.s.gates.G2?.fail_requirements.includes("R1"));
 		assert.ok(r.s.gates.G2?.fail_requirements.includes("R2"));
 		assert.equal(r.s.gates.G2?.next_action, "prepare_capabilities_or_assign_human_decision");
-		assert.equal(r.s.phase, "verification_design");
+		assert.equal(r.s.phase, "qualification");
 	});
 	it("refuses a control whose negative witness does not detect the defect (blind sensor)", () => {
 		const r = new Runner().create().g0().g1();
@@ -54,7 +54,7 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 		r.run({ type: "gate.evaluate", gate: "G2", at: tick(), actor: KERNEL, protocol_ref: ref("p", p), protocol: p });
 		assert.equal(r.s.gates.G2?.verdict, "PASS");
 	});
-	it("opens a bounded preparation and returns to verification_design once qualified", () => {
+	it("opens a bounded preparation and returns to qualification once qualified", () => {
 		const r = new Runner().create().g0().g1();
 		r.run({ type: "preparation.open", at: tick(), actor: KERNEL, mandate_ref: ref("prep", { files: ["test/"] }) });
 		assert.equal(r.s.phase, "preparing");
@@ -99,10 +99,10 @@ describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 			capability_ids: ["unit"],
 			adopted_ref: null,
 		});
-		assert.equal(r.s.phase, "verification_design");
+		assert.equal(r.s.phase, "qualification");
 		// preparation attempts are counted separately from implementation attempts? They share the increment budget of attempts_used
 		r.g2();
-		assert.equal(r.s.phase, "designing");
+		assert.equal(r.s.phase, "design");
 	});
 });
 

@@ -223,7 +223,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		);
 	});
 
-	it("given an IH-04 answered revise with a text, then the change is back in specifying, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold", async () => {
+	it("given an IH-04 answered revise with a text, then the change is back in specification, the specification request carries that text and names the requirement, and the requirements, protocol and preparation adopted before no longer hold", async () => {
 		const t = makeHarness({
 			policy: { adoption: { requirements: "human" } },
 			scripts: { prepare: emptyPreparation },
@@ -254,7 +254,7 @@ describe("a requirement no control can judge is arbitrated by the owner", () => 
 		assert.ok(objectives[1]!.includes(text), "the owner's text is in the specification request");
 		assert.match(objectives[1]!, /revise R1,/, "the request names the requirement, which the owner's text does not");
 		const state = t.ledger.loadChange(change.change_id)!.state;
-		assert.equal(state.phase, "specifying", "the change is back in the specification");
+		assert.equal(state.phase, "specification", "the change is back in the specification");
 		assert.equal(result.stopped_because, "decision_required", result.steps.join(" | "));
 		assert.notEqual(state.gates.G1?.verdict, "PASS", "the adoption of the requirements no longer holds");
 		assert.equal(state.gates.G2, undefined, "no protocol is in force");

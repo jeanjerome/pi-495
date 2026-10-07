@@ -574,7 +574,7 @@ Les verdicts autorisés sont exactement `PASS`, `FAIL`, `INDETERMINATE`, `NOT_RU
   "category": "capability",
   "summary": "Le profil verify n’est pas qualifié sur cette plateforme.",
   "subject": { "kind": "change", "id": "chg_...", "revision": 4 },
-  "phase": "verification_design",
+  "phase": "qualification",
   "retryable": false,
   "effect_state": "none",
   "next_actions": ["qualify_capability", "revise_mandate"],

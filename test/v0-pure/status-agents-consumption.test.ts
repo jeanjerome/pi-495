@@ -28,7 +28,7 @@ function spent(consumption: Consumption): StatusView {
 			change_id: "chg_muvojsvvb399c9ce4d",
 			increment_id: "inc_1",
 			revision: 12,
-			phase: "implementing",
+			phase: "implementation",
 			status: "running",
 			outcome: "pending",
 			stop_reason: null,

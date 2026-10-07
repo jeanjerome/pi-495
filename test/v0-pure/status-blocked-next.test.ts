@@ -30,7 +30,7 @@ function blocked(stop_detail: string, retryable = false): StatusView {
 			change_id: "chg_muvojsvvb399c9ce4d",
 			increment_id: "inc_1",
 			revision: 12,
-			phase: "verification_design",
+			phase: "qualification",
 			status: "blocked",
 			outcome: "pending",
 			stop_reason: "capability_missing",

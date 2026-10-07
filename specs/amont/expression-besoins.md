@@ -915,7 +915,7 @@ Le modèle sépare **phase métier**, **statut d’exécution** et **résultat**
 
 | Champ | Valeurs de référence proposées |
 | --- | --- |
-| Phase | `intake`, `clarifying`, `specifying`, `verification_design`, `preparing`, `designing`, `implementing`, `verifying`, `reviewing`, `deciding`, `integrating`, `closed`. |
+| Phase | `intake`, `scoping`, `specification`, `qualification`, `preparing`, `design`, `implementation`, `verifying`, `reviewing`, `deciding`, `integration`, `closed`. |
 | Statut | `ready`, `running`, `paused`, `decision_required`, `blocked`, `completed`, `cancelled`. |
 | Résultat courant | `pending`, `accepted`, `rejected`, `integrated`, `abandoned`. |
 | Motif d’arrêt | `user_cancelled`, `budget_exhausted`, `attempts_exhausted`, `stagnation`, `configuration_error`, `capability_missing`, `execution_error`, `evidence_missing`, `policy_denied`, `integration_conflict`, `decision_pending`. |

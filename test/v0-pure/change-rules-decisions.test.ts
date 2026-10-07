@@ -30,7 +30,7 @@ describe("attempts, budgets and stagnation (SA-015, SA-016, RM-032, RM-034, RM-0
 			attempt_id: "att_2",
 			feedback: { digest: digestValue("fb"), bytes: 120, truncated: false },
 		});
-		assert.equal(r.s.phase, "implementing");
+		assert.equal(r.s.phase, "implementation");
 		assert.equal(r.s.attempts.length, 2);
 		assert.equal(r.s.attempts[0]?.result, "superseded");
 		assert.equal(r.s.attempts[0]?.candidate?.candidate_id, "cand_c1");
@@ -454,7 +454,7 @@ describe("invalidation (SA-034, BES-05, RM-070, RM-076)", () => {
 			ref: ref("rqs_1", { v: 2 }, 2),
 			reason: "business rule changed",
 		});
-		assert.equal(r2.s.phase, "specifying");
+		assert.equal(r2.s.phase, "specification");
 		assert.equal(r2.s.gates.G1, undefined);
 		assert.equal(r2.s.gates.G2, undefined);
 		assert.equal(r2.s.gates.G4, undefined);
@@ -478,10 +478,10 @@ describe("invalidation (SA-034, BES-05, RM-070, RM-076)", () => {
 		assert.equal(r2.s.phase, "verifying");
 		assert.equal(r.s.outcome, "accepted");
 	});
-	it("an environment change invalidates qualification and returns to verification_design", () => {
+	it("an environment change invalidates qualification and returns to qualification", () => {
 		const r = new Runner().toDeciding(candidate("c1"));
 		r.run({ type: "environment.change", at: tick(), actor: KERNEL, digest: digestValue({ pi: "0.86.0" }) });
-		assert.equal(r.s.phase, "verification_design");
+		assert.equal(r.s.phase, "qualification");
 		assert.equal(r.s.gates.G2, undefined);
 		assert.ok(r.s.evidence.every((e) => !e.valid));
 		assert.notEqual(r.s.environment_digest, ENV);
@@ -717,7 +717,7 @@ describe("pause, resume, cancel (PF-17, RM-056)", () => {
 		);
 		r.run({ type: "change.resume", at: tick(), actor: HUMAN });
 		assert.equal(r.s.status, "ready");
-		assert.equal(r.s.phase, "implementing");
+		assert.equal(r.s.phase, "implementation");
 		r.run({
 			type: "intervention.start",
 			at: tick(),
