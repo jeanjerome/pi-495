@@ -403,7 +403,7 @@ epics:
       cet epic. La qualification se fait dans une machine virtuelle Linux arm64 d'Apple container, et vaut pour
       x86-64 par arbitrage du propriétaire (`D-84`, qui remplace `D-31`).
     stories:
-      - { id: e35s01, status: "à faire", title: "495 s'exécute confiné sous Linux, et la documentation le dit" }
+      - { id: e35s01, status: "versée", title: "495 s'exécute confiné sous Linux, et la documentation le dit" }
 
   - id: e11
     title: "Architecture cible d'une cible"
