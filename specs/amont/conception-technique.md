@@ -109,7 +109,7 @@ Le chemin interactif et le chemin automatisable se rejoignent au niveau du même
 | `CMP-WSP` | **Workspace Repository** | Capturer la référence, créer un workspace isolé, figer un candidat, comparer et fermer l’espace. | Confiance |
 | `CMP-CAN` | **Candidate Observer** | Produire le manifeste complet et l’identité du candidat, y compris non suivis, suppressions et métadonnées. | Confiance |
 | `CMP-VER` | **Verification Coordinator** | Résoudre le protocole gelé, ordonnancer les contrôles, normaliser les observations et produire les preuves. | Confiance |
-| `CMP-TGT` | **Target Adapter Registry** | Découvrir les capacités d’une stack, produire les définitions de contrôles et parser les rapports natifs. | Seulement adaptateurs qualifiés |
+| `CMP-TGT` | **Target Adapter Registry** | Découvrir les capacités d’une stack, produire les définitions de contrôles et parser les rapports natifs. Une technologie est un dossier de `src/adapters/stacks/` (`maven/`, `node/`) qui porte sa détection, ses contrôles, ses témoins et les lecteurs de ses rapports ; les lecteurs des formats que plusieurs technologies écrivent (code de sortie, JUnit XML, LCOV) restent sous `src/adapters/execution/`, et la liste des technologies est remise au noyau par `src/extension/runtime.ts`. | Seulement adaptateurs qualifiés |
 | `CMP-REV` | **Review Query Model** | Construire l’union des arbres, portions modifiées, métadonnées, constats et pages de contenu. | Confiance, lecture seule |
 | `CMP-EVD` | **Evidence Ledger** | Conserver événements, révisions, preuves, décisions, intégrité, rétention et export. | Confiance maximale |
 | `CMP-HUM` | **Human Decision Adapter** | Présenter une décision, vérifier sa provenance et enregistrer une réponse liée à une révision. | Confiance selon l’entrée Pi |
@@ -765,8 +765,8 @@ src/
     object-store/
     workspace/
     git/
-    execution/
-    target/
+    execution/                  # lanceur générique et lecteurs des formats communs
+    stacks/                     # une technologie par dossier, lecteurs de ses rapports compris
   export/
 test/
   fixtures/

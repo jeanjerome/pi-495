@@ -14,12 +14,12 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import {
 	RULESET_PLACEHOLDER,
 	type ControlDefinition,
-	type ParserId,
 	type Qualification,
 	type QualityRule,
 } from "../../src/contracts/v1/protocol.ts";
 import { controlOf, invocationBase } from "../helpers/execution-fixture.ts";
 import { removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { READERS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 let workspace: string;
@@ -69,12 +69,16 @@ function cpdReport(base: string): string {
 }
 
 /** A control that runs nothing and reads the report the workspace holds, as `parser` reads it. */
-function reader(controlId: string, parser: ParserId): ControlDefinition {
+function reader(controlId: string, parser: string): ControlDefinition {
 	return controlOf({ control_id: controlId, parser, report_path: "**/target" });
 }
 
 async function run(control: ControlDefinition) {
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	return (await runner.runControl({ ...invocationBase(), control, workspace_path: workspace })).evidence;
 }
 
@@ -220,8 +224,14 @@ describe("the rule set a PMD control applies", () => {
 		// The control copies the rule set it is given into the workspace, with the path it was given.
 		const copy =
 			"const fs = require('fs'); fs.writeFileSync('seen.txt', process.argv[1] + '\\n' + fs.readFileSync(process.argv[1], 'utf8'));";
+		writeFiles(workspace, { "target/pmd.xml": pmdReport("") });
 		const evidence = await run(
-			controlOf({ command: [process.execPath, "-e", copy, RULESET_PLACEHOLDER], quality_rules: RULES }),
+			controlOf({
+				command: [process.execPath, "-e", copy, RULESET_PLACEHOLDER],
+				parser: "pmd-xml",
+				report_path: "**/target",
+				quality_rules: RULES,
+			}),
 		);
 		assert.equal(evidence.verdict, "PASS", evidence.limits.notes.join("; "));
 		const [path, ...lines] = readFileSync(join(workspace, "seen.txt"), "utf8").split("\n");
@@ -269,7 +279,11 @@ async function qualifiedOn(positive: readonly string[], negative: readonly strin
 	};
 	const positiveFiles = { [POSITIVE_FILE]: "class Witness495Clean {}\n" };
 	const negativeFiles = { [NEGATIVE_FILE]: "class Witness495Complex {}\n" };
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	return qualifyControl(
 		runner,
 		reader("pmd", "pmd-xml"),

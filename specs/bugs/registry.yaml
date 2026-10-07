@@ -1504,3 +1504,160 @@ bugs:
     follow_ups: >
       Give `verdictLine` a branch for `paused` that names the step, with a test on the text of a paused change.
     status: open
+  - bug_id: BUG-2026-10-07T160000
+    date: "2026-10-07"
+    title: "The PIT scope names an introduced path outside the copy as an unreadable source instead of a path that escapes the workspace"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `pitestScopeOf` (`src/adapters/stacks/maven/pitest-reader.ts`) reads each introduced Java source through
+      `WorkspaceFiles.text`, which throws `<path> escapes the workspace` for a path outside the copy. The scope
+      then notes `unreadable source <path>: <path> escapes the workspace; its classes were not mutated`, where
+      the scope used to note `<path> escapes the workspace and was not scoped`. Introduced by the branch e37s01,
+      which moved the containment of the read from the scope into the runner's `WorkspaceFiles`.
+    what_expected: >
+      The note of a refactored scope is the note it gave before: a path outside the copy is named as escaping
+      the workspace, not as an unreadable source.
+    steps_to_reproduce:
+      - "Call `PITEST_ENGINE.scopeOf(workspaceFiles(ws), { '../Outside.java': [1] })` and read `notes`."
+    root_cause: >
+      `WorkspaceFiles.text` reports a path outside the copy as an error, the same way it reports an absent or
+      unreadable file, and the reader cannot tell the two apart without a distinct error.
+    evidence: >
+      Read during the self-review of e37s01 against `mutationScopeOf` at 536c551 (`src/adapters/execution/mutation.ts`),
+      which checked the containment itself before reading. No test pins either note. The kernel never reaches the
+      case: introduced paths come from the candidate manifest, which is walked inside the copy.
+    risk_level: low
+    follow_ups: >
+      Let `WorkspaceFiles` say that a path escapes the copy apart from a read error, and give the PIT scope its
+      former note, with a test on an escaping introduced path.
+    status: open
+  - bug_id: BUG-2026-10-07T170000
+    date: "2026-10-07"
+    title: "A declared report path that climbs into a sibling directory whose name starts with the copy's is read as a report"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `readReports` (`src/adapters/execution/workspace-files.ts`) keeps a report path inside the copy by testing
+      `abs.startsWith(resolve(workspace))`, with no separator after the root. With the copy at `<d>/ws`, a
+      `report_path` of `../ws2/r.txt` resolves to `<d>/ws2/r.txt`, passes the test, and the file is read, handed to
+      the reader and kept in the object store. A reader that does not ask for `single_file` — the JUnit, LCOV,
+      JaCoCo, PIT, PMD, CPD, jest, ESLint and jscpd readers, and any reader a technology brings — reads it.
+    what_expected: >
+      A path outside the copy is never read: `readReports` tests the root followed by a separator, as
+      `readBoundedReport`, `introducedSources` and `readInside` do.
+    steps_to_reproduce:
+      - "With `<d>/ws` and `<d>/ws2/r.txt`, call `workspaceFiles('<d>/ws', '../ws2/r.txt').reports('text/plain')`: it returns `[{ name: '../ws2/r.txt', text: … }]`; with `{ single_file: true }` it returns `[]`."
+    root_cause: >
+      The containment test of `readReports` omits the separator after the root that the other three reads of
+      `WorkspaceFiles` require.
+    evidence: >
+      Probed on 2026-10-07 on the branch e37s01, and read identical on main 536c551 (`runner.ts`, `readReports`).
+      The `report_path` comes from the control definition a technology declares, not from the project judged, so
+      the project cannot choose it.
+    risk_level: low
+    follow_ups: >
+      Test the root followed by a separator in `readReports`, with a test on a sibling directory whose name starts
+      with the copy's.
+    status: open
+  - bug_id: BUG-2026-10-07T170100
+    date: "2026-10-07"
+    title: "A report the project writes as a symbolic link to a file outside the copy is read and kept as evidence"
+    severity: high
+    priority: p1
+    scope: adapters
+    what_happened: >
+      `readReports` and `readBoundedReport` (`src/adapters/execution/workspace-files.ts`) test the containment of
+      the declared path as a string, then `stat` and `readFile` it, which follow a symbolic link. A command of the
+      project judged that writes its report as a link to a file outside the copy has that file read, handed to the
+      reader and kept in the object store as `report:<path>`, with or without `single_file`.
+    what_expected: >
+      A path outside the copy is never read: a report that is a link, or that sits under a linked directory,
+      resolves outside the copy only to be refused, as the story of the runner's reads promises.
+    steps_to_reproduce:
+      - "With `<d>/secret.txt` and a link `<d>/ws/link.txt` to `../secret.txt`, call `workspaceFiles('<d>/ws', 'link.txt').reports('text/plain')`: it returns the text of `secret.txt`; with `{ single_file: true }` it does too."
+    root_cause: >
+      The containment is checked on the resolved path string, never on the real path of the file read; `stat` and
+      `readFile` follow links. The recursive Surefire scan reads the files of a matching directory without testing
+      them either.
+    evidence: >
+      Probed on 2026-10-07 on the branch e37s01, and read identical on main 536c551 (`runner.ts`, `readReports` and
+      `readBoundedReport`). The sandbox lets the command write inside the copy, so the project judged can plant the
+      link; what it can read through it is bounded by what the 495 process can read.
+    risk_level: high
+    follow_ups: >
+      Refuse a report whose real path (`realpath`, or `lstat` on each read) leaves the copy, in every read of
+      `WorkspaceFiles`, with a test on a link written by the control's command.
+    status: open
+  - bug_id: BUG-2026-10-07T180000
+    date: "2026-10-07"
+    title: "A technology's reader that reads its report through `WorkspaceFiles.text` gets it whole past the read bound, and nothing is kept"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      The surface the runner offers every report reader (`workspaceFiles`, `src/adapters/execution/workspace-files.ts`)
+      bounds and keeps the reports read through `reports()`, but also offers `text(path)` (`readInside`), which reads
+      any file of the copy whole, with no size bound, and keeps nothing. A reader that reads its report through
+      `run.text(run.control.report_path)` instead of `run.reports(...)` receives a report of `MAX_REPORT_BYTES + 7`
+      bytes in full, can conclude PASS on it, and the evidence carries no `report:` artifact and no note. Introduced
+      by the branch e37s01, which handed the reading of files to a surface any technology's reader receives; before
+      it, a whole unbounded read existed only for the introduced Java sources of the PIT scope
+      (`mutationScopeOf`, `src/adapters/execution/mutation.ts` on main 536c551).
+    what_expected: >
+      A reader cannot get past the read bound nor the keeping of what it read: a report is read only through
+      `reports()`, or `text` is bounded like `sources` and refuses a file past `MAX_REPORT_BYTES`.
+    steps_to_reproduce:
+      - "In the reader of `test/v1-adapters/report-reading-bounds.test.ts`, replace `run.reports(...)` by `run.text(run.control.report_path!)`: the control on a `lines.txt` of `MAX_REPORT_BYTES + 7` bytes is PASS, with no `report:` artifact and no note."
+    root_cause: >
+      `WorkspaceFiles.text` has no bound and no keeper; its only 495 caller, the PIT scope, reads introduced sources,
+      which were read without a bound before the branch, so bounding it changes the PIT scope's behaviour on a large
+      source and was not done in the branch.
+    evidence: >
+      Probed on 2026-10-07 on the branch e37s01 by both reviewers of the second round. The reader is code loaded in
+      the 495 process, which could also import `node:fs`: the bound is a rule of the interface, not a confinement.
+    risk_level: medium
+    follow_ups: >
+      Either remove `text` from the surface and let the PIT scope read through `sources` (whose bound and silence on
+      an absent or escaping path change the scope's notes), or bound `text` at `MAX_REPORT_BYTES`; hold it with a test
+      on a reader that reads an oversized report through the surface.
+    status: open
+  - bug_id: BUG-2026-10-07T190000
+    date: "2026-10-07"
+    title: "A writable path the project committed as a symbolic link grants the control's command a write outside the copy"
+    severity: high
+    priority: p1
+    scope: adapters
+    what_happened: >
+      `profileFor` (`src/adapters/execution/runner.ts`) keeps a control's `writable_paths` that lie inside the copy
+      by their written path, then the Seatbelt profile (`src/adapters/sandbox/backends.ts`) grants
+      `(allow file-write* (subpath …))` on `real(p)`, which resolves the path through `realpathSync`. When the
+      project judged has committed that path as a link to a file or directory outside the copy, the grant is
+      written for the link's target, and the control's command writes there. A campaign of a control declaring
+      `writable_paths: ["lines.txt"]`, on a target whose `lines.txt` is a committed link to
+      `~/.495-campagnes/e37s01-r2-ecrit.txt`, overwrote that file with the command's report. The reads of the
+      runner refuse the link afterwards, but the write outside the copy has happened. The Maven and Node controls
+      declare `target`, the coverage directory and report files as writable: a project that commits `target` as
+      a link to a directory of the user's gets a write grant on that whole directory.
+    what_expected: >
+      A command of the project judged never writes outside the copy: a writable path whose real path leaves the
+      copy is not granted, and the control is refused or runs without it.
+    steps_to_reproduce:
+      - "With `<d>/outside.txt` and a target that commits `lines.txt` as a link to it, run a control whose `writable_paths` is `[\"lines.txt\"]` and whose command writes `lines.txt` under the Seatbelt backend: `<d>/outside.txt` holds the command's output."
+    root_cause: >
+      `profileFor` tests the containment of a writable path on its written string, and `real()` resolves it
+      through links the project judged wrote, so the sandbox grant follows them out of the copy. A plain write
+      outside the copy, or through a link to a path that was not granted, is denied by Seatbelt (probed with
+      `sandbox-exec` on 2026-10-07).
+    evidence: >
+      Observed on 2026-10-07 in the acceptance campaign `e37s01-r2-x1-ecriture-lien` at 1d7f4cc (Seatbelt backend,
+      evidence `facts.sandbox` = `seatbelt`); `profileFor` and `real()` read identical on main 536c551. The bubblewrap
+      backend binds each writable path with `--bind p p`, which follows the link the same way, unprobed.
+    risk_level: high
+    follow_ups: >
+      Grant a writable path only when its real path, or that of its deepest existing ancestor, lies inside the real
+      path of the copy, in both backends, with a test on a writable path committed as a link to a file and to a
+      directory outside the copy.
+    status: open

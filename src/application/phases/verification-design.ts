@@ -321,7 +321,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		let detection = detectStack(handle.path, refs);
+		let detection = detectStack(ctx.stacks, handle.path, refs);
 		// A survey puts the quality referential its target proposes to the owner before anything runs: the
 		// analyser it adopts is a control the protocol freezes like the others.
 		const quality = surveysTheProject(unit.state)
@@ -365,7 +365,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const installed = [...(quality?.packages ?? []), ...(adoption?.packages ?? [])];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
-			detection = detectStack(handle.path, refs, process.execPath, quality?.packages);
+			detection = detectStack(ctx.stacks, handle.path, refs, process.execPath, quality?.packages);
 		}
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {

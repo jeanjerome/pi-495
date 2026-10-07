@@ -13,18 +13,17 @@ import { validate } from "../contracts/validate.ts";
 import type { CandidateRef, EnvironmentRef, ProtocolRef } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from "../contracts/v1/evidence.ts";
-import {
-	isDifferentialParser,
-	type AdoptedComplement,
-	type AdoptedQualityReferential,
-	type InstalledPackage,
-	type ControlCapabilityDiagnosis,
-	type ControlDefinition,
-	type Obligation,
-	type Protocol,
-	type Qualification,
-	type RecommendedComplement,
-	type RequirementsDocument,
+import type {
+	AdoptedComplement,
+	AdoptedQualityReferential,
+	InstalledPackage,
+	ControlCapabilityDiagnosis,
+	ControlDefinition,
+	Obligation,
+	Protocol,
+	Qualification,
+	RecommendedComplement,
+	RequirementsDocument,
 } from "../contracts/v1/protocol.ts";
 import {
 	applyInstability,
@@ -40,10 +39,10 @@ import type { EvidenceFact } from "../domain/change/commands.ts";
 import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { declaresGenerated } from "../domain/generated-code.ts";
-import { asksAboutQuality, controlsOfNature, placesOf } from "../domain/survey.ts";
+import { asksAboutQuality, controlsOfNature, placesOf, readerOf } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
-import type { ControlExecutionPort, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import type { ControlExecutionPort, ReportReader, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import { EXECUTOR_ACTOR } from "./actors.ts";
@@ -181,6 +180,16 @@ export class VerificationCoordinator {
 	private readonly deps: VerificationDeps;
 	constructor(deps: VerificationDeps) {
 		this.deps = deps;
+	}
+
+	/** The report readers the controls run through, which say what each control measures. */
+	get readers(): readonly ReportReader[] {
+		return this.deps.controls.readers;
+	}
+
+	/** Whether the reader a control names judges only the lines a subject introduces. */
+	private differential(control: ControlDefinition): boolean {
+		return readerOf(this.readers, control.parser)?.differential ?? false;
 	}
 
 	/**
@@ -361,7 +370,7 @@ export class VerificationCoordinator {
 		// a responsibility placed in a forbidden module is not demonstrated either, and neither is a
 		// line whose mutation nothing notices (QLT-04, ARC-04, VER-04). An improvement elsewhere
 		// never compensates for any of the three.
-		const differential = controls.filter((c) => isDifferentialParser(c.parser)).map((c) => c.control_id);
+		const differential = controls.filter((c) => this.differential(c)).map((c) => c.control_id);
 		const obligations: Obligation[] = input.requirements.requirements.map((r) => {
 			if (input.assigned_to_human.includes(r.requirement_id))
 				return {
@@ -374,7 +383,7 @@ export class VerificationCoordinator {
 				};
 			if (input.by_nature) {
 				// A survey answers each requirement with what measures its nature, or names it a blind spot.
-				const measured = controlsOfNature(r.category, controls, input.lint_control_ids);
+				const measured = controlsOfNature(r.category, controls, input.lint_control_ids, this.readers);
 				const blindSpot =
 					"blind_spot" in measured
 						? input.quality_blind_spot !== undefined && asksAboutQuality(r.category)
@@ -459,7 +468,7 @@ export class VerificationCoordinator {
 			// A path the diff could not read is a limit of every control that judged the introduced lines,
 			// not a silent zero.
 			const limits =
-				introduced.notes.length > 0 && isDifferentialParser(control.parser)
+				introduced.notes.length > 0 && this.differential(control)
 					? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] }
 					: observed.limits;
 			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" }, limits };

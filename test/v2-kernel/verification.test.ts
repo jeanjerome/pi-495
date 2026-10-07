@@ -27,7 +27,8 @@ import type {
 import { DomainError } from "../../src/domain/errors.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { DEFAULT_POLICY } from "../../src/domain/policy.ts";
-import type { ControlExecutionPort, ControlInvocation } from "../../src/ports/execution.ts";
+import type { ControlExecutionPort, ControlInvocation, ReportReader } from "../../src/ports/execution.ts";
+import { requirements } from "../helpers/change-fixture.ts";
 import { fixtureTs, initRepo, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { controlOf } from "../helpers/execution-fixture.ts";
 
@@ -96,6 +97,7 @@ function evidenceOf(invocation: ControlInvocation): EvidenceCandidate {
 /** A control that writes one file into the workspace it is measuring, then reports a green pass. */
 function writingControl(relativePath: string | null): ControlExecutionPort {
 	return {
+		readers: [],
 		async runControl(invocation: ControlInvocation) {
 			if (relativePath !== null) {
 				const target = join(invocation.workspace_path, relativePath);
@@ -257,6 +259,48 @@ describe("the protocol frozen from a detection", () => {
 	it("given a target without a recommendation, then the diagnosis of the frozen protocol has no list of them", () => {
 		assert.equal("recommendations" in freezeWith([]).capability_diagnosis, false);
 	});
+
+	it("given a control whose technology declares its reader differential, then every requirement is obliged to it besides the controls of its category", () => {
+		const reader = (id: string, differential: boolean): ReportReader => ({
+			id,
+			version: "1.0.0",
+			nature: differential ? "coverage" : "behaviour",
+			differential,
+			located: false,
+			read: async () => ({ verdict: "PASS", facts: {}, notes: [], failures: [] }),
+		});
+		const port: ControlExecutionPort = {
+			...writingControl(null),
+			readers: [reader("fict-lines", false), reader("fict-cov", true)],
+		};
+		const { capability_diagnosis: diagnosis } = protocolOf([]);
+		const protocol = coordinatorOver(port, new GitWorkspace(join(root, "workspaces"))).freeze({
+			change_id: "chg_1",
+			ordered: [
+				control({ control_id: "unit", parser: "fict-lines" }),
+				control({ control_id: "cov", parser: "fict-cov" }),
+				control({ control_id: "lint" }),
+			],
+			lint_control_ids: ["lint"],
+			qualifications: {},
+			diagnosis,
+			requirements: requirements(),
+			requirements_revision: 1,
+			prepared: null,
+			assigned_to_human: [],
+			recommendations: [],
+			complements: [],
+			installed: [],
+			by_nature: false,
+		});
+		assert.deepEqual(
+			protocol.obligations.map((o) => [o.requirement.requirement_id, o.control_ids]),
+			[
+				["R1", ["unit", "cov"]],
+				["R2", ["lint", "cov"]],
+			],
+		);
+	});
 });
 
 describe("the paths the frozen protocol protects, whatever the stack of the target", () => {
@@ -334,6 +378,7 @@ describe("the workspaces of a qualification, once a complement is adopted", () =
 	/** What each control saw of package.json in the workspace it ran in, by workspace. */
 	function packageJsonSeen(seen: Map<string, string | null>): ControlExecutionPort {
 		return {
+			readers: [],
 			async runControl(invocation: ControlInvocation) {
 				const file = join(invocation.workspace_path, "package.json");
 				seen.set(invocation.workspace_path, existsSync(file) ? readFileSync(file, "utf8") : null);
@@ -423,6 +468,7 @@ describe("the workspace of a reference pass, once a complement is adopted", () =
 		const stored = await new CasObjectStore(join(root, "objects")).putText(COMPLEMENT_TEXT);
 		const seenOnReference: (string | null)[] = [];
 		const recording: ControlExecutionPort = {
+			readers: [],
 			async runControl(invocation: ControlInvocation) {
 				if (invocation.subject.kind === "reference") {
 					const file = join(invocation.workspace_path, "package.json");

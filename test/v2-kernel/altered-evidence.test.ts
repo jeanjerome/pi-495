@@ -107,6 +107,7 @@ describe("an altered piece of evidence a decision reads stops the change instead
 			scripts: IMPLEMENTS_GREET,
 			ledger: (path) => new LedgerWithoutCandidateFiles(path),
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					if (invocation.subject.kind === "candidate" && invocation.introduced_lines)
 						introduced.push(invocation.introduced_lines);

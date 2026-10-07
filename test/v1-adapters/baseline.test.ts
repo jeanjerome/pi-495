@@ -18,6 +18,7 @@ import {
 } from "../../src/domain/baseline.ts";
 import { writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { ENV, EXECUTOR } from "../helpers/change-fixture.ts";
+import { READERS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -78,7 +79,7 @@ function invocation(workspacePath: string, subjectDigest: string, kind: "referen
 
 describe("the same control on the reference and on the candidate (VER-08)", () => {
 	function runner(): GenericControlRunner {
-		return new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		return new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")), READERS_OF_495);
 	}
 	const referenceDigest = digestValue("reference-tree");
 	const candidateDigest = digestValue("candidate-tree");

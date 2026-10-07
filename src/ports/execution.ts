@@ -5,13 +5,15 @@ import type {
 	InterventionRole,
 	ProtocolRef,
 	SubjectRef,
+	Verdict,
 } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
-import type { EvidenceCandidate, RequirementRef } from "../contracts/v1/evidence.ts";
-import type { ControlDefinition } from "../contracts/v1/protocol.ts";
+import type { EvidenceCandidate, Finding, RequirementRef } from "../contracts/v1/evidence.ts";
+import type { ControlDefinition, QualityRule } from "../contracts/v1/protocol.ts";
 import type { OUTPUT_SCHEMAS } from "../contracts/v1/reports.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
+import type { ReaderTraits } from "../domain/survey.ts";
 import type { AttemptCounters, InterventionCost } from "../domain/change/state.ts";
 
 // --- sandbox (§8.5) ------------------------------------------------------------------------------
@@ -132,7 +134,124 @@ export interface ControlInvocation {
 	introduced_lines?: IntroducedLines | null;
 }
 
+/**
+ * A defect a parser names itself, when `${control}:failure` would say the wrong thing about it. The
+ * runner still derives the path, the line and the fingerprint from the message, exactly as it does
+ * for a failing test.
+ */
+export interface ParsedFinding {
+	rule_id: string;
+	category: Finding["category"];
+	severity: Finding["severity"];
+	message: string;
+	symbol: string | null;
+}
+
+export interface ParsedReport {
+	verdict: Verdict;
+	facts: Record<string, unknown>;
+	notes: string[];
+	/** Failing test names or messages, bounded. */
+	failures: string[];
+	/** Typed defects replacing `failures` when the parser knows their rule, category and severity. */
+	findings?: ParsedFinding[];
+}
+
+/** A report file as a reader is given it, read by the runner. */
+export interface ReportDocument {
+	/** Workspace-relative path of the report, which names the module it comes from. */
+	name: string;
+	text: string;
+	/** Size of a report left unread because it passed the read bound: its `text` is then empty. */
+	oversized_bytes?: number;
+}
+
+/** How the report files a control declares are read. */
+export interface ReportReading {
+	/**
+	 * A file past the read bound is returned unread with its size. Without it, a file past the bound fails
+	 * the reading: no report past the bound is ever loaded.
+	 */
+	oversized_unread?: boolean;
+	/** The report path names one file strictly inside the workspace; a directory names no report. */
+	single_file?: boolean;
+}
+
+/** The source files under some roots of the workspace, read within the bounds of a source tree. */
+export interface SourceTree {
+	files: { path: string; text: string }[];
+	/** What was not read, and why. */
+	notes: string[];
+}
+
+/**
+ * The files of the workspace a reader may read, read by the runner: a path outside the copy is never
+ * read, and a report past the read bound is returned unread with its size. A reader reads nothing on
+ * its own, spawns nothing, writes nothing into the copy and reads no environment variable.
+ */
+export interface WorkspaceFiles {
+	/** The report files the control declares; each one read is kept in the object store under `media_type`. */
+	reports(mediaType: string, reading?: ReportReading): Promise<ReportDocument[]>;
+	/**
+	 * The text of the given files, keyed by path. A file absent or outside the copy has nothing to read;
+	 * one past the bound throws, an error rather than a silent gap.
+	 */
+	sources(paths: readonly string[]): Promise<Map<string, string>>;
+	/** The text of one file; it throws when the file is absent, unreadable or outside the copy. */
+	text(path: string): Promise<string>;
+	/** The files whose name ends with `suffix` under the given workspace-relative roots, build output and caches aside. */
+	tree(roots: readonly string[], suffix: string): Promise<SourceTree>;
+}
+
+/** What one run of a control hands the reader its definition names. */
+export interface ReaderRun extends WorkspaceFiles {
+	control: ControlDefinition;
+	observation: ProcessObservation;
+	stdout: string;
+	stderr: string;
+	/** What the subject introduced, line by line; null when nobody computed it. */
+	introduced_lines: IntroducedLines | null;
+	/** The message without the workspace this run happened to use, so a finding pairs across the two trees. */
+	relativize(message: string): string;
+}
+
+/** What a reader decides before its control is spawned: a report that needs no run, or the arguments that scope the run. */
+export type ReaderPreparation = { decided: ParsedReport } | { arguments: readonly string[] };
+
+/**
+ * A report reader a technology brings: the format a control names by `parser`, the version recorded
+ * with it in the `control_version` of each evidence it produced, what it measures, which the kernel
+ * reads here instead of in a table of its own, and the reading of what a run of the control left.
+ */
+export interface ReportReader extends ReaderTraits {
+	version: string;
+	/**
+	 * Whether it judges the whole tree and locates each finding it reports: its witnesses are then
+	 * judged by the findings sitting in the witnesses' own files, so a defect the target already
+	 * carries does not stand for the witness, in either direction.
+	 */
+	located: boolean;
+	read(run: ReaderRun): Promise<ParsedReport>;
+	/**
+	 * The rule set the analyser applies, written from the frozen rules of the control, which the runner
+	 * puts outside the workspace in place of `{ruleset}` in the command; absent for a reader whose
+	 * analyser takes none.
+	 */
+	ruleset?(rules: readonly QualityRule[]): { name: string; text: string };
+	/**
+	 * Scopes the run to what the subject introduced before anything is spawned; absent for a reader whose
+	 * control judges the whole run.
+	 */
+	prepare?(
+		control: ControlDefinition,
+		introduced: IntroducedLines | null,
+		files: WorkspaceFiles,
+	): Promise<ReaderPreparation>;
+}
+
 export interface ControlExecutionPort {
+	/** The report readers it runs controls through: a control naming none of them concludes nothing. */
+	readonly readers: readonly ReportReader[];
 	/** Runs the control on a frozen candidate and normalises the observation. Always resolves. */
 	runControl(
 		invocation: ControlInvocation,

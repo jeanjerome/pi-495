@@ -11,7 +11,9 @@ import { digestValue } from "../../src/contracts/digest.ts";
 import type { ObjectStorePort } from "../../src/ports/object-store.ts";
 import type { ControlExecutionPort, SandboxPort } from "../../src/ports/execution.ts";
 import { basename, join } from "node:path";
+import { EXIT_CODE_READER } from "../../src/adapters/execution/parsers.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
+import { NODE_TEST_READER } from "../../src/adapters/stacks/node/node-test-reader.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { arbreDetache, retirerArbre, revision } from "./git.ts";
@@ -94,7 +96,9 @@ export class Executeur {
 	private readonly backend: string;
 
 	constructor(sandbox: SandboxPort, objets: ObjectStorePort) {
-		this.runner = new GenericControlRunner(sandbox, objets, { max_output_bytes: 16 * 1024 * 1024 });
+		this.runner = new GenericControlRunner(sandbox, objets, [EXIT_CODE_READER, NODE_TEST_READER], {
+			max_output_bytes: 16 * 1024 * 1024,
+		});
 		this.backend = sandbox.backend;
 	}
 

@@ -1,15 +1,20 @@
 import { hasControlCharacter } from "../../application/coverage.ts";
-import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
+import type {
+	IntroducedLines,
+	ParsedFinding,
+	ParsedReport,
+	ProcessObservation,
+	ReportReader,
+} from "../../ports/execution.ts";
 import {
 	judgeIntroducedLines,
 	MAX_NAMED_PATHS,
-	type ParsedFinding,
 	undecidedCoverage,
 	unknownIntroducedLines,
 	unmeasuredNote,
 	type CoverageMeasurement,
 	type MeasuredLine,
-	type ParsedReport,
+	coverageReports,
 } from "./parsers.ts";
 
 export interface LcovDocument {
@@ -98,7 +103,7 @@ export const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm
  * Introduced paths an LCOV report is expected to cite. A path outside this set is not an unmeasured
  * file: a test, a configuration or a declaration file is simply not what a coverage runner reports.
  */
-export function expectedInLcovReport(introduced: IntroducedLines): string[] {
+function expectedInLcovReport(introduced: IntroducedLines): string[] {
 	return Object.keys(introduced)
 		.filter(
 			(path) =>
@@ -185,7 +190,7 @@ export function silencingComments(
  * introduced set are INDETERMINATE: a file the suite never loaded is absent from the report, and absence
  * is not coverage.
  */
-export function parseLcov(
+function parseLcov(
 	obs: ProcessObservation,
 	documents: readonly LcovDocument[],
 	introduced: IntroducedLines | null,
@@ -273,3 +278,18 @@ export function parseLcov(
 		findings: [...judgement.findings, ...silenced.findings],
 	};
 }
+
+/** Judges only the lines the candidate introduced, as the JaCoCo reader does (QLT-04). */
+export const LCOV_READER: ReportReader = {
+	id: "lcov",
+	version: "1.0.0",
+	nature: "coverage",
+	differential: true,
+	located: false,
+	async read(run) {
+		const docs = await coverageReports(run, "text/plain; charset=utf-8");
+		const introduced = run.introduced_lines;
+		const sources = await run.sources(introduced === null ? [] : expectedInLcovReport(introduced));
+		return parseLcov(run.observation, docs, introduced, sources);
+	},
+};

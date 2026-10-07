@@ -25,6 +25,7 @@ import {
 	nodeLineOf,
 	TREE_CONFIGURATION,
 } from "../helpers/node-quality-survey.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const REFS = [{ requirement_id: "QLT-01", revision: 1 }];
 
@@ -41,7 +42,7 @@ function adoptedCopy(root: string, extra: Record<string, string> = {}): string {
 		"package.json": `${JSON.stringify({ name: "graded", version: "1.0.0", type: "module" }, null, 2)}\n`,
 		...NODE_QUALITY_SOURCES,
 	});
-	const offer = detectStack(project, REFS).quality_referential;
+	const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
 	assert.equal(offer?.kind, "proposed", "a Node project without ESLint nor jscpd is offered the referential");
 	if (offer?.kind !== "proposed") throw new Error("no referential is proposed");
 	const reference = join(root, "reference");
@@ -74,7 +75,7 @@ function qualityControls(reference: string): {
 	jscpd: ControlDefinition;
 	detection: ReturnType<typeof detectStack>;
 } {
-	const detection = detectStack(reference, REFS, process.execPath, lockedAnalysers(reference));
+	const detection = detectStack(STACKS_OF_495, reference, REFS, process.execPath, lockedAnalysers(reference));
 	const eslint = detection.controls.find((c) => c.control_id === "eslint");
 	const jscpd = detection.controls.find((c) => c.control_id === "jscpd");
 	assert.ok(
@@ -86,7 +87,7 @@ function qualityControls(reference: string): {
 
 function runnerFor(root: string): GenericControlRunner {
 	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
-	return new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")));
+	return new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")), READERS_OF_495);
 }
 
 async function referencePasses(root: string, reference: string, eslint: ControlDefinition, jscpd: ControlDefinition) {

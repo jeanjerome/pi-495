@@ -2,68 +2,11 @@ import { Type, type Static } from "typebox";
 import { Closed, Digest, Identifier, NonNegativeInt, Verdict, contractId } from "./common.ts";
 import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./evidence.ts";
 
-/**
- * Sensors the generic runner knows how to read. `jacoco-xml` reads the coverage report the test
- * control already wrote and judges only the lines the candidate introduced (QLT-04); it executes
- * no measurement of its own. `java-imports` reads the package and import declarations of the Java
- * sources and judges them against the frozen architecture rules (ARC-04, CON-03); it compiles
- * nothing. `pitest-xml` reads the mutation report of a run scoped to the classes the candidate
- * modified and judges the mutants sitting on the lines it wrote (VER-04). `jest-json` reads the
- * JSON report jest writes to a file. `lcov` reads the LCOV coverage report a Node runner writes and
- * judges only the lines the candidate introduced, as `jacoco-xml` does (QLT-04). `stryker-json` reads
- * the mutation report Stryker writes and judges the mutants sitting on the lines the candidate wrote,
- * as `pitest-xml` does (VER-04). `pmd-xml` reads the violations of the frozen quality rules in the
- * report PMD writes, and `cpd-xml` the duplicated blocks in the report of its duplication detector;
- * both judge the whole tree. `eslint-json` reads the messages of the JSON report ESLint writes, and
- * `jscpd-json` the duplicated blocks of the JSON report of jscpd; both judge the whole tree too. Each is
- * native to its ecosystem, behind the one finding envelope.
- */
-export const PARSER_IDS = [
-	"exit-code",
-	"node-test",
-	"junit-xml",
-	"jest-json",
-	"lcov",
-	"jacoco-xml",
-	"java-imports",
-	"pitest-xml",
-	"stryker-json",
-	"pmd-xml",
-	"cpd-xml",
-	"eslint-json",
-	"jscpd-json",
-] as const;
-export type ParserId = (typeof PARSER_IDS)[number];
-
-/**
- * Sensors that judge what the subject introduced instead of the state of the whole tree. A question
- * every requirement asks, whatever its category: a requirement whose lines no test exercises is not
- * demonstrated by a suite that stayed green, a responsibility placed in a forbidden module is not
- * demonstrated either, and neither is a line whose mutation no test notices. An improvement
- * elsewhere never compensates for any of the three (QLT-04, ARC-04, VER-04).
- */
-export const DIFFERENTIAL_PARSER_IDS = ["jacoco-xml", "lcov", "java-imports", "pitest-xml", "stryker-json"] as const;
-
-export function isDifferentialParser(parser: ParserId): boolean {
-	return (DIFFERENTIAL_PARSER_IDS as readonly string[]).includes(parser);
-}
-
 /** What a `scope_argument` puts the class patterns of the subject in place of. */
 export const SCOPE_PLACEHOLDER = "{classes}";
 
 /** What the runner puts the path of the rule set it writes from a control's `quality_rules` in place of. */
 export const RULESET_PLACEHOLDER = "{ruleset}";
-
-/**
- * Sensors that judge the whole tree and locate each finding they report. Their witnesses are judged
- * by the findings sitting in the witnesses' own files, so a defect the target already carries does
- * not stand for the witness, in either direction.
- */
-const LOCATED_PARSER_IDS = ["pmd-xml", "cpd-xml", "eslint-json", "jscpd-json"] as const;
-
-export function judgesWitnessesByLocation(parser: ParserId): boolean {
-	return (LOCATED_PARSER_IDS as readonly string[]).includes(parser);
-}
 
 export const STRUCTURE_RULE_KINDS = ["forbidden_dependency", "no_cycle"] as const;
 export type StructureRuleKind = (typeof STRUCTURE_RULE_KINDS)[number];
@@ -158,7 +101,12 @@ export const ControlDefinition = Type.Object(
 		env_allowlist: Type.Array(Type.String()),
 		env: Type.Record(Type.String(), Type.String()),
 		timeout_ms: Type.Integer({ minimum: 1 }),
-		parser: Closed(PARSER_IDS),
+		/**
+		 * The report reader that turns the command's observation into the evidence, by its identifier. The
+		 * list is open: a technology brings its readers, and a reader no loaded technology brings yields
+		 * `INDETERMINATE`, never `PASS`.
+		 */
+		parser: Type.String({ minLength: 1 }),
 		report_path: Type.Union([Type.String(), Type.Null()]),
 		/** Architecture rules a structural sensor applies; empty for every other sensor. */
 		structure_rules: Type.Array(StructureRule),

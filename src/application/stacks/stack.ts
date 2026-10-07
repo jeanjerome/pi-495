@@ -11,6 +11,7 @@ import type {
 	RecommendedComplement,
 } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
+import type { ReportReader } from "../../ports/execution.ts";
 
 export interface StackDetection {
 	/** The stack identifier its adapter declares, or `unknown` when no adapter recognises the project. */
@@ -56,14 +57,17 @@ export type QualityOffer =
 
 /**
  * A technology, as the registry sees it: the identifier of its stack, the files at a project root
- * that signal it, and the detection it answers with. Adding a technology is one module that
- * declares its adapter and one line in the list of `target.ts`. `referentialPackages` are the packages
- * the adopted install of the quality referential put in the copy at `projectPath`, as its lock names
- * them; empty anywhere else, so a manifest alone never stands for that install.
+ * that signal it, the readers of the reports its controls write, and the detection it answers with.
+ * Adding a technology is one directory that declares its adapter, and the list of technologies the
+ * composition root hands the kernel. `referentialPackages` are the packages the adopted install of the
+ * quality referential put in the copy at `projectPath`, as its lock names them; empty anywhere else, so
+ * a manifest alone never stands for that install.
  */
 export interface StackAdapter {
 	stack: string;
 	signal_files: readonly string[];
+	/** The readers of the report formats only this technology writes; those several technologies write are common to all of them. */
+	readers: readonly ReportReader[];
 	detect(
 		projectPath: string,
 		requirementRefs: RequirementRef[],

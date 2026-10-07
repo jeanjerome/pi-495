@@ -4,7 +4,10 @@
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { readersOf } from "../adapters/execution/common-readers.ts";
 import { GenericControlRunner } from "../adapters/execution/runner.ts";
+import { MAVEN_ADAPTER } from "../adapters/stacks/maven/maven.ts";
+import { NODE_ADAPTER } from "../adapters/stacks/node/node.ts";
 import { CasObjectStore } from "../adapters/object-store/cas.ts";
 import { PiWorkerAgent } from "../adapters/pi-worker/supervisor.ts";
 import type { PiModelCatalogue } from "../adapters/pi-worker/capabilities.ts";
@@ -19,7 +22,14 @@ import { GitIntegrator } from "../adapters/git/integrator.ts";
 import { describeEnvironment } from "../application/environment.ts";
 import { Harness } from "../application/harness.ts";
 import { randomIds, systemClock } from "../application/ids.ts";
+import type { StackAdapter } from "../application/stacks/stack.ts";
 import { loadConfig, type HarnessConfig } from "./config.ts";
+
+/**
+ * The technologies of 495, in the order they claim a project: a Maven project that also carries a
+ * `package.json` is judged as Maven.
+ */
+export const STACKS_OF_495: readonly StackAdapter[] = [MAVEN_ADAPTER, NODE_ADAPTER];
 
 export interface RuntimeInputs {
 	pi_version: string;
@@ -79,7 +89,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		...legacyDataDirs(env).flatMap((d) => [join(d, "workspaces"), resolveWorkspacesDir(d, {})]),
 	];
 	const workspace = new GitWorkspace(workspacesDir, formerRoots);
-	const controls = new GenericControlRunner(sandbox.backend, objects);
+	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495));
 	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
 	let agent: AgentPort = new PiWorkerAgent({
 		config: {
@@ -108,6 +118,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		objects,
 		workspace,
 		controls,
+		stacks: STACKS_OF_495,
 		agent,
 		sandbox,
 		clock: systemClock,

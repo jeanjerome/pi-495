@@ -5,13 +5,9 @@
  */
 import { digestValue } from "../contracts/digest.ts";
 import type { Verdict } from "../contracts/v1/common.ts";
-import {
-	judgesWitnessesByLocation,
-	type ControlDefinition,
-	type Protocol,
-	type Qualification,
-} from "../contracts/v1/protocol.ts";
+import type { ControlDefinition, Protocol, Qualification } from "../contracts/v1/protocol.ts";
 import type { EvidenceCandidate } from "../contracts/v1/evidence.ts";
+import { readerOf } from "../domain/survey.ts";
 import type { ControlExecutionPort, ControlInvocation } from "../ports/execution.ts";
 import { introducedByAddedFiles } from "./coverage.ts";
 
@@ -87,12 +83,13 @@ function witnessCases(
  * neither disqualifies the sensor nor stands for the defect it must detect.
  */
 function witnessFindings(
+	runner: ControlExecutionPort,
 	control: ControlDefinition,
 	positive: EvidenceCandidate,
 	negative: EvidenceCandidate,
 	fixtures: QualificationFixtures,
 ): { positive: Verdict; negative: Verdict } | null {
-	if (!judgesWitnessesByLocation(control.parser)) return null;
+	if (!readerOf(runner.readers, control.parser)?.located) return null;
 	const positiveFiles = new Set(Object.keys(fixtures.positive_files ?? {}));
 	const negativeFiles = new Set(Object.keys(fixtures.negative_files ?? {}));
 	const inFiles = (evidence: EvidenceCandidate, files: Set<string>) =>
@@ -142,7 +139,7 @@ export async function qualifyControlDetailed(
 	// reports cases: a test of the project that fails in every copy of the reference then does not hide
 	// whether the sensor tells a passing case from a failing one.
 	const cases =
-		witnessFindings(control, positiveEvidence, negativeEvidence, fixtures) ??
+		witnessFindings(runner, control, positiveEvidence, negativeEvidence, fixtures) ??
 		witnessCases(positiveEvidence, negativeEvidence, fixtures);
 	const positive = cases?.positive ?? positiveEvidence.verdict;
 	const negative = cases?.negative ?? negativeEvidence.verdict;

@@ -104,6 +104,9 @@ export class FakeNpmSandbox implements SandboxPort {
  */
 export class FakeVitestControls implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	constructor(real: ControlExecutionPort) {
 		this.real = real;
 	}

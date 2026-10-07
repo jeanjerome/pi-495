@@ -10,13 +10,14 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { editedFile } from "../../src/application/complement.ts";
-import { mavenResolutionCommand } from "../../src/application/stacks/maven.ts";
+import { mavenResolutionCommand } from "../../src/application/installation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ControlDefinition, FileEdit, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation } from "../../src/ports/execution.ts";
 import { ENV, EXECUTOR } from "./change-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, writeFiles } from "./fixtures.ts";
+import { READERS_OF_495 } from "./technologies.ts";
 
 export interface MavenBench {
 	runner: GenericControlRunner;
@@ -27,7 +28,7 @@ export interface MavenBench {
 export function mavenBench(root: string): MavenBench {
 	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
 	return {
-		runner: new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects"))),
+		runner: new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")), READERS_OF_495),
 		base: {
 			protocol: { protocol_id: "p", revision: 1, content_digest: digestValue("p") },
 			candidate: {

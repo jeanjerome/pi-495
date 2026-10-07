@@ -1,4 +1,5 @@
-import type { QualityRule } from "../../contracts/v1/protocol.ts";
+/** The rule set PMD and CPD are given, written from the frozen rules of their control. */
+import type { QualityRule } from "../../../contracts/v1/protocol.ts";
 
 const escapedAttribute = (value: string): string =>
 	value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

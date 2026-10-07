@@ -305,6 +305,9 @@ class FakeAnalyserControls implements ControlExecutionPort {
 	/** For each run of jscpd, whether its binary is executable in the copy the run sees. */
 	readonly jscpdExecutable: boolean[] = [];
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	constructor(real: ControlExecutionPort) {
 		this.real = real;
 	}

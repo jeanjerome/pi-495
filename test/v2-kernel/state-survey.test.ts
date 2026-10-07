@@ -41,6 +41,9 @@ async function treeDigest(projectPath: string): Promise<string> {
 /** The real control runner, with the pass of `controlId` on the reference rendered INDETERMINATE. */
 class IndeterminateOnReference implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	private readonly controlId: string;
 	constructor(real: ControlExecutionPort, controlId: string) {
 		this.real = real;

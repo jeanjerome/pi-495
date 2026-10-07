@@ -2,12 +2,14 @@ import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
+import { readersOf } from "../../src/adapters/execution/common-readers.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { ScriptedAgent, type AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
+import type { StackAdapter } from "../../src/application/stacks/stack.ts";
 import type {
 	ControlExecutionPort,
 	ControlInvocation,
@@ -22,6 +24,7 @@ import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 import { tuiOrigin } from "./change-fixture.ts";
 import { fixtureTs, initRepo, outputDir, removedAfterEach, tempDir } from "./fixtures.ts";
+import { STACKS_OF_495 } from "./technologies.ts";
 
 /** The roots `makeHarness` and `trackedProject` allocate, removed after each test. */
 const harnessRoots = removedAfterEach();
@@ -163,6 +166,8 @@ export interface HarnessOptions {
 	/** Wraps the unconfined backend, e.g. with one that stands for the package repository an install reaches. */
 	backend?: (real: SandboxPort) => SandboxPort;
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
+	/** The technologies handed to the kernel, and whose readers the runner is given: those of 495 by default. */
+	stacks?: readonly StackAdapter[];
 	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
 	root?: string;
 	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
@@ -187,6 +192,9 @@ export interface HarnessOptions {
  */
 export class ActsOnFirstCandidateRun implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	private readonly act: () => void;
 	private acted = false;
 	constructor(real: ControlExecutionPort, act: () => void) {
@@ -212,6 +220,9 @@ export class ActsOnFirstCandidateRun implements ControlExecutionPort {
  */
 export class ThrowsOnFirstCandidateRun implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	private readonly error: Error;
 	private thrown = false;
 	constructor(real: ControlExecutionPort, error: Error) {
@@ -252,7 +263,8 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 							: { qualified: true, reasons: ["test-only: unconfined backend declared qualified for V2"] }),
 					},
 				};
-	const real = new GenericControlRunner(sandbox.backend, objects);
+	const stacks = options.stacks ?? STACKS_OF_495;
+	const real = new GenericControlRunner(sandbox.backend, objects, readersOf(stacks));
 	const controls = options.controls ? options.controls(real) : real;
 	const agent =
 		options.agent ??
@@ -275,6 +287,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		objects,
 		workspace,
 		controls,
+		stacks,
 		agent,
 		sandbox,
 		clock: options.clock ?? sources.clock,

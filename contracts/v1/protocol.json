@@ -93,21 +93,7 @@
           },
           "parser": {
             "type": "string",
-            "enum": [
-              "exit-code",
-              "node-test",
-              "junit-xml",
-              "jest-json",
-              "lcov",
-              "jacoco-xml",
-              "java-imports",
-              "pitest-xml",
-              "stryker-json",
-              "pmd-xml",
-              "cpd-xml",
-              "eslint-json",
-              "jscpd-json"
-            ]
+            "minLength": 1
           },
           "report_path": {
             "anyOf": [

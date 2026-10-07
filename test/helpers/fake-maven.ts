@@ -105,6 +105,9 @@ export class FakeMavenSandbox implements SandboxPort {
  */
 export class FakeMavenControls implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
+	get readers(): ControlExecutionPort["readers"] {
+		return this.real.readers;
+	}
 	constructor(real: ControlExecutionPort) {
 		this.real = real;
 	}

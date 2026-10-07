@@ -7,11 +7,12 @@
 import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
-import { jscpdConfig } from "../../src/adapters/execution/jscpd-config.ts";
+import { jscpdConfig } from "../../src/adapters/stacks/node/jscpd-config.ts";
 import { detectStack } from "../../src/application/target.ts";
 import { validate } from "../../src/contracts/validate.ts";
 import { RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import { removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "QLT-01", revision: 1 }];
@@ -34,7 +35,7 @@ function nodeProject(name: string, manifest: Record<string, unknown>): string {
 const WITHOUT_ANALYSERS = { dependencies: { lodash: "4.17.21" }, devDependencies: { vitest: "4.0.0" } };
 
 function proposedOffer(project: string) {
-	const offer = detectStack(project, REFS, NODE).quality_referential;
+	const offer = detectStack(STACKS_OF_495, project, REFS, NODE).quality_referential;
 	assert.equal(
 		offer?.kind,
 		"proposed",
@@ -111,7 +112,12 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 	});
 
 	it("un package.json qui déclare eslint ne reçoit ni référentiel ni recommandation, et une note dit que le projet déclare ESLint lui-même", () => {
-		const detection = detectStack(nodeProject("with-eslint", { devDependencies: { eslint: "9.0.0" } }), REFS, NODE);
+		const detection = detectStack(
+			STACKS_OF_495,
+			nodeProject("with-eslint", { devDependencies: { eslint: "9.0.0" } }),
+			REFS,
+			NODE,
+		);
 		const offer = detection.quality_referential;
 		assert.equal(offer?.kind, "not_proposed", "the project's own ESLint is not replaced by 495's referential");
 		if (offer?.kind !== "not_proposed") return;
@@ -121,7 +127,12 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			"no recommendation of eslint nor jscpd",
 		);
 
-		const withJscpd = detectStack(nodeProject("with-jscpd", { devDependencies: { jscpd: "4.0.0" } }), REFS, NODE);
+		const withJscpd = detectStack(
+			STACKS_OF_495,
+			nodeProject("with-jscpd", { devDependencies: { jscpd: "4.0.0" } }),
+			REFS,
+			NODE,
+		);
 		assert.equal(
 			withJscpd.quality_referential?.kind,
 			"not_proposed",
@@ -134,6 +145,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 		);
 
 		const refusedRunner = detectStack(
+			STACKS_OF_495,
 			nodeProject("with-eslint-and-a-refused-runner", {
 				scripts: { test: "tsc && node --test" },
 				devDependencies: { eslint: "9.0.0" },
@@ -159,7 +171,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 		};
 		const own = installedUnder(nodeProject("pins-the-referential-itself", pinned));
 		writeFiles(own, { "eslint.config.js": 'export default [{ rules: { complexity: "off" } }];\n' });
-		const detection = detectStack(own, REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, own, REFS, NODE);
 		const ids = detection.controls.map((c) => c.control_id);
 		assert.ok(
 			!ids.includes("eslint") && !ids.includes("jscpd"),
@@ -175,7 +187,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			{ name: "eslint", version: "10.12.0", integrity: "sha512-eslint" },
 			{ name: "jscpd", version: "5.4.0", integrity: "sha512-jscpd" },
 		];
-		const copy = detectStack(installedUnder(nodeProject("adopted-copy", pinned)), REFS, NODE, adopted);
+		const copy = detectStack(STACKS_OF_495, installedUnder(nodeProject("adopted-copy", pinned)), REFS, NODE, adopted);
 		assert.deepEqual(
 			copy.controls.map((c) => c.control_id).filter((id) => id === "eslint" || id === "jscpd"),
 			["eslint", "jscpd"],
@@ -189,7 +201,13 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			{ name: "eslint", version: "10.12.0", integrity: "sha512-eslint" },
 			{ name: "jscpd", version: "5.4.0", integrity: "sha512-jscpd" },
 		];
-		const detection = detectStack(nodeProject("frozen-thresholds", WITHOUT_ANALYSERS), REFS, NODE, adopted);
+		const detection = detectStack(
+			STACKS_OF_495,
+			nodeProject("frozen-thresholds", WITHOUT_ANALYSERS),
+			REFS,
+			NODE,
+			adopted,
+		);
 		const eslint = detection.controls.find((c) => c.control_id === "eslint");
 		const rules = eslint?.command[eslint.command.indexOf("--rule") + 1];
 		assert.deepEqual(JSON.parse(rules ?? "null"), {

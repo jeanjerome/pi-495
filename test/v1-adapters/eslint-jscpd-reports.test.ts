@@ -11,9 +11,10 @@ import { beforeEach, describe, it } from "node:test";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
-import type { ControlDefinition, ParserId } from "../../src/contracts/v1/protocol.ts";
+import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { controlOf, invocationBase } from "../helpers/execution-fixture.ts";
 import { removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { READERS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 let workspace: string;
@@ -95,7 +96,7 @@ function jscpdReport(): string {
 }
 
 /** A control whose command ends with `exitCode` and that reads the report the workspace holds, as `parser` reads it. */
-function reader(controlId: string, parser: ParserId, reportPath: string, exitCode = 0): ControlDefinition {
+function reader(controlId: string, parser: string, reportPath: string, exitCode = 0): ControlDefinition {
 	return controlOf({
 		control_id: controlId,
 		parser,
@@ -105,7 +106,11 @@ function reader(controlId: string, parser: ParserId, reportPath: string, exitCod
 }
 
 async function run(control: ControlDefinition) {
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	return (await runner.runControl({ ...invocationBase(), control, workspace_path: workspace })).evidence;
 }
 

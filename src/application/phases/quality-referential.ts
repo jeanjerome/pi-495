@@ -164,7 +164,8 @@ export async function settleQualityReferential(
 		.filter(
 			(r) =>
 				asksAboutQuality(r.category) &&
-				"blind_spot" in controlsOfNature(r.category, detection.controls, detection.lint_control_ids),
+				"blind_spot" in
+					controlsOfNature(r.category, detection.controls, detection.lint_control_ids, ctx.verification.readers),
 		)
 		.map((r) => r.requirement_id);
 	const nothing = { kind: "settled" as const, unit, complements: [], packages: [] };

@@ -1,4 +1,5 @@
-import type { QualityRule } from "../../contracts/v1/protocol.ts";
+/** The configuration jscpd is given, written from the frozen rules of its control. */
+import type { QualityRule } from "../../../contracts/v1/protocol.ts";
 
 /**
  * The configuration of jscpd, written from the rules a control's frozen definition carries: each property

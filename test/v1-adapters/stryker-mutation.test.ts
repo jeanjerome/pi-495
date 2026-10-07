@@ -7,11 +7,11 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import {
 	analyzeMutation,
-	mutationScopeOf,
 	MUTATION_RULE_SURVIVED,
 	MUTATION_RULE_UNCOVERED,
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
+import { STRYKER_ENGINE, strykerScopeOf } from "../../src/adapters/stacks/node/stryker-reader.ts";
 import { observation as obs } from "../helpers/execution-fixture.ts";
 
 const CALC = "src/calc.js";
@@ -60,7 +60,7 @@ function judge(files: Record<string, StrykerMutantSpec[]>, introduced: Record<st
 		introduced,
 		scopeOf(...Object.keys(introduced)),
 		"",
-		"stryker-json",
+		STRYKER_ENGINE,
 	);
 }
 
@@ -141,7 +141,7 @@ describe("a Stryker report that cannot be checked complete is never a success (V
 		over: ReturnType<typeof obs>,
 		documents: { name: string; text: string; oversized_bytes?: number }[] | null,
 		output = "",
-	) => analyzeMutation(over, documents, introduced, scopeOf(CALC), output, "stryker-json");
+	) => analyzeMutation(over, documents, introduced, scopeOf(CALC), output, STRYKER_ENGINE);
 
 	it("given no report after a failing initial run, a run ended by its budget, a truncated report, an oversized report and a report without files, then the first is FAIL with the output kept and the four others are INDETERMINATE naming what is missing", () => {
 		const output = "12:00:01 (77) ERROR Initial test run failed\n12:00:01 (77) ERROR npm test exited with code 1\n";
@@ -227,14 +227,14 @@ describe("a comment that silences Stryker, written by the candidate, blocks the 
 			["src/new.d.ts", "// Stryker disable\n"],
 			["README.md", "// Stryker disable\n"],
 		]);
-		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const scope = strykerScopeOf(introduced);
 		const complete = doc(
 			strykerReport({
 				"src/new.js": [{ status: "Ignored", line: 3, statusReason: "Ignored by a Stryker comment" }],
 				"src/old.js": [{ status: "Killed", line: 4 }],
 			}),
 		);
-		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", "stryker-json", sources);
+		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", STRYKER_ENGINE, sources);
 		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
 		assert.deepEqual(
 			parsed.findings?.map((f) => [f.rule_id, f.category, f.severity, f.message.split(" ")[0]]),
@@ -261,7 +261,7 @@ describe("a word next to the Stryker directive is not a silencing comment (VER-0
 			"/* Stryker disabled */",
 		].join("\n");
 		const introduced = { "src/words.js": [1, 2, 3] };
-		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const scope = strykerScopeOf(introduced);
 		const complete = doc(strykerReport({ "src/words.js": [{ status: "Killed", line: 1 }] }));
 		const parsed = analyzeMutation(
 			obs(),
@@ -269,7 +269,7 @@ describe("a word next to the Stryker directive is not a silencing comment (VER-0
 			introduced,
 			scope,
 			"",
-			"stryker-json",
+			STRYKER_ENGINE,
 			new Map([["src/words.js", source]]),
 		);
 		assert.deepEqual(
@@ -326,7 +326,7 @@ describe("a Stryker directive alone on its line inside a block comment silences 
 			["src/after.js", after],
 			["src/old.js", old],
 		]);
-		const scope = await mutationScopeOf(".", introduced, "stryker-json");
+		const scope = strykerScopeOf(introduced);
 		const complete = doc(
 			strykerReport({
 				"src/block.js": [
@@ -339,7 +339,7 @@ describe("a Stryker directive alone on its line inside a block comment silences 
 				"src/old.js": [{ status: "Killed", line: 4 }],
 			}),
 		);
-		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", "stryker-json", sources);
+		const parsed = analyzeMutation(obs(), complete, introduced, scope, "", STRYKER_ENGINE, sources);
 		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
 		assert.deepEqual(
 			parsed.findings?.map((f) => [f.rule_id, f.severity, f.message.split(" ")[0]]),
@@ -358,26 +358,22 @@ describe("a Stryker directive alone on its line inside a block comment silences 
 
 describe("the scope Stryker is given comes from the lines the candidate wrote (VER-04)", () => {
 	it("given introduced lines in two sources, a test, a declaration file and a README, then the scope names the line ranges of the two sources only, and given src/[id].js, src/a,b.js and src/!x.js, then each is refused by name and the verdict is INDETERMINATE", async () => {
-		const scope = await mutationScopeOf(
-			".",
-			{
-				"src/calc.js": [5, 6, 9],
-				"src/other.mjs": [10],
-				"test/calc.test.js": [1, 2],
-				"src/calc.d.ts": [1],
-				"README.md": [1],
-			},
-			"stryker-json",
-		);
+		const scope = strykerScopeOf({
+			"src/calc.js": [5, 6, 9],
+			"src/other.mjs": [10],
+			"test/calc.test.js": [1, 2],
+			"src/calc.d.ts": [1],
+			"README.md": [1],
+		});
 		assert.deepEqual(scope.classes, ["src/calc.js:5-6", "src/calc.js:9-9", "src/other.mjs:10-10"]);
 		assert.deepEqual(scope.paths, ["src/calc.js", "src/other.mjs"]);
 		assert.deepEqual(scope.unaddressable, []);
 
 		for (const path of ["src/[id].js", "src/a,b.js", "src/!x.js"]) {
 			const introduced = { [path]: [3], [CALC]: [5] };
-			const refused = await mutationScopeOf(".", introduced, "stryker-json");
+			const refused = strykerScopeOf(introduced);
 			assert.deepEqual(refused.unaddressable, [path]);
-			const parsed = analyzeMutation(obs(), null, introduced, refused, "", "stryker-json");
+			const parsed = analyzeMutation(obs(), null, introduced, refused, "", STRYKER_ENGINE);
 			assert.equal(parsed.verdict, "INDETERMINATE", path);
 			assert.ok(
 				parsed.notes.some((n) => n.includes(path)),
@@ -391,9 +387,9 @@ describe("a path no scope can designate to Stryker is never run as an empty scop
 	it("given a source whose name carries a control character and no line range, then it is refused by name, the verdict is INDETERMINATE and no empty scope is handed to Stryker", async () => {
 		const path = "src/a\u0001b.js";
 		const introduced = { [path]: [] as number[] };
-		const refused = await mutationScopeOf(".", introduced, "stryker-json");
+		const refused = strykerScopeOf(introduced);
 		assert.deepEqual(refused.unaddressable, [path]);
-		const parsed = analyzeMutation(obs(), null, introduced, refused, "", "stryker-json");
+		const parsed = analyzeMutation(obs(), null, introduced, refused, "", STRYKER_ENGINE);
 		assert.equal(parsed.verdict, "INDETERMINATE");
 		assert.ok(
 			parsed.notes.some((n) => n.includes(path)),
@@ -408,7 +404,7 @@ describe("the output Stryker leaves when its initial run fails (VER-04)", () => 
 			"\u001b[91m23:46:41 (63309) ERROR DryRunExecutor\u001b[39m One or more tests failed in the initial test run:\n" +
 			"\u001b[32m23:46:41 (63309) INFO Stryker\u001b[39m fine\n" +
 			"\u001b[91m23:46:41 (63309) ERROR Stryker\u001b[39m There were failed tests in the initial test run.\n";
-		const parsed = analyzeMutation(obs({ exit_code: 1 }), null, { [CALC]: [5] }, scopeOf(CALC), output, "stryker-json");
+		const parsed = analyzeMutation(obs({ exit_code: 1 }), null, { [CALC]: [5] }, scopeOf(CALC), output, STRYKER_ENGINE);
 		assert.deepEqual(parsed.failures, [
 			"ERROR DryRunExecutor One or more tests failed in the initial test run:",
 			"ERROR Stryker There were failed tests in the initial test run.",

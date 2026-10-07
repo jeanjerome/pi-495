@@ -52,6 +52,7 @@ import type { HumanDecisionEntry } from "../../src/domain/change/state.ts";
 import { SCHEMA_VERSION, type ArtifactRef } from "../../src/contracts/v1/common.ts";
 import type { Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import type { DecisionRequest, HumanOrigin } from "../../src/contracts/v1/decision.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const cleanups = removedAfterEach();
 
@@ -525,7 +526,7 @@ describe("the IH-04 facts present the recommended complements", () => {
 
 	it("given a target with two recommendations and a requirement no control discriminates after two preparations, then the IH-04 facts list each with its tool, version, date and change and the options stay prepare, assign_review and revise, and without a recommendation the facts are unchanged", async () => {
 		const recommended = mavenProjectWithoutTests(false);
-		const recommendations = detectStack(recommended, []).recommendations;
+		const recommendations = detectStack(STACKS_OF_495, recommended, []).recommendations;
 		assert.equal(recommendations.length, 2, "the target lacks JaCoCo and PIT");
 		const facts = await askedOn(recommended);
 		for (const r of recommendations)
@@ -598,7 +599,7 @@ describe("the IH-04 decision offers to adopt a complement that is a file edit", 
 		);
 		gitCmd(duplicated, ["commit", "-qam", "scripts.test written twice"]);
 		assert.equal(
-			detectStack(duplicated, []).recommendations.filter((r) => r.edit).length,
+			detectStack(STACKS_OF_495, duplicated, []).recommendations.filter((r) => r.edit).length,
 			1,
 			"the recommendation still carries the edit",
 		);
@@ -1403,7 +1404,7 @@ describe("adopting a complement that is the declaration of a Maven plugin", () =
 		const loaded = t.ledger.loadChange(changeId)!;
 		assert.equal(loaded.state.gates.G2?.verdict, "PASS", loaded.state.gates.G2?.reasons.join("; "));
 		const protocol = (await t.harness.artifacts.latest<Protocol>(loaded.state, "protocol"))!.content;
-		const edit = detectStack(project, []).recommendations.find((r) => r.tool.includes("jacoco"))!.edit!;
+		const edit = detectStack(STACKS_OF_495, project, []).recommendations.find((r) => r.tool.includes("jacoco"))!.edit!;
 		assert.deepEqual(
 			protocol.complements?.map((c) => [c.path, c.digest]),
 			[["pom.xml", digestBytes(editedFile(project, edit)!)]],

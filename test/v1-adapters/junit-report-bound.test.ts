@@ -9,6 +9,7 @@ import { MAX_REPORT_BYTES } from "../../src/adapters/execution/parsers.ts";
 import type { EvidenceCandidate } from "../../src/contracts/v1/evidence.ts";
 import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { controlOf, invocationBase } from "../helpers/execution-fixture.ts";
+import { READERS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -30,7 +31,11 @@ function workspaceWith(relative: string, bytes: number): string {
 }
 
 async function runJUnit(ws: string, reportPath: string): Promise<EvidenceCandidate> {
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	const control = controlOf({
 		control_id: "unit",
 		command: [process.execPath, "-e", "process.exit(0)"],

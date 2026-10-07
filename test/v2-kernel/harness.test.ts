@@ -25,6 +25,7 @@ import { formatStatus } from "../../src/presentation/structured/text.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { Mandate, Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const cleanups = removedAfterEach();
 
@@ -119,7 +120,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	it("given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made", async () => {
 		const p = trackedProject();
-		const recommended = detectStack(p, []).recommendations;
+		const recommended = detectStack(STACKS_OF_495, p, []).recommendations;
 		assert.deepEqual(
 			recommended.map((r) => r.test_type),
 			["coverage", "mutation"],
@@ -307,6 +308,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 			// The unit control fails once on the first candidate and answers what the tree really is
 			// afterwards: the two passes of the same candidate disagree without any cause in it.
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					const run = await real.runControl(invocation, signal);
 					if (
@@ -1652,6 +1654,7 @@ describe("what a change introduces, recomputed from the store (QLT-04)", () => {
 				},
 			},
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					seen.push({
 						run: invocation.subject.kind,

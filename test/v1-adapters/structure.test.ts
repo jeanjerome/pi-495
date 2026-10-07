@@ -14,11 +14,11 @@ import {
 	analyzeJavaStructure,
 	owningPackage,
 	packageEdges,
-	readDeclarations,
 	readJavaSources,
 	stronglyConnectedComponents,
 	underPrefix,
-} from "../../src/adapters/execution/structure.ts";
+} from "../../src/adapters/stacks/maven/java-imports-reader.ts";
+import { readDeclarations } from "../../src/adapters/stacks/maven/java-declarations.ts";
 import { buildContext, OUTPUT_SCHEMA_EXAMPLES, type ContextInput } from "../../src/application/context.ts";
 import { Value } from "typebox/value";
 import { OUTPUT_SCHEMAS } from "../../src/contracts/v1/reports.ts";
@@ -37,6 +37,8 @@ import {
 	outputDir,
 } from "../helpers/fixtures.ts";
 import { invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
+import { workspaceFiles } from "../../src/adapters/execution/workspace-files.ts";
 
 const SERVICE = "domain/src/main/java/io/demo/domain/service/UserService.java";
 const USER = "domain/src/main/java/io/demo/domain/user/User.java";
@@ -176,7 +178,7 @@ describe("the boundaries a Maven reactor opposes to its own code (CON-03)", () =
 	it("derives them from the dependency direction of the POMs and the package root each module lays out", () => {
 		const project = join(root, "hexa");
 		fixtureMavenHexagonal(project);
-		const detection = detectStack(project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		assert.ok(control, "the sensor is proposed");
 		assert.equal(
@@ -213,7 +215,7 @@ describe("the boundaries a Maven reactor opposes to its own code (CON-03)", () =
 	it("opposes no direction it cannot read, and says so instead of inventing a convention", () => {
 		const project = join(root, "flat");
 		fixtureMavenMultiModule(project);
-		const detection = detectStack(project, []);
+		const detection = detectStack(STACKS_OF_495, project, []);
 		const rules = detection.controls.find((c) => c.control_id === "structure")!.structure_rules;
 		assert.deepEqual(
 			rules.map((rule) => rule.kind),
@@ -233,13 +235,17 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 	}
 
 	async function run(control: ControlDefinition, workspace: string, introduced: Record<string, number[]>) {
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		return (await runner.runControl({ ...base(), control, workspace_path: workspace, introduced_lines: introduced }))
 			.evidence;
 	}
 
 	it("a candidate placing a responsibility in a forbidden module is refused; the cycle it inherited is named and tolerated", async () => {
-		const detection = detectStack(tree("reference", { [USER]: CYCLIC_USER }), []);
+		const detection = detectStack(STACKS_OF_495, tree("reference", { [USER]: CYCLIC_USER }), []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		// The reference introduces nothing: the sensor passes and still names the cycle already there.
 		const onReference = await run(control, join(root, "reference"), {});
@@ -285,7 +291,7 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 	});
 
 	it("a candidate that only inherits the cycle is accepted, and the cycle stays visible as preexisting", async () => {
-		const detection = detectStack(tree("reference", { [USER]: CYCLIC_USER }), []);
+		const detection = detectStack(STACKS_OF_495, tree("reference", { [USER]: CYCLIC_USER }), []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		const onReference = await run(control, join(root, "reference"), {});
 		const candidate = tree("candidate", {
@@ -319,11 +325,15 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 
 	it("is qualified on witnesses of its own: a boundary crossed, which no failing test would exhibit", async () => {
 		const positive = tree("positive", {});
-		const detection = detectStack(positive, []);
+		const detection = detectStack(STACKS_OF_495, positive, []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		const negativeFiles = detection.own_negative_witness.structure!;
 		const negative = tree("negative", negativeFiles);
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		const q = await qualifyControl(
 			runner,
 			control,
@@ -342,7 +352,7 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 			"infrastructure/target/generated/Generated.java": "package io.demo.generated;\n",
 			"domain/src/test/java/io/demo/domain/UserTest.java": "package io.demo.domain;\n",
 		});
-		const read = await readJavaSources(project, [
+		const read = await readJavaSources(workspaceFiles(project), [
 			"domain/src/main/java/",
 			"infrastructure/src/main/java/",
 			"absent/src/main/java/",

@@ -464,6 +464,7 @@ describe("what the integration indexes of the files it copies", () => {
 			controls: (real) => {
 				const vitest = new FakeVitestControls(real);
 				return {
+					readers: real.readers,
 					runControl: async (invocation, signal) => {
 						if (invocation.subject.kind === "candidate") introducedOnCandidate.push(invocation.introduced_lines);
 						return vitest.runControl(invocation, signal);

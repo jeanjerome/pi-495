@@ -15,120 +15,29 @@
  * while a violation it did not write is reported at its exact place and left to the comparison
  * against the reference, which names it `preexisting` (VER-08, QLT-04).
  */
-import type { Dirent } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import type { StructureRule } from "../../contracts/v1/protocol.ts";
-import { messageOf } from "../../domain/errors.ts";
-import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
-import { incidentOf, incidentReport, type ParsedFinding, type ParsedReport } from "./parsers.ts";
+import type { StructureRule } from "../../../contracts/v1/protocol.ts";
+import type {
+	IntroducedLines,
+	ParsedFinding,
+	ParsedReport,
+	ProcessObservation,
+	ReportReader,
+	WorkspaceFiles,
+} from "../../../ports/execution.ts";
+import { incidentOf, incidentReport } from "../../execution/parsers.ts";
+import { readDeclarations, type JavaSource } from "./java-declarations.ts";
 
-export interface JavaImport {
-	/** The imported name as written, a trailing `.*` removed: `a.b.C`, `a.b` or `a.b.C.member`. */
-	name: string;
-	line: number;
-}
-
-export interface JavaSource {
-	/** Workspace-relative path, which is what a finding names. */
-	path: string;
-	package_name: string | null;
-	imports: JavaImport[];
-}
-
-/** Directories no source tree of the project is under: build output and tool caches. */
-const SKIPPED_DIRECTORIES = new Set([".git", "target", "build", "out", "bin", "node_modules", ".idea"]);
-
-const MAX_SOURCE_FILES = 5000;
-const MAX_SOURCE_BYTES = 1024 * 1024;
 const MAX_STRUCTURE_FINDINGS = 200;
-
-const PACKAGE_DECLARATION = /^\s*package\s+([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*;/;
-const IMPORT_DECLARATION = /^\s*import\s+(?:static\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\.\*)?)\s*;/;
-
-/**
- * The package and import declarations of one compilation unit, read line by line. Java requires
- * both before the first type declaration, so an anchored reading of every line finds them all; what
- * it would also find is the same text inside a comment or a text block, which changes no import.
- */
-export function readDeclarations(path: string, text: string): JavaSource {
-	const source: JavaSource = { path, package_name: null, imports: [] };
-	const lines = text.split(/\r?\n/);
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!;
-		const declared = PACKAGE_DECLARATION.exec(line);
-		if (declared && source.package_name === null) {
-			source.package_name = declared[1]!;
-			continue;
-		}
-		const imported = IMPORT_DECLARATION.exec(line);
-		if (imported) source.imports.push({ name: imported[1]!.replace(/\.\*$/, ""), line: i + 1 });
-	}
-	return source;
-}
 
 export interface SourceRead {
 	sources: JavaSource[];
 	notes: string[];
 }
 
-/** Every `.java` file under the declared scopes of the frozen rules, read once, sorted by path. */
-export async function readJavaSources(workspacePath: string, scopes: readonly string[]): Promise<SourceRead> {
-	const root = resolve(workspacePath);
-	const notes: string[] = [];
-	const byPath = new Map<string, JavaSource>();
-	for (const scope of [...new Set(scopes)].sort()) {
-		const base = resolve(root, scope);
-		if (base !== root && !base.startsWith(`${root}/`)) {
-			notes.push(`scope ${scope} escapes the workspace and was not read`);
-			continue;
-		}
-		const relativeBase = scope.replace(/\/*$/, "");
-		try {
-			if (!(await stat(base)).isDirectory()) continue;
-		} catch {
-			// A scope no tree holds is a fact of this tree, not a defect: a module may not carry sources.
-			continue;
-		}
-		const stack: { absolute: string; relative: string }[] = [{ absolute: base, relative: relativeBase }];
-		while (stack.length > 0) {
-			const current = stack.pop()!;
-			let entries: Dirent[];
-			try {
-				entries = await readdir(current.absolute, { withFileTypes: true });
-			} catch (error) {
-				notes.push(`unreadable directory ${current.relative}: ${messageOf(error)}`);
-				continue;
-			}
-			for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-				const rel = current.relative ? `${current.relative}/${entry.name}` : entry.name;
-				if (entry.isDirectory()) {
-					if (!SKIPPED_DIRECTORIES.has(entry.name))
-						stack.push({ absolute: join(current.absolute, entry.name), relative: rel });
-					continue;
-				}
-				if (!entry.isFile() || !entry.name.endsWith(".java") || byPath.has(rel)) continue;
-				if (byPath.size >= MAX_SOURCE_FILES) {
-					notes.push(`source limit ${MAX_SOURCE_FILES} reached: the declarations of the remaining files were not read`);
-					stack.length = 0;
-					break;
-				}
-				let text: string;
-				try {
-					text = await readFile(join(current.absolute, entry.name), "utf8");
-				} catch (error) {
-					notes.push(`unreadable source ${rel}: ${messageOf(error)}`);
-					continue;
-				}
-				if (text.length > MAX_SOURCE_BYTES) {
-					notes.push(`${rel} exceeds ${MAX_SOURCE_BYTES} bytes: its declarations were not read`);
-					continue;
-				}
-				byPath.set(rel, readDeclarations(rel, text));
-			}
-		}
-	}
-	return { sources: [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path)), notes };
+/** Every `.java` file under the declared scopes of the frozen rules, read once by the runner, sorted by path. */
+export async function readJavaSources(files: WorkspaceFiles, scopes: readonly string[]): Promise<SourceRead> {
+	const tree = await files.tree(scopes, ".java");
+	return { sources: tree.files.map((f) => readDeclarations(f.path, f.text)), notes: tree.notes };
 }
 
 /** Whether an imported name falls under a forbidden prefix. A prefix ending in `.` is a family. */
@@ -365,3 +274,23 @@ export function analyzeJavaStructure(
 		findings: violations.slice(0, MAX_STRUCTURE_FINDINGS).map((v) => v.finding),
 	};
 }
+
+/** Judges the package and import declarations of the Java sources against the frozen architecture rules (ARC-04, CON-03); it compiles nothing. */
+export const JAVA_IMPORTS_READER: ReportReader = {
+	id: "java-imports",
+	version: "1.0.0",
+	nature: "structure",
+	differential: true,
+	located: false,
+	// The architecture rules are the ones the protocol froze, never a file of the tree the producer could
+	// edit. The sensor runs no analysis of its own beyond reading the package and import declarations of
+	// the sources those rules scope (ARC-04, CON-03).
+	async read(run) {
+		const rules = run.control.structure_rules;
+		const read = await readJavaSources(
+			run,
+			rules.flatMap((rule) => rule.scope),
+		);
+		return analyzeJavaStructure(run.observation, read.sources, rules, run.introduced_lines, read.notes);
+	},
+};

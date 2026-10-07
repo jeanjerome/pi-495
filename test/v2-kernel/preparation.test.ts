@@ -29,6 +29,7 @@ import {
 	type PreparationRecord,
 } from "../../src/application/preparation.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const cleanups = removedAfterEach();
 
@@ -133,6 +134,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			// Every witness of the unit control answers FAIL, so its qualification fails beside a
 			// prepared suite that does what it must.
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					const run = await real.runControl(invocation, signal);
 					if (invocation.protocol.protocol_id !== "qualification" || invocation.control.control_id !== "unit")
@@ -333,7 +335,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	it("on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e", () => {
 		const p = tempDir("495-maven-jacoco-", cleanups);
 		fixtureMavenHexagonal(p, true);
-		const detected = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
+		const detected = detectStack(STACKS_OF_495, p, [{ requirement_id: "R1", revision: 1 }]);
 		assert.deepEqual(
 			detected.controls.map((c) => c.control_id),
 			["maven-test", "coverage", "structure"],
@@ -382,7 +384,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	it("a role that only reads is told no verification instruction even when the detected controls are handed to it", () => {
 		const p = tempDir("495-maven-reader-", cleanups);
 		fixtureMavenHexagonal(p);
-		const detected = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
+		const detected = detectStack(STACKS_OF_495, p, [{ requirement_id: "R1", revision: 1 }]);
 		assert.ok(detected.controls.length > 0, "the reactor yields controls to hand over");
 		for (const role of ["specify", "review", "observe"] as const) {
 			const built = buildContext({
@@ -407,7 +409,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 	it("the context the harness hands the producer names the frozen protocol's coverage and structure with what they read", async () => {
 		const maven = tempDir("495-maven-jacoco-protocol-", cleanups);
 		fixtureMavenHexagonal(maven, true);
-		const mavenControls = detectStack(maven, [{ requirement_id: "R1", revision: 1 }]).controls;
+		const mavenControls = detectStack(STACKS_OF_495, maven, [{ requirement_id: "R1", revision: 1 }]).controls;
 		// The campaign runs on the Node target whose controls need no JDK; once its protocol is
 		// adopted, the Maven controls are frozen in its place, and the campaign is cut as soon as the
 		// producer has received its context, before any of them is opposed to a candidate.
@@ -487,7 +489,9 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			`the preparation started: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, roles: t.agent.started.map((m) => m.role) })}`,
 		);
 		assert.ok(!state.adopted.protocol, "no protocol is frozen when the preparation producer receives its context");
-		const unit = detectStack(p, [{ requirement_id: "R1", revision: 1 }]).controls.find((c) => c.control_id === "unit")!;
+		const unit = detectStack(STACKS_OF_495, p, [{ requirement_id: "R1", revision: 1 }]).controls.find(
+			(c) => c.control_id === "unit",
+		)!;
 		const instruction = preparation.context.trusted_instructions.find((i) =>
 			i.includes("The kernel will judge your work"),
 		);
@@ -575,7 +579,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
-		const controls = detectStack(p, [{ requirement_id: "R1", revision: 1 }]).controls;
+		const controls = detectStack(STACKS_OF_495, p, [{ requirement_id: "R1", revision: 1 }]).controls;
 		const passed = ["JAVA_HOME", "LC_ALL", "MAVEN_OPTS"];
 		for (const variable of passed)
 			assert.ok(controls[0]!.env_allowlist.includes(variable), `the controls of this target receive ${variable}`);
@@ -603,7 +607,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		// A fixture under a test root that is not a test: the reference still has no test file to run.
 		writeFiles(p, { "domain/src/test/resources/fixture.sql": "insert into users values (1);\n" });
 		initRepo(p);
-		const detection = detectStack(p, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, p, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.stack, "maven");
 		assert.deepEqual(detection.preparation_paths, ["src/test/", "domain/src/test/", "infrastructure/src/test/"]);
 		assert.equal(
@@ -999,6 +1003,7 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
 			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
 			controls: (real): ControlExecutionPort => ({
+				readers: real.readers,
 				runControl(invocation: ControlInvocation, signal?: AbortSignal) {
 					if (invocation.protocol.protocol_id === "preparation") seen.judge = packageJsonOf(invocation.workspace_path);
 					return real.runControl(invocation, signal);

@@ -6,27 +6,29 @@
  * the run, and the three witnesses.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
+import { MAX_REPORT_BYTES } from "../../src/adapters/execution/parsers.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import {
 	analyzeMutation,
-	mutableIntroducedPaths,
-	mutationScopeOf,
 	MUTATION_RULE_SURVIVED,
 	MUTATION_RULE_UNCOVERED,
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
+import { mutableIntroducedPaths, PITEST_ENGINE, pitestScopeOf } from "../../src/adapters/stacks/maven/pitest-reader.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { mutationCapabilityMissing, readsMutationReport } from "../../src/application/stacks/maven.ts";
+import { mutationCapabilityMissing, readsMutationReport } from "../../src/adapters/stacks/maven/mutation-control.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, PITEST_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { candidate, evidence, protocol, Runner, ENV } from "../helpers/change-fixture.ts";
 import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
+import { workspaceFiles } from "../../src/adapters/execution/workspace-files.ts";
 
 const NODE = process.execPath;
 const GREETER = "src/main/java/io/h495/Greeter.java";
@@ -99,7 +101,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			{ status: "KILLED", line: 4 },
 			{ status: "SURVIVED", line: 5, description: "Replaced integer multiplication with division" },
 		]);
-		const parsed = analyzeMutation(obs(), doc(report), { [GREETER]: [4, 5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(report), { [GREETER]: [4, 5] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
 		assert.deepEqual(
 			[parsed.facts.introduced_mutants, parsed.facts.killed_mutants, parsed.facts.surviving_mutants],
@@ -120,7 +122,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 		// The run is scoped to the modified class, so a report naming another one is left aside: a
 		// wider configuration on the target side never turns its own debt into this candidate's failure.
 		const elsewhere = pitestXml([{ status: "SURVIVED", line: 12, klass: "io.h495.Untouched", method: "half" }]);
-		const parsed = analyzeMutation(obs(), doc(elsewhere), { [GREETER]: [4, 5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(elsewhere), { [GREETER]: [4, 5] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "PASS", JSON.stringify(parsed.notes));
 		assert.deepEqual(parsed.findings, []);
 		assert.equal(parsed.facts.out_of_scope_mutants, 1);
@@ -132,7 +134,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			{ status: "KILLED", line: 5 },
 			{ status: "SURVIVED", line: 20, method: "untouched" },
 		]);
-		const parsed = analyzeMutation(obs(), doc(mixed), { [GREETER]: [5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(mixed), { [GREETER]: [5] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "PASS", JSON.stringify(parsed.notes));
 		assert.deepEqual(parsed.findings, []);
 		assert.equal(parsed.facts.inherited_survivors, 1);
@@ -141,7 +143,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 
 	it("a line no mutant reaches is reported as its own defect, and a mutant that never ran is excluded", () => {
 		const uncovered = pitestXml([{ status: "NO_COVERAGE", line: 5 }]);
-		const parsed = analyzeMutation(obs(), doc(uncovered), { [GREETER]: [5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(uncovered), { [GREETER]: [5] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "FAIL");
 		assert.deepEqual(
 			[parsed.findings?.[0]?.rule_id, parsed.findings?.[0]?.severity],
@@ -153,6 +155,8 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			doc(pitestXml([{ status: "NON_VIABLE", line: 5 }])),
 			{ [GREETER]: [5] },
 			scopeOf(GREETER),
+			"",
+			PITEST_ENGINE,
 		);
 		assert.equal(excluded.verdict, "PASS");
 		assert.equal(excluded.facts.excluded_mutants, 1);
@@ -165,14 +169,22 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			doc(pitestXml([{ status: "RUN_ERROR", line: 5 }])),
 			{ [GREETER]: [5] },
 			scopeOf(GREETER),
+			"",
+			PITEST_ENGINE,
 		);
 		assert.equal(parsed.verdict, "INDETERMINATE");
 		assert.equal(parsed.facts.undecided_mutants, 1);
 		assert.ok(parsed.notes.some((n) => n.includes("could not decide")));
 		// A timeout on a mutant is a behaviour the suite imposed on it: that one is detected.
 		assert.equal(
-			analyzeMutation(obs(), doc(pitestXml([{ status: "TIMED_OUT", line: 5 }])), { [GREETER]: [5] }, scopeOf(GREETER))
-				.verdict,
+			analyzeMutation(
+				obs(),
+				doc(pitestXml([{ status: "TIMED_OUT", line: 5 }])),
+				{ [GREETER]: [5] },
+				scopeOf(GREETER),
+				"",
+				PITEST_ENGINE,
+			).verdict,
 			"PASS",
 		);
 	});
@@ -183,6 +195,8 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			null,
 			{ [GREETER]: [5] },
 			scopeOf(GREETER),
+			"",
+			PITEST_ENGINE,
 		);
 		assert.equal(parsed.verdict, "INDETERMINATE");
 		assert.equal(typeof parsed.facts.incident, "string");
@@ -193,18 +207,25 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 	it("an absent or incomplete report is never read as a suite that kills every mutant", () => {
 		const introduced = { [GREETER]: [5] };
 		assert.equal(
-			analyzeMutation(obs(), null, introduced, scopeOf(GREETER)).verdict,
+			analyzeMutation(obs(), null, introduced, scopeOf(GREETER), "", PITEST_ENGINE).verdict,
 			"INDETERMINATE",
 			"no report at all",
 		);
 		assert.equal(
-			analyzeMutation(obs(), doc(pitestXml([{ status: "KILLED", line: 5 }], false)), introduced, scopeOf(GREETER))
-				.verdict,
+			analyzeMutation(
+				obs(),
+				doc(pitestXml([{ status: "KILLED", line: 5 }], false)),
+				introduced,
+				scopeOf(GREETER),
+				"",
+				PITEST_ENGINE,
+			).verdict,
 			"INDETERMINATE",
 			"a report the run never closed",
 		);
 		assert.equal(
-			analyzeMutation(obs(), doc(pitestXml([{ status: "KILLED", line: 5 }])), null, scopeOf(GREETER)).verdict,
+			analyzeMutation(obs(), doc(pitestXml([{ status: "KILLED", line: 5 }])), null, scopeOf(GREETER), "", PITEST_ENGINE)
+				.verdict,
 			"INDETERMINATE",
 			"no introduced-line set",
 		);
@@ -215,12 +236,14 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			introduced,
 			scopeOf(GREETER),
 			"[ERROR] /ws/src/main/java/io/h495/Greeter.java:[5,9] cannot find symbol",
+			PITEST_ENGINE,
 		);
 		assert.equal(broken.verdict, "FAIL");
 		assert.ok(broken.failures[0]?.includes("cannot find symbol"));
 		// The reference introduces nothing, so this sensor has nothing to mutate and says so.
 		assert.equal(
-			analyzeMutation(obs(), null, {}, { classes: [], paths: [], notes: [], unaddressable: [] }).verdict,
+			analyzeMutation(obs(), null, {}, { classes: [], paths: [], notes: [], unaddressable: [] }, "", PITEST_ENGINE)
+				.verdict,
 			"PASS",
 		);
 	});
@@ -232,7 +255,14 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			{ status: "KILLED", line: 5 },
 			{ status: "SURVIVED", line: 30, method: "old" },
 		]);
-		const parsed = analyzeMutation(obs({ exit_code: 1 }), doc(report), { [GREETER]: [5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(
+			obs({ exit_code: 1 }),
+			doc(report),
+			{ [GREETER]: [5] },
+			scopeOf(GREETER),
+			"",
+			PITEST_ENGINE,
+		);
 		assert.equal(parsed.verdict, "PASS", JSON.stringify(parsed.notes));
 		assert.ok(parsed.notes.some((n) => n.includes("a ratio is not what is opposed to this candidate")));
 	});
@@ -251,6 +281,8 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			perModule,
 			{ [paths[0]!]: [5], [paths[1]!]: [5] },
 			{ classes: ["io.h495.Adapter"], paths, notes: [], unaddressable: [] },
+			"",
+			PITEST_ENGINE,
 		);
 		assert.equal(parsed.verdict, "FAIL");
 		assert.equal(parsed.findings?.length, 2, "each module report is attributed to its own module");
@@ -260,6 +292,8 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			rootReport,
 			{ [paths[0]!]: [5], [paths[1]!]: [5] },
 			{ classes: ["io.h495.Adapter"], paths, notes: [], unaddressable: [] },
+			"",
+			PITEST_ENGINE,
 		);
 		assert.equal(ambiguous.verdict, "PASS");
 		assert.ok(ambiguous.notes.some((n) => n.includes("matches several scoped paths")));
@@ -270,7 +304,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 		// escapes the quotes inside a description. A reader that only knows one of the two forms would
 		// see every mutant as UNKNOWN and decide nothing.
 		const asWritten = `<?xml version="1.0" encoding="UTF-8"?>\n<mutations partial="true">\n<mutation detected='false' status='SURVIVED' numberOfTestsRun='1'><sourceFile>Greeter.java</sourceFile><mutatedClass>io.h495.Greeter</mutatedClass><mutatedMethod>greet</mutatedMethod><methodDescription>(Ljava/lang/String;)Ljava/lang/String;</methodDescription><lineNumber>7</lineNumber><mutator>org.pitest.mutationtest.engine.gregor.mutators.returns.EmptyObjectReturnValsMutator</mutator><indexes><index>5</index></indexes><blocks><block>0</block></blocks><killingTest/><description>replaced return value with &quot;&quot; for io/h495/Greeter::greet</description></mutation>\n</mutations>\n`;
-		const parsed = analyzeMutation(obs(), doc(asWritten), { [GREETER]: [7] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(asWritten), { [GREETER]: [7] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "FAIL", JSON.stringify(parsed.notes));
 		assert.equal(
 			parsed.findings?.[0]?.message,
@@ -287,12 +321,14 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 			{ [GREETER]: [5] },
 			scopeOf(GREETER),
 			"[INFO] ...\nPIT >> WARNING : No mutations found. This probably means there is an issue with either the supplied classpath or filters.\n",
+			PITEST_ENGINE,
 		);
 		assert.equal(said.verdict, "PASS", JSON.stringify(said.notes));
 		assert.deepEqual([said.facts.mutants, said.facts.introduced_mutants], [0, 0]);
 		assert.ok(said.notes.some((n) => n.includes("generated no mutant")));
 		assert.equal(
-			analyzeMutation(obs(), null, { [GREETER]: [5] }, scopeOf(GREETER), "[INFO] nothing about mutants").verdict,
+			analyzeMutation(obs(), null, { [GREETER]: [5] }, scopeOf(GREETER), "[INFO] nothing about mutants", PITEST_ENGINE)
+				.verdict,
 			"INDETERMINATE",
 		);
 	});
@@ -301,7 +337,7 @@ describe("surviving mutants on the introduced lines (VER-04)", () => {
 		const nested = pitestXml([
 			{ status: "SURVIVED", line: 5, klass: "io.h495.Greeter$Inner", file: "Greeter.java", method: "inner" },
 		]);
-		const parsed = analyzeMutation(obs(), doc(nested), { [GREETER]: [5] }, scopeOf(GREETER));
+		const parsed = analyzeMutation(obs(), doc(nested), { [GREETER]: [5] }, scopeOf(GREETER), "", PITEST_ENGINE);
 		assert.equal(parsed.verdict, "FAIL");
 		assert.equal(parsed.findings?.[0]?.symbol, "io.h495.Greeter$Inner.inner");
 	});
@@ -314,7 +350,7 @@ describe("the scope of a mutation run", () => {
 		writeFileSync(join(ws, GREETER), GREETER_SOURCE);
 		mkdirSync(join(ws, "src", "main", "java"), { recursive: true });
 		writeFileSync(join(ws, "src/main/java/Loose.java"), "public final class Loose {}\n");
-		const scope = await mutationScopeOf(ws, { [GREETER]: [4], "src/main/java/Loose.java": [1] });
+		const scope = await pitestScopeOf(workspaceFiles(ws), { [GREETER]: [4], "src/main/java/Loose.java": [1] });
 		assert.deepEqual(scope.paths, ["src/main/java/Loose.java", GREETER]);
 		assert.deepEqual(scope.classes, ["Loose", "Loose$*", "io.h495.Greeter", "io.h495.Greeter$*"]);
 	});
@@ -331,9 +367,24 @@ describe("the scope of a mutation run", () => {
 			}),
 			[GREETER],
 		);
-		const scope = await mutationScopeOf(join(root, "empty"), { [GREETER]: [1] });
+		const scope = await pitestScopeOf(workspaceFiles(join(root, "empty")), { [GREETER]: [1] });
 		assert.deepEqual([scope.paths, scope.classes], [[], []]);
 		assert.ok(scope.notes[0]?.includes("unreadable source"));
+	});
+
+	it("notes an introduced source past the read bound as a source it could not read, and mutates none of its classes", async () => {
+		const ws = join(root, "big");
+		mkdirSync(join(ws, "src", "main", "java", "io", "h495"), { recursive: true });
+		writeFileSync(join(ws, GREETER), "package io.h495;\npublic final class Greeter {}\n");
+		truncateSync(join(ws, GREETER), MAX_REPORT_BYTES + 7);
+		const scope = await pitestScopeOf(workspaceFiles(ws), { [GREETER]: [1] });
+		assert.deepEqual([scope.paths, scope.classes], [[], []]);
+		assert.match(
+			scope.notes[0] ?? "",
+			new RegExp(
+				`^unreadable source ${GREETER}: .*past the read bound of ${MAX_REPORT_BYTES}.*; its classes were not mutated$`,
+			),
+		);
 	});
 });
 
@@ -364,7 +415,11 @@ describe("the mutation control through the generic runner", () => {
 			{ status: "SURVIVED", line: 5 },
 		]);
 		const ws = workspace("ws", report, { [GREETER]: GREETER_SOURCE });
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		const { evidence: observed } = await runner.runControl({
 			...base(),
 			control: control({ command: ENGINE }),
@@ -387,7 +442,11 @@ describe("the mutation control through the generic runner", () => {
 
 	it("spawns nothing on a subject that introduces no class, and nothing when no one established what it introduced", async () => {
 		const ws = workspace("bare", null, { [GREETER]: GREETER_SOURCE });
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		// A command that cannot be spawned: reaching the sandbox at all would be an INDETERMINATE.
 		const unspawnable = control({ command: ["/nonexistent/495-mutation-engine"] });
 		const onReference = await runner.runControl({
@@ -414,7 +473,11 @@ describe("the mutation control through the generic runner", () => {
 
 	it("a budget shorter than the run gives an incident, not a verdict on the candidate", async () => {
 		const ws = workspace("slow", pitestXml([{ status: "KILLED", line: 5 }]), { [GREETER]: GREETER_SOURCE });
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		const slow = control({ command: [NODE, "-e", "setTimeout(() => {}, 60000);", "--"], timeout_ms: 300 });
 		const { evidence: observed } = await runner.runControl({
 			...base(),
@@ -460,7 +523,11 @@ describe("the mutation control through the generic runner", () => {
 		]);
 		const pos = workspace("pos", killed, positiveFiles);
 		const neg = workspace("neg", survivor, negativeFiles);
-		const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+		const runner = new GenericControlRunner(
+			new UnconfinedSandbox(),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
 		const q = await qualifyControl(
 			runner,
 			control({ command: ENGINE }),
@@ -488,7 +555,7 @@ describe("the target adapter proposes the sensor only where its report can be re
 	it("adds the mutation control when the engine writes XML at a path no timestamp moves, with witnesses of its own", () => {
 		const project = join(root, "target-project");
 		fixtureJava(project, false, true);
-		const detection = detectStack(project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, true);
 		const mutation = detection.controls.find((c) => c.control_id === "mutation");
 		assert.ok(mutation, "the sensor is proposed");
@@ -524,7 +591,7 @@ describe("the target adapter proposes the sensor only where its report can be re
 	it("names what the target would have to declare instead of proposing a sensor that would read nothing", () => {
 		const bare = join(root, "bare");
 		fixtureJava(bare);
-		const detection = detectStack(bare, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, bare, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, false);
 		assert.deepEqual(
 			detection.controls.map((c) => c.control_id),

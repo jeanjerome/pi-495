@@ -9,6 +9,7 @@ import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/ca
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { matchesScope, protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
@@ -35,14 +36,14 @@ function withoutMutation(missing: readonly string[]): string[] {
 }
 
 function unitOf(project: string): ControlDefinition {
-	const unit = detectStack(project, REFS, NODE).controls.find((c) => c.control_id === "unit");
+	const unit = detectStack(STACKS_OF_495, project, REFS, NODE).controls.find((c) => c.control_id === "unit");
 	assert.ok(unit, "the detection declares a unit control");
 	return unit;
 }
 
 describe("Node stack: the unit control follows scripts.test", () => {
 	it("given a package.json whose scripts.test is vitest run, when the stack is detected, then unit runs the vitest of node_modules with the JUnit reporter, reads its report with the JUnit parser and names scripts.test in its title", () => {
-		const detection = detectStack(targetWith("vitest run"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("vitest run"), REFS, NODE);
 		const unit = detection.controls.find((c) => c.control_id === "unit");
 		assert.ok(unit, "the detection declares a unit control");
 		assert.deepEqual(unit.command.slice(0, 4), [NODE, "node_modules/vitest/vitest.mjs", "run", "--reporter=junit"]);
@@ -62,7 +63,7 @@ describe("Node stack: the unit control follows scripts.test", () => {
 
 describe("Node stack: the unit control of a mocha target", () => {
 	it("given a package.json whose scripts.test is mocha, when the stack is detected, then unit runs the mocha of node_modules with the xunit reporter, reads its report with the JUnit parser, declares only target writable and names scripts.test in its title", () => {
-		const detection = detectStack(targetWith("mocha"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("mocha"), REFS, NODE);
 		const unit = detection.controls.find((c) => c.control_id === "unit");
 		assert.ok(unit, "the detection declares a unit control");
 		assert.deepEqual(unit.command.slice(0, 3), [NODE, "node_modules/mocha/bin/mocha.js", "--reporter=xunit"]);
@@ -79,7 +80,7 @@ describe("Node stack: the unit control of a mocha target", () => {
 
 describe("Node stack: the unit control of a jest target", () => {
 	it("given a package.json whose scripts.test is jest, when the stack is detected, then unit runs the jest of node_modules writing its JSON report to 495-jest-report.json, reads it with the jest-json parser, declares only that file writable and names scripts.test in its title", () => {
-		const detection = detectStack(targetWith("jest"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("jest"), REFS, NODE);
 		const unit = detection.controls.find((c) => c.control_id === "unit");
 		assert.ok(unit, "the detection declares a unit control");
 		assert.deepEqual(unit.command.slice(0, 3), [NODE, "node_modules/jest/bin/jest.js", "--json"]);
@@ -183,7 +184,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 	});
 	it("given a target that installed Stryker, then a candidate that modifies stryker.config.mjs or adds stryker.conf.json is refused naming each file, and one that modifies src/agenda.ts is not", () => {
 		const stryker = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
-		const mutation = detectStack(targetWith("node --test", stryker), REFS, NODE).controls.find(
+		const mutation = detectStack(STACKS_OF_495, targetWith("node --test", stryker), REFS, NODE).controls.find(
 			(c) => c.control_id === "mutation",
 		);
 		assert.ok(mutation, "the detection declares a mutation control");
@@ -352,7 +353,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 
 describe("Node stack: a runner 495 cannot read is refused, node:test stays for the rest", () => {
 	it("given scripts.test is ava, when the stack is detected, then no unit control is declared and the missing capability names ava", () => {
-		const detection = detectStack(targetWith("ava"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("ava"), REFS, NODE);
 		assert.equal(
 			detection.controls.some((c) => c.control_id === "unit"),
 			false,
@@ -369,7 +370,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 				scripts: { test: "ava", lint: "node scripts/lint.js" },
 			}),
 		});
-		const detection = detectStack(project, REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 		assert.deepEqual(
 			detection.controls.map((c) => c.control_id),
 			[],
@@ -379,7 +380,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 	for (const scriptsTest of ["jest --ci", "mocha --exit", "vitest --watch"])
 		it(`given scripts.test is ${scriptsTest}, then no unit control is declared and the missing capability says the runner is read only without arguments`, () => {
 			const runner = scriptsTest.split(" ")[0]!;
-			const detection = detectStack(targetWith(scriptsTest), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, targetWith(scriptsTest), REFS, NODE);
 			assert.equal(
 				detection.controls.some((c) => c.control_id === "unit"),
 				false,
@@ -389,7 +390,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 			assert.match(detection.capability_missing[0]!, new RegExp(`${runner} only when it runs without an argument`));
 		});
 	it("given scripts.test is ava, then no unit control is declared and the missing capability says node --test, vitest, mocha and jest are read", () => {
-		const detection = detectStack(targetWith("ava"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("ava"), REFS, NODE);
 		assert.equal(
 			detection.controls.some((c) => c.control_id === "unit"),
 			false,
@@ -400,7 +401,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 		);
 	});
 	it("given scripts.test chains commands through a shell, when the stack is detected, then no unit control is declared and the missing capability names the chain", () => {
-		const detection = detectStack(targetWith("tsc && vitest run"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("tsc && vitest run"), REFS, NODE);
 		assert.equal(
 			detection.controls.some((c) => c.control_id === "unit"),
 			false,
@@ -414,7 +415,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 	] as const)
 		it(`given ${label}, then unit is the node:test control`, () => {
 			const project = targetWith(scriptsTest);
-			const detection = detectStack(project, REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 			const unit = unitOf(project);
 			assert.deepEqual(unit.command, [NODE, "--test", "--test-reporter=tap"]);
 			assert.equal(unit.parser, "node-test");
@@ -423,7 +424,7 @@ describe("Node stack: a runner 495 cannot read is refused, node:test stays for t
 	it("given a scripts.test that is not a string, when the stack is detected, then it is read as absent and unit is the node:test control", () => {
 		const project = join(root, "target");
 		writeFiles(project, { "package.json": JSON.stringify({ name: "t", scripts: { test: 5 } }) });
-		const detection = detectStack(project, REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 		assert.equal(unitOf(project).parser, "node-test");
 		assert.match(detection.capability_missing.join(" "), NOT_ASKED_FOR_COVERAGE);
 	});
@@ -437,7 +438,7 @@ describe("Node stack: the witnesses of a vitest target", () => {
 	};
 	it("given a vitest target with a tests/ directory, then the witnesses are vitest files under tests/, the positive one passing and the negative one failing", () => {
 		const project = targetWith("vitest run", { "tests/agenda.test.ts": "export {};\n" });
-		const detection = detectStack(project, REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 		const positive = vitestFile(detection.positive_witness);
 		const negative = vitestFile(detection.negative_witness);
 		assert.match(positive.path, /^tests\//);
@@ -448,7 +449,7 @@ describe("Node stack: the witnesses of a vitest target", () => {
 		assert.match(negative.source, /toBe\(2\)/);
 	});
 	it("given a vitest target without a tests/ directory, then the witnesses live under test/", () => {
-		const detection = detectStack(targetWith("vitest run"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("vitest run"), REFS, NODE);
 		assert.match(vitestFile(detection.positive_witness).path, /^test\//);
 		assert.match(vitestFile(detection.negative_witness).path, /^test\//);
 	});
@@ -481,7 +482,12 @@ describe("Node stack: the witnesses of a mocha target and of a jest target", () 
 	};
 	for (const runner of ["mocha", "jest"] as const)
 		it(`given a ${runner} target with a tests/ directory, then the witnesses are JavaScript files under tests/ using only the globals of the runner, the positive one passing and the negative one failing, and under test/ when there is no tests/`, () => {
-			const withDirectory = detectStack(targetWith(runner, { "tests/agenda.test.js": "\n" }), REFS, NODE);
+			const withDirectory = detectStack(
+				STACKS_OF_495,
+				targetWith(runner, { "tests/agenda.test.js": "\n" }),
+				REFS,
+				NODE,
+			);
 			const positive = only(withDirectory.positive_witness);
 			const negative = only(withDirectory.negative_witness);
 			for (const witness of [positive, negative]) assert.match(witness.path, /^tests\/[^/]+\.js$/);
@@ -492,7 +498,7 @@ describe("Node stack: the witnesses of a mocha target and of a jest target", () 
 			assert.ok(failing, "the negative witness registers a test");
 			assert.throws(failing);
 			rmSync(join(root, "target", "tests"), { recursive: true });
-			const without = detectStack(targetWith(runner), REFS, NODE);
+			const without = detectStack(STACKS_OF_495, targetWith(runner), REFS, NODE);
 			assert.match(only(without.positive_witness).path, /^test\/[^/]+\.js$/);
 			assert.match(only(without.negative_witness).path, /^test\/[^/]+\.js$/);
 		});
@@ -501,7 +507,7 @@ describe("Node stack: the witnesses of a mocha target and of a jest target", () 
 describe("Node stack: node:test asked for coverage", () => {
 	const asked = "node --test --experimental-test-coverage";
 	it("given scripts.test is node --test --experimental-test-coverage, then unit writes the lcov report to 495-lcov.info declaring only that file writable, coverage reads it with the lcov parser and no capability is missing for coverage", () => {
-		const detection = detectStack(targetWith(asked), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith(asked), REFS, NODE);
 		const unit = detection.controls.find((c) => c.control_id === "unit");
 		assert.ok(unit, "the detection declares a unit control");
 		assert.deepEqual(unit.command, [
@@ -532,7 +538,7 @@ describe("Node stack: node:test asked for coverage", () => {
 	});
 	it("given no scripts.test or node --test, then no coverage control is declared and the missing capability says scripts.test does not ask node:test for coverage", () => {
 		for (const scriptsTest of [null, "node --test"]) {
-			const detection = detectStack(targetWith(scriptsTest), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, targetWith(scriptsTest), REFS, NODE);
 			assert.equal(
 				detection.controls.some((c) => c.control_id === "coverage"),
 				false,
@@ -552,7 +558,7 @@ describe("Node stack: vitest with a coverage provider", () => {
 		for (const provider of ["v8", "istanbul"]) {
 			rmSync(join(root, "target"), { recursive: true, force: true });
 			const project = withProvider(`coverage-${provider}`);
-			const detection = detectStack(project, REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 			const unit = unitOf(project);
 			for (const argument of [
 				"--coverage.enabled",
@@ -577,7 +583,7 @@ describe("Node stack: vitest with a coverage provider", () => {
 		}
 	});
 	it("given a vitest target without a provider, then no coverage control is declared and the missing capability names @vitest/coverage-v8", () => {
-		const detection = detectStack(targetWith("vitest run"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("vitest run"), REFS, NODE);
 		assert.equal(
 			detection.controls.some((c) => c.control_id === "coverage"),
 			false,
@@ -588,7 +594,7 @@ describe("Node stack: vitest with a coverage provider", () => {
 	});
 	it("given jest or mocha, then no coverage control is declared and the missing capability says 495 does not read its coverage", () => {
 		for (const runner of ["jest", "mocha"]) {
-			const detection = detectStack(targetWith(runner), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, targetWith(runner), REFS, NODE);
 			assert.equal(
 				detection.controls.some((c) => c.control_id === "coverage"),
 				false,
@@ -621,7 +627,7 @@ describe("Node stack: the witnesses of a coverage sensor", () => {
 	it("given node:test and vitest targets that ask for coverage, then the positive witness adds a .mjs module called in full and its test, and the coverage control has its own negative witness whose module is loaded with a function never called", () => {
 		for (const runner of ["node-test", "vitest"] as const) {
 			rmSync(join(root, "target"), { recursive: true, force: true });
-			const detection = detectStack(covering(runner), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, covering(runner), REFS, NODE);
 			const [covered, ...others] = modulesOf(detection.positive_witness);
 			assert.ok(covered && others.length === 0, `${runner}: the positive witness adds one .mjs module`);
 			assert.match(covered, /^src\/witness495\/[^/]+\.mjs$/, runner);
@@ -654,7 +660,7 @@ describe("Node stack: the witnesses of a coverage sensor", () => {
 	it("given targets that do not ask for coverage, then their witnesses add no code file and no control has a negative witness of its own", () => {
 		for (const scriptsTest of [null, "vitest run", "jest", "mocha"]) {
 			rmSync(join(root, "target"), { recursive: true, force: true });
-			const detection = detectStack(targetWith(scriptsTest), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, targetWith(scriptsTest), REFS, NODE);
 			assert.deepEqual(modulesOf(detection.positive_witness), [], String(scriptsTest));
 			assert.deepEqual(detection.own_negative_witness, {}, String(scriptsTest));
 			assert.equal(detection.witness_tests, 1, String(scriptsTest));
@@ -665,9 +671,9 @@ describe("Node stack: the witnesses of a coverage sensor", () => {
 describe("Node stack: the mutation control of a target that installed Stryker", () => {
 	const STRYKER = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
 	const mutationOf = (project: string) =>
-		detectStack(project, REFS, NODE).controls.find((c) => c.control_id === "mutation");
+		detectStack(STACKS_OF_495, project, REFS, NODE).controls.find((c) => c.control_id === "mutation");
 	it("given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source", () => {
-		const detection = detectStack(targetWith("node --test", STRYKER), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, targetWith("node --test", STRYKER), REFS, NODE);
 		const mutation = detection.controls.find((c) => c.control_id === "mutation");
 		assert.ok(mutation, "the detection declares a mutation control");
 		assert.deepEqual(mutation.command, [
@@ -699,7 +705,7 @@ describe("Node stack: the mutation control of a target that installed Stryker", 
 		);
 
 		rmSync(join(root, "target"), { recursive: true, force: true });
-		const without = detectStack(targetWith("node --test"), REFS, NODE);
+		const without = detectStack(STACKS_OF_495, targetWith("node --test"), REFS, NODE);
 		assert.equal(
 			without.controls.find((c) => c.control_id === "mutation"),
 			undefined,
@@ -746,7 +752,7 @@ describe("Node stack: the witnesses of a mutation sensor", () => {
 	it("given a target that installed Stryker, then the positive witness adds a module whose test asserts every result and the mutation control has its own negative witness whose test calls the function without asserting", () => {
 		for (const runner of ["node-test", "vitest"] as const) {
 			rmSync(join(root, "target"), { recursive: true, force: true });
-			const detection = detectStack(installed(runner), REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, installed(runner), REFS, NODE);
 			const [asserted, ...others] = modulesOf(detection.positive_witness);
 			assert.ok(asserted && others.length === 0, `${runner}: the positive witness adds one .mjs module`);
 			const functions = exportsOf(detection.positive_witness[asserted]!);
@@ -770,7 +776,7 @@ describe("Node stack: the witnesses of a mutation sensor", () => {
 	});
 	it("given a vitest target that installed Stryker and a coverage provider, then the test of every witness module is a .ts file, as the unit witnesses are, so that a vitest include of tests/**/*.test.ts discovers each of them, and a node:test target keeps .mjs tests", () => {
 		const testPaths = (project: string) => {
-			const detection = detectStack(project, REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 			return [
 				...Object.keys(detection.positive_witness),
 				...Object.values(detection.own_negative_witness).flatMap((files) => Object.keys(files)),
@@ -787,7 +793,12 @@ describe("Node stack: the witnesses of a mutation sensor", () => {
 		for (const path of nodeTest) assert.match(path, /\.test\.mjs$/, path);
 	});
 	it("given a node:test target that installed Stryker and asks for coverage, then the positive witness is shared and each control has its own negative witness", () => {
-		const detection = detectStack(targetWith("node --test --experimental-test-coverage", STRYKER), REFS, NODE);
+		const detection = detectStack(
+			STACKS_OF_495,
+			targetWith("node --test --experimental-test-coverage", STRYKER),
+			REFS,
+			NODE,
+		);
 		assert.equal(modulesOf(detection.positive_witness).length, 1);
 		assert.deepEqual(Object.keys(detection.own_negative_witness).sort(), ["coverage", "mutation"]);
 		assert.equal(detection.witness_tests, 2);

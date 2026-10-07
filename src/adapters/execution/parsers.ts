@@ -1,47 +1,19 @@
-import { parseXml, XmlElement, type XmlDocument, type XmlNode } from "@rgrove/parse-xml";
-import type { Verdict } from "../../contracts/v1/common.ts";
-import type { Finding } from "../../contracts/v1/evidence.ts";
-import { messageOf } from "../../domain/errors.ts";
-import type { IntroducedLines, ProcessObservation } from "../../ports/execution.ts";
-
 /**
- * A defect a parser names itself, when `${control}:failure` would say the wrong thing about it. The
- * runner still derives the path, the line and the fingerprint from the message, exactly as it does
- * for a failing test.
+ * What the readers of every technology share — the incident of a process, the build errors of its output,
+ * the bounded parsing of a report, the judgement of the introduced lines a coverage report measures — and
+ * the readers of two formats several technologies write: an exit code and JUnit XML.
  */
-export interface ParsedFinding {
-	rule_id: string;
-	category: Finding["category"];
-	severity: Finding["severity"];
-	message: string;
-	symbol: string | null;
-}
-
-export interface ParsedReport {
-	verdict: Verdict;
-	facts: Record<string, unknown>;
-	notes: string[];
-	/** Failing test names or messages, bounded. */
-	failures: string[];
-	/** Typed defects replacing `failures` when the parser knows their rule, category and severity. */
-	findings?: ParsedFinding[];
-}
-
-export const PARSER_VERSIONS = {
-	"exit-code": "1.0.0",
-	"node-test": "1.0.0",
-	"junit-xml": "1.0.0",
-	"jest-json": "1.0.0",
-	lcov: "1.0.0",
-	"jacoco-xml": "1.0.0",
-	"java-imports": "1.0.0",
-	"pitest-xml": "1.0.0",
-	"stryker-json": "1.0.0",
-	"pmd-xml": "1.0.0",
-	"cpd-xml": "1.0.0",
-	"eslint-json": "1.0.0",
-	"jscpd-json": "1.0.0",
-} as const;
+import { parseXml, XmlElement, type XmlDocument, type XmlNode } from "@rgrove/parse-xml";
+import { messageOf } from "../../domain/errors.ts";
+import type {
+	IntroducedLines,
+	ParsedFinding,
+	ParsedReport,
+	ProcessObservation,
+	ReaderRun,
+	ReportDocument,
+	ReportReader,
+} from "../../ports/execution.ts";
 
 export const MAX_FAILURES = 50;
 
@@ -144,145 +116,6 @@ export function parseExitCode(obs: ProcessObservation): ParsedReport {
 	};
 }
 
-/**
- * TAP output of `node --test --test-reporter=tap`. Skipped or todo tests never count as PASS (§6.5).
- * A failing test is followed by the file its diagnostics locate it in, without line or column: a
- * finding whose test name carries no path then points at the file of the test, and one whose name
- * carries a path keeps pointing at that path. A passing test carries no location, so it is reported by
- * its name alone, in `passing_cases`; a suite is not a case. The message the failing test reports
- * closes the line: a test that keeps failing for another reason is then another finding, and one that
- * fails the same way on both passes is the same.
- *
- * node:test reports a test file that declares no case as one passing top-level test named after the
- * file. Such an entry runs code without asserting anything, so it is not counted as a test.
- */
-export function parseNodeTestTap(obs: ProcessObservation, stdout: string): ParsedReport {
-	const incident = incidentOf(obs);
-	const lines = stdout.split(/\r?\n/);
-	let tests: number | null = null;
-	let pass: number | null = null;
-	let fail: number | null = null;
-	let skipped: number | null = null;
-	let todo: number | null = null;
-	const failures: string[] = [];
-	// Whether the diagnostics being read belong to the failure last named, which they then locate and describe.
-	let locating = false;
-	let describing = false;
-	// The name of the passing test whose diagnostics are being read, kept once they say it is a test.
-	let passingName: string | null = null;
-	const passingCases: string[] = [];
-	// The lines of a block `error` field being read, and the indentation of its key.
-	let message: { indent: number; lines: string[] } | null = null;
-	const describeLastFailure = (text: string) => {
-		failures[failures.length - 1] = `${failures.at(-1)}: ${text.replace(/\s+/g, " ").trim()}`;
-	};
-	let caseless = 0;
-	for (const raw of lines) {
-		if (message !== null) {
-			if (raw.trim() === "" || raw.length - raw.trimStart().length > message.indent) {
-				message.lines.push(raw);
-				continue;
-			}
-			describeLastFailure(message.lines.join(" "));
-			message = null;
-		}
-		const fileWithoutCases = /^ok\s+\d+\s*-\s*\S+\.[cm]?[jt]sx?\s*$/.test(raw);
-		if (fileWithoutCases) caseless++;
-		const line = raw.trim();
-		if (passingName !== null && /^type:\s*'(test|suite)'$/.test(line)) {
-			if (line.endsWith("'test'")) passingCases.push(passingName);
-			passingName = null;
-			continue;
-		}
-		const location = /^location:\s*'(.+?)(?::\d+){0,2}'$/.exec(line);
-		if (location && locating && failures.length > 0) {
-			failures[failures.length - 1] = `${failures.at(-1)} (${location[1]})`;
-			locating = false;
-			continue;
-		}
-		const error = /^(\s*)error:\s*(.*)$/.exec(raw);
-		if (error && describing) {
-			describing = false;
-			if (/^[|>][-+]?$/.test(error[2]!)) message = { indent: error[1]!.length, lines: [] };
-			else describeLastFailure(error[2]!.replace(/^'(.*)'$/, "$1").replaceAll("''", "'"));
-			continue;
-		}
-		if (/^(not )?ok\s+\d+/.test(line)) {
-			locating = false;
-			describing = false;
-			const ok = /^ok\s+\d+\s*-?\s*(.*)$/.exec(line);
-			passingName = ok && !fileWithoutCases && !/#\s*(SKIP|TODO)\b/i.test(ok[1]!) ? ok[1]! : null;
-		}
-		const m = /^#\s+(tests|pass|fail|skipped|todo)\s+(\d+)$/.exec(line);
-		if (m) {
-			const n = Number.parseInt(m[2]!, 10);
-			if (m[1] === "tests") tests = n;
-			else if (m[1] === "pass") pass = n;
-			else if (m[1] === "fail") fail = n;
-			else if (m[1] === "skipped") skipped = n;
-			else todo = n;
-			continue;
-		}
-		const nok = /^not ok\s+\d+\s*-?\s*(.*)$/.exec(line);
-		if (nok && failures.length < MAX_FAILURES) {
-			failures.push(nok[1] ?? "unnamed test");
-			locating = true;
-			describing = true;
-		}
-	}
-	if (message !== null) describeLastFailure(message.lines.join(" "));
-	if (tests !== null) tests -= caseless;
-	if (pass !== null) pass -= caseless;
-	const facts = {
-		exit_code: obs.exit_code,
-		tests,
-		pass,
-		fail,
-		skipped,
-		todo,
-		files_without_cases: caseless,
-		passing_cases: passingCases,
-		stdout_truncated: obs.stdout_truncated,
-	};
-	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };
-	const broke = obs.exit_code !== 0;
-	const outside = (note: string): ParsedReport => exitedOutsideTests(obs, facts, note, stdout, failures);
-	if (tests === null || pass === null || fail === null) {
-		// A truncated stream is a reading limit, not a property of the candidate.
-		if (obs.stdout_truncated)
-			return {
-				verdict: "INDETERMINATE",
-				facts,
-				notes: ["TAP summary not found in the output (output truncated)"],
-				failures,
-			};
-		if (broke) return outside(`the runner exited with ${obs.exit_code} without emitting a TAP summary`);
-		return { verdict: "INDETERMINATE", facts, notes: ["TAP summary not found in the output"], failures };
-	}
-	if (tests === 0) {
-		if (broke) return outside(`the runner exited with ${obs.exit_code} and executed no test`);
-		return {
-			verdict: "INDETERMINATE",
-			facts,
-			notes: ["no test was executed: a suite without assertion proves nothing"],
-			failures,
-		};
-	}
-	if (fail > 0) return { verdict: "FAIL", facts, notes: [], failures };
-	if ((skipped ?? 0) > 0 || (todo ?? 0) > 0)
-		return {
-			verdict: "INDETERMINATE",
-			facts,
-			notes: [`${skipped ?? 0} skipped and ${todo ?? 0} todo tests: a skip is not a pass (RM-017)`],
-			failures,
-		};
-	if (broke)
-		return outside(
-			`every test passed but the runner exited with ${obs.exit_code}: the failure is outside the tests that ran`,
-		);
-	return { verdict: "PASS", facts, notes: [], failures: [] };
-}
-
 export interface JUnitSummary {
 	tests: number;
 	failures: number;
@@ -349,11 +182,6 @@ export function summarizeJUnit(documents: readonly (string | UnreadReport)[]): J
 	return s;
 }
 
-function intAttr(attrs: string, name: string): number {
-	const m = new RegExp(`\\b${name}="(\\d+)"`).exec(attrs);
-	return m ? Number.parseInt(m[1]!, 10) : 0;
-}
-
 /**
  * A non-zero exit that no test failure explains is a verdict on the candidate, not an incident: a
  * compilation error, a plugin failure or a module the reactor never reached are all reproducible
@@ -413,12 +241,6 @@ export function parseJUnit(
 
 // --- differential coverage (QLT-04) --------------------------------------------------------------
 
-export interface JacocoDocument {
-	/** Workspace-relative path of the report, which names the module it measures. */
-	name: string;
-	text: string;
-}
-
 export interface MeasuredLine {
 	covered: boolean;
 	branches_missed: number;
@@ -438,129 +260,12 @@ export const COVERAGE_RULE_PARTIAL = "coverage:introduced-branch-not-taken";
 
 export const MAX_NAMED_PATHS = 10;
 
-/** Compilation units JaCoCo instruments. */
-const MEASURABLE_SOURCE = /\.(java|kt|scala|groovy)$/;
-/** Declarations without an executable line: no report mentions them, and none should. */
-export const JVM_DECLARATION_ONLY = /(^|\/)(module-info|package-info)\.[a-z]+$/;
-/** A test is what measures; it is never what is measured. */
-export const JVM_TEST_SOURCE = /(^|\/)src\/test\//;
-
-/**
- * Introduced paths a coverage report is expected to mention. A path outside this set is not an
- * unmeasured file: a test, a POM or a resource is simply not what JaCoCo instruments.
- */
-export function measurableIntroducedPaths(introduced: IntroducedLines): string[] {
-	return Object.keys(introduced)
-		.filter((path) => MEASURABLE_SOURCE.test(path) && !JVM_DECLARATION_ONLY.test(path) && !JVM_TEST_SOURCE.test(path))
-		.sort();
-}
-
 /** The five XML entities, decoded: JaCoCo writes a constructor `&lt;init&gt;`. */
 export function decodeXml(text: string): string {
 	return text.replace(
 		/&(lt|gt|quot|apos|amp);/g,
 		(whole, entity: string) => ({ lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" })[entity] ?? whole,
 	);
-}
-
-/** An attribute value, with the five XML entities decoded. */
-function strAttr(attrs: string, name: string): string | null {
-	const m = new RegExp(`\\b${name}="([^"]*)"`).exec(attrs);
-	return m ? decodeXml(m[1]!) : null;
-}
-
-/** The module a report measures: `domain/target/site/jacoco/jacoco.xml` measures `domain`. */
-export function moduleOf(reportName: string): string {
-	const at = reportName.indexOf("/target/");
-	return at > 0 ? reportName.slice(0, at) : "";
-}
-
-/**
- * The source path a package and a source file name. A report states neither the source root nor the
- * repository path, so the answer is looked up among the paths the candidate actually touched: one
- * match is the file, several is an ambiguity that is reported rather than guessed.
- */
-export function resolveSourcePath(
-	module: string,
-	packageName: string,
-	sourcefile: string,
-	paths: readonly string[],
-): { path: string | null; ambiguous: boolean } {
-	const suffix = packageName ? `${packageName}/${sourcefile}` : sourcefile;
-	const matches = paths.filter(
-		(path) => (path === suffix || path.endsWith(`/${suffix}`)) && (module === "" || path.startsWith(`${module}/`)),
-	);
-	return { path: matches.length === 1 ? matches[0]! : null, ambiguous: matches.length > 1 };
-}
-
-/**
- * Reads JaCoCo XML reports and keeps what concerns `paths`. Several reports may measure the same
- * file — a reactor writes one per module, and an aggregate may repeat them — so a line executed in
- * any of them counts as executed.
- */
-function summarizeJacoco(documents: readonly JacocoDocument[], paths: readonly string[]): CoverageMeasurement {
-	const measurement: CoverageMeasurement = { files: new Map(), symbols: new Map(), notes: [] };
-	const ambiguous = new Set<string>();
-	for (const doc of documents) {
-		const module = moduleOf(doc.name);
-		for (const pkg of doc.text.matchAll(/<package\b([^>]*)>([\s\S]*?)<\/package>/g)) {
-			const packageName = strAttr(pkg[1] ?? "", "name") ?? "";
-			const body = pkg[2] ?? "";
-			for (const source of body.matchAll(/<sourcefile\b([^>]*)>([\s\S]*?)<\/sourcefile>/g)) {
-				const sourcefile = strAttr(source[1] ?? "", "name");
-				if (!sourcefile) continue;
-				const resolved = resolveSourcePath(module, packageName, sourcefile, paths);
-				if (resolved.ambiguous) {
-					ambiguous.add(packageName ? `${packageName}/${sourcefile}` : sourcefile);
-					continue;
-				}
-				if (!resolved.path) continue;
-				let lines = measurement.files.get(resolved.path);
-				if (!lines) {
-					lines = new Map();
-					measurement.files.set(resolved.path, lines);
-				}
-				for (const line of (source[2] ?? "").matchAll(/<line\b([^>]*)>/g)) {
-					const attrs = line[1] ?? "";
-					const nr = intAttr(attrs, "nr");
-					if (nr < 1) continue;
-					const missedBranches = intAttr(attrs, "mb");
-					const coveredBranches = intAttr(attrs, "cb");
-					const previous = lines.get(nr);
-					lines.set(nr, {
-						covered: intAttr(attrs, "ci") > 0 || Boolean(previous?.covered),
-						branches_missed: previous ? Math.min(previous.branches_missed, missedBranches) : missedBranches,
-						branches_covered: Math.max(previous?.branches_covered ?? 0, coveredBranches),
-					});
-				}
-				const symbols = symbolsOf(body, sourcefile);
-				if (symbols.length > 0) measurement.symbols.set(resolved.path, symbols);
-			}
-		}
-	}
-	for (const name of [...ambiguous].sort())
-		measurement.notes.push(`${name} matches several touched paths: the report cannot be attributed to one of them`);
-	return measurement;
-}
-
-/** Where each symbol of a source file starts, ascending, from the `<class>` blocks of its package. */
-function symbolsOf(packageBody: string, sourcefile: string): { line: number; symbol: string }[] {
-	const out: { line: number; symbol: string }[] = [];
-	for (const klass of packageBody.matchAll(/<class\b([^>]*?)(?:\/>|>([\s\S]*?)<\/class>)/g)) {
-		const attrs = klass[1] ?? "";
-		if (strAttr(attrs, "sourcefilename") !== sourcefile) continue;
-		const name = (strAttr(attrs, "name") ?? "").split("/").join(".");
-		const methods = [...(klass[2] ?? "").matchAll(/<method\b([^>]*)>/g)];
-		if (methods.length === 0) {
-			out.push({ line: 1, symbol: name });
-			continue;
-		}
-		for (const method of methods) {
-			const line = intAttr(method[1] ?? "", "line");
-			out.push({ line: line > 0 ? line : 1, symbol: `${name}.${strAttr(method[1] ?? "", "name") ?? "?"}` });
-		}
-	}
-	return out.sort((a, b) => a.line - b.line);
 }
 
 /** The symbol a line belongs to: the last one declared at or before it. */
@@ -573,7 +278,7 @@ function symbolAt(symbols: readonly { line: number; symbol: string }[], line: nu
 	return found;
 }
 
-const MAX_COVERAGE_FINDINGS = 200;
+export const MAX_COVERAGE_FINDINGS = 200;
 
 interface IntroducedJudgement {
 	findings: ParsedFinding[];
@@ -669,84 +374,38 @@ export function unmeasuredNote(unmeasured: readonly string[]): string {
 }
 
 /**
- * Coverage of the introduced lines (QLT-04).
- *
- * The sensor executes nothing: it reads the report the frozen test control already wrote, and judges
- * only the lines the candidate introduced. A line it never exercised blocks; a line it exercised on
- * one branch out of two is reported without blocking; a line the candidate did not write is outside
- * its jurisdiction, counted as inherited debt and named as such. No report, a report that does not
- * mention an introduced source file, or no introduced-line set at all are all INDETERMINATE: an
- * absent measurement has never been proof of coverage.
+ * The coverage report a differential control reads. A subject that introduces nothing — the reference
+ * pass — is decided without looking for a report the control would not read, and keeps none as evidence.
  */
-export function parseJacoco(
-	obs: ProcessObservation,
-	documents: readonly JacocoDocument[] | null,
-	introduced: IntroducedLines | null,
-): ParsedReport {
-	const reports = documents?.length ?? 0;
-	const undecided = undecidedCoverage(obs, reports);
-	if (undecided) return undecided;
-	if (introduced === null) return unknownIntroducedLines(obs, reports);
-	const wanted = measurableIntroducedPaths(introduced);
-	const facts: Record<string, unknown> = {
-		exit_code: obs.exit_code,
-		reports,
-		introduced_files: Object.keys(introduced).length,
-		introduced_lines: Object.values(introduced).reduce((total, lines) => total + lines.length, 0),
-		measurable_files: wanted.length,
-	};
-	if (wanted.length === 0)
-		return {
-			verdict: "PASS",
-			facts: {
-				...facts,
-				measured_lines: 0,
-				uncovered_lines: 0,
-				partially_covered_lines: 0,
-				tolerated_uncovered_lines: 0,
-			},
-			notes: ["the candidate introduces no line JaCoCo measures"],
-			failures: [],
-			findings: [],
-		};
-	if (reports === 0)
-		return {
-			verdict: "INDETERMINATE",
-			facts,
-			notes: [`no JaCoCo report found at the declared report path, for ${wanted.length} introduced source file(s)`],
-			failures: [],
-		};
-	const measurement = summarizeJacoco(documents ?? [], wanted);
-	const unmeasured = wanted.filter((path) => !measurement.files.has(path));
-	if (unmeasured.length > 0)
-		return {
-			verdict: "INDETERMINATE",
-			facts: { ...facts, unmeasured_files: unmeasured.length },
-			notes: [unmeasuredNote(unmeasured), ...measurement.notes],
-			failures: [],
-		};
-
-	const { findings, measured, uncovered, partial, tolerated } = judgeIntroducedLines(measurement, wanted, introduced);
-	const notes = [...measurement.notes];
-	if (tolerated.length > 0)
-		notes.push(
-			`${tolerated.length} line(s) of the touched files were already unexercised before this change and are tolerated: the rule is on the introduced lines, not on a ratio (QLT-04)`,
-		);
-	if (partial > 0)
-		notes.push(`${partial} introduced line(s) are exercised on part of their branches only: reported, not blocking`);
-	if (uncovered + partial > MAX_COVERAGE_FINDINGS)
-		notes.push(`${uncovered + partial} findings reduced to the first ${MAX_COVERAGE_FINDINGS}`);
-	return {
-		verdict: uncovered > 0 ? "FAIL" : "PASS",
-		facts: {
-			...facts,
-			measured_lines: measured,
-			uncovered_lines: uncovered,
-			partially_covered_lines: partial,
-			tolerated_uncovered_lines: tolerated.length,
-		},
-		notes,
-		failures: [],
-		findings,
-	};
+export async function coverageReports(run: ReaderRun, mediaType: string): Promise<ReportDocument[]> {
+	const introduced = run.introduced_lines;
+	if (introduced !== null && Object.keys(introduced).length === 0) return [];
+	return run.reports(mediaType);
 }
+
+/** The exit code says nothing of what its command checks. */
+export const EXIT_CODE_READER: ReportReader = {
+	id: "exit-code",
+	version: "1.0.0",
+	nature: null,
+	differential: false,
+	located: false,
+	read: async (run) => parseExitCode(run.observation),
+};
+
+export const JUNIT_READER: ReportReader = {
+	id: "junit-xml",
+	version: "1.0.0",
+	nature: "behaviour",
+	differential: false,
+	located: false,
+	async read(run) {
+		const docs = await run.reports("application/xml", { oversized_unread: true });
+		// Build tools name a compilation failure on stdout; the parser needs it to point at a file.
+		return parseJUnit(
+			run.observation,
+			docs.map((d) => (d.oversized_bytes === undefined ? d.text : { path: d.name, bytes: d.oversized_bytes })),
+			`${run.stdout}\n${run.stderr}`,
+		);
+	},
+};

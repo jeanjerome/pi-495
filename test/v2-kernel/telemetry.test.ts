@@ -84,6 +84,7 @@ describe("observability without imposed surveillance (NFR-06, REC-24)", () => {
 				},
 			},
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					profiles.push(`control:${invocation.control.control_id}:${invocation.control.network}`);
 					return real.runControl(invocation, signal);

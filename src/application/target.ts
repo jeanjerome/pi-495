@@ -9,21 +9,17 @@ import { join } from "node:path";
 import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { RequirementRef } from "../contracts/v1/evidence.ts";
 import type { InstalledPackage } from "../contracts/v1/protocol.ts";
-import { MAVEN_ADAPTER } from "./stacks/maven.ts";
-import { NODE_ADAPTER } from "./stacks/node.ts";
 import type { StackAdapter, StackDetection } from "./stacks/stack.ts";
 
 export type { StackDetection } from "./stacks/stack.ts";
 
-/** The adapters of 495, in the order they claim a project: a Maven project that also carries a `package.json` is judged as Maven. */
-const STACK_ADAPTERS: readonly StackAdapter[] = [MAVEN_ADAPTER, NODE_ADAPTER];
-
+/** The detection of the first of `adapters`, in their order, whose signal file the project carries. */
 export function detectStack(
+	adapters: readonly StackAdapter[],
 	projectPath: string,
 	requirementRefs: RequirementRef[],
 	nodeBinary = process.execPath,
 	referentialPackages: readonly InstalledPackage[] = [],
-	adapters: readonly StackAdapter[] = STACK_ADAPTERS,
 ): StackDetection {
 	const adapter = adapters.find((a) => a.signal_files.some((file) => existsSync(join(projectPath, file))));
 	if (adapter) return adapter.detect(projectPath, requirementRefs, nodeBinary, referentialPackages);

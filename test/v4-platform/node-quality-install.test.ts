@@ -28,6 +28,7 @@ import {
 	nodeLineOf,
 	TREE_CONFIGURATION,
 } from "../helpers/node-quality-survey.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const REFS = [{ requirement_id: "QLT-01", revision: 1 }];
 
@@ -54,7 +55,7 @@ async function installedReferential(root: string, extra: Record<string, string>)
 		...NODE_QUALITY_SOURCES,
 		...extra,
 	});
-	const offer = detectStack(project, REFS).quality_referential;
+	const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
 	if (offer?.kind !== "proposed") throw new Error("a Node project without ESLint nor jscpd is offered the referential");
 	const installs = offer.recommendations.flatMap((r): PackageInstall[] => (r.install ? [r.install] : []));
 	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
@@ -117,8 +118,8 @@ describe("the ESLint and jscpd referential installed for real by npm", () => {
 			return handle.path;
 		};
 
-		const detection = detectStack(copy, REFS, process.execPath, installed.packages);
-		const runner = new GenericControlRunner(sandbox.backend, objects);
+		const detection = detectStack(STACKS_OF_495, copy, REFS, process.execPath, installed.packages);
+		const runner = new GenericControlRunner(sandbox.backend, objects, READERS_OF_495);
 		const controls: Record<string, ControlDefinition> = {};
 		for (const id of ["eslint", "jscpd"]) {
 			const control = detection.controls.find((c) => c.control_id === id);

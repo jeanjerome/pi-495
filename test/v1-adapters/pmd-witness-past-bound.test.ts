@@ -14,6 +14,7 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import type { Qualification } from "../../src/contracts/v1/protocol.ts";
 import { controlOf, invocationBase } from "../helpers/execution-fixture.ts";
 import { removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
+import { READERS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -55,7 +56,11 @@ async function qualifiedPast1000(positive: string | null, negative: string | nul
 	};
 	const positiveFiles = { [POSITIVE_FILE]: WITNESS };
 	const negativeFiles = { [NEGATIVE_FILE]: WITNESS };
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	return qualifyControl(
 		runner,
 		controlOf({ control_id: "pmd", parser: "pmd-xml", report_path: "**/target" }),

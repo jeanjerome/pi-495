@@ -2,7 +2,7 @@
 
 Story : e37s01
 Epic : e37
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -43,12 +43,31 @@ Scenario: Le contrat accepte un lecteur qu'il ne connaît pas
   Then le champ `parser` est une chaîne non vide, sans énumération
   And une définition de contrôle dont le `parser` vaut `fict-lines` est valide
 
+Scenario: Un rapport écrit comme un lien vers un fichier hors de la copie n'est ni lu ni conservé
+  Given une copie où le projet jugé a écrit son rapport `lines.txt` comme lien symbolique vers un fichier hors de la copie qui porte `PASS read-from-outside-the-copy`
+  And un lien `linked` vers un répertoire hors de la copie qui porte `r.txt`
+  And un lecteur apporté par une technologie, qui rend `INDETERMINATE` quand il ne reçoit aucun rapport
+  When le lanceur exécute le contrôle qui déclare `lines.txt` comme rapport
+  Then la preuve est `INDETERMINATE` et ne porte aucun artefact `report:lines.txt`
+  And `reports()`, avec ou sans `single_file`, ne rend aucun rapport et n'en conserve aucun
+  And `sources(["lines.txt", "linked/r.txt"])` ne rend rien, `tree(["linked"], ".txt")` ne rend aucun fichier, et `text("lines.txt")` comme `text("linked/r.txt")` sont refusés avec « escapes the workspace »
+
+Scenario: Un lecteur qui lit son rapport par text() ne passe pas la borne de lecture
+  Given une copie dont le rapport `lines.txt` fait `MAX_REPORT_BYTES + 7` octets
+  And un lecteur apporté par une technologie qui lit ce rapport par `run.text(run.control.report_path)` au lieu de `run.reports(...)`
+  When le lanceur exécute le contrôle qui déclare `lines.txt` comme rapport
+  Then le rapport n'est pas lu : la preuve est `INDETERMINATE`, et sa note nomme `lines.txt`, sa taille et « past the read bound of 16777216 »
+  And la preuve ne porte aucun artefact `report:lines.txt`
+
 ## 3. Sécurité
 
 Un rapport est écrit par le projet jugé : c'est une entrée non fiable, et un lecteur apporté par une technologie
 ne doit pas pouvoir contourner les bornes qui la tiennent. Le lanceur garde la lecture des fichiers et la donne
-au lecteur : un chemin hors de la copie n'est jamais lu, un rapport au-delà de `MAX_REPORT_BYTES` est rendu
-non lu avec sa taille, et chaque rapport lu est conservé dans le magasin d'objets comme aujourd'hui. Un lecteur
+au lecteur : un chemin hors de la copie n'est jamais lu, qu'il en sorte par son texte ou par un lien symbolique
+que le projet jugé a écrit dans la copie, vers un fichier ou vers un répertoire ; aucun fichier au-delà de
+`MAX_REPORT_BYTES` n'est remis au lecteur, par quelque accès que ce soit : un rapport lu par `reports()` est
+rendu non lu avec sa taille, un fichier lu par `sources()` ou `text()` est refusé en nommant sa taille et la
+borne ; et chaque rapport lu par `reports()` est conservé dans le magasin d'objets comme aujourd'hui. Un lecteur
 ne lance aucun processus, n'écrit rien dans la copie et ne lit aucune variable d'environnement.
 
 Le protocole gelé continue d'enregistrer le lecteur et sa version dans la `control_version` de chaque preuve.
@@ -131,9 +150,38 @@ qui la dépasse porte presque sûrement deux responsabilités.
 - Tient : la recherche, vide ; le décompte des lignes ; la liste des responsabilités, une par fichier, lue dans les en-têtes et confrontée au contenu de chaque fichier ; la Preflight et les deux campagnes, vertes sur les mêmes verdicts qu'avant
 - Rouge : `runner.ts` importe les lecteurs de JaCoCo, PIT, Stryker, PMD, CPD, ESLint, jscpd, jest, `node:test` et des imports Java (lignes 22 à 47) ; `maven.ts` fait 1 015 lignes et `node.ts` 897
 
+### Tâche 5 — Un lien symbolique qui sort de la copie n'est jamais lu
+
+Chaque lecture de `workspaceFiles` (`src/adapters/execution/workspace-files.ts`) — `reports()`, avec ou sans
+`single_file` et sous un chemin récursif, `sources()`, `text()` et les racines de `tree()` — compare le chemin
+réel de ce qu'elle va lire, liens résolus, au chemin réel de la copie, et non plus le seul chemin écrit. Un
+fichier ou une racine dont le chemin réel sort de la copie est traité comme un chemin déclaré hors de la copie l'est aujourd'hui : `reports()` ne le rend
+pas et ne le conserve pas, `sources()` ne rend rien pour lui, `tree()` note la racine comme il note aujourd'hui
+une racine écrite hors de la copie (« escapes the workspace and was not read »), `text()` le refuse avec
+« escapes the workspace ». Un lien qui reste dans la copie est lu comme avant.
+
+- Vérifie : `node --test test/v1-adapters/report-link-outside-copy.test.ts`
+- Tient : `test/v1-adapters/report-link-outside-copy.test.ts`, « un rapport `lines.txt` écrit comme lien vers un fichier hors de la copie qui porte `PASS read-from-outside-the-copy` donne, par le lanceur, une preuve `INDETERMINATE` sans artefact `report:lines.txt` ; `reports()`, avec ou sans `single_file`, ne rend et ne conserve aucun rapport ; `sources(["lines.txt", "linked/r.txt"])` ne rend rien, `tree(["linked"], ".txt")` ne rend aucun fichier, et `text()` refuse ces deux chemins avec "escapes the workspace" »
+- Rouge : `readReports`, `readBoundedReport`, `introducedSources`, `readInside` et `readTree` ne testent que le chemin écrit, puis `stat` et `readFile` suivent le lien : `reports()` rend `{ name: "lines.txt", text: "PASS read-from-outside-the-copy\n" }` et le conserve, le lanceur rend `PASS` avec l'artefact `report:lines.txt`, `sources()` rend les deux fichiers extérieurs, `text()` leur texte, et `tree(["linked"], ".txt")` rend `linked/r.txt`
+
+### Tâche 6 — text() ne remet aucun fichier au-delà de la borne de lecture
+
+`text(path)` lit la taille du fichier avant de le lire, et refuse un fichier au-delà de `MAX_REPORT_BYTES` en
+nommant son chemin, sa taille et la borne (« past the read bound of 16777216 »), comme `sources()` refuse le
+sien. Le lanceur rend alors le contrôle `INDETERMINATE`, sa note portant ce refus. Le cadrage de PIT
+(`pitestScopeOf`), seul appelant de `text()` dans 495, note une source introduite au-delà de la borne comme il
+note aujourd'hui une source illisible, « unreadable source … ; its classes were not mutated ».
+
+- Vérifie : `node --test test/v1-adapters/report-text-bound.test.ts`
+- Tient : `test/v1-adapters/report-text-bound.test.ts`, « un lecteur qui lit son rapport `lines.txt` de `MAX_REPORT_BYTES + 7` octets par `run.text(run.control.report_path)` rend une preuve `INDETERMINATE` dont la note nomme `lines.txt`, sa taille et « past the read bound of 16777216 », sans artefact `report:lines.txt` »
+- Rouge : `readInside` lit le fichier entier sans en lire la taille ; le lecteur reçoit le rapport complet, la preuve est `PASS`, sans note et sans artefact `report:`
+
 ## 5. Hors périmètre
 
 - Ce qu'une technologie écarte de la copie (`DEFAULT_WORKSPACE_POLICY`), ce qu'elle protège (`node_modules/`), les variables d'environnement de ses contrôles (`BASE_ENV`), les versions d'outils sondées pour l'identité de l'environnement, la forme d'un fichier de test (`TEST_FILE_NAME`), la disposition des ressources de test (`mirrorsProductionResource`), les sources qu'attend le lecteur LCOV et les répertoires que les parcours de rapports sautent : `e37s02`.
 - L'installation et la résolution d'un complément, leur inspection, le texte qui les présente au propriétaire et les modifications de fichier qu'un complément apporte : `e37s03`, qui retire aussi `mavenResolutionCommand` de `installation.ts`.
 - Une règle de Preflight qui refuse qu'un module générique importe le dossier d'une technologie : `e37s03`, quand plus aucun module générique n'en a besoin.
 - Une technologie chargée depuis un paquet tiers, hors de l'arbre de 495 : rien ne le demande ; la liste reste celle que la racine de composition remet.
+- La conservation de ce qu'un lecteur lit sous la borne par `sources()` ou `text()` : ces accès servent aux sources introduites, et un rapport n'est conservé que lu par `reports()`. Retirer `text()` de la surface, ou lui interdire le chemin du rapport déclaré, demanderait de changer ce que note le cadrage de PIT ; rien de l'écart ne l'exige.
+- Un lecteur qui lit les fichiers par `node:fs` au lieu de la surface du lanceur : il est du code chargé dans le processus de 495, et la borne est une règle de l'interface, pas un confinement.
+- Le chargement par `tree()` d'un fichier avant de le mesurer à sa propre borne d'1 Mio : il ne le remet pas au lecteur au-delà, et ne suit aucun lien sous ses racines, une entrée de répertoire qui est un lien n'étant ni un fichier ni un répertoire.

@@ -13,6 +13,7 @@ import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { mavenBench, widenForMaven } from "../helpers/maven-bench.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const enabled = process.env.HARNESS495_RUN_JAVA === "1";
 
@@ -26,7 +27,7 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 		for (const ws of [pos, neg, cov]) fixtureJava(ws, true);
 		// warm the local Maven repository once, online, outside the sandbox (installation step, not a control)
 		execFileSync("mvn", ["-B", "-q", "test"], { cwd: pos, stdio: "ignore", timeout: 15 * 60_000 });
-		const detection = detectStack(pos, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, pos, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.stack, "maven");
 		assert.equal(detection.facts.jacoco_report_bound, true);
 		const write = (ws: string, files: Record<string, string>) => {
@@ -126,7 +127,7 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 			stdio: "ignore",
 			timeout: 20 * 60_000,
 		});
-		const detection = detectStack(pos, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = detectStack(STACKS_OF_495, pos, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, true);
 		const write = (ws: string, files: Record<string, string>) => {
 			for (const [rel, content] of Object.entries(files)) {

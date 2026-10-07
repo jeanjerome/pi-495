@@ -65,6 +65,7 @@ describe("the stops no resume lifts name the cancel as their only way out in /49
 			},
 			// Every qualification witness of the unit control answers FAIL, so G2 does not freeze the protocol.
 			controls: (real) => ({
+				readers: real.readers,
 				runControl: async (invocation, signal) => {
 					const run = await real.runControl(invocation, signal);
 					if (invocation.protocol.protocol_id !== "qualification" || invocation.control.control_id !== "unit")

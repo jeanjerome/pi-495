@@ -11,8 +11,30 @@ import type { FileEdit, InstalledPackage, PackageInstall, RecommendedComplement 
 import { messageOf } from "../domain/errors.ts";
 import type { SandboxPort, SandboxProfile, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
 import { editedFile } from "./complement.ts";
-import { mavenResolutionCommand } from "./stacks/maven.ts";
 import { BASE_ENV } from "./stacks/stack.ts";
+
+export const PMD_PLUGIN = "org.apache.maven.plugins:maven-pmd-plugin";
+export const PMD_PLUGIN_VERSION = "3.28.0";
+/** The site skin the `pmd` and `cpd` goals of `maven-pmd-plugin` 3.28.0 load to render their report, as they name it when it is missing. */
+const PMD_SITE_SKIN = "org.apache.maven.skins:maven-fluido-skin:2.0.0-M9";
+
+/** The dependency plugin that resolves the plugins of a POM without running any of them, at the release checked on 2026-09-30, the date of the Maven catalogue. */
+const MAVEN_DEPENDENCY_PLUGIN = "org.apache.maven.plugins:maven-dependency-plugin:3.11.0";
+
+/**
+ * The command that resolves the plugins of a copy without running any goal of them. When the PMD plugin
+ * 495 declares is among `installs`, the site skin its report goals render with is fetched too, without its
+ * dependencies: resolving the plugins does not fetch it, and the goals stop offline without it.
+ */
+export function mavenResolutionCommand(installs: readonly PackageInstall[]): string[] {
+	const pmd = installs.some((install) => install.package === PMD_PLUGIN && install.version === PMD_PLUGIN_VERSION);
+	return [
+		"mvn",
+		"-B",
+		`${MAVEN_DEPENDENCY_PLUGIN}:resolve-plugins`,
+		...(pmd ? [`${MAVEN_DEPENDENCY_PLUGIN}:get`, `-Dartifact=${PMD_SITE_SKIN}`, "-Dtransitive=false"] : []),
+	];
+}
 
 /** What installing a package comes to: the command to run in the copy, or why it cannot be run. */
 export type InstallPlan = { kind: "command"; command: string[] } | { kind: "refused"; reason: string };

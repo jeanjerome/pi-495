@@ -26,6 +26,7 @@ import type {
 	SandboxPort,
 	SandboxProfile,
 } from "../../src/ports/execution.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const INSTALL: PackageInstall = { package: "@vitest/coverage-v8", version: "3.2.4", manager: "npm" };
 const BASE_FILES = ["package.json", "src/index.ts"];
@@ -322,10 +323,13 @@ describe("running the install in the copy", () => {
 
 		const target = tempDir("495-install-target-", cleanups);
 		fixtureTs(target);
-		const controls = detectStack(target, []).controls;
+		const controls = detectStack(STACKS_OF_495, target, []).controls;
 		assert.notEqual(controls.length, 0);
 		for (const control of controls)
-			assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
+			assert.equal(
+				new GenericControlRunner(sandbox, null as never, READERS_OF_495).profileFor(control, target).network,
+				"denied",
+			);
 	});
 
 	it("given npm that does not say its cache, or an install that exits with an error or times out, then nothing is installed and the reason names what npm answered", async () => {
@@ -503,10 +507,13 @@ describe("running the resolution in the copy", () => {
 
 		const target = tempDir("495-resolve-target-", cleanups);
 		fixtureJava(target, true);
-		const controls = detectStack(target, []).controls;
+		const controls = detectStack(STACKS_OF_495, target, []).controls;
 		assert.notEqual(controls.length, 0);
 		for (const control of controls)
-			assert.equal(new GenericControlRunner(sandbox, null as never).profileFor(control, target).network, "denied");
+			assert.equal(
+				new GenericControlRunner(sandbox, null as never, READERS_OF_495).profileFor(control, target).network,
+				"denied",
+			);
 	});
 });
 
@@ -581,7 +588,7 @@ describe("the pom.xml an adopted complement wrote, judged at G4", () => {
 	it("given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml", () => {
 		const target = tempDir("495-g4-pom-", cleanups);
 		fixtureJava(target);
-		const test = detectStack(target, []).controls.find((c) => c.control_id === "maven-test");
+		const test = detectStack(STACKS_OF_495, target, []).controls.find((c) => c.control_id === "maven-test");
 		assert.ok(test, "the detection declares the Maven test control");
 		assert.ok(test.protected_paths.includes("pom.xml"), "the POM is a protected path");
 		const written = digestBytes("<project>with the declaration</project>");

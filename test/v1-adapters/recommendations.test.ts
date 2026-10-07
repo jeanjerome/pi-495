@@ -13,6 +13,7 @@ import { validate } from "../../src/contracts/validate.ts";
 import type { StackAdapter } from "../../src/application/stacks/stack.ts";
 import { RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
@@ -46,7 +47,7 @@ function mavenProject(name: string, withCoverage = false, withMutation = false, 
 
 describe("Maven recommends the sensors its POM lacks", () => {
 	it("given a Maven project binding neither JaCoCo nor PIT, then the detection recommends JaCoCo for coverage and PIT for mutation, each with its version, the date it was established, its source and the change the POM needs", () => {
-		const detection = detectStack(mavenProject("bare"), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, mavenProject("bare"), REFS, NODE);
 		const recommendations = detection.recommendations;
 		assert.deepEqual(
 			recommendations.map((r) => [r.test_type, r.tool]),
@@ -69,7 +70,12 @@ describe("Maven recommends the sensors its POM lacks", () => {
 	});
 
 	it("given PIT declared without an XML report and with timestamped directories, then the recommendation names what the POM must change", () => {
-		const detection = detectStack(mavenProject("pit-unreadable", true, false, PIT_WITHOUT_REPORT), REFS, NODE);
+		const detection = detectStack(
+			STACKS_OF_495,
+			mavenProject("pit-unreadable", true, false, PIT_WITHOUT_REPORT),
+			REFS,
+			NODE,
+		);
 		const recommendations = detection.recommendations;
 		assert.deepEqual(
 			recommendations.map((r) => r.test_type),
@@ -83,17 +89,17 @@ describe("Maven recommends the sensors its POM lacks", () => {
 	});
 
 	it("given a project whose JaCoCo and PIT are read, then it recommends nothing", () => {
-		const detection = detectStack(mavenProject("complete", true, true), REFS, NODE);
+		const detection = detectStack(STACKS_OF_495, mavenProject("complete", true, true), REFS, NODE);
 		assert.deepEqual(detection.recommendations, []);
 	});
 
 	it("given a project reading JaCoCo but not PIT, or PIT but not JaCoCo, then it recommends only the missing one", () => {
-		const jacocoOnly = detectStack(mavenProject("jacoco-only", true, false), REFS, NODE);
+		const jacocoOnly = detectStack(STACKS_OF_495, mavenProject("jacoco-only", true, false), REFS, NODE);
 		assert.deepEqual(
 			jacocoOnly.recommendations.map((r) => r.test_type),
 			["mutation"],
 		);
-		const pitOnly = detectStack(mavenProject("pit-only", false, true), REFS, NODE);
+		const pitOnly = detectStack(STACKS_OF_495, mavenProject("pit-only", false, true), REFS, NODE);
 		assert.deepEqual(
 			pitOnly.recommendations.map((r) => r.test_type),
 			["coverage"],
@@ -121,7 +127,7 @@ const SUREFIRE = `<plugin><artifactId>maven-surefire-plugin</artifactId><version
 
 describe("Maven describes the declaration of JaCoCo when its POM takes it without ambiguity", () => {
 	it("given a POM with one build plugins section, then the coverage recommendation carries the insertion of jacoco-maven-plugin 0.8.15 and its resolution with maven, and given none, or plugins only in a profile or in pluginManagement, then it carries neither", () => {
-		const [coverage] = detectStack(mavenProject("one-section"), REFS, NODE).recommendations;
+		const [coverage] = detectStack(STACKS_OF_495, mavenProject("one-section"), REFS, NODE).recommendations;
 		assert.equal(coverage?.test_type, "coverage");
 		assert.equal(coverage?.edit?.path, "pom.xml");
 		assert.ok(coverage?.edit?.wanted.startsWith(coverage.edit.current), "the anchor is kept, the declaration follows");
@@ -153,7 +159,7 @@ describe("Maven describes the declaration of JaCoCo when its POM takes it withou
 			),
 		};
 		for (const [label, project] of Object.entries(targets)) {
-			const [recommendation] = detectStack(project, REFS, NODE).recommendations;
+			const [recommendation] = detectStack(STACKS_OF_495, project, REFS, NODE).recommendations;
 			assert.equal(recommendation?.test_type, "coverage", label);
 			assert.equal(recommendation?.edit, undefined, label);
 			assert.equal(recommendation?.install, undefined, label);
@@ -171,7 +177,7 @@ describe("Maven declares JaCoCo beside one the POM keeps in a profile", () => {
 			`  <build>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
 			profile,
 		);
-		const [beside] = detectStack(inProfile, REFS, NODE).recommendations;
+		const [beside] = detectStack(STACKS_OF_495, inProfile, REFS, NODE).recommendations;
 		assert.equal(beside?.test_type, "coverage");
 		assert.equal(beside?.edit?.path, "pom.xml");
 		assert.equal(beside?.install?.manager, "maven");
@@ -180,7 +186,7 @@ describe("Maven declares JaCoCo beside one the POM keeps in a profile", () => {
 			"jacoco-declared",
 			`  <build>\n    <plugins>\n      <plugin><artifactId>jacoco-maven-plugin</artifactId><version>0.8.11</version></plugin>\n    </plugins>\n  </build>\n`,
 		);
-		const [twice] = detectStack(declared, REFS, NODE).recommendations;
+		const [twice] = detectStack(STACKS_OF_495, declared, REFS, NODE).recommendations;
 		assert.equal(twice?.test_type, "coverage");
 		assert.equal(twice?.edit, undefined, "a second declaration in the same scope is not proposed");
 		assert.equal(twice?.install, undefined);
@@ -199,7 +205,7 @@ describe("Maven declares JaCoCo in the plugins of the build, wherever else the P
 			`  <profiles>\n    <profile>\n      <id>p</id>\n      <build>\n    <plugins>\n        ${SUREFIRE}\n    </plugins>\n      </build>\n    </profile>\n  </profiles>\n`,
 		);
 		for (const project of [managed, profiled]) {
-			const [coverage] = detectStack(project, REFS, NODE).recommendations;
+			const [coverage] = detectStack(STACKS_OF_495, project, REFS, NODE).recommendations;
 			const edit = coverage?.edit;
 			assert.ok(edit, project);
 			const edited = editedFile(project, edit) ?? "";
@@ -218,7 +224,7 @@ describe("Maven keeps the recommendation a text when the POM lists its build plu
 			"two-sections",
 			`  <build>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n    <plugins>\n      ${SUREFIRE}\n    </plugins>\n  </build>\n`,
 		);
-		const [coverage] = detectStack(twice, REFS, NODE).recommendations;
+		const [coverage] = detectStack(STACKS_OF_495, twice, REFS, NODE).recommendations;
 		assert.equal(coverage?.test_type, "coverage");
 		assert.equal(coverage?.edit, undefined, "no one section is the place of the declaration");
 		assert.equal(coverage?.install, undefined);
@@ -244,7 +250,7 @@ describe("The declaration of JaCoCo is inserted into the POM byte for byte, or n
 
 	it("given a pom.xml with comments and four-space indentation, then the edited text differs from the original by the inserted declaration only, and given the anchor absent or present twice, then nothing is applied", () => {
 		const project = pomWithBuild("four-spaces", fourSpaces);
-		const [coverage] = detectStack(project, REFS, NODE).recommendations;
+		const [coverage] = detectStack(STACKS_OF_495, project, REFS, NODE).recommendations;
 		const edit = coverage?.edit;
 		assert.ok(edit, "the POM takes the declaration");
 		const original = readFileSync(join(project, "pom.xml"), "utf8");
@@ -278,7 +284,7 @@ function nodeProject(name: string, scriptsTest: string, extra: Record<string, st
 
 /** The coverage recommendation of a Node target: Stryker is recommended beside it when it is not installed. */
 function coverageRecommendations(project: string): RecommendedComplement[] {
-	return detectStack(project, REFS, NODE).recommendations.filter((r) => r.test_type === "coverage");
+	return detectStack(STACKS_OF_495, project, REFS, NODE).recommendations.filter((r) => r.test_type === "coverage");
 }
 
 describe("Node recommends the coverage its runner can produce", () => {
@@ -378,6 +384,7 @@ describe("A technology declares its own recommendations", () => {
 		const cargo: StackAdapter = {
 			stack: "cargo",
 			signal_files: ["Cargo.toml"],
+			readers: [],
 			detect: () => ({
 				stack: "cargo",
 				facts: {},
@@ -394,7 +401,11 @@ describe("A technology declares its own recommendations", () => {
 		};
 		const project = join(root, "rust");
 		writeFiles(project, { "Cargo.toml": "[package]" });
-		assert.deepEqual(detectStack(project, REFS, NODE, [], [cargo]).recommendations, [recommendation]);
-		assert.deepEqual(detectStack(project, REFS, NODE).recommendations, [], "no central table knows the technology");
+		assert.deepEqual(detectStack([cargo], project, REFS, NODE).recommendations, [recommendation]);
+		assert.deepEqual(
+			detectStack(STACKS_OF_495, project, REFS, NODE).recommendations,
+			[],
+			"no central table knows the technology",
+		);
 	});
 });

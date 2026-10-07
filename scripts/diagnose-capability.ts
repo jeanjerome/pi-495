@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../src/adapters/workspace/git-workspace.ts";
 import { detectStack } from "../src/application/target.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../src/application/preparation.ts";
+import { STACKS_OF_495 } from "../src/extension/runtime.ts";
 
 const project = process.argv[2];
 if (!project) {
@@ -21,7 +22,7 @@ const workspace = new GitWorkspace(mkdtempSync(join(tmpdir(), "495-diagnose-")))
 const reference = await workspace.captureReference(project, DEFAULT_WORKSPACE_POLICY);
 const handle = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
 try {
-	const detection = detectStack(handle.path, [{ requirement_id: "R1", revision: 1 }]);
+	const detection = detectStack(STACKS_OF_495, handle.path, [{ requirement_id: "R1", revision: 1 }]);
 	const test_files = referenceTestFiles(reference, detection.preparation_paths);
 	const addition = { requirement_id: "R-new", mandatory: true, satisfied_by_reference: false };
 	const preservation = { requirement_id: "R-kept", mandatory: true, satisfied_by_reference: true };

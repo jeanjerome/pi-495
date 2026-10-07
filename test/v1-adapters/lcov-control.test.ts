@@ -10,6 +10,7 @@ import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { darwinOnly, tempDir, writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { judgeCoverage, LCOV_REPORT, recordedLcov, workspaceWith } from "../helpers/lcov-control.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -101,11 +102,12 @@ describe("the derived controls under the verification sandbox", darwinOnly, () =
 		const runner = new GenericControlRunner(
 			new SeatbeltSandbox({ temp_paths: [] }),
 			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
 		);
 		for (const target of runners) {
 			const project = tempDir("495-lcov-sandbox-", cleanups);
 			writeFiles(project, target.files);
-			const detection = detectStack(project, REFS, NODE);
+			const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
 			const unit = detection.controls.find((c) => c.control_id === "unit")!;
 			const coverage = detection.controls.find((c) => c.control_id === "coverage");
 			assert.ok(coverage?.report_path, `${target.name}: the detection declares a coverage control`);

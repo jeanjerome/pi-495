@@ -37,6 +37,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	try {
 		await ctx.artifacts.materializePrepared({ files: complements }, handle.path);
 		const detected = detectStack(
+			ctx.stacks,
 			handle.path,
 			mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })),
 		);

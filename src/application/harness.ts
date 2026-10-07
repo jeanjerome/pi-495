@@ -80,6 +80,7 @@ import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
+import type { StackAdapter } from "./stacks/stack.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
 import { incrementRequest, readTrajectory } from "./trajectory.ts";
@@ -90,6 +91,8 @@ export interface HarnessDeps {
 	objects: ObjectStorePort;
 	workspace: WorkspacePort;
 	controls: ControlExecutionPort;
+	/** The technologies the kernel detects a project with, in the order they claim one. */
+	stacks: readonly StackAdapter[];
 	agent: AgentPort;
 	sandbox: SandboxSelection;
 	clock: Clock;
@@ -277,6 +280,7 @@ export class Harness {
 			verification: this.verification,
 			workspace: deps.workspace,
 			workspacePolicy: deps.workspacePolicy,
+			stacks: deps.stacks,
 			install: (copyPath: string, command: readonly string[], outside?: string) =>
 				deps.sandbox.qualification.qualified
 					? runInstall(deps.sandbox.backend, copyPath, command, outside)

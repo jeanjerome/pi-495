@@ -7,6 +7,7 @@ import type { StackAdapter, StackDetection } from "../../src/application/stacks/
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { controlOf } from "../helpers/execution-fixture.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const NODE = process.execPath;
 const REFS = [{ requirement_id: "R1", revision: 1 }];
@@ -47,13 +48,13 @@ function adapter(stack: string, signalFile: string, missing: string): StackAdapt
 		capability_missing: [missing],
 		recommendations: [],
 	};
-	return { stack, signal_files: [signalFile], detect: () => detection };
+	return { stack, signal_files: [signalFile], readers: [], detect: () => detection };
 }
 
 describe("Target registry: the adapter list chooses the stack", () => {
 	it("given a project holding Cargo.toml and a list that gains an adapter declaring that file, then the detection is the adapter's", () => {
 		const cargo = adapter("cargo", "Cargo.toml", "cargo qualification pending");
-		const detection = detectStack(project({ "Cargo.toml": "[package]" }), REFS, NODE, [], [cargo]);
+		const detection = detectStack([cargo], project({ "Cargo.toml": "[package]" }), REFS, NODE);
 		assert.equal(detection.stack, "cargo");
 		assert.deepEqual(detection.facts, { adapter: "cargo" });
 		assert.deepEqual(
@@ -67,13 +68,13 @@ describe("Target registry: the adapter list chooses the stack", () => {
 		const cargo = adapter("cargo", "Cargo.toml", "cargo");
 		const go = adapter("go", "go.mod", "go");
 		const path = project({ "Cargo.toml": "", "go.mod": "" });
-		assert.equal(detectStack(path, REFS, NODE, [], [cargo, go]).stack, "cargo");
-		assert.equal(detectStack(path, REFS, NODE, [], [go, cargo]).stack, "go");
+		assert.equal(detectStack([cargo, go], path, REFS, NODE).stack, "cargo");
+		assert.equal(detectStack([go, cargo], path, REFS, NODE).stack, "go");
 	});
 
 	it("given a project no adapter recognises, then the stack is unknown and the missing capability names the files the list declares", () => {
 		const list = [adapter("cargo", "Cargo.toml", "cargo"), adapter("go", "go.mod", "go")];
-		const detection = detectStack(project({ "README.md": "" }), REFS, NODE, [], list);
+		const detection = detectStack(list, project({ "README.md": "" }), REFS, NODE);
 		assert.equal(detection.stack, "unknown");
 		assert.deepEqual(detection.controls, []);
 		assert.equal(detection.capability_missing.length, 1);
@@ -81,18 +82,24 @@ describe("Target registry: the adapter list chooses the stack", () => {
 		assert.match(detection.capability_missing[0] ?? "", /Cargo\.toml or go\.mod expected/);
 	});
 
-	it("given the default list, then package.json gives node, pom.xml gives maven, both give maven, and neither names pom.xml or package.json as expected", () => {
-		const node = detectStack(project({ "package.json": '{"scripts":{"test":"node --test"}}' }), REFS, NODE);
+	it("given the list of 495, then package.json gives node, pom.xml gives maven, both give maven, and neither names pom.xml or package.json as expected", () => {
+		const node = detectStack(
+			STACKS_OF_495,
+			project({ "package.json": '{"scripts":{"test":"node --test"}}' }),
+			REFS,
+			NODE,
+		);
 		assert.equal(node.stack, "node");
 		assert.ok(node.controls.some((c) => c.control_id === "unit"));
 		rmSync(join(root, "target"), { recursive: true });
 
-		const maven = detectStack(project({ "pom.xml": "<project/>" }), REFS, NODE);
+		const maven = detectStack(STACKS_OF_495, project({ "pom.xml": "<project/>" }), REFS, NODE);
 		assert.equal(maven.stack, "maven");
 		assert.ok(maven.controls.some((c) => c.control_id === "maven-test"));
 		rmSync(join(root, "target"), { recursive: true });
 
 		const both = detectStack(
+			STACKS_OF_495,
 			project({ "pom.xml": "<project/>", "package.json": '{"scripts":{"test":"node --test"}}' }),
 			REFS,
 			NODE,
@@ -101,7 +108,7 @@ describe("Target registry: the adapter list chooses the stack", () => {
 		assert.ok(!both.controls.some((c) => c.control_id === "unit"), "no Node control is declared for a Maven project");
 		rmSync(join(root, "target"), { recursive: true });
 
-		const none = detectStack(project({ "README.md": "" }), REFS, NODE);
+		const none = detectStack(STACKS_OF_495, project({ "README.md": "" }), REFS, NODE);
 		assert.equal(none.stack, "unknown");
 		assert.match(none.capability_missing.join(" "), /pom\.xml or package\.json expected/);
 	});

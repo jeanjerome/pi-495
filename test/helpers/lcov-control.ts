@@ -7,6 +7,7 @@ import type { EvidenceCandidate } from "../../src/contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { IntroducedLines } from "../../src/ports/execution.ts";
 import { controlOf, invocationBase } from "./execution-fixture.ts";
+import { READERS_OF_495 } from "./technologies.ts";
 
 export const LCOV_REPORT = "495-lcov.info";
 
@@ -46,7 +47,11 @@ export async function judgeCoverage(
 	introduced: IntroducedLines | null,
 	control: ControlDefinition = lcovControl(),
 ): Promise<EvidenceCandidate> {
-	const runner = new GenericControlRunner(new UnconfinedSandbox(), new CasObjectStore(join(root, "objects")));
+	const runner = new GenericControlRunner(
+		new UnconfinedSandbox(),
+		new CasObjectStore(join(root, "objects")),
+		READERS_OF_495,
+	);
 	const { evidence } = await runner.runControl({
 		...invocationBase(),
 		control,

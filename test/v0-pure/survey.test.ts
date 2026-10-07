@@ -2,28 +2,34 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import type { EvidenceEntry } from "../../src/domain/change/state.ts";
 import { controlsOfNature, evaluateSurvey, surveyOf } from "../../src/domain/survey.ts";
+import { EXIT_CODE_READER } from "../../src/adapters/execution/parsers.ts";
+import { NODE_TEST_READER } from "../../src/adapters/stacks/node/node-test-reader.ts";
+import { LCOV_READER } from "../../src/adapters/execution/lcov.ts";
 
 const NODE_CONTROLS = [
 	{ control_id: "unit", parser: "node-test" as const },
 	{ control_id: "coverage", parser: "lcov" as const },
 	{ control_id: "lint", parser: "exit-code" as const },
 ];
+const NODE_READERS = [NODE_TEST_READER, LCOV_READER, EXIT_CODE_READER];
 
 describe("the controls of a requirement's nature", () => {
 	it("measures behaviour by the tests, style by the declared lint, coverage by its sensor", () => {
-		assert.deepEqual(controlsOfNature("functional", NODE_CONTROLS, ["lint"]), { control_ids: ["unit"] });
-		assert.deepEqual(controlsOfNature("quality", NODE_CONTROLS, ["lint"]), { control_ids: ["lint"] });
-		assert.deepEqual(controlsOfNature("coverage", NODE_CONTROLS, ["lint"]), { control_ids: ["coverage"] });
+		assert.deepEqual(controlsOfNature("functional", NODE_CONTROLS, ["lint"], NODE_READERS), { control_ids: ["unit"] });
+		assert.deepEqual(controlsOfNature("quality", NODE_CONTROLS, ["lint"], NODE_READERS), { control_ids: ["lint"] });
+		assert.deepEqual(controlsOfNature("coverage", NODE_CONTROLS, ["lint"], NODE_READERS), {
+			control_ids: ["coverage"],
+		});
 	});
 
 	it("names a blind spot for a nature no control measures, and for a category it does not recognise", () => {
-		assert.deepEqual(controlsOfNature("architecture", NODE_CONTROLS, ["lint"]), {
+		assert.deepEqual(controlsOfNature("architecture", NODE_CONTROLS, ["lint"], NODE_READERS), {
 			blind_spot: "blind spot: no control of the target measures its nature (structure)",
 		});
-		assert.deepEqual(controlsOfNature("quality", NODE_CONTROLS, []), {
+		assert.deepEqual(controlsOfNature("quality", NODE_CONTROLS, [], NODE_READERS), {
 			blind_spot: "blind spot: no control of the target measures its nature (style)",
 		});
-		assert.deepEqual(controlsOfNature("performance", NODE_CONTROLS, ["lint"]), {
+		assert.deepEqual(controlsOfNature("performance", NODE_CONTROLS, ["lint"], NODE_READERS), {
 			blind_spot: 'blind spot: category "performance" names no nature a control measures',
 		});
 	});
@@ -63,6 +69,7 @@ describe("the survey of the reference", () => {
 				{ control_id: "unit", verdict: "PASS", evidence_id: "evr_1", findings: [] },
 				{ control_id: "coverage", verdict: "PASS", evidence_id: "evr_2", findings: [] },
 			],
+			readers: NODE_READERS,
 		});
 
 	it("presents a differential control without a verdict, and a test control too once the reference executes no case of its own", () => {

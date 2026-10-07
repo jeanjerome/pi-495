@@ -1,13 +1,16 @@
-import type { ProcessObservation } from "../../ports/execution.ts";
-import { messageOf } from "../../domain/errors.ts";
+/**
+ * The reader of the JSON report jest writes to a file: one case per assertion result, a skipped or todo
+ * case never counted as a pass.
+ */
+import type { ParsedReport, ProcessObservation, ReportReader } from "../../../ports/execution.ts";
+import { messageOf } from "../../../domain/errors.ts";
 import {
 	exitedOutsideTests,
 	incidentOf,
 	incidentReport,
 	MAX_FAILURES,
 	MAX_REPORT_BYTES,
-	type ParsedReport,
-} from "./parsers.ts";
+} from "../../execution/parsers.ts";
 
 interface JestTestResult {
 	/** Path of the test file. */
@@ -78,7 +81,7 @@ function summarizeJest(files: JestTestResult[]): JestSummary {
 }
 
 /** Jest's JSON report, read from the file the control declared, and the exit of the process that wrote it. */
-export function parseJestJson(obs: ProcessObservation, documents: string[] | null): ParsedReport {
+function parseJestJson(obs: ProcessObservation, documents: string[] | null): ParsedReport {
 	const incident = incidentOf(obs);
 	if (incident) return incidentReport(obs, incident);
 	const broke = obs.exit_code !== 0;
@@ -116,3 +119,16 @@ export function parseJestJson(obs: ProcessObservation, documents: string[] | nul
 		);
 	return { verdict: "PASS", facts, notes: [], failures: [] };
 }
+
+export const JEST_READER: ReportReader = {
+	id: "jest-json",
+	version: "1.0.0",
+	nature: "behaviour",
+	differential: false,
+	located: false,
+	read: async (run) =>
+		parseJestJson(
+			run.observation,
+			(await run.reports("application/json")).map((d) => d.text),
+		),
+};

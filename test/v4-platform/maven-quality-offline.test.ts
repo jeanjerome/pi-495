@@ -20,6 +20,7 @@ import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
+import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const mavenAvailable = spawnSync("mvn", ["-v"], { stdio: "ignore" }).status === 0;
 
@@ -62,7 +63,7 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 		mkdirSync(repository);
 		const project = join(root, "project");
 		writeFiles(project, PROJECT);
-		const offer = detectStack(project, REFS).quality_referential;
+		const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
 		assert.equal(offer?.kind, "proposed");
 		if (offer?.kind !== "proposed") return;
 		const recommendation = offer.recommendations[0];
@@ -94,8 +95,12 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 			const reference = join(root, "reference");
 			cpSync(project, reference, { recursive: true });
 			writeFileSync(join(reference, "pom.xml"), editedFile(project, recommendation.edit) ?? "");
-			const detection = detectStack(reference, REFS);
-			const runner = new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")));
+			const detection = detectStack(STACKS_OF_495, reference, REFS);
+			const runner = new GenericControlRunner(
+				sandbox.backend,
+				new CasObjectStore(join(root, "objects")),
+				READERS_OF_495,
+			);
 			for (const id of ["pmd", "cpd"]) {
 				const control = detection.controls.find((c) => c.control_id === id);
 				const own = detection.own_negative_witness[id];

@@ -7,12 +7,7 @@
  * does not hold, or one taken on another tree, protocol or environment, concludes nothing.
  */
 import type { Verdict } from "../contracts/v1/common.ts";
-import {
-	isDifferentialParser,
-	type ControlDefinition,
-	type ParserId,
-	type Protocol,
-} from "../contracts/v1/protocol.ts";
+import type { ControlDefinition, Protocol } from "../contracts/v1/protocol.ts";
 import type { ChangeState, EvidenceEntry, FrozenProtocol, NextAction } from "./change/state.ts";
 
 /** One control's pass on the reference, as the survey presents it. */
@@ -78,22 +73,22 @@ export interface Survey {
 /** What a requirement or a control is about, as a survey matches one to the other. */
 type Nature = "behaviour" | "style" | "coverage" | "mutation" | "structure";
 
-/** What each reading measures; an exit code says nothing of what its command checks. */
-const PARSER_NATURES: Record<ParserId, Nature | null> = {
-	"exit-code": null,
-	"node-test": "behaviour",
-	"junit-xml": "behaviour",
-	"jest-json": "behaviour",
-	lcov: "coverage",
-	"jacoco-xml": "coverage",
-	"java-imports": "structure",
-	"pitest-xml": "mutation",
-	"stryker-json": "mutation",
-	"pmd-xml": "style",
-	"cpd-xml": "style",
-	"eslint-json": "style",
-	"jscpd-json": "style",
-};
+/**
+ * What a report reader declares of what it measures: its nature, none for a reading that says nothing
+ * of what its command checks, as an exit code; and whether it judges only the lines a subject
+ * introduces instead of the state of the whole tree. A control whose reader is not among those given
+ * measures no nature.
+ */
+export interface ReaderTraits {
+	id: string;
+	nature: Nature | null;
+	differential: boolean;
+}
+
+/** The reader a control names by its `parser` among `readers`, or none when no loaded technology brings it. */
+export function readerOf<R extends ReaderTraits>(readers: readonly R[], parser: string): R | undefined {
+	return readers.find((r) => r.id === parser);
+}
 
 /** The words a requirement's category is read on, tried in this order. */
 const CATEGORY_NATURES: readonly (readonly [RegExp, Nature])[] = [
@@ -121,11 +116,12 @@ export function controlsOfNature(
 	category: string,
 	controls: readonly Pick<ControlDefinition, "control_id" | "parser">[],
 	lintControlIds: readonly string[],
+	readers: readonly ReaderTraits[],
 ): { control_ids: string[] } | { blind_spot: string } {
 	const nature = natureOf(category);
 	if (!nature) return { blind_spot: `blind spot: category "${category}" names no nature a control measures` };
 	const measuring = controls.filter(
-		(c) => (lintControlIds.includes(c.control_id) ? "style" : PARSER_NATURES[c.parser]) === nature,
+		(c) => (lintControlIds.includes(c.control_id) ? "style" : readerOf(readers, c.parser)?.nature) === nature,
 	);
 	if (measuring.length === 0)
 		return { blind_spot: `blind spot: no control of the target measures its nature (${nature})` };
@@ -141,14 +137,16 @@ export function controlsOfNature(
 function unmeasured(
 	control: Pick<ControlDefinition, "control_id" | "parser">,
 	protocol: Pick<Protocol, "capability_diagnosis" | "qualifications">,
+	readers: readonly ReaderTraits[],
 ): string | null {
 	const qualification = protocol.qualifications[control.control_id];
 	if (qualification && !qualification.qualified)
 		return `blind spot: the control is not qualified: ${qualification.notes.join("; ") || "its witnesses did not answer as required"}`;
 	const diagnosis = protocol.capability_diagnosis;
-	if (isDifferentialParser(control.parser))
+	const reader = readerOf(readers, control.parser);
+	if (reader?.differential)
 		return "blind spot: it measures only the lines a change introduces, and the reference introduces none";
-	if (PARSER_NATURES[control.parser] === "behaviour" && diagnosis.executed === 0)
+	if (reader?.nature === "behaviour" && diagnosis.executed === 0)
 		return `blind spot: the reference executes no test of its own (capability level ${diagnosis.level}, ${diagnosis.discovered ?? 0} case(s) of its own discovered)`;
 	return null;
 }
@@ -164,12 +162,14 @@ export function surveyOf(input: {
 	passes: readonly (SurveyMeasure & { findings: readonly SurveyFinding[] })[];
 	/** The files of the reference a generator declares it wrote; none when absent. */
 	generated_files?: readonly string[];
+	/** The report readers the controls name, which say what each control measures. */
+	readers: readonly ReaderTraits[];
 }): Survey {
 	const generated = new Set(input.generated_files ?? []);
 	const referentialControls = new Set(input.protocol.quality_referential?.rules.map((r) => r.control_id) ?? []);
 	const controls = input.passes.map((p) => {
 		const control = input.protocol.controls.find((c) => c.control_id === p.control_id);
-		const blindSpot = control ? unmeasured(control, input.protocol) : null;
+		const blindSpot = control ? unmeasured(control, input.protocol, input.readers) : null;
 		return {
 			control_id: p.control_id,
 			evidence_id: p.evidence_id,
