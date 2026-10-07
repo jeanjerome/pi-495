@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: phase identifiers carry the name of the step, and a journal written before reads under them
+    # Subtest: a change conducted to its acceptance by a scripted agent enters scoping, specification, qualification, design, implementation, verifying, deciding, closed, and writes no old identifier
+    ok 1 - a change conducted to its acceptance by a scripted agent enters scoping, specification, qualification, design, implementation, verifying, deciding, closed, and writes no old identifier
+      ---
+      duration_ms: 708.552542
+      type: 'test'
+      ...
+    # Subtest: a journal written before, paused in specifying after a revision back to verification_design, loads in specification with a return to qualification, resumes to its acceptance, and keeps its bytes
+    ok 2 - a journal written before, paused in specifying after a revision back to verification_design, loads in specification with a return to qualification, resumes to its acceptance, and keeps its bytes
+      ---
+      duration_ms: 782.548458
+      type: 'test'
+      ...
+    # Subtest: a design command applied to a change in specification is refused for the phase specification, allowed in design
+    ok 3 - a design command applied to a change in specification is refused for the phase specification, allowed in design
+      ---
+      duration_ms: 381.231167
+      type: 'test'
+      ...
+    1..3
+ok 1 - phase identifiers carry the name of the step, and a journal written before reads under them
+  ---
+  duration_ms: 1872.886666
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2051.978375

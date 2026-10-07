@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the published contract knows only the phase identifiers named after the step
+    # Subtest: the phase enumeration of contracts/v1/canonical-error.json is intake, scoping, specification, qualification, preparing, design, implementation, verifying, reviewing, deciding, integration, closed, and a canonical error raised in qualification carries phase qualification
+    ok 1 - the phase enumeration of contracts/v1/canonical-error.json is intake, scoping, specification, qualification, preparing, design, implementation, verifying, reviewing, deciding, integration, closed, and a canonical error raised in qualification carries phase qualification
+      ---
+      duration_ms: 3.198334
+      type: 'test'
+      ...
+    1..1
+ok 1 - the published contract knows only the phase identifiers named after the step
+  ---
+  duration_ms: 3.581792
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 119.984083

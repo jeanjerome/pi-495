@@ -1,0 +1,51 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un dossier écrit avant se lit sous les nouveaux identifiants",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "src/application/environment.ts",
+    "ligne": 33,
+    "constat": "La promesse transmise (« `/495 resume` le conduit jusqu'à son acceptation ») n'est tenue que pour un journal réécrit avec les anciens identifiants mais rouvert par le même build : `environment_digest` inclut l'identité du build de 495, donc un dossier réellement écrit par une version antérieure s'arrête à la qualification quand on le reprend. Ce n'est pas dû au renommage : c'est déjà le cas sur main, et la révision relue de la story (fa7f030) retire cette promesse et la classe hors périmètre. Le cas du même build, lui, est tenu par test/v2-kernel/phase-ids.test.ts et test/v3-pi/resume.test.ts."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un dossier écrit avant se lit sous les nouveaux identifiants",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 294,
+    "constat": "Pour ce changement en pause, `/495 status` affiche « … Spécification · rédaction des exigences ». C'est la ligne d'un changement en cours : la pause n'apparaît que dans `view.change.status` (`paused`) et dans « Next: resume ». Le test de resume.test.ts vérifie la ligne et le statut structuré. Ce rendu date d'avant la branche."
+   }
+  ],
+  "resume": "Les cinq scénarios sont tenus par le code, et chacun l'est aussi par un test. Les 15 mutations essayées ont toutes été tuées : chaque fois, au moins un test a échoué.\n\n- **Lecture des anciens identifiants** (`apply.ts` : `phase.entered`, `rollback_phase`, `resume_point`, `withCurrentPhases`, table `PHASES_WRITTEN_BEFORE` ; `ledger.ts` : `loadChange` et `listChanges`) : tenue par phase-ids.test.ts, et resume.test.ts tue aussi la mutation de `resume_point`.\n- **Nouveaux identifiants écrits** (entrées G0 et G2 de `decide.ts`) : le test de bout en bout et le test des révisions échouent.\n- **Contrat publié** : la mutation du JSON fait échouer phase-contract.test.ts, et celle de `toCanonical` aussi.\n- **Refus nommant les phases** (`requirePhase` de G3) : le test du refus échoue.\n- **Champ `phase` de la vue** (`views.ts`) : le test RPC sous un vrai Pi échoue, ainsi que resume.test.ts.\n- **Libellé de l'étape** (`STEP_OF_PHASE`) : resume.test.ts échoue.\n\nUn test jetable, retiré depuis, a vérifié que `verifyIntegrity` ne relève aucun problème juste après le chargement d'un journal ancien, avant la reprise ; que `rebuildChange` le relit en `specification` ; et que les octets stockés restent intacts.\n\nDeux constats, tous deux antérieurs à la branche, n'entrent pas dans le verdict :\n1. Un dossier réellement écrit par une autre version s'arrête à la qualification quand on le reprend, parce que l'empreinte d'environnement inclut le build de 495. La révision relue de la story classe déjà ce cas hors périmètre.\n2. Le statut texte d'un changement en pause l'affiche comme en cours."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un dossier écrit avant se lit sous les nouveaux identifiants",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "specs/stories/e32/e32s02-les-identifiants-de-phase-portent-le-nom-de-l-etape.md",
+    "ligne": 36,
+    "constat": "La promesse transmise au relecteur dit encore « `/495 resume` le conduit jusqu'à son acceptation ». À da12310, la story la remplace par « `/495 status` le dit en pause dans l'étape Specification » et sort du périmètre la reprise d'un dossier écrit par un autre build. Ce dossier-là s'arrête à la qualification, parce que l'empreinte d'environnement porte le build_digest de 495 (src/application/environment.ts:49-136), et main s'arrête de la même façon. Les tests (v2 phase-ids, v3 resume) tiennent la reprise jusqu'à l'acceptation seulement pour un journal réécrit avec les anciens identifiants sous le même build.",
+    "mutation": "Retrait de l'entrée specifying de PHASES_WRITTEN_BEFORE (apply.ts) : le test v3 resume et le test v2 phase-ids échouent. La reprise simulée est donc bien tenue par un test."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un dossier écrit avant se lit sous les nouveaux identifiants (version amendée par le diff)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 294,
+    "constat": "Pour ce changement en pause, le texte de `/495 status` affiche « … Spécification · rédaction des exigences ». C'est la même ligne que pour un changement prêt ou en cours, et la pause ne s'y lit qu'à « Ensuite resume ». Le test introduit (test/v3-pi/resume.test.ts:118-122) tient la pause par le champ `status: paused` de la vue et l'étape par la ligne de texte. La promesse amendée est donc tenue par la sortie structurée, pas par les mots du texte."
+   }
+  ],
+  "resume": "Les cinq scénarios sont tenus par le code et chacun par un test qui échoue sous mutation ; les deux constats sont à peser et antérieurs, donc verdict pass. 15 mutations, toutes restaurées, arbre propre. (1) Scénario 1 : G0 qui entre `specifying` fait échouer le test v2 phase-ids, et une révision de protocole qui stocke `verification_design` aussi. (2) Scénario 2 : une vue qui renvoie `specifying` fait échouer le test RPC dans un vrai Pi 1.0.4. (3) Scénario 3 : chaque traduction à la lecture a été retirée tour à tour (phase.entered, rollback_phase, resume_point.saved, loadChange, listChanges, phase et resume_point de withCurrentPhases, entrées specifying et verification_design). Chaque retrait fait échouer phase-ids, et souvent resume en v3, y compris sur verifyIntegrity (« projection differs from replay »). (4) Scénario 4 : l'énumération du contrat remise à l'ancienne et une phase canonique mise à null font échouer phase-contract. (5) Scénario 5 : G3 qui exige `designing` fait échouer le test du refus. B1-1 : la promesse transmise (reprise jusqu'à l'acceptation) n'est plus celle de la story à da12310. Un dossier d'un autre build s'arrête à la qualification par l'empreinte d'environnement, comme sur main. B1-2 : le texte du statut ne dit pas « en pause » ; seuls la vue et « Ensuite resume » le disent."
+ }
+]

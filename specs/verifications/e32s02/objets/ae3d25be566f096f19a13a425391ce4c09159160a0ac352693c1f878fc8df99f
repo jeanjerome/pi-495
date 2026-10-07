@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: the published contract knows only the phase identifiers named after the step
+    # Subtest: the phase enumeration of contracts/v1/canonical-error.json is intake, scoping, specification, qualification, preparing, design, implementation, verifying, reviewing, deciding, integration, closed, and a canonical error raised in qualification carries phase qualification
+    not ok 1 - the phase enumeration of contracts/v1/canonical-error.json is intake, scoping, specification, qualification, preparing, design, implementation, verifying, reviewing, deciding, integration, closed, and a canonical error raised in qualification carries phase qualification
+      ---
+      duration_ms: 1.202
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JfaCgo/test/v0-pure/phase-contract.test.ts:21:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            'intake',
+        +   'clarifying',
+        +   'specifying',
+        +   'verification_design',
+        -   'scoping',
+        -   'specification',
+        -   'qualification',
+            'preparing',
+        +   'designing',
+        +   'implementing',
+        -   'design',
+        -   'implementation',
+            'verifying',
+            'reviewing',
+            'deciding',
+        +   'integrating',
+        -   'integration',
+            'closed'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'intake'
+        1: 'scoping'
+        2: 'specification'
+        3: 'qualification'
+        4: 'preparing'
+        5: 'design'
+        6: 'implementation'
+        7: 'verifying'
+        8: 'reviewing'
+        9: 'deciding'
+        10: 'integration'
+        11: 'closed'
+      actual:
+        0: 'intake'
+        1: 'clarifying'
+        2: 'specifying'
+        3: 'verification_design'
+        4: 'preparing'
+        5: 'designing'
+        6: 'implementing'
+        7: 'verifying'
+        8: 'reviewing'
+        9: 'deciding'
+        10: 'integrating'
+        11: 'closed'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JfaCgo/test/v0-pure/phase-contract.test.ts:22:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - the published contract knows only the phase identifiers named after the step
+  ---
+  duration_ms: 1.580167
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JfaCgo/test/v0-pure/phase-contract.test.ts:20:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 121.4425

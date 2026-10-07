@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La sortie structurée nomme la phase par l'étape",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/phase-ids.test.ts",
+    "ligne": 179,
+    "constat": "Aucun test ne joue le Given et le When de la story : un changement arrêté en attente d'une décision pendant la spécification, avec le statut demandé en mode RPC. Le champ `phase` de la vue est vérifié par `t.harness.status(changeId).change?.phase` sur un changement en pause, au niveau du noyau. La commande `status` passe cette même vue telle quelle dans `details` (`src/extension/command.ts:192`), donc le code tient la promesse et une mutation de la vue fait échouer ce test, mais par un autre chemin que celui de la story.",
+    "mutation": "src/application/views.ts:232 `phase: change.phase` → `phase: change.phase === \"specification\" ? \"specifying\" : change.phase` : phase-ids.test.ts échoue (actual 'specifying', expected 'specification')."
+   }
+  ],
+  "resume": "J'ai relu les cinq scénarios d'e32s02 sur le diff a7502e0...f754c4d. Le code tient chacun d'eux, et une mutation de la ligne qui tient chaque promesse fait échouer un test. Scénario 1 : G0 qui écrit `specifying` fait échouer la liste ordonnée des `phase.entered` dans phase-ids.test.ts (mutation M1). Scénario 3 : chaque retrait de la traduction fait échouer un test. Retirer `currentPhase` sur `rollback_phase` (M2) ou sur `phase.entered` (M3) casse le rejeu. Retirer `withCurrentPhases` dans `loadChange` (M4) ou la traduction dans `listChanges` (M5) casse la phase lue. Retirer la traduction de `resume_point` (M6) fait relever une divergence entre projection et rejeu par `verifyIntegrity`. La conservation des octets et de la chaîne d'empreintes est vérifiée sur les lignes stockées, et la reprise va jusqu'à `closed`/`accepted`. Scénario 4 : l'énumération du JSON publié (M11) et la phase de l'erreur canonique (M10) sont tenues par phase-contract.test.ts. Scénario 5 : `requirePhase(\\\"designing\\\")` (M8) fait échouer le message exact du refus. La mutation M9, G1 qui écrit `verification_design`, survit à phase-contract.test.ts. C'est attendu : la lecture traduit l'identifiant, l'erreur porte donc bien `qualification`, et le scénario 1 attrape cette écriture dans le journal. Une seule réserve, à peser : la vue du scénario 2 n'est vérifiée qu'au niveau du noyau, sur un changement en pause, pas en mode RPC sur un changement en attente d'une décision. Aucun constat introduit ou rendu atteignable n'est bloquant ni à corriger. Toutes les mutations ont été remises, et l'arbre est propre en dehors de `node_modules`."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un changement écrit les nouveaux identifiants",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/invalidation.ts",
+    "ligne": 77,
+    "constat": "Si une révision écrivait encore l'ancien identifiant dans le champ `rollback_phase` de `artifact.revised`, aucun test ne le verrait : la traduction faite à la lecture (`currentPhase` dans `apply`) masque l'écart. Le scénario promis, un changement mené jusqu'à l'acceptation, ne passe par aucune révision : la promesse reste tenue, et ce trou reste en dehors.",
+    "mutation": "Dans invalidation.ts, `rollback_phase: \"qualification\"` remplacé par `\"verification_design\"` (révision du protocole et changement d'environnement) : 3/3 tests verts dans phase-ids, 295/295 en v0-pure, 36/36 dans verifiability-arbitration et phase-ids réunis."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La sortie structurée nomme la phase par l'étape",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/phase-ids.test.ts",
+    "ligne": 179,
+    "constat": "Aucun test ne demande le statut en mode RPC sur un changement en attente d'une décision pendant la spécification. Le champ `phase` de la vue est tenu par `harness.status(...)`, la fonction que `/495 status` émet en `details.view`, mais sur un changement en pause. Une sonde jetable a lancé un vrai Pi avec la politique `adoption.requirements: human`, puis `/495 status` en `--mode json` : la vue rend `phase: specification` avec `status: decision_required`.",
+    "mutation": "Dans views.ts:232, `phase: change.phase` remplacé par `change.phase === \"specification\" ? \"specifying\" : change.phase` : le test phase-ids n°2 échoue."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Un dossier écrit avant se lit sous les nouveaux identifiants",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/phase-ids.test.ts",
+    "ligne": 189,
+    "constat": "Le test conduit la reprise par `harness.resume` puis `advance`, pas par la commande `/495 resume`. La commande appelle le même `harness.resume` dans `conduct` (command.ts) : la promesse est tenue, mais le test ne passe pas par le point d'entrée nommé dans la story.",
+    "mutation": "Traduction retirée dans apply (`phase.entered`, `rollback_phase`, `resume_point.saved`), dans `withCurrentPhases` (phase, puis point de reprise) et dans `listChanges` / `loadChange` du ledger : chaque mutation fait échouer le test phase-ids n°2."
+   }
+  ],
+  "resume": "J'ai relu les cinq scénarios et la clause de sécurité sur le diff a7502e0...f754c4d. Le code les tient tous. Le chemin de lecture traduit les anciens identifiants à trois endroits : le rejeu (`apply` traduit `phase.entered`, `artifact.revised.rollback_phase` et `resume_point.saved`), la projection relue (`withCurrentPhases`, via `loadChange`) et la liste des changements (`listChanges`). Comme la vérification d'intégrité compare `loadChange` à `replay`, tous deux traduits, elle ne relève rien sur un dossier écrit avant. Le stockage n'est jamais réécrit et l'export ne touche pas aux phases. J'ai essayé 16 mutations : écriture (G0 et G2 qui entrent dans l'ancienne phase), contrat JSON et `PHASES`, `requirePhase` de G3, vue, et chaque point de traduction à la lecture. Toutes échouent dans phase-ids.test.ts, phase-contract.test.ts ou contracts.test.ts, sauf une : l'écriture d'un ancien `rollback_phase` lors d'une révision, que la traduction masque et qu'aucun scénario ne parcourt. Une sonde dans un vrai Pi confirme que `/495 status` en mode JSON rend `phase: specification` pour un changement en attente de décision pendant la spécification. Les trois constats sont à peser ; aucun n'est bloquant ni à corriger. Rien n'est commité : la sonde jetable est supprimée et l'arbre est propre."
+ }
+]
