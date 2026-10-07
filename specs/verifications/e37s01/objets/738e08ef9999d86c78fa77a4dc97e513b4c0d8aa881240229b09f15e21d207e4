@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a technology declared in one file, with its own report format
+    # Subtest: given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, and the change is accepted
+    ok 1 - given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, and the change is accepted
+      ---
+      duration_ms: 386.131833
+      type: 'test'
+      ...
+    1..1
+ok 1 - a technology declared in one file, with its own report format
+  ---
+  duration_ms: 386.622166
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 571.17075

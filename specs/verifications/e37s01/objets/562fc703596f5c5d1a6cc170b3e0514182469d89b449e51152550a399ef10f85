@@ -1,0 +1,66 @@
+TAP version 13
+# Subtest: a report written as a link out of the copy
+    # Subtest: leaves the control INDETERMINATE, with no report:lines.txt artifact
+    ok 1 - leaves the control INDETERMINATE, with no report:lines.txt artifact
+      ---
+      duration_ms: 34.127125
+      type: 'test'
+      ...
+    # Subtest: is neither returned nor kept by reports(), with or without single_file
+    ok 2 - is neither returned nor kept by reports(), with or without single_file
+      ---
+      duration_ms: 1.723709
+      type: 'test'
+      ...
+    # Subtest: nor through a linked directory, a report directory or a recursive report path
+    ok 3 - nor through a linked directory, a report directory or a recursive report path
+      ---
+      duration_ms: 7.543458
+      type: 'test'
+      ...
+    1..3
+ok 1 - a report written as a link out of the copy
+  ---
+  duration_ms: 43.952584
+  type: 'suite'
+  ...
+# Subtest: a file or a root linked out of the copy, as a reader reaches it
+    # Subtest: has nothing to read through sources()
+    ok 1 - has nothing to read through sources()
+      ---
+      duration_ms: 1.453458
+      type: 'test'
+      ...
+    # Subtest: yields no file through tree(), its root noted as escaping the workspace
+    ok 2 - yields no file through tree(), its root noted as escaping the workspace
+      ---
+      duration_ms: 1.280791
+      type: 'test'
+      ...
+    # Subtest: is refused by text() with escapes the workspace
+    ok 3 - is refused by text() with escapes the workspace
+      ---
+      duration_ms: 1.381666
+      type: 'test'
+      ...
+    # Subtest: is read as before when the link stays inside the copy
+    ok 4 - is read as before when the link stays inside the copy
+      ---
+      duration_ms: 1.738792
+      type: 'test'
+      ...
+    1..4
+ok 2 - a file or a root linked out of the copy, as a reader reaches it
+  ---
+  duration_ms: 6.06825
+  type: 'suite'
+  ...
+1..2
+# tests 7
+# suites 2
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 184.899625

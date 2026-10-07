@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: a report a reader reads through text() past the read bound
+    # Subtest: is not read: the control is INDETERMINATE, named with its path, its size and the bound, and nothing is kept
+    ok 1 - is not read: the control is INDETERMINATE, named with its path, its size and the bound, and nothing is kept
+      ---
+      duration_ms: 33.304834
+      type: 'test'
+      ...
+    # Subtest: is refused by text() and sources() alike, naming its path, its size and the bound
+    ok 2 - is refused by text() and sources() alike, naming its path, its size and the bound
+      ---
+      duration_ms: 1.357833
+      type: 'test'
+      ...
+    1..2
+ok 1 - a report a reader reads through text() past the read bound
+  ---
+  duration_ms: 35.203209
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 168.539375

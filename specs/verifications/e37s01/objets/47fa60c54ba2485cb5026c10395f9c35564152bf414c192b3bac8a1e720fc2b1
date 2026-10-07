@@ -1,0 +1,78 @@
+TAP version 13
+# Subtest: the contract of a control accepts a reader it does not know
+    # Subtest: given the published control-definition contract, then its parser is a non-empty string with no enum, and a definition whose parser is fict-lines is valid
+    not ok 1 - given the published control-definition contract, then its parser is a non-empty string with no enum, and a definition whose parser is fict-lines is valid
+      ---
+      duration_ms: 0.7335
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Apfrat/test/v0-pure/open-reader-contract.test.ts:34:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + [
+        +   'exit-code',
+        +   'node-test',
+        +   'junit-xml',
+        +   'jest-json',
+        +   'lcov',
+        +   'jacoco-xml',
+        +   'java-imports',
+        +   'pitest-xml',
+        +   'stryker-json',
+        +   'pmd-xml',
+        +   'cpd-xml',
+        +   'eslint-json',
+        +   'jscpd-json'
+        + ]
+        - undefined
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      actual:
+        0: 'exit-code'
+        1: 'node-test'
+        2: 'junit-xml'
+        3: 'jest-json'
+        4: 'lcov'
+        5: 'jacoco-xml'
+        6: 'java-imports'
+        7: 'pitest-xml'
+        8: 'stryker-json'
+        9: 'pmd-xml'
+        10: 'cpd-xml'
+        11: 'eslint-json'
+        12: 'jscpd-json'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Apfrat/test/v0-pure/open-reader-contract.test.ts:36:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - the contract of a control accepts a reader it does not know
+  ---
+  duration_ms: 1.078958
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Apfrat/test/v0-pure/open-reader-contract.test.ts:33:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 134.281458

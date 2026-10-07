@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité — un lecteur apporté par une technologie ne contourne pas les bornes : un rapport au-delà de MAX_REPORT_BYTES est rendu non lu, chaque rapport lu est conservé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 58,
+    "constat": "`reports()` ne charge plus aucun rapport au-delà de la borne. Mais la même surface `WorkspaceFiles`, offerte à tout lecteur, garde `text(path)` (`readInside`), qui lit un fichier entier sans borne et ne le conserve pas. Sonde jetable : un lecteur qui lit son rapport par `run.text(run.control.report_path)` reçoit un rapport de MAX_REPORT_BYTES + 7 octets en entier, rend PASS et ne laisse aucun artefact `report:`. Avant la branche, cette lecture sans borne n'existait que pour les sources de la portée PIT (mutation.ts:178). Le lecteur est du code chargé dans le même processus, qui pourrait aussi importer `node:fs` : la borne reste donc une règle d'interface, pas un confinement.",
+    "mutation": "Aucune : sonde jetable qui remplace `run.reports(...)` par `run.text(run.control.report_path!)` dans le lecteur de report-reading-bounds.test.ts → verdict PASS, aucun artefact report:, aucune note"
+   }
+  ],
+  "resume": "J'ai relu au tour 2 les trois scénarios et la section Sécurité de e37s01, à 0a6ed08c. Le code tient chaque promesse, et pour chacune une mutation fait échouer le test qui la porte ; l'arbre est propre après les mutations. Scénario 1 (fictitious-stack.test.ts, qui passe) : échoue si la version du lecteur change dans la control_version, ou si la détection perd la technologie fictive. Scénario 2 (reader-traits.test.ts) : échoue si la nature n'est plus lue dans le lecteur, ou si son caractère différentiel est ignoré ; state-survey-unmeasured échoue aussi sur ce dernier. Scénario 3 (open-reader-contract.test.ts) : échoue si le schéma TypeBox redevient une union fermée, ou si le JSON publié reçoit un enum. Sécurité : le correctif du tour 2 (OversizedReport) est tenu par report-reading-bounds.test.ts, qui échoue quand on retire le throw ou le renvoi de l'exception dans readReports. Chaque garde de chemin hors de la copie (readInside, introducedSources, readBoundedReport, readReports), mutée seule, fait échouer son test. Conservation : les tests JUnit et Stryker échouent si l'on conserve un rapport non lu, ou si l'on ne conserve plus rien. Lecteur inconnu : control-runner.test.ts échoue si le verdict passe de INDETERMINATE à PASS. Identités des lecteurs : reader-identities.test.ts échoue si la version de pmd-xml change ; il lit la même liste que runtime.ts (readersOf). Les réponses à A1-4 tiennent : verification.test.ts échoue sans l'obligation différentielle, quality-referential-readers.test.ts sans les lecteurs. Un seul constat, à peser : `text()` lit sans borne un fichier de la copie, rapport compris, ce que montre une sonde. Aucun constat introduit ou rendu atteignable n'est bloquant ou à corriger."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Sécurité — un rapport au-delà de MAX_REPORT_BYTES est rendu non lu avec sa taille",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 154,
+    "constat": "The code keeps the promise on a recursive `**/` report path too: a sonde showed that a reader without `oversized_unread` gets a reading error naming the oversized file. But no test holds this branch. With the rethrow of `OversizedReport` removed, the oversized `b.xml` is dropped without a word: the reader gets only the small `a.xml`, which is kept, so a technology's reader would conclude from a partial report. The flat path is held: mutations at l.86 and l.97 are killed by report-reading-bounds.",
+    "mutation": "l.154 `if (error instanceof ScanBound || error instanceof OversizedReport) throw error;` → `if (error instanceof ScanBound) throw error;`: the whole v1 generation stays green (328 tests, 0 fail); a throwaway test fails under it and passes without it"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Sécurité — un lecteur apporté par une technologie ne doit pas pouvoir contourner les bornes",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 59,
+    "constat": "The surface a reader receives offers `text(path)` (`readInside`), which reads any file of the copy whole, with no size bound and without keeping it. A technology's reader that reads its report through `run.text(control.report_path)` instead of `run.reports()` gets past both the read bound and the keeping of the report. The only 495 caller (pitest-reader, on introduced sources) reads sources, which were already read without a bound before the branch."
+   }
+  ],
+  "resume": "Round 2, reviewer B, e37s01: verdict pass. The three scenarios are held by the code and by tests that fail under mutation. Scenario 1 is held by fictitious-stack: making the reader's version 1.0.1 breaks it. Scenario 2 is held by reader-traits and state-survey-unmeasured: they break when the `differential` test or the nature lookup in survey.ts is mutated. Scenario 3 is held by open-reader-contract. The security section is held too. Every guard that keeps a read inside the copy is killed when mutated one at a time: readInside, introducedSources, readBoundedReport, readReports. The bound is killed (l.97, l.98, l.86 and the opt-in of the JUnit reader), and so is the keeping of reports (l.27 both ways). An unknown reader made PASS fails control-runner. The round-1 follow-ups also hold: the differential obligation (verification.ts:192) and the readers handed to the quality referential (quality-referential.ts:168) both fail their new tests under mutation. Two findings to weigh, both introduced. First, no test holds the oversized-report rethrow in the recursive scan, which a sonde shows is right in the code. Second, `text()` lets a reader read its report without a bound and without keeping it. Every mutation was restored; the tree is clean apart from node_modules."
+ }
+]

@@ -2,7 +2,7 @@
 
 Story : e37s01
 Epic : e37
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

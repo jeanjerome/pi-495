@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — un rapport au-delà de MAX_REPORT_BYTES est rendu non lu avec sa taille, et un lecteur apporté par une technologie ne peut pas contourner les bornes",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 26,
+    "constat": "Le runner n'applique la borne que si le lecteur la demande : `reports()` lit sans borne par défaut (`reading.bounded ?? false`). Un lecteur de technologie qui appelle `run.reports(mediaType)`, comme le fait `fict-lines`, reçoit donc un rapport plus gros que `MAX_REPORT_BYTES` en entier. La sonde (FICT_LINES_READER, rapport de 16 777 223 octets) l'a montré : le texte entier est remis au lecteur, le rapport est conservé sous `report:fict-report.txt` et le verdict est PASS. Avant la branche, les lecteurs de 495 qui lisaient sans borne faisaient passer le texte par `parseReport` ou `parseJestJson`, qui refusaient tout rapport au-delà de la borne.",
+    "mutation": "Sonde jetable, pas une mutation : GenericControlRunner avec un lecteur qui appelle `run.reports(\"text/plain; charset=utf-8\")` sur un fict-report.txt de MAX_REPORT_BYTES+7 octets."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — les identifiants des lecteurs de Maven et de Node ne changent pas, et leurs versions non plus",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 398,
+    "constat": "Aucun test ne fixe la version de 8 des 13 lecteurs de 495 : exit-code, junit-xml, jest-json, java-imports, pmd-xml, cpd-xml, eslint-json, jscpd-json. La branche a déplacé ces versions de la table `PARSER_VERSIONS` vers un champ de chaque lecteur. Seules node-test, lcov, jacoco-xml et pitest-xml sont fixées, à travers une `control_version` attendue.",
+    "mutation": "Les 8 versions passées de \"1.0.0\" à \"9.9.9\" (parsers.ts, cpd-reader, java-imports-reader, pmd-reader, jscpd-reader, eslint-reader, jest-reader) : v0 à v3, 1077 tests réussis, 0 échec."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Sécurité — un chemin hors de la copie n'est jamais lu",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 70,
+    "constat": "`readReports` lit des fichiers hors de la copie, de deux façons. Son test d'appartenance n'exige pas de séparateur : un report_path `../ws-sibling/r.txt` est lu. Et `stat`/`readFile` suivent les liens symboliques : un lien que la commande du projet écrit à l'emplacement du rapport vers un fichier hors de la copie est lu et conservé dans le magasin d'objets. Les deux cas sont confirmés par une sonde. Le code est le même à la base (runner.ts:465), seulement déplacé par la branche.",
+    "mutation": "Sonde jetable : la commande crée fict-report.txt comme lien vers ../secret.txt, et le lecteur reçoit « PASS secret-outside-the-copy » ; un report_path `../ws-sibling/r.txt` rend « PASS sibling »."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Un état des lieux lit la nature d'un contrôle dans le lecteur que sa technologie déclare",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 192,
+    "constat": "Deux lectures de traits du lecteur dans le noyau ne sont tenues par aucun test de v1 à v3 : le caractère différentiel qui ajoute la couverture, la mutation et la structure aux obligations de chaque exigence, et les lecteurs remis à `controlsOfNature` par la phase du référentiel qualité (quality-referential.ts:168). Les Then du scénario 2 sont tenus : reader-traits pour le domaine, state-survey-unmeasured pour le câblage de l'état des lieux, deux tests v3 pour la nature des obligations.",
+    "mutation": "`differential()` qui rend `false` : v1 à v3, 775 réussis, 0 échec. `ctx.verification.readers` remplacé par `[]` dans quality-referential.ts : 775 réussis, 0 échec."
+   }
+  ],
+  "resume": "Les trois scénarios sont tenus par le code et par des tests. Ces mutations font échouer un test :\n- dans le test fictif : `control_version` lue sur `reader.id`, `readersOf` sans les lecteurs des technologies, `detectStack` limité aux deux premières technologies ;\n- dans reader-traits : `unmeasured` sans le trait différentiel, `controlsOfNature` avec une nature fixe ;\n- dans open-reader-contract : `minLength` à 0, ajout d'un `enum`, union fermée dans protocol.ts ;\n- dans control-runner : la branche du lecteur inconnu retirée ;\n- dans state-survey-unmeasured : le câblage des lecteurs de l'état des lieux ;\n- dans des tests v3 : la nature des obligations.\n\nLa conservation des rapports dans le magasin d'objets et la borne, quand un lecteur la demande, sont aussi tenues par des tests.\n\nLa section Sécurité n'est pas tenue sur deux points :\n- **A1-1, bloquant, introduit** : la borne `MAX_REPORT_BYTES` ne s'applique qu'à un lecteur qui la demande. Un lecteur de technologie qui lit `reports()` sans option reçoit un rapport de plus de 16 Mio en entier et peut rendre PASS ; une sonde l'a confirmé.\n- **A1-2, à corriger, introduit** : aucun test ne fixe la version de 8 des 13 lecteurs de 495. Les passer toutes à 9.9.9 laisse v0 à v3 au vert.\n\nHors verdict :\n- **A1-3, bloquant, antérieur** : lecture hors de la copie par lien symbolique ou par un chemin voisin qui partage le préfixe.\n- **A1-4, à peser** : deux câblages de traits du lecteur dans le noyau qu'aucun test ne tient.\n\nVerdict : fail. Rien n'est modifié dans l'arbre, et les sondes jetables sont supprimées."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — un chemin hors de la copie n'est jamais lu",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 58,
+    "constat": "No test holds the guards that keep a reader inside the copy. This branch adds the `WorkspaceFiles` surface that a technology's reader goes through, and `text` (`readInside`) is new code. I removed the four guards together (`readInside` l.58, `introducedSources` l.45, `readBoundedReport` l.100, `readReports` l.70) and the whole v1 generation stayed green (323 tests, 314 pass, 0 fail). No test in v0 or v2 checks a report path that leaves the copy either.",
+    "mutation": "Removed the `startsWith` check from each of the four functions (l.45, l.58, l.70, l.100), one at a time against the runner, mutation, coverage, structure, Stryker, PMD, ESLint/jscpd and report-bound tests, then all four together against `npm run test:v1`: every run stayed green."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — les identifiants des lecteurs de Maven et de Node ne changent pas, ni leurs versions",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/pmd-reader.ts",
+    "ligne": 36,
+    "constat": "The code keeps the promise: I listed all 13 readers and they have the same ids and the same versions (1.0.0) as the base's `PARSER_VERSIONS`. But no test pins the version of `pmd-xml`, `cpd-xml`, `java-imports`, `eslint-json`, `jscpd-json` or `jest-json`. Their versions are now declared in reader files this branch introduces, and a change to any of them would alter the `control_version` of a dossier written before without any test noticing.",
+    "mutation": "Set `version` to \"1.0.1\" in pmd-reader, cpd-reader, java-imports-reader, eslint-reader, jscpd-reader and jest-reader together: v0, v1 and v2 stayed green (962 tests, 953 pass, 0 fail)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Sécurité — un chemin hors de la copie n'est jamais lu",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/adapters/execution/workspace-files.ts",
+    "ligne": 70,
+    "constat": "`readReports` checks only `abs.startsWith(resolve(workspace))`, with no separator after the root. A probe with workspace `<d>/ws` and `report_path` `../ws2/r.txt` read the sibling file through `reports()` without `single_file`, which is the call the fict-lines reader makes. The line is the same as base `runner.ts:465`. The `report_path` comes from the definition the technology declares, not from the project being judged.",
+    "mutation": "Probe: `workspaceFiles(<d>/ws, \"../ws2/r.txt\").reports(\"text/plain\")` returned `[{name:\"../ws2/r.txt\", text:\"secret\\n\"}]`; with `single_file` it returned `[]`."
+   }
+  ],
+  "resume": "The code keeps all three scenarios, and a mutation shows a test holding each one. Scenario 1 (`fictitious-stack.test.ts`) fails when `control_version` is mutated, when `readersOf` drops the technologies' readers, when the `located` test in `qualification.ts` is mutated, and when detection is limited to Maven and Node. Scenario 2 (`reader-traits.test.ts`) fails when the nature or the differential trait read from the reader is mutated. Scenario 3 (`open-reader-contract.test.ts`) fails when an enum is put back in the published JSON or a pattern is added in `protocol.ts`.\n\nSeveral Security promises are held: an unknown reader gives INDETERMINATE with \\\"parser … is not qualified\\\" (mutating it to PASS fails `control-runner.test.ts`), a report past `MAX_REPORT_BYTES` is returned unread with its size, a read report is kept in the object store, and the 13 reader ids and versions match the base.\n\nTwo Security promises are not held by any test, so they are to fix: the guards that keep a read inside the copy (`workspace-files.ts`, all four removable with v1 green), and the versions of six Maven and Node readers (changeable with v0, v1 and v2 green). One prior point to weigh: the root-prefix check in `readReports` reads a sibling directory that shares the workspace prefix. I checked that the readers of 495 neither spawn processes nor read environment variables."
+ }
+]
