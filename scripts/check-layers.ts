@@ -44,6 +44,22 @@ const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
 	{ layer: "export", forbidden: [/\.\.\/(extension|presentation)\//, /@earendil-works/] },
 ];
 
+/**
+ * Every module a file imports or re-exports: a static import or export, on one line or spread over
+ * several as the formatter writes a long list, an import kept for its side effects, and a dynamic
+ * import. Reading line by line saw only the first form, so a split import crossed a layer unseen.
+ */
+function specifiers(source: string): string[] {
+	const found: string[] = [];
+	for (const re of [
+		/(?:^|\n)\s*(?:import|export)\b[^;"'`]*?\bfrom\s*["']([^"']+)["']/g,
+		/(?:^|\n)\s*import\s*["']([^"']+)["']/g,
+		/\bimport\(\s*["']([^"']+)["']\s*\)/g,
+	])
+		for (const m of source.matchAll(re)) found.push(m[1] ?? "");
+	return found;
+}
+
 const violations: string[] = [];
 function walk(dir: string, files: string[] = []): string[] {
 	for (const entry of readdirSync(dir)) {
@@ -62,12 +78,9 @@ for (const rule of rules) {
 		continue;
 	}
 	for (const file of files) {
-		const src = readFileSync(file, "utf8");
-		for (const line of src.split("\n")) {
-			if (!/^\s*(import|export)\b.*from\s+["']/.test(line) && !/import\(/.test(line)) continue;
+		for (const specifier of specifiers(readFileSync(file, "utf8")))
 			for (const re of rule.forbidden)
-				if (re.test(line)) violations.push(`${relative(process.cwd(), file)}: ${line.trim()}`);
-		}
+				if (re.test(`"${specifier}"`)) violations.push(`${relative(process.cwd(), file)}: ${specifier}`);
 	}
 }
 if (violations.length > 0) {
