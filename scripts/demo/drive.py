@@ -24,7 +24,7 @@ import time
 
 COLS, ROWS = 140, 45
 REQUEST = "/495 start add freeMinutes(busy): the number of minutes of the day no busy slot covers"
-STOPPED = re.compile(r"495 [a-z_]+/(completed|blocked|paused|failed|cancelled)|⏸")
+STOPPED = re.compile(r"495 [^·\n]+ · (completed|blocked|paused|failed|cancelled)|⏸")
 WAIT_LIMIT = 25 * 60
 WAIT_PLAYED = 15.0
 ANSI = re.compile(r"\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(\x07|\x1b\\)|\x1b[=>78cDEHMZ]")
