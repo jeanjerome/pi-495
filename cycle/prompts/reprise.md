@@ -24,8 +24,9 @@ Ce que l'outil vérifie après toi, sans te croire :
 - une session neuve relit ton diff et arrête la course si un comportement change ou si le diff déborde
   de la reprise.
 
-Avant de rendre ta sortie, lance `npm run build`, puis `npm run check` sans tube, et lis son code de
-sortie : il doit être vert. Un substitut automatique atteint aussi les chaînes : compare les littéraux
+Ne lance pas `npm run check` : l'outil le lance après toi, et une Preflight rouge arrête la reprise.
+Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck`
+et `npm run lint:code`, après `npm run build`. Un substitut automatique atteint aussi les chaînes : compare les littéraux
 avant et après quand tu renommes. Garde les commentaires existants, sauf ceux que la reprise réécrit.
 Commite sur la branche autant de fois que tu veux : l'outil écrase la branche en un seul commit sur
 `main`. Ne pousse rien.

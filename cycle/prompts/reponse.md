@@ -15,7 +15,7 @@ Pour chaque constat :
 
 {{mode}}
 
-`npm run check` doit être vert à la fin ; lis son code de sortie. Ne pousse rien. Ta sortie
+Ne lance pas `npm run check` : l'outil lance Preflight après toi, et te renvoie ce qu'elle trouve rouge. Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck` et `npm run lint:code`, après `npm run build` quand `dist/` est en cause. Ne pousse rien. Ta sortie
 structurée dit, pour chaque constat, l'action (`corrige`, `registre`, `conteste`), le commit quand il
 y en a un, et le motif en une phrase.
 

@@ -25,7 +25,7 @@ Pour chaque tâche :
    `feat|fix|refactor: <le comportement obtenu, en anglais>`.
 5. Une tâche `Vérifie à la main :` se fait à la main, et ta sortie dit ce qui a été fait et observé.
 
-À la fin, `npm run check` doit être vert ; ne pipe pas sa sortie, lis son code de sortie. Un échec
+À la fin, ne lance pas `npm run check` : l'outil lance Preflight après toi, et te renvoie ce qu'elle trouve rouge. Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck` et `npm run lint:code`, après `npm run build` quand `dist/` est en cause. Un échec
 reproductible rencontré en chemin se corrige dans son propre commit (cycle/README.md § Preflight and
 defects found along the way). Ne pousse rien.
 

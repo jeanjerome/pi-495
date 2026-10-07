@@ -1,9 +1,10 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { accepter, conduirePas, rouvrir } from "../../cycle/src/cycle.ts";
 import { brancheCourante, revision } from "../../cycle/src/git.ts";
+import { contenuLu, retenirVerte } from "../../cycle/src/preflight.ts";
 import { lireStory } from "../../cycle/src/story.ts";
 import { fixtureTs, gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import {
@@ -147,10 +148,11 @@ export default (invite, cwd) => {
 		assert.equal(ctx.journal.prochainPas(), "relecture");
 	});
 
-	it("blocks when Preflight is red after the self-review session", async () => {
+	it("hands a red Preflight after the self-review session to a correction session, and blocks when two corrections leave it red", async () => {
 		const root = depot();
 		const claude = fauxClaude(`${COMMIT}
 export default (invite, cwd) => {
+  if (invite.startsWith("Correction de Preflight")) return { status: "fini", resume: "nothing found" };
   commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
   return { status: "fini", constats: [], resume: "" };
 };`);
@@ -160,7 +162,79 @@ export default (invite, cwd) => {
 		const issue = await conduirePas(ctx, "autocontrole");
 		assert.equal(issue.statut, "bloque");
 		assert.match(issue.statut === "bloque" ? issue.motif : "", new RegExp(`^Preflight FAIL at ${revision(root)}: `));
+		const events = ctx.journal.lire().filter((e) => e.pas === "autocontrole");
+		assert.deepEqual(
+			events.filter((e) => e.genre === "session").map((e) => e.nom),
+			["autocontrole", "preflight-1", "preflight-2"],
+		);
+		assert.equal(events.filter((e) => e.genre === "controle" && e.verdict === "FAIL").length, 3);
 		assert.equal(ctx.journal.prochainPas(), "autocontrole");
+	});
+
+	it("ends the self-review step once the correction session's fix turns Preflight green", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  if (invite.startsWith("Correction de Preflight")) {
+    commit(cwd, { "src/greet.js": ${JSON.stringify(SHOUT_CODE)} }, "fix: greet shouts");
+    return { status: "fini", resume: "shout was missing" };
+  }
+  commit(cwd, { "test/shout.test.js": ${JSON.stringify(SHOUT_TEST)} }, "test: greet shouts");
+  return { status: "fini", constats: [], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		ctx.journal.inscrire("rouge-vert", "fini");
+		assert.deepEqual(await conduirePas(ctx, "autocontrole"), { statut: "fini" });
+		const events = ctx.journal.lire().filter((e) => e.pas === "autocontrole");
+		assert.deepEqual(
+			events.filter((e) => e.genre === "session").map((e) => e.nom),
+			["autocontrole", "preflight-1"],
+		);
+		assert.deepEqual(
+			events.filter((e) => e.genre === "controle").map((e) => [e.verdict, e.revision]),
+			[
+				["FAIL", revision(root, "HEAD~1")],
+				["PASS", revision(root)],
+			],
+		);
+	});
+
+	it("does not run Preflight again on a content it passed, when a commit touches only a decision", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "specs/adr/D-01-greet.md": "# D-01: greet shouts\\n" }, "docs: greet shouts");
+  return { status: "fini", constats: [], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		ctx.journal.inscrire("rouge-vert", "fini");
+		// The head the previous step left passed Preflight: the self-review starts on that content.
+		retenirVerte(dirname(ctx.journal.dir), contenuLu(root) ?? "");
+		assert.deepEqual(await conduirePas(ctx, "autocontrole"), { statut: "fini" });
+		const events = ctx.journal.lire().filter((e) => e.pas === "autocontrole");
+		assert.equal(events.filter((e) => e.genre === "controle").length, 0);
+		assert.deepEqual(
+			events.filter((e) => e.genre === "preflight-retenue").map((e) => e.revision),
+			[revision(root)],
+		);
+	});
+
+	it("runs Preflight again when a commit changes a file it reads", async () => {
+		const root = depot();
+		const claude = fauxClaude(`${COMMIT}
+export default (invite, cwd) => {
+  commit(cwd, { "src/greet.js": ${JSON.stringify(`// greets\n${SHOUT_CODE}`)} }, "refactor: greet says what it does");
+  return { status: "fini", constats: [], resume: "" };
+};`);
+		const ctx = contexte(root, claude);
+		await conduirePas(ctx, "story");
+		ctx.journal.inscrire("rouge-vert", "fini");
+		assert.deepEqual(await conduirePas(ctx, "autocontrole"), { statut: "fini" });
+		const events = ctx.journal.lire();
+		assert.equal(events.filter((e) => e.genre === "controle" && e.controle === "preflight").length, 2);
+		assert.equal(events.filter((e) => e.genre === "preflight-retenue").length, 0);
 	});
 
 	it("replays a test-only commit against each task whose test file it touches, so a red for one task is read even when it also edits another task's green test", async () => {

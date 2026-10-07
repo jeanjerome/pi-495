@@ -126,7 +126,8 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
   decided. A story that touches the stacks, the controls or the executor adds the two reference
   campaigns (`npm run campagne -- npm`, `-- maven`, `cycle/campagnes/README.md`) to it.
 - **Always Green:** Preflight (`npm run check`) is green before forward work and before every
-  commit that touches what it checks.
+  commit that touches what it checks. In a session the cycle's tool runs, the tool runs Preflight
+  after the session; the session runs only what its change touches (`cycle/README.md` § Preflight).
 - **Records:** a product decision and the order of the plan are written by hand, and the owner marks
   `prete: oui` the epics that run without them; the story and the registry entry are written by hand
   when the owner drives the story, and by a session in an unattended run. Every red, Preflight, review

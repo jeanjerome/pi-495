@@ -159,6 +159,13 @@ Preflight is `npm run check`. It is green before every step, and before every co
 reads it. A green Preflight holds as long as no file of the first list has changed: cite its
 revision and time rather than run it again. Only a run under Node 24 counts.
 
+In a run of the tool, only the tool runs Preflight: a session runs what its change touches — the tests
+concerned, the typecheck, the lint — and hands its output back. After the red-green, the self-review
+and an answer to a review round, a red Preflight goes to a correction session with the failures the tool
+read, then runs again, at most twice before the step blocks. The base of a story and the squashed
+landing have no session behind them: a red Preflight there blocks at once, and so does one after a
+refactoring.
+
 A reproducible failure met along the way is a defect found, never background noise. It is fixed at
 once, in its own commit, with its regression test, when the fix adds no behaviour; otherwise it gets
 an entry in `specs/bugs/registry.yaml` and its own cycle. It is recorded without a fix only if its

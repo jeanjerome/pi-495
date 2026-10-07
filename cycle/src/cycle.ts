@@ -5,7 +5,7 @@
  * for the owner, or blocks with the reason.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { relative } from "node:path";
+import { dirname, relative } from "node:path";
 import { type Controle, type Executeur, type Preuve, controleDeTache, estUnRouge } from "./controls.ts";
 import { exporterDossier } from "./export.ts";
 import {
@@ -21,6 +21,7 @@ import {
 	versementEcrase,
 } from "./git.ts";
 import { invite } from "./invite.ts";
+import { contenuLu, dejaVerte, retenirVerte } from "./preflight.ts";
 import type { Journal, Pas } from "./journal.ts";
 import { defautsOuverts } from "./registre.ts";
 import { type Rapport, SCHEMA_RAPPORT, TOURS_MAX, apresDernierTour, trier } from "./relecture.ts";
@@ -82,13 +83,52 @@ async function controle(ctx: Contexte, pas: Pas, c: Controle, sha?: string): Pro
 	return preuve;
 }
 
-async function preflightVerte(ctx: Contexte, pas: Pas): Promise<void> {
-	const head = revision(ctx.root);
-	const last = ctx.journal.depuisReouverture().findLast((e) => e.genre === "controle" && e.controle === "preflight");
-	if (last && last.revision === head && last.verdict === "PASS") return;
-	const preuve = await controle(ctx, pas, ctx.preflight);
-	if (preuve.verdict !== "PASS")
-		throw new Blocage(`Preflight ${preuve.verdict} at ${head}: ${preuve.echecs.slice(0, 5).join("; ")}`);
+/** How many correction sessions a red Preflight after a session's step gets before the step blocks. */
+const CORRECTIONS_PREFLIGHT = 2;
+
+/**
+ * Preflight at the head, once per revision. Only the tool runs it: a session runs what its change
+ * touches. After a session's step, a red Preflight goes to a correction session with the failures the
+ * tool read, then runs again, up to `CORRECTIONS_PREFLIGHT` times; where no session wrote the head —
+ * the base of a story, the squashed landing — a red Preflight blocks at once.
+ */
+async function preflightVerte(ctx: Contexte, pas: Pas, corriger = false): Promise<void> {
+	const racine = dirname(ctx.journal.dir);
+	for (let correction = 0; ; correction++) {
+		const head = revision(ctx.root);
+		const contenu = contenuLu(ctx.root);
+		if (contenu && dejaVerte(racine, contenu)) {
+			ctx.journal.inscrire(pas, "preflight-retenue", { revision: head, contenu });
+			return;
+		}
+		const preuve = await controle(ctx, pas, ctx.preflight);
+		if (preuve.verdict === "PASS") {
+			if (contenu) retenirVerte(racine, contenu);
+			return;
+		}
+		if (!corriger || correction === CORRECTIONS_PREFLIGHT)
+			throw new Blocage(`Preflight ${preuve.verdict} at ${head}: ${preuve.echecs.slice(0, 5).join("; ")}`);
+		await session(
+			ctx,
+			pas,
+			`preflight-${correction + 1}`,
+			invite("preflight", {
+				id: ctx.story.id,
+				branche: brancheCourante(ctx.root),
+				pas,
+				tete: head,
+				echecs: preuve.echecs.length
+					? preuve.echecs.map((e) => `- ${e}`).join("\n")
+					: "(aucun test : un contrôle de lint ou de type)",
+				story: storyMarkdown(ctx),
+			}),
+			{
+				type: "object",
+				properties: { status: { type: "string", enum: ["fini", "bloque"] }, resume: { type: "string" } },
+				required: ["status", "resume"],
+			},
+		);
+	}
 }
 
 // --- 1. la story -----------------------------------------------------------------------------------
@@ -184,7 +224,7 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 		if (preuve.verdict !== "PASS")
 			throw new Blocage(`tâche ${t.numero}: ${preuve.commande.join(" ")} is ${preuve.verdict} at HEAD`);
 	}
-	await preflightVerte(ctx, "rouge-vert");
+	await preflightVerte(ctx, "rouge-vert", true);
 	return FINI;
 }
 
@@ -220,7 +260,7 @@ async function pasAutocontrole(ctx: Contexte): Promise<Issue> {
 		},
 		required: ["status", "constats", "resume"],
 	});
-	await preflightVerte(ctx, "autocontrole");
+	await preflightVerte(ctx, "autocontrole", true);
 	return FINI;
 }
 
@@ -303,7 +343,7 @@ async function reponse(ctx: Contexte, tour: number, constats: unknown[], mode: s
 			required: ["status", "reponses", "resume"],
 		},
 	);
-	await preflightVerte(ctx, "relecture");
+	await preflightVerte(ctx, "relecture", true);
 }
 
 async function pasRelecture(ctx: Contexte): Promise<Issue> {

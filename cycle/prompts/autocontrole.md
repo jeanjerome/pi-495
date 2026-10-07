@@ -4,8 +4,7 @@ Pas 3 du cycle, l'autocontrôle, pour la story {{id}} sur la branche `{{branche}
 Relis `git diff {{base}}...HEAD` contre les standards de CONVENTIONS.md, avec la liste ci-dessous.
 Corrige sur la branche tout ce que tu trouves, en commits séparés, sans ajouter de comportement ; une
 correction qui ajouterait un refus, un état ou un mécanisme va au registre `specs/bugs/registry.yaml`
-et sera traitée après la relecture. `npm run check` doit être vert à la fin ; lis son code de
-sortie. Ne pousse rien.
+et sera traitée après la relecture. Ne lance pas `npm run check` : l'outil lance Preflight après toi, et te renvoie ce qu'elle trouve rouge. Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck` et `npm run lint:code`, après `npm run build` quand `dist/` est en cause. Ne pousse rien.
 
 Ce que la relecture ne cherchera pas, et que tu es donc seul à tenir :
 
