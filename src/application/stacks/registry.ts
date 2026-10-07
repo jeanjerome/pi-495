@@ -5,15 +5,21 @@
  * missing capability, which is what G2 refuses on.
  */
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import type { InstalledPackage } from "../../contracts/v1/protocol.ts";
+import type { FileEdit, InstalledPackage } from "../../contracts/v1/protocol.ts";
 import type { ReaderTraits } from "../../domain/survey.ts";
 import type { WorkspacePolicy } from "../../ports/execution.ts";
 import { assembleDetection, undetected } from "./assembly.ts";
-import type { StackPlugin, TestLayout, ToolProbe, WorkspaceCapability } from "./plugin.ts";
+import type { InstallCapability, StackPlugin, TestLayout, ToolProbe, WorkspaceCapability } from "./plugin.ts";
 import { type OpenProjectView, ProjectViewRefusal } from "./project-view.ts";
 import type { DetectedTechnology } from "./stack.ts";
 
 const NO_WORKSPACE: WorkspaceCapability = { outputs: [] };
+
+/** The install capability of the technology that runs a package manager, and the directory that technology installs dependencies in. */
+export interface Installer {
+	readonly install: InstallCapability;
+	readonly installed_dependencies: readonly string[];
+}
 
 /**
  * The technologies a project is recognised with, in the order they claim one, how a copy is opened to them,
@@ -72,6 +78,23 @@ export class StackRegistry {
 			exclusions: [...new Set([...policy.exclusions, ...this.workspaceOf(projectPath).outputs])],
 			installed_dependencies: this.installedDependencies(),
 		};
+	}
+
+	/** The technology of the list that runs the package manager `manager`, as its install capability declares it; null when none does. */
+	installerOf(manager: string): Installer | null {
+		const technology = this.technologies.find((t) => t.capabilities.install?.manager === manager);
+		const install = technology?.capabilities.install;
+		if (technology === undefined || install === undefined) return null;
+		const installed = technology.capabilities.workspace?.installed_dependencies;
+		return { install, installed_dependencies: installed === undefined ? [] : [installed] };
+	}
+
+	/**
+	 * The rule a file edit recommended for the project at `projectPath` is applied by, as the technology that
+	 * recognises it, and so recommends the edit, declares it; undefined when it declares none.
+	 */
+	editRuleOf(projectPath: string): ((text: string, edit: FileEdit) => string | null) | undefined {
+		return this.#recognising(projectPath)?.capabilities.install?.edit;
 	}
 
 	/**

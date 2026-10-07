@@ -14,8 +14,9 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../../src/adapters/workspace/git-workspace.ts";
 import { openWorkspaceWithComplements } from "../../src/application/complement.ts";
-import { installInCopy, runInstall } from "../../src/application/installation.ts";
+import { bringInstalls, runInstall } from "../../src/application/installation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
+import type { ReferenceSnapshot } from "../../src/contracts/v1/candidate.ts";
 import type { ControlDefinition, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
@@ -42,6 +43,17 @@ const LOCK = { name: "graded", version: "1.0.0", lockfileVersion: 3, requires: t
 
 const executable = (path: string): boolean => (statSync(path).mode & 0o111) !== 0;
 
+/** Installs `installs` with npm in the copy at `copyPath`, as the adoption does, and says what came of it. */
+async function installInCopy(
+	deps: Parameters<typeof bringInstalls>[0],
+	copyPath: string,
+	installs: readonly PackageInstall[],
+	reference: ReferenceSnapshot,
+) {
+	const brought = await bringInstalls(deps, STACKS_OF_495.installerOf("npm")!, reference, copyPath, installs);
+	return brought.kind === "failed" ? brought : { ...brought, kind: "installed" as const };
+}
+
 /**
  * A Node project locked by npm, with `extra` written into it, and the copy the referential its adapter
  * offers was installed into by a real npm, as the adoption installs it.
@@ -65,12 +77,13 @@ async function installedReferential(root: string, extra: Record<string, string>)
 		{
 			workspace,
 			workspacePolicy: DEFAULT_WORKSPACE_POLICY,
-			install: (copyPath, command, outside) => runInstall(sandbox.backend, copyPath, command, outside),
-			localRepository: async () => null,
+			install: (copyPath, command, manager, outside) =>
+				runInstall(sandbox.backend, copyPath, command, manager, outside),
+			outsideDirectory: async () => null,
 		},
 		copy.path,
 		installs,
-		reference.entries.filter((e) => e.kind === "file").map((e) => e.path),
+		reference,
 	);
 	return { sandbox, workspace, reference, copy: copy.path, installed };
 }

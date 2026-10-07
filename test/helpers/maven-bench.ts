@@ -10,7 +10,7 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { editedFile } from "../../src/application/complement.ts";
-import { mavenResolutionCommand } from "../../src/application/installation.ts";
+import { mavenResolutionCommand } from "../../src/adapters/stacks/maven/install/maven-install.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { ControlDefinition, FileEdit, PackageInstall } from "../../src/contracts/v1/protocol.ts";

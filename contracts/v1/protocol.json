@@ -535,10 +535,7 @@
                   },
                   "manager": {
                     "type": "string",
-                    "enum": [
-                      "npm",
-                      "maven"
-                    ]
+                    "minLength": 1
                   }
                 },
                 "additionalProperties": false

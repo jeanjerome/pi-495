@@ -14,14 +14,26 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../../src/adapters/workspace/git-workspace.ts";
 import { editedFile } from "../../src/application/complement.ts";
-import { askedLocalRepository, resolveInCopy, runInstall } from "../../src/application/installation.ts";
+import { askedOutsideDirectory, bringInstalls, runInstall } from "../../src/application/installation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
+import type { ReferenceSnapshot } from "../../src/contracts/v1/candidate.ts";
+import type { ControlDefinition, FileEdit, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
 import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
 
 const mavenAvailable = spawnSync("mvn", ["-v"], { stdio: "ignore" }).status === 0;
+
+/** Resolves the plugin of `install` with Maven in a copy of its own, as the adoption does, and says what came of it. */
+async function resolveInCopy(
+	deps: Parameters<typeof bringInstalls>[0],
+	reference: ReferenceSnapshot,
+	install: PackageInstall,
+	edit: FileEdit,
+) {
+	const brought = await bringInstalls(deps, STACKS_OF_495.installerOf("maven")!, reference, "", [install], edit);
+	return brought.kind === "failed" ? brought : { kind: "resolved" as const, output: brought.output ?? "" };
+}
 
 const REFS = [{ requirement_id: "QLT-01", revision: 1 }];
 
@@ -79,9 +91,10 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 				{
 					workspace,
 					workspacePolicy: DEFAULT_WORKSPACE_POLICY,
-					install: (copyPath, command, outside) => runInstall(sandbox.backend, copyPath, command, outside),
-					localRepository: async (copyPath) => {
-						const announced = await askedLocalRepository(sandbox.backend, copyPath);
+					install: (copyPath, command, manager, outside) =>
+						runInstall(sandbox.backend, copyPath, command, manager, outside),
+					outsideDirectory: async (copyPath, manager) => {
+						const announced = await askedOutsideDirectory(sandbox.backend, manager, copyPath);
 						return "path" in announced ? announced.path : null;
 					},
 				},

@@ -18,7 +18,7 @@ import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
 import type { Adoptable } from "../decisions.ts";
-import { installableRecommendations, installInCopy, resolveInCopy, type FailedInstall } from "../installation.ts";
+import { bringInstalls, filesOf, installableRecommendations, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
@@ -180,14 +180,15 @@ interface InstallAdoption {
 	complements: AdoptedComplement[];
 	packages: InstalledPackage[];
 	failed: FailedInstall[];
-	/** The recommendations whose Maven plugin was resolved, whose edit of `pom.xml` the adoption applies. */
+	/** The recommendations resolved in a copy of their own, whose file edit the adoption applies. */
 	resolved: RecommendedComplement[];
 }
 
 /**
- * Runs the install of each recommendation the owner adopted in the copy, and keeps what the inspection
- * accepts. An install that fails or is refused adopts nothing: the reason is written in the dossier
- * for these requirements, so the install is not run again and the adoption is not offered again.
+ * Runs the install of each recommendation the owner adopted in the copy, with the manager of its
+ * technology, and keeps what the inspection accepts. An install that fails or is refused adopts nothing:
+ * the reason is written in the dossier for these requirements, so the install is not run again and the
+ * adoption is not offered again.
  */
 async function adoptInstalls(
 	ctx: PhaseContext,
@@ -196,25 +197,17 @@ async function adoptInstalls(
 	requirements: ArtifactRef,
 	reference: ReferenceSnapshot,
 	copyPath: string,
-	referenceFiles: readonly string[],
 	installable: readonly RecommendedComplement[],
 ): Promise<InstallAdoption> {
 	const adoption: InstallAdoption = { unit, complements: [], packages: [], failed: [], resolved: [] };
-	const deps = {
-		workspace: ctx.workspace,
-		workspacePolicy: ctx.workspacePolicy,
-		install: ctx.install,
-		localRepository: ctx.localRepository,
-	};
 	for (const r of installable) {
-		if (r.install === undefined) continue;
+		const installer = r.install === undefined ? null : ctx.stacks.installerOf(r.install.manager);
+		if (r.install === undefined || installer === null) continue;
+		const resolves = installer.install.form === "resolve";
 		ctx.progress(
-			`${r.install.manager === "maven" ? "resolving" : "installing"} ${r.install.package}@${r.install.version} in a copy, network open for that step alone`,
+			`${resolves ? "resolving" : "installing"} ${r.install.package}@${r.install.version} in a copy, network open for that step alone`,
 		);
-		const result =
-			r.install.manager === "maven"
-				? await resolveInCopy(deps, reference, r.install, r.edit)
-				: await installInCopy(deps, copyPath, [r.install], referenceFiles);
+		const result = await bringInstalls(ctx, installer, reference, copyPath, [r.install], r.edit);
 		if (result.kind === "failed") {
 			adoption.unit = await recordFailedInstall(ctx, adoption.unit, cor, requirements, {
 				install: r.install,
@@ -228,8 +221,9 @@ async function adoptInstalls(
 				failed: [{ install: r.install, reason: result.reason }],
 			};
 		}
-		if (result.kind === "resolved") {
+		if (result.output !== undefined)
 			adoption.unit = await recordResolution(ctx, adoption.unit, cor, r.install, result.output);
+		if (resolves) {
 			adoption.resolved.push(r);
 			continue;
 		}
@@ -237,6 +231,31 @@ async function adoptInstalls(
 		adoption.packages.push(...result.packages);
 	}
 	return adoption;
+}
+
+/**
+ * The directory each manager of `recommendations` that keeps what it writes outside a copy said it writes,
+ * asked of the copy at `copyPath` before anything changes it; a manager that said none is left out.
+ */
+async function keptDirectories(
+	ctx: PhaseContext,
+	copyPath: string,
+	recommendations: readonly RecommendedComplement[],
+): Promise<Record<string, string>> {
+	const directories: Record<string, string> = {};
+	for (const manager of new Set(recommendations.flatMap((r) => (r.install ? [r.install.manager] : [])))) {
+		const install = ctx.stacks.installerOf(manager)?.install;
+		if (install?.outside_write?.kept === undefined) continue;
+		const directory = await ctx.outsideDirectory(copyPath, install);
+		if (directory !== null) directories[manager] = directory;
+	}
+	return directories;
+}
+
+/** Whether the edit of `r` is applied by the adoption: it installs nothing, or what it installs was resolved. */
+function editApplied(ctx: PhaseContext, r: RecommendedComplement, adoption: InstallAdoption): boolean {
+	if (r.install === undefined) return true;
+	return ctx.stacks.installerOf(r.install.manager)?.install.form !== "resolve" || adoption.resolved.includes(r);
 }
 
 /**
@@ -330,11 +349,10 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			: null;
 		if (quality?.kind === "asked") return quality.unit;
 		if (quality) unit = quality.unit;
-		const referenceFiles = reference.entries.filter((e) => e.kind === "file").map((e) => e.path);
+		const referenceFiles = filesOf(reference);
 		let failed = await failedInstalls(ctx, unit, requirements.ref);
-		const localRepository = detection.recommendations.some((r) => r.install?.manager === "maven")
-			? await ctx.localRepository(handle.path)
-			: null;
+		const installerOf = (manager: string) => ctx.stacks.installerOf(manager);
+		const outside = await keptDirectories(ctx, handle.path, detection.recommendations);
 		const adoption = complementAdopted(unit.state.human_decisions)
 			? await adoptInstalls(
 					ctx,
@@ -343,8 +361,8 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 					requirements.ref,
 					reference,
 					handle.path,
-					referenceFiles,
-					installableRecommendations(referenceFiles, detection.recommendations, failed, localRepository).installable,
+					installableRecommendations(referenceFiles, detection.recommendations, failed, installerOf, outside)
+						.installable,
 				)
 			: null;
 		if (adoption !== null) {
@@ -353,13 +371,15 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		}
 		// The edit is written into this copy alone: the detection that follows reads the sensor the edit
 		// asks for, and the project stays as it is until the candidate that carries the edit is integrated.
+		const editRule = ctx.stacks.editRuleOf(handle.path);
 		const complements = [
 			...(quality?.complements ?? []),
 			...(adoption?.complements ?? []),
 			...(adoption !== null
 				? applyRecommendedEdits(
 						handle.path,
-						detection.recommendations.filter((r) => r.install?.manager !== "maven" || adoption.resolved.includes(r)),
+						detection.recommendations.filter((r) => editApplied(ctx, r, adoption)),
+						editRule,
 					)
 				: []),
 		];
@@ -372,18 +392,18 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {
 				nextActions: ["cancel"],
 			});
-		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed, localRepository);
+		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed, installerOf, outside);
 		detection = { ...detection, recommendations: offered.recommendations };
 		const adoptable: Adoptable = {
 			files: detection.recommendations.flatMap((r) =>
 				r.edit &&
 				(r.install === undefined || offered.installable.includes(r)) &&
-				editedFile(handle.path, r.edit) !== null
+				editedFile(handle.path, r.edit, editRule) !== null
 					? [r.edit.path]
 					: [],
 			),
 			installs: offered.installable.flatMap((r) => (r.install ? [r.install] : [])),
-			...(localRepository !== null ? { local_repository: localRepository } : {}),
+			...(Object.keys(outside).length > 0 ? { outside_directories: outside } : {}),
 		};
 		const ordered = ctx.verification.orderOf(detection.controls);
 		// What no existing control can decide is settled before any of them runs: the controls the

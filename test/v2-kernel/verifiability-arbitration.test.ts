@@ -714,8 +714,9 @@ describe("the option to adopt the declaration of a Maven plugin says what it wri
 				adoptable: {
 					files: ["pom.xml"],
 					installs: [{ package: "org.jacoco:jacoco-maven-plugin", version: "0.8.15", manager: "maven" }],
-					local_repository: LOCAL_REPOSITORY,
+					outside_directories: { maven: LOCAL_REPOSITORY },
 				},
+				installers: (manager) => STACKS_OF_495.installerOf(manager)?.install,
 			}).options;
 			const adopt = options.at(-1)!;
 			assert.equal(adopt.id, "adopt_complement", language);

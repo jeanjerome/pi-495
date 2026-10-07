@@ -5,6 +5,7 @@
 import type { HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest } from "../contracts/v1/decision.ts";
 import type { PackageInstall } from "../contracts/v1/protocol.ts";
+import type { InstallCapability } from "./stacks/plugin.ts";
 
 type Lang = "fr" | "en";
 
@@ -316,165 +317,150 @@ const T = {
 
 /**
  * What the owner is offered to adopt on an IH-04: the files a recommendation edits and the packages one
- * installs, and for a Maven install the local repository Maven announced, which the resolution writes.
+ * installs, and, by manager, the directory a manager that keeps what it writes outside the copy said it
+ * writes, which its run writes from the adoption on.
  */
 export interface Adoptable {
 	files: readonly string[];
 	installs: readonly PackageInstall[];
-	local_repository?: string;
+	outside_directories?: Readonly<Record<string, string>>;
 }
+
+/** The install capability of the technology that runs a package manager, as the owner is told of it; undefined when none does. */
+type Installers = (manager: string) => InstallCapability | undefined;
 
 const installedName = (install: PackageInstall): string => `${install.package} ${install.version}`;
 const installedNames = (installs: readonly PackageInstall[]): string => installs.map(installedName).join(", ");
-const installsWith = (installs: readonly PackageInstall[], manager: PackageInstall["manager"]): PackageInstall[] =>
-	installs.filter((install) => install.manager === manager);
+
+/** The installs of `installs` grouped by the capability that runs their manager, in the order they come. */
+function byManager(
+	installs: readonly PackageInstall[],
+	installers: Installers,
+): { install: InstallCapability; names: string }[] {
+	const managers = [...new Set(installs.map((install) => install.manager))];
+	return managers.flatMap((manager) => {
+		const install = installers(manager);
+		return install === undefined
+			? []
+			: [{ install, names: installedNames(installs.filter((i) => i.manager === manager)) }];
+	});
+}
 
 /**
  * The way out of IH-04 that changes the target instead of judging anything: it applies the file edit of
- * a recommended complement, installs its package in a copy, or resolves its Maven plugin in a copy, with
- * the network open for that step alone. It is offered only when something can be applied or installed.
+ * a recommended complement, or brings its package into a copy with the manager of its technology, with
+ * the network open for that step alone. What the manager does and what its inspection accepts are the
+ * phrases its technology declares. It is offered only when something can be applied or installed.
  */
 const ADOPT_COMPLEMENT = {
-	fr: ({ files, installs, local_repository }: Adoptable) => {
+	fr: ({ files, installs, outside_directories = {} }: Adoptable, installers: Installers) => {
 		const edits = files.join(", ");
-		const npm = installsWith(installs, "npm");
-		const maven = installsWith(installs, "maven");
-		const repository = local_repository === undefined ? "" : ` (${local_repository})`;
+		const groups = byManager(installs, installers);
 		const what = [
 			files.length > 0 ? `applique à ${edits} la modification exacte que la recommandation décrit` : null,
-			npm.length > 0
-				? `installe ${installedNames(npm)} dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation`
-				: null,
-			maven.length > 0
-				? `résout ${installedNames(maven)} avec Maven dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; les fichiers téléchargés sont écrits dès l'adoption dans le dépôt local que Maven désigne${repository} et y restent si l'intégration est refusée`
-				: null,
+			...groups.map(({ install, names }) => {
+				const said = install.phrases.fr;
+				const kept = said.keptOutside ? ` ; ${said.keptOutside(outside_directories[install.manager])}` : "";
+				return `${said.complementDoes(names)}, en ouvrant le réseau pour cette seule étape et ${said.runsNothing}${kept}`;
+			}),
 		]
 			.filter((part) => part !== null)
 			.join(", puis ");
-		const inspected = [
-			npm.length > 0
-				? "le résultat est inspecté et n'est accepté que s'il ajoute des paquets sans rien modifier de ce qui existait"
-				: null,
-			maven.length > 0
-				? "la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml"
-				: null,
-		].filter((part) => part !== null);
+		const inspected = groups.map(({ install }) => install.phrases.fr.complementInspected);
 		return {
 			id: "adopt_complement",
-			label: `Adopter le complément (${[files.length > 0 ? `modifie ${edits}` : null, npm.length > 0 ? `installe ${installedNames(npm)}, réseau ouvert pour cette seule étape` : null, maven.length > 0 ? `résout ${installedNames(maven)}, réseau ouvert pour cette seule étape` : null].filter((part) => part !== null).join(" ; ")})`,
+			label: `Adopter le complément (${[files.length > 0 ? `modifie ${edits}` : null, ...groups.map(({ install, names }) => `${install.phrases.fr.complementLabel(names)}, réseau ouvert pour cette seule étape`)].filter((part) => part !== null).join(" ; ")})`,
 			effect: `495 ${what}${installs.length > 0 ? "" : ", sans réseau et sans rien installer"} ; ${inspected.map((part) => `${part} ; `).join("")}le complément arrive dans le projet avec le candidat, à l'intégration que vous acceptez. Cela ne juge pas l'exigence : elle reste à préparer, à assigner ou à réviser, et la question est reposée sans cette issue si elle reste sans juge. La réponse tombe si les exigences sont révisées.`,
 			risky: true,
 		};
 	},
-	en: ({ files, installs, local_repository }: Adoptable) => {
+	en: ({ files, installs, outside_directories = {} }: Adoptable, installers: Installers) => {
 		const edits = files.join(", ");
-		const npm = installsWith(installs, "npm");
-		const maven = installsWith(installs, "maven");
-		const repository = local_repository === undefined ? "" : ` (${local_repository})`;
+		const groups = byManager(installs, installers);
 		const what = [
 			files.length > 0 ? `applies to ${edits} the exact edit the recommendation describes` : null,
-			npm.length > 0
-				? `installs ${installedNames(npm)} in a copy of the project, opening the network for that step alone and running no install script`
-				: null,
-			maven.length > 0
-				? `resolves ${installedNames(maven)} with Maven in a copy of the project, opening the network for that step alone and running no goal of the plugin; the downloaded files are written from the adoption into the local repository Maven designates${repository} and stay there if the integration is refused`
-				: null,
+			...groups.map(({ install, names }) => {
+				const said = install.phrases.en;
+				const kept = said.keptOutside ? `; ${said.keptOutside(outside_directories[install.manager])}` : "";
+				return `${said.complementDoes(names)}, opening the network for that step alone and ${said.runsNothing}${kept}`;
+			}),
 		]
 			.filter((part) => part !== null)
 			.join(", then ");
-		const inspected = [
-			npm.length > 0
-				? "the result is inspected and accepted only if it adds packages and changes nothing that existed"
-				: null,
-			maven.length > 0
-				? "the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml"
-				: null,
-		].filter((part) => part !== null);
+		const inspected = groups.map(({ install }) => install.phrases.en.complementInspected);
 		return {
 			id: "adopt_complement",
-			label: `Adopt the complement (${[files.length > 0 ? `edits ${edits}` : null, npm.length > 0 ? `installs ${installedNames(npm)}, network open for that step alone` : null, maven.length > 0 ? `resolves ${installedNames(maven)}, network open for that step alone` : null].filter((part) => part !== null).join("; ")})`,
+			label: `Adopt the complement (${[files.length > 0 ? `edits ${edits}` : null, ...groups.map(({ install, names }) => `${install.phrases.en.complementLabel(names)}, network open for that step alone`)].filter((part) => part !== null).join("; ")})`,
 			effect: `495 ${what}${installs.length > 0 ? "" : ", with no network and nothing installed"}; ${inspected.map((part) => `${part}; `).join("")}the complement reaches the project with the candidate, at the integration you accept. It does not judge the requirement: it is still to be prepared, assigned or revised, and the question is asked again without this option if the requirement is still left without a judge. The answer lapses if the requirements are revised.`,
 			risky: true,
 		};
 	},
 } as const;
 
-/** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the plugin it resolves or the packages it installs. */
+/** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the packages its manager brings. */
 export interface ReferentialOffer {
 	stack: string;
 	installs: readonly PackageInstall[];
 }
 
-/** Whether a referential is brought by npm packages installed in a copy, rather than by a Maven plugin resolved there. */
-const installedByNpm = ({ installs }: ReferentialOffer): boolean =>
-	installs.every((install) => install.manager === "npm");
+/** The capability that brings a referential, all of whose packages one manager brings. */
+function referentialInstaller(offer: ReferentialOffer, installers: Installers): InstallCapability {
+	const manager = offer.installs[0]?.manager ?? "";
+	const install = installers(manager);
+	if (install === undefined) throw new Error(`no technology of 495 runs ${manager}, which brings the referential`);
+	return install;
+}
 
 const stackName = (stack: string): string => `${stack.charAt(0).toUpperCase()}${stack.slice(1)}`;
 
 /**
  * IH-04 asked on a survey whose quality requirement no control measures while the adapter proposes a
- * referential that would: the owner adopts it, which resolves its plugin or installs its packages in a
- * copy, or leaves the requirement a blind spot. Nothing is prepared and nothing is assigned: a survey
- * writes nothing.
+ * referential that would: the owner adopts it, which brings its packages into a copy with the manager of
+ * its technology, or leaves the requirement a blind spot. Nothing is prepared and nothing is assigned: a
+ * survey writes nothing.
  */
 const REFERENTIAL_ADOPTION = {
-	fr: (requirements: string, offer: ReferentialOffer) => {
+	fr: (requirements: string, offer: ReferentialOffer, installers: Installers) => {
 		const names = installedNames(offer.installs);
-		const npm = installedByNpm(offer);
+		const install = referentialInstaller(offer, installers);
+		const said = install.phrases.fr;
+		const resolves = install.form === "resolve";
 		return {
 			question: `Aucun contrôle ne mesure ${requirements}. Adopter le référentiel de qualité proposé pour ${stackName(offer.stack)} ?`,
 			options: [
 				{
 					id: "adopt_referential",
-					label: npm
-						? `Adopter le référentiel (installe ${names} dans une copie, réseau ouvert pour cette seule étape)`
-						: `Adopter le référentiel (déclare ${names} dans une copie du POM et le résout, réseau ouvert pour cette seule étape)`,
-					effect: `${
-						npm
-							? `495 installe ${names} comme dépendances de développement exactes dans une copie du projet, en ouvrant le réseau pour cette seule étape et sans exécuter de script d'installation ; la copie est inspectée et l'installation n'est acceptée que si elle ne modifie que package.json, package-lock.json et node_modules/ ; rien n'est écrit dans le projet.`
-							: `495 déclare ${names} dans une copie du POM et résout le greffon avec Maven, en ouvrant le réseau pour cette seule étape et sans exécuter aucun but du greffon ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml ; rien n'est écrit dans le projet.`
-					} Le référentiel est gelé dans le protocole avec la date de cette décision, et l'état des lieux mesure l'exigence avec lui. ${
-						npm
-							? "Si l'installation échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par npm."
-							: "Si la résolution échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par Maven."
-					} La réponse tombe si les exigences sont révisées.`,
+					label: `Adopter le référentiel (${said.referentialLabel(names)}, réseau ouvert pour cette seule étape)`,
+					effect: `495 ${said.referentialDoes(names)}, en ouvrant le réseau pour cette seule étape et ${said.runsNothing} ; ${said.referentialInspected} ; rien n'est écrit dans le projet. Le référentiel est gelé dans le protocole avec la date de cette décision, et l'état des lieux mesure l'exigence avec lui. Si ${resolves ? "la résolution" : "l'installation"} échoue, rien n'est adopté et l'exigence reste un angle mort avec la raison donnée par ${install.title}. La réponse tombe si les exigences sont révisées.`,
 					risky: true,
 				},
 				{
 					id: "leave_blind_spot",
 					label: "Laisser l'exigence en angle mort",
-					effect: `${npm ? "Rien n'est installé" : "Rien n'est résolu"} et le réseau reste fermé ; l'état des lieux nomme l'exigence comme angle mort, parce que le référentiel proposé n'a pas été adopté. La réponse tombe si les exigences sont révisées.`,
+					effect: `${resolves ? "Rien n'est résolu" : "Rien n'est installé"} et le réseau reste fermé ; l'état des lieux nomme l'exigence comme angle mort, parce que le référentiel proposé n'a pas été adopté. La réponse tombe si les exigences sont révisées.`,
 					risky: false,
 				},
 			],
 		};
 	},
-	en: (requirements: string, offer: ReferentialOffer) => {
+	en: (requirements: string, offer: ReferentialOffer, installers: Installers) => {
 		const names = installedNames(offer.installs);
-		const npm = installedByNpm(offer);
+		const install = referentialInstaller(offer, installers);
+		const said = install.phrases.en;
+		const resolves = install.form === "resolve";
 		return {
 			question: `No control measures ${requirements}. Adopt the quality referential proposed for ${stackName(offer.stack)}?`,
 			options: [
 				{
 					id: "adopt_referential",
-					label: npm
-						? `Adopt the referential (installs ${names} in a copy, network open for that step alone)`
-						: `Adopt the referential (declares ${names} in a copy of the POM and resolves it, network open for that step alone)`,
-					effect: `${
-						npm
-							? `495 installs ${names} as exact development dependencies in a copy of the project, opening the network for that step alone and running no install script; the copy is inspected and the install is accepted only if it changes nothing but package.json, package-lock.json and node_modules/; nothing is written in the project.`
-							: `495 declares ${names} in a copy of the POM and resolves the plugin with Maven, opening the network for that step alone and running no goal of the plugin; the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml; nothing is written in the project.`
-					} The referential is frozen in the protocol with the date of this decision, and the survey measures the requirement with it. ${
-						npm
-							? "If the install fails, nothing is adopted and the requirement stays a blind spot with the reason npm gave."
-							: "If the resolution fails, nothing is adopted and the requirement stays a blind spot with the reason Maven gave."
-					} The answer lapses if the requirements are revised.`,
+					label: `Adopt the referential (${said.referentialLabel(names)}, network open for that step alone)`,
+					effect: `495 ${said.referentialDoes(names)}, opening the network for that step alone and ${said.runsNothing}; ${said.referentialInspected}; nothing is written in the project. The referential is frozen in the protocol with the date of this decision, and the survey measures the requirement with it. If ${resolves ? "the resolution" : "the install"} fails, nothing is adopted and the requirement stays a blind spot with the reason ${install.title} gave. The answer lapses if the requirements are revised.`,
 					risky: true,
 				},
 				{
 					id: "leave_blind_spot",
 					label: "Leave the requirement a blind spot",
-					effect: `${npm ? "Nothing is installed" : "Nothing is resolved"} and the network stays closed; the survey names the requirement as a blind spot, because the proposed referential was not adopted. The answer lapses if the requirements are revised.`,
+					effect: `${resolves ? "Nothing is resolved" : "Nothing is installed"} and the network stays closed; the survey names the requirement as a blind spot, because the proposed referential was not adopted. The answer lapses if the requirements are revised.`,
 					risky: false,
 				},
 			],
@@ -536,19 +522,22 @@ export function buildDecisionRequest(args: {
 	adoptable?: Adoptable;
 	/** The quality referential an IH-04 asked on a survey offers instead of a preparation. */
 	referential?: ReferentialOffer;
+	/** The install capability that runs a package manager, whose phrases say what adopting its packages does. */
+	installers?: Installers;
 	requested_at: string;
 }): DecisionRequest {
+	const installers = args.installers ?? (() => undefined);
 	// The only IH-10 asked on an artifact is the acceptance of a survey; a candidate's is asked on the candidate.
 	const surveyed = args.interaction === "IH-10" && args.subject.kind === "artifact";
 	const t = surveyed
 		? SURVEY_ACCEPTANCE[args.language]
 		: args.interaction === "IH-04" && args.referential
-			? REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential)
+			? REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers)
 			: T[args.language][args.interaction](args.arg ?? "");
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
 	const options =
 		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)
-			? [...t.options, ADOPT_COMPLEMENT[args.language](adoptable)]
+			? [...t.options, ADOPT_COMPLEMENT[args.language](adoptable, installers)]
 			: t.options;
 	return {
 		decision_id: args.decision_id,

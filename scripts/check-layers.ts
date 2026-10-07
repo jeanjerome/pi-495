@@ -7,9 +7,12 @@
  * Pi's display library, pi-tui, which is a widget toolkit and not the agent API; what the review
  * needs from the Pi application itself — theme, keybindings, the drawing of a comparison — is
  * injected from extension/ (D-81).
+ * A technology is one directory under adapters/stacks/: no module outside it imports it, another
+ * technology included, but the composition root that mounts the list of technologies, extension/runtime.ts;
+ * what the technologies share sits beside those directories and stays importable (D-86).
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 const root = join(process.cwd(), "src");
 const rules: Array<{ layer: string; forbidden: RegExp[] }> = [
@@ -83,6 +86,31 @@ for (const rule of rules) {
 				if (re.test(`"${specifier}"`)) violations.push(`${relative(process.cwd(), file)}: ${specifier}`);
 	}
 }
+const STACKS = join(root, "adapters", "stacks");
+const COMPOSITION_ROOT = join(root, "extension", "runtime.ts");
+
+/** The technology whose directory holds `path`, or null for a path outside every technology directory. */
+function technologyOf(path: string): string | null {
+	const [technology, ...below] = relative(STACKS, path).split(sep);
+	return technology === undefined || technology === ".." || below.length === 0 ? null : technology;
+}
+
+let sources: string[] = [];
+try {
+	sources = walk(root);
+} catch {
+	// a tree without src/ imports nothing
+}
+for (const file of sources) {
+	if (file === COMPOSITION_ROOT) continue;
+	const own = technologyOf(file);
+	for (const specifier of specifiers(readFileSync(file, "utf8"))) {
+		if (!specifier.startsWith(".")) continue;
+		const imported = technologyOf(resolve(dirname(file), specifier));
+		if (imported !== null && imported !== own) violations.push(`${relative(process.cwd(), file)}: ${specifier}`);
+	}
+}
+
 if (violations.length > 0) {
 	console.error(`layer violations:\n${violations.join("\n")}`);
 	process.exit(1);

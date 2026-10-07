@@ -6,7 +6,8 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { applyRecommendedEdits, applyScriptsTestEdit, editedFile } from "../../src/application/complement.ts";
+import { applyRecommendedEdits, editedFile } from "../../src/application/complement.ts";
+import { applyScriptsTestEdit } from "../../src/adapters/stacks/node/install/scripts-test-edit.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { FileEdit, RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
@@ -92,18 +93,22 @@ describe("applying the edits of the recommended complements to a copy of the tar
 
 	it("given a recommendation whose edit applies, then the file is written and its digest returned, and given one whose edit does not apply or that carries none, then nothing is written", () => {
 		const dir = copy({ "package.json": packageJson });
-		const applied = applyRecommendedEdits(dir, [
-			{
-				test_type: "coverage",
-				tool: "without an edit",
-				version: "1",
-				established_on: "2026-09-30",
-				source: "s",
-				change: "c",
-			},
-			{ ...recommendation, tool: "another value", edit: { ...EDIT, current: "node --test test/" } },
-			recommendation,
-		]);
+		const applied = applyRecommendedEdits(
+			dir,
+			[
+				{
+					test_type: "coverage",
+					tool: "without an edit",
+					version: "1",
+					established_on: "2026-09-30",
+					source: "s",
+					change: "c",
+				},
+				{ ...recommendation, tool: "another value", edit: { ...EDIT, current: "node --test test/" } },
+				recommendation,
+			],
+			applyScriptsTestEdit,
+		);
 		const written = readFileSync(join(dir, "package.json"), "utf8");
 		assert.equal(JSON.parse(written).scripts.test, EDIT.wanted);
 		assert.deepEqual(applied, [
@@ -118,7 +123,7 @@ describe("applying the edits of the recommended complements to a copy of the tar
 
 	it("given a copy without the file the edit names, then the edit does not apply and the copy is left as it is", () => {
 		const dir = copy({ "other.json": "{}" });
-		assert.equal(editedFile(dir, EDIT), null);
-		assert.deepEqual(applyRecommendedEdits(dir, [recommendation]), []);
+		assert.equal(editedFile(dir, EDIT, applyScriptsTestEdit), null);
+		assert.deepEqual(applyRecommendedEdits(dir, [recommendation], applyScriptsTestEdit), []);
 	});
 });

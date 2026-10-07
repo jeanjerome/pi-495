@@ -12,3 +12,7 @@ export const PMD_RULESET_PROPERTY = "pmd495.ruleset";
 
 /** The name under which `maven-test` provides the JaCoCo report it writes to the coverage control that requires it. */
 export const JACOCO_REPORT_NAME = "jacoco-report";
+
+/** The PMD plugin the quality referential of this technology declares, at the version its catalogue pins. */
+export const PMD_PLUGIN = "org.apache.maven.plugins:maven-pmd-plugin";
+export const PMD_PLUGIN_VERSION = "3.28.0";

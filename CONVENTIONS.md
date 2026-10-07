@@ -138,7 +138,10 @@ capability, and before deducing from the outside what Pi can report from the ins
   it at a project root, its recognition of a project and the readers of the report formats only it writes;
   `project/` holds the model of the project its capabilities share; `tests/`, `coverage/`, `mutation/`,
   `quality/` and `structure/` each implement the interface of that capability, with its controls, its
-  witnesses and its readers. A capability a technology does not declare is one it does not offer.
+  witnesses and its readers; `install/` says how its package manager brings, inspects and presents a
+  complement. A capability a technology does not declare is one it does not offer. No module outside a
+  technology's directory imports it, another technology included, but `src/extension/runtime.ts`
+  (`npm run lint:layers`).
 - A technology reads the project only through the `ProjectView` the common layer opens on the copy, never
   through `node:fs`. The common layer (`src/application/stacks/`) recognises the technology of a copy,
   asks each capability and assembles the answers once; the kernel asks a project only through its

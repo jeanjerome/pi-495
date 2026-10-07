@@ -295,9 +295,9 @@ describe("an install recommended with a package manager", () => {
 			{ ...recommendation, install: { package: "org.jacoco:jacoco-maven-plugin", version: "0.8.15", manager } },
 		],
 	});
-	it("given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it", () => {
+	it("given a recommendation installing with maven, then the schema accepts it, and given one installing with npm, then it still accepts it, while one naming no manager is refused", () => {
 		assert.deepEqual(validate(ControlCapabilityDiagnosis, installing("maven")), installing("maven"));
 		assert.deepEqual(validate(ControlCapabilityDiagnosis, installing("npm")), installing("npm"));
-		assert.throws(() => validate(ControlCapabilityDiagnosis, installing("gradle")), ContractError);
+		assert.throws(() => validate(ControlCapabilityDiagnosis, installing("")), ContractError);
 	});
 });

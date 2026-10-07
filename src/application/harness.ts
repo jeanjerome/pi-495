@@ -78,8 +78,9 @@ import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
 import { buildDecisionRequest } from "./decisions.ts";
-import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
+import { askedOutsideDirectory, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
+import type { InstallCapability } from "./stacks/plugin.ts";
 import type { StackRegistry } from "./stacks/registry.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
@@ -286,17 +287,17 @@ export class Harness {
 			workspace: deps.workspace,
 			workspacePolicy: deps.workspacePolicy,
 			stacks: deps.stacks,
-			install: (copyPath: string, command: readonly string[], outside?: string) =>
+			install: (copyPath: string, command: readonly string[], install: InstallCapability, outside?: string) =>
 				deps.sandbox.qualification.qualified
-					? runInstall(deps.sandbox.backend, copyPath, command, outside)
+					? runInstall(deps.sandbox.backend, copyPath, command, install, outside)
 					: Promise.resolve<InstallRun>({
 							kind: "failed",
 							reason: `sandbox backend ${deps.sandbox.backend.backend} is not qualified: ${deps.sandbox.qualification.reasons.join("; ")}`,
 						}),
-			localRepository: async (copyPath: string) => {
+			outsideDirectory: async (copyPath: string, install: InstallCapability) => {
 				if (!deps.sandbox.qualification.qualified) return null;
-				const announced = await askedLocalRepository(deps.sandbox.backend, copyPath);
-				return "path" in announced ? announced.path : null;
+				const said = await askedOutsideDirectory(deps.sandbox.backend, install, copyPath);
+				return "path" in said ? said.path : null;
 			},
 			policy: deps.policy,
 			get integrator() {
@@ -1024,6 +1025,7 @@ export class Harness {
 			...(arg !== undefined ? { arg } : {}),
 			...(adoptable ? { adoptable } : {}),
 			...(referential ? { referential } : {}),
+			installers: (manager: string) => this.deps.stacks.installerOf(manager)?.install,
 			requested_at: this.now(),
 		});
 		this.deps.ledger.putDecisionRequest(request);

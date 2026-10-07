@@ -7,6 +7,7 @@
 import type { StackPlugin } from "../../../application/stacks/plugin.ts";
 import { bindsJacocoReport, MAVEN_COVERAGE } from "./coverage/coverage-control.ts";
 import { JACOCO_READER } from "./coverage/jacoco-reader.ts";
+import { MAVEN_INSTALL } from "./install/maven-install.ts";
 import { MAVEN_MUTATION, readsMutationReport } from "./mutation/mutation-control.ts";
 import { PITEST_READER } from "./mutation/pitest-reader.ts";
 import type { MavenProject } from "./project/maven-project.ts";
@@ -53,5 +54,6 @@ export const MAVEN_PLUGIN: StackPlugin<MavenProject> = {
 			env: ["JAVA_HOME", "MAVEN_OPTS"],
 			versions: { java: ["java", ["-version"]], mvn: ["mvn", ["-v"]] },
 		},
+		install: MAVEN_INSTALL,
 	},
 };

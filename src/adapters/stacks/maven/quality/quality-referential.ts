@@ -4,12 +4,11 @@
  * POMs (QLT-01).
  */
 import type { QualityPerimeter, QualityRule } from "../../../../contracts/v1/protocol.ts";
-import { PMD_PLUGIN, PMD_PLUGIN_VERSION } from "../../../../application/installation.ts";
 import type { ProjectView } from "../../../../application/stacks/project-view.ts";
 import type { QualityOffer } from "../../../../application/stacks/plugin.ts";
 import { withPluginEdit } from "../project/plugin-declaration.ts";
 import type { MavenReactor } from "../project/reactor.ts";
-import { PMD_RULESET_PROPERTY } from "../shared.ts";
+import { PMD_PLUGIN, PMD_PLUGIN_VERSION, PMD_RULESET_PROPERTY } from "../shared.ts";
 
 /** The date the PMD referential below was checked against the sources it cites. */
 const QUALITY_REFERENTIAL_DATE = "2026-10-03";

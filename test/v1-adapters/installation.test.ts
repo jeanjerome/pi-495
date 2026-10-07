@@ -9,15 +9,16 @@ import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
 import { fixtureJava, fixtureTs, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { installableRecommendations, runInstall as runManager } from "../../src/application/installation.ts";
+import type { InstallState as ManagerState } from "../../src/application/stacks/plugin.ts";
+import { BASE_ENV } from "../../src/application/stacks/stack.ts";
 import {
-	inspectInstall,
 	inspectResolution,
-	planInstall,
+	MAVEN_INSTALL as MAVEN_MANAGER,
 	readLocalRepository,
-	runInstall,
-} from "../../src/application/installation.ts";
-import type { InstallState } from "../../src/application/installation.ts";
-import type { PackageInstall } from "../../src/contracts/v1/protocol.ts";
+} from "../../src/adapters/stacks/maven/install/maven-install.ts";
+import { inspectNpmInstall, NPM_INSTALL as NPM_MANAGER } from "../../src/adapters/stacks/node/install/npm-install.ts";
+import type { PackageInstall, RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import type {
 	ExecutableRequest,
 	ProcessObservation,
@@ -31,6 +32,30 @@ const INSTALL: PackageInstall = { package: "@vitest/coverage-v8", version: "3.2.
 const BASE_FILES = ["package.json", "src/index.ts"];
 
 const cleanups = removedAfterEach();
+
+/** A copy as an npm install can change it: each file by its digest, and the two manifests as text. */
+interface InstallState {
+	files: Readonly<Record<string, string>>;
+	package_json: string;
+	package_lock: string;
+}
+
+const managerState = (state: InstallState): ManagerState => ({
+	files: state.files,
+	texts: { "package.json": state.package_json, "package-lock.json": state.package_lock },
+});
+
+/** The inspection npm's technology declares, given each copy with its two manifests. */
+const inspectInstall = (before: InstallState, after: InstallState, installs: readonly PackageInstall[]) =>
+	inspectNpmInstall(managerState(before), managerState(after), installs);
+
+/** The plan of the technology that runs the manager of `installs`. */
+const planInstall = (files: readonly string[], installs: readonly PackageInstall[]) =>
+	(installs[0]?.manager === "maven" ? MAVEN_MANAGER : NPM_MANAGER).plan(files, installs);
+
+/** Runs `command` with the manager it names, as its technology declares it. */
+const runInstall = (sandbox: SandboxPort, copyPath: string, command: readonly string[]) =>
+	runManager(sandbox, copyPath, command, command[0] === "mvn" ? MAVEN_MANAGER : NPM_MANAGER);
 
 describe("planning the install of a recommended package", () => {
 	it("given package-lock.json alone, then the plan is the npm command for the exact version, and given pnpm-lock.yaml, yarn.lock, bun.lock or no lock, then the plan is a refusal naming the file or its absence, and given a .npmrc, then the plan is still the npm command", () => {
@@ -58,6 +83,33 @@ describe("planning the install of a recommended package", () => {
 		assert.equal(noLock.kind, "refused");
 		assert.match(noLock.kind === "refused" ? noLock.reason : "", /no package-lock\.json/);
 		assert.equal(planInstall([...BASE_FILES, "package-lock.json", "yarn.lock"], [INSTALL]).kind, "refused");
+	});
+
+	it("given a recommendation whose manager no technology of the list runs, then it is not installable and its text says no technology of 495 runs that manager, while one by npm on a locked target is installable", () => {
+		const recommendation = (install: PackageInstall): RecommendedComplement => ({
+			test_type: "quality",
+			tool: install.package,
+			version: install.version,
+			established_on: "2026-10-03",
+			source: "s",
+			change: `install ${install.package}`,
+			install,
+		});
+		const unknown = recommendation({ package: "fict-style", version: "1.0.0", manager: "fictpm" });
+		const known = recommendation(INSTALL);
+		const offered = installableRecommendations(
+			[...BASE_FILES, "package-lock.json"],
+			[unknown, known],
+			[],
+			(manager) => STACKS_OF_495.installerOf(manager),
+			{},
+		);
+		assert.deepEqual(offered.installable, [known]);
+		assert.equal(
+			offered.recommendations[0]?.change,
+			"install fict-style; 495 does not run this install: no technology of 495 runs fictpm",
+		);
+		assert.deepEqual(offered.recommendations[1], known);
 	});
 });
 
@@ -352,6 +404,18 @@ describe("running the install in the copy", () => {
 		const third = await runInstall(slow, "/copies/w1", command);
 		assert.match(third.kind === "failed" ? third.reason : "", /timed out/);
 	});
+
+	it("given a technology whose manager declares no directory it writes outside the copy, then nothing is asked first and the install runs with the network allowed, writing only the copy", async () => {
+		const { outside_write: _outside, ...writesOnlyTheCopy } = NPM_MANAGER;
+		const sandbox = new RecordingSandbox("/machine/npm-cache");
+		const command = ["npm", "install", `${PROVIDER}@3.2.4`];
+		assert.deepEqual(await runManager(sandbox, "/copies/w1", command, writesOnlyTheCopy), { kind: "installed" });
+		assert.equal(sandbox.runs.length, 1, "no directory is asked of the manager");
+		const [installed] = sandbox.runs;
+		assert.deepEqual(installed?.request.command, command);
+		assert.equal(installed?.profile.network, "allowed");
+		assert.deepEqual(installed?.profile.write_paths, ["/copies/w1"]);
+	});
 });
 
 const MAVEN_INSTALL: PackageInstall = {
@@ -513,6 +577,47 @@ describe("running the resolution in the copy", () => {
 				new GenericControlRunner(sandbox, null as never, READERS_OF_495).profileFor(control, target).network,
 				"denied",
 			);
+	});
+});
+
+describe("the variables of the session an install reads", () => {
+	const session = {
+		PATH: "/usr/bin",
+		HOME: "/home/owner",
+		NPM_TOKEN: "npm-secret",
+		npm_config_registry: "https://registry.example",
+		NPM_CONFIG_CACHE: "/machine/npm-cache",
+		JAVA_HOME: "/jdk",
+		AWS_SECRET_ACCESS_KEY: "aws-secret",
+	};
+
+	it("given a session carrying npm's, Maven's and other variables, then npm asks its cache and installs reading the variables of every control, the closed list of npm's and each npm_config_ one whatever its case, and Maven asks its local repository and resolves reading those of every control and the closed list of Maven's, and neither reads the other's nor any other", async () => {
+		const npm = new RecordingSandbox("/machine/npm-cache");
+		await runManager(npm, "/copies/w1", ["npm", "install", `${PROVIDER}@3.2.4`], NPM_MANAGER, undefined, session);
+		const npmNames = [
+			...BASE_ENV,
+			"NODE_AUTH_TOKEN",
+			"NPM_TOKEN",
+			"HTTP_PROXY",
+			"HTTPS_PROXY",
+			"NO_PROXY",
+			"http_proxy",
+			"https_proxy",
+			"no_proxy",
+			"NODE_EXTRA_CA_CERTS",
+			"SSL_CERT_FILE",
+			"npm_config_registry",
+			"NPM_CONFIG_CACHE",
+		];
+		assert.equal(npm.runs.length, 2);
+		for (const run of npm.runs) assert.deepEqual(run.profile.env_allowlist, npmNames, run.request.command.join(" "));
+
+		const maven = new RecordingMavenSandbox("[DEBUG] Using local repository at /machine/m2/repository\n");
+		await runManager(maven, "/copies/w1", ["mvn", "-B", "validate"], MAVEN_MANAGER, undefined, session);
+		const mavenNames = [...BASE_ENV, "JAVA_HOME", "MAVEN_OPTS", "MAVEN_ARGS", "MAVEN_HOME", "M2_HOME"];
+		assert.equal(maven.runs.length, 2);
+		for (const run of maven.runs)
+			assert.deepEqual(run.profile.env_allowlist, mavenNames, run.request.command.join(" "));
 	});
 });
 

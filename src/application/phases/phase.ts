@@ -18,6 +18,7 @@ import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
 import type { Adoptable, PhaseInteraction, ReferentialOffer } from "../decisions.ts";
 import type { InstallRun } from "../installation.ts";
+import type { InstallCapability } from "../stacks/plugin.ts";
 import type { VerificationCoordinator } from "../verification.ts";
 import type { StackRegistry } from "../stacks/registry.ts";
 
@@ -67,10 +68,18 @@ export interface PhaseContext {
 	readonly workspacePolicy: WorkspacePolicy;
 	/** The technologies a project is detected with, in the order they claim one. */
 	readonly stacks: StackRegistry;
-	/** Runs an install command in a copy, with the network open for that step alone, writing `outside` when it is given. */
-	install(copyPath: string, command: readonly string[], outside?: string): Promise<InstallRun>;
-	/** The local repository Maven announces for a copy, asked offline, or null when it announces none. */
-	localRepository(copyPath: string): Promise<string | null>;
+	/**
+	 * Runs the install command of the manager `install` declares in a copy, with the network open for that step
+	 * alone, writing `outside` when it is given.
+	 */
+	install(
+		copyPath: string,
+		command: readonly string[],
+		install: InstallCapability,
+		outside?: string,
+	): Promise<InstallRun>;
+	/** The directory the manager `install` declares says it writes outside a copy, asked offline, or null when it says none. */
+	outsideDirectory(copyPath: string, install: InstallCapability): Promise<string | null>;
 	readonly policy: ActivePolicy;
 	/** Applies the accepted candidate locally; absent when no integrator is configured. */
 	readonly integrator: ((unit: Unit, cor: string) => Promise<Unit>) | null;

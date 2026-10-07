@@ -5,7 +5,9 @@
  */
 import type {
 	ControlDefinition,
+	FileEdit,
 	InstalledPackage,
+	PackageInstall,
 	QualityPerimeter,
 	QualityRule,
 	RecommendedComplement,
@@ -123,6 +125,91 @@ export interface WorkspaceCapability {
 	readonly versions?: Readonly<Record<string, ToolProbe>>;
 }
 
+/** What installing a package comes to: the command to run in the copy, or why it cannot be run. */
+export type InstallPlan = { kind: "command"; command: string[] } | { kind: "refused"; reason: string };
+
+/** A copy of the target as an install can change it: each file by its digest, and the text of each file the inspection reads. */
+export interface InstallState {
+	readonly files: Readonly<Record<string, string>>;
+	readonly texts: Readonly<Record<string, string>>;
+}
+
+/** What an install left: the files to keep with the packages that were added, or what keeps it from being accepted. */
+export type InstallInspection =
+	| { kind: "accepted"; files: string[]; packages: InstalledPackage[] }
+	| { kind: "refused"; reason: string };
+
+/**
+ * What a package manager is asked offline before its step runs, so that the one directory it writes outside
+ * the copy is the one it says, configuration of the machine and of the project applied. `read` gives the
+ * directory the answer names, or null when it names none; `unsaid` says so in the reason the step fails with.
+ * `kept` is declared when what the manager writes there stays after a refused integration: the directory is
+ * then asked before the owner is, named to them, and the install is not run when it cannot be established,
+ * for the reason `kept.unestablished` gives.
+ */
+export interface OutsideWriteQuery {
+	readonly command: readonly string[];
+	read(stdout: string): string | null;
+	readonly unsaid: string;
+	readonly kept?: { readonly unestablished: string };
+}
+
+/**
+ * What a technology tells the owner its package manager does with the packages `names`, in one language. The
+ * kernel composes these phrases with its own: the network open for that step alone, nothing written in the
+ * project, the inspection before any adoption.
+ */
+export interface InstallPhrases {
+	/** The adoption of a complement, in its label: what the manager does to the packages. */
+	complementLabel(names: string): string;
+	/** The adoption of a complement, in its effect: what 495 does with the manager in a copy of the project. */
+	complementDoes(names: string): string;
+	/** What the manager is kept from running while it brings the packages. */
+	readonly runsNothing: string;
+	/** For a manager whose writes outside the copy stay, what stays and where, the directory when it is known. */
+	keptOutside?(directory: string | undefined): string;
+	/** What the inspection accepts of the adoption of a complement. */
+	readonly complementInspected: string;
+	/** The adoption of a quality referential, in its label. */
+	referentialLabel(names: string): string;
+	/** The adoption of a quality referential, in its effect. */
+	referentialDoes(names: string): string;
+	/** What the inspection accepts of the adoption of a quality referential. */
+	readonly referentialInspected: string;
+}
+
+/**
+ * How a technology brings the package of a complement into a copy of the target, with the package manager it
+ * runs. `form` says what is kept: `install` installs in the copy and keeps the files the inspection accepts;
+ * `resolve` resolves in a copy of its own and keeps only the file edit the recommendation describes. `plan`
+ * decides from the files of the reference alone. `reads` are the files whose text `inspect` is given, before
+ * and after the install, besides the digest of every file; `written` are the files 495 wrote into the copy
+ * before the manager ran. `env` names the variables of the session the manager reads, by name and by a prefix
+ * matched whatever its case, beyond those every control reads. `failure_output` is the stream the manager
+ * says the cause of a failure on, and `keeps_output` asks for what it printed to be kept in the dossier.
+ * `edit` is the rule a file edit the technology recommends is applied by, when it is not the replacement of
+ * the one place the current value occurs. `title` names the manager as the owner reads it.
+ */
+export interface InstallCapability {
+	readonly manager: string;
+	readonly title: string;
+	readonly form: "install" | "resolve";
+	plan(files: readonly string[], installs: readonly PackageInstall[]): InstallPlan;
+	readonly reads?: readonly string[];
+	inspect(
+		before: InstallState,
+		after: InstallState,
+		installs: readonly PackageInstall[],
+		written: readonly { path: string; digest: string }[],
+	): InstallInspection;
+	readonly outside_write?: OutsideWriteQuery;
+	readonly env: { readonly names: readonly string[]; readonly prefixes?: readonly string[] };
+	readonly failure_output: "stdout" | "stderr";
+	readonly keeps_output?: boolean;
+	edit?(text: string, edit: FileEdit): string | null;
+	readonly phrases: { readonly fr: InstallPhrases; readonly en: InstallPhrases };
+}
+
 /** A command that prints the version of a tool on the first line of its output: the program, then its arguments. */
 export type ToolProbe = readonly [string, readonly string[]];
 
@@ -146,5 +233,6 @@ export interface StackPlugin<Model> {
 		readonly quality?: QualityCapability<Model>;
 		readonly structure?: StructureCapability<Model>;
 		readonly workspace?: WorkspaceCapability;
+		readonly install?: InstallCapability;
 	};
 }

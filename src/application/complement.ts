@@ -1,8 +1,9 @@
 /**
- * Applying the edit of a recommended complement to the text of a target's `package.json` or `pom.xml`.
- * The value is replaced where it stands in the text, so that the file stays byte for byte what it was
- * around it and the diff the owner reads shows that change only. Once adopted, a complement is written into the
- * copies where a control runs.
+ * Applying the edit of a recommended complement to the text of a file of the target, by the rule the
+ * technology that recommends it declares, or by replacing the one place the current value occurs. The value
+ * is replaced where it stands in the text, so that the file stays byte for byte what it was around it and the
+ * diff the owner reads shows that change only. Once adopted, a complement is written into the copies where a
+ * control runs.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,87 +14,12 @@ import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../ports/e
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import { writeStoredFiles } from "./artifacts.ts";
 
-interface Member {
-	key: string;
-	start: number;
-	end: number;
-}
-
-function skipSpace(text: string, from: number): number {
-	let i = from;
-	while (/\s/.test(text[i] ?? "")) i++;
-	return i;
-}
-
-/** The index after the string literal that opens at `from`. */
-function stringEnd(text: string, from: number): number {
-	let i = from + 1;
-	while (text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
-	return i + 1;
-}
-
-/** The index after the JSON value that starts at `from`; the text is known to be well-formed. */
-function valueEnd(text: string, from: number): number {
-	const first = text[from];
-	if (first === '"') return stringEnd(text, from);
-	if (first !== "{" && first !== "[") {
-		let i = from;
-		while (!/[\s,}\]]/.test(text[i] ?? " ")) i++;
-		return i;
-	}
-	const close = first === "{" ? "}" : "]";
-	let i = from + 1;
-	for (;;) {
-		i = skipSpace(text, i);
-		if (text[i] === close) return i + 1;
-		i = text[i] === "," || text[i] === ":" ? i + 1 : valueEnd(text, i);
-	}
-}
-
-/** The members of the object that opens at `from`, each with the span of its value. */
-function membersOf(text: string, from: number): Member[] {
-	const members: Member[] = [];
-	let i = from + 1;
-	for (;;) {
-		i = skipSpace(text, i);
-		if (text[i] === "}") return members;
-		if (text[i] === ",") {
-			i++;
-			continue;
-		}
-		const keyEnd = stringEnd(text, i);
-		const start = skipSpace(text, skipSpace(text, keyEnd) + 1);
-		const end = valueEnd(text, start);
-		members.push({ key: JSON.parse(text.slice(i, keyEnd)) as string, start, end });
-		i = end;
-	}
-}
+/** How the text of a file is changed by a recommended edit, or null when the edit does not apply to it. */
+export type EditRule = (text: string, edit: FileEdit) => string | null;
 
 /**
- * The text of `packageJson` with the value of `scripts.test` replaced by the one the edit wants, or
- * null when the edit describes something else: the current value is not the one the edit names, or
- * `scripts` or `test` is absent or written twice, so that no one place is the value to replace.
- */
-export function applyScriptsTestEdit(packageJson: string, edit: FileEdit): string | null {
-	try {
-		JSON.parse(packageJson);
-	} catch {
-		return null; // a manifest that is not JSON has no scripts.test to replace
-	}
-	const root = skipSpace(packageJson, 0);
-	if (packageJson[root] !== "{") return null;
-	const scripts = membersOf(packageJson, root).filter((m) => m.key === "scripts");
-	if (scripts.length !== 1 || packageJson[scripts[0]!.start] !== "{") return null;
-	const tests = membersOf(packageJson, scripts[0]!.start).filter((m) => m.key === "test");
-	if (tests.length !== 1) return null;
-	const { start, end } = tests[0]!;
-	if (packageJson[start] !== '"' || JSON.parse(packageJson.slice(start, end)) !== edit.current) return null;
-	return packageJson.slice(0, start) + JSON.stringify(edit.wanted) + packageJson.slice(end);
-}
-
-/**
- * The text of `pom.xml` with the one place `edit.current` occurs replaced by `edit.wanted`, or null
- * when it does not occur exactly once: with no single place to replace, the edit is not applied.
+ * The text with the one place `edit.current` occurs replaced by `edit.wanted`, or null when it does not
+ * occur exactly once: with no single place to replace, the edit is not applied.
  */
 function applyExactEdit(text: string, edit: FileEdit): string | null {
 	const parts = text.split(edit.current);
@@ -101,27 +27,30 @@ function applyExactEdit(text: string, edit: FileEdit): string | null {
 	return `${parts[0]}${edit.wanted}${parts[1]}`;
 }
 
-/** The text `edit` makes of the file it names under `projectPath`, or null when the edit does not apply to it. */
-export function editedFile(projectPath: string, edit: FileEdit): string | null {
+/**
+ * The text `edit` makes of the file it names under `projectPath` by `rule`, the rule of the technology that
+ * recommends it when it declares one, or null when the edit does not apply to it.
+ */
+export function editedFile(projectPath: string, edit: FileEdit, rule: EditRule = applyExactEdit): string | null {
 	const file = join(projectPath, edit.path);
 	if (!existsSync(file)) return null;
-	const text = readFileSync(file, "utf8");
-	return edit.path === "pom.xml" ? applyExactEdit(text, edit) : applyScriptsTestEdit(text, edit);
+	return rule(readFileSync(file, "utf8"), edit);
 }
 
 /**
  * Writes into the copy at `projectPath` the edit of each recommended complement that has one and
- * that applies, and returns the complements as the protocol carries them, with the digest of each
- * file written.
+ * that applies by `rule`, and returns the complements as the protocol carries them, with the digest of
+ * each file written.
  */
 export function applyRecommendedEdits(
 	projectPath: string,
 	recommendations: readonly RecommendedComplement[],
+	rule?: EditRule,
 ): AdoptedComplement[] {
 	const complements: AdoptedComplement[] = [];
 	for (const r of recommendations) {
 		if (r.edit === undefined) continue;
-		const text = editedFile(projectPath, r.edit);
+		const text = editedFile(projectPath, r.edit, rule);
 		if (text === null) continue;
 		writeFileSync(join(projectPath, r.edit.path), text);
 		complements.push({ path: r.edit.path, digest: digestBytes(text), test_type: r.test_type, tool: r.tool });

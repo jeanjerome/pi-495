@@ -1,7 +1,8 @@
 /**
  * What an install or a resolution adopted by the owner left in the dossier: the reason one failed, kept
- * for the requirements it was adopted for so that it is not run again, and what Maven printed when it
- * resolved a plugin, so that the dossier shows what was downloaded.
+ * for the requirements it was adopted for so that it is not run again, and what the package manager
+ * printed when its technology keeps it, as Maven does when it resolves a plugin, so that the dossier shows
+ * what was downloaded.
  */
 import type { ArtifactRef } from "../../contracts/v1/common.ts";
 import type { PackageInstall } from "../../contracts/v1/protocol.ts";
@@ -11,7 +12,7 @@ import type { PhaseContext, Unit } from "./phase.ts";
 
 /** The identifier every record of an install that was not adopted starts with, followed by `_`. */
 const INSTALL_RECORD_PREFIX = "install_";
-/** The identifier of the record that keeps what Maven printed when it resolved a plugin. */
+/** The identifier of the record that keeps what a package manager printed when it brought a package. */
 const RESOLUTION_RECORD_PREFIX = "resolution";
 
 interface InstallFailureRecord {
@@ -62,7 +63,7 @@ export async function recordFailedInstall(
 	return ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "output", ref }, cor);
 }
 
-/** Writes in the dossier what Maven printed when it resolved the plugin of `install`. */
+/** Writes in the dossier what the package manager printed when it brought the package of `install`. */
 export async function recordResolution(
 	ctx: PhaseContext,
 	unit: Unit,

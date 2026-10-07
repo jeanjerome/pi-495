@@ -1631,3 +1631,134 @@ bugs:
       Let a probe read the first non-empty line of stdout, then of stderr, with a test on a probe that prints its
       version on stderr; the environment digest of every machine with a JDK changes once.
     status: open
+  - bug_id: BUG-2026-10-07T230000
+    date: "2026-10-07"
+    title: "No test holds that a Maven resolution lists its copy with no exclusion, so a file it writes under target/ could be let through unnoticed"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `bringInstalls` (`src/application/installation.ts`) lists the copy a resolving manager runs in with the
+      workspace policy stripped of its exclusions, so that a file the resolution writes under a directory a copy
+      leaves out, such as `target/`, is a change the inspection refuses like any other. Replacing that policy by
+      the workspace policy as it stands keeps the whole suite green: the excluded directories drop out of the
+      listings before and after, and a resolution that writes there is accepted.
+    what_expected: >
+      A test makes a resolution write a file under an excluded directory of its copy and sees it refused naming
+      that file, so that dropping the stripped policy turns it red.
+    steps_to_reproduce:
+      - "In `bringInstalls`, replace `const whole = { ...deps.workspacePolicy, exclusions: [] };` by `const whole = deps.workspacePolicy;`."
+      - "Run `npm test`: every test passes."
+    root_cause: >
+      The listing with no exclusion was written with the resolution of Maven plugins and kept as it was when the
+      resolution moved behind the install capability of a technology; no test of either form writes under an
+      excluded directory.
+    evidence: >
+      Mutation applied on 2026-10-07 against the branch that moves the install of npm and Maven into their
+      technologies: the whole suite stays green. The line itself is unchanged from the resolution it replaced.
+    risk_level: low
+    follow_ups: >
+      Add a resolution test whose manager writes `target/x` in its copy and whose inspection refuses it naming
+      `target/x`.
+    status: open
+  - bug_id: BUG-2026-10-07T232244
+    date: "2026-10-07"
+    title: "No test holds that an installing manager's copy is listed with the dependency directory its technology declares, so node_modules written back in place of it goes unnoticed"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `bringInstalls` (`src/application/installation.ts`) lists the copy an installing manager runs in with the
+      directory its technology declares for installed dependencies (`fict_modules` for the fictitious
+      technology), so that a file the install writes there above the size limit is read whole and, under a
+      workspace policy that excludes `dist/` by name, a dependency's own `dist/` is not dropped from the listing.
+      Replacing that directory by `node_modules` written in place, as before the branch that moves the install of npm and Maven into their
+      technologies, keeps the generations v1 to v3 green: the files fictpm writes are small and fall under no
+      excluded directory, npm declares `node_modules` either way, and Maven resolves instead of installing.
+    what_expected: >
+      A test makes the fictitious manager install a file above the size limit, or one under a directory the
+      workspace policy excludes by name, such as `fict_modules/pkg/dist/` under a `dist/` exclusion, and sees it
+      listed and adopted, so that writing `node_modules` in place of the declared directory turns it red.
+    steps_to_reproduce:
+      - "In `bringInstalls`, replace `installed_dependencies: [...installer.installed_dependencies],` by `installed_dependencies: [\"node_modules\"],`."
+      - "Run `node --test test/v2-kernel/fictitious-install.test.ts`, then `npm test`: every test passes."
+    root_cause: >
+      The fictitious technology was written to exercise a manager that is neither npm nor Maven, but its install
+      writes only small files outside any excluded directory, so the two properties the declared directory
+      carries for the listing are never reached through it.
+    evidence: >
+      Mutation applied on 2026-10-07 against the branch that moves the install of npm and Maven into their
+      technologies: `test/v2-kernel/fictitious-install.test.ts` passes 3 of 3, and the reviewer saw v1, v2 and v3
+      pass with no failure.
+    risk_level: low
+    follow_ups: >
+      Let fictpm write a file above `max_file_bytes` and one under `fict_modules/<package>/dist/`, and assert both
+      are listed with their digest and adopted.
+    status: open
+  - bug_id: BUG-2026-10-08T010000
+    date: "2026-10-08"
+    title: "An install the inspection refuses leaves what it wrote in the copy the positive witnesses then run in, so a control is qualified, or refused, against files the owner never adopted"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      The verification design (`src/application/phases/verification-design.ts`) creates one copy of the
+      reference, brings the adopted quality referential and the adopted complements into it, then hands that same
+      copy to the qualification as its positive copy. When the inspection refuses an install, `bringInstalls`
+      (`src/application/installation.ts`) returns the refusal but leaves every file the manager wrote in that
+      copy. On a fictitious project whose manager also rewrites `src/greeting.txt`, the referential is refused as
+      it should be, yet the positive witness of the test control then reads the rewritten file and fails
+      ("expected Hello, got Hello, rewritten"), so the frozen protocol names that control a blind spot although
+      it is green on the reference. The same happens with npm on main, where the install also runs in that copy.
+    what_expected: >
+      A refused install changes nothing the rest of the phase reads: the copy is restored to the reference, or the
+      install runs in a copy of its own whose accepted files alone are written into the copy the qualification
+      uses.
+    steps_to_reproduce:
+      - "Give the fictitious technology a manager that writes its package under `fict_modules/` and also rewrites `src/greeting.txt`, and a project whose test case expects `src/greeting.txt=Hello`."
+      - "Ask a survey with a quality requirement and adopt the proposed referential."
+      - "Read the survey: the requirement is a blind spot naming `src/greeting.txt`, and the control `fict-tests` is a blind spot because its positive witness read `Hello, rewritten`."
+    root_cause: >
+      An install in the copy has no undo: the copy that `settleQualityReferential` and `adoptInstalls` change is
+      the `positive` handle of `ctx.verification.qualify`, and a failed result does not restore it.
+    evidence: >
+      Acceptance run of 2026-10-07 at f158d24d, dossier `~/.495-campagnes/e37s04-c2-reecrit-tete`: the frozen
+      protocol carries no referential and only `fict-tests`, which the survey names "not qualified: positive
+      witness gave FAIL: src/greeting.txt: expected Hello, got Hello, rewritten", while its evidence on the
+      reference is PASS; the project digest is unchanged.
+    risk_level: medium
+    follow_ups: >
+      Restore the copy after a refused install, or install in a copy of its own and write only the accepted files
+      into the qualification copy; add a test where a refused install rewrites a file a control reads and see that
+      control qualified.
+    status: open
+  - bug_id: BUG-2026-10-08T010100
+    date: "2026-10-08"
+    title: "A quality referential whose package manager no technology of 495 runs is named a blind spot as a build that cannot declare it without ambiguity"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `settleQualityReferential` (`src/application/phases/quality-referential.ts`) gives one reason whenever
+      `bringingOf` returns null: "the proposed quality referential cannot be adopted on this target: … cannot be
+      declared in its build without ambiguity". Since the install contract accepts any manager name, null also
+      means that no technology of the list runs the manager the recommendation names; the referential is rightly
+      not installed, but the blind spot gives a reason that does not hold, while a complement in the same case
+      says that no technology of 495 runs its manager.
+    what_expected: >
+      The blind spot of a referential whose manager no technology runs says so, as the recommendation of a
+      complement does.
+    steps_to_reproduce:
+      - "Let a technology propose a referential whose install names a manager no technology of the list declares."
+      - "Ask a survey with a quality requirement: the blind spot says the referential cannot be declared in its build without ambiguity."
+    root_cause: >
+      `bringingOf` folds three reasons into null (a recommendation with no install, mixed managers, a manager no
+      technology runs) and the caller words them as the first of them.
+    evidence: >
+      Acceptance run of 2026-10-07 at f158d24d: the referential case with no technology running its manager shows
+      the ambiguity sentence, the complement case shows "no technology of 495 runs fictpm".
+    risk_level: low
+    follow_ups: >
+      Let `bringingOf` return the reason it gives up, and word the blind spot from it, with a test on a referential
+      whose manager no technology runs.
+    status: open

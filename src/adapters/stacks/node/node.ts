@@ -8,6 +8,7 @@
  */
 import type { StackPlugin } from "../../../application/stacks/plugin.ts";
 import { NODE_COVERAGE, NODE_LCOV_READER } from "./coverage/coverage-control.ts";
+import { NPM_INSTALL } from "./install/npm-install.ts";
 import { NODE_MUTATION } from "./mutation/mutation-control.ts";
 import { STRYKER_READER } from "./mutation/stryker-reader.ts";
 import { type NodeProject, readNodeProject } from "./project/node-project.ts";
@@ -54,5 +55,6 @@ export const NODE_PLUGIN: StackPlugin<NodeProject> = {
 		// Only an adopted complement writes under `node_modules`, so any other file added there is a dependency
 		// the producer slipped into the project.
 		workspace: { outputs: NODE_OUTPUTS, installed_dependencies: "node_modules" },
+		install: NPM_INSTALL,
 	},
 };
