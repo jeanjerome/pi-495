@@ -91,27 +91,20 @@ function measurementOf(files: Map<string, FileRecord>): CoverageMeasurement {
 	return measurement;
 }
 
-export const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
-/** A declaration file has no executable line, and a runner reports none. */
-export const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;
-/** A configuration is read by the tools, not run by the suite. */
-const CONFIGURATION = /\.config\.[cm]?[jt]sx?$/;
-/** A test is what measures; it is never what is measured. */
-export const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
-
 /**
- * Introduced paths an LCOV report is expected to cite. A path outside this set is not an unmeasured
- * file: a test, a configuration or a declaration file is simply not what a coverage runner reports.
+ * What a technology that writes LCOV tells its reader: which introduced paths the report is expected to cite,
+ * and the comment that removes the lines under it from the report. A path outside `expected` is not an
+ * unmeasured file: a test, a configuration or a declaration file is simply not what a coverage runner reports.
  */
-function expectedInLcovReport(introduced: IntroducedLines): string[] {
+interface LcovSources {
+	expected(path: string): boolean;
+	silencing: SilencingRule;
+}
+
+/** Introduced paths an LCOV report is expected to cite. */
+function expectedInLcovReport(introduced: IntroducedLines, sources: LcovSources): string[] {
 	return Object.keys(introduced)
-		.filter(
-			(path) =>
-				SCRIPT_SOURCE.test(path) &&
-				!SCRIPT_DECLARATION_ONLY.test(path) &&
-				!CONFIGURATION.test(path) &&
-				!SCRIPT_TEST_SOURCE.test(path),
-		)
+		.filter((path) => sources.expected(path))
 		.sort();
 }
 
@@ -128,12 +121,6 @@ export interface SilencingRule {
 	 */
 	blockLine?: RegExp;
 }
-
-const COVERAGE_SILENCING: SilencingRule = {
-	pattern: /\b(?:v8|istanbul|c8)\s+ignore\b|\bnode:coverage\s+(?:disable|ignore)\b/,
-	rule_id: "coverage:silence-comment-introduced",
-	hides: "the coverage report",
-};
 
 /**
  * The lines that follow the opening line of a block comment, up to and including its closing line. The
@@ -158,7 +145,7 @@ export function silencingComments(
 	wanted: readonly string[],
 	introduced: IntroducedLines,
 	sources: ReadonlyMap<string, string>,
-	rule: SilencingRule = COVERAGE_SILENCING,
+	rule: SilencingRule,
 ): { findings: ParsedFinding[]; earlier: string[] } {
 	const findings: ParsedFinding[] = [];
 	const earlier: string[] = [];
@@ -195,6 +182,7 @@ function parseLcov(
 	documents: readonly LcovDocument[],
 	introduced: IntroducedLines | null,
 	sources: ReadonlyMap<string, string>,
+	rules: LcovSources,
 ): ParsedReport {
 	const undecided = undecidedCoverage(obs, documents.length);
 	if (undecided) return undecided;
@@ -212,7 +200,7 @@ function parseLcov(
 			],
 			failures: [],
 		};
-	const wanted = expectedInLcovReport(introduced);
+	const wanted = expectedInLcovReport(introduced, rules);
 	const facts: Record<string, unknown> = {
 		exit_code: obs.exit_code,
 		reports: documents.length,
@@ -251,7 +239,7 @@ function parseLcov(
 			failures: [],
 		};
 	const judgement = judgeIntroducedLines(measurement, wanted, introduced);
-	const silenced = silencingComments(wanted, introduced, sources);
+	const silenced = silencingComments(wanted, introduced, sources, rules.silencing);
 	const notes: string[] = [];
 	if (silenced.earlier.length > 0)
 		notes.push(
@@ -279,17 +267,22 @@ function parseLcov(
 	};
 }
 
-/** Judges only the lines the candidate introduced, as the JaCoCo reader does (QLT-04). */
-export const LCOV_READER: ReportReader = {
-	id: "lcov",
-	version: "1.0.0",
-	nature: "coverage",
-	differential: true,
-	located: false,
-	async read(run) {
-		const docs = await coverageReports(run, "text/plain; charset=utf-8");
-		const introduced = run.introduced_lines;
-		const sources = await run.sources(introduced === null ? [] : expectedInLcovReport(introduced));
-		return parseLcov(run.observation, docs, introduced, sources);
-	},
-};
+/**
+ * The reader of the LCOV reports a technology writes, which judges only the lines the candidate introduced,
+ * as the JaCoCo reader does (QLT-04), among the sources that technology expects the report to cite.
+ */
+export function lcovReader(rules: LcovSources): ReportReader {
+	return {
+		id: "lcov",
+		version: "1.0.0",
+		nature: "coverage",
+		differential: true,
+		located: false,
+		async read(run) {
+			const docs = await coverageReports(run, "text/plain; charset=utf-8");
+			const introduced = run.introduced_lines;
+			const sources = await run.sources(introduced === null ? [] : expectedInLcovReport(introduced, rules));
+			return parseLcov(run.observation, docs, introduced, sources, rules);
+		},
+	};
+}

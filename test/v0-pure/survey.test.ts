@@ -4,14 +4,14 @@ import type { EvidenceEntry } from "../../src/domain/change/state.ts";
 import { controlsOfNature, evaluateSurvey, surveyOf } from "../../src/domain/survey.ts";
 import { EXIT_CODE_READER } from "../../src/adapters/execution/parsers.ts";
 import { NODE_TEST_READER } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
-import { LCOV_READER } from "../../src/adapters/execution/lcov.ts";
+import { NODE_LCOV_READER } from "../../src/adapters/stacks/node/coverage/coverage-control.ts";
 
 const NODE_CONTROLS = [
 	{ control_id: "unit", parser: "node-test" as const },
 	{ control_id: "coverage", parser: "lcov" as const },
 	{ control_id: "lint", parser: "exit-code" as const },
 ];
-const NODE_READERS = [NODE_TEST_READER, LCOV_READER, EXIT_CODE_READER];
+const NODE_READERS = [NODE_TEST_READER, NODE_LCOV_READER, EXIT_CODE_READER];
 
 describe("the controls of a requirement's nature", () => {
 	it("measures behaviour by the tests, style by the declared lint, coverage by its sensor", () => {

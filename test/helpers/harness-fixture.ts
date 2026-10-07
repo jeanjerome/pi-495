@@ -264,7 +264,9 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 					},
 				};
 	const stacks = options.stacks ? registryOf(options.stacks) : STACKS_OF_495;
-	const real = new GenericControlRunner(sandbox.backend, objects, readersOf(stacks.technologies));
+	const real = new GenericControlRunner(sandbox.backend, objects, readersOf(stacks.technologies), {
+		workspace_of: (workspacePath) => stacks.workspaceOf(workspacePath),
+	});
 	const controls = options.controls ? options.controls(real) : real;
 	const agent =
 		options.agent ??

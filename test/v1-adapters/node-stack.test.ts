@@ -169,6 +169,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(entry("node_modules/vitest/dist/index.js", "modified"), entry("src/agenda.ts", "modified")),
 			protectedPaths,
 			[],
+			["node_modules"],
 		);
 		assert.deepEqual(modified.altered, ["node_modules/vitest/dist/index.js"]);
 	});
@@ -178,6 +179,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(entry("node_modules/vitest/node_modules/tinyrainbow/index.js", "added")),
 			protectedPaths,
 			[],
+			["node_modules"],
 		);
 		assert.deepEqual(added.altered, ["node_modules/vitest/node_modules/tinyrainbow/index.js"]);
 		assert.deepEqual(added.allowed, []);
@@ -196,12 +198,18 @@ describe("Node stack: what the unit controls protect among the installed depende
 			),
 			mutation.protected_paths,
 			[],
+			["node_modules"],
 		);
 		assert.deepEqual(changed.altered, ["stryker.config.mjs", "stryker.conf.json"]);
 	});
 	it("given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused", () => {
 		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
-		const added = protectedPathsChanged(manifestOf(entry("tests/new.test.ts", "added")), protectedPaths, []);
+		const added = protectedPathsChanged(
+			manifestOf(entry("tests/new.test.ts", "added")),
+			protectedPaths,
+			[],
+			["node_modules"],
+		);
 		assert.deepEqual(added.allowed, ["tests/new.test.ts"]);
 		assert.deepEqual(added.altered, []);
 	});
@@ -212,6 +220,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 				manifestOf(entry("tests/fixtures/node_modules/x.js", "added")),
 				protectedPaths,
 				[],
+				["node_modules"],
 			);
 			assert.deepEqual(added.allowed, ["tests/fixtures/node_modules/x.js"], String(scriptsTest));
 			assert.deepEqual(added.altered, [], String(scriptsTest));
@@ -233,6 +242,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(packageJson("modified", complement.digest)),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);
@@ -242,12 +252,18 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(packageJson("modified", digestBytes('{"scripts":{"test":"node --test","lint":"x"}}'))),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);
 		assert.deepEqual(edited.altered, ["package.json"]);
 		assert.deepEqual(edited.allowed, []);
-		const unadopted = protectedPathsChanged(manifestOf(packageJson("modified", complement.digest)), protectedPaths, []);
+		const unadopted = protectedPathsChanged(
+			manifestOf(packageJson("modified", complement.digest)),
+			protectedPaths,
+			[],
+			["node_modules"],
+		);
 		assert.deepEqual(unadopted.altered, ["package.json"], "without the adoption the same file is refused");
 	});
 	it("given an adopted complement on package.json, then a candidate whose package.json is unchanged from the reference is refused naming package.json, and one keeping the file as the complement wrote it is still allowed", () => {
@@ -256,6 +272,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(packageJson("unchanged", digestBytes('{"scripts":{"test":"node --test"}}'))),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);
@@ -265,6 +282,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(packageJson("modified", complement.digest)),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);
@@ -284,7 +302,14 @@ describe("Node stack: what the unit controls protect among the installed depende
 		}));
 		const complements = [complement, ...installed];
 		const asWritten = complements.map((c) => ({ ...entry(c.path, "added"), content_digest: c.digest }));
-		const kept = protectedPathsChanged(manifestOf(...asWritten), protectedPaths, [], () => false, complements);
+		const kept = protectedPathsChanged(
+			manifestOf(...asWritten),
+			protectedPaths,
+			[],
+			["node_modules"],
+			() => false,
+			complements,
+		);
 		assert.deepEqual(kept.altered, []);
 		assert.deepEqual(
 			kept.allowed,
@@ -293,7 +318,14 @@ describe("Node stack: what the unit controls protect among the installed depende
 		const modified = asWritten.map((e) =>
 			e.path === installed[1]!.path ? { ...e, content_digest: digestBytes("shadowing bytes") } : e,
 		);
-		const refused = protectedPathsChanged(manifestOf(...modified), protectedPaths, [], () => false, complements);
+		const refused = protectedPathsChanged(
+			manifestOf(...modified),
+			protectedPaths,
+			[],
+			["node_modules"],
+			() => false,
+			complements,
+		);
 		assert.deepEqual(refused.altered, [installed[1]!.path]);
 	});
 	it("given a complement that wrote a file absent from the reference, then a candidate that no longer holds that file is refused naming it, and one that keeps it as written passes", () => {
@@ -311,6 +343,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[written],
 		);
@@ -320,6 +353,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(entry("src/agenda.ts", "modified")),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[written],
 		);
@@ -331,6 +365,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(entry("node_modules/x/index.js", "added"), entry("src/greet.js", "added")),
 			protectedPaths,
 			[],
+			["node_modules"],
 		);
 		assert.deepEqual(added.altered, ["node_modules/x/index.js"]);
 		const installed = {
@@ -343,6 +378,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf({ ...entry(installed.path, "added"), content_digest: installed.digest }),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[installed],
 		);

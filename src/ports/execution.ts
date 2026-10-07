@@ -89,6 +89,8 @@ export interface SandboxPort {
 
 export interface WorkspacePolicy {
 	exclusions: string[];
+	/** The directories the technologies of the list install their dependencies in, whichever recognises the project. */
+	installed_dependencies: readonly string[];
 	max_file_bytes: number;
 	max_entries: number;
 }

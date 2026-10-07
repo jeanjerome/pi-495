@@ -249,6 +249,7 @@ describe("the protocol frozen from a detection", () => {
 			complements: [],
 			installed: [],
 			by_nature: false,
+			installed_dependencies: ["node_modules"],
 		});
 	};
 
@@ -292,6 +293,7 @@ describe("the protocol frozen from a detection", () => {
 			complements: [],
 			installed: [],
 			by_nature: false,
+			installed_dependencies: ["node_modules"],
 		});
 		assert.deepEqual(
 			protocol.obligations.map((o) => [o.requirement.requirement_id, o.control_ids]),
@@ -346,6 +348,7 @@ describe("the paths the frozen protocol protects, whatever the stack of the targ
 			complements: [],
 			installed: [],
 			by_nature: false,
+			installed_dependencies: ["node_modules"],
 		});
 		const protectedPaths = protocol.controls.flatMap((c) => c.protected_paths);
 		assert.ok(protectedPaths.includes("node_modules/"), "the frozen protocol protects node_modules/");
@@ -357,12 +360,14 @@ describe("the paths the frozen protocol protects, whatever the stack of the targ
 			),
 			protectedPaths,
 			[],
+			["node_modules"],
 		);
 		assert.deepEqual(refused.altered, ["node_modules/x/index.js"]);
 		const kept = protectedPathsChanged(
 			manifestOf(entry("node_modules/x/index.js", dependency, "added")),
 			protectedPaths,
 			[],
+			["node_modules"],
 			() => false,
 			[{ path: "node_modules/x/index.js", digest: dependency }],
 		);

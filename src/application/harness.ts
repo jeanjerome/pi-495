@@ -258,7 +258,12 @@ export class Harness {
 	constructor(deps: HarnessDeps) {
 		this.deps = deps;
 		const harness = this;
-		this.artifacts = new ArtifactRepository({ ledger: deps.ledger, objects: deps.objects, now: () => harness.now() });
+		this.artifacts = new ArtifactRepository({
+			ledger: deps.ledger,
+			objects: deps.objects,
+			now: () => harness.now(),
+			installedDependencies: () => deps.stacks.installedDependencies(),
+		});
 		this.verification = new VerificationCoordinator({
 			controls: deps.controls,
 			workspace: deps.workspace,
@@ -313,6 +318,7 @@ export class Harness {
 			now: () => harness.now(),
 			progress: (message: string) => harness.progress(message),
 			agentContext: (context: AgentContext | null) => harness.deps.onAgentContext?.(context),
+			technologyEnv: (workspacePath: string) => deps.stacks.workspaceOf(workspacePath).env ?? [],
 		});
 	}
 
@@ -525,13 +531,26 @@ export class Harness {
 		return state.mandate?.language ?? requestedLanguage(state) ?? "fr";
 	}
 
+	/**
+	 * The reference of the project at `projectPath`, captured without what the owner's configuration excludes
+	 * nor what the tools of its technology write into a copy: the reference records both, and every candidate
+	 * of the change is observed without them. It records where every technology of the list installs dependencies
+	 * too.
+	 */
+	private async captureReference(projectPath: string): Promise<ReferenceSnapshot> {
+		return await this.deps.workspace.captureReference(
+			projectPath,
+			this.deps.stacks.copyPolicyOf(projectPath, this.deps.workspacePolicy),
+		);
+	}
+
 	// --- program creation (PF-01) ----------------------------------------------------------------
 
 	async start(args: StartArgs): Promise<{ program: ProgramState; change: ChangeState }> {
 		const cor = this.id("cor");
 		const at = this.now();
 		this.progress("capturing the reference");
-		const reference = await this.deps.workspace.captureReference(args.project_path, this.deps.workspacePolicy);
+		const reference = await this.captureReference(args.project_path);
 		const programId = this.id("prg");
 		const changeId = this.id("chg");
 		const incrementId = "inc_1";
@@ -604,7 +623,7 @@ export class Harness {
 		const cor = this.id("cor");
 		const at = this.now();
 		this.progress("capturing the reference");
-		const reference = await this.deps.workspace.captureReference(args.project_path, this.deps.workspacePolicy);
+		const reference = await this.captureReference(args.project_path);
 		const baseline = trajectory.baseline
 			? baselineOf(
 					await this.citedSurvey(trajectory.baseline.change_id),
@@ -739,7 +758,7 @@ export class Harness {
 		const cor = this.id("cor");
 		const at = this.now();
 		this.progress("capturing the reference");
-		const reference = await this.deps.workspace.captureReference(program.project_path, this.deps.workspacePolicy);
+		const reference = await this.captureReference(program.project_path);
 		const changeId = this.id("chg");
 		const language = args.language ?? "fr";
 		const requestRef = await this.artifacts.store(

@@ -35,6 +35,8 @@ export interface InterventionDeps {
 	progress(message: string): void;
 	/** The context the agent reports after each answer, then `null` once the intervention has ended. */
 	agentContext(context: AgentContext | null): void;
+	/** The variables of the session the technology of the copy at a path declares its controls read. */
+	technologyEnv(workspacePath: string): readonly string[];
 }
 
 export interface InterventionRequest {
@@ -261,7 +263,7 @@ export class InterventionSupervisor {
 	/**
 	 * The permissions a role runs under: only a role that writes is given a writable path, and only
 	 * it reads the environment the controls read, so that what it runs to check itself is what the
-	 * kernel will run — the same JDK, the same locale, the same Maven options.
+	 * kernel will run — the same locale, and the toolchain the technology of the copy declares.
 	 */
 	private profileFor(role: InterventionMandate["role"], workspacePath: string): SandboxProfile {
 		const writes = role === "implement" || role === "prepare";
@@ -270,7 +272,9 @@ export class InterventionSupervisor {
 			read_paths: [workspacePath],
 			write_paths: writes ? [workspacePath] : [],
 			network: "denied",
-			env_allowlist: writes ? [...BASE_ENV] : ["PATH", "HOME", "TMPDIR", "LANG"],
+			env_allowlist: writes
+				? [...new Set([...BASE_ENV, ...this.deps.technologyEnv(workspacePath)])]
+				: ["PATH", "HOME", "TMPDIR", "LANG"],
 			env: {},
 		};
 	}

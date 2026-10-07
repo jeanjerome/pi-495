@@ -144,11 +144,14 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		{ type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "candidate", ref: manifestRef },
 		cor,
 	);
+	// The layout is read on the project, never on the copy the producer wrote in.
+	const layout = ctx.stacks.testLayoutOf(reference.project_path);
 	const scope = protectedPathsChanged(
 		manifest,
 		unit.state.protocol?.protected_paths ?? [],
 		prepared?.files ?? [],
-		(p) => mirrorsProductionResource(manifest, p),
+		reference.installed_dependencies,
+		(p) => mirrorsProductionResource(manifest, p, layout.mirroredResource),
 		complements,
 	);
 	const producerReport = r.output_valid ? (r.output as ProducerReport) : null;

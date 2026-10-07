@@ -18,11 +18,14 @@ if (!project) {
 	process.exit(2);
 }
 const workspace = new GitWorkspace(mkdtempSync(join(tmpdir(), "495-diagnose-")));
-const reference = await workspace.captureReference(project, DEFAULT_WORKSPACE_POLICY);
-const handle = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
+// The copy is taken as a change takes it: without what the tools of the project's technology write there.
+const policy = STACKS_OF_495.copyPolicyOf(project, DEFAULT_WORKSPACE_POLICY);
+const reference = await workspace.captureReference(project, policy);
+const handle = await workspace.createWorkspace(reference, policy);
 try {
 	const detection = STACKS_OF_495.recognise(handle.path, [{ requirement_id: "R1", revision: 1 }]);
-	const test_files = referenceTestFiles(reference, detection.preparation_paths);
+	const { isTestFile } = STACKS_OF_495.testLayoutOf(handle.path);
+	const test_files = referenceTestFiles(reference, detection.preparation_paths, isTestFile);
 	const addition = { requirement_id: "R-new", mandatory: true, satisfied_by_reference: false };
 	const preservation = { requirement_id: "R-kept", mandatory: true, satisfied_by_reference: true };
 	console.log(`stack: ${detection.stack}`);

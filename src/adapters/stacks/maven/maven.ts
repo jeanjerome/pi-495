@@ -45,5 +45,13 @@ export const MAVEN_PLUGIN: StackPlugin<MavenProject> = {
 		mutation: MAVEN_MUTATION,
 		quality: MAVEN_QUALITY,
 		structure: MAVEN_STRUCTURE,
+		// Maven writes its build, and the reports its plugins bind, under `target/`. Its controls and the producer
+		// run the JDK and the Maven options of the session, and the versions of `java` and `mvn` identify the
+		// environment.
+		workspace: {
+			outputs: ["target/"],
+			env: ["JAVA_HOME", "MAVEN_OPTS"],
+			versions: { java: ["java", ["-version"]], mvn: ["mvn", ["-v"]] },
+		},
 	},
 };

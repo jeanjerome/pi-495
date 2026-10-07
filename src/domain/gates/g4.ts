@@ -82,9 +82,12 @@ export function submodulePathsChanged(
 	});
 }
 
-/** Whether a path or a directory pattern lies below a `node_modules` directory, at the project root or in a workspace package. */
-export function inInstalledDependencies(path: string): boolean {
-	return path.split("/").includes("node_modules");
+/**
+ * Whether a path or a directory pattern lies below one of `directories`, where the technologies of the list install
+ * their dependencies, at the project root or in a workspace package.
+ */
+export function inInstalledDependencies(path: string, directories: readonly string[]): boolean {
+	return path.split("/").some((segment) => directories.includes(segment));
 }
 
 /**
@@ -103,6 +106,7 @@ export function protectedPathsChanged(
 	manifest: CandidateManifest,
 	protectedPaths: readonly string[],
 	preparedFiles: readonly { path: string; digest: string }[],
+	installedDependencies: readonly string[],
 	alsoAllowed: (path: string) => boolean = () => false,
 	complements: readonly { path: string; digest: string }[] = [],
 ): ProtectedPaths {
@@ -115,7 +119,8 @@ export function protectedPathsChanged(
 		if (
 			entry?.baseline_state === "added" &&
 			protectedPaths.some(
-				(pattern) => pattern.endsWith("/") && !inInstalledDependencies(pattern) && matchesScope(p, pattern),
+				(pattern) =>
+					pattern.endsWith("/") && !inInstalledDependencies(pattern, installedDependencies) && matchesScope(p, pattern),
 			)
 		)
 			return true;

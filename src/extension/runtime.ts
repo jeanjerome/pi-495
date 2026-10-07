@@ -95,8 +95,13 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		...legacyDataDirs(env).flatMap((d) => [join(d, "workspaces"), resolveWorkspacesDir(d, {})]),
 	];
 	const workspace = new GitWorkspace(workspacesDir, formerRoots);
-	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495.technologies));
-	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
+	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495.technologies), {
+		workspace_of: (workspacePath) => STACKS_OF_495.workspaceOf(workspacePath),
+	});
+	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend, {
+		git: ["git", ["--version"]],
+		...STACKS_OF_495.toolVersions(),
+	});
 	let agent: AgentPort = new PiWorkerAgent({
 		config: {
 			pi_package_dir: inputs.pi_package_dir,

@@ -12,12 +12,7 @@ import type {
 	ReportDocument,
 	ReportReader,
 } from "../../../../ports/execution.ts";
-import {
-	SCRIPT_DECLARATION_ONLY,
-	SCRIPT_SOURCE,
-	SCRIPT_TEST_SOURCE,
-	type SilencingRule,
-} from "../../../execution/lcov.ts";
+import type { SilencingRule } from "../../../execution/lcov.ts";
 import {
 	mutationReader,
 	type Mutant,
@@ -26,7 +21,7 @@ import {
 	type MutationSummary,
 } from "../../../execution/mutation.ts";
 import { MAX_NAMED_PATHS, MAX_REPORT_BYTES } from "../../../execution/parsers.ts";
-import { STRYKER_REPORT_PATH } from "../shared.ts";
+import { isScriptUnderTest, STRYKER_REPORT_PATH } from "../shared.ts";
 
 /**
  * Stryker drops the mutants of the lines a `Stryker disable` comment covers and reports them Ignored,
@@ -76,9 +71,7 @@ function lineRanges(lines: readonly number[]): [number, number][] {
  * introduced lines, never from a file the producer wrote.
  */
 export function strykerScopeOf(introduced: IntroducedLines): MutationScope {
-	const sources = Object.keys(introduced)
-		.filter((path) => SCRIPT_SOURCE.test(path) && !SCRIPT_DECLARATION_ONLY.test(path) && !SCRIPT_TEST_SOURCE.test(path))
-		.sort();
+	const sources = Object.keys(introduced).filter(isScriptUnderTest).sort();
 	const unaddressable = sources.filter((path) => STRYKER_PATTERN_CHARACTER.test(path) || hasControlCharacter(path));
 	const paths = sources.filter((path) => !unaddressable.includes(path));
 	const classes = paths.flatMap((path) =>

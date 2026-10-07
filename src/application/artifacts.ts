@@ -25,6 +25,8 @@ export interface ArtifactDeps {
 	ledger: LedgerPort;
 	objects: ObjectStorePort;
 	now(): string;
+	/** The directories every technology of the list installs its dependencies in. */
+	installedDependencies(): readonly string[];
 }
 
 /** The workspace prepared for an attempt, and the adopted preparation written into it. */
@@ -116,11 +118,16 @@ export class ArtifactRepository {
 		return { ref, content: await this.read<T>(ref) };
 	}
 
-	/** The tree the change was opened on. Without it nothing this change claims can be compared. */
-	async reference(state: ChangeState): Promise<ReferenceSnapshot> {
+	/**
+	 * The tree the change was opened on. Without it nothing this change claims can be compared. A reference
+	 * written before it recorded where dependencies are installed is read with what every technology of the list
+	 * declares.
+	 */
+	async reference(state: ChangeState): Promise<ReferenceSnapshot & { installed_dependencies: string[] }> {
 		const a = await this.latest<ReferenceSnapshot>(state, "reference");
 		if (!a) throw new DomainError("EVIDENCE_MISSING", "reference snapshot missing");
-		return a.content;
+		const { installed_dependencies = [...this.deps.installedDependencies()] } = a.content;
+		return { ...a.content, installed_dependencies };
 	}
 
 	/** Every specification report of this change but the current one, oldest first. */

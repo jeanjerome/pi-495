@@ -40,8 +40,11 @@ export interface DetectedTechnology {
 	quality_referential?: QualityOffer;
 }
 
-/** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */
-export const BASE_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME", "MAVEN_OPTS"];
+/**
+ * Environment every control is allowed to read; a technology adds the variables it declares. Nothing else of
+ * the session leaks into a measurement.
+ */
+export const BASE_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL"];
 
 /** What a control of any stack declares unless it says otherwise; each technology extends it with what it runs and reads. */
 export function baseControl(

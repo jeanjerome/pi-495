@@ -247,12 +247,13 @@ function diagnose(
 	detection: DetectedTechnology,
 	requirements: RequirementsDocument,
 	reference: ReferenceSnapshot,
+	isTestFile: (path: string) => boolean,
 	prepared: PreparationRecord | null,
 	suite: ReferenceSuiteObservation | null,
 ): ControlCapabilityDiagnosis {
 	return diagnoseControlCapability({
 		stack: detection.stack,
-		test_files: referenceTestFiles(reference, detection.preparation_paths),
+		test_files: referenceTestFiles(reference, detection.preparation_paths, isTestFile),
 		requirements: requirements.requirements,
 		suite,
 		prepared,
@@ -321,6 +322,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		let detection = ctx.stacks.recognise(handle.path, refs);
+		const { isTestFile } = ctx.stacks.testLayoutOf(handle.path);
 		// A survey puts the quality referential its target proposes to the owner before anything runs: the
 		// analyser it adopts is a control the protocol freezes like the others.
 		const quality = surveysTheProject(unit.state)
@@ -388,7 +390,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		// protocol may freeze are green on the reference, so none of them changes verdict when a
 		// behaviour the reference does not have appears. Opening the preparation here spares the
 		// qualification of sensors that would have to be qualified again after it.
-		let diagnosis = diagnose(detection, requirements.content, reference, prepared, null);
+		let diagnosis = diagnose(detection, requirements.content, reference, isTestFile, prepared, null);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
 			return await settleUnjudged(
 				ctx,
@@ -417,7 +419,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 			complements,
 		});
-		diagnosis = diagnose(detection, requirements.content, reference, prepared, qualified.observation);
+		diagnosis = diagnose(detection, requirements.content, reference, isTestFile, prepared, qualified.observation);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
 			return await settleUnjudged(
 				ctx,
@@ -449,6 +451,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			complements,
 			installed,
 			by_nature: surveysTheProject(unit.state),
+			installed_dependencies: reference.installed_dependencies,
 			...(quality?.referential ? { quality_referential: quality.referential } : {}),
 			...(quality?.blind_spot ? { quality_blind_spot: quality.blind_spot } : {}),
 		});

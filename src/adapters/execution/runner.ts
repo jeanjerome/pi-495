@@ -22,10 +22,16 @@ import type {
 	SandboxProfile,
 } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
+import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
 import { workspaceFiles } from "./workspace-files.ts";
 
 export interface RunnerOptions {
 	max_output_bytes: number;
+	/**
+	 * What the technology of the copy at a path puts there that is not the project: the walks of the readers skip
+	 * the outputs of its tools and its installed dependencies.
+	 */
+	workspace_of: (workspacePath: string) => WorkspaceCapability;
 }
 
 /**
@@ -47,7 +53,10 @@ export class GenericControlRunner implements ControlExecutionPort {
 		this.sandbox = sandbox;
 		this.objects = objects;
 		this.readers = readers;
-		this.options = { max_output_bytes: options.max_output_bytes ?? 4 * 1024 * 1024 };
+		this.options = {
+			max_output_bytes: options.max_output_bytes ?? 4 * 1024 * 1024,
+			workspace_of: options.workspace_of ?? (() => ({ outputs: [] })),
+		};
 	}
 
 	profileFor(control: ControlDefinition, workspacePath: string): SandboxProfile {
@@ -88,12 +97,17 @@ export class GenericControlRunner implements ControlExecutionPort {
 			if (!cwd.startsWith(resolve(invocation.workspace_path)))
 				throw new Error(`control cwd escapes the workspace: ${control.cwd}`);
 			const introduced = invocation.introduced_lines ?? null;
-			const files = workspaceFiles(invocation.workspace_path, control.report_path, async (doc, mediaType) => {
-				artifacts.push({
-					name: `report:${doc.name}`,
-					ref: await this.objects.put(new TextEncoder().encode(doc.text), mediaType),
-				});
-			});
+			const files = workspaceFiles(
+				invocation.workspace_path,
+				control.report_path,
+				async (doc, mediaType) => {
+					artifacts.push({
+						name: `report:${doc.name}`,
+						ref: await this.objects.put(new TextEncoder().encode(doc.text), mediaType),
+					});
+				},
+				this.options.workspace_of(invocation.workspace_path),
+			);
 			const prepared: ReaderPreparation = (await reader?.prepare?.(control, introduced, files)) ?? { arguments: [] };
 			if (reader === undefined) {
 				report = unknownReader(control);

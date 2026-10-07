@@ -63,12 +63,17 @@ export function preparedFilesFrom(
 	return { files, modified_existing: modifiedExisting, out_of_scope: out, refused };
 }
 
-/** Level 1 of the PRE-01 scale: a file named like a test, which says nothing about it ever running. */
-const TEST_FILE_NAME = /\.(test|spec)\.[cm]?[jt]s$|Test\.java$|_test\.[jt]s$/;
-
-export function referenceTestFiles(reference: ReferenceSnapshot, testPaths: string[]): string[] {
+/**
+ * Level 1 of the PRE-01 scale: the files of the reference under `testPaths` that its technology names as tests,
+ * which says nothing about them ever running.
+ */
+export function referenceTestFiles(
+	reference: ReferenceSnapshot,
+	testPaths: string[],
+	isTestFile: (path: string) => boolean,
+): string[] {
 	return reference.entries
-		.filter((e) => e.kind === "file" && testPaths.some((d) => e.path.startsWith(d)) && TEST_FILE_NAME.test(e.path))
+		.filter((e) => e.kind === "file" && testPaths.some((d) => e.path.startsWith(d)) && isTestFile(e.path))
 		.map((e) => e.path);
 }
 

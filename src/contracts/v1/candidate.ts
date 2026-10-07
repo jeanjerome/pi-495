@@ -47,6 +47,11 @@ export const ReferenceSnapshot = Type.Object(
 		tree_digest: Digest,
 		entries: Type.Array(ManifestEntry),
 		exclusions: Type.Array(Type.String()),
+		/**
+		 * The directories the technologies of the list install their dependencies in, at the root or in a package,
+		 * whichever technology recognises the project; absent from a reference written before they were recorded.
+		 */
+		installed_dependencies: Type.Optional(Type.Array(Type.String())),
 		captured_at: Type.String({ format: "date-time" }),
 		limits: Limits,
 	},

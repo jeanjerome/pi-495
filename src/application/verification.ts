@@ -51,13 +51,6 @@ import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "./preparation.ts";
 import { qualifyControlDetailed, reusableQualification, type DetailedQualification } from "./qualification.ts";
 
-/**
- * Protected on every target, whatever the stack and the test runner: only an adopted complement writes
- * there, so any other file added under it is a dependency the producer slipped into the project, and the
- * integration never indexes it.
- */
-const INSTALLED_DEPENDENCIES = "node_modules/";
-
 export interface VerificationDeps {
 	controls: ControlExecutionPort;
 	workspace: WorkspacePort;
@@ -127,6 +120,8 @@ export interface FreezeInput {
 	installed: readonly InstalledPackage[];
 	/** A requirement is measured by the controls of its nature alone, as a survey measures it. */
 	by_nature: boolean;
+	/** The directories the technologies of the list install their dependencies in, which every control protects. */
+	installed_dependencies: readonly string[];
 	/** The quality referential the owner adopted, frozen with the protocol; absent when none was. */
 	quality_referential?: AdoptedQualityReferential;
 	/**
@@ -362,7 +357,11 @@ export class VerificationCoordinator {
 		const controls: ControlDefinition[] = input.ordered.map((c) => ({
 			...c,
 			protected_paths: [
-				...new Set([...c.protected_paths, ...(input.prepared?.files.map((f) => f.path) ?? []), INSTALLED_DEPENDENCIES]),
+				...new Set([
+					...c.protected_paths,
+					...(input.prepared?.files.map((f) => f.path) ?? []),
+					...input.installed_dependencies.map((directory) => `${directory}/`),
+				]),
 			],
 		}));
 		// A differential control answers a question every requirement asks, whatever its category: a

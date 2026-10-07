@@ -10,8 +10,32 @@ import { emptyTrigger } from "../../../../application/stacks/stack.ts";
 import type { NodeProject } from "../project/node-project.ts";
 import type { ReadSuite } from "../project/test-runner.ts";
 import { witnessTestLayout } from "../project/witness-layout.ts";
-import { CATALOGUE_DATE, LCOV_REPORT, LCOV_REPORT_NAME, VITEST_COVERAGE_DIRECTORY } from "../shared.ts";
+import { lcovReader } from "../../../execution/lcov.ts";
+import {
+	CATALOGUE_DATE,
+	isScriptUnderTest,
+	LCOV_REPORT,
+	LCOV_REPORT_NAME,
+	VITEST_COVERAGE_DIRECTORY,
+} from "../shared.ts";
 import { unitControl } from "../tests/unit-controls.ts";
+
+/** A configuration is read by the tools, not run by the suite. */
+const CONFIGURATION = /\.config\.[cm]?[jt]sx?$/;
+
+/**
+ * The reader of the LCOV report of a Node suite: it expects the report to cite every introduced source the
+ * suite runs, a configuration aside, and refuses an introduced comment that hides lines from the coverage
+ * runners Node uses.
+ */
+export const NODE_LCOV_READER = lcovReader({
+	expected: (path) => isScriptUnderTest(path) && !CONFIGURATION.test(path),
+	silencing: {
+		pattern: /\b(?:v8|istanbul|c8)\s+ignore\b|\bnode:coverage\s+(?:disable|ignore)\b/,
+		rule_id: "coverage:silence-comment-introduced",
+		hides: "the coverage report",
+	},
+});
 
 /** The flag makes `node --test` write the lines it executed; it needs nothing installed. */
 const NODE_TEST_COVERAGE_RECOMMENDATION: RecommendedComplement = {

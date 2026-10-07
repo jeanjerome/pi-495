@@ -156,6 +156,9 @@ export function unitControl(
 	}
 }
 
+/** A JavaScript or TypeScript source named as a test. */
+const TEST_FILE_NAME = /\.(test|spec)\.[cm]?[jt]s$|_test\.[jt]s$/;
+
 /** The suite of the project, or why a refused one leaves the project without any control. */
 export const NODE_TESTS: TestCapability<NodeProject> = {
 	offer: ({ model, requirement_refs, node_binary }) =>
@@ -169,4 +172,5 @@ export const NODE_TESTS: TestCapability<NodeProject> = {
 	}),
 	measuredCodeWitness: ({ model, view }) => measuredCodeWitness(model.suite.runner ?? "node-test", view),
 	preparationPaths: () => ["test/", "tests/"],
+	isTestFile: (path) => TEST_FILE_NAME.test(path),
 };

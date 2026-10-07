@@ -5,6 +5,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { digestValue } from "../contracts/digest.ts";
 import type { EnvironmentRef } from "../contracts/v1/common.ts";
+import type { ToolProbe } from "./stacks/plugin.ts";
 
 export interface EnvironmentFacts {
 	platform: string;
@@ -93,7 +94,7 @@ function harnessBuild(): { version: string; build_digest: string } {
 	return cachedBuild;
 }
 
-function version(cmd: string, args: string[]): string {
+function version(cmd: string, args: readonly string[]): string {
 	try {
 		return (
 			execFileSync(cmd, args, { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] })
@@ -105,28 +106,17 @@ function version(cmd: string, args: string[]): string {
 	}
 }
 
-/** Environment identity used by qualifications and evidence (RM-018, RM-076). */
+/**
+ * Environment identity used by qualifications and evidence (RM-018, RM-076): the platform, the host, the build
+ * of 495, and the version each of `probes` prints.
+ */
 export function describeEnvironment(
 	piVersion: string,
 	sandboxBackend: string,
-	probes: Record<string, [string, string[]]> = {
-		git: ["git", ["--version"]],
-		java: ["java", ["-version"]],
-		mvn: ["mvn", ["-v"]],
-	},
+	probes: Readonly<Record<string, ToolProbe>>,
 ): { facts: EnvironmentFacts; ref: EnvironmentRef } {
 	const tools: Record<string, string> = {};
-	for (const [name, [cmd, args]] of Object.entries(probes))
-		tools[name] =
-			name === "java"
-				? (() => {
-						try {
-							return execFileSync(cmd, args, { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "pipe"] });
-						} catch (e) {
-							return String((e as { stderr?: string }).stderr ?? "absent").split("\n")[0] ?? "absent";
-						}
-					})().trim()
-				: version(cmd, args);
+	for (const [name, [cmd, args]] of Object.entries(probes)) tools[name] = version(cmd, args);
 	const facts: EnvironmentFacts = {
 		platform: process.platform,
 		arch: process.arch,

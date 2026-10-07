@@ -70,6 +70,19 @@ export interface TestCapability<Model> {
 	measuredCodeWitness?(question: CapabilityQuestion<Model>): WitnessFiles;
 	/** The directories a preparation intervention may add tests and test resources in. */
 	preparationPaths(question: CapabilityQuestion<Model>): string[];
+	/** Whether the file at `path` is named as one of its tests, which says nothing about it ever running. */
+	isTestFile(path: string): boolean;
+	/**
+	 * For a test resource at `path`, the production resource a test may carry byte for byte; null for any other
+	 * path. Absent when the technology lays out no test resource beside a production one.
+	 */
+	mirroredResource?(path: string): string | null;
+}
+
+/** What a technology calls a test file and the production resource a test resource may carry. */
+export interface TestLayout {
+	isTestFile(path: string): boolean;
+	mirroredResource(path: string): string | null;
 }
 
 /** The coverage of the introduced lines. */
@@ -95,6 +108,25 @@ export interface StructureCapability<Model> {
 }
 
 /**
+ * What a technology puts into a copy that is not a change. `outputs` are what its tools write there, excluded
+ * from the reference and from every candidate after those the owner's configuration declares.
+ * `installed_dependencies` names the directory it installs dependencies in, at the root of the project or in
+ * one of its packages: every control protects it, a candidate cannot add a file under it, and the integration
+ * never indexes it. `env` names the variables of the session its controls and the producer that writes read,
+ * beyond those every control reads. `versions` are the tools whose version enters the identity of the
+ * environment, each with the command that prints it.
+ */
+export interface WorkspaceCapability {
+	readonly outputs: readonly string[];
+	readonly installed_dependencies?: string;
+	readonly env?: readonly string[];
+	readonly versions?: Readonly<Record<string, ToolProbe>>;
+}
+
+/** A command that prints the version of a tool on the first line of its output: the program, then its arguments. */
+export type ToolProbe = readonly [string, readonly string[]];
+
+/**
  * A technology. `recognise` reads the project and returns the model its capabilities share, or null when
  * the project is not one of its own; `signal_files` name what it recognises a project by, when none does.
  * A capability it does not declare is one it does not offer.
@@ -113,5 +145,6 @@ export interface StackPlugin<Model> {
 		readonly mutation?: MutationCapability<Model>;
 		readonly quality?: QualityCapability<Model>;
 		readonly structure?: StructureCapability<Model>;
+		readonly workspace?: WorkspaceCapability;
 	};
 }

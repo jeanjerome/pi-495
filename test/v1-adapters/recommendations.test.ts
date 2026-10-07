@@ -390,6 +390,7 @@ describe("A technology declares its own recommendations", () => {
 					positiveWitness: () => ({}),
 					negativeWitness: () => ({}),
 					preparationPaths: () => [],
+					isTestFile: () => false,
 				},
 				coverage: { offer: () => ({ kind: "missing", reason: "no cargo-llvm-cov", recommendation }) },
 			},

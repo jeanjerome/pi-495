@@ -281,8 +281,8 @@ const NPM_ENV_NAMES = [
 	"SSL_CERT_FILE",
 ];
 
-/** The variables Maven reads its own options and its installation from, besides the ones every control receives. */
-const MAVEN_ENV_NAMES = ["MAVEN_ARGS", "MAVEN_HOME", "M2_HOME"];
+/** The variables Maven reads its JDK, its own options and its installation from, besides the ones every control receives. */
+const MAVEN_ENV_NAMES = ["JAVA_HOME", "MAVEN_OPTS", "MAVEN_ARGS", "MAVEN_HOME", "M2_HOME"];
 
 function npmEnvAllowlist(source: NodeJS.ProcessEnv): string[] {
 	const configured = Object.keys(source).filter((name) => /^npm_config_/i.test(name));
@@ -439,7 +439,11 @@ async function listedCopy(
 
 /** The copy as an install can change it, with the mode of each file, or why it cannot be listed in full. */
 async function stateOf(deps: InstallDeps, copyPath: string): Promise<(InstallState & { modes: CopyModes }) | string> {
-	const listed = await listedCopy(deps, copyPath, deps.workspacePolicy);
+	// The packages npm installs ship native binaries and bundles above the size limit, which are read whole.
+	const listed = await listedCopy(deps, copyPath, {
+		...deps.workspacePolicy,
+		installed_dependencies: ["node_modules"],
+	});
 	if (typeof listed === "string") return listed;
 	try {
 		return {

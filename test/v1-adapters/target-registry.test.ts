@@ -6,7 +6,8 @@ import type { DetectedTechnology } from "../../src/application/stacks/stack.ts";
 import type { Offer, StackPlugin } from "../../src/application/stacks/plugin.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type { ReportReader } from "../../src/ports/execution.ts";
-import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { lcovReader } from "../../src/adapters/execution/lcov.ts";
+import { fixtureMavenMultiModule, fixtureTs, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { controlOf } from "../helpers/execution-fixture.ts";
 import { registryOf, STACKS_OF_495 } from "../helpers/technologies.ts";
 
@@ -59,6 +60,7 @@ function signalledTechnology(stack: string, signalFile: string): StackPlugin<tru
 				positiveWitness: () => ({}),
 				negativeWitness: () => ({}),
 				preparationPaths: () => [],
+				isTestFile: () => false,
 			},
 		},
 	};
@@ -120,7 +122,20 @@ describe("the registry of technologies: their list chooses the stack", () => {
 	});
 });
 
-/** A technology recognised by `Cargo.toml` that declares the capabilities it is given, and the tests always. */
+/** The LCOV reader of a Rust project, whose report cites its sources under `src/`. */
+const RUST_LCOV_READER = lcovReader({
+	expected: (path) => path.startsWith("src/") && path.endsWith(".rs"),
+	silencing: {
+		pattern: /\bcoverage\(off\)/,
+		rule_id: "coverage:silence-comment-introduced",
+		hides: "the coverage report",
+	},
+});
+
+/**
+ * A technology recognised by `Cargo.toml` that declares the capabilities it is given, and the tests always; its
+ * coverage, when it has one, is an LCOV report.
+ */
 function plugin(
 	capabilities: Partial<StackPlugin<true>["capabilities"]>,
 	tests: Offer = available("cargo-test"),
@@ -129,7 +144,7 @@ function plugin(
 		id: "cargo",
 		signal_files: ["Cargo.toml"],
 		recognise: (view) => (view.exists("Cargo.toml") ? true : null),
-		readers: [],
+		readers: [RUST_LCOV_READER],
 		capabilities: {
 			tests: {
 				offer: () => tests,
@@ -137,6 +152,7 @@ function plugin(
 				negativeWitness: () => ({ "tests/fail.rs": "fail" }),
 				measuredCodeWitness: () => ({ "src/measured.rs": "measured", "tests/pass.rs": "pass twice" }),
 				preparationPaths: () => ["tests/"],
+				isTestFile: (path: string) => path.endsWith(".rs"),
 			},
 			...capabilities,
 		},
@@ -243,5 +259,32 @@ describe("the common layer assembles what a technology offers, capability by cap
 				"no dependency direction between modules is checked on this target: one module only",
 			),
 		);
+	});
+});
+
+describe("the registry of technologies: what the technology of a project calls a test file", () => {
+	it("given a Maven reactor, a Node project and a project no technology recognises, then only the Maven layout names AddressTest.java a test and maps a test resource to the production resource beside it, the Node layout names greet.test.js a test and maps no resource, and the unrecognised project names neither", () => {
+		const maven = join(root, "maven");
+		fixtureMavenMultiModule(maven, true);
+		const node = join(root, "node");
+		fixtureTs(node);
+		const unknown = join(root, "unknown");
+		writeFiles(unknown, { "README.md": "nothing to recognise\n" });
+		const mavenLayout = STACKS_OF_495.testLayoutOf(maven);
+		const nodeLayout = STACKS_OF_495.testLayoutOf(node);
+		const unknownLayout = STACKS_OF_495.testLayoutOf(unknown);
+
+		assert.equal(mavenLayout.isTestFile("domain/src/test/java/io/h495/AddressTest.java"), true);
+		assert.equal(mavenLayout.isTestFile("domain/src/main/java/io/h495/Address.java"), false);
+		assert.equal(
+			mavenLayout.mirroredResource("domain/src/test/resources/schema.sql"),
+			"domain/src/main/resources/schema.sql",
+		);
+		assert.equal(mavenLayout.mirroredResource("domain/src/main/resources/schema.sql"), null);
+		assert.equal(nodeLayout.isTestFile("test/greet.test.js"), true);
+		assert.equal(nodeLayout.isTestFile("src/greet.js"), false);
+		assert.equal(nodeLayout.mirroredResource("src/test/resources/schema.sql"), null);
+		assert.equal(unknownLayout.isTestFile("test/greet.test.js"), false);
+		assert.equal(unknownLayout.mirroredResource("src/test/resources/schema.sql"), null);
 	});
 });

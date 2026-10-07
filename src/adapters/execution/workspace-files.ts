@@ -9,28 +9,35 @@ import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { messageOf } from "../../domain/errors.ts";
 import type { ReportDocument, ReportReading, SourceTree, WorkspaceFiles } from "../../ports/execution.ts";
+import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
+import { isExcluded } from "../workspace/walk.ts";
 import { MAX_REPORT_BYTES } from "./parsers.ts";
 
 /** Keeps a report a reader read, under the media type the reader names. */
 export type ReportKeeper = (document: ReportDocument, mediaType: string) => Promise<void>;
 
-/** The files of `workspace` as a reader reads them, the reports being those at `reportPath`. */
+/**
+ * The files of `workspace` as a reader reads them, the reports being those at `reportPath`; `declared` is what the
+ * technology of the copy puts there that is not the project, which the walks skip.
+ */
 export function workspaceFiles(
 	workspace: string,
 	reportPath: string | null = null,
 	keep: ReportKeeper = async () => {},
+	declared: WorkspaceCapability = { outputs: [] },
 ): WorkspaceFiles {
+	const installed = declared.installed_dependencies ?? null;
 	return {
 		async reports(mediaType: string, reading: ReportReading = {}): Promise<ReportDocument[]> {
 			const docs = reading.single_file
 				? await readBoundedReport(workspace, reportPath)
-				: await readReports(workspace, reportPath, reading.oversized_unread ?? false);
+				: await readReports(workspace, reportPath, reading.oversized_unread ?? false, installed);
 			for (const doc of docs) if (doc.oversized_bytes === undefined) await keep(doc, mediaType);
 			return docs;
 		},
 		sources: (paths) => introducedSources(workspace, paths),
 		text: (path) => readInside(workspace, path),
-		tree: (roots, suffix) => readTree(workspace, roots, suffix),
+		tree: (roots, suffix) => readTree(workspace, roots, suffix, declared),
 	};
 }
 
@@ -93,9 +100,11 @@ async function readReports(
 	workspace: string,
 	reportPath: string | null,
 	oversizedUnread: boolean,
+	installedDependencies: string | null,
 ): Promise<ReportDocument[]> {
 	if (!reportPath) return [];
-	if (reportPath.startsWith("**/")) return readRecursiveReports(workspace, reportPath.slice(3), oversizedUnread);
+	if (reportPath.startsWith("**/"))
+		return readRecursiveReports(workspace, reportPath.slice(3), oversizedUnread, installedDependencies);
 	const abs = resolve(workspace, reportPath);
 	if (!abs.startsWith(resolve(workspace))) return [];
 	try {
@@ -157,10 +166,12 @@ async function readBoundedReport(workspace: string, reportPath: string | null): 
 /** The bound on the XML files a recursive scan reads; it escapes the catch that skips unreadable directories. */
 class ScanBound extends Error {}
 
+/** The report directories ending with `directorySuffix`, anywhere in the copy but under its installed dependencies. */
 async function readRecursiveReports(
 	workspace: string,
 	directorySuffix: string,
 	oversizedUnread: boolean,
+	installedDependencies: string | null,
 ): Promise<ReportDocument[]> {
 	const root = resolve(workspace);
 	const out: (ReportDocument | null)[] = [];
@@ -177,7 +188,7 @@ async function readRecursiveReports(
 			continue; // an unreadable directory is not scanned; the reports found elsewhere still count
 		}
 		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-			if (!entry.isDirectory() || entry.name === ".git" || entry.name === "node_modules") continue;
+			if (!entry.isDirectory() || entry.name === ".git" || entry.name === installedDependencies) continue;
 			const rel = current.relative ? `${current.relative}/${entry.name}` : entry.name;
 			const abs = join(current.absolute, entry.name);
 			if (rel === directorySuffix || rel.endsWith(`/${directorySuffix}`)) {
@@ -199,14 +210,29 @@ async function readRecursiveReports(
 	return inCopy(out).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Directories no source tree of the project is under: build output and tool caches. */
-const SKIPPED_DIRECTORIES = new Set([".git", "target", "build", "out", "bin", "node_modules", ".idea"]);
+/**
+ * Whether no source tree of the project is under the directory at `path`: Git's plumbing, what the tools of the
+ * technology write, and the dependencies it installs.
+ */
+function skippedDirectory(path: string, name: string, declared: WorkspaceCapability): boolean {
+	const installed = declared.installed_dependencies ?? null;
+	return (
+		name === ".git" ||
+		name === installed ||
+		isExcluded(path, [...declared.outputs], installed === null ? [] : [installed])
+	);
+}
 
 const MAX_SOURCE_FILES = 5000;
 const MAX_SOURCE_BYTES = 1024 * 1024;
 
 /** Every file ending with `suffix` under the given roots, read once, sorted by path. */
-async function readTree(workspace: string, roots: readonly string[], suffix: string): Promise<SourceTree> {
+async function readTree(
+	workspace: string,
+	roots: readonly string[],
+	suffix: string,
+	declared: WorkspaceCapability,
+): Promise<SourceTree> {
 	const root = resolve(workspace);
 	const notes: string[] = [];
 	const byPath = new Map<string, string>();
@@ -238,7 +264,7 @@ async function readTree(workspace: string, roots: readonly string[], suffix: str
 			for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
 				const rel = current.relative ? `${current.relative}/${entry.name}` : entry.name;
 				if (entry.isDirectory()) {
-					if (!SKIPPED_DIRECTORIES.has(entry.name))
+					if (!skippedDirectory(rel, entry.name, declared))
 						stack.push({ absolute: join(current.absolute, entry.name), relative: rel });
 					continue;
 				}

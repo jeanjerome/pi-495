@@ -34,4 +34,10 @@ export const MAVEN_TESTS: TestCapability<MavenProject> = {
 	negativeWitness: ({ model }) => negativeWitness(witnessPrefix(model.reactor)),
 	measuredCodeWitness: ({ model }) => measuredCodeWitness(witnessPrefix(model.reactor)),
 	preparationPaths: ({ model }) => model.reactor.preparation_paths,
+	isTestFile: (path) => path.endsWith("Test.java"),
+	// The Maven layout keeps `src/test/resources/x` beside `src/main/resources/x`.
+	mirroredResource: (path) => {
+		const resource = /^(.*)src\/test\/resources\/(.+)$/.exec(path);
+		return resource ? `${resource[1]}src/main/resources/${resource[2]}` : null;
+	},
 };

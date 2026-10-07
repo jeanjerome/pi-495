@@ -556,7 +556,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 		assert.doesNotMatch(instruction, / -e /, `neither coverage nor structure is lent a command to run: ${instruction}`);
 	});
-	it("a writing intervention's profile passes JAVA_HOME, LC_ALL and MAVEN_OPTS as the controls do, and a reading one does not", async () => {
+	it("on a Node target, a writing intervention's profile passes LC_ALL as the controls do and neither JAVA_HOME nor MAVEN_OPTS, and a reading one passes none of them", async () => {
 		const p = trackedProject(fixtureTsWithoutTests);
 		const t = makeHarness({
 			defaultScript: { steps: [{ kind: "complete", output: spec }] },
@@ -579,17 +579,19 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		const controls = STACKS_OF_495.recognise(p, [{ requirement_id: "R1", revision: 1 }]).controls;
-		const passed = ["JAVA_HOME", "LC_ALL", "MAVEN_OPTS"];
-		for (const variable of passed)
-			assert.ok(controls[0]!.env_allowlist.includes(variable), `the controls of this target receive ${variable}`);
+		const passed = controls[0]!.env_allowlist;
+		assert.ok(passed.includes("LC_ALL"), `the controls of this target receive LC_ALL: ${passed.join(", ")}`);
 		for (const role of ["prepare", "implement"] as const) {
 			const mandate = t.agent.started.find((m) => m.role === role);
 			assert.ok(mandate, `${role} ran`);
-			for (const variable of passed)
-				assert.ok(
-					mandate.profile.env_allowlist.includes(variable),
-					`the ${role} profile lets ${variable} through as the controls do: ${mandate.profile.env_allowlist.join(", ")}`,
-				);
+			assert.deepEqual(
+				[...mandate.profile.env_allowlist].sort(),
+				[...passed].sort(),
+				`the ${role} profile lets through what the controls read`,
+			);
+			assert.ok(
+				!mandate.profile.env_allowlist.includes("JAVA_HOME") && !mandate.profile.env_allowlist.includes("MAVEN_OPTS"),
+			);
 		}
 		const reading = t.agent.started.find((m) => m.role === "specify");
 		assert.ok(reading, "specify ran");
@@ -627,7 +629,8 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 
 		const workspace = new GitWorkspace(workspaces);
 		const reference = await workspace.captureReference(p, DEFAULT_WORKSPACE_POLICY);
-		assert.deepEqual(referenceTestFiles(reference, detection.preparation_paths), []);
+		const { isTestFile } = STACKS_OF_495.testLayoutOf(p);
+		assert.deepEqual(referenceTestFiles(reference, detection.preparation_paths, isTestFile), []);
 		const handle = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);
 		writeFiles(handle.path, {
 			"domain/src/test/java/io/h495/AddressTest.java": "package io.h495; public final class AddressTest {}\n",

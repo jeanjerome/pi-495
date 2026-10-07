@@ -9,7 +9,7 @@ import { ActorRef, CanonicalError, Envelope } from "../../src/contracts/v1/commo
 import { Evidence } from "../../src/contracts/v1/evidence.ts";
 import { ControlCapabilityDiagnosis, ControlDefinition, Protocol } from "../../src/contracts/v1/protocol.ts";
 import { NODE_TEST_READER } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
-import { LCOV_READER } from "../../src/adapters/execution/lcov.ts";
+import { NODE_LCOV_READER } from "../../src/adapters/stacks/node/coverage/coverage-control.ts";
 import { STRYKER_READER } from "../../src/adapters/stacks/node/mutation/stryker-reader.ts";
 import { protocol } from "../helpers/change-fixture.ts";
 
@@ -154,7 +154,7 @@ describe("the parser identifiers of a control", () => {
 			writable_paths: [],
 		};
 		assert.deepEqual(validate(ControlDefinition, coverage), coverage);
-		assert.equal(LCOV_READER.differential, true);
+		assert.equal(NODE_LCOV_READER.differential, true);
 		assert.equal(NODE_TEST_READER.differential, false);
 	});
 	it("given a control declaring the stryker-json parser, then the protocol schema accepts it and the parser is differential", () => {

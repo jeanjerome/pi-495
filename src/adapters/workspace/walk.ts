@@ -14,6 +14,7 @@ import { git } from "./git.ts";
 
 export interface WalkOptions {
 	exclusions: string[];
+	installed_dependencies: readonly string[];
 	max_file_bytes: number;
 	max_entries: number;
 }
@@ -27,7 +28,11 @@ function toPosix(p: string): string {
 	return sep === "/" ? p : p.split(sep).join(posix.sep);
 }
 
-export function isExcluded(path: string, exclusions: string[]): boolean {
+/**
+ * Whether `path` is left out of a copy by `exclusions`. `installedDependencies` are the directories the technologies
+ * of the list install their dependencies in.
+ */
+export function isExcluded(path: string, exclusions: string[], installedDependencies: readonly string[]): boolean {
 	if (path.split("/").some((segment) => segment === ".DS_Store" || segment.startsWith("._"))) return true;
 	return exclusions.some((pattern) => {
 		if (matchesScope(path, pattern)) return true;
@@ -36,30 +41,41 @@ export function isExcluded(path: string, exclusions: string[]): boolean {
 		const directory = normalized.slice(0, -1);
 		if (!directory || directory.includes("/") || directory.includes("*")) return false;
 		// A dependency ships its own `dist/` or `build/`, which its imports resolve to: the name only
-		// excludes a project directory, so it stops applying below `node_modules/`. `node_modules` itself
-		// is the one name that still matches at the segment that opens the dependencies.
+		// excludes a project directory, so it stops applying below the installed dependencies. Their directory
+		// itself is the one name that still matches at the segment that opens them.
 		const segments = path.split("/");
-		const dependencies = segments.indexOf("node_modules");
+		const dependencies = segments.findIndex((segment) => installedDependencies.includes(segment));
 		const inProject =
-			dependencies === -1 ? segments : segments.slice(0, dependencies + (directory === "node_modules" ? 1 : 0));
+			dependencies === -1 ? segments : segments.slice(0, dependencies + (directory === segments[dependencies] ? 1 : 0));
 		return inProject.includes(directory);
 	});
 }
 
 /** Filters persisted snapshot entries with the active exclusion semantics. */
-export function includedEntries(entries: readonly ManifestEntry[], exclusions: string[]): ManifestEntry[] {
-	return entries.filter((entry) => !isExcluded(entry.path, exclusions));
+export function includedEntries(
+	entries: readonly ManifestEntry[],
+	exclusions: string[],
+	installedDependencies: readonly string[],
+): ManifestEntry[] {
+	return entries.filter((entry) => !isExcluded(entry.path, exclusions, installedDependencies));
 }
 
 /** Removes obsolete limit diagnostics that refer exclusively to excluded paths. */
-export function includedLimits(entries: readonly ManifestEntry[], limits: Limits, exclusions: string[]): Limits {
+export function includedLimits(
+	entries: readonly ManifestEntry[],
+	limits: Limits,
+	exclusions: string[],
+	installedDependencies: readonly string[],
+): Limits {
 	const limitPath = (note: string): string | null =>
 		note.match(/^(.+) exceeds \d+ bytes$/)?.[1] ?? note.match(/^unreadable directory (.+?): /)?.[1] ?? null;
 	const notes = limits.notes.filter((note) => {
 		const path = limitPath(note);
-		return path === null || !isExcluded(path, exclusions);
+		return path === null || !isExcluded(path, exclusions, installedDependencies);
 	});
-	const retainedEntryLimit = includedEntries(entries, exclusions).some((entry) => entry.limits?.truncated);
+	const retainedEntryLimit = includedEntries(entries, exclusions, installedDependencies).some(
+		(entry) => entry.limits?.truncated,
+	);
 	const retainedGlobalLimit = limits.truncated && (limits.notes.length === 0 || notes.length > 0);
 	return { ...limits, truncated: Boolean(retainedEntryLimit || retainedGlobalLimit), notes };
 }
@@ -67,7 +83,8 @@ export function includedLimits(entries: readonly ManifestEntry[], limits: Limits
 /**
  * Deterministic inventory of a directory: sorted by normalised path, each entry with kind, digest,
  * size, mode, symlink target. No `.git`, at any depth, is part of the application content (§9.1). A file above
- * the size limit, outside `node_modules/`, is inventoried without digest and the limit is reported (AT-12).
+ * the size limit, outside the installed dependencies, is inventoried without digest and the limit is reported
+ * (AT-12).
  */
 export async function walkTree(root: string, options: WalkOptions): Promise<WalkResult> {
 	const entries: ManifestEntry[] = [];
@@ -96,7 +113,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 			// A `.git`, at the root or below it — a submodule's file pointing into the parent repository, a
 			// nested repository's directory — is Git's plumbing, never application content.
 			if (name === ".git") continue;
-			if (isExcluded(rel, options.exclusions)) continue;
+			if (isExcluded(rel, options.exclusions, options.installed_dependencies)) continue;
 			if (entries.length >= options.max_entries) {
 				limits.truncated = true;
 				limits.notes.push(`entry limit ${options.max_entries} reached`);
@@ -150,7 +167,7 @@ export async function walkTree(root: string, options: WalkOptions): Promise<Walk
 			limits.bytes_total = (limits.bytes_total ?? 0) + st.size;
 			// An installed dependency ships native binaries and bundles that are read whole; the entry
 			// limit still bounds how many files it adds.
-			if (st.size > options.max_file_bytes && !inInstalledDependencies(rel)) {
+			if (st.size > options.max_file_bytes && !inInstalledDependencies(rel, options.installed_dependencies)) {
 				entries.push({
 					path: rel,
 					kind: "file",

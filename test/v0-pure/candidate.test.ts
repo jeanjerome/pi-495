@@ -5,13 +5,13 @@
  */
 import { strict as assert } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
-import { DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
+import { NODE_PLUGIN } from "../../src/adapters/stacks/node/node.ts";
 import { walkTree } from "../../src/adapters/workspace/walk.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { candidateMoved, writablePrefixes } from "../../src/domain/candidate.ts";
-import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
+import { copyPolicyDeclaredBy, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 
 function entry(path: string, content: string): ManifestEntry {
 	return {
@@ -107,7 +107,7 @@ describe("the outputs of Stryker are not changes of the candidate (VER-03)", () 
 		workspace = tempDir("495-stryker-outputs-", cleanups);
 	});
 
-	it("given a workspace where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed", async () => {
+	it("given a workspace of a Node project where Stryker left reports/mutation and .stryker-tmp, then the frozen candidate lists neither, and a reports/ directory holding other files is still listed", async () => {
 		writeFiles(workspace, {
 			"src/calc.js": "export const twice = (n) => n * 2;\n",
 			"reports/mutation/mutation.json": "{}",
@@ -115,7 +115,7 @@ describe("the outputs of Stryker are not changes of the candidate (VER-03)", () 
 			".stryker-tmp/sandbox-abc123/src/calc.js": "export const twice = (n) => n / 2;\n",
 			"reports/coverage/lcov.info": "TN:\n",
 		});
-		const { entries } = await walkTree(workspace, DEFAULT_WORKSPACE_POLICY);
+		const { entries } = await walkTree(workspace, copyPolicyDeclaredBy(NODE_PLUGIN));
 		assert.deepEqual(
 			entries.filter((e) => e.kind === "file").map((e) => e.path),
 			["reports/coverage/lcov.info", "src/calc.js"],

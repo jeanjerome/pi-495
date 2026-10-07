@@ -4,6 +4,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach } from "node:test";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
+import { DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
+import type { StackPlugin } from "../../src/application/stacks/plugin.ts";
+import type { WorkspacePolicy } from "../../src/ports/execution.ts";
+
+/**
+ * The policy of a copy as `technology` alone declares it: the default exclusions, then the outputs it declares,
+ * and the directory it installs dependencies in, without those of the other technologies of a list.
+ */
+export function copyPolicyDeclaredBy(technology: StackPlugin<unknown>): WorkspacePolicy {
+	const workspace = technology.capabilities.workspace;
+	return {
+		...DEFAULT_WORKSPACE_POLICY,
+		exclusions: [...DEFAULT_WORKSPACE_POLICY.exclusions, ...(workspace?.outputs ?? [])],
+		installed_dependencies: workspace?.installed_dependencies === undefined ? [] : [workspace.installed_dependencies],
+	};
+}
 
 /**
  * The directories pushed onto the returned list are removed after each test of the suite that calls it,

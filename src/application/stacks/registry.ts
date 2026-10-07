@@ -7,10 +7,13 @@
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type { InstalledPackage } from "../../contracts/v1/protocol.ts";
 import type { ReaderTraits } from "../../domain/survey.ts";
+import type { WorkspacePolicy } from "../../ports/execution.ts";
 import { assembleDetection, undetected } from "./assembly.ts";
-import type { StackPlugin } from "./plugin.ts";
+import type { StackPlugin, TestLayout, ToolProbe, WorkspaceCapability } from "./plugin.ts";
 import { type OpenProjectView, ProjectViewRefusal } from "./project-view.ts";
 import type { DetectedTechnology } from "./stack.ts";
+
+const NO_WORKSPACE: WorkspaceCapability = { outputs: [] };
 
 /**
  * The technologies a project is recognised with, in the order they claim one, how a copy is opened to them,
@@ -29,6 +32,69 @@ export class StackRegistry {
 		this.technologies = technologies;
 		this.#readers = readers;
 		this.#openView = openView;
+	}
+
+	/** The tools whose version enters the identity of the environment, as every technology of the list declares them. */
+	toolVersions(): Record<string, ToolProbe> {
+		return Object.fromEntries(
+			this.technologies.flatMap((technology) => Object.entries(technology.capabilities.workspace?.versions ?? {})),
+		);
+	}
+
+	/**
+	 * What the technology that recognises the project at `projectPath` puts into a copy that is not a change, and
+	 * the variables its controls read; nothing when no technology recognises it, or when the view of the copy
+	 * refuses a read.
+	 */
+	workspaceOf(projectPath: string): WorkspaceCapability {
+		return this.#recognising(projectPath)?.capabilities.workspace ?? NO_WORKSPACE;
+	}
+
+	/**
+	 * The directories every technology of the list installs dependencies in: each stays protected in every project,
+	 * so a technology that declares none takes away no protection another gives.
+	 */
+	installedDependencies(): string[] {
+		return [
+			...new Set(
+				this.technologies.flatMap((technology) => technology.capabilities.workspace?.installed_dependencies ?? []),
+			),
+		];
+	}
+
+	/**
+	 * The policy a copy of the project at `projectPath` is taken under: the exclusions of `policy`, then the
+	 * outputs its technology declares, and the directories every technology of the list installs dependencies in.
+	 */
+	copyPolicyOf(projectPath: string, policy: WorkspacePolicy): WorkspacePolicy {
+		return {
+			...policy,
+			exclusions: [...new Set([...policy.exclusions, ...this.workspaceOf(projectPath).outputs])],
+			installed_dependencies: this.installedDependencies(),
+		};
+	}
+
+	/**
+	 * What the technology that recognises the project at `projectPath` calls a test file and the production
+	 * resource a test resource may carry; no file and no resource when no technology recognises it.
+	 */
+	testLayoutOf(projectPath: string): TestLayout {
+		const tests = this.#recognising(projectPath)?.capabilities.tests;
+		return {
+			isTestFile: (path) => tests?.isTestFile(path) ?? false,
+			mirroredResource: (path) => tests?.mirroredResource?.(path) ?? null,
+		};
+	}
+
+	/** The first technology of the list that recognises the project at `projectPath`, or null when the view refuses a read. */
+	#recognising(projectPath: string): StackPlugin<unknown> | null {
+		const view = this.#openView(projectPath);
+		try {
+			return this.technologies.find((t) => t.recognise(view) !== null) ?? null;
+		} catch (error) {
+			if (!(error instanceof ProjectViewRefusal)) throw error;
+			return null;
+		}
 	}
 
 	/**

@@ -601,6 +601,7 @@ describe("the pom.xml an adopted complement wrote, judged at G4", () => {
 			manifestOf(entry("pom.xml", "modified", written)),
 			test.protected_paths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);
@@ -610,6 +611,7 @@ describe("the pom.xml an adopted complement wrote, judged at G4", () => {
 			manifestOf(entry("pom.xml", "unchanged", digestBytes("<project>the reference</project>"))),
 			test.protected_paths,
 			[],
+			["node_modules"],
 			() => false,
 			[complement],
 		);

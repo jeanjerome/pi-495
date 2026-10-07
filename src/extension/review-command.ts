@@ -45,7 +45,7 @@ export async function openReviewTui(ctx: ExtensionCommandContext, review: Review
 			// The review answers to the keys the user set in Pi, and its help names them from the manager
 			// Pi hands over. Pi's `keyText` reads the global manager of the copy of Pi this module resolves,
 			// which is that manager only in a managed install (`npm install --omit=peer`): loaded from a
-			// folder whose `node_modules` carries its own Pi, it would name the default keys.
+			// folder whose installed packages carry their own Pi, it would name the default keys.
 			keybindings,
 			keyText: (action) => keybindings.getKeys(action).map(writeKey).join("/"),
 			// A change is drawn the way Pi draws its edit tool's, in the theme Pi has active (`D-82`).

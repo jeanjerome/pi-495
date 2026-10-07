@@ -13,26 +13,10 @@ import type { WorkspaceHandle, WorkspacePolicy, WorkspacePort } from "../../port
 import { git } from "./git.ts";
 import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } from "./walk.ts";
 
-/**
- * `node_modules/.vite/` (vitest's duration cache), `node_modules/.vite-temp/` (the compiled configuration) and
- * `node_modules/.vitest/` (vitest's API token) are written each time the suite runs in the copy: they are outputs
- * of the tool, not installed dependencies, and observing them would report a modified protected path for a
- * candidate that only ran its tests. The same holds for what Stryker leaves in the copy: its report under
- * `reports/mutation/` and the instrumented sources it runs the tests on under `.stryker-tmp/`.
- */
+/** `.pi/` is Pi's own directory in a project, which no technology writes and no change is about. */
 export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
-	exclusions: [
-		"target/",
-		"dist/",
-		".pi/",
-		"__pycache__/",
-		"build/",
-		"node_modules/.vite/",
-		"node_modules/.vite-temp/",
-		"node_modules/.vitest/",
-		"reports/mutation/",
-		".stryker-tmp/",
-	],
+	exclusions: [".pi/"],
+	installed_dependencies: [],
 	max_file_bytes: 8 * 1024 * 1024,
 	max_entries: 50_000,
 };
@@ -129,6 +113,7 @@ export class GitWorkspace implements WorkspacePort {
 			tree_digest: treeDigest,
 			entries,
 			exclusions: policy.exclusions,
+			installed_dependencies: [...policy.installed_dependencies],
 			captured_at: new Date().toISOString(),
 			limits: walked.limits,
 		};
@@ -141,7 +126,7 @@ export class GitWorkspace implements WorkspacePort {
 		await mkdir(path, { recursive: true });
 		for (const e of reference.entries) {
 			const target = join(path, e.path);
-			if (isExcluded(e.path, policy.exclusions)) continue;
+			if (isExcluded(e.path, policy.exclusions, installedDependencies(reference, policy))) continue;
 			await mkdir(dirname(target), { recursive: true });
 			if (e.kind === "symlink" && e.symlink_target !== null) await symlink(e.symlink_target, target);
 			else if (e.kind === "file") {
@@ -165,9 +150,12 @@ export class GitWorkspace implements WorkspacePort {
 		reference: ReferenceSnapshot,
 		policy: WorkspacePolicy,
 	): Promise<CandidateManifest> {
-		const walked = await walkTree(handle.path, policy);
-		const referenceEntries = includedEntries(reference.entries, policy.exclusions);
-		const referenceLimits = includedLimits(reference.entries, reference.limits, policy.exclusions);
+		// The reference records what its change leaves out of a copy, which `policy` may only add to.
+		const exclusions = [...new Set([...reference.exclusions, ...policy.exclusions])];
+		const installed = installedDependencies(reference, policy);
+		const walked = await walkTree(handle.path, { ...policy, exclusions, installed_dependencies: installed });
+		const referenceEntries = includedEntries(reference.entries, exclusions, installed);
+		const referenceLimits = includedLimits(reference.entries, reference.limits, exclusions, installed);
 		const entries = diffEntries(referenceEntries, [
 			...walked.entries,
 			...uncopied(referenceEntries, walked.entries, handle.path),
@@ -177,7 +165,7 @@ export class GitWorkspace implements WorkspacePort {
 			canonicalize({
 				base_ref: reference.tree_digest,
 				selected_paths: selected,
-				exclusions: policy.exclusions,
+				exclusions,
 				entries: entries.map((e) => [e.path, e.kind, e.content_digest, e.mode, e.symlink_target, e.baseline_state]),
 				metadata_policy: "content_and_mode",
 			}),
@@ -188,7 +176,7 @@ export class GitWorkspace implements WorkspacePort {
 			base_reference_id: reference.reference_id,
 			base_digest: reference.tree_digest,
 			selected_paths: selected,
-			exclusions: policy.exclusions,
+			exclusions,
 			entries,
 			metadata_policy: "content_and_mode",
 			manifest_digest: digest,
@@ -200,6 +188,11 @@ export class GitWorkspace implements WorkspacePort {
 	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {
 		if (retention === "delete") await rm(this.workspacePath(workspaceId), { recursive: true, force: true });
 	}
+}
+
+/** The directories the reference records for installed dependencies, or those `policy` declares when it records none. */
+function installedDependencies(reference: ReferenceSnapshot, policy: WorkspacePolicy): readonly string[] {
+	return reference.installed_dependencies ?? policy.installed_dependencies;
 }
 
 /**

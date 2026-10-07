@@ -70,10 +70,15 @@ export function assembleDetection<Model>(
 	const measured = measuresExecutedCode ? tests.measuredCodeWitness?.(question) : undefined;
 	const quality = available.find(({ sensor }) => sensor === "quality")?.offer.controls ?? [];
 	const referential = plugin.capabilities.quality?.referential?.(question);
+	const declaredEnv = plugin.capabilities.workspace?.env ?? [];
 	return {
 		stack: plugin.id,
 		facts,
-		controls,
+		// Every control reads the variables its technology declares, and no other of the session.
+		controls: controls.map((control) => ({
+			...control,
+			env_allowlist: [...new Set([...control.env_allowlist, ...declaredEnv])],
+		})),
 		// A control whose reader names no nature takes the one of the capability that offers it.
 		lint_control_ids: controls
 			.filter((control) => {

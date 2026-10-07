@@ -43,3 +43,14 @@ export type VitestCoverageProvider = (typeof VITEST_COVERAGE_PROVIDERS)[number];
 
 /** Where vitest writes the LCOV report of its coverage run, under the directory the sandbox lets it create. */
 export const VITEST_COVERAGE_DIRECTORY = `${REPORT_DIRECTORY}/coverage`;
+
+/** A JavaScript or TypeScript source the suite runs: neither a declaration file nor a test. */
+export function isScriptUnderTest(path: string): boolean {
+	return SCRIPT_SOURCE.test(path) && !SCRIPT_DECLARATION_ONLY.test(path) && !SCRIPT_TEST_SOURCE.test(path);
+}
+
+const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
+/** A declaration file has no executable line, and a runner reports none. */
+const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;
+/** A test is what measures; it is never what is measured. */
+const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;

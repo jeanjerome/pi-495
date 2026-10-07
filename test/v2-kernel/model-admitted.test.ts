@@ -107,6 +107,7 @@ function supervisorFor() {
 		policy: DEFAULT_POLICY,
 		now: () => "2026-09-23T00:00:00Z",
 		progress: () => {},
+		technologyEnv: () => [],
 		agentContext: () => {},
 	});
 	return { supervisor, probed: agent.probed, started: agent.started };

@@ -6,7 +6,7 @@
 import { cp, mkdir, rm, symlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { digestValue } from "../../contracts/digest.ts";
-import type { CandidateManifest, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
+import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
 import { DomainError, messageOf } from "../../domain/errors.ts";
 import { inInstalledDependencies } from "../../domain/gates/g4.ts";
 import type { ChangeState } from "../../domain/change/state.ts";
@@ -36,8 +36,12 @@ export interface IntegrationReceipt {
  * and what the project's ignore rules list is left out because git refuses to index it. A path git
  * already tracks is indexable whatever the rules say.
  */
-async function indexablePaths(project: string, paths: readonly string[]): Promise<string[]> {
-	const own = paths.filter((path) => !inInstalledDependencies(path));
+async function indexablePaths(
+	project: string,
+	paths: readonly string[],
+	installedDependencies: readonly string[],
+): Promise<string[]> {
+	const own = paths.filter((path) => !inInstalledDependencies(path, installedDependencies));
 	if (own.length === 0) return [];
 	const listed = await git(project, ["ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...own]);
 	const ignored = new Set(listed.stdout.split("\0").filter(Boolean));
@@ -54,19 +58,25 @@ export class GitIntegrator {
 	step = async (unit: Unit, cor: string): Promise<Unit> => {
 		const h = this.harness;
 		const state = unit.state;
-		const reference = (await h.artifacts.latest<ReferenceSnapshot>(state, "reference"))!.content;
+		const reference = await h.artifacts.reference(state);
+		const installed = reference.installed_dependencies;
+		const walkPolicy = {
+			...DEFAULT_WORKSPACE_POLICY,
+			exclusions: reference.exclusions,
+			installed_dependencies: installed,
+		};
 		const manifest = await h.artifacts.read<CandidateManifest>({
 			artifact_id: state.candidate!.candidate_id,
 			revision: 1,
 		});
 		const project = reference.project_path;
-		const referenceEntries = includedEntries(reference.entries, reference.exclusions);
+		const referenceEntries = includedEntries(reference.entries, reference.exclusions, installed);
 		const info = await inspectGit(project);
 		const destination = info.branch ?? "HEAD";
 		const before = info.head ?? "0".repeat(40);
 		// destination advanced?
 		if (state.integration && state.integration.destination_before !== before) {
-			const current = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
+			const current = await walkTree(project, walkPolicy);
 			const changed =
 				digestValue(current.entries.map((e) => [e.path, e.content_digest])) !==
 				digestValue(referenceEntries.map((e) => [e.path, e.content_digest]));
@@ -83,7 +93,7 @@ export class GitIntegrator {
 			);
 		}
 		if (!state.operation) {
-			const workingTree = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
+			const workingTree = await walkTree(project, walkPolicy);
 			if (diffEntries(referenceEntries, workingTree.entries).some((e) => e.baseline_state !== "unchanged")) {
 				return h.commit(
 					unit,
@@ -144,7 +154,7 @@ export class GitIntegrator {
 					else if (e.kind === "file") await cp(join(workspace, e.path), target, { dereference: false });
 				}
 				if (info.is_repo) {
-					const indexable = await indexablePaths(project, manifest.selected_paths);
+					const indexable = await indexablePaths(project, manifest.selected_paths, installed);
 					// An empty pathspec would index the whole tree.
 					if (indexable.length === 0) throw new Error("no file of the candidate is one git can index");
 					await git(project, ["add", "-A", "--", ...indexable]);
@@ -165,7 +175,7 @@ export class GitIntegrator {
 					if (r.code !== 0) throw new Error(`git commit failed: ${r.stderr}`);
 				}
 				const after = (await inspectGit(project)).head ?? before;
-				const applied = await walkTree(project, { ...DEFAULT_WORKSPACE_POLICY, exclusions: reference.exclusions });
+				const applied = await walkTree(project, walkPolicy);
 				const appliedEntries = diffEntries(referenceEntries, applied.entries);
 				const appliedDigest = digestValue({
 					base_ref: reference.tree_digest,

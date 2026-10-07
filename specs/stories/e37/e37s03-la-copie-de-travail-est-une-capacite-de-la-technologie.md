@@ -2,7 +2,7 @@
 
 Story : e37s03
 Epic : e37
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -46,11 +46,20 @@ Scenario: Un fichier de test se reconnaît à la forme que sa technologie décla
   When un changement gèle son protocole
   Then le diagnostic de capacité du protocole compte un fichier de test (`test_files` vaut 1)
 
+Scenario: Une technologie qui ne déclare aucune dépendance installée ne retire pas la protection qu'une autre donne
+  Given un projet qui porte `pom.xml`, `package.json` et `node_modules/x/index.js`, que Maven reconnaît le premier sous la liste de 495 sans déclarer de répertoire de dépendances installées
+  When un agent scripté ajoute `node_modules/shadow.js` au candidat
+  Then la référence du changement enregistre `node_modules`, que Node déclare, parmi les répertoires de dépendances installées
+  And chaque contrôle du protocole gelé porte `node_modules/` parmi ses chemins protégés
+  And le changement n'est pas accepté, et G4 nomme `node_modules/shadow.js` parmi les chemins protégés modifiés
+
 ## 3. Sécurité
 
-Les chemins protégés et les exclusions décident de ce qu'un candidat peut changer sans que G4 le refuse. Une
-technologie qui déclare ses dépendances installées les protège ; une qui ne déclare rien ne retire aucune protection
-qu'une autre technologie donne. Les exclusions qu'une technologie déclare s'ajoutent à celles du propriétaire, et
+Les chemins protégés et les exclusions décident de ce qu'un candidat peut changer sans que G4 le refuse. Le
+répertoire de dépendances installées qu'une technologie de la liste déclare est protégé dans tout projet, quelle que
+soit la technologie qui le reconnaît : une technologie qui ne déclare rien ne retire aucune protection qu'une autre
+technologie donne. La référence du changement enregistre ces répertoires pour toutes les technologies de la liste,
+et la vérification, G4, l'inventaire et l'intégration les lisent tous. Les exclusions qu'une technologie déclare s'ajoutent à celles du propriétaire, et
 ne les remplacent pas. Elles sont enregistrées dans la référence du changement, que l'intégration relit : un dossier
 écrit avant, dont la référence porte déjà ses exclusions, s'intègre à l'identique.
 
@@ -127,7 +136,29 @@ chemin de la ressource de production qu'elle peut recopier.
 - Tient : la recherche, la Preflight et les deux campagnes, aux angles morts et à l'environnement des contrôles Node près
 - Rouge : `SCRIPT_SOURCE` (`lcov.ts:94`) et `SKIPPED_DIRECTORIES` (`workspace-files.ts:203`) nomment les sources JavaScript et les répertoires de Maven et de Node
 
+### Tâche 6 — Les dépendances installées de toutes les technologies de la liste restent protégées
+
+`copyPolicyOf` (`src/application/stacks/registry.ts`) ne prend plus le répertoire de la seule technologie qui
+reconnaît le projet. La référence du changement enregistre les répertoires de dépendances installées que déclarent
+toutes les technologies de la liste : `node_modules` sous la liste de 495, quelle que soit la technologie du projet.
+Les quatre usages de la tâche 2 les lisent tous :
+- le chemin protégé que la vérification ajoute à chaque contrôle ;
+- le refus d'un ajout sous l'un d'eux (`protectedPathsChanged`) ;
+- l'inventaire qui ne borne pas la taille d'un fichier sous l'un d'eux (`walk.ts`) ;
+- l'intégration qui n'en indexe aucun (`integrator.ts`).
+
+Une référence écrite avant, sans cette déclaration, est relue avec les répertoires de toutes les technologies de la
+liste, et non plus avec celui de la seule technologie que le projet porte.
+
+- Vérifie : `node --test test/v2-kernel/installed-dependencies.test.ts`
+- Tient : `test/v2-kernel/installed-dependencies.test.ts`, « sur un projet qui porte `pom.xml`, `package.json` et `node_modules/x/index.js`, sous la liste de 495, la référence du changement enregistre `node_modules` parmi les répertoires de dépendances installées, chaque contrôle du protocole gelé porte `node_modules/` parmi ses chemins protégés, et un candidat qui ajoute `node_modules/shadow.js` n'est pas accepté : G4 nomme `node_modules/shadow.js` parmi les chemins protégés modifiés »
+- Rouge : `copyPolicyOf` prend `installed_dependencies` de la première technologie qui reconnaît le projet ; Maven le reconnaît et n'en déclare aucun, donc la référence enregistre `installed_dependencies: null` (relevé en appelant `copyPolicyOf` de `STACKS_OF_495` sur ce projet), aucun contrôle gelé ne porte `node_modules/`, et `node_modules/shadow.js` passe G4
+
 ## 5. Hors périmètre
+
+- Les sorties qu'écarte une copie : elles restent celles de la technologie qui reconnaît le projet. L'écart de la tâche 6 ne porte que sur les répertoires de dépendances installées.
+- Les parcours de répertoires des lecteurs (`workspace-files.ts`, tâche 5) : ils sautent les dépendances installées de la technologie de la copie, pour lire ses rapports, et ne protègent rien.
+- Le répertoire `node_modules` que l'inspection d'une installation nomme (`src/application/installation.ts`) : avec l'installation, `e37s04`.
 
 - L'installation et la résolution d'un complément, l'environnement d'une installation (`NPM_ENV_NAMES`, `MAVEN_ENV_NAMES`), son inspection, le texte qui la présente au propriétaire et les modifications de fichier qu'un complément apporte : la capacité `install`, `e37s04`.
 - Le répertoire `.m2/repository` d'une résolution Maven dans la copie : avec l'installation, `e37s04`.

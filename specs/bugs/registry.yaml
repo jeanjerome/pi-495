@@ -1599,3 +1599,35 @@ bugs:
       path of the copy, in both backends, with a test on a writable path committed as a link to a file and to a
       directory outside the copy.
     status: open
+  - bug_id: BUG-2026-10-07T210000
+    date: "2026-10-07"
+    title: "The JDK version never enters the identity of the environment, so a change of JDK does not requalify a Maven control"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `describeEnvironment` (`src/application/environment.ts`) records for each probed tool the first line of what
+      its command prints on stdout. `java -version` prints its version on stderr and nothing on stdout, so the
+      `java` tool of the identity is the empty string whenever a JDK is installed, whatever its version. Two
+      machines, or one machine before and after a JDK upgrade, share the same environment digest as far as Java
+      goes, and a qualification or a piece of evidence of a Maven control established under one JDK is reused
+      under the other.
+    what_expected: >
+      The identity of the environment carries the version line of the JDK the controls run, so a change of JDK is
+      a change of environment, as a change of `mvn` already is.
+    steps_to_reproduce:
+      - "`java -version 2>/dev/null | wc -c` prints 0 on a machine with a JDK; `describeEnvironment(..., { java: [\"java\", [\"-version\"]] }).facts.tools.java` is `\"\"`."
+    root_cause: >
+      The probe reads stdout only. Before the tools were declared by each technology, the `java` probe had a branch
+      of its own that read stdout on success and the first line of stderr on failure, which gave the same empty
+      string on success. On failure the probe now gives `absent` where that branch gave the first line of stderr:
+      a machine whose `java` is a launcher without a JDK behind it records `absent` instead of the launcher's message.
+    evidence: >
+      Observed on 2026-10-07 on this machine (GraalVM CE 25.0.4.1): stdout of `java -version` is empty, stderr
+      carries `openjdk version "25.0.4.1" 2026-08-18`. The value was kept as it was while the probes moved to the
+      Maven technology, so that the identity of an existing environment does not change with them.
+    risk_level: medium
+    follow_ups: >
+      Let a probe read the first non-empty line of stdout, then of stderr, with a test on a probe that prints its
+      version on stderr; the environment digest of every machine with a JDK changes once.
+    status: open

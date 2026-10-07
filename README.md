@@ -279,7 +279,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
-  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/", "node_modules/.vitest/", "reports/mutation/", ".stryker-tmp/"],
+  "workspace_exclusions": [".pi/"],
   "language": "fr"
 }
 ```
@@ -295,7 +295,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 | `policy.required_reviews` | Review roles required for acceptance. |
 | `isolation.allow_unconfined` | Run checks without a sandbox. Leave `false`. |
 | `human_origin.rpc_actor_env` | Environment variable through which an RPC host names its human actor. |
-| `workspace_exclusions` | Build outputs left out of workspaces. Keep the inputs the checks need. |
+| `workspace_exclusions` | Paths left out of workspaces, on top of the outputs the project's technology declares. Keep the inputs the checks need. |
 | `language` | `fr` or `en`. |
 
 `config.json` must match its [schema](contracts/v1/harness-config.json). A file that does not, that is not valid JSON, that cannot be opened or that is not a regular file stops every `/495` command, `/495 help` included, and the error says what is wrong: for a file that does not match, where its first three deviations lie and what is expected there, and how many others there are. The defaults never replace it, since one of its settings may keep a decision for a human. Fix the file, then reload Pi (`/reload`) or start a new session.
