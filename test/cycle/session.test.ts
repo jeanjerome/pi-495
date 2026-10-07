@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { chmodSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Journal } from "../../cycle/src/journal.ts";
 import { lancerSession, lireFlux } from "../../cycle/src/session.ts";
@@ -34,7 +34,7 @@ describe("a Claude Code session run by the cycle", () => {
 		assert.equal(session.ok, true);
 		assert.deepEqual(session.sortie, {
 			echo: '{"type":"object"}',
-			shell: "/opt/homebrew/bin/bash",
+			shell: existsSync("/opt/homebrew/bin/bash") ? "/opt/homebrew/bin/bash" : "/bin/bash",
 			consignes: "step rules",
 		});
 		assert.equal(session.cout_usd, 0.5);
