@@ -130,13 +130,21 @@ Integration is disabled by default. To allow it, set `policy.integration_enabled
 
 ```mermaid
 flowchart TD
-    A["Specify the request"] --> B["Prepare and qualify checks"]
-    B --> C["Freeze the verification protocol"]
-    C --> D["Implement in an isolated workspace"]
-    D --> E{"Evidence sufficient?"}
-    E -->|"Yes"| F["Review and authorize local integration"]
-    E -->|"Correction within budget"| D
-    E -->|"Decision or capability missing"| G["Stop and record the next action"]
+    S["`**Scoping**
+the objective and the questions it raises`"] --> SP["`**Specification**
+requirements with observable criteria`"]
+    SP --> Q["`**Qualification**
+checks qualified, verification protocol frozen`"]
+    Q --> D["`**Design**
+the plan within the mandate`"]
+    D --> I["`**Implementation**
+a candidate in an isolated workspace`"]
+    I --> A{"`**Acceptance**
+does the evidence satisfy the protocol?`"}
+    A -->|"Yes"| G["`**Integration**
+the accepted candidate applied locally, when authorized`"]
+    A -->|"Correction within budget"| I
+    A -->|"Decision or capability missing"| X["Stop and record the next action"]
 ```
 
 Agents propose artifacts and code. The kernel runs the controls and applies the acceptance rules. Required agent reviews and human decisions are additional inputs when the protocol calls for them. `/495 verify` reruns the frozen controls without calling a model.
