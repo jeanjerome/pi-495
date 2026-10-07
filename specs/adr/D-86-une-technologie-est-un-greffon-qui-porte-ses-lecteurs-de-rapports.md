@@ -1,6 +1,6 @@
 # D-86: Une technologie est un greffon, qui porte aussi ses lecteurs de rapports
 
-**Status:** Acceptée (arbitrage du propriétaire, 2026-10-07) ; amende le point 3 de `D-75`
+**Status:** Acceptée (arbitrages du propriétaire, 2026-10-07) ; amende le point 3 de `D-75`
 **Date:** 2026-10-07
 
 ## Contexte
@@ -51,9 +51,33 @@ font 897 lignes (Node) et 1 015 lignes (Maven) chacun dans un seul fichier.
    ne connaît que l'interface. Le sens des couches est tenu, et l'ordre de `D-75` ne change pas : Maven précède
    Node.
 
+5. **Un étage commun pose les questions, et la technologie y répond par capacités.** Une technologie déclare
+   sa reconnaissance d'un projet et, par capacité — tests (obligatoire), couverture, mutation, qualité,
+   structure, puis copie de travail et compléments —, ce qu'elle offre sur ce projet, dans une forme commune :
+   disponible, avec son contrôle et ses témoins ; absente, avec l'angle mort qu'elle laisse et la recommandation
+   qui la comblerait ; refusée, avec sa raison. L'étage commun détecte la technologie d'un projet en appelant la
+   reconnaissance de chacune, dans l'ordre de la liste, puis assemble ce que le noyau lit (contrôles, témoins,
+   angles morts, recommandations, contrôles de style) une seule fois pour toutes les technologies : aucune
+   technologie ne l'assemble elle-même. Le noyau ne parle qu'à cet étage. Une technologie lit le projet par une
+   vue que l'étage lui donne, bornée à la copie, et non par le système de fichiers.
+6. **Celui qui écrit une technologie reçoit une interface publiée et un test de conformité.** L'interface est
+   exportée du paquet sous un chemin stable et versionnée. Le test de conformité se lance sur les projets
+   d'exemple d'une technologie et vérifie que chaque capacité qu'elle dit disponible se qualifie pour de vrai,
+   et que chaque lecteur rend `INDETERMINATE` sur un rapport absent ou hors borne. La technologie fictive de
+   `e37s01` en est l'exemple documenté.
+7. **Une technologie chargée hors du dépôt de 495 n'est pas engagée** (arbitrage du propriétaire,
+   2026-10-07). Un lecteur décide d'un `PASS` : une technologie tierce mal écrite ou malveillante ferait
+   accepter un changement. L'interface est conçue pour le permettre plus tard ; l'ouvrir demandera d'inscrire
+   l'identité, la version et l'empreinte de la technologie dans le protocole gelé et dans l'identité de
+   l'environnement, et de ne charger que celles que le propriétaire déclare.
+
 ## Conséquences
 
 Le contrat change : `npm run contracts` le régénère, et un dossier écrit avant doit se relire, comme `D-83`
 l'a fait pour les identifiants de phase. `e11` attend cet epic : le diagnostic d'architecture d'une cible
 Node ajouterait sinon un format de plus à la liste fermée et une ligne à chaque table. Le découpage des deux
 adaptateurs par sujet se fait dans leur dossier, avec la story qui les y déplace.
+
+`e37s01` a ouvert les lecteurs, rangé Maven et Node chacun dans son dossier, et fait remettre la liste par
+`extension/` ; chacune assemblait encore son objet de détection à la main, ce que le point 5 retire. La copie
+de travail et les compléments s'écrivent comme deux capacités de plus, après l'étage commun.

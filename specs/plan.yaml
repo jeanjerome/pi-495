@@ -409,22 +409,30 @@ epics:
     title: "Une technologie s'ajoute par son seul dossier"
     status: à faire
     objet: >
-      Une technologie est un dossier qui implémente une interface unique : détection, contrôles et témoins,
-      lecteurs de ses rapports, sorties de ses outils dans une copie, dépendances installées, environnement,
-      forme des fichiers de test, installation des compléments et texte qui les présente. Le code générique
-      n'en nomme aucune, et une technologie fictive conduit un changement jusqu'à l'acceptation sans qu'un
-      module hors de son dossier change (`D-86`).
+      Une technologie est un dossier qui implémente une interface publiée : sa reconnaissance d'un projet, ses
+      capacités (tests, couverture, mutation, qualité, structure, copie de travail, installation des compléments),
+      chacune répondant dans une forme commune, et les lecteurs de ses rapports. Un étage commun détecte la
+      technologie d'un projet et lui pose ces questions ; le noyau ne parle qu'à lui. Le code générique ne nomme
+      aucune technologie, une technologie fictive conduit un changement jusqu'à l'acceptation sans qu'un module hors
+      de son dossier change, et un test de conformité dit à qui en écrit une si elle tient (`D-86`).
     motif: >
       `e12s01` n'a réalisé `D-75` que pour la détection : une dizaine de modules génériques nomment encore npm,
-      Maven ou leurs outils, la liste des formats de rapport est fermée au contrat, et les deux adaptateurs
-      tiennent chacun dans un fichier de 900 à 1 000 lignes.
+      Maven ou leurs outils, la liste des formats de rapport était fermée au contrat, et les deux adaptateurs
+      tenaient chacun dans un fichier de 900 à 1 000 lignes. `e37s01` a ouvert les lecteurs et rangé chaque
+      technologie dans son dossier ; mais chacune assemble encore à la main, dans son `detect()`, le même objet de
+      onze champs, capacité par capacité, et rien de commun ne lui pose les questions (constat du propriétaire,
+      2026-10-07).
     position: >
       Inscrit le 2026-10-07 par le propriétaire, devant `e11`, dont le diagnostic d'une cible Node ajouterait
-      sinon un format à la liste fermée et une ligne à chaque table. Aucune story n'est écrite.
+      sinon un format à la liste fermée et une ligne à chaque table. L'étage de capacités passe avant la copie de
+      travail et les compléments, qui s'y écrivent comme deux capacités de plus au lieu d'ajouter des champs à
+      l'objet de détection. Une technologie chargée hors du dépôt de 495 n'est pas engagée (`D-86`).
     stories:
       - { id: e37s01, status: "versée", title: "Une technologie fictive, déclarée dans un seul dossier avec son propre format de rapport, conduit un changement jusqu'à l'acceptation" }
-      - { id: e37s02, status: "à faire", title: "Ce qu'une technologie écarte de la copie, protège, transmet à ses contrôles et appelle un fichier de test est déclaré par son dossier" }
-      - { id: e37s03, status: "à faire", title: "Un complément s'installe ou se résout, s'inspecte et se présente au propriétaire par le dossier de sa technologie" }
+      - { id: e37s02, status: "à faire", title: "Un étage commun détecte la technologie d'un projet et lui demande chacune de ses capacités, qui répondent dans une même forme" }
+      - { id: e37s03, status: "à faire", title: "Ce qu'une technologie écarte de la copie, protège, transmet à ses contrôles et appelle un fichier de test est une capacité de son dossier" }
+      - { id: e37s04, status: "à faire", title: "Un complément s'installe ou se résout, s'inspecte et se présente au propriétaire par une capacité de sa technologie" }
+      - { id: e37s05, status: "à faire", title: "Celui qui écrit une technologie dispose d'une interface publiée, d'un test de conformité et d'un exemple documenté" }
 
   - id: e11
     title: "Architecture cible d'une cible"
