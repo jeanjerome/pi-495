@@ -1,6 +1,6 @@
 # D-31: Linux x86-64 n'est pas une plateforme revendiquée
 
-**Status:** Acceptée
+**Status:** Remplacée par `D-84` (2026-10-07)
 
 **Décision.** Le backend `bubblewrap` reste dans les sources, et sa qualification échoue sur toute
 machine, y compris une machine Linux munie de `bwrap`. La raison en est nommée dans le résultat :

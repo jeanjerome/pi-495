@@ -392,6 +392,19 @@ epics:
       - { id: e32s01, status: "versée", title: "Les étapes d'un changement se lisent sous leurs noms, du cadrage à l'intégration" }
       - { id: e32s02, status: "versée", title: "Les identifiants de phase portent le nom de l'étape, et un dossier écrit avant reste lisible" }
 
+  - id: e35
+    title: "495 s'exécute qualifié sous Linux"
+    status: à faire
+    objet: >
+      Le bac à sable `bubblewrap` est qualifié comme Seatbelt l'est sous macOS, et un changement se conduit de
+      bout en bout sur une machine Linux.
+    position: >
+      Engagé le 2026-10-07 par le propriétaire pour la 0.4.0, avant e11 : la publication de la 0.4.0 attend
+      cet epic. La qualification se fait dans une machine virtuelle Linux arm64 d'Apple container, et vaut pour
+      x86-64 par arbitrage du propriétaire (`D-84`, qui remplace `D-31`).
+    stories:
+      - { id: e35s01, status: "à faire", title: "495 s'exécute confiné sous Linux, et la documentation le dit" }
+
   - id: e11
     title: "Architecture cible d'une cible"
     status: à faire
@@ -588,17 +601,6 @@ epics:
     position: >
       Inscrit le 2026-10-07 à la demande du propriétaire, avec la feuille de route du README ; aucune story
       n'est écrite.
-    stories: []
-
-  - id: e35
-    title: "495 s'exécute qualifié sous Linux"
-    status: à faire
-    objet: >
-      Le bac à sable `bubblewrap` est qualifié comme Seatbelt l'est sous macOS, et un changement se conduit de
-      bout en bout sur une machine Linux de référence.
-    position: >
-      Inscrit le 2026-10-07 à la demande du propriétaire, avec la feuille de route du README. La machine de
-      référence reste macOS arm64 tant que l'epic n'est pas engagé ; aucune story n'est écrite.
     stories: []
 
   - id: e36
