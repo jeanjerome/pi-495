@@ -422,7 +422,7 @@ epics:
       Inscrit le 2026-10-07 par le propriétaire, devant `e11`, dont le diagnostic d'une cible Node ajouterait
       sinon un format à la liste fermée et une ligne à chaque table. Aucune story n'est écrite.
     stories:
-      - { id: e37s01, status: "à faire", title: "Une technologie fictive, déclarée dans un seul dossier avec son propre format de rapport, conduit un changement jusqu'à l'acceptation" }
+      - { id: e37s01, status: "versée", title: "Une technologie fictive, déclarée dans un seul dossier avec son propre format de rapport, conduit un changement jusqu'à l'acceptation" }
       - { id: e37s02, status: "à faire", title: "Ce qu'une technologie écarte de la copie, protège, transmet à ses contrôles et appelle un fichier de test est déclaré par son dossier" }
       - { id: e37s03, status: "à faire", title: "Un complément s'installe ou se résout, s'inspecte et se présente au propriétaire par le dossier de sa technologie" }
 
