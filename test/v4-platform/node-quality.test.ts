@@ -16,7 +16,7 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition, InstalledPackage } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
-import { outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
 import {
 	CHECKSUM_A,
 	CHECKSUM_B,
@@ -85,7 +85,7 @@ function qualityControls(reference: string): {
 }
 
 function runnerFor(root: string): GenericControlRunner {
-	const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
+	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
 	return new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects")));
 }
 

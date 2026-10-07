@@ -10,7 +10,14 @@ import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR } from "../helpers/command-fixture.ts";
-import { fixtureTsWithFailingTest, initRepo, outputDir, removedAfterEach, tempDir } from "../helpers/fixtures.ts";
+import {
+	NO_QUALIFIED_SANDBOX,
+	fixtureTsWithFailingTest,
+	initRepo,
+	outputDir,
+	removedAfterEach,
+	tempDir,
+} from "../helpers/fixtures.ts";
 import { specReport } from "../helpers/harness-fixture.ts";
 
 let root: string;
@@ -61,7 +68,7 @@ function sessionOnFailingProject(
 	process.env.HARNESS495_DATA_DIR = join(root, `${name}-data`);
 	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
 	const session = new ExtensionSession(pi.host());
 	registerCommand495(pi.host(), session);

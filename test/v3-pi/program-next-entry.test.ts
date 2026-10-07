@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { ASKS_Q1, FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
-import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { increment, threeIncrements } from "../helpers/trajectory.ts";
 
 let root: string;
@@ -44,7 +44,7 @@ describe("`/495 next` starts the next increment of the program", () => {
 		writeFileSync(trajectory, JSON.stringify(threeIncrements()));
 		process.env.HARNESS495_DATA_DIR = join(root, "data");
 		process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
-		if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+		if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 		const pi = new FakePi();
 		const session = new ExtensionSession(pi.host());
 		registerCommand495(pi.host(), session);
@@ -91,7 +91,7 @@ describe("`/495 next` starts the next increment of the program", () => {
 		process.env.HARNESS495_DATA_DIR = join(root, "data");
 		process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
 		process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-		if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+		if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 		const pi = new FakePi();
 		const session = new ExtensionSession(pi.host());
 		registerCommand495(pi.host(), session);

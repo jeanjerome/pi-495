@@ -63,8 +63,10 @@ describe("PMD and CPD on a Maven reactor where one module depends on another", {
 		if (offer?.kind !== "proposed") return;
 		const edit = offer.recommendations[0]?.edit;
 		assert.ok(edit, "the recommendation carries the declaration of the plugin");
+		const install = offer.recommendations[0]?.install;
+		assert.ok(install, "the recommendation carries the resolution of the plugin");
 
-		const reference = mavenReference(root, project, edit);
+		const reference = mavenReference(root, project, edit, install);
 
 		const detection = detectStack(reference, [{ requirement_id: "QLT-01", revision: 1 }]);
 		const pmd = detection.controls.find((c) => c.control_id === "pmd");

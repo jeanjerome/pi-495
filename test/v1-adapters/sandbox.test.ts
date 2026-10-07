@@ -161,10 +161,12 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 		assert.equal(sel.backend.backend, "unconfined");
 		assert.equal(sel.qualification.qualified, false);
 	});
-	it("bubblewrap never qualifies, whatever the machine offers, because Linux is not claimed", () => {
+	it("bubblewrap is refused off Linux with the reason « bubblewrap requires Linux »", {
+		skip: process.platform === "linux" && "bubblewrap qualifies on Linux when bwrap can confine",
+	}, () => {
 		const q = new BubblewrapSandbox().qualify(profile());
 		assert.equal(q.qualified, false);
-		assert.ok(q.reasons.includes(BubblewrapSandbox.NOT_CLAIMED), q.reasons.join("; "));
+		assert.ok(q.reasons.includes("bubblewrap requires Linux"), q.reasons.join("; "));
 		const sel = selectSandbox({ allow_unconfined: false }, "linux");
 		assert.equal(sel.backend.backend, "bubblewrap");
 		assert.equal(sel.qualification.qualified, false);

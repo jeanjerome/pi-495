@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
-import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -83,7 +83,7 @@ describe("the message a conduct of the change ends on", () => {
 		process.env.HARNESS495_SCRIPTED_AGENT = scriptedAgent();
 		process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
 		process.env.HARNESS495_LANGUAGE = "en";
-		if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+		if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 		const pi = new FakePi();
 		const session = new ExtensionSession(pi.host());
 		registerCommand495(pi.host(), session);

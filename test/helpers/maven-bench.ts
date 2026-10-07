@@ -10,12 +10,13 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { editedFile } from "../../src/application/complement.ts";
+import { mavenResolutionCommand } from "../../src/application/stacks/maven.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
-import type { ControlDefinition, FileEdit } from "../../src/contracts/v1/protocol.ts";
+import type { ControlDefinition, FileEdit, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import type { ControlInvocation } from "../../src/ports/execution.ts";
 import { ENV, EXECUTOR } from "./change-fixture.ts";
-import { writeFiles } from "./fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, writeFiles } from "./fixtures.ts";
 
 export interface MavenBench {
 	runner: GenericControlRunner;
@@ -24,7 +25,7 @@ export interface MavenBench {
 
 /** The generic runner on the platform sandbox, its object store under `root`, and the base request. */
 export function mavenBench(root: string): MavenBench {
-	const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
+	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
 	return {
 		runner: new GenericControlRunner(sandbox.backend, new CasObjectStore(join(root, "objects"))),
 		base: {
@@ -48,18 +49,22 @@ export function widenForMaven(c: ControlDefinition): ControlDefinition {
 	return { ...c, env_allowlist: [...c.env_allowlist, "M2_HOME", "MAVEN_HOME", "JAVA_TOOL_OPTIONS", "USER"] };
 }
 
-/** The copy of `project` under `root` where the controls run, its POM edited by `edit` and its plugins resolved. */
-export function mavenReference(root: string, project: string, edit: FileEdit): string {
+/**
+ * The copy of `project` under `root` where the controls run, its POM edited by `edit`, with what the controls
+ * read offline in the local repository: the plugins and the site skin the adoption resolves, and the project's
+ * own dependencies, which a machine that builds the project already holds.
+ */
+export function mavenReference(root: string, project: string, edit: FileEdit, install: PackageInstall): string {
 	// The copy where the controls run declares the plugin; the project itself is never written.
 	const reference = join(root, "reference");
 	cpSync(project, reference, { recursive: true });
 	writeFileSync(join(reference, "pom.xml"), editedFile(project, edit) ?? "");
-	// The resolution of the plugins, the one step that may open the network, runs once outside the sandbox.
-	execFileSync("mvn", ["-B", "-q", "org.apache.maven.plugins:maven-dependency-plugin:3.11.0:resolve-plugins"], {
-		cwd: reference,
-		stdio: "ignore",
-		timeout: 10 * 60_000,
-	});
+	// The resolution, the one step that may open the network, runs once outside the sandbox, in a copy of its
+	// own so that no build output reaches the reference.
+	const primed = join(root, "primed");
+	cpSync(reference, primed, { recursive: true });
+	const [mvn = "mvn", ...resolution] = mavenResolutionCommand([install]);
+	execFileSync(mvn, [...resolution, "-q", "test-compile"], { cwd: primed, stdio: "ignore", timeout: 10 * 60_000 });
 	return reference;
 }
 

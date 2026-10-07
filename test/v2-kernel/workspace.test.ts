@@ -160,7 +160,7 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		assert.equal(existsSync(join(handle.path, "module", "target", "classes")), false);
 	});
 
-	it("given the default exclusions, when a candidate rewrites node_modules/.vite/vitest/x/results.json and adds a file under node_modules/.vite-temp/, then its manifest carries neither, while a change to node_modules/vitest/dist/index.js is still in it", async () => {
+	it("given the default exclusions, when a candidate rewrites node_modules/.vite/vitest/x/results.json and adds a file under node_modules/.vite-temp/ and the API token under node_modules/.vitest/, then its manifest carries none of them, while a change to node_modules/vitest/dist/index.js is still in it", async () => {
 		const project = join(root, "vitest-project");
 		writeFiles(project, {
 			"package.json": "{}",
@@ -172,6 +172,7 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		writeFiles(handle.path, {
 			"node_modules/.vite/vitest/x/results.json": '{"version":"5.0.0","results":[[0.4]]}',
 			"node_modules/.vite-temp/vitest.config.ts.timestamp.mjs": "export default {};\n",
+			"node_modules/.vitest/.vitest-secret-token": "token\n",
 			"node_modules/vitest/dist/index.js": "export const patched = true;\n",
 		});
 		const manifest = await ws.snapshotCandidate(handle, reference, DEFAULT_WORKSPACE_POLICY);

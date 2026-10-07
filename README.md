@@ -11,7 +11,7 @@
   <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache%202.0-blue"></a>
   <a href="https://pi.dev"><img alt="Host: Pi" src="https://img.shields.io/badge/Host-Pi-blue"></a>
   <a href="#compatibility"><img alt="Runtime: Node 24+" src="https://img.shields.io/badge/Runtime-Node%2024%2B-blue"></a>
-  <a href="#compatibility"><img alt="Platform: macOS" src="https://img.shields.io/badge/Platform-macOS-green"></a>
+  <a href="#compatibility"><img alt="Platform: macOS | Linux" src="https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-green"></a>
   <a href="#roadmap"><img alt="Stage: Early development" src="https://img.shields.io/badge/Stage-Early%20development-orange"></a>
 </p>
 
@@ -33,7 +33,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 
 **The core rule:** the checks are frozen before implementation. The coding agent cannot change the protected tests or decide that its own work is accepted.
 
-> **Available today:** an early implementation for macOS on Apple Silicon, with Java/Maven and Node adapters. Models come from your Pi configuration. Start with a small change on a project whose tests already run locally.
+> **Available today:** an early implementation for macOS on Apple Silicon and for Linux (tested on arm64), with Java/Maven and Node adapters. Models come from your Pi configuration. Start with a small change on a project whose tests already run locally.
 
 <p align="center">
   <img src=".github/assets/demo.gif" alt="Pi-495 in Pi's terminal: /495 start adds freeMinutes(busy) to a small TypeScript project tested by vitest, with coverage and Stryker; a line under the editor shows the working agent's context; the change is accepted on its first attempt, the steps Scoping to Acceptance passed, with its unit, coverage and mutation checks passing; /495 review opens each of the three changed files beside the tree, each line signed, numbered and coloured as Pi draws its own edits, with a line saying how many lines are not shown between two distant portions; /495 report lists what was asked, measured, concluded and what remains uncertain." width="900">
@@ -52,7 +52,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
 
 ## Quick start
 
-You need **Node.js 24+**, **Pi 1.0.4** or later, **Git**, and **macOS on Apple Silicon**. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
+You need **Node.js 24+**, **Pi 1.0.4** or later, **Git**, and either **macOS on Apple Silicon** or **Linux** (tested on arm64) with **bubblewrap** (`bwrap`) on `PATH`, able to create its namespaces without privilege. Your target project must have at least one Git commit and use a supported test setup. Install its dependencies before starting: verification runs with restricted network access.
 
 ### 1. Install the extension
 
@@ -117,7 +117,7 @@ Integration is disabled by default. To allow it, set `policy.integration_enabled
 | 🧬 **Coverage, mutation testing and architecture checks** | Measure the coverage of the lines a change introduces and the mutants that survive on them: on Maven with JaCoCo and PIT, on Node with the runner's LCOV report and, under `node --test` or vitest, Stryker. On Maven, also check declared Java import boundaries. |
 | 🔎 **Project surveys** | `/495 state` runs the checks on the project as it stands, without changing it. The survey gives each requirement its verdicts, each finding its file, and each unmeasured area a named blind spot; you accept or refuse it. |
 | 📏 **Quality referentials and trajectories** | When a survey asks about code quality that no check measures, 495 offers a referential for complexity, duplication and dead code: PMD and CPD on Maven, ESLint and jscpd on Node. Adopted, it is installed in a copy, never in your project. A trajectory you write turns the measured gaps into increments, and `/495 measure` judges each milestone on a new survey. |
-| 🛡️ **Sandboxed execution** | Work happens in isolated copies, with phase-specific permissions and Seatbelt confinement. An unavailable required isolation capability blocks execution. |
+| 🛡️ **Sandboxed execution** | Work happens in isolated copies, with phase-specific permissions, confined by Seatbelt on macOS and bubblewrap on Linux. An unavailable required isolation capability blocks execution. |
 | 👀 **Human-in-the-loop review** | Inspect the file tree in the terminal with each change drawn beside it as Pi draws its own edits, using your Pi keybindings, and record human decisions with their origin. |
 | ⏯️ **Resumable workflows** | Pause and resume a change. Bound attempts, intervention duration and tool calls; eligible interrupted producers continue on their existing workspace. |
 | 🔗 **Verifiable audit trail** | Keep artifacts, evidence and hash-chained events. Export a dossier with an offline integrity verifier that runs with Node alone. |
@@ -171,7 +171,7 @@ Acceptance establishes conformance to the adopted protocol, within the limits of
 | Area | Current scope |
 | --- | --- |
 | **Host** | Pi 1.0.4 or later (qualified on 1.0.4); Node.js 24 or later. 495 is a Pi package with no standalone CLI or service. |
-| **Platform** | macOS on Apple Silicon. The Linux `bubblewrap` backend exists but remains unqualified and refuses productive work. Windows is not supported. |
+| **Platform** | macOS on Apple Silicon, confined by Seatbelt. Linux, confined by bubblewrap (`bwrap` on `PATH`), tested on arm64; where `bwrap` cannot create its namespaces without privilege, confined work is refused and the refusal says why. Windows is not supported. |
 | **Java / Maven** | Tests run by Surefire. Coverage of introduced lines (JaCoCo) and mutation testing (PIT) when the project declares the required reports; a project without JaCoCo is recommended it, and once you adopt it, its plugin declaration is inserted into the candidate's `pom.xml`. Structural checks derived from supported Maven and Java declarations. A survey can adopt a quality referential for complexity, duplication and dead code (PMD and CPD), and tells generated code apart by its `@Generated` annotations. Maven verification uses offline mode; resolving an adopted plugin opens the network for that step alone. |
 | **Node** | Tests run by `scripts.test` with `node --test` (or absent), or with `vitest` or `vitest run`, `mocha` or `jest` without any other argument, each read through the report it writes (JUnit for vitest and mocha, JSON for jest), and a detected lint script. A runner given arguments, and any other runner in `scripts.test`, is refused, and the refusal names it. Coverage of the lines a change introduces, when the target asks for it (`--experimental-test-coverage` in a `node --test` script, or the coverage provider of vitest installed), read from the LCOV report of the run; otherwise coverage is not measured and the report says so. Mutation testing of the lines a change introduces, under `node --test` or vitest, when the target installed Stryker (`@stryker-mutator/core`), read from the JSON report of a Stryker run scoped to those lines: a mutant that survives on a line the change wrote blocks it. Without Stryker, mutation is not measured, the report says so and 495 recommends installing it; under mocha or jest, mutation is not measured. A survey of a target locked by `package-lock.json` can adopt a quality referential for complexity and dead code (ESLint) and duplication (jscpd); TypeScript and JSX sources are not measured for complexity and dead code. |
 | **Other languages** | Additional target adapters are required. The kernel and report contracts provide the extension boundary. |
@@ -204,7 +204,7 @@ The direction is a broader engineering workflow: understand an existing codebase
 | 🧭 **Risk-guided engineering** | Route relevant risks to rules, experiments, specialist reviews or human decisions; record consequential choices and evaluate outcomes. |
 | 🛠️ **Workflow and onboarding** | Improve recovery from incomplete verification. |
 
-**Further qualification and deferred work:** Linux execution, additional advanced testing methods such as property-based testing and fuzzing, and indexed documentation retrieval with corpus maintenance. These require further work and qualification; no release date is implied.
+**Further qualification and deferred work:** additional advanced testing methods such as property-based testing and fuzzing, and indexed documentation retrieval with corpus maintenance. These require further work and qualification; no release date is implied.
 
 See the [plan of the open work](specs/plan.yaml) for the detailed boundaries and progress.
 
@@ -278,7 +278,7 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
-  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/", "reports/mutation/", ".stryker-tmp/"],
+  "workspace_exclusions": ["target/", "dist/", ".pi/", "__pycache__/", "build/", "node_modules/.vite/", "node_modules/.vite-temp/", "node_modules/.vitest/", "reports/mutation/", ".stryker-tmp/"],
   "language": "fr"
 }
 ```

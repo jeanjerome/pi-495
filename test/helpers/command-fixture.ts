@@ -10,7 +10,7 @@ import type { Phase } from "../../src/contracts/v1/common.ts";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { selectedModel } from "../../src/extension/conduct.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
-import { fixtureTs, initRepo, tempDir } from "./fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, fixtureTs, initRepo, tempDir } from "./fixtures.ts";
 
 export const RPC_ACTOR = "owner-1";
 
@@ -177,7 +177,7 @@ export async function stalledOnQ1(
 	process.env.HARNESS495_DATA_DIR = join(dataDir, "data");
 	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
 	const session = new ExtensionSession(pi.host());
 	registerCommand495(pi.host(), session);
@@ -245,7 +245,7 @@ export async function atPhase(
 	process.env.HARNESS495_DATA_DIR = join(dataDir, "data");
 	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
 	const session = new ExtensionSession(pi.host());
 	registerCommand495(pi.host(), session);

@@ -47,7 +47,11 @@ const CIBLES: Record<string, Cible> = {
 			["mvn", "-B", "-q", "test", "org.pitest:pitest-maven:mutationCoverage"],
 			["rm", "-rf", "target"],
 		],
-		env: () => ({ JAVA_HOME: execFileSync("/usr/libexec/java_home", ["-v", "21"], { encoding: "utf8" }).trim() }),
+		// macOS names its JDK 21 through java_home; elsewhere Maven finds the JDK on PATH.
+		env: (): Record<string, string> =>
+			process.platform === "darwin"
+				? { JAVA_HOME: execFileSync("/usr/libexec/java_home", ["-v", "21"], { encoding: "utf8" }).trim() }
+				: {},
 	},
 };
 

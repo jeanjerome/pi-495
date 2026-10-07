@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, mkdtempSync } from 
 import { dirname, join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
-import { UnconfinedSandbox, SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
+import { UnconfinedSandbox, SeatbeltSandbox, BubblewrapSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { qualifyControl, reusableQualification, sensorDigest } from "../../src/application/qualification.ts";
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
@@ -17,7 +17,14 @@ import {
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { detectStack } from "../../src/application/target.ts";
-import { darwinOnly, fixtureTs, removedAfterEach, outputDir, writeFiles } from "../helpers/fixtures.ts";
+import {
+	NO_QUALIFIED_SANDBOX,
+	darwinOnly,
+	fixtureTs,
+	removedAfterEach,
+	outputDir,
+	writeFiles,
+} from "../helpers/fixtures.ts";
 import { ENV } from "../helpers/change-fixture.ts";
 import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 
@@ -652,8 +659,10 @@ AssertionError: expected 1 to be 2 // Object.is equality
 
 /**
  * Stands in for vitest: bundles nothing but leaves a file in `node_modules/.vite-temp` as Vite does
- * when it compiles a configuration, copies the recorded report to the `--outputFile` it is given, and
- * exits as vitest does.
+ * when it compiles a configuration, creates its API token under `node_modules/.vitest` as vitest 5 does
+ * when the user data directory cannot be written and holds none yet — a machine that never ran vitest
+ * outside a sandbox — and stops as vitest does when neither can be written, copies the recorded report
+ * to the `--outputFile` it is given, and exits as vitest does.
  */
 class FakeVitest {
 	readonly recorded: string | null;
@@ -669,6 +678,13 @@ class FakeVitest {
 			'import { dirname } from "node:path";',
 			'mkdirSync("node_modules/.vite-temp", { recursive: true });',
 			'writeFileSync("node_modules/.vite-temp/vitest.config.ts.timestamp.mjs", "export default {};");',
+			"try {",
+			'	mkdirSync("node_modules/.vitest", { recursive: true });',
+			'	writeFileSync("node_modules/.vitest/.vitest-secret-token", "token\\n");',
+			"} catch {",
+			'	console.error("Error: Failed to create Vitest API token");',
+			"	process.exit(1);",
+			"}",
 			'const out = process.argv.find((a) => a.startsWith("--outputFile="))?.slice("--outputFile=".length);',
 			`if (out && ${this.recorded !== null}) { mkdirSync(dirname(out), { recursive: true }); copyFileSync(new URL("recorded.xml", import.meta.url), out); }`,
 			`process.exit(${this.exitCode});`,
@@ -704,23 +720,24 @@ describe("the derived vitest control through the runner", () => {
 		const silent = await run(new FakeVitest(null, 0));
 		assert.equal(silent.verdict, "INDETERMINATE");
 	});
-	it(
-		"given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output and the directory where Vite compiles its configuration, then the report is read and the verdict is PASS",
-		darwinOnly,
-		async () => {
-			const unit = derivedVitestControl();
-			// The copy of a target carries no target/ directory: the sandbox has to let the control create it.
-			const ws = mkdtempSync(join(root, "ws-"));
-			new FakeVitest(VITEST_GREEN_REPORT, 0).install(ws);
-			// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
-			// would succeed whatever the control declares writable.
-			const sandbox = new SeatbeltSandbox({ temp_paths: [] });
-			const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
-			const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
-			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
-			assert.equal(evidence.facts.tests, 1);
-		},
-	);
+	it("given the derived vitest control run under the verification sandbox against a stand-in that creates the parent directory of its output, the directory where Vite compiles its configuration and the API token of vitest 5, then the report is read and the verdict is PASS", {
+		skip: NO_QUALIFIED_SANDBOX && "no sandbox backend qualifies on this machine",
+	}, async () => {
+		const unit = derivedVitestControl();
+		// The copy of a target carries no target/ directory: the sandbox has to let the control create it.
+		const ws = mkdtempSync(join(root, "ws-"));
+		new FakeVitest(VITEST_GREEN_REPORT, 0).install(ws);
+		// No temporary directory is granted: the test tree may itself live under $TMPDIR, where a write
+		// would succeed whatever the control declares writable.
+		const sandbox =
+			process.platform === "darwin"
+				? new SeatbeltSandbox({ temp_paths: [] })
+				: new BubblewrapSandbox({ temp_paths: [] });
+		const runner = new GenericControlRunner(sandbox, new CasObjectStore(join(root, "objects")));
+		const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
+		assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+		assert.equal(evidence.facts.tests, 1);
+	});
 });
 
 /** A report as mocha 12.0.2 wrote it, recorded in `test/fixtures/junit/`. */

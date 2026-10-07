@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
-import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { answer, GRADER, onlyComplex, QUALITY_SOURCES, qualityReactor, surveyed } from "../helpers/quality-survey.ts";
 import { increment, threeIncrements } from "../helpers/trajectory.ts";
 
@@ -29,7 +29,7 @@ function sessionOnProject(
 	process.env.HARNESS495_DATA_DIR = join(root, `${name}-data`);
 	process.env.HARNESS495_SCRIPTED_AGENT = agentScript;
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
 	const session = new ExtensionSession(pi.host());
 	registerCommand495(pi.host(), session);

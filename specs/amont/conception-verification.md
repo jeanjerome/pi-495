@@ -30,7 +30,7 @@ La qualification P0 couvre :
 - l’exécution de contrôles natifs dans plusieurs technologies cibles par un contrat commun ;
 - la préservation Git, l’intégrité des preuves, l’interruption et la reprise ;
 - la vue de revue arbre/lecteur, ses données indépendantes du TUI et ses rendus non trompeurs ;
-- macOS Apple Silicon et Linux x86-64.
+- macOS Apple Silicon et Linux, testé sous arm64 (`D-84`).
 
 Les capacités P1 et P2 sont vérifiées lorsqu’elles entrent dans une livraison. Une exigence différée reste dans la matrice avec son contrôle prévu ; elle ne peut pas être déclarée satisfaite avant exécution de ce contrôle.
 
@@ -148,7 +148,7 @@ Les fixtures sont immuables par version. Les variantes fautives sont produites p
 | `V1` | Contrats de ports et adaptateurs | Simulateurs, processus locaux, fixtures | Rapports de contrat et compatibilité |
 | `V2` | Intégration du noyau, stockage, exécution, Git | Dépôts temporaires et pannes injectées | Dossiers de changement complets |
 | `V3` | Parcours par les entrées Pi | Pi qualifié, fournisseurs simulés | Transcriptions et preuves multicanales |
-| `V4` | Système sur stacks et plateformes réelles | macOS arm64, Linux x86-64, outils natifs | Matrice de qualification signée |
+| `V4` | Système sur stacks et plateformes réelles | macOS arm64, Linux arm64 (`D-84`), outils natifs | Matrice de qualification signée |
 | `V5` | Adversarial, UX, sécurité, performance et reprise | Environnements dédiés et reviewers | Rapports spécialisés et décisions |
 
 Une version P0 ne peut être qualifiée sans V0 à V5 pour les contrôles qui lui sont applicables. Une panne de service externe ne rend pas V0–V3 indéterminés lorsqu’ils utilisent les simulateurs prévus.
@@ -177,7 +177,7 @@ Les tests de mutation sont employés pour les règles critiques du noyau et pour
 4. **Valider les ports** : V1 sur exécution, dépôt, Pi, modèles, approbations et extensions.
 5. **Valider la persistance et les effets** : V2 avec crashs et reprises aux frontières d’écriture.
 6. **Valider les parcours Pi** : V3 sur toutes les entrées qualifiées, sans CLI 495 ni job CI de conduite.
-7. **Valider les stacks et plateformes** : V4 sur `F-TS` et `F-JAVA`, puis macOS arm64 et Linux x86-64.
+7. **Valider les stacks et plateformes** : V4 sur `F-TS` et `F-JAVA`, puis macOS arm64 et Linux arm64 (`D-84`).
 8. **Valider les risques transversaux** : V5 sécurité, UX, grands volumes, accessibilité et performance.
 9. **Consolider** : construire la couverture exigence → preuves, signaler les absences et calculer le verdict sans modèle.
 10. **Revoir et décider** : revues spécialisées exigées, puis décision humaine de qualification de la livraison.
@@ -347,7 +347,7 @@ La colonne « Fixtures » identifie le minimum. Les scénarios `SA-*` de la spé
 | `NFR-02` Open source et local | `C-PKG`, revue licences, `C-SEC` | réseau fermé et modèle local | SBOM/notices compatibles ; parcours et export locaux sans serveur de contrôle ni compte éditeur. |
 | `NFR-03` Cohérence transactionnelle | `C-EVD`, `C-GIT`, pannes injectées | crash avant/après chaque effet | État ancien ou nouveau cohérent ; effet incertain explicitement réconcilié ; aucun « exactly once » inventé. |
 | `NFR-04` Réactivité et ressources | `C-PERF` | `F-LARGE` | Les trois garanties de NFR-04 tenues au réglage en vigueur (§12) ; streaming et mémoire bornée. |
-| `NFR-05` Portabilité qualifiée | `C-PKG`, V4 | macOS arm64, Linux x86-64, contrôle OS-spécifique | Même parcours P0 ; profils d’isolation documentés ; incompatibilité diagnostiquée avant exécution. |
+| `NFR-05` Portabilité qualifiée | `C-PKG`, V4 | macOS arm64, Linux arm64 (`D-84`), contrôle OS-spécifique | Même parcours P0 ; profils d’isolation documentés ; incompatibilité diagnostiquée avant exécution. |
 | `NFR-06` Observabilité locale | `C-EVD`, `C-SEC` | exécution instrumentée, export expurgé | Logs/métriques locaux, aucun endpoint de télémétrie par défaut, coûts inconnus marqués, limites d’export. |
 | `NFR-07` Testabilité/maintenabilité | V0–V2, `C-ARC`, `C-AGT` | moteurs simulés, import Pi interdit | Corpus hors ligne sans modèle ; règle d’import échoue ; invariants testés sur séquences générées. |
 | `NFR-08` Contrats évolutifs | `C-REQ`, `C-EVD`, `C-EXT` | archives anciennes et version future | Version majeure future refusée sans mutation ; migration conserve original, provenance et décisions. |
@@ -387,7 +387,7 @@ Une version de 495 peut être qualifiée pour un niveau de livraison donné uniq
 
 1. toutes les exigences applicables à ce niveau possèdent une ligne de matrice et des preuves valides ;
 2. tous les contrôles utilisés comme autorité ont une qualification courante ;
-3. toutes les suites P0 applicables passent sur macOS arm64 et Linux x86-64 ;
+3. toutes les suites P0 applicables passent sur macOS arm64 et sur Linux arm64, qui vaut pour Linux x86-64 (`D-84`) ;
 4. aucun `FAIL`, `INDETERMINATE` ou `NOT_RUN` obligatoire n’est masqué par un score agrégé ;
 5. les revues obligatoires sont présentes et leurs constats bloquants sont clos, explicitement refusés ou couverts par une dérogation autorisée ;
 6. le build, le package Pi, les sources revues et les artefacts testés possèdent la même identité de livraison ;

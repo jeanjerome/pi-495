@@ -475,8 +475,8 @@ function mutationOutcome(
 			// it fails with `listen EPERM`.
 			network: "loopback",
 			// Stryker runs the suite in a copy under `.stryker-tmp` whose `node_modules` links back to the
-			// copy's own, so the directory Vite compiles a vitest configuration in is written through that link.
-			writable_paths: ["reports/mutation", ".stryker-tmp", ...(runner === "vitest" ? ["node_modules/.vite-temp"] : [])],
+			// copy's own, so the directories vitest writes in, `VITEST_OWN_PATHS`, are written through that link.
+			writable_paths: ["reports/mutation", ".stryker-tmp", ...(runner === "vitest" ? VITEST_OWN_PATHS : [])],
 			requirement_refs: requirementRefs,
 			// A narrowed `mutate`, an added exclusion or another reporter would make the control pass on less.
 			protected_paths: [...unit.protected_paths, "stryker.conf.*", "stryker.config.*"],
@@ -690,10 +690,17 @@ function unreadCoverage(runner: "mocha" | "jest"): SensorOutcome {
 }
 
 /**
+ * What vitest writes in the copy besides its report: Vite bundles the configuration under
+ * `node_modules/.vite-temp`, and vitest 5 creates its API token under `node_modules/.vitest` when the
+ * user data directory, which the sandbox keeps read-only, holds none yet.
+ */
+const VITEST_OWN_PATHS = ["node_modules/.vite-temp", "node_modules/.vitest"];
+
+/**
  * The vitest the target installed, run from the copy's `node_modules` and never from the host's PATH,
- * so the control judges the version the target declared. Vite bundles its configuration under
- * `node_modules/.vite-temp`, which is why that directory is writable next to the report. With a
- * coverage provider installed it also writes the LCOV report of the run under `target/coverage`.
+ * so the control judges the version the target declared. The directories vitest writes in,
+ * `VITEST_OWN_PATHS`, are writable next to the report. With a coverage provider installed it also
+ * writes the LCOV report of the run under `target/coverage`.
  */
 function vitestControl(
 	requirementRefs: RequirementRef[],
@@ -723,7 +730,7 @@ function vitestControl(
 		provides: provider === null ? [] : [LCOV_REPORT_NAME],
 		parser: "junit-xml",
 		report_path: report,
-		writable_paths: [REPORT_DIRECTORY, "node_modules/.vite-temp"],
+		writable_paths: [REPORT_DIRECTORY, ...VITEST_OWN_PATHS],
 		// A narrowed `include` or an added `exclude` would make the suite green without proving anything.
 		protected_paths: [...nodeTest.protected_paths, "vitest.config.*", "vite.config.*"],
 	};

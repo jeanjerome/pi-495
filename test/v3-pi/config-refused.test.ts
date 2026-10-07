@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
-import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
@@ -84,7 +84,7 @@ function channel(name: string, config: string): { project: string; configPath: s
 	const configPath = join(data, "config.json");
 	writeFileSync(configPath, config);
 	const env: Record<string, string> = { HARNESS495_DATA_DIR: data, HARNESS495_SCRIPTED_AGENT: agent };
-	if (process.platform !== "darwin") env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) env.HARNESS495_ALLOW_UNCONFINED = "1";
 	return { project, configPath, env };
 }
 

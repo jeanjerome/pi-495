@@ -1,4 +1,5 @@
-import { existsSync, realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, realpathSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type {
@@ -131,58 +132,77 @@ export class SeatbeltSandbox implements SandboxPort {
 }
 
 /**
- * Linux bubblewrap backend. Written, never qualified: Linux is not a platform this package claims,
- * and `qualify` says so whatever the machine offers. Selecting it therefore refuses every confined
- * role with `capability_missing` (ADR-013, NFR-05).
+ * Linux bubblewrap backend. It qualifies where `bwrap` creates, without privilege, the namespaces it
+ * asks for — a user and a mount namespace, and a network namespace of its own — and refuses elsewhere
+ * with what `bwrap` said, so that a confined role is refused with `capability_missing` rather than run
+ * unconfined (ADR-013, NFR-05).
  */
 export class BubblewrapSandbox implements SandboxPort {
 	readonly backend = "bubblewrap";
-	/** Said by `qualify` on every machine: the refusal is a decision about the platform, not a probe. */
-	static readonly NOT_CLAIMED =
-		"Linux is not a claimed platform of this package: no V1 sandbox campaign and no V4 campaign qualifies this backend";
 	private readonly options: BackendOptions;
 	constructor(options: Partial<BackendOptions> = {}) {
 		this.options = {
 			denied_read_paths: [...defaultDenied(), ...(options.denied_read_paths ?? [])],
-			temp_paths: options.temp_paths ?? ["/tmp"],
+			temp_paths: options.temp_paths ?? [...new Set([tmpdir(), "/tmp"])],
 		};
 	}
 	qualify(_profile: SandboxProfile): QualificationResult {
-		const reasons: string[] = [];
-		if (process.platform !== "linux") reasons.push("bubblewrap requires Linux");
-		const found = (process.env.PATH ?? "").split(":").some((d) => existsSync(join(d, "bwrap")));
-		if (!found) reasons.push("bwrap not found in PATH");
-		reasons.push(BubblewrapSandbox.NOT_CLAIMED);
-		return {
+		const result = (reasons: string[]): QualificationResult => ({
 			backend: this.backend,
 			platform: `${process.platform}-${process.arch}`,
-			qualified: false,
+			qualified: reasons.length === 0,
 			capabilities: { filesystem_confinement: true, network_confinement: true, process_group_termination: true },
 			reasons,
-		};
+		});
+		if (process.platform !== "linux") return result(["bubblewrap requires Linux"]);
+		// The probe runs a null command under the confinement a role gets, so that a kernel or a container
+		// that forbids unprivileged namespaces is found here and not at the first control.
+		const probe = spawnSync("bwrap", [...this.confinement({ write_paths: [], network: "denied" }), "--", "true"], {
+			encoding: "utf8",
+			timeout: 10_000,
+		});
+		if ((probe.error as NodeJS.ErrnoException | undefined)?.code === "ENOENT")
+			return result(["bwrap not found in PATH"]);
+		if (probe.status === 0) return result([]);
+		// A spawn error other than ENOENT, such as a bwrap that cannot be executed, leaves stderr undefined
+		// whatever its type says.
+		const said = probe.stderr?.trim().split("\n")[0] || probe.error?.message || `exit ${probe.status ?? probe.signal}`;
+		return result([`bwrap cannot confine a command on this machine: ${said}`]);
 	}
-	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
-		const args = [
-			"--ro-bind",
-			"/",
-			"/",
-			"--dev",
-			"/dev",
-			"--proc",
-			"/proc",
-			"--tmpfs",
-			"/tmp",
-			"--die-with-parent",
-			"--new-session",
-		];
-		for (const p of this.options.denied_read_paths) if (existsSync(p)) args.push("--tmpfs", p);
+	/**
+	 * The mounts and namespaces of a confined command: the root read-only, the temporary and write paths
+	 * bound read-write, the denied paths masked.
+	 */
+	private confinement(profile: Pick<SandboxProfile, "write_paths" | "network">): string[] {
+		const args = ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--die-with-parent", "--new-session"];
+		// The temporary directories stay shared and writable, as under Seatbelt: what 495 writes there for a
+		// command, a ruleset, is read by it.
+		for (const p of this.options.temp_paths) if (existsSync(p)) args.push("--bind", p, p);
 		for (const p of profile.write_paths) args.push("--bind", p, p);
+		// Masked after the write paths are bound, so a grant never uncovers one. A directory is hidden by an
+		// empty one; a file, which a tmpfs cannot be mounted on, by `/dev/null`, which a confined command
+		// cannot open (`EACCES`).
+		for (const p of this.options.denied_read_paths) {
+			if (!existsSync(p)) continue;
+			if (statSync(p).isDirectory()) args.push("--tmpfs", p);
+			else args.push("--ro-bind", "/dev/null", p);
+		}
 		// A network namespace of its own holds a loopback interface and no route anywhere else, so it is
 		// what both `denied` and `loopback` ask for on this platform.
 		if (profile.network !== "allowed") args.push("--unshare-net");
+		return args;
+	}
+	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
+		// A bind needs a source, where Seatbelt grants a path before it exists: a write path the command is
+		// to create is made here, empty, and nothing above it is granted.
+		for (const p of profile.write_paths) if (!existsSync(p)) mkdirSync(p, { recursive: true });
 		const env = buildEnv(profile.env_allowlist, profile.env);
 		const obs = await runProcess(
-			{ command: ["bwrap", ...args, "--chdir", request.cwd, "--", ...request.command], cwd: request.cwd, env },
+			{
+				command: ["bwrap", ...this.confinement(profile), "--chdir", request.cwd, "--", ...request.command],
+				cwd: request.cwd,
+				env,
+			},
 			request,
 			signal,
 		);

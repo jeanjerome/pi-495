@@ -19,7 +19,7 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
-import { outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
 import {
 	CHECKSUM_A,
 	CHECKSUM_B,
@@ -57,7 +57,7 @@ async function installedReferential(root: string, extra: Record<string, string>)
 	const offer = detectStack(project, REFS).quality_referential;
 	if (offer?.kind !== "proposed") throw new Error("a Node project without ESLint nor jscpd is offered the referential");
 	const installs = offer.recommendations.flatMap((r): PackageInstall[] => (r.install ? [r.install] : []));
-	const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
+	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
 	const workspace = new GitWorkspace(join(root, "workspaces"));
 	const reference = await workspace.captureReference(project, DEFAULT_WORKSPACE_POLICY);
 	const copy = await workspace.createWorkspace(reference, DEFAULT_WORKSPACE_POLICY);

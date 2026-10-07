@@ -2,7 +2,7 @@
 
 Story : e35s01
 Epic : e35
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

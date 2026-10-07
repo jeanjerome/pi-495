@@ -53,8 +53,8 @@ describe("Node stack: the unit control follows scripts.test", () => {
 		assert.equal(unit.network, "denied");
 		assert.deepEqual(
 			unit.writable_paths,
-			[unit.report_path.replace(/\/[^/]+$/, ""), "node_modules/.vite-temp"],
-			"only the report directory and the directory where Vite compiles its configuration are writable",
+			[unit.report_path.replace(/\/[^/]+$/, ""), "node_modules/.vite-temp", "node_modules/.vitest"],
+			"only the report directory, the directory where Vite compiles its configuration and the one where vitest keeps its API token are writable",
 		);
 		assert.match(detection.capability_missing.join(" "), /@vitest\/coverage-v8/);
 	});
@@ -562,7 +562,7 @@ describe("Node stack: vitest with a coverage provider", () => {
 			])
 				assert.ok(unit.command.includes(argument), `${provider}: unit passes ${argument}`);
 			assert.equal(unit.parser, "junit-xml", provider);
-			assert.deepEqual(unit.writable_paths, ["target", "node_modules/.vite-temp"], provider);
+			assert.deepEqual(unit.writable_paths, ["target", "node_modules/.vite-temp", "node_modules/.vitest"], provider);
 			const coverage = detection.controls.find((c) => c.control_id === "coverage");
 			assert.ok(coverage, `${provider}: the detection declares a coverage control`);
 			assert.deepEqual([coverage.parser, coverage.report_path], ["lcov", "target/coverage/lcov.info"], provider);
@@ -717,10 +717,15 @@ describe("Node stack: the mutation control of a target that installed Stryker", 
 		rmSync(join(root, "target"), { recursive: true, force: true });
 		assert.equal(mutationOf(targetWith("jest", STRYKER)), undefined, "no qualification witness is written for jest");
 	});
-	it("given a vitest target that installed Stryker, then the mutation control also lets Vite compile the configuration under node_modules/.vite-temp, which the sandbox copy of Stryker reaches through its node_modules link", () => {
+	it("given a vitest target that installed Stryker, then the mutation control also lets Vite compile the configuration under node_modules/.vite-temp and vitest keep its API token under node_modules/.vitest, which the sandbox copy of Stryker reaches through its node_modules link", () => {
 		const mutation = mutationOf(targetWith("vitest run", STRYKER));
 		assert.ok(mutation, "the detection declares a mutation control");
-		assert.deepEqual(mutation.writable_paths, ["reports/mutation", ".stryker-tmp", "node_modules/.vite-temp"]);
+		assert.deepEqual(mutation.writable_paths, [
+			"reports/mutation",
+			".stryker-tmp",
+			"node_modules/.vite-temp",
+			"node_modules/.vitest",
+		]);
 	});
 });
 

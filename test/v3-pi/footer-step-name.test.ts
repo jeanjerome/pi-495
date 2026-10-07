@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { StatusView } from "../../src/application/views.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
-import { outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 type ChangeView = NonNullable<StatusView["change"]>;
 
@@ -54,7 +54,7 @@ function sessionIn(language: "fr" | "en"): { session: ExtensionSession; ctx: Fak
 	process.env.HARNESS495_DATA_DIR = join(root, language, "data");
 	process.env.HARNESS495_RPC_HUMAN_ACTOR = RPC_ACTOR;
 	process.env.HARNESS495_LANGUAGE = language;
-	if (process.platform !== "darwin") process.env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) process.env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const pi = new FakePi();
 	const session = new ExtensionSession(pi.host());
 	const ctx = new FakeContext(cwd, "rpc", `s-footer-step-${language}`);

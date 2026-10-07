@@ -20,7 +20,14 @@ import { ExtensionSession } from "../../src/extension/session.ts";
 import type { AgentCapabilities, ModelSelection } from "../../src/ports/execution.ts";
 import { describedAs } from "../helpers/capabilities.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { fixtureTs, initRepo, tempDir, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import {
+	NO_QUALIFIED_SANDBOX,
+	fixtureTs,
+	initRepo,
+	tempDir,
+	removedAfterEach,
+	outputDir,
+} from "../helpers/fixtures.ts";
 import { makeHarness, specReport, type TestHarness } from "../helpers/harness-fixture.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import { PiRpcClient } from "../helpers/rpc-client.ts";
@@ -265,7 +272,7 @@ describe("a session opened with no model selected (AGT-07, 6a)", () => {
 		writeFileSync(agentScript, JSON.stringify({ default: { steps: [{ kind: "fail", error: "stop here" }] } }));
 		env("HARNESS495_DATA_DIR", join(root, "data"));
 		env("HARNESS495_SCRIPTED_AGENT", agentScript);
-		if (process.platform !== "darwin") env("HARNESS495_ALLOW_UNCONFINED", "1");
+		if (NO_QUALIFIED_SANDBOX) env("HARNESS495_ALLOW_UNCONFINED", "1");
 		const cwd = project();
 		const pi = new FakePi();
 		const session = new ExtensionSession(pi.host());
@@ -497,7 +504,7 @@ function rpcPi(cwd: string, args: string[]): { client: PiRpcClient; dataDir: str
 			PI_CODING_AGENT_DIR: agentDir,
 			HARNESS495_DATA_DIR: dataDir,
 			HARNESS495_SCRIPTED_AGENT: agentScript,
-			...(process.platform !== "darwin" ? { HARNESS495_ALLOW_UNCONFINED: "1" } : {}),
+			...(NO_QUALIFIED_SANDBOX ? { HARNESS495_ALLOW_UNCONFINED: "1" } : {}),
 		},
 	});
 	return { client, dataDir };

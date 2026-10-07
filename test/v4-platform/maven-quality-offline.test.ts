@@ -19,7 +19,7 @@ import { qualifyControl } from "../../src/application/qualification.ts";
 import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
-import { outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
 
 const mavenAvailable = spawnSync("mvn", ["-v"], { stdio: "ignore" }).status === 0;
 
@@ -72,7 +72,7 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 		const previous = process.env.MAVEN_ARGS;
 		process.env.MAVEN_ARGS = `-Dmaven.repo.local=${repository}`;
 		try {
-			const sandbox = selectSandbox({ allow_unconfined: process.platform !== "darwin" });
+			const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
 			const workspace = new GitWorkspace(join(root, "workspaces"));
 			const snapshot = await workspace.captureReference(project, DEFAULT_WORKSPACE_POLICY);
 			const resolution = await resolveInCopy(

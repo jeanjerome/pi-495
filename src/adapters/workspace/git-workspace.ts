@@ -14,11 +14,11 @@ import { git } from "./git.ts";
 import { diffEntries, includedEntries, includedLimits, isExcluded, walkTree } from "./walk.ts";
 
 /**
- * `node_modules/.vite/` (vitest's duration cache) and `node_modules/.vite-temp/` (the compiled configuration) are
- * rewritten each time the suite runs in the copy: they are outputs of the tool, not installed dependencies, and
- * observing them would report a modified protected path for a candidate that only ran its tests. The same holds
- * for what Stryker leaves in the copy: its report under `reports/mutation/` and the instrumented sources it runs
- * the tests on under `.stryker-tmp/`.
+ * `node_modules/.vite/` (vitest's duration cache), `node_modules/.vite-temp/` (the compiled configuration) and
+ * `node_modules/.vitest/` (vitest's API token) are written each time the suite runs in the copy: they are outputs
+ * of the tool, not installed dependencies, and observing them would report a modified protected path for a
+ * candidate that only ran its tests. The same holds for what Stryker leaves in the copy: its report under
+ * `reports/mutation/` and the instrumented sources it runs the tests on under `.stryker-tmp/`.
  */
 export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
 	exclusions: [
@@ -29,6 +29,7 @@ export const DEFAULT_WORKSPACE_POLICY: WorkspacePolicy = {
 		"build/",
 		"node_modules/.vite/",
 		"node_modules/.vite-temp/",
+		"node_modules/.vitest/",
 		"reports/mutation/",
 		".stryker-tmp/",
 	],

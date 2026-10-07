@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
-import { fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, fixtureTs, initRepo, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { PI, skipWithoutPi } from "../helpers/pi-available.ts";
 
 const EXT = join(process.cwd(), "src", "extension", "index.ts");
@@ -32,7 +32,7 @@ function runPi(
 			? ["-ne", "-p", "--no-session", "-e", EXT, prompt]
 			: ["-ne", "--mode", "json", "--no-session", "-e", EXT, prompt];
 	const env: Record<string, string | undefined> = { ...process.env, HARNESS495_DATA_DIR: dataDir, ...extraEnv };
-	if (process.platform !== "darwin") env.HARNESS495_ALLOW_UNCONFINED = "1";
+	if (NO_QUALIFIED_SANDBOX) env.HARNESS495_ALLOW_UNCONFINED = "1";
 	const r = spawnSync(PI, args, { cwd, encoding: "utf8", timeout: 300_000, env, maxBuffer: 64 * 1024 * 1024 });
 	if (r.error) throw r.error;
 	return mode === "print" ? `${r.stdout}${r.stderr}` : r.stdout;

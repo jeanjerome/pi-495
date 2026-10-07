@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, chmodSync }
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach } from "node:test";
+import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 
 /**
  * The directories pushed onto the returned list are removed after each test of the suite that calls it,
@@ -18,6 +19,15 @@ export function removedAfterEach(): string[] {
 
 /** The options of a test that runs a command under Seatbelt, skipped with that reason off macOS. */
 export const darwinOnly = { skip: process.platform !== "darwin" && "seatbelt is macOS-only" };
+
+/** The options of a test that runs a command under bubblewrap, skipped with that reason off Linux. */
+export const linuxOnly = { skip: process.platform !== "linux" && "bubblewrap is Linux-only" };
+
+/**
+ * Whether no sandbox backend qualifies on this machine: the one case where a journey through Pi's
+ * entries opts into the unconfined mode, since a qualified backend confines it as it does in use.
+ */
+export const NO_QUALIFIED_SANDBOX = !selectSandbox({ allow_unconfined: false }).qualification.qualified;
 
 /** A fresh directory under the system's temporary directory, pushed onto `cleanups` when given. */
 export function tempDir(prefix = "495-", cleanups?: string[]): string {
