@@ -379,7 +379,7 @@ epics:
 
   - id: e32
     title: "Les étapes portent les noms du cadrage à l'intégration"
-    status: à faire
+    status: versé
     objet: >
       Une étape d'un changement porte un seul nom, le même à l'écran, dans la documentation, dans le
       JSON et dans le journal : Scoping, Specification, Qualification, Design, Implementation,
