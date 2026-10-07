@@ -1,0 +1,10 @@
+# The Linux machine 495's tests and reference campaigns run on: Debian with Node 24, bubblewrap for the
+# sandbox, Git, and a JDK 21 with Maven for the Maven target. Built and run by scripts/linux/test.sh.
+FROM docker.io/library/node:24-trixie
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends bubblewrap git openjdk-21-jdk-headless maven \
+	&& rm -rf /var/lib/apt/lists/*
+RUN git config --system user.email dev@example.invalid && git config --system user.name dev \
+	&& git config --system init.defaultBranch main
+USER node
+WORKDIR /home/node
