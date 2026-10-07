@@ -39,7 +39,7 @@ Use it to add behavior, fix a bug or refactor a supported project with an explic
   <img src=".github/assets/demo.gif" alt="Pi-495 in Pi's terminal: /495 start adds freeMinutes(busy) to a small TypeScript project tested by vitest, with coverage and Stryker; a line under the editor shows the working agent's context; the change is accepted on its first attempt, the steps Scoping to Acceptance passed, with its unit, coverage and mutation checks passing; /495 review opens each of the three changed files beside the tree, each line signed, numbered and coloured as Pi draws its own edits, with a line saying how many lines are not shown between two distant portions; /495 report lists what was asked, measured, concluded and what remains uncertain." width="900">
 </p>
 
-<p align="center"><em>A real run in Pi's terminal: Claude Sonnet 5 adds <code>farewell</code> to a small Node project. The tests are frozen before the code exists, and the change is accepted on their result. The model interventions are sped up 4×; the run took 86 s.</em></p>
+<p align="center"><em>A real run in Pi's terminal: Claude Sonnet 5.5 adds <code>freeMinutes(busy)</code> to a small TypeScript project tested by vitest. The checks are frozen before the code exists, and the change is accepted on their result: tests, coverage and mutation. The 79 s the agents worked are played in 15 s.</em></p>
 
 
 <details>
