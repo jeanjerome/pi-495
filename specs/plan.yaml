@@ -394,7 +394,7 @@ epics:
 
   - id: e35
     title: "495 s'exécute qualifié sous Linux"
-    status: à faire
+    status: versé
     objet: >
       Le bac à sable `bubblewrap` est qualifié comme Seatbelt l'est sous macOS, et un changement se conduit de
       bout en bout sur une machine Linux.
