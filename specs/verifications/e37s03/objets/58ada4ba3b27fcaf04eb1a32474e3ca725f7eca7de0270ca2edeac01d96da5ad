@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: a technology passes its controls the variables it declares, and those alone
+    # Subtest: aucun contrôle de la détection d'un projet Node sous node --test ne porte JAVA_HOME ni MAVEN_OPTS dans son env_allowlist, et chaque contrôle de la détection d'un projet Maven porte les deux
+    not ok 1 - aucun contrôle de la détection d'un projet Node sous node --test ne porte JAVA_HOME ni MAVEN_OPTS dans son env_allowlist, et chaque contrôle de la détection d'un projet Maven porte les deux
+      ---
+      duration_ms: 12.276875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-uUrL2X/test/v1-adapters/technology-environment.test.ts:17:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + [
+        +   'JAVA_HOME',
+        +   'MAVEN_OPTS'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'JAVA_HOME'
+        1: 'MAVEN_OPTS'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-uUrL2X/test/v1-adapters/technology-environment.test.ts:29:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a technology passes its controls the variables it declares, and those alone
+  ---
+  duration_ms: 12.649666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-uUrL2X/test/v1-adapters/technology-environment.test.ts:16:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 264.304

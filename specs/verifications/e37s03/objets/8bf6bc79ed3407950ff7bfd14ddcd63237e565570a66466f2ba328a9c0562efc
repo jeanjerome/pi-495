@@ -1,0 +1,67 @@
+TAP version 13
+# Subtest: a technology declared in one file, with its own report format
+    # Subtest: given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, the change is accepted, and the diagnosis of its protocol names exactly four blind spots, the coverage, the mutation, the quality and the structure it does not offer
+    ok 1 - given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, the change is accepted, and the diagnosis of its protocol names exactly four blind spots, the coverage, the mutation, the quality and the structure it does not offer
+      ---
+      duration_ms: 404.9065
+      type: 'test'
+      ...
+    # Subtest: un changement sur la technologie fictive, qui déclare fict-out/, dont l'agent écrit src/farewell.txt et fict-out/run.log, est accepté ; le manifeste de son candidat porte src/farewell.txt et aucune entrée sous fict-out/, et les exclusions de sa référence contiennent fict-out/ et .pi/
+    ok 2 - un changement sur la technologie fictive, qui déclare fict-out/, dont l'agent écrit src/farewell.txt et fict-out/run.log, est accepté ; le manifeste de son candidat porte src/farewell.txt et aucune entrée sous fict-out/, et les exclusions de sa référence contiennent fict-out/ et .pi/
+      ---
+      duration_ms: 368.084625
+      type: 'test'
+      ...
+    # Subtest: un changement sur la technologie fictive, qui déclare fict_modules, dont l'agent ajoute fict_modules/shadow.txt, n'est pas accepté, et G4 nomme fict_modules/shadow.txt parmi les chemins protégés modifiés
+    ok 3 - un changement sur la technologie fictive, qui déclare fict_modules, dont l'agent ajoute fict_modules/shadow.txt, n'est pas accepté, et G4 nomme fict_modules/shadow.txt parmi les chemins protégés modifiés
+      ---
+      duration_ms: 334.856583
+      type: 'test'
+      ...
+    # Subtest: given the fictitious technology, which declares FICT_HOME, then its frozen control and the producer that writes read FICT_HOME, and neither reads JAVA_HOME
+    ok 4 - given the fictitious technology, which declares FICT_HOME, then its frozen control and the producer that writes read FICT_HOME, and neither reads JAVA_HOME
+      ---
+      duration_ms: 361.312833
+      type: 'test'
+      ...
+    # Subtest: sur un projet qui porte cases/greeting.case, avec une technologie fictive dont les fichiers de test sont les *.case de cases/, le diagnostic de capacité du protocole gelé a test_files à 1
+    not ok 5 - sur un projet qui porte cases/greeting.case, avec une technologie fictive dont les fichiers de test sont les *.case de cases/, le diagnostic de capacité du protocole gelé a test_files à 1
+      ---
+      duration_ms: 352.720666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oV8HJF/test/v2-kernel/fictitious-stack.test.ts:267:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no test file under the test roots of this fict target | the coverage of the introduced lines is not measured on this target: the fict technology does not offer it | no dependency direction between modules is checked on this target: the fict technology does not offer it | the mutation of the introduced lines is not measured on this target: the fict technology does not offer it | the quality of the code is not measured on this target: the fict technology does not offer it
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oV8HJF/test/v2-kernel/fictitious-stack.test.ts:270:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..5
+not ok 1 - a technology declared in one file, with its own report format
+  ---
+  duration_ms: 1822.862833
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-oV8HJF/test/v2-kernel/fictitious-stack.test.ts:175:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2071.402375

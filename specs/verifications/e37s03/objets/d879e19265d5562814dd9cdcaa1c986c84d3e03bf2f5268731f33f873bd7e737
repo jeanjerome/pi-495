@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un fichier de test se reconnaît à la forme que sa technologie déclare",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/fictitious-stack.test.ts",
+    "ligne": 285,
+    "constat": "Le projet fictif ne porte qu'un fichier sous cases/. Le test du scénario ne fait donc pas la différence entre un compte qui applique isTestFile et un compte qui prend tout fichier des chemins de préparation. Le filtre lui-même est tenu par ailleurs : un test Maven de test/v2-kernel/preparation.test.ts échoue sous cette mutation. Quant à la forme que la technologie déclare, elle est tenue par ce test : revenir à l'ancienne regex en dur, ou répondre false, le fait échouer.",
+    "mutation": "src/application/preparation.ts : retrait de `&& isTestFile(e.path)` dans referenceTestFiles. fictitious-stack.test.ts reste vert ; preparation.test.ts échoue (« derives explicit test roots from a Maven reactor… »)."
+   }
+  ],
+  "resume": "Les quatre promesses sont tenues par le code et par un test ; aucun constat n'est bloquant ni à corriger. Seul A1-1 est à peser : le test du scénario 4 ne détecte pas le retrait du filtre de comptage, tenu par un test Maven.\n\nScénario 1, exclusions de fict-out/ : trois mutations, toutes rouges sur le test « …déclare fict-out/… » de fictitious-stack.test.ts.\n- registry.copyPolicyOf sans les sorties de la technologie.\n- registry.copyPolicyOf qui remplace les exclusions du propriétaire au lieu de s'y ajouter.\n- git-workspace.observeCandidate qui ignore les exclusions de la référence.\n\nScénario 2, protection de fict_modules : cinq mutations, toutes rouges sur le test « …fict_modules/shadow.txt… ».\n- verification.ts : le chemin protégé `${installed}/` est retiré.\n- implement.ts : G4 reçoit null au lieu du répertoire.\n- verification-design.ts : le protocole est gelé avec null.\n- registry : installed_dependencies forcé à null ; le test de la référence ancienne échoue aussi.\n- g4.inInstalledDependencies renvoie toujours false.\n\nScénario 3, environnement des contrôles : quatre mutations, toutes rouges sur technology-environment.test.ts.\n- BASE_ENV qui garde JAVA_HOME.\n- Maven sans MAVEN_OPTS.\n- assembleDetection qui n'ajoute plus les variables déclarées.\n- Node qui déclare MAVEN_OPTS.\n\nAucun module générique ne nomme encore JAVA_HOME, sauf MAVEN_ENV_NAMES de l'installation, hors périmètre (e37s04). Les contrôles Maven gardent exactement leur liste et son ordre d'avant : BASE_ENV, puis JAVA_HOME et MAVEN_OPTS.\n\nScénario 4, compte des fichiers de test : revenir à la regex en dur, ou forcer isTestFile à false dans testLayoutOf, fait échouer le test « …test_files à 1 ».\n\nLe code et les tests ont été lus à 6a72da72, et chaque mutation a été remise en place. L'arbre est propre ; aucune Preflight n'a été lancée."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les dépendances installées d'une technologie sont protégées (section Sécurité : une technologie qui ne déclare rien ne retire aucune protection qu'une autre technologie donne)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 777,
+    "constat": "Avant la branche, le gel du protocole ajoutait `node_modules/` aux chemins protégés de chaque contrôle, quelle que soit la technologie. Il ne protège plus que le répertoire déclaré par la technologie qui reconnaît le projet. Un projet Maven qui porte un `node_modules/` (sonde : `copyPolicyOf` donne `installed_dependencies: null`, et aucun contrôle Maven ne protège `node_modules/`) laisse donc le producteur y ajouter un fichier sans que G4 le refuse, et l'intégration l'indexe. La phrase de la story se lit aussi comme visant le seul projet de la technologie qui donne la protection, d'où la catégorie à peser.",
+    "mutation": "Sonde jetable (non commitée) : STACKS_OF_495.copyPolicyOf et recognise sur fixtureMavenMultiModule plus package.json et node_modules/x/index.js donnent stack maven, installed_dependencies null, et des protected_paths sans node_modules/."
+   }
+  ],
+  "resume": "Les quatre scénarios sont tenus par le code et chacun par un test qui échoue sous mutation. (1) Sorties exclues : retirer les sorties de copyPolicyOf, remplacer les exclusions du propriétaire par les seules sorties, ne plus joindre reference.exclusions dans snapshotCandidate, ou capturer la référence sous la seule politique du propriétaire fait chaque fois échouer le test fict-out/ de fictitious-stack.test.ts. (2) Dépendances protégées : ne plus ajouter `${installed_dependencies}/` au gel du protocole, mettre null dans copyPolicyOf, verification-design ou implement, ou faire répondre inInstalledDependencies toujours faux fait échouer le test fict_modules/shadow.txt. (3) Variables d'environnement : remettre JAVA_HOME et MAVEN_OPTS dans BASE_ENV, ne plus fusionner l'env déclaré dans assembleDetection, ou ne déclarer que JAVA_HOME pour Maven fait échouer technology-environment.test.ts. Tous les contrôles naissent de BASE_ENV, puis passent par assembleDetection, re-détection après adoption comprise. (4) Fichiers de test : revenir à l'ancienne expression régulière dans referenceTestFiles, ou faire répondre faux à testLayoutOf, fait échouer le test test_files à 1. Un seul constat, à peser et introduit : un projet Maven qui porte node_modules/ a perdu la protection que le gel du protocole donnait à node_modules/ sur toute cible. Aucun constat bloquant ou à corriger, d'où le verdict pass."
+ }
+]
