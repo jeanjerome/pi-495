@@ -7,7 +7,6 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { detectStack } from "../../src/application/target.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
@@ -27,7 +26,7 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 		for (const ws of [pos, neg, cov]) fixtureJava(ws, true);
 		// warm the local Maven repository once, online, outside the sandbox (installation step, not a control)
 		execFileSync("mvn", ["-B", "-q", "test"], { cwd: pos, stdio: "ignore", timeout: 15 * 60_000 });
-		const detection = detectStack(STACKS_OF_495, pos, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(pos, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.stack, "maven");
 		assert.equal(detection.facts.jacoco_report_bound, true);
 		const write = (ws: string, files: Record<string, string>) => {
@@ -127,7 +126,7 @@ describe("F-JAVA through the generic runner (EXT-03)", { skip: !enabled && "set 
 			stdio: "ignore",
 			timeout: 20 * 60_000,
 		});
-		const detection = detectStack(STACKS_OF_495, pos, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(pos, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, true);
 		const write = (ws: string, files: Record<string, string>) => {
 			for (const [rel, content] of Object.entries(files)) {

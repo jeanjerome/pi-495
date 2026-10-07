@@ -16,7 +16,6 @@ import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../../src/adapters/works
 import { openWorkspaceWithComplements } from "../../src/application/complement.ts";
 import { installInCopy, runInstall } from "../../src/application/installation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition, PackageInstall } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
@@ -55,7 +54,7 @@ async function installedReferential(root: string, extra: Record<string, string>)
 		...NODE_QUALITY_SOURCES,
 		...extra,
 	});
-	const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
+	const offer = STACKS_OF_495.recognise(project, REFS).quality_referential;
 	if (offer?.kind !== "proposed") throw new Error("a Node project without ESLint nor jscpd is offered the referential");
 	const installs = offer.recommendations.flatMap((r): PackageInstall[] => (r.install ? [r.install] : []));
 	const sandbox = selectSandbox({ allow_unconfined: NO_QUALIFIED_SANDBOX });
@@ -118,7 +117,7 @@ describe("the ESLint and jscpd referential installed for real by npm", () => {
 			return handle.path;
 		};
 
-		const detection = detectStack(STACKS_OF_495, copy, REFS, process.execPath, installed.packages);
+		const detection = STACKS_OF_495.recognise(copy, REFS, process.execPath, installed.packages);
 		const runner = new GenericControlRunner(sandbox.backend, objects, READERS_OF_495);
 		const controls: Record<string, ControlDefinition> = {};
 		for (const id of ["eslint", "jscpd"]) {

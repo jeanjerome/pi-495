@@ -19,10 +19,17 @@ import {
 	MUTATION_RULE_UNCOVERED,
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
-import { mutableIntroducedPaths, PITEST_ENGINE, pitestScopeOf } from "../../src/adapters/stacks/maven/pitest-reader.ts";
+import {
+	mutableIntroducedPaths,
+	PITEST_ENGINE,
+	pitestScopeOf,
+} from "../../src/adapters/stacks/maven/mutation/pitest-reader.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
-import { mutationCapabilityMissing, readsMutationReport } from "../../src/adapters/stacks/maven/mutation-control.ts";
+import {
+	mutationCapabilityMissing,
+	readsMutationReport,
+} from "../../src/adapters/stacks/maven/mutation/mutation-control.ts";
+import { openProjectView } from "../../src/adapters/stacks/project-view.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, PITEST_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { candidate, evidence, protocol, Runner, ENV } from "../helpers/change-fixture.ts";
@@ -555,7 +562,7 @@ describe("the target adapter proposes the sensor only where its report can be re
 	it("adds the mutation control when the engine writes XML at a path no timestamp moves, with witnesses of its own", () => {
 		const project = join(root, "target-project");
 		fixtureJava(project, false, true);
-		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, true);
 		const mutation = detection.controls.find((c) => c.control_id === "mutation");
 		assert.ok(mutation, "the sensor is proposed");
@@ -591,7 +598,7 @@ describe("the target adapter proposes the sensor only where its report can be re
 	it("names what the target would have to declare instead of proposing a sensor that would read nothing", () => {
 		const bare = join(root, "bare");
 		fixtureJava(bare);
-		const detection = detectStack(STACKS_OF_495, bare, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(bare, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.mutation_report_readable, false);
 		assert.deepEqual(
 			detection.controls.map((c) => c.control_id),
@@ -629,7 +636,7 @@ describe("the target adapter proposes the sensor only where its report can be re
 				`  <profiles><profile><id>mutation</id><build><plugins>\n${PITEST_PLUGIN}      </plugins></build></profile></profiles>\n</project>`,
 			),
 		);
-		assert.deepEqual(readsMutationReport(project, ["pom.xml"]), {
+		assert.deepEqual(readsMutationReport(openProjectView(project), ["pom.xml"]), {
 			declared: false,
 			xml_report: false,
 			stable_report_path: false,

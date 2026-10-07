@@ -7,7 +7,6 @@ import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { detectStack } from "../../src/application/target.ts";
 import { mavenBench, mavenReference, qualifyByWitnesses, widenForMaven } from "../helpers/maven-bench.ts";
 import { fixtureMavenHexagonal, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
 import { STACKS_OF_495 } from "../helpers/technologies.ts";
@@ -59,7 +58,7 @@ describe("PMD and CPD on a Maven reactor where one module depends on another", {
 		const project = join(root, "project");
 		fixtureMavenHexagonal(project);
 		writeFiles(project, { "pom.xml": REACTOR_POM, [CACHE]: CACHE_SOURCE });
-		const offer = detectStack(STACKS_OF_495, project, [{ requirement_id: "QLT-01", revision: 1 }]).quality_referential;
+		const offer = STACKS_OF_495.recognise(project, [{ requirement_id: "QLT-01", revision: 1 }]).quality_referential;
 		assert.equal(offer?.kind, "proposed");
 		if (offer?.kind !== "proposed") return;
 		const edit = offer.recommendations[0]?.edit;
@@ -69,7 +68,7 @@ describe("PMD and CPD on a Maven reactor where one module depends on another", {
 
 		const reference = mavenReference(root, project, edit, install);
 
-		const detection = detectStack(STACKS_OF_495, reference, [{ requirement_id: "QLT-01", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(reference, [{ requirement_id: "QLT-01", revision: 1 }]);
 		const pmd = detection.controls.find((c) => c.control_id === "pmd");
 		const cpd = detection.controls.find((c) => c.control_id === "cpd");
 		assert.ok(

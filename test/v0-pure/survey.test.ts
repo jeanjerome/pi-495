@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { EvidenceEntry } from "../../src/domain/change/state.ts";
 import { controlsOfNature, evaluateSurvey, surveyOf } from "../../src/domain/survey.ts";
 import { EXIT_CODE_READER } from "../../src/adapters/execution/parsers.ts";
-import { NODE_TEST_READER } from "../../src/adapters/stacks/node/node-test-reader.ts";
+import { NODE_TEST_READER } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
 import { LCOV_READER } from "../../src/adapters/execution/lcov.ts";
 
 const NODE_CONTROLS = [

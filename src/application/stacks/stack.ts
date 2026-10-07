@@ -1,20 +1,15 @@
 /**
- * What a target adapter answers with (CMP-TGT): the controls a stack offers, the witnesses
- * that qualify them, and what it could not give. One shape for every stack, so the kernel orders
- * and qualifies the controls of a Maven reactor and those of a Node package the same way.
+ * The technology recognised on a copy, as the kernel asks it (CMP-TGT): the controls it offers, the witnesses
+ * that qualify them, and what it could not give, assembled once by the common layer. One shape for every
+ * technology, so the kernel orders and qualifies the controls of a Maven reactor and those of a Node package
+ * the same way.
  */
-import type {
-	ControlDefinition,
-	InstalledPackage,
-	QualityPerimeter,
-	QualityRule,
-	RecommendedComplement,
-} from "../../contracts/v1/protocol.ts";
+import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import type { ReportReader } from "../../ports/execution.ts";
+import type { QualityOffer } from "./plugin.ts";
 
-export interface StackDetection {
-	/** The stack identifier its adapter declares, or `unknown` when no adapter recognises the project. */
+export interface DetectedTechnology {
+	/** The identifier its technology declares, or `unknown` when no technology recognises the project. */
 	stack: string;
 	facts: Record<string, unknown>;
 	controls: ControlDefinition[];
@@ -37,49 +32,18 @@ export interface StackDetection {
 	preparation_paths: string[];
 	capability_missing: string[];
 	/**
-	 * What the adapter recommends the target adds where a sensor it can read is missing. Data of the
-	 * adapter, never of a model; recommending installs nothing and writes nothing in the target.
+	 * What the technology recommends the target adds where a sensor it can read is missing. Data of the
+	 * technology, never of a model; recommending installs nothing and writes nothing in the target.
 	 */
 	recommendations: RecommendedComplement[];
-	/** The quality referential the adapter offers the owner, or why it offers none; absent when it has none. */
+	/** The quality referential the technology offers the owner, or why it offers none; absent when it has none. */
 	quality_referential?: QualityOffer;
-}
-
-/**
- * A quality referential offered for adoption, with what its analysers read and leave aside and the
- * recommendations that bring them into a copy of the target, one per analyser package; or the note that
- * says why none is offered, when the target configures that analyser itself and its own rules are not
- * 495's to replace.
- */
-export type QualityOffer =
-	| { kind: "proposed"; rules: QualityRule[]; perimeter: QualityPerimeter; recommendations: RecommendedComplement[] }
-	| { kind: "not_proposed"; note: string };
-
-/**
- * A technology, as the registry sees it: the identifier of its stack, the files at a project root
- * that signal it, the readers of the reports its controls write, and the detection it answers with.
- * Adding a technology is one directory that declares its adapter, and the list of technologies the
- * composition root hands the kernel. `referentialPackages` are the packages the adopted install of the
- * quality referential put in the copy at `projectPath`, as its lock names them; empty anywhere else, so
- * a manifest alone never stands for that install.
- */
-export interface StackAdapter {
-	stack: string;
-	signal_files: readonly string[];
-	/** The readers of the report formats only this technology writes; those several technologies write are common to all of them. */
-	readers: readonly ReportReader[];
-	detect(
-		projectPath: string,
-		requirementRefs: RequirementRef[],
-		nodeBinary: string,
-		referentialPackages: readonly InstalledPackage[],
-	): StackDetection;
 }
 
 /** Environment a control is allowed to read. Nothing of the session leaks into a measurement. */
 export const BASE_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME", "MAVEN_OPTS"];
 
-/** What a control of any stack declares unless it says otherwise; each adapter extends it with what it runs and reads. */
+/** What a control of any stack declares unless it says otherwise; each technology extends it with what it runs and reads. */
 export function baseControl(
 	requirementRefs: RequirementRef[],
 ): Pick<

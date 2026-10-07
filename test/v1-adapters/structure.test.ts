@@ -17,14 +17,13 @@ import {
 	readJavaSources,
 	stronglyConnectedComponents,
 	underPrefix,
-} from "../../src/adapters/stacks/maven/java-imports-reader.ts";
-import { readDeclarations } from "../../src/adapters/stacks/maven/java-declarations.ts";
+} from "../../src/adapters/stacks/maven/structure/java-imports-reader.ts";
+import { readDeclarations } from "../../src/adapters/stacks/maven/project/java-declarations.ts";
 import { buildContext, OUTPUT_SCHEMA_EXAMPLES, type ContextInput } from "../../src/application/context.ts";
 import { Value } from "typebox/value";
 import { OUTPUT_SCHEMAS } from "../../src/contracts/v1/reports.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
 import { compareToReference } from "../../src/domain/baseline.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { Finding } from "../../src/contracts/v1/evidence.ts";
@@ -178,7 +177,7 @@ describe("the boundaries a Maven reactor opposes to its own code (CON-03)", () =
 	it("derives them from the dependency direction of the POMs and the package root each module lays out", () => {
 		const project = join(root, "hexa");
 		fixtureMavenHexagonal(project);
-		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }]);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		assert.ok(control, "the sensor is proposed");
 		assert.equal(
@@ -215,7 +214,7 @@ describe("the boundaries a Maven reactor opposes to its own code (CON-03)", () =
 	it("opposes no direction it cannot read, and says so instead of inventing a convention", () => {
 		const project = join(root, "flat");
 		fixtureMavenMultiModule(project);
-		const detection = detectStack(STACKS_OF_495, project, []);
+		const detection = STACKS_OF_495.recognise(project, []);
 		const rules = detection.controls.find((c) => c.control_id === "structure")!.structure_rules;
 		assert.deepEqual(
 			rules.map((rule) => rule.kind),
@@ -245,7 +244,7 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 	}
 
 	it("a candidate placing a responsibility in a forbidden module is refused; the cycle it inherited is named and tolerated", async () => {
-		const detection = detectStack(STACKS_OF_495, tree("reference", { [USER]: CYCLIC_USER }), []);
+		const detection = STACKS_OF_495.recognise(tree("reference", { [USER]: CYCLIC_USER }), []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		// The reference introduces nothing: the sensor passes and still names the cycle already there.
 		const onReference = await run(control, join(root, "reference"), {});
@@ -291,7 +290,7 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 	});
 
 	it("a candidate that only inherits the cycle is accepted, and the cycle stays visible as preexisting", async () => {
-		const detection = detectStack(STACKS_OF_495, tree("reference", { [USER]: CYCLIC_USER }), []);
+		const detection = STACKS_OF_495.recognise(tree("reference", { [USER]: CYCLIC_USER }), []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		const onReference = await run(control, join(root, "reference"), {});
 		const candidate = tree("candidate", {
@@ -325,7 +324,7 @@ describe("the same sensor on the reference and on the candidate (ARC-04, VER-08)
 
 	it("is qualified on witnesses of its own: a boundary crossed, which no failing test would exhibit", async () => {
 		const positive = tree("positive", {});
-		const detection = detectStack(STACKS_OF_495, positive, []);
+		const detection = STACKS_OF_495.recognise(positive, []);
 		const control = detection.controls.find((c) => c.control_id === "structure")!;
 		const negativeFiles = detection.own_negative_witness.structure!;
 		const negative = tree("negative", negativeFiles);

@@ -1,7 +1,6 @@
 import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
-import { detectStack } from "../../src/application/target.ts";
 import { tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
@@ -24,7 +23,7 @@ function targetWithLint(lint: unknown): string {
 
 describe("Node stack: the lint control follows scripts.lint", () => {
 	it("given scripts.lint is eslint . && prettier --check ., when the stack is detected, then no lint control is declared, the unit control is kept, and the missing capabilities name scripts.lint chains commands through a shell", () => {
-		const detection = detectStack(STACKS_OF_495, targetWithLint("eslint . && prettier --check ."), REFS, NODE);
+		const detection = STACKS_OF_495.recognise(targetWithLint("eslint . && prettier --check ."), REFS, NODE);
 		assert.equal(
 			detection.controls.find((c) => c.control_id === "lint"),
 			undefined,
@@ -36,14 +35,14 @@ describe("Node stack: the lint control follows scripts.lint", () => {
 		);
 		assert.ok(
 			detection.capability_missing.includes(
-				"scripts.lint chains commands through a shell (eslint . && prettier --check .), which 495 cannot run",
+				"the quality of the code is not measured on this target: scripts.lint chains commands through a shell (eslint . && prettier --check .), which 495 cannot run",
 			),
 			`the missing capabilities name scripts.lint: ${detection.capability_missing.join(" | ")}`,
 		);
 	});
 
 	it("given scripts.lint is node scripts/lint.js, when the stack is detected, then a lint control runs the Node binary on scripts/lint.js and no missing capability names scripts.lint", () => {
-		const detection = detectStack(STACKS_OF_495, targetWithLint("node scripts/lint.js"), REFS, NODE);
+		const detection = STACKS_OF_495.recognise(targetWithLint("node scripts/lint.js"), REFS, NODE);
 		const lint = detection.controls.find((c) => c.control_id === "lint");
 		assert.ok(lint, "the detection declares a lint control");
 		assert.deepEqual(lint.command, [NODE, "scripts/lint.js"]);
@@ -54,7 +53,7 @@ describe("Node stack: the lint control follows scripts.lint", () => {
 	});
 
 	it("given scripts.lint is the number 42, when the stack is detected, then the unit control is declared and no lint control", () => {
-		const ids = detectStack(STACKS_OF_495, targetWithLint(42), REFS, NODE).controls.map((c) => c.control_id);
+		const ids = STACKS_OF_495.recognise(targetWithLint(42), REFS, NODE).controls.map((c) => c.control_id);
 		assert.ok(ids.includes("unit"), "the detection declares the unit control");
 		assert.ok(!ids.includes("lint"), "the detection declares no lint control");
 	});

@@ -5,7 +5,6 @@ import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { SeatbeltSandbox } from "../../src/adapters/sandbox/backends.ts";
-import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { darwinOnly, tempDir, writeFiles, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
@@ -107,7 +106,7 @@ describe("the derived controls under the verification sandbox", darwinOnly, () =
 		for (const target of runners) {
 			const project = tempDir("495-lcov-sandbox-", cleanups);
 			writeFiles(project, target.files);
-			const detection = detectStack(STACKS_OF_495, project, REFS, NODE);
+			const detection = STACKS_OF_495.recognise(project, REFS, NODE);
 			const unit = detection.controls.find((c) => c.control_id === "unit")!;
 			const coverage = detection.controls.find((c) => c.control_id === "coverage");
 			assert.ok(coverage?.report_path, `${target.name}: the detection declares a coverage control`);

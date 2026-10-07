@@ -22,8 +22,7 @@ import { installableRecommendations, installInCopy, resolveInCopy, type FailedIn
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
-import { detectStack } from "../target.ts";
-import type { StackDetection } from "../target.ts";
+import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import { settleQualityReferential } from "./quality-referential.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
@@ -128,7 +127,7 @@ async function openPreparation(
 	ctx: PhaseContext,
 	unit: Unit,
 	cor: string,
-	detection: StackDetection,
+	detection: DetectedTechnology,
 	requirements: ArtifactRef,
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
@@ -245,7 +244,7 @@ async function adoptInstalls(
  * reference when `suite` is null, from what it reported after.
  */
 function diagnose(
-	detection: StackDetection,
+	detection: DetectedTechnology,
 	requirements: RequirementsDocument,
 	reference: ReferenceSnapshot,
 	prepared: PreparationRecord | null,
@@ -271,7 +270,7 @@ function takenByOwner(requirements: ArtifactRef, unit: Unit, diagnosis: ControlC
  * nothing into it.
  */
 function needsPreparation(
-	detection: StackDetection,
+	detection: DetectedTechnology,
 	requirements: ArtifactRef,
 	unit: Unit,
 	diagnosis: ControlCapabilityDiagnosis,
@@ -290,7 +289,7 @@ function settleUnjudged(
 	unit: Unit,
 	cor: string,
 	reference: ReferenceSnapshot,
-	detection: StackDetection,
+	detection: DetectedTechnology,
 	requirements: ArtifactRef,
 	refs: RequirementRef[],
 	diagnosis: ControlCapabilityDiagnosis,
@@ -321,7 +320,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		let detection = detectStack(ctx.stacks, handle.path, refs);
+		let detection = ctx.stacks.recognise(handle.path, refs);
 		// A survey puts the quality referential its target proposes to the owner before anything runs: the
 		// analyser it adopts is a control the protocol freezes like the others.
 		const quality = surveysTheProject(unit.state)
@@ -365,7 +364,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const installed = [...(quality?.packages ?? []), ...(adoption?.packages ?? [])];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
-			detection = detectStack(ctx.stacks, handle.path, refs, process.execPath, quality?.packages);
+			detection = ctx.stacks.recognise(handle.path, refs, process.execPath, quality?.packages);
 		}
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {

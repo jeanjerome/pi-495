@@ -8,8 +8,6 @@ import { KERNEL_ACTOR } from "../actors.ts";
 import { preparationObjective } from "../context.ts";
 import { preparedFilesFrom, samePreparationPaths } from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
-import { detectStack } from "../target.ts";
-import type { StackDetection } from "../target.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
 /** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
@@ -19,7 +17,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		objective: string;
 		allowed_paths: string[];
 		requirement_ids: string[];
-		stack: StackDetection["stack"];
+		stack: string;
 		/** The complements the owner had adopted when the mandate opened; absent when there were none. */
 		complements?: AdoptedComplement[];
 	}>(unit.state, "preparation");
@@ -36,8 +34,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		await ctx.artifacts.materializePrepared({ files: complements }, handle.path);
-		const detected = detectStack(
-			ctx.stacks,
+		const detected = ctx.stacks.recognise(
 			handle.path,
 			mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })),
 		);

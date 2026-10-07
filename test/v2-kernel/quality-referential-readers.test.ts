@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import type { ReferenceSnapshot } from "../../src/contracts/v1/candidate.ts";
 import { settleQualityReferential } from "../../src/application/phases/quality-referential.ts";
 import type { PhaseContext, Unit } from "../../src/application/phases/phase.ts";
-import type { StackDetection } from "../../src/application/stacks/stack.ts";
+import type { DetectedTechnology } from "../../src/application/stacks/stack.ts";
 import type { VerificationCoordinator } from "../../src/application/verification.ts";
 import type { ReportReader } from "../../src/ports/execution.ts";
 import { ref, requirements } from "../helpers/change-fixture.ts";
@@ -29,7 +29,7 @@ describe("the quality referential, for a target whose style control reads throug
 		// Only the readers are read before the settlement returns: the rest of the context stays unset.
 		const verification: Partial<VerificationCoordinator> = { readers: [STYLE_READER] };
 		const ctx: Partial<PhaseContext> = { verification: verification as VerificationCoordinator };
-		const detection: StackDetection = {
+		const detection: DetectedTechnology = {
 			stack: "fict",
 			facts: {},
 			controls: [controlOf({ control_id: "style", parser: "fict-style" })],

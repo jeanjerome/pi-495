@@ -6,8 +6,9 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { readersOf } from "../adapters/execution/common-readers.ts";
 import { GenericControlRunner } from "../adapters/execution/runner.ts";
-import { MAVEN_ADAPTER } from "../adapters/stacks/maven/maven.ts";
-import { NODE_ADAPTER } from "../adapters/stacks/node/node.ts";
+import { MAVEN_PLUGIN } from "../adapters/stacks/maven/maven.ts";
+import { NODE_PLUGIN } from "../adapters/stacks/node/node.ts";
+import { openProjectView } from "../adapters/stacks/project-view.ts";
 import { CasObjectStore } from "../adapters/object-store/cas.ts";
 import { PiWorkerAgent } from "../adapters/pi-worker/supervisor.ts";
 import type { PiModelCatalogue } from "../adapters/pi-worker/capabilities.ts";
@@ -22,14 +23,19 @@ import { GitIntegrator } from "../adapters/git/integrator.ts";
 import { describeEnvironment } from "../application/environment.ts";
 import { Harness } from "../application/harness.ts";
 import { randomIds, systemClock } from "../application/ids.ts";
-import type { StackAdapter } from "../application/stacks/stack.ts";
+import { StackRegistry } from "../application/stacks/registry.ts";
 import { loadConfig, type HarnessConfig } from "./config.ts";
 
 /**
  * The technologies of 495, in the order they claim a project: a Maven project that also carries a
- * `package.json` is judged as Maven.
+ * `package.json` is judged as Maven. Each reads a copy through the view bounded to it.
  */
-export const STACKS_OF_495: readonly StackAdapter[] = [MAVEN_ADAPTER, NODE_ADAPTER];
+export const STACKS_OF_495: StackRegistry = registryOf([MAVEN_PLUGIN, NODE_PLUGIN]);
+
+/** The registry of `technologies`, in that order, each reading a copy through the view bounded to it. */
+export function registryOf(technologies: StackRegistry["technologies"]): StackRegistry {
+	return new StackRegistry(technologies, openProjectView, readersOf(technologies));
+}
 
 export interface RuntimeInputs {
 	pi_version: string;
@@ -89,7 +95,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		...legacyDataDirs(env).flatMap((d) => [join(d, "workspaces"), resolveWorkspacesDir(d, {})]),
 	];
 	const workspace = new GitWorkspace(workspacesDir, formerRoots);
-	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495));
+	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495.technologies));
 	const environment = describeEnvironment(inputs.pi_version, sandbox.backend.backend);
 	let agent: AgentPort = new PiWorkerAgent({
 		config: {

@@ -13,7 +13,7 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
+import type { DetectedTechnology } from "../../src/application/stacks/stack.ts";
 import type { ControlDefinition, InstalledPackage } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
@@ -42,7 +42,7 @@ function adoptedCopy(root: string, extra: Record<string, string> = {}): string {
 		"package.json": `${JSON.stringify({ name: "graded", version: "1.0.0", type: "module" }, null, 2)}\n`,
 		...NODE_QUALITY_SOURCES,
 	});
-	const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
+	const offer = STACKS_OF_495.recognise(project, REFS).quality_referential;
 	assert.equal(offer?.kind, "proposed", "a Node project without ESLint nor jscpd is offered the referential");
 	if (offer?.kind !== "proposed") throw new Error("no referential is proposed");
 	const reference = join(root, "reference");
@@ -73,9 +73,9 @@ function lockedAnalysers(reference: string): InstalledPackage[] {
 function qualityControls(reference: string): {
 	eslint: ControlDefinition;
 	jscpd: ControlDefinition;
-	detection: ReturnType<typeof detectStack>;
+	detection: DetectedTechnology;
 } {
-	const detection = detectStack(STACKS_OF_495, reference, REFS, process.execPath, lockedAnalysers(reference));
+	const detection = STACKS_OF_495.recognise(reference, REFS, process.execPath, lockedAnalysers(reference));
 	const eslint = detection.controls.find((c) => c.control_id === "eslint");
 	const jscpd = detection.controls.find((c) => c.control_id === "jscpd");
 	assert.ok(

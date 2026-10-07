@@ -9,7 +9,7 @@ import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/bac
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
-import type { StackAdapter } from "../../src/application/stacks/stack.ts";
+import type { StackRegistry } from "../../src/application/stacks/registry.ts";
 import type {
 	ControlExecutionPort,
 	ControlInvocation,
@@ -24,7 +24,7 @@ import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 import { tuiOrigin } from "./change-fixture.ts";
 import { fixtureTs, initRepo, outputDir, removedAfterEach, tempDir } from "./fixtures.ts";
-import { STACKS_OF_495 } from "./technologies.ts";
+import { registryOf, STACKS_OF_495 } from "./technologies.ts";
 
 /** The roots `makeHarness` and `trackedProject` allocate, removed after each test. */
 const harnessRoots = removedAfterEach();
@@ -167,7 +167,7 @@ export interface HarnessOptions {
 	backend?: (real: SandboxPort) => SandboxPort;
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
 	/** The technologies handed to the kernel, and whose readers the runner is given: those of 495 by default. */
-	stacks?: readonly StackAdapter[];
+	stacks?: StackRegistry["technologies"];
 	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
 	root?: string;
 	/** Identities are fresh in a new session; the ledger is what carries the change across it. */
@@ -263,8 +263,8 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 							: { qualified: true, reasons: ["test-only: unconfined backend declared qualified for V2"] }),
 					},
 				};
-	const stacks = options.stacks ?? STACKS_OF_495;
-	const real = new GenericControlRunner(sandbox.backend, objects, readersOf(stacks));
+	const stacks = options.stacks ? registryOf(options.stacks) : STACKS_OF_495;
+	const real = new GenericControlRunner(sandbox.backend, objects, readersOf(stacks.technologies));
 	const controls = options.controls ? options.controls(real) : real;
 	const agent =
 		options.agent ??

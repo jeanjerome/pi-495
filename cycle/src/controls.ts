@@ -13,7 +13,7 @@ import type { ControlExecutionPort, SandboxPort } from "../../src/ports/executio
 import { basename, join } from "node:path";
 import { EXIT_CODE_READER } from "../../src/adapters/execution/parsers.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
-import { NODE_TEST_READER } from "../../src/adapters/stacks/node/node-test-reader.ts";
+import { NODE_TEST_READER } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { arbreDetache, retirerArbre, revision } from "./git.ts";

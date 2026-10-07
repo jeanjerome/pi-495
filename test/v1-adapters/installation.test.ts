@@ -5,7 +5,6 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
-import { detectStack } from "../../src/application/target.ts";
 import { digestBytes } from "../../src/contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry } from "../../src/contracts/v1/candidate.ts";
 import { protectedPathsChanged } from "../../src/domain/gates/g4.ts";
@@ -323,7 +322,7 @@ describe("running the install in the copy", () => {
 
 		const target = tempDir("495-install-target-", cleanups);
 		fixtureTs(target);
-		const controls = detectStack(STACKS_OF_495, target, []).controls;
+		const controls = STACKS_OF_495.recognise(target, []).controls;
 		assert.notEqual(controls.length, 0);
 		for (const control of controls)
 			assert.equal(
@@ -507,7 +506,7 @@ describe("running the resolution in the copy", () => {
 
 		const target = tempDir("495-resolve-target-", cleanups);
 		fixtureJava(target, true);
-		const controls = detectStack(STACKS_OF_495, target, []).controls;
+		const controls = STACKS_OF_495.recognise(target, []).controls;
 		assert.notEqual(controls.length, 0);
 		for (const control of controls)
 			assert.equal(
@@ -588,7 +587,7 @@ describe("the pom.xml an adopted complement wrote, judged at G4", () => {
 	it("given a complement adopted on pom.xml, then a candidate keeping it as the complement wrote it passes, and one whose producer put back the pom.xml of the reference is refused naming pom.xml", () => {
 		const target = tempDir("495-g4-pom-", cleanups);
 		fixtureJava(target);
-		const test = detectStack(STACKS_OF_495, target, []).controls.find((c) => c.control_id === "maven-test");
+		const test = STACKS_OF_495.recognise(target, []).controls.find((c) => c.control_id === "maven-test");
 		assert.ok(test, "the detection declares the Maven test control");
 		assert.ok(test.protected_paths.includes("pom.xml"), "the POM is a protected path");
 		const written = digestBytes("<project>with the declaration</project>");

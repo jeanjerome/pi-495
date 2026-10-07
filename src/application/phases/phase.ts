@@ -19,7 +19,7 @@ import type { FeedbackSources } from "../context.ts";
 import type { Adoptable, PhaseInteraction, ReferentialOffer } from "../decisions.ts";
 import type { InstallRun } from "../installation.ts";
 import type { VerificationCoordinator } from "../verification.ts";
-import type { StackAdapter } from "../stacks/stack.ts";
+import type { StackRegistry } from "../stacks/registry.ts";
 
 /** A change and the ledger revision it was read at: a commit that loses that race is refused. */
 export interface Unit {
@@ -66,7 +66,7 @@ export interface PhaseContext {
 	readonly workspace: WorkspacePort;
 	readonly workspacePolicy: WorkspacePolicy;
 	/** The technologies a project is detected with, in the order they claim one. */
-	readonly stacks: readonly StackAdapter[];
+	readonly stacks: StackRegistry;
 	/** Runs an install command in a copy, with the network open for that step alone, writing `outside` when it is given. */
 	install(copyPath: string, command: readonly string[], outside?: string): Promise<InstallRun>;
 	/** The local repository Maven announces for a copy, asked offline, or null when it announces none. */

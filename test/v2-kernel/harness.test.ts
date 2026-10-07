@@ -23,7 +23,6 @@ import { KERNEL_ACTOR } from "../../src/application/actors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
-import { detectStack } from "../../src/application/target.ts";
 import type { Mandate, Protocol, RequirementsDocument } from "../../src/contracts/v1/protocol.ts";
 import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
@@ -120,7 +119,7 @@ describe("full change cycle with real ledger, workspace, runner and scripted age
 
 	it("given a target whose test command runs no coverage, then the protocol the change freezes carries the recommendation the detection made", async () => {
 		const p = trackedProject();
-		const recommended = detectStack(STACKS_OF_495, p, []).recommendations;
+		const recommended = STACKS_OF_495.recognise(p, []).recommendations;
 		assert.deepEqual(
 			recommended.map((r) => r.test_type),
 			["coverage", "mutation"],

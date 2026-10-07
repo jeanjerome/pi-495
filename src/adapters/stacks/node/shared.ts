@@ -1,5 +1,4 @@
 /** What several responsibilities of the Node technology share. */
-import type { ControlDefinition, RecommendedComplement } from "../../../contracts/v1/protocol.ts";
 
 /** The date the versions this technology recommends were checked against the sources they cite. */
 export const CATALOGUE_DATE = "2026-09-30";
@@ -17,13 +16,6 @@ export type SuiteRunner = "node-test" | "vitest" | "mocha" | "jest";
 
 // A command with shell syntax needs a shell, which the sandbox does not give.
 export const SHELL_SYNTAX = /[|&;<>$`()]/;
-
-/** What a measurement of the introduced lines becomes on a target: a control that judges it, or the reason there is none and what would give one. */
-export interface SensorOutcome {
-	control?: ControlDefinition;
-	missing?: string[];
-	recommendation?: RecommendedComplement;
-}
 
 /** The name under which `unit` provides the LCOV report to the controls that require it. */
 export const LCOV_REPORT_NAME = "lcov-report";

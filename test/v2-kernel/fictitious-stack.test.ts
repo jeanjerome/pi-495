@@ -1,10 +1,9 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import type { Protocol } from "../../src/contracts/v1/protocol.ts";
-import type { RequirementRef } from "../../src/contracts/v1/evidence.ts";
-import type { StackAdapter, StackDetection } from "../../src/application/stacks/stack.ts";
-import { MAVEN_ADAPTER } from "../../src/adapters/stacks/maven/maven.ts";
-import { NODE_ADAPTER } from "../../src/adapters/stacks/node/node.ts";
+import type { StackPlugin } from "../../src/application/stacks/plugin.ts";
+import { MAVEN_PLUGIN } from "../../src/adapters/stacks/maven/maven.ts";
+import { NODE_PLUGIN } from "../../src/adapters/stacks/node/node.ts";
 import type { ParsedReport, ReportReader } from "../../src/ports/execution.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { writeFiles } from "../helpers/fixtures.ts";
@@ -58,54 +57,54 @@ const FICT_LINES_READER: ReportReader = {
 	},
 };
 
-/** A technology 495 does not carry: a project that holds `fict.toml`, whose tests are `cases/*.case`. */
-const FICT_ADAPTER: StackAdapter = {
-	stack: "fict",
+/**
+ * A technology 495 does not carry: a project that holds `fict.toml`, whose tests are `cases/*.case`. It
+ * declares its recognition, its reader and its tests, and no other capability.
+ */
+const FICT_PLUGIN: StackPlugin<true> = {
+	id: "fict",
 	signal_files: ["fict.toml"],
+	recognise: (view) => (view.exists("fict.toml") ? true : null),
 	readers: [FICT_LINES_READER],
-	detect(_projectPath: string, requirementRefs: RequirementRef[], nodeBinary: string): StackDetection {
-		return {
-			stack: "fict",
-			facts: {},
-			controls: [
-				{
-					control_id: "fict-tests",
-					version: "1",
-					title: "fictitious test cases",
-					command: [nodeBinary, "-e", FICT_RUNNER],
-					cwd: ".",
-					env_allowlist: ["PATH"],
-					env: {},
-					timeout_ms: 30_000,
-					parser: "fict-lines",
-					report_path: "fict-report.txt",
-					structure_rules: [],
-					provides: [],
-					requires: [],
-					scope_argument: null,
-					network: "denied",
-					writable_paths: ["fict-report.txt"],
-					requirement_refs: requirementRefs,
-					protected: true,
-					protected_paths: ["cases/"],
-				},
-			],
-			lint_control_ids: [],
-			positive_witness: { "cases/495-witness.case": "495-witness.txt=ok\n", "495-witness.txt": "ok\n" },
-			witness_tests: 1,
-			negative_witness: { "495-witness.txt": "ko\n" },
-			own_negative_witness: {},
-			preparation_paths: [],
-			capability_missing: [],
-			recommendations: [],
-		};
+	capabilities: {
+		tests: {
+			offer: ({ requirement_refs, node_binary }) => ({
+				kind: "available",
+				controls: [
+					{
+						control_id: "fict-tests",
+						version: "1",
+						title: "fictitious test cases",
+						command: [node_binary, "-e", FICT_RUNNER],
+						cwd: ".",
+						env_allowlist: ["PATH"],
+						env: {},
+						timeout_ms: 30_000,
+						parser: "fict-lines",
+						report_path: "fict-report.txt",
+						structure_rules: [],
+						provides: [],
+						requires: [],
+						scope_argument: null,
+						network: "denied",
+						writable_paths: ["fict-report.txt"],
+						requirement_refs,
+						protected: true,
+						protected_paths: ["cases/"],
+					},
+				],
+			}),
+			positiveWitness: () => ({ "cases/495-witness.case": "495-witness.txt=ok\n", "495-witness.txt": "ok\n" }),
+			negativeWitness: () => ({ "495-witness.txt": "ko\n" }),
+			preparationPaths: () => [],
+		},
 	},
 };
 
 const GREETING = "Hello\n";
 
 describe("a technology declared in one file, with its own report format", () => {
-	it("given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, and the change is accepted", async () => {
+	it("given a project carrying only fict.toml and the list of 495 followed by a fictitious technology, when a scripted agent drives a change, then the fictitious control is qualified by its fict-lines reader, the candidate evidence passes under 1+fict-lines@1.0.0, the change is accepted, and the diagnosis of its protocol names exactly four blind spots, the coverage, the mutation, the quality and the structure it does not offer", async () => {
 		const project = trackedProject((root) =>
 			writeFiles(root, {
 				"fict.toml": "[project]\nname = 'greeting'\n",
@@ -114,7 +113,7 @@ describe("a technology declared in one file, with its own report format", () => 
 			}),
 		);
 		const t = makeHarness({
-			stacks: [MAVEN_ADAPTER, NODE_ADAPTER, FICT_ADAPTER],
+			stacks: [MAVEN_PLUGIN, NODE_PLUGIN, FICT_PLUGIN],
 			defaultScript: {
 				steps: [
 					{
@@ -182,5 +181,18 @@ describe("a technology declared in one file, with its own report format", () => 
 		);
 		assert.equal(result.stopped_because, "closed", result.steps.join(" | "));
 		assert.equal(result.view.change!.outcome, "accepted");
+		const notes = protocol?.content.capability_diagnosis.notes ?? [];
+		assert.deepEqual(
+			notes.filter((note) => note.includes(" on this target: ")).sort(),
+			[
+				"the coverage of the introduced lines is not measured on this target",
+				"the mutation of the introduced lines is not measured on this target",
+				"the quality of the code is not measured on this target",
+				"no dependency direction between modules is checked on this target",
+			]
+				.map((blindSpot) => `${blindSpot}: the fict technology does not offer it`)
+				.sort(),
+			notes.join(" | "),
+		);
 	});
 });

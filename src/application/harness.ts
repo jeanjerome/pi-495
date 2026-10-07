@@ -80,7 +80,7 @@ import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedLocalRepository, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
-import type { StackAdapter } from "./stacks/stack.ts";
+import type { StackRegistry } from "./stacks/registry.ts";
 import { VerificationCoordinator } from "./verification.ts";
 import { statusView, type StatusView } from "./views.ts";
 import { incrementRequest, readTrajectory } from "./trajectory.ts";
@@ -92,7 +92,7 @@ export interface HarnessDeps {
 	workspace: WorkspacePort;
 	controls: ControlExecutionPort;
 	/** The technologies the kernel detects a project with, in the order they claim one. */
-	stacks: readonly StackAdapter[];
+	stacks: StackRegistry;
 	agent: AgentPort;
 	sandbox: SandboxSelection;
 	clock: Clock;

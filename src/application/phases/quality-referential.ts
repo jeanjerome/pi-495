@@ -22,7 +22,7 @@ import type {
 import { asksAboutQuality, controlsOfNature } from "../../domain/survey.ts";
 import { applyRecommendedEdits } from "../complement.ts";
 import { installInCopy, planInstall, resolveInCopy } from "../installation.ts";
-import type { StackDetection } from "../stacks/stack.ts";
+import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
@@ -157,7 +157,7 @@ export async function settleQualityReferential(
 	requirements: { ref: ArtifactRef; content: RequirementsDocument },
 	reference: ReferenceSnapshot,
 	copyPath: string,
-	detection: StackDetection,
+	detection: DetectedTechnology,
 ): Promise<QualitySettlement> {
 	const offer = detection.quality_referential;
 	const unmeasured = requirements.content.requirements

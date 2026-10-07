@@ -9,10 +9,9 @@ import { qualifyControl, reusableQualification, sensorDigest } from "../../src/a
 import { orderControls, prerequisitesOf } from "../../src/domain/controls.ts";
 import type { Protocol, Qualification } from "../../src/contracts/v1/protocol.ts";
 import { MAX_REPORT_BYTES, parseJUnit, summarizeJUnit } from "../../src/adapters/execution/parsers.ts";
-import { parseNodeTestTap } from "../../src/adapters/stacks/node/node-test-reader.ts";
+import { parseNodeTestTap } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
 import { SCOPE_PLACEHOLDER, type ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
-import { detectStack } from "../../src/application/target.ts";
 import {
 	NO_QUALIFIED_SANDBOX,
 	darwinOnly,
@@ -744,7 +743,7 @@ function derivedVitestControl(): ControlDefinition {
 	const project = join(root, "target");
 	mkdirSync(project, { recursive: true });
 	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "vitest run" } }));
-	return detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+	return STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
 		(c) => c.control_id === "unit",
 	)!;
 }
@@ -849,7 +848,7 @@ function derivedMochaControl(): ControlDefinition {
 	const project = join(root, "target");
 	mkdirSync(project, { recursive: true });
 	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "mocha" } }));
-	return detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+	return STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
 		(c) => c.control_id === "unit",
 	)!;
 }
@@ -895,7 +894,7 @@ function derivedJestControl(): ControlDefinition {
 	const project = join(root, "target");
 	mkdirSync(project, { recursive: true });
 	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "jest" } }));
-	return detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+	return STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
 		(c) => c.control_id === "unit",
 	)!;
 }
@@ -1215,7 +1214,7 @@ function derivedMutationControl(): ControlDefinition {
 	mkdirSync(join(project, "node_modules", "@stryker-mutator", "core"), { recursive: true });
 	writeFileSync(join(project, "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
 	writeFileSync(join(project, "node_modules", "@stryker-mutator", "core", "package.json"), "{}");
-	return detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+	return STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
 		(c) => c.control_id === "mutation",
 	)!;
 }

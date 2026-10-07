@@ -132,10 +132,17 @@ capability, and before deducing from the outside what Pi can report from the ins
 
 - Follow the layering declared in `AGENTS.md` § Architecture.
 - Keep paths predictable: one adapter per external system, one port per capability.
-- A technology is one directory under `src/adapters/stacks/` whose adapter declares its stack
-  identifier, the files that signal it at a project root, its detection and the readers of the
-  report formats only it writes, plus its place in the list of technologies `src/extension/runtime.ts`
-  hands the kernel. What a capability adds per technology is declared in that adapter, never in a
+- A technology is one directory under `src/adapters/stacks/` that implements `StackPlugin`
+  (`src/application/stacks/plugin.ts`), plus its place in the list of technologies
+  `src/extension/runtime.ts` hands the kernel. `<tech>.ts` declares its identifier, the files that signal
+  it at a project root, its recognition of a project and the readers of the report formats only it writes;
+  `project/` holds the model of the project its capabilities share; `tests/`, `coverage/`, `mutation/`,
+  `quality/` and `structure/` each implement the interface of that capability, with its controls, its
+  witnesses and its readers. A capability a technology does not declare is one it does not offer.
+- A technology reads the project only through the `ProjectView` the common layer opens on the copy, never
+  through `node:fs`. The common layer (`src/application/stacks/`) recognises the technology of a copy,
+  asks each capability and assembles the answers once; the kernel asks a project only through its
+  registry. What a capability adds per technology is declared in that technology's directory, never in a
   central table nor in a condition on the name of a technology.
 
 ## Formatting

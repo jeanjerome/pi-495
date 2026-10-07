@@ -11,9 +11,8 @@ import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { COVERAGE_RULE_PARTIAL, COVERAGE_RULE_UNCOVERED } from "../../src/adapters/execution/parsers.ts";
-import { measurableIntroducedPaths, parseJacoco } from "../../src/adapters/stacks/maven/jacoco-reader.ts";
+import { measurableIntroducedPaths, parseJacoco } from "../../src/adapters/stacks/maven/coverage/jacoco-reader.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, JACOCO_PLUGIN, removedAfterEach, outputDir } from "../helpers/fixtures.ts";
 import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
@@ -376,7 +375,7 @@ describe("the target adapter proposes the sensor only where a measurement exists
 	it("adds the coverage control when JaCoCo writes a report at the test phase, with witnesses of its own", () => {
 		const project = join(root, "target-project");
 		fixtureJava(project, true);
-		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.jacoco_report_bound, true);
 		const coverage = detection.controls.find((c) => c.control_id === "coverage");
 		assert.ok(coverage, "the sensor is proposed");
@@ -403,7 +402,7 @@ describe("the target adapter proposes the sensor only where a measurement exists
 	it("names the missing measurement instead of proposing a sensor that would read nothing", () => {
 		const project = join(root, "bare");
 		fixtureJava(project);
-		const detection = detectStack(STACKS_OF_495, project, [{ requirement_id: "R1", revision: 1 }]);
+		const detection = STACKS_OF_495.recognise(project, [{ requirement_id: "R1", revision: 1 }]);
 		assert.equal(detection.facts.jacoco_report_bound, false);
 		assert.deepEqual(
 			detection.controls.map((c) => c.control_id),
@@ -428,6 +427,6 @@ describe("the target adapter proposes the sensor only where a measurement exists
 				`  <profiles><profile><id>coverage</id><build><plugins>\n${JACOCO_PLUGIN}      </plugins></build></profile></profiles>\n</project>`,
 			),
 		);
-		assert.equal(detectStack(STACKS_OF_495, project, []).facts.jacoco_report_bound, false);
+		assert.equal(STACKS_OF_495.recognise(project, []).facts.jacoco_report_bound, false);
 	});
 });

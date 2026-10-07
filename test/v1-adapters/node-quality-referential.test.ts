@@ -7,8 +7,7 @@
 import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
-import { jscpdConfig } from "../../src/adapters/stacks/node/jscpd-config.ts";
-import { detectStack } from "../../src/application/target.ts";
+import { jscpdConfig } from "../../src/adapters/stacks/node/quality/jscpd-config.ts";
 import { validate } from "../../src/contracts/validate.ts";
 import { RecommendedComplement } from "../../src/contracts/v1/protocol.ts";
 import { removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
@@ -35,7 +34,7 @@ function nodeProject(name: string, manifest: Record<string, unknown>): string {
 const WITHOUT_ANALYSERS = { dependencies: { lodash: "4.17.21" }, devDependencies: { vitest: "4.0.0" } };
 
 function proposedOffer(project: string) {
-	const offer = detectStack(STACKS_OF_495, project, REFS, NODE).quality_referential;
+	const offer = STACKS_OF_495.recognise(project, REFS, NODE).quality_referential;
 	assert.equal(
 		offer?.kind,
 		"proposed",
@@ -112,8 +111,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 	});
 
 	it("un package.json qui déclare eslint ne reçoit ni référentiel ni recommandation, et une note dit que le projet déclare ESLint lui-même", () => {
-		const detection = detectStack(
-			STACKS_OF_495,
+		const detection = STACKS_OF_495.recognise(
 			nodeProject("with-eslint", { devDependencies: { eslint: "9.0.0" } }),
 			REFS,
 			NODE,
@@ -127,8 +125,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			"no recommendation of eslint nor jscpd",
 		);
 
-		const withJscpd = detectStack(
-			STACKS_OF_495,
+		const withJscpd = STACKS_OF_495.recognise(
 			nodeProject("with-jscpd", { devDependencies: { jscpd: "4.0.0" } }),
 			REFS,
 			NODE,
@@ -144,8 +141,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			"the note says the project declares jscpd itself",
 		);
 
-		const refusedRunner = detectStack(
-			STACKS_OF_495,
+		const refusedRunner = STACKS_OF_495.recognise(
 			nodeProject("with-eslint-and-a-refused-runner", {
 				scripts: { test: "tsc && node --test" },
 				devDependencies: { eslint: "9.0.0" },
@@ -171,7 +167,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 		};
 		const own = installedUnder(nodeProject("pins-the-referential-itself", pinned));
 		writeFiles(own, { "eslint.config.js": 'export default [{ rules: { complexity: "off" } }];\n' });
-		const detection = detectStack(STACKS_OF_495, own, REFS, NODE);
+		const detection = STACKS_OF_495.recognise(own, REFS, NODE);
 		const ids = detection.controls.map((c) => c.control_id);
 		assert.ok(
 			!ids.includes("eslint") && !ids.includes("jscpd"),
@@ -187,7 +183,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			{ name: "eslint", version: "10.12.0", integrity: "sha512-eslint" },
 			{ name: "jscpd", version: "5.4.0", integrity: "sha512-jscpd" },
 		];
-		const copy = detectStack(STACKS_OF_495, installedUnder(nodeProject("adopted-copy", pinned)), REFS, NODE, adopted);
+		const copy = STACKS_OF_495.recognise(installedUnder(nodeProject("adopted-copy", pinned)), REFS, NODE, adopted);
 		assert.deepEqual(
 			copy.controls.map((c) => c.control_id).filter((id) => id === "eslint" || id === "jscpd"),
 			["eslint", "jscpd"],
@@ -201,13 +197,7 @@ describe("the Node adapter declares its quality referential and recommends ESLin
 			{ name: "eslint", version: "10.12.0", integrity: "sha512-eslint" },
 			{ name: "jscpd", version: "5.4.0", integrity: "sha512-jscpd" },
 		];
-		const detection = detectStack(
-			STACKS_OF_495,
-			nodeProject("frozen-thresholds", WITHOUT_ANALYSERS),
-			REFS,
-			NODE,
-			adopted,
-		);
+		const detection = STACKS_OF_495.recognise(nodeProject("frozen-thresholds", WITHOUT_ANALYSERS), REFS, NODE, adopted);
 		const eslint = detection.controls.find((c) => c.control_id === "eslint");
 		const rules = eslint?.command[eslint.command.indexOf("--rule") + 1];
 		assert.deepEqual(JSON.parse(rules ?? "null"), {

@@ -11,7 +11,7 @@ import {
 	MUTATION_RULE_UNCOVERED,
 	type MutationScope,
 } from "../../src/adapters/execution/mutation.ts";
-import { STRYKER_ENGINE, strykerScopeOf } from "../../src/adapters/stacks/node/stryker-reader.ts";
+import { STRYKER_ENGINE, strykerScopeOf } from "../../src/adapters/stacks/node/mutation/stryker-reader.ts";
 import { observation as obs } from "../helpers/execution-fixture.ts";
 
 const CALC = "src/calc.js";

@@ -8,7 +8,6 @@ import { strict as assert } from "node:assert";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
-import { detectStack } from "../../src/application/target.ts";
 import { fixtureJava, fixtureMavenHexagonal, removedAfterEach, tempDir, writeFiles } from "../helpers/fixtures.ts";
 import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
@@ -22,7 +21,7 @@ beforeEach(() => {
 });
 
 function perimeterOf(project: string) {
-	const offer = detectStack(STACKS_OF_495, project, REFS, NODE).quality_referential;
+	const offer = STACKS_OF_495.recognise(project, REFS, NODE).quality_referential;
 	assert.equal(offer?.kind, "proposed", "a Maven project without PMD is offered the referential");
 	if (offer?.kind !== "proposed") throw new Error("no referential is proposed");
 	assert.ok(offer.perimeter, "the referential names its perimeter");

@@ -16,7 +16,6 @@ import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../../src/adapters/works
 import { editedFile } from "../../src/application/complement.ts";
 import { askedLocalRepository, resolveInCopy, runInstall } from "../../src/application/installation.ts";
 import { qualifyControl } from "../../src/application/qualification.ts";
-import { detectStack } from "../../src/application/target.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
@@ -63,7 +62,7 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 		mkdirSync(repository);
 		const project = join(root, "project");
 		writeFiles(project, PROJECT);
-		const offer = detectStack(STACKS_OF_495, project, REFS).quality_referential;
+		const offer = STACKS_OF_495.recognise(project, REFS).quality_referential;
 		assert.equal(offer?.kind, "proposed");
 		if (offer?.kind !== "proposed") return;
 		const recommendation = offer.recommendations[0];
@@ -95,7 +94,7 @@ describe("PMD and CPD offline on a local Maven repository the adoption alone fil
 			const reference = join(root, "reference");
 			cpSync(project, reference, { recursive: true });
 			writeFileSync(join(reference, "pom.xml"), editedFile(project, recommendation.edit) ?? "");
-			const detection = detectStack(STACKS_OF_495, reference, REFS);
+			const detection = STACKS_OF_495.recognise(reference, REFS);
 			const runner = new GenericControlRunner(
 				sandbox.backend,
 				new CasObjectStore(join(root, "objects")),

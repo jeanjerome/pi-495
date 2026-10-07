@@ -2,7 +2,7 @@
 
 Story : e37s02
 Epic : e37
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

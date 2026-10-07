@@ -8,9 +8,9 @@ import { CONTRACTS } from "../../src/contracts/registry.ts";
 import { ActorRef, CanonicalError, Envelope } from "../../src/contracts/v1/common.ts";
 import { Evidence } from "../../src/contracts/v1/evidence.ts";
 import { ControlCapabilityDiagnosis, ControlDefinition, Protocol } from "../../src/contracts/v1/protocol.ts";
-import { NODE_TEST_READER } from "../../src/adapters/stacks/node/node-test-reader.ts";
+import { NODE_TEST_READER } from "../../src/adapters/stacks/node/tests/node-test-reader.ts";
 import { LCOV_READER } from "../../src/adapters/execution/lcov.ts";
-import { STRYKER_READER } from "../../src/adapters/stacks/node/stryker-reader.ts";
+import { STRYKER_READER } from "../../src/adapters/stacks/node/mutation/stryker-reader.ts";
 import { protocol } from "../helpers/change-fixture.ts";
 
 describe("canonical JSON and digests (§8.1)", () => {

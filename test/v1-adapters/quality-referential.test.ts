@@ -9,7 +9,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { editedFile } from "../../src/application/complement.ts";
-import { detectStack } from "../../src/application/target.ts";
 import { validate } from "../../src/contracts/validate.ts";
 import { RecommendedComplement, RULESET_PLACEHOLDER } from "../../src/contracts/v1/protocol.ts";
 import { fixtureJava, removedAfterEach, tempDir } from "../helpers/fixtures.ts";
@@ -38,7 +37,7 @@ function mavenProject(name: string, extraPlugin = ""): string {
 describe("the Maven adapter declares its quality referential and recommends PMD", () => {
 	it("la détection d'un projet Maven sans PMD porte le référentiel de qualité, chaque règle avec sa nature, sa règle PMD, son seuil, la version de PMD, sa source et sa date, et recommande maven-pmd-plugin 3.28.0 avec la modification du POM et sa résolution", () => {
 		const project = mavenProject("without-pmd");
-		const offer = detectStack(STACKS_OF_495, project, REFS, NODE).quality_referential;
+		const offer = STACKS_OF_495.recognise(project, REFS, NODE).quality_referential;
 		assert.equal(offer?.kind, "proposed", "a Maven project without PMD is offered the referential");
 		if (offer?.kind !== "proposed") return;
 		assert.deepEqual(
@@ -87,7 +86,7 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 
 	it("une fois PMD déclaré par 495 dans la copie, pmd et cpd tournent hors ligne, le réseau fermé, et pmd lit le jeu de règles que le runner écrit, jamais un fichier de l'arbre analysé", () => {
 		const project = mavenProject("adopted-pmd");
-		const offer = detectStack(STACKS_OF_495, project, REFS, NODE).quality_referential;
+		const offer = STACKS_OF_495.recognise(project, REFS, NODE).quality_referential;
 		assert.equal(offer?.kind, "proposed");
 		const edit = offer?.kind === "proposed" ? offer.recommendations[0]?.edit : undefined;
 		if (edit === undefined) return;
@@ -95,7 +94,7 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 		assert.ok(pom !== null, "the edit applies to the POM of the project");
 		writeFileSync(join(project, "pom.xml"), pom);
 
-		const controls = detectStack(STACKS_OF_495, project, REFS, NODE).controls;
+		const controls = STACKS_OF_495.recognise(project, REFS, NODE).controls;
 		const commandOf = (id: string) => controls.find((c) => c.control_id === id)?.command;
 		assert.deepEqual(commandOf("pmd"), [
 			"mvn",
@@ -112,7 +111,7 @@ describe("the Maven adapter declares its quality referential and recommends PMD"
 	});
 
 	it("un POM qui déclare déjà maven-pmd-plugin ne reçoit ni référentiel ni recommandation, et une note dit que le projet configure PMD lui-même", () => {
-		const detection = detectStack(STACKS_OF_495, mavenProject("with-pmd", PMD_DECLARED_BY_PROJECT), REFS, NODE);
+		const detection = STACKS_OF_495.recognise(mavenProject("with-pmd", PMD_DECLARED_BY_PROJECT), REFS, NODE);
 		const offer = detection.quality_referential;
 		assert.equal(offer?.kind, "not_proposed", "the project's own PMD is not replaced by 495's referential");
 		if (offer?.kind !== "not_proposed") return;
