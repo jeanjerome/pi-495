@@ -20,29 +20,69 @@ integration, 100× in production: fix a red gate now.
 | `lint:distribution` | a published surface that drifts from `src/` |
 | `lint:story-format` | a story of `specs/stories/` that departs from `cycle/format-de-story.md` |
 
-## Code Style
+## Principles
 
-- One thing per function, one responsibility per module (SRP).
-- Prefer small, focused modules over god files. Split a file when it grows a second responsibility.
-- Give every name a specific, unique meaning. Avoid `data`, `handler`, `Manager`, `Service`.
-- Type everything explicitly. Never use `any`. Never leave a public function untyped.
-- Extract shared logic into one function or module. Never duplicate logic.
-- Prefer an early return over a nested `if`.
-- Throw an exception instead of returning an error code or a boolean sentinel.
-- Delete dead code. Never comment it out — git history already holds it.
-- Boy Scout Rule: leave every file you touch at least as clean as you found it.
-- Write the minimum code that solves the stated problem. No preventive abstraction, no unused
-  configuration layer. Inspect what the dependencies already do before adding a package or writing
-  a capability a maintained library provides.
+Twelve principles, applied with judgement. Each says what it serves in 495; a threshold is a trigger to look at
+the structure, never a target to meet. Part of them is enforced by § Preflight; the rest is held at self-review
+and review.
 
-## Comments
-
-- Keep existing comments on a refactor. They carry intent and provenance.
-- Write why, never what. The code already says what it does.
-- Never write an obvious comment that restates the code.
-- Never leave commented-out code. Delete it and rely on git history.
-- Describe the behavior of the code, never the process that produced it: no ticket, story, review
-  round or session reference in a comment.
+1. **One clear responsibility per component.** A responsibility is a reason to change. A function performs one
+   coherent operation; a module owns one concept of 495, the ones `specs/amont/conception-technique.md` §4.1 names
+   and their `CMP-*` id claims. Keep levels of abstraction apart: a phase of `application/phases/` orchestrates
+   and names its steps, while parsing, file reading and command building sit below it, in the module that owns
+   them. A long function that reads straight down can stay; extract when the extraction names a responsibility or
+   lets the caller read as orchestration.
+2. **Deep modules behind simple interfaces.** What the kernel asks of the outside goes through a port of
+   `src/ports/` with few typed operations; a technology answers through the interface of `src/application/stacks/`,
+   and only the common layer asks it. A module may be large when its responsibility is coherent and its interface
+   small: `domain/change/decide.ts` is one reducer. Never split to meet a size, never add a layer that forwards
+   calls without hiding a decision. Keep a seam where a test or a second implementation uses it: a fake of a port,
+   a fictitious technology.
+3. **Explicit contracts and dependencies.** What crosses a boundary is typed, and what is persisted or exchanged
+   has a TypeBox schema in `src/contracts/` (`npm run contracts`). Never `any`, never an untyped public function.
+   A dependency arrives through a constructor or a parameter, wired at the composition root
+   (`src/extension/runtime.ts`), and points at a port or an interface rather than a concrete adapter or a
+   module-level singleton. The import direction of `AGENTS.md` § Architecture is the direction of dependencies.
+4. **Intent visible in the code.** One precise meaning per name, distinctive enough to be found by a search; no
+   `data`, `handler`, `Manager`, `Service`; a name says its side effect (`writeWitnesses`, not `prepare`). Name a
+   constant or a condition the reader would otherwise decode. Prefer the positive form and the early return.
+   Judge difficulty by branches, states to follow and interactions, which Biome's cognitive complexity measures
+   better than a line count.
+5. **The present need, with the least complexity.** Build what the story's promises and a verified need ask —
+   not a parameter, an option, a registry or a hook for a use nobody has shown. An abstraction earns its place by
+   a second concrete user or a test seam in use. Before writing a capability, look at what Pi publishes (§ Pi is
+   the host) and what an installed dependency already does.
+6. **No duplication to maintain in step.** One rule lives in one place: a fact about a technology in its
+   directory, a policy in `domain/`, a text for the owner in `presentation/`. Merge two copies that change
+   together; leave apart two lookalikes that would change for different reasons. The generalisation that removes
+   a duplication makes both callers simpler, or it is not made.
+7. **Code easy to explore, by people and by agents.** A predictable tree — one directory per layer, one per
+   technology and, inside it, one per capability — and file names that say what they hold, so that a change's
+   code, contract, port and tests are found from names and imports. Thresholds are calibrated on this tree and on
+   what the agents of the cycle reliably read and change: a file past 400 lines (the ninth decile of `src/`), or a
+   function past a cognitive complexity of 15 (`complexity/noExcessiveCognitiveComplexity`), triggers a look at its
+   structure when a change writes it or makes it cross the threshold. The look ends in a split along a
+   responsibility it found, or in one sentence saying why the whole is cohesive. When restructuring is what the
+   change is for, every threshold its scope crosses is examined there. A threshold crossed by code outside that
+   scope is written down as a refactoring (`specs/reprises.md`), not reworked in passing.
+8. **Errors that say what to do.** A message names the value at fault, the expected form and, when there is
+   one, the way out: `report path ../ws2/r.txt escapes the workspace`, not `invalid path`. Errors propagate
+   explicitly: a `DomainError` with its code where a caller or the owner decides, an `Error` with its `cause` for
+   a failure of the machine; never a `null`, a `false` or an error code standing for a failure. A `catch` that
+   carries on says why.
+9. **Comments carry the why.** A comment states the constraint or decision the code cannot show, and a decision
+   of consequence points to its ADR in `specs/adr/`. Never a paraphrase, never commented-out code. Keep existing
+   comments on a refactor: they carry intent and provenance. Describe the behaviour, never the process that
+   produced it: no ticket, story, review round or session.
+10. **Targeted, informed changes.** Before changing a function, read its callers and its tests; before changing
+    a contract, its readers and the dossiers already written, which stay readable. Stay within the need, follow
+    the conventions of the file, and leave what you touched cleaner, removing what became useless. A restructuring
+    a story's promises ask for is that story's work; one nobody asked for is not slipped into its diff, and a
+    refactoring that changes no behaviour and needs no promise takes its own path (`specs/adr/D-80`).
+11. **Behaviours tested through public interfaces.** § Tests.
+12. **Correctness from executable checks.** A story states observable promises before the code, its test fails
+    on the stated assertion first, and a change is shown working by a real run (`cycle/README.md`). An ambiguity is
+    settled before implementing, never decided silently in the code.
 
 ## Tests (F.I.R.S.T)
 
@@ -59,7 +99,6 @@ integration, 100× in production: fix a red gate now.
 
 ## Dependencies
 
-- Inject a dependency through a constructor or parameter. Never reach for a global or a bare import.
 - Wrap a third-party library behind a project-owned port (see `src/ports/`).
 - Keep a dependency at its latest published version whenever Preflight stays green; a caret on a
   `0.x` version silently locks the minor. `@types/node` tracks `engines.node`, not the newest

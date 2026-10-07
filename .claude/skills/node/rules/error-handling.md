@@ -28,7 +28,7 @@ throw new DomainError("CAPABILITY_MISSING", "no qualified sandbox backend", {
 Adding a code means adding it to `DomainErrorCode` and to `CATEGORY` in the same change; the
 `Record<DomainErrorCode, ErrorCategory>` refuses the first without the second.
 
-Throw instead of returning an error code or a boolean sentinel (`CONVENTIONS.md` § Code Style).
+Throw instead of returning an error code or a boolean sentinel (`CONVENTIONS.md` § Principles, 8).
 
 ## Check by class, then by code
 

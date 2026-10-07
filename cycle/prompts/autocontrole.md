@@ -18,6 +18,12 @@ Ce que la relecture ne cherchera pas, et que tu es donc seul à tenir :
 - **Une responsabilité.** Aucune fonction ni aucun module ne fait deux choses sans rapport ; une
   dépendance est injectée, pas importée globalement ; pas de chaîne d'appels à travers des objets
   sans rapport.
+- **Seuils.** Un fichier de `src/` que le diff écrit ou fait passer au-delà de 400 lignes, ou une fonction qu'il
+  écrit ou fait passer au-delà d'une complexité cognitive de 15
+  (`npx biome lint --only=complexity/noExcessiveCognitiveComplexity <fichiers>`), est examiné
+  (CONVENTIONS.md § Principles, 7) : découpé selon une responsabilité trouvée, ou justifié en une phrase dans ta
+  sortie. Quand la story demande une restructuration, chaque seuil franchi dans son périmètre est examiné de même ;
+  un seuil franchi hors de ce que la story demande n'est pas retravaillé ici.
 - **Noms.** Chaque nom a un sens précis et unique ; pas de `data`, `handler`, `Manager`, `Service`.
 - **Commentaires.** Le pourquoi, jamais le quoi ; aucune référence à une story, un tour, une session.
 - **Couches.** La direction des dépendances de AGENTS.md § Architecture tient ; tout composant

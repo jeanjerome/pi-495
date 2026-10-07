@@ -22,7 +22,7 @@ When invoked:
    `erasableSyntaxOnly`, a generic without the constraint its call site needs.
 3. Write the smallest type that compiles. One solution, not several. A union, a type guard or a
    `satisfies` does the job before a conditional or mapped type does; a type-level program is the
-   last resort, not the first (`CONVENTIONS.md` § Code Style: the minimum code that solves the
+   last resort, not the first (`CONVENTIONS.md` § Principles, 5: the minimum code that solves the
    stated problem).
 4. `any` never. `!` only to assert an invariant the type cannot see, at the point that knows it
    (Biome's `noNonNullAssertion` is off for that reason, and only that one). `as` only toward
