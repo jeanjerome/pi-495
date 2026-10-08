@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the owner asks for another analysis of the architecture with a remark
+    # Subtest: demander une autre analyse avec la remarque deux équipes ne justifient pas deux modules ouvre une seconde intervention dont le contexte porte la recommandation précédente et la remarque, et une nouvelle décision IH-05 présente sa recommandation avec une issue par alternative, ask_analysis et suspend
+    ok 1 - demander une autre analyse avec la remarque deux équipes ne justifient pas deux modules ouvre une seconde intervention dont le contexte porte la recommandation précédente et la remarque, et une nouvelle décision IH-05 présente sa recommandation avec une issue par alternative, ask_analysis et suspend
+      ---
+      duration_ms: 1049.922708
+      type: 'test'
+      ...
+    1..1
+ok 1 - the owner asks for another analysis of the architecture with a remark
+  ---
+  duration_ms: 1050.447333
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1315.727167

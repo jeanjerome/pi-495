@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the owner's answer to the recommendation is recorded and presented
+    # Subtest: choisir A2 enregistre la décision avec A2 et sa date, l'acceptation IH-10 suit, et le rapport présente sous la carte l'alternative choisie avec sa date, sa nature, ses bénéfices, son coût, ses risques et R2, les alternatives écartées et la revue de patterns, en anglais et en français, sans changer de verdict ni le digest du projet
+    ok 1 - choisir A2 enregistre la décision avec A2 et sa date, l'acceptation IH-10 suit, et le rapport présente sous la carte l'alternative choisie avec sa date, sa nature, ses bénéfices, son coût, ses risques et R2, les alternatives écartées et la revue de patterns, en anglais et en français, sans changer de verdict ni le digest du projet
+      ---
+      duration_ms: 1008.182292
+      type: 'test'
+      ...
+    # Subtest: laisser le choix en suspens n'enregistre aucune alternative, l'acceptation IH-10 suit, et le rapport dit que le propriétaire a laissé le choix en suspens, en anglais et en français
+    ok 2 - laisser le choix en suspens n'enregistre aucune alternative, l'acceptation IH-10 suit, et le rapport dit que le propriétaire a laissé le choix en suspens, en anglais et en français
+      ---
+      duration_ms: 957.96225
+      type: 'test'
+      ...
+    1..2
+ok 1 - the owner's answer to the recommendation is recorded and presented
+  ---
+  duration_ms: 1966.719791
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2237.637125

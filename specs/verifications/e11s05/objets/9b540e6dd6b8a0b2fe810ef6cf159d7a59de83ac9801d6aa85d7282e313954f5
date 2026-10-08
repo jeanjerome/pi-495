@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: asking for another architecture analysis from Pi
+    # Subtest: choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque
+    ok 1 - choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque
+      ---
+      duration_ms: 1507.856375
+      type: 'test'
+      ...
+    1..1
+ok 1 - asking for another architecture analysis from Pi
+  ---
+  duration_ms: 1508.351625
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2014.378291

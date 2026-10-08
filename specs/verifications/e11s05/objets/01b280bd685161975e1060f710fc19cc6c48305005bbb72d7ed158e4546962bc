@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: asking for another architecture analysis from Pi
+    # Subtest: choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque
+    not ok 1 - choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque
+      ---
+      duration_ms: 1704.858917
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-pLsXTX/test/v3-pi/architecture-recommendation-remark-dialog.test.ts:102:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the remark on the recommendation is asked for: 495: HARNESS495_SCRIPTED_AGENT: interventions are simulated from /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-pLsXTX/test-output/architecture-recommendation-remark-dialog-bCMjia/agent.json; no model is called | Programme créé: prg_mv0472aga1aaf1e2b8 / chg_mv0472ag2cbdafa6da | 495 · comment l'architecture du projet est-elle organisée ?
+        ⏸ En attente de votre décision — /495 decide
+        
+          ✔ Cadrage  ✔ Spécification  ○ Qualification  ○ Conception  ○ Implémentation  ○ Acceptation  ○ Intégration
+        
+          Dernière    specify completed (0s, 0 appels d'outils)
+          Ensuite     decide: IH-04 | [IH-04] dec_mv0472ete746d572b8 — artifact map_mv0472ek2b2dee2b87 r1
+        Adopter la carte d'architecture proposée pour ARC-01 ?
+          • architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:3 an entity of the model]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port domain services [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements]
+          • architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapter persistence [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port]
+          • architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]
+          - adopt_map: Adopter la carte et sa vérification (déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout, réseau ouvert pour cette seule étape) ⚠ — La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport. 495 déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but ; dans la même étape, il déclare dependency:analyze de org.apache.maven.plugins:maven-dependency-plugin 3.11.0 dans une copie de chaque POM du réacteur, dont il résout le greffon, en ouvrant le réseau pour cette seule étape ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que les POM qui reçoivent les déclarations ; rien n'est écrit dans le projet. com.tngtech.archunit:archunit-junit5 1.5.1 vérifie alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; dependency:analyze de org.apache.maven.plugins:maven-dependency-plugin 3.11.0 vérifie aussi, à chaque exécution, que chaque module déclare dans son POM les dépendances que son code utilise, et utilise celles qu'il déclare ; l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par Maven. La réponse tombe si les exigences sont révisées.
+          - propose_map_again: Demander une nouvelle proposition (votre remarque en texte libre) — Une nouvelle intervention en lecture seule reçoit cette carte et votre remarque, et propose une autre carte, qui vous est présentée avec les mêmes issues.
+          - leave_blind_spot: Laisser l'exigence en angle mort — Aucune carte n'est gelée ; l'état des lieux nomme l'exigence comme angle mort, parce que la carte proposée n'a pas été adoptée.
+          autorité requise: change_owner | Décision enregistrée: hd_mv0472exc8f2f07005 | 495 · comment l'architecture du projet est-elle organisée ?
+        ⏸ En attente de votre décision — /495 decide
+        
+          ✔ Cadrage  ✔ Spécification  ✔ Qualification  ○ Conception  ○ Implémentation  ○ Acceptation  ○ Intégration
+        
+          Dernière    observe completed (0s, 0 appels d'outils)
+          Ensuite     decide: IH-05 | [IH-05] dec_mv047304ca9fc057fb — artifact rec_mv0472zz4759f22076 r1
+        Quelle alternative retenir pour l'architecture du projet ?
+          • architecture alternative A1 (keep): keep the architecture; benefits: the map holds; cost in complexity: little; cost in migration: little; risks: the map drifts; constraints: ARC-01: each part of the project keeps to the architecture it is organised in
+          • architecture alternative A2 (adjust): adjust the architecture; benefits: the map holds; cost in complexity: little; cost in migration: little; risks: the map drifts; constraints: ARC-01: each part of the project keeps to the architecture it is organised in
+          (recommandation: A2 — ARC-01 asks for it (cites ARC-01))
+          - A1: Choisir A1 (conserver) : keep the architecture — L'alternative est enregistrée comme choisie avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet et aucun verdict ne change. L'état des lieux vous est ensuite soumis pour acceptation.
+          - A2: Choisir A2 (ajuster) : adjust the architecture — L'alternative est enregistrée comme choisie avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet et aucun verdict ne change. L'état des lieux vous est ensuite soumis pour acceptation.
+          - ask_analysis: Demander une autre analyse (votre remarque en texte libre) — Une nouvelle intervention en lecture seule reçoit cette recommandation et votre remarque, et propose une autre recommandation, qui vous est présentée avec les mêmes issues.
+          - suspend: Laisser le choix en suspens — Aucune alternative n'est enregistrée comme choisie ; le rapport présente les alternatives et dit que vous avez laissé le choix en suspens. L'état des lieux vous est ensuite soumis pour acceptation.
+          autorité requise: change_owner | Décision enregistrée: hd_mv04730558f258d422 | 495 · comment l'architecture du projet est-elle organisée ?
+        ⏸ En attente de votre décision — /495 decide
+        
+          ✔ Cadrage  ✔ Spécification  ✔ Qualification  ○ Conception  ○ Implémentation  ○ Acceptation  ○ Intégration
+        
+          Dernière    observe completed (0s, 0 appels d'outils)
+          Ensuite     decide: IH-05 | [IH-05] dec_mv04731276e48cad7d — artifact rec_mv0473124e1779ff32 r1
+        Quelle alternative retenir pour l'architecture du projet ?
+          • architecture alternative A1 (keep): keep the architecture; benefits: the map holds; cost in complexity: little; cost in migration: little; risks: the map drifts; constraints: ARC-01: each part of the project keeps to the architecture it is organised in
+          • architecture alternative A2 (adjust): adjust the architecture; benefits: the map holds; cost in complexity: little; cost in migration: little; risks: the map drifts; constraints: ARC-01: each part of the project keeps to the architecture it is organised in
+          (recommandation: A2 — ARC-01 asks for it (cites ARC-01))
+          - A1: Choisir A1 (conserver) : keep the architecture — L'alternative est enregistrée comme choisie avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet et aucun verdict ne change. L'état des lieux vous est ensuite soumis pour acceptation.
+          - A2: Choisir A2 (ajuster) : adjust the architecture — L'alternative est enregistrée comme choisie avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet et aucun verdict ne change. L'état des lieux vous est ensuite soumis pour acceptation.
+          - ask_analysis: Demander une autre analyse (votre remarque en texte libre) — Une nouvelle intervention en lecture seule reçoit cette recommandation et votre remarque, et propose une autre recommandation, qui vous est présentée avec les mêmes issues.
+          - suspend: Laisser le choix en suspens — Aucune alternative n'est enregistrée comme choisie ; le rapport présente les alternatives et dit que vous avez laissé le choix en suspens. L'état des lieux vous est ensuite soumis pour acceptation.
+          autorité requise: change_owner
+        + actual - expected
+        
+        + []
+        - [
+        -   'Votre remarque sur la recommandation'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'Votre remarque sur la recommandation'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-pLsXTX/test/v3-pi/architecture-recommendation-remark-dialog.test.ts:142:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - asking for another architecture analysis from Pi
+  ---
+  duration_ms: 1705.5965
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-pLsXTX/test/v3-pi/architecture-recommendation-remark-dialog.test.ts:101:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2197.65875

@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: the owner asks for another analysis of the architecture with a remark
+    # Subtest: demander une autre analyse avec la remarque deux équipes ne justifient pas deux modules ouvre une seconde intervention dont le contexte porte la recommandation précédente et la remarque, et une nouvelle décision IH-05 présente sa recommandation avec une issue par alternative, ask_analysis et suspend
+    not ok 1 - demander une autre analyse avec la remarque deux équipes ne justifient pas deux modules ouvre une seconde intervention dont le contexte porte la recommandation précédente et la remarque, et une nouvelle décision IH-05 présente sa recommandation avec une issue par alternative, ask_analysis et suspend
+      ---
+      duration_ms: 989.843542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2SBWvX/test/v2-kernel/architecture-recommendation-remark.test.ts:17:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a second intervention proposes a recommendation: decision_required, deciding -> deciding/decision_required
+        
+        1 !== 2
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 2
+      actual: 1
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2SBWvX/test/v2-kernel/architecture-recommendation-remark.test.ts:24:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the owner asks for another analysis of the architecture with a remark
+  ---
+  duration_ms: 990.484875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-2SBWvX/test/v2-kernel/architecture-recommendation-remark.test.ts:16:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1245.119125

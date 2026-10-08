@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a survey with an adopted architecture map proposes a recommendation to the owner
+    # Subtest: après la mesure d'un état des lieux à la carte adoptée, une intervention en lecture seule propose une recommandation et une décision IH-05 la présente avec une issue par alternative, ask_analysis et suspend, des faits qui donnent chaque alternative avec sa nature, ses bénéfices, son coût, ses risques et l'énoncé de R2, et la recommandation A2 à part des faits, sans décision IH-10 demandée
+    ok 1 - après la mesure d'un état des lieux à la carte adoptée, une intervention en lecture seule propose une recommandation et une décision IH-05 la présente avec une issue par alternative, ask_analysis et suspend, des faits qui donnent chaque alternative avec sa nature, ses bénéfices, son coût, ses risques et l'énoncé de R2, et la recommandation A2 à part des faits, sans décision IH-10 demandée
+      ---
+      duration_ms: 993.691917
+      type: 'test'
+      ...
+    1..1
+ok 1 - a survey with an adopted architecture map proposes a recommendation to the owner
+  ---
+  duration_ms: 994.217916
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1260.939541

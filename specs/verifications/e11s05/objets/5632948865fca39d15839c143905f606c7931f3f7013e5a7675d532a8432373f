@@ -1,0 +1,163 @@
+TAP version 13
+# Subtest: the owner's answer to the recommendation is recorded and presented
+    # Subtest: choisir A2 enregistre la décision avec A2 et sa date, l'acceptation IH-10 suit, et le rapport présente sous la carte l'alternative choisie avec sa date, sa nature, ses bénéfices, son coût, ses risques et R2, les alternatives écartées et la revue de patterns, en anglais et en français, sans changer de verdict ni le digest du projet
+    not ok 1 - choisir A2 enregistre la décision avec A2 et sa date, l'acceptation IH-10 suit, et le rapport présente sous la carte l'alternative choisie avec sa date, sa nature, ses bénéfices, son coût, ses risques et R2, les alternatives écartées et la revue de patterns, en anglais et en français, sans changer de verdict ni le digest du projet
+      ---
+      duration_ms: 960.146334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:108:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: the recommendation comes under the map:
+        495 rapport · comment l'architecture du projet est-elle organisée ? — … En cours
+        
+        Ce qui était demandé
+          ? each part of the project keeps to the architecture it is organised in
+          ? un second moyen de paiement s'ajoute sans modifier le domaine
+        
+        ## État des lieux
+          R1: each part of the project keeps to the architecture it is organised in — architecture=FAIL; dependencies=PASS
+          R2: un second moyen de paiement s'ajoute sans modifier le domaine — architecture=FAIL; dependencies=PASS
+          Carte d'architecture adoptée le 2026-09-16 :
+            domain — périmètre : domain, style : onion, peut dépendre de : aucune partie
+              io.demo.domain : domain model
+              io.demo.domain.port : domain services
+            infrastructure — périmètre : infrastructure, style : simple, peut dépendre de : domain
+              io.demo.infra : adapters
+            app — périmètre : app, style : simple, peut dépendre de : domain
+              io.demo.app : application
+            paquets sans partie : aucun
+            ce que sa vérification ne voit pas :
+              les liens établis sans import ni référence dans les classes compilées (réflexion, META-INF/services, configuration d'un framework) : ArchUnit et dependency:analyze ne lisent que les classes compilées
+              les sources de test : les règles de la carte ne les jugent pas, elles ne portent que sur les sources principales
+              les bibliothèques hors du réacteur : les règles de la carte ne les opposent à aucune partie, qui n'est faite que de modules du réacteur
+              les dépendances déclarées pour la seule exécution (portée runtime) : aucune classe compilée ne les utilise, et 495 les écarte de l'analyse
+              les dépendances dont les classes compilées ne gardent aucune trace (constante recopiée à la compilation, annotation gardée dans la seule source, processeur d'annotations) : dependency:analyze ne les voit pas utilisées, et elles sont données comme inutilisées
+              les agrégats comme junit-jupiter : un agrégat n'apporte aucune classe à lui, il est donné comme inutilisé quand ce qu'il apporte est donné comme utilisé sans être déclaré
+          Constats:
+            architecture app/src/main/java/io/demo/app/OrderService.java: app/src/main/java/io/demo/app/OrderService.java:7: part app may not depend on part infrastructure: Class <io.demo.app.OrderService> depends on <io.demo.infra.JpaOrders> in (OrderService.java:7)
+            architecture app/src/main/java/io/demo/app/OrderService.java: app/src/main/java/io/demo/app/OrderService.java:8: part app may not depend on part infrastructure: Class <io.demo.app.OrderService> depends on <io.demo.infra.CardPayment> in (OrderService.java:8)
+          Angles morts:
+            structure: blind spot: it measures only the lines a change introduces, and the reference introduces none
+        
+        Ce qui a été mesuré
+                        référence  candidat
+          maven-test        ✔         ?
+          structure         ✔         ?
+          architecture      ✘         ?
+          dependencies      ✔         ?
+          4 contrôles ont été qualifiés sur 12 essais témoins avant d'être retenus.
+        
+        Ce qui a été conclu
+          ✔ Le noyau a passé Cadrage, Spécification et Qualification
+          ? Le noyau n'a pas pu trancher Acceptation: the owner's acceptance of the survey is pending (IH-10)
+          · Décidé par alice: IH-01 answer on change chg_0003
+          · Décidé par alice: IH-04 adopt_map on artifact map_0026
+          · Décidé par alice: IH-05 A2 on artifact rec_0056
+        
+        Ce qui reste incertain
+          · a coverage complement is recommended and not adopted, so the coverage of the introduced lines is not measured: org.jacoco:jacoco-maven-plugin 0.8.15; in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase.
+          · a mutation complement is recommended and not adopted, so the mutation of the introduced lines is not measured: org.pitest:pitest-maven 1.30.0; in the POM, declare pitest-maven outside any profile with XML among its outputFormats and timestampedReports set to false.
+          · the change stopped on decision_pending: IH-10.
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        recommendationLines (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:94:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:117:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: laisser le choix en suspens n'enregistre aucune alternative, l'acceptation IH-10 suit, et le rapport dit que le propriétaire a laissé le choix en suspens, en anglais et en français
+    not ok 2 - laisser le choix en suspens n'enregistre aucune alternative, l'acceptation IH-10 suit, et le rapport dit que le propriétaire a laissé le choix en suspens, en anglais et en français
+      ---
+      duration_ms: 922.278625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:157:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: the recommendation comes under the map:
+        495 rapport · comment l'architecture du projet est-elle organisée ? — … En cours
+        
+        Ce qui était demandé
+          ? each part of the project keeps to the architecture it is organised in
+          ? un second moyen de paiement s'ajoute sans modifier le domaine
+        
+        ## État des lieux
+          R1: each part of the project keeps to the architecture it is organised in — architecture=FAIL; dependencies=PASS
+          R2: un second moyen de paiement s'ajoute sans modifier le domaine — architecture=FAIL; dependencies=PASS
+          Carte d'architecture adoptée le 2026-09-16 :
+            domain — périmètre : domain, style : onion, peut dépendre de : aucune partie
+              io.demo.domain : domain model
+              io.demo.domain.port : domain services
+            infrastructure — périmètre : infrastructure, style : simple, peut dépendre de : domain
+              io.demo.infra : adapters
+            app — périmètre : app, style : simple, peut dépendre de : domain
+              io.demo.app : application
+            paquets sans partie : aucun
+            ce que sa vérification ne voit pas :
+              les liens établis sans import ni référence dans les classes compilées (réflexion, META-INF/services, configuration d'un framework) : ArchUnit et dependency:analyze ne lisent que les classes compilées
+              les sources de test : les règles de la carte ne les jugent pas, elles ne portent que sur les sources principales
+              les bibliothèques hors du réacteur : les règles de la carte ne les opposent à aucune partie, qui n'est faite que de modules du réacteur
+              les dépendances déclarées pour la seule exécution (portée runtime) : aucune classe compilée ne les utilise, et 495 les écarte de l'analyse
+              les dépendances dont les classes compilées ne gardent aucune trace (constante recopiée à la compilation, annotation gardée dans la seule source, processeur d'annotations) : dependency:analyze ne les voit pas utilisées, et elles sont données comme inutilisées
+              les agrégats comme junit-jupiter : un agrégat n'apporte aucune classe à lui, il est donné comme inutilisé quand ce qu'il apporte est donné comme utilisé sans être déclaré
+          Constats:
+            architecture app/src/main/java/io/demo/app/OrderService.java: app/src/main/java/io/demo/app/OrderService.java:7: part app may not depend on part infrastructure: Class <io.demo.app.OrderService> depends on <io.demo.infra.JpaOrders> in (OrderService.java:7)
+            architecture app/src/main/java/io/demo/app/OrderService.java: app/src/main/java/io/demo/app/OrderService.java:8: part app may not depend on part infrastructure: Class <io.demo.app.OrderService> depends on <io.demo.infra.CardPayment> in (OrderService.java:8)
+          Angles morts:
+            structure: blind spot: it measures only the lines a change introduces, and the reference introduces none
+        
+        Ce qui a été mesuré
+                        référence  candidat
+          maven-test        ✔         ?
+          structure         ✔         ?
+          architecture      ✘         ?
+          dependencies      ✔         ?
+          4 contrôles ont été qualifiés sur 12 essais témoins avant d'être retenus.
+        
+        Ce qui a été conclu
+          ✔ Le noyau a passé Cadrage, Spécification et Qualification
+          ? Le noyau n'a pas pu trancher Acceptation: the owner's acceptance of the survey is pending (IH-10)
+          · Décidé par alice: IH-01 answer on change chg_0003
+          · Décidé par alice: IH-04 adopt_map on artifact map_0026
+          · Décidé par alice: IH-05 suspend on artifact rec_0056
+        
+        Ce qui reste incertain
+          · a coverage complement is recommended and not adopted, so the coverage of the introduced lines is not measured: org.jacoco:jacoco-maven-plugin 0.8.15; in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase.
+          · a mutation complement is recommended and not adopted, so the mutation of the introduced lines is not measured: org.pitest:pitest-maven 1.30.0; in the POM, declare pitest-maven outside any profile with XML among its outputFormats and timestampedReports set to false.
+          · the change stopped on decision_pending: IH-10.
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        recommendationLines (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:94:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:169:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the owner's answer to the recommendation is recorded and presented
+  ---
+  duration_ms: 1882.989167
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HDaUPU/test/v2-kernel/architecture-recommendation-choice.test.ts:107:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2141.501209

@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Dans Pi, demander une autre analyse ouvre la saisie de la remarque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/conduct.ts",
+    "ligne": 77,
+    "constat": "The code does show « Your remark on the recommendation » in an English session. No test checks it: the only Pi test runs in French and asserts « Votre remarque sur la recommandation ». So the English half of the Then is held by no test. The registry entry BUG-2026-10-08T233000 is about the map prompt, a different string.",
+    "mutation": "en: \"Your remark on the recommendation\" → en: \"Your remark\" — all 16 tests of the story still pass (the matching French mutation is caught by the v3 test)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La recommandation se présente au propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 641,
+    "constat": "The kernel tests only ever build IH-05 in French, so the English options of the choice are covered by no test. The scenario does not name a language, and the French options are held, so this is not a broken promise. But an English session could lose its `suspend` or `ask_analysis` option with every test still passing.",
+    "mutation": "id: \"suspend\" → id: \"suspendX\" in the English RECOMMENDATION_CHOICE: no test fails. The same mutation in French is caught by the proposal and remark tests."
+   }
+  ],
+  "resume": "I reviewed all ten scenarios. The code keeps every promise, and a test catches a mutation on each of them, with one exception: no test holds the English remark prompt of scenario 10, which is enough for a fail verdict.\n\nHow I checked: 37 mutations against the story's 7 test files (16 tests, all passing at the start). 35 were caught. They covered:\n- **The IH-05 stop:** IH-05 is asked before any IH-10, and is not asked again once answered.\n- **The facts:** nature, risks, each constraint's statement or answer, and the recommendation with its conclusion kept apart from the facts.\n- **The form check:** unknown constraint R9, missing risk, a single alternative, a conclusion with no constraint, a recommended alternative that is none of them.\n- **The review hints:** an observation off the reference is set aside, and the facts say so.\n- **The report:** the date of the choice, `suspend`, the discarded alternatives, the review, each constraint's statement, in French and in English.\n- **The second analysis:** it receives the previous recommendation and the remark, and a new IH-05 presents it.\n- **The skill:** commit 66d78158, the bundled skill file, the instruction of the structured output.\n- **The context:** the map, the survey findings and the owner's answers.\n- **The role:** the intervention uses the read-only tools.\n\nI also probed scenario 9 with a throwaway test: a second recommendation identical to the first, so the same digest. A new IH-05 was presented, resuming did not open a third intervention, and choosing A2 recorded it correctly.\n\nTwo mutations survived:\n- **A1-1:** the English prompt « Your remark on the recommendation » — the scenario names it and no test checks it (to fix).\n- **A1-2:** the English IH-05 options — the scenario names no language, so this is to weigh only.\n\nThe working tree is back to its initial state; the probe and the mutation scripts were deleted."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Dans Pi, demander une autre analyse ouvre la saisie de la remarque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/conduct.ts",
+    "ligne": 77,
+    "constat": "Le code ouvre bien la saisie « Your remark on the recommendation » dans une session anglaise, mais aucun test ne le vérifie : le seul test du dialogue tourne en français et n'assert que « Votre remarque sur la recommandation ». La promesse nomme pourtant explicitement le libellé anglais. C'est une entrée distincte de BUG-2026-10-08T233000, qui porte sur le libellé de la carte.",
+    "mutation": "en: \"Your remark on the recommendation\" → en: \"Your remark\" ; les 7 fichiers de la story plus tout test/v3-pi restent verts (0 échec)"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La recommandation se présente au propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 635,
+    "constat": "Les issues anglaises de l'IH-05 (une par alternative, ask_analysis, suspend) ne sont exercées par aucun test : tous les états des lieux de la story sont demandés en français. Le scénario ne nomme pas de langue et la variante française est tenue (passer suspend à suspendx dans les issues françaises fait échouer 2 tests).",
+    "mutation": "id \"ask_analysis\" → \"ask_analysisx\" dans les issues anglaises : 0 échec sur test/v0-pure, v1-adapters, v2-kernel et v3-pi ; même résultat avec \"suspend\" → \"suspendx\" dans les issues anglaises"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La recommandation se présente au propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/architecture-recommendation.ts",
+    "ligne": 39,
+    "constat": "La mention « (cites R2) » de la recommandation de la décision n'est tenue par aucun test, parce que le texte de conclusion du jeu d'essai contient lui-même « R2 ». La promesse « sa conclusion qui cite R2 » reste tenue par ce texte même sans la liste des contraintes.",
+    "mutation": "`${alternative_id} — ${conclusion} (cites ${constraints.join(\", \")})` → `${alternative_id} — ${conclusion}` : 0 échec"
+   }
+  ],
+  "resume": "Le code tient les dix scénarios, mais la relecture échoue sur un constat « à corriger » : aucun test ne tient le libellé anglais « Your remark on the recommendation » que Pi ouvre quand le propriétaire demande une autre analyse (conduct.ts:77).\n\nMéthode : 33 mutations, dont 31 détectées.\n- Le chemin de la recommandation est tenu : l'appel dans decide, l'arrêt quand la décision est demandée, et le refus d'une recommandation dont la forme ne tient pas.\n- Les faits de l'IH-05 sont tenus : risques, énoncé des contraintes, observations écartées et conservées.\n- Le contrôle de forme est tenu : contrainte inconnue, nombre d'alternatives, conclusion sans contrainte, alternative recommandée absente, risque manquant.\n- Le rapport est tenu : date, suspens, placement sous la carte, revue de patterns, alternatives écartées, énoncés.\n- Le contexte de l'intervention est tenu : carte, constats, réponses, consigne de revue, skill embarquée, rôle en lecture seule.\n- La seconde analyse est tenue : recommandation précédente, remarque, nouvelle IH-05, texte libre de la décision.\n\nDeux mutations restent vertes : le libellé anglais de la remarque (B1-1, à corriger) et la mention « (cites R2) » de la recommandation (B1-3, à peser). Le relevé ajoute à peser les issues anglaises de l'IH-05, qu'aucun test n'exerce (B1-2).\n\nUn test jetable, supprimé ensuite, confirme deux points : une seconde recommandation identique à la première ne fait pas boucler l'état des lieux, et une reprise pendant qu'une IH-05 attend ne relance aucune intervention. L'arbre est propre : aucune mutation n'est restée en place et rien n'est commité."
+ }
+]
