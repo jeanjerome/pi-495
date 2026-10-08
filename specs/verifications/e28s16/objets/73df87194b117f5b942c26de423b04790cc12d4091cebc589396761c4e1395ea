@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: the writable paths of a control's profile
+    # Subtest: a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+    ok 1 - a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+      ---
+      duration_ms: 1.911583
+      type: 'test'
+      ...
+    # Subtest: a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+    ok 2 - a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+      ---
+      duration_ms: 1.1875
+      type: 'test'
+      ...
+    # Subtest: a d1/d2/a/l whose dangling link l leads outside the copy, reached through a link a back to the copy and named by --out=d1/d2/a/l, is neither among the writable paths of the profile nor among its files to create
+    ok 3 - a d1/d2/a/l whose dangling link l leads outside the copy, reached through a link a back to the copy and named by --out=d1/d2/a/l, is neither among the writable paths of the profile nor among its files to create
+      ---
+      duration_ms: 1.307459
+      type: 'test'
+      ...
+    # Subtest: a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+    ok 4 - a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+      ---
+      duration_ms: 1.215209
+      type: 'test'
+      ...
+    # Subtest: a writable path that is a loop of links in the copy gives a profile that grants nothing outside the copy
+    ok 5 - a writable path that is a loop of links in the copy gives a profile that grants nothing outside the copy
+      ---
+      duration_ms: 3.213709
+      type: 'test'
+      ...
+    # Subtest: a writable path that is the copy itself, reached through a link, stays granted
+    ok 6 - a writable path that is the copy itself, reached through a link, stays granted
+      ---
+      duration_ms: 0.873625
+      type: 'test'
+      ...
+    1..6
+ok 1 - the writable paths of a control's profile
+  ---
+  duration_ms: 10.174541
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 254.476125

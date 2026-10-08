@@ -1,0 +1,69 @@
+TAP version 13
+# Subtest: the writable paths of a control's profile
+    # Subtest: a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+    ok 1 - a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+      ---
+      duration_ms: 1.677292
+      type: 'test'
+      ...
+    # Subtest: a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+    not ok 2 - a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+      ---
+      duration_ms: 1.105875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test/v1-adapters/writable-path-containment.test.ts:54:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the profile grants the write under a path whose dangling link leads outside the copy
+        + actual - expected
+        
+        + [
+        +   '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test-output/writable-6VXsse/copy/lines.txt',
+        +   '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test-output/writable-6VXsse/copy/target/495-vitest'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test-output/writable-6VXsse/copy/lines.txt'
+        1: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test-output/writable-6VXsse/copy/target/495-vitest'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test/v1-adapters/writable-path-containment.test.ts:71:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+    ok 3 - a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+      ---
+      duration_ms: 0.855375
+      type: 'test'
+      ...
+    # Subtest: a writable path that is the copy itself, reached through a link, stays granted
+    ok 4 - a writable path that is the copy itself, reached through a link, stays granted
+      ---
+      duration_ms: 0.653291
+      type: 'test'
+      ...
+    1..4
+not ok 1 - the writable paths of a control's profile
+  ---
+  duration_ms: 4.745708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bcdvuj/test/v1-adapters/writable-path-containment.test.ts:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 247.06925

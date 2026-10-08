@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: the writable paths of a control's profile
+    # Subtest: a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+    ok 1 - a lines.txt linked to a file outside the copy, a target/495-vitest under a target linked to a directory outside the copy and a neighbouring copy-other/f are not among the writable paths of the profile
+      ---
+      duration_ms: 2.067708
+      type: 'test'
+      ...
+    # Subtest: a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+    ok 2 - a lines.txt linked to the absent file absent.txt outside the copy, named by --out=lines.txt, and a target/495-vitest under a target linked to the absent directory absentdir outside the copy are neither among the writable paths of the profile nor among its files to create
+      ---
+      duration_ms: 1.126875
+      type: 'test'
+      ...
+    # Subtest: a d1/d2/a/l whose dangling link l leads outside the copy, reached through a link a back to the copy and named by --out=d1/d2/a/l, is neither among the writable paths of the profile nor among its files to create
+    not ok 3 - a d1/d2/a/l whose dangling link l leads outside the copy, reached through a link a back to the copy and named by --out=d1/d2/a/l, is neither among the writable paths of the profile nor among its files to create
+      ---
+      duration_ms: 1.718542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q43Z5A/test/v1-adapters/writable-path-containment.test.ts:87:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the profile grants the write under a path whose dangling link, read from the link's real directory, leads outside the copy
+        + actual - expected
+        
+        + [
+        +   '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q43Z5A/test-output/writable-KB0QuF/copy/d1/d2/a/l'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q43Z5A/test-output/writable-KB0QuF/copy/d1/d2/a/l'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q43Z5A/test/v1-adapters/writable-path-containment.test.ts:97:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+    ok 4 - a report.txt and an absent target/reports of a copy reached through a link stay granted, at their place in the copy
+      ---
+      duration_ms: 1.222417
+      type: 'test'
+      ...
+    # Subtest: a writable path that is a loop of links in the copy gives a profile that grants nothing outside the copy
+    ok 5 - a writable path that is a loop of links in the copy gives a profile that grants nothing outside the copy
+      ---
+      duration_ms: 2.689666
+      type: 'test'
+      ...
+    # Subtest: a writable path that is the copy itself, reached through a link, stays granted
+    ok 6 - a writable path that is the copy itself, reached through a link, stays granted
+      ---
+      duration_ms: 1.131625
+      type: 'test'
+      ...
+    1..6
+not ok 1 - the writable paths of a control's profile
+  ---
+  duration_ms: 10.445958
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q43Z5A/test/v1-adapters/writable-path-containment.test.ts:27:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 252.784833

@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sous Seatbelt, la commande n'écrit pas à travers le lien",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/writable-path-seatbelt.test.ts",
+    "ligne": 27,
+    "constat": "Le test ne vaut que si le dépôt se trouve hors du dossier temporaire que Seatbelt accorde à toute commande. Dans cet arbre, qui est sous $TMPDIR (/private/var/folders/.../T/cycle-arbre-…), test-output y est aussi : outside.txt passe à « written » et outdir reçoit 495-vitest, et le test échoue sans aucune mutation. Avec TMPDIR=/private/tmp/…, il passe. Le code tient la promesse ; le test, lui, dépend de l'endroit où l'arbre est extrait, et un arbre extrait sous le dossier temporaire le rend inopérant.",
+    "mutation": "Aucune mutation : échec observé à 60f655cd tel quel ; vert après TMPDIR=/private/tmp/a1-e28s16-tmp/."
+   }
+  ],
+  "resume": "J'ai relu le diff (runner.profileFor filtre chaque chemin inscriptible sur realPathOf : chemin réel égal à la copie réelle ou dessous, séparateur compris ; real() exporté sous le nom realPathOf). J'ai lancé les deux fichiers de test et essayé 8 mutations, toutes tuées, avec TMPDIR déplacé hors de l'arbre.\n\n- **Scénarios 1, 2 et 3** (fichier lié, dossier sous un lien, voisin copy-other) : tenus par le premier test du fichier de confinement. Il tombe sous chacune de ces mutations : filtre à true, retrait du séparateur, realPathOf(p) remplacé par p, absence de remontée vers l'ancêtre existant, retour à l'ancien filtre p.startsWith(resolve(copie)).\n- **Scénario 4** (copie atteinte par un lien) : tenu par le deuxième test et par celui du chemin « . ». Ils tombent quand la copie n'est plus résolue en chemin réel, ou quand l'égalité real === copy est retirée.\n- **Scénario 5** (Seatbelt, pas d'écriture à travers le lien) : tenu, le test tombe sous le filtre à true et sous l'ancien filtre.\n- **Scénario 6** (Seatbelt, écriture du chemin accordé) : tenu, le test tombe quand Seatbelt ne reçoit plus les write_paths.\n\nLe profil filtré est le seul que reçoivent Seatbelt, bubblewrap (--bind) et la création du dossier parent (mkdir).\n\nUn seul constat, à peser : le test Seatbelt du scénario 5 échoue dans un arbre extrait sous le dossier temporaire du système, parce que Seatbelt y accorde déjà l'écriture à toute commande. Il passe dès que ce dossier temporaire est déplacé. Aucun constat bloquant ni à corriger : pass."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sous Seatbelt, la commande n'écrit pas à travers le lien",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/writable-path-seatbelt.test.ts",
+    "ligne": 27,
+    "constat": "Le test suppose que `test-output/` n'est pas sous le dossier temporaire, où Seatbelt accorde l'écriture à toute commande. Dans un arbre de cycle sous `$TMPDIR` (`cycle-arbre-*`, comme celui-ci), `outside.txt` et `outdir` sont sous ce dossier, et le test échoue sans changement du code : outside.txt contient « written » et outdir contient 495-vitest. Avec un TMPDIR extérieur à l'arbre (`/private/tmp/…`), le test passe, et la Preflight de l'outil, lancée à la racine du dépôt, n'est pas exposée. Le code tient la promesse ; seul le test dépend de l'emplacement de l'arbre.",
+    "mutation": "Aucune : échec observé sur le code tel quel avec TMPDIR=/var/folders/…/T ; vert avec TMPDIR=/private/tmp/b1-e28s16-tmp"
+   }
+  ],
+  "resume": "J'ai relu le filtre de `profileFor` (src/adapters/execution/runner.ts:66-72) : un chemin n'est gardé que si son chemin réel (`realPathOf`, plus profond ancêtre existant puis segments absents) est la copie ou se trouve sous `copie + sep`. Le moteur ne crée le parent que des chemins accordés, et tout contrôle passe par ce profil. Les six scénarios sont tenus par le code. J'ai essayé huit mutations, chacune fait échouer au moins un test : filtre toujours vrai (les tests 1 et Seatbelt-1 échouent), `sep` retiré (scénario 3), `real === copy` retiré (copie elle-même), copie non résolue (scénario 4), chemin non résolu, repli de `realPathOf` sans ancêtre (scénario 2), filtre toujours faux (scénarios 4 et 6, avec la preuve PASS), ancien filtre `startsWith(resolve(workspacePath))` (scénarios 1/2 et Seatbelt-1). Un constat à peser, introduit : le test Seatbelt du cinquième scénario échoue quand l'arbre est sous le dossier temporaire que Seatbelt accorde à toute commande, ce qui est le cas des arbres de relecture ; il passe avec un TMPDIR extérieur. Aucun constat bloquant ni à corriger."
+ }
+]

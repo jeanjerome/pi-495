@@ -1,0 +1,74 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un chemin inscriptible sous un lien pendant hors de la copie n'est pas accordé (et § Sécurité : « un lien pendant compte pour sa cible, lue relativement au dossier du lien »)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 48,
+    "constat": "`resolvedThrough` lit la cible relative d'un lien pendant contre `dirname(p)`, le texte du chemin déclaré, et non contre le dossier réel du lien. Quand le chemin passe par un autre lien de la copie, la résolution par `..` du texte diffère de celle du système. Sonde jetable : `copy/d1/d2/a -> ../..` (la copie elle-même) et `copy/l -> ../escape` (pendant, hors de la copie). Déclaré tel quel, `l` est refusé. Déclaré `d1/d2/a/l` et nommé par `--out=d1/d2/a/l`, il est accordé : `realPathOf` rend `copy/d1/d2/escape`, `write_paths` et `write_files` portent `copy/d1/d2/a/l`. Bubblewrap ferait alors `writeFileSync` sur ce chemin, ce qui crée `escape` hors de la copie (vérifié avec node). Le profil accorde et fait créer un lien pendant qui mène hors de la copie, contre ce que la promesse de sécurité énonce.",
+    "mutation": "Aucune : défaut observé par une sonde jetable non commitée (test/v1-adapters/zz-probe-a1.test.ts, supprimé) ; la correction attendue résout la cible contre `resolvedThrough(dirname(p), hops)` plutôt que contre `dirname(p)`."
+   }
+  ],
+  "resume": "J'ai relu les sept scénarios sur le code et les tests (`writable-path-containment`, `writable-path-seatbelt`). Huit des neuf mutations (constat compris) font échouer un test. Le filtre forcé à vrai fait échouer les scénarios 1, 2, 4 et 6 ; forcé à faux, les scénarios 5 et 7. Retirer le séparateur fait échouer le scénario 3, une copie non résolue le scénario 5. Pour le scénario 4, ne plus suivre le lien pendant, résoudre contre `p` au lieu de `dirname(p)`, ou inverser `isSymbolicLink` fait échouer le test. Chaque promesse est donc tenue par un test. Les deux mutations restées vertes ne touchent pas une promesse de la story : la limite de 40 sauts et l'accord Seatbelt écrit sur le chemin non résolu (que le scénario 7, avec une copie déjà résolue, ne distingue pas). Un constat bloquant, introduit par la branche : la cible relative d'un lien pendant se lit contre le texte du chemin, pas contre le dossier réel du lien. Quand un autre lien de la copie s'intercale, le profil accorde un chemin pendant qui mène hors de la copie et le range parmi les fichiers que bubblewrap crée ; la création a lieu hors de la copie. L'arbre est rendu propre : sonde supprimée, chaque mutation annulée."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un chemin inscriptible sous un lien pendant hors de la copie n'est pas accordé (règle de la section Sécurité : un lien pendant compte pour sa cible, lue relativement au dossier du lien)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 48,
+    "constat": "`resolvedThrough` lit la cible d'un lien pendant par rapport à `dirname(p)`, le dossier tel qu'il est écrit, et non par rapport au dossier réel du lien. Quand un segment parent est lui-même un lien, le calcul situe la cible dans la copie alors que l'écriture aboutit hors d'elle. Sonde jetable : `copy/d1/d2/d3/up -> ../../..` et `copy/l -> ../outside` (pendant), contrôle qui déclare `d1/d2/d3/up/l` inscriptible et le nomme dans `--out=` ; `realPathOf` rend `copy/d1/d2/d3/outside`, le profil accorde `copy/d1/d2/d3/up/l` et le range dans `write_files`. La préparation de bubblewrap (`writeFileSync(p, \"\")`, ligne 226) a alors créé `root/outside` hors de la copie, et le `--bind` le rend inscriptible. Sous Seatbelt, l'accord porte sur `copy/d1/d2/d3/outside` et l'écriture reste refusée. Pour corriger, lire la cible par rapport au chemin réel du dossier du lien, `resolve(resolvedThrough(dirname(p), hops), target)`, et ajouter un test rouge sur ce cas.",
+    "mutation": "Sonde, pas une mutation : un test jetable, retiré depuis, sur `profileFor` avec un parent lié, a constaté `write_paths`/`write_files` = [copy/d1/d2/d3/up/l] et `existsSync(root/outside)` = true après la préparation de bubblewrap simulée."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un fichier inscriptible lié hors de la copie n'est pas accordé ; Un dossier inscriptible sous un lien hors de la copie n'est pas accordé ; Un chemin voisin dont le nom prolonge celui de la copie n'est pas accordé",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 71,
+    "constat": "Le code tient ces trois promesses. Le premier test de `writable-path-containment.test.ts` les tient : il échoue sous chacune des mutations essayées du filtre.",
+    "mutation": "`return true` dans le filtre, `real.startsWith(copy)` sans séparateur, `const real = p` : à chaque fois, le test « a lines.txt linked to a file outside the copy… copy-other/f » échoue."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Un chemin inscriptible sous un lien pendant hors de la copie n'est pas accordé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 48,
+    "constat": "Le code tient le cas que décrit le scénario, cible absolue pour `lines.txt` et relative pour `target`. Le test qui lui est dédié tient les deux `Then`, accord d'écriture et `write_files`. Le défaut de B1-1 reste hors de son Given.",
+    "mutation": "Suppression du suivi du lien pendant, `resolve(p, target)` à la place de `resolve(dirname(p), target)`, `SYMLINK_HOPS = 0` : le test « a lines.txt linked to the absent file absent.txt… » échoue à chaque fois."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Un chemin inscriptible de la copie reste accordé",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 66,
+    "constat": "Le code tient la promesse. Les tests « report.txt and an absent target/reports of a copy reached through a link » et « the copy itself, reached through a link » la tiennent.",
+    "mutation": "`const copy = workspacePath`, `return false`, `write_paths: writable.map(realPathOf)`, suppression de `real === copy` : chaque mutation fait échouer au moins l'un des deux tests."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "Sous Seatbelt, la commande n'écrit pas à travers le lien ; Sous Seatbelt, la commande écrit le chemin accordé de la copie",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "test/v1-adapters/writable-path-seatbelt.test.ts",
+    "ligne": 31,
+    "constat": "Le code tient les deux promesses sous Seatbelt réel, ici sur macOS. Les deux tests de `writable-path-seatbelt.test.ts` les tiennent.",
+    "mutation": "Filtre à `return true` : le test « leaves outside.txt at « untouched » and outdir empty » échoue. Filtre à `return false` : le test « writes report.txt… and gives PASS » échoue."
+   }
+  ],
+  "resume": "Verdict : échec, à cause d'un constat bloquant introduit par la branche (B1-1).\n\n`resolvedThrough` lit la cible d'un lien pendant par rapport au dossier tel qu'il est écrit, et non par rapport au dossier réel du lien. Quand un dossier parent est lui-même un lien, un lien pendant qui mène hors de la copie y est classé à tort. Le profil l'accorde alors et le range parmi les fichiers que bubblewrap crée. Une sonde a montré que la préparation de bubblewrap crée ce fichier hors de la copie, puis le lie en écriture. Sous Seatbelt, l'écriture reste refusée. Ce cas contredit la règle de la section Sécurité : un lien pendant compte pour sa cible, lue relativement au dossier du lien.\n\nLes sept scénarios sont tenus par le code dans leur Given, et chacun est tenu par un test : chaque mutation essayée (filtre, séparateur, résolution de la copie et du chemin, suivi du lien pendant, base de résolution relative, borne de sauts à 0) fait échouer le test attendu. Une seule mutation survit : sans la borne de sauts, le test sur une boucle de liens passe encore, parce que le débordement de pile est rattrapé par les try/catch. Aucune promesse ne couvre les boucles, donc ce n'est pas un constat. Les sondes et les mutations ont été retirées, et l'arbre est propre."
+ }
+]

@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Les sept scénarios sont tenus par le code et chacun par au moins un test que la mutation fait échouer. Code relu : runner.ts profileFor (filtre sur le chemin réel, séparateur compris ; write_files ⊆ chemins accordés ; mkdir des parents sur profile.write_paths seulement) et backends.ts realPathOf/resolvedThrough/targetFrom (lien pendant résolu depuis le chemin réel de son dossier, cible parcourue segment par segment, budget de liens partagé). Sonde jetable, non commitée et supprimée : lien pendant en chaîne (l1→l2→../abs), cible absolue passant par un lien vers l'extérieur puis `..`, segment de cible lui-même pendant, lien pendant posé dans un dossier lié à l'extérieur, lien pendant interne, chemin sous un dossier pendant. Les six résolutions donnent ce que le système donnerait. Mutations, toutes remises en place, sur writable-path-containment et writable-path-seatbelt : filtre → true (scénarios 1, 2, 4 et 6 rouges, Seatbelt compris) ; `copy + sep` → `copy` (scénario 3 rouge) ; suivi des liens pendants retiré (3 tests du scénario 4 rouges) ; dossier du lien non résolu (test d1/d2/a/l rouge) ; segments de cible non résolus, montée textuelle (test s/../escape rouge) ; write_files calculé sur les chemins non filtrés (assertions bubblewrap du scénario 4 rouges) ; copie non résolue, et chemins accordés remis sous leur forme réelle (scénario 5 rouge) ; filtre → false (scénario 7 rouge, PASS perdu) ; racine d'une cible absolue ignorée (scénario 4 rouge). Une mutation équivalente (`..` passé à resolvedThrough(join(reached,'..'))) ne change pas le comportement, ce qui est attendu. Aucun constat introduit ni rendu atteignable."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — le moteur ne crée pas le dossier parent d'un chemin qu'il n'a pas accordé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 136,
+    "constat": "Le code respecte la règle : la boucle `mkdir(dirname(...))` ne parcourt que `profile.write_paths`, la liste déjà filtrée. Aucun test ne la vérifie pourtant. Une mutation qui crée le parent de chaque chemin déclaré, accordé ou non, laisse les 9 tests verts. Le défaut ne se voit dans aucun scénario de la story. Dans le scénario Seatbelt, `copy/target` existe déjà. Et sur un lien pendant direct, un `mkdir` récursif de Node échoue en ENOENT sans créer la cible (vérifié par une sonde jetable).",
+    "mutation": "`for (const writable of profile.write_paths)` remplacé par `for (const writable of control.writable_paths.map((p) => resolve(invocation.workspace_path, p)))` : 9/9 verts"
+   }
+  ],
+  "resume": "J'ai relu le code de toute la story (b9acb886...81237d14 plus les commits plus anciens de e28s16 sur runner.ts et backends.ts) et lancé les deux fichiers de test : 9/9 passent, la suite Seatbelt comprise sur darwin. Le code tient chaque scénario, et chaque Then est vérifié par un test qu'au moins une mutation fait échouer.\n\nS1 et S2, lien vers un fichier ou un dossier existant hors de la copie : passer `real = p` fait échouer 7 tests.\n\nS3, chemin voisin `copy-other/f` : passer `real.startsWith(copy)` sans séparateur fait échouer le premier test.\n\nS4, liens pendants vers `absent.txt` et `absentdir` : neuf mutations essayées, chacune fait échouer au moins un test.\n- Ignorer les liens pendants : 3 tests échouent.\n- Ne pas résoudre le dossier du lien : 1 test.\n- Ignorer les `..` dans `targetFrom` : 2 tests.\n- Ne pas résoudre les segments de la cible : 1 test.\n- Lire une cible absolue comme relative : 1 test.\n- Budget de liens à 0 : 3 tests.\n- `write_files` non filtrés : 3 tests, c'est la partie bubblewrap du scénario.\n\nS5, copie atteinte par un lien : la copie non résolue fait échouer 2 tests, et n'accorder que la copie elle-même en fait échouer 2.\n\nS6, Seatbelt n'écrit pas à travers le lien : passer `real = p` fait échouer le test réel sous sandbox-exec.\n\nS7, Seatbelt écrit `report.txt` et la preuve est PASS : n'accorder que la copie elle-même fait échouer le test.\n\nUn seul constat, à peser : aucun test ne vérifie que le moteur ne crée pas le dossier parent d'un chemin refusé. Le code tient la règle et le défaut ne se voit dans aucun scénario. Aucun constat bloquant ni à corriger. Toutes les mutations ont été remises, l'arbre est propre."
+ }
+]
