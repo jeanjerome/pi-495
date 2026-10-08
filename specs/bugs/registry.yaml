@@ -1936,3 +1936,33 @@ bugs:
       Give the architecture control a positive witness that compiles without a test framework, such as a main
       class of a mapped package that keeps the map, with a platform test on a reactor that declares no JUnit.
     status: open
+  - bug_id: BUG-2026-10-09T000500
+    date: "2026-10-09"
+    title: "The label of the option that adopts the architecture map of a Maven reactor names ArchUnit in a copy of one POM, not dependency:analyze declared in a copy of each POM"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s03`. Adopting the map of a Maven reactor now also declares `dependency:analyze`
+      of `maven-dependency-plugin` 3.11.0 in a copy of each POM of the reactor, and the effect of the option says
+      so. Its label, built by `architecture.label` of `MAVEN_PHRASES` (`src/adapters/stacks/maven/install/maven-install.ts`),
+      still reads « Adopter la carte et sa vérification (déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une
+      copie du POM et le résout, réseau ouvert pour cette seule étape) »: the list of choices names ArchUnit alone
+      and a single POM.
+    what_expected: >
+      The label of the option names what adopting brings as its effect does: ArchUnit and `dependency:analyze`,
+      declared in a copy of each POM of the reactor.
+    steps_to_reproduce:
+      - "Adopt the map of the reactor `domain`, `infrastructure`, `app` in a real Pi: the decision text names dependency:analyze and each POM of the reactor."
+      - "Read the option `adopt_map` in the list of choices: its label names com.tngtech.archunit:archunit-junit5 1.5.1 and « une copie du POM » only."
+    root_cause: >
+      The branch extended `architecture.does`, `architecture.inspected` and added `architecture.alongside`, but left
+      `architecture.label` as it was written for ArchUnit alone.
+    evidence: >
+      Seen in the acceptance run of `e11s03` at `e5098627` (`~/.495-campagnes/e11s03-ecarts`, `driver.out.*` of the
+      adoption dialogue): the effect names dependency:analyze, the label does not.
+    risk_level: low
+    follow_ups: >
+      Give `architecture.label` the dependency analysis and « chaque POM du réacteur », in French and in English,
+      with an assertion on the label in `test/v2-kernel/architecture-map-dependencies.test.ts`.
+    status: open

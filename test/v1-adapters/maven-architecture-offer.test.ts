@@ -55,6 +55,40 @@ describe("the Maven technology says why an adopted map is not verified", () => {
 		});
 	});
 
+	it("the declaration of ArchUnit adds to the test classpath of the host no module it already reaches through another, whose classes its main sources compile against", () => {
+		const project = mavenReactor(
+			{ domain: [], infrastructure: ["domain"], app: ["infrastructure"] },
+			Object.fromEntries([
+				javaSource("domain", "io.demo.domain", "User"),
+				javaSource("infrastructure", "io.demo.infra", "Store"),
+				javaSource("app", "io.demo.app", "Main"),
+			]),
+		);
+		const map: ArchitectureMap = {
+			parts: [
+				["domain", "io.demo.domain"],
+				["infrastructure", "io.demo.infra"],
+				["app", "io.demo.app"],
+			].map(([name, pkg]) => ({
+				name: name!,
+				perimeter: [name!],
+				style: "simple" as const,
+				roles: [{ package: pkg!, role: name!, hints: [] }],
+				hints: [],
+			})),
+			relations: [],
+		};
+		const offer = STACKS_OF_495.recognise(project, REFS, process.execPath, [], map).architecture_verification;
+		assert.ok(offer?.kind === "proposed" && offer.recommendation.edit, JSON.stringify(offer));
+		const { path, wanted } = offer.recommendation.edit;
+		assert.equal(path, "app/pom.xml", "the rules run in app, which no module depends on");
+		assert.doesNotMatch(
+			wanted,
+			/<artifactId>domain<\/artifactId>/,
+			"a test dependency on domain would hide from the main sources of app the domain infrastructure brings at compile time",
+		);
+	});
+
 	it("a copy that declares ArchUnit for a map whose packages each sit in a module of their own gets no architecture control, and the structure says no forbidden dependency can be written as a witness", () => {
 		const project = mavenReactor(
 			{ core: [], app: ["core"] },

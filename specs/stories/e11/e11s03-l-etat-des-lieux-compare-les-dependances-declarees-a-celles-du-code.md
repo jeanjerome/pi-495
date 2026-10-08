@@ -2,7 +2,7 @@
 
 Story : e11s03
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -44,7 +44,7 @@ Scenario: Les dépendances déclarées sont comparées à celles que le code uti
   And l'arbre du projet a le même digest qu'avant la demande
 
 Scenario: Un réacteur dont les POM déclarent ce que le code utilise est mesuré en PASS
-  Given le réacteur de la story, où `app` déclare `domain` et où `infrastructure` ne déclare plus Guava
+  Given le réacteur de la story, où `app` déclare `domain` et `org.junit.jupiter:junit-jupiter-api` à la place de l'agrégat `junit-jupiter`, et où `infrastructure` ne déclare plus Guava
   When le propriétaire adopte la carte
   Then le `survey` mesure l'exigence d'architecture par le contrôle des dépendances en PASS, sans constat
 

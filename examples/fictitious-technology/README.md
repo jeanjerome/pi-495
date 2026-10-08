@@ -75,8 +75,9 @@ controls that judge only the introduced lines must let it through.
 
 Each is optional, and each `offer(question)` answers in the same shape as the tests:
 
-- **available**, with its controls, the negative witness of each control the shared one does not prove, and
-  `short_of`, what of the capability is still not offered;
+- **available**, with its controls, the negative witness of each control the shared one does not prove,
+  `reference_positive`, the controls whose positive witness is the reference alone because the shared one
+  carries what they detect, and `short_of`, what of the capability is still not offered;
 - **missing**, with the reason and, when there is one, the recommendation that would give it — a package to
   install or a file edit, which the owner may adopt;
 - **refused**, with the reason.
@@ -89,8 +90,9 @@ witness. `quality.referential(question)`, when declared, proposes the owner a qu
 its rules, what its analysers read and leave aside, the packages that bring them — or says why none is
 proposed.
 `structure.architecture(question)`, when declared, is asked once the owner adopted an architecture map: it
-recommends the analyser that verifies the rules of the map and the edit that declares it in a copy, or says
-why none is offered; once a copy carries that declaration, `structure.offer` adds the control of the map.
+recommends the analyser that verifies the rules of the map and the edit that declares it in a copy, with the
+`declarations` of the other files of the copy the verification is declared in, or says why none is offered; once
+a copy carries those declarations, `structure.offer` adds the controls of the map.
 
 ### Workspace
 

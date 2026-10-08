@@ -11,8 +11,11 @@
 import type { ProjectView } from "../../../../application/stacks/project-view.ts";
 import type { ArchitectureOffer } from "../../../../application/stacks/plugin.ts";
 import type { FileEdit, RecommendedComplement } from "../../../../contracts/v1/protocol.ts";
+import { profileEdit } from "../project/profile-declaration.ts";
 import { elementText, type MavenModule, type MavenReactor } from "../project/reactor.ts";
 import { ARCHUNIT, ARCHUNIT_RULES_PROPERTY, ARCHUNIT_VERSION } from "../shared.ts";
+import { DEPENDENCIES_PROFILE } from "./dependencies-declaration.ts";
+import { MAP_VERIFICATION_UNSEEN } from "./map-verification-unseen.ts";
 
 /** The date the ArchUnit release below was checked against the source it cites. */
 const ARCHUNIT_DATE = "2026-10-08";
@@ -81,11 +84,29 @@ function coordinatesOf(view: ProjectView, module: MavenModule): { group: string;
 	};
 }
 
+/**
+ * The artifacts of the reactor the host reaches through its declared dependencies, directly or through another
+ * module. They are already on its classpaths at the scope its POM gives them, and declaring one again for the
+ * tests would be the nearest declaration, which narrows to the tests a module the main sources compile against.
+ */
+function reachedFrom(reactor: MavenReactor, host: SourceModule): Set<string> {
+	const reached = new Set<string>();
+	const queue = [...host.depends_on];
+	while (queue.length > 0) {
+		const artifact = queue.shift()!;
+		if (reached.has(artifact)) continue;
+		reached.add(artifact);
+		queue.push(...(reactor.module_info.find((m) => m.artifact_id === artifact)?.depends_on ?? []));
+	}
+	return reached;
+}
+
 /** The profile that declares ArchUnit in the host, one line per entry, each indented by tabs below it. */
 function archunitProfile(view: ProjectView, reactor: MavenReactor, host: SourceModule): string[] {
 	const [group, artifact] = ARCHUNIT.split(":");
+	const reached = reachedFrom(reactor, host);
 	const others = withSources(reactor).filter(
-		(m) => m.path !== host.path && m.artifact_id !== null && !host.depends_on.includes(m.artifact_id),
+		(m) => m.path !== host.path && m.artifact_id !== null && !reached.has(m.artifact_id),
 	);
 	const dependency = (g: string, a: string, v: string, scope = "<scope>test</scope>") =>
 		`<dependency><groupId>${g}</groupId><artifactId>${a}</artifactId><version>${v}</version>${scope}</dependency>`;
@@ -156,36 +177,9 @@ function archunitProfile(view: ProjectView, reactor: MavenReactor, host: SourceM
 }
 
 /**
- * The edit that writes the profile into the host's POM: before the closing of its one `<profiles>`, or in a
- * `<profiles>` of its own before the closing of the project. Null when the place does not occur exactly once.
- */
-function profileEdit(view: ProjectView, reactor: MavenReactor, host: SourceModule): FileEdit | null {
-	const path = pomOf(host);
-	const pom = view.read(path);
-	if (pom === null) return null;
-	const unit = /^([ \t]+)</m.exec(pom)?.[1] ?? "  ";
-	const lines = (indent: string, declaration: readonly string[]) =>
-		declaration.map((line) => `${indent}${line.replace(/^\t+/, (tabs) => unit.repeat(tabs.length))}`);
-	const declared = archunitProfile(view, reactor, host);
-	const once = (text: string) => pom.split(text).length === 2;
-	if (pom.includes("</profiles>")) {
-		const indent = /([ \t]*)<\/profiles>/.exec(pom)?.[1] ?? unit;
-		if (!once("</profiles>")) return null;
-		const [first, ...rest] = lines(`${indent}${unit}`, declared);
-		return { path, current: "</profiles>", wanted: `${first!.trimStart()}\n${rest.join("\n")}\n${indent}</profiles>` };
-	}
-	if (!once("</project>")) return null;
-	return {
-		path,
-		current: "</project>",
-		wanted: `${[`${unit}<profiles>`, ...lines(`${unit}${unit}`, declared), `${unit}</profiles>`].join("\n")}\n</project>`,
-	};
-}
-
-/**
- * The verification of the adopted map offered on the reactor: ArchUnit declared in a copy of the host's POM
- * and resolved by Maven; none when no module can host the rules or its POM does not take the declaration
- * without ambiguity.
+ * The verification of the adopted map offered on the reactor: ArchUnit declared in a copy of the host's POM and
+ * resolved by Maven, and the analysis of the dependencies declared in a copy of each POM of the reactor; none when
+ * no module can host the rules or a POM does not take the declarations without ambiguity.
  */
 export function archunitOffer(view: ProjectView, reactor: MavenReactor): ArchitectureOffer {
 	const host = architectureHost(reactor);
@@ -194,12 +188,22 @@ export function archunitOffer(view: ProjectView, reactor: MavenReactor): Archite
 			kind: "not_proposed",
 			note: "no module of main sources that no other module depends on can run the rules of the map",
 		};
-	const edit = profileEdit(view, reactor, host);
+	const edit = profileEdit(view, pomOf(host), [archunitProfile(view, reactor, host), DEPENDENCIES_PROFILE]);
 	if (edit === null)
 		return {
 			kind: "not_proposed",
 			note: `${pomOf(host)} cannot receive the declaration of ArchUnit without ambiguity`,
 		};
+	const declarations: FileEdit[] = [];
+	for (const pom of reactor.pom_paths.filter((p) => p !== pomOf(host))) {
+		const declaration = profileEdit(view, pom, [DEPENDENCIES_PROFILE]);
+		if (declaration === null)
+			return {
+				kind: "not_proposed",
+				note: `${pom} cannot receive the declaration of dependency:analyze without ambiguity`,
+			};
+		declarations.push(declaration);
+	}
 	const recommendation: RecommendedComplement = {
 		test_type: "architecture",
 		tool: ARCHUNIT,
@@ -210,7 +214,7 @@ export function archunitOffer(view: ProjectView, reactor: MavenReactor): Archite
 		edit,
 		install: { package: ARCHUNIT, version: ARCHUNIT_VERSION, manager: "maven" },
 	};
-	return { kind: "proposed", recommendation };
+	return { kind: "proposed", recommendation, declarations, unseen: [...MAP_VERIFICATION_UNSEEN] };
 }
 
 /** The host whose POM declares ArchUnit by 495's declaration in this copy, or null when none does. */

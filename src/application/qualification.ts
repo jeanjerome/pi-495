@@ -25,6 +25,33 @@ export interface QualificationFixtures {
 	negative_files?: Record<string, string>;
 }
 
+/** The witnesses a detection offers its controls, as the qualification writes them on the reference. */
+export interface ControlWitnesses {
+	/** Files written on the reference so that the property every control claims holds. */
+	positive: Record<string, string>;
+	/** Files written on top of those so that the targeted defect is present. */
+	negative: Record<string, string>;
+	/** Per control, the defect only that one detects, when the shared one proves nothing for it. */
+	own_negative: Record<string, Record<string, string>>;
+	/** The controls whose positive witness is the reference alone, the shared one carrying what they detect. */
+	reference_positive?: readonly string[];
+}
+
+/**
+ * The files the witnesses of the control `controlId` are judged by: the shared positive witness, or none when
+ * the reference alone is its positive witness, and the negative files, its own on top of the positive ones when
+ * it has its own. The negative files are those written into its negative copy.
+ */
+export function witnessFilesOf(
+	witnesses: ControlWitnesses,
+	controlId: string,
+): { positive: Record<string, string>; negative: Record<string, string>; own: boolean } {
+	const own = witnesses.own_negative[controlId];
+	const positive = witnesses.reference_positive?.includes(controlId) ? {} : witnesses.positive;
+	if (own === undefined) return { positive, negative: { ...witnesses.positive, ...witnesses.negative }, own: false };
+	return { positive, negative: { ...positive, ...own }, own: true };
+}
+
 export interface DetailedQualification {
 	qualification: Qualification;
 	evidence: { positive: EvidenceCandidate; negative: EvidenceCandidate; incident: EvidenceCandidate };

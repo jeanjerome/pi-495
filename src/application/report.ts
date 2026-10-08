@@ -10,7 +10,14 @@
  */
 import type { Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { Protocol, QualityPerimeter, QualityRule, RequirementsDocument } from "../contracts/v1/protocol.ts";
+import {
+	type Protocol,
+	type QualityPerimeter,
+	type QualityRule,
+	READING_CONCERNS,
+	type RequirementsDocument,
+	type UnseenByVerification,
+} from "../contracts/v1/protocol.ts";
 import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
 import type { CodeAuthorship, Survey } from "../domain/survey.ts";
 
@@ -102,8 +109,21 @@ export interface SurveySection {
 			may_depend_on: string[];
 		}[];
 		unassigned_packages: string[];
+		/** What the verification of the map does not see, each point with its reason, in each language. */
+		unseen: UnseenByVerification[];
+		/**
+		 * The reading of the model that goes with the map, each statement with the places that support it, then the
+		 * statements set aside with the hint that designates no line of the reference: never a finding. Null when the
+		 * model gave none.
+		 */
+		reading: {
+			statements: Record<ReadingConcern, { statement: string; hints: string[] }[]>;
+			set_aside: { concern: ReadingConcern; statement: string; hint: string }[];
+		} | null;
 	} | null;
 }
+
+type ReadingConcern = (typeof READING_CONCERNS)[number];
 
 export interface EngineeringReport {
 	schema_version: 1;
@@ -218,6 +238,21 @@ function architectureSection(protocol: Protocol | null): SurveySection["architec
 			may_depend_on: relations.filter((r) => r.from === part.name).map((r) => r.to),
 		})),
 		unassigned_packages: adopted.unassigned_packages,
+		unseen: adopted.unseen ?? [],
+		reading: adopted.reading
+			? {
+					statements: Object.fromEntries(
+						READING_CONCERNS.map((concern) => [
+							concern,
+							adopted.reading!.kept[concern].map((r) => ({
+								statement: r.statement,
+								hints: r.hints.map((h) => `${h.path}:${h.line}`),
+							})),
+						]),
+					) as Record<ReadingConcern, { statement: string; hints: string[] }[]>,
+					set_aside: adopted.reading.set_aside,
+				}
+			: null,
 	};
 }
 

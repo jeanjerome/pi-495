@@ -441,6 +441,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 				positive: detection.positive_witness,
 				negative: detection.negative_witness,
 				own_negative: detection.own_negative_witness,
+				reference_positive: detection.reference_positive ?? [],
 				tests: detection.witness_tests,
 			},
 			requirement_refs: refs,

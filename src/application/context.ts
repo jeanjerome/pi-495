@@ -141,6 +141,26 @@ export const OUTPUT_SCHEMA_EXAMPLES: Record<string, unknown> = {
 				hints: [{ path: "a file of the project", line: 1, says: "what declares the dependency" }],
 			},
 		],
+		reading: {
+			data: [
+				{
+					statement: "what persists the data and how the code reaches it",
+					hints: [{ path: "a file of the project", line: 1, says: "what this line shows" }],
+				},
+			],
+			cross_cutting: [
+				{
+					statement: "how security, errors, logging, validation or configuration are handled",
+					hints: [{ path: "a file of the project", line: 1, says: "what this line shows" }],
+				},
+			],
+			deployment: [
+				{
+					statement: "how the project is built, packaged and run",
+					hints: [{ path: "a file of the project", line: 1, says: "what this line shows" }],
+				},
+			],
+		},
 	} satisfies ArchitectureMap,
 };
 
@@ -150,7 +170,7 @@ const OUTPUT_SCHEMA_TEXT: Record<string, string> = Object.fromEntries(
 
 /** What an intervention that proposes the architecture map of a target is told it is. */
 const ARCHITECTURE_MAP_INSTRUCTION =
-	'You propose the map of the architecture of the project as it stands; you change nothing. Cut the project into parts, each a set of modules or package branches. Give each part one style among "layered", "onion", "simple" and "other", and the role of each of its packages in that style, naming each package as its sources declare it. In a part in "onion", the role of a package is its ring: "domain model", "domain services", "application services", or "adapter <name>" with the name of the adapter, such as "adapter persistence"; a port belongs to the ring that declares it. In a part in "layered", the role of a package is the name of its layer, and "called_by" lists the layers of the part that may call that layer, an empty list for a layer no other may call. Name the parts each part may depend on; a dependency between parts you do not name is not permitted. Support every part, role and relation with the places in the project that show it, each a file and a line that exists in it. The map is a proposal the owner adopts or refuses, never a finding.';
+	'You propose the map of the architecture of the project as it stands; you change nothing. Cut the project into parts, each a set of modules or package branches. Give each part one style among "layered", "onion", "simple" and "other", and the role of each of its packages in that style, naming each package as its sources declare it. In a part in "onion", the role of a package is its ring: "domain model", "domain services", "application services", or "adapter <name>" with the name of the adapter, such as "adapter persistence"; a port belongs to the ring that declares it. In a part in "layered", the role of a package is the name of its layer, and "called_by" lists the layers of the part that may call that layer, an empty list for a layer no other may call. Name the parts each part may depend on; a dependency between parts you do not name is not permitted. Support every part, role and relation with the places in the project that show it, each a file and a line that exists in it. The map is a proposal the owner adopts or refuses, never a finding. Beside the map, give in "reading" a reading of the data, the cross-cutting concerns and the deployment of the project, each statement with its hints, a file and a line that exists in it: in "data", what persists the data and how the code reaches it; in "cross_cutting", how security, errors, logging, validation and configuration are handled; in "deployment", how the project is built, packaged and run. A statement whose hint designates no line is set aside. The reading is what you read of the project, never a finding.';
 
 function outputSchemaFor(role: InterventionRole): OutputSchemaId {
 	switch (role) {

@@ -97,6 +97,7 @@ export function assembleDetection<Model>(
 				Object.entries(offer.own_negative_witness ?? {}),
 			),
 		),
+		reference_positive: available.flatMap(({ offer }) => offer.reference_positive ?? []),
 		preparation_paths: tests.preparationPaths(question),
 		capability_missing: sensors.flatMap(({ sensor, offer }) => blindSpotOf(BLIND_SPOTS[sensor], offer)),
 		recommendations: sensors.flatMap(({ offer }) => recommendationOf(offer)),

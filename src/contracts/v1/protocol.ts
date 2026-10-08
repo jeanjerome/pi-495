@@ -108,10 +108,36 @@ export const ArchitectureHint = Type.Object(
 );
 export type ArchitectureHint = Static<typeof ArchitectureHint>;
 
+/** A statement of the reading of the model, with the places in the reference that support it. */
+export const ReadingStatement = Type.Object(
+	{ statement: Type.String({ minLength: 1 }), hints: Type.Array(ArchitectureHint, { minItems: 1 }) },
+	{ additionalProperties: false },
+);
+export type ReadingStatement = Static<typeof ReadingStatement>;
+
+/** The concerns the reading of the model says something of. */
+export const READING_CONCERNS = ["data", "cross_cutting", "deployment"] as const;
+
+/**
+ * What a model reads of the data, the cross-cutting concerns and the deployment of a target beside its map,
+ * each statement with its hints: a reading, never a finding, which no control checks and no verdict depends
+ * on (`specs/adr/D-74`, `D-87`).
+ */
+export const ModelReading = Type.Object(
+	{
+		data: Type.Array(ReadingStatement),
+		cross_cutting: Type.Array(ReadingStatement),
+		deployment: Type.Array(ReadingStatement),
+	},
+	{ additionalProperties: false },
+);
+export type ModelReading = Static<typeof ModelReading>;
+
 /**
  * The architecture of a target as a model proposes it: parts, each a set of modules or package branches
- * with its style and the role of each of its packages, and the parts each part may depend on. Every
- * element carries the places in the reference that support it. A proposal, never a finding.
+ * with its style and the role of each of its packages, and the parts each part may depend on, with the reading
+ * of the model beside them. Every element carries the places in the reference that support it. A proposal,
+ * never a finding.
  */
 export const ArchitectureMap = Type.Object(
 	{
@@ -151,6 +177,7 @@ export const ArchitectureMap = Type.Object(
 				{ additionalProperties: false },
 			),
 		),
+		reading: Type.Optional(ModelReading),
 	},
 	{ $id: "urn:495:contract:architecture-map:1", additionalProperties: false },
 );
@@ -397,10 +424,18 @@ export const AdoptedQualityReferential = Type.Object(
 );
 export type AdoptedQualityReferential = Static<typeof AdoptedQualityReferential>;
 
+/** What the verification of an adopted map does not see, with the reason, as the technology says it in each language. */
+export const UnseenByVerification = Type.Object(
+	{ en: Type.String({ minLength: 1 }), fr: Type.String({ minLength: 1 }) },
+	{ additionalProperties: false },
+);
+export type UnseenByVerification = Static<typeof UnseenByVerification>;
+
 /**
- * An architecture map the owner adopted: the map as it was proposed, the packages of the main sources no
- * part covers, and the date of the decision that adopted it. Frozen with the protocol as the architecture
- * the project declares, and never read from the analysed tree (`specs/adr/D-25`, `D-87`).
+ * An architecture map the owner adopted: the parts and the relations of the map as it was proposed, the packages
+ * of the main sources no part covers, the date of the decision that adopted it, what its verification does not see
+ * and the reading of the model that went with it. Frozen with the protocol as the architecture the project
+ * declares, and never read from the analysed tree (`specs/adr/D-25`, `D-87`).
  */
 export const AdoptedArchitectureMap = Type.Object(
 	{
@@ -409,6 +444,30 @@ export const AdoptedArchitectureMap = Type.Object(
 		decision_id: Identifier,
 		map: ArchitectureMap,
 		unassigned_packages: Type.Array(Type.String()),
+		/** Absent from a map adopted before it was said, or that no control verifies. */
+		unseen: Type.Optional(Type.Array(UnseenByVerification)),
+		/**
+		 * The reading of the model that goes with the map, without the statements set aside, and each of those with
+		 * the hint that designates no line of the reference. Absent when the model gave none.
+		 */
+		reading: Type.Optional(
+			Type.Object(
+				{
+					kept: ModelReading,
+					set_aside: Type.Array(
+						Type.Object(
+							{
+								concern: Closed(READING_CONCERNS),
+								statement: Type.String({ minLength: 1 }),
+								hint: Type.String({ minLength: 1 }),
+							},
+							{ additionalProperties: false },
+						),
+					),
+				},
+				{ additionalProperties: false },
+			),
+		),
 	},
 	{ additionalProperties: false },
 );

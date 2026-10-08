@@ -50,7 +50,13 @@ import { EXECUTOR_ACTOR } from "./actors.ts";
 import { openWorkspaceWithComplements } from "./complement.ts";
 import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "./preparation.ts";
-import { qualifyControlDetailed, reusableQualification, type DetailedQualification } from "./qualification.ts";
+import {
+	type ControlWitnesses,
+	type DetailedQualification,
+	qualifyControlDetailed,
+	reusableQualification,
+	witnessFilesOf,
+} from "./qualification.ts";
 
 export interface VerificationDeps {
 	controls: ControlExecutionPort;
@@ -78,13 +84,7 @@ export interface QualifyInput {
 	 */
 	positive: { workspace_id: string; path: string };
 	ordered: readonly ControlDefinition[];
-	witnesses: {
-		/** Files written on the reference so that the property every control claims holds. */
-		positive: Record<string, string>;
-		/** Files written on top of those so that the targeted defect is present. */
-		negative: Record<string, string>;
-		/** Per control, the defect only that one detects, when the shared one proves nothing for it. */
-		own_negative: Record<string, Record<string, string>>;
+	witnesses: ControlWitnesses & {
 		/** Test cases the witnesses contribute, which exercise the runner and not the project. */
 		tests: number;
 	};
@@ -276,9 +276,8 @@ export class VerificationCoordinator {
 				// failing test is not that tree for every sensor: a coverage control is proved by code the
 				// suite never exercises, on a build that completes. Such a control gets its own witness
 				// workspace, built on the positive one (VER-05).
-				const ownNegative = input.witnesses.own_negative[control.control_id];
-				const negativeFiles = ownNegative ? { ...input.witnesses.positive, ...ownNegative } : sharedNegativeFiles;
-				const ownHandle = ownNegative
+				const files = witnessFilesOf(input.witnesses, control.control_id);
+				const ownHandle = files.own
 					? await openWorkspaceWithComplements(this.deps, reference, input.complements)
 					: null;
 				// A sensor that measures nothing of its own reads a report a witness workspace only holds
@@ -287,15 +286,15 @@ export class VerificationCoordinator {
 				const producers = prerequisitesOf(control, input.ordered as ControlDefinition[]);
 				let detailed: DetailedQualification;
 				try {
-					if (ownHandle) await writeWitness(ownHandle.path, negativeFiles);
+					if (ownHandle) await writeWitness(ownHandle.path, files.negative);
 					detailed = await qualifyControlDetailed(
 						this.deps.controls,
 						control,
 						{
 							positive_path: positive.path,
 							negative_path: ownHandle?.path ?? negative.path,
-							positive_files: input.witnesses.positive,
-							negative_files: negativeFiles,
+							positive_files: files.positive,
+							negative_files: files.negative,
 						},
 						base,
 						producers,

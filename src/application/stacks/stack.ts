@@ -28,6 +28,11 @@ export interface DetectedTechnology {
 	 * failure. Such a control gets its own witness workspace, built on the positive one.
 	 */
 	own_negative_witness: Record<string, Record<string, string>>;
+	/**
+	 * The controls whose positive witness is the reference alone: the shared positive witness carries what they
+	 * detect, so only their own negative witness is judged on top of the reference.
+	 */
+	reference_positive?: string[];
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
 	preparation_paths: string[];
 	capability_missing: string[];

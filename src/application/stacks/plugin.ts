@@ -12,6 +12,7 @@ import type {
 	QualityPerimeter,
 	QualityRule,
 	RecommendedComplement,
+	UnseenByVerification,
 } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
 import type { ReportReader } from "../../ports/execution.ts";
@@ -46,6 +47,8 @@ export type Offer =
 			kind: "available";
 			controls: ControlDefinition[];
 			own_negative_witness?: Record<string, WitnessFiles>;
+			/** The controls whose positive witness is the reference alone, the shared one carrying what they detect. */
+			reference_positive?: string[];
 			short_of?: string;
 	  }
 	| { kind: "missing"; reason: string; recommendation?: RecommendedComplement }
@@ -66,7 +69,14 @@ export type QualityOffer =
  * their analyser in a copy and resolves it; or the note that says why none is offered.
  */
 export type ArchitectureOffer =
-	| { kind: "proposed"; recommendation: RecommendedComplement }
+	| {
+			kind: "proposed";
+			recommendation: RecommendedComplement;
+			/** The edits of the other files of a copy the verification is declared in, beside the edit of the recommendation. */
+			declarations?: FileEdit[];
+			/** What the verification does not see, each point with its reason. */
+			unseen?: UnseenByVerification[];
+	  }
 	| { kind: "not_proposed"; note: string };
 
 /** The suite of the project: the one capability every technology offers. */
@@ -202,6 +212,8 @@ export interface InstallPhrases {
 		does(names: string): string;
 		/** What the inspection accepts of it. */
 		readonly inspected: string;
+		/** What the adoption has verified beside the rules of the map, a sentence ended for the next one. */
+		readonly alongside?: string;
 	};
 }
 

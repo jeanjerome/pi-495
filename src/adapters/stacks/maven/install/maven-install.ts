@@ -6,13 +6,23 @@
  */
 import type { PackageInstall } from "../../../../contracts/v1/protocol.ts";
 import type { InstallCapability, InstallPhrases } from "../../../../application/stacks/plugin.ts";
-import { ARCHUNIT, ARCHUNIT_RULES_PROPERTY, PMD_PLUGIN, PMD_PLUGIN_VERSION } from "../shared.ts";
+import {
+	ARCHUNIT,
+	ARCHUNIT_RULES_PROPERTY,
+	DEPENDENCY_PLUGIN,
+	DEPENDENCY_PLUGIN_VERSION,
+	PMD_PLUGIN,
+	PMD_PLUGIN_VERSION,
+} from "../shared.ts";
 
 /** The site skin the `pmd` and `cpd` goals of `maven-pmd-plugin` 3.28.0 load to render their report, as they name it when it is missing. */
 const PMD_SITE_SKIN = "org.apache.maven.skins:maven-fluido-skin:2.0.0-M9";
 
-/** The dependency plugin that resolves the plugins of a POM without running any of them, at the release checked on 2026-09-30, the date of the Maven catalogue. */
-const MAVEN_DEPENDENCY_PLUGIN = "org.apache.maven.plugins:maven-dependency-plugin:3.11.0";
+/** The dependency plugin that resolves the plugins of a POM without running any of them. */
+const MAVEN_DEPENDENCY_PLUGIN = `${DEPENDENCY_PLUGIN}:${DEPENDENCY_PLUGIN_VERSION}`;
+
+/** The goal that compares the dependencies of each module to those its code uses, as the owner is told of it, `of` its plugin. */
+const dependencyAnalysis = (of: string) => `dependency:analyze ${of} ${DEPENDENCY_PLUGIN} ${DEPENDENCY_PLUGIN_VERSION}`;
 
 /**
  * The command that resolves the plugins of a copy without running any goal of them. When the PMD plugin
@@ -90,9 +100,10 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		architecture: {
 			label: (names) => `déclare ${names} dans une copie du POM et le résout`,
 			does: (names) =>
-				`déclare ${names} dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but`,
+				`déclare ${names} dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but ; dans la même étape, il déclare ${dependencyAnalysis("de")} dans une copie de chaque POM du réacteur, dont il résout le greffon`,
 			inspected:
-				"la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que le POM qui reçoit la déclaration",
+				"la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que les POM qui reçoivent les déclarations",
+			alongside: `${dependencyAnalysis("de")} vérifie aussi, à chaque exécution, que chaque module déclare dans son POM les dépendances que son code utilise, et utilise celles qu'il déclare ; `,
 		},
 	},
 	en: {
@@ -110,9 +121,10 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		architecture: {
 			label: (names) => `declares ${names} in a copy of the POM and resolves it`,
 			does: (names) =>
-				`declares ${names} in a copy of the POM and resolves it with Maven, into the local repository Maven designates, running no goal`,
+				`declares ${names} in a copy of the POM and resolves it with Maven, into the local repository Maven designates, running no goal; in the same step, it declares ${dependencyAnalysis("of")} in a copy of each POM of the reactor and resolves that plugin`,
 			inspected:
-				"the copy is inspected and the resolution is accepted only if it changes no file other than the POM that receives the declaration",
+				"the copy is inspected and the resolution is accepted only if it changes no file other than the POMs that receive the declarations",
+			alongside: `${dependencyAnalysis("of")} also checks, at each run, that every module declares in its POM the dependencies its code uses, and uses those it declares; `,
 		},
 	},
 };

@@ -27,3 +27,18 @@ export const ARCHUNIT_VERSION = "1.5.1";
  * without it, its tests included, is the build of the project; a POM that names it is one 495 declared ArchUnit in.
  */
 export const ARCHUNIT_RULES_PROPERTY = "archunit495.rules";
+
+/**
+ * The dependency plugin, at the release checked on 2026-09-30, the date of the Maven catalogue: it resolves the
+ * plugins of a POM without running any of them, and its `analyze` goal compares the dependencies each module
+ * declares to those its compiled classes use (`specs/adr/D-87`).
+ */
+export const DEPENDENCY_PLUGIN = "org.apache.maven.plugins:maven-dependency-plugin";
+export const DEPENDENCY_PLUGIN_VERSION = "3.11.0";
+
+/**
+ * The property the dependencies control sets at each run, which alone activates the profile 495 declares the
+ * analysis in, and the execution of that profile the control runs; a POM that names both is one 495 declared it in.
+ */
+export const DEPENDENCIES_PROPERTY = "dependencies495";
+export const DEPENDENCIES_EXECUTION = "analyze495";

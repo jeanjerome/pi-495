@@ -272,7 +272,7 @@ async function runAndInspect(
 	command: readonly string[],
 	installs: readonly PackageInstall[],
 	policy: WorkspacePolicy,
-	edit?: FileEdit,
+	edits: readonly FileEdit[] = [],
 ): Promise<BroughtInstall> {
 	const outside = await keptDirectory(deps, install, copyPath);
 	if ("reason" in outside) return { kind: "failed", reason: outside.reason };
@@ -280,7 +280,7 @@ async function runAndInspect(
 	const before = await stateOf(deps, copyPath, policy, reads);
 	if (typeof before === "string") return { kind: "failed", reason: before };
 	const written: { path: string; digest: string }[] = [];
-	if (edit !== undefined) {
+	for (const edit of edits) {
 		const text = editedFile(copyPath, edit, install.edit);
 		if (text === null) return { kind: "failed", reason: `the edit of ${edit.path} no longer applies` };
 		writeFileSync(join(copyPath, edit.path), text);
@@ -305,8 +305,9 @@ async function runAndInspect(
  * its inspection accepts it. A manager that installs does so in the copy at `copyPath`, which is listed with
  * the directory its technology installs dependencies in read whole: the packages it installs may ship files
  * above the size limit. A manager that resolves does so in a copy of its own, made from `reference` and
- * deleted afterwards, after the edit of the recommendation is written there; only that edit is kept, written
- * into the copies of the verification from the object store once the resolution is accepted.
+ * deleted afterwards, after the edit of the recommendation and the `declarations` that go with it are written
+ * there; only those edits are kept, written into the copies of the verification from the object store once the
+ * resolution is accepted.
  */
 export async function bringInstalls(
 	deps: InstallDeps,
@@ -315,6 +316,7 @@ export async function bringInstalls(
 	copyPath: string,
 	installs: readonly PackageInstall[],
 	edit?: FileEdit,
+	declarations: readonly FileEdit[] = [],
 ): Promise<BroughtInstall> {
 	const { install } = installer;
 	const plan = install.plan(filesOf(reference), installs);
@@ -330,7 +332,7 @@ export async function bringInstalls(
 		// The copy is listed with no exclusion: a file the resolution writes under a directory the policy leaves
 		// out of a copy, such as target/, is a change like any other.
 		const whole = { ...deps.workspacePolicy, exclusions: [] };
-		return await runAndInspect(deps, install, handle.path, plan.command, installs, whole, edit);
+		return await runAndInspect(deps, install, handle.path, plan.command, installs, whole, [edit, ...declarations]);
 	} finally {
 		await deps.workspace.closeWorkspace(handle.workspace_id, "delete");
 	}

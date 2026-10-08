@@ -393,6 +393,146 @@
                   },
                   "additionalProperties": false
                 }
+              },
+              "reading": {
+                "type": "object",
+                "required": [
+                  "data",
+                  "cross_cutting",
+                  "deployment"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "statement",
+                        "hints"
+                      ],
+                      "properties": {
+                        "statement": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "hints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "path",
+                              "line",
+                              "says"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "line": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "says": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "cross_cutting": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "statement",
+                        "hints"
+                      ],
+                      "properties": {
+                        "statement": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "hints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "path",
+                              "line",
+                              "says"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "line": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "says": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "deployment": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "statement",
+                        "hints"
+                      ],
+                      "properties": {
+                        "statement": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "hints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "path",
+                              "line",
+                              "says"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "line": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "says": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "$id": "urn:495:contract:architecture-map:1",
@@ -1254,6 +1394,146 @@
                 },
                 "additionalProperties": false
               }
+            },
+            "reading": {
+              "type": "object",
+              "required": [
+                "data",
+                "cross_cutting",
+                "deployment"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "cross_cutting": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "deployment": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
             }
           },
           "$id": "urn:495:contract:architecture-map:1",
@@ -1264,6 +1544,207 @@
           "items": {
             "type": "string"
           }
+        },
+        "unseen": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "en",
+              "fr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fr": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "reading": {
+          "type": "object",
+          "required": [
+            "kept",
+            "set_aside"
+          ],
+          "properties": {
+            "kept": {
+              "type": "object",
+              "required": [
+                "data",
+                "cross_cutting",
+                "deployment"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "cross_cutting": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "deployment": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "statement",
+                      "hints"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "path",
+                            "line",
+                            "says"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "says": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "set_aside": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "concern",
+                  "statement",
+                  "hint"
+                ],
+                "properties": {
+                  "concern": {
+                    "type": "string",
+                    "enum": [
+                      "data",
+                      "cross_cutting",
+                      "deployment"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "hint": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

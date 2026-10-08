@@ -16,8 +16,15 @@ import {
 	type AdoptedComplement,
 	ArchitectureMap,
 	type RequirementsDocument,
+	type UnseenByVerification,
 } from "../../contracts/v1/protocol.ts";
-import { architectureMapFacts, checkArchitectureMap, type MapCheck } from "../../domain/architecture-map.ts";
+import {
+	architectureMapFacts,
+	checkArchitectureMap,
+	checkReading,
+	type MapCheck,
+	type ReadingCheck,
+} from "../../domain/architecture-map.ts";
 import type { HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { asksAboutStructure } from "../../domain/survey.ts";
@@ -48,11 +55,15 @@ export type MapSettlement =
 			complements?: AdoptedComplement[];
 	  };
 
-/** A map a model proposed, for the requirements as they stood when it was asked, and what the reference says of it. */
+/**
+ * A map a model proposed, for the requirements as they stood when it was asked, what the reference says of it,
+ * and of the reading of the model that goes with it; absent from a proposal made before the reading was asked.
+ */
 interface MapProposal {
 	requirements_digest: string;
 	map: ArchitectureMap;
 	check: MapCheck;
+	reading?: ReadingCheck;
 }
 
 /**
@@ -104,6 +115,7 @@ async function proposeMap(
 ): Promise<{ unit: Unit; proposal: { ref: ArtifactRef; content: MapProposal } | null }> {
 	let map: ArchitectureMap;
 	let check: MapCheck;
+	let reading: ReadingCheck | undefined;
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		const r = await ctx.runIntervention(
@@ -126,11 +138,18 @@ async function proposeMap(
 				{ retryable: true, nextActions: ["resume", "cancel"] },
 			);
 		map = r.output;
-		check = checkArchitectureMap(map, packages, linesIn(handle.path, reference));
+		const lines = linesIn(handle.path, reference);
+		check = checkArchitectureMap(map, packages, lines);
+		if (map.reading !== undefined) reading = checkReading(map.reading, lines);
 	} finally {
 		await ctx.workspace.closeWorkspace(handle.workspace_id, "delete");
 	}
-	const content: MapProposal = { requirements_digest: requirements.ref.content_digest, map, check };
+	const content: MapProposal = {
+		requirements_digest: requirements.ref.content_digest,
+		map,
+		check,
+		...(reading ? { reading } : {}),
+	};
 	const ref = await ctx.artifacts.store(
 		"architecture_map",
 		unit.state.change_id,
@@ -178,9 +197,9 @@ function mapVerificationOffer(offer: ArchitectureOffer | undefined, map: Archite
 
 /**
  * Brings the analyser that verifies the adopted map into a copy of its own, with the network open for that
- * step alone, and writes the declaration into the copy at `copyPath`, so that the detection that follows
- * reads the control of the map; why no control verifies it when the verification is not offered or cannot
- * be brought.
+ * step alone, and writes its declaration and the others the verification makes into the copy at `copyPath`, so
+ * that the detection that follows reads the controls of the map; why no control verifies it when the
+ * verification is not offered or cannot be brought.
  */
 async function bringVerification(
 	ctx: PhaseContext,
@@ -190,7 +209,9 @@ async function bringVerification(
 	reference: ReferenceSnapshot,
 	copyPath: string,
 	map: ArchitectureMap,
-): Promise<{ unit: Unit; complements: AdoptedComplement[] } | { unit: Unit; unverified: string }> {
+): Promise<
+	{ unit: Unit; complements: AdoptedComplement[]; unseen: UnseenByVerification[] } | { unit: Unit; unverified: string }
+> {
 	const offer = architectureOfferOn(ctx, copyPath, map);
 	const { unverified } = mapVerificationOffer(offer, map);
 	if (offer?.kind !== "proposed" || unverified !== null) return { unit, unverified: unverified ?? "" };
@@ -204,14 +225,57 @@ async function bringVerification(
 		(f) => f.install.package === install.package && f.install.version === install.version,
 	);
 	if (earlier !== undefined) return { unit, unverified: failed(earlier.reason) };
+	const declarations = offer.declarations ?? [];
 	ctx.progress(`resolving ${install.package}@${install.version} in a copy, network open for that step alone`);
-	const brought = await bringInstalls(ctx, installer, reference, copyPath, [install], edit);
+	const brought = await bringInstalls(ctx, installer, reference, copyPath, [install], edit, declarations);
 	if (brought.kind === "failed") {
 		unit = await recordFailedInstall(ctx, unit, cor, requirements, { install, reason: brought.reason });
 		return { unit, unverified: failed(brought.reason) };
 	}
 	if (brought.output !== undefined) unit = await recordResolution(ctx, unit, cor, install, brought.output);
-	return { unit, complements: applyRecommendedEdits(copyPath, [offer.recommendation], installer.install.edit) };
+	// Each declaration is written as part of the verification the recommendation brings.
+	const declared = [offer.recommendation, ...declarations.map((d) => ({ ...offer.recommendation, edit: d }))];
+	return {
+		unit,
+		complements: applyRecommendedEdits(copyPath, declared, installer.install.edit),
+		unseen: offer.unseen ?? [],
+	};
+}
+
+/**
+ * Freezes the map the owner adopted by `answer`, with the verification it brings, the packages no part covers,
+ * what that verification does not see and the reading of the model; a blind spot when no control verifies it.
+ */
+async function adoptMap(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	requirements: ArtifactRef,
+	reference: ReferenceSnapshot,
+	copyPath: string,
+	answer: HumanDecisionEntry,
+	adopted: { map: ArchitectureMap; unassigned: string[]; reading: ReadingCheck | undefined },
+): Promise<MapSettlement> {
+	// The rules are written from the parts and the relations; the reading goes beside them, never among them.
+	const { reading: _read, ...rules } = adopted.map;
+	const verified = await bringVerification(ctx, unit, cor, requirements, reference, copyPath, rules);
+	return {
+		kind: "settled",
+		unit: verified.unit,
+		...("complements" in verified
+			? { complements: verified.complements }
+			: {
+					blind_spot: `blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: ${verified.unverified}`,
+				}),
+		map: {
+			adopted_on: answer.recorded_at.slice(0, 10),
+			decision_id: answer.decision_id,
+			map: rules,
+			unassigned_packages: adopted.unassigned,
+			...("unseen" in verified && verified.unseen.length > 0 ? { unseen: verified.unseen } : {}),
+			...(adopted.reading ? { reading: adopted.reading } : {}),
+		},
+	};
 }
 
 /**
@@ -246,7 +310,7 @@ export async function settleArchitectureMap(
 		proposal = proposed.proposal;
 		answer = undefined;
 	}
-	const { check, map } = proposal.content;
+	const { check, map, reading } = proposal.content;
 	// A map that does not hold against the code or its styles is not shown to the owner as if it held.
 	if (!check.holds)
 		return {
@@ -254,24 +318,12 @@ export async function settleArchitectureMap(
 			unit,
 			blind_spot: `blind spot: the proposed architecture map does not hold: ${check.missing.join("; ")}`,
 		};
-	if (answer?.option_id === ADOPT) {
-		const verified = await bringVerification(ctx, unit, cor, requirements.ref, reference, copyPath, map);
-		return {
-			kind: "settled",
-			unit: verified.unit,
-			...("complements" in verified
-				? { complements: verified.complements }
-				: {
-						blind_spot: `blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: ${verified.unverified}`,
-					}),
-			map: {
-				adopted_on: answer.recorded_at.slice(0, 10),
-				decision_id: answer.decision_id,
-				map,
-				unassigned_packages: check.unassigned,
-			},
-		};
-	}
+	if (answer?.option_id === ADOPT)
+		return adoptMap(ctx, unit, cor, requirements.ref, reference, copyPath, answer, {
+			map,
+			unassigned: check.unassigned,
+			reading,
+		});
 	if (answer?.option_id === LEAVE)
 		return {
 			kind: "settled",

@@ -503,6 +503,11 @@ const R = {
 		unchecked: (name: string) =>
 			`les règles internes de la partie ${name} ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant`,
 		unassigned: "paquets sans partie :",
+		unseen: "ce que sa vérification ne voit pas :",
+		reading: "Lecture du modèle, qui n'est pas un constat et dont aucun verdict ne dépend :",
+		concerns: { data: "données :", cross_cutting: "préoccupations transverses :", deployment: "déploiement :" },
+		setAside: (statement: string, hint: string) =>
+			`énoncé écarté : « ${statement} », parce que son indice ${hint} ne désigne aucune ligne de la référence`,
 	},
 	en: {
 		title: "report",
@@ -551,6 +556,11 @@ const R = {
 		unchecked: (name: string) =>
 			`the internal rules of part ${name} are not verified, only its relations and the absence of cycles are`,
 		unassigned: "packages without a part:",
+		unseen: "what its verification does not see:",
+		reading: "Reading of the model, which is not a finding and no verdict depends on:",
+		concerns: { data: "data:", cross_cutting: "cross-cutting concerns:", deployment: "deployment:" },
+		setAside: (statement: string, hint: string) =>
+			`statement set aside: “${statement}”, because its hint ${hint} designates no line of the reference`,
 	},
 };
 
@@ -634,7 +644,10 @@ function concludedLines(report: EngineeringReport, lang: "fr" | "en"): string[] 
 	return lines.length ? lines : [`  ${t.none}`];
 }
 
-/** The architecture map the owner adopted, part by part, then the packages no part covers. */
+/**
+ * The architecture map the owner adopted, part by part, then the packages no part covers, what its verification does
+ * not see, and the reading of the model that goes with it, concern by concern, apart from the findings.
+ */
 function architectureLines(architecture: NonNullable<SurveySection["architecture"]>, lang: "fr" | "en"): string[] {
 	const t = R[lang];
 	const lines = [`  ${t.architecture(architecture.adopted_on)}`];
@@ -647,6 +660,19 @@ function architectureLines(architecture: NonNullable<SurveySection["architecture
 	lines.push(
 		`    ${t.unassigned} ${architecture.unassigned_packages.length === 0 ? t.none : architecture.unassigned_packages.join(", ")}`,
 	);
+	if (architecture.unseen.length > 0)
+		lines.push(`    ${t.unseen}`, ...architecture.unseen.map((u) => `      ${u[lang]}`));
+	const reading = architecture.reading;
+	if (reading === null) return lines;
+	lines.push(`    ${t.reading}`);
+	for (const concern of Object.keys(t.concerns) as (keyof typeof t.concerns)[]) {
+		const kept = reading.statements[concern].map((r) => `        ${r.statement} — ${r.hints.join(", ")}`);
+		const setAside = reading.set_aside
+			.filter((r) => r.concern === concern)
+			.map((r) => `        ${t.setAside(r.statement, r.hint)}`);
+		lines.push(`      ${t.concerns[concern]}`, ...(kept.length + setAside.length === 0 ? [`        ${t.none}`] : []));
+		lines.push(...kept, ...setAside);
+	}
 	return lines;
 }
 

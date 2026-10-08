@@ -24,7 +24,7 @@ import type {
 } from "../../ports/execution.ts";
 import { EXECUTOR_ACTOR } from "../../application/actors.ts";
 import { introducedByAddedFiles } from "../../application/coverage.ts";
-import { qualifyControlDetailed } from "../../application/qualification.ts";
+import { qualifyControlDetailed, witnessFilesOf } from "../../application/qualification.ts";
 import type { StackPlugin, WitnessFiles } from "../../application/stacks/plugin.ts";
 import { StackRegistry } from "../../application/stacks/registry.ts";
 import type { DetectedTechnology } from "../../application/stacks/stack.ts";
@@ -222,23 +222,27 @@ async function qualifyControls(
 	ordered: readonly ControlDefinition[],
 	detection: DetectedTechnology,
 ): Promise<ControlConformance[]> {
-	const sharedNegative = { ...detection.positive_witness, ...detection.negative_witness };
+	const witnesses = {
+		positive: detection.positive_witness,
+		negative: detection.negative_witness,
+		own_negative: detection.own_negative_witness,
+		reference_positive: detection.reference_positive ?? [],
+	};
 	await writeWitness(copies.positive.path, detection.positive_witness);
 	const results: ControlConformance[] = [];
 	for (const control of ordered) {
-		const own = detection.own_negative_witness[control.control_id];
-		const negativeFiles = own ? { ...detection.positive_witness, ...own } : sharedNegative;
+		const files = witnessFilesOf(witnesses, control.control_id);
 		const negative = await bench.workspace.createWorkspace(copies.reference, copies.policy);
 		try {
-			await writeWitness(negative.path, negativeFiles);
+			await writeWitness(negative.path, files.negative);
 			const { qualification } = await qualifyControlDetailed(
 				bench.runner,
 				control,
 				{
 					positive_path: copies.positive.path,
 					negative_path: negative.path,
-					positive_files: detection.positive_witness,
-					negative_files: negativeFiles,
+					positive_files: files.positive,
+					negative_files: files.negative,
 				},
 				invocationBase(bench, copies),
 				prerequisitesOf(control, ordered),

@@ -3,7 +3,13 @@
  * perimeter, its style and the role of each of its packages, and one per relation the map permits, each
  * element with the places in the reference that support it.
  */
-import type { ArchitectureHint, ArchitectureMap } from "../contracts/v1/protocol.ts";
+import {
+	type AdoptedArchitectureMap,
+	type ArchitectureHint,
+	type ArchitectureMap,
+	type ModelReading,
+	READING_CONCERNS,
+} from "../contracts/v1/protocol.ts";
 
 /** The places that support an element, each a file, a line and what it shows. */
 function supported(hints: readonly ArchitectureHint[]): string {
@@ -100,4 +106,27 @@ export function checkArchitectureMap(
 	];
 	if (missing.length > 0) return { holds: false, missing };
 	return { holds: true, unassigned: packages.filter((p) => !named.includes(p)) };
+}
+
+/** The reading of the model as it goes with an adopted map: the statements kept, and those set aside with their hint. */
+export type ReadingCheck = NonNullable<AdoptedArchitectureMap["reading"]>;
+
+/**
+ * Confronts each hint of the reading of the model with the files of the reference, as those of the map are: a
+ * statement one of whose hints designates no line of a file of the reference is set aside with that hint, the
+ * others are kept. The map holds or not whatever the reading says.
+ */
+export function checkReading(reading: ModelReading, linesOf: (path: string) => number | null): ReadingCheck {
+	const kept: ModelReading = { data: [], cross_cutting: [], deployment: [] };
+	const setAside: ReadingCheck["set_aside"] = [];
+	for (const concern of READING_CONCERNS)
+		for (const said of reading[concern]) {
+			const wrong = said.hints.find((h) => {
+				const lines = linesOf(h.path);
+				return lines === null || h.line > lines;
+			});
+			if (wrong === undefined) kept[concern].push(said);
+			else setAside.push({ concern, statement: said.statement, hint: `${wrong.path}:${wrong.line}` });
+		}
+	return { kept, set_aside: setAside };
 }

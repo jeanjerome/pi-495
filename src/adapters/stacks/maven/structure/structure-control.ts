@@ -11,6 +11,8 @@ import type { MavenProject } from "../project/maven-project.ts";
 import type { MavenModule, MavenReactor } from "../project/reactor.ts";
 import { archunitOffer } from "./archunit-declaration.ts";
 import { architectureVerification } from "./architecture-control.ts";
+import { dependenciesControl, dependenciesNegativeWitness } from "./dependencies-control.ts";
+import { dependenciesDeclaredIn } from "./dependencies-declaration.ts";
 import { mainPackages } from "./main-packages.ts";
 
 /**
@@ -153,10 +155,11 @@ function structureNegativeWitness(rules: readonly StructureRule[]): Record<strin
 
 export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 	offer: (question) => {
-		const { model, requirement_refs, node_binary } = question;
+		const { model, view, requirement_refs, node_binary } = question;
 		const rules = structureRules(model.reactor);
 		const architecture = architectureVerification(question);
 		const verified = architecture !== null && "control" in architecture ? architecture : null;
+		const dependencies = verified !== null && dependenciesDeclaredIn(view, model.reactor);
 		if (rules.length === 0 && verified === null) return { kind: "missing", reason: NO_OPPOSABLE_ROOTS };
 		const shortOf = [
 			...(rules.some((rule) => rule.kind === "forbidden_dependency") ? [] : [NO_OPPOSABLE_ROOTS]),
@@ -167,13 +170,18 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 			controls: [
 				...(rules.length > 0 ? [structureControl(requirement_refs, model.reactor, rules, node_binary)] : []),
 				...(verified ? [verified.control] : []),
+				...(dependencies ? [dependenciesControl(requirement_refs, model.reactor)] : []),
 			],
 			// A failing test proves nothing about a boundary: the tree that carries this defect is one where a
 			// module imports what it declares no dependency on, and it compiles nowhere.
 			own_negative_witness: {
 				...(rules.length > 0 ? { structure: structureNegativeWitness(rules) } : {}),
 				...(verified ? { architecture: verified.witness } : {}),
+				...(dependencies ? { dependencies: dependenciesNegativeWitness(model.reactor) } : {}),
 			},
+			// The shared positive witness imports the API of JUnit, which a module that declares the aggregate
+			// `junit-jupiter` uses without declaring: the positive witness of the dependencies is the reference alone.
+			...(dependencies ? { reference_positive: ["dependencies"] } : {}),
 			...(shortOf.length > 0 ? { short_of: shortOf.join("; ") } : {}),
 		};
 	},

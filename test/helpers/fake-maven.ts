@@ -130,6 +130,15 @@ export class FakeMavenControls implements ControlExecutionPort {
 			writeArchitectureReport(invocation.workspace_path, invocation.control);
 			return this.real.runControl({ ...invocation, control }, signal);
 		}
+		// dependency:analyze writes on the output of the build what it finds of each module, which the real reader reads.
+		if (control.parser === "dependency-analyze") {
+			const output = dependencyAnalysis(invocation.workspace_path);
+			const printed = {
+				...control,
+				command: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(output)})`],
+			};
+			return this.real.runControl({ ...invocation, control: printed }, signal);
+		}
 		const out = await this.real.runControl({ ...invocation, control }, signal);
 		// A reactor carries the witnesses in its first module, a single project at its root.
 		const files = javaFiles(invocation.workspace_path);
@@ -298,4 +307,80 @@ function writeArchitectureReport(workspace: string, control: ControlDefinition):
 		join(directory, "TEST-Architecture495Test.xml"),
 		`<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="Architecture495Test" tests="${cases.length}">\n${cases.join("")}</testsuite>\n`,
 	);
+}
+
+/** The dependencies a POM declares outside its parent, plugins and managed versions, with their scope. */
+function declaredDependencies(pom: string): { group: string; artifact: string; scope: string }[] {
+	const own = pom.replace(/<(parent|dependencyManagement|build|profiles)\b[\s\S]*?<\/\1>/g, "");
+	return [...own.matchAll(/<dependency>([\s\S]*?)<\/dependency>/g)].map((m) => ({
+		group: /<groupId>([^<]*)<\/groupId>/.exec(m[1]!)?.[1] ?? "",
+		artifact: /<artifactId>([^<]*)<\/artifactId>/.exec(m[1]!)?.[1] ?? "",
+		scope: /<scope>([^<]*)<\/scope>/.exec(m[1]!)?.[1] ?? "compile",
+	}));
+}
+
+/**
+ * Stands for `dependency:analyze` as the dependencies control runs it on each module of the reactor: a module
+ * that imports a package of another module's main sources without declaring that module uses it undeclared, as
+ * does a test that imports the exception of opentest4j, or the API of JUnit Jupiter in a module that does not
+ * declare `junit-jupiter-api`; a dependency of the compile scope from outside the reactor that no source of the
+ * module imports a package of its group from is unused, and so is the aggregate `junit-jupiter`.
+ */
+function dependencyAnalysis(workspace: string): string {
+	const root = readFileSync(join(workspace, "pom.xml"), "utf8");
+	const modules = [...root.matchAll(/<module>([^<]+)<\/module>/g)].map((m) => m[1]!);
+	const sources = javaFiles(workspace).map((path) => ({ path, text: readFileSync(join(workspace, path), "utf8") }));
+	const packagesOf = (module: string) =>
+		new Set(
+			sources
+				.filter((s) => s.path.startsWith(`${module}/src/main/java/`))
+				.map((s) => /^package ([\w.]+);/m.exec(s.text)?.[1] ?? ""),
+		);
+	const lines = ["[INFO] Scanning for projects..."];
+	for (const module of modules) {
+		const declared = declaredDependencies(readFileSync(join(workspace, module, "pom.xml"), "utf8"));
+		const own = sources.filter((s) => s.path.startsWith(`${module}/`));
+		const imports = own.flatMap((s) =>
+			[...s.text.matchAll(/^import (?:static )?([\w.]+?)(?:\.\*)?;/gm)].map((m) => m[1]!),
+		);
+		const used: string[] = [];
+		for (const other of modules) {
+			if (other === module || declared.some((d) => d.artifact === other)) continue;
+			const packages = packagesOf(other);
+			const classes = imports.filter((name) => packages.has(name.slice(0, name.lastIndexOf("."))));
+			if (classes.length > 0)
+				used.push(
+					`[WARNING]    io.demo:${other}:jar:1.0.0:compile`,
+					...classes.map((c) => `[WARNING]       class ${c}`),
+				);
+		}
+		const jupiter = imports.filter((name) => name.startsWith("org.junit.jupiter.api."));
+		if (jupiter.length > 0 && !declared.some((d) => d.artifact === "junit-jupiter-api"))
+			used.push(
+				"[WARNING]    org.junit.jupiter:junit-jupiter-api:jar:5.10.2:test",
+				...[...new Set(jupiter)].map((c) => `[WARNING]       class ${c}`),
+			);
+		if (imports.includes("org.opentest4j.AssertionFailedError"))
+			used.push(
+				"[WARNING]    org.opentest4j:opentest4j:jar:1.3.0:test",
+				"[WARNING]       class org.opentest4j.AssertionFailedError",
+			);
+		const unused = declared
+			.filter(
+				(d) =>
+					(d.scope === "compile" &&
+						!modules.includes(d.artifact) &&
+						!imports.some((n) => n.startsWith(`${d.group}.`))) ||
+					d.artifact === "junit-jupiter",
+			)
+			.map((d) => `[WARNING]    ${d.group}:${d.artifact}:jar:1.0:${d.scope}`);
+		lines.push(
+			`[INFO] --- dependency:3.11.0:analyze (analyze495) @ ${module} ---`,
+			...(used.length > 0 ? ["[WARNING] Used undeclared dependencies found:", ...used] : []),
+			...(unused.length > 0 ? ["[WARNING] Unused declared dependencies found:", ...unused] : []),
+			...(used.length + unused.length === 0 ? ["[INFO] No dependency problems found"] : []),
+			"[INFO] ",
+		);
+	}
+	return `${[...lines, "[INFO] BUILD SUCCESS"].join("\n")}\n`;
 }
