@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/fictitious-technology-example.test.ts",
+    "ligne": 13,
+    "constat": "Le test qui lit les imports de l'exemple ne reconnaît que trois formes : `from`, `import(` et `require(`. Un import nu de la forme `import \"../../src/domain/errors.ts\";` lui échappe. Pourtant, avec cet import, le module se charge et va lire un module interne de 495. Les formes ordinaires (import nommé, import de type, `export … from`) sont bien tenues.",
+    "mutation": "Ajout de `import \"../../src/domain/errors.ts\";` en tête de examples/fictitious-technology/fict.ts : le test passe (3/3) et le module se charge. Avec la forme nommée `import { DomainError } from \"../../src/domain/errors.ts\"`, il échoue comme attendu."
+   }
+  ],
+  "resume": "Le tour 2 ajoute seulement des tests, en réponse aux constats A1-1 à A1-4 et B1-1 à B1-4. Chaque nouveau test a été vérifié par mutation, et chaque fois il échoue :\n- retirer `CoverageCapability` ou `Offer` de src/stack.ts, puis builder : le typecheck échoue sur published-stack-interface.test.ts ;\n- ajouter `\"./*\": \"./dist/*\"` aux exports : le test de fermeture échoue ;\n- dans l'exemple, ajouter un import nommé d'un module de src/, rétrograder la section Mutation du guide, retirer la commande de conformité ou casser le lien « Other languages » : le test v1 de l'exemple échoue ;\n- supprimer le constat sur un rapport au-delà de la borne de lecture : le nouveau test v2 échoue ;\n- faire juger le projet lui-même au lieu d'une copie : le test v2 et le test v4 du script échouent tous deux sur « left as it was ». Les fichiers que cette mutation a écrits ont été retirés.\n\nLes promesses déjà relues au tour 1 tiennent toujours sous mutation :\n- refus `CAPABILITY_MISSING` ;\n- constat « negative witness gave PASS » ;\n- lecteur qui conclut sur un rapport absent ;\n- projet non reconnu ;\n- Node et Maven conformes : le test v4 tourne ici sans être sauté, et il échoue quand on inverse le filtre des contrôles qualifiés, après rebuild.\n\nIl reste un seul constat, à peser : le test des imports de l'exemple ne voit pas un import nu. Aucun constat introduit ou rendu atteignable n'est bloquant ni à corriger. L'arbre est laissé propre, avec dist reconstruit depuis src."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/fictitious-technology-example.test.ts",
+    "ligne": 13,
+    "constat": "The test reads the example's imports with a pattern that requires `from`, `import(` or `require(` before the specifier. A bare side-effect import of an internal module (`import \"../../src/domain/errors.ts\";`) slips past it, and so would a `.js` or `.mjs` module in the example, since only `.ts` files are read. Every import that brings a name in, whether type-only, re-exported, dynamic or reaching `dist/`, is caught.",
+    "mutation": "Added `import \"../../src/domain/errors.ts\";` to fict.ts: the test stays green (3/3). By contrast, `import type { DomainError } from \"../../src/domain/errors.ts\"` in fict.ts, `from \"../../src/stack.ts\"` in conformance.ts, and an import of `pi-495/dist/adapters/execution/parsers.js` each fail it."
+   }
+  ],
+  "resume": "Round 2 of reviewer B on e37s05, at 068a8d3b, after `npm run build` from a clean src. Every promise of the six scenarios and of the security section is kept by the code and held by a test; each mutation below was undone afterwards.\n\nPublished interface:\n- Removing `Offer`, `CapabilityQuestion`, `WorkspaceCapability`, `ProjectView` or `StackPlugin` from src/stack.ts and rebuilding breaks the typecheck (published-stack-interface.test.ts, or fict.ts for StackPlugin).\n- Adding `./*` or `.` to `exports` fails the test that checks undeclared paths are closed.\n\nstackConformance:\n- Each of these fails its test in stack-conformance.test.ts:\n  - never writing the oversized report;\n  - writing a report one byte below the read bound;\n  - dropping the oversized finding;\n  - dropping the absent-report finding;\n  - dropping the finding on a control not qualified;\n  - dropping the finding on a project not recognised;\n  - dropping the sandbox refusal.\n- Writing the positive witness into the judged project fails the gitState check in v2. It also fails the v4 test of the example script, which saw the two files written into the sample project; I removed them afterwards.\n- Switching the published `stackConformance` to `allow_unconfined: true` makes it refuse with CAPABILITY_MISSING, so the v4 script test fails.\n- The v4 Node and Maven tests assert both no finding and the names of the judged controls; I did not mutate them.\n\nExample, guide and README:\n- An internal import that brings a name in fails the example test.\n- Renaming the Workspace section, removing the word mutation from its heading, changing the conformance command, or removing the link on the \"Other languages\" line each fails its test.\n\nOne finding, to weigh: a bare side-effect import, or a non-.ts module in the example, escapes the import check. No finding is blocking or to fix, so the verdict is pass. The working tree is clean apart from the linked node_modules."
+ }
+]

@@ -1,0 +1,84 @@
+TAP version 13
+# Subtest: stackConformance judges a technology on projects of its own
+    # Subtest: given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+    ok 1 - given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+      ---
+      duration_ms: 261.971625
+      type: 'test'
+      ...
+    # Subtest: given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+    ok 2 - given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+      ---
+      duration_ms: 216.373083
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+    ok 3 - given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+      ---
+      duration_ms: 219.904834
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader gives PASS on a report past the read bound, the report carries a finding that names that reader and the bound it concluded past
+    ok 4 - given a variant whose reader gives PASS on a report past the read bound, the report carries a finding that names that reader and the bound it concluded past
+      ---
+      duration_ms: 225.0985
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader adds a scope argument to the command of the control and reads a non-zero exit without a report as FAIL, the report carries no finding and names that reader INDETERMINATE on an absent report and on a report past the read bound
+    not ok 5 - given a variant whose reader adds a scope argument to the command of the control and reads a non-zero exit without a report as FAIL, the report carries no finding and names that reader INDETERMINATE on an absent report and on a report past the read bound
+      ---
+      duration_ms: 221.959667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vd7TAZ/test/v2-kernel/stack-conformance.test.ts:146:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the report carries no finding
+        + actual - expected
+        
+        + [
+        +   'reader fict-lines gave FAIL on /var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/495-proj-FAsxTq with no report at fict-report.txt, through control fict-tests'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'reader fict-lines gave FAIL on /var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/495-proj-FAsxTq with no report at fict-report.txt, through control fict-tests'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vd7TAZ/test/v2-kernel/stack-conformance.test.ts:148:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+    ok 6 - given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+      ---
+      duration_ms: 17.105125
+      type: 'test'
+      ...
+    # Subtest: given a sandbox declared not qualified, stackConformance rejects with the code CAPABILITY_MISSING and the reason of the sandbox, and the execution engine received no command
+    ok 7 - given a sandbox declared not qualified, stackConformance rejects with the code CAPABILITY_MISSING and the reason of the sandbox, and the execution engine received no command
+      ---
+      duration_ms: 31.701333
+      type: 'test'
+      ...
+    1..7
+not ok 1 - stackConformance judges a technology on projects of its own
+  ---
+  duration_ms: 1194.795416
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vd7TAZ/test/v2-kernel/stack-conformance.test.ts:102:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1442.794042

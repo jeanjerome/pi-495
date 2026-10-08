@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: stackConformance judges a technology on projects of its own
+    # Subtest: given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+    ok 1 - given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+      ---
+      duration_ms: 249.220542
+      type: 'test'
+      ...
+    # Subtest: given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+    ok 2 - given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+      ---
+      duration_ms: 211.990959
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+    ok 3 - given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+      ---
+      duration_ms: 220.015
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader gives PASS on a report past the read bound, the report carries a finding that names that reader and the bound it concluded past
+    ok 4 - given a variant whose reader gives PASS on a report past the read bound, the report carries a finding that names that reader and the bound it concluded past
+      ---
+      duration_ms: 222.868875
+      type: 'test'
+      ...
+    # Subtest: given a variant whose reader adds a scope argument to the command of the control and reads a non-zero exit without a report as FAIL, the report carries no finding and names that reader INDETERMINATE on an absent report and on a report past the read bound
+    ok 5 - given a variant whose reader adds a scope argument to the command of the control and reads a non-zero exit without a report as FAIL, the report carries no finding and names that reader INDETERMINATE on an absent report and on a report past the read bound
+      ---
+      duration_ms: 220.044792
+      type: 'test'
+      ...
+    # Subtest: given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+    ok 6 - given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+      ---
+      duration_ms: 16.806917
+      type: 'test'
+      ...
+    # Subtest: given a sandbox declared not qualified, stackConformance rejects with the code CAPABILITY_MISSING and the reason of the sandbox, and the execution engine received no command
+    ok 7 - given a sandbox declared not qualified, stackConformance rejects with the code CAPABILITY_MISSING and the reason of the sandbox, and the execution engine received no command
+      ---
+      duration_ms: 28.784083
+      type: 'test'
+      ...
+    1..7
+ok 1 - stackConformance judges a technology on projects of its own
+  ---
+  duration_ms: 1170.365042
+  type: 'suite'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1418.564083

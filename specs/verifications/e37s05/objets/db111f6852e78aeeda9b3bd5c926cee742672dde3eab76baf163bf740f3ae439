@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the interface of a technology, published under pi-495/stack
+    # Subtest: given the package of 495, package.json declares exports["./stack"] with its types, and import("pi-495/stack") gives stackConformance and the readers of the exit code, of JUnit XML and of LCOV
+    ok 1 - given the package of 495, package.json declares exports["./stack"] with its types, and import("pi-495/stack") gives stackConformance and the readers of the exit code, of JUnit XML and of LCOV
+      ---
+      duration_ms: 80.990958
+      type: 'test'
+      ...
+    # Subtest: given a module typed against pi-495/stack, StackPlugin, each of its capabilities, the question they receive, their offer and the view of the project are types it reads there
+    ok 2 - given a module typed against pi-495/stack, StackPlugin, each of its capabilities, the question they receive, their offer and the view of the project are types it reads there
+      ---
+      duration_ms: 0.112583
+      type: 'test'
+      ...
+    # Subtest: given the exports of the package, a path it does not declare reaches no module of the package
+    ok 3 - given the exports of the package, a path it does not declare reaches no module of the package
+      ---
+      duration_ms: 0.44775
+      type: 'test'
+      ...
+    # Subtest: given the exports of the package, Pi still loads the extension from the path pi.extensions names, relative to the package root
+    ok 4 - given the exports of the package, Pi still loads the extension from the path pi.extensions names, relative to the package root
+      ---
+      duration_ms: 327.962917
+      type: 'test'
+      ...
+    1..4
+ok 1 - the interface of a technology, published under pi-495/stack
+  ---
+  duration_ms: 410.018166
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 488.341209

@@ -1,0 +1,94 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'interface d'une technologie est publiée sous un chemin stable",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/stack.ts",
+    "ligne": 9,
+    "constat": "Le code tient la promesse : un paquet empaqueté et installé dans un projet jetable donne les types par `pi-495/stack`, et tsc passe sans skipLibCheck. Mais aucun test ni aucun typecheck ne lit `CapabilityQuestion`, `Offer`, `ProjectView` ou les types des capacités autres que `StackPlugin` sous ce chemin. `examples/fictitious-technology/fict.ts` n'importe que `ParsedReport`, `ReportReader` et `StackPlugin`, et le test v1 ne vérifie que des valeurs. Si l'un de ces types disparaît de l'interface, tout reste vert.",
+    "mutation": "Retrait de `CapabilityQuestion`, `Offer` et `CoverageCapability` de l'export de types, et de la ligne `export type { ProjectEntry, ProjectView }`, puis build : typecheck, lint:code, lint:exports et published-stack-interface.test.ts restent verts."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "examples/fictitious-technology/fict.ts",
+    "ligne": 7,
+    "constat": "Aujourd'hui, l'exemple n'importe de 495 que `pi-495/stack`. Mais aucun contrôle ne vérifie que l'exemple n'importe rien d'autre de 495 : check-layers et check-architecture ne lisent pas `examples/`, et les tests importent `fict.ts` sans regarder ses imports. Un import direct d'un module de `src/` passe partout.",
+    "mutation": "Ajout dans fict.ts de `import { MAX_REPORT_BYTES } from \"../../src/adapters/execution/parsers.ts\"` avec un export qui l'emploie : typecheck, lint:code, lint:layers, lint:architecture, lint:exports, lint:distribution et les tests v2 de fict (11 tests) restent verts."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "README.md",
+    "ligne": 178,
+    "constat": "Le guide traite chaque capacité (reconnaissance, lecteurs, tests, couverture, mutation, qualité, structure, espace de travail, installation) et explique comment lancer `node examples/fictitious-technology/conformance.ts`. Lancé après le build, ce script rend un rapport sans constat. La ligne « Other languages » renvoie bien au guide. Ces promesses de prose ne sont tenues par aucun test, et aucune vérification ne repère un lien cassé.",
+    "mutation": "Lien du README remplacé par `examples/nowhere/README.md` : lint:code, lint:distribution et lint:story-format restent verts."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "package.json",
+    "ligne": 42,
+    "constat": "Sur le paquet installé, `exports` ferme bien `pi-495`, `pi-495/dist/index.js` et `pi-495/package.json` (ERR_PACKAGE_PATH_NOT_EXPORTED). Pi lit `package.json` et `pi.extensions` par le système de fichiers (core/package-manager.js), donc rien ne casse. Mais aucun test n'affirme cette fermeture : un export générique `./*` passerait. De même, aucun test ne vérifie que le projet jugé reste intact ; je l'ai constaté à la main (git status propre après le script sur `examples/fictitious-technology/project`).",
+    "mutation": "Ajout de `\"./*\": \"./dist/*\"` à `exports` : published-stack-interface.test.ts reste vert."
+   }
+  ],
+  "resume": "Verdict : échec, à cause de deux constats « à corriger » introduits par la branche. Aucun constat bloquant : le code tient toutes les promesses de la story.\n\n**Sondes**\n- J'ai empaqueté 495 avec `npm pack` et installé le paquet dans un projet jetable. `import('pi-495/stack')` donne `stackConformance`, `EXIT_CODE_READER`, `JUNIT_READER` et `lcovReader`. Tous les types se résolvent sous tsc, sans skipLibCheck. Les chemins internes sont fermés.\n- `node examples/fictitious-technology/conformance.ts` tourne sous Seatbelt et rend un rapport sans constat : contrôle positif PASS, négatif FAIL, panne INDETERMINATE ; lecteur INDETERMINATE sur rapport absent et sur rapport trop gros. Le projet n'est pas modifié.\n- Les tests v4 Node et Maven sont verts.\n\n**Mutations détectées par un test**\n- Retrait de la garde du bac à sable, du constat « projet non reconnu », du constat « contrôle non qualifié », du constat sur le lecteur qui conclut sur un rapport absent, ou de l'interrogation des lecteurs : le test v2 de conformité échoue.\n- Retrait de l'écriture du rapport trop gros : un test v2 échoue aussi.\n- Retour à l'ancien `relativize` : le test v0 et le test v4 Node échouent.\n- Témoin négatif propre à un contrôle ignoré : les tests v4 Node et Maven échouent.\n\n**Promesses qu'aucun test ne tient**\n- A1-1 : les types publiés `CapabilityQuestion`, `Offer`, `ProjectView` et les types de capacités autres que `StackPlugin` peuvent disparaître de `pi-495/stack` sans que rien ne rougisse.\n- A1-2 : rien ne vérifie que l'exemple n'importe de 495 que `pi-495/stack`.\n\n**À peser**\n- A1-3 : le guide et le lien du README sont justes, mais aucune vérification ne les garde.\n- A1-4 : la fermeture de `exports` et l'intégrité du projet jugé tiennent, mais aucun test ne les affirme.\n\nRien n'est commité. Les mutations ont été remises en place, le `dist/` reconstruit vient de HEAD et l'arbre de travail est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "examples/fictitious-technology/fict.ts",
+    "ligne": 7,
+    "constat": "The example imports nothing of 495 but `pi-495/stack`, so the code keeps the promise, but no test or check holds it. An internal import added to the example leaves the typecheck, every lint and the tests that load the example green.",
+    "mutation": "Moved `ParsedReport` from `pi-495/stack` to `import type { ParsedReport } from \"../../src/ports/execution.ts\"` in fict.ts. Then ran typecheck, lint:code, lint:layers, lint:architecture, lint:exports and lint:distribution, plus the tests stack-conformance, fictitious-stack, fictitious-install and published-stack-interface: all green (16/16)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'exemple documenté n'emploie que l'interface publiée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "README.md",
+    "ligne": 178,
+    "constat": "The \"Other languages\" line links to examples/fictitious-technology/README.md, so the code keeps the promise. No test or check holds that link: removing it leaves every check that reads the README green.",
+    "mutation": "Replaced `[Writing a technology](examples/fictitious-technology/README.md)` with plain text. lint:code, lint:distribution, lint:architecture and lint:story-format stayed green, and so did every test file that mentions README (221/221)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "L'interface d'une technologie est publiée sous un chemin stable",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/stack.ts",
+    "ligne": 8,
+    "constat": "`pi-495/stack` does export the promised types (`StackPlugin`, the capabilities, `CapabilityQuestion`, `Offer`, `ProjectView`), but no test holds them. published-stack-interface.test.ts asserts only the runtime values (`stackConformance` and the three readers), and the example imports only `StackPlugin`, `ReportReader` and `ParsedReport`.",
+    "mutation": "Removed `CapabilityQuestion`, `Offer`, `TestCapability` and the `ProjectEntry, ProjectView` line from src/stack.ts, then rebuilt dist (dist/stack.d.ts no longer names them). The build, typecheck, lint:code, lint:exports, lint:distribution, lint:architecture and the tests published-stack-interface and stack-conformance all stayed green (7/7)."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Le test de conformité nomme ce qui ne tient pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/conformance.ts",
+    "ligne": 329,
+    "constat": "The finding for a reader that concludes on a report past the read bound is held by no test of its own. Removing it leaves the suite green. The story promises this finding only for the absent report, which is held (mutation M2 fails its test).",
+    "mutation": "`if (r.oversized !== null && r.oversized !== \"INDETERMINATE\")` → `if (false)`: stack-conformance.test.ts 5/5 green."
+   }
+  ],
+  "resume": "The code keeps every promise of the story. Verdict: fail, because three of them are held by no test (B1-1 to B1-3), plus one point to weigh (B1-4).\n\nPromises the code keeps and a test holds:\n- **Conformance checks** (`judgeTechnology`):\n  - Without the qualified-sandbox check, the CAPABILITY_MISSING test fails.\n  - Without the not-recognised finding, the unrecognised-project test fails.\n  - Without the finding for an unqualified control, the \"negative witness gave PASS\" test fails.\n  - Without the finding for a reader that concludes on an absent report, its test fails.\n  - When no control names the reader, the report and the reader-variant test fail.\n  - Keeping the control's real command in the reader probe fails three tests.\n  - Without the oversized report, the absent-report variant gives two findings instead of one, so its test fails.\n- **Platform sandbox**: `stackConformance` takes the platform sandbox through `selectSandbox({ allow_unconfined: false })`. The unconfined backend reports itself not qualified, so it is refused.\n- **Node and Maven**: under Seatbelt, the Node conformance passes. With the path-length sort of `relativize` removed it fails, so the fix is held. Maven is installed here and Preflight is green, so the Maven test ran and passed.\n- **Pi loading**: Pi's loader resolves `pi.extensions` with `path.resolve(dir, extPath)`. The `exports` field therefore does not block loading. The test imports the extension by its file path, as Pi does.\n- **Packaging**: `npm pack` carries `dist/stack.js`, `dist/stack.d.ts` and the conformance module.\n\nPromises the code keeps but no test holds:\n- **B1-1**: the example imports nothing of 495 but `pi-495/stack`. An added internal import leaves the typecheck, every lint and the tests green.\n- **B1-2**: the README's \"Other languages\" line links to the guide. Removing the link breaks nothing.\n- **B1-3**: the types `ProjectView`, `CapabilityQuestion`, `Offer` and `TestCapability` can be removed from `pi-495/stack` with everything still green.\n\nTo weigh:\n- **B1-4**: no test of its own holds the finding for a reader that concludes on an oversized report. The story promises this finding only for the absent report.\n\nMy copy of the tree is unchanged: every mutation was reverted, nothing was committed, and the only extra is the git-ignored `dist/` I built."
+ }
+]

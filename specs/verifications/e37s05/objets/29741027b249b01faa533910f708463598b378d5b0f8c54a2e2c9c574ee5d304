@@ -1,0 +1,127 @@
+TAP version 13
+# Subtest: stackConformance judges a technology on projects of its own
+    # Subtest: given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+    not ok 1 - given a project the fictitious technology recognises, stackConformance gives a report without finding, which names fict-tests qualified by its witnesses and fict-lines INDETERMINATE on an absent report and on a report past the read bound
+      ---
+      duration_ms: 566.0205
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:48:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        pi-495/stack gives stackConformance
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        publishedConformance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:14:9)
+        async judged (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:20:27)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:50:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+    not ok 2 - given a variant whose negative witness passes, the report carries a finding that names fict-tests and "negative witness gave PASS"
+      ---
+      duration_ms: 31.485458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:68:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        pi-495/stack gives stackConformance
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        publishedConformance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:14:9)
+        async judged (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:20:27)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:69:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+    not ok 3 - given a variant whose reader gives PASS where no report was written, the report carries a finding that names that reader and the absent report it concluded on
+      ---
+      duration_ms: 37.976583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:75:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        pi-495/stack gives stackConformance
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        publishedConformance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:14:9)
+        async judged (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:20:27)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:76:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+    not ok 4 - given a project the fictitious technology does not recognise, the report carries a finding that names it rather than nothing
+      ---
+      duration_ms: 0.529834
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:82:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        pi-495/stack gives stackConformance
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        publishedConformance (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:14:9)
+        async judged (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:20:27)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:85:18)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - stackConformance judges a technology on projects of its own
+  ---
+  duration_ms: 636.524708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3vSjc1/test/v2-kernel/stack-conformance.test.ts:47:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 896.008875

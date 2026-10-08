@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the interface of a technology, published under pi-495/stack
+    # Subtest: given the package of 495, package.json declares exports["./stack"] with its types, and import("pi-495/stack") gives the readers of the exit code, of JUnit XML and of LCOV
+    ok 1 - given the package of 495, package.json declares exports["./stack"] with its types, and import("pi-495/stack") gives the readers of the exit code, of JUnit XML and of LCOV
+      ---
+      duration_ms: 82.946709
+      type: 'test'
+      ...
+    # Subtest: given the exports of the package, Pi still loads the extension from the path pi.extensions names, relative to the package root
+    ok 2 - given the exports of the package, Pi still loads the extension from the path pi.extensions names, relative to the package root
+      ---
+      duration_ms: 319.499167
+      type: 'test'
+      ...
+    1..2
+ok 1 - the interface of a technology, published under pi-495/stack
+  ---
+  duration_ms: 402.913167
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 481.20975
