@@ -464,7 +464,7 @@ epics:
     stories:
       - { id: e11s01, status: "versée", title: "495 propose la carte d'architecture d'une cible Maven, chaque partie avec son style, ses rôles et ses indices, et le propriétaire l'adopte" }
       - { id: e11s02, status: "versée", title: "L'état des lieux vérifie la carte adoptée d'une cible Maven avec ArchUnit, chaque violation localisée" }
-      - { id: e11s03, status: "à faire", title: "L'état des lieux d'une cible Maven compare les dépendances que ses POM déclarent à celles que son code utilise, nomme ses angles morts et donne la lecture du modèle sur ses données, ses préoccupations transverses et son déploiement" }
+      - { id: e11s03, status: "versée", title: "L'état des lieux d'une cible Maven compare les dépendances que ses POM déclarent à celles que son code utilise, nomme ses angles morts et donne la lecture du modèle sur ses données, ses préoccupations transverses et son déploiement" }
       - { id: e11s04, status: "à faire", title: "La carte d'architecture d'une cible Node est proposée, adoptée et vérifiée" }
       - { id: e11s05, status: "à faire", title: "La recommandation d'architecture est argumentée par les contraintes du projet, fondée sur une revue de patterns, et arbitrée par le propriétaire" }
       - { id: e11s06, status: "à faire", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
