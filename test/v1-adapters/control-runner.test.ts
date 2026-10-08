@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync, mkdtempSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
@@ -23,6 +23,7 @@ import {
 import { ENV } from "../helpers/change-fixture.ts";
 import { controlOf, invocationBase as base, observation as obs } from "../helpers/execution-fixture.ts";
 import { READERS_OF_495, STACKS_OF_495 } from "../helpers/technologies.ts";
+import { linesReader } from "../../examples/fictitious-technology/fict.ts";
 
 let root: string;
 const cleanups = removedAfterEach();
@@ -1251,5 +1252,89 @@ describe("the mutation control under the verification sandbox", darwinOnly, () =
 		assert.match(outside.stderr, /write failed: EPERM/);
 		assert.equal(existsSync(join(outside.ws, "elsewhere.txt")), false, "the sandbox refused the write");
 		assert.notEqual(outside.evidence.verdict, "PASS");
+	});
+});
+
+/** A `bwrap` that runs the command placed after `--` and nothing else, in a directory of its own under `root`. */
+function substituteBwrap(): string {
+	const bin = mkdtempSync(join(root, "bin-"));
+	writeFileSync(
+		join(bin, "bwrap"),
+		'#!/bin/sh\nwhile [ "$#" -gt 0 ] && [ "$1" != "--" ]; do shift; done\nshift\nexec "$@"\n',
+	);
+	chmodSync(join(bin, "bwrap"), 0o755);
+	return bin;
+}
+
+describe("a report a control declares writable, under bubblewrap", () => {
+	/** A control that writes its report, a file it declares writable, at the root of the copy. */
+	const reportingControl = controlOf({
+		control_id: "fict-tests",
+		command: [NODE, "-e", 'require("node:fs").writeFileSync("fict-report.txt", "PASS greets\\n")'],
+		parser: "fict-lines",
+		report_path: "fict-report.txt",
+		writable_paths: ["fict-report.txt"],
+	});
+	async function runUnderBubblewrap(control = reportingControl) {
+		const ws = mkdtempSync(join(root, "ws-"));
+		const runner = new GenericControlRunner(
+			new BubblewrapSandbox({ temp_paths: [] }),
+			new CasObjectStore(join(root, "objects")),
+			[linesReader("fict-lines", "behaviour")],
+		);
+		const { evidence } = await runner.runControl({ ...base(), control, workspace_path: ws });
+		return { evidence, report: join(ws, "fict-report.txt") };
+	}
+
+	it("given a control whose report is a file it declares writable and the copy does not hold, run by the runner under BubblewrapSandbox through a substitute bwrap that runs the command placed after --, then the path is a file holding what the command wrote and the verdict is PASS", async () => {
+		const PATH = process.env.PATH;
+		process.env.PATH = `${substituteBwrap()}:${PATH}`;
+		try {
+			const { evidence, report } = await runUnderBubblewrap();
+			assert.equal(statSync(report).isFile(), true, "the report is a file, not a directory");
+			assert.equal(readFileSync(report, "utf8"), "PASS greets\n");
+			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+		} finally {
+			process.env.PATH = PATH;
+		}
+	});
+
+	it("given a control whose report is a file it declares writable and the copy does not hold, and whose command writes no report, run under BubblewrapSandbox through a substitute bwrap, then nothing is left at that path and the reader finds no report", async () => {
+		const PATH = process.env.PATH;
+		process.env.PATH = `${substituteBwrap()}:${PATH}`;
+		try {
+			const silent = { ...reportingControl, command: [NODE, "-e", ""] };
+			const { evidence, report } = await runUnderBubblewrap(silent);
+			assert.equal(existsSync(report), false, "the file made to be bound is removed when the command left it empty");
+			assert.equal(evidence.verdict, "INDETERMINATE");
+			assert.ok(evidence.limits.notes.includes("no fict-lines report"), JSON.stringify(evidence.limits.notes));
+		} finally {
+			process.env.PATH = PATH;
+		}
+	});
+
+	it("given the node:test suite control with its coverage, whose command names its LCOV report as the destination of a reporter and which declares that file writable, run under BubblewrapSandbox through a substitute bwrap, then the LCOV report is a file and the verdict is PASS", async () => {
+		const ws = mkdtempSync(join(root, "ws-"));
+		fixtureTs(ws);
+		writeFiles(ws, {
+			"package.json": JSON.stringify({ type: "module", scripts: { test: "node --test --experimental-test-coverage" } }),
+		});
+		const unit = STACKS_OF_495.recognise(ws, [{ requirement_id: "R1", revision: 1 }], NODE).controls.find(
+			(c) => c.control_id === "unit",
+		)!;
+		const runner = new GenericControlRunner(
+			new BubblewrapSandbox({ temp_paths: [] }),
+			new CasObjectStore(join(root, "objects")),
+			READERS_OF_495,
+		);
+		const PATH = process.env.PATH;
+		process.env.PATH = `${substituteBwrap()}:${PATH}`;
+		try {
+			const { evidence } = await runner.runControl({ ...base(), control: unit, workspace_path: ws });
+			assert.equal(statSync(join(ws, "495-lcov.info")).isFile(), true, "the LCOV report is a file, not a directory");
+			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+		} finally {
+			process.env.PATH = PATH;
+		}
 	});
 });

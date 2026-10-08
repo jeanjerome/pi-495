@@ -1762,3 +1762,97 @@ bugs:
       Let `bringingOf` return the reason it gives up, and word the blind spot from it, with a test on a referential
       whose manager no technology runs.
     status: open
+  - bug_id: BUG-2026-10-08T120000
+    date: "2026-10-08"
+    title: "The conformance test reports no finding for a reader that no control offered on the sample projects names with a report, so a reader never judged passes unseen"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `probeReaders` (`src/adapters/stacks/conformance.ts`) asks each reader of the technology through the first
+      control offered on the project that names it with a report. When no such control is offered there, the
+      reader is listed with `absent` and `oversized` null, and `findingsOf` adds nothing: a technology whose
+      sample projects never exercise one of its readers gets a report without finding, while that reader was
+      never asked what it concludes on an absent report or on one past the read bound.
+    what_expected: >
+      A reader the conformance test could not judge on any of the projects is named in the findings, or the
+      report says, apart from the findings, that it was not judged, so that an empty list of findings means every
+      reader held.
+    steps_to_reproduce:
+      - "Add to the fictitious technology a second reader that no control names, and judge it on its sample project."
+      - "The report carries no finding; the second reader is listed with null verdicts."
+    root_cause: >
+      `findingsOf` skips a reader whose verdicts are null, which stands both for a project that does not exercise
+      the reader and for a reader no control of the technology names at all.
+    evidence: >
+      Read in `findingsOf`: the two conditions on `r.absent` and `r.oversized` both require a non-null verdict;
+      the guide of `examples/fictitious-technology/README.md` only asks for projects that exercise each
+      capability.
+    risk_level: low
+    follow_ups: >
+      Decide whether an unjudged reader is a finding across all the projects of a run, then add a test with a
+      reader no sample project exercises.
+    status: open
+  - bug_id: BUG-2026-10-08T180000
+    date: "2026-10-08"
+    title: "Under bubblewrap, a writable directory a control names as its report or in its command is made as a file when the copy does not hold it, so the tool cannot write in it"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `GenericControlRunner.profileFor` (`src/adapters/execution/runner.ts`) guesses which writable paths are files:
+      the report path when it is not a `**/` pattern, and any path the command names as an argument or as the value
+      of an option. `BubblewrapSandbox.run` (`src/adapters/sandbox/backends.ts`) then makes each absent one as an
+      empty file. A report path can name a directory (the jscpd output `target/495-jscpd` of the Node technology
+      does), and an option can name an output directory (`--outputDir=reports`): a technology that declares that
+      same directory writable finds an empty file there under Linux, and its tool fails with `ENOTDIR` or
+      `EEXIST`, where before the branch the directory was made and the control ran. No control of Node or Maven
+      declares such a path today.
+    what_expected: >
+      A writable path a control declares is granted as what the control writes there, a directory staying a
+      directory, whatever its report path or its command look like.
+    steps_to_reproduce:
+      - "Under BubblewrapSandbox, run a control whose writable_paths and report_path are both `reports`, and whose command writes `reports/out.json`."
+      - "The runner grants `reports` as a file; the command fails to create `reports/out.json`, and the reader finds no report."
+    root_cause: >
+      Whether a writable path is a file or a directory is inferred from the shape of the report path and of the
+      command, not declared by the control.
+    evidence: >
+      Read in `profileFor`: `files` holds every argument and every option value of the command, resolved, and the
+      report path; `write_files` is the writable paths in that set, with no check that the path names a file.
+    risk_level: low
+    follow_ups: >
+      Let a control declare which of its writable paths are files, or grant a path as a file only when it is the
+      report path and the reader reads one file, with a test on a control whose report is a directory it declares
+      writable.
+    status: open
+  - bug_id: BUG-2026-10-08T190000
+    date: "2026-10-08"
+    title: "Under bubblewrap, an empty report a control writes at a path the copy did not hold is removed, so its reader finds no report where under Seatbelt it reads an empty one"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `BubblewrapSandbox.run` (`src/adapters/sandbox/backends.ts`) makes each absent writable file empty so it can
+      be bound, and after the command removes every such file still of size zero. Introduced by the branch
+      e37s05: a command that writes an empty report there, as its result, loses it under Linux and its reader
+      concludes on an absent report, while under Seatbelt the same command leaves an empty report its reader
+      reads. No control of Node, of Maven or of the fictitious example writes an empty report as a valid result.
+    what_expected: >
+      A report the command writes is kept whatever its size; only the file made for the bind and left untouched
+      by the command is removed.
+    steps_to_reproduce:
+      - "Under BubblewrapSandbox, run a control whose report is a file it declares writable, absent from the copy, and whose command truncates that file to zero bytes."
+      - "After the run the file is gone; under SeatbeltSandbox the same control leaves an empty file."
+    root_cause: >
+      Whether the command wrote the made file is inferred from its size, and an empty file the command wrote has the
+      same size as the one made for the bind.
+    evidence: >
+      Read in `run`: the `finally` block removes a file of `madeFiles` when `statSync(p).size === 0`, with no other
+      sign of a write. Mutations reported by the review of e37s05: removal made unconditional fails tests 1 and 3 of
+      the « under bubblewrap » describe, removal dropped fails test 2.
+    risk_level: low
+    follow_ups: >
+      Tell a write by the command apart from the made file (its identity or modification time recorded before the
+      run), with a test on a command that writes an empty report under bubblewrap.
+    status: open

@@ -43,6 +43,14 @@ function finding(message: string, over: Partial<Finding> = {}): Finding {
 const NO_MOVE = { renames: new Map<string, string>(), disappeared: new Set<string>() };
 
 describe("finding identity (VER-08, QLT-04)", () => {
+	it("given a workspace under a link, whose real path holds the path it was opened by, removes the real path whole and leaves the path relative to the workspace", () => {
+		const message = "an injected defect must be detected (/private/var/T/ws_a/test/495-negative-witness.test.js)";
+		assert.equal(
+			relativize(message, "/var/T/ws_a", "/private/var/T/ws_a"),
+			"an injected defect must be detected (test/495-negative-witness.test.js)",
+		);
+	});
+
 	it("keeps the workspace and the line out of the identity, and reads the location of the usual tools", () => {
 		const onReference = relativize("/tmp/ws_a/src/A.java:[47,44] cannot find symbol: method metadata()", "/tmp/ws_a");
 		const onCandidate = relativize("/tmp/ws_b/src/A.java:[112,44] cannot find symbol: method metadata()", "/tmp/ws_b");

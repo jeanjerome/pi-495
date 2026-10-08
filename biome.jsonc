@@ -19,6 +19,14 @@
 	// Imports are grouped by architectural layer, which mirrors the one-way dependency direction; sorting them alphabetically would scatter that grouping.
 	"assist": { "actions": { "source": { "organizeImports": "off" } } },
 	"files": {
-		"includes": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "bench/**/*.ts", "cycle/**/*.ts", "!cycle/campagnes"]
+		"includes": [
+			"src/**/*.ts",
+			"test/**/*.ts",
+			"scripts/**/*.ts",
+			"bench/**/*.ts",
+			"cycle/**/*.ts",
+			"examples/**/*.ts",
+			"!cycle/campagnes"
+		]
 	}
 }

@@ -34,6 +34,8 @@ export interface SandboxProfile {
 	read_paths: string[];
 	/** absolute paths writable */
 	write_paths: string[];
+	/** Those of `write_paths` that name a file, the report a control writes, rather than a directory. */
+	write_files?: string[];
 	/**
 	 * `denied` grants no socket at all; `loopback` lets a process reach itself and nothing else, which
 	 * is what a tool that forks workers and talks to them over a socket needs; `allowed` is a mandate.

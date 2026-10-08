@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type {
@@ -194,18 +194,33 @@ export class BubblewrapSandbox implements SandboxPort {
 	}
 	async run(profile: SandboxProfile, request: ExecutableRequest, signal?: AbortSignal): Promise<ProcessObservation> {
 		// A bind needs a source, where Seatbelt grants a path before it exists: a write path the command is
-		// to create is made here, empty, and nothing above it is granted.
-		for (const p of profile.write_paths) if (!existsSync(p)) mkdirSync(p, { recursive: true });
+		// to create is made here, empty, as the file the profile says it is or as a directory, and nothing
+		// above it is granted.
+		const madeFiles: string[] = [];
+		for (const p of profile.write_paths) {
+			if (existsSync(p)) continue;
+			if (profile.write_files?.includes(p)) {
+				writeFileSync(p, "");
+				madeFiles.push(p);
+			} else mkdirSync(p, { recursive: true });
+		}
 		const env = buildEnv(profile.env_allowlist, profile.env);
-		const obs = await runProcess(
-			{
-				command: ["bwrap", ...this.confinement(profile), "--chdir", request.cwd, "--", ...request.command],
-				cwd: request.cwd,
-				env,
-			},
-			request,
-			signal,
-		);
+		let obs: ProcessObservation;
+		try {
+			obs = await runProcess(
+				{
+					command: ["bwrap", ...this.confinement(profile), "--chdir", request.cwd, "--", ...request.command],
+					cwd: request.cwd,
+					env,
+				},
+				request,
+				signal,
+			);
+		} finally {
+			// A file made only to be bound and left empty is removed: where the command wrote no report, its
+			// reader finds none, as under Seatbelt.
+			for (const p of madeFiles) if (statSync(p, { throwIfNoEntry: false })?.size === 0) rmSync(p);
+		}
 		// bwrap exits 1 after writing `bwrap: <reason>` when it cannot set up the namespaces it was
 		// asked for — a container that forbids user namespaces, a kernel without them.
 		return startupIncident(obs, "bwrap: ", 1, "bwrap could not confine the command") ?? obs;

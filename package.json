@@ -39,6 +39,12 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "exports": {
+    "./stack": {
+      "types": "./dist/stack.d.ts",
+      "default": "./dist/stack.js"
+    }
+  },
   "pi": {
     "image": "https://raw.githubusercontent.com/jeanjerome/pi-495/main/.github/assets/banner.jpg",
     "video": "https://github.com/jeanjerome/pi-495/raw/refs/heads/main/.github/assets/demo.mp4",

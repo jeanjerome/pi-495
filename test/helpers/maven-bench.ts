@@ -102,3 +102,14 @@ export async function qualifyByWitnesses(
 		bench.base,
 	);
 }
+
+/**
+ * Fills the local repository with what `mvn -o` reads on `project` for `goals`, `test` by default: a build of a
+ * copy of it under `root`, outside the sandbox, the one step that may open the network. The project itself is
+ * never built.
+ */
+export function primeLocalRepository(root: string, project: string, goals: readonly string[] = ["test"]): void {
+	const primed = join(root, "primed");
+	cpSync(project, primed, { recursive: true });
+	execFileSync("mvn", ["-B", "-q", ...goals], { cwd: primed, stdio: "ignore", timeout: 20 * 60_000 });
+}

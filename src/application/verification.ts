@@ -148,7 +148,7 @@ export interface VerificationOutcome {
 }
 
 /** Writes the files a witness workspace carries on top of the reference. */
-async function writeWitness(workspacePath: string, files: Record<string, string>): Promise<void> {
+export async function writeWitness(workspacePath: string, files: Record<string, string>): Promise<void> {
 	for (const [rel, content] of Object.entries(files)) {
 		const target = join(workspacePath, rel);
 		await mkdir(dirname(target), { recursive: true });

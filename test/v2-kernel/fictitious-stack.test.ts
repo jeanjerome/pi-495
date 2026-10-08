@@ -5,7 +5,8 @@ import type { Protocol } from "../../src/contracts/v1/protocol.ts";
 import { MAVEN_PLUGIN } from "../../src/adapters/stacks/maven/maven.ts";
 import { NODE_PLUGIN } from "../../src/adapters/stacks/node/node.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { FICT_PLUGIN, GREETING, greetingProject } from "../helpers/fictitious-technology.ts";
+import { FICT_PLUGIN } from "../../examples/fictitious-technology/fict.ts";
+import { GREETING, greetingProject } from "../helpers/fictitious-technology.ts";
 import { makeHarness, specReport } from "../helpers/harness-fixture.ts";
 
 /** A change on `project`, under the list of 495 followed by the fictitious technology, whose agent writes `files`. */

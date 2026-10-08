@@ -41,11 +41,13 @@ export interface FindingLocation {
  */
 export function relativize(text: string, ...workspacePaths: string[]): string {
 	let out = text;
-	for (const raw of workspacePaths) {
-		if (!raw) continue;
-		const path = raw.endsWith("/") ? raw.slice(0, -1) : raw;
-		out = out.split(`${path}/`).join("").split(path).join("");
-	}
+	// The longest path first: the real path of a workspace opened through a link holds the path it was opened
+	// by, and removing that one first would leave the prefix of the real path in front of the relative one.
+	const paths = workspacePaths
+		.filter((raw) => raw.length > 0)
+		.map((raw) => (raw.endsWith("/") ? raw.slice(0, -1) : raw))
+		.sort((a, b) => b.length - a.length);
+	for (const path of paths) out = out.split(`${path}/`).join("").split(path).join("");
 	return out;
 }
 

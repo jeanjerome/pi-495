@@ -2,7 +2,7 @@
 
 Story : e37s05
 Epic : e37
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -52,6 +52,18 @@ Scenario: Node et Maven sont conformes
   When `stackConformance` juge leur technologie sur ce projet
   Then aucun rapport ne porte de constat
 
+Scenario: Node et Maven restent conformes quand leur projet déclare la mutation
+  Given un projet Node dont la suite passe et qui déclare Stryker, et un projet Maven dont la suite passe et qui déclare PIT
+  When `stackConformance` juge leur technologie sur ce projet
+  Then aucun rapport ne porte de constat
+  And le rapport nomme le lecteur `stryker-json`, ou `pitest-xml`, `INDETERMINATE` sur un rapport absent et sur un rapport au-delà de la borne de lecture, et non `FAIL` sur une commande que Node refuse
+
+Scenario: Sous bubblewrap, un contrôle écrit le rapport qu'il déclare inscriptible
+  Given un contrôle dont le rapport est un fichier qu'il déclare inscriptible et que la copie ne porte pas, sous le bac à sable bubblewrap
+  When l'exécuteur le lance
+  Then la commande écrit son rapport à ce chemin, un fichier et non un répertoire, et le lecteur conclut sur ce rapport
+  And sous Linux, `node examples/fictitious-technology/conformance.ts`, lancé comme le guide le dit sur l'exemple tel qu'il est publié, imprime un rapport sans constat qui nomme `fict-tests` qualifié
+
 Scenario: L'exemple documenté n'emploie que l'interface publiée
   Given la technologie d'exemple du dépôt
   When on lit ses imports
@@ -63,7 +75,9 @@ Scenario: L'exemple documenté n'emploie que l'interface publiée
 
 Le test de conformité lance les commandes d'une technologie, ses témoins compris. Il les lance comme une vraie
 vérification le fait, sous le bac à sable de la plateforme, avec le réseau et les chemins inscriptibles que
-déclare chaque contrôle. Sur une machine dont le bac à sable n'est pas qualifié, il refuse avec
+déclare chaque contrôle. Sous bubblewrap comme sous Seatbelt, un chemin inscriptible que la copie ne porte pas est
+accordé tel que le contrôle l'écrit, le fichier de son rapport comme un fichier, et rien au-dessus de lui n'est
+accordé : cela vaut pour toute vérification sous Linux, et non pour le seul test de conformité. Sur une machine dont le bac à sable n'est pas qualifié, il refuse avec
 `capability_missing` et ne lance rien ; il n'offre aucune option pour courir sans confinement. Il travaille dans
 des copies du projet d'exemple et n'écrit rien dans le projet lui-même.
 
@@ -134,9 +148,40 @@ est un défaut de la technologie, que la tâche corrige ou que le registre reço
 - Tient : le test de plateforme, sans constat pour Node ni pour Maven, la Preflight et les deux campagnes
 - Rouge : sans objet tant que la tâche 2 n'existe pas ; un constat que la tâche relève sur Node ou Maven est le rouge de sa correction
 
+### Tâche 6 — La sonde d'un lecteur ne lance que le déclencheur vide
+
+Pour juger un lecteur sur un rapport absent ou au-delà de la borne, `stackConformance` remplace la commande du
+contrôle par le déclencheur vide. L'exécuteur y ajoute encore ce que la préparation du lecteur rend : l'argument de
+portée des lecteurs de mutation, `--mutate=…` pour Stryker, `-DtargetClasses=…` pour PIT. Node refuse cet argument
+et sort en 9, et le lecteur de mutation lit une sortie non nulle sans rapport comme une construction cassée. La
+sonde juge le lecteur sur ce que le déclencheur vide laisse, sans argument de portée. Le test de plateforme de la
+tâche 5 juge aussi Maven sur un projet qui déclare PIT (`fixtureJava` avec la mutation), hors ligne, son dépôt
+local amorcé de ce que PIT lit.
+
+- Vérifie : `node --test test/v2-kernel/stack-conformance.test.ts test/v4-platform/stack-conformance-of-495.test.ts`
+- Tient : `test/v2-kernel/stack-conformance.test.ts`, « pour une variante de la technologie fictive dont le lecteur ajoute un argument de portée à la commande du contrôle et lit une sortie non nulle sans rapport comme `FAIL`, le rapport ne porte aucun constat et nomme ce lecteur `INDETERMINATE` sur un rapport absent et au-delà de la borne » ; `test/v4-platform/stack-conformance-of-495.test.ts`, « sur un projet Maven dont la suite passe et qui déclare PIT, le rapport ne porte aucun constat et nomme `pitest-xml` `INDETERMINATE` sur un rapport absent et au-delà de la borne »
+- Rouge : `probeReader` (`src/adapters/stacks/conformance.ts`) remplace la commande par `emptyTrigger(process.execPath)`, mais `GenericControlRunner.runControl` (`src/adapters/execution/runner.ts`) lance `[...control.command, ...prepared.arguments]` ; la sonde lance `node -e "" --mutate=…` ou `node -e "" -DtargetClasses=…`, que Node refuse (« bad option », sortie 9, vérifié à la main), et le lecteur rend `FAIL` : le rapport porte « reader … gave FAIL … with no report at … »
+
+### Tâche 7 — Sous bubblewrap, le rapport qu'un contrôle déclare inscriptible reste un fichier
+
+`BubblewrapSandbox.run` crée en répertoire tout chemin inscriptible absent, pour que `--bind` ait une source. Un
+contrôle qui déclare inscriptible le fichier de son rapport, comme celui de l'exemple (`fict-report.txt`), trouve un
+répertoire à sa place, et son écriture échoue en `EISDIR`. Sous bubblewrap, le rapport qu'un contrôle déclare
+inscriptible est accordé comme un fichier, un répertoire déclaré reste un répertoire, et rien au-dessus d'eux n'est
+accordé. L'exemple reste tel que le guide le publie. La recette rejoue `node examples/fictitious-technology/conformance.ts`
+sous Linux, dans la VM de l'image `pi-495-linux`, le paquet installé par npm.
+
+- Vérifie : `node --test test/v1-adapters/control-runner.test.ts`
+- Tient : `test/v1-adapters/control-runner.test.ts`, « un contrôle dont le rapport est un fichier qu'il déclare inscriptible et que la copie ne porte pas, lancé par l'exécuteur sous `BubblewrapSandbox` à travers un bwrap de substitution qui lance la commande placée après `--`, écrit son rapport : le chemin est un fichier qui porte ce que la commande a écrit, et le verdict est `PASS` » ; sous Linux, `test/v1-adapters/sandbox-linux.test.ts`, avec les autres essais du vrai bwrap, « le même contrôle sous le vrai bwrap écrit son rapport comme un fichier, et le verdict est `PASS` »
+- Rouge : `BubblewrapSandbox.run` (`src/adapters/sandbox/backends.ts`) fait `mkdirSync(p, { recursive: true })` de chaque chemin inscriptible absent, et l'exécuteur ne crée que son parent ; le chemin du rapport devient un répertoire, l'écriture de la commande échoue en `EISDIR`, elle sort non nulle sans rapport, et le verdict n'est pas `PASS`
+
 ## 5. Hors périmètre
 
 - Le chargement d'une technologie hors du dépôt de 495, et l'inscription de son identité, de sa version et de son empreinte dans le protocole gelé : `D-86`, point 7, non engagé.
 - La conformité de la capacité `install` : le test de conformité juge ce que `D-86` (point 6) lui demande, les contrôles disponibles et les lecteurs. L'installation d'un complément reste tenue par les tests de chaque technologie.
 - Un numéro de version propre à l'interface, distinct de celui du paquet : rien ne le lit tant qu'aucune technologie n'est chargée hors du dépôt.
 - Une troisième technologie réelle : l'epic `e11` et la suite du plan.
+- Un projet Node sous Stryker dans le test de plateforme : Stryker s'y installerait par le réseau. Le lecteur `stryker-json` passe par la même sonde que la variante du test du noyau, et la recette juge le projet de référence npm.
+- La mutation elle-même, sa portée et ce que ses lecteurs concluent d'un vrai rapport : la tâche 6 ne change que la commande de la sonde du test de conformité.
+- Déplacer le rapport de l'exemple sous un répertoire, ou dire au guide qu'un chemin inscriptible doit être un répertoire : c'est le bac à sable qui accorde le fichier que l'exemple déclare.
+- Les autres chemins que bubblewrap traite (temporaires, chemins masqués) et le bac à sable Seatbelt : la tâche 7 ne change que l'accord d'un chemin inscriptible absent.

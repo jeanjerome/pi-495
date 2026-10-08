@@ -19,6 +19,6 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "cycle/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "cycle/**/*.ts", "examples/**/*.ts"],
   "exclude": ["cycle/campagnes"]
 }

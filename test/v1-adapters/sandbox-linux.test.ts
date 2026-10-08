@@ -1,11 +1,15 @@
 import { strict as assert } from "node:assert";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { type AddressInfo, createServer } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
+import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { BubblewrapSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import type { SandboxProfile } from "../../src/ports/execution.ts";
+import { linesReader } from "../../examples/fictitious-technology/fict.ts";
+import { controlOf, invocationBase as base } from "../helpers/execution-fixture.ts";
 import { linuxOnly, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 const NODE = process.execPath;
@@ -201,4 +205,31 @@ describe("bubblewrap on Linux (SEC-01, SEC-02, ADR-013)", () => {
 			q.reasons.join("; "),
 		);
 	});
+});
+
+describe("a report a control declares writable, under the real bwrap", () => {
+	it(
+		"given a control whose report is a file it declares writable and the copy does not hold, then the path is a file holding what the command wrote and the verdict is PASS",
+		linuxOnly,
+		async () => {
+			const ws = mkdtempSync(join(root, "ws-"));
+			const runner = new GenericControlRunner(
+				new BubblewrapSandbox({ temp_paths: [] }),
+				new CasObjectStore(join(root, "objects")),
+				[linesReader("fict-lines", "behaviour")],
+			);
+			const control = controlOf({
+				control_id: "fict-tests",
+				command: [NODE, "-e", 'require("node:fs").writeFileSync("fict-report.txt", "PASS greets\\n")'],
+				parser: "fict-lines",
+				report_path: "fict-report.txt",
+				writable_paths: ["fict-report.txt"],
+			});
+			const { evidence } = await runner.runControl({ ...base(), control, workspace_path: ws });
+			const report = join(ws, "fict-report.txt");
+			assert.equal(statSync(report).isFile(), true, "the report is a file, not a directory");
+			assert.equal(readFileSync(report, "utf8"), "PASS greets\n");
+			assert.equal(evidence.verdict, "PASS", JSON.stringify(evidence.limits.notes));
+		},
+	);
 });

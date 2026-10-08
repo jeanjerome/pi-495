@@ -147,6 +147,9 @@ capability, and before deducing from the outside what Pi can report from the ins
   asks each capability and assembles the answers once; the kernel asks a project only through its
   registry. What a capability adds per technology is declared in that technology's directory, never in a
   central table nor in a condition on the name of a technology.
+- The interface a technology implements is published as `pi-495/stack`, with `stackConformance`, which judges a
+  technology on sample projects before it joins the list. `examples/fictitious-technology/README.md` says what
+  each capability is asked and what the common layer does with the answer.
 
 ## Formatting
 

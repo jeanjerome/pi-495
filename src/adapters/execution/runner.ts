@@ -63,10 +63,18 @@ export class GenericControlRunner implements ControlExecutionPort {
 		const writable = control.writable_paths
 			.map((p) => (isAbsolute(p) ? p : resolve(workspacePath, p)))
 			.filter((p) => p.startsWith(resolve(workspacePath)));
+		// The files the control writes: its report when the path is not a pattern, and a path its command names,
+		// as an argument or as the value of an option, which is where a tool is told the file to write, such as
+		// the destination of the LCOV reporter of node:test.
+		const cwd = resolve(workspacePath, control.cwd);
+		const files = new Set(control.command.map((arg) => resolve(cwd, arg.slice(arg.indexOf("=") + 1))));
+		if (control.report_path !== null && !control.report_path.startsWith("**/"))
+			files.add(resolve(workspacePath, control.report_path));
 		return {
 			profile_id: "verify",
 			read_paths: [workspacePath],
 			write_paths: writable,
+			write_files: writable.filter((p) => files.has(p)),
 			network: control.network,
 			env_allowlist: control.env_allowlist,
 			env: control.env,

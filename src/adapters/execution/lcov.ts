@@ -96,7 +96,7 @@ function measurementOf(files: Map<string, FileRecord>): CoverageMeasurement {
  * and the comment that removes the lines under it from the report. A path outside `expected` is not an
  * unmeasured file: a test, a configuration or a declaration file is simply not what a coverage runner reports.
  */
-interface LcovSources {
+export interface LcovSources {
 	expected(path: string): boolean;
 	silencing: SilencingRule;
 }

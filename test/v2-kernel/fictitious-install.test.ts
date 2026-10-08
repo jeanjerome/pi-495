@@ -16,7 +16,8 @@ import { MAVEN_PLUGIN } from "../../src/adapters/stacks/maven/maven.ts";
 import { NODE_PLUGIN } from "../../src/adapters/stacks/node/node.ts";
 import type { ExecutableRequest, ProcessObservation, SandboxPort, SandboxProfile } from "../../src/ports/execution.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
-import { FICT_PLUGIN, greetingProject, linesReader } from "../helpers/fictitious-technology.ts";
+import { FICT_PLUGIN, linesReader } from "../../examples/fictitious-technology/fict.ts";
+import { greetingProject } from "../helpers/fictitious-technology.ts";
 import { makeHarness, type TestHarness } from "../helpers/harness-fixture.ts";
 import { answer, latestSurvey, QUALITY_QUESTION, QUALITY_SPEC, treeDigest } from "../helpers/quality-survey.ts";
 
