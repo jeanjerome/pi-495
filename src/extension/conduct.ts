@@ -73,6 +73,7 @@ const FREE_TEXT_PROMPTS: Record<string, Record<"fr" | "en", string>> = {
 	extend: { fr: "Votre réponse", en: "Your answer" },
 	refuse: { fr: "Motif du refus", en: "Reason for the refusal" },
 	revise: { fr: "Ce que l'exigence doit devenir", en: "What the requirement should become" },
+	propose_map_again: { fr: "Votre remarque sur la carte", en: "Your remark on the map" },
 };
 
 /** What the owner is asked for beside the option chosen, or null when that option records no text. */

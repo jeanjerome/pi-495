@@ -24,6 +24,7 @@ import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
+import { settleArchitectureMap } from "./architecture-map.ts";
 import { settleQualityReferential } from "./quality-referential.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 import { reviseRequirements } from "./requirements-revision.ts";
@@ -349,6 +350,12 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			: null;
 		if (quality?.kind === "asked") return quality.unit;
 		if (quality) unit = quality.unit;
+		// The map of the architecture is asked of a model and put to the owner before anything runs too.
+		const architecture = surveysTheProject(unit.state)
+			? await settleArchitectureMap(ctx, unit, cor, requirements, reference, detection)
+			: null;
+		if (architecture?.kind === "stopped") return architecture.unit;
+		if (architecture) unit = architecture.unit;
 		const referenceFiles = filesOf(reference);
 		let failed = await failedInstalls(ctx, unit, requirements.ref);
 		const installerOf = (manager: string) => ctx.stacks.installerOf(manager);
@@ -474,6 +481,8 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			installed_dependencies: reference.installed_dependencies,
 			...(quality?.referential ? { quality_referential: quality.referential } : {}),
 			...(quality?.blind_spot ? { quality_blind_spot: quality.blind_spot } : {}),
+			...(architecture?.blind_spot ? { architecture_blind_spot: architecture.blind_spot } : {}),
+			...(architecture?.map ? { architecture_map: architecture.map } : {}),
 		});
 		const ref = await ctx.artifacts.store(
 			"protocol",

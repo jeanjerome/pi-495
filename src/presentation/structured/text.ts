@@ -452,6 +452,9 @@ type RuleLabels = Omit<
 	"findings" | "proprietary_by_module"
 > & { adopted_on: string };
 
+/** A part of an adopted architecture map, as the text says it. */
+type ArchitecturePart = NonNullable<SurveySection["architecture"]>["parts"][number];
+
 const R = {
 	fr: {
 		title: "rapport",
@@ -492,6 +495,12 @@ const R = {
 		inModule: (violations: number, module: string | null) =>
 			`${violations} ${module === null ? "hors des sources mesurées" : `dans ${module}`}`,
 		unmeasured: "non mesuré par le référentiel :",
+		architecture: (on: string) => `Carte d'architecture adoptée le ${on} :`,
+		part: (p: ArchitecturePart, dependsOn: string) =>
+			`${p.name} — périmètre : ${p.perimeter.join(", ")}, style : ${p.style}, peut dépendre de : ${dependsOn}`,
+		role: (pkg: string, role: string) => `${pkg} : ${role}`,
+		noPart: "aucune partie",
+		unassigned: "paquets sans partie :",
 	},
 	en: {
 		title: "report",
@@ -532,6 +541,12 @@ const R = {
 		inModule: (violations: number, module: string | null) =>
 			`${violations} ${module === null ? "outside the measured sources" : `in ${module}`}`,
 		unmeasured: "not measured by the referential:",
+		architecture: (on: string) => `Adopted architecture map, adopted on ${on}:`,
+		part: (p: ArchitecturePart, dependsOn: string) =>
+			`${p.name} — perimeter: ${p.perimeter.join(", ")}, style: ${p.style}, may depend on: ${dependsOn}`,
+		role: (pkg: string, role: string) => `${pkg}: ${role}`,
+		noPart: "no part",
+		unassigned: "packages without a part:",
 	},
 };
 
@@ -615,6 +630,20 @@ function concludedLines(report: EngineeringReport, lang: "fr" | "en"): string[] 
 	return lines.length ? lines : [`  ${t.none}`];
 }
 
+/** The architecture map the owner adopted, part by part, then the packages no part covers. */
+function architectureLines(architecture: NonNullable<SurveySection["architecture"]>, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	const lines = [`  ${t.architecture(architecture.adopted_on)}`];
+	for (const part of architecture.parts) {
+		lines.push(`    ${t.part(part, part.may_depend_on.length === 0 ? t.noPart : part.may_depend_on.join(", "))}`);
+		for (const r of part.roles) lines.push(`      ${t.role(r.package, r.role)}`);
+	}
+	lines.push(
+		`    ${t.unassigned} ${architecture.unassigned_packages.length === 0 ? t.none : architecture.unassigned_packages.join(", ")}`,
+	);
+	return lines;
+}
+
 /** The survey of a change that delivers the state of the project, in its own section. */
 function surveyLines(survey: SurveySection, lang: "fr" | "en"): string[] {
 	const t = R[lang];
@@ -646,6 +675,7 @@ function surveyLines(survey: SurveySection, lang: "fr" | "en"): string[] {
 		if (referential.unmeasured.length === 0) lines.push(`      ${t.none}`);
 		for (const u of referential.unmeasured) lines.push(`      ${u.subject}: ${u.reason}`);
 	}
+	if (survey.architecture) lines.push(...architectureLines(survey.architecture, lang));
 	lines.push(`  ${t.findings}:`);
 	if (survey.findings.length === 0) lines.push(`    ${t.none}`);
 	for (const f of survey.findings)

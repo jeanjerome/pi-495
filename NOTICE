@@ -12,6 +12,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------
+Skills adapted from third-party sources
+
+skills/architecture-map/SKILL.md, the skill an intervention receives to propose the architecture map of a
+target, is adapted from two skills published under the MIT licence, whose notices are in
+skills/architecture-map/LICENSE-sources:
+  - architecture-blueprint-generator, github/awesome-copilot, commit caab1f62 of 2026-02-24,
+    Copyright GitHub, Inc.;
+  - design-pattern-review, sirius-zuo/design-pattern-skill, commit 66d78158 of 2026-05-15,
+    Copyright (c) 2026 sirius-zuo.
+--------------------------------------------------------------------------------
 Third-party software redistributed with this package
 
 @rgrove/parse-xml — ISC — https://github.com/rgrove/parse-xml

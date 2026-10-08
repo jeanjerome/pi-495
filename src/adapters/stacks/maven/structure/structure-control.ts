@@ -9,6 +9,7 @@ import type { StructureCapability } from "../../../../application/stacks/plugin.
 import { baseControl, emptyTrigger } from "../../../../application/stacks/stack.ts";
 import type { MavenProject } from "../project/maven-project.ts";
 import type { MavenModule, MavenReactor } from "../project/reactor.ts";
+import { mainPackages } from "./main-packages.ts";
 
 /**
  * Package families a module shares with everything that depends on it: a container, an ORM, a web
@@ -161,4 +162,5 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 			...(rules.some((rule) => rule.kind === "forbidden_dependency") ? {} : { short_of: NO_OPPOSABLE_ROOTS }),
 		};
 	},
+	packages: ({ model, view }) => mainPackages(view, model.reactor),
 };

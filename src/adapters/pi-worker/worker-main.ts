@@ -2,9 +2,10 @@
  * Pi worker process entry (ADR-004, ADR-008, D-05, D-11).
  *
  * Reads one `mandate` line on stdin, creates a Pi SDK session with an explicit resource loader (no
- * skills, no AGENTS.md, no project extensions — its one extension is the observer of each provider
- * request), explicit tools confined to the workspace, the exact model of the mandate (no fallback),
- * and streams closed-set events as JSONL on stdout. It knows nothing about the ledger.
+ * skill but those of 495 the mandate names, no AGENTS.md, no project extensions — its one extension is
+ * the observer of each provider request), explicit tools confined to the workspace, the exact model of
+ * the mandate (no fallback), and streams closed-set events as JSONL on stdout. It knows nothing about
+ * the ledger.
  */
 import { createInterface } from "node:readline";
 import { realpath, mkdir, readFile, writeFile, access, stat, readdir } from "node:fs/promises";
@@ -290,9 +291,15 @@ async function main(): Promise<void> {
 				{ cwd: workspace, agentDir: c.pi_agent_dir, settingsManager },
 				observer,
 			);
+			// Only the skills of 495 the mandate names are loaded, by Pi's own reader of the Agent Skills format:
+			// a skill of the project would be an instruction coming from the tree it analyses (D-11).
+			const skills = m.skills.map((file) => pi.loadSkillsFromDir({ dir: dirname(file), source: "495" }));
 			const resourceLoader: import("@earendil-works/pi-coding-agent").ResourceLoader = {
 				getExtensions: () => extensions,
-				getSkills: () => ({ skills: [], diagnostics: [] }),
+				getSkills: () => ({
+					skills: skills.flatMap((loaded) => loaded.skills),
+					diagnostics: skills.flatMap((loaded) => loaded.diagnostics),
+				}),
 				getPrompts: () => ({ prompts: [], diagnostics: [] }),
 				getThemes: () => ({ themes: [], diagnostics: [] }),
 				getAgentsFiles: () => ({ agentsFiles: [] }),

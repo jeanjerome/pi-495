@@ -44,6 +44,7 @@ const mandate: InterventionMandate = {
 		role: "implement",
 		objective: "greet",
 		output_schema: "producer-report",
+		skills: [],
 		trusted_instructions: ["workspace only"],
 		// Read from the provider this run was given, not assumed empty: a manifest that asserts a
 		// provider imposes nothing is the exact falsehood the declaration exists to prevent (CTX-02).
@@ -71,6 +72,7 @@ const mandate: InterventionMandate = {
 	model: { provider_id: provider, model_id: modelId, thinking_level: "low", location: "off_machine" },
 	budgets: { duration_ms: 20 * 60_000, tool_calls: 40 },
 	output_schema: "producer-report",
+	skills: [],
 };
 const started = Date.now();
 const handle = await agent.startIntervention(mandate);

@@ -100,8 +100,9 @@ export class FakeMavenSandbox implements SandboxPort {
 /**
  * Stands for a Maven and a JDK that the machine running the suite need not have: the control runner
  * runs for real on a command that does nothing, and the verdict of the qualification witnesses is set
- * from the tree they were given, the negative witnesses being the ones that carry a failing test or a
- * class no test calls. PMD and CPD write the reports the real readers then read.
+ * from the tree they were given, the negative witnesses being the ones that carry a failing test, a
+ * class no test calls, an import across a boundary or a cycle. PMD and CPD write the reports the real
+ * readers then read.
  */
 export class FakeMavenControls implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
@@ -130,7 +131,8 @@ export class FakeMavenControls implements ControlExecutionPort {
 		const negative =
 			has("src/test/java/witness495/NegativeWitness495Test.java") ||
 			has("src/main/java/witness495/Witness495Uncovered.java") ||
-			has("witness495/a/Witness495CycleA.java");
+			has("witness495/a/Witness495CycleA.java") ||
+			has("witness495/Witness495Boundary.java");
 		return { ...out, evidence: { ...out.evidence, verdict: negative ? "FAIL" : "PASS" } };
 	}
 }

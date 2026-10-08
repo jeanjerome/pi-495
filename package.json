@@ -55,6 +55,7 @@
   "files": [
     "dist",
     "contracts",
+    "skills",
     "README.md",
     "LICENSE",
     "NOTICE"

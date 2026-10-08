@@ -38,6 +38,8 @@ export interface DetectedTechnology {
 	recommendations: RecommendedComplement[];
 	/** The quality referential the technology offers the owner, or why it offers none; absent when it has none. */
 	quality_referential?: QualityOffer;
+	/** The packages the main sources declare, when the technology reads them: an architecture map may then be proposed. */
+	main_packages?: string[];
 }
 
 /**

@@ -15,6 +15,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candi
 import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from "../contracts/v1/evidence.ts";
 import type {
 	AdoptedComplement,
+	AdoptedArchitectureMap,
 	AdoptedQualityReferential,
 	InstalledPackage,
 	ControlCapabilityDiagnosis,
@@ -39,7 +40,7 @@ import type { EvidenceFact } from "../domain/change/commands.ts";
 import { candidateMoved, writablePrefixes } from "../domain/candidate.ts";
 import { orderControls, prerequisitesOf } from "../domain/controls.ts";
 import { declaresGenerated } from "../domain/generated-code.ts";
-import { asksAboutQuality, controlsOfNature, placesOf, readerOf } from "../domain/survey.ts";
+import { asksAboutQuality, asksAboutStructure, controlsOfNature, placesOf, readerOf } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
 import type { ControlExecutionPort, ReportReader, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
@@ -129,6 +130,13 @@ export interface FreezeInput {
 	 * the fate of the proposed quality referential says more than the absence of a control.
 	 */
 	quality_blind_spot?: string;
+	/**
+	 * Why a requirement about the architecture is a blind spot, when the fate of the proposed architecture
+	 * map says more than what its controls measure of the reference.
+	 */
+	architecture_blind_spot?: string;
+	/** The architecture map the owner adopted, frozen with the protocol; absent when none was. */
+	architecture_map?: AdoptedArchitectureMap;
 }
 
 export interface RunInput {
@@ -169,6 +177,21 @@ function factOf(evidence: Evidence, findingsBlocking: number): EvidenceFact {
 		verdict: evidence.verdict,
 		findings_blocking: findingsBlocking,
 	};
+}
+
+/**
+ * Why a survey names a requirement a blind spot, or null when its controls measure it: the fate of the
+ * proposed architecture map or quality referential says more than the absence of a control.
+ */
+function surveyBlindSpot(
+	category: string,
+	measured: ReturnType<typeof controlsOfNature>,
+	fates: Pick<FreezeInput, "architecture_blind_spot" | "quality_blind_spot">,
+): string | null {
+	if (fates.architecture_blind_spot !== undefined && asksAboutStructure(category)) return fates.architecture_blind_spot;
+	if (!("blind_spot" in measured)) return null;
+	if (fates.quality_blind_spot !== undefined && asksAboutQuality(category)) return fates.quality_blind_spot;
+	return measured.blind_spot;
 }
 
 export class VerificationCoordinator {
@@ -383,12 +406,7 @@ export class VerificationCoordinator {
 			if (input.by_nature) {
 				// A survey answers each requirement with what measures its nature, or names it a blind spot.
 				const measured = controlsOfNature(r.category, controls, input.lint_control_ids, this.readers);
-				const blindSpot =
-					"blind_spot" in measured
-						? input.quality_blind_spot !== undefined && asksAboutQuality(r.category)
-							? input.quality_blind_spot
-							: measured.blind_spot
-						: null;
+				const blindSpot = surveyBlindSpot(r.category, measured, input);
 				return {
 					requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
 					mandatory: r.mandatory,
@@ -429,6 +447,7 @@ export class VerificationCoordinator {
 			...(input.complements.length > 0 ? { complements: [...input.complements] } : {}),
 			...(input.installed.length > 0 ? { installed_packages: [...input.installed] } : {}),
 			...(input.quality_referential ? { quality_referential: input.quality_referential } : {}),
+			...(input.architecture_map ? { architecture_map: input.architecture_map } : {}),
 		};
 	}
 

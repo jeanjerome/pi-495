@@ -2,7 +2,7 @@
 
 Story : e11s01
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -73,6 +73,13 @@ Scenario: Le propriétaire demande une autre carte avec une remarque
   Then une nouvelle intervention en lecture seule reçoit la remarque et propose une carte
   And une nouvelle décision la présente, avec les trois mêmes issues
 
+Scenario: Dans Pi, demander une autre carte ouvre la saisie de la remarque
+  Given la décision qui propose la carte, présentée au propriétaire dans le dialogue de Pi
+  When le propriétaire choisit « propose_map_again » et saisit la remarque « admin est en couches, pas en oignon »
+  Then Pi lui ouvre une saisie de texte qui demande « Votre remarque sur la carte » (« Your remark on the map » en anglais)
+  And la décision enregistrée au journal porte la remarque comme texte libre
+  And le contexte de la seconde intervention porte « The owner's remark: admin est en couches, pas en oignon »
+
 Scenario: Le propriétaire laisse l'exigence en angle mort
   Given la décision qui propose la carte
   When le propriétaire choisit de laisser l'exigence en angle mort
@@ -84,7 +91,8 @@ Scenario: Le propriétaire laisse l'exigence en angle mort
 L'intervention qui propose la carte tourne dans une copie de la référence, avec les seuls outils de
 lecture du rôle de spécification. Elle n'écrit rien, et le réseau reste fermé. Ce qu'elle lit du projet
 est une donnée : une instruction trouvée dans une source n'a aucune autorité sur elle (`D-41`). La remarque
-du propriétaire lui est transmise comme le texte du propriétaire. Le noyau confronte chaque paquet et
+du propriétaire, saisie dans le dialogue de Pi qui suit son choix d'une nouvelle proposition, est
+enregistrée avec sa décision et lui est transmise comme le texte du propriétaire. Le noyau confronte chaque paquet et
 chaque indice de la carte aux sources de la référence avant de la présenter. Une carte qui ne tient pas
 n'est pas montrée au propriétaire comme si elle tenait. La carte adoptée est gelée dans le protocole. Elle
 n'est jamais lue dans l'arbre analysé, et aucun fichier du projet ne peut la remplacer (`D-25`, `D-87`).
@@ -163,6 +171,17 @@ dépendre, puis les paquets sans partie. Le texte le dit en anglais et en franç
 - Tient : `test/v2-kernel/architecture-map-report.test.ts`, « le rapport d'un état des lieux à la carte adoptée présente sa date d'adoption, chaque partie avec son périmètre, son style, ses rôles et ses relations permises, et les paquets sans partie, en anglais et en français »
 - Rouge : `surveySection`, dans `src/application/report.ts`, ne rend que les exigences, les constats, les angles morts des contrôles et le référentiel de qualité, et `formatReport` n'écrit que ceux-là. La carte gelée par la tâche 4 n'atteint pas le rapport.
 
+### Tâche 7 — Dans Pi, la remarque est demandée au propriétaire qui veut une autre carte
+
+Quand le propriétaire choisit, dans le dialogue de Pi, de demander une nouvelle proposition, Pi lui ouvre
+une saisie de texte qui demande sa remarque sur la carte, dans la langue de la session. Le texte saisi est
+enregistré comme texte libre de la décision, et la seconde intervention le reçoit comme la remarque du
+propriétaire.
+
+- Vérifie : `node --test test/v3-pi/architecture-map-remark-dialog.test.ts`
+- Tient : `test/v3-pi/architecture-map-remark-dialog.test.ts`, « choisir propose_map_again depuis Pi ouvre une saisie qui demande Votre remarque sur la carte, la décision enregistrée porte la remarque admin est en couches, pas en oignon comme texte libre, et le contexte de la seconde intervention porte cette remarque »
+- Rouge : dans `presentDecisions` (`src/extension/conduct.ts`), `freeTextPrompt` ne rend une invite que pour `answer`, `extend`, `refuse` et `revise`, les clés de `FREE_TEXT_PROMPTS`. Pour `propose_map_again` il rend null, bien que la décision IH-04 permette le texte libre : `ctx.ui.input` n'est jamais appelé, la décision est enregistrée avec `free_text: null`, et le contexte de la seconde intervention porte « The owner's remark: (none given) » (`src/application/context.ts`).
+
 ## 5. Hors périmètre
 
 - Vérifier la carte adoptée sur le code, avec ArchUnit recommandé pour les règles qu'elle porte : `e11s02`.
@@ -181,3 +200,7 @@ dépendre, puis les paquets sans partie. Le texte le dit en anglais et en franç
   lecture du modèle : `e11s03`. La revue de patterns et les anti-patterns proposés comme règles : `e11s05`.
 - Corriger la carte à la main dans le dialogue : le propriétaire la corrige par une remarque, et un modèle
   écrit la nouvelle proposition.
+- Rendre la remarque obligatoire : une saisie vide ou fermée reste une demande sans remarque, que le
+  contexte dit « (none given) ». Demander un texte pour l'adoption ou l'angle mort, renommer les issues de
+  la décision, ou changer la façon dont le noyau transmet une remarque reçue, que la tâche 5 tient déjà :
+  l'écart ne porte que sur la saisie que Pi n'ouvre pas.

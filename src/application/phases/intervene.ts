@@ -76,6 +76,8 @@ export async function intervene(
 	const protocol = await deps.artifacts.latest<Protocol>(unit.state, "protocol");
 	const ctx = buildContext({
 		role,
+		...(extra.output_schema ? { output_schema: extra.output_schema } : {}),
+		...(extra.skill ? { skill: extra.skill } : {}),
 		objective,
 		language: deps.language(unit.state),
 		adopted,
@@ -117,6 +119,7 @@ export async function intervene(
 			prompt: ctx.prompt,
 			system_prompt: ctx.system_prompt,
 			context: ctx.manifest,
+			skills: extra.skill ? [extra.skill.file] : [],
 			model,
 		},
 		() => {

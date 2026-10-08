@@ -104,9 +104,14 @@ export interface QualityCapability<Model> {
 	referential?(question: CapabilityQuestion<Model>): QualityOffer | undefined;
 }
 
-/** The dependency direction between the modules of the project. */
+/** The dependency direction between the modules of the project, and the packages an architecture map is checked against. */
 export interface StructureCapability<Model> {
 	offer(question: CapabilityQuestion<Model>): Offer;
+	/**
+	 * The packages the main sources of the project declare. A technology that reads them is one whose
+	 * architecture a model may propose a map of; absent, none is proposed.
+	 */
+	packages?(question: CapabilityQuestion<Model>): string[];
 }
 
 /**

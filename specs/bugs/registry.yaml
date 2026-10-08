@@ -1846,3 +1846,60 @@ bugs:
       Compare with the separator, and on the real path as `profileFor` does, with a test on a neighbouring
       directory and on a `cwd` under a link that leaves the copy.
     status: open
+  - bug_id: BUG-2026-10-08T230000
+    date: "2026-10-08"
+    title: "An empty file of the reference counts one line, so a hint of an architecture map at its line 1 holds"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `linesIn` (`src/application/phases/architecture-map.ts`) counts the lines of a file of the reference as
+      `text.split("\n").length - (text.endsWith("\n") ? 1 : 0)`. For an empty file, `"".split("\n")` has one
+      element and the text does not end with a newline, so the file counts one line, and `checkArchitectureMap`
+      accepts a hint at line 1 of a file that has none.
+    what_expected: >
+      An empty file has no line, and a hint that cites one of its lines is named not found, as a hint past the
+      end of any other file is.
+    steps_to_reproduce:
+      - "Survey a Maven reactor whose reference tracks an empty file, with a requirement about the architecture."
+      - "Have the model propose a map whose hint cites that file at line 1."
+      - "The map is presented to the owner instead of leaving the requirement a blind spot naming the hint."
+    root_cause: >
+      The count treats the empty text as one unterminated line.
+    evidence: >
+      Read in `linesIn` while checking the boundaries of the hint check: the tests cover a hint at the last line
+      of a three-line file and one past the end, not an empty file.
+    risk_level: low
+    follow_ups: >
+      Count zero lines for an empty text, with a test on a hint at line 1 of an empty file of the reference.
+    status: open
+  - bug_id: BUG-2026-10-08T233000
+    date: "2026-10-08"
+    title: "No test holds the English prompt « Your remark on the map » that Pi opens when the owner asks for another architecture map"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      Introduced by the branch `e11s01`. Choosing `propose_map_again` from the dialog of Pi opens an input whose
+      prompt comes from `FREE_TEXT_PROMPTS` (`src/extension/conduct.ts`), « Votre remarque sur la carte » in French
+      and « Your remark on the map » in English, as the story promises. The only test of the scenario
+      (`test/v3-pi/architecture-map-remark-dialog.test.ts`) runs a session in the default language, French, and
+      asserts the French prompt alone; no test names the English one.
+    what_expected: >
+      A test of an English session asserts that the input asks for « Your remark on the map », so that a change of
+      the English wording fails a test as a change of the French one does.
+    steps_to_reproduce:
+      - "Replace `en: \"Your remark on the map\"` with `en: \"Your remark\"` in `FREE_TEXT_PROMPTS`."
+      - "Run `node --test test/v3-pi/`: every test stays green, while the same change on the French text fails the scenario's test."
+    root_cause: >
+      The test of the scenario was written for one language of the session; the English half of the Then has no
+      assertion.
+    evidence: >
+      Round 1 of the review of e11s01, findings A1-1 and B1-1: both reviewers mutated the English prompt
+      (« Your note », « Your remark ») and the 126 tests of `test/v3-pi` stayed green; the code shows the English
+      prompt in an English session.
+    risk_level: low
+    follow_ups: >
+      Run the scenario's test, or a second case of it, in an English session and assert the input asks for
+      « Your remark on the map ».
+    status: open

@@ -327,6 +327,79 @@ export const AdoptedQualityReferential = Type.Object(
 );
 export type AdoptedQualityReferential = Static<typeof AdoptedQualityReferential>;
 
+/** The styles a part of an architecture map is organised in (`specs/adr/D-87`). */
+export const ARCHITECTURE_STYLES = ["layered", "onion", "simple", "other"] as const;
+
+/** A place in the reference that supports an element of an architecture map: a file, a line of it, and what it shows. */
+export const ArchitectureHint = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		line: Type.Integer({ minimum: 1 }),
+		says: Type.String(),
+	},
+	{ additionalProperties: false },
+);
+export type ArchitectureHint = Static<typeof ArchitectureHint>;
+
+/**
+ * The architecture of a target as a model proposes it: parts, each a set of modules or package branches
+ * with its style and the role of each of its packages, and the parts each part may depend on. Every
+ * element carries the places in the reference that support it. A proposal, never a finding.
+ */
+export const ArchitectureMap = Type.Object(
+	{
+		parts: Type.Array(
+			Type.Object(
+				{
+					name: Type.String({ minLength: 1 }),
+					/** The modules, by directory, or the package branches the part covers. */
+					perimeter: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+					style: Closed(ARCHITECTURE_STYLES),
+					roles: Type.Array(
+						Type.Object(
+							{
+								package: Type.String({ minLength: 1 }),
+								role: Type.String({ minLength: 1 }),
+								hints: Type.Array(ArchitectureHint),
+							},
+							{ additionalProperties: false },
+						),
+					),
+					hints: Type.Array(ArchitectureHint),
+				},
+				{ additionalProperties: false },
+			),
+			{ minItems: 1 },
+		),
+		/** Each part `from` may depend on the part `to`; a dependency between parts no relation names is not permitted. */
+		relations: Type.Array(
+			Type.Object(
+				{ from: Type.String({ minLength: 1 }), to: Type.String({ minLength: 1 }), hints: Type.Array(ArchitectureHint) },
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ $id: "urn:495:contract:architecture-map:1", additionalProperties: false },
+);
+export type ArchitectureMap = Static<typeof ArchitectureMap>;
+
+/**
+ * An architecture map the owner adopted: the map as it was proposed, the packages of the main sources no
+ * part covers, and the date of the decision that adopted it. Frozen with the protocol as the architecture
+ * the project declares, and never read from the analysed tree (`specs/adr/D-25`, `D-87`).
+ */
+export const AdoptedArchitectureMap = Type.Object(
+	{
+		adopted_on: Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" }),
+		/** The owner's decision that adopted it. */
+		decision_id: Identifier,
+		map: ArchitectureMap,
+		unassigned_packages: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+export type AdoptedArchitectureMap = Static<typeof AdoptedArchitectureMap>;
+
 export const Protocol = Type.Object(
 	{
 		protocol_id: Identifier,
@@ -345,6 +418,8 @@ export const Protocol = Type.Object(
 		installed_packages: Type.Optional(Type.Array(InstalledPackage)),
 		/** Present when the owner adopted the quality referential the target adapter offered. */
 		quality_referential: Type.Optional(AdoptedQualityReferential),
+		/** Present when the owner adopted the architecture map a model proposed for the target. */
+		architecture_map: Type.Optional(AdoptedArchitectureMap),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

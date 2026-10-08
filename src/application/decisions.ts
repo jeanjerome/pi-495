@@ -469,6 +469,66 @@ const REFERENTIAL_ADOPTION = {
 } as const;
 
 /**
+ * IH-04 asked on a survey whose requirement about the architecture a model proposed a map for: the owner
+ * adopts the map, asks for another proposal with a remark, or leaves the requirement a blind spot. Nothing
+ * is written in the project whatever the answer.
+ */
+const ARCHITECTURE_MAP_ADOPTION = {
+	fr: (requirements: string) => ({
+		question: `Adopter la carte d'architecture proposée pour ${requirements} ?`,
+		options: [
+			{
+				id: "adopt_map",
+				label: "Adopter la carte",
+				effect:
+					"La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet. La réponse tombe si les exigences sont révisées.",
+				risky: true,
+			},
+			{
+				id: "propose_map_again",
+				label: "Demander une nouvelle proposition (votre remarque en texte libre)",
+				effect:
+					"Une nouvelle intervention en lecture seule reçoit cette carte et votre remarque, et propose une autre carte, qui vous est présentée avec les mêmes issues.",
+				risky: false,
+			},
+			{
+				id: "leave_blind_spot",
+				label: "Laisser l'exigence en angle mort",
+				effect:
+					"Aucune carte n'est gelée ; l'état des lieux nomme l'exigence comme angle mort, parce que la carte proposée n'a pas été adoptée.",
+				risky: false,
+			},
+		],
+	}),
+	en: (requirements: string) => ({
+		question: `Adopt the architecture map proposed for ${requirements}?`,
+		options: [
+			{
+				id: "adopt_map",
+				label: "Adopt the map",
+				effect:
+					"The map becomes the architecture the project declares: it is frozen in the protocol with the date of this decision and presented in the report; nothing is written in the project. The answer lapses if the requirements are revised.",
+				risky: true,
+			},
+			{
+				id: "propose_map_again",
+				label: "Ask for another proposal (your remark as free text)",
+				effect:
+					"A new read-only intervention receives this map and your remark, and proposes another map, which is presented to you with the same options.",
+				risky: false,
+			},
+			{
+				id: "leave_blind_spot",
+				label: "Leave the requirement a blind spot",
+				effect:
+					"No map is frozen; the survey names the requirement as a blind spot, because the proposed map was not adopted.",
+				risky: false,
+			},
+		],
+	}),
+} as const;
+
+/**
  * IH-10 asked on a survey rather than on a candidate: there is nothing to correct, so the owner accepts
  * the state of the project as presented, or refuses it and says why.
  */
@@ -509,6 +569,19 @@ const SURVEY_ACCEPTANCE = {
 	},
 } as const;
 
+/**
+ * The question and the options of a decision: those of the acceptance of a survey, of the adoption of what
+ * an IH-04 offers on a survey instead of a preparation, or else those of its interaction.
+ */
+function questionOf(args: Parameters<typeof buildDecisionRequest>[0], surveyed: boolean, installers: Installers) {
+	if (surveyed) return SURVEY_ACCEPTANCE[args.language];
+	if (args.interaction === "IH-04" && args.referential)
+		return REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers);
+	if (args.interaction === "IH-04" && args.architecture_map)
+		return ARCHITECTURE_MAP_ADOPTION[args.language](args.arg ?? "");
+	return T[args.language][args.interaction](args.arg ?? "");
+}
+
 export function buildDecisionRequest(args: {
 	decision_id: string;
 	change_id: string;
@@ -522,6 +595,8 @@ export function buildDecisionRequest(args: {
 	adoptable?: Adoptable;
 	/** The quality referential an IH-04 asked on a survey offers instead of a preparation. */
 	referential?: ReferentialOffer;
+	/** Whether an IH-04 asked on a survey proposes an architecture map instead of a preparation. */
+	architecture_map?: boolean;
 	/** The install capability that runs a package manager, whose phrases say what adopting its packages does. */
 	installers?: Installers;
 	requested_at: string;
@@ -529,11 +604,7 @@ export function buildDecisionRequest(args: {
 	const installers = args.installers ?? (() => undefined);
 	// The only IH-10 asked on an artifact is the acceptance of a survey; a candidate's is asked on the candidate.
 	const surveyed = args.interaction === "IH-10" && args.subject.kind === "artifact";
-	const t = surveyed
-		? SURVEY_ACCEPTANCE[args.language]
-		: args.interaction === "IH-04" && args.referential
-			? REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers)
-			: T[args.language][args.interaction](args.arg ?? "");
+	const t = questionOf(args, surveyed, installers);
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
 	const options =
 		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)

@@ -87,6 +87,22 @@ export interface SurveySection {
 		})[];
 		unmeasured: QualityPerimeter["unmeasured"];
 	} | null;
+	/**
+	 * The architecture map the owner adopted and the date of the adoption: each part with its perimeter, its
+	 * style, the role of each of its packages and the parts it may depend on, then the packages of the main
+	 * sources no part covers. Null when none was adopted.
+	 */
+	architecture: {
+		adopted_on: string;
+		parts: {
+			name: string;
+			perimeter: string[];
+			style: string;
+			roles: { package: string; role: string }[];
+			may_depend_on: string[];
+		}[];
+		unassigned_packages: string[];
+	} | null;
 }
 
 export interface EngineeringReport {
@@ -183,6 +199,25 @@ function surveySection(
 			c.blind_spot === null ? [] : [{ control_id: c.control_id, reason: c.blind_spot }],
 		),
 		referential: referentialSection(survey, protocol),
+		architecture: architectureSection(protocol),
+	};
+}
+
+/** The architecture map the protocol froze, as the survey section presents it. */
+function architectureSection(protocol: Protocol | null): SurveySection["architecture"] {
+	const adopted = protocol?.architecture_map;
+	if (!adopted) return null;
+	const { parts, relations } = adopted.map;
+	return {
+		adopted_on: adopted.adopted_on,
+		parts: parts.map((part) => ({
+			name: part.name,
+			perimeter: part.perimeter,
+			style: part.style,
+			roles: part.roles.map((r) => ({ package: r.package, role: r.role })),
+			may_depend_on: relations.filter((r) => r.from === part.name).map((r) => r.to),
+		})),
+		unassigned_packages: adopted.unassigned_packages,
 	};
 }
 

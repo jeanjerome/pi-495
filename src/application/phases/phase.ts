@@ -10,6 +10,7 @@
 import type { ArtifactRef, SubjectRef } from "../../contracts/v1/common.ts";
 import type { Evidence } from "../../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../../contracts/v1/protocol.ts";
+import type { OutputSchemaId } from "../../contracts/v1/reports.ts";
 import type { ChangeCommand } from "../../domain/change/commands.ts";
 import { subjectOfChange, type ArtifactKind, type ChangeState } from "../../domain/change/state.ts";
 import type { ActivePolicy } from "../../domain/policy.ts";
@@ -17,6 +18,7 @@ import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../
 import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
 import type { Adoptable, PhaseInteraction, ReferentialOffer } from "../decisions.ts";
+import type { BundledSkill } from "../skills.ts";
 import type { InstallRun } from "../installation.ts";
 import type { InstallCapability } from "../stacks/plugin.ts";
 import type { VerificationCoordinator } from "../verification.ts";
@@ -35,6 +37,10 @@ export interface InterventionOptions {
 	attempt_id?: string | null;
 	/** The controls this intervention is judged by, when they are not those of the latest protocol. */
 	controls?: readonly ControlDefinition[];
+	/** What the intervention answers with, when it is not what its role answers with. */
+	output_schema?: OutputSchemaId;
+	/** The skill of 495 the intervention receives through the resource loader of Pi. */
+	skill?: BundledSkill;
 }
 
 /** What one bounded agent session left behind, and the change as it stands after it. */
@@ -57,6 +63,8 @@ export interface DecisionOptions {
 	language: "fr" | "en";
 	adoptable?: Adoptable;
 	referential?: ReferentialOffer;
+	/** Whether the IH-04 proposes an architecture map to adopt. */
+	architecture_map?: boolean;
 }
 
 export interface PhaseContext {

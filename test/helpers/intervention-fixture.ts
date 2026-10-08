@@ -22,6 +22,7 @@ export function mandate(objective: string, root: string, over: Partial<Intervent
 			role: "implement",
 			objective,
 			output_schema: "producer-report",
+			skills: [],
 			trusted_instructions: [],
 			imposed_layers: [],
 			adopted_refs: [],
@@ -46,6 +47,7 @@ export function mandate(objective: string, root: string, over: Partial<Intervent
 		model: { provider_id: "fake", model_id: "fake-1", thinking_level: "off", location: "on_machine" },
 		budgets: { duration_ms: 10_000, tool_calls: 5 },
 		output_schema: "producer-report",
+		skills: [],
 		...over,
 	};
 }

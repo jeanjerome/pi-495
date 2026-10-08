@@ -24,7 +24,6 @@ import type {
 	SandboxProfile,
 	SandboxSelection,
 } from "../ports/execution.ts";
-import { outputSchemaFor } from "./context.ts";
 import { BASE_ENV } from "./stacks/stack.ts";
 
 export interface InterventionDeps {
@@ -48,6 +47,8 @@ export interface InterventionRequest {
 	prompt: string;
 	system_prompt: string;
 	context: ContextManifest;
+	/** The SKILL.md files of 495 the session loads, and no other. */
+	skills: readonly string[];
 	/** The model judged by `requireCapable`, which the worker is handed. */
 	model: ModelSelection;
 }
@@ -173,7 +174,8 @@ export class InterventionSupervisor {
 				duration_ms: this.deps.policy.budgets.intervention_ms,
 				tool_calls: this.deps.policy.budgets.tool_calls_per_intervention,
 			},
-			output_schema: outputSchemaFor(role),
+			output_schema: request.context.output_schema,
+			skills: request.skills,
 		};
 		this.deps.progress(`intervention ${role} started (${request.model.provider_id}/${request.model.model_id})`);
 		const handle = await this.deps.agent.startIntervention(mandate);

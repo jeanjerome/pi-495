@@ -103,6 +103,11 @@ function natureOf(category: string): Nature | undefined {
 	return CATEGORY_NATURES.find(([words]) => words.test(category))?.[1];
 }
 
+/** Whether a requirement asks about the structure of the code: the nature an architecture map answers. */
+export function asksAboutStructure(category: string): boolean {
+	return natureOf(category) === "structure";
+}
+
 /** Whether a requirement asks about the quality of the code: the nature a quality referential measures. */
 export function asksAboutQuality(category: string): boolean {
 	return natureOf(category) === "style";

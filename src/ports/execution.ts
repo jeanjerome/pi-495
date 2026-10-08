@@ -10,7 +10,7 @@ import type {
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, Finding, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition, QualityRule } from "../contracts/v1/protocol.ts";
-import type { OUTPUT_SCHEMAS } from "../contracts/v1/reports.ts";
+import type { OutputSchemaId } from "../contracts/v1/reports.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
 import type { ReaderTraits } from "../domain/survey.ts";
@@ -273,11 +273,21 @@ export interface ModelSelection {
 	location: ModelLocation;
 }
 
+/** A skill an intervention receives, as the manifest of its context names it: the published skills it was adapted from, at their commits. */
+export interface ContextSkill {
+	name: string;
+	/** The date it was adapted from its sources. */
+	adapted_on: string;
+	sources: readonly { repository: string; skill: string; commit: string; committed_on: string; license: string }[];
+}
+
 export interface ContextManifest {
 	role: InterventionRole;
 	objective: string;
-	output_schema: string;
+	output_schema: OutputSchemaId;
 	trusted_instructions: string[];
+	/** The skills of 495 the intervention receives; never one of the project. */
+	skills: readonly ContextSkill[];
 	/** What a provider writes above `trusted_instructions` on its own, never composed here (CTX-02). */
 	imposed_layers: readonly ImposedLayer[];
 	adopted_refs: { kind: string; artifact_id: string; revision: number; digest: string }[];
@@ -308,7 +318,9 @@ export interface InterventionMandate {
 	workspace_path: string;
 	model: ModelSelection;
 	budgets: { duration_ms: number; tool_calls: number };
-	output_schema: keyof typeof OUTPUT_SCHEMAS;
+	output_schema: OutputSchemaId;
+	/** The SKILL.md files the resource loader of Pi is handed, and no other: a skill of the project is never loaded. */
+	skills: readonly string[];
 }
 
 export type InterventionEvent =

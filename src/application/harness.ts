@@ -1012,7 +1012,18 @@ export class Harness {
 	private async requestDecision(
 		unit: Unit,
 		cor: string,
-		{ interaction, subject, facts, recommendation, arg, decisionId, language, adoptable, referential }: DecisionOptions,
+		{
+			interaction,
+			subject,
+			facts,
+			recommendation,
+			arg,
+			decisionId,
+			language,
+			adoptable,
+			referential,
+			architecture_map,
+		}: DecisionOptions,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
 			decision_id: decisionId ?? this.id("dec"),
@@ -1025,6 +1036,7 @@ export class Harness {
 			...(arg !== undefined ? { arg } : {}),
 			...(adoptable ? { adoptable } : {}),
 			...(referential ? { referential } : {}),
+			...(architecture_map ? { architecture_map } : {}),
 			installers: (manager: string) => this.deps.stacks.installerOf(manager)?.install,
 			requested_at: this.now(),
 		});

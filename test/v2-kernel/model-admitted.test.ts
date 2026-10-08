@@ -133,6 +133,7 @@ describe("what the supervisor still judges before an intervention (SEC-05)", () 
 						prompt: "p",
 						system_prompt: "s",
 						context: mandate("o", process.cwd()).context,
+						skills: [],
 						model: CHOSEN,
 					},
 					() => null,

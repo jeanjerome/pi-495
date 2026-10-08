@@ -70,6 +70,7 @@ export function assembleDetection<Model>(
 	const measured = measuresExecutedCode ? tests.measuredCodeWitness?.(question) : undefined;
 	const quality = available.find(({ sensor }) => sensor === "quality")?.offer.controls ?? [];
 	const referential = plugin.capabilities.quality?.referential?.(question);
+	const packages = plugin.capabilities.structure?.packages?.(question);
 	const declaredEnv = plugin.capabilities.workspace?.env ?? [];
 	return {
 		stack: plugin.id,
@@ -99,6 +100,7 @@ export function assembleDetection<Model>(
 		capability_missing: sensors.flatMap(({ sensor, offer }) => blindSpotOf(BLIND_SPOTS[sensor], offer)),
 		recommendations: sensors.flatMap(({ offer }) => recommendationOf(offer)),
 		...(referential ? { quality_referential: referential } : {}),
+		...(packages ? { main_packages: packages } : {}),
 	};
 }
 

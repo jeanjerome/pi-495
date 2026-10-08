@@ -5,6 +5,7 @@
 import { Type, type Static, type TSchema } from "typebox";
 import { Closed, type InterventionRole } from "./common.ts";
 import { SEVERITIES } from "./evidence.ts";
+import { ArchitectureMap } from "./protocol.ts";
 
 export const ProducerReport = Type.Object(
 	{
@@ -120,7 +121,11 @@ export const OUTPUT_SCHEMAS = {
 	"review-report": ReviewReport,
 	"observation-report": ObservationReport,
 	"specification-report": SpecificationReport,
+	"architecture-map": ArchitectureMap,
 } as const;
+
+/** The name of the structured output an intervention answers with. */
+export type OutputSchemaId = keyof typeof OUTPUT_SCHEMAS;
 
 /**
  * Extracts the structured output of a model text: the last fenced block whose language is `json`
