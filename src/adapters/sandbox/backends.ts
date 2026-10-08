@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readlinkSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, isAbsolute, join, parse, sep } from "node:path";
 import type {
 	ExecutableRequest,
 	ProcessObservation,
@@ -29,12 +29,53 @@ function defaultDenied(): string[] {
  * resolved path. A path that does not exist yet is resolved through its deepest existing ancestor
  * and keeps its absent segments: the grant stays bounded to that path.
  */
-function real(p: string): string {
+export function realPathOf(p: string): string {
+	return resolvedThrough(p, { links: SYMLINK_HOPS });
+}
+
+/** As many links as a path resolution follows before the system calls it a loop (`SYMLOOP_MAX`). */
+const SYMLINK_HOPS = 40;
+
+/**
+ * A dangling link counts for its target, read from the real path of the link's directory, and not
+ * for the path that names it, whose `..` would otherwise be taken through the links it is written through:
+ * a write through it lands at the target, and creating the path creates the target. The links followed are
+ * counted across the whole resolution, as the system counts them, so a tree of links costs at most that many
+ * reads.
+ */
+function resolvedThrough(p: string, budget: { links: number }): string {
 	try {
 		return realpathSync(p);
 	} catch {
+		const target = budget.links > 0 ? danglingTargetOf(p) : null;
+		if (target !== null) {
+			budget.links -= 1;
+			return targetFrom(resolvedThrough(dirname(p), budget), target, budget);
+		}
 		const parent = dirname(p);
-		return parent === p ? p : join(real(parent), basename(p));
+		return parent === p ? p : join(resolvedThrough(parent, budget), basename(p));
+	}
+}
+
+/**
+ * A target is walked one segment at a time, as the system walks it: a `..` that follows a link climbs out of
+ * the link's target, where reading the target as text would climb back to the directory that holds the link.
+ */
+function targetFrom(directory: string, target: string, budget: { links: number }): string {
+	let reached = isAbsolute(target) ? parse(target).root : directory;
+	for (const segment of target.split(sep)) {
+		if (segment === "" || segment === ".") continue;
+		reached = segment === ".." ? dirname(reached) : resolvedThrough(join(reached, segment), budget);
+	}
+	return reached;
+}
+
+function danglingTargetOf(p: string): string | null {
+	try {
+		return lstatSync(p).isSymbolicLink() ? readlinkSync(p) : null;
+	} catch {
+		// The path itself is absent, not a link: the resolution goes on through its parent.
+		return null;
 	}
 }
 
@@ -68,7 +109,7 @@ export class SeatbeltSandbox implements SandboxPort {
 	constructor(options: Partial<BackendOptions> = {}) {
 		this.options = {
 			denied_read_paths: [...defaultDenied(), ...(options.denied_read_paths ?? [])],
-			temp_paths: options.temp_paths ?? [real(tmpdir()), "/private/tmp"],
+			temp_paths: options.temp_paths ?? [realPathOf(tmpdir()), "/private/tmp"],
 		};
 	}
 	qualify(profile: SandboxProfile): QualificationResult {
@@ -96,9 +137,10 @@ export class SeatbeltSandbox implements SandboxPort {
 			"(allow ipc-posix-shm*)",
 			"(allow file-read*)",
 		];
-		for (const p of this.options.denied_read_paths) lines.push(`(deny file-read* (subpath ${sbplString(real(p))}))`);
-		for (const p of profile.write_paths) lines.push(`(allow file-write* (subpath ${sbplString(real(p))}))`);
-		for (const p of this.options.temp_paths) lines.push(`(allow file-write* (subpath ${sbplString(real(p))}))`);
+		for (const p of this.options.denied_read_paths)
+			lines.push(`(deny file-read* (subpath ${sbplString(realPathOf(p))}))`);
+		for (const p of profile.write_paths) lines.push(`(allow file-write* (subpath ${sbplString(realPathOf(p))}))`);
+		for (const p of this.options.temp_paths) lines.push(`(allow file-write* (subpath ${sbplString(realPathOf(p))}))`);
 		lines.push(
 			'(allow file-write* (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/ttys[0-9]+$") (literal "/dev/dtracehelper"))',
 		);

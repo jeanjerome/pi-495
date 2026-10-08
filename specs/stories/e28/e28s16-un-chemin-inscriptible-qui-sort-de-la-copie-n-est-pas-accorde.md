@@ -2,7 +2,7 @@
 
 Story : e28s16
 Epic : e28
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -34,6 +34,14 @@ Scenario: Un chemin voisin dont le nom prolonge celui de la copie n'est pas acco
   When le profil du contrôle est calculé
   Then le profil n'accorde pas l'écriture sous `copy-other/f`
 
+Scenario: Un chemin inscriptible sous un lien pendant hors de la copie n'est pas accordé
+  Given une copie dont `lines.txt` est un lien vers le fichier absent `absent.txt` hors de la copie
+  And dont `target` est un lien vers le dossier absent `absentdir` hors de la copie
+  And un contrôle qui déclare `lines.txt` et `target/495-vitest` inscriptibles et nomme `lines.txt` dans sa commande, `--out=lines.txt`
+  When le profil du contrôle est calculé
+  Then le profil n'accorde l'écriture ni sous `lines.txt`, ni sous `absent.txt`, ni sous aucun chemin de `target` ou de `absentdir`
+  And le profil ne range `lines.txt` ni `absent.txt` parmi les fichiers que bubblewrap crée avant de les lier
+
 Scenario: Un chemin inscriptible de la copie reste accordé
   Given une copie atteinte par un lien, comme une copie sous `/tmp`, et un contrôle qui déclare inscriptibles un fichier `report.txt` et un dossier absent `target/reports`
   When le profil du contrôle est calculé
@@ -55,9 +63,11 @@ Scenario: Sous Seatbelt, la commande écrit le chemin accordé de la copie
 
 Touche le confinement. Un chemin inscriptible n'est accordé que si son chemin réel, celui de son plus
 profond ancêtre existant suivi des segments absents, est la copie ou se trouve sous le chemin réel de la
-copie, séparateur compris. Le filtre s'applique au profil que le moteur d'exécution remet au bac à sable,
-avant tout backend : Seatbelt n'en reçoit pas l'accord, bubblewrap n'en lie pas la source, et le moteur ne
-crée pas le dossier parent d'un chemin qu'il n'a pas accordé. Un chemin refusé n'est pas remplacé : la
+copie, séparateur compris ; un lien pendant, dont la cible n'existe pas encore, compte pour sa cible, lue
+relativement au dossier du lien, et non pour le texte du chemin qui le nomme. Le filtre s'applique au
+profil que le moteur d'exécution remet au bac à sable, avant tout backend : Seatbelt n'en reçoit pas
+l'accord, bubblewrap n'en crée ni n'en lie la source, et le moteur ne crée pas le dossier parent d'un
+chemin qu'il n'a pas accordé. Un chemin refusé n'est pas remplacé : la
 commande s'exécute sans lui, et son écriture y est refusée par le bac à sable. Aucun secret ni sortie de
 données.
 
@@ -82,6 +92,17 @@ Le moteur d'exécution, sous le backend Seatbelt réel, exécute le contrôle av
 - Tient : `test/v1-adapters/writable-path-seatbelt.test.ts`, sur macOS, « un contrôle qui écrit `lines.txt` et crée `target/495-vitest` laisse `outside.txt` à « untouched » et `outdir` vide » et « un contrôle qui écrit `report.txt`, fichier ordinaire de la copie, l'écrit et rend PASS »
 - Rouge : sur `main`, la commande écrase `outside.txt` avec « written » et crée `outdir/495-vitest` (sondé le 2026-10-08)
 
+### Tâche 3 — Un lien pendant compte pour sa cible, non pour son texte
+
+`realPathOf` (`src/adapters/sandbox/backends.ts`), que `profileFor` appelle sur la copie et sur chaque
+chemin inscriptible, résout un segment qui est un lien pendant par sa cible (`lstat`, puis `readlink`,
+relative au dossier du lien) avant de poursuivre par son plus profond ancêtre existant ; il retombe
+aujourd'hui sur le texte du lien dès que `realpathSync` échoue.
+
+- Vérifie : `node --test test/v1-adapters/writable-path-containment.test.ts`
+- Tient : `test/v1-adapters/writable-path-containment.test.ts`, « un `lines.txt` lié au fichier absent `absent.txt` hors de la copie, nommé par `--out=lines.txt`, et un `target/495-vitest` sous un `target` lié au dossier absent `absentdir` hors de la copie ne sont ni dans les chemins inscriptibles du profil ni dans ses fichiers à créer »
+- Rouge : `realpathSync` échoue sur le lien pendant, et `realPathOf` rend `join(realPathOf(dirname(p)), basename(p))`, soit le texte du chemin dans la copie : `write_paths` porte `copy/lines.txt` et `copy/target/495-vitest`, `write_files` porte `copy/lines.txt` (sondé à 4d52e695 ; `writeFileSync` sur ce chemin crée `absent.txt` hors de la copie)
+
 ## 5. Hors périmètre
 
 - Refuser le contrôle en nommant le lien plutôt que l'exécuter sans l'accord : la story garde le contrôle
@@ -91,4 +112,9 @@ Le moteur d'exécution, sous le backend Seatbelt réel, exécute le contrôle av
 - Le profil d'un rôle d'agent, qui accorde la copie elle-même : son chemin réel est la copie.
 - Une sonde sous bubblewrap réel : le filtre agit sur le profil avant tout backend, et la recette sur macOS
   n'en conduit une que si elle dispose d'une machine Linux.
+- La préparation de bubblewrap elle-même (`writeFileSync`, `mkdirSync` sur un chemin du profil) : le
+  correctif écarte le lien pendant du profil, et bubblewrap ne prépare que ce que le profil accorde ; un
+  lien posé par la commande pendant son exécution est l'affaire du bac à sable, non du profil calculé avant.
+- Le comportement sous Seatbelt d'un lien pendant : le noyau y refuse déjà l'écriture à travers le lien
+  (sondé à 4d52e695), et la tâche 2 en tient la variante dont la cible existe.
 - Les autres défauts ouverts du registre.

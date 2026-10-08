@@ -1856,3 +1856,30 @@ bugs:
       Tell a write by the command apart from the made file (its identity or modification time recorded before the
       run), with a test on a command that writes an empty report under bubblewrap.
     status: open
+  - bug_id: BUG-2026-10-08T210000
+    date: "2026-10-08"
+    title: "A control's working directory is checked against the copy by text prefix, so a neighbouring directory whose name extends the copy's passes"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `GenericControlRunner.runControl` (`src/adapters/execution/runner.ts`) refuses a control whose `cwd` escapes
+      the workspace with `cwd.startsWith(resolve(workspace_path))`. A `cwd` of `../copy-other` from a copy `copy`
+      resolves to `copy-other`, which starts with the text `copy`, so the command runs in the neighbouring
+      directory. Writes stay confined by the profile; the command reads and builds another project than the copy.
+    what_expected: >
+      The working directory is accepted only when it is the copy or lies under it, separator included, as the
+      writable paths of the profile are.
+    steps_to_reproduce:
+      - "Run a control with `cwd: \"../copy-other\"` on a copy `copy` that has a neighbour `copy-other`."
+      - "The control runs in `copy-other` instead of being refused with « control cwd escapes the workspace »."
+    root_cause: >
+      The comparison is on the text of the paths, without the separator that ends the copy's name.
+    evidence: >
+      Read in `runControl` while reviewing the containment of writable paths, whose filter compares with
+      `real === copy || real.startsWith(copy + sep)`.
+    risk_level: low
+    follow_ups: >
+      Compare with the separator, and on the real path as `profileFor` does, with a test on a neighbouring
+      directory and on a `cwd` under a link that leaves the copy.
+    status: open

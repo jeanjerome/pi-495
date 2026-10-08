@@ -4,7 +4,7 @@
  */
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import { RULESET_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
@@ -23,6 +23,7 @@ import type {
 } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
+import { realPathOf } from "../sandbox/backends.ts";
 import { workspaceFiles } from "./workspace-files.ts";
 
 export interface RunnerOptions {
@@ -60,9 +61,15 @@ export class GenericControlRunner implements ControlExecutionPort {
 	}
 
 	profileFor(control: ControlDefinition, workspacePath: string): SandboxProfile {
+		// A writable path is granted by where it leads, not by how it is written: a link the project commits, or the
+		// agent lays, under a declared path would otherwise carry the command's writes outside the copy.
+		const copy = realPathOf(workspacePath);
 		const writable = control.writable_paths
 			.map((p) => (isAbsolute(p) ? p : resolve(workspacePath, p)))
-			.filter((p) => p.startsWith(resolve(workspacePath)));
+			.filter((p) => {
+				const real = realPathOf(p);
+				return real === copy || real.startsWith(copy + sep);
+			});
 		// The files the control writes: its report when the path is not a pattern, and a path its command names,
 		// as an argument or as the value of an option, which is where a tool is told the file to write, such as
 		// the destination of the LCOV reporter of node:test.
