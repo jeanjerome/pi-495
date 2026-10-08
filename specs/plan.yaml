@@ -407,7 +407,7 @@ epics:
 
   - id: e37
     title: "Une technologie s'ajoute par son seul dossier"
-    status: à faire
+    status: versé
     objet: >
       Une technologie est un dossier qui implémente une interface publiée : sa reconnaissance d'un projet, ses
       capacités (tests, couverture, mutation, qualité, structure, copie de travail, installation des compléments),
