@@ -437,6 +437,7 @@ epics:
   - id: e11
     title: "Architecture cible d'une cible"
     status: à faire
+    prete: oui
     source: chantiers/N ; arbitrage du propriétaire, 2026-10-08 (`D-87`)
     objet: >
       Le noyau sait dire ce que vaut l'architecture d'une cible : une carte de l'architecture réellement
