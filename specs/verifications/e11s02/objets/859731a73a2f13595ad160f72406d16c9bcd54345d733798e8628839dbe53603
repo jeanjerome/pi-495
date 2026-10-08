@@ -1,0 +1,74 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 32,
+    "constat": "The profile now keeps `org.junit.vintage:*` off the classpath the rules run on. On a reactor whose JUnit 4 tests pass through the Vintage engine, Surefire 3.6.0 still sees `junit:junit` and adds its own `junit-vintage-engine` 5.14.4. The adoption never resolved that engine, so with the network closed both witnesses come back INDETERMINATE (`could not be resolved: org.junit.vintage:junit-vintage-engine:jar:5.14.4 ... offline mode`) and the architecture control is not qualified, although the project's tests pass. Measured with a throwaway copy of the JUnit 6 test (the orders/admin/shared reactor with Jupiter 6.0.1 + junit-vintage-engine 6.0.1 and one `@org.junit.Test`): it fails with the code as shipped and passes, qualified PASS/FAIL with the project suite at PASS and 2 cases, once `org.junit.vintage` is dropped from the list. On Jupiter 5.10.2 + Vintage 5.10.2 the control is not qualified under any variant: shipped (missing 5.14.4), Jupiter alone excluded, or no exclusion as at 3c5eaefb (both give NoClassDefFoundError). That last failure is earlier than this diff, but the line that claims to cover Vintage does not keep the promise for these reactors.",
+    "mutation": "PROJECT_JUNIT_ENGINES = [\"org.junit.jupiter\"] (Vintage no longer excluded): the throwaway Jupiter 6 + Vintage 6 probe goes from FAIL to PASS"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 32,
+    "constat": "No test puts a Vintage engine or a JUnit 4 test in the reactor. The `org.junit.vintage` exclusion the diff adds, and the comment that justifies it, are held by no test: removing it leaves the four tests of maven-architecture.test.ts green.",
+    "mutation": "PROJECT_JUNIT_ENGINES = [\"org.junit.jupiter\"]: test/v4-platform/maven-architecture.test.ts 4/4 pass"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/maven-architecture.test.ts",
+    "ligne": 264,
+    "constat": "For the Jupiter case the promise is kept and held. Without the `org.junit.jupiter` exclusion the new JUnit Jupiter 6 test fails: both witnesses give INDETERMINATE with `NoClassDefFoundError ... versions of JUnit jars ... not being properly aligned`. With the code restored, the 4 tests of maven-architecture.test.ts and the offline test pass, so scenarios 4, 5 and 6 still hold on JUnit 5. Moving `elementText` into reactor.ts changes no behaviour (same expression).",
+    "mutation": "PROJECT_JUNIT_ENGINES = [\"org.junit.vintage\"]: the JUnit Jupiter 6 test fails on [INDETERMINATE, INDETERMINATE, false] ≠ [PASS, FAIL, true]"
+   }
+  ],
+  "resume": "The verdict is fail: one blocking finding and one to fix, both introduced by the reviewed diff. Excluding Jupiter does keep the promise on a reactor with JUnit Jupiter 6, and the new test holds it: removing that exclusion makes it fail. Excluding Vintage does not keep the promise on a reactor whose JUnit 4 tests run through Vintage. Surefire 3.6.0 then adds its own junit-vintage-engine 5.14.4, which the adoption never resolved, so the control is not qualified with the network closed. With Vintage 6 the control is qualified as soon as the Vintage exclusion is removed. With Vintage 5.10.2 it is qualified under no variant, a failure that predates this diff. No test covers Vintage: removing its exclusion leaves every test green. The probe file was removed and the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 32,
+    "constat": "The new `org.junit.vintage:*` exclusion stops the architecture control from being qualified on a reactor whose tests pass with junit-jupiter 6.0.1 and junit-vintage-engine 6.0.1. Surefire 3.6.0 then tries to resolve junit-vintage-engine 5.14.4, the version aligned on launcher 1.14.4, with the network closed. Both witnesses give INDETERMINATE (\"junit-vintage-engine:jar:5.14.4 … has not been downloaded … offline mode\"). On the same reactor, excluding only `org.junit.jupiter` qualifies the control: positive PASS, negative FAIL, admin→orders relation located, project suite PASS with 1 test. No test holds the Vintage line.",
+    "mutation": "PROJECT_JUNIT_ENGINES = [\"org.junit.jupiter\"] (Vintage removed): every test of maven-architecture.test.ts stays green, and the throwaway test (the JUnit 6 case plus junit-vintage-engine 6.0.1) goes from ✖ to ✔. Conversely, an empty list fails the JUnit Jupiter 6 test (INDETERMINATE, NoClassDefFoundError), so the Jupiter exclusion is held."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 125,
+    "constat": "On a reactor whose tests pass with junit-jupiter 5.10.2 and junit-vintage-engine 5.10.2 (JUnit 4 tests next to JUnit 5 ones), the architecture control is not qualified. Without any exclusion, as before the reviewed diff, it fails on a JUnit version misalignment (NoClassDefFoundError). With the diff's exclusions, it fails resolving junit-vintage-engine 5.14.4 offline. This predates the reviewed diff (earlier commits of the story branch), and the diff only changes the cause. It is not covered by BUG-2026-10-08T235100, because this reactor does declare JUnit 5.",
+    "mutation": "Throwaway test: the reactor of maven-architecture.test.ts plus junit-vintage-engine 5.10.2 fails both with the code as it stands and with PROJECT_JUNIT_ENGINES = []"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La décision dit ce qu'adopter la carte fait vérifier, et par quoi",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 555,
+    "constat": "The promise is held in French: removing « l'absence de cycle », « rien n'est écrit dans le projet » or « pour cette seule étape » from line 519 fails architecture-map-verification.test.ts. No test reads the English text of the adoption outcome.",
+    "mutation": "Line 555: removing \"the absence of cycles and \" then \"; nothing is written in the project\" leaves architecture-map-verification.test.ts green (3/3)."
+   }
+  ],
+  "resume": "The reviewed diff (3c5eaefb...628a8952) adds an exclusion of the project's JUnit engines (Jupiter and Vintage) to the Surefire of the ArchUnit profile, a test on a JUnit Jupiter 6 reactor, two refactorings that change no behaviour (elementText shared, archunitProfile renamed), and new test descriptions. Every test of the story passes (v0, v1, v2, and v4 under a real Maven). The Jupiter exclusion is held: an empty list fails the JUnit 6 test. The Vintage exclusion is not held by any test, and it breaks scenario 7. On a JUnit 6 reactor that also carries junit-vintage-engine 6.0.1, Surefire tries to resolve vintage 5.14.4 offline and the control is not qualified. Without that exclusion, the same reactor is qualified (B1-1, blocking, introduced). Mutations held elsewhere: in the instruction (application services, called_by) and in the decision facts (called by) for scenario 1; in the onion and layered checks and the hiding of a map that does not hold for scenario 2; in the French adoption text for scenario 3; in the edit applied to the copy for scenario 4; in the onion, layered, relation and source-without-part rules and the shared filter, under real Maven, for scenarios 4 and 6; in the always-active profile for scenario 7; in the map kept and the reason from Maven for scenario 8; and in the FR/EN texts of the other style for scenario 9. Outside the verdict: a JUnit 5 + Vintage reactor was already not qualified before the diff (B1-2, earlier), and the English adoption text is not tested (B1-3). The throwaway test was deleted and the tree is clean."
+ }
+]

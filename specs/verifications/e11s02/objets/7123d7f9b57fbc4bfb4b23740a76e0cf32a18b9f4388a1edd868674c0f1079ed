@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une architecture mixte est vérifiée partie par partie",
+    "categorie": "a_corriger",
+    "placement": "anterieur",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-rules.ts",
+    "ligne": 57,
+    "mutation": "`.flatMap((r) => r.called_by ?? [])` → `.flatMap((r) => [] as string[])`: every layer of admin becomes `mayNotBeAccessedByAnyLayer`. On a real Maven run, the reference pass then also reports `part admin keeps the calls between its layers` at AdminService.java:9 (service→data) and AdminPage.java:7 (web→service), two calls the map permits, and every test in test/v4-platform/maven-architecture.test.ts stays green.",
+    "constat": "No test holds that the layered rule follows the layers the map names as allowed to call each layer. The test of the mixed reactor only checks that the expected findings are included (`located.includes`) and never that a permitted call between layers goes unreported, so a rule that ignores `called_by` passes. The line comes from f1eb6f82, before the diff under review, which does not change it."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "a_corriger",
+    "placement": "anterieur",
+    "fichier": "src/adapters/stacks/maven/structure/architecture-control.ts",
+    "ligne": 36,
+    "mutation": "`witness(a, \"Witness495CycleA\", `${b}.Witness495CycleB`)` → `witness(a, \"Witness495CycleA\", \"Object\")`: the negative witness is now only io.demo.admin.service → io.demo.admin.data, a call the map permits. The qualification still reads positive PASS, negative FAIL, qualified true, and all four qualifying tests stay green.",
+    "constat": "No test holds that the negative witness is a dependency the map forbids. On the REACTOR fixture, the only one where qualification runs for real, the existing web→service→data→web cycle makes even a permitted witness fail, through the cycle rule on its own files, so the qualification never tells a forbidden dependency from an allowed one (the fake Maven only checks the file names). The line comes from f1eb6f82, before the diff under review; the diff's new Vintage tests qualify on the same fixture."
+   }
+  ],
+  "resume": "I checked all nine scenarios against the code at da69c5dc and tried one-line mutations; every mutation was reverted and the tree is clean.\n\nThe diff under review keeps its promises, and tests hold them. On a real Maven run, dropping `junit` or `org.junit.vintage` from the JUnit groups the rules' classpath excludes (PROJECT_JUNIT) fails both new Vintage tests, 5.10.2 and 6.0.1. Deleting the \"exactly one `</profiles>`\" check fails the new v2 test, where the host POM cannot take the declaration. The rename of `architectureOfferOn` and `mapVerificationOffer` changes no behaviour.\n\nMutations caught on the rest of the story:\n- **Scenario 1:** the prompt that proposes the map, and the callers given for each layer in the decision.\n- **Scenario 2:** `styleDefects`, and a layer that does not say which layers may call it.\n- **Scenario 3:** \"dans le dépôt local que Maven désigne\" and \"l'absence de cycle\" in the adoption outcome.\n- **Scenarios 4 and 5:** the complements of the adoption, and the architecture control's network.\n- **Scenario 6:** the rule for sources outside any part, and every part pair treated as forbidden (caught by the check on `shared`).\n- **Scenario 7:** the profile activated by default.\n- **Scenario 8:** the reason Maven gave.\n- **Scenario 9:** the FR outcome, the report in EN and FR, and the selection of `other` parts.\n\nTwo mutations survive, both on lines from f1eb6f82, before the diff under review:\n- **A1-1:** a layered rule that ignores `called_by` reports the calls the map permits, and no test notices.\n- **A1-2:** a negative witness that no longer carries a forbidden dependency still fails, because the fixture's existing cycle hides the change.\n\nBoth are \"à corriger\" and \"antérieur\", so the verdict is pass."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Le diff relu (24a6e429...da69c5dc) change trois choses. Le profil d'ArchUnit retire aussi `junit:*` du classpath sur lequel tournent les règles. Deux fonctions de architecture-map.ts sont renommées, sans changer de comportement. Deux tests sont ajoutés : un test plateforme sur un réacteur dont les tests JUnit 4 passent par le moteur Vintage (5.10.2 et 6.0.1), et un test noyau sur un POM hôte qui ne peut pas recevoir la déclaration sans ambiguïté.\n\nSur l'état de départ, les 6 tests de test/v4-platform/maven-architecture.test.ts (vrai Maven, réseau fermé) et les 3 tests de test/v2-kernel/architecture-map-verification-limits.test.ts passent.\n\nMutations sur ce que la branche change :\n- Retirer `\"junit\"` de PROJECT_JUNIT fait échouer les deux cas Vintage.\n- Retirer `\"org.junit.vintage\"` les fait aussi échouer (`TestEngine with ID 'junit-vintage' failed to discover tests`). Le scénario 7 (« qualifié, tests du projet PASS sans compter les règles ») est donc tenu sur un réacteur JUnit 4/Vintage.\n- Remplacer la note `not_proposed` par le message générique fait échouer le nouveau test du POM hôte qui refuse la déclaration. Ce test vérifie le texte de l'issue, l'absence de toute résolution, la carte gelée sans contrôle et l'angle mort du survey.\n\nContrôles par sondage sur les autres scénarios, avec les mêmes mutations :\n- Retirer `calledBy(r)` des faits de la carte fait échouer « la décision sur une carte dont admin est en couches… » (scénario 1).\n- Neutraliser le refus d'une couche sans `called_by` fait échouer le cas `data` (scénario 2).\n- Neutraliser le refus d'un rôle qui n'est pas un anneau fait échouer le cas « the heart of things » (scénario 2).\n\nLes scénarios 3, 4 et 5 sont vérifiés par architecture-map-verification.test.ts : chaque terme de l'issue d'adoption, la résolution avec le réseau ouvert pour elle seule, le contrôle qualifié, le FAIL à User.java à la ligne de l'appel avec la règle, la section du rapport, le digest inchangé, et le PASS sans constat. Le scénario 6 est tenu par le premier test plateforme.\n\nToutes les mutations ont été remises : l'arbre est propre. Aucun constat introduit ou rendu atteignable."
+ }
+]

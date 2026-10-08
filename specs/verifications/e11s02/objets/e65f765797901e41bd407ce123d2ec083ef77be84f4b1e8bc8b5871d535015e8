@@ -1,0 +1,75 @@
+TAP version 13
+# Subtest: ArchUnit checks the adopted map on a Maven reactor that already breaks it
+    # Subtest: sur le réacteur orders, admin et shared, le contrôle d'architecture est qualifié par ses témoins bien que le projet viole sa carte, et la passe de référence rapporte la relation d'admin vers orders et l'appel de data vers web à leur fichier et à leur ligne, et la source de io.demo.admin.legacy à son fichier, sans constat sur shared
+    ok 1 - sur le réacteur orders, admin et shared, le contrôle d'architecture est qualifié par ses témoins bien que le projet viole sa carte, et la passe de référence rapporte la relation d'admin vers orders et l'appel de data vers web à leur fichier et à leur ligne, et la source de io.demo.admin.legacy à son fichier, sans constat sur shared
+      ---
+      duration_ms: 8519.366375
+      type: 'test'
+      ...
+    # Subtest: sur le réacteur domain et infrastructure de la story, le contrôle d'architecture rend PASS sans constat quand le service du domaine utilise le modèle, et FAIL quand la classe User du modèle appelle UserService, avec la règle des anneaux de domain à la ligne de l'appel
+    ok 2 - sur le réacteur domain et infrastructure de la story, le contrôle d'architecture rend PASS sans constat quand le service du domaine utilise le modèle, et FAIL quand la classe User du modèle appelle UserService, avec la règle des anneaux de domain à la ligne de l'appel
+      ---
+      duration_ms: 6125.129708
+      type: 'test'
+      ...
+    # Subtest: sur ce réacteur, le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+    ok 3 - sur ce réacteur, le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+      ---
+      duration_ms: 3778.415584
+      type: 'test'
+      ...
+    # Subtest: sur ce réacteur dont les tests passent avec JUnit Jupiter 6, le contrôle d'architecture est qualifié par ses témoins et rapporte la relation d'admin vers orders, et le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+    not ok 4 - sur ce réacteur dont les tests passent avec JUnit Jupiter 6, le contrôle d'architecture est qualifié par ses témoins et rapporte la relation d'admin vers orders, et le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+      ---
+      duration_ms: 5930.392792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-E9veIm/test/v4-platform/maven-architecture.test.ts:264:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ["positive witness gave INDETERMINATE: no report of the architecture rules found at the declared report path: the build exited with 1: The wrapped NoClassDefFoundError is likely caused by the versions of JUnit jars on the classpath/module path not being properly aligned.; Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.6.0:test (default-test) on project admin:; See /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-E9veIm/test-output/maven-architecture-jupiter6-XxE5eC/architecture-positive/admin/target/architecture495-reports for the individual test results.","negative witness gave INDETERMINATE: the control does not detect the defect it claims to cover; no report of the architecture rules found at the declared report path: the build exited with 1: The wrapped NoClassDefFoundError is likely caused by the versions of JUnit jars on the classpath/module path not being properly aligned.; Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.6.0:test (default-test) on project admin:; See /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-E9veIm/test-output/maven-architecture-jupiter6-XxE5eC/architecture-negative/admin/target/architecture495-reports for the individual test results."]
+        + actual - expected
+        
+          [
+        +   'INDETERMINATE',
+        +   'INDETERMINATE',
+        +   false
+        -   'PASS',
+        -   'FAIL',
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+        2: true
+      actual:
+        0: 'INDETERMINATE'
+        1: 'INDETERMINATE'
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-E9veIm/test/v4-platform/maven-architecture.test.ts:282:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - ArchUnit checks the adopted map on a Maven reactor that already breaks it
+  ---
+  duration_ms: 24354.236708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-E9veIm/test/v4-platform/maven-architecture.test.ts:169:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 25185.691792

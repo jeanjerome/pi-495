@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: ArchUnit checks the adopted map on a Maven reactor that already breaks it
+    # Subtest: sur le réacteur orders, admin et shared, le contrôle d'architecture est qualifié par ses témoins bien que le projet viole sa carte, et la passe de référence rapporte la relation d'admin vers orders et l'appel de data vers web à leur fichier et à leur ligne, et la source de io.demo.admin.legacy à son fichier, sans constat sur shared
+    ok 1 - sur le réacteur orders, admin et shared, le contrôle d'architecture est qualifié par ses témoins bien que le projet viole sa carte, et la passe de référence rapporte la relation d'admin vers orders et l'appel de data vers web à leur fichier et à leur ligne, et la source de io.demo.admin.legacy à son fichier, sans constat sur shared
+      ---
+      duration_ms: 8674.454125
+      type: 'test'
+      ...
+    # Subtest: sur ce réacteur, le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+    ok 2 - sur ce réacteur, le contrôle des tests du projet rend PASS sans compter les règles d'architecture parmi ses cas
+      ---
+      duration_ms: 3946.030209
+      type: 'test'
+      ...
+    1..2
+ok 1 - ArchUnit checks the adopted map on a Maven reactor that already breaks it
+  ---
+  duration_ms: 12621.153166
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13314.456209

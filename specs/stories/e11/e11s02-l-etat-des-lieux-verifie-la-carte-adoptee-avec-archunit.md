@@ -2,7 +2,7 @@
 
 Story : e11s02
 Epic : e11
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

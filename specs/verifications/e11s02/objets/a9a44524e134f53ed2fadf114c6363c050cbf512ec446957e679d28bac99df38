@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: ArchUnit's file of ignored patterns on a Maven reactor
+    # Subtest: sur le réacteur domain et infrastructure dont la classe User du modèle appelle UserService, un archunit_ignore_patterns.txt du projet qui vise la ligne de cette violation, dans les ressources de domain et dans les ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte la règle des anneaux de domain à User.java et à la ligne de l'appel
+    ok 1 - sur le réacteur domain et infrastructure dont la classe User du modèle appelle UserService, un archunit_ignore_patterns.txt du projet qui vise la ligne de cette violation, dans les ressources de domain et dans les ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte la règle des anneaux de domain à User.java et à la ligne de l'appel
+      ---
+      duration_ms: 7942.313416
+      type: 'test'
+      ...
+    1..1
+ok 1 - ArchUnit's file of ignored patterns on a Maven reactor
+  ---
+  duration_ms: 7942.895292
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8608.085834

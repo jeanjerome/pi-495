@@ -1,0 +1,86 @@
+TAP version 13
+# Subtest: adopting the architecture map adopts its verification by ArchUnit
+    # Subtest: l'issue d'adoption de la carte nomme archunit-junit5 1.5.1, sa déclaration dans une copie du POM, sa résolution réseau ouvert pour cette seule étape dans le dépôt local que Maven désigne, et les règles qu'il vérifiera
+    not ok 1 - l'issue d'adoption de la carte nomme archunit-junit5 1.5.1, sa déclaration dans une copie du POM, sa résolution réseau ouvert pour cette seule étape dans le dépôt local que Maven désigne, et les règles qu'il vérifiera
+      ---
+      duration_ms: 245.090125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:63:2'
+      failureType: 'testCodeFailure'
+      error: "« com.tngtech.archunit:archunit-junit5 1.5.1 » in Adopter la carte — La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet. La réponse tombe si les exigences sont révisées."
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:82:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: l'adoption résout ArchUnit, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, domain/src/main/java/io/demo/domain/user/User.java et la ligne de l'appel, que le rapport donne aussi, sans changer le digest du projet
+    not ok 2 - l'adoption résout ArchUnit, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, domain/src/main/java/io/demo/domain/user/User.java et la ligne de l'appel, que le rapport donne aussi, sans changer le digest du projet
+      ---
+      duration_ms: 511.365792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:85:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ArchUnit is resolved once: qualification -> verifying/ready | verifying -> deciding/ready | deciding -> deciding/decision_required
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:91:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: sur une référence qui tient sa carte, le survey mesure l'exigence d'architecture en PASS sans constat
+    not ok 3 - sur une référence qui tient sa carte, le survey mesure l'exigence d'architecture en PASS sans constat
+      ---
+      duration_ms: 503.040166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:128:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        blind spot: no control verifies the adopted architecture map yet; it is frozen as the architecture the project declares []
+        + actual - expected
+        
+        + undefined
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:132:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - adopting the architecture map adopts its verification by ArchUnit
+  ---
+  duration_ms: 1260.2835
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-reVBGJ/test/v2-kernel/architecture-map-verification.test.ts:62:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1543.081

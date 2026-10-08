@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the roles of a part of the architecture map follow its style
+    # Subtest: la consigne de l'intervention qui propose la carte nomme les quatre anneaux de l'oignon et demande, pour chaque couche, les couches qui peuvent l'appeler
+    ok 1 - la consigne de l'intervention qui propose la carte nomme les quatre anneaux de l'oignon et demande, pour chaque couche, les couches qui peuvent l'appeler
+      ---
+      duration_ms: 208.178834
+      type: 'test'
+      ...
+    # Subtest: une carte dont la partie en oignon orders donne au paquet io.demo.orders.model le rôle the heart of things n'est pas présentée et le survey désigne la partie et le rôle
+    ok 2 - une carte dont la partie en oignon orders donne au paquet io.demo.orders.model le rôle the heart of things n'est pas présentée et le survey désigne la partie et le rôle
+      ---
+      duration_ms: 472.070625
+      type: 'test'
+      ...
+    # Subtest: une carte dont la partie en couches admin ne dit pas quelles couches peuvent appeler data n'est pas présentée et le survey désigne la couche
+    ok 3 - une carte dont la partie en couches admin ne dit pas quelles couches peuvent appeler data n'est pas présentée et le survey désigne la couche
+      ---
+      duration_ms: 459.986416
+      type: 'test'
+      ...
+    # Subtest: la décision sur une carte dont admin est en couches donne, pour chaque couche, les couches qui peuvent l'appeler
+    ok 4 - la décision sur une carte dont admin est en couches donne, pour chaque couche, les couches qui peuvent l'appeler
+      ---
+      duration_ms: 202.751583
+      type: 'test'
+      ...
+    1..4
+ok 1 - the roles of a part of the architecture map follow its style
+  ---
+  duration_ms: 1343.707792
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1602.395833

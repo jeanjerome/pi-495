@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: the roles of a part of the architecture map follow its style
+    # Subtest: la consigne de l'intervention qui propose la carte nomme les quatre anneaux de l'oignon et demande, pour chaque couche, les couches qui peuvent l'appeler
+    not ok 1 - la consigne de l'intervention qui propose la carte nomme les quatre anneaux de l'oignon et demande, pour chaque couche, les couches qui peuvent l'appeler
+      ---
+      duration_ms: 236.056625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:106:2'
+      failureType: 'testCodeFailure'
+      error: 'the instruction of the intervention names the ring "domain services" of the onion'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:117:12)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une carte dont la partie en oignon orders donne au paquet io.demo.orders.model le rôle the heart of things n'est pas présentée et le survey désigne la partie et le rôle
+    not ok 2 - une carte dont la partie en oignon orders donne au paquet io.demo.orders.model le rôle the heart of things n'est pas présentée et le survey désigne la partie et le rôle
+      ---
+      duration_ms: 209.670292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:123:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no decision is asked about a map whose roles do not follow the style (decision_required)
+        + actual - expected
+        
+        + [
+        +   'architecture part orders: perimeter orders; style onion [orders/pom.xml:5 the orders module]; roles: io.demo.orders.model the heart of things [orders/src/main/java/io/demo/orders/model/Order.java:3 the order]; io.demo.orders.store adapter persistence [orders/src/main/java/io/demo/orders/store/OrderStore.java:3 stores orders] | architecture packages without a part: io.demo.admin.data, io.demo.admin.service, io.demo.admin.web'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'architecture part orders: perimeter orders; style onion [orders/pom.xml:5 the orders module]; roles: io.demo.orders.model the heart of things [orders/src/main/java/io/demo/orders/model/Order.java:3 the order]; io.demo.orders.store adapter persistence [orders/src/main/java/io/demo/orders/store/OrderStore.java:3 stores orders] | architecture packages without a part: io.demo.admin.data, io.demo.admin.service, io.demo.admin.web'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:127:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une carte dont la partie en couches admin ne dit pas quelles couches peuvent appeler data n'est pas présentée et le survey désigne la couche
+    not ok 3 - une carte dont la partie en couches admin ne dit pas quelles couches peuvent appeler data n'est pas présentée et le survey désigne la couche
+      ---
+      duration_ms: 216.074875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:141:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no decision is asked about a map whose layers do not say who may call them (decision_required)
+        + actual - expected
+        
+        + [
+        +   'architecture part orders: perimeter orders; style onion [orders/pom.xml:5 the orders module]; roles: io.demo.orders.model domain model [orders/src/main/java/io/demo/orders/model/Order.java:3 the order]; io.demo.orders.store adapter persistence [orders/src/main/java/io/demo/orders/store/OrderStore.java:3 stores orders] | architecture part admin: perimeter admin; style layered [admin/pom.xml:5 the admin module]; roles: io.demo.admin.web web [admin/src/main/java/io/demo/admin/web/AdminPage.java:3 a page]; io.demo.admin.service service [admin/src/main/java/io/demo/admin/service/AdminService.java:3 a service]; io.demo.admin.data data [admin/src/main/java/io/demo/admin/data/AdminDao.java:3 a DAO]'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'architecture part orders: perimeter orders; style onion [orders/pom.xml:5 the orders module]; roles: io.demo.orders.model domain model [orders/src/main/java/io/demo/orders/model/Order.java:3 the order]; io.demo.orders.store adapter persistence [orders/src/main/java/io/demo/orders/store/OrderStore.java:3 stores orders] | architecture part admin: perimeter admin; style layered [admin/pom.xml:5 the admin module]; roles: io.demo.admin.web web [admin/src/main/java/io/demo/admin/web/AdminPage.java:3 a page]; io.demo.admin.service service [admin/src/main/java/io/demo/admin/service/AdminService.java:3 a service]; io.demo.admin.data data [admin/src/main/java/io/demo/admin/data/AdminDao.java:3 a DAO]'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:149:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: la décision sur une carte dont admin est en couches donne, pour chaque couche, les couches qui peuvent l'appeler
+    not ok 4 - la décision sur une carte dont admin est en couches donne, pour chaque couche, les couches qui peuvent l'appeler
+      ---
+      duration_ms: 205.823416
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:163:2'
+      failureType: 'testCodeFailure'
+      error: 'the map is presented; the survey says of ARC-01: no survey'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:166:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the roles of a part of the architecture map follow its style
+  ---
+  duration_ms: 868.462292
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-P2BBv1/test/v2-kernel/architecture-map-style-roles.test.ts:105:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1159.5535

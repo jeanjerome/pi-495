@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: adopting the architecture map adopts its verification by ArchUnit
+    # Subtest: l'issue d'adoption de la carte nomme archunit-junit5 1.5.1, sa déclaration dans une copie du POM, sa résolution réseau ouvert pour cette seule étape dans le dépôt local que Maven désigne, et les règles qu'il vérifiera
+    ok 1 - l'issue d'adoption de la carte nomme archunit-junit5 1.5.1, sa déclaration dans une copie du POM, sa résolution réseau ouvert pour cette seule étape dans le dépôt local que Maven désigne, et les règles qu'il vérifiera
+      ---
+      duration_ms: 247.189125
+      type: 'test'
+      ...
+    # Subtest: l'adoption résout ArchUnit, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, domain/src/main/java/io/demo/domain/user/User.java et la ligne de l'appel, que le rapport donne aussi, sans changer le digest du projet
+    ok 2 - l'adoption résout ArchUnit, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, domain/src/main/java/io/demo/domain/user/User.java et la ligne de l'appel, que le rapport donne aussi, sans changer le digest du projet
+      ---
+      duration_ms: 783.702
+      type: 'test'
+      ...
+    # Subtest: sur une référence qui tient sa carte, le survey mesure l'exigence d'architecture en PASS sans constat
+    ok 3 - sur une référence qui tient sa carte, le survey mesure l'exigence d'architecture en PASS sans constat
+      ---
+      duration_ms: 749.814542
+      type: 'test'
+      ...
+    1..3
+ok 1 - adopting the architecture map adopts its verification by ArchUnit
+  ---
+  duration_ms: 1781.433417
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2077.952958

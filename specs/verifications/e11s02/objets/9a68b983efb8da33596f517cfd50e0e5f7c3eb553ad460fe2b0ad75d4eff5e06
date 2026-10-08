@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: ArchUnit's file of ignored patterns on a Maven reactor
+    # Subtest: sur le réacteur domain et infrastructure dont la classe User du modèle appelle UserService, un archunit_ignore_patterns.txt du projet qui vise la ligne de cette violation, dans les ressources de domain et dans les ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte la règle des anneaux de domain à User.java et à la ligne de l'appel
+    not ok 1 - sur le réacteur domain et infrastructure dont la classe User du modèle appelle UserService, un archunit_ignore_patterns.txt du projet qui vise la ligne de cette violation, dans les ressources de domain et dans les ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte la règle des anneaux de domain à User.java et à la ligne de l'appel
+      ---
+      duration_ms: 8350.258917
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-62Bskw/test/v4-platform/maven-architecture-ignore-patterns.test.ts:86:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no file of the project silences a rule of the map:
+        
+        
+        'PASS' !== 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-62Bskw/test/v4-platform/maven-architecture-ignore-patterns.test.ts:112:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - ArchUnit's file of ignored patterns on a Maven reactor
+  ---
+  duration_ms: 8350.996625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-62Bskw/test/v4-platform/maven-architecture-ignore-patterns.test.ts:81:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9158.825583

@@ -1,0 +1,74 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 28,
+    "constat": "Le correctif du tour 2 épingle la plateforme JUnit à 1.14.4 dans le profil : le launcher de Surefire 3.6.0, et `junit-platform-engine`/`commons` sur le classpath de test de l'hôte. Sur un réacteur dont les tests passent avec JUnit Jupiter 6 (6.0.1), le moteur Jupiter 6 du projet se retrouve sur ce classpath avec une plateforme 1.14.4. Le build de l'hôte s'arrête alors sur « The wrapped NoClassDefFoundError is likely caused by the versions of JUnit jars on the classpath not being properly aligned ». Les deux témoins rendent INDETERMINATE et le contrôle d'architecture n'est pas qualifié, alors que le contrôle des tests du projet rend PASS. Sonde sur Maven réel : dans `test/v4-platform/maven-architecture.test.ts`, j'ai remplacé `junit-jupiter` 5.10.2 par 6.0.1. À HEAD, les deux cas d'architecture échouent (`[INDETERMINATE, INDETERMINATE, …, false]`). Avec `archunit-declaration.ts` et `maven-install.ts` de 36307865, les trois cas passent : la branche a donc introduit la régression. Aucune entrée du registre ne la couvre (BUG-2026-10-08T235100 vise un réacteur sans JUnit 5).",
+    "mutation": "Sonde, et non mutation : version de junit-jupiter passée de 5.10.2 à 6.0.1 dans le réacteur du test v4. Rouge à HEAD, vert avec la déclaration et la commande de résolution de la base."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "La carte adoptée est vérifiée, et chaque violation est localisée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/maven-architecture.test.ts",
+    "ligne": 218,
+    "constat": "Les constats A1-1 et B1-2 sont traités. Le nouveau cas v4 sur le réacteur domain/infrastructure exige PASS sans constat sur la référence, puis « part domain keeps the rings of its onion » à `User.java` et à la ligne de l'appel. Retirer les anneaux de la règle d'oignon le fait échouer.",
+    "mutation": "archunit-rules.ts : la ligne `...rings,` de onionRule mise en commentaire. Le cas de l'oignon de domain échoue ; vérifié, ligne remise."
+   },
+   {
+    "id": "A2-3",
+    "scenario": "Une architecture mixte est vérifiée partie par partie",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/maven-architecture.test.ts",
+    "ligne": 206,
+    "constat": "Les constats A1-2 et B1-3 sont traités. L'assertion filtre désormais les constats qui nomment « part shared » comme ceux situés sous `shared/`. Interdire la relation permise d'admin vers shared fait échouer le test sur « part admin may not depend on part shared | …AdminService.java:9 ».",
+    "mutation": "archunit-rules.ts relationRules : une relation vers `shared` n'est plus tenue pour permise (`&& to.name !== \"shared\"` dans le some). Le test du réacteur orders/admin/shared échoue ; vérifié, ligne remise."
+   },
+   {
+    "id": "A2-4",
+    "scenario": "La carte adoptée est vérifiée, et chaque violation est localisée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/maven-architecture-offline.test.ts",
+    "ligne": 150,
+    "constat": "Le constat B1-1 est traité pour le réacteur de la story sous JUnit 5. Sur un dépôt local vide que seuls le build du projet et l'adoption ont rempli, la résolution est acceptée et le contrôle est qualifié réseau fermé. Retirer l'activation du profile dans la commande de résolution, ou le fournisseur `surefire-junit-platform` des dépendances de Surefire, fait échouer ce test (témoins INDETERMINATE).",
+    "mutation": "Deux mutations, chacune vérifiée puis remise. (1) maven-install.ts : `-D${ARCHUNIT_RULES_PROPERTY}` retiré de la commande de résolution ; échec sur maven-surefire-plugin 3.6.0 absent hors ligne. (2) archunit-declaration.ts : la ligne `surefire-junit-platform` supprimée ; échec sur surefire-junit-platform 3.6.0 absent."
+   },
+   {
+    "id": "A2-5",
+    "scenario": "La carte proposée dit ce que le style de chaque partie demande",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/architecture-map-style-roles.test.ts",
+    "ligne": 121,
+    "constat": "Le constat A1-3 est traité. Le test exige maintenant la phrase de la consigne sur `called_by`, et non plus la seule clé, que l'exemple du schéma porte aussi. Retirer cette phrase de la consigne fait échouer le test.",
+    "mutation": "src/application/context.ts:153 : la proposition `, and \"called_by\" lists the layers of the part that may call that layer, …` retirée. Le test échoue ; vérifié, ligne remise."
+   }
+  ],
+  "resume": "Tour 2 rejeté : le correctif du tour 2 casse le contrôle d'architecture sur un réacteur JUnit 6 (A2-1, bloquant, introduit). Pour B1-1, la branche épingle Surefire 3.6.0 et la plateforme JUnit 1.14.4 dans le profil. Sur un réacteur dont les tests passent sous JUnit Jupiter 6.0.1, le build de l'hôte s'arrête alors sur un NoClassDefFoundError dû au désalignement des versions de JUnit. Les deux témoins rendent INDETERMINATE et le contrôle n'est pas qualifié. La même sonde passe avec la déclaration de la base 36307865 : la régression vient donc de la branche. Les constats A1-1, A1-2, A1-3, B1-1, B1-2 et B1-3 sont traités, et chaque correctif est tenu par un test que sa mutation fait échouer (A2-2 à A2-5). Les autres scénarios ne sont pas touchés par ce diff. B1-4 et le réacteur sans JUnit 5 sont au registre. L'arbre est remis propre ; Preflight n'a pas été relancée."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet n'en sont pas changés (et, par le même chemin, « La carte adoptée est vérifiée » : contrôle qualifié par ses témoins)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-declaration.ts",
+    "ligne": 87,
+    "constat": "Le correctif de B1-1 place `junit-platform-engine` et `junit-platform-commons` 1.14.4 sur le classpath de test du profil, et lance le lanceur 1.14.4 par Surefire. Sur un réacteur dont les tests utilisent JUnit 6 (`junit-jupiter` 6.0.1), et dont les tests passent, le moteur Jupiter 6 tourne alors sur la plateforme 1.14. La passe se termine par « The wrapped NoClassDefFoundError is likely caused by the versions of JUnit jars on the classpath/module path not being properly aligned ». Les deux témoins rendent INDETERMINATE, et le contrôle d'architecture n'est pas qualifié. À la base 3630786, sur le même dépôt local, le même réacteur était qualifié (PASS/FAIL), et la passe rendait ses constats. Aucun test ne couvre un réacteur dont le JUnit n'est pas de la ligne 1.14.",
+    "mutation": "Sonde jetable, non commitée : une copie de test/v4-platform/maven-architecture.test.ts où `junit-jupiter` passe de 5.10.2 à 6.0.1. À 3c5eaefb, le test du réacteur orders/admin/shared échoue sur [INDETERMINATE, INDETERMINATE, INDETERMINATE, false], alors que le test des tests du projet reste PASS. Avec archunit-declaration.ts et maven-install.ts remis à 3630786, la même sonde passe."
+   }
+  ],
+  "resume": "Verdict : échec. Trois des quatre corrections du tour 1 sont maintenant tenues par un test, mais le correctif qui fait tourner le contrôle d'architecture hors ligne casse sa qualification sur les réacteurs qui utilisent JUnit 6.\n\n**Le constat bloquant (B2-1, introduit).** Le profil fixe désormais la plateforme JUnit à 1.14.4 (`archunit-declaration.ts:87`). Sur un réacteur en `junit-jupiter` 6.0.1 dont les tests passent, les deux témoins rendent INDETERMINATE et le contrôle n'est pas qualifié. Maven signale des versions de JUnit mal alignées sur le classpath. À la base, sur le même dépôt local, le même réacteur était qualifié. Les tests des tests du projet restent PASS. Ce n'est pas l'entrée BUG-2026-10-08T235100, qui vise un échec de compilation du témoin. Ici le témoin compile, et c'est le moteur JUnit 6 qui tourne sur une plateforme 1.14. Aucun test ne couvre un réacteur hors de la ligne 1.14.\n\n**Les constats du tour 1 sont tenus.** J'ai muté le code sur les tests `test/v4-platform/maven-architecture.test.ts` et `maven-architecture-offline.test.ts` avec Maven et ArchUnit 1.5.1 réels, et sur `test/v2-kernel/architecture-map-style-roles.test.ts`. Chaque mutation a été annulée et chaque sonde supprimée ; l'arbre est propre.\n\n| Constats du tour 1 | Mutation | Résultat |\n|---|---|---|\n| A1-1 / B1-2 (anneaux de l'oignon) | anneaux retirés de la règle | le test du réacteur domain/infrastructure échoue |\n| A1-2 / B1-3 (relation permise vers shared) | `admin` ne peut plus dépendre de `shared` | le test échoue sur « part admin may not depend on part shared » |\n| A1-3 (consigne sur `called_by`) | phrase retirée de la consigne | le test v2 échoue |\n| B1-1 (contrôle hors ligne) | propriété du profil retirée de la résolution | le test hors ligne échoue (Surefire 3.6.0 introuvable hors ligne) |\n| B1-1 (contrôle hors ligne) | `surefire-junit-platform` retiré du profil | le test hors ligne échoue |\n\nB1-4 est déjà inscrit au registre (BUG-2026-10-08T235000) et n'est pas recompté.\n\n**Autres promesses.** Je n'ai rien trouvé sur les autres promesses touchées par ce diff. Les tests des tests du projet ne sont pas touchés, car le profil ne s'active qu'avec sa propriété. La résolution n'appelle que les buts `resolve-plugins` et `get` du plugin dependency, et le test hors ligne vérifie que l'inspection de la copie l'accepte."
+ }
+]

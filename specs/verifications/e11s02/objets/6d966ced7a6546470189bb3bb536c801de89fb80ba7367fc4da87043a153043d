@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La carte adoptée est vérifiée, et chaque violation est localisée (et Une référence qui tient sa carte est mesurée en PASS)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-rules.ts",
+    "ligne": 29,
+    "constat": "Le code tient la promesse : une sonde jetable sur Maven et ArchUnit 1.5.1 réels, avec le réacteur domain/infrastructure de la story, rend un constat « part domain keeps the rings of its onion » à `User.java:7`, le contrôle étant qualifié. Sur la référence propre, elle rend PASS sans constat. En revanche, aucun test ne tient les anneaux d'oignon qu'ArchUnit reçoit. Le test du noyau passe par FakeMavenControls, qui calcule lui-même la violation des anneaux à partir de la carte (`test/helpers/fake-maven.ts:220`), sans jamais lire la règle écrite par 495. Le test de plateforme n'a aucune violation d'oignon et n'assert pas l'absence de constat sur `orders`. Retirer les anneaux de la règle, ou les intervertir, ne fait échouer aucun test.",
+    "mutation": "Deux mutations dans onionRule, chacune laissant verts architecture-map-verification.test.ts et maven-architecture.test.ts : `.filter(([, packages]) => packages.length > 0)` remplacé par `.filter(() => false)`, ce qui retire les anneaux ; puis l'interversion de `domainModels` et `domainServices`."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une architecture mixte est vérifiée partie par partie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/maven-architecture.test.ts",
+    "ligne": 184,
+    "constat": "Le code tient la promesse : à la base, la passe sur le réacteur orders/admin/shared ne rend aucun constat sur `shared`. Mais l'assertion « aucun constat ne porte sur shared » ne retient que les constats dont le chemin commence par `shared/`. Un constat sur la relation d'`admin` vers `shared`, que la carte permet, est localisé dans `admin/` et lui échappe. La relation permise vers `shared` n'est donc tenue par aucun test (le code fautif sous mutation serait `archunit-rules.ts:77`).",
+    "mutation": "Dans relationRules (`archunit-rules.ts:77`), le filtre a été réduit à `to.name !== from.name`, ce qui ignore `map.relations`. La passe rend alors en plus « part admin may not depend on part shared » à `admin/src/main/java/io/demo/admin/service/AdminService.java:9`, et maven-architecture.test.ts reste vert."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La carte proposée dit ce que le style de chaque partie demande",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/context.ts",
+    "ligne": 152,
+    "constat": "Si l'on retire de la consigne la phrase sur `\"called_by\"`, le test reste vert. La raison : l'exemple du schéma de sortie, joint au même prompt, porte `called_by: [\"a layer of the part that may call this one\"]`. La consigne continue donc de demander les couches appelantes, et la promesse tient. Le test n'en distingue simplement pas la source.",
+    "mutation": "Dans ARCHITECTURE_MAP_INSTRUCTION, `and \"called_by\" lists the layers` remplacé par `and \"callers\" lists the layers` : architecture-map-style-roles.test.ts reste vert. Retirer la phrase des anneaux d'oignon fait, elle, échouer le test."
+   }
+  ],
+  "resume": "J'ai lu le code de chaque scénario et l'ai sondé, sur Maven et ArchUnit 1.5.1 réels pour les scénarios 4 et 5. Il tient les neuf promesses. J'ai essayé 26 mutations, chacune remise en place ensuite ; l'arbre est propre et la sonde a été supprimée. Elles sont tuées sur les scénarios 1, 2, 3, 7, 8 et 9, ainsi que sur la relation admin→orders, l'appel data→web et la source sans partie du scénario 6. Deux promesses ne sont tenues par aucun test (à corriger, introduit). D'abord, les anneaux d'oignon des règles écrites pour ArchUnit : le test du noyau s'appuie sur un faux Maven qui juge lui-même les anneaux, et le test de plateforme n'a pas de violation d'oignon. Ensuite, « aucun constat ne porte sur shared » : l'assertion ne filtre que les chemins sous `shared/`, si bien qu'un constat interdisant admin→shared passe inaperçu. Un point à peser, sans défaut : l'instruction sur called_by est redoublée par l'exemple de schéma. Verdict : fail."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La carte adoptée est vérifiée, et chaque violation est localisée",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/install/maven-install.ts",
+    "ligne": 33,
+    "constat": "La résolution réseau ouvert (`dependency:resolve-plugins` + `dependency:get archunit-junit5:1.5.1`) ne récupère pas le fournisseur que Surefire charge à l'exécution (`surefire-junit-platform`). Sur un dépôt local qui n'a jamais lancé de tests JUnit 5 avec cette version de Surefire, le contrôle d'architecture échoue hors ligne. Il n'est donc pas qualifié, et le protocole ne porte pas de contrôle qualifié. Les tests ne le voient pas : v2 tourne sur un Maven feint, et v4 tourne sur le dépôt local déjà chaud de la machine, avec un réacteur qui a des tests JUnit 5.",
+    "mutation": "Sonde jetable sur le réacteur de la story (domain + infrastructure, Surefire 3.2.5, sans tests) avec un dépôt local vide (`-Dmaven.repo.local`). `mvn test` du projet réussit (exit 0), puis la commande de résolution de 495 réussit (exit 0). Ensuite, `mvn -o test -Darchunit495.rules=… -Dtest=Architecture495Test` sort en 1 : « org.apache.maven.surefire:surefire-junit-platform:jar:3.2.5 (absent) … has not been downloaded from it before »."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La carte adoptée est vérifiée, et chaque violation est localisée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-rules.ts",
+    "ligne": 44,
+    "constat": "Aucun test ne garantit que les règles écrites pour une partie en oignon détectent l'appel de `User` (domain model) vers `UserService` (domain services). Le test v2 lit un rapport qu'écrit le faux ArchUnit (`fake-maven.ts`, qui calcule lui-même la règle « keeps the rings of its onion »), et le test v4 n'affirme aucune violation d'anneau. Retirer les anneaux de la règle laisse toute la suite verte. Pourtant, avec le vrai ArchUnit, le réacteur de la story passe alors en PASS sans constat.",
+    "mutation": "Suppression de la ligne `...rings,` dans `onionRule`. Les tests v4 maven-architecture, v2 architecture-map-verification et v1 archunit-report restent verts (8/8). La sonde v4 jetable sur le réacteur domain/infrastructure où User appelle UserService donne `VERDICT PASS []` (FAIL à User.java:7 sans la mutation)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une architecture mixte est vérifiée partie par partie",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-rules.ts",
+    "ligne": 77,
+    "constat": "« Aucun constat ne porte sur shared » n'est garanti que pour les constats dont le fichier est sous `shared/`. Une règle qui interdit à `admin` de dépendre de `shared` produit le constat « part admin may not depend on part shared » à AdminService.java:9, et le test reste vert, car il ne filtre que `f.path?.startsWith(\"shared/\")`.",
+    "mutation": "Dans `relationRules`, le filtre devient `.filter((to) => to.name !== from.name)`, ce qui ignore les relations de la carte. Le test v4 « sur le réacteur orders, admin et shared … sans constat sur shared » reste vert, et les constats relevés incluent `part admin may not depend on part shared | admin/src/main/java/io/demo/admin/service/AdminService.java:9`."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Sécurité — un fichier de l'arbre analysé ne peut pas remplacer les règles",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/archunit-rules.ts",
+    "ligne": 129,
+    "constat": "Les règles s'exécutent sur un classpath qui inclut les ressources du projet. ArchUnit y lit `archunit_ignore_patterns.txt`, donc un tel fichier dans l'arbre analysé filtre les violations des règles que 495 écrit. Avec `.*`, le témoin négatif passe aussi, et la qualification refuse le contrôle. Un motif ciblé sur une seule règle (par exemple « keeps the rings ») passerait la qualification, puisque le témoin est un cycle, et ferait taire cette règle.",
+    "mutation": "Sonde jetable : ajout de `domain/src/main/resources/archunit_ignore_patterns.txt` contenant `.*` au réacteur de la story qui viole sa carte. La passe de référence rend PASS sans constat. La qualification rend négatif PASS, donc le contrôle n'est pas qualifié."
+   }
+  ],
+  "resume": "J'ai lu les neuf scénarios dans le code, puis j'ai essayé 25 mutations, chacune remise en place. Elles sont tuées sur la consigne et les rôles par style, sur le refus d'une carte hors style (oignon et couches), sur les faits de la décision, sur le texte d'adoption (ArchUnit 1.5.1, copie du POM, dépôt local, règles), sur la chaîne d'adoption (complements, recognise avec la carte, commande de résolution, digest du projet), sur le verdict FAIL/PASS et la ligne du lecteur, sur les relations, couches et sources sans partie du vrai ArchUnit (v4), sur la qualification localisée, sur l'activation du profil (tests du projet), sur la résolution qui échoue et sur les parties `other` (issue et rapport). Bloquant (B1-1) : sur un dépôt Maven local vierge, la résolution ne récupère pas `surefire-junit-platform`, si bien que le contrôle d'architecture échoue hors ligne sur le réacteur de la story et n'est pas qualifié ; c'est constaté par une sonde réelle. À corriger : aucun test ne garantit la règle de l'oignon réellement générée (B1-2 : retirer les anneaux laisse tout vert alors que le réacteur de la story passe en PASS), ni l'absence de constat sur `shared` pour la relation admin→shared (B1-3). À peser : un `archunit_ignore_patterns.txt` de l'arbre peut faire taire une règle ciblée (B1-4). Fichiers de sonde supprimés, arbre propre."
+ }
+]

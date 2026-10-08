@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: what the verification of the adopted map leaves unverified is said
+    # Subtest: une résolution d'ArchUnit qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de Maven
+    ok 1 - une résolution d'ArchUnit qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de Maven
+      ---
+      duration_ms: 564.321334
+      type: 'test'
+      ...
+    # Subtest: quand le POM d'infrastructure ne reçoit pas la déclaration d'ArchUnit sans ambiguïté, l'issue d'adoption dit qu'aucun contrôle ne vérifiera la carte et pourquoi, rien n'est résolu, et le survey nomme l'exigence comme angle mort avec cette raison
+    ok 2 - quand le POM d'infrastructure ne reçoit pas la déclaration d'ArchUnit sans ambiguïté, l'issue d'adoption dit qu'aucun contrôle ne vérifiera la carte et pourquoi, rien n'est résolu, et le survey nomme l'exigence comme angle mort avec cette raison
+      ---
+      duration_ms: 498.543042
+      type: 'test'
+      ...
+    # Subtest: pour une partie events de style other, l'issue d'adoption et le rapport, en anglais et en français, disent que ses règles internes ne sont pas vérifiées
+    ok 3 - pour une partie events de style other, l'issue d'adoption et le rapport, en anglais et en français, disent que ses règles internes ne sont pas vérifiées
+      ---
+      duration_ms: 754.609292
+      type: 'test'
+      ...
+    1..3
+ok 1 - what the verification of the adopted map leaves unverified is said
+  ---
+  duration_ms: 1818.12975
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2092.465125

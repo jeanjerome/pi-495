@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: what the verification of the adopted map leaves unverified is said
+    # Subtest: une résolution d'ArchUnit qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de Maven
+    not ok 1 - une résolution d'ArchUnit qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de Maven
+      ---
+      duration_ms: 615.781167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b5Zsrn/test/v2-kernel/architecture-map-verification-limits.test.ts:55:2'
+      failureType: 'testCodeFailure'
+      error: 'the requirement is a blind spot, with the reason Maven gave'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: resolving com.tngtech.archunit:archunit-junit5 1.5.1 failed'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b5Zsrn/test/v2-kernel/architecture-map-verification-limits.test.ts:72:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: pour une partie events de style other, l'issue d'adoption et le rapport, en anglais et en français, disent que ses règles internes ne sont pas vérifiées
+    not ok 2 - pour une partie events de style other, l'issue d'adoption et le rapport, en anglais et en français, disent que ses règles internes ne sont pas vérifiées
+      ---
+      duration_ms: 214.690916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b5Zsrn/test/v2-kernel/architecture-map-verification-limits.test.ts:80:2'
+      failureType: 'testCodeFailure'
+      error: "fr: « les règles internes de la partie events ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant » in La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport. 495 déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but, en ouvrant le réseau pour cette seule étape ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que le POM qui reçoit la déclaration ; rien n'est écrit dans le projet. com.tngtech.archunit:archunit-junit5 1.5.1 vérifie alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; l'état des lieux mesure l'exigence avec lui. La réponse tombe si les exigences sont révisées."
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b5Zsrn/test/v2-kernel/architecture-map-verification-limits.test.ts:86:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - what the verification of the adopted map leaves unverified is said
+  ---
+  duration_ms: 831.171667
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b5Zsrn/test/v2-kernel/architecture-map-verification-limits.test.ts:54:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1119.543667
