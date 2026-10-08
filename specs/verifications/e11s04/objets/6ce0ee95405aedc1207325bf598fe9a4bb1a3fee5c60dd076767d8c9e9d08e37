@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the identification skill says how to read a Node project
+    # Subtest: la skill d'identification nomme, pour une cible Node, package.json, les déclarations import et require, les dossiers des sources et les alias de tsconfig.json, les signes des styles layered, onion, simple et other dans un projet Node et ceux de ses données, de ses préoccupations transverses et de son déploiement, et sa provenance dit que cette part est écrite par 495
+    not ok 1 - la skill d'identification nomme, pour une cible Node, package.json, les déclarations import et require, les dossiers des sources et les alias de tsconfig.json, les signes des styles layered, onion, simple et other dans un projet Node et ceux de ses données, de ses préoccupations transverses et de son déploiement, et sa provenance dit que cette part est écrite par 495
+      ---
+      duration_ms: 229.578792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IkM06Z/test/v2-kernel/architecture-map-node-skill.test.ts:34:2'
+      failureType: 'testCodeFailure'
+      error: 'the description does not keep the skill to Maven: description: Identify how a Maven project is organised and propose the map of its architecture in the format 495 asks for — parts, the style of each among layered, onion, simple and other, the role of each package, the parts each part may depend on, and the file and line that support each element — with a reading of its data, its cross-cutting concerns and its deployment. Use when an intervention asks for the architecture map of a project.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'description: Identify how a Maven project is organised and propose the map of its architecture in the format 495 asks for — parts, the style of each among layered, onion, simple and other, the role of each package, the parts each part may depend on, and the file and line that support each element — with a reading of its data, its cross-cutting concerns and its deployment. Use when an intervention asks for the architecture map of a project.'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IkM06Z/test/v2-kernel/architecture-map-node-skill.test.ts:42:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the identification skill says how to read a Node project
+  ---
+  duration_ms: 230.2455
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IkM06Z/test/v2-kernel/architecture-map-node-skill.test.ts:33:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 489.787709

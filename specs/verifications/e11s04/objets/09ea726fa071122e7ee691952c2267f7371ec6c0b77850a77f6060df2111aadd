@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the identification skill says how to read a Node project
+    # Subtest: la skill d'identification nomme, pour une cible Node, package.json, les déclarations import et require, les dossiers des sources et les alias de tsconfig.json, les signes des styles layered, onion, simple et other dans un projet Node et ceux de ses données, de ses préoccupations transverses et de son déploiement, et sa provenance dit que cette part est écrite par 495
+    ok 1 - la skill d'identification nomme, pour une cible Node, package.json, les déclarations import et require, les dossiers des sources et les alias de tsconfig.json, les signes des styles layered, onion, simple et other dans un projet Node et ceux de ses données, de ses préoccupations transverses et de son déploiement, et sa provenance dit que cette part est écrite par 495
+      ---
+      duration_ms: 220.326708
+      type: 'test'
+      ...
+    1..1
+ok 1 - the identification skill says how to read a Node project
+  ---
+  duration_ms: 220.860875
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 493.403958

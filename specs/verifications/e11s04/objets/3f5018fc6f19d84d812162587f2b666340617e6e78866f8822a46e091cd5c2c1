@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: what the verification of the adopted map of an npm package does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les sources .mts et .cts, les liens établis sans import ni require d'un chemin écrit en toutes lettres, les sources de test et les paquets installés sous node_modules, en anglais et en français
+    ok 1 - la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les sources .mts et .cts, les liens établis sans import ni require d'un chemin écrit en toutes lettres, les sources de test et les paquets installés sous node_modules, en anglais et en français
+      ---
+      duration_ms: 773.14
+      type: 'test'
+      ...
+    1..1
+ok 1 - what the verification of the adopted map of an npm package does not see is named
+  ---
+  duration_ms: 773.666166
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1046.89275

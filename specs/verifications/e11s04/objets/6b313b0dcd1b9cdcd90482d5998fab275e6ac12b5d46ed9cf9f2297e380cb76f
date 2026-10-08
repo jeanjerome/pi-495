@@ -1,0 +1,50 @@
+TAP version 13
+# Subtest: what the verification of the adopted map of an npm package does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les sources .mts et .cts, les liens établis sans import ni require d'un chemin écrit en toutes lettres, les sources de test et les paquets installés sous node_modules, en anglais et en français
+    not ok 1 - la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les sources .mts et .cts, les liens établis sans import ni require d'un chemin écrit en toutes lettres, les sources de test et les paquets installés sous node_modules, en anglais et en français
+      ---
+      duration_ms: 763.091292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w1nZFv/test/v2-kernel/architecture-map-node-unseen.test.ts:62:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: « ce que sa vérification ne voit pas : » under the map:
+          Carte d'architecture adoptée le 2026-09-16 :
+            domain — périmètre : src/domain, style : onion, peut dépendre de : aucune partie
+              src/domain/model : domain model
+              src/domain/service : domain services
+              src/domain/port : domain services
+            adapters — périmètre : src/adapters, style : onion, peut dépendre de : domain
+              src/adapters/db : adapter persistence
+            paquets sans partie : src/legacy
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w1nZFv/test/v2-kernel/architecture-map-node-unseen.test.ts:71:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - what the verification of the adopted map of an npm package does not see is named
+  ---
+  duration_ms: 763.760709
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-w1nZFv/test/v2-kernel/architecture-map-node-unseen.test.ts:61:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1029.790167

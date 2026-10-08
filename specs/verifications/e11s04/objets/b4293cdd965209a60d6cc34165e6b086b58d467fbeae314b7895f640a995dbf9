@@ -1,0 +1,104 @@
+TAP version 13
+# Subtest: adopting the architecture map of an npm package adopts its verification by dependency-cruiser
+    # Subtest: l'issue d'adoption de la carte d'un paquet npm nomme dependency-cruiser 18.5.0 et @swc/core 1.16.13, leur installation par npm comme dépendances de développement exactes dans une copie, sans script d'installation et réseau ouvert pour cette seule étape, l'inspection de la copie, et les règles qu'ils vérifieront
+    not ok 1 - l'issue d'adoption de la carte d'un paquet npm nomme dependency-cruiser 18.5.0 et @swc/core 1.16.13, leur installation par npm comme dépendances de développement exactes dans une copie, sans script d'installation et réseau ouvert pour cette seule étape, l'inspection de la copie, et les règles qu'ils vérifieront
+      ---
+      duration_ms: 239.430334
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:62:2'
+      failureType: 'testCodeFailure'
+      error: "« dependency-cruiser 18.5.0 » in Adopter la carte — La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet. Aucun contrôle ne vérifiera la carte : the technology of the target offers no verification of a map. La réponse tombe si les exigences sont révisées."
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:82:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: l'adoption installe les deux paquets, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, src/domain/model/user.ts et la ligne de l'import, que le rapport donne aussi, sans changer le digest du projet
+    not ok 2 - l'adoption installe les deux paquets, gèle la carte et le contrôle d'architecture qualifié, et le survey mesure l'exigence d'architecture en FAIL avec un constat qui nomme la règle, src/domain/model/user.ts et la ligne de l'import, que le rapport donne aussi, sans changer le digest du projet
+      ---
+      duration_ms: 526.465167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:115:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        npm installs once: qualification -> verifying/ready | verifying -> deciding/ready | deciding -> deciding/decision_required
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:121:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: sur un paquet qui tient sa carte, le survey mesure l'exigence en PASS sans constat
+    not ok 3 - sur un paquet qui tient sa carte, le survey mesure l'exigence en PASS sans constat
+      ---
+      duration_ms: 503.004667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:163:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: the technology of the target offers no verification of a map []
+        + actual - expected
+        
+        + undefined
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:167:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une installation qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de npm
+    not ok 4 - une installation qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de npm
+      ---
+      duration_ms: 513.734416
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:171:2'
+      failureType: 'testCodeFailure'
+      error: 'the requirement is a blind spot, with the reason npm gave'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: the technology of the target offers no verification of a map'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:181:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - adopting the architecture map of an npm package adopts its verification by dependency-cruiser
+  ---
+  duration_ms: 1783.298916
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q46jXk/test/v2-kernel/architecture-map-node-verification.test.ts:61:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2049.735583

@@ -1,0 +1,115 @@
+TAP version 13
+# Subtest: the output of dependency-cruiser is read violation by violation
+    # Subtest: une sortie de dependency-cruiser donne un constat par violation, avec la règle de la carte, le fichier relatif à la copie et la ligne de l'import retrouvée dans ce fichier
+    not ok 1 - une sortie de dependency-cruiser donne un constat par violation, avec la règle de la carte, le fichier relatif à la copie et la ligne de l'import retrouvée dans ce fichier
+      ---
+      duration_ms: 5.23075
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:99:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser dependency-cruiser-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:121:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un cycle est rapporté à un fichier du cycle et une source sans partie à son fichier
+    not ok 2 - un cycle est rapporté à un fichier du cycle et une source sans partie à son fichier
+      ---
+      duration_ms: 3.689917
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:136:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser dependency-cruiser-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:155:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une sortie où dependency-cruiser n'a lu aucune source rend INDETERMINATE avec cette raison, et non PASS
+    not ok 3 - une sortie où dependency-cruiser n'a lu aucune source rend INDETERMINATE avec cette raison, et non PASS
+      ---
+      duration_ms: 3.178583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:163:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /dependency-cruiser read no source/. Input:
+        
+        'parser dependency-cruiser-json is not qualified'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser dependency-cruiser-json is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:167:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une sortie absente ou illisible rend INDETERMINATE
+    not ok 4 - une sortie absente ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 2.792792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:171:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /no output of dependency-cruiser/. Input:
+        
+        'parser dependency-cruiser-json is not qualified'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser dependency-cruiser-json is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:174:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the output of dependency-cruiser is read violation by violation
+  ---
+  duration_ms: 15.415709
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-U5d8ky/test/v1-adapters/dependency-cruiser-report.test.ts:98:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 273.714459
