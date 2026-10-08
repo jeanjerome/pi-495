@@ -2,7 +2,7 @@
 
 Story : e11s05
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -129,7 +129,7 @@ donnent chaque alternative et l'énoncé de chaque contrainte citée. Sa recomma
 recommandée. La confronter aux contraintes est l'objet de la tâche 2.
 
 - Vérifie : `node --test test/v2-kernel/architecture-recommendation-proposal.test.ts`
-- Tient : `test/v2-kernel/architecture-recommendation-proposal.test.ts`, « après la mesure d'un état des lieux à la carte adoptée, une intervention en lecture seule propose une recommandation et une décision IH-05 la présente avec une issue par alternative, ask_analysis et suspend, des faits qui donnent chaque alternative avec sa nature, ses bénéfices, son coût, ses risques et l'énoncé de R2, et la recommandation A2 à part des faits, sans décision IH-10 demandée »
+- Tient : `test/v2-kernel/architecture-recommendation-proposal.test.ts`, « après la mesure d'un état des lieux à la carte adoptée, une intervention en lecture seule propose une recommandation et une décision IH-05 la présente avec une issue par alternative, ask_analysis et suspend, des faits qui donnent chaque alternative avec sa nature, ses bénéfices, son coût, ses risques et l'énoncé de R2, et la recommandation A2 à part des faits, sans décision IH-10 demandée » et « dans un état des lieux demandé en anglais, la décision IH-05 demande Which alternative should the architecture of the project take? avec une issue Choose par alternative, ask_analysis Ask for another analysis et suspend Leave the choice pending »
 - Rouge : sur un état des lieux, `decide` (`src/application/phases/decide.ts`) appelle directement `judgeSurvey`, qui n'ouvre aucune intervention (`src/application/phases/survey.ts` : « No candidate is written and no intervention is opened ») et ne demande que l'acceptation `IH-10`. Aucune phase ne peut demander `IH-05` : `PhaseInteraction` l'exclut (`src/application/decisions.ts`).
 
 ### Tâche 2 — La forme de l'argument est vérifiée avant la présentation
@@ -191,7 +191,7 @@ est enregistré comme texte libre de la décision, et la seconde intervention le
 propriétaire.
 
 - Vérifie : `node --test test/v3-pi/architecture-recommendation-remark-dialog.test.ts`
-- Tient : `test/v3-pi/architecture-recommendation-remark-dialog.test.ts`, « choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque »
+- Tient : `test/v3-pi/architecture-recommendation-remark-dialog.test.ts`, « choisir ask_analysis depuis Pi ouvre une saisie qui demande Votre remarque sur la recommandation, la décision enregistrée porte la remarque deux équipes ne justifient pas deux modules comme texte libre, et le contexte de la seconde intervention porte cette remarque » et « dans une session anglaise, choisir ask_analysis depuis Pi ouvre une saisie qui demande Your remark on the recommendation, et la décision enregistrée porte la remarque comme texte libre »
 - Rouge : dans `presentDecisions` (`src/extension/conduct.ts`), `freeTextPrompt` ne rend une invite que pour `answer`, `extend`, `refuse`, `revise` et `propose_map_again`, les clés de `FREE_TEXT_PROMPTS`. Pour `ask_analysis`, il rend null : `ctx.ui.input` n'est jamais appelé, et la décision est enregistrée avec `free_text: null`.
 
 ## 5. Hors périmètre

@@ -22,6 +22,12 @@ published under the MIT licence, whose notices are in skills/architecture-map/LI
     included, Copyright GitHub, Inc.;
   - design-pattern-review, sirius-zuo/design-pattern-skill, commit 66d78158 of 2026-05-15,
     Copyright (c) 2026 sirius-zuo.
+
+skills/architecture-recommendation/SKILL.md, the skill an intervention receives to review the patterns and the
+anti-patterns of a target and recommend what to do with its architecture, is adapted from a skill published
+under the MIT licence, whose notice is in skills/architecture-recommendation/LICENSE-sources:
+  - design-pattern-review, sirius-zuo/design-pattern-skill, commit 66d78158 of 2026-05-15, its code review,
+    its catalogue of patterns and its anti-patterns included, Copyright (c) 2026 sirius-zuo.
 --------------------------------------------------------------------------------
 Third-party software redistributed with this package
 

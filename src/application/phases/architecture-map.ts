@@ -73,7 +73,7 @@ interface MapProposal {
  * The number of lines of each regular file of the reference, read in the copy at `copyPath`; null for a
  * path the reference does not hold as a file, so a hint cannot lead out of the copy.
  */
-function linesIn(copyPath: string, reference: ReferenceSnapshot): (path: string) => number | null {
+export function linesIn(copyPath: string, reference: ReferenceSnapshot): (path: string) => number | null {
 	const files = new Set(reference.entries.filter((e) => e.kind === "file").map((e) => e.path));
 	return (path) => {
 		if (!files.has(path)) return null;

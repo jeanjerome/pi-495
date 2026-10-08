@@ -34,7 +34,8 @@ export type ArtifactKind =
 	| "output"
 	| "integration"
 	| "survey"
-	| "architecture_map";
+	| "architecture_map"
+	| "architecture_recommendation";
 
 export interface AdoptedArtifact {
 	kind: ArtifactKind;

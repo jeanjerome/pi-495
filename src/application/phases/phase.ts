@@ -17,7 +17,13 @@ import type { ActivePolicy } from "../../domain/policy.ts";
 import type { InterventionMandate, WorkspacePolicy, WorkspacePort } from "../../ports/execution.ts";
 import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
-import type { Adoptable, MapVerificationOffer, PhaseInteraction, ReferentialOffer } from "../decisions.ts";
+import type {
+	Adoptable,
+	MapVerificationOffer,
+	PhaseInteraction,
+	RecommendedAlternative,
+	ReferentialOffer,
+} from "../decisions.ts";
 import type { BundledSkill } from "../skills.ts";
 import type { InstallRun } from "../installation.ts";
 import type { InstallCapability } from "../stacks/plugin.ts";
@@ -65,6 +71,8 @@ export interface DecisionOptions {
 	referential?: ReferentialOffer;
 	/** How the architecture map the IH-04 proposes to adopt would be verified. */
 	architecture_map?: MapVerificationOffer;
+	/** The alternatives of the architecture recommendation an IH-05 asked on a survey offers to choose from. */
+	alternatives?: readonly RecommendedAlternative[];
 }
 
 export interface PhaseContext {

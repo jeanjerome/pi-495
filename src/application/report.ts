@@ -8,9 +8,10 @@
  *
  * The report is derived from the ledger alone, so it reads without a model and without Pi.
  */
-import type { Outcome, Verdict } from "../contracts/v1/common.ts";
+import type { ArtifactRef, Outcome, Verdict } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import {
+	type ArchitectureRecommendation,
 	type Protocol,
 	type QualityPerimeter,
 	type QualityRule,
@@ -18,7 +19,13 @@ import {
 	type RequirementsDocument,
 	type UnseenByVerification,
 } from "../contracts/v1/protocol.ts";
-import type { ChangeState, EvidenceEntry } from "../domain/change/state.ts";
+import {
+	answerToRecommendation,
+	constraintsOf,
+	type RecommendationProposal,
+	type ReviewCheck,
+} from "../domain/architecture-recommendation.ts";
+import type { ChangeState, EvidenceEntry, HumanDecisionEntry } from "../domain/change/state.ts";
 import type { CodeAuthorship, Survey } from "../domain/survey.ts";
 
 /** Measured: a control ran on a subject and answered. No interpretation is carried here. */
@@ -121,7 +128,28 @@ export interface SurveySection {
 			set_aside: { concern: ReadingConcern; statement: string; hint: string }[];
 		} | null;
 	} | null;
+	/**
+	 * The architecture recommendation a model proposed once the adopted map was measured: what the owner chose and
+	 * when, each alternative with each constraint it cites and what that constraint says, the alternative the model
+	 * recommended and its pattern review; or none given, with what the form of its argument misses. Null when none
+	 * was proposed.
+	 */
+	recommendation:
+		| { given: false; missing: string[] }
+		| {
+				given: true;
+				choice:
+					| { kind: "chosen"; alternative_id: string; on: string }
+					| { kind: "suspended"; on: string }
+					| { kind: "pending" };
+				alternatives: (Omit<RecommendedOption, "constraints"> & { constraints: { id: string; says: string }[] })[];
+				recommended: ArchitectureRecommendation["recommended"];
+				review: ReviewCheck;
+		  }
+		| null;
 }
+
+type RecommendedOption = ArchitectureRecommendation["alternatives"][number];
 
 type ReadingConcern = (typeof READING_CONCERNS)[number];
 
@@ -204,6 +232,7 @@ function surveySection(
 	survey: Survey,
 	requirements: RequirementsDocument | null,
 	protocol: Protocol | null,
+	recommendation: SurveySection["recommendation"],
 ): SurveySection {
 	return {
 		requirements: survey.requirements.map((r) => ({
@@ -220,6 +249,40 @@ function surveySection(
 		),
 		referential: referentialSection(survey, protocol),
 		architecture: architectureSection(protocol),
+		recommendation,
+	};
+}
+
+/**
+ * The architecture recommendation of the survey, as its section presents it: the owner's last answer to the choice
+ * asked on it, which a request for another analysis leaves pending, and each constraint an alternative cites with
+ * what the requirements say of it.
+ */
+function recommendationSection(
+	proposal: { ref: ArtifactRef; content: RecommendationProposal } | null,
+	decisions: readonly HumanDecisionEntry[],
+	requirements: RequirementsDocument | null,
+): SurveySection["recommendation"] {
+	if (proposal === null) return null;
+	const { check, recommendation, review } = proposal.content;
+	if (!check.holds) return { given: false, missing: check.missing };
+	const answer = answerToRecommendation(decisions, proposal.ref.content_digest);
+	const on = answer?.recorded_at.slice(0, 10) ?? "";
+	const chosen = recommendation.alternatives.find((a) => a.alternative_id === answer?.option_id);
+	const says = requirements === null ? new Map<string, string>() : constraintsOf(requirements);
+	return {
+		given: true,
+		choice: chosen
+			? { kind: "chosen", alternative_id: chosen.alternative_id, on }
+			: answer?.option_id === "suspend"
+				? { kind: "suspended", on }
+				: { kind: "pending" },
+		alternatives: recommendation.alternatives.map((a) => ({
+			...a,
+			constraints: a.constraints.map((id) => ({ id, says: says.get(id) ?? "" })),
+		})),
+		recommended: recommendation.recommended,
+		review,
 	};
 }
 
@@ -268,6 +331,7 @@ export function engineeringReport(
 	requirements: RequirementsDocument | null = null,
 	survey: Survey | null = null,
 	title = "",
+	recommendation: { ref: ArtifactRef; content: RecommendationProposal } | null = null,
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
 	const currentDigest = state.candidate?.manifest_digest;
@@ -445,7 +509,14 @@ export function engineeringReport(
 			? { candidate_id: state.candidate.candidate_id, manifest_digest: state.candidate.manifest_digest }
 			: null,
 		requirements: asked,
-		survey: survey ? surveySection(survey, requirements, protocol) : null,
+		survey: survey
+			? surveySection(
+					survey,
+					requirements,
+					protocol,
+					recommendationSection(recommendation, state.human_decisions, requirements),
+				)
+			: null,
 		observations,
 		judgments,
 		residual_risks: risks,

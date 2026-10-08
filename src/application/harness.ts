@@ -23,6 +23,7 @@ import type {
 import type { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from "../contracts/v1/decision.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
 import type { Protocol, RequirementsDocument } from "../contracts/v1/protocol.ts";
+import type { RecommendationProposal } from "../domain/architecture-recommendation.ts";
 import { apply } from "../domain/change/apply.ts";
 import type { ChangeCommand } from "../domain/change/commands.ts";
 import { decide } from "../domain/change/decide.ts";
@@ -882,6 +883,9 @@ export class Harness {
 			? await this.artifacts.read<RequirementsDocument>(adoptedRef).catch(() => null)
 			: null;
 		const survey = await this.artifacts.latest<Survey>(loaded.state, "survey").catch(() => null);
+		const recommendation = await this.artifacts
+			.latest<RecommendationProposal>(loaded.state, "architecture_recommendation")
+			.catch(() => null);
 		const program = this.deps.ledger.loadProgram(loaded.state.program_id)?.state;
 		return engineeringReport(
 			loaded.state,
@@ -890,6 +894,7 @@ export class Harness {
 			requirements,
 			survey?.content ?? null,
 			program?.increments.find((i) => i.increment_id === loaded.state.increment_id)?.title,
+			recommendation,
 		);
 	}
 
@@ -1023,6 +1028,7 @@ export class Harness {
 			adoptable,
 			referential,
 			architecture_map,
+			alternatives,
 		}: DecisionOptions,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
@@ -1037,6 +1043,7 @@ export class Harness {
 			...(adoptable ? { adoptable } : {}),
 			...(referential ? { referential } : {}),
 			...(architecture_map ? { architecture_map } : {}),
+			...(alternatives ? { alternatives } : {}),
 			installers: (manager: string) => this.deps.stacks.installerOf(manager)?.install,
 			requested_at: this.now(),
 		});

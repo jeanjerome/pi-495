@@ -10,6 +10,7 @@ import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
 import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
+import { settleRecommendation } from "./architecture-recommendation.ts";
 import { judgeSurvey } from "./survey.ts";
 
 async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
@@ -40,7 +41,12 @@ async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: st
 }
 
 export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
-	if (surveysTheProject(unit.state)) return judgeSurvey(ctx, unit, cor);
+	if (surveysTheProject(unit.state)) {
+		// A survey with an adopted architecture map puts its recommendation to the owner before its acceptance.
+		const recommendation = await settleRecommendation(ctx, unit, cor);
+		if (recommendation.kind === "stopped") return recommendation.unit;
+		return judgeSurvey(ctx, recommendation.unit, cor);
+	}
 	const g4 = unit.state.gates.G4;
 	if (g4 && g4.verdict === "FAIL" && !unit.state.gates.G5) {
 		return correctOrStop(ctx, unit, cor, `G4 failed: ${g4.reasons.join("; ")}`);

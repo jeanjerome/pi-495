@@ -4,13 +4,13 @@
  */
 import type { HumanInteraction, SubjectRef } from "../contracts/v1/common.ts";
 import type { DecisionRequest } from "../contracts/v1/decision.ts";
-import type { PackageInstall } from "../contracts/v1/protocol.ts";
+import type { ArchitectureRecommendation, PackageInstall } from "../contracts/v1/protocol.ts";
 import type { InstallCapability } from "./stacks/plugin.ts";
 
 type Lang = "fr" | "en";
 
 /** The human interactions a phase may open. The others belong to entry points, not to a phase. */
-export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-05" | "IH-06" | "IH-09">;
+export type PhaseInteraction = Exclude<HumanInteraction, "IH-03" | "IH-06" | "IH-09">;
 
 const T = {
 	fr: {
@@ -577,6 +577,77 @@ const ARCHITECTURE_MAP_ADOPTION = {
 	},
 } as const;
 
+/** An alternative of an architecture recommendation, as the option that chooses it names it. */
+export type RecommendedAlternative = Pick<
+	ArchitectureRecommendation["alternatives"][number],
+	"alternative_id" | "nature" | "description"
+>;
+
+const NATURES = {
+	fr: { keep: "conserver", adjust: "ajuster", transform: "transformer" },
+	en: { keep: "keep", adjust: "adjust", transform: "transform" },
+} as const;
+
+/**
+ * IH-05 asked on a survey whose adopted architecture map a model recommended alternatives for: the owner chooses
+ * one, asks for another analysis with a remark, or leaves the choice pending. Nothing is written in the project and
+ * no verdict changes whatever the answer.
+ */
+const RECOMMENDATION_CHOICE = {
+	fr: (alternatives: readonly RecommendedAlternative[]) => ({
+		question: "Quelle alternative retenir pour l'architecture du projet ?",
+		options: [
+			...alternatives.map((a) => ({
+				id: a.alternative_id,
+				label: `Choisir ${a.alternative_id} (${NATURES.fr[a.nature]}) : ${a.description}`,
+				effect:
+					"L'alternative est enregistrée comme choisie avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet et aucun verdict ne change. L'état des lieux vous est ensuite soumis pour acceptation.",
+				risky: false,
+			})),
+			{
+				id: "ask_analysis",
+				label: "Demander une autre analyse (votre remarque en texte libre)",
+				effect:
+					"Une nouvelle intervention en lecture seule reçoit cette recommandation et votre remarque, et propose une autre recommandation, qui vous est présentée avec les mêmes issues.",
+				risky: false,
+			},
+			{
+				id: "suspend",
+				label: "Laisser le choix en suspens",
+				effect:
+					"Aucune alternative n'est enregistrée comme choisie ; le rapport présente les alternatives et dit que vous avez laissé le choix en suspens. L'état des lieux vous est ensuite soumis pour acceptation.",
+				risky: false,
+			},
+		],
+	}),
+	en: (alternatives: readonly RecommendedAlternative[]) => ({
+		question: "Which alternative should the architecture of the project take?",
+		options: [
+			...alternatives.map((a) => ({
+				id: a.alternative_id,
+				label: `Choose ${a.alternative_id} (${NATURES.en[a.nature]}): ${a.description}`,
+				effect:
+					"The alternative is recorded as chosen with the date of this decision and presented in the report; nothing is written in the project and no verdict changes. The survey is then put to your acceptance.",
+				risky: false,
+			})),
+			{
+				id: "ask_analysis",
+				label: "Ask for another analysis (your remark as free text)",
+				effect:
+					"A new read-only intervention receives this recommendation and your remark, and proposes another recommendation, which is presented to you with the same options.",
+				risky: false,
+			},
+			{
+				id: "suspend",
+				label: "Leave the choice pending",
+				effect:
+					"No alternative is recorded as chosen; the report presents the alternatives and says you left the choice pending. The survey is then put to your acceptance.",
+				risky: false,
+			},
+		],
+	}),
+} as const;
+
 /**
  * IH-10 asked on a survey rather than on a candidate: there is nothing to correct, so the owner accepts
  * the state of the project as presented, or refuses it and says why.
@@ -624,6 +695,7 @@ const SURVEY_ACCEPTANCE = {
  */
 function questionOf(args: Parameters<typeof buildDecisionRequest>[0], surveyed: boolean, installers: Installers) {
 	if (surveyed) return SURVEY_ACCEPTANCE[args.language];
+	if (args.interaction === "IH-05") return RECOMMENDATION_CHOICE[args.language](args.alternatives ?? []);
 	if (args.interaction === "IH-04" && args.referential)
 		return REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers);
 	if (args.interaction === "IH-04" && args.architecture_map)
@@ -646,6 +718,8 @@ export function buildDecisionRequest(args: {
 	referential?: ReferentialOffer;
 	/** How the architecture map an IH-04 asked on a survey proposes instead of a preparation would be verified. */
 	architecture_map?: MapVerificationOffer;
+	/** The alternatives of the architecture recommendation an IH-05 asked on a survey offers to choose from. */
+	alternatives?: readonly RecommendedAlternative[];
 	/** The install capability that runs a package manager, whose phrases say what adopting its packages does. */
 	installers?: Installers;
 	requested_at: string;
@@ -673,6 +747,7 @@ export function buildDecisionRequest(args: {
 			args.interaction === "IH-01" ||
 			args.interaction === "IH-02" ||
 			args.interaction === "IH-04" ||
+			args.interaction === "IH-05" ||
 			args.interaction === "IH-07" ||
 			surveyed,
 		requested_at: args.requested_at,

@@ -15,7 +15,13 @@
 import { digestBytes } from "../contracts/digest.ts";
 import type { InterventionRole, ObjectRef } from "../contracts/v1/common.ts";
 import type { Evidence } from "../contracts/v1/evidence.ts";
-import type { ArchitectureMap, ControlDefinition } from "../contracts/v1/protocol.ts";
+import type {
+	AdoptedArchitectureMap,
+	AnsweredQuestion,
+	ArchitectureMap,
+	ArchitectureRecommendation,
+	ControlDefinition,
+} from "../contracts/v1/protocol.ts";
 import type { OutputSchemaId } from "../contracts/v1/reports.ts";
 import { type ChangeState, type Deliverable, isQuestionClosed } from "../domain/change/state.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
@@ -162,6 +168,45 @@ export const OUTPUT_SCHEMA_EXAMPLES: Record<string, unknown> = {
 			],
 		},
 	} satisfies ArchitectureMap,
+	"architecture-recommendation": {
+		alternatives: [
+			{
+				alternative_id: "A1",
+				nature: "keep",
+				description: "what the alternative does to the architecture",
+				benefits: ["what it brings the project"],
+				cost: { complexity: "the complexity it adds", migration: "the work it takes to get there" },
+				risks: ["what could go wrong"],
+				constraints: ["the identifier of a requirement or of an answered question it rests on"],
+			},
+			{
+				alternative_id: "A2",
+				nature: "adjust",
+				description: "what the alternative does to the architecture",
+				benefits: ["what it brings the project"],
+				cost: { complexity: "the complexity it adds", migration: "the work it takes to get there" },
+				risks: ["what could go wrong"],
+				constraints: ["the identifier of a requirement or of an answered question it rests on"],
+			},
+		],
+		recommended: {
+			alternative_id: "A2",
+			conclusion: "why this alternative, by the constraints it cites",
+			constraints: ["the identifier of a requirement or of an answered question the conclusion rests on"],
+		},
+		review: [
+			{
+				kind: "anti_pattern",
+				name: "the anti-pattern the code shows",
+				hints: [{ path: "a file of the project", line: 1, says: "what this line shows" }],
+			},
+			{
+				kind: "pattern",
+				name: "the pattern in use",
+				hints: [{ path: "a file of the project", line: 1, says: "what this line shows" }],
+			},
+		],
+	} satisfies ArchitectureRecommendation,
 };
 
 const OUTPUT_SCHEMA_TEXT: Record<string, string> = Object.fromEntries(
@@ -171,6 +216,10 @@ const OUTPUT_SCHEMA_TEXT: Record<string, string> = Object.fromEntries(
 /** What an intervention that proposes the architecture map of a target is told it is. */
 const ARCHITECTURE_MAP_INSTRUCTION =
 	'You propose the map of the architecture of the project as it stands; you change nothing. Cut the project into parts, each a set of modules or package branches. Give each part one style among "layered", "onion", "simple" and "other", and the role of each of its packages in that style, naming each package as its sources declare it. In a part in "onion", the role of a package is its ring: "domain model", "domain services", "application services", or "adapter <name>" with the name of the adapter, such as "adapter persistence"; a port belongs to the ring that declares it. In a part in "layered", the role of a package is the name of its layer, and "called_by" lists the layers of the part that may call that layer, an empty list for a layer no other may call. Name the parts each part may depend on; a dependency between parts you do not name is not permitted. Support every part, role and relation with the places in the project that show it, each a file and a line that exists in it. The map is a proposal the owner adopts or refuses, never a finding. Beside the map, give in "reading" a reading of the data, the cross-cutting concerns and the deployment of the project, each statement with its hints, a file and a line that exists in it: in "data", what persists the data and how the code reaches it; in "cross_cutting", how security, errors, logging, validation and configuration are handled; in "deployment", how the project is built, packaged and run. A statement whose hint designates no line is set aside. The reading is what you read of the project, never a finding.';
+
+/** What an intervention that recommends what to do with the architecture of a target is told it is. */
+const ARCHITECTURE_RECOMMENDATION_INSTRUCTION =
+	'You recommend what to do with the architecture of the project as its adopted map and the controls that measured it show it; you change nothing. First give in "review" a review of the patterns and the anti-patterns of the code, each observation with its "kind", "pattern" or "anti_pattern", its name, and each observation with its hints, a file and a line that exists in it; an observation whose hint designates no line is set aside, and the review is what you read of the code, never a finding. Then propose at least two alternatives, each with an "alternative_id", its "nature" among "keep", "adjust" and "transform", a description, its benefits, its cost in complexity and in migration, its risks, and in "constraints" the identifiers of the requirements and of the answered questions of the owner it rests on. A constraint is a requirement or an answer of the owner the objective gives, never a fact read in the code: no style is a constraint, and an alternative is argued by what the project asks, not by a style it would follow. Then name in "recommended" the alternative you recommend, with its conclusion and the constraints the conclusion cites. The recommendation is a proposal the owner chooses from, never a finding and never a decision.';
 
 function outputSchemaFor(role: InterventionRole): OutputSchemaId {
 	switch (role) {
@@ -185,19 +234,28 @@ function outputSchemaFor(role: InterventionRole): OutputSchemaId {
 	}
 }
 
+/** What an intervention answering with one of these structured outputs is told it is, whatever its role. */
+const SCHEMA_INSTRUCTIONS: Partial<Record<OutputSchemaId, string>> = {
+	"architecture-map": ARCHITECTURE_MAP_INSTRUCTION,
+	"architecture-recommendation": ARCHITECTURE_RECOMMENDATION_INSTRUCTION,
+};
+
 /** What the intervention is told it is: what it answers with, else its role. */
 function roleInstruction(schema: OutputSchemaId, role: InterventionRole): string {
-	return schema === "architecture-map"
-		? ARCHITECTURE_MAP_INSTRUCTION
-		: role === "review"
-			? "You are a reviewer: you must not modify any file. Report localized findings with expected and observed behaviour."
-			: role === "implement"
-				? "You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate."
-				: role === "prepare"
-					? "You are preparing verification means (tests, fixtures, configuration). You cannot adopt your own proposal."
-					: role === "specify"
-						? 'You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Give each requirement the category that says what a control measures of it, one of: "functional" for the behaviour the code shows; "quality" for complexity, duplication, dead code and style; "coverage" for the code the tests exercise; "mutation" for the mutants the tests kill; "architecture" for the structure and the dependencies between modules. A category the harness does not read leaves the requirement a blind spot. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it. Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it.'
-						: "You observe the project: distinguish observations from interpretations and list what is missing. Do not execute build or install scripts.";
+	return SCHEMA_INSTRUCTIONS[schema] ?? instructionOfRole(role);
+}
+
+/** What an intervention is told it is by its role alone. */
+function instructionOfRole(role: InterventionRole): string {
+	return role === "review"
+		? "You are a reviewer: you must not modify any file. Report localized findings with expected and observed behaviour."
+		: role === "implement"
+			? "You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate."
+			: role === "prepare"
+				? "You are preparing verification means (tests, fixtures, configuration). You cannot adopt your own proposal."
+				: role === "specify"
+					? 'You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Give each requirement the category that says what a control measures of it, one of: "functional" for the behaviour the code shows; "quality" for complexity, duplication, dead code and style; "coverage" for the code the tests exercise; "mutation" for the mutants the tests kill; "architecture" for the structure and the dependencies between modules. A category the harness does not read leaves the requirement a blind spot. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it. Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it.'
+					: "You observe the project: distinguish observations from interpretations and list what is missing. Do not execute build or install scripts.";
 }
 
 export function buildContext(input: ContextInput): {
@@ -481,4 +539,36 @@ export function architectureMapObjective(
 	const asked = `Propose the map of the architecture of this project, for the requirements: ${requirements.map((r) => `${r.requirement_id}: ${r.statement}`).join("; ")}.`;
 	if (previous === null) return asked;
 	return `${asked}\n\nThe owner did not adopt this map and asks for another proposal:\n${JSON.stringify(previous.map, null, 2)}\n\nThe owner's remark: ${previous.remark?.trim() || "(none given)"}`;
+}
+
+/**
+ * What an intervention that recommends what to do with the architecture of a target is asked: the adopted map, what
+ * the survey measured, and the constraints an alternative may cite, each requirement and each answered question of
+ * the owner by its identifier; and, when the owner asked for another analysis, the recommendation they chose nothing
+ * from and their remark, as they wrote it.
+ */
+export function architectureRecommendationObjective(
+	basis: {
+		map: AdoptedArchitectureMap;
+		findings: readonly { control_id: string; message: string }[];
+		requirements: readonly { requirement_id: string; statement: string }[];
+		answers: readonly AnsweredQuestion[];
+	},
+	previous: { recommendation: ArchitectureRecommendation; remark: string | null } | null,
+): string {
+	const { parts, relations } = basis.map.map;
+	const listed = (lines: readonly string[]) => (lines.length === 0 ? "- none" : lines.join("\n"));
+	return [
+		"Recommend what to do with the architecture of this project, argued by its constraints.",
+		`The architecture map the owner adopted on ${basis.map.adopted_on}:\n${JSON.stringify({ parts, relations }, null, 2)}`,
+		`What the controls of the survey measured on the project:\n${listed(basis.findings.map((f) => `- ${f.control_id}: ${f.message}`))}`,
+		`The requirements of the survey, which an alternative cites by their identifier:\n${listed(basis.requirements.map((r) => `- ${r.requirement_id}: ${r.statement}`))}`,
+		`The owner's answers to the questions of the survey, which an alternative cites by the identifier of the question:\n${listed(basis.answers.map((a) => `- ${a.question_id}: ${a.question} -> ${a.answer}`))}`,
+		...(previous === null
+			? []
+			: [
+					`The owner chose none of the alternatives of this recommendation and asks for another analysis:\n${JSON.stringify(previous.recommendation, null, 2)}`,
+					`The owner's remark: ${previous.remark?.trim() || "(none given)"}`,
+				]),
+	].join("\n\n");
 }

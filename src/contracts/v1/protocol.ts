@@ -183,6 +183,61 @@ export const ArchitectureMap = Type.Object(
 );
 export type ArchitectureMap = Static<typeof ArchitectureMap>;
 
+/** What an observation of a pattern review says of the code: a pattern in use, or an anti-pattern. */
+export const REVIEW_KINDS = ["pattern", "anti_pattern"] as const;
+
+/** An observation of the pattern review a model makes of a target, with the places in the reference that show it. */
+export const PatternObservation = Type.Object(
+	{
+		kind: Closed(REVIEW_KINDS),
+		name: Type.String({ minLength: 1 }),
+		hints: Type.Array(ArchitectureHint, { minItems: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type PatternObservation = Static<typeof PatternObservation>;
+
+/** What an alternative of an architecture recommendation does to the architecture as it stands. */
+export const RECOMMENDATION_NATURES = ["keep", "adjust", "transform"] as const;
+
+/**
+ * What a model recommends doing with the architecture of a target once its map is adopted and measured: alternatives,
+ * each with its benefits, its cost in complexity and in migration, its risks and the constraints it cites, a
+ * requirement or a question the owner answered, by its identifier; then the alternative it recommends, with its
+ * conclusion and the constraints that conclusion cites; and the review of the patterns and the anti-patterns of the
+ * code it rests on. A proposal the owner chooses from, never a finding.
+ */
+export const ArchitectureRecommendation = Type.Object(
+	{
+		alternatives: Type.Array(
+			Type.Object(
+				{
+					alternative_id: Type.String({ minLength: 1 }),
+					nature: Closed(RECOMMENDATION_NATURES),
+					description: Type.String({ minLength: 1 }),
+					benefits: Type.Array(Type.String()),
+					cost: Type.Object({ complexity: Type.String(), migration: Type.String() }, { additionalProperties: false }),
+					risks: Type.Array(Type.String()),
+					constraints: Type.Array(Type.String()),
+				},
+				{ additionalProperties: false },
+			),
+		),
+		recommended: Type.Object(
+			{
+				alternative_id: Type.String({ minLength: 1 }),
+				conclusion: Type.String({ minLength: 1 }),
+				constraints: Type.Array(Type.String()),
+			},
+			{ additionalProperties: false },
+		),
+		/** Absent when the model gave no review: a reading, never a finding, which no verdict depends on (`D-74`). */
+		review: Type.Optional(Type.Array(PatternObservation)),
+	},
+	{ $id: "urn:495:contract:architecture-recommendation:1", additionalProperties: false },
+);
+export type ArchitectureRecommendation = Static<typeof ArchitectureRecommendation>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,

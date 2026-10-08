@@ -5,7 +5,7 @@
 import { Type, type Static, type TSchema } from "typebox";
 import { Closed, type InterventionRole } from "./common.ts";
 import { SEVERITIES } from "./evidence.ts";
-import { ArchitectureMap } from "./protocol.ts";
+import { ArchitectureMap, ArchitectureRecommendation } from "./protocol.ts";
 
 export const ProducerReport = Type.Object(
 	{
@@ -122,6 +122,7 @@ export const OUTPUT_SCHEMAS = {
 	"observation-report": ObservationReport,
 	"specification-report": SpecificationReport,
 	"architecture-map": ArchitectureMap,
+	"architecture-recommendation": ArchitectureRecommendation,
 } as const;
 
 /** The name of the structured output an intervention answers with. */

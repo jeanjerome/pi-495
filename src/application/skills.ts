@@ -37,3 +37,19 @@ export const ARCHITECTURE_MAP_SKILL: BundledSkill = {
 		},
 	],
 };
+
+/** The skill an intervention recommending what to do with the architecture of a target receives, read from the same place. */
+export const ARCHITECTURE_RECOMMENDATION_SKILL: BundledSkill = {
+	name: "architecture-recommendation",
+	file: fileURLToPath(new URL("../../skills/architecture-recommendation/SKILL.md", import.meta.url)),
+	adapted_on: "2026-10-09",
+	sources: [
+		{
+			repository: "sirius-zuo/design-pattern-skill",
+			skill: "design-pattern-review",
+			commit: "66d78158",
+			committed_on: "2026-05-15",
+			license: "MIT",
+		},
+	],
+};

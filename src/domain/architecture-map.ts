@@ -111,6 +111,17 @@ export function checkArchitectureMap(
 /** The reading of the model as it goes with an adopted map: the statements kept, and those set aside with their hint. */
 export type ReadingCheck = NonNullable<AdoptedArchitectureMap["reading"]>;
 
+/** The first of `hints` that designates no line of a file of the reference, as `linesOf` counts them; undefined when none. */
+export function hintOffTheReference(
+	hints: readonly ArchitectureHint[],
+	linesOf: (path: string) => number | null,
+): ArchitectureHint | undefined {
+	return hints.find((h) => {
+		const lines = linesOf(h.path);
+		return lines === null || h.line > lines;
+	});
+}
+
 /**
  * Confronts each hint of the reading of the model with the files of the reference, as those of the map are: a
  * statement one of whose hints designates no line of a file of the reference is set aside with that hint, the
@@ -121,10 +132,7 @@ export function checkReading(reading: ModelReading, linesOf: (path: string) => n
 	const setAside: ReadingCheck["set_aside"] = [];
 	for (const concern of READING_CONCERNS)
 		for (const said of reading[concern]) {
-			const wrong = said.hints.find((h) => {
-				const lines = linesOf(h.path);
-				return lines === null || h.line > lines;
-			});
+			const wrong = hintOffTheReference(said.hints, linesOf);
 			if (wrong === undefined) kept[concern].push(said);
 			else setAside.push({ concern, statement: said.statement, hint: `${wrong.path}:${wrong.line}` });
 		}

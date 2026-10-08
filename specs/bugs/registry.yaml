@@ -2026,3 +2026,30 @@ bugs:
     follow_ups: >
       Let the technology name the unit of its map (package for Maven, folder for Node) in the fact and the report.
     status: open
+  - bug_id: BUG-2026-10-09T014035
+    date: "2026-10-09"
+    title: "In a French report, the reason no architecture recommendation is given stays in English inside the French sentence"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      Introduced by the branch `e11s05`. When the form of a recommendation does not hold, the survey section of a
+      French report reads « Aucune recommandation d'architecture n'est donnée, parce que la forme de son argument ne
+      tient pas : alternative A3 cites R9, which is neither a requirement of the survey nor a question the owner
+      answered ». The reason is written once, in English, by `src/domain/architecture-recommendation.ts` and joined
+      as it is by `src/presentation/structured/recommendation-text.ts`.
+    what_expected: >
+      The reason reads in the language of the report, naming the alternative and the constraint it designates.
+    steps_to_reproduce:
+      - "In a French session, adopt a map, let the recommendation of the survey cite `R9` from one alternative, and read `/495 report`."
+    root_cause: >
+      The check of the form returns finished English sentences, and the report writes them under a French lead-in;
+      same family as the English facts of a decision under a French question.
+    evidence: >
+      Seen in the acceptance run of `e11s05` at `e7020bca` (`~/.495-campagnes/e11s05-r9`, `-sans-risque`, `-une`,
+      `-conclusion-vide`, `-hors-liste`, driver output of `/495 report`).
+    risk_level: low
+    follow_ups: >
+      Return each missing element as a code with its arguments (alternative, constraint) and render it per language
+      in the report.
+    status: open

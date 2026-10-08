@@ -30,22 +30,61 @@ export const ARCHITECTURE_SPEC = specReport({
 	],
 });
 
+/** A recommendation of two alternatives argued by ARC-01, which the model proposes once the map is adopted and measured. */
+const ARCHITECTURE_RECOMMENDATION = {
+	alternatives: [
+		{
+			alternative_id: "A1",
+			nature: "keep",
+			description: "keep the architecture as it stands",
+			benefits: ["no migration"],
+			cost: { complexity: "none added", migration: "none" },
+			risks: ["what the survey found stays"],
+			constraints: ["ARC-01"],
+		},
+		{
+			alternative_id: "A2",
+			nature: "adjust",
+			description: "move what crosses the map behind a port",
+			benefits: ["the map holds"],
+			cost: { complexity: "a port more", migration: "the calls that cross the map move" },
+			risks: ["a port nothing else implements"],
+			constraints: ["ARC-01"],
+		},
+	],
+	recommended: { alternative_id: "A2", conclusion: "the map holds once the calls move", constraints: ["ARC-01"] },
+};
+
 /**
- * Answers the specification with `spec`, and each intervention that asks for an architecture map with
- * the next map of `maps`, the last one again once they run out. Keeps the mandate of each of those.
+ * Answers the specification with `spec`, each intervention that asks for an architecture map with the next map of
+ * `maps`, and each that asks for a recommendation with the next of `recommendations`, the last one again once they
+ * run out. Keeps the mandate of each of those.
  */
 export class ArchitectureMapAgent extends ScriptedAgent {
 	readonly mapMandates: InterventionMandate[] = [];
+	readonly recommendationMandates: InterventionMandate[] = [];
 	private readonly maps: readonly unknown[];
-	constructor(maps: readonly unknown[], spec = ARCHITECTURE_SPEC) {
+	private readonly recommendations: readonly unknown[];
+	constructor(
+		maps: readonly unknown[],
+		spec = ARCHITECTURE_SPEC,
+		recommendations: readonly unknown[] = [ARCHITECTURE_RECOMMENDATION],
+	) {
 		super({ steps: [{ kind: "complete", output: spec }] });
 		this.maps = maps;
+		this.recommendations = recommendations;
 	}
 	override startIntervention(mandate: InterventionMandate): Promise<InterventionHandle> {
-		if (mandate.output_schema !== "architecture-map") return super.startIntervention(mandate);
-		this.mapMandates.push(mandate);
-		const map = this.maps[Math.min(this.mapMandates.length - 1, this.maps.length - 1)];
-		this.scripts.set(mandate.role, { steps: [{ kind: "complete", output: map }] });
+		const asked =
+			mandate.output_schema === "architecture-map"
+				? { mandates: this.mapMandates, outputs: this.maps }
+				: mandate.output_schema === "architecture-recommendation"
+					? { mandates: this.recommendationMandates, outputs: this.recommendations }
+					: null;
+		if (asked === null) return super.startIntervention(mandate);
+		asked.mandates.push(mandate);
+		const output = asked.outputs[Math.min(asked.mandates.length - 1, asked.outputs.length - 1)];
+		this.scripts.set(mandate.role, { steps: [{ kind: "complete", output }] });
 		const started = super.startIntervention(mandate);
 		this.scripts.delete(mandate.role);
 		return started;

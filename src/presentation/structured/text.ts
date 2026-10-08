@@ -5,6 +5,7 @@ import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, MechanicalObservation, SurveySection } from "../../application/report.ts";
 import type { Consumption, StatusGap, StatusMeasure, StatusView } from "../../application/views.ts";
 import type { AgentContext } from "../../ports/execution.ts";
+import { recommendationLines } from "./recommendation-text.ts";
 
 const L = {
 	fr: {
@@ -708,6 +709,7 @@ function surveyLines(survey: SurveySection, lang: "fr" | "en"): string[] {
 		for (const u of referential.unmeasured) lines.push(`      ${u.subject}: ${u.reason}`);
 	}
 	if (survey.architecture) lines.push(...architectureLines(survey.architecture, lang));
+	if (survey.recommendation) lines.push(...recommendationLines(survey.recommendation, lang));
 	lines.push(`  ${t.findings}:`);
 	if (survey.findings.length === 0) lines.push(`    ${t.none}`);
 	for (const f of survey.findings)
