@@ -57,7 +57,6 @@ An agent proposes. The kernel decides from executed checks. A human arbitrates t
 | G4 | Implementation |
 | G5 | Acceptance |
 | G6 | Integration |
-Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `node:test`), no framework. Peer deps: `@earendil-works/pi-ai`, `pi-coding-agent`, `pi-tui`, `typebox`.
 
 ## Commands
 
@@ -75,10 +74,6 @@ Stack: TypeScript (strict, `erasableSyntaxOnly`), Node ≥24 (`node:sqlite`, `no
 `npm test` runs `node --test` across `test/v0-pure` .. `test/v4-platform` and `test/cycle`. Run one generation at a time with `npm run test:v0` .. `test:v4` or `npm run test:cycle` while iterating.
 
 Each generation carries one verification level of `specs/amont/conception-verification.md` §6: `v0-pure` pure functions, schemas and rules, `v1-adapters` port contracts and adapters, `v2-kernel` kernel integration with storage, execution and Git, `v3-pi` journeys through the Pi entry points, `v4-platform` real stacks and platforms.
-
-## Lint
-
-`npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:distribution && npm run lint:story-format`
 
 ## Build
 
@@ -134,13 +129,3 @@ Layers run one way: `domain/` (pure) → `ports/` → `application/` (incl. `app
   round and acceptance is observed and written once by the tool.
 - Write the minimum code that solves the stated problem.
 - Run tests after every change. Show evidence before declaring done.
-
-## Token Economy — Minimal Footprint
-
-> Production-safe subset of the 8-rule AGENTS.md pattern (Vercel engineer, ~60B tokens).
-> Rule 1 ("no backward compatibility") is excluded deliberately: it risks data loss in production.
-
-1. **Check existing dependencies first.** DO inspect what your current dependencies already do before adding a package or writing your own code.
-2. **Prefer mature, maintained libraries.** DO NOT rewrite a capability a maintained library provides without a documented reason.
-3. **Copy validated patterns.** DO study how established products solve the same problem before inventing a new approach.
-4. **Keep the simplest working implementation.** DO write the least code that satisfies the stated requirement. NEVER add preventive abstraction or unused config layers.
