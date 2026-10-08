@@ -66,12 +66,14 @@ export type QualityOffer =
 
 /**
  * How the rules of an adopted architecture map are verified on a project: the recommendation that declares
- * their analyser in a copy and resolves it; or the note that says why none is offered.
+ * their analyser in a copy and resolves it, or installs it there; or the note that says why none is offered.
  */
 export type ArchitectureOffer =
 	| {
 			kind: "proposed";
 			recommendation: RecommendedComplement;
+			/** The packages the same manager brings in the same step as the recommendation, which its analyser loads. */
+			brought_with?: RecommendedComplement[];
 			/** The edits of the other files of a copy the verification is declared in, beside the edit of the recommendation. */
 			declarations?: FileEdit[];
 			/** What the verification does not see, each point with its reason. */

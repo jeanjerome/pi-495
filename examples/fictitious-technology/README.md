@@ -91,8 +91,9 @@ its rules, what its analysers read and leave aside, the packages that bring them
 proposed.
 `structure.architecture(question)`, when declared, is asked once the owner adopted an architecture map: it
 recommends the analyser that verifies the rules of the map and the edit that declares it in a copy, with the
-`declarations` of the other files of the copy the verification is declared in, or says why none is offered; once
-a copy carries those declarations, `structure.offer` adds the controls of the map.
+`declarations` of the other files of the copy the verification is declared in, or the analyser its manager
+installs in a copy, with the packages `brought_with` it in the same step; or it says why none is offered. Once a
+copy carries those declarations or those packages, `structure.offer` adds the controls of the map.
 
 ### Workspace
 

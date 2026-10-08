@@ -12,6 +12,13 @@ export const NPM_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		referentialDoes: (names) => `installe ${names} comme dépendances de développement exactes dans une copie du projet`,
 		referentialInspected:
 			"la copie est inspectée et l'installation n'est acceptée que si elle ne modifie que package.json, package-lock.json et node_modules/",
+		architecture: {
+			label: (names) => `installe ${names} dans une copie`,
+			does: (names) =>
+				`installe ${names} comme dépendances de développement exactes dans une copie du projet, sans exécuter de script d'installation`,
+			inspected:
+				"la copie est inspectée et l'installation n'est acceptée que si elle ne modifie que package.json, package-lock.json et node_modules/",
+		},
 	},
 	en: {
 		complementLabel: (names) => `installs ${names}`,
@@ -23,5 +30,12 @@ export const NPM_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		referentialDoes: (names) => `installs ${names} as exact development dependencies in a copy of the project`,
 		referentialInspected:
 			"the copy is inspected and the install is accepted only if it changes nothing but package.json, package-lock.json and node_modules/",
+		architecture: {
+			label: (names) => `installs ${names} in a copy`,
+			does: (names) =>
+				`installs ${names} as exact development dependencies in a copy of the project, running no install script`,
+			inspected:
+				"the copy is inspected and the install is accepted only if it changes nothing but package.json, package-lock.json and node_modules/",
+		},
 	},
 };

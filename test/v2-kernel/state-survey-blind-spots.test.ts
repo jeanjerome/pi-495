@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { acceptSurvey, makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
+import { STACKS_WITHOUT_NODE_STRUCTURE } from "../helpers/technologies.ts";
 
 /** What a survey says of one requirement, as this test reads it from the dossier. */
 interface SurveyedRequirement {
@@ -13,9 +14,11 @@ interface SurveyedRequirement {
 const QUESTION = "le domaine dépend-il de l'infrastructure ?";
 
 describe("a requirement no control of its nature measures", () => {
-	it("une exigence d'architecture d'un projet Node est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04", async () => {
+	it("une exigence d'architecture d'un projet Node dont la technologie ne lit aucune structure est un angle mort du survey avec la raison qu'aucun contrôle ne mesure sa nature, ne porte le verdict d'aucun contrôle, et l'état des lieux est clos accepted sans préparation ni décision IH-04", async () => {
 		const p = trackedProject();
 		const t = makeHarness({
+			// A technology that reads no structure of the project proposes no architecture map for it.
+			stacks: STACKS_WITHOUT_NODE_STRUCTURE,
 			defaultScript: {
 				steps: [
 					{

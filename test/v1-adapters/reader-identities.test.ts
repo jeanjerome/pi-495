@@ -22,6 +22,7 @@ const RECORDED = {
 	"dependency-analyze": "1.0.0",
 	"eslint-json": "1.0.0",
 	"jscpd-json": "1.0.0",
+	"dependency-cruiser-json": "1.0.0",
 };
 
 describe("the readers of Maven, Node and the common formats", () => {

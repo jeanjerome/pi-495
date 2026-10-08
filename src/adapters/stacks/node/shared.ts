@@ -11,6 +11,25 @@ export const CATALOGUE_DATE = "2026-09-30";
  */
 export const REPORT_DIRECTORY = "target";
 
+/**
+ * What the tools of a Node project write into a copy each time they run. `target/` holds the reports 495 has
+ * its runners and analysers write. `node_modules/.vite/` (vitest's duration cache), `node_modules/.vite-temp/`
+ * (the compiled configuration) and `node_modules/.vitest/` (vitest's API token) are outputs of the tool, not
+ * installed dependencies, and observing them would report a modified protected path for a candidate that only
+ * ran its tests. The same holds for what Stryker leaves in the copy: its report under `reports/mutation/` and
+ * the instrumented sources it runs the tests on under `.stryker-tmp/`.
+ */
+export const NODE_OUTPUTS = [
+	"target/",
+	"dist/",
+	"build/",
+	"node_modules/.vite/",
+	"node_modules/.vite-temp/",
+	"node_modules/.vitest/",
+	"reports/mutation/",
+	".stryker-tmp/",
+];
+
 /** The test runners 495 reads. */
 export type SuiteRunner = "node-test" | "vitest" | "mocha" | "jest";
 
@@ -49,8 +68,11 @@ export function isScriptUnderTest(path: string): boolean {
 	return SCRIPT_SOURCE.test(path) && !SCRIPT_DECLARATION_ONLY.test(path) && !SCRIPT_TEST_SOURCE.test(path);
 }
 
-const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
+export const SCRIPT_SOURCE = /\.[cm]?[jt]sx?$/;
 /** A declaration file has no executable line, and a runner reports none. */
-const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;
+export const SCRIPT_DECLARATION_ONLY = /\.d\.[cm]?ts$/;
 /** A test is what measures; it is never what is measured. */
-const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
+export const SCRIPT_TEST_SOURCE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/;
+
+/** `text` as a regular expression that matches it literally. */
+export const escapedForPattern = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

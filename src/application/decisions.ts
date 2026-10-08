@@ -490,6 +490,9 @@ function verifier(offer: MapVerificationOffer, installers: Installers) {
 				en: said.en.architecture,
 				names: installedNames(offer.installs),
 				title: install.title,
+				resolves: install.form === "resolve",
+				/** Whether the verification is the work of several packages, which the sentences that name it agree with. */
+				several: offer.installs.length > 1,
 			}
 		: null;
 }
@@ -516,7 +519,7 @@ const ARCHITECTURE_MAP_ADOPTION = {
 					effect:
 						verified === null
 							? `${frozen} ; rien n'est écrit dans le projet. Aucun contrôle ne vérifiera la carte${offer.unverified === null ? "" : ` : ${offer.unverified}`}. La réponse tombe si les exigences sont révisées.`
-							: `${frozen}. 495 ${verified.fr.does(verified.names)}, en ouvrant le réseau pour cette seule étape ; ${verified.fr.inspected} ; rien n'est écrit dans le projet. ${verified.names} vérifie alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; ${(offer.unchecked_parts ?? []).map((part) => `les règles internes de la partie ${part} ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant ; `).join("")}${verified.fr.alongside ?? ""}l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par ${verified.title}. La réponse tombe si les exigences sont révisées.`,
+							: `${frozen}. 495 ${verified.fr.does(verified.names)}, en ouvrant le réseau pour cette seule étape ; ${verified.fr.inspected} ; rien n'est écrit dans le projet. ${verified.names} ${verified.several ? "vérifient" : "vérifie"} alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; ${(offer.unchecked_parts ?? []).map((part) => `les règles internes de la partie ${part} ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant ; `).join("")}${verified.fr.alongside ?? ""}l'état des lieux mesure l'exigence avec ${verified.several ? "eux" : "lui"}. Si ${verified.resolves ? "la résolution" : "l'installation"} échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par ${verified.title}. La réponse tombe si les exigences sont révisées.`,
 					risky: true,
 				},
 				{
@@ -552,7 +555,7 @@ const ARCHITECTURE_MAP_ADOPTION = {
 					effect:
 						verified === null
 							? `${frozen}; nothing is written in the project. No control will verify the map${offer.unverified === null ? "" : `: ${offer.unverified}`}. The answer lapses if the requirements are revised.`
-							: `${frozen}. 495 ${verified.en.does(verified.names)}, opening the network for that step alone; ${verified.en.inspected}; nothing is written in the project. ${verified.names} then checks, at each run, the rules 495 writes from the map: the style of each part, the relations permitted between parts, the absence of cycles and the sources no part covers; ${(offer.unchecked_parts ?? []).map((part) => `the internal rules of part ${part} are not verified, only its relations and the absence of cycles are; `).join("")}${verified.en.alongside ?? ""}the survey measures the requirement with it. If the resolution fails, the map is frozen with no architecture control and the requirement stays a blind spot with the reason ${verified.title} gave. The answer lapses if the requirements are revised.`,
+							: `${frozen}. 495 ${verified.en.does(verified.names)}, opening the network for that step alone; ${verified.en.inspected}; nothing is written in the project. ${verified.names} then ${verified.several ? "check" : "checks"}, at each run, the rules 495 writes from the map: the style of each part, the relations permitted between parts, the absence of cycles and the sources no part covers; ${(offer.unchecked_parts ?? []).map((part) => `the internal rules of part ${part} are not verified, only its relations and the absence of cycles are; `).join("")}${verified.en.alongside ?? ""}the survey measures the requirement with ${verified.several ? "them" : "it"}. If ${verified.resolves ? "the resolution" : "the install"} fails, the map is frozen with no architecture control and the requirement stays a blind spot with the reason ${verified.title} gave. The answer lapses if the requirements are revised.`,
 					risky: true,
 				},
 				{

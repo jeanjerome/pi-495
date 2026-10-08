@@ -15,6 +15,8 @@ import {
 	type AdoptedArchitectureMap,
 	type AdoptedComplement,
 	ArchitectureMap,
+	type PackageInstall,
+	type RecommendedComplement,
 	type RequirementsDocument,
 	type UnseenByVerification,
 } from "../../contracts/v1/protocol.ts";
@@ -35,6 +37,7 @@ import type { MapVerificationOffer } from "../decisions.ts";
 import { bringInstalls } from "../installation.ts";
 import { ARCHITECTURE_MAP_SKILL } from "../skills.ts";
 import type { ArchitectureOffer } from "../stacks/plugin.ts";
+import type { Installer } from "../stacks/registry.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
@@ -183,11 +186,18 @@ function architectureOfferOn(ctx: PhaseContext, copyPath: string, map: Architect
 	return ctx.stacks.recognise(copyPath, [], process.execPath, [], map).architecture_verification;
 }
 
+/** The recommendations an offer brings into a copy in one step: its analyser, then what the analyser loads. */
+const broughtBy = (offer: ArchitectureOffer & { kind: "proposed" }): RecommendedComplement[] => [
+	offer.recommendation,
+	...(offer.brought_with ?? []),
+];
+
 /** What the owner is told adopting `map` has verified, by what, and which parts keep internal rules nothing checks. */
 function mapVerificationOffer(offer: ArchitectureOffer | undefined, map: ArchitectureMap): MapVerificationOffer {
 	const unchecked = map.parts.filter((part) => part.style === "other").map((part) => part.name);
-	if (offer?.kind === "proposed" && offer.recommendation.install)
-		return { installs: [offer.recommendation.install], unverified: null, unchecked_parts: unchecked };
+	const installs =
+		offer?.kind === "proposed" ? broughtBy(offer).flatMap((r) => (r.install === undefined ? [] : [r.install])) : [];
+	if (installs.length > 0) return { installs, unverified: null, unchecked_parts: unchecked };
 	return {
 		installs: [],
 		unverified:
@@ -196,9 +206,26 @@ function mapVerificationOffer(offer: ArchitectureOffer | undefined, map: Archite
 }
 
 /**
- * Brings the analyser that verifies the adopted map into a copy of its own, with the network open for that
- * step alone, and writes its declaration and the others the verification makes into the copy at `copyPath`, so
- * that the detection that follows reads the controls of the map; why no control verifies it when the
+ * The installer that brings every package of `installs` in one step; null when no technology of 495 manages them
+ * all, or when its manager resolves and the recommendation carries no edit to declare the analyser with.
+ */
+function installerOfAll(
+	ctx: PhaseContext,
+	installs: readonly PackageInstall[],
+	recommendation: RecommendedComplement,
+): Installer | null {
+	const [first] = installs;
+	const installer = first === undefined ? null : ctx.stacks.installerOf(first.manager);
+	if (installer === null || installs.some((i) => i.manager !== installer.install.manager)) return null;
+	return installer.install.form === "resolve" && recommendation.edit === undefined ? null : installer;
+}
+
+/**
+ * Brings the analyser that verifies the adopted map, and what it loads, with the network open for that step
+ * alone: a manager that resolves does so in a copy of its own, and the declaration and the others the
+ * verification makes are written into the copy at `copyPath`; a manager that installs does so in that copy, and
+ * the files its inspection accepts are kept. Either way the detection that follows reads the controls of the
+ * map, and every copy a control runs in receives the same files. Why no control verifies the map when the
  * verification is not offered or cannot be brought.
  */
 async function bringVerification(
@@ -213,33 +240,50 @@ async function bringVerification(
 	{ unit: Unit; complements: AdoptedComplement[]; unseen: UnseenByVerification[] } | { unit: Unit; unverified: string }
 > {
 	const offer = architectureOfferOn(ctx, copyPath, map);
-	const { unverified } = mapVerificationOffer(offer, map);
+	const { unverified, installs } = mapVerificationOffer(offer, map);
 	if (offer?.kind !== "proposed" || unverified !== null) return { unit, unverified: unverified ?? "" };
-	const { install, edit } = offer.recommendation;
-	const installer = install === undefined ? null : ctx.stacks.installerOf(install.manager);
-	if (install === undefined || edit === undefined || installer === null)
-		return { unit, unverified: `no technology of 495 brings ${offer.recommendation.tool} into a copy` };
-	const failed = (reason: string) => `resolving ${install.package} ${install.version} failed: ${reason}`;
-	// A resolution that failed for these requirements is not run again: its reason stands until they are revised.
-	const earlier = (await failedInstalls(ctx, unit, requirements)).find(
-		(f) => f.install.package === install.package && f.install.version === install.version,
+	const { recommendation } = offer;
+	const installer = installerOfAll(ctx, installs, recommendation);
+	if (installer === null)
+		return {
+			unit,
+			unverified: `no technology of 495 brings ${broughtBy(offer)
+				.map((r) => r.tool)
+				.join(", ")} into a copy`,
+		};
+	const resolves = installer.install.form === "resolve";
+	const acting = resolves ? "resolving" : "installing";
+	const failed = (reason: string) =>
+		`${acting} ${installs.map((i) => `${i.package} ${i.version}`).join(", ")} failed: ${reason}`;
+	// A step that failed for these requirements is not run again: its reason stands until they are revised.
+	const earlier = (await failedInstalls(ctx, unit, requirements)).find((f) =>
+		installs.some((i) => f.install.package === i.package && f.install.version === i.version),
 	);
 	if (earlier !== undefined) return { unit, unverified: failed(earlier.reason) };
 	const declarations = offer.declarations ?? [];
-	ctx.progress(`resolving ${install.package}@${install.version} in a copy, network open for that step alone`);
-	const brought = await bringInstalls(ctx, installer, reference, copyPath, [install], edit, declarations);
+	ctx.progress(
+		`${acting} ${installs.map((i) => `${i.package}@${i.version}`).join(" ")} in a copy, network open for that step alone`,
+	);
+	const brought = await bringInstalls(ctx, installer, reference, copyPath, installs, recommendation.edit, declarations);
 	if (brought.kind === "failed") {
-		unit = await recordFailedInstall(ctx, unit, cor, requirements, { install, reason: brought.reason });
+		for (const install of installs)
+			unit = await recordFailedInstall(ctx, unit, cor, requirements, { install, reason: brought.reason });
 		return { unit, unverified: failed(brought.reason) };
 	}
-	if (brought.output !== undefined) unit = await recordResolution(ctx, unit, cor, install, brought.output);
+	if (brought.output !== undefined)
+		for (const install of installs) unit = await recordResolution(ctx, unit, cor, install, brought.output);
+	const unseen = offer.unseen ?? [];
+	if (!resolves) {
+		const tool = installs.map((i) => i.package).join(", ");
+		return {
+			unit,
+			complements: brought.files.map((f) => ({ ...f, test_type: recommendation.test_type, tool })),
+			unseen,
+		};
+	}
 	// Each declaration is written as part of the verification the recommendation brings.
-	const declared = [offer.recommendation, ...declarations.map((d) => ({ ...offer.recommendation, edit: d }))];
-	return {
-		unit,
-		complements: applyRecommendedEdits(copyPath, declared, installer.install.edit),
-		unseen: offer.unseen ?? [],
-	};
+	const declared = [recommendation, ...declarations.map((d) => ({ ...recommendation, edit: d }))];
+	return { unit, complements: applyRecommendedEdits(copyPath, declared, installer.install.edit), unseen };
 }
 
 /**

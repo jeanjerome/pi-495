@@ -5,6 +5,7 @@ import { formatReport } from "../../src/presentation/structured/text.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
 import { fixtureTsWithFailingTest } from "../helpers/fixtures.ts";
 import { makeHarness, specReport, trackedProject } from "../helpers/harness-fixture.ts";
+import { STACKS_WITHOUT_NODE_STRUCTURE } from "../helpers/technologies.ts";
 
 /** What the survey in the dossier says, as this test reads it. */
 interface Surveyed {
@@ -22,6 +23,8 @@ describe("the report of a survey", () => {
 	it("le rapport d'un état des lieux d'un projet dont un test échoue et dont une exigence porte sur l'architecture nomme chaque exigence avec ses verdicts, le fichier du test en échec et l'angle mort d'architecture avec sa raison", async () => {
 		const p = trackedProject(fixtureTsWithFailingTest);
 		const t = makeHarness({
+			// A technology that reads no structure of the project proposes no architecture map for it.
+			stacks: STACKS_WITHOUT_NODE_STRUCTURE,
 			defaultScript: {
 				steps: [
 					{

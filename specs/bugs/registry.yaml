@@ -1966,3 +1966,63 @@ bugs:
       Give `architecture.label` the dependency analysis and « chaque POM du réacteur », in French and in English,
       with an assertion on the label in `test/v2-kernel/architecture-map-dependencies.test.ts`.
     status: open
+  - bug_id: BUG-2026-10-08T235900
+    date: "2026-10-08"
+    title: "Adopting the architecture map of an npm package whose sources are all .mts blocks the whole survey in capability_missing, where it gave a survey with a blind spot before"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s04`. The positive witness of the architecture control of a Node target is the
+      reference alone (`src/adapters/stacks/node/structure/architecture-control.ts`). swc does not read `.mts` and
+      `.cts` sources under dependency-cruiser 18.5.0, so on a package whose sources are all `.mts` the positive
+      witness reads no source and gives INDETERMINATE (« dependency-cruiser read no source »), the control is not
+      qualified, and the change stops at qualification with `capability_missing`. The owner who adopted the map gets
+      no survey at all, not even the verdict of the project's tests, and has no way to go on.
+    what_expected: >
+      A map whose verification cannot be qualified on the target leaves the architecture requirement as a named
+      blind spot, with the reason that dependency-cruiser reads none of its sources, and the survey goes on with the
+      other controls, as when the installation fails.
+    steps_to_reproduce:
+      - "Take the package of the story with every source renamed to `.mts` (`src/domain/model/user.mts`, ...), an architecture requirement at the survey, and adopt the proposed map."
+      - "Read the protocol: the qualification of `architecture` has positive INDETERMINATE « dependency-cruiser read no source », `qualified: false`; the change is `qualification`, `blocked`, `capability_missing`."
+    root_cause: >
+      The architecture control is added to the frozen protocol as soon as the installation succeeds; nothing checks
+      that its positive witness can read a source of the package before the control joins the controls whose
+      qualification gates the survey.
+    evidence: >
+      Seen in the acceptance run of `e11s04` at `e369746b` (`~/.495-campagnes/e11s04-mts`, read back from
+      `state.sqlite`): qualification `architecture` positive INDETERMINATE, negative FAIL, `qualified: false`, change
+      blocked with `capability_missing`. On `main` the same package gave a survey with the blind spot « no control of
+      the target measures its nature (structure) ». Same family as `BUG-2026-10-08T235100` on Maven.
+    risk_level: medium
+    follow_ups: >
+      Freeze the map without the architecture control and name the requirement as a blind spot when its positive
+      witness reads no source, with a platform test on a package whose sources are all `.mts`.
+    status: open
+  - bug_id: BUG-2026-10-08T235930
+    date: "2026-10-08"
+    title: "The decision and the report of an npm package call the folders no part of the map covers « packages without a part »"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      Introduced by the branch `e11s04`, which gives the map of a Node target folders of the sources in place of
+      Java packages. The fact of the decision (`src/domain/architecture-map.ts`) and the survey section of the report
+      (`unassigned` of `src/presentation/structured/text.ts`) still read « architecture packages without a part:
+      src/legacy » and « paquets sans partie : src/legacy ». In an npm project « package » names an npm package, not
+      a folder of its sources.
+    what_expected: >
+      For a Node target, the folders no part covers are called folders, in the fact of the decision and in the report,
+      in English and in French.
+    steps_to_reproduce:
+      - "Adopt the map of the package of the story, whose `src/legacy` no part covers, and read the decision and `/495 report`."
+    root_cause: >
+      The wording was written for Maven, where the unit of the map is a Java package, and is shared by every
+      technology.
+    evidence: >
+      Seen in the acceptance run of `e11s04` at `e369746b` (`~/.495-campagnes/e11s04-viole`).
+    risk_level: low
+    follow_ups: >
+      Let the technology name the unit of its map (package for Maven, folder for Node) in the fact and the report.
+    status: open

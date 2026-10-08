@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
 import { HUMAN, tuiOrigin } from "../helpers/change-fixture.ts";
 import { makeHarness, specReport, trackedProject, type TestHarness } from "../helpers/harness-fixture.ts";
+import { STACKS_WITHOUT_NODE_STRUCTURE } from "../helpers/technologies.ts";
 
 /** What a survey says of one requirement, as this test reads it from the dossier. */
 interface SurveyedRequirement {
@@ -39,6 +40,8 @@ const surveyReport = specReport({
 /** Starts a survey of a Node project whose suite passes, under a policy that asks no acceptance, and conducts it. */
 async function surveyed(): Promise<{ t: TestHarness; changeId: string }> {
 	const t = makeHarness({
+		// A technology that reads no structure of the project proposes no architecture map for it.
+		stacks: STACKS_WITHOUT_NODE_STRUCTURE,
 		defaultScript: { steps: [{ kind: "complete", output: surveyReport }] },
 		policy: { g5_human_acceptance: false },
 	});
