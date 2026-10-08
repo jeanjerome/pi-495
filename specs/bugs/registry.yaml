@@ -1562,43 +1562,6 @@ bugs:
       Test the root followed by a separator in `readReports`, with a test on a sibling directory whose name starts
       with the copy's.
     status: open
-  - bug_id: BUG-2026-10-07T190000
-    date: "2026-10-07"
-    title: "A writable path the project committed as a symbolic link grants the control's command a write outside the copy"
-    severity: high
-    priority: p1
-    scope: adapters
-    what_happened: >
-      `profileFor` (`src/adapters/execution/runner.ts`) keeps a control's `writable_paths` that lie inside the copy
-      by their written path, then the Seatbelt profile (`src/adapters/sandbox/backends.ts`) grants
-      `(allow file-write* (subpath …))` on `real(p)`, which resolves the path through `realpathSync`. When the
-      project judged has committed that path as a link to a file or directory outside the copy, the grant is
-      written for the link's target, and the control's command writes there. A campaign of a control declaring
-      `writable_paths: ["lines.txt"]`, on a target whose `lines.txt` is a committed link to
-      `~/.495-campagnes/e37s01-r2-ecrit.txt`, overwrote that file with the command's report. The reads of the
-      runner refuse the link afterwards, but the write outside the copy has happened. The Maven and Node controls
-      declare `target`, the coverage directory and report files as writable: a project that commits `target` as
-      a link to a directory of the user's gets a write grant on that whole directory.
-    what_expected: >
-      A command of the project judged never writes outside the copy: a writable path whose real path leaves the
-      copy is not granted, and the control is refused or runs without it.
-    steps_to_reproduce:
-      - "With `<d>/outside.txt` and a target that commits `lines.txt` as a link to it, run a control whose `writable_paths` is `[\"lines.txt\"]` and whose command writes `lines.txt` under the Seatbelt backend: `<d>/outside.txt` holds the command's output."
-    root_cause: >
-      `profileFor` tests the containment of a writable path on its written string, and `real()` resolves it
-      through links the project judged wrote, so the sandbox grant follows them out of the copy. A plain write
-      outside the copy, or through a link to a path that was not granted, is denied by Seatbelt (probed with
-      `sandbox-exec` on 2026-10-07).
-    evidence: >
-      Observed on 2026-10-07 in the acceptance campaign `e37s01-r2-x1-ecriture-lien` at 1d7f4cc (Seatbelt backend,
-      evidence `facts.sandbox` = `seatbelt`); `profileFor` and `real()` read identical on main 536c551. The bubblewrap
-      backend binds each writable path with `--bind p p`, which follows the link the same way, unprobed.
-    risk_level: high
-    follow_ups: >
-      Grant a writable path only when its real path, or that of its deepest existing ancestor, lies inside the real
-      path of the copy, in both backends, with a test on a writable path committed as a link to a file and to a
-      directory outside the copy.
-    status: open
   - bug_id: BUG-2026-10-07T210000
     date: "2026-10-07"
     title: "The JDK version never enters the identity of the environment, so a change of JDK does not requalify a Maven control"
