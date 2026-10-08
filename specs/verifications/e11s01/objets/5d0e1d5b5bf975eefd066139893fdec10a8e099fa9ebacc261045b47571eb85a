@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the owner's answer to the proposed architecture map
+    # Subtest: l'adoption gèle la carte dans le protocole avec la date de la décision, le survey nomme l'exigence comme angle mort parce qu'aucun contrôle ne vérifie la carte adoptée, et le digest du projet est inchangé
+    ok 1 - l'adoption gèle la carte dans le protocole avec la date de la décision, le survey nomme l'exigence comme angle mort parce qu'aucun contrôle ne vérifie la carte adoptée, et le digest du projet est inchangé
+      ---
+      duration_ms: 517.4985
+      type: 'test'
+      ...
+    # Subtest: laisser l'exigence en angle mort ne gèle aucune carte et le survey dit que la carte proposée n'a pas été adoptée
+    ok 2 - laisser l'exigence en angle mort ne gèle aucune carte et le survey dit que la carte proposée n'a pas été adoptée
+      ---
+      duration_ms: 481.709917
+      type: 'test'
+      ...
+    1..2
+ok 1 - the owner's answer to the proposed architecture map
+  ---
+  duration_ms: 999.799958
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1259.686666

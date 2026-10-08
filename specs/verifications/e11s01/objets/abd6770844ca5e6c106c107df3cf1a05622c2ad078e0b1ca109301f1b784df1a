@@ -1,0 +1,65 @@
+TAP version 13
+# Subtest: the report of a survey presents the adopted architecture map
+    # Subtest: le rapport d'un état des lieux à la carte adoptée présente sa date d'adoption, chaque partie avec son périmètre, son style, ses rôles et ses relations permises, et les paquets sans partie, en anglais et en français
+    not ok 1 - le rapport d'un état des lieux à la carte adoptée présente sa date d'adoption, chaque partie avec son périmètre, son style, ses rôles et ses relations permises, et les paquets sans partie, en anglais et en français
+      ---
+      duration_ms: 515.52425
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Q4W5Eb/test/v2-kernel/architecture-map-report.test.ts:46:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: « Carte d'architecture adoptée le 2026-09-16 : » in
+        ## État des lieux
+          ARC-01: each part of the project keeps to the architecture it is organised in — blind spot: no control verifies the adopted architecture map yet; it is frozen as the architecture the project declares
+          Constats:
+            aucun
+          Angles morts:
+            structure: blind spot: it measures only the lines a change introduces, and the reference introduces none
+        
+        Ce qui a été mesuré
+                      référence  candidat
+          maven-test      ✔         ?
+          structure       ✔         ?
+          2 contrôles ont été qualifiés sur 6 essais témoins avant d'être retenus.
+        
+        Ce qui a été conclu
+          ✔ Le noyau a passé Cadrage, Spécification et Qualification
+          ? Le noyau n'a pas pu trancher Acceptation: the owner's acceptance of the survey is pending (IH-10)
+          · Décidé par alice: IH-04 adopt_map on artifact map_0018
+        
+        Ce qui reste incertain
+          · requirement ARC-01 was set aside: blind spot: no control verifies the adopted architecture map yet; it is frozen as the architecture the project declares.
+          · a coverage complement is recommended and not adopted, so the coverage of the introduced lines is not measured: org.jacoco:jacoco-maven-plugin 0.8.15; in the POM, declare jacoco-maven-plugin outside any profile with the prepare-agent goal and the report goal bound to the test phase.
+          · a mutation complement is recommended and not adopted, so the mutation of the introduced lines is not measured: org.pitest:pitest-maven 1.30.0; in the POM, declare pitest-maven outside any profile with XML among its outputFormats and timestampedReports set to false.
+          · the change stopped on decision_pending: IH-10.
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Q4W5Eb/test/v2-kernel/architecture-map-report.test.ts:59:46)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the report of a survey presents the adopted architecture map
+  ---
+  duration_ms: 516.227166
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Q4W5Eb/test/v2-kernel/architecture-map-report.test.ts:45:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 774.6705

@@ -1,0 +1,57 @@
+TAP version 13
+# Subtest: a survey of the architecture of a Maven reactor proposes a map to the owner
+    # Subtest: l'état des lieux de l'architecture d'un réacteur Maven demande au propriétaire d'adopter la carte proposée, avec trois issues et un fait par partie qui donne son périmètre, son style, ses rôles et ses indices à leur fichier et à leur ligne
+    not ok 1 - l'état des lieux de l'architecture d'un réacteur Maven demande au propriétaire d'adopter la carte proposée, avec trois issues et un fait par partie qui donne son périmètre, son style, ses rôles et ses indices à leur fichier et à leur ligne
+      ---
+      duration_ms: 463.658542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IC8KF0/test/v2-kernel/architecture-map-proposal.test.ts:127:2'
+      failureType: 'testCodeFailure'
+      error: 'the owner is asked to adopt the proposed map; asked instead: IH-10 (decision_required); the survey says of ARC-01: structure: blind spot: it measures only the lines a change introduces, and the reference introduces none; scoping -> specification/ready | specification -> qualification/ready | qualification -> verifying/ready | verifying -> deciding/ready | deciding -> deciding/decision_required'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IC8KF0/test/v2-kernel/architecture-map-proposal.test.ts:132:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: la décision sur une carte de trois parties aux styles oignon, couches et simple donne chaque partie avec son style et les deux relations permises vers shared
+    not ok 2 - la décision sur une carte de trois parties aux styles oignon, couches et simple donne chaque partie avec son style et les deux relations permises vers shared
+      ---
+      duration_ms: 437.462292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IC8KF0/test/v2-kernel/architecture-map-proposal.test.ts:158:2'
+      failureType: 'testCodeFailure'
+      error: 'the owner is asked to adopt the proposed map (decision_required); the survey says of ARC-01: structure: blind spot: it measures only the lines a change introduces, and the reference introduces none'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IC8KF0/test/v2-kernel/architecture-map-proposal.test.ts:162:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a survey of the architecture of a Maven reactor proposes a map to the owner
+  ---
+  duration_ms: 901.772
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-IC8KF0/test/v2-kernel/architecture-map-proposal.test.ts:126:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1164.883833

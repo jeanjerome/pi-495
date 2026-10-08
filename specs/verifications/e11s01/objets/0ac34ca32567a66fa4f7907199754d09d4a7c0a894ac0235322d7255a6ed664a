@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: the architecture map is checked against the reference before it is presented
+    # Subtest: une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+    not ok 1 - une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+      ---
+      duration_ms: 226.974083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:37:2'
+      failureType: 'testCodeFailure'
+      error: 'a fact names the packages no part covers: architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:3 an entity of the model]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port ports [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements] | architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapters [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port] | architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:43:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+    not ok 2 - une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+      ---
+      duration_ms: 188.205958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:48:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no decision is asked about a map that does not hold
+        + actual - expected
+        
+        + [
+        +   'architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:3 an entity of the model]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port ports [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements]; io.demo.domain.billing domain services [domain/pom.xml:5 a billing service] | architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapters [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port] | architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:3 an entity of the model]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port ports [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements]; io.demo.domain.billing domain services [domain/pom.xml:5 a billing service] | architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapters [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port] | architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:61:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+    not ok 3 - une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+      ---
+      duration_ms: 181.608791
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:71:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no decision is asked about a map that does not hold
+        + actual - expected
+        
+        + [
+        +   'architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:40 an entity]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port ports [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements] | architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapters [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port] | architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'architecture part domain: perimeter domain; style onion [domain/pom.xml:5 the module depends on no other]; roles: io.demo.domain.user domain model [domain/src/main/java/io/demo/domain/user/User.java:40 an entity]; io.demo.domain.service domain services [domain/src/main/java/io/demo/domain/service/UserService.java:3 a service of the model]; io.demo.domain.port ports [domain/src/main/java/io/demo/domain/port/UserRepository.java:3 an interface the infrastructure implements] | architecture part infrastructure: perimeter infrastructure; style onion [infrastructure/pom.xml:5 the module of the adapters]; roles: io.demo.infra adapters [infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java:5 implements a port] | architecture relation: infrastructure may depend on domain [infrastructure/pom.xml:6 the module depends on domain]'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:80:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the architecture map is checked against the reference before it is presented
+  ---
+  duration_ms: 597.494042
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-Dnfoip/test/v2-kernel/architecture-map-validation.test.ts:36:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 853.411667

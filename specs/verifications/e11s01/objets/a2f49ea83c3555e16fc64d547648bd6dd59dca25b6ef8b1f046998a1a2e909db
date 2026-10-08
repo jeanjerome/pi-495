@@ -1,0 +1,62 @@
+TAP version 13
+# Subtest: the owner's answer to the proposed architecture map
+    # Subtest: l'adoption gèle la carte dans le protocole avec la date de la décision, le survey nomme l'exigence comme angle mort parce qu'aucun contrôle ne vérifie la carte adoptée, et le digest du projet est inchangé
+    not ok 1 - l'adoption gèle la carte dans le protocole avec la date de la décision, le survey nomme l'exigence comme angle mort parce qu'aucun contrôle ne vérifie la carte adoptée, et le digest du projet est inchangé
+      ---
+      duration_ms: 517.612
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5WC9Mf/test/v2-kernel/architecture-map-adoption.test.ts:56:2'
+      failureType: 'testCodeFailure'
+      error: 'the frozen protocol carries the adopted map'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5WC9Mf/test/v2-kernel/architecture-map-adoption.test.ts:62:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: laisser l'exigence en angle mort ne gèle aucune carte et le survey dit que la carte proposée n'a pas été adoptée
+    not ok 2 - laisser l'exigence en angle mort ne gèle aucune carte et le survey dit que la carte proposée n'a pas été adoptée
+      ---
+      duration_ms: 465.070666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5WC9Mf/test/v2-kernel/architecture-map-adoption.test.ts:77:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /the proposed architecture map was not adopted/. Input:
+        
+        'structure: blind spot: it measures only the lines a change introduces, and the reference introduces none'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'structure: blind spot: it measures only the lines a change introduces, and the reference introduces none'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5WC9Mf/test/v2-kernel/architecture-map-adoption.test.ts:82:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the owner's answer to the proposed architecture map
+  ---
+  duration_ms: 983.342
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5WC9Mf/test/v2-kernel/architecture-map-adoption.test.ts:55:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1242.039167

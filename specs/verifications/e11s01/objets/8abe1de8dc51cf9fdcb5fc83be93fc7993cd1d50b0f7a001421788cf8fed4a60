@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: the architecture map is checked against the reference before it is presented
+    # Subtest: une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+    ok 1 - une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+      ---
+      duration_ms: 226.824959
+      type: 'test'
+      ...
+    # Subtest: une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+    ok 2 - une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+      ---
+      duration_ms: 460.379166
+      type: 'test'
+      ...
+    # Subtest: une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+    ok 3 - une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+      ---
+      duration_ms: 461.996958
+      type: 'test'
+      ...
+    # Subtest: une carte dont l'indice d'une relation cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+    ok 4 - une carte dont l'indice d'une relation cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+      ---
+      duration_ms: 456.072917
+      type: 'test'
+      ...
+    # Subtest: une carte dont un indice cite un fichier que la référence ne porte pas n'est pas présentée et le survey nomme l'indice introuvable
+    ok 5 - une carte dont un indice cite un fichier que la référence ne porte pas n'est pas présentée et le survey nomme l'indice introuvable
+      ---
+      duration_ms: 455.673417
+      type: 'test'
+      ...
+    1..5
+ok 1 - the architecture map is checked against the reference before it is presented
+  ---
+  duration_ms: 2061.712625
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2321.253625

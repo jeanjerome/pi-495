@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the report of a survey presents the adopted architecture map
+    # Subtest: le rapport d'un état des lieux à la carte adoptée présente sa date d'adoption, chaque partie avec son périmètre, son style, ses rôles et ses relations permises, et les paquets sans partie, en anglais et en français
+    ok 1 - le rapport d'un état des lieux à la carte adoptée présente sa date d'adoption, chaque partie avec son périmètre, son style, ses rôles et ses relations permises, et les paquets sans partie, en anglais et en français
+      ---
+      duration_ms: 563.515167
+      type: 'test'
+      ...
+    1..1
+ok 1 - the report of a survey presents the adopted architecture map
+  ---
+  duration_ms: 564.040791
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 838.846459

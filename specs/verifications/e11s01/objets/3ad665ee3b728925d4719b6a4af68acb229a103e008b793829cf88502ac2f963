@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: the architecture map is checked against the reference before it is presented
+    # Subtest: une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+    ok 1 - une carte qui ne couvre pas io.demo.domain.legacy est présentée avec ce paquet nommé sans partie
+      ---
+      duration_ms: 217.138042
+      type: 'test'
+      ...
+    # Subtest: une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+    ok 2 - une carte qui donne un rôle à io.demo.domain.billing, absent des sources, n'est pas présentée et le survey nomme l'exigence comme angle mort en désignant ce paquet
+      ---
+      duration_ms: 476.353459
+      type: 'test'
+      ...
+    # Subtest: une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+    ok 3 - une carte dont un indice cite une ligne au-delà de la fin de son fichier n'est pas présentée et le survey nomme l'indice introuvable
+      ---
+      duration_ms: 471.62
+      type: 'test'
+      ...
+    1..3
+ok 1 - the architecture map is checked against the reference before it is presented
+  ---
+  duration_ms: 1165.773125
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1432.440167

@@ -1,0 +1,84 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le modèle reçoit la skill d'identification de 495, et aucune skill du projet",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/pi-worker/worker-main.ts",
+    "ligne": 296,
+    "constat": "Le worker passe bien la skill au modèle. Une sonde jetable sur le vrai worker, branchée sur un serveur local, retrouve le bloc `<skill name=\"architecture-map\">` dans la requête envoyée au fournisseur, et rien de la skill du projet. Mais aucun test ne tient cette livraison : les tests v2 s'arrêtent au mandat (le chemin du fichier et le préfixe `/skill:architecture-map ` de l'invite). Si le resource loader ne rend pas la skill, Pi laisse passer l'invite telle quelle, sans erreur, et le modèle ne reçoit jamais la skill sans qu'aucun test échoue. De même, un loader qui chargerait aussi une skill du projet ne ferait échouer aucun test.",
+    "mutation": "`skills: skills.flatMap((loaded) => loaded.skills)` remplacé par `skills: []` dans getSkills : les 151 tests de test/v3-pi, test/v1-adapters/agent-port et test/v2-kernel/architecture-map-* restent verts ; seule la sonde jetable échoue."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le modèle reçoit la skill d'identification de 495, et aucune skill du projet",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/architecture-map-skill.test.ts",
+    "ligne": 52,
+    "constat": "Le manifeste porte bien `committed_on` pour chaque source. Mais le test ne compare que le dépôt, la skill, le commit et la licence de chaque source, plus le format de `adapted_on`. La date des deux sources, que le Then exige (« leurs commits et leur date »), n'est tenue par aucun test.",
+    "mutation": "`committed_on: \"2026-02-24\"` remplacé par `\"1999-01-01\"` dans src/application/skills.ts:28 : les 12 tests architecture-map-* restent verts."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La carte proposée se présente au propriétaire",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 521,
+    "constat": "Les trois issues de la décision ne sont vérifiées qu'en français : toutes les décisions des tests sont posées en français. Les identifiants des options anglaises ne sont tenus par aucun test. Le code est juste aujourd'hui, et le scénario ne fixe pas de langue.",
+    "mutation": "`leave_blind_spot` renommé en `leave_it` à la ligne 521 (options anglaises) : 0 échec ; la même mutation à la ligne 495 (options françaises) fait échouer 2 tests."
+   }
+  ],
+  "resume": "Verdict : fail. Le code tient les huit scénarios, mais deux promesses ne sont tenues par aucun test, toutes deux introduites par la branche.\n\nCe qui est tenu, code et tests. Une mutation sur chaque ligne qui porte la promesse fait échouer le test attendu :\n- le contrôle de la carte : paquet absent, indice au-delà de la fin du fichier, fichier que la référence ne porte pas, paquets sans partie ;\n- le fait qu'une carte qui ne tient pas n'est pas présentée ;\n- les faits par partie, par relation et par indice ;\n- le gel de la carte avec sa date d'adoption, et son passage au protocole ;\n- les trois raisons d'angle mort ;\n- la remarque et la nouvelle proposition ;\n- le rapport en anglais et en français ;\n- l'intervention en lecture seule (rôle `implement` à la place : 12 échecs) ;\n- le manifeste qui nomme la skill, et le préfixe `/skill:` de l'invite.\n\nUne sonde jetable sur le vrai worker Pi confirme le comportement de bout en bout : la skill de 495 arrive au modèle, celle du projet non.\n\nLes deux trous :\n- **A1-1** : rien ne tient la livraison de la skill par le worker. Si le loader la perd, Pi laisse passer l'invite sans rien dire, et aucun test n'échoue.\n- **A1-2** : la date des sources de la skill n'est assertée nulle part.\n\n**A1-3**, à peser : les options anglaises de la décision ne sont pas testées."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le modèle reçoit la skill d'identification de 495, et aucune skill du projet",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/pi-worker/worker-main.ts",
+    "ligne": 300,
+    "constat": "Le code tient la promesse. Une sonde jetable a fait tourner le vrai worker contre un serveur local : la requête porte le bloc <skill name=\"architecture-map\">, avec les signes des styles, et ni la skill .agents/skills/arch ni l'AGENTS.md du projet. Aucun test ne tient pourtant cette ligne. Les tests v2 s'arrêtent au mandat, que lit un ScriptedAgent ; aucun test v1 ou v3 ne passe une skill au resource loader du worker. Rendre la skill inopérante ou charger celles du projet laisse donc toute la suite verte.",
+    "mutation": "Deux mutations, chacune lancée sur architecture-map-skill, provider-request-hook, agent-context, session-cost et agent-port, tous verts. (1) `getSkills` rend `skills: []` : le modèle reçoit un `/skill:architecture-map` non développé. (2) Ajout de `pi.loadSkillsFromDir({ dir: workspace + \"/.agents/skills\" })` aux skills chargées : la skill du projet est chargée. Seule la sonde jetable a échoué sur ces deux mutations."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le modèle reçoit la skill d'identification de 495, et aucune skill du projet",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/skills.ts",
+    "ligne": 28,
+    "constat": "Le manifeste porte bien `committed_on` pour chaque source. Mais le test compare seulement le dépôt, la skill, le commit et la licence. La date de la skill n'est contrôlée que par une regex de format. La date des commits des sources (« leur date », écrite « commit caab1f62 of 2026-02-24 » dans NOTICE et dans SKILL.md) n'est vérifiée par aucun test.",
+    "mutation": "Trois mutations, toutes vertes sur architecture-map-skill.test.ts : `committed_on: \"2026-02-24\"` changé en `\"1999-01-01\"` ; `sources: input.skill.sources` remplacé dans le manifeste par une copie où `committed_on: \"\"` (context.ts:273) ; `adapted_on` changé en `\"1999-01-01\"`."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La carte adoptée est gelée et présentée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/architecture-map.ts",
+    "ligne": 195,
+    "constat": "`adopted_on` vient bien de la date de la décision, et une date fixe fait échouer le test. Le test ne distingue pas en revanche la date de la décision de celle du gel : dans la fixture, la réponse et le gel tombent le même jour. Une adoption gelée un autre jour que celui de la réponse n'est pas couverte.",
+    "mutation": "`adopted_on: ctx.now().slice(0, 10)` : adoption et rapport restent verts. `adopted_on: \"2000-01-01\"` : la mutation est tuée."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Une carte qui ne tient pas devant le code n'est pas présentée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/architecture-map.ts",
+    "ligne": 53,
+    "constat": "La borne est correcte : `line > lines` refuse bien un indice placé au-delà de la fin. Le test cite toutefois la ligne 40 d'un fichier de 3 lignes, si bien qu'un décalage d'une ligne sur la borne survit.",
+    "mutation": "`h.line > lines + 1` : architecture-map-validation.test.ts reste vert."
+   }
+  ],
+  "resume": "Verdict fail : deux constats « à corriger », introduits par la branche, tous deux sur le scénario « le modèle reçoit la skill d'identification de 495, et aucune skill du projet ». Le code tient toutes les promesses de la story. Une sonde jetable a fait tourner le vrai worker Pi contre un serveur local : la skill de 495 est bien développée dans la requête, et ni la skill ni l'AGENTS.md du projet n'y entrent. Premier constat : aucun test ne tient la ligne du worker qui charge la skill ; la vider, ou y charger les skills du projet, laisse la suite verte. Second constat : la date des commits des deux sources, que le manifeste porte, n'est vérifiée par aucun test. Les autres promesses sont tenues par des tests qu'une mutation fait échouer : trois issues, faits par partie, indices et relations, paquet sans partie, carte refusée devant le code, gel et raisons du survey, remarque transmise, rapport en français et en anglais, digest inchangé. Deux points restent à peser : la date d'adoption n'est pas distinguée de celle du gel dans la fixture, et la borne de ligne d'un indice n'est pas testée à une ligne près. La sonde est supprimée et l'arbre est propre."
+ }
+]

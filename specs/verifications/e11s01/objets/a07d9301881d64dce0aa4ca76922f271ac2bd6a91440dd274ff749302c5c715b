@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Dans Pi, demander une autre carte ouvre la saisie de la remarque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/conduct.ts",
+    "ligne": 76,
+    "constat": "Le code ouvre bien la saisie « Your remark on the map » dans une session anglaise. Mais aucun test ne tient l'invite anglaise que le Then promet : le seul test de la tâche 7 tourne dans la langue par défaut, le français, et n'assert que « Votre remarque sur la carte ». Aucun test ne référence la chaîne anglaise.",
+    "mutation": "en: \"Your remark on the map\" → en: \"Your note\" : les 126 tests de test/v3-pi restent verts. Témoin : retirer toute l'entrée propose_map_again de FREE_TEXT_PROMPTS fait échouer architecture-map-remark-dialog.test.ts."
+   }
+  ],
+  "resume": "Le code tient les neuf scénarios. J'ai fait 35 mutations, et une seule n'est attrapée par aucun test. Scénario Pi (diff relu) : retirer l'entrée propose_map_again de FREE_TEXT_PROMPTS fait échouer le test v3. Remplacer la remarque par null dans settleArchitectureMap, ou changer le préfixe « The owner's remark: » de context.ts, fait échouer le test v3 et le test v2 de la remarque. En revanche, l'invite anglaise « Your remark on the map » n'est tenue par aucun test (A1-1, à corriger, introduit), d'où le verdict fail. Scénarios antérieurs au diff : chaque mutation est attrapée par au moins un test de test/v2-kernel/architecture-map-*.test.ts ou de test/v3-pi/architecture-map-skill-delivery.test.ts. Sont couverts : les faits de la carte (fichier:ligne des indices, style, périmètre, rôles, relations), les paquets sans partie, le paquet absent, l'indice au-delà de la fin de son fichier, le fichier absent, la condition !check.holds, la date d'adoption prise sur la décision, les trois raisons d'angle mort, l'issue « laisser en angle mort », la nouvelle proposition, le gel dans le protocole (verification-design.ts et verification.ts), la section architecture du rapport et son texte en français et en anglais, le manifeste de la skill (commit, date, sources), et le chargeur de skills du worker, qui refuse une skill du projet. L'arbre est remis à l'identique."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Dans Pi, demander une autre carte ouvre la saisie de la remarque",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/conduct.ts",
+    "ligne": 76,
+    "constat": "In an English session, the code does ask for « Your remark on the map », but no test holds that wording. The only test of the scenario (test/v3-pi/architecture-map-remark-dialog.test.ts) runs a French session and checks only « Votre remarque sur la carte ». No other test names the English prompt.",
+    "mutation": "Replaced `en: \"Your remark on the map\"` with `en: \"Your remark\"`: the scenario's test stays green (pass 1, fail 0). The matching mutations on the French text (`fr: \"Votre remarque\"`), on the removal of the `propose_map_again` entry, on dropping the text read by `ctx.ui.input`, and on the remark handed to the second intervention (`remark: null` in architecture-map.ts:173) each make it fail."
+   }
+  ],
+  "resume": "The code keeps the Pi scenario. The `propose_map_again` entry added to `FREE_TEXT_PROMPTS` makes Pi open an input in the session's language. The text typed there becomes the decision's `free_text` and reaches the second intervention as « The owner's remark: … ». The new v3 test holds the French prompt, the journal record and the handover: each of those mutations fails it. Only the English wording « Your remark on the map », which the Then promises, survives its mutation, so it is to fix, introduced by the branch. The earlier scenarios come before the diff, and their 16 tests are green. I spot-checked them with mutations in architecture-map.ts, each of which some test catches: the check of the map against the code, the blind-spot reasons for adopt and leave, the unassigned packages in the facts, and the adoption date. I found nothing to report on them."
+ }
+]

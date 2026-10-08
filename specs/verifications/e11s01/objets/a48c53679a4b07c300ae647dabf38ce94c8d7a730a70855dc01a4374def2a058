@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the intervention that proposes the map receives the identification skill of 495
+    # Subtest: l'intervention qui propose la carte reçoit la skill d'identification de 495, que le manifeste de son contexte nomme avec ses deux sources, leurs commits et leur date, et dont la consigne nomme les signes de reconnaissance des styles layered, onion, simple et other
+    ok 1 - l'intervention qui propose la carte reçoit la skill d'identification de 495, que le manifeste de son contexte nomme avec ses deux sources, leurs commits et leur date, et dont la consigne nomme les signes de reconnaissance des styles layered, onion, simple et other
+      ---
+      duration_ms: 220.100375
+      type: 'test'
+      ...
+    # Subtest: une skill que le projet porte sous .agents/skills n'est pas chargée dans l'intervention
+    ok 2 - une skill que le projet porte sous .agents/skills n'est pas chargée dans l'intervention
+      ---
+      duration_ms: 207.370709
+      type: 'test'
+      ...
+    1..2
+ok 1 - the intervention that proposes the map receives the identification skill of 495
+  ---
+  duration_ms: 428.059834
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 686.652584

@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "The changes between rounds are tests only; the code is the same as in round 1. Each round-1 finding is now held by a test, checked by a mutation that makes it fail, with the line restored afterwards. (1) Skill delivery (A1-1/B1-1): the new v3 test runs the real worker against a local endpoint. In worker-main.ts, making getSkills return an empty list fails it, and so does adding Pi's loader on the project's .agents/skills (the failure comes from the assertion on the 'microservices' marker, not from a crash). Having getAgentsFiles return the project's AGENTS.md fails it too. The kernel side, meaning the mandate with the skill path and the '/skill:architecture-map ' prefix, stays held by the v2 test. (2) Manifest dates (A1-2/B1-2): changing committed_on in skills.ts, or blanking committed_on in the manifest that context.ts builds, fails architecture-map-skill.test.ts ('with its two sources, their commits and their date'). (3) English options (A1-3): renaming the English propose_map_again id fails the new case ('en: the options the answer to the map is read by'). (4) Decision date (B1-3): taking adopted_on from ctx.now() instead of answer.recorded_at fails the adoption test, because the clock now moves forward one day between the answer and the freeze. (5) Line bound (B1-4): 'line > lines + 1' fails the validation test (hint at line 4 of a 3-line file), and 'line >= lines' fails the proposal tests whose hints cite a file's last line. As spot checks on other promises, dropping the owner's remark fails architecture-map-remark.test.ts, and removing the 'not adopted' reason fails the adoption test. The working tree is clean after the probes. Nothing was found that is introduced or made reachable and that would be blocking or to fix."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Une carte qui ne tient pas devant le code n'est pas présentée",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/domain/architecture-map.ts",
+    "ligne": 44,
+    "constat": "Le code tient la promesse : une sonde jetable sur `checkArchitectureMap` refuse la carte dont l'indice d'une relation cite `infrastructure/pom.xml:99` dans un fichier de 10 lignes. Mais aucun test ne tient ce contrôle. Les tests de validation ne placent un indice introuvable que sur un rôle ou sur une partie. Si l'on retire de la confrontation les indices des relations, une carte qui cite pour une relation permise une ligne au-delà de la fin de son fichier est présentée au propriétaire comme si elle tenait, et toute la suite architecture-map reste verte.",
+    "mutation": "Ligne 44 retirée (`...map.relations.flatMap((r) => r.hints),`) : les 13 tests de test/v2-kernel/architecture-map-*.test.ts passent."
+   }
+  ],
+  "resume": "Le diff du tour 2 n'ajoute que des tests. Chaque constat du tour 1 est maintenant tenu par un test qui échoue sous mutation. A1-1/B1-1 : le nouveau test v3 échoue si le loader ne rend plus la skill de 495, s'il charge aussi celles de `.agents/skills`, ou s'il rend l'AGENTS.md du projet. A1-2/B1-2 : il échoue si la date d'un commit source change dans skills.ts ou dans le manifeste. A1-3 : un identifiant d'option anglais changé fait échouer le nouveau test bilingue. B1-3 : un `adopted_on` pris à l'heure du gel (`ctx.now()`) échoue. B1-4 : une borne relâchée à `lines + 1` échoue, comme une borne `>=`. D'autres promesses de la story ont aussi été mutées, et chaque mutation a fait échouer un test : paquet sans partie, paquet absent, indices de partie et de rôle dans la confrontation et dans les faits, style, indices des relations dans les faits, raison « non adoptée », remarque transmise, rôle en lecture seule, rôles dans le rapport. Une seule mutation survit (B2-1) : retirer de la confrontation les indices des relations laisse toute la suite verte, alors que le code les contrôle bien. C'est une promesse qu'aucun test ne tient, introduite par la story, d'où le verdict fail. L'arbre est rendu propre : toutes les mutations ont été remises."
+ }
+]

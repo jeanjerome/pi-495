@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: a survey of the architecture of a Maven reactor proposes a map to the owner
+    # Subtest: l'état des lieux de l'architecture d'un réacteur Maven demande au propriétaire d'adopter la carte proposée, avec trois issues et un fait par partie qui donne son périmètre, son style, ses rôles et ses indices à leur fichier et à leur ligne
+    ok 1 - l'état des lieux de l'architecture d'un réacteur Maven demande au propriétaire d'adopter la carte proposée, avec trois issues et un fait par partie qui donne son périmètre, son style, ses rôles et ses indices à leur fichier et à leur ligne
+      ---
+      duration_ms: 226.945167
+      type: 'test'
+      ...
+    # Subtest: la décision sur une carte de trois parties aux styles oignon, couches et simple donne chaque partie avec son style et les deux relations permises vers shared
+    ok 2 - la décision sur une carte de trois parties aux styles oignon, couches et simple donne chaque partie avec son style et les deux relations permises vers shared
+      ---
+      duration_ms: 220.15475
+      type: 'test'
+      ...
+    # Subtest: la décision qui propose la carte offre les trois mêmes issues en anglais et en français
+    ok 3 - la décision qui propose la carte offre les trois mêmes issues en anglais et en français
+      ---
+      duration_ms: 0.268708
+      type: 'test'
+      ...
+    1..3
+ok 1 - a survey of the architecture of a Maven reactor proposes a map to the owner
+  ---
+  duration_ms: 447.868791
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 702.856
