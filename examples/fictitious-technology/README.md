@@ -30,7 +30,8 @@ file past the read bound, throws, and the technology concludes nothing on what i
 
 Every capability but `workspace` and `install` is asked with the same `CapabilityQuestion`: the model the
 recognition returned, the view, the requirements its controls judge, the Node binary that runs a control
-spawning nothing of its own, and the packages an adopted quality referential installed in the copy.
+spawning nothing of its own, the packages an adopted quality referential installed in the copy, and the
+architecture map the owner adopted, which is never read from the copy.
 
 ### Recognition
 
@@ -87,6 +88,9 @@ reader judges only the introduced lines (`differential`) make the common layer a
 witness. `quality.referential(question)`, when declared, proposes the owner a quality referential to adopt —
 its rules, what its analysers read and leave aside, the packages that bring them — or says why none is
 proposed.
+`structure.architecture(question)`, when declared, is asked once the owner adopted an architecture map: it
+recommends the analyser that verifies the rules of the map and the edit that declares it in a copy, or says
+why none is offered; once a copy carries that declaration, `structure.offer` adds the control of the map.
 
 ### Workspace
 

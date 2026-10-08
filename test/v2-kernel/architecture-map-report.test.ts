@@ -25,9 +25,9 @@ const SAID = {
 		"domain — périmètre : domain, style : onion, peut dépendre de : aucune partie",
 		"io.demo.domain.user : domain model",
 		"io.demo.domain.service : domain services",
-		"io.demo.domain.port : ports",
+		"io.demo.domain.port : domain services",
 		"infrastructure — périmètre : infrastructure, style : onion, peut dépendre de : domain",
-		"io.demo.infra : adapters",
+		"io.demo.infra : adapter persistence",
 		"paquets sans partie : io.demo.domain.legacy",
 	],
 	en: (on: string) => [
@@ -35,9 +35,9 @@ const SAID = {
 		"domain — perimeter: domain, style: onion, may depend on: no part",
 		"io.demo.domain.user: domain model",
 		"io.demo.domain.service: domain services",
-		"io.demo.domain.port: ports",
+		"io.demo.domain.port: domain services",
 		"infrastructure — perimeter: infrastructure, style: onion, may depend on: domain",
-		"io.demo.infra: adapters",
+		"io.demo.infra: adapter persistence",
 		"packages without a part: io.demo.domain.legacy",
 	],
 };

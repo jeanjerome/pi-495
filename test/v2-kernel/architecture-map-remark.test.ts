@@ -16,10 +16,14 @@ import {
 
 const REMARK = "admin est en couches, pas en oignon";
 
-/** The second proposal: the part `infrastructure` in layers. */
+/** The second proposal: the part `infrastructure` in layers, its one layer called by none. */
 const SECOND_MAP: ArchitectureMap = {
 	...DOMAIN_MAP,
-	parts: DOMAIN_MAP.parts.map((p) => (p.name === "infrastructure" ? { ...p, style: "layered" } : p)),
+	parts: DOMAIN_MAP.parts.map((p) =>
+		p.name === "infrastructure"
+			? { ...p, style: "layered", roles: p.roles.map((r) => ({ ...r, role: "persistence", called_by: [] })) }
+			: p,
+	),
 };
 
 describe("the owner asks for another architecture map with a remark", () => {

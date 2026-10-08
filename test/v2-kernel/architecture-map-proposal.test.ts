@@ -79,7 +79,7 @@ const MIXED_MAP: ArchitectureMap = {
 				},
 				{
 					package: "io.demo.orders.adapter",
-					role: "adapters",
+					role: "adapter persistence",
 					hints: [at("orders/src/main/java/io/demo/orders/adapter/OrderStore.java", 3, "stores orders")],
 				},
 			],
@@ -92,12 +92,14 @@ const MIXED_MAP: ArchitectureMap = {
 			roles: [
 				{
 					package: "io.demo.admin.web",
-					role: "presentation layer",
+					role: "presentation",
+					called_by: [],
 					hints: [at("admin/src/main/java/io/demo/admin/web/AdminPage.java", 3, "a page")],
 				},
 				{
 					package: "io.demo.admin.persistence",
-					role: "persistence layer",
+					role: "persistence",
+					called_by: ["presentation"],
 					hints: [at("admin/src/main/java/io/demo/admin/persistence/AdminDao.java", 3, "a DAO")],
 				},
 			],
@@ -189,7 +191,7 @@ describe("a survey of the architecture of a Maven reactor proposes a map to the 
 				facts: [],
 				recommendation: null,
 				arg: "ARC-01",
-				architecture_map: true,
+				architecture_map: { installs: [], unverified: null },
 				requested_at: "2026-10-08T12:00:00.000Z",
 			});
 			assert.match(asked.question, question, language);

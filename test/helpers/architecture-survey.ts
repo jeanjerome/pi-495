@@ -9,7 +9,7 @@ import type { Clock } from "../../src/application/ids.ts";
 import type { ArchitectureHint, ArchitectureMap } from "../../src/contracts/v1/protocol.ts";
 import type { InterventionHandle, InterventionMandate } from "../../src/ports/execution.ts";
 import { HUMAN, tuiOrigin } from "./change-fixture.ts";
-import { FakeMavenControls, FakeMavenSandbox } from "./fake-maven.ts";
+import { FakeMavenControls, FakeMavenSandbox, type MavenMode } from "./fake-maven.ts";
 import { writeFiles } from "./fixtures.ts";
 import { makeHarness, specReport, trackedProject, type TestHarness } from "./harness-fixture.ts";
 
@@ -135,7 +135,7 @@ export const DOMAIN_MAP: ArchitectureMap = {
 				},
 				{
 					package: "io.demo.domain.port",
-					role: "ports",
+					role: "domain services",
 					hints: [
 						hint(
 							"domain/src/main/java/io/demo/domain/port/UserRepository.java",
@@ -154,7 +154,7 @@ export const DOMAIN_MAP: ArchitectureMap = {
 			roles: [
 				{
 					package: "io.demo.infra",
-					role: "adapters",
+					role: "adapter persistence",
 					hints: [hint("infrastructure/src/main/java/io/demo/infra/JdbcUserRepository.java", 5, "implements a port")],
 				},
 			],
@@ -172,26 +172,34 @@ export const DOMAIN_MAP: ArchitectureMap = {
 
 /**
  * A survey of the architecture of `project`, conducted until it stops, the model proposing `maps` in turn;
- * `clock` is the time of the harness, when a test moves it.
+ * `clock` is the time of the harness, when a test moves it, and `mode` how Maven resolves. The fake Maven is
+ * returned with what it ran.
  */
 export async function surveyedArchitecture(
 	project: string,
 	maps: readonly unknown[],
 	clock?: Clock,
+	mode: MavenMode = "resolves",
 ): Promise<{
 	t: TestHarness;
 	agent: ArchitectureMapAgent;
+	maven: FakeMavenSandbox;
 	changeId: string;
 	stopped_because: string;
 	steps: string[];
 }> {
 	const agent = new ArchitectureMapAgent(maps);
+	let maven: FakeMavenSandbox | undefined;
 	const t = makeHarness({
 		agent,
-		backend: (real) => new FakeMavenSandbox(real, "resolves"),
+		backend: (real) => {
+			maven = new FakeMavenSandbox(real, mode);
+			return maven;
+		},
 		controls: (real) => new FakeMavenControls(real),
 		...(clock ? { clock } : {}),
 	});
+	assert.ok(maven, "the harness runs on the fake Maven");
 	const { change } = await t.harness.start({
 		project_path: project,
 		request_text: ARCHITECTURE_QUESTION,
@@ -199,7 +207,7 @@ export async function surveyedArchitecture(
 		deliverable: "state",
 	});
 	const first = await t.harness.advance(change.change_id, { max_steps: 40 });
-	return { t, agent, changeId: change.change_id, stopped_because: first.stopped_because, steps: first.steps };
+	return { t, agent, maven, changeId: change.change_id, stopped_because: first.stopped_because, steps: first.steps };
 }
 
 /** The owner answers the decision the change waits on with `optionId`, writing `freeText` beside it. */

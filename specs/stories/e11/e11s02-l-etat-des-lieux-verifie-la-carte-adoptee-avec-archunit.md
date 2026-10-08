@@ -2,7 +2,7 @@
 
 Story : e11s02
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -82,6 +82,20 @@ Scenario: Les règles internes d'une partie de style other ne sont pas vérifié
   Then l'issue d'adoption dit que les règles internes de la partie `events` ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant
   And la section état des lieux du rapport le dit aussi, en anglais et en français
 
+Scenario: Un fichier du projet ne fait taire aucune règle de la carte
+  Given le réacteur de la story, dont la classe `User` du modèle du domaine appelle `UserService`, un service du domaine
+  And un fichier `archunit_ignore_patterns.txt` du projet, dans les ressources du module `domain` et dans les ressources de test du module `infrastructure` qui porte les règles, avec le motif `.*UserService\.describe.*` qui vise la ligne de cette violation
+  When le contrôle d'architecture est qualifié puis passe sur la référence
+  Then le contrôle d'architecture est qualifié : son témoin positif passe et son témoin négatif échoue
+  And la passe de référence rend FAIL avec le constat de la règle `part domain keeps the rings of its onion` au fichier `domain/src/main/java/io/demo/domain/user/User.java` et à la ligne de l'appel
+
+Scenario: Un fichier de configuration du projet ne change aucune règle de la carte
+  Given le réacteur de la story, dont le service du domaine `UserService` et le port `UserRepository`, deux paquets d'un même anneau de l'oignon de `domain`, s'appellent l'un l'autre
+  And un fichier `archunit.properties` du projet qui porte `cycles.maxNumberToDetect=0`, dans les ressources du module `domain` et dans les ressources et les ressources de test du module `infrastructure` qui porte les règles
+  When le contrôle d'architecture est qualifié puis passe sur la référence
+  Then le contrôle d'architecture est qualifié : son témoin positif passe et son témoin négatif, un cycle entre deux paquets de la carte, échoue
+  And la passe de référence rend FAIL avec un constat de la règle `no cycle between the packages of the map` à un fichier du cycle
+
 ## 3. Sécurité
 
 Un état des lieux d'architecture ouvre le réseau à une seule étape : la résolution d'ArchUnit, que le
@@ -90,9 +104,10 @@ local que Maven désigne, n'exécute aucun but, et la copie est inspectée comme
 n'est acceptée que si elle ne modifie aucun fichier autre que les POM qui reçoivent la déclaration. La
 déclaration n'est écrite que dans les copies où les contrôles tournent, jamais dans le projet. Le contrôle
 d'architecture tourne réseau fermé. Ses règles sont écrites par 495 depuis la carte du protocole gelé, à
-chaque exécution : un fichier de l'arbre analysé ne peut pas les remplacer, et la carte n'est jamais lue
-dans l'arbre (`D-25`, `D-87`). Les règles ne comptent pas parmi les tests du projet : le verdict de ses
-tests ne dépend pas de l'architecture.
+chaque exécution : un fichier de l'arbre analysé ne peut ni les remplacer, ni changer la configuration d'ArchUnit,
+ni écarter une de leurs violations (le fichier des motifs ignorés et `archunit.properties` qu'ArchUnit cherche
+sur le classpath des règles sont ceux que 495 écrit, vides, avant tout fichier du projet), et la carte n'est jamais lue dans l'arbre (`D-25`, `D-87`). Les
+règles ne comptent pas parmi les tests du projet : le verdict de ses tests ne dépend pas de l'architecture.
 
 ## 4. Tâches
 
@@ -158,6 +173,31 @@ que ses règles internes ne sont pas vérifiées, en anglais et en français.
 - Tient : `test/v2-kernel/architecture-map-verification-limits.test.ts`, « une résolution d'ArchUnit qui échoue gèle la carte sans contrôle d'architecture et le survey nomme l'exigence comme angle mort avec la raison de Maven » et « pour une partie events de style other, l'issue d'adoption et le rapport, en anglais et en français, disent que ses règles internes ne sont pas vérifiées »
 - Rouge : dans un état des lieux, la seule issue d'une résolution qui échoue est celle du référentiel de qualité (`settleQualityReferential`), qui n'adopte rien ; rien ne garde la carte adoptée quand la résolution échoue. L'issue `adopt_map` et `architectureSection` (`src/application/report.ts`) présentent une partie `other` comme les autres, avec son seul style, sans dire que ses règles internes ne sont pas vérifiées.
 
+### Tâche 6 — Un fichier du projet ne fait taire aucune règle de la carte
+
+ArchUnit cherche `archunit_ignore_patterns.txt` par son nom sur le classpath où les règles tournent, et écarte
+chaque violation dont la ligne répond en entier à l'un de ses motifs. Ce classpath porte les ressources du
+projet : celles de test du module hôte, copiées dans son `target/test-classes`, et celles des modules dans
+leur `target/classes`. La déclaration de 495 fait trouver à cette recherche, avant tout fichier du projet, un
+fichier vide que 495 écrit hors de la copie avec les règles. Aucune violation des règles de la carte n'est
+alors écartée par un fichier de l'arbre analysé, et le fichier du projet n'est ni lu ni changé.
+
+- Vérifie : `node --test test/v4-platform/maven-architecture-ignore-patterns.test.ts`
+- Tient : `test/v4-platform/maven-architecture-ignore-patterns.test.ts`, « sur le réacteur domain et infrastructure dont la classe User du modèle appelle UserService, un archunit_ignore_patterns.txt du projet qui vise la ligne de cette violation, dans les ressources de domain et dans les ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte la règle des anneaux de domain à User.java et à la ligne de l'appel »
+- Rouge : le profil `archunit495` (`archunitProfile`, `src/adapters/stacks/maven/structure/archunit-declaration.ts`) ne pose aucun fichier de 495 sur le classpath des règles, et y laisse les ressources de test de l'hôte et les ressources principales des modules. `ArchRule.Assertions` d'ArchUnit 1.5.1 charge `archunit_ignore_patterns.txt` par `ClassLoader.getResource` et `EvaluationResult` écarte toute ligne de violation qu'un motif couvre en entier (lu dans le jar). Le fichier du projet est donc trouvé, et la passe de référence ne porte aucun constat de `part domain keeps the rings of its onion`. Le motif s'applique à la ligne de la violation, pas au nom de la règle : `keeps the rings` seul n'écarte rien, et le test vise la ligne de l'appel.
+
+### Tâche 7 — Un fichier de configuration du projet ne change aucune règle de la carte
+
+ArchUnit lit sa configuration dans `archunit.properties`, qu'il cherche par son nom à la racine du classpath où
+les règles tournent, celui qui porte les ressources du projet. `cycles.maxNumberToDetect=0` y fait passer toute
+règle d'absence de cycle. La déclaration de 495 fait trouver à cette recherche, avant tout fichier du projet, un
+fichier vide que 495 écrit hors de la copie avec les règles, comme celui des motifs ignorés : ArchUnit tourne
+avec sa configuration par défaut, et le fichier du projet n'est ni lu ni changé.
+
+- Vérifie : `node --test test/v4-platform/maven-architecture-properties.test.ts`
+- Tient : `test/v4-platform/maven-architecture-properties.test.ts`, « sur le réacteur domain et infrastructure dont le service et le port du domaine s'appellent, un archunit.properties du projet qui borne la détection des cycles à 0, dans les ressources de domain et dans les ressources et ressources de test d'infrastructure, laisse le contrôle d'architecture qualifié par ses témoins, et la passe de référence rapporte le cycle entre les paquets de la carte »
+- Rouge : le profil `archunit495` (`archunitProfile`, `src/adapters/stacks/maven/structure/archunit-declaration.ts`) ne copie que le fichier des motifs ignorés dans les classes de test de l'hôte. `ArchConfiguration` d'ArchUnit 1.5.1 charge `archunit.properties` par `ClassLoader.getResource` (lu dans le jar), et trouve donc celui du projet. Le témoin négatif du contrôle, un cycle entre deux paquets de la carte, passe : le contrôle n'est pas qualifié (sondé), et la passe de référence ne rapporte pas le cycle (mesuré à la recette).
+
 ## 5. Hors périmètre
 
 - Juger un candidat avec la carte : la carte est gelée dans le protocole de l'état des lieux qui l'adopte, et
@@ -177,3 +217,7 @@ que ses règles internes ne sont pas vérifiées, en anglais et en français.
 - Un POM qui ne reçoit pas la déclaration sans ambiguïté : l'angle mort que 495 nomme déjà pour un
   complément qui ne s'insère pas s'applique.
 - Effacer du dépôt local de Maven ce que la résolution y a écrit : c'est le dépôt de la machine (`e12s09`).
+- Le fichier `archunit_ignore_patterns.txt` que lisent les tests ArchUnit du projet lui-même : ces tests
+  tournent dans le contrôle des tests du projet, et le fichier reste le leur.
+- Effacer ou signaler le fichier des motifs ignorés du projet : 495 n'écrit rien dans le projet, et ce fichier
+  n'enfreint pas la carte.

@@ -6,7 +6,7 @@
  */
 import type { ControlDefinition, RecommendedComplement } from "../../contracts/v1/protocol.ts";
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import type { QualityOffer } from "./plugin.ts";
+import type { ArchitectureOffer, QualityOffer } from "./plugin.ts";
 
 export interface DetectedTechnology {
 	/** The identifier its technology declares, or `unknown` when no technology recognises the project. */
@@ -40,6 +40,8 @@ export interface DetectedTechnology {
 	quality_referential?: QualityOffer;
 	/** The packages the main sources declare, when the technology reads them: an architecture map may then be proposed. */
 	main_packages?: string[];
+	/** How the rules of the adopted architecture map are verified, or why they are not; absent when no map was given. */
+	architecture_verification?: ArchitectureOffer;
 }
 
 /**

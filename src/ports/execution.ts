@@ -9,7 +9,7 @@ import type {
 } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import type { EvidenceCandidate, Finding, RequirementRef } from "../contracts/v1/evidence.ts";
-import type { ControlDefinition, QualityRule } from "../contracts/v1/protocol.ts";
+import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import type { OutputSchemaId } from "../contracts/v1/reports.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
@@ -238,10 +238,11 @@ export interface ReportReader extends ReaderTraits {
 	read(run: ReaderRun): Promise<ParsedReport>;
 	/**
 	 * The rule set the analyser applies, written from the frozen rules of the control, which the runner
-	 * puts outside the workspace in place of `{ruleset}` in the command; absent for a reader whose
-	 * analyser takes none.
+	 * puts outside the workspace in place of `{ruleset}` in the command, its directory in place of
+	 * `{ruleset_directory}`, with the files the analyser also looks up `beside` it, by name, in that
+	 * directory; absent for a reader whose analyser takes none.
 	 */
-	ruleset?(rules: readonly QualityRule[]): { name: string; text: string };
+	ruleset?(control: ControlDefinition): { name: string; text: string; beside?: Record<string, string> };
 	/**
 	 * Scopes the run to what the subject introduced before anything is spawned; absent for a reader whose
 	 * control judges the whole run.

@@ -352,7 +352,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		if (quality) unit = quality.unit;
 		// The map of the architecture is asked of a model and put to the owner before anything runs too.
 		const architecture = surveysTheProject(unit.state)
-			? await settleArchitectureMap(ctx, unit, cor, requirements, reference, detection)
+			? await settleArchitectureMap(ctx, unit, cor, requirements, reference, detection, handle.path)
 			: null;
 		if (architecture?.kind === "stopped") return architecture.unit;
 		if (architecture) unit = architecture.unit;
@@ -381,6 +381,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const editRule = ctx.stacks.editRuleOf(handle.path);
 		const complements = [
 			...(quality?.complements ?? []),
+			...(architecture?.kind === "settled" ? (architecture.complements ?? []) : []),
 			...(adoption?.complements ?? []),
 			...(adoption !== null
 				? applyRecommendedEdits(
@@ -393,7 +394,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const installed = [...(quality?.packages ?? []), ...(adoption?.packages ?? [])];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
-			detection = ctx.stacks.recognise(handle.path, refs, process.execPath, quality?.packages);
+			detection = ctx.stacks.recognise(handle.path, refs, process.execPath, quality?.packages, architecture?.map?.map);
 		}
 		if (detection.controls.length === 0)
 			throw new DomainError("CAPABILITY_MISSING", detection.capability_missing.join("; ") || "no control available", {

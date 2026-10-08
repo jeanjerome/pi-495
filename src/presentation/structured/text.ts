@@ -500,6 +500,8 @@ const R = {
 			`${p.name} — périmètre : ${p.perimeter.join(", ")}, style : ${p.style}, peut dépendre de : ${dependsOn}`,
 		role: (pkg: string, role: string) => `${pkg} : ${role}`,
 		noPart: "aucune partie",
+		unchecked: (name: string) =>
+			`les règles internes de la partie ${name} ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant`,
 		unassigned: "paquets sans partie :",
 	},
 	en: {
@@ -546,6 +548,8 @@ const R = {
 			`${p.name} — perimeter: ${p.perimeter.join(", ")}, style: ${p.style}, may depend on: ${dependsOn}`,
 		role: (pkg: string, role: string) => `${pkg}: ${role}`,
 		noPart: "no part",
+		unchecked: (name: string) =>
+			`the internal rules of part ${name} are not verified, only its relations and the absence of cycles are`,
 		unassigned: "packages without a part:",
 	},
 };
@@ -637,6 +641,8 @@ function architectureLines(architecture: NonNullable<SurveySection["architecture
 	for (const part of architecture.parts) {
 		lines.push(`    ${t.part(part, part.may_depend_on.length === 0 ? t.noPart : part.may_depend_on.join(", "))}`);
 		for (const r of part.roles) lines.push(`      ${t.role(r.package, r.role)}`);
+		// No rule of the map checks the inside of a part in the `other` style (`specs/adr/D-87` §1).
+		if (part.style === "other") lines.push(`      ${t.unchecked(part.name)}`);
 	}
 	lines.push(
 		`    ${t.unassigned} ${architecture.unassigned_packages.length === 0 ? t.none : architecture.unassigned_packages.join(", ")}`,

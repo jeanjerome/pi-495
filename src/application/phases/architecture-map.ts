@@ -13,6 +13,7 @@ import type { ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import { digestValue } from "../../contracts/digest.ts";
 import {
 	type AdoptedArchitectureMap,
+	type AdoptedComplement,
 	ArchitectureMap,
 	type RequirementsDocument,
 } from "../../contracts/v1/protocol.ts";
@@ -21,9 +22,14 @@ import type { HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { asksAboutStructure } from "../../domain/survey.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
+import { applyRecommendedEdits } from "../complement.ts";
 import { architectureMapObjective } from "../context.ts";
+import type { MapVerificationOffer } from "../decisions.ts";
+import { bringInstalls } from "../installation.ts";
 import { ARCHITECTURE_MAP_SKILL } from "../skills.ts";
+import type { ArchitectureOffer } from "../stacks/plugin.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
+import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
 /**
@@ -33,7 +39,14 @@ import type { PhaseContext, Unit } from "./phase.ts";
  */
 export type MapSettlement =
 	| { kind: "stopped"; unit: Unit }
-	| { kind: "settled"; unit: Unit; blind_spot?: string; map?: AdoptedArchitectureMap };
+	| {
+			kind: "settled";
+			unit: Unit;
+			blind_spot?: string;
+			map?: AdoptedArchitectureMap;
+			/** The files that declare the analyser of the map, written into the copy and into every copy a control runs in. */
+			complements?: AdoptedComplement[];
+	  };
 
 /** A map a model proposed, for the requirements as they stood when it was asked, and what the reference says of it. */
 interface MapProposal {
@@ -146,10 +159,65 @@ function answerTo(unit: Unit, requirements: ArtifactRef, proposal: ArtifactRef):
 	);
 }
 
+/** How the rules of `map` are verified on the copy at `copyPath`, as the technology that recognises it offers. */
+function architectureOfferOn(ctx: PhaseContext, copyPath: string, map: ArchitectureMap): ArchitectureOffer | undefined {
+	return ctx.stacks.recognise(copyPath, [], process.execPath, [], map).architecture_verification;
+}
+
+/** What the owner is told adopting `map` has verified, by what, and which parts keep internal rules nothing checks. */
+function mapVerificationOffer(offer: ArchitectureOffer | undefined, map: ArchitectureMap): MapVerificationOffer {
+	const unchecked = map.parts.filter((part) => part.style === "other").map((part) => part.name);
+	if (offer?.kind === "proposed" && offer.recommendation.install)
+		return { installs: [offer.recommendation.install], unverified: null, unchecked_parts: unchecked };
+	return {
+		installs: [],
+		unverified:
+			offer?.kind === "not_proposed" ? offer.note : "the technology of the target offers no verification of a map",
+	};
+}
+
+/**
+ * Brings the analyser that verifies the adopted map into a copy of its own, with the network open for that
+ * step alone, and writes the declaration into the copy at `copyPath`, so that the detection that follows
+ * reads the control of the map; why no control verifies it when the verification is not offered or cannot
+ * be brought.
+ */
+async function bringVerification(
+	ctx: PhaseContext,
+	unit: Unit,
+	cor: string,
+	requirements: ArtifactRef,
+	reference: ReferenceSnapshot,
+	copyPath: string,
+	map: ArchitectureMap,
+): Promise<{ unit: Unit; complements: AdoptedComplement[] } | { unit: Unit; unverified: string }> {
+	const offer = architectureOfferOn(ctx, copyPath, map);
+	const { unverified } = mapVerificationOffer(offer, map);
+	if (offer?.kind !== "proposed" || unverified !== null) return { unit, unverified: unverified ?? "" };
+	const { install, edit } = offer.recommendation;
+	const installer = install === undefined ? null : ctx.stacks.installerOf(install.manager);
+	if (install === undefined || edit === undefined || installer === null)
+		return { unit, unverified: `no technology of 495 brings ${offer.recommendation.tool} into a copy` };
+	const failed = (reason: string) => `resolving ${install.package} ${install.version} failed: ${reason}`;
+	// A resolution that failed for these requirements is not run again: its reason stands until they are revised.
+	const earlier = (await failedInstalls(ctx, unit, requirements)).find(
+		(f) => f.install.package === install.package && f.install.version === install.version,
+	);
+	if (earlier !== undefined) return { unit, unverified: failed(earlier.reason) };
+	ctx.progress(`resolving ${install.package}@${install.version} in a copy, network open for that step alone`);
+	const brought = await bringInstalls(ctx, installer, reference, copyPath, [install], edit);
+	if (brought.kind === "failed") {
+		unit = await recordFailedInstall(ctx, unit, cor, requirements, { install, reason: brought.reason });
+		return { unit, unverified: failed(brought.reason) };
+	}
+	if (brought.output !== undefined) unit = await recordResolution(ctx, unit, cor, install, brought.output);
+	return { unit, complements: applyRecommendedEdits(copyPath, [offer.recommendation], installer.install.edit) };
+}
+
 /**
  * Settles the architecture map of the requirements about the architecture: proposes one when none was
  * proposed for these requirements, or when the owner asked for another, and asks the owner about it until
- * they adopt it or leave the requirement a blind spot.
+ * they adopt it, with its verification, or leave the requirement a blind spot.
  */
 export async function settleArchitectureMap(
 	ctx: PhaseContext,
@@ -158,6 +226,7 @@ export async function settleArchitectureMap(
 	requirements: { ref: ArtifactRef; content: RequirementsDocument },
 	reference: ReferenceSnapshot,
 	detection: DetectedTechnology,
+	copyPath: string,
 ): Promise<MapSettlement> {
 	const structural = requirements.content.requirements.filter((r) => asksAboutStructure(r.category));
 	if (structural.length === 0 || detection.main_packages === undefined) return { kind: "settled", unit };
@@ -178,19 +247,23 @@ export async function settleArchitectureMap(
 		answer = undefined;
 	}
 	const { check, map } = proposal.content;
-	// A map that does not hold against the code is not shown to the owner as if it held.
+	// A map that does not hold against the code or its styles is not shown to the owner as if it held.
 	if (!check.holds)
 		return {
 			kind: "settled",
 			unit,
-			blind_spot: `blind spot: the proposed architecture map does not hold against the reference: ${check.missing.join("; ")}`,
+			blind_spot: `blind spot: the proposed architecture map does not hold: ${check.missing.join("; ")}`,
 		};
-	if (answer?.option_id === ADOPT)
+	if (answer?.option_id === ADOPT) {
+		const verified = await bringVerification(ctx, unit, cor, requirements.ref, reference, copyPath, map);
 		return {
 			kind: "settled",
-			unit,
-			blind_spot:
-				"blind spot: no control verifies the adopted architecture map yet; it is frozen as the architecture the project declares",
+			unit: verified.unit,
+			...("complements" in verified
+				? { complements: verified.complements }
+				: {
+						blind_spot: `blind spot: no control verifies the adopted architecture map, frozen as the architecture the project declares: ${verified.unverified}`,
+					}),
 			map: {
 				adopted_on: answer.recorded_at.slice(0, 10),
 				decision_id: answer.decision_id,
@@ -198,6 +271,7 @@ export async function settleArchitectureMap(
 				unassigned_packages: check.unassigned,
 			},
 		};
+	}
 	if (answer?.option_id === LEAVE)
 		return {
 			kind: "settled",
@@ -214,7 +288,7 @@ export async function settleArchitectureMap(
 			recommendation: null,
 			arg: structural.map((r) => r.requirement_id).join(", "),
 			language: ctx.language(unit.state),
-			architecture_map: true,
+			architecture_map: mapVerificationOffer(architectureOfferOn(ctx, copyPath, map), map),
 		}),
 	};
 }

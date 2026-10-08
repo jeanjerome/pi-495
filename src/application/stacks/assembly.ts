@@ -71,6 +71,7 @@ export function assembleDetection<Model>(
 	const quality = available.find(({ sensor }) => sensor === "quality")?.offer.controls ?? [];
 	const referential = plugin.capabilities.quality?.referential?.(question);
 	const packages = plugin.capabilities.structure?.packages?.(question);
+	const architecture = plugin.capabilities.structure?.architecture?.(question);
 	const declaredEnv = plugin.capabilities.workspace?.env ?? [];
 	return {
 		stack: plugin.id,
@@ -101,6 +102,7 @@ export function assembleDetection<Model>(
 		recommendations: sensors.flatMap(({ offer }) => recommendationOf(offer)),
 		...(referential ? { quality_referential: referential } : {}),
 		...(packages ? { main_packages: packages } : {}),
+		...(architecture ? { architecture_verification: architecture } : {}),
 	};
 }
 

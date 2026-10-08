@@ -4,6 +4,7 @@
  * the same shape, and the common layer asks them and assembles the answers once for every technology.
  */
 import type {
+	ArchitectureMap,
 	ControlDefinition,
 	FileEdit,
 	InstalledPackage,
@@ -22,7 +23,8 @@ export type WitnessFiles = Record<string, string>;
 /**
  * What a capability is asked with: the model of the project its technology recognised, the copy read
  * through its view, the requirements its controls judge, the Node binary that runs a control spawning
- * nothing of its own, and the packages the adopted install of the quality referential put in the copy.
+ * nothing of its own, the packages the adopted install of the quality referential put in the copy, and the
+ * architecture map the owner adopted, never read from the copy.
  */
 export interface CapabilityQuestion<Model> {
 	readonly model: Model;
@@ -30,6 +32,7 @@ export interface CapabilityQuestion<Model> {
 	readonly requirement_refs: RequirementRef[];
 	readonly node_binary: string;
 	readonly referential_packages: readonly InstalledPackage[];
+	readonly architecture_map?: ArchitectureMap;
 }
 
 /**
@@ -56,6 +59,14 @@ export type Offer =
  */
 export type QualityOffer =
 	| { kind: "proposed"; rules: QualityRule[]; perimeter: QualityPerimeter; recommendations: RecommendedComplement[] }
+	| { kind: "not_proposed"; note: string };
+
+/**
+ * How the rules of an adopted architecture map are verified on a project: the recommendation that declares
+ * their analyser in a copy and resolves it; or the note that says why none is offered.
+ */
+export type ArchitectureOffer =
+	| { kind: "proposed"; recommendation: RecommendedComplement }
 	| { kind: "not_proposed"; note: string };
 
 /** The suite of the project: the one capability every technology offers. */
@@ -112,6 +123,8 @@ export interface StructureCapability<Model> {
 	 * architecture a model may propose a map of; absent, none is proposed.
 	 */
 	packages?(question: CapabilityQuestion<Model>): string[];
+	/** How the rules of the adopted map of the question are verified; absent when no map is adopted, or none is ever offered. */
+	architecture?(question: CapabilityQuestion<Model>): ArchitectureOffer | undefined;
 }
 
 /**
@@ -181,6 +194,15 @@ export interface InstallPhrases {
 	referentialDoes(names: string): string;
 	/** What the inspection accepts of the adoption of a quality referential. */
 	readonly referentialInspected: string;
+	/** The adoption of the verification of an architecture map, for a manager that brings its analyser. */
+	readonly architecture?: {
+		/** In its label: what the manager does to the packages. */
+		label(names: string): string;
+		/** In its effect: what 495 does with the manager in a copy of the project, and where what it fetches is written. */
+		does(names: string): string;
+		/** What the inspection accepts of it. */
+		readonly inspected: string;
+	};
 }
 
 /**

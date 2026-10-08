@@ -5,8 +5,11 @@ import { BASELINE_TOLERANCES, INSTABILITY_RULES, RequirementRef } from "./eviden
 /** What a `scope_argument` puts the class patterns of the subject in place of. */
 export const SCOPE_PLACEHOLDER = "{classes}";
 
-/** What the runner puts the path of the rule set it writes from a control's `quality_rules` in place of. */
+/** What the runner puts the path of the rule set it writes from a control's frozen rules in place of. */
 export const RULESET_PLACEHOLDER = "{ruleset}";
+
+/** What the runner puts the directory that holds that rule set in place of, for an analyser that reads a directory. */
+export const RULESET_DIRECTORY_PLACEHOLDER = "{ruleset_directory}";
 
 export const STRUCTURE_RULE_KINDS = ["forbidden_dependency", "no_cycle"] as const;
 export type StructureRuleKind = (typeof STRUCTURE_RULE_KINDS)[number];
@@ -91,6 +94,68 @@ export const QualityPerimeter = Type.Object(
 );
 export type QualityPerimeter = Static<typeof QualityPerimeter>;
 
+/** The styles a part of an architecture map is organised in (`specs/adr/D-87`). */
+export const ARCHITECTURE_STYLES = ["layered", "onion", "simple", "other"] as const;
+
+/** A place in the reference that supports an element of an architecture map: a file, a line of it, and what it shows. */
+export const ArchitectureHint = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		line: Type.Integer({ minimum: 1 }),
+		says: Type.String(),
+	},
+	{ additionalProperties: false },
+);
+export type ArchitectureHint = Static<typeof ArchitectureHint>;
+
+/**
+ * The architecture of a target as a model proposes it: parts, each a set of modules or package branches
+ * with its style and the role of each of its packages, and the parts each part may depend on. Every
+ * element carries the places in the reference that support it. A proposal, never a finding.
+ */
+export const ArchitectureMap = Type.Object(
+	{
+		parts: Type.Array(
+			Type.Object(
+				{
+					name: Type.String({ minLength: 1 }),
+					/** The modules, by directory, or the package branches the part covers. */
+					perimeter: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+					style: Closed(ARCHITECTURE_STYLES),
+					roles: Type.Array(
+						Type.Object(
+							{
+								package: Type.String({ minLength: 1 }),
+								/**
+								 * In a part in onion, its ring: "domain model", "domain services", "application services" or
+								 * "adapter <name>"; in a part in layers, the name of its layer.
+								 */
+								role: Type.String({ minLength: 1 }),
+								/** In a part in layers, the layers of the part that may call the layer of this package; empty for none. */
+								called_by: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+								hints: Type.Array(ArchitectureHint),
+							},
+							{ additionalProperties: false },
+						),
+					),
+					hints: Type.Array(ArchitectureHint),
+				},
+				{ additionalProperties: false },
+			),
+			{ minItems: 1 },
+		),
+		/** Each part `from` may depend on the part `to`; a dependency between parts no relation names is not permitted. */
+		relations: Type.Array(
+			Type.Object(
+				{ from: Type.String({ minLength: 1 }), to: Type.String({ minLength: 1 }), hints: Type.Array(ArchitectureHint) },
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ $id: "urn:495:contract:architecture-map:1", additionalProperties: false },
+);
+export type ArchitectureMap = Static<typeof ArchitectureMap>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,
@@ -115,6 +180,11 @@ export const ControlDefinition = Type.Object(
 		 * definition at each run; absent for every other sensor.
 		 */
 		quality_rules: Type.Optional(Type.Array(QualityRule)),
+		/**
+		 * The architecture map the owner adopted, from which an architecture sensor writes the rules its analyser
+		 * applies at each run; absent for every other sensor.
+		 */
+		architecture_map: Type.Optional(ArchitectureMap),
 		/**
 		 * Reports this control leaves in the workspace, named so that another one may read them: the
 		 * Surefire reports and the JaCoCo report a single `mvn test` writes are two of them.
@@ -326,62 +396,6 @@ export const AdoptedQualityReferential = Type.Object(
 	{ additionalProperties: false },
 );
 export type AdoptedQualityReferential = Static<typeof AdoptedQualityReferential>;
-
-/** The styles a part of an architecture map is organised in (`specs/adr/D-87`). */
-export const ARCHITECTURE_STYLES = ["layered", "onion", "simple", "other"] as const;
-
-/** A place in the reference that supports an element of an architecture map: a file, a line of it, and what it shows. */
-export const ArchitectureHint = Type.Object(
-	{
-		path: Type.String({ minLength: 1 }),
-		line: Type.Integer({ minimum: 1 }),
-		says: Type.String(),
-	},
-	{ additionalProperties: false },
-);
-export type ArchitectureHint = Static<typeof ArchitectureHint>;
-
-/**
- * The architecture of a target as a model proposes it: parts, each a set of modules or package branches
- * with its style and the role of each of its packages, and the parts each part may depend on. Every
- * element carries the places in the reference that support it. A proposal, never a finding.
- */
-export const ArchitectureMap = Type.Object(
-	{
-		parts: Type.Array(
-			Type.Object(
-				{
-					name: Type.String({ minLength: 1 }),
-					/** The modules, by directory, or the package branches the part covers. */
-					perimeter: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
-					style: Closed(ARCHITECTURE_STYLES),
-					roles: Type.Array(
-						Type.Object(
-							{
-								package: Type.String({ minLength: 1 }),
-								role: Type.String({ minLength: 1 }),
-								hints: Type.Array(ArchitectureHint),
-							},
-							{ additionalProperties: false },
-						),
-					),
-					hints: Type.Array(ArchitectureHint),
-				},
-				{ additionalProperties: false },
-			),
-			{ minItems: 1 },
-		),
-		/** Each part `from` may depend on the part `to`; a dependency between parts no relation names is not permitted. */
-		relations: Type.Array(
-			Type.Object(
-				{ from: Type.String({ minLength: 1 }), to: Type.String({ minLength: 1 }), hints: Type.Array(ArchitectureHint) },
-				{ additionalProperties: false },
-			),
-		),
-	},
-	{ $id: "urn:495:contract:architecture-map:1", additionalProperties: false },
-);
-export type ArchitectureMap = Static<typeof ArchitectureMap>;
 
 /**
  * An architecture map the owner adopted: the map as it was proposed, the packages of the main sources no

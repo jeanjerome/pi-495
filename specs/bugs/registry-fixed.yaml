@@ -1773,3 +1773,114 @@ bugs:
       directory outside the copy.
     status: fixed
     fixed_in: e350ec9
+  - bug_id: BUG-2026-10-08T235200
+    date: "2026-10-08"
+    title: "The architecture control is not qualified on a Maven reactor whose tests run JUnit 4 through the Vintage engine"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s02`. On a reactor whose tests pass with `junit-jupiter` 5.10.2 and
+      `junit-vintage-engine` 5.10.2, JUnit 4 tests next to JUnit 5 ones, the architecture control is not qualified,
+      so the adopted map of such a reactor is never verified. Without any exclusion of the project's engines from the
+      classpath the rules run on, the rules fail on a misalignment of the JUnit versions (`NoClassDefFoundError`).
+      With the exclusion of `org.junit.jupiter:*` and `org.junit.vintage:*` that the profile declares
+      (`PROJECT_JUNIT_ENGINES`, `src/adapters/stacks/maven/structure/archunit-declaration.ts`), the run fails
+      resolving `junit-vintage-engine` 5.14.4 with the network closed: a version the adoption's resolution did not
+      fetch. No test puts a Vintage engine or a JUnit 4 test in the reactor, so the `org.junit.vintage` exclusion,
+      and the comment that justifies it, are held by no test: removing it leaves the four tests of
+      `test/v4-platform/maven-architecture.test.ts` green.
+    what_expected: >
+      The story's scenario « Le contrôle se qualifie sur un projet qui viole déjà sa carte, et les tests du projet
+      n'en sont pas changés »: on a reactor whose tests pass, JUnit 4 tests run by the Vintage engine included, the
+      architecture control is qualified by its witnesses with the network closed, and a platform test holds it.
+    steps_to_reproduce:
+      - "Take the reactor of `test/v4-platform/maven-architecture.test.ts` and add `junit-vintage-engine` 5.10.2 to its test dependencies."
+      - "Adopt the map, then qualify the architecture control with the network closed: it is not qualified, the run failing on the resolution of `junit-vintage-engine` 5.14.4."
+      - "With `PROJECT_JUNIT_ENGINES = []`, the same qualification fails on a `NoClassDefFoundError` of misaligned JUnit jars."
+      - "With `PROJECT_JUNIT_ENGINES = [\"org.junit.jupiter\"]`, the four tests of `test/v4-platform/maven-architecture.test.ts` stay green."
+    root_cause: >
+      Surefire 3.6.0 adds to the classpath it runs the tests on the Vintage engine of its launcher's platform,
+      `junit-vintage-engine` 5.14.4, whenever that classpath holds JUnit 4 (`junit:junit`, which a Vintage engine
+      brings), and the resolution at adoption does not fetch it. Excluding `org.junit.vintage:*` alone left JUnit 4 on
+      the classpath; excluding neither left the project's Vintage engine there, which fails to discover tests on the
+      platform the profile puts ahead of the project's.
+    evidence: >
+      The two cases of `test/v4-platform/maven-architecture.test.ts` where JUnit 4 tests pass through the Vintage
+      engine 5.10.2 beside Jupiter 5.10.2, and 6.0.1 beside Jupiter 6.0.1: red at 35b2c827 (both witnesses
+      INDETERMINATE, `junit-vintage-engine:jar:5.14.4` not downloaded in offline mode), green at 56f32161, which also
+      keeps `junit:*` off the classpath the rules run on. Dropping `org.junit.vintage` from the exclusions fails both
+      (`TestEngine with ID 'junit-vintage' failed to discover tests`); dropping `junit` fails both on 5.14.4.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 56f32161
+  - bug_id: BUG-2026-10-08T235000
+    date: "2026-10-08"
+    title: "An archunit_ignore_patterns.txt in the analysed tree silences the rules of the adopted map that ArchUnit runs"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s02`. The architecture control runs the rules 495 writes from the frozen map
+      (`src/adapters/stacks/maven/structure/archunit-rules.ts`) on a test classpath that carries the resources of
+      the project. ArchUnit reads `archunit_ignore_patterns.txt` from the root of that classpath and drops every
+      violation whose description matches one of its patterns. A file of the analysed tree, such as
+      `domain/src/main/resources/archunit_ignore_patterns.txt`, so filters the violations of the rules 495 wrote.
+      With `.*` the negative witness passes too and the control is not qualified; a pattern aimed at one rule, such
+      as « keeps the rings », passes the qualification, whose witness is a cycle, and silences that rule.
+    what_expected: >
+      The story's security section: a file of the analysed tree cannot replace the rules. Only 495's rules decide
+      what the architecture control reports; a file of the project neither drops nor changes a violation of them.
+    steps_to_reproduce:
+      - "Take the reactor of the story whose `User` calls `UserService`, which breaks its adopted map."
+      - "Add `domain/src/main/resources/archunit_ignore_patterns.txt` holding `.*`."
+      - "Run the architecture control on the reference: PASS with no finding; its qualification gives the negative witness PASS, so the control is not qualified."
+      - "With a pattern matching « keeps the rings » alone, the qualification passes and the call of the model on a service of the domain is not reported."
+    root_cause: >
+      The ignore file is looked up by name on the classpath the rules run on, and the profile of 495 neither puts a
+      file of its own ahead of the project's nor keeps the project's resources off that lookup.
+    evidence: >
+      Round 1 of the review of e11s02, finding B1-4: probe on Maven and ArchUnit 1.5.1 with the reactor of the
+      story and the file above, reference pass PASS with no finding and negative witness PASS.
+      `test/v4-platform/maven-architecture-ignore-patterns.test.ts`, where the project holds
+      `.*UserService\.describe.*`, which covers the line of the call of the model on a service of the domain, in the
+      resources of `domain` and in the test resources of `infrastructure`, the host of the rules: red at b1536e32
+      (qualified, reference pass PASS with no finding), green at 0d8495b6 (reference pass FAIL with
+      `part domain keeps the rings of its onion` at `User.java` and the line of the call). The same test with a
+      pattern that matches nothing is green at b1536e32.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 0d8495b6
+  - bug_id: BUG-2026-10-08T235300
+    date: "2026-10-08"
+    title: "No test reads the English text of the outcome that adopts the architecture map with its verification"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Introduced by the branch `e11s02`. The outcome `adopt_map` of the decision that adopts the architecture map
+      (`ARCHITECTURE_MAP_ADOPTION`, `src/application/decisions.ts`) says, in French and in English, what adopting
+      the map has verified and that nothing is written in the project. The test of the scenario
+      (`test/v2-kernel/architecture-map-verification.test.ts`) asserts the French text alone: removing « the absence
+      of cycles and » or « ; nothing is written in the project » from the English text leaves it green, while the
+      same removal from the French text fails it.
+    what_expected: >
+      The story's scenario « La décision dit ce qu'adopter la carte fait vérifier, et par quoi » is held in both
+      languages of the decision: a test asserts the English outcome names the rules ArchUnit verifies and says that
+      nothing is written in the project.
+    steps_to_reproduce:
+      - "In the `en` outcome of `ARCHITECTURE_MAP_ADOPTION`, remove `the absence of cycles and `, then `; nothing is written in the project`."
+      - "Run `node --test test/v2-kernel/architecture-map-verification.test.ts`: 3/3 pass."
+    root_cause: >
+      The test of the scenario was written for the default language of the session; the English half of the Then has
+      no assertion.
+    evidence: >
+      Round 1 of the review of e11s02, finding B1-3: both removals from the English text left the three tests of
+      `architecture-map-verification.test.ts` green. At 4a607ea3, the test of the scenario also builds the English
+      outcome and asserts each phrase: either removal fails it, and the unchanged text passes.
+    risk_level: low
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 4a607ea3

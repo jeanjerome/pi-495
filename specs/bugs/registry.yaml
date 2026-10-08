@@ -1903,3 +1903,36 @@ bugs:
       Run the scenario's test, or a second case of it, in an English session and assert the input asks for
       « Your remark on the map ».
     status: open
+  - bug_id: BUG-2026-10-08T235100
+    date: "2026-10-08"
+    title: "The architecture control cannot be qualified on a Maven reactor whose witness module does not declare JUnit 5"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s02`. The architecture control is qualified on the positive witness every Maven
+      control shares (`positiveWitness`, `src/adapters/stacks/maven/tests/witnesses.ts`): a JUnit 5 test written
+      under `src/test/java` of a module. The architecture control runs `mvn test` on the reactor, which compiles
+      that test; in a reactor that does not declare JUnit 5, the compilation fails, the positive witness gives
+      INDETERMINATE, and the control is not qualified, so a reactor with no JUnit 5 never has its adopted map
+      verified.
+    what_expected: >
+      The architecture control does not depend on the test framework of the project: its rules run with the
+      ArchUnit engine the profile declares, and its positive witness compiles and passes in a reactor that has no
+      test dependency.
+    steps_to_reproduce:
+      - "Take the reactor of the story (`domain`, `infrastructure`) without any test dependency, and adopt its map."
+      - "Qualify the architecture control by its witnesses: the positive witness gives INDETERMINATE with « package org.junit.jupiter.api does not exist » at `domain/src/test/java/witness495/PositiveWitness495Test.java`."
+    root_cause: >
+      The witnesses of the controls of a Maven target are JUnit 5 tests, written for the test control; the
+      architecture control takes the same positive witness although it compiles the project's test sources
+      without running them.
+    evidence: >
+      Found while writing `test/v4-platform/maven-architecture-offline.test.ts`: with a reactor that declares no
+      JUnit, the qualification gave positive and negative INDETERMINATE on the compilation of the witness; the
+      test declares JUnit 5 in the root POM to reach the defect it holds.
+    risk_level: medium
+    follow_ups: >
+      Give the architecture control a positive witness that compiles without a test framework, such as a main
+      class of a mapped package that keeps the map, with a platform test on a reactor that declares no JUnit.
+    status: open

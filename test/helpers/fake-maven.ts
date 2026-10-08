@@ -1,6 +1,7 @@
 import { mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { emptyTrigger } from "../../src/application/stacks/stack.ts";
+import type { ArchitectureMap, ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type {
 	ControlExecutionPort,
 	ExecutableRequest,
@@ -124,6 +125,11 @@ export class FakeMavenControls implements ControlExecutionPort {
 			writeQualityReports(invocation.workspace_path);
 			return this.real.runControl({ ...invocation, control }, signal);
 		}
+		// ArchUnit leaves the Surefire report of the rules of the map, which the real reader reads.
+		if (control.parser === "archunit-xml") {
+			writeArchitectureReport(invocation.workspace_path, invocation.control);
+			return this.real.runControl({ ...invocation, control }, signal);
+		}
 		const out = await this.real.runControl({ ...invocation, control }, signal);
 		// A reactor carries the witnesses in its first module, a single project at its root.
 		const files = javaFiles(invocation.workspace_path);
@@ -201,5 +207,95 @@ function writeQualityReports(workspace: string): void {
 	writeFileSync(
 		join(base, "target/cpd.xml"),
 		`<?xml version="1.0" encoding="UTF-8"?>\n<pmd-cpd pmdVersion="7.17.0">\n${duplications.join("")}</pmd-cpd>\n`,
+	);
+}
+
+/** The ring of a role of a part in onion, from the centre outwards; the adapters, each named, are the outer ring. */
+function ringOf(role: string): { rank: number; adapter: string | null } {
+	const inner = ["domain model", "domain services", "application services"].indexOf(role);
+	return inner >= 0 ? { rank: inner, adapter: null } : { rank: 3, adapter: role };
+}
+
+/** The rule of `map` a dependency from the package `from` to the package `to` breaks, or null when the map permits it. */
+function brokenRule(map: ArchitectureMap, from: string, to: string): string | null {
+	const partOf = (pkg: string) => map.parts.find((p) => p.roles.some((r) => r.package === pkg));
+	const source = partOf(from);
+	const target = partOf(to);
+	if (!source || !target) return null;
+	if (source !== target)
+		return map.relations.some((r) => r.from === source.name && r.to === target.name)
+			? null
+			: `part ${source.name} may not depend on part ${target.name}`;
+	const roleOf = (pkg: string) => source.roles.find((r) => r.package === pkg)!;
+	if (source.style === "onion") {
+		const a = ringOf(roleOf(from).role);
+		const b = ringOf(roleOf(to).role);
+		const kept = a.rank > b.rank || (a.rank === b.rank && a.adapter === b.adapter);
+		return kept ? null : `part ${source.name} keeps the rings of its onion`;
+	}
+	if (source.style === "layered") {
+		const layer = roleOf(from).role;
+		const called = source.roles.filter((r) => r.role === roleOf(to).role);
+		const kept = layer === roleOf(to).role || called.some((r) => (r.called_by ?? []).includes(layer));
+		return kept ? null : `part ${source.name} keeps the calls between its layers`;
+	}
+	return null;
+}
+
+const xmlText = (text: string) =>
+	text
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll("'", "&apos;")
+		.replaceAll("\n", "&#10;");
+
+/**
+ * Stands for ArchUnit as the architecture control runs it: the Surefire report of the rules of the frozen map,
+ * at the report path of the control, written from the main sources of the tree. A line that names a class of
+ * another package is a dependency on that package; it breaks the rule the map gives it, and two packages that
+ * depend on each other are a cycle; a source whose package no part covers belongs to no part.
+ */
+function writeArchitectureReport(workspace: string, control: ControlDefinition): void {
+	const map = control.architecture_map!;
+	const mapped = new Set(map.parts.flatMap((p) => p.roles.map((r) => r.package)));
+	const sources = mainSources(workspace).map((path) => {
+		const text = readFileSync(join(workspace, path), "utf8");
+		const name = path.slice(path.lastIndexOf("/") + 1, -".java".length);
+		return { name, pkg: /^package ([\w.]+);/m.exec(text)?.[1] ?? "", lines: text.split("\n") };
+	});
+	const violations = new Map<string, string[]>();
+	const violate = (rule: string, line: string) => violations.set(rule, [...(violations.get(rule) ?? []), line]);
+	const edges: { from: string; to: string; line: string }[] = [];
+	for (const source of sources) {
+		const origin = `${source.pkg}.${source.name}`;
+		if (!mapped.has(source.pkg) && !source.pkg.startsWith("witness495"))
+			violate(
+				"every main source belongs to a part",
+				`Class <${origin}> does not reside in any package in (${source.name}.java:0)`,
+			);
+		source.lines.forEach((text, index) => {
+			if (/^\s*(package|import) /.test(text)) return;
+			for (const other of sources) {
+				if (other.pkg === source.pkg || !new RegExp(`\\b${other.name}\\b`).test(text)) continue;
+				const line = `Class <${origin}> depends on <${other.pkg}.${other.name}> in (${source.name}.java:${index + 1})`;
+				edges.push({ from: source.pkg, to: other.pkg, line });
+				const rule = brokenRule(map, source.pkg, other.pkg);
+				if (rule !== null) violate(rule, line);
+			}
+		});
+	}
+	for (const edge of edges)
+		if (mapped.has(edge.from) && mapped.has(edge.to) && edges.some((e) => e.from === edge.to && e.to === edge.from))
+			violate("no cycle between the packages of the map", edge.line);
+	const cases = [...violations].map(([rule, lines], i) => {
+		const message = `Architecture Violation [Priority: MEDIUM] - Rule '${rule}' was violated (${lines.length} times):\n${lines.join("\n")}`;
+		return `  <testcase name="rule${i + 1}" classname="Architecture495Test"><failure message="${xmlText(message)}" type="java.lang.AssertionError"/></testcase>\n`;
+	});
+	const directory = join(workspace, control.report_path!);
+	mkdirSync(directory, { recursive: true });
+	writeFileSync(
+		join(directory, "TEST-Architecture495Test.xml"),
+		`<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="Architecture495Test" tests="${cases.length}">\n${cases.join("")}</testsuite>\n`,
 	);
 }

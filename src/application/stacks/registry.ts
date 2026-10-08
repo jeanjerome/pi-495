@@ -5,7 +5,7 @@
  * missing capability, which is what G2 refuses on.
  */
 import type { RequirementRef } from "../../contracts/v1/evidence.ts";
-import type { FileEdit, InstalledPackage } from "../../contracts/v1/protocol.ts";
+import type { ArchitectureMap, FileEdit, InstalledPackage } from "../../contracts/v1/protocol.ts";
 import type { ReaderTraits } from "../../domain/survey.ts";
 import type { WorkspacePolicy } from "../../ports/execution.ts";
 import { assembleDetection, undetected } from "./assembly.ts";
@@ -125,13 +125,15 @@ export class StackRegistry {
 	 * view of the copy refuses stops the recognition: the technology declares no control, and its blind spot
 	 * names the path that was not read. `referentialPackages` are the packages the adopted install of the
 	 * quality referential put in the copy, as its lock names them; empty anywhere else, so a manifest alone
-	 * never stands for that install.
+	 * never stands for that install. `architectureMap` is the map the owner adopted, whose rules the controls
+	 * verify; it is never read from the copy.
 	 */
 	recognise(
 		projectPath: string,
 		requirementRefs: RequirementRef[],
 		nodeBinary = process.execPath,
 		referentialPackages: readonly InstalledPackage[] = [],
+		architectureMap?: ArchitectureMap,
 	): DetectedTechnology {
 		const view = this.#openView(projectPath);
 		let stack = "unknown";
@@ -146,6 +148,7 @@ export class StackRegistry {
 					requirement_refs: requirementRefs,
 					node_binary: nodeBinary,
 					referential_packages: referentialPackages,
+					...(architectureMap ? { architecture_map: architectureMap } : {}),
 				};
 				return assembleDetection(technology, question, this.#readers);
 			}

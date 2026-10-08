@@ -469,63 +469,109 @@ const REFERENTIAL_ADOPTION = {
 } as const;
 
 /**
+ * How adopting a proposed architecture map has it verified: the packages a manager brings into a copy to check
+ * its rules, or, when none can, why no control will verify it.
+ */
+export interface MapVerificationOffer {
+	installs: readonly PackageInstall[];
+	unverified: string | null;
+	/** The parts whose style has no internal rule a control checks, only their relations and their cycles. */
+	unchecked_parts?: readonly string[];
+}
+
+/** The phrases of the manager that brings the analyser of the map, when one does, and the name it goes by. */
+function verifier(offer: MapVerificationOffer, installers: Installers) {
+	const [first] = offer.installs;
+	const install = first === undefined ? undefined : installers(first.manager);
+	const said = install?.phrases;
+	return install && said?.fr.architecture && said.en.architecture
+		? {
+				fr: said.fr.architecture,
+				en: said.en.architecture,
+				names: installedNames(offer.installs),
+				title: install.title,
+			}
+		: null;
+}
+
+/**
  * IH-04 asked on a survey whose requirement about the architecture a model proposed a map for: the owner
- * adopts the map, asks for another proposal with a remark, or leaves the requirement a blind spot. Nothing
- * is written in the project whatever the answer.
+ * adopts the map, and with it its verification, asks for another proposal with a remark, or leaves the
+ * requirement a blind spot. Nothing is written in the project whatever the answer.
  */
 const ARCHITECTURE_MAP_ADOPTION = {
-	fr: (requirements: string) => ({
-		question: `Adopter la carte d'architecture proposée pour ${requirements} ?`,
-		options: [
-			{
-				id: "adopt_map",
-				label: "Adopter la carte",
-				effect:
-					"La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport ; rien n'est écrit dans le projet. La réponse tombe si les exigences sont révisées.",
-				risky: true,
-			},
-			{
-				id: "propose_map_again",
-				label: "Demander une nouvelle proposition (votre remarque en texte libre)",
-				effect:
-					"Une nouvelle intervention en lecture seule reçoit cette carte et votre remarque, et propose une autre carte, qui vous est présentée avec les mêmes issues.",
-				risky: false,
-			},
-			{
-				id: "leave_blind_spot",
-				label: "Laisser l'exigence en angle mort",
-				effect:
-					"Aucune carte n'est gelée ; l'état des lieux nomme l'exigence comme angle mort, parce que la carte proposée n'a pas été adoptée.",
-				risky: false,
-			},
-		],
-	}),
-	en: (requirements: string) => ({
-		question: `Adopt the architecture map proposed for ${requirements}?`,
-		options: [
-			{
-				id: "adopt_map",
-				label: "Adopt the map",
-				effect:
-					"The map becomes the architecture the project declares: it is frozen in the protocol with the date of this decision and presented in the report; nothing is written in the project. The answer lapses if the requirements are revised.",
-				risky: true,
-			},
-			{
-				id: "propose_map_again",
-				label: "Ask for another proposal (your remark as free text)",
-				effect:
-					"A new read-only intervention receives this map and your remark, and proposes another map, which is presented to you with the same options.",
-				risky: false,
-			},
-			{
-				id: "leave_blind_spot",
-				label: "Leave the requirement a blind spot",
-				effect:
-					"No map is frozen; the survey names the requirement as a blind spot, because the proposed map was not adopted.",
-				risky: false,
-			},
-		],
-	}),
+	fr: (requirements: string, offer: MapVerificationOffer, installers: Installers) => {
+		const verified = verifier(offer, installers);
+		const frozen =
+			"La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport";
+		return {
+			question: `Adopter la carte d'architecture proposée pour ${requirements} ?`,
+			options: [
+				{
+					id: "adopt_map",
+					label:
+						verified === null
+							? "Adopter la carte"
+							: `Adopter la carte et sa vérification (${verified.fr.label(verified.names)}, réseau ouvert pour cette seule étape)`,
+					effect:
+						verified === null
+							? `${frozen} ; rien n'est écrit dans le projet. Aucun contrôle ne vérifiera la carte${offer.unverified === null ? "" : ` : ${offer.unverified}`}. La réponse tombe si les exigences sont révisées.`
+							: `${frozen}. 495 ${verified.fr.does(verified.names)}, en ouvrant le réseau pour cette seule étape ; ${verified.fr.inspected} ; rien n'est écrit dans le projet. ${verified.names} vérifie alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; ${(offer.unchecked_parts ?? []).map((part) => `les règles internes de la partie ${part} ne sont pas vérifiées, seules ses relations et l'absence de cycle l'étant ; `).join("")}l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par ${verified.title}. La réponse tombe si les exigences sont révisées.`,
+					risky: true,
+				},
+				{
+					id: "propose_map_again",
+					label: "Demander une nouvelle proposition (votre remarque en texte libre)",
+					effect:
+						"Une nouvelle intervention en lecture seule reçoit cette carte et votre remarque, et propose une autre carte, qui vous est présentée avec les mêmes issues.",
+					risky: false,
+				},
+				{
+					id: "leave_blind_spot",
+					label: "Laisser l'exigence en angle mort",
+					effect:
+						"Aucune carte n'est gelée ; l'état des lieux nomme l'exigence comme angle mort, parce que la carte proposée n'a pas été adoptée.",
+					risky: false,
+				},
+			],
+		};
+	},
+	en: (requirements: string, offer: MapVerificationOffer, installers: Installers) => {
+		const verified = verifier(offer, installers);
+		const frozen =
+			"The map becomes the architecture the project declares: it is frozen in the protocol with the date of this decision and presented in the report";
+		return {
+			question: `Adopt the architecture map proposed for ${requirements}?`,
+			options: [
+				{
+					id: "adopt_map",
+					label:
+						verified === null
+							? "Adopt the map"
+							: `Adopt the map and its verification (${verified.en.label(verified.names)}, network open for that step alone)`,
+					effect:
+						verified === null
+							? `${frozen}; nothing is written in the project. No control will verify the map${offer.unverified === null ? "" : `: ${offer.unverified}`}. The answer lapses if the requirements are revised.`
+							: `${frozen}. 495 ${verified.en.does(verified.names)}, opening the network for that step alone; ${verified.en.inspected}; nothing is written in the project. ${verified.names} then checks, at each run, the rules 495 writes from the map: the style of each part, the relations permitted between parts, the absence of cycles and the sources no part covers; ${(offer.unchecked_parts ?? []).map((part) => `the internal rules of part ${part} are not verified, only its relations and the absence of cycles are; `).join("")}the survey measures the requirement with it. If the resolution fails, the map is frozen with no architecture control and the requirement stays a blind spot with the reason ${verified.title} gave. The answer lapses if the requirements are revised.`,
+					risky: true,
+				},
+				{
+					id: "propose_map_again",
+					label: "Ask for another proposal (your remark as free text)",
+					effect:
+						"A new read-only intervention receives this map and your remark, and proposes another map, which is presented to you with the same options.",
+					risky: false,
+				},
+				{
+					id: "leave_blind_spot",
+					label: "Leave the requirement a blind spot",
+					effect:
+						"No map is frozen; the survey names the requirement as a blind spot, because the proposed map was not adopted.",
+					risky: false,
+				},
+			],
+		};
+	},
 } as const;
 
 /**
@@ -578,7 +624,7 @@ function questionOf(args: Parameters<typeof buildDecisionRequest>[0], surveyed: 
 	if (args.interaction === "IH-04" && args.referential)
 		return REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers);
 	if (args.interaction === "IH-04" && args.architecture_map)
-		return ARCHITECTURE_MAP_ADOPTION[args.language](args.arg ?? "");
+		return ARCHITECTURE_MAP_ADOPTION[args.language](args.arg ?? "", args.architecture_map, installers);
 	return T[args.language][args.interaction](args.arg ?? "");
 }
 
@@ -595,8 +641,8 @@ export function buildDecisionRequest(args: {
 	adoptable?: Adoptable;
 	/** The quality referential an IH-04 asked on a survey offers instead of a preparation. */
 	referential?: ReferentialOffer;
-	/** Whether an IH-04 asked on a survey proposes an architecture map instead of a preparation. */
-	architecture_map?: boolean;
+	/** How the architecture map an IH-04 asked on a survey proposes instead of a preparation would be verified. */
+	architecture_map?: MapVerificationOffer;
 	/** The install capability that runs a package manager, whose phrases say what adopting its packages does. */
 	installers?: Installers;
 	requested_at: string;

@@ -46,9 +46,11 @@ each a module or a package branch, and give each part its own style.
   `business` or `application`; `repository`, `dao`, `persistence` or `data`.
 - Calls go downward: presentation uses the business layer, which uses data access; data-access types
   (JDBC, `EntityManager`, repositories) appear only in the bottom layer.
-- Name each layer as a role, and the parts it may depend on as relations. A presentation package that
-  imports data access directly is a sign the layering is not kept; the map still says which layering
-  the project claims.
+- Give each package the name of its layer as its role, and list in `"called_by"` the layers of the part
+  that may call that layer, an empty list for the top layer: `web` called by none, `service` called by
+  `web`, `data` called by `service`. A layer that does not say who may call it is refused. A
+  presentation package that imports data access directly is a sign the layering is not kept; the map
+  still says which layering the project claims.
 
 ### `onion`
 
@@ -62,8 +64,10 @@ Hexagonal architecture, ports and adapters, and clean architecture are this styl
 - Application services or use cases that orchestrate the domain.
 - Outer parts depend on inner ones, never the reverse: in a reactor, the domain module depends on no
   other module, and the infrastructure module depends on the domain.
-- Give each package its role: domain model, domain services, application services, ports, or a named
-  adapter.
+- Give each package its ring as its role: `"domain model"`, `"domain services"`,
+  `"application services"`, or `"adapter <name>"` with the name of the adapter, such as
+  `"adapter persistence"`. A port belongs to the ring that declares it: an interface the domain
+  services need is in `"domain services"`. Any other role is refused.
 
 ### `simple`
 

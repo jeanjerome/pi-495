@@ -45,5 +45,5 @@ export const JSCPD_READER: ReportReader = {
 	differential: false,
 	located: true,
 	read: (run) => readRelativized(run, JSCPD_REPORT),
-	ruleset: (rules) => ({ name: "jscpd.json", text: jscpdConfig(rules) }),
+	ruleset: (control) => ({ name: "jscpd.json", text: jscpdConfig(control.quality_rules ?? []) }),
 };

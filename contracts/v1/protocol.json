@@ -223,6 +223,181 @@
               "additionalProperties": false
             }
           },
+          "architecture_map": {
+            "type": "object",
+            "required": [
+              "parts",
+              "relations"
+            ],
+            "properties": {
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "perimeter",
+                    "style",
+                    "roles",
+                    "hints"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "perimeter": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    },
+                    "style": {
+                      "type": "string",
+                      "enum": [
+                        "layered",
+                        "onion",
+                        "simple",
+                        "other"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "package",
+                          "role",
+                          "hints"
+                        ],
+                        "properties": {
+                          "package": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "role": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "called_by": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "hints": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "path",
+                                "line",
+                                "says"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "line": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
+                                "says": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "hints": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "line",
+                          "says"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "says": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "relations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "from",
+                    "to",
+                    "hints"
+                  ],
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "hints": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "line",
+                          "says"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "says": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "$id": "urn:495:contract:architecture-map:1",
+            "additionalProperties": false
+          },
           "provides": {
             "type": "array",
             "items": {
@@ -966,6 +1141,13 @@
                         "role": {
                           "type": "string",
                           "minLength": 1
+                        },
+                        "called_by": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
                         },
                         "hints": {
                           "type": "array",

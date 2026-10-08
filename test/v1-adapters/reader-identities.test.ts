@@ -18,6 +18,7 @@ const RECORDED = {
 	"stryker-json": "1.0.0",
 	"pmd-xml": "1.0.0",
 	"cpd-xml": "1.0.0",
+	"archunit-xml": "1.0.0",
 	"eslint-json": "1.0.0",
 	"jscpd-json": "1.0.0",
 };

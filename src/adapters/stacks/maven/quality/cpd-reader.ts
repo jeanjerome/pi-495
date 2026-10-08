@@ -44,5 +44,5 @@ export const CPD_READER: ReportReader = {
 			await run.reports("application/xml"),
 			`${run.stdout}\n${run.stderr}`,
 		),
-	ruleset: (rules) => ({ name: "ruleset.xml", text: pmdRuleset(rules) }),
+	ruleset: (control) => ({ name: "ruleset.xml", text: pmdRuleset(control.quality_rules ?? []) }),
 };

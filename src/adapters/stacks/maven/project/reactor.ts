@@ -129,7 +129,7 @@ interface PomIdentity {
 }
 
 /** The text of the first `<name>` element of a POM fragment, null when it is absent or left to a property. */
-function elementText(xml: string, name: string): string | null {
+export function elementText(xml: string, name: string): string | null {
 	const text = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)<\\/${name}>`).exec(xml)?.[1]?.trim();
 	return text && !text.includes("${") ? text : null;
 }

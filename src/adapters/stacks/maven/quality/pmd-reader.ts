@@ -51,5 +51,5 @@ export const PMD_READER: ReportReader = {
 		};
 		return readQualityReports(PMD_REPORT, run.observation, docs, `${run.stdout}\n${run.stderr}`, onIntroducedLine);
 	},
-	ruleset: (rules) => ({ name: "ruleset.xml", text: pmdRuleset(rules) }),
+	ruleset: (control) => ({ name: "ruleset.xml", text: pmdRuleset(control.quality_rules ?? []) }),
 };

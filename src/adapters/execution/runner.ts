@@ -6,7 +6,11 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
-import { RULESET_PLACEHOLDER, type ControlDefinition } from "../../contracts/v1/protocol.ts";
+import {
+	RULESET_DIRECTORY_PLACEHOLDER,
+	RULESET_PLACEHOLDER,
+	type ControlDefinition,
+} from "../../contracts/v1/protocol.ts";
 import { controlInputsDigest } from "../../domain/baseline.ts";
 import { messageOf } from "../../domain/errors.ts";
 import { fingerprintOf, locate, relativize } from "../../domain/findings.ts";
@@ -139,7 +143,15 @@ export class GenericControlRunner implements ControlExecutionPort {
 					observation = await this.sandbox.run(
 						profile,
 						{
-							command: ruleset ? command.map((arg) => arg.split(RULESET_PLACEHOLDER).join(ruleset.path)) : command,
+							command: ruleset
+								? command.map((arg) =>
+										arg
+											.split(RULESET_PLACEHOLDER)
+											.join(ruleset.path)
+											.split(RULESET_DIRECTORY_PLACEHOLDER)
+											.join(ruleset.directory),
+									)
+								: command,
 							cwd,
 							timeout_ms: control.timeout_ms,
 							max_output_bytes: this.options.max_output_bytes,
@@ -255,7 +267,7 @@ function unknownReader(control: ControlDefinition): ParsedReport {
 }
 
 /**
- * The rule set a quality control applies, written by its reader from the rules of its frozen definition
+ * The rule set a control applies, written by its reader from the rules of its frozen definition
  * into a directory of its own outside the workspace, so that no file of the analysed tree can stand for
  * it. Null for a control whose command names no rule set, or whose reader writes none.
  */
@@ -263,11 +275,13 @@ async function rulesetOf(
 	control: ControlDefinition,
 	reader: ReportReader,
 ): Promise<{ directory: string; path: string } | null> {
-	if (!control.command.some((arg) => arg.includes(RULESET_PLACEHOLDER))) return null;
-	const file = reader.ruleset?.(control.quality_rules ?? []);
+	if (!control.command.some((arg) => arg.includes(RULESET_PLACEHOLDER) || arg.includes(RULESET_DIRECTORY_PLACEHOLDER)))
+		return null;
+	const file = reader.ruleset?.(control);
 	if (!file) return null;
 	const directory = await mkdtemp(join(tmpdir(), "495-ruleset-"));
 	const path = join(directory, file.name);
 	await writeFile(path, file.text);
+	for (const [name, text] of Object.entries(file.beside ?? {})) await writeFile(join(directory, name), text);
 	return { directory, path };
 }

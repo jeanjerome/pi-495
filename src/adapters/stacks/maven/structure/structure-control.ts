@@ -9,6 +9,8 @@ import type { StructureCapability } from "../../../../application/stacks/plugin.
 import { baseControl, emptyTrigger } from "../../../../application/stacks/stack.ts";
 import type { MavenProject } from "../project/maven-project.ts";
 import type { MavenModule, MavenReactor } from "../project/reactor.ts";
+import { archunitOffer } from "./archunit-declaration.ts";
+import { architectureVerification } from "./architecture-control.ts";
 import { mainPackages } from "./main-packages.ts";
 
 /**
@@ -150,17 +152,32 @@ function structureNegativeWitness(rules: readonly StructureRule[]): Record<strin
 }
 
 export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
-	offer: ({ model, requirement_refs, node_binary }) => {
+	offer: (question) => {
+		const { model, requirement_refs, node_binary } = question;
 		const rules = structureRules(model.reactor);
-		if (rules.length === 0) return { kind: "missing", reason: NO_OPPOSABLE_ROOTS };
+		const architecture = architectureVerification(question);
+		const verified = architecture !== null && "control" in architecture ? architecture : null;
+		if (rules.length === 0 && verified === null) return { kind: "missing", reason: NO_OPPOSABLE_ROOTS };
+		const shortOf = [
+			...(rules.some((rule) => rule.kind === "forbidden_dependency") ? [] : [NO_OPPOSABLE_ROOTS]),
+			...(architecture !== null && "short_of" in architecture ? [architecture.short_of] : []),
+		];
 		return {
 			kind: "available",
-			controls: [structureControl(requirement_refs, model.reactor, rules, node_binary)],
+			controls: [
+				...(rules.length > 0 ? [structureControl(requirement_refs, model.reactor, rules, node_binary)] : []),
+				...(verified ? [verified.control] : []),
+			],
 			// A failing test proves nothing about a boundary: the tree that carries this defect is one where a
 			// module imports what it declares no dependency on, and it compiles nowhere.
-			own_negative_witness: { structure: structureNegativeWitness(rules) },
-			...(rules.some((rule) => rule.kind === "forbidden_dependency") ? {} : { short_of: NO_OPPOSABLE_ROOTS }),
+			own_negative_witness: {
+				...(rules.length > 0 ? { structure: structureNegativeWitness(rules) } : {}),
+				...(verified ? { architecture: verified.witness } : {}),
+			},
+			...(shortOf.length > 0 ? { short_of: shortOf.join("; ") } : {}),
 		};
 	},
 	packages: ({ model, view }) => mainPackages(view, model.reactor),
+	architecture: ({ model, view, architecture_map }) =>
+		architecture_map === undefined ? undefined : archunitOffer(view, model.reactor),
 };

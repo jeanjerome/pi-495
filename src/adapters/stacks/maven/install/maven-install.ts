@@ -6,7 +6,7 @@
  */
 import type { PackageInstall } from "../../../../contracts/v1/protocol.ts";
 import type { InstallCapability, InstallPhrases } from "../../../../application/stacks/plugin.ts";
-import { PMD_PLUGIN, PMD_PLUGIN_VERSION } from "../shared.ts";
+import { ARCHUNIT, ARCHUNIT_RULES_PROPERTY, PMD_PLUGIN, PMD_PLUGIN_VERSION } from "../shared.ts";
 
 /** The site skin the `pmd` and `cpd` goals of `maven-pmd-plugin` 3.28.0 load to render their report, as they name it when it is missing. */
 const PMD_SITE_SKIN = "org.apache.maven.skins:maven-fluido-skin:2.0.0-M9";
@@ -17,15 +17,23 @@ const MAVEN_DEPENDENCY_PLUGIN = "org.apache.maven.plugins:maven-dependency-plugi
 /**
  * The command that resolves the plugins of a copy without running any goal of them. When the PMD plugin
  * 495 declares is among `installs`, the site skin its report goals render with is fetched too, without its
- * dependencies: resolving the plugins does not fetch it, and the goals stop offline without it.
+ * dependencies: resolving the plugins does not fetch it, and the goals stop offline without it. When ArchUnit
+ * is, it is fetched with its dependencies, being a test dependency of its profile, which resolving the plugins
+ * does not reach; and the profile is activated, so that resolving the plugins fetches the Surefire it runs the
+ * rules with and the runner of the tests that Surefire loads.
  */
 export function mavenResolutionCommand(installs: readonly PackageInstall[]): string[] {
 	const pmd = installs.some((install) => install.package === PMD_PLUGIN && install.version === PMD_PLUGIN_VERSION);
+	const archunit = installs.find((install) => install.package === ARCHUNIT);
 	return [
 		"mvn",
 		"-B",
 		`${MAVEN_DEPENDENCY_PLUGIN}:resolve-plugins`,
 		...(pmd ? [`${MAVEN_DEPENDENCY_PLUGIN}:get`, `-Dartifact=${PMD_SITE_SKIN}`, "-Dtransitive=false"] : []),
+		// One command names one artifact to fetch, and no adoption brings both.
+		...(archunit && !pmd
+			? [`${MAVEN_DEPENDENCY_PLUGIN}:get`, `-Dartifact=${ARCHUNIT}:${archunit.version}`, `-D${ARCHUNIT_RULES_PROPERTY}`]
+			: []),
 	];
 }
 
@@ -79,6 +87,13 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		referentialDoes: (names) => `déclare ${names} dans une copie du POM et résout le greffon avec Maven`,
 		referentialInspected:
 			"la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que pom.xml",
+		architecture: {
+			label: (names) => `déclare ${names} dans une copie du POM et le résout`,
+			does: (names) =>
+				`déclare ${names} dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but`,
+			inspected:
+				"la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que le POM qui reçoit la déclaration",
+		},
 	},
 	en: {
 		complementLabel: (names) => `resolves ${names}`,
@@ -92,6 +107,13 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 		referentialDoes: (names) => `declares ${names} in a copy of the POM and resolves the plugin with Maven`,
 		referentialInspected:
 			"the copy is inspected and the resolution is accepted only if it changes no file other than pom.xml",
+		architecture: {
+			label: (names) => `declares ${names} in a copy of the POM and resolves it`,
+			does: (names) =>
+				`declares ${names} in a copy of the POM and resolves it with Maven, into the local repository Maven designates, running no goal`,
+			inspected:
+				"the copy is inspected and the resolution is accepted only if it changes no file other than the POM that receives the declaration",
+		},
 	},
 };
 

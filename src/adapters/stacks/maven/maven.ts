@@ -15,6 +15,7 @@ import { discoverMavenReactor } from "./project/reactor.ts";
 import { CPD_READER } from "./quality/cpd-reader.ts";
 import { PMD_READER } from "./quality/pmd-reader.ts";
 import { MAVEN_QUALITY } from "./quality/quality-controls.ts";
+import { ARCHUNIT_READER } from "./structure/archunit-reader.ts";
 import { JAVA_IMPORTS_READER } from "./structure/java-imports-reader.ts";
 import { MAVEN_STRUCTURE, structureRules } from "./structure/structure-control.ts";
 import { MAVEN_TESTS } from "./tests/test-control.ts";
@@ -39,7 +40,7 @@ export const MAVEN_PLUGIN: StackPlugin<MavenProject> = {
 			architecture_rules: structureRules(model.reactor).map((rule) => rule.rule_id),
 		};
 	},
-	readers: [JACOCO_READER, JAVA_IMPORTS_READER, PITEST_READER, PMD_READER, CPD_READER],
+	readers: [JACOCO_READER, JAVA_IMPORTS_READER, PITEST_READER, PMD_READER, CPD_READER, ARCHUNIT_READER],
 	capabilities: {
 		tests: MAVEN_TESTS,
 		coverage: MAVEN_COVERAGE,

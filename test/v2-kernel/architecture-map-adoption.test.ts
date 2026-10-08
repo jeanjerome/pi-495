@@ -1,8 +1,8 @@
 /**
  * The owner's answer to the proposed architecture map: adopted, the map is frozen in the protocol with the
- * date of the decision, and the requirement stays a blind spot because no control verifies the adopted map
- * yet; left aside, no map is frozen and the survey says the proposed map was not adopted. The project is
- * not modified either way.
+ * date of the decision, and the survey measures the requirement by the control that verifies it; left aside,
+ * no map is frozen and the survey says the proposed map was not adopted. The project is not modified either
+ * way.
  */
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
@@ -51,7 +51,7 @@ async function surveyedRequirement(t: TestHarness, changeId: string) {
 }
 
 describe("the owner's answer to the proposed architecture map", () => {
-	it("l'adoption gèle la carte dans le protocole avec la date de la décision, le survey nomme l'exigence comme angle mort parce qu'aucun contrôle ne vérifie la carte adoptée, et le digest du projet est inchangé", async () => {
+	it("l'adoption gèle la carte dans le protocole avec la date de la décision, le survey mesure l'exigence par le contrôle d'architecture qui la vérifie, et le digest du projet est inchangé", async () => {
 		const { t, changeId, project, before, frozenOn } = await answered("adopt_map");
 		const protocol = await frozenProtocol(t, changeId);
 		const adoption = t.ledger.loadChange(changeId)!.state.human_decisions.find((d) => d.option_id === "adopt_map");
@@ -65,10 +65,10 @@ describe("the owner's answer to the proposed architecture map", () => {
 		assert.deepEqual(frozen.unassigned_packages, []);
 
 		const architecture = await surveyedRequirement(t, changeId);
-		assert.match(
-			architecture.blind_spot ?? "",
-			/no control verifies the adopted architecture map yet/,
-			"the survey names the requirement a blind spot, because nothing verifies the adopted map yet",
+		assert.equal(architecture.blind_spot, null, "the requirement is no blind spot");
+		assert.ok(
+			architecture.measures.some((m) => m.control_id === "architecture"),
+			`the survey measures it by the control that verifies the adopted map: ${JSON.stringify(architecture.measures)}`,
 		);
 		assert.equal(treeDigest(project), before, "the project tree is as it was");
 	});

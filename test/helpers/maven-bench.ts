@@ -53,7 +53,7 @@ export function widenForMaven(c: ControlDefinition): ControlDefinition {
 }
 
 /**
- * The copy of `project` under `root` where the controls run, its POM edited by `edit`, with what the controls
+ * The copy of `project` under `root` where the controls run, the POM `edit` names edited by it, with what the controls
  * read offline in the local repository: the plugins and the site skin the adoption resolves, and the project's
  * own dependencies, which a machine that builds the project already holds.
  */
@@ -61,7 +61,7 @@ export function mavenReference(root: string, project: string, edit: FileEdit, in
 	// The copy where the controls run declares the plugin; the project itself is never written.
 	const reference = join(root, "reference");
 	cpSync(project, reference, { recursive: true });
-	writeFileSync(join(reference, "pom.xml"), editedFile(project, edit) ?? "");
+	writeFileSync(join(reference, edit.path), editedFile(project, edit) ?? "");
 	// The resolution, the one step that may open the network, runs once outside the sandbox, in a copy of its
 	// own so that no build output reaches the reference.
 	const primed = join(root, "primed");
