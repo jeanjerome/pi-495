@@ -609,6 +609,7 @@ epics:
       - { id: e28s13, status: "versée", title: "Le rapport d'ingénierie ne liste que les exigences que G1 a adoptées" }
       - { id: e28s14, status: "versée", title: "Un rapport JUnit au-delà de la borne de lecture n'est pas lu" }
       - { id: e28s15, status: "versée", title: "Les lignes sautées entre deux portions d'une modification sont annoncées" }
+      - { id: e28s16, status: "à faire", title: "Un chemin inscriptible dont le chemin réel sort de la copie n'est pas accordé" }
 
   - id: e33
     title: "Checkstyle et SpotBugs s'ajoutent au référentiel d'une cible Maven"
