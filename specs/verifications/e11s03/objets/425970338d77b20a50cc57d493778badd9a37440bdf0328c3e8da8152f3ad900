@@ -1,0 +1,95 @@
+TAP version 13
+# Subtest: the configuration of the project silences no gap of the dependencies control
+    # Subtest: un POM d'app qui ignore io.demo:domain et saute l'analyse dans une exécution default-cli, et un parent qui ignore toute déclaration inutilisée dans sa gestion des greffons, laissent le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de io.demo:domain par app et la déclaration inutilisée de Guava
+    not ok 1 - un POM d'app qui ignore io.demo:domain et saute l'analyse dans une exécution default-cli, et un parent qui ignore toute déclaration inutilisée dans sa gestion des greffons, laissent le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de io.demo:domain par app et la déclaration inutilisée de Guava
+      ---
+      duration_ms: 7497.719875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PvkrZE/test/v4-platform/maven-dependencies-configuration.test.ts:110:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ["positive witness gave INDETERMINATE: the analysis of app was skipped","negative witness gave INDETERMINATE: the control does not detect the defect it claims to cover; the analysis of app was skipped"]
+        + actual - expected
+        
+          [
+        +   'INDETERMINATE',
+        +   'INDETERMINATE',
+        +   false
+        -   'PASS',
+        -   'FAIL',
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+        2: true
+      actual:
+        0: 'INDETERMINATE'
+        1: 'INDETERMINATE'
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PvkrZE/test/v4-platform/maven-dependencies-configuration.test.ts:119:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: les propriétés mdep.analyze.skip et mdep.analyze.excludedClasses du parent et un .mvn/maven.config qui saute l'analyse laissent le contrôle qualifié et la passe de référence rapporte les deux écarts
+    not ok 2 - les propriétés mdep.analyze.skip et mdep.analyze.excludedClasses du parent et un .mvn/maven.config qui saute l'analyse laissent le contrôle qualifié et la passe de référence rapporte les deux écarts
+      ---
+      duration_ms: 7578.378916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PvkrZE/test/v4-platform/maven-dependencies-configuration.test.ts:123:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ["positive witness gave INDETERMINATE: the analysis of reactor, domain, infrastructure, app was skipped","negative witness gave INDETERMINATE: the control does not detect the defect it claims to cover; the analysis of reactor, domain, infrastructure, app was skipped"]
+        + actual - expected
+        
+          [
+        +   'INDETERMINATE',
+        +   'INDETERMINATE',
+        +   false
+        -   'PASS',
+        -   'FAIL',
+        -   true
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+        2: true
+      actual:
+        0: 'INDETERMINATE'
+        1: 'INDETERMINATE'
+        2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PvkrZE/test/v4-platform/maven-dependencies-configuration.test.ts:131:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the configuration of the project silences no gap of the dependencies control
+  ---
+  duration_ms: 15076.783334
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-PvkrZE/test/v4-platform/maven-dependencies-configuration.test.ts:105:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15885.379125

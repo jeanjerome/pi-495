@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: adopting the architecture map of a Maven reactor compares its declared dependencies to those its code uses
+    # Subtest: l'issue d'adoption de la carte nomme dependency:analyze de maven-dependency-plugin 3.11.0, la règle qu'il vérifie, sa résolution dans la même étape qu'ArchUnit et sa déclaration dans une copie de chaque POM du réacteur
+    ok 1 - l'issue d'adoption de la carte nomme dependency:analyze de maven-dependency-plugin 3.11.0, la règle qu'il vérifie, sa résolution dans la même étape qu'ArchUnit et sa déclaration dans une copie de chaque POM du réacteur
+      ---
+      duration_ms: 247.234667
+      type: 'test'
+      ...
+    # Subtest: l'adoption gèle le contrôle des dépendances qualifié, et le survey mesure l'exigence d'architecture par architecture et par dependencies, ce dernier en FAIL avec l'usage de io.demo:domain par app à Main.java et la déclaration inutilisée de Guava à infrastructure/pom.xml, que le rapport donne aussi, sans changer le digest du projet
+    ok 2 - l'adoption gèle le contrôle des dépendances qualifié, et le survey mesure l'exigence d'architecture par architecture et par dependencies, ce dernier en FAIL avec l'usage de io.demo:domain par app à Main.java et la déclaration inutilisée de Guava à infrastructure/pom.xml, que le rapport donne aussi, sans changer le digest du projet
+      ---
+      duration_ms: 935.475375
+      type: 'test'
+      ...
+    # Subtest: sur un réacteur dont les POM déclarent ce que le code utilise, le survey mesure l'exigence par dependencies en PASS sans constat
+    ok 3 - sur un réacteur dont les POM déclarent ce que le code utilise, le survey mesure l'exigence par dependencies en PASS sans constat
+      ---
+      duration_ms: 898.679833
+      type: 'test'
+      ...
+    1..3
+ok 1 - adopting the architecture map of a Maven reactor compares its declared dependencies to those its code uses
+  ---
+  duration_ms: 2082.086208
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2363.196541

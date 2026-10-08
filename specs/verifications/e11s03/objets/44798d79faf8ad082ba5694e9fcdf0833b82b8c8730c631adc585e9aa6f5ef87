@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: dependency:analyze compares the dependencies the POMs of a Maven reactor declare to those its code uses
+    # Subtest: sur le réacteur domain, infrastructure et app, le contrôle des dépendances est qualifié par ses témoins bien que le projet enfreigne la règle et que app reçoive JUnit de l'agrégat junit-jupiter, et la passe de référence rapporte l'usage de io.demo:domain par app à l'import de Main.java et la déclaration inutilisée de Guava à sa ligne d'infrastructure/pom.xml, sans constat sur h2
+    ok 1 - sur le réacteur domain, infrastructure et app, le contrôle des dépendances est qualifié par ses témoins bien que le projet enfreigne la règle et que app reçoive JUnit de l'agrégat junit-jupiter, et la passe de référence rapporte l'usage de io.demo:domain par app à l'import de Main.java et la déclaration inutilisée de Guava à sa ligne d'infrastructure/pom.xml, sans constat sur h2
+      ---
+      duration_ms: 7565.202958
+      type: 'test'
+      ...
+    # Subtest: sur ce réacteur, le contrôle des tests du projet rend PASS
+    ok 2 - sur ce réacteur, le contrôle des tests du projet rend PASS
+      ---
+      duration_ms: 3905.986708
+      type: 'test'
+      ...
+    1..2
+ok 1 - dependency:analyze compares the dependencies the POMs of a Maven reactor declare to those its code uses
+  ---
+  duration_ms: 11471.783209
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12275.381833

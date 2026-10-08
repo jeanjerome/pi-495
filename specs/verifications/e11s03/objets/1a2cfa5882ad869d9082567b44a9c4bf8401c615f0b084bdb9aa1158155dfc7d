@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the output of dependency:analyze is read gap by gap
+    # Subtest: la sortie de dependency:analyze donne un constat pour l'usage de io.demo:domain par app, à la ligne de l'import de io.demo.domain.User dans app/src/main/java/io/demo/app/Main.java, et un pour la déclaration inutilisée de Guava, à sa ligne de infrastructure/pom.xml
+    ok 1 - la sortie de dependency:analyze donne un constat pour l'usage de io.demo:domain par app, à la ligne de l'import de io.demo.domain.User dans app/src/main/java/io/demo/app/Main.java, et un pour la déclaration inutilisée de Guava, à sa ligne de infrastructure/pom.xml
+      ---
+      duration_ms: 58.884625
+      type: 'test'
+      ...
+    # Subtest: une déclaration héritée du POM parent est localisée à sa ligne de ce POM
+    ok 2 - une déclaration héritée du POM parent est localisée à sa ligne de ce POM
+      ---
+      duration_ms: 43.977333
+      type: 'test'
+      ...
+    # Subtest: les listes Ignored ne donnent aucun constat
+    ok 3 - les listes Ignored ne donnent aucun constat
+      ---
+      duration_ms: 43.858375
+      type: 'test'
+      ...
+    # Subtest: une sortie absente ou illisible rend INDETERMINATE
+    ok 4 - une sortie absente ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 154.620333
+      type: 'test'
+      ...
+    1..4
+ok 1 - the output of dependency:analyze is read gap by gap
+  ---
+  duration_ms: 301.991166
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 574.5605

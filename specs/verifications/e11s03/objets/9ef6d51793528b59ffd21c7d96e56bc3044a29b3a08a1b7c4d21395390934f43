@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'intervention qui propose la carte donne aussi la lecture du modèle",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/context.ts",
+    "ligne": 173,
+    "constat": "Le test vérifie que la consigne demande une lecture des trois préoccupations, « each statement with its hints », ainsi que les clés \"reading\", \"cross_cutting\" et \"deployment\". Il ne vérifie pas que les indices de la lecture sont demandés à leur fichier et à leur ligne : ce point n'est tenu, pour la consigne, que par l'exemple de schéma et par le schéma ArchitectureHint, qui exige path et line. La skill, elle, est vérifiée sur « a file and a line that exists in it ». Le détail par préoccupation de la consigne (sécurité, erreurs, journalisation…) n'est vérifié par aucun test.",
+    "mutation": "Retiré « , a file and a line that exists in it » de la phrase de lecture de ARCHITECTURE_MAP_INSTRUCTION, puis, séparément, la clause « in \"cross_cutting\", how security, errors, logging, validation and configuration are handled; » : test/v2-kernel/architecture-map-reading.test.ts reste vert dans les deux cas."
+   }
+  ],
+  "resume": "Toutes les promesses de la story sont tenues par le code, et chacune par un test qu'une mutation fait échouer. Je n'ai rien trouvé de bloquant ni d'à corriger. J'ai lancé les tests v0, v1, v2 et v4 de la branche ; ceux de v4 tournent sur un vrai Maven 3.11.0 et passent tous (27 tests).\n\nScénario par scénario, la mutation essayée et le test qui échoue :\n- **S1 (décision).** Retrait de la phrase « in the same step… », puis de `alongside` en anglais, puis en français, puis de `verified.fr.alongside` dans decisions.ts : le test v2 de l'issue d'adoption échoue chaque fois.\n- **S2 (écarts localisés).**\n  - Ligne d'import remplacée par 1, ligne de la déclaration décalée d'une ligne : la localisation est perdue, le test v2 échoue.\n  - Contrôle des dépendances retiré de l'offre, ou déclarations retirées de la vérification : le gel du contrôle et la mesure de l'exigence échouent.\n  - Le digest de l'arbre du projet est vérifié dans le même test.\n- **S3 (réacteur en PASS).** Tenu par le faux Maven en v2. Je l'ai aussi sondé sur un vrai Maven par un test jetable : PASS sans constat ni note.\n- **S4 (agrégat junit-jupiter).**\n  - Retrait de `reference_positive` : la qualification échoue en v2.\n  - `reachedFrom` ramené à `host.depends_on` : les deux tests v4 échouent, la qualification comme le PASS des tests du projet.\n- **S5 (portée runtime).** `ignoreUnusedRuntime` passé à false : le test v4 échoue sur h2.\n- **S6 (configuration du greffon).** Retrait de tous les `combine.self=\"override\"`, ou analyse lancée hors de l'exécution `analyze495` : le test v4 de configuration échoue.\n- **S7 (propriétés du projet).** Retrait de `<skip>false</skip>`, ou de l'`excludedClasses` qui remplace celui du projet : le test v4 des propriétés échoue.\n- **S8 (ce que la vérification ne voit pas).** Retrait d'un point, rendu en anglais seul, ou liste non gelée : le test v2 échoue.\n- **S9 (consigne et skill).** Une mutation de titre dans la skill est attrapée par le test. Deux mutations de détail dans la consigne survivent (constat A1-1, à peser).\n- **S10 (lecture dans l'état des lieux).** Énoncés gardés non rendus, ou lecture non gelée : le test v2 échoue.\n- **S11 (indice hors fichier).** Borne `> lines` changée en `> lines + 1` : le test v0 échoue. Énoncé écarté non rendu : le test v2 échoue.\n\nChaque mutation a été remise en place et l'arbre est inchangé."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La configuration du greffon dans les POM du projet ne fait taire aucun écart",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/dependencies-declaration.ts",
+    "ligne": 34,
+    "constat": "Deux protections redondantes tiennent cette promesse : `combine.self=\"override\"` sur la `<configuration>` de l'exécution, et le même attribut sur chaque liste (`ignoredDependencies`, `ignoredUnusedDeclaredDependencies`). Si l'on mute l'une des deux seule, `maven-dependencies-configuration.test.ts` reste vert ; si l'on mute les deux à la fois, le test échoue. La promesse est donc tenue et tenue par un test, mais aucun test ne distingue les deux protections.",
+    "mutation": "`<configuration combine.self=\"override\">` remplacé par `<configuration>` seul : survit. Retrait seul de `<ignoredDependencies combine.self=\"override\"/>` : survit. Retrait seul de `<ignoredUnusedDeclaredDependencies .../>` : survit. Les deux mutations ensemble : le test de la configuration de app et du parent échoue."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un réacteur dont les POM déclarent ce que le code utilise est mesuré en PASS",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/architecture-map-dependencies.test.ts",
+    "ligne": 30,
+    "constat": "Le test de ce scénario tourne sur le faux Maven. Son réacteur remplace aussi l'agrégat `junit-jupiter` par `junit-jupiter-api`, ce que le Given ne dit pas mais que le titre (« les POM déclarent ce que le code utilise ») implique. Sondé sur un vrai Maven : avec ce remplacement, le contrôle rend PASS sans constat ; avec l'agrégat gardé, il rend FAIL sur l'usage non déclaré de `junit-jupiter-api` et sur `junit-jupiter` déclaré inutilisé. Ce second cas correspond au point des agrégats nommé parmi ce que la vérification ne voit pas.",
+    "mutation": "`verdict: findings.length > 0 ? \"FAIL\" : \"PASS\"` remplacé par `\"FAIL\"` : tuée par le test du PASS."
+   }
+  ],
+  "resume": "Verdict : pass. Les onze scénarios sont tenus par le code, et pour chacun au moins une mutation d'une ligne qui porte la promesse fait échouer un test qui l'asserte dans les mots de la story. Sur 26 mutations essayées, 24 sont tuées.\n\n- **Décision (S1)** : retirer la phrase `alongside` ou « dans une copie de chaque POM du réacteur » fait échouer le test v2, qui couvre le français et l'anglais. Une seule résolution ouvre le réseau.\n- **Écarts localisés (S2)** : tuées en v2 et en v4 :\n  - désactiver le contrôle `dependencies` ;\n  - localiser l'usage au POM au lieu de l'import ;\n  - prendre la ligne de `<dependency>` au lieu de l'`artifactId` ;\n  - retirer `reference_positive`.\n- **PASS (S3)** : forcer le verdict à FAIL est tué. Sonde sur un vrai Maven : PASS sans constat.\n- **Agrégat JUnit et tests du projet (S4)** : remplacer `opentest4j` par `AssertionError` dans le témoin négatif est tué. Revenir à `host.depends_on` au lieu de `reachedFrom` fait aussi échouer la passe des tests du projet.\n- **Portée runtime (S5)** : `ignoreUnusedRuntime=false` est tué (constat sur h2).\n- **Configuration du projet (S6)** : tenue en vrai Maven, avec deux protections redondantes (B1-1).\n- **Propriétés du projet (S7)** : retirer `skip` ou `excludedClasses` est tué en vrai Maven.\n- **Angles morts nommés (S8)** : retirer un point, son rendu ou son gel est tué.\n- **Consigne et skill (S9)** : le test vérifie les phrases clés. La seule mutation survivante retire une sous-phrase sur les préoccupations transverses que la phrase de tête dit déjà, donc la promesse reste tenue.\n- **Lecture dans le rapport (S10)** : retirer la lecture du gel est tué. L'indépendance des verdicts est vérifiée par comparaison avec une carte sans lecture.\n- **Énoncé écarté (S11)** : la borne `lines + 1`, le rendu de l'énoncé écarté et l'absence de contrôle des indices sont tous tués.\n\nSonde jetable, non commitée et supprimée : les contrôles tournent dans l'ordre maven-test, structure, architecture, dependencies, dans une seule copie, comme la passe de référence. Les classes ArchUnit compilées juste avant ne produisent aucun constat parasite dans `dependencies`.\n\nAucun constat introduit ou rendu atteignable n'est bloquant ni à corriger. Les deux constats « à peser » (B1-1, B1-2) ne bloquent pas. L'arbre est propre : seul `node_modules` reste non suivi."
+ }
+]

@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: adopting the architecture map of a Maven reactor compares its declared dependencies to those its code uses
+    # Subtest: l'issue d'adoption de la carte nomme dependency:analyze de maven-dependency-plugin 3.11.0, la règle qu'il vérifie, sa résolution dans la même étape qu'ArchUnit et sa déclaration dans une copie de chaque POM du réacteur
+    not ok 1 - l'issue d'adoption de la carte nomme dependency:analyze de maven-dependency-plugin 3.11.0, la règle qu'il vérifie, sa résolution dans la même étape qu'ArchUnit et sa déclaration dans une copie de chaque POM du réacteur
+      ---
+      duration_ms: 253.410625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:65:2'
+      failureType: 'testCodeFailure'
+      error: "« dependency:analyze de org.apache.maven.plugins:maven-dependency-plugin 3.11.0 » in Adopter la carte et sa vérification (déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout, réseau ouvert pour cette seule étape) — La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport. 495 déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but, en ouvrant le réseau pour cette seule étape ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que le POM qui reçoit la déclaration ; rien n'est écrit dans le projet. com.tngtech.archunit:archunit-junit5 1.5.1 vérifie alors, à chaque exécution, les règles que 495 écrit depuis la carte : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par Maven. La réponse tombe si les exigences sont révisées."
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:80:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: l'adoption gèle le contrôle des dépendances qualifié, et le survey mesure l'exigence d'architecture par architecture et par dependencies, ce dernier en FAIL avec l'usage de io.demo:domain par app à Main.java et la déclaration inutilisée de Guava à infrastructure/pom.xml, que le rapport donne aussi, sans changer le digest du projet
+    not ok 2 - l'adoption gèle le contrôle des dépendances qualifié, et le survey mesure l'exigence d'architecture par architecture et par dependencies, ce dernier en FAIL avec l'usage de io.demo:domain par app à Main.java et la déclaration inutilisée de Guava à infrastructure/pom.xml, que le rapport donne aussi, sans changer le digest du projet
+      ---
+      duration_ms: 717.3225
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:112:2'
+      failureType: 'testCodeFailure'
+      error: 'the protocol carries both controls: maven-test,structure,architecture'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:127:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: sur un réacteur dont les POM déclarent ce que le code utilise, le survey mesure l'exigence par dependencies en PASS sans constat
+    not ok 3 - sur un réacteur dont les POM déclarent ce que le code utilise, le survey mesure l'exigence par dependencies en PASS sans constat
+      ---
+      duration_ms: 712.2275
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:165:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        null [{"control_id":"architecture","evidence_id":"evr_0038","verdict":"PASS"}]
+        + actual - expected
+        
+        + undefined
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:171:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - adopting the architecture map of a Maven reactor compares its declared dependencies to those its code uses
+  ---
+  duration_ms: 1683.661666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5fS1Im/test/v2-kernel/architecture-map-dependencies.test.ts:64:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1957.134625

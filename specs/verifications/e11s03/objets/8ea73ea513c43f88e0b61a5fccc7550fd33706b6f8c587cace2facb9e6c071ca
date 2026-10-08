@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: what the verification of the adopted map does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée nomme, sous la carte et chacun avec sa raison, les liens établis sans import, les sources de test, les bibliothèques hors du réacteur, les dépendances déclarées pour la seule exécution, les dépendances sans trace dans les classes compilées et les agrégats, en anglais et en français
+    ok 1 - la section état des lieux d'une carte adoptée nomme, sous la carte et chacun avec sa raison, les liens établis sans import, les sources de test, les bibliothèques hors du réacteur, les dépendances déclarées pour la seule exécution, les dépendances sans trace dans les classes compilées et les agrégats, en anglais et en français
+      ---
+      duration_ms: 971.266
+      type: 'test'
+      ...
+    1..1
+ok 1 - what the verification of the adopted map does not see is named
+  ---
+  duration_ms: 971.797084
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1252.132542

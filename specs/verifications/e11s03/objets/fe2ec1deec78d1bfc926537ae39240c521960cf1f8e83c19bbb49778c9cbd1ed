@@ -1,0 +1,117 @@
+TAP version 13
+# Subtest: the output of dependency:analyze is read gap by gap
+    # Subtest: la sortie de dependency:analyze donne un constat pour l'usage de io.demo:domain par app, à la ligne de l'import de io.demo.domain.User dans app/src/main/java/io/demo/app/Main.java, et un pour la déclaration inutilisée de Guava, à sa ligne de infrastructure/pom.xml
+    not ok 1 - la sortie de dependency:analyze donne un constat pour l'usage de io.demo:domain par app, à la ligne de l'import de io.demo.domain.User dans app/src/main/java/io/demo/app/Main.java, et un pour la déclaration inutilisée de Guava, à sa ligne de infrastructure/pom.xml
+      ---
+      duration_ms: 7.696291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:178:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser dependency-analyze is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:180:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une déclaration héritée du POM parent est localisée à sa ligne de ce POM
+    not ok 2 - une déclaration héritée du POM parent est localisée à sa ligne de ce POM
+      ---
+      duration_ms: 5.938083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:195:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser dependency-analyze is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:203:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: les listes Ignored ne donnent aucun constat
+    not ok 3 - les listes Ignored ne donnent aucun constat
+      ---
+      duration_ms: 5.300666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:213:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser dependency-analyze is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:225:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une sortie absente ou illisible rend INDETERMINATE
+    not ok 4 - une sortie absente ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 5.270417
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:229:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /no output of dependency:analyze/. Input:
+        
+        'parser dependency-analyze is not qualified'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser dependency-analyze is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:232:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the output of dependency:analyze is read gap by gap
+  ---
+  duration_ms: 24.718708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0l19Yb/test/v1-adapters/dependency-analyze-report.test.ts:177:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 279.991875

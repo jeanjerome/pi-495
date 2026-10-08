@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the configuration of the project silences no gap of the dependencies control
+    # Subtest: un POM d'app qui ignore io.demo:domain et saute l'analyse dans une exécution default-cli, et un parent qui ignore toute déclaration inutilisée dans sa gestion des greffons, laissent le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de io.demo:domain par app et la déclaration inutilisée de Guava
+    ok 1 - un POM d'app qui ignore io.demo:domain et saute l'analyse dans une exécution default-cli, et un parent qui ignore toute déclaration inutilisée dans sa gestion des greffons, laissent le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de io.demo:domain par app et la déclaration inutilisée de Guava
+      ---
+      duration_ms: 7206.21025
+      type: 'test'
+      ...
+    # Subtest: les propriétés mdep.analyze.skip et mdep.analyze.excludedClasses du parent et un .mvn/maven.config qui saute l'analyse laissent le contrôle qualifié et la passe de référence rapporte les deux écarts
+    ok 2 - les propriétés mdep.analyze.skip et mdep.analyze.excludedClasses du parent et un .mvn/maven.config qui saute l'analyse laissent le contrôle qualifié et la passe de référence rapporte les deux écarts
+      ---
+      duration_ms: 7274.280625
+      type: 'test'
+      ...
+    1..2
+ok 1 - the configuration of the project silences no gap of the dependencies control
+  ---
+  duration_ms: 14481.172417
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15167.551417
