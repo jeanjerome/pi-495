@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: generated change-lifecycle sequences on the kernel
+    # Subtest: une graine rejouée produit les mêmes actions et un défaut injecté est réduit en séquence conservée
+    ok 1 - une graine rejouée produit les mêmes actions et un défaut injecté est réduit en séquence conservée
+      ---
+      duration_ms: 75.2645
+      type: 'test'
+      ...
+    # Subtest: the archived reduced case replays to its kept sequence with the defect, and passes on the kernel
+    ok 2 - the archived reduced case replays to its kept sequence with the defect, and passes on the kernel
+      ---
+      duration_ms: 0.858875
+      type: 'test'
+      ...
+    # Subtest: un écart trouvé sur le noyau laisse son cas réduit dans un fichier que le message d’échec nomme et qui rejoue la même séquence minimale
+    ok 3 - un écart trouvé sur le noyau laisse son cas réduit dans un fichier que le message d’échec nomme et qui rejoue la même séquence minimale
+      ---
+      duration_ms: 54.325208
+      type: 'test'
+      ...
+    # Subtest: the kernel follows the model and keeps its properties along 3000 generated sequences
+    ok 4 - the kernel follows the model and keeps its properties along 3000 generated sequences
+      ---
+      duration_ms: 614.934042
+      type: 'test'
+      ...
+    1..4
+ok 1 - generated change-lifecycle sequences on the kernel
+  ---
+  duration_ms: 745.924459
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 879.422375

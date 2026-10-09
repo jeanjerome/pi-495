@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une séquence générée reste reproductible",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/support/change-commands.ts",
+    "ligne": 545,
+    "constat": "The code keeps the real reduction path (`193:13`) in the reduced case, but no test checks it. The test only asserts `kept.path.length > 0`, then replays with the kept replay_path. With that replay_path, path `0` or `193` gives exactly the same minimal sequence. So a dossier holding any parseable path keeps every test green, and the reduction path promised in the Then has no test behind it.",
+    "mutation": "`path: result.path` → `path: \"0\"` in reducedCase: change-properties.test.ts stays green (all three cases)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une séquence générée reste reproductible",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/support/change-commands.ts",
+    "ligne": 494,
+    "constat": "No test checks that the case is reduced. Without any shrinking, the campaign already finds the same six steps, ending on `Deliver(#0 FAIL)` with path `193`. Those steps fit under the `≤ 8` bound and end on Deliver, and the kept seed replays them. The \"When le cas est réduit\" step and the minimality of the sequence therefore pass even when no reduction runs.",
+    "mutation": "`numRuns: o.numRuns ?? DEFAULT_RUNS,` → `numRuns: o.numRuns ?? DEFAULT_RUNS, endOnFailure: true,` in runCampaign: change-properties.test.ts stays green"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La séquence de preuve tardive est rejouée sur le noyau",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/formal-traces.test.ts",
+    "ligne": 67,
+    "constat": "The code and a test both hold the promise. With the revision check of verification.record removed, the stale-proof test fails at step 10, where the result is recorded instead of rejected. With the G5 check removed as well, the replay ends accepted, and the FreshAcceptance judge names the stale evidence (`accepted on evd_unit_1, which ran under revision 1`). Removing only the revision check in g5.ts (line 39) changes nothing: the rejection when evidence is recorded comes first. No test sees the G5 filter on its own.",
+    "mutation": "decide.ts:1073 `e.protocol_revision !== protocol.ref.revision` → `false`: two tests fail (stale-proof, late-evidence); g5.ts:39 alone: stays green"
+   }
+  ],
+  "resume": "I checked all three scenarios against the code, with one mutation run per guarantee. Verdict: fail, on two missing tests in scenario 3; the code itself keeps every promise.\n\nScenario 1, late proof replayed on the kernel: held by the code and by a test. Removing the revision check on recorded evidence (decide.ts:1073) makes both trace tests fail. With the G5 check also removed, the replay ends accepted and the judge names FreshAcceptance.\n\nScenario 2, unknown action not skipped: held by the code and by a test. Removing the check in either the trace loader or the counterexample reader fails the test, which names `Teleport` and asserts that no trace comes out.\n\nScenario 3, generated sequence stays reproducible: the code keeps the seed, the versions and the reduced sequence, and tests hold them. Changing the seed, the node version, the replay_path or the sequence makes the test fail. Two mutations survive, though:\n- **Reduction path (A1-1):** replacing it with `\"0\"` leaves every test green, because the kept replay_path alone replays the same sequence.\n- **Reduction itself (A1-2):** turning shrinking off (`endOnFailure: true`) leaves every test green, because the unreduced failing sequence already fits the `≤ 8` bound and ends on Deliver.\n\nBoth are \"à corriger\" and introduced by the branch.\n\nThe security promises hold: the stores are temporary (temporary SQLite ledger, in-memory store, reduced case written to a temp dir), no Git is used, and the action mapping is closed.\n\nThe tree is back to its original state; the throwaway probes are deleted."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une séquence générée reste reproductible",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/change-properties.test.ts",
+    "ligne": 53,
+    "constat": "Aucun test ne vérifie que le cas a été réduit. Sous la graine 495, le premier échec trouvé compte déjà six actions et finit sur un Deliver. Sans réduction, le chemin « 193 » au lieu de « 193:13 » et cette séquence non réduite satisfont donc toutes les assertions : `kept.path.length > 0`, au plus 8 actions, dernière action Deliver, rejeu identique. Les mots « le cas est réduit », « chemin de réduction » et « séquence minimale » ne sont tenus par aucun test.",
+    "mutation": "`endOnFailure: true` ajouté aux options de `fc.check` dans `runCampaign` (test/support/change-commands.ts:492), ce qui coupe la réduction de fast-check. Les 16 tests de formal-trace-format, formal-traces et change-properties restent verts. Le cas gardé devient `193` et `Launch(k1),ReviseProtocol,Requalify,StartAttempt,Freeze(same),Deliver(#0 FAIL)` au lieu de `193:13` et `…Deliver(#0 PASS)`."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une séquence générée reste reproductible",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/change-properties.test.ts",
+    "ligne": 88,
+    "constat": "Seul le test au défaut injecté écrit le cas réduit, par un appel explicite à `persistReducedCase`. La campagne sur le noyau réel (graine 4950, 3000 séquences), quand elle trouve un écart, n'écrit rien. Son échec ne montre que le message de l'étape fautive : ni le chemin de réduction, ni les versions, ni la séquence minimale.",
+    "mutation": "Garde de révision retirée dans `verificationRecord` (src/domain/change/decide.ts:1073). Le test des 3000 séquences échoue avec le seul message « step 7 Deliver(#0 PASS): the kernel's result is recorded, the model's rejected »."
+   }
+  ],
+  "resume": "La relecture B du tour 1 rend « fail » : la story e38s04 tient ses deux premières promesses, mais aucun test ne tient la réduction du cas promise par la troisième.\n\n**Preuve tardive rejouée sur le noyau (tenu).** La trace stale-proof est rejouée par le vrai décideur, dans un registre SQLite temporaire. Les résultats P1 sont rejetés aux étapes 10 et 11 et G5 rend INDETERMINATE. Le test nomme FreshAcceptance.\n- Garde de révision retirée de `verificationRecord` : le test échoue (« step 10: a result that ran under P1 »).\n- Garde retirée aussi dans `evaluateG5` : le noyau accepte sur evd_unit_1, et le contrôle de FreshAcceptance le signale.\n\n**Trace inconnue (tenu).** Trois mutations font chacune échouer le test « une action inconnue… » :\n- l'action inconnue sautée dans `loadTrace` ;\n- l'action inconnue sautée dans `fromCounterexample` ;\n- `isAction` rendu toujours vrai.\n\nL'assertion `loaded === null` vérifie qu'aucune trace ne sort du chargement.\n\n**Séquence reproductible (en partie).** Le dossier garde la graine, le chemin, `replay_path`, les versions et la séquence. Chacun de ces champs, modifié ou retiré, fait échouer le test. En revanche, rien ne vérifie que le cas a été réduit : avec la réduction de fast-check coupée (`endOnFailure`), les 16 tests restent verts (B1-1, à corriger). À peser (B1-2) : la campagne sur le noyau réel n'écrit aucun cas réduit quand elle trouve un écart, seulement le message de l'étape fautive.\n\nTous les fichiers sont restaurés ; l'arbre ne montre que `node_modules`, non suivi."
+ }
+]

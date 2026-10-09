@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un écart trouvé sur le noyau laisse son cas réduit dans un fichier",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/support/change-commands.ts",
+    "ligne": 575,
+    "mutation": "Retrait de `persistReducedCase(file, reduced);` dans assertCampaignHolds. Sur un `test-output/formal-traces/reduced/` vide, les tests « un écart trouvé sur le noyau… » et « une graine rejouée… » échouent. Si un lancement précédent a laissé seed-495-path-193_13.json, les quatre tests restent verts.",
+    "constat": "Rien ne purge le fichier gardé, et c'est voulu : il « reste après la fin du test ». Du coup, l'écriture du fichier n'est tenue que sur un arbre où test-output/ n'a pas encore été rempli, comme un clone neuf ou l'arbre d'une session du cycle. Sur une machine où la suite a déjà tourné une fois, le test lit le fichier d'un lancement précédent, et retirer l'écriture le laisse vert. Le maintien du fichier après la fin du test se constate sur disque mais aucune assertion ne le vérifie, ce qui est inévitable de l'intérieur du test."
+   }
+  ],
+  "resume": "J'ai vérifié les quatre scénarios en lisant le code et par mutation. Aucune promesse n'est rompue et aucune n'est sans test.\n\n**Scénario 1, preuve tardive rejouée sur le noyau.** J'ai désactivé la garde de révision dans `verificationRecord`. Deux tests de formal-traces.test.ts échouent alors : le rejeu de late-evidence-after-resume et le refus de stale-proof, ce dernier nommant FreshAcceptance.\n\n**Scénario 2, trace inconnue.** J'ai remplacé le refus d'une action intraduisible par un `continue`, qui la saute. Le test « une action inconnue… » échoue.\n\n**Scénario 3, séquence reproductible.** Le test passe désormais par le fichier gardé. Il échoue si je mets `replay_path` à null, si je tronque la séquence ou si je fausse la version de node.\n\n**Scénario 4, cas réduit gardé dans un fichier.** Le nouveau test échoue sous chacune de ces mutations :\n- le fichier n'est plus nommé dans le message d'échec ;\n- le fichier est nommé sans son chemin ;\n- `replay_path` est mis à null ;\n- la séquence est tronquée ;\n- le message d'échec est altéré ;\n- la version enregistrée est fausse ;\n- le défaut enregistré est faux.\n\nEn conditions réelles, le fichier seed-495-path-193_13.json est bien écrit et reste après le test. Son contenu est identique au cas archivé. test-output/ est ignoré par Git et l'arbre suivi reste propre.\n\n**Le constat à peser, A1-1.** Le fichier n'est jamais purgé, comme la story le veut. Conséquence : retirer l'écriture ne fait échouer le test que si `test-output/formal-traces/reduced/` est vide au départ. Si un lancement précédent a laissé le fichier, le test reste vert. Ce n'est ni bloquant ni à corriger.\n\nJ'ai supprimé le test-output/ créé par mes sondes et remis chaque mutation en place."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un écart trouvé sur le noyau laisse son cas réduit dans un fichier",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/change-properties.test.ts",
+    "ligne": 98,
+    "constat": "Aucun test n'observe que le fichier « reste après la fin du test ». La promesse ne tient que parce que rien ne supprime le fichier : `assertCampaignHolds` n'enregistre aucun nettoyage. Le test ne vérifie `existsSync` que pendant son exécution. Après la suite, le fichier seed-495-path-193_13.json est bien présent sous test-output/formal-traces/reduced/.",
+    "mutation": "Aucune ligne à muter : la promesse tient à l'absence d'un nettoyage, et l'ajout d'un nettoyage après le test ne serait vu par aucun test."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un écart trouvé sur le noyau laisse son cas réduit dans un fichier",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/change-properties.test.ts",
+    "ligne": 132,
+    "constat": "« Le même message d'échec » est vérifié sur le champ `failure` rejoué : l'étape et la raison données par le noyau. Le message complet de `assert.fail` n'est pas comparé, car il ajoute le défaut, le nom du fichier et la séquence. Les éléments ajoutés viennent du fichier lui-même, donc l'écart est de forme seulement.",
+    "mutation": "failure: `${result.failure}!` dans reducedCase : le test échoue."
+   }
+  ],
+  "resume": "Verdict : pass. Les quatre promesses sont tenues par le code, et chacune par au moins un test.\n\nScénario 4 sur le vrai noyau : j'ai retiré la garde de révision de `verificationRecord` dans decide.ts (ligne 1073 devenue `if (false)`). La campagne des 3000 séquences échoue alors avec ce message : « the reduced case is kept in test-output/formal-traces/reduced/seed-4950-path-2199_0_13_12.json ». Ce fichier porte la graine, le chemin de réduction, le chemin de rejeu, les versions et la séquence minimale. Rejoué depuis ce fichier par un test jetable, sur le noyau toujours muté, il redonne la même séquence et le même `failure`.\n\nMutations essayées contre le test du scénario 4, chacune remise ensuite. Les huit le font échouer :\n- appel de `persistReducedCase` retiré ;\n- graine retirée du nom du fichier ;\n- nom du fichier retiré du message d'échec ;\n- `replay_path` forcé à null ;\n- `failure` altéré ;\n- séquence vidée ;\n- versions altérées ;\n- graine altérée.\n\nScénario 1 : la même mutation de la garde fait échouer le test qui protège FreshAcceptance.\n\nScénario 2 : `isAction` modifié pour accepter toute chaîne fait échouer « une action inconnue et une trace dépourvue de propriété sont refusées ».\n\nScénario 3 : tenu par le test du défaut injecté, qui lit maintenant son cas dans le fichier écrit par la campagne.\n\nSécurité : le fichier est écrit sous test-output/, que .gitignore exclut. git status reste propre après les essais. La suite complète de change-properties passe (4 sur 4) à aa79df16.\n\nDeux points à peser, détaillés dans les constats. Aucun constat bloquant ni à corriger."
+ }
+]

@@ -1,0 +1,95 @@
+TAP version 13
+# Subtest: generated change-lifecycle sequences on the kernel
+    # Subtest: une graine rejouée produit les mêmes actions et un défaut injecté est réduit en séquence conservée
+    not ok 1 - une graine rejouée produit les mêmes actions et un défaut injecté est réduit en séquence conservée
+      ---
+      duration_ms: 0.598042
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3p2Ic4/test/v2-kernel/change-properties.test.ts:39:2'
+      failureType: 'testCodeFailure'
+      error: 'a seed yields generated actions'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3p2Ic4/test/v2-kernel/change-properties.test.ts:41:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: the archived reduced case replays to its kept sequence with the defect, and passes on the kernel
+    not ok 2 - the archived reduced case replays to its kept sequence with the defect, and passes on the kernel
+      ---
+      duration_ms: 0.617167
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3p2Ic4/test/v2-kernel/change-properties.test.ts:73:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fast-check 4.10.2 replays the case kept under fast-check 4.10.2
+        + actual - expected
+        
+        + []
+        - [
+        -   'Launch(k1)',
+        -   'ReviseProtocol',
+        -   'Requalify',
+        -   'StartAttempt',
+        -   'Freeze(same)',
+        -   'Deliver(#0 PASS)'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'Launch(k1)'
+        1: 'ReviseProtocol'
+        2: 'Requalify'
+        3: 'StartAttempt'
+        4: 'Freeze(same)'
+        5: 'Deliver(#0 PASS)'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3p2Ic4/test/v2-kernel/change-properties.test.ts:77:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: the kernel follows the model and keeps its properties along 3000 generated sequences
+    ok 3 - the kernel follows the model and keeps its properties along 3000 generated sequences
+      ---
+      duration_ms: 0.070041
+      type: 'test'
+      ...
+    1..3
+not ok 1 - generated change-lifecycle sequences on the kernel
+  ---
+  duration_ms: 1.737459
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3p2Ic4/test/v2-kernel/change-properties.test.ts:38:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 1
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 121.117625

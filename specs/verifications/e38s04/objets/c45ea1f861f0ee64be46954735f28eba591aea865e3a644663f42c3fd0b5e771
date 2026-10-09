@@ -1,0 +1,216 @@
+TAP version 13
+# Subtest: formal trace format
+    # Subtest: une action inconnue et une trace dépourvue de propriété sont refusées
+    not ok 1 - une action inconnue et une trace dépourvue de propriété sont refusées
+      ---
+      duration_ms: 0.518208
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:42:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception: an action absent from the mapping is refused, naming it'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:44:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: refuses a trace of another format version
+    not ok 2 - refuses a trace of another format version
+      ---
+      duration_ms: 0.075417
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:66:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:67:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: refuses an adverse action in a valid trace, and an adverse trace without one
+    not ok 3 - refuses an adverse action in a valid trace, and an adverse trace without one
+      ---
+      duration_ms: 0.063125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:70:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:72:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: maps exactly the actions of the model to the kernel command its manifest names, and the mutants' faults
+    not ok 4 - maps exactly the actions of the model to the kernel command its manifest names, and the mutants' faults
+      ---
+      duration_ms: 0.71625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:76:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + []
+        - [
+        -   'Complete',
+        -   'Correct',
+        -   'Deliver',
+        -   'EvaluateG5',
+        -   'ExhaustOnCorrection',
+        -   'ExhaustOnStart',
+        -   'Freeze',
+        -   'HumanAnswer',
+        -   'Launch',
+        -   'Pause',
+        -   'Requalify',
+        -   'Resume',
+        -   'ReviseProtocol',
+        -   'StartAttempt'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'Complete'
+        1: 'Correct'
+        2: 'Deliver'
+        3: 'EvaluateG5'
+        4: 'ExhaustOnCorrection'
+        5: 'ExhaustOnStart'
+        6: 'Freeze'
+        7: 'HumanAnswer'
+        8: 'Launch'
+        9: 'Pause'
+        10: 'Requalify'
+        11: 'Resume'
+        12: 'ReviseProtocol'
+        13: 'StartAttempt'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:79:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: reads the archived stale-proof counterexample as the late-evidence sequence, expectations stopping at the fault
+    not ok 5 - reads the archived stale-proof counterexample as the late-evidence sequence, expectations stopping at the fault
+      ---
+      duration_ms: 0.235958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:94:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'valid' !== 'adverse'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'adverse'
+      actual: 'valid'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:97:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: observes the kernel as the model does: a running verification and a completed change read as ready
+    not ok 6 - observes the kernel as the model does: a running verification and a completed change read as ready
+      ---
+      duration_ms: 2.429042
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:140:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+            attempt: 1,
+            evidence: [],
+            outcome: 'pending',
+            phase: 'verifying',
+        +   status: 'running'
+        -   status: 'ready'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        phase: 'verifying'
+        status: 'ready'
+        outcome: 'pending'
+        attempt: 1
+        evidence:
+      actual:
+        phase: 'verifying'
+        status: 'running'
+        outcome: 'pending'
+        attempt: 1
+        evidence:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:146:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..6
+not ok 1 - formal trace format
+  ---
+  duration_ms: 5.296041
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NV2wYZ/test/v0-pure/formal-trace-format.test.ts:41:1'
+  failureType: 'subtestsFailed'
+  error: '6 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 120.573334

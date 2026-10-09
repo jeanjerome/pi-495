@@ -2,7 +2,7 @@
 
 Story : e38s04
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : Tests de pi-495 — pont modèle/implémentation
 Dépendances : e38s03
