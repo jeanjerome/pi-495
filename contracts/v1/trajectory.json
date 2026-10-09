@@ -104,6 +104,35 @@
               },
               "additionalProperties": false
             }
+          },
+          "removes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "transition": {
+            "type": "object",
+            "properties": {
+              "contract": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coexistence": {
+                "type": "string",
+                "minLength": 1
+              },
+              "compatibility": {
+                "type": "string",
+                "minLength": 1
+              },
+              "rollback": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false
@@ -269,6 +298,69 @@
                   "proprietary",
                   "generated"
                 ]
+              },
+              "owner": {
+                "type": "string"
+              },
+              "due": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "migration": {
+      "type": "object",
+      "required": [
+        "change_id"
+      ],
+      "properties": {
+        "change_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope_decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule_id",
+              "reason"
+            ],
+            "properties": {
+              "rule_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule_id",
+              "reason"
+            ],
+            "properties": {
+              "rule_id": {
+                "type": "string",
+                "minLength": 1
               },
               "owner": {
                 "type": "string"

@@ -8,11 +8,16 @@ import {
 	type GapException,
 	type JudgedGap,
 	type IncrementStatus,
+	type MigrationGap,
+	type MigrationTarget,
 	type ProgramState,
 } from "../domain/program/program.ts";
 
 /** A gap of the cited survey as the status names it: its rule, module and code, and its count at the survey. */
 export type StatusGap = Pick<BaselineGap, "rule_id" | "module" | "authorship" | "violations">;
+
+/** A violated rule of the map of the cited migration as the status names it, with its count at the survey. */
+export type StatusRule = Pick<MigrationGap, "rule_id" | "violations">;
 
 /**
  * The survey of the integrated project a milestone was judged on, each gap it judged, and the perimeter
@@ -33,8 +38,26 @@ export interface StatusView {
 		project_path: string;
 		/** The survey the program starts from, and the tree it measured; null when it cites none. */
 		baseline: { change_id: string; reference_digest: string } | null;
-		/** Each increment with the gaps of the survey it removes. */
-		increments: { increment_id: string; title: string; status: IncrementStatus; gaps: StatusGap[] }[];
+		/**
+		 * The survey of the architecture a migration starts from, the tree it measured, the target its owner chose,
+		 * the violated rules a scope decision sets aside with its reason, and those an exception tolerates; null when
+		 * the program cites none.
+		 */
+		migration: {
+			change_id: string;
+			reference_digest: string;
+			target: MigrationTarget;
+			set_aside: (StatusRule & { reason: string })[];
+			exceptions: (StatusRule & GapException)[];
+		} | null;
+		/** Each increment with the gaps of the survey and the violated rules of the migration it removes. */
+		increments: {
+			increment_id: string;
+			title: string;
+			status: IncrementStatus;
+			gaps: StatusGap[];
+			removes: StatusRule[];
+		}[];
 		/** The gaps of the survey a scope decision sets aside, with its reason. */
 		set_aside: (StatusGap & { reason: string })[];
 		/**
@@ -153,6 +176,25 @@ function statusGap(g: BaselineGap): StatusGap {
 	return { rule_id: g.rule_id, module: g.module, authorship: g.authorship, violations: g.violations };
 }
 
+function statusRule(g: MigrationGap): StatusRule {
+	return { rule_id: g.rule_id, violations: g.violations };
+}
+
+/** The migration of the program as the status names it, or null when its trajectory cites none. */
+function statusMigration(program: ProgramState): NonNullable<StatusView["program"]>["migration"] {
+	const migration = program.migration;
+	if (!migration) return null;
+	return {
+		change_id: migration.change_id,
+		reference_digest: migration.reference_digest,
+		target: migration.target,
+		set_aside: migration.gaps.flatMap((g) =>
+			setAside(g) ? [{ ...statusRule(g), reason: g.scope_decision.reason }] : [],
+		),
+		exceptions: migration.gaps.flatMap((g) => (g.exception ? [{ ...statusRule(g), ...g.exception }] : [])),
+	};
+}
+
 function latestEvaluation(
 	program: ProgramState,
 	milestoneId: string,
@@ -200,6 +242,7 @@ export function statusView(
 					baseline: program.baseline
 						? { change_id: program.baseline.change_id, reference_digest: program.baseline.reference_digest }
 						: null,
+					migration: statusMigration(program),
 					increments: program.increments.map((i) => ({
 						increment_id: i.increment_id,
 						title: i.title,
@@ -207,6 +250,10 @@ export function statusView(
 						gaps: i.gaps.flatMap((g) => {
 							const surveyed = program.baseline?.gaps.find((b) => sameGap(b, g));
 							return surveyed ? [statusGap(surveyed)] : [];
+						}),
+						removes: (i.removes ?? []).flatMap((rule) => {
+							const surveyed = program.migration?.gaps.find((g) => g.rule_id === rule);
+							return surveyed ? [statusRule(surveyed)] : [];
 						}),
 					})),
 					set_aside: (program.baseline?.gaps ?? []).flatMap((g) =>

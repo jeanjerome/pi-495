@@ -21,6 +21,21 @@ export interface IncrementSpec {
 	closure_criterion: string;
 	/** The gaps of the cited survey the increment removes. */
 	gaps: GapKey[];
+	/** The violated rules of the map of the cited migration the step removes; absent outside a migration. */
+	removes?: string[];
+	/** How the step of a migration moves from the old path to the new one; absent outside a migration. */
+	transition?: Transition;
+}
+
+/**
+ * The transition of a step of a migration, in the owner's words: the interfaces it preserves, where the old
+ * and the new path live side by side, how compatibility is kept, and how the step is undone (ARC-03).
+ */
+export interface Transition {
+	contract: string;
+	coexistence: string;
+	compatibility: string;
+	rollback: string;
 }
 
 export interface IncrementState extends IncrementSpec {
@@ -83,6 +98,33 @@ export interface Baseline {
 	change_id: string;
 	reference_digest: string;
 	gaps: BaselineGap[];
+}
+
+/** The alternative of the architecture recommendation of a survey its owner chose as the target of a migration. */
+export interface MigrationTarget {
+	alternative_id: string;
+	nature: "keep" | "adjust" | "transform";
+	description: string;
+}
+
+/**
+ * A rule of the adopted architecture map the cited survey found broken, with its violations on the measured tree,
+ * the scope decision that sets it aside with its reason, if any, and the exception that tolerates it, if any.
+ * Adoption requires each one removed by a step, set aside, or under an exception (ARC-03).
+ */
+export interface MigrationGap {
+	rule_id: string;
+	violations: number;
+	scope_decision: { reason: string } | null;
+	exception?: GapException;
+}
+
+/** The accepted survey of the architecture a migration starts from: the change that took it, the tree it measured, the target its owner chose and the violated rules. */
+export interface Migration {
+	change_id: string;
+	reference_digest: string;
+	target: MigrationTarget;
+	gaps: MigrationGap[];
 }
 
 /** A gap a survey of the integrated project counts, by rule, module and the code it lies in. */
@@ -148,6 +190,8 @@ export interface ProgramState {
 	milestones: Milestone[];
 	global_requirements: GlobalRequirement[];
 	baseline: Baseline | null;
+	/** Absent from a program adopted before a trajectory could cite a migration. */
+	migration?: Migration | null;
 	milestone_evaluations: MilestoneEvaluation[];
 	budgets: { max_increments: number; increments_started: number; program_ms: number; program_ms_used: number };
 	closed: boolean;
@@ -178,6 +222,7 @@ export type ProgramEvent =
 			milestones: Milestone[];
 			global_requirements: GlobalRequirement[];
 			baseline?: Baseline | null;
+			migration?: Migration | null;
 			reason: string;
 	  })
 	| (Base & { type: "increment.bound"; increment_id: string; change_id: string })
@@ -202,6 +247,8 @@ export type ProgramCommand =
 			global_requirements: GlobalRequirement[];
 			/** The survey the trajectory starts from, when it brings a project to standards. */
 			baseline?: Baseline;
+			/** The survey of the architecture and the target the trajectory starts from, when it migrates an architecture. */
+			migration?: Migration;
 			reason: string;
 	  })
 	| (Base & { type: "increment.bind"; increment_id: string; change_id: string })
@@ -237,6 +284,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			milestones: [],
 			global_requirements: [],
 			baseline: null,
+			migration: null,
 			milestone_evaluations: [],
 			budgets: event.budgets,
 			closed: false,
@@ -264,6 +312,7 @@ export function applyProgram(state: ProgramState | null, event: ProgramEvent): P
 			s.milestones = event.milestones;
 			s.global_requirements = event.global_requirements;
 			s.baseline = event.baseline ?? null;
+			s.migration = event.migration ?? null;
 			return recomputeEligibility(s);
 		}
 		case "increment.bound":
@@ -377,6 +426,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							.join("; "),
 					);
 				checkGaps(command.increments, command.baseline ?? null, command.at);
+				checkMigration(command.increments, command.migration ?? null, command.at);
 				return {
 					ok: true,
 					events: [
@@ -388,6 +438,7 @@ export function decideProgram(state: ProgramState | null, command: ProgramComman
 							milestones: command.milestones,
 							global_requirements: command.global_requirements,
 							baseline: command.baseline ?? null,
+							...(command.migration ? { migration: command.migration } : {}),
 							reason: command.reason,
 						},
 					],
@@ -459,7 +510,9 @@ function unassignedGlobalRequirements(command: Extract<ProgramCommand, { type: "
 }
 
 /** A gap a scope decision sets aside: only a decision that states its reason does. */
-export function setAside(gap: BaselineGap): gap is BaselineGap & { scope_decision: { reason: string } } {
+export function setAside<G extends { scope_decision: { reason: string } | null }>(
+	gap: G,
+): gap is G & { scope_decision: { reason: string } } {
 	return Boolean(gap.scope_decision?.reason.trim());
 }
 
@@ -485,7 +538,8 @@ function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | nu
 					"UNKNOWN_REFERENCE",
 					`increment ${inc.increment_id} removes ${gapName(g)} (${g.authorship} code), ${baseline ? "a gap the cited survey does not carry" : "a gap no cited survey carries"}`,
 				);
-	for (const b of baseline?.gaps ?? []) if (b.exception) checkException(b, b.exception, at);
+	for (const b of baseline?.gaps ?? [])
+		if (b.exception) checkException(`gap ${gapName(b)} (${b.authorship} code)`, b.exception, at);
 	const unhandled = (baseline?.gaps ?? []).filter(
 		(b) => !setAside(b) && !b.exception && !increments.some((i) => i.gaps.some((g) => sameGap(b, g))),
 	);
@@ -501,9 +555,46 @@ function checkGaps(increments: readonly IncrementSpec[], baseline: Baseline | nu
 		);
 }
 
-function checkException(gap: GapKey, exception: GapException, at: string): void {
-	const refused = (why: string) =>
-		new DomainError("PRECONDITION_FAILED", `exception on gap ${gapName(gap)} (${gap.authorship} code) ${why}`);
+/**
+ * Refuses a step that removes a rule the cited survey did not find broken, or any rule when the trajectory cites no
+ * migration.
+ */
+function checkRemovedRules(increments: readonly IncrementSpec[], migration: Migration | null): void {
+	for (const inc of increments)
+		for (const rule of inc.removes ?? [])
+			if (!migration?.gaps.some((g) => g.rule_id === rule))
+				throw new DomainError(
+					"UNKNOWN_REFERENCE",
+					`increment ${inc.increment_id} removes ${rule}, ${migration ? "a violated rule the cited survey does not carry" : "a violated rule no cited migration carries"}`,
+				);
+}
+
+/**
+ * Refuses a step that removes a rule the cited survey did not find broken, or any rule when the trajectory cites no
+ * migration, then an exception without an owner or a due date or already expired on the day of the adoption, then
+ * every violated rule no step removes, no reasoned scope decision sets aside and no exception tolerates, naming each.
+ */
+function checkMigration(increments: readonly IncrementSpec[], migration: Migration | null, at: string): void {
+	checkRemovedRules(increments, migration);
+	for (const g of migration?.gaps ?? []) if (g.exception) checkException(`rule ${g.rule_id}`, g.exception, at);
+	const unhandled = (migration?.gaps ?? []).filter(
+		(g) => !setAside(g) && !g.exception && !increments.some((i) => i.removes?.includes(g.rule_id)),
+	);
+	if (unhandled.length > 0)
+		throw new DomainError(
+			"PRECONDITION_FAILED",
+			unhandled
+				.map(
+					(g) =>
+						`rule ${g.rule_id} (${g.violations} violation${g.violations === 1 ? "" : "s"}) is removed by no increment, set aside by no scope decision and tolerated by no exception`,
+				)
+				.join("; "),
+		);
+}
+
+/** Refuses the exception on `subject` without an owner or a due date, or already expired on the day of the adoption. */
+function checkException(subject: string, exception: GapException, at: string): void {
+	const refused = (why: string) => new DomainError("PRECONDITION_FAILED", `exception on ${subject} ${why}`);
 	if (!exception.owner.trim()) throw refused("has no owner");
 	if (!exception.due.trim()) throw refused("has no due date");
 	if (exception.due < day(at)) throw refused(`expired on ${exception.due}, before the adoption`);
@@ -596,6 +687,19 @@ export function findCycle(increments: readonly IncrementSpec[]): string[] | null
 	return null;
 }
 
+/**
+ * The violated rules of the migration of `state` that milestone `m` cannot pass on: no survey of the integrated
+ * project measures the map yet, so a violated rule one of its steps removes, or that the final milestone tolerates,
+ * is not verified there.
+ */
+function unmeasuredRules(state: ProgramState, m: Milestone, removing: readonly IncrementSpec[]): string[] {
+	return (state.migration?.gaps ?? [])
+		.filter(
+			(gap) => !setAside(gap) && ((m.final && gap.exception) || removing.some((i) => i.removes?.includes(gap.rule_id))),
+		)
+		.map((gap) => `rule:${gap.rule_id}: not measured on the integrated project`);
+}
+
 /** Milestone verdict is recomputed from global obligations; it is never the sum of child statuses (RM-007, RM-008, PRG-05). */
 function evaluateMilestone(
 	state: ProgramState,
@@ -640,6 +744,7 @@ function evaluateMilestone(
 		for (const gap of judged)
 			if (!setAside(gap))
 				indeterminate.push(`gap:${gapName(gap)} (${gap.authorship} code): not measured on the integrated project`);
+	indeterminate.push(...unmeasuredRules(state, m, removing));
 	if (!command.integrated_digest && m.increment_ids.length > 0) indeterminate.push("integrated_candidate:missing");
 	let verdict: Verdict;
 	if (

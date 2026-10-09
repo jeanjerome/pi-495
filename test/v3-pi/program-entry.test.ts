@@ -10,6 +10,7 @@ import { registerCommand495 } from "../../src/extension/command.ts";
 import { ExtensionSession } from "../../src/extension/session.ts";
 import { FakeContext, FakePi, HARNESS_ENV, RPC_ACTOR, commandProject } from "../helpers/command-fixture.ts";
 import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { E2_TRANSITION, lacking, migration } from "../helpers/migration.ts";
 import { answer, GRADER, onlyComplex, QUALITY_SOURCES, qualityReactor, surveyed } from "../helpers/quality-survey.ts";
 import { increment, threeIncrements } from "../helpers/trajectory.ts";
 
@@ -217,6 +218,23 @@ describe("`/495 adopt` adopts a trajectory of several increments", () => {
 			assert.ok(
 				pi.said.some((m) => m.includes("increment C depends on unknown Z")),
 				`the refusal names C and the increment it depends on: ${pi.said.join(" | ")}`,
+			);
+			assert.equal(session.binding, null, "the session stays unbound");
+			assert.deepEqual(session.runtime().ledger.listChanges(), [], "no change is created");
+			assert.deepEqual(session.runtime().ledger.listPrograms(), [], "no program is created");
+		} finally {
+			await session.close();
+		}
+	});
+
+	it("un document de migration dont E2 n'a pas de retour arrière est refusé depuis Pi avec un message qui nomme E2 et ce qui lui manque, sans programme, changement ni liaison", async () => {
+		const { pi, session, ctx } = sessionOnProject("transition");
+		try {
+			const document = migration("chg_survey", { e2: { transition: lacking(E2_TRANSITION, "rollback") } });
+			await pi.run(`adopt ${documentAt("transition", document)}`, ctx);
+			assert.ok(
+				pi.said.some((m) => m.includes("increment E2 has no rollback")),
+				`the refusal names E2 and its missing rollback: ${pi.said.join(" | ")}`,
 			);
 			assert.equal(session.binding, null, "the session stays unbound");
 			assert.deepEqual(session.runtime().ledger.listChanges(), [], "no change is created");

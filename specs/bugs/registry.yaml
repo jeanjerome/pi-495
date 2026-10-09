@@ -2053,3 +2053,53 @@ bugs:
       Return each missing element as a code with its arguments (alternative, constraint) and render it per language
       in the report.
     status: open
+  - bug_id: BUG-2026-10-09T005100
+    date: "2026-10-09"
+    title: "A trajectory that cites no migration is adopted with the transition its steps carry silently dropped"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      Introduced by the branch `e11s06`. The contract of the trajectory document accepts a `transition` on any
+      increment, but `readTrajectory` (`src/application/trajectory.ts`) reads the four texts only when the document
+      cites a `migration`. A document without `migration` whose increment carries a transition, complete or not, is
+      read without error and the transition is gone from the increment, from the program and from the request of its
+      change. Before the branch, the same document was refused for its unknown property.
+    what_expected: >
+      A transition written on a step of a trajectory that cites no migration is refused naming the step, as a step that
+      names a removed rule without a cited migration already is.
+    steps_to_reproduce:
+      - "Call `readTrajectory` on a document without `migration` whose increment `E1` carries `transition: { rollback: \"r\" }`: the result has no transition and `migration` is null."
+    root_cause: >
+      `migrationSteps` runs only under `document.migration`, and outside it only `removes` is carried to the increment,
+      where `checkRemovedRules` refuses it; nothing looks at `transition` there.
+    evidence: >
+      Probed at the arbitration of the acceptance run of `e11s06` at `1d0b9651`, against `src/application/trajectory.ts`.
+    risk_level: low
+    follow_ups: >
+      Refuse a `transition` on an increment of a document that cites no migration, naming the step.
+    status: open
+  - bug_id: BUG-2026-10-09T005101
+    date: "2026-10-09"
+    title: "In a French session, the question of the integration decision names its destination in English"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The question of IH-11 in French reads « Intégrer le candidat accepté dans the project branch ? ». The phase
+      `src/application/phases/integrate.ts` passes the destination as the English words `the project branch`, and the
+      French question of `src/application/decisions.ts` writes them as they are.
+    what_expected: >
+      The whole question reads in the language of the change.
+    steps_to_reproduce:
+      - "In a French session, take a change to acceptance and run `/495 integrate`: read the title of the dialog."
+    root_cause: >
+      The destination is a sentence fragment composed once, in English, by the phase, rather than a code the request
+      renders per language; same family as the English facts of a decision under a French question.
+    evidence: >
+      Seen in the acceptance run of `e11s06` at `1d0b9651` (`~/.495-campagnes/e11s06-story`, driver output of
+      `/495 integrate`); the argument dates from before that branch.
+    risk_level: low
+    follow_ups: >
+      Pass the destination as a code and render it in the language of the change in the question.
+    status: open

@@ -78,6 +78,7 @@ import { designVerification } from "./phases/verification-design.ts";
 import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
+import { migrationOf } from "./migration.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedOutsideDirectory, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -617,7 +618,8 @@ export class Harness {
 	/**
 	 * Creates a program from the trajectory document the owner wrote, adopts the trajectory, and starts
 	 * the change of its first ready increment. The document is kept in the object store as the program's
-	 * objective. A trajectory that cites a survey starts from the gaps read in that survey's dossier. A
+	 * objective. A trajectory that cites a survey starts from the gaps read in that survey's dossier; one that
+	 * cites a migration, from the target its owner chose and the violations of its map read in that dossier. A
 	 * trajectory the kernel refuses writes neither the program nor a change.
 	 */
 	async adopt(args: AdoptArgs): Promise<{ program: ProgramState; change: ChangeState }> {
@@ -632,6 +634,14 @@ export class Harness {
 					reference.project_path,
 					trajectory.baseline.scope_decisions,
 					trajectory.baseline.exceptions,
+				)
+			: null;
+		const migration = trajectory.migration
+			? migrationOf(
+					await this.citedSurvey(trajectory.migration.change_id),
+					reference.project_path,
+					trajectory.migration.scope_decisions,
+					trajectory.migration.exceptions,
 				)
 			: null;
 		const programId = this.id("prg");
@@ -663,6 +673,7 @@ export class Harness {
 					milestones: trajectory.milestones,
 					global_requirements: trajectory.global_requirements,
 					...(baseline ? { baseline } : {}),
+					...(migration ? { migration } : {}),
 					reason: "trajectory adopted by the owner",
 				},
 			],
@@ -674,7 +685,7 @@ export class Harness {
 			"request",
 			changeId,
 			this.id("req"),
-			incrementRequest(first, language, program.baseline),
+			incrementRequest(first, language, program.baseline, program.migration ?? null),
 			args.actor.actor_id,
 		);
 		return this.openIncrementChange({
@@ -709,6 +720,9 @@ export class Harness {
 				}),
 			),
 			reference_commit: reference?.kind === "git_clean_head" ? reference.head_commit : null,
+			recommendation: change
+				? await this.artifacts.latest<RecommendationProposal>(change, "architecture_recommendation")
+				: null,
 		};
 	}
 
@@ -767,7 +781,7 @@ export class Harness {
 			"request",
 			changeId,
 			this.id("req"),
-			incrementRequest(increment, language, program.baseline),
+			incrementRequest(increment, language, program.baseline, program.migration ?? null),
 			args.actor.actor_id,
 		);
 		return this.openIncrementChange({

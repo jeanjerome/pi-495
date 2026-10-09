@@ -9,6 +9,12 @@ type Recommendation = NonNullable<SurveySection["recommendation"]>;
 type Given = Extract<Recommendation, { given: true }>;
 type Alternative = Given["alternatives"][number];
 
+/** The nature of an alternative, as the owner reads it. */
+export const NATURES = {
+	fr: { keep: "conserver", adjust: "ajuster", transform: "transformer" },
+	en: { keep: "keep", adjust: "adjust", transform: "transform" },
+} as const;
+
 const L = {
 	fr: {
 		none: (missing: readonly string[]) =>
@@ -21,7 +27,7 @@ const L = {
 				: choice.kind === "suspended"
 					? `le propriétaire a laissé le choix en suspens le ${choice.on}`
 					: "le propriétaire n'a pas encore choisi",
-		natures: { keep: "conserver", adjust: "ajuster", transform: "transformer" },
+		natures: NATURES.fr,
 		colon: " : ",
 		chosen: "choisie",
 		discarded: "écartée",
@@ -48,7 +54,7 @@ const L = {
 				: choice.kind === "suspended"
 					? `the owner left the choice pending on ${choice.on}`
 					: "the owner has not chosen yet",
-		natures: { keep: "keep", adjust: "adjust", transform: "transform" },
+		natures: NATURES.en,
 		colon: ": ",
 		chosen: "chosen",
 		discarded: "set aside",

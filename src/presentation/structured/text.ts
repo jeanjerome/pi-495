@@ -3,9 +3,9 @@ import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { IncrementStatus, JudgedGap } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, MechanicalObservation, SurveySection } from "../../application/report.ts";
-import type { Consumption, StatusGap, StatusMeasure, StatusView } from "../../application/views.ts";
+import type { Consumption, StatusGap, StatusMeasure, StatusRule, StatusView } from "../../application/views.ts";
 import type { AgentContext } from "../../ports/execution.ts";
-import { recommendationLines } from "./recommendation-text.ts";
+import { NATURES, recommendationLines } from "./recommendation-text.ts";
 
 const L = {
 	fr: {
@@ -21,6 +21,9 @@ const L = {
 		setAside: "Écarté",
 		gap: (g: StatusGap) =>
 			`${g.rule_id} dans ${g.module ?? "aucun module mesuré"}, ${g.authorship === "generated" ? "code généré" : "code propriétaire"}: ${g.violations} violation${g.violations === 1 ? "" : "s"} à l'état des lieux`,
+		violatedRule: (r: StatusRule) =>
+			`${r.rule_id}: ${r.violations} violation${r.violations === 1 ? "" : "s"} à l'état des lieux`,
+		target: "Cible",
 		notEvaluated: "sans évaluation",
 		remaining: "reste",
 		indeterminate: "indéterminé",
@@ -69,6 +72,9 @@ const L = {
 		setAside: "Set aside",
 		gap: (g: StatusGap) =>
 			`${g.rule_id} in ${g.module ?? "no measured module"}, ${g.authorship} code: ${g.violations} violation${g.violations === 1 ? "" : "s"} at the survey`,
+		violatedRule: (r: StatusRule) =>
+			`${r.rule_id}: ${r.violations} violation${r.violations === 1 ? "" : "s"} at the survey`,
+		target: "Target",
 		notEvaluated: "not evaluated",
 		remaining: "remaining",
 		indeterminate: "indeterminate",
@@ -315,7 +321,13 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 	const lines: string[] = [];
 	// A program the owner wrote is shown as such; the single increment a request opens says nothing more.
 	const program = view.program;
-	if (program && (program.increments.length > 1 || program.milestones.length > 0 || program.baseline !== null))
+	if (
+		program &&
+		(program.increments.length > 1 ||
+			program.milestones.length > 0 ||
+			program.baseline !== null ||
+			program.migration !== null)
+	)
 		lines.push(...programLines(program, lang));
 	const c = view.change;
 	if (!c) {
@@ -365,9 +377,10 @@ export function formatStatus(view: StatusView, lang: "fr" | "en" = "fr"): string
 }
 
 /**
- * The program and the survey it starts from, then each increment with its status and the gaps it
- * removes, then the gaps set aside with their reason, then each milestone with its verdict and what is
- * left, then each exception with its owner, due date, reason and standing.
+ * The program and the survey it starts from, with the target of a migration, then each increment with its
+ * status and the gaps and violated rules it removes, then the gaps and rules set aside with their reason, then
+ * each milestone with its verdict and what is left, then each exception with its owner, due date, reason and
+ * standing.
  */
 function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | "en"): string[] {
 	const t = L[lang];
@@ -378,11 +391,19 @@ function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | 
 		lines.push(
 			`  ${t.survey}: ${program.baseline.change_id}, ${t.tree} ${program.baseline.reference_digest.slice(0, 23)}`,
 		);
+	const migration = program.migration;
+	if (migration)
+		lines.push(
+			`  ${t.survey}: ${migration.change_id}, ${t.tree} ${migration.reference_digest.slice(0, 23)}`,
+			`  ${t.target}: ${migration.target.alternative_id} — ${NATURES[lang][migration.target.nature]}: ${migration.target.description}`,
+		);
 	for (const i of program.increments) {
 		lines.push(`  ${t.increment} ${i.increment_id} (${i.title}): ${t.increments[i.status]}`);
 		for (const g of i.gaps) lines.push(`    ${t.removes} ${t.gap(g)}`);
+		for (const r of i.removes) lines.push(`    ${t.removes} ${t.violatedRule(r)}`);
 	}
 	for (const g of program.set_aside) lines.push(`  ${t.setAside}: ${t.gap(g)} — ${g.reason}`);
+	for (const r of migration?.set_aside ?? []) lines.push(`  ${t.setAside}: ${t.violatedRule(r)} — ${r.reason}`);
 	for (const m of program.milestones) {
 		const e = m.evaluation;
 		// Conformity is announced only for a milestone a survey of the integrated project passed.
@@ -401,6 +422,8 @@ function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | 
 	}
 	for (const x of program.exceptions)
 		lines.push(`  ${t.exception[x.standing ?? "unjudged"]}: ${t.gap(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`);
+	for (const x of migration?.exceptions ?? [])
+		lines.push(`  ${t.exception.unjudged}: ${t.violatedRule(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`);
 	return lines;
 }
 

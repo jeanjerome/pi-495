@@ -10,6 +10,7 @@ import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 import type { InterventionHandle, InterventionMandate } from "../../src/ports/execution.ts";
 import { ARCHITECTURE_QUESTION, ArchitectureMapAgent, answerMap, mavenReactor } from "./architecture-survey.ts";
 import { HUMAN } from "./change-fixture.ts";
+import type { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { FakeMavenControls, FakeMavenSandbox } from "./fake-maven.ts";
 import { makeHarness, specReport, type TestHarness } from "./harness-fixture.ts";
 import { treeDigest } from "./quality-survey.ts";
@@ -158,16 +159,23 @@ export const RECOMMENDATION = {
 };
 
 /**
- * Answers the two specifications of the reactor in turn, each intervention that asks for an architecture map with the
- * map of the reactor, and each that asks for a recommendation with the next of `recommendations`.
+ * Answers the two specifications of the survey of the reactor in turn, each intervention that asks for an architecture
+ * map with `map`, and each that asks for a recommendation with the next of `recommendations`. The specification of any
+ * later change follows the scripts of the agent.
  */
 export class RecommendationAgent extends ArchitectureMapAgent {
 	private specifications = 0;
-	constructor(recommendations: readonly unknown[]) {
-		super([RECOMMENDATION_MAP], SPECIFICATIONS[0], recommendations);
+	private survey: string | null = null;
+	constructor(recommendations: readonly unknown[], map: ArchitectureMap = RECOMMENDATION_MAP) {
+		super([map], SPECIFICATIONS[0], recommendations);
 	}
 	override startIntervention(mandate: InterventionMandate): Promise<InterventionHandle> {
-		if (mandate.role !== "specify" || mandate.output_schema !== "specification-report")
+		this.survey ??= mandate.change_id;
+		if (
+			mandate.role !== "specify" ||
+			mandate.output_schema !== "specification-report" ||
+			mandate.change_id !== this.survey
+		)
 			return super.startIntervention(mandate);
 		const output = SPECIFICATIONS[Math.min(this.specifications++, SPECIFICATIONS.length - 1)];
 		this.scripts.set(mandate.role, { steps: [{ kind: "complete", output }] });
@@ -175,6 +183,17 @@ export class RecommendationAgent extends ArchitectureMapAgent {
 		this.scripts.delete(mandate.role);
 		return started;
 	}
+}
+
+/**
+ * What a survey of the reactor may change: the map the model proposes, the owner's answer to it, the ledger of the
+ * harness, and whether its policy permits local integration.
+ */
+export interface RecommendedOptions {
+	map?: ArchitectureMap;
+	answer?: "adopt_map" | "leave_blind_spot";
+	ledger?: (path: string) => SqliteLedger;
+	integration?: boolean;
 }
 
 /**
@@ -186,6 +205,7 @@ export async function recommended(
 	recommendations: readonly unknown[],
 	sources: Record<string, string> = RECOMMENDATION_SOURCES,
 	language: "fr" | "en" = "fr",
+	{ map = RECOMMENDATION_MAP, answer = "adopt_map", ledger, integration }: RecommendedOptions = {},
 ): Promise<{
 	t: TestHarness;
 	agent: RecommendationAgent;
@@ -197,9 +217,11 @@ export async function recommended(
 }> {
 	const project = mavenReactor(RECOMMENDATION_MODULES, sources);
 	const before = treeDigest(project);
-	const agent = new RecommendationAgent(recommendations);
+	const agent = new RecommendationAgent(recommendations, map);
 	const t = makeHarness({
 		agent,
+		...(ledger ? { ledger } : {}),
+		...(integration ? { integration, policy: { integration_enabled: true } } : {}),
 		backend: (real) => new FakeMavenSandbox(real, "resolves"),
 		controls: (real) => new FakeMavenControls(real),
 	});
@@ -224,7 +246,7 @@ export async function recommended(
 		"IH-04",
 		`the map is proposed: ${mapped.stopped_because}, ${mapped.steps.join(" | ")}`,
 	);
-	answerMap(t, changeId, "adopt_map");
+	answerMap(t, changeId, answer);
 	const after = await t.harness.advance(changeId, { max_steps: 60 });
 	return { t, agent, changeId, project, before, stopped_because: after.stopped_because, steps: after.steps };
 }

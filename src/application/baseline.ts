@@ -6,7 +6,9 @@
  * the absence of a gap (QLT-02), and an analyser whose findings the survey kept fewer of than its report
  * counts would hide the gaps past that bound. The survey a program is measured on is read the same way.
  */
+import type { ArtifactRef } from "../contracts/v1/common.ts";
 import type { AdoptedQualityReferential, Protocol, QualityRule } from "../contracts/v1/protocol.ts";
+import type { RecommendationProposal } from "../domain/architecture-recommendation.ts";
 import { surveysTheProject, type ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
 import {
@@ -32,10 +34,12 @@ export interface CitedSurvey {
 	reported_findings: Readonly<Record<string, number>>;
 	/** The commit the survey measured, when it measured a clean tree; null otherwise. */
 	reference_commit: string | null;
+	/** The architecture recommendation a model proposed on the survey, or null when none was. */
+	recommendation: { ref: ArtifactRef; content: RecommendationProposal } | null;
 }
 
 /** How a refusal names the cited change, and what that change was cited to be. */
-interface Citation {
+export interface Citation {
 	cites: string;
 	isNot: string;
 }
@@ -46,7 +50,7 @@ const MEASURE: Citation = { cites: "the measure cites", isNot: "does not measure
 const AUTHORSHIPS: readonly CodeAuthorship[] = ["proprietary", "generated"];
 
 /** The refusal of a cited change, naming it, what it was cited to be, and why it is not. */
-function refusal(cited: CitedSurvey, citation: Citation): (why: string) => DomainError {
+export function refusal(cited: CitedSurvey, citation: Citation): (why: string) => DomainError {
 	return (why) =>
 		new DomainError(
 			"PRECONDITION_FAILED",
@@ -54,16 +58,9 @@ function refusal(cited: CitedSurvey, citation: Citation): (why: string) => Domai
 		);
 }
 
-/**
- * The survey, protocol and referential of the cited change, refused naming why when it is not an accepted
- * survey of the project at `projectPath` whose every control of the referential measured all its report.
- */
-function acceptedSurvey(
-	cited: CitedSurvey,
-	projectPath: string,
-	citation: Citation,
-): { survey: Survey; protocol: Protocol; referential: AdoptedQualityReferential } {
-	const { change, protocol, survey } = cited;
+/** The state of the cited change, refused naming why when it is not an accepted survey of the project at `projectPath`. */
+export function acceptedChange(cited: CitedSurvey, projectPath: string, citation: Citation): ChangeState {
+	const { change } = cited;
 	if (!change)
 		throw new DomainError("UNKNOWN_REFERENCE", `${citation.cites} change ${cited.change_id}, which does not exist`);
 	const refused = refusal(cited, citation);
@@ -73,8 +70,20 @@ function acceptedSurvey(
 		throw refused(
 			`the owner did not accept its survey: ${change.phase === "closed" ? `it closed ${change.outcome}` : "it is still open"}`,
 		);
-	if (!protocol?.quality_referential || !survey) throw refused("its survey adopted no quality referential");
-	for (const controlId of new Set(protocol.quality_referential.rules.map((r) => r.control_id))) {
+	return change;
+}
+
+/**
+ * Refuses, naming why, a survey one of whose `controlIds` measured nothing of the reference, or kept fewer findings
+ * than its report counts.
+ */
+export function checkMeasured(
+	cited: CitedSurvey,
+	survey: Survey,
+	controlIds: Iterable<string>,
+	refused: (why: string) => DomainError,
+): void {
+	for (const controlId of new Set(controlIds)) {
 		const measured = survey.controls.find((c) => c.control_id === controlId);
 		if (!measured || measured.blind_spot !== null)
 			throw refused(
@@ -86,6 +95,27 @@ function acceptedSurvey(
 				`its control ${controlId} kept ${measured.findings.length} of the ${reported} findings its report counts`,
 			);
 	}
+}
+
+/**
+ * The survey, protocol and referential of the cited change, refused naming why when it is not an accepted
+ * survey of the project at `projectPath` whose every control of the referential measured all its report.
+ */
+function acceptedSurvey(
+	cited: CitedSurvey,
+	projectPath: string,
+	citation: Citation,
+): { survey: Survey; protocol: Protocol; referential: AdoptedQualityReferential } {
+	acceptedChange(cited, projectPath, citation);
+	const { protocol, survey } = cited;
+	const refused = refusal(cited, citation);
+	if (!protocol?.quality_referential || !survey) throw refused("its survey adopted no quality referential");
+	checkMeasured(
+		cited,
+		survey,
+		protocol.quality_referential.rules.map((r) => r.control_id),
+		refused,
+	);
 	return { survey, protocol, referential: protocol.quality_referential };
 }
 

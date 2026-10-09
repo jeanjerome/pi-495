@@ -5,13 +5,11 @@
  */
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
 import { canonicalize } from "../../src/contracts/canonical.ts";
-import type { ArtifactRef, ObjectRef } from "../../src/contracts/v1/common.ts";
 import type { Survey } from "../../src/domain/survey.ts";
-import type { StoredArtifact } from "../../src/ports/ledger.ts";
 import { formatStatus } from "../../src/presentation/structured/text.ts";
 import { HUMAN } from "../helpers/change-fixture.ts";
+import { LedgerServingAnotherObject } from "../helpers/ledger-serving-another-object.ts";
 import { specReport, type TestHarness, trackedProject } from "../helpers/harness-fixture.ts";
 import { integrated, programHarness, programOf } from "../helpers/program-fixture.ts";
 import {
@@ -74,23 +72,6 @@ function standards(changeId: string) {
 		],
 		global_requirements: [],
 	};
-}
-
-/**
- * A ledger that serves, for one artifact, another object than the one recorded. G2 does not freeze a
- * protocol whose quality control failed its qualification, so a survey that names pmd a blind spot for
- * that reason is a dossier the gates never write: it is served in place of the accepted one.
- */
-class LedgerServingAnotherObject extends SqliteLedger {
-	private readonly served = new Map<string, ObjectRef>();
-	serve(ref: Pick<ArtifactRef, "artifact_id" | "revision">, object: ObjectRef): void {
-		this.served.set(`${ref.artifact_id}@${ref.revision}`, object);
-	}
-	override getArtifact(ref: Pick<ArtifactRef, "artifact_id" | "revision">): StoredArtifact | null {
-		const stored = super.getArtifact(ref);
-		const object = this.served.get(`${ref.artifact_id}@${ref.revision}`);
-		return stored && object ? { ...stored, object } : stored;
-	}
 }
 
 /** An accepted survey of `project`, whose dossier serves the survey `edit` rewrites in place of the recorded one. */
