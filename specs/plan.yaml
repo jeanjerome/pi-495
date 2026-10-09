@@ -467,7 +467,7 @@ epics:
       - { id: e11s03, status: "versée", title: "L'état des lieux d'une cible Maven compare les dépendances que ses POM déclarent à celles que son code utilise, nomme ses angles morts et donne la lecture du modèle sur ses données, ses préoccupations transverses et son déploiement" }
       - { id: e11s04, status: "versée", title: "495 propose la carte d'architecture d'une cible Node, le propriétaire l'adopte et l'état des lieux la vérifie avec dependency-cruiser, chaque violation localisée" }
       - { id: e11s05, status: "versée", title: "La recommandation d'architecture est argumentée par les contraintes du projet, fondée sur une revue de patterns, et arbitrée par le propriétaire" }
-      - { id: e11s06, status: "à faire", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
+      - { id: e11s06, status: "versée", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
 
   - id: e13
     title: "Tests de caractérisation d'un existant"
