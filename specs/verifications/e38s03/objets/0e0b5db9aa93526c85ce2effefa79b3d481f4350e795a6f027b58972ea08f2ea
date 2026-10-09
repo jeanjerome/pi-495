@@ -1,0 +1,104 @@
+TAP version 13
+# Subtest: the exploration of the change-lifecycle model
+    # Subtest: the adopted model terminates and the accepted, refused and human-wait outcomes are reachable
+    not ok 1 - the adopted model terminates and the accepted, refused and human-wait outcomes are reachable
+      ---
+      duration_ms: 117.569667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:25:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        error: /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/specs/formal/change-lifecycle/manifest.json: the manifest does not hold: config: the .cfg file TLC is given
+        
+        + actual - expected
+        
+        + undefined
+        - 'completed'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'completed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:27:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: once humans are assumed to respond, every behaviour ends accepted or stopped
+    not ok 2 - once humans are assumed to respond, every behaviour ends accepted or stopped
+      ---
+      duration_ms: 114.293209
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:44:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        error: /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/specs/formal/change-lifecycle/humans-respond.manifest.json: ENOENT: no such file or directory, open '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/specs/formal/change-lifecycle/humans-respond.manifest.json'
+        
+        + actual - expected
+        
+        + undefined
+        - 'completed'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'completed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:46:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: the exploration declares the finite domain it covers
+    not ok 3 - the exploration declares the finite domain it covers
+      ---
+      duration_ms: 111.546083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:50:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        error: /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/specs/formal/change-lifecycle/manifest.json: the manifest does not hold: config: the .cfg file TLC is given
+        
+        + actual - expected
+        
+        + undefined
+        - {
+        -   Controls: '{k1, k2}',
+        -   MaxAttempts: '2',
+        -   MaxInterruptions: '1',
+        -   MaxRevisions: '2'
+        - }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        Controls: '{k1, k2}'
+        MaxAttempts: '2'
+        MaxRevisions: '2'
+        MaxInterruptions: '1'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:52:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the exploration of the change-lifecycle model
+  ---
+  duration_ms: 343.919917
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-SpJ2ZX/test/v4-platform/change-model.test.ts:24:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 458.158958

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the manifest of the change-lifecycle model
+    # Subtest: every required invariant cites its rule and a matching public action
+    ok 1 - every required invariant cites its rule and a matching public action
+      ---
+      duration_ms: 0.585834
+      type: 'test'
+      ...
+    # Subtest: every action of the model is mapped to a kernel command and to the code that carries it out
+    ok 2 - every action of the model is mapped to a kernel command and to the code that carries it out
+      ---
+      duration_ms: 3.046417
+      type: 'test'
+      ...
+    1..2
+ok 1 - the manifest of the change-lifecycle model
+  ---
+  duration_ms: 4.0445
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 73.557416

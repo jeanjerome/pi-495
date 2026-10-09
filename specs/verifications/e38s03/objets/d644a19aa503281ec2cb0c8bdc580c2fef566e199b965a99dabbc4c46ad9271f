@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le modèle permet réellement de réussir et de s’arrêter ; Sécurité : les attentes humaines sont des états légitimes, leur résolution n’est jamais garantie sans hypothèse explicite, et aucune hypothèse ne suppose la conclusion",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "specs/formal/change-lifecycle/ChangeLifecycle.tla",
+    "ligne": 264,
+    "constat": "Le modèle tient la promesse : sous `Spec` seul, `Settles` est bien violée, ce que j'ai vérifié en lançant TLC à part. Mais aucun test ne la tient. Si on glisse `WF_vars(Resume)` et `WF_vars(HumanAnswer)` dans `KernelAndControlsProceed`, l'hypothèse « les humains répondent » devient implicite dans `Spec`, et les 9 tests restent verts. Aucun test ne vérifie que `Settles` est violée sous `Spec` seul, ni que `Spec` ne contient aucune équité sur une action humaine.",
+    "mutation": "Ajout de `/\\ WF_vars(Resume)` et de `/\\ WF_vars(\\E option \\in Options : HumanAnswer(option))` à `KernelAndControlsProceed`, empreintes des manifestes recalculées. Les 7 tests v4 et les 2 tests v0 restent verts. Avec ce mutant, TLC vérifie `Settles` sous `Spec` ; sans lui, il la réfute."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité : aucune exception à la provenance humaine",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/formal/change-lifecycle/ChangeLifecycle.tla",
+    "ligne": 161,
+    "constat": "`HumanAcceptance` vérifie seulement qu'il existe une décision d'acceptation valide pour le candidat, sans dire qui l'a enregistrée. Une transition du noyau qui fabrique une acceptation passe donc l'exploration adoptée sans être vue. Le seul test qui échoue le fait par accident : la trace archivée de l'autre mutant ne correspond plus. Ce n'est pas une assertion sur la provenance.",
+    "mutation": "Dans `Correct` : `decisions' = Revoked(decisions) \\cup {[cand |-> attempt + 1, option |-> \"accept\", valid |-> TRUE]}`. Le modèle adopté, les sondes et `Settles` restent verts ; seul le test du mutant budget épuisé échoue, sur l'égalité de sa trace archivée."
+   }
+  ],
+  "resume": "J'ai relancé les trois fichiers de test de la story avec le vrai TLC 2.19 : 9 tests verts, aucun saut. J'ai ensuite muté une douzaine de fois, en recalculant les empreintes des manifestes pour que chaque mutation soit réellement explorée et non refusée à l'entrée.\n\n- **Preuve tardive :** le modèle tient la promesse. Trois gardes se recouvrent : `Deliver` rejette un résultat d'une autre révision, `Usable` vérifie la révision, `ReviseProtocol` invalide les preuves. Muter un seul garde laisse les tests verts, ce qui est normal puisque les deux autres suffisent. Muter `Deliver` et `Usable` ensemble fait échouer le modèle adopté et les deux tests de mutants. Retirer `ran = rev` de `FreshAcceptance` fait échouer le test du mutant de preuve périmée.\n- **Budget épuisé :** retirer `ExhaustOnCorrection` de `Next` est attrapé par le test v0 du manifeste. Le retirer avec son équité fait échouer `Progress` et `Settles`. Faire accepter l'arrêt fait échouer le modèle adopté.\n- **Atteignabilité et progression :** les quatre sondes et `Settles` sont vérifiées ; retirer l'équité de `Deliver` fait échouer ces tests.\n- **Mutants :** chacun viole sa propriété, le long d'une trace conservée et comparée au fichier archivé. Affaiblir `AcceptanceNeedsObligations` fait échouer le test du mutant budget épuisé.\n\nLe constat qui fait échouer la relecture est A1-1, à corriger et introduit par la branche. Le modèle respecte la règle « aucune garantie de réponse humaine sans hypothèse explicite », mais aucun test ne la tient : une équité humaine glissée dans `Spec` laisse tout vert.\n\nA1-2 est à peser : la provenance humaine n'est vérifiée qu'en passant, par l'égalité d'une trace archivée.\n\nJe n'ai rien commité ; l'arbre est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — Aucune exception à la provenance humaine",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "specs/formal/change-lifecycle/ChangeLifecycle.tla",
+    "ligne": 313,
+    "constat": "Le modèle adopté tient la promesse : seule HumanAnswer enregistre une décision valide. Mais aucune propriété ne sait qui a écrit une décision. HumanAcceptance ne demande qu'une décision « accept » valide sur le candidat. Une action du noyau qui forge une acceptation humaine passe donc toutes les explorations, et aucun test ne tient cette promesse.",
+    "mutation": "Dans Resume (l. 239), ajouter `decisions' = decisions \\cup {[cand |-> cand, option |-> \"accept\", valid |-> TRUE]}` et retirer `decisions` de UNCHANGED, puis recalculer les empreintes des manifestes. Les sept tests de change-model.test.ts et change-model-mutants.test.ts restent verts sous le vrai TLC, y compris quand un humain a refusé puis que G5 accepte sur la décision forgée."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — la résolution d'une attente humaine n'est jamais garantie sans hypothèse explicite",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/formal/change-lifecycle/ChangeLifecycle.tla",
+    "ligne": 264,
+    "constat": "Le code sépare bien KernelAndControlsProceed (aucune équité humaine) de HumansRespond. Aucune exploration ne montre pourtant que Settles échoue sous Spec seule. Si l'on glisse l'équité de Resume et de HumanAnswer dans l'hypothèse du noyau, ou si HumansRespond suppose directement la conclusion, rien ne le remarque. Progress et Settles restent vérifiés.",
+    "mutation": "Ajouter `/\\ WF_vars(Resume) /\\ WF_vars(\\E option \\in Options : HumanAnswer(option))` dans KernelAndControlsProceed et recalculer les empreintes : tous les tests restent verts."
+   }
+  ],
+  "resume": "Relecteur B, tour 1, de e38s03. Les neuf tests passent sous le vrai TLC 2.19 (jar local). Les mutations ont porté sur une copie du modèle, empreintes des manifestes recalculées puis remises par git checkout. L'arbre est propre.\n\nLes quatre scénarios sont tenus par le modèle et par un test :\n\n- **Preuve tardive.** Une mutation de Deliver enregistre la preuve sous la révision courante et lève la garde de révision. FreshAcceptance tombe alors dans l'exploration adoptée, et le test 1 de change-model.test.ts échoue. Le chemin lancement P1, révision, pause, reprise est bien exploré.\n- **Budget épuisé.** Deux mutations ont été essayées. Si ExhaustOnCorrection ne bloque plus, Progress et Settles échouent. Si G5 accepte quand le budget est épuisé, l'exploration adoptée échoue, et le test du mutant échoue aussi par la trace conservée.\n- **Atteignabilité et progression.** Les quatre sondes et Progress/Settles sont vérifiées. Retirer Progress de la configuration donne une erreur, et le test échoue.\n- **Mutants.** Deux affaiblissements ont été essayés. FreshAcceptance qui lit `rev` au lieu de `ran` fait passer le mutant de preuve périmée à `completed`. Une exception ajoutée à AcceptanceNeedsObligations fait passer le mutant d'épuisement à `completed`. Les deux tests échouent. Les traces conservées sont comparées à l'identique. À part, une exploration sans la propriété désignée a confirmé que chaque mutant ne viole qu'elle.\n\nCôté sécurité, la provenance humaine n'est tenue par aucun test. Une décision « accept » enregistrée par Resume laisse tout vert, car aucune propriété ne distingue l'auteur d'une décision (B1-1, à corriger, introduit). Les hypothèses humaines ne sont pas vérifiées non plus : les glisser dans l'équité du noyau ne fait échouer aucun test (B1-2, à peser).\n\nVerdict fail, à cause de B1-1."
+ }
+]

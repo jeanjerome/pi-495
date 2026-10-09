@@ -1,0 +1,95 @@
+TAP version 13
+# Subtest: the mutants of the change-lifecycle model
+    # Subtest: the stale-proof mutant violates precisely the freshness property
+    not ok 1 - the stale-proof mutant violates precisely the freshness property
+      ---
+      duration_ms: 119.819291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:41:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        mutant-stale-proof.manifest.json is explored to a violation, not refused: error: /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/specs/formal/change-lifecycle/mutant-stale-proof.manifest.json: ENOENT: no such file or directory, open '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/specs/formal/change-lifecycle/mutant-stale-proof.manifest.json'
+        
+        + actual - expected
+        
+        + undefined
+        - 'counterexample'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'counterexample'
+      operator: 'strictEqual'
+      stack: |-
+        assertViolates (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:32:9)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:42:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: the exhausted-budget mutant violates precisely the obligations property
+    not ok 2 - the exhausted-budget mutant violates precisely the obligations property
+      ---
+      duration_ms: 117.546
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:45:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        mutant-accept-exhausted.manifest.json is explored to a violation, not refused: error: /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/specs/formal/change-lifecycle/mutant-accept-exhausted.manifest.json: ENOENT: no such file or directory, open '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/specs/formal/change-lifecycle/mutant-accept-exhausted.manifest.json'
+        
+        + actual - expected
+        
+        + undefined
+        - 'counterexample'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'counterexample'
+      operator: 'strictEqual'
+      stack: |-
+        assertViolates (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:32:9)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:46:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: the mutants live outside the adopted model
+    ok 3 - the mutants live outside the adopted model
+      ---
+      duration_ms: 0.65325
+      type: 'test'
+      ...
+    # Subtest: a syntax fault in a mutant is an error, never the expected violation
+    not ok 4 - a syntax fault in a mutant is an error, never the expected violation
+      ---
+      duration_ms: 3.7245
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:61:2'
+      failureType: 'testCodeFailure'
+      error: "ENOENT: no such file or directory, open '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test-output/change-model-syntax-N85FzW/change-lifecycle/mutant-stale-proof.manifest.json'"
+      code: 'ENOENT'
+      stack: |-
+        readFileSync (node:fs:483:20)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:65:31)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the mutants of the change-lifecycle model
+  ---
+  duration_ms: 242.275792
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-3Vfop2/test/v4-platform/change-model-mutants.test.ts:40:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 356.266

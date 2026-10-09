@@ -2,7 +2,7 @@
 
 Story : e38s03
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : Spécification commune du noyau et vérification locale
 Dépendances : e38s02
