@@ -1,12 +1,14 @@
 /**
  * A survey of the architecture of an npm package under TypeScript 7.0.2: the model answers the question with
  * one requirement about the architecture, then proposes the maps a test gives it. The suite of the package
- * runs for real under `node --test`; npm and its registry are fakes, and so is dependency-cruiser, whose output
- * the real reader reads.
+ * runs for real under `node --test`; npm and its registry are fakes, and so are dependency-cruiser and Knip, whose
+ * outputs the real readers read.
  */
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { isBuiltin } from "node:module";
 import { dirname, join, posix } from "node:path";
 import { dependencyCruiserRules } from "../../src/adapters/stacks/node/structure/dependency-cruiser-rules.ts";
+import { knipConfiguration } from "../../src/adapters/stacks/node/structure/knip-configuration.ts";
 import { emptyTrigger } from "../../src/application/stacks/stack.ts";
 import type { ArchitectureHint, ArchitectureMap, ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import type {
@@ -247,10 +249,69 @@ function cruised(root: string, control: ControlDefinition): string {
 	});
 }
 
+/** The package a bare specifier names: its scope and name, without the path inside it. */
+const packageOf = (specifier: string) =>
+	specifier
+		.split("/")
+		.slice(0, specifier.startsWith("@") ? 2 : 1)
+		.join("/");
+
 /**
- * Stands for a dependency-cruiser that the machine running the suite need not have installed: it leaves the
- * output it would write from the tree, which the real reader then reads. Every other control, and the broken
- * command of an incident witness, runs for real.
+ * The JSON Knip writes on its standard output when it compares, under the configuration 495 writes, the
+ * dependencies `package.json` of the tree at `root` declares to the packages its sources import: each import of a
+ * package it does not declare, at its line, and each declared package no source imports, at its line of
+ * `package.json`, the packages the configuration ignores aside. A `tsconfig.json` uses `typescript`, as the
+ * plugin of Knip for TypeScript says.
+ */
+function knipOutput(root: string): string {
+	const { ignoreDependencies } = JSON.parse(knipConfiguration()) as { ignoreDependencies: string[] };
+	const manifestText = readFileSync(join(root, "package.json"), "utf8");
+	const manifest = JSON.parse(manifestText) as Record<string, Record<string, string> | undefined>;
+	const declared = new Set(
+		["dependencies", "devDependencies", "peerDependencies"].flatMap((s) => Object.keys(manifest[s] ?? {})),
+	);
+	const sources = filesOf(root).filter(
+		(path) => /\.[cm]?[jt]sx?$/.test(path) && !/^(node_modules|target)\//.test(path),
+	);
+	const used = new Set(existsSync(join(root, "tsconfig.json")) ? ["typescript"] : []);
+	const rows = sources.flatMap((file) => {
+		const unlisted = readFileSync(join(root, file), "utf8")
+			.split("\n")
+			.flatMap((text, index) =>
+				[...text.matchAll(/(?:\bfrom|\bimport|\brequire\s*\()\s*\(?\s*["'`]([^"'`.][^"'`]*)["'`]/g)].map(
+					([, specifier]) => ({ name: packageOf(specifier!), line: index + 1 }),
+				),
+			)
+			.filter(({ name }) => !isBuiltin(name))
+			.filter(({ name }) => {
+				used.add(name);
+				return !declared.has(name) && !ignoreDependencies.includes(name);
+			});
+		return unlisted.length > 0 ? [{ file, dependencies: [], devDependencies: [], unlisted }] : [];
+	});
+	const lineOfDeclaration = (name: string) =>
+		manifestText.split("\n").findIndex((text) => text.includes(`"${name}":`)) + 1;
+	const unused = (section: string) =>
+		Object.keys(manifest[section] ?? {})
+			.filter((name) => !used.has(name) && !ignoreDependencies.includes(name))
+			.map((name) => ({ name, line: lineOfDeclaration(name) }));
+	const manifestRow = {
+		file: "package.json",
+		dependencies: unused("dependencies"),
+		devDependencies: unused("devDependencies"),
+		unlisted: [],
+	};
+	const issues = [
+		...(manifestRow.dependencies.length + manifestRow.devDependencies.length > 0 ? [manifestRow] : []),
+		...rows,
+	];
+	return `${JSON.stringify({ issues })}\n`;
+}
+
+/**
+ * Stands for a dependency-cruiser and a Knip that the machine running the suite need not have installed: each
+ * leaves the output it would write from the tree, which the real reader then reads. Every other control, and the
+ * broken command of an incident witness, runs for real.
  */
 class FakeCruiserControls implements ControlExecutionPort {
 	private readonly real: ControlExecutionPort;
@@ -265,6 +326,14 @@ class FakeCruiserControls implements ControlExecutionPort {
 		signal?: AbortSignal,
 	): ReturnType<ControlExecutionPort["runControl"]> {
 		const { parser, report_path, command } = invocation.control;
+		if (parser === "knip-json" && !command.some((part) => part.includes("495-broken-runner"))) {
+			const output = knipOutput(invocation.workspace_path);
+			const printed = {
+				...invocation.control,
+				command: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(output)})`],
+			};
+			return this.real.runControl({ ...invocation, control: printed }, signal);
+		}
 		if (
 			parser !== "dependency-cruiser-json" ||
 			report_path === null ||

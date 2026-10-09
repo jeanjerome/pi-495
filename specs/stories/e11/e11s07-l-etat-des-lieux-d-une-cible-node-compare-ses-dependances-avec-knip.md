@@ -2,7 +2,7 @@
 
 Story : e11s07
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -99,8 +99,9 @@ lire, la clé `knip` de `package.json`, et `.gitignore`, dont Knip ne lit pas le
 à Knip la configuration qu'il écrit hors de la copie : aucun fichier de configuration de Knip du projet n'est
 alors lu, et `knip.ts` n'est pas exécuté (sondé). Knip fusionne pourtant la clé `knip` de `package.json` sous
 cette configuration, clé par clé (`Object.assign`, `dist/util/create-options.js`) ; la configuration de 495
-fixe donc chaque clé qu'elle pourrait poser. `.gitignore` n'est pas suivi. La règle est celle que le
-propriétaire a adoptée avec la carte, et non celle que le projet configure pour son propre usage.
+fixe donc chaque clé qu'elle pourrait poser. Elle fait aussi de chaque source une entrée, et Knip liste ses
+entrées sans suivre `.gitignore`. La règle est celle que le propriétaire a adoptée avec la carte, et non celle
+que le projet configure pour son propre usage.
 
 Pour savoir quelles dépendances les outils d'un projet utilisent, Knip charge leurs fichiers de
 configuration, ce qui exécute ceux qui sont du code. Le contrôle des tests du projet exécute déjà son code :
@@ -141,7 +142,7 @@ lance pas Knip.
 ### Tâche 3 — La clé knip de package.json et .gitignore ne font taire aucun écart
 
 La configuration que 495 désigne à Knip fixe chaque clé que la clé `knip` de `package.json` pourrait poser,
-et Knip ne suit pas `.gitignore`.
+et fait de chaque source une entrée, que Knip liste sans suivre `.gitignore`.
 
 - Vérifie : `node --test test/v4-platform/node-dependencies-configuration.test.ts`
 - Tient : `test/v4-platform/node-dependencies-configuration.test.ts`, « une clé knip de package.json qui fait ignorer lodash et src/adapters/** laisse le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de pg et la déclaration inutilisée de lodash » et « un .gitignore qui liste src/adapters/ laisse le contrôle qualifié et la passe de référence rapporte l'usage de pg »

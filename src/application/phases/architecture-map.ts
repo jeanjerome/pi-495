@@ -186,7 +186,7 @@ function architectureOfferOn(ctx: PhaseContext, copyPath: string, map: Architect
 	return ctx.stacks.recognise(copyPath, [], process.execPath, [], map).architecture_verification;
 }
 
-/** The recommendations an offer brings into a copy in one step: its analyser, then what the analyser loads. */
+/** The recommendations an offer brings into a copy in one step: its analyser, then what is installed with it. */
 const broughtBy = (offer: ArchitectureOffer & { kind: "proposed" }): RecommendedComplement[] => [
 	offer.recommendation,
 	...(offer.brought_with ?? []),

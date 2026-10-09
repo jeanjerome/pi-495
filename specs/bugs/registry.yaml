@@ -2103,3 +2103,32 @@ bugs:
     follow_ups: >
       Pass the destination as a code and render it in the language of the change in the question.
     status: open
+  - bug_id: BUG-2026-10-09T033201
+    date: "2026-10-09"
+    title: "An adopted map of an npm package that names fewer than two folders freezes no dependencies control, though the adoption said Knip would check the dependencies at each run"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `NODE_STRUCTURE.offer` (`src/adapters/stacks/node/structure/node-structure.ts`) returns `missing` with the
+      reason of `architectureVerification` as soon as the map names fewer than two folders, before it asks
+      `dependenciesVerification`. `cruiserOffer` brings Knip 6.40.0 whatever the map, and the adoption tells the
+      owner that Knip also checks at each run that the package declares the dependencies its code uses; on such a
+      map Knip is installed, and no dependencies control is frozen.
+    what_expected: >
+      The comparison of the declared dependencies to the used ones does not depend on the number of folders of the
+      map: either the dependencies control is frozen on its own, or the adoption does not promise it.
+    steps_to_reproduce:
+      - "Adopt on an npm package a map whose parts cover a single source folder, with the analysers installed in the copy."
+      - "Read the frozen protocol: neither `architecture` nor `dependencies` is among its controls, and the requirement is a blind spot naming fewer than two folders."
+    root_cause: >
+      The dependencies control is offered as a companion of the architecture control, inside the branch where the
+      architecture control is available, while the offer of the analysers does not depend on that branch.
+    evidence: >
+      Read at the self-review of `e11s07` on its branch: `node-structure.ts` returns on `short_of` before calling
+      `dependenciesVerification`; the schema of `ArchitectureMap` accepts a single part (`minItems: 1`). Not run.
+    risk_level: low
+    follow_ups: >
+      Declare the dependencies control when the copy carries Knip, whether or not the map is verifiable, or say in
+      the adoption that a map of fewer than two folders verifies neither.
+    status: open

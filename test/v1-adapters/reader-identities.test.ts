@@ -23,6 +23,7 @@ const RECORDED = {
 	"eslint-json": "1.0.0",
 	"jscpd-json": "1.0.0",
 	"dependency-cruiser-json": "1.0.0",
+	"knip-json": "1.0.0",
 };
 
 describe("the readers of Maven, Node and the common formats", () => {

@@ -21,6 +21,7 @@ import { NODE_TEST_READER } from "./tests/node-test-reader.ts";
 import { NODE_TESTS } from "./tests/unit-controls.ts";
 import { NODE_OUTPUTS } from "./shared.ts";
 import { DEPENDENCY_CRUISER_READER } from "./structure/dependency-cruiser-reader.ts";
+import { KNIP_READER } from "./structure/knip-reader.ts";
 import { NODE_STRUCTURE } from "./structure/node-structure.ts";
 
 export const NODE_PLUGIN: StackPlugin<NodeProject> = {
@@ -39,6 +40,7 @@ export const NODE_PLUGIN: StackPlugin<NodeProject> = {
 		JSCPD_READER,
 		STRYKER_READER,
 		DEPENDENCY_CRUISER_READER,
+		KNIP_READER,
 	],
 	capabilities: {
 		tests: NODE_TESTS,

@@ -72,7 +72,7 @@ export type ArchitectureOffer =
 	| {
 			kind: "proposed";
 			recommendation: RecommendedComplement;
-			/** The packages the same manager brings in the same step as the recommendation, which its analyser loads. */
+			/** The packages the same manager brings in the same step as the recommendation: what its analyser loads, and what checks beside it. */
 			brought_with?: RecommendedComplement[];
 			/** The edits of the other files of a copy the verification is declared in, beside the edit of the recommendation. */
 			declarations?: FileEdit[];
