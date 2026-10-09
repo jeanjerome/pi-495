@@ -436,7 +436,7 @@ epics:
 
   - id: e11
     title: "Architecture cible d'une cible"
-    status: à faire
+    status: versé
     prete: oui
     source: chantiers/N ; arbitrage du propriétaire, 2026-10-08 (`D-87`)
     objet: >
