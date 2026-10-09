@@ -49,9 +49,16 @@ export function commitsEntre(cwd: string, base: string): Commit[] {
 	return commits;
 }
 
-/** A commit is test-only when every path it touches is under `test/`. */
+/**
+ * A commit is test-only when it is a `test:` commit and every path it touches is under `test/`: the
+ * code a story keeps under `test/`, such as a replay harness, is committed as `feat:` and owes no red.
+ */
 export function estCommitDeTestSeul(commit: Commit): boolean {
-	return commit.fichiers.length > 0 && commit.fichiers.every((f) => f.startsWith("test/"));
+	return (
+		commit.sujet.startsWith("test:") &&
+		commit.fichiers.length > 0 &&
+		commit.fichiers.every((f) => f.startsWith("test/"))
+	);
 }
 
 export function fichiersChanges(cwd: string, base: string): string[] {

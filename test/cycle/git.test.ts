@@ -48,6 +48,19 @@ describe("the git operations of the cycle", () => {
 		assert.deepEqual(commitsEntre(root, "HEAD"), []);
 	});
 
+	it("does not take for a test-only commit the code a story keeps under test/, committed as feat", () => {
+		const root = depot();
+		const base = revision(root);
+		gitCmd(root, ["checkout", "-q", "-b", "story"]);
+		writeFiles(root, { "test/support/reader.ts": "export const read = 1;\n" });
+		gitCmd(root, ["add", "-A"]);
+		gitCmd(root, ["commit", "-q", "-m", "feat: the reader reads"]);
+		assert.deepEqual(
+			commitsEntre(root, base).map((c) => [c.sujet, estCommitDeTestSeul(c)]),
+			[["feat: the reader reads", false]],
+		);
+	});
+
 	it("opens a detached tree at a commit with node_modules linked, and removes it", () => {
 		const root = depot();
 		const sha = revision(root);
