@@ -482,6 +482,40 @@ epics:
       - { id: e11s12, status: "à faire", title: "Le candidat d'une étape de migration est jugé avec les règles de la transition, et une nouvelle utilisation de l'ancien chemin est refusée" }
       - { id: e11s13, status: "à faire", title: "Une migration adoptée se révise après un jalon en échec, sans perdre l'état des lieux d'architecture qu'elle cite" }
 
+  - id: e38
+    title: "Les règles sont éprouvées avant le code et chaque acceptation repose sur leurs preuves"
+    status: à faire
+    source: specs/epics/e38-processus-de-developpement-verifie.md
+    objet: >
+      Le processus de développement vérifie les promesses et leurs interactions avant l’implémentation,
+      qualifie un oracle par exigence, permet une révision contrôlée d’un test erroné, relie conception,
+      réalisation, revue et recette, et utilise TLA+ ou Lean lorsque le risque le justifie. Les traces
+      de modèles exercent le noyau réel ; une preuve sur un modèle ne vaut pas preuve du programme.
+    motif: >
+      Le cycle actuel vérifie les promesses écrites mais laisse découvrir tard les interactions omises.
+      La préparation de pi-495 repose encore sur une discrimination globale et G3 sur un résumé.
+      Le travail reprend les mécanismes déjà livrés de qualification, invalidation et journalisation.
+    position: >
+      Après l’epic e11 engagé, avant e13 et e14 dont il réalise des tranches explicitement référencées.
+      s01 à s05 renforcent d’abord cycle/ ; s06 à s10 transfèrent le parcours dans le produit ; s11
+      expérimente Lean sur une règle stable, sans être un prérequis technique de s12 et s13 ; s12 et s13
+      mesurent réutilisation et dogfooding. Aucun prete: oui n’est ajouté par cette proposition.
+    stories:
+      - { id: e38s01, status: "à faire", title: "Chaque promesse de la story nomme sa vérification et les interactions à examiner" }
+      - { id: e38s02, status: "à faire", title: "Une exploration TLA+ produit un résultat traçable sans confondre interruption et succès" }
+      - { id: e38s03, status: "à faire", title: "Le modèle du changement explore les révisions, les preuves tardives et les reprises" }
+      - { id: e38s04, status: "à faire", title: "Les traces du modèle deviennent des tests reproductibles du noyau réel" }
+      - { id: e38s05, status: "à faire", title: "Le cycle vérifie les interactions retenues avant de lancer l’implémentation" }
+      - { id: e38s06, status: "à faire", title: "Une exigence ne franchit la qualification que si son propre oracle a été éprouvé" }
+      - { id: e38s07, status: "à faire", title: "Un test erroné se conteste et se révise sans laisser le producteur changer son juge" }
+      - { id: e38s08, status: "à faire", title: "La conception relie les propriétés à des tâches vérifiables avant l’implémentation" }
+      - { id: e38s09, status: "à faire", title: "La revue des promesses et la recette réelle alimentent l’acceptation du candidat exact" }
+      - { id: e38s10, status: "à faire", title: "Un contrôle formel optionnel est qualifié et gelé avec les autres contrôles de pi-495" }
+      - { id: e38s11, status: "à faire", title: "Lean vérifie une règle de décision stable et le TypeScript est comparé à cette référence" }
+      - { id: e38s12, status: "à faire", title: "Un résultat coûteux est réutilisé seulement quand toutes ses entrées pertinentes sont identiques" }
+      - { id: e38s13, status: "à faire", title: "Un pilote mesure le nouveau processus et qualifie un premier développement de pi-495 par pi-495" }
+
+  # Raccordement prévu : e38s06 réalise la tranche de caractérisation d’une exigence déclarée déjà satisfaite ; le reste de cet epic demeure ouvert.
   - id: e13
     title: "Tests de caractérisation d'un existant"
     status: à faire
@@ -495,6 +529,7 @@ epics:
       sans test qui échoue d'abord. Le test de caractérisation qui doit passer sur la référence réfute
       l'affirmation sans humain ; le propriétaire a écarté une confirmation humaine le 2026-10-01.
 
+  # Raccordement prévu : e38s02, e38s06, e38s07 et e38s10 réalisent les tranches de qualification formelle, liaison par exigence et révision contrôlée ; ne pas les redévelopper ici.
   - id: e14
     title: "Capacité de vérification par incrément"
     status: à faire
@@ -528,6 +563,7 @@ epics:
     motif: >
       Une citation ne prouve pas que le code produit est correct.
 
+  # Raccordement prévu : e38s01 réalise la sélection des moyens de vérification selon les interactions ; les autres disciplines restent dans cet epic.
   - id: e18
     title: "Disciplines applicables examinées"
     status: à faire
@@ -535,6 +571,7 @@ epics:
       Pour un changement significatif, les disciplines à examiner sont déterminées, et chacune est
       traitée, déclarée non applicable avec motif, ou signalée comme restant à instruire.
 
+  # Raccordement prévu : e38s01 et e38s08 appliquent la proportionnalité aux moyens de vérification et au plan de réalisation ; cet epic conserve son périmètre général.
   - id: e19
     title: "Choix argumentés avec proportionnalité"
     status: à faire
@@ -544,6 +581,7 @@ epics:
     motif: >
       Ni la sophistication ni le nombre d'agents ne constituent un critère d'expertise.
 
+  # Raccordement prévu : e38s01 et e38s09 associent risques, contrôles et missions de revue pour le parcours renforcé ; les autres expertises restent ici.
   - id: e20
     title: "Expertises mobilisées et vérifiées"
     status: à faire
@@ -554,6 +592,7 @@ epics:
     motif: >
       Un rôle nommé « senior » ne garantit aucune compétence.
 
+  # Raccordement prévu : e38s13 mesure le processus renforcé ; le bilan ne ferme pas les autres dimensions de la démarche.
   - id: e21
     title: "Qualité de la démarche évaluée"
     status: à faire
@@ -657,6 +696,7 @@ epics:
       n'est écrite.
     stories: []
 
+  # Raccordement prévu : e38s04 réalise les tests de séquences du noyau pi-495 avec fast-check ; la capacité générique de propriétés et fuzzing des cibles demeure ici.
   - id: e36
     title: "Les tests par propriétés et le fuzzing vérifient un changement"
     status: à faire
