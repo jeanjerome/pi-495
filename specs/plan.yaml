@@ -436,7 +436,7 @@ epics:
 
   - id: e11
     title: "Architecture cible d'une cible"
-    status: versé
+    status: à faire
     prete: oui
     source: chantiers/N ; arbitrage du propriétaire, 2026-10-08 (`D-87`)
     objet: >
@@ -460,7 +460,11 @@ epics:
       Le diagnostic est un état des lieux (`e29`). La recommandation est la partie la moins mécanique : le noyau ne vérifie que la forme
       de l'argument, chaque alternative portant bénéfice, coût et risque, chaque conclusion citant une
       contrainte ; le jugement reste au propriétaire (`EXP-02`). La migration s'appuie sur le programme à
-      plusieurs incréments que `e10s04` a qualifié.
+      plusieurs incréments que `e10s04` a qualifié. Les stories `e11s09` à `e11s13` reprennent ce que
+      `e11s03` à `e11s08` ont laissé hors périmètre (arbitrage du propriétaire, 2026-10-09). Deux attendent
+      une décision du propriétaire avant d'être écrites : le catalogue des règles qu'un anti-pattern peut
+      devenir (`e11s10`), et la carte qui juge une étape de migration, celle de départ moins les règles
+      tolérées ou celle de la cible (`e11s12`).
     stories:
       - { id: e11s01, status: "versée", title: "495 propose la carte d'architecture d'une cible Maven, chaque partie avec son style, ses rôles et ses indices, et le propriétaire l'adopte" }
       - { id: e11s02, status: "versée", title: "L'état des lieux vérifie la carte adoptée d'une cible Maven avec ArchUnit, chaque violation localisée" }
@@ -470,6 +474,11 @@ epics:
       - { id: e11s06, status: "versée", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
       - { id: e11s07, status: "versée", title: "L'état des lieux d'une cible Node compare les dépendances que package.json déclare à celles que son code utilise, avec Knip, chaque écart localisé" }
       - { id: e11s08, status: "versée", title: "Le jalon d'une migration d'architecture se mesure sur l'état des lieux du projet intégré, et sa fin est refusée tant qu'une ancienne dépendance subsiste" }
+      - { id: e11s09, status: "à faire", title: "L'état des lieux d'architecture marque un lien établi par configuration ou par réflexion avec sa méthode d'observation" }
+      - { id: e11s10, status: "à faire", title: "Un anti-pattern relevé par la revue de patterns qui s'écrit en règle de dépendance est proposé comme règle de la carte, et vérifié par les outils de la technologie" }
+      - { id: e11s11, status: "à faire", title: "La cible choisie d'une migration s'écrit en carte, proposée par un modèle et adoptée par le propriétaire" }
+      - { id: e11s12, status: "à faire", title: "Le candidat d'une étape de migration est jugé avec les règles de la transition, et une nouvelle utilisation de l'ancien chemin est refusée" }
+      - { id: e11s13, status: "à faire", title: "Une migration adoptée se révise après un jalon en échec, sans perdre l'état des lieux d'architecture qu'elle cite" }
 
   - id: e13
     title: "Tests de caractérisation d'un existant"
