@@ -72,7 +72,7 @@ describe("the entry point of the cycle", () => {
 		}
 	});
 
-	it("prints the state with the cost as the run shows it and the time of day of this machine", () => {
+	it("prints the state with the cost as the run shows it, the time of day of this machine and the story's verification", () => {
 		const b = banc();
 		mkdirSync(join(b.racine, "e01s05"), { recursive: true });
 		writeFileSync(
@@ -82,6 +82,42 @@ describe("the entry point of the cycle", () => {
 		const r = cycle(["e01s05", "etat"], b, { TZ: "Europe/Paris" });
 		assert.equal(r.code, 0);
 		assert.match(r.sortie, /10:05:09 +story +session +story · 1 s · 0,50 \$/);
+		assert.match(r.sortie, /^vérification : sans compagnon de vérification$/m);
+	});
+
+	it("prints in the state each promise of the story's verification companion that has no oracle", () => {
+		const b = banc();
+		writeFileSync(
+			join(b.root, "specs", "stories", "e01", "e01s05-greet-shouts.verification.json"),
+			JSON.stringify({
+				version: 1,
+				story: "e01s05",
+				promesses: [
+					{
+						id: "P1",
+						scenario: "greet shouts",
+						categorie: "nouveau-comportement",
+						observation: "the greeting is upper case",
+						oracles: [],
+						dependances: [],
+						interactions: [],
+						moyens: [
+							{ moyen: "exemples", retenu: true },
+							{ moyen: "proprietes", retenu: false, raison: "one input suffices" },
+							{ moyen: "modele-d-etats", retenu: false, raison: "no state" },
+							{ moyen: "preuve-lean", retenu: false, raison: "no decision rule" },
+						],
+					},
+				],
+			}),
+		);
+		const r = cycle(["e01s05", "etat"], b);
+		assert.equal(r.code, 0);
+		assert.match(
+			r.sortie,
+			/^vérification : compagnon specs\/stories\/e01\/e01s05-greet-shouts\.verification\.json : incomplète$/m,
+		);
+		assert.match(r.sortie, /^non vérifiée « greet shouts » : sans oracle/m);
 	});
 
 	it("opens the first step of a run without the time and cost elapsed since the run began", () => {

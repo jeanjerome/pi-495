@@ -5,6 +5,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { type DiagnosticVerification, cheminDuCompagnon, diagnostiquer } from "./verification-contract.ts";
 
 export type Statut = "à faire" | "en cours" | "versée";
 
@@ -32,6 +33,8 @@ export interface Story {
 	securite: string;
 	taches: Tache[];
 	horsPerimetre: string;
+	/** The diagnostic of the verification companion beside the story, null when it has none. */
+	verification: DiagnosticVerification | null;
 }
 
 const SECTION = /^## (\d+)\. (.+)$/;
@@ -129,6 +132,7 @@ export function parseStory(markdown: string, chemin = ""): Story {
 		securite: text("Sécurité"),
 		taches: taches(s.get("Tâches") ?? []),
 		horsPerimetre: text("Hors périmètre"),
+		verification: null,
 	};
 }
 
@@ -153,7 +157,10 @@ export function trouverStory(id: string, root: string): string {
 
 export function lireStory(id: string, root: string): Story {
 	const chemin = trouverStory(id, root);
-	return parseStory(readFileSync(chemin, "utf8"), chemin);
+	const story = parseStory(readFileSync(chemin, "utf8"), chemin);
+	const compagnon = cheminDuCompagnon(chemin);
+	if (!existsSync(compagnon)) return story;
+	return { ...story, verification: diagnostiquer(readFileSync(compagnon, "utf8"), compagnon, story) };
 }
 
 /** Rewrites the `Statut` header line, the one line of a story the tool owns. */

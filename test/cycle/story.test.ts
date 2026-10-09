@@ -1,9 +1,11 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { avecStatut, lireStory, parseStory, trouverStory } from "../../cycle/src/story.ts";
-import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { suite } from "../../cycle/src/suite.ts";
+import { STORY as GREET, depot, fauxClaude } from "../helpers/cycle.ts";
+import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 
 const cleanups = removedAfterEach();
 
@@ -100,5 +102,91 @@ describe("a story read from its file", () => {
 		const versee = avecStatut(STORY, "versée");
 		assert.equal(parseStory(versee).statut, "versée");
 		assert.equal(versee.replace("Statut : versée", "Statut : à faire"), STORY);
+	});
+});
+
+const LANDED_E01S05 = '      - { id: e01s05, status: "versée", title: "greet shouts" }\n';
+
+/** The prompt the drafting session receives when the plan lists `stories` under the ready epic e01. */
+async function contexteDeRedaction(root: string, stories: string): Promise<string> {
+	writeFileSync(
+		join(root, "specs", "plan.yaml"),
+		`epics:\n  - id: e01\n    title: "Greet"\n    status: à faire\n    prete: oui\n    stories:\n${stories}`,
+	);
+	gitCmd(root, ["add", "-A"]);
+	gitCmd(root, ["commit", "-q", "-m", "docs: the plan lists the ready epic"]);
+	const invites = join(tempDir("495-", cleanups), "invites.txt");
+	const claude = fauxClaude(`import { appendFileSync } from "node:fs";
+export default (invite) => {
+  appendFileSync(${JSON.stringify(invites)}, invite);
+  return { status: "complete", story_id: "", message: "", resume: "delivered" };
+};`);
+	await suite({
+		root,
+		racine: tempDir("495-", cleanups),
+		cible: "main",
+		claude,
+		deroulerStory: async () => 0,
+	});
+	return readFileSync(invites, "utf8");
+}
+
+describe("the readiness diagnostic given to the drafting of the next story", () => {
+	it("le contexte cite les promesses non vérifiées sans recopier un dossier entier", async () => {
+		const root = depot();
+		const dir = join(root, "specs", "stories", "e01");
+		const whispers = "greet whispers to a sleeping name";
+		writeFileSync(
+			join(dir, "e01s05-greet-shouts.md"),
+			GREET.replace("Statut : à faire", "Statut : versée").replace(
+				"## 3. Sécurité",
+				`Scenario: ${whispers}\n  Given a sleeping name\n  When greet is called\n  Then the greeting is lower case\n\n## 3. Sécurité`,
+			),
+		);
+		const moyens = [
+			{ moyen: "exemples", retenu: true, raison: "one case shows the case of the greeting" },
+			{ moyen: "proprietes", retenu: false, raison: "no input worth varying" },
+			{ moyen: "modele-d-etats", retenu: false, raison: "no state" },
+			{ moyen: "preuve-lean", retenu: false, raison: "no decision rule" },
+		];
+		const promesse = (id: string, scenario: string, oracles: unknown[]) => ({
+			id,
+			scenario,
+			categorie: "nouveau-comportement",
+			observation: `OBSERVATION-${id} the greeting as returned`,
+			oracles,
+			dependances: [],
+			interactions: [],
+			moyens,
+		});
+		writeFileSync(
+			join(dir, "e01s05-greet-shouts.verification.json"),
+			JSON.stringify({
+				version: 1,
+				story: "e01s05",
+				promesses: [
+					promesse("P1", "greet shouts", [
+						{ tache: 1, cas: "test/shout.test.js", assertion: "ASSERTION-P1 upper case" },
+					]),
+					promesse("P2", whispers, []),
+				],
+			}),
+		);
+		const contexte = await contexteDeRedaction(root, LANDED_E01S05);
+		assert.match(contexte, /specs\/stories\/e01\/e01s05-greet-shouts\.verification\.json/);
+		assert.match(contexte, new RegExp(`${whispers}.*sans oracle`));
+		assert.doesNotMatch(contexte, /greet shouts.*sans oracle/);
+		assert.doesNotMatch(contexte, /OBSERVATION-|ASSERTION-P1|Given a sleeping name/);
+	});
+
+	it("lists a landed story without a companion as such, and one whose file is gone by its title alone", async () => {
+		const root = depot();
+		const chemin = join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md");
+		writeFileSync(chemin, GREET.replace("Statut : à faire", "Statut : versée"));
+		const contexte = await contexteDeRedaction(
+			root,
+			`      - { id: e01s04, status: "versée", title: "greet waves" }\n${LANDED_E01S05}`,
+		);
+		assert.match(contexte, /- e01s04 : greet waves\n- e01s05 : greet shouts\n {2}sans compagnon de vérification\n/);
 	});
 });

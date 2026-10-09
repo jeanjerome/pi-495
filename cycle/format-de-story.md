@@ -62,6 +62,52 @@ ce qu'elle change, puis trois lignes :
 Ce que la story ne fait pas et qu'un lecteur pourrait attendre, avec la story ou l'epic qui le fera,
 ou la raison de ne pas le faire.
 
+## Compagnon de vérification
+
+À côté de la story, un fichier JSON de même radical, terminé par `.verification.json`, dit comment
+chaque promesse sera vérifiée. Il est facultatif pour les stories écrites avant lui ; le Markdown
+reste le texte du besoin, et le compagnon ne recopie ni scénario ni tâche : il les cite par le titre
+du scénario et le numéro de la tâche.
+
+```json
+{
+  "version": 1,
+  "story": "e01s05",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Une réponse révoquée est reposée",
+      "categorie": "nouveau-comportement",
+      "observation": "une décision IH-01 dans le dossier",
+      "oracles": [{ "tache": 1, "cas": "test/v2-kernel/answer-revocation.test.ts", "assertion": "une décision IH-01 repose Q1" }],
+      "dependances": [],
+      "interactions": [{ "genre": "reprise", "description": "la révocation survit à un redémarrage" }],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un cas montre la question reposée" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": true, "proprietes": ["une réponse révoquée n'est jamais relue"] },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}
+```
+
+- `categorie` : `nouveau-comportement`, `comportement-conserve`, `structure` ou `jugement`.
+- `oracles` : le cas et l'assertion qui tiennent cette promesse, dans une tâche de la story. Le test
+  d'une autre promesse ne la couvre pas.
+- `dependances` : les `id` d'autres promesses du compagnon, jamais la sienne.
+- `interactions` : `revision`, `reprise`, `ordre-des-evenements` ou `effet-externe`, chacune décrite.
+  L'outil les rend telles que déclarées ; il ne les détecte pas et n'en déduit aucun moyen.
+- `moyens` : chacun des quatre, `exemples`, `proprietes`, `modele-d-etats` et `preuve-lean`, est
+  retenu ou écarté avec sa raison ; un moyen à propriétés retenu nomme les propriétés qu'il vérifie.
+
+L'outil lit le compagnon avec la story et en tire un diagnostic de préparation : une promesse est
+prête quand une assertion lui est liée et que ses moyens sont choisis ; chaque référence invalide est
+localisée par son chemin dans le JSON, avec ce qui est attendu. `npm run cycle -- <story> etat` le
+rend, et la rédaction de la story suivante le reçoit pour les stories versées de l'epic, en résumé.
+Le compagnon propose des contrôles : il n'en exécute aucun et ne donne aucun droit.
+
 ## Exemple
 
 ```

@@ -2149,3 +2149,30 @@ bugs:
     follow_ups: >
       Carry the notes of the evidence each survey measure rests on into the survey section, in both languages.
     status: open
+  - bug_id: BUG-2026-10-09T150000
+    date: "2026-10-09"
+    title: "A verification companion entry without a string id makes \"undefined\" a known promise id, so another entry may depend on it"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `lireDeclarations` (`cycle/src/verification-contract.ts`) builds the set of known ids with `String(p.id)` over
+      every object entry, and `lirePromesse` returns `id: String(p.id)`. An entry whose `id` is absent is reported at
+      `promesses[i].id`, yet the string "undefined" joins the known ids: a second entry declaring
+      `"dependances": ["undefined"]` passes without an error at its own path, and the diagnostic of the first
+      promise carries the id "undefined" where its type says null for an undeclared promise.
+    what_expected: >
+      Only a non-empty string id is a known promise id; a dependency on anything else is located as unknown, and a
+      promise read from an entry without a valid id carries no id.
+    steps_to_reproduce:
+      - "Write a companion with two entries for the two scenarios of a story, the first without `id`, the second with `\"dependances\": [\"undefined\"]`; read the story: the errors name `promesses[0].id` and nothing at `promesses[1].dependances[0]`."
+    root_cause: >
+      The known ids and the read id are taken through `String(...)` rather than kept only when `texteNonVide`.
+    evidence: >
+      Introduced by the branch e38s01, which adds the companion reader. Read in `lireDeclarations` and
+      `lirePromesse`; the readiness of the story is already false through the
+      `promesses[0].id` error, so no promise is declared ready by this path.
+    risk_level: low
+    follow_ups: >
+      Keep in the known ids only the entries whose id is a non-empty string, and refuse a dependency on any other value.
+    status: open

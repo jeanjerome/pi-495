@@ -2,7 +2,7 @@
 
 Story : e38s01
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : cycle/ — préparation des stories
 Dépendances : Aucune

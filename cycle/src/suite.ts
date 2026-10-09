@@ -20,6 +20,7 @@ import {
 } from "./plan.ts";
 import { sessionInscrite } from "./session.ts";
 import { lireStory } from "./story.ts";
+import { resumeDeVerification } from "./verification-contract.ts";
 
 export interface OptionsSuite {
 	root: string;
@@ -68,6 +69,20 @@ function horsDeLaRedaction(root: string): string[] {
 	);
 }
 
+/**
+ * A landed story as the drafting session reads it in the list: its title, then what its verification
+ * companion leaves unverified, indented. A story whose file is gone is listed by its title alone.
+ */
+function storyVersee(root: string, v: { id: string; titre: string }): string {
+	const titre = `- ${v.id} : ${v.titre}`;
+	if (!fichierDeLaStory(root, v.id)) return titre;
+	const resume = resumeDeVerification(lireStory(v.id, root).verification, root);
+	return `${titre}\n${resume
+		.split("\n")
+		.map((l) => `  ${l}`)
+		.join("\n")}`;
+}
+
 type Redaction = { fait: true; epicVersee?: true } | { fait: false; motif: string };
 
 async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | null): Promise<Redaction> {
@@ -83,7 +98,7 @@ async function rediger(o: OptionsSuite, epic: EpicDuPlan, attendue: string | nul
 				epic: epic.id,
 				attendue: attendue ?? "aucune : décide si les stories versées livrent l'objet de l'epic",
 				epic_plan: texteDeLEpic(o.root, epic.id),
-				versees: versees.length === 0 ? "(aucune)" : versees.map((v) => `- ${v.id} : ${v.titre}`).join("\n"),
+				versees: versees.length === 0 ? "(aucune)" : versees.map((v) => storyVersee(o.root, v)).join("\n"),
 			}),
 			schema: {
 				type: "object",

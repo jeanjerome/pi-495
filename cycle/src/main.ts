@@ -35,6 +35,7 @@ import { marquerStoryListee } from "./plan.ts";
 import { reprendre } from "./reprise.ts";
 import { type OptionsSuite, corrigerDefauts, suite } from "./suite.ts";
 import { lireStory } from "./story.ts";
+import { resumeDeVerification } from "./verification-contract.ts";
 
 /** The branch every story, defect and refactoring lands on. */
 const CIBLE = "main";
@@ -54,6 +55,7 @@ function contexte(id: string): Contexte {
 
 function etat(ctx: Contexte): void {
 	console.log(`${ctx.story.id} · ${ctx.story.titre} · ${ctx.story.statut}`);
+	console.log(`vérification : ${resumeDeVerification(ctx.story.verification, ctx.root)}`);
 	for (const e of ctx.journal.lire()) {
 		const extra =
 			e.genre === "session"
