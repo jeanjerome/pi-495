@@ -183,8 +183,10 @@ directly; no issue is created by an automaton.
 
 ## What is written by hand, and what is observed
 
-By hand: a product decision in `specs/adr/`, and the order of the work in `specs/plan.yaml`, where
-the owner marks `prete: oui` the epics that run without them. The story and the registry entry are
+By hand: a product decision in `specs/adr/`, the order of the work in `specs/plan.yaml`, where
+the owner marks `prete: oui` the epics that run without them, and, for every epic added to the plan,
+its dossier in `specs/epics/`, which the plan entry cites as `source:` and the session that writes
+its stories reads. The story and the registry entry are
 written by hand when the owner drives the story; in a run without them, a session writes them under
 the rules of this file. Everything else is observed and recorded by the tool at the moment it
 observes it: a red and its message, a Preflight and its revision, a review round and its findings,

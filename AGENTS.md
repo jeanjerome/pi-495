@@ -6,7 +6,7 @@
 
 ## Where things are
 
-`specs/` is the project: what remains to do (`specs/plan.yaml`), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), the normative corpus (`specs/amont/`, read by two Preflight controls), and the measurements written before the switch (`specs/archive/`). `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
+`specs/` is the project: what remains to do (`specs/plan.yaml`), the dossier of each epic added since e38 (`specs/epics/`, cited as the `source:` of its plan entry), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), the normative corpus (`specs/amont/`, read by two Preflight controls), and the measurements written before the switch (`specs/archive/`). `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
 
 ## Learned User Preferences
 

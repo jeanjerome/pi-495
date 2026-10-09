@@ -6,6 +6,7 @@ La façon dont un changement est fait vit ailleurs, dans `cycle/`.
 | Emplacement | Porte | Écrit par |
 |---|---|---|
 | `plan.yaml` | le travail ouvert : les epics dans l'ordre où ils se font, leur objet, leur motif, leurs stories | la main |
+| `epics/` | le dossier d'un epic, un fichier `<epic>-<titre>.md` : le résultat attendu, l'existant au point de départ, les limites, les livraisons et leur ordre, le raccordement aux autres epics. Tout epic ajouté au plan depuis `e38` en a un, que son entrée cite en `source:` | la main, avec l'entrée du plan |
 | `reprises.md` | les reprises à comportement constant, dans l'ordre où elles se font, et leur statut (`D-80`) | la main ; l'outil du cycle écrit le statut |
 | `stories/<epic>/` | les stories du travail en cours, au format de `cycle/format-de-story.md` | la main, au pas 1 du cycle ; l'outil fait avancer leur statut |
 | `bugs/registry.yaml`, `bugs/registry-fixed.yaml`, `bugs/BUG-*.md` | les défauts ouverts (`registry.yaml`), les défauts corrigés avec la révision qui les a corrigés (`registry-fixed.yaml`), et leur analyse | la main ; l'outil du cycle déplace une entrée corrigée vers l'archive |
