@@ -2093,3 +2093,59 @@ bugs:
       Record the control by its identifier and let the status name it in the language of the change, or give the
       control a title in each language.
     status: open
+  - bug_id: BUG-2026-10-09T094552
+    date: "2026-10-09"
+    title: "A text file under src/main/ that carries a single NUL byte loses its links to the control of the links established by configuration or by reflection, and no note names it"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `CONFIGURED_LINKS_READER` (`src/adapters/stacks/maven/structure/configured-links-reader.ts`) drops every file
+      under the `src/main/` of a module whose text holds a NUL byte, as a binary file, and counts it only in
+      `facts.binary_files`. A configuration file such as `repository.properties` that carries one NUL next to
+      `io.demo.infra.UserStore` gives no finding, and the notes of the control name neither the file nor its being
+      left unread: the content of a file of the project decides whether its links are read.
+    what_expected: >
+      No file of the project silences a link without being named: a file left unread as binary is named in the
+      notes of the control, as a file past the read bound is.
+    steps_to_reproduce:
+      - "Write `domain/src/main/resources/repository.properties` as `repository.store=io.demo.infra.UserStore\\n\\u0000` in the reactor of `test/helpers/configured-links-reactor.ts`, under `DEPENDENCIES_MAP`, and run the control `configured-links`: the verdict is PASS, no finding, and no note names the file."
+    root_cause: >
+      The reader tells a binary file by its content alone (`!f.text.includes("\u0000")`) and keeps the count of the
+      files it drops, not their paths; the story asks that a binary file is not read, and says nothing of naming it.
+    evidence: >
+      Read at the first review round of `e11s09` on its branch, introduced by it: the filter and the fact
+      `binary_files` in `configured-links-reader.ts`; not run.
+    risk_level: low
+    follow_ups: >
+      Name in the notes of the control each file left unread as binary, or read a file whose text holds a NUL as
+      text when its name does not mark a binary format.
+    status: open
+  - bug_id: BUG-2026-10-09T123350
+    date: "2026-10-09"
+    title: "The survey section of the report gives the verdict of a control's measure without the notes of its limits, so a file a control left unread is seen only in the dossier"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `surveySection` (`src/application/report.ts`) carries, for each requirement, the control and its verdict, the
+      findings and the blind spots, and drops `limits.notes` of the evidence the survey measured on. The notes reach
+      the report only through `control_limit` risks, gathered from the evidence on the current candidate. On a
+      Maven reactor whose `repository.properties` and `UserLoader.java` hold a NUL byte, the survey shows the control
+      `configured-links` as PASS while its evidence notes that both files were not read: the reader of the report
+      does not learn that two files were skipped.
+    what_expected: >
+      The survey section names, under a control's measure, the notes of the limits it ran into, as the risks do for
+      a candidate.
+    steps_to_reproduce:
+      - "Adopt the map on the reactor of `test/helpers/configured-links-reactor.ts` with a NUL byte after the line of `domain/src/main/resources/repository.properties` that names `io.demo.infra.UserStore`, and ask `/495 report`: the survey section shows `configured-links` PASS and names neither file, while `evidence.document.limits.notes` of the reference evidence names both."
+    root_cause: >
+      `surveySection` maps a survey measure to its control id and verdict only; the notes of the evidence are read
+      for the risks of the candidate, never for the survey.
+    evidence: >
+      Observed at the acceptance run of `e11s09` on dossier `e11s09-t5-nul` (notes present in SQLite, absent from the
+      report); `surveySection` reads no note on `main` either, so the defect predates the branch.
+    risk_level: low
+    follow_ups: >
+      Carry the notes of the evidence each survey measure rests on into the survey section, in both languages.
+    status: open

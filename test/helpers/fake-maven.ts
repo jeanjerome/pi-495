@@ -139,6 +139,8 @@ export class FakeMavenControls implements ControlExecutionPort {
 			};
 			return this.real.runControl({ ...invocation, control: printed }, signal);
 		}
+		// The reading of the links established by configuration or by reflection runs no Maven: its real reader reads the copy.
+		if (control.parser === "configured-links") return this.real.runControl(invocation, signal);
 		const out = await this.real.runControl({ ...invocation, control }, signal);
 		// A reactor carries the witnesses in its first module, a single project at its root.
 		const files = javaFiles(invocation.workspace_path);

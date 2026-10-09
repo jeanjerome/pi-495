@@ -2,7 +2,7 @@
 
 Story : e11s09
 Epic : e11
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -52,6 +52,13 @@ Scenario: Ce que la lecture des liens établis sans import ne voit pas est nomm�
   And elle nomme à leur place, chaque point avec sa raison : un nom de classe construit à l'exécution (concaténation, valeur substituée), une classe désignée autrement que par son nom entier (balayage d'un paquet, nom court, nom d'un fichier comme sous `META-INF/services`), un lien entre deux paquets d'une même partie, un fichier de configuration hors de `src/main/` d'un module, et un fichier de configuration qu'aucune partie ne revendique seule
   And elle le dit en anglais et en français
 
+Scenario: Un fichier qui n'est pas lu parce qu'il contient un octet nul est nommé dans les notes du contrôle
+  Given le réacteur de la story, où `domain/src/main/resources/repository.properties` porte un octet nul après la ligne qui nomme `io.demo.infra.UserStore`, et où `domain/src/main/java/io/demo/domain/port/UserLoader.java` en porte un dans un commentaire
+  When le contrôle des liens établis par configuration ou par réflexion lit la copie
+  Then les notes du contrôle nomment `domain/src/main/resources/repository.properties` comme un fichier non lu parce qu'il contient un octet nul
+  And elles nomment de même `domain/src/main/java/io/demo/domain/port/UserLoader.java`
+  And un fichier de `src/main/` qui ne contient pas d'octet nul n'est pas nommé dans ces notes
+
 ## 3. Sécurité
 
 Le contrôle des liens établis par configuration ou par réflexion n'exécute rien du projet et n'installe rien :
@@ -59,7 +66,8 @@ Le contrôle des liens établis par configuration ou par réflexion n'exécute r
 fichiers de la copie comme des données. Il tourne réseau fermé, n'écrit rien dans le projet, et n'ouvre le
 réseau à aucune étape de l'adoption. Ses règles viennent de la carte gelée dans le protocole, jamais d'un
 fichier de l'arbre (`D-25`, `D-87`) : aucun fichier du projet ne peut taire un lien. Un fichier qui dépasse la
-borne de lecture est nommé dans les notes du contrôle, pas sauté en silence.
+borne de lecture, comme un fichier qui n'est pas lu parce qu'il contient un octet nul, source Java comprise,
+est nommé dans les notes du contrôle, pas sauté en silence.
 
 ## 4. Tâches
 
@@ -115,6 +123,17 @@ et en français.
 - Tient : `test/v2-kernel/architecture-map-configured-links-unseen.test.ts`, « la section état des lieux d'une carte adoptée d'un réacteur Maven ne nomme plus les liens par réflexion, META-INF/services ou configuration d'un framework comme un angle mort entier, et nomme chacun avec sa raison les noms construits à l'exécution, les classes désignées autrement que par leur nom entier, les liens à l'intérieur d'une partie, la configuration hors de src/main/ et les fichiers qu'aucune partie ne revendique seule, en anglais et en français »
 - Rouge : le premier point de `MAP_VERIFICATION_UNSEEN` (`src/adapters/stacks/maven/structure/map-verification-unseen.ts`) dit que les liens établis sans import ni référence dans les classes compilées (réflexion, `META-INF/services`, configuration d'un framework) ne sont pas vus, et aucun point ne parle d'un nom construit à l'exécution ni d'un fichier qu'aucune partie ne revendique.
 
+### Tâche 5 — Un fichier qui n'est pas lu parce qu'il contient un octet nul est nommé dans les notes du contrôle
+
+Le lecteur des liens établis par configuration ou par réflexion ne lit toujours pas un fichier sous `src/main/`
+d'un module qui contient un octet nul, source Java comprise, mais il nomme son chemin dans les notes du
+contrôle, comme il nomme un fichier au-delà de la borne de lecture : le contenu d'un fichier du projet ne peut
+plus taire ses liens sans trace.
+
+- Vérifie : `node --test test/v1-adapters/configured-links-report.test.ts`
+- Tient : `test/v1-adapters/configured-links-report.test.ts`, « un octet nul après la ligne de repository.properties qui nomme io.demo.infra.UserStore et un autre dans un commentaire de UserLoader.java de domain font nommer ces deux fichiers dans les notes du contrôle, comme non lus parce qu'ils contiennent un octet nul, et aucun autre fichier de src/main/ »
+- Rouge : `CONFIGURED_LINKS_READER` (`src/adapters/stacks/maven/structure/configured-links-reader.ts`) écarte tout fichier dont le texte contient `\u0000` et n'en garde que le nombre, `facts.binary_files` ; ses notes ne sont que celles de la lecture de l'arbre. Sur le réacteur de la story, avec un octet nul à la fin de `repository.properties`, le contrôle rend FAIL avec le seul constat de `UserLoader.java`, des notes vides et `binary_files` à 2 : aucune note ne nomme `repository.properties`.
+
 ## 5. Hors périmètre
 
 - Juger un lien établi par configuration ou par réflexion entre deux paquets d'une même partie, contre les
@@ -132,3 +151,11 @@ et en français.
   toutes lettres : le chemin d'un module écrit dans un fichier de configuration resterait à relever, et le
   plan ne porte pas cette story ; l'ajouter à `e11` revient au propriétaire.
 - Juger un candidat avec ce contrôle : le candidat d'une étape de migration est jugé dans `e11s12`.
+- Lire un fichier qui contient un octet nul pour y relever ses liens, ou changer le verdict du contrôle parce
+  qu'un fichier n'a pas été lu : un tel fichier ne porte pas de nom qu'un lecteur du projet écrirait, le lire
+  comme du texte en inventerait, et un fichier au-delà de la borne de lecture ne change pas non plus le
+  verdict. Le fichier est nommé dans les notes, rien de plus.
+- Reconnaître un fichier binaire autrement que par un octet nul (extension, encodage UTF-16, octets non
+  UTF-8) : l'écart porte sur un fichier écarté sans trace, pas sur la règle qui l'écarte.
+- Nommer les fichiers que les autres lecteurs de la technologie Maven ne lisent pas : l'écart porte sur ce
+  contrôle, dont la section Sécurité promet qu'aucun fichier ne tait un lien.

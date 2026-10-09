@@ -20,6 +20,7 @@ const RECORDED = {
 	"cpd-xml": "1.0.0",
 	"archunit-xml": "1.0.0",
 	"dependency-analyze": "1.0.0",
+	"configured-links": "1.0.0",
 	"eslint-json": "1.0.0",
 	"jscpd-json": "1.0.0",
 	"dependency-cruiser-json": "1.0.0",

@@ -103,7 +103,7 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 				`déclare ${names} dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but ; dans la même étape, il déclare ${dependencyAnalysis("de")} dans une copie de chaque POM du réacteur, dont il résout le greffon`,
 			inspected:
 				"la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que les POM qui reçoivent les déclarations",
-			alongside: `${dependencyAnalysis("de")} vérifie aussi, à chaque exécution, que chaque module déclare dans son POM les dépendances que son code utilise, et utilise celles qu'il déclare ; `,
+			alongside: `${dependencyAnalysis("de")} vérifie aussi, à chaque exécution, que chaque module déclare dans son POM les dépendances que son code utilise, et utilise celles qu'il déclare ; 495 relève aussi, à chaque exécution et sans rien installer, chaque lien qu'un fichier de configuration ou une chaîne du code établit en nommant en entier une classe d'une partie dont la carte ne permet pas de dépendre ; `,
 		},
 	},
 	en: {
@@ -124,7 +124,7 @@ const MAVEN_PHRASES: { fr: InstallPhrases; en: InstallPhrases } = {
 				`declares ${names} in a copy of the POM and resolves it with Maven, into the local repository Maven designates, running no goal; in the same step, it declares ${dependencyAnalysis("of")} in a copy of each POM of the reactor and resolves that plugin`,
 			inspected:
 				"the copy is inspected and the resolution is accepted only if it changes no file other than the POMs that receive the declarations",
-			alongside: `${dependencyAnalysis("of")} also checks, at each run, that every module declares in its POM the dependencies its code uses, and uses those it declares; `,
+			alongside: `${dependencyAnalysis("of")} also checks, at each run, that every module declares in its POM the dependencies its code uses, and uses those it declares; 495 also reads, at each run and without installing anything, every link a configuration file or a string of the code establishes by naming in full a class of a part the map does not permit to depend on; `,
 		},
 	},
 };

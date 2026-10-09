@@ -11,6 +11,7 @@ import type { MavenProject } from "../project/maven-project.ts";
 import type { MavenModule, MavenReactor } from "../project/reactor.ts";
 import { archunitOffer } from "./archunit-declaration.ts";
 import { architectureVerification } from "./architecture-control.ts";
+import { configuredLinksVerification } from "./configured-links-control.ts";
 import { dependenciesControl, dependenciesNegativeWitness } from "./dependencies-control.ts";
 import { dependenciesDeclaredIn } from "./dependencies-declaration.ts";
 import { mainPackages } from "./main-packages.ts";
@@ -160,7 +161,18 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 		const architecture = architectureVerification(question);
 		const verified = architecture !== null && "control" in architecture ? architecture : null;
 		const dependencies = verified !== null && dependenciesDeclaredIn(view, model.reactor);
+		// What the compiled classes do not show is read in the copy itself, once 495 declared ArchUnit for the map.
+		const links = architecture === null ? null : configuredLinksVerification(question);
 		if (rules.length === 0 && verified === null) return { kind: "missing", reason: NO_OPPOSABLE_ROOTS };
+		// The shared positive witness imports the API of JUnit, which a module that declares the aggregate
+		// `junit-jupiter` uses without declaring, and which a reactor with no test dependency does not compile:
+		// the positive witness of the architecture, of the dependencies and of the links read in the copy is the
+		// reference alone.
+		const referencePositive = [
+			...(verified ? ["architecture"] : []),
+			...(dependencies ? ["dependencies"] : []),
+			...(links ? ["configured-links"] : []),
+		];
 		const shortOf = [
 			...(rules.some((rule) => rule.kind === "forbidden_dependency") ? [] : [NO_OPPOSABLE_ROOTS]),
 			...(architecture !== null && "short_of" in architecture ? [architecture.short_of] : []),
@@ -171,6 +183,7 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 				...(rules.length > 0 ? [structureControl(requirement_refs, model.reactor, rules, node_binary)] : []),
 				...(verified ? [verified.control] : []),
 				...(dependencies ? [dependenciesControl(requirement_refs, model.reactor)] : []),
+				...(links ? [links.control] : []),
 			],
 			// A failing test proves nothing about a boundary: the tree that carries this defect is one where a
 			// module imports what it declares no dependency on, and it compiles nowhere.
@@ -178,11 +191,9 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 				...(rules.length > 0 ? { structure: structureNegativeWitness(rules) } : {}),
 				...(verified ? { architecture: verified.witness } : {}),
 				...(dependencies ? { dependencies: dependenciesNegativeWitness(model.reactor) } : {}),
+				...(links ? { "configured-links": links.witness } : {}),
 			},
-			// The shared positive witness imports the API of JUnit, which a module that declares the aggregate
-			// `junit-jupiter` uses without declaring, and which a reactor with no test dependency does not compile:
-			// the positive witness of the architecture and of the dependencies is the reference alone.
-			...(verified ? { reference_positive: ["architecture", ...(dependencies ? ["dependencies"] : [])] } : {}),
+			...(referencePositive.length > 0 ? { reference_positive: referencePositive } : {}),
 			...(shortOf.length > 0 ? { short_of: shortOf.join("; ") } : {}),
 		};
 	},

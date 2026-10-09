@@ -153,12 +153,12 @@ describe("the milestone of a migration is measured on the survey of the integrat
 		assert.deepEqual(evaluation?.map_measure?.map.parts, ["domain", "infra", "app"], "the parts of the adopted map");
 		assert.equal(
 			evaluation?.map_measure?.map.tool,
-			"the rules of the adopted architecture map, checked by ArchUnit",
-			"the control that verifies the map",
+			"the rules of the adopted architecture map, checked by ArchUnit; the links a configuration file or a string of the code establishes by naming a class in full, against the adopted map",
+			"the controls that verify the map",
 		);
 		const cited = await t.harness.artifacts.latest<Protocol>(t.ledger.loadChange(measured)!.state, "protocol");
 		const unseen = cited?.content.architecture_map?.unseen ?? [];
-		assert.equal(unseen.length, 6, "the survey names six points its verification does not see");
+		assert.equal(unseen.length, 10, "the survey names ten points its verification does not see");
 		assert.deepEqual(
 			evaluation?.map_measure?.map.unseen,
 			unseen,

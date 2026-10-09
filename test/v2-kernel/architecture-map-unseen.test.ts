@@ -27,12 +27,6 @@ const UNSEEN = {
 	fr: {
 		heading: "ce que sa vérification ne voit pas :",
 		points: [
-			[
-				"sans import ni référence dans les classes compilées",
-				"réflexion",
-				"META-INF/services",
-				"configuration d'un framework",
-			],
 			["les sources de test", "les règles de la carte ne les jugent pas"],
 			["les bibliothèques hors du réacteur", "les règles de la carte ne les opposent à aucune partie"],
 			["déclarées pour la seule exécution", "portée runtime"],
@@ -49,12 +43,6 @@ const UNSEEN = {
 	en: {
 		heading: "what its verification does not see:",
 		points: [
-			[
-				"without an import or a reference in the compiled classes",
-				"reflection",
-				"META-INF/services",
-				"configuration of a framework",
-			],
 			["the test sources", "the rules of the map do not judge them"],
 			["the libraries outside the reactor", "the rules of the map oppose them to no part"],
 			["declared for the runtime alone", "scope runtime"],
