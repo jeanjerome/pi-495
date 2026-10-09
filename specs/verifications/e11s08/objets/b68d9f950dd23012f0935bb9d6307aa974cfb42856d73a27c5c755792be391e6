@@ -1,0 +1,62 @@
+TAP version 13
+# Subtest: the milestone of a migration is measured on the survey of the integrated project
+    # Subtest: E1 et E2 intégrés, mesurer la migration avec l'état des lieux accepté du projet intégré, sous la même carte, qui compte part app may not depend on part infra 0 et every main source belongs to a part 1, inscrit une évaluation du jalon final PASS qui cite cet état des lieux et clôt le programme
+    not ok 1 - E1 et E2 intégrés, mesurer la migration avec l'état des lieux accepté du projet intégré, sous la même carte, qui compte part app may not depend on part infra 0 et every main source belongs to a part 1, inscrit une évaluation du jalon final PASS qui cite cet état des lieux et clôt le programme
+      ---
+      duration_ms: 2929.077541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:134:2'
+      failureType: 'testCodeFailure'
+      error: 'program prg_0065 cites no survey to measure against'
+      code: 'PRECONDITION_FAILED'
+      name: 'DomainError'
+      stack: |-
+        HarnessWithModel.measure (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/src/application/harness.ts:739:10)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:138:35)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de E2, dont la carte est en angle mort, dont le contrôle d'architecture n'a rien mesuré, ou dont la carte diffère par une partie, son périmètre, son style, le rôle d'un paquet ou une relation, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite
+    not ok 2 - un changement à candidat, un état des lieux refusé, d'un autre projet, pris sur un arbre sans l'intégration de E2, dont la carte est en angle mort, dont le contrôle d'architecture n'a rien mesuré, ou dont la carte diffère par une partie, son périmètre, son style, le rôle d'un paquet ou une relation, est refusé avec un message qui nomme le changement et la raison, sans évaluation inscrite
+      ---
+      duration_ms: 4762.300209
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:158:2'
+      failureType: 'testCodeFailure'
+      error: 'the refusal names the change: program prg_0065 cites no survey to measure against'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        Object.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:179:12)
+        expectedException (node:assert:578:17)
+        expectsError (node:assert:703:21)
+        strict.rejects (node:assert:769:3)
+        async refusedWith (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:178:4)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:190:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the milestone of a migration is measured on the survey of the integrated project
+  ---
+  duration_ms: 7691.971625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mI9dXo/test/v2-kernel/program-architecture-migration-measure.test.ts:133:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7953.199083

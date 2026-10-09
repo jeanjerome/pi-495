@@ -1,0 +1,214 @@
+TAP version 13
+# Subtest: statut d'un programme
+    # Subtest: le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+    ok 1 - le statut d'un programme dont le jalon est évalué NOT_RUN liste A intégré, B et C prêts, et le jalon NOT_RUN avec B et C restants, en français et en anglais
+      ---
+      duration_ms: 3.093708
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme sans évaluation dit le jalon sans évaluation
+    ok 2 - le statut d'un programme sans évaluation dit le jalon sans évaluation
+      ---
+      duration_ms: 0.135
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont le jalon final est PASS dit le programme clos
+    ok 3 - le statut d'un programme dont le jalon final est PASS dit le programme clos
+      ---
+      duration_ms: 0.236792
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+    ok 4 - le statut d'un programme dont la trajectoire a été adoptée avec des incréments sans champ d'écarts liste chacun avec son titre et son statut, sans écart ni état des lieux
+      ---
+      duration_ms: 0.194875
+      type: 'test'
+      ...
+    1..4
+ok 1 - statut d'un programme
+  ---
+  duration_ms: 4.136083
+  type: 'suite'
+  ...
+# Subtest: statut d'un programme de remise aux standards
+    # Subtest: le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+    ok 1 - le statut d'un programme de remise aux standards nomme l'état des lieux cité, liste sous A et sous B les écarts que chacun supprime avec leur nombre à l'état des lieux, et l'écart écarté avec sa raison, en français et en anglais
+      ---
+      duration_ms: 0.332167
+      type: 'test'
+      ...
+    # Subtest: A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+    ok 2 - A et B intégrés, le statut d'un programme de remise aux standards ne le dit pas clos et écrit le jalon INDETERMINATE avec chacun des trois écarts non mesuré sur le projet intégré, en français et en anglais
+      ---
+      duration_ms: 0.184625
+      type: 'test'
+      ...
+    1..2
+ok 2 - statut d'un programme de remise aux standards
+  ---
+  duration_ms: 0.590416
+  type: 'suite'
+  ...
+# Subtest: statut d'un programme mesuré sur le projet intégré
+    # Subtest: le statut d'un programme dont le jalon final est PASS sur une mesure annonce la conformité dans le périmètre contrôlé, nomme chaque règle avec son outil et sa version, les modules mesurés, ce qui reste hors de la mesure, l'écart écarté avec sa raison, l'exception en cours avec son propriétaire, son échéance et sa raison, et l'exception retirée, en français et en anglais
+    ok 1 - le statut d'un programme dont le jalon final est PASS sur une mesure annonce la conformité dans le périmètre contrôlé, nomme chaque règle avec son outil et sa version, les modules mesurés, ce qui reste hors de la mesure, l'écart écarté avec sa raison, l'exception en cours avec son propriétaire, son échéance et sa raison, et l'exception retirée, en français et en anglais
+      ---
+      duration_ms: 0.464625
+      type: 'test'
+      ...
+    # Subtest: le statut d'un jalon FAIL sur une mesure nomme l'écart restant avec ses deux comptes et n'annonce aucune conformité
+    ok 2 - le statut d'un jalon FAIL sur une mesure nomme l'écart restant avec ses deux comptes et n'annonce aucune conformité
+      ---
+      duration_ms: 0.172709
+      type: 'test'
+      ...
+    # Subtest: le statut d'un programme dont les écarts n'ont aucun champ d'exception liste ses écarts et son jalon INDETERMINATE, sans exception ni annonce de conformité
+    ok 3 - le statut d'un programme dont les écarts n'ont aucun champ d'exception liste ses écarts et son jalon INDETERMINATE, sans exception ni annonce de conformité
+      ---
+      duration_ms: 0.129792
+      type: 'test'
+      ...
+    1..3
+ok 3 - statut d'un programme mesuré sur le projet intégré
+  ---
+  duration_ms: 0.876625
+  type: 'suite'
+  ...
+# Subtest: statut d'une migration mesurée sur le projet intégré
+    # Subtest: le statut d'une migration dont le jalon final est PASS avec every main source belongs to a part tolérée dit la cible atteinte sur part app may not depend on part infra, n'annonce pas la conformité à la carte, et nomme la règle tolérée par l'exception en cours d'équipe paiement jusqu'au 2026-12-31, en français et en anglais
+    not ok 1 - le statut d'une migration dont le jalon final est PASS avec every main source belongs to a part tolérée dit la cible atteinte sur part app may not depend on part infra, n'annonce pas la conformité à la carte, et nomme la règle tolérée par l'exception en cours d'équipe paiement jusqu'au 2026-12-31, en français et en anglais
+      ---
+      duration_ms: 0.814208
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:658:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            [
+              'every main source belongs to a part',
+              'équipe paiement',
+              '2026-12-31',
+        +     undefined
+        -     'current'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'every main source belongs to a part'
+          1: 'équipe paiement'
+          2: '2026-12-31'
+          3: 'current'
+      actual:
+        0:
+          0: 'every main source belongs to a part'
+          1: 'équipe paiement'
+          2: '2026-12-31'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:664:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: le statut d'une migration dont le jalon final est PASS sans aucune violation annonce le projet conforme à la carte adoptée, nomme les parties domain, app et infra, l'outil qui la vérifie et ce que sa vérification ne voit pas, et dit l'exception retirée
+    not ok 2 - le statut d'une migration dont le jalon final est PASS sans aucune violation annonce le projet conforme à la carte adoptée, nomme les parties domain, app et infra, l'outil qui la vérifie et ce que sa vérification ne voit pas, et dit l'exception retirée
+      ---
+      duration_ms: 0.195583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:696:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        +   undefined
+        -   'withdrawn'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'withdrawn'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:698:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: le statut d'un jalon de migration FAIL nomme la règle restante avec ses deux comptes et n'annonce ni la cible atteinte ni la conformité
+    not ok 3 - le statut d'un jalon de migration FAIL nomme la règle restante avec ses deux comptes et n'annonce ni la cible atteinte ni la conformité
+      ---
+      duration_ms: 0.260916
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:734:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        +   "  Exception: every main source belongs to a part: 1 violation à l'état des lieux — équipe paiement, échéance 2026-12-31 — la source hors carte disparaît avec le module historique",
+        +   'Changement: aucun'
+        -   '    Mesure: chg_integrated',
+        -   "    toléré: every main source belongs to a part: 1 violation à l'état des lieux, 1 sur le projet intégré",
+        -   "    reste: part app may not depend on part infra: 2 violations à l'état des lieux, 1 sur le projet intégré"
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: '    Mesure: chg_integrated'
+        1: "    toléré: every main source belongs to a part: 1 violation à l'état des lieux, 1 sur le projet intégré"
+        2: "    reste: part app may not depend on part infra: 2 violations à l'état des lieux, 1 sur le projet intégré"
+      actual:
+        0: "  Exception: every main source belongs to a part: 1 violation à l'état des lieux — équipe paiement, échéance 2026-12-31 — la source hors carte disparaît avec le module historique"
+        1: 'Changement: aucun'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:748:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 4 - statut d'une migration mesurée sur le projet intégré
+  ---
+  duration_ms: 1.347709
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-L91InW/test/v0-pure/program-status.test.ts:569:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..4
+# tests 12
+# suites 4
+# pass 9
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 133.870458

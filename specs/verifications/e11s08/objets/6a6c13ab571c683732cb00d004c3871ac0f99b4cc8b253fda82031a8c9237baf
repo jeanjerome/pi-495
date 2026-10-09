@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une application qui n'enfreint plus aucune règle de la carte est annoncée conforme dans ce que sa vérification contrôle",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/migration.ts",
+    "ligne": 183,
+    "constat": "The code keeps the promise. A throwaway probe through the harness (E2 deletes LegacyClock, a survey with no violation, then /495 measure) gives PASS, the program closed, and a status in French and in English that names the parts, the ArchUnit control and the six unseen points with their reasons. But no test checks that the measure takes the tool and the unseen points from the dossier of the cited survey. The status test gets them from a state built by hand, and the v2 test only checks the parts.",
+    "mutation": "In mapMeasureOf, `unseen: adopted.unseen ?? []` replaced by `unseen: []`, and separately `tool: titles.join(\"; \")` replaced by `tool: \"\"`. Both mutations leave program.test.ts, program-status.test.ts, program-architecture-migration-measure.test.ts, program-measure-entry.test.ts and program-baseline.test.ts green: 0 failures."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La fin d'une migration est refusée si une ancienne dépendance subsiste",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/views.ts",
+    "ligne": 315,
+    "constat": "No test holds the `passed &&` condition that keeps a milestone that did not pass from showing conformity. In this scenario's status, conformity stays hidden anyway: the measure still counts a violation, so `conforms` is false. The promise is kept, but by the measure and not by that condition.",
+    "mutation": "`conformity: passed && e.map_measure.conforms ? …` replaced by `conformity: e.map_measure.conforms ? …`: 0 failures."
+   }
+  ],
+  "resume": "I checked all six scenarios by reading the code, running 30 mutations on the story's tests, and running two throwaway probes through the harness (not committed). The code keeps every promise. Through the harness, scenario 1 gives PASS, cites the survey, shows 2→0 and 1→1 tolerated, closes the program, and the French and English status says the target reached without claiming conformity. Scenario 5 gives PASS, a withdrawn exception and conformity with parts, tool and unseen points. Scenarios 2 to 4 (remaining, appeared, expired exception) are held by the domain tests: each mutation of the verdict, the appearance and the due-date comparison fails them. Every refusal of scenario 6 fails its test when mutated: a candidate change, a survey not accepted, another project, a tree without the latest integration, a blind spot, a control that measured nothing, and each map difference (part, perimeter, style, role, package, called_by, relation). The one test-coverage gap that blocks: no test checks that the measure takes the verification tool and the unseen points from the cited survey (A1-1, introduced, to fix), so the verdict is fail."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une application qui n'enfreint plus aucune règle de la carte est annoncée conforme dans ce que sa vérification contrôle",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/migration.ts",
+    "ligne": 183,
+    "constat": "Le code tient la promesse : une sonde sur le banc v2 montre que la mesure porte l'outil (« the rules of the adopted architecture map, checked by ArchUnit ») et les six points que la vérification ne voit pas, chacun avec sa raison. Mais aucun test ne vérifie que l'outil et ces points viennent de l'état des lieux cité. Le test v2 n'assert que `map.parts`. Le test de statut fabrique `map` à la main. Une mesure qui perdrait l'outil ou les points non vus laisserait donc toute la suite verte, alors que le statut ne les nommerait plus.",
+    "mutation": "`unseen: adopted.unseen ?? []` → `unseen: []` : 0 échec sur program.test.ts, program-status.test.ts et program-architecture-migration-measure.test.ts. Même résultat avec `tool: titles.join(\"; \")` → `tool: \"\"`."
+   }
+  ],
+  "resume": "J'ai relu les six scénarios sur le diff 6b572f4d...eb0efeb8 et lancé 32 mutations sur les trois fichiers de test de la story (program.test.ts, program-status.test.ts, program-architecture-migration-measure.test.ts).\n\nLe code tient toutes les promesses :\n- la mesure lit les violations dans le dossier de l'état des lieux cité ;\n- elle refuse un changement à candidat, un état des lieux non accepté, un autre projet, un arbre sans l'intégration de E2, une carte en angle mort, un contrôle qui n'a rien mesuré, et une carte qui diffère par une partie, son périmètre, son style, le rôle d'un paquet, ceux qui l'appellent ou une relation ;\n- le jugement range chaque règle en supprimée, restante, tolérée, apparue ou écartée, avec ses deux comptes, et chaque exception en cours, échue ou retirée ;\n- le verdict passe en FAIL sur une règle restante ou apparue, et le jalon final PASS clôt le programme ;\n- le statut ne dit la cible atteinte que sur un jalon PASS et la conformité que si la mesure ne compte aucune violation, il nomme les parties, l'outil et les points non vus, et dit l'exception retirée, en français et en anglais.\n\n29 mutations sont tuées par un test (les cinq paires de mutations du verdict, de l'appartenance d'une règle au jalon, de l'échéance, du retrait d'exception, de la date de mesure, de la règle apparue, de la conformité, de la cible, de l'état de l'exception dans la vue et des lignes du statut, plus les quinze mutations des refus et du point de départ dans le harnais).\n\nUn seul constat introduit, à corriger : aucun test ne vérifie que l'outil et les points que la vérification ne voit pas passent de la carte adoptée à la mesure (`src/application/migration.ts:183`). Les deux mutations qui les vident laissent la suite verte.\n\nDeux mutations survivantes sont hors des promesses, donc non relevées :\n- annoncer la conformité sans exiger un PASS (`views.ts:250`) ;\n- afficher une règle écartée dans les lignes de mesure.\n\nL'arbre est remis à l'état d'origine (`git status` : seul node_modules non suivi). Verdict : fail."
+ }
+]
