@@ -1,0 +1,74 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un calcul interrompu ne devient pas vert",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/formal/tlc.ts",
+    "ligne": 215,
+    "constat": "Each check that turns an unfinished run into inconclusive or error can be removed alone and every test stays green. The checks cover the success message 2193, the exit code, the end message 2186, the version, error-class messages, simulation, depth-first and the absent breadth-first mode. They overlap on the replayed outputs, so the promise holds only through all of them together. Removing the success, exit-code and end checks at once does fail the SIGTERM 143 case, and the simulation, depth-first, unreadable and parse-error cases all rest on the success message.",
+    "mutation": "Removed one at a time: `if (!has(SUCCESS))`, `if (observation.exit_code !== 0)`, the FINISHED check, `if (version === null)`, `if (failure)`, `if (has(MODE_SIMULATION))`, `if (has(MODE_DEPTH_FIRST))`, `if (!has(MODE_EXHAUSTIVE))` → 21/21 green each time. SUCCESS + exit + FINISHED removed together → the SIGTERM 143 case fails."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un calcul interrompu ne devient pas vert",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 211,
+    "constat": "In check-formal, the branch that turns a run with no TLC facts into error is not held by any test. That happens when the runner fails before the reader, or when the configuration cannot be read. The promised paths (timeout, signal, unreadable output) all reach the reader, so this branch is a safeguard outside the scenarios.",
+    "mutation": "`return report(\"error\", evidence.limits.notes, ...)` → `report(\"completed\", ...)` when `result === undefined`: tlc-execution and tlc-qualification stay green (11/11)."
+   }
+  ],
+  "resume": "The verdict is pass: the code keeps all three promises and a test holds each one, with real TLC 2.19 (the Toolbox jar on this machine, Java 25). Before any mutation, tlc-result, tlc-execution and tlc-qualification passed 24/24.\n\n- **Valid model:** the valid witness comes out completed, with Borne (invariant) and Termine (temporal) verified, bounds {Max: \"3\"}, the TLC version, pass true and exit 0. These tests fail when I force every property to verified, empty the bounds, map completed to another verdict, drop the result from the stored report, or set pass to always true.\n- **Violation:** the mutant comes out counterexample on Borne, with its trace x=0 → x=2 → x=4 kept in the stored report, and exit 1. Tests fail when I empty the trace, drop the counterexample, or remove a code from the violation list.\n- **Interrupted run:** a timeout, a SIGKILL, a SIGTERM exit 143, an output cut at its bound, a simulation, a depth-first search, an output that is not TLC's, a parse error and a configuration with no property all come out inconclusive or error, with no property verified and no PASS. The real incident witness, stopped by its 3 s budget, also gives no PASS. Tests fail when I remove the incident check, the truncation check, the no-property check or the temporal-property check, when I map inconclusive or error to PASS, or when I bend the manifest's timeout, the exit codes, the missing-jar check or the required-properties check in check-formal.\n\nTwo findings, both to weigh, neither blocking nor to fix:\n- **A1-1:** each of the checks that keep an unfinished run from completing can be removed alone without any test failing. They overlap, so the promise holds only through all of them together; removing the main three at once does fail a test.\n- **A1-2:** the branch of check-formal that gives error when the runner returns no TLC facts has no test. It is a safeguard outside the scenarios.\n\nNothing was committed; the tree is clean apart from the `node_modules` link."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — dossier de travail jetable",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 213,
+    "constat": "Le code copie les fichiers dans un dossier mkdtemp et le supprime ensuite. Mais aucun test ne vérifie que TLC tourne dans ce dossier jetable ni que le dossier est retiré : faire tourner le contrôle dans le dossier source du manifeste, ou ne plus le supprimer, laisse tous les tests verts. Avec le vrai TLC, le metadir `states` et les modules standard extraits seraient alors écrits à côté du modèle approuvé.",
+    "mutation": "`workspace_path: work,` → `workspace_path: directory,` (l.213) : tlc-execution.test.ts reste vert. Même résultat quand on retire `rmSync(work, { recursive: true, force: true });` (l.230), tlc-execution et tlc-qualification restent verts."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — outils et versions déclarés",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 113,
+    "constat": "check-formal refuse un jar dont l'empreinte n'est pas celle du manifeste, mais aucun test ne le prouve. Le test d'exécution fabrique un faux jar dont l'empreinte est celle du manifeste, et le test de qualification utilise le jar approuvé. Sans cette comparaison, n'importe quel tla2tools.jar tournerait, et le rapport afficherait quand même le `jar_sha256` du manifeste comme celui de l'outil lancé.",
+    "mutation": "`if (actual !== manifest.tool.jar_sha256) return …` → `if (false) return …` : tlc-execution.test.ts et tlc-qualification.test.ts restent verts."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Sécurité — ressources bornées",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 167,
+    "constat": "Un test tient le budget de temps du manifeste : une mutation du timeout fait échouer « a run stopped at the budget of the manifest is inconclusive ». Aucun test ne vérifie en revanche que la borne de sortie et le tas `-Xmx` du manifeste arrivent jusqu'au runner et à la commande.",
+    "mutation": "`max_output_bytes: budget.max_output_bytes,` → `max_output_bytes: 1e9,` puis `` `-Xmx${budget.heap_mb}m` `` → `\"-Xmx64g\"` : tlc-execution.test.ts reste vert dans les deux cas."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Un calcul interrompu ne devient pas vert",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/formal/tlc.ts",
+    "ligne": 212,
+    "constat": "Plusieurs gardes de shortfallOf et de tlcResultOf sont redondantes sur les sorties enregistrées : code de sortie non nul, simulation, profondeur d'abord, absence de 2187 ou de 2193, message de classe erreur, version absente, absence de FINISHED. Chacune, retirée seule, laisse les tests verts, car une autre garde rend encore inconclusive ou error. La promesse reste tenue : retirer la garde d'incident, de troncature ou de propriété absente fait échouer un test. Je n'ai pas pu chercher une vraie sortie de TLC où l'une de ces gardes serait la seule : le jar de TLC a disparu de /Applications pendant la relecture.",
+    "mutation": "Retrait, une par une, des gardes `exit_code !== 0`, `MODE_SIMULATION`, `MODE_DEPTH_FIRST`, `!MODE_EXHAUSTIVE`, `!SUCCESS`, `failure`, `version === null` et `FINISHED` : tlc-result.test.ts et tlc-execution.test.ts restent verts à chaque fois."
+   }
+  ],
+  "resume": "Je rends `fail` à cause de deux constats « à corriger », tous deux dans `scripts/check-formal.ts`, introduit par la branche. Les trois scénarios de la story sont tenus par le code et par des tests ; les manques portent sur la section Sécurité.\n\n**Scénarios (tous tenus, 24 tests verts, vrai TLC compris) :**\n- **Exploration terminée :** retirer `verified`, les bornes, les invariants ou le PASS fait échouer `tlc-result.test.ts` et la qualification sur le vrai TLC.\n- **Contre-exemple :** retirer l'impression des états, le code 2110, la trace ou le FAIL fait échouer `tlc-result.test.ts` et la qualification.\n- **Calcul interrompu :** retirer la garde d'incident, de troncature ou de propriété absente fait échouer un test. Dans check-formal, muter le budget de temps, le code de sortie, la normalisation des propriétés requises ou le drapeau `pass` fait aussi échouer un test.\n\n**Constats « à corriger » :**\n- **B1-1, dossier de travail jetable :** faire tourner le contrôle dans le dossier source du modèle (l.213), ou ne plus le supprimer (l.230), laisse tous les tests verts.\n- **B1-2, outils et versions déclarés :** retirer la comparaison de l'empreinte du jar (l.113) laisse tous les tests verts. Aucun test n'essaie un jar dont l'empreinte diffère de celle du manifeste.\n\n**Constats « à peser » :**\n- **B1-3 :** la borne de sortie et le tas `-Xmx` du manifeste ne sont tenus par aucun test ; seul le budget de temps l'est.\n- **B1-4 :** plusieurs gardes du lecteur sont redondantes sur les sorties enregistrées. Chacune, retirée seule, survit, mais la promesse tient quand même.\n\n**Réserve :** le TLA+ Toolbox a disparu de `/Applications` pendant ma relecture. Les trois témoins réels ont tourné au vert avant cela, mais je n'ai pas pu sonder d'autres sorties de TLC, comme un arrêt que TLC impose lui-même. Toutes les mutations ont été remises : `git status` ne montre que `node_modules`."
+ }
+]

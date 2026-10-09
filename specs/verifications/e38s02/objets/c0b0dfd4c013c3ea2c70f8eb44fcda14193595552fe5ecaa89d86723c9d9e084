@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Un calcul interrompu ne devient pas vert",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/formal/tlc.ts",
+    "ligne": 324,
+    "constat": "Quand le lecteur TLC ne peut pas lire la configuration, il rend bien INDETERMINATE : une sonde jetable le confirme. Mais aucun test ne vérifie ce verdict au niveau du lecteur. Le nouveau test de check-formal sur une configuration absente passe par la branche « facts.tlc absent → error » de check-formal, qui ignore le verdict du lecteur. Sous la mutation, l'évidence du runner générique sort PASS sans aucun fait TLC. Aujourd'hui, aucun contrôle du produit ne déclare le parser tlc, donc cette PASS n'est pas atteignable.",
+    "mutation": "Dans la branche catch de readTlc, verdict \"INDETERMINATE\" → \"PASS\" : 31/31 tests verts. Une sonde par le runner générique donne alors evidence.verdict = PASS."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Une violation conserve son chemin d’accès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/formal/tlc.ts",
+    "ligne": 293,
+    "constat": "Une violation dont TLC n'imprime aucun état doit rendre inconclusive, et non un counterexample sans chemin. Aucun test ne tient cette garde. Le résultat reste FAIL, jamais PASS, et le cas promis (une violation avec sa trace) est tenu par le test du contre-exemple.",
+    "mutation": "`trace.length > 0` → `true` : tous les tests restent verts (l'inverse, `false`, fait bien échouer le test du contre-exemple)."
+   },
+   {
+    "id": "A2-3",
+    "scenario": "Un modèle valide termine l’exploration annoncée / Une violation conserve son chemin d’accès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 228,
+    "constat": "Le rapport que check-formal garde dans l'object store porte le résultat du lecteur : propriétés vérifiées, bornes, contre-exemple. Seul le test v4 de qualification vérifie qu'il y arrive. Ce test est sauté sur cette machine, faute de tla2tools.jar, et les tests v1 restent verts quand ce résultat est retiré du rapport. Les lignes imprimées (propriétés, bornes, trace) ne sont lues par aucun test. Côté lecteur, les deux promesses sont tenues par les tests v1.",
+    "mutation": "`report(outcome, reasons, result, raw)` → `report(outcome, reasons, null, raw)` : v1 vert, v4 sauté. Retrait de `...(result ? explored(result) : [])` : v1 vert, et v4 ne lit pas ces lignes non plus."
+   }
+  ],
+  "resume": "Relecture A, tour 2, de e38s02 (diff 15ffead3...816adb66, que des tests). J'ai fait 45 mutations sur src/adapters/formal/tlc.ts et scripts/check-formal.ts, en lançant tlc-result.test.ts et tlc-execution.test.ts. Le code tient les trois promesses. Les constats du tour 1 sont maintenant tenus par un test. Chaque garde de shortfallOf et de tlcResultOf fait échouer au moins un cas quand on la retire (échec, code de sortie, simulation, profondeur d'abord, mode absent, 2193, propriété absente, temporel, capacité, incident, troncature, version, FINISHED). De même pour l'empreinte du jar, la copie jetable, son retrait, le tmpdir, le -Xmx, la borne de sortie, la branche sans faits TLC, les propriétés requises, les codes de sortie et le champ pass. Il reste trois constats à peser, tous introduits par la story, aucun bloquant ni à corriger. A2-1 : aucun test ne tient le verdict INDETERMINATE du lecteur quand la configuration est illisible. A2-2 : la garde qui empêche un counterexample sans trace n'est pas testée. A2-3 : le résultat porté par le rapport de check-formal n'est tenu que par le test v4, sauté ici faute du jar de TLC. Trois mutations survivantes ne valent pas constat : la branche spawn_error, déjà couverte par la garde de version ; un timeout figé à 30 s, déjà traité en B1-3 ; le champ exhaustive, hors promesse. L'arbre est rendu propre : sonde et harnais supprimés."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Un calcul interrompu ne devient pas vert",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/formal/tlc.ts",
+    "ligne": 323,
+    "constat": "Quand la configuration TLC ne peut pas être lue, le lecteur rend bien INDETERMINATE : une sonde faite au travers du runner l'a confirmé. Mais aucun test ne vérifie ce verdict. Le nouveau test « a run whose output cannot be read for want of its configuration is an error, not PASS » passe par check-formal, qui ignore evidence.verdict et décide seulement d'après l'absence de facts.tlc. Si le verdict devient PASS, le runner du produit, qui a TLC_READER parmi ses lecteurs communs, produit une preuve PASS pour une sortie qu'il n'a pas pu interpréter, et toute la suite reste verte.",
+    "mutation": "tlc.ts:323, dans la branche catch de readTlc, `verdict: \"INDETERMINATE\"` remplacé par `verdict: \"PASS\"` : tlc-result.test.ts et tlc-execution.test.ts restent verts (31/31). Une sonde jetable qui passe par le runner, avec ReplayedSandbox et sans Compteur.cfg, échoue sous cette mutation."
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Un modèle valide termine l’exploration annoncée ; Une violation conserve son chemin d’accès",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-formal.ts",
+    "ligne": 228,
+    "constat": "Le lecteur rend les propriétés vérifiées, les bornes, completed et le contre-exemple, et les tests v1 le vérifient. Dans le rapport de check-formal, le seul test qui vérifie ces éléments et le code de sortie 1 d'un contre-exemple est la qualification v4. Ce test est sauté quand tla2tools.jar est absent, et c'est le cas sur cette machine (ni /Applications ni TLA2TOOLS_JAR). Retirer le résultat du rapport stocké laisse donc tous les tests exécutés verts.",
+    "mutation": "check-formal.ts:228, `report(outcome, reasons, result, raw)` remplacé par `report(outcome, reasons, null, raw)` : tlc-execution.test.ts reste vert. La qualification v4, sautée ici, la ferait échouer. Retirer `...explored(result)` à la ligne 245 laisse aussi tout vert."
+   }
+  ],
+  "resume": "Relecteur B, tour 2 de e38s02 : verdict fail. Un constat est à corriger et introduit par la branche (B2-1), le second est seulement à peser (B2-2).\n\nJ'ai fait une trentaine de mutations sur tlc.ts et check-formal.ts.\n\nScénarios 1 et 2, au niveau du lecteur : tout est tenu. Retirer verified, les bornes, l'issue completed, le contre-exemple ou le verdict FAIL fait échouer un test.\n\nScénario 3 : chaque garde, retirée seule, fait maintenant échouer son cas. Cela vaut pour l'incident, la troncature, FINISHED, la version, le message d'erreur, le code de sortie, la simulation, la recherche en profondeur, l'absence de 2187, l'absence de 2193, l'absence de propriété et la propriété temporelle. Les nouveaux tests répondent donc à A1-1 et B1-4.\n\nSécurité, dans check-formal : les nouveaux tests tiennent la comparaison du jar, le modèle non approuvé, le tas -Xmx, la borne de sortie, le dossier jetable (cwd, java.io.tmpdir, suppression), la branche sans faits TLC, les codes de sortie et la normalisation des propriétés requises. Cela répond à B1-1, B1-2, B1-3 et A1-2.\n\nIl reste deux points. B2-1 : quand la configuration ne peut pas être lue, le lecteur rend bien INDETERMINATE, mais aucun test ne vérifie ce verdict. Le nouveau test passe par check-formal, qui ignore evidence.verdict. Si ce verdict devient PASS, le runner du produit, qui charge TLC_READER, produit une preuve PASS, et tout reste vert. B2-2 : dans le rapport de check-formal, les propriétés, les bornes et le contre-exemple ne sont vérifiés que par la qualification v4. Ce test est sauté ici, faute de tla2tools.jar sur la machine.\n\nDeux gardes redondantes ne changent pas l'issue et ne sont pas comptées comme constats. La branche spawn_error hors ENOENT finit de toute façon en error, faute de version. Un timeout figé à 30000 ms passe aussi, parce que le faux java dure 60 s.\n\nL'arbre est restauré, rien n'a été commité."
+ }
+]

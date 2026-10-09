@@ -2,7 +2,7 @@
 
 Story : e38s02
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : Outillage local de développement, réutilisable via un adaptateur
 Dépendances : e38s01

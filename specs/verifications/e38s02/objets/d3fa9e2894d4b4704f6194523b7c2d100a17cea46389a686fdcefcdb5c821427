@@ -1,0 +1,103 @@
+TAP version 13
+# Subtest: a TLC run that cannot explore
+    # Subtest: an absent tool or a timeout is neither a success nor a violation of a business rule
+        # Subtest: an absent Java runtime is an error naming the missing capability
+        ok 1 - an absent Java runtime is an error naming the missing capability
+          ---
+          duration_ms: 6.711625
+          type: 'test'
+          ...
+        # Subtest: a class path without TLC is an error naming the missing capability, not an unreadable output
+        ok 2 - a class path without TLC is an error naming the missing capability, not an unreadable output
+          ---
+          duration_ms: 8.191
+          type: 'test'
+          ...
+        # Subtest: an exploration stopped at its timeout is inconclusive
+        ok 3 - an exploration stopped at its timeout is inconclusive
+          ---
+          duration_ms: 516.686708
+          type: 'test'
+          ...
+        1..3
+    ok 1 - an absent tool or a timeout is neither a success nor a violation of a business rule
+      ---
+      duration_ms: 532.299042
+      type: 'suite'
+      ...
+    # Subtest: the development control of an approved model
+        # Subtest: an absent jar is an error that says which jar to name, and nothing runs
+        ok 1 - an absent jar is an error that says which jar to name, and nothing runs
+          ---
+          duration_ms: 149.0165
+          type: 'test'
+          ...
+        # Subtest: a jar other than the approved one is an error naming both digests, and nothing runs
+        ok 2 - a jar other than the approved one is an error naming both digests, and nothing runs
+          ---
+          duration_ms: 126.860458
+          type: 'test'
+          ...
+        # Subtest: a model that differs from the approved one is an error, and nothing runs
+        ok 3 - a model that differs from the approved one is an error, and nothing runs
+          ---
+          duration_ms: 128.419833
+          type: 'test'
+          ...
+        # Subtest: a manifest that names no required property is an error naming the field to provide, and nothing runs
+        ok 4 - a manifest that names no required property is an error naming the field to provide, and nothing runs
+          ---
+          duration_ms: 120.554875
+          type: 'test'
+          ...
+        # Subtest: a completed exploration whose configuration leaves a required property out is an error, not PASS
+        ok 5 - a completed exploration whose configuration leaves a required property out is an error, not PASS
+          ---
+          duration_ms: 251.084583
+          type: 'test'
+          ...
+        # Subtest: TLC runs in a disposable copy of the model, removed after the run, and writes nothing beside the approved model
+        ok 6 - TLC runs in a disposable copy of the model, removed after the run, and writes nothing beside the approved model
+          ---
+          duration_ms: 298.989958
+          type: 'test'
+          ...
+        # Subtest: TLC runs with the heap of the manifest, and an output past the bound of the manifest is inconclusive
+        ok 7 - TLC runs with the heap of the manifest, and an output past the bound of the manifest is inconclusive
+          ---
+          duration_ms: 303.93025
+          type: 'test'
+          ...
+        # Subtest: a run whose output cannot be read for want of its configuration is an error, not PASS
+        ok 8 - a run whose output cannot be read for want of its configuration is an error, not PASS
+          ---
+          duration_ms: 212.60775
+          type: 'test'
+          ...
+        # Subtest: a run stopped at the budget of the manifest is inconclusive, and its raw output is kept
+        ok 9 - a run stopped at the budget of the manifest is inconclusive, and its raw output is kept
+          ---
+          duration_ms: 1146.322208
+          type: 'test'
+          ...
+        1..9
+    ok 2 - the development control of an approved model
+      ---
+      duration_ms: 2738.280125
+      type: 'suite'
+      ...
+    1..2
+ok 1 - a TLC run that cannot explore
+  ---
+  duration_ms: 3270.878333
+  type: 'suite'
+  ...
+1..1
+# tests 12
+# suites 3
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3537.167084

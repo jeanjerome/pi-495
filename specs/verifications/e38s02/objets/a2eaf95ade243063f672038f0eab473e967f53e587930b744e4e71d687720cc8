@@ -1,0 +1,42 @@
+TAP version 13
+# Subtest: the qualification of the TLC control on its three witnesses
+    # Subtest: the three witnesses render completed, counterexample, and error or inconclusive respectively
+        # Subtest: the valid model is completed, its safety property and the reachability of its valid end verified under its bounds
+        ok 1 - the valid model is completed, its safety property and the reachability of its valid end verified under its bounds
+          ---
+          duration_ms: 682.979125
+          type: 'test'
+          ...
+        # Subtest: the mutant is a counterexample to the expected invariant, not a syntax error, its path kept
+        ok 2 - the mutant is a counterexample to the expected invariant, not a syntax error, its path kept
+          ---
+          duration_ms: 682.835167
+          type: 'test'
+          ...
+        # Subtest: the incident is error or inconclusive, and no PASS comes out of it
+        ok 3 - the incident is error or inconclusive, and no PASS comes out of it
+          ---
+          duration_ms: 3476.7665
+          type: 'test'
+          ...
+        1..3
+    ok 1 - the three witnesses render completed, counterexample, and error or inconclusive respectively
+      ---
+      duration_ms: 4843.114375
+      type: 'suite'
+      ...
+    1..1
+ok 1 - the qualification of the TLC control on its three witnesses
+  ---
+  duration_ms: 4843.29425
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 2
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4957.997292

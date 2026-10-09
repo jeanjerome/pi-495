@@ -1,0 +1,268 @@
+TAP version 13
+# Subtest: the result of a TLC exploration
+    # Subtest: an exhaustive exploration that ends with its invariant activated is completed, names the properties verified and the bounds, and is PASS for the model only
+    not ok 1 - an exhaustive exploration that ends with its invariant activated is completed, names the properties verified and the bounds, and is PASS for the model only
+      ---
+      duration_ms: 3.695875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:73:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the result is completed: ["parser tlc is not qualified"]
+        + actual - expected
+        
+        + undefined
+        - 'completed'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'completed'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:75:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: a violated invariant keeps its counterexample, state by state, and concludes counterexample
+    not ok 2 - a violated invariant keeps its counterexample, state by state, and concludes counterexample
+      ---
+      duration_ms: 1.753292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:88:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the result is counterexample: ["parser tlc is not qualified"]
+        + actual - expected
+        
+        + undefined
+        - 'counterexample'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'counterexample'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:90:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: the interrupted output and the one without property are not PASS
+        # Subtest: a run killed at its timeout before the end of the exploration
+        not ok 1 - a run killed at its timeout before the end of the exploration
+          ---
+          duration_ms: 1.591042
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a run killed at its timeout before the end of the exploration is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1905:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: a run terminated by a signal
+        not ok 2 - a run terminated by a signal
+          ---
+          duration_ms: 1.41725
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a run terminated by a signal is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: a complete output cut at the output bound
+        not ok 3 - a complete output cut at the output bound
+          ---
+          duration_ms: 1.241666
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a complete output cut at the output bound is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: an exhaustive exploration whose configuration activates no property
+        not ok 4 - an exhaustive exploration whose configuration activates no property
+          ---
+          duration_ms: 1.129959
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'an exhaustive exploration whose configuration activates no property is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: a random simulation
+        not ok 5 - a random simulation
+          ---
+          duration_ms: 1.1705
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a random simulation is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: a depth-first search stopped at its depth
+        not ok 6 - a depth-first search stopped at its depth
+          ---
+          duration_ms: 1.128292
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a depth-first search stopped at its depth is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: an output that is not TLC's
+        not ok 7 - an output that is not TLC's
+          ---
+          duration_ms: 1.235125
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: `an output that is not TLC's is inconclusive or error, got undefined: ["parser tlc is not qualified"]`
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        # Subtest: a model that does not parse
+        not ok 8 - a model that does not parse
+          ---
+          duration_ms: 1.146416
+          type: 'test'
+          location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:136:4'
+          failureType: 'testCodeFailure'
+          error: 'a model that does not parse is inconclusive or error, got undefined: ["parser tlc is not qualified"]'
+          code: 'ERR_ASSERTION'
+          name: 'AssertionError'
+          expected: true
+          actual: false
+          operator: '=='
+          stack: |-
+            TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:139:12)
+            async Test.run (node:internal/test_runner/test:1409:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+          ...
+        1..8
+    not ok 3 - the interrupted output and the one without property are not PASS
+      ---
+      duration_ms: 10.363083
+      type: 'suite'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:112:2'
+      failureType: 'subtestsFailed'
+      error: '8 subtests failed'
+      code: 'ERR_TEST_FAILURE'
+      ...
+    # Subtest: a temporal property is claimed only once its check has finished
+    not ok 4 - a temporal property is claimed only once its check has finished
+      ---
+      duration_ms: 6.43925
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:152:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   {
+        -     kind: 'invariant',
+        -     name: 'Borne',
+        -     verified: true
+        -   },
+        -   {
+        -     kind: 'temporal',
+        -     name: 'Termine',
+        -     verified: true
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          name: 'Borne'
+          kind: 'invariant'
+          verified: true
+        1:
+          name: 'Termine'
+          kind: 'temporal'
+          verified: true
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:155:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the result of a TLC exploration
+  ---
+  duration_ms: 22.772542
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YGQEso/test/v1-adapters/tlc-result.test.ts:72:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 11
+# suites 2
+# pass 0
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 273.473792

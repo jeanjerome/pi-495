@@ -1,0 +1,138 @@
+TAP version 13
+# Subtest: the result of a TLC exploration
+    # Subtest: an exhaustive exploration that ends with its invariant activated is completed, names the properties verified and the bounds, and is PASS for the model only
+    ok 1 - an exhaustive exploration that ends with its invariant activated is completed, names the properties verified and the bounds, and is PASS for the model only
+      ---
+      duration_ms: 19.570083
+      type: 'test'
+      ...
+    # Subtest: a violated invariant keeps its counterexample, state by state, and concludes counterexample
+    ok 2 - a violated invariant keeps its counterexample, state by state, and concludes counterexample
+      ---
+      duration_ms: 7.854667
+      type: 'test'
+      ...
+    # Subtest: the interrupted output and the one without property are not PASS
+        # Subtest: a run killed at its timeout before the end of the exploration
+        ok 1 - a run killed at its timeout before the end of the exploration
+          ---
+          duration_ms: 8.578958
+          type: 'test'
+          ...
+        # Subtest: a Java run ended by SIGTERM, which exits 143 after its shutdown hooks
+        ok 2 - a Java run ended by SIGTERM, which exits 143 after its shutdown hooks
+          ---
+          duration_ms: 11.929791
+          type: 'test'
+          ...
+        # Subtest: a complete output cut at the output bound
+        ok 3 - a complete output cut at the output bound
+          ---
+          duration_ms: 5.6445
+          type: 'test'
+          ...
+        # Subtest: an exhaustive exploration whose configuration activates no property
+        ok 4 - an exhaustive exploration whose configuration activates no property
+          ---
+          duration_ms: 5.91675
+          type: 'test'
+          ...
+        # Subtest: a random simulation
+        ok 5 - a random simulation
+          ---
+          duration_ms: 5.989875
+          type: 'test'
+          ...
+        # Subtest: a depth-first search stopped at its depth
+        ok 6 - a depth-first search stopped at its depth
+          ---
+          duration_ms: 6.273333
+          type: 'test'
+          ...
+        # Subtest: an output that is not TLC's
+        ok 7 - an output that is not TLC's
+          ---
+          duration_ms: 5.53375
+          type: 'test'
+          ...
+        # Subtest: a model that does not parse
+        ok 8 - a model that does not parse
+          ---
+          duration_ms: 5.96625
+          type: 'test'
+          ...
+        # Subtest: a complete output whose process exits non-zero
+        ok 9 - a complete output whose process exits non-zero
+          ---
+          duration_ms: 6.028583
+          type: 'test'
+          ...
+        # Subtest: a complete output that reports an exception of TLC
+        ok 10 - a complete output that reports an exception of TLC
+          ---
+          duration_ms: 6.269042
+          type: 'test'
+          ...
+        # Subtest: a complete output that names no search mode
+        ok 11 - a complete output that names no search mode
+          ---
+          duration_ms: 6.653333
+          type: 'test'
+          ...
+        # Subtest: an output where TLC finished without saying that model checking completed
+        ok 12 - an output where TLC finished without saying that model checking completed
+          ---
+          duration_ms: 6.992167
+          type: 'test'
+          ...
+        # Subtest: an output that never says TLC finished
+        ok 13 - an output that never says TLC finished
+          ---
+          duration_ms: 7.048583
+          type: 'test'
+          ...
+        # Subtest: an output without TLC's version
+        ok 14 - an output without TLC's version
+          ---
+          duration_ms: 7.081334
+          type: 'test'
+          ...
+        1..14
+    ok 3 - the interrupted output and the one without property are not PASS
+      ---
+      duration_ms: 96.534459
+      type: 'suite'
+      ...
+    # Subtest: names the substituted constants among the bounds and what else of the configuration limits the claim
+    ok 4 - names the substituted constants among the bounds and what else of the configuration limits the claim
+      ---
+      duration_ms: 5.426583
+      type: 'test'
+      ...
+    # Subtest: an unchecked deadlock is an assumption once, whether the configuration or the -deadlock option leaves it
+    ok 5 - an unchecked deadlock is an assumption once, whether the configuration or the -deadlock option leaves it
+      ---
+      duration_ms: 6.952334
+      type: 'test'
+      ...
+    # Subtest: a temporal property is claimed only once its check has finished
+    ok 6 - a temporal property is claimed only once its check has finished
+      ---
+      duration_ms: 11.681291
+      type: 'test'
+      ...
+    1..6
+ok 1 - the result of a TLC exploration
+  ---
+  duration_ms: 148.641417
+  type: 'suite'
+  ...
+1..1
+# tests 19
+# suites 2
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 420.13175
