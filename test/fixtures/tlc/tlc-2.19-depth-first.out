@@ -1,0 +1,34 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2271:0 @!@!@
+Running depth-first search Model-Checking with fp 94 and seed -2107820256817833841 with 1 worker on 16 cores with 27300MB heap and 64MB offheap memory [pid: 17987] (Mac OS X 27.0.1 aarch64, Homebrew 25.0.4.1 x86_64).
+@!@!@ENDMSG 2271 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /work/Compteur.tla
+Parsing file /tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Compteur
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2026-10-09 14:24:47)
+@!@!@ENDMSG 2185 @!@!@
+@!@!@STARTMSG 2208:0 @!@!@
+Finished computing initial states: 1 states generated, with 1 of them distinct.
+@!@!@ENDMSG 2208 @!@!@
+@!@!@STARTMSG 2205:0 @!@!@
+Starting level 2: 1 states generated, 1 distinct states found.
+@!@!@ENDMSG 2205 @!@!@
+@!@!@STARTMSG 2206:0 @!@!@
+Progress(-1) at 2026-10-09 14:24:47: 2 states generated, 2 distinct states found, -1 states left on queue.
+@!@!@ENDMSG 2206 @!@!@
+@!@!@STARTMSG 2204:0 @!@!@
+2 states generated, 2 distinct states found.
+@!@!@ENDMSG 2204 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 113ms at (2026-10-09 14:24:47)
+@!@!@ENDMSG 2186 @!@!@

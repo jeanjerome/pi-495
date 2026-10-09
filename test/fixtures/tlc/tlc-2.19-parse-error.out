@@ -1,0 +1,42 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2187:0 @!@!@
+Running breadth-first search Model-Checking with fp 54 and seed -1526312581731235678 with 1 worker on 16 cores with 27300MB heap and 64MB offheap memory [pid: 17952] (Mac OS X 27.0.1 aarch64, Homebrew 25.0.4.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+@!@!@ENDMSG 2187 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /work/Casse.tla
+***Parse Error***
+Was expecting "Expression or Instance"
+Encountered "Beginning of definition" at line 3, column 9 and token "==" 
+
+Residual stack trace follows:
+Definition starting at line 3, column 1.
+Module body starting at line 2, column 1.
+Module definition starting at line 1, column 1.
+
+
+Fatal errors while parsing TLA+ spec in file Casse
+
+tla2sany.semantic.AbortException
+*** Abort messages: 1
+
+In module Casse
+
+Could not parse module Casse from file Casse.tla
+
+
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2026-10-09 14:24:24)
+@!@!@ENDMSG 2185 @!@!@
+@!@!@STARTMSG 3002:1 @!@!@
+Parsing or semantic analysis failed.
+@!@!@ENDMSG 3002 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 98ms at (2026-10-09 14:24:24)
+@!@!@ENDMSG 2186 @!@!@

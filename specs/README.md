@@ -12,6 +12,7 @@ La façon dont un changement est fait vit ailleurs, dans `cycle/`.
 | `bugs/registry.yaml`, `bugs/registry-fixed.yaml`, `bugs/BUG-*.md` | les défauts ouverts (`registry.yaml`), les défauts corrigés avec la révision qui les a corrigés (`registry-fixed.yaml`), et leur analyse | la main ; l'outil du cycle déplace une entrée corrigée vers l'archive |
 | `adr/` | les décisions du produit, une par fichier : `ADR-001..018` extraites de la conception technique, `D-*` prises pendant l'implémentation | la main |
 | `verifications/` | les preuves qui parlent du produit : campagnes enregistrées, mesures, et le dossier de chaque story versée par le cycle actuel | l'outil du cycle ; les mesures, la main |
+| `formal/` | les modèles formels et leurs témoins de qualification : `formal/fixtures/tlc/` qualifie le contrôle TLC par un modèle valide, un mutant et un incident, que `scripts/check-formal.ts` explore | la main |
 | `security/` | le modèle de menace d'un epic | la main |
 | `communication/` | le chantier parallèle qui fait essayer pi-495 : plan, règles, mesures | la main, aux moments clés |
 | `spikes/` | les explorations qui ont précédé une décision | la main |

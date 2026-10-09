@@ -2176,3 +2176,146 @@ bugs:
     follow_ups: >
       Keep in the known ids only the entries whose id is a non-empty string, and refuse a dependency on any other value.
     status: open
+  - bug_id: BUG-2026-10-09T152301
+    date: "2026-10-09"
+    title: "No test holds the INDETERMINATE verdict of the TLC reader when the configuration of the run cannot be read"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `readTlc` (`src/adapters/formal/tlc.ts`) returns `verdict: "INDETERMINATE"`, with no `tlc` fact, when the
+      configuration named by `-config` or beside the specification cannot be read. A disposable probe through the
+      generic runner confirms it. No test reads that verdict: the test of `check-formal` on a missing configuration
+      goes through its own branch `facts.tlc absent → error`, which ignores `evidence.verdict`. Mutating the verdict
+      of the catch branch to `"PASS"` leaves `tlc-result.test.ts` and `tlc-execution.test.ts` green (31/31), and the
+      generic runner then writes a PASS evidence for an output it could not read. No control of the product declares
+      the `tlc` parser today, so that PASS is not reachable yet.
+    what_expected: >
+      A test at the reader, through the runner, holds that a run whose configuration cannot be read is never PASS.
+    steps_to_reproduce:
+      - "In the catch branch of `readTlc`, replace `verdict: \"INDETERMINATE\"` with `verdict: \"PASS\"`; run `node --test test/v1-adapters/tlc-result.test.ts test/v1-adapters/tlc-execution.test.ts`: all green."
+    root_cause: >
+      The only test of the missing configuration asserts the outcome of `check-formal`, which decides on the absence
+      of the `tlc` fact rather than on the verdict of the reader.
+    evidence: >
+      Introduced by the branch e38s02, which adds the TLC reader. Found by both reviewers of its second review round
+      with the mutation above.
+    risk_level: low
+    follow_ups: >
+      Add a v1 test running the TLC reader through the runner on a replayed sandbox without the `.cfg` file, asserting
+      an INDETERMINATE verdict and a note naming the configuration.
+    status: open
+  - bug_id: BUG-2026-10-09T152302
+    date: "2026-10-09"
+    title: "No test holds that a TLC violation with no printed state is inconclusive rather than a counterexample without a path"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `tlcResultOf` (`src/adapters/formal/tlc.ts`) returns `inconclusive` when TLC reports a violation and prints no
+      state leading to it, and `counterexample` only when the trace holds states. No test feeds a violation without a
+      trace: replacing `trace.length > 0` with `true` leaves every test green, and the result becomes a counterexample
+      with an empty path. The verdict stays FAIL either way, never PASS; the promised case, a violation with its
+      trace, is held by the counterexample test.
+    what_expected: >
+      A test holds that a violation with no printed state yields `inconclusive`, so that a counterexample always
+      carries the path that reaches it.
+    steps_to_reproduce:
+      - "Replace `trace.length > 0` with `true` in the violation branch of `tlcResultOf`; run the v1 TLC tests: all green."
+    root_cause: >
+      The recorded outputs the tests replay all print the states of their violation.
+    evidence: >
+      Introduced by the branch e38s02, which adds the TLC reader. Found at its second review round with the mutation
+      above; the opposite mutation, `false`, does fail the counterexample test.
+    risk_level: low
+    follow_ups: >
+      Add a recorded output whose violation message is followed by no state, and assert `inconclusive` with the reason
+      naming the property.
+    status: open
+  - bug_id: BUG-2026-10-09T152303
+    date: "2026-10-09"
+    title: "Only the TLC qualification test, skipped without tla2tools.jar, holds that check-formal stores and prints the reader's result"
+    severity: low
+    priority: p3
+    scope: scripts
+    what_happened: >
+      `check-formal` (`scripts/check-formal.ts`) stores in the object store a report carrying the reader's result —
+      checked properties, bounds, `completed`, counterexample — and prints them through `explored(result)`. The v1
+      tests hold the result at the reader only. Replacing `report(outcome, reasons, result, raw)` with
+      `report(outcome, reasons, null, raw)` leaves `tlc-execution.test.ts` green; only
+      `test/v4-platform/tlc-qualification.test.ts` would fail, and it is skipped on a machine without
+      `tla2tools.jar` (neither named by `TLA2TOOLS_JAR` nor under `~/.local/share/tlaplus`). Removing `...(result ? explored(result) : [])`
+      leaves every test green, the v4 one included, which reads none of the printed lines.
+    what_expected: >
+      A test that runs without TLC holds that the stored report carries the reader's result and that the printed
+      lines name the properties, the bounds and the trace of a counterexample.
+    steps_to_reproduce:
+      - "Replace `report(outcome, reasons, result, raw)` with `report(outcome, reasons, null, raw)` in `check-formal`; run `node --test test/v1-adapters/tlc-execution.test.ts`: green."
+      - "Remove `...(result ? explored(result) : [])` from `printed`; run the TLC tests: green."
+    root_cause: >
+      The v1 tests of `check-formal` assert its outcome and exit code, not the content of the stored report nor of
+      the printed lines; the content is read only by the qualification against the real jar.
+    evidence: >
+      Introduced by the branch e38s02, which adds `check-formal`. Found by both reviewers of its second review round
+      with the mutations above.
+    risk_level: low
+    follow_ups: >
+      In the v1 test of `check-formal` on a replayed output, read the stored report back from the object store and the
+      printed lines, and assert the result and the lines `explored` writes.
+    status: open
+  - bug_id: BUG-2026-10-09T160747
+    date: "2026-10-09"
+    title: "The check-formal report names the Java runtime by its command only, without its version"
+    severity: low
+    priority: p3
+    scope: scripts
+    what_happened: >
+      `check-formal` (`scripts/check-formal.ts`) records in its report `tool.java` as the command it was given
+      (`java` by default) and identifies the environment of the evidence by `digestValue({ java: options.java })`.
+      The version and the digest of TLC's jar are recorded, the version of the Java runtime that ran it is not: two
+      runs under two different JVMs carry the same report fields and the same environment digest. The fixtures README
+      declares the Java measured on the reference machine (OpenJDK 25.0.4.1, GraalVM CE 25.3.4.1), the report of a
+      run does not.
+    what_expected: >
+      The report of a run names the version of the Java runtime that ran TLC, read from that runtime, and the
+      environment digest of the evidence changes with it.
+    steps_to_reproduce:
+      - "Run `node scripts/check-formal.ts specs/formal/fixtures/tlc/valide/manifest.json --jar <tla2tools.jar>`: the printed `tool:` line ends with `java java`, and the stored report carries `\"java\": \"java\"`."
+    root_cause: >
+      The report takes the Java runtime from the command line option, and nothing asks the runtime for its version.
+    evidence: >
+      Introduced by the branch e38s02, which adds `check-formal`. Noted by its acceptance run against the story's
+      "version et empreinte des outils"; confirmed at the arbitration by running the valid witness.
+    risk_level: low
+    follow_ups: >
+      Read the version the Java runtime reports (`-XshowSettings:properties` or the `java.version` TLC prints) and
+      record it in the report and in the environment digest.
+    status: open
+  - bug_id: BUG-2026-10-09T160748
+    date: "2026-10-09"
+    title: "The TLC result says exhaustive and check-formal prints an exhaustive search for a run interrupted at its budget"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `TlcResult.exhaustive` (`src/adapters/formal/tlc.ts`) is true as soon as TLC announces its breadth-first mode
+      (message 2187), and its comment reads "Whether TLC ran the breadth-first search of the whole state space". On
+      the incident witness, stopped by its 3 s budget, the result is `inconclusive` with `exhaustive: true`, and
+      `check-formal` prints `search: exhaustive breadth-first; states: unknown`. The outcome, `pass: false` and the
+      exit code 2 stay right; the field and the line describe the mode asked for, not an exploration that covered
+      the state space.
+    what_expected: >
+      The field and the printed line say the search mode TLC was asked to run, and never read as a search of the
+      whole state space when the exploration did not finish.
+    steps_to_reproduce:
+      - "Run `node scripts/check-formal.ts specs/formal/fixtures/tlc/incident/manifest.json --jar <tla2tools.jar>`: `inconclusive`, exit 2, and the line `search: exhaustive breadth-first`."
+    root_cause: >
+      `exhaustive` is computed from the mode message alone, and its name and comment speak of the whole state space.
+    evidence: >
+      Introduced by the branch e38s02, which adds the TLC reader. Noted by its acceptance run; confirmed at the
+      arbitration on the incident witness and its raw output, which holds message 2187 and neither 2193 nor 2186.
+    risk_level: low
+    follow_ups: >
+      Rename the field to the mode (`mode: "breadth-first" | "depth-first" | "simulation"`) or print
+      `breadth-first, not finished` when the outcome is not `completed`.
+    status: open

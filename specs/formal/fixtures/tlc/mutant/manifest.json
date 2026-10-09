@@ -1,0 +1,15 @@
+{
+  "model": "Compteur.tla",
+  "config": "Compteur.cfg",
+  "files": {
+    "Compteur.tla": "sha256:8262f05dea185d40250339087118ca8e2f01ed7de1134633c9ef710c2f768191",
+    "Compteur.cfg": "sha256:60ed4517d532c6b4625975ef80de10aa59d6843e5205010f70e3d7ea8c513b48"
+  },
+  "required_properties": ["Borne", "Termine"],
+  "tool": {
+    "name": "TLC",
+    "version": "2.19 of 08 August 2024 (rev: 5a47802)",
+    "jar_sha256": "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+  },
+  "budget": { "timeout_ms": 120000, "max_output_bytes": 4194304, "workers": 1, "heap_mb": 512 }
+}

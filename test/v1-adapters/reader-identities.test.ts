@@ -25,9 +25,10 @@ const RECORDED = {
 	"jscpd-json": "1.0.0",
 	"dependency-cruiser-json": "1.0.0",
 	"knip-json": "1.0.0",
+	tlc: "1.0.0",
 };
 
-describe("the readers of Maven, Node and the common formats", () => {
+describe("the readers of Maven, Node, TLC and the common formats", () => {
 	it("keep the identifiers and the versions a dossier written before records", () => {
 		assert.deepEqual(Object.fromEntries(READERS_OF_495.map((reader) => [reader.id, reader.version])), RECORDED);
 		assert.equal(READERS_OF_495.length, Object.keys(RECORDED).length, "no identifier is brought twice");
