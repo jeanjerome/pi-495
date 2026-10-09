@@ -756,7 +756,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.deepEqual([unobserved.discovered, unobserved.executed], [null, null]);
 		assert.deepEqual(unobserved.undiscriminated_requirements, ["R1"]);
 		assert.deepEqual(unobserved.unobserved_requirements, ["R2"]);
-		// A suite that fails on the reference detects the absent behaviour: the last level of the scale.
+		// A case of R1 that fails on the reference by assertion detects the absent behaviour: the last level of the scale.
 		const prepared: PreparationRecord = {
 			preparation_id: "prep_1",
 			objective: "o",
@@ -768,6 +768,16 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			loadable: true,
 			qualified: true,
 			notes: [],
+			requirements: [
+				{
+					requirement_id: "R1",
+					category: "new_behaviour",
+					control_id: "unit",
+					expected: "failed_assertion",
+					cases: [{ name: "R1 shout", outcome: "failed_assertion" }],
+					qualification: "proved",
+				},
+			],
 		};
 		const discriminating = diagnoseControlCapability({
 			...base,
@@ -853,7 +863,7 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			design: { summary: "append ! to the greeting", components: ["greet"], interfaces: ["greet(name)"], risks: [] },
 		});
 		const GREET_EXCLAIMED_TEST =
-			'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("greet", () => {\n  assert.equal(greet("x"), "Hello, x!");\n});\n';
+			'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet } from "../src/greet.js";\n\ntest("R1 greet exclaims", () => {\n  assert.equal(greet("x"), "Hello, x!");\n});\n';
 		const GREET_EXCLAIMED_IMPL = "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n";
 		const preparationRecord = async (
 			t: TestHarness,

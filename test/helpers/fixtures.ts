@@ -128,9 +128,12 @@ export function fixtureTsWithoutTests(root: string): void {
 	});
 }
 
-/** The test a preparation writes for shout on F-TS without tests: it fails on the reference, where shout is absent. */
+/**
+ * The test a preparation writes for shout on F-TS without tests: each case names the requirement it
+ * verifies, and the case of R1 fails by assertion on the reference, where shout is absent.
+ */
 export const SHOUT_TEST =
-	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport { greet, shout } from "../src/greet.js";\n\ntest("shout upper-cases the greeting", () => {\n  assert.equal(shout("x"), "HELLO, X");\n});\ntest("greet unchanged", () => {\n  assert.equal(greet("x"), "Hello, x");\n});\n';
+	'import { test } from "node:test";\nimport { strict as assert } from "node:assert";\nimport * as greeting from "../src/greet.js";\n\ntest("R1 shout upper-cases the greeting", () => {\n  assert.equal(typeof greeting.shout, "function");\n  assert.equal(greeting.shout("x"), "HELLO, X");\n});\ntest("R2 greet unchanged", () => {\n  assert.equal(greeting.greet("x"), "Hello, x");\n});\n';
 /** The implementation of shout that makes SHOUT_TEST pass. */
 export const SHOUT_IMPL =
 	"export function greet(name) {\n  return `Hello, ${name}`;\n}\nexport function shout(name) {\n  return greet(name).toUpperCase();\n}\n";

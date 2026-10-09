@@ -327,6 +327,17 @@ export const Obligation = Type.Object(
 		combination: Closed(COMBINATIONS),
 		human_interaction: Type.Union([Type.Literal("IH-10"), Type.Null()]),
 		not_applicable_reason: Type.Union([Type.String(), Type.Null()]),
+		/**
+		 * The cases the adopted preparation bound to the requirement, which the run of `control_id` on the
+		 * candidate must observe passing whatever the combination says of the controls. Absent when no
+		 * preparation proved the requirement.
+		 */
+		oracle: Type.Optional(
+			Type.Object(
+				{ control_id: Identifier, cases: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }) },
+				{ additionalProperties: false },
+			),
+		),
 	},
 	{ additionalProperties: false },
 );
@@ -390,6 +401,53 @@ export const RecommendedComplement = Type.Object(
 );
 export type RecommendedComplement = Static<typeof RecommendedComplement>;
 
+/**
+ * How one test case ended, as the reader of its runner reports it. Only a failed assertion is a red on
+ * the behaviour: a case that fails on a load error or on an exception thrown before its assertion says
+ * nothing about the requirement it names.
+ */
+export const CASE_OUTCOMES = ["passed", "failed_assertion", "failed_otherwise"] as const;
+export type CaseOutcome = (typeof CASE_OUTCOMES)[number];
+
+export const ObservedCase = Type.Object(
+	{ name: Type.String({ minLength: 1 }), outcome: Closed(CASE_OUTCOMES) },
+	{ additionalProperties: false },
+);
+export type ObservedCase = Static<typeof ObservedCase>;
+/** The cases a test reader reports in the `cases` fact of its evidence. */
+export const ObservedCases = Type.Array(ObservedCase);
+
+/**
+ * A requirement the reference lacks is proved by a case that fails on it by assertion; one the
+ * reference is declared to honour, by a characterization that passes there.
+ */
+export const ORACLE_CATEGORIES = ["new_behaviour", "characterization"] as const;
+
+/**
+ * What the cases bound to a requirement proved on the reference: `proved`, every case ended as
+ * expected; `contradicted`, a case ended the other way; `incident`, a case failed without an
+ * assertion; `no_case`, no case names the requirement; `unlocatable`, the reader names no case at all.
+ */
+export const ORACLE_QUALIFICATIONS = ["proved", "contradicted", "incident", "no_case", "unlocatable"] as const;
+export type OracleQualification = (typeof ORACLE_QUALIFICATIONS)[number];
+
+/** The binding of one requirement to the cases that observe it, as the preparation observed them on the reference. */
+export const RequirementOracle = Type.Object(
+	{
+		requirement_id: Identifier,
+		category: Closed(ORACLE_CATEGORIES),
+		/** The control whose run reports the cases. */
+		control_id: Identifier,
+		/** The outcome on the reference that proves the requirement. */
+		expected: Closed(["passed", "failed_assertion"] as const),
+		/** The cases whose name carries the requirement id, with the outcome observed on the reference. */
+		cases: Type.Array(ObservedCase),
+		qualification: Closed(ORACLE_QUALIFICATIONS),
+	},
+	{ additionalProperties: false },
+);
+export type RequirementOracle = Static<typeof RequirementOracle>;
+
 export const ControlCapabilityDiagnosis = Type.Object(
 	{
 		stack: Type.String(),
@@ -407,6 +465,11 @@ export const ControlCapabilityDiagnosis = Type.Object(
 		notes: Type.Array(Type.String()),
 		/** Absent from a protocol frozen before complements were recommended. */
 		recommendations: Type.Optional(Type.Array(RecommendedComplement)),
+		/**
+		 * The oracle of each requirement the adopted preparation observed. Absent without a preparation, or
+		 * from one recorded before observations were kept per requirement, which then proves none.
+		 */
+		oracles: Type.Optional(Type.Array(RequirementOracle)),
 	},
 	{ additionalProperties: false },
 );

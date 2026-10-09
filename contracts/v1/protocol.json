@@ -858,6 +858,82 @@
             },
             "additionalProperties": false
           }
+        },
+        "oracles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "requirement_id",
+              "category",
+              "control_id",
+              "expected",
+              "cases",
+              "qualification"
+            ],
+            "properties": {
+              "requirement_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "new_behaviour",
+                  "characterization"
+                ]
+              },
+              "control_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "expected": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed_assertion"
+                ]
+              },
+              "cases": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "outcome"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "passed",
+                        "failed_assertion",
+                        "failed_otherwise"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "qualification": {
+                "type": "string",
+                "enum": [
+                  "proved",
+                  "contradicted",
+                  "incident",
+                  "no_case",
+                  "unlocatable"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -933,6 +1009,29 @@
                 "type": "null"
               }
             ]
+          },
+          "oracle": {
+            "type": "object",
+            "required": [
+              "control_id",
+              "cases"
+            ],
+            "properties": {
+              "control_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "cases": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false

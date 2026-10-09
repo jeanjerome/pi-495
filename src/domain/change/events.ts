@@ -119,6 +119,8 @@ export type ChangeEvent =
 			environment_digest: string;
 			verdict: Verdict;
 			findings_blocking: number;
+			/** Absent from evidence recorded before cases were observed, or whose reader names no case. */
+			passed_cases?: string[];
 	  })
 	| (Base & { type: "evidence.rejected"; evidence_id: string; control_id: string; reason: string })
 	| (Base & { type: "evidence.invalidated"; evidence_id: string; reason: string })

@@ -37,6 +37,8 @@ export interface EvidenceFact {
 	environment_digest: string;
 	verdict: Verdict;
 	findings_blocking: number;
+	/** The cases the control observed passing; absent when its reader names no case. */
+	passed_cases?: string[];
 }
 
 export interface RequirementsReport {

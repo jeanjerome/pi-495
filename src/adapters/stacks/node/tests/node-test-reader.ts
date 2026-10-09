@@ -2,6 +2,7 @@
  * The reader of the TAP stream `node --test --test-reporter=tap` writes on its standard output: one case
  * per test, a skipped or todo test never counted as a pass (§6.5).
  */
+import type { ObservedCase } from "../../../../contracts/v1/protocol.ts";
 import type { ParsedReport, ProcessObservation, ReportReader } from "../../../../ports/execution.ts";
 import { exitedOutsideTests, incidentOf, MAX_FAILURES } from "../../../execution/parsers.ts";
 
@@ -12,7 +13,9 @@ import { exitedOutsideTests, incidentOf, MAX_FAILURES } from "../../../execution
  * carries a path keeps pointing at that path. A passing test carries no location, so it is reported by
  * its name alone, in `passing_cases`; a suite is not a case. The message the failing test reports
  * closes the line: a test that keeps failing for another reason is then another finding, and one that
- * fails the same way on both passes is the same.
+ * fails the same way on both passes is the same. Every executed case is also kept in `cases` with its
+ * outcome, a failure counting as an assertion only when the runner reports it with `ERR_ASSERTION`: a
+ * file that does not load, or a case that throws before its assertion, fails otherwise.
  *
  * node:test reports a test file that declares no case as one passing top-level test named after the
  * file. Such an entry runs code without asserting anything, so it is not counted as a test.
@@ -35,6 +38,9 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 	// The name of the passing test whose diagnostics are being read, kept once they say it is a test.
 	let passingName: string | null = null;
 	const passingCases: string[] = [];
+	const cases: ObservedCase[] = [];
+	// The failing case whose diagnostics are being read, which they may say is a suite or an assertion.
+	let failingCase: ObservedCase | null = null;
 	// The lines of a block `error` field being read, and the indentation of its key.
 	let message: { indent: number; lines: string[] } | null = null;
 	const describeLastFailure = (text: string) => {
@@ -54,10 +60,15 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 		if (fileWithoutCases) caseless++;
 		const line = raw.trim();
 		if (passingName !== null && /^type:\s*'(test|suite)'$/.test(line)) {
-			if (line.endsWith("'test'")) passingCases.push(passingName);
+			if (line.endsWith("'test'")) {
+				passingCases.push(passingName);
+				cases.push({ name: passingName, outcome: "passed" });
+			}
 			passingName = null;
 			continue;
 		}
+		if (failingCase !== null && line === "type: 'suite'") cases.splice(cases.indexOf(failingCase), 1);
+		if (failingCase !== null && line === "code: 'ERR_ASSERTION'") failingCase.outcome = "failed_assertion";
 		const location = /^location:\s*'(.+?)(?::\d+){0,2}'$/.exec(line);
 		if (location && locating && failures.length > 0) {
 			failures[failures.length - 1] = `${failures.at(-1)} (${location[1]})`;
@@ -74,6 +85,7 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 		if (/^(not )?ok\s+\d+/.test(line)) {
 			locating = false;
 			describing = false;
+			failingCase = null;
 			const ok = /^ok\s+\d+\s*-?\s*(.*)$/.exec(line);
 			passingName = ok && !fileWithoutCases && !/#\s*(SKIP|TODO)\b/i.test(ok[1]!) ? ok[1]! : null;
 		}
@@ -88,6 +100,10 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 			continue;
 		}
 		const nok = /^not ok\s+\d+\s*-?\s*(.*)$/.exec(line);
+		if (nok && !/#\s*(SKIP|TODO)\b/i.test(nok[1]!)) {
+			failingCase = { name: nok[1] || "unnamed test", outcome: "failed_otherwise" };
+			cases.push(failingCase);
+		}
 		if (nok && failures.length < MAX_FAILURES) {
 			failures.push(nok[1] ?? "unnamed test");
 			locating = true;
@@ -106,6 +122,7 @@ export function parseNodeTestTap(obs: ProcessObservation, stdout: string): Parse
 		todo,
 		files_without_cases: caseless,
 		passing_cases: passingCases,
+		cases,
 		stdout_truncated: obs.stdout_truncated,
 	};
 	if (incident) return { verdict: "INDETERMINATE", facts: { ...facts, incident }, notes: [incident], failures };

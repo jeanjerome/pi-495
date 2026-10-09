@@ -440,7 +440,7 @@ export function preparationMandateObjective(
  * contradicting it: the implementer may not touch the tests, and no candidate can satisfy both.
  */
 export function preparationObjective(mandateObjective: string, requirementIds: readonly string[]): string {
-	return `${mandateObjective}\nRequirements to cover: ${requirementIds.join(", ")}. Do not implement the feature itself. Write the tests that are missing, and update any existing test that asserts the behaviour these requirements change, so that the suite fails until the feature exists and passes once it does.`;
+	return `${mandateObjective}\nRequirements to cover: ${requirementIds.join(", ")}. Do not implement the feature itself. Write the tests that are missing, and update any existing test that asserts the behaviour these requirements change, so that the suite fails until the feature exists and passes once it does. Name every test case after the requirement it verifies, its id as a word of the name (for example "R1 rejects an empty name"): a case proves only the requirement it names. A case for a requirement the tree does not satisfy yet fails on an assertion, not on an import or an exception thrown before it; a case for a requirement the tree already satisfies passes on it.`;
 }
 
 /** What the producer is asked: the adopted mandate, or the design alone when no mandate is held. */

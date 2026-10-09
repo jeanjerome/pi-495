@@ -147,6 +147,8 @@ export interface EvidenceEntry {
 	invalid_reason: string | null;
 	recorded_at: string;
 	findings_blocking: number;
+	/** The cases the control observed passing; absent when its reader names no case. */
+	passed_cases?: string[];
 }
 
 export type ReviewConclusion = "approve" | "reject" | "consultative";

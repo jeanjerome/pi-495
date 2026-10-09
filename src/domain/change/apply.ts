@@ -295,6 +295,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 					invalid_reason: null,
 					recorded_at: event.at,
 					findings_blocking: event.findings_blocking,
+					...(event.passed_cases ? { passed_cases: event.passed_cases } : {}),
 				},
 			];
 			return s;

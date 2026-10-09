@@ -11,6 +11,7 @@ import type {
 	ControlCapabilityDiagnosis,
 	InstalledPackage,
 	RecommendedComplement,
+	RequirementOracle,
 	RequirementsDocument,
 } from "../../contracts/v1/protocol.ts";
 import { surveysTheProject, type HumanDecisionEntry } from "../../domain/change/state.ts";
@@ -269,6 +270,7 @@ function diagnose(
 	reference: ReferenceSnapshot,
 	isTestFile: (path: string) => boolean,
 	prepared: PreparationRecord | null,
+	refuted: readonly RequirementOracle[],
 	suite: ReferenceSuiteObservation | null,
 ): ControlCapabilityDiagnosis {
 	return diagnoseControlCapability({
@@ -277,7 +279,21 @@ function diagnose(
 		requirements: requirements.requirements,
 		suite,
 		prepared,
+		refuted,
 	});
+}
+
+/** The characterizations a preparation for the requirements as they stand saw contradicted on the reference. */
+async function refutedCharacterizations(ctx: PhaseContext, unit: Unit): Promise<RequirementOracle[]> {
+	const records = await Promise.all(
+		ctx.artifacts
+			.preparationsForCurrentRequirements(unit.state)
+			.filter((ref) => ref.artifact_id.startsWith("prep_"))
+			.map((ref) => ctx.artifacts.read<PreparationRecord>(ref)),
+	);
+	return records.flatMap((r) =>
+		(r.requirements ?? []).filter((o) => o.category === "characterization" && o.qualification === "contradicted"),
+	);
 }
 
 /** The requirements no control can judge that the owner took on, as the requirements stand. */
@@ -339,6 +355,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		revision: requirements.ref.revision,
 	}));
 	const prepared = await ctx.artifacts.adoptedPreparation(unit.state);
+	const refuted = await refutedCharacterizations(ctx, unit);
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		let detection = ctx.stacks.recognise(handle.path, refs);
@@ -418,7 +435,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		// protocol may freeze are green on the reference, so none of them changes verdict when a
 		// behaviour the reference does not have appears. Opening the preparation here spares the
 		// qualification of sensors that would have to be qualified again after it.
-		let diagnosis = diagnose(detection, requirements.content, reference, isTestFile, prepared, null);
+		let diagnosis = diagnose(detection, requirements.content, reference, isTestFile, prepared, refuted, null);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
 			return await settleUnjudged(
 				ctx,
@@ -448,7 +465,15 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 			prior_protocol_refs: unit.state.proposals.protocol ?? [],
 			complements,
 		});
-		diagnosis = diagnose(detection, requirements.content, reference, isTestFile, prepared, qualified.observation);
+		diagnosis = diagnose(
+			detection,
+			requirements.content,
+			reference,
+			isTestFile,
+			prepared,
+			refuted,
+			qualified.observation,
+		);
 		if (needsPreparation(detection, requirements.ref, unit, diagnosis))
 			return await settleUnjudged(
 				ctx,

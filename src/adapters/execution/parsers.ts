@@ -4,6 +4,7 @@
  * the readers of two formats several technologies write: an exit code and JUnit XML.
  */
 import { parseXml, XmlElement, type XmlDocument, type XmlNode } from "@rgrove/parse-xml";
+import type { ObservedCase } from "../../contracts/v1/protocol.ts";
 import { messageOf } from "../../domain/errors.ts";
 import type {
 	IntroducedLines,
@@ -122,6 +123,8 @@ export interface JUnitSummary {
 	errors: number;
 	skipped: number;
 	failed_cases: string[];
+	/** Every executed case with its outcome: a `failure` whose error is an assertion, else a failure otherwise. */
+	cases: ObservedCase[];
 	files: number;
 }
 
@@ -135,6 +138,28 @@ function testCasesOf(document: XmlDocument): XmlElement[] {
 		for (let i = node.children.length - 1; i >= 0; i -= 1) pending.push(node.children[i]!);
 	}
 	return found;
+}
+
+/**
+ * An error class an assertion library throws: `AssertionError`, `AssertionFailedError`, JUnit 4's
+ * `ComparisonFailure`, opentest4j's `MultipleFailuresError`. A class this misses is read as a failure
+ * otherwise, which proves less, never more.
+ */
+const ASSERTION_CLASS = /(?:^|[.$])\w*(?:Assert\w*|ComparisonFailure|MultipleFailuresError)$/;
+
+/**
+ * Whether a `<failure>` reports an assertion. Surefire keeps `<failure>` for one, but vitest and mocha
+ * write every failing case there, a throw before the assertion and a file that does not load included,
+ * so the error class decides: its `type`, else, as mocha's xunit reporter writes no type, the name
+ * opening the stack it appends to the message.
+ */
+function failedOnAssertion(failure: XmlElement): boolean {
+	const declared = failure.attributes.type;
+	if (declared !== undefined) return ASSERTION_CLASS.test(declared);
+	const body = failure.text;
+	const message = (body.split("\n", 1)[0] ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const opening = new RegExp(`^([\\w$.]+)(?: \\[\\w+\\])?: ${message}$`, "m").exec(body);
+	return opening !== null && ASSERTION_CLASS.test(opening[1]!);
 }
 
 /** A report is the output of the process the judged project ran: it is bounded before it is analysed. */
@@ -154,13 +179,22 @@ export interface UnreadReport {
 
 /**
  * JUnit/Surefire reader: every `<testcase>` is one test, failed on a `failure` or `error` child and
- * skipped on a `skipped` child. The counts of the enclosing `<testsuite>` elements are not read: a
- * nested suite repeats the tests of its parent, and an emitter may omit or fill an attribute as it likes.
+ * skipped on a `skipped` child; it failed on an assertion only when its `failure` names one. The counts
+ * of the enclosing `<testsuite>` elements are not read: a nested suite repeats the tests of its parent,
+ * and an emitter may omit or fill an attribute as it likes.
  * Throws when a document is over the bound, was left unread, or is not XML the parser reads, deep
  * nesting included.
  */
 export function summarizeJUnit(documents: readonly (string | UnreadReport)[]): JUnitSummary {
-	const s: JUnitSummary = { tests: 0, failures: 0, errors: 0, skipped: 0, failed_cases: [], files: documents.length };
+	const s: JUnitSummary = {
+		tests: 0,
+		failures: 0,
+		errors: 0,
+		skipped: 0,
+		failed_cases: [],
+		cases: [],
+		files: documents.length,
+	};
 	for (const doc of documents) {
 		if (typeof doc !== "string")
 			throw new Error(
@@ -168,15 +202,27 @@ export function summarizeJUnit(documents: readonly (string | UnreadReport)[]): J
 			);
 		for (const testcase of testCasesOf(parseReport(doc))) {
 			s.tests += 1;
-			const outcomes = testcase.children.flatMap((child) => (child instanceof XmlElement ? [child.name] : []));
-			if (outcomes.includes("failure")) s.failures += 1;
-			else if (outcomes.includes("error")) s.errors += 1;
-			else if (outcomes.includes("skipped")) s.skipped += 1;
-			if (!outcomes.some((name) => name === "failure" || name === "error")) continue;
-			if (s.failed_cases.length >= MAX_FAILURES) continue;
+			const children = testcase.children.filter((child) => child instanceof XmlElement);
+			const outcomes = children.map((child) => child.name);
+			const failure = children.find((child) => child.name === "failure");
 			const name = testcase.attributes.name ?? "unnamed";
 			const cls = testcase.attributes.classname;
-			s.failed_cases.push(cls ? `${cls}.${name}` : name);
+			const qualified = cls ? `${cls}.${name}` : name;
+			if (failure) {
+				s.failures += 1;
+				s.cases.push({
+					name: qualified,
+					outcome: failedOnAssertion(failure) ? "failed_assertion" : "failed_otherwise",
+				});
+			} else if (outcomes.includes("error")) {
+				s.errors += 1;
+				s.cases.push({ name: qualified, outcome: "failed_otherwise" });
+			} else {
+				if (outcomes.includes("skipped")) s.skipped += 1;
+				else s.cases.push({ name: qualified, outcome: "passed" });
+				continue;
+			}
+			if (s.failed_cases.length < MAX_FAILURES) s.failed_cases.push(qualified);
 		}
 	}
 	return s;

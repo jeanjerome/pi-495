@@ -9,7 +9,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { digestValue } from "../contracts/digest.ts";
-import { validate } from "../contracts/validate.ts";
+import { check, validate } from "../contracts/validate.ts";
 import type { CandidateRef, EnvironmentRef, ProtocolRef } from "../contracts/v1/common.ts";
 import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candidate.ts";
 import { Evidence, EvidenceCandidate, evidenceDigest, type RequirementRef } from "../contracts/v1/evidence.ts";
@@ -21,11 +21,13 @@ import type {
 	ControlCapabilityDiagnosis,
 	ControlDefinition,
 	Obligation,
+	ObservedCase,
 	Protocol,
 	Qualification,
 	RecommendedComplement,
 	RequirementsDocument,
 } from "../contracts/v1/protocol.ts";
+import { ObservedCases } from "../contracts/v1/protocol.ts";
 import {
 	applyInstability,
 	blockingCount,
@@ -166,6 +168,7 @@ export async function writeWitness(workspacePath: string, files: Record<string, 
 
 /** What the kernel commits of one sealed evidence, with the blocking findings the frozen rule leaves. */
 function factOf(evidence: Evidence, findingsBlocking: number): EvidenceFact {
+	const cases = evidence.facts.cases;
 	return {
 		evidence_id: evidence.evidence_id,
 		control_id: evidence.control_id,
@@ -176,6 +179,9 @@ function factOf(evidence: Evidence, findingsBlocking: number): EvidenceFact {
 		environment_digest: evidence.environment_digest,
 		verdict: evidence.verdict,
 		findings_blocking: findingsBlocking,
+		...(check(ObservedCases, cases)
+			? { passed_cases: cases.filter((c) => c.outcome === "passed").map((c) => c.name) }
+			: {}),
 	};
 }
 
@@ -332,9 +338,10 @@ export class VerificationCoordinator {
 	}
 
 	/**
-	 * What a prepared suite does on the bare reference (PRE-03, SA-009). FAIL is a suite that detects
-	 * the behaviour the tree does not have yet, which is the only thing that makes it discriminant; a
-	 * suite reporting no test at all did not load, whatever its exit code said.
+	 * What a prepared suite does on the bare reference (PRE-03, SA-009): whether it loaded, and how each
+	 * case it ran ended. The verdict of the whole suite proves no requirement: a case of its own does,
+	 * which `cases` reports, and stays null when the reader of the control names no case. A suite
+	 * reporting no test at all did not load, whatever its exit code said.
 	 */
 	async judgePreparedSuite(input: {
 		control: ControlDefinition;
@@ -342,7 +349,12 @@ export class VerificationCoordinator {
 		manifest: CandidateManifest;
 		workspace_id: string;
 		workspace_path: string;
-	}): Promise<{ on_reference: PreparationRecord["on_reference"]; loadable: boolean; notes: string[] }> {
+	}): Promise<{
+		on_reference: PreparationRecord["on_reference"];
+		loadable: boolean;
+		cases: ObservedCase[] | null;
+		notes: string[];
+	}> {
 		const { evidence } = await this.deps.controls.runControl({
 			control: input.control,
 			protocol: { protocol_id: "preparation", revision: 0, content_digest: digestValue("preparation") },
@@ -360,9 +372,11 @@ export class VerificationCoordinator {
 		});
 		const onReference = evidence.verdict;
 		const tests = Number(evidence.facts.tests ?? 0);
+		const cases = evidence.facts.cases;
 		return {
 			on_reference: onReference,
 			loadable: onReference === "PASS" || (onReference === "FAIL" && tests > 0),
+			cases: check(ObservedCases, cases) ? cases : null,
 			notes:
 				onReference === "INDETERMINATE"
 					? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`]
@@ -392,6 +406,11 @@ export class VerificationCoordinator {
 		// line whose mutation nothing notices (QLT-04, ARC-04, VER-04). An improvement elsewhere
 		// never compensates for any of the three.
 		const differential = controls.filter((c) => this.differential(c)).map((c) => c.control_id);
+		const proved = new Map(
+			(input.prepared?.requirements ?? [])
+				.filter((o) => o.qualification === "proved")
+				.map((o) => [o.requirement_id, { control_id: o.control_id, cases: o.cases.map((c) => c.name) }] as const),
+		);
 		const obligations: Obligation[] = input.requirements.requirements.map((r) => {
 			if (input.assigned_to_human.includes(r.requirement_id))
 				return {
@@ -420,13 +439,15 @@ export class VerificationCoordinator {
 					? controls.filter((c) => input.lint_control_ids.includes(c.control_id))
 					: controls.filter((c) => !input.lint_control_ids.includes(c.control_id));
 			const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
+			const oracle = proved.get(r.requirement_id);
 			return {
 				requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
 				mandatory: r.mandatory,
-				control_ids: [...new Set([...chosen, ...differential])],
+				control_ids: [...new Set([...chosen, ...differential, ...(oracle ? [oracle.control_id] : [])])],
 				combination: "all_pass",
 				human_interaction: null,
 				not_applicable_reason: null,
+				...(oracle ? { oracle } : {}),
 			};
 		});
 		return {

@@ -127,6 +127,51 @@ describe("parsers (VER-02, RM-016, RM-017, SA-014)", () => {
 		);
 		assert.equal(parseNodeTestTap(obs({ spawn_error: "ENOENT", exit_code: null }), "").verdict, "INDETERMINATE");
 	});
+	it("node-test TAP: each executed case is reported with its outcome, a failure counting as an assertion only under ERR_ASSERTION", () => {
+		const report = parseNodeTestTap(
+			obs({ exit_code: 1 }),
+			[
+				"# Subtest: R1 shout",
+				"not ok 1 - R1 shout",
+				"  ---",
+				"  type: 'test'",
+				"  error: 'Expected values to be strictly equal'",
+				"  code: 'ERR_ASSERTION'",
+				"  name: 'AssertionError'",
+				"  ...",
+				"# Subtest: R2 whisper",
+				"not ok 2 - R2 whisper",
+				"  ---",
+				"  type: 'test'",
+				"  error: 'greeting.whisper is not a function'",
+				"  code: 'ERR_TEST_FAILURE'",
+				"  ...",
+				"# Subtest: R3 greet",
+				"ok 3 - R3 greet",
+				"  ---",
+				"  type: 'test'",
+				"  ...",
+				"ok 4 - R4 later # SKIP",
+				"# Subtest: test/b.test.js",
+				"not ok 5 - test/b.test.js",
+				"  ---",
+				"  type: 'test'",
+				"  error: 'test failed'",
+				"  code: 'ERR_TEST_FAILURE'",
+				"  ...",
+				"# tests 5",
+				"# pass 1",
+				"# fail 3",
+				"# skipped 1",
+			].join("\n"),
+		);
+		assert.deepEqual(report.facts.cases, [
+			{ name: "R1 shout", outcome: "failed_assertion" },
+			{ name: "R2 whisper", outcome: "failed_otherwise" },
+			{ name: "R3 greet", outcome: "passed" },
+			{ name: "test/b.test.js", outcome: "failed_otherwise" },
+		]);
+	});
 	it("node-test TAP: a failing test is followed by the file its diagnostics locate it in, without line or column", () => {
 		const located = parseNodeTestTap(
 			obs({ exit_code: 1 }),

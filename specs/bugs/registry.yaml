@@ -46,7 +46,10 @@ bugs:
       reference already satisfies is proved by a characterization test that must pass on the reference, and a
       claim that test refutes follows the path of a requirement asking for something new. Until then the gap
       stays open and reproduced. The mixed case, where a prepared failing test for one requirement lifts the
-      check on every other, is read in the code and not reproduced.
+      check on every other, is read in the code and not reproduced. Since the binding of each requirement to its own
+      cases, a requirement declared satisfied by the reference whose cases contradict it is named at G2; one that no case
+      names (`no_case`), or for which no preparation ran, still rests on non-regression in `undecidedRequirements`
+      (`src/application/preparation.ts`) as soon as the reference suite executes a case, so the gap stays open on that path.
     status: open
   - bug_id: BUG-2026-09-28T103000
     date: "2026-09-28"
@@ -2420,4 +2423,74 @@ bugs:
     follow_ups: >
       Reuse a blocked preparation only when every failed exploration ended on a counterexample, and examine again one
       that ended `error` or `inconclusive`, with its own test.
+    status: open
+  - bug_id: BUG-2026-10-09T220000
+    date: "2026-10-09"
+    title: "Every evidence of a test control carries into the ledger the name of each case it saw passing, whether or not an obligation binds them"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `factOf` (`src/application/verification.ts`) copies into the `evidence.recorded` event the name of every case the
+      reader reports passing, for every control whose reader names its cases (node:test TAP, JUnit). G5 reads them only
+      for the cases an obligation's `oracle` names. A target whose suite runs thousands of cases writes thousands of
+      names into each event of each verification run, bounded only by the 16 MiB read bound of a report and the
+      truncation of the standard output.
+    what_expected: >
+      The ledger keeps of a run what a gate reads: the cases the frozen obligations bind, the full list staying in the
+      sealed evidence where `facts.cases` already holds it.
+    steps_to_reproduce:
+      - "Drive a change on a Node target whose `node --test` suite reports a few thousand passing cases to G5."
+      - "Read the `evidence.recorded` events of the change in its SQLite ledger: `passed_cases` lists every passing case of the `unit` control, including those no obligation names."
+    root_cause: >
+      `factOf` filters `facts.cases` on the outcome alone; it does not receive the protocol's obligations, so it cannot
+      keep only the bound cases.
+    evidence: >
+      Introduced by the branch e38s06. Read in `factOf` and `unseenCases` (`src/domain/gates/g5.ts`), which looks up only
+      the cases of `oracle.cases`. The verdicts are right; only the size of the ledger and of the state replayed from it
+      grows with the suite.
+    risk_level: low
+    follow_ups: >
+      Record in `passed_cases` only the cases the frozen obligations' oracles name, with its own test that a passing case
+      no obligation binds is not in the event.
+    status: open
+  - bug_id: BUG-2026-10-09T235900
+    date: "2026-10-09"
+    title: "A prepared case that reads the source of the code under test passes under the unit control and fails in the sandbox where Stryker instruments that source, so the mutation control fails on every candidate"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      On the npm reference target, the second preparation, run because the mandatory `r-lastfit-tests` had no case of
+      its own, also wrote for the optional quality requirement `r-lastfit-quality` the case "given agenda.ts, when
+      read, then lastFit is short, documented and does not duplicate merging", which reads `src/agenda.ts` and asserts
+      that the body of `lastFit` holds at most 15 lines. It failed on the reference by assertion, was bound and qualified
+      `proved`, and was frozen as a protected file. On the candidate it passes under `vitest run`, but the initial test
+      run of Stryker executes the suite against the instrumented copy of `src/agenda.ts` in `.stryker-tmp/sandbox-*`,
+      where the same body counts 33 lines: `expected 33 to be less than or equal to 15`. The mutation control then fails
+      with two `mutation:failure` findings on every candidate, the producer cannot touch the protected case, and the
+      change stops on `stagnation`.
+    what_expected: >
+      A frozen case that no candidate can pass under one of the frozen controls is not left to exhaust the attempts:
+      either the qualification of the preparation refuses a case whose outcome depends on the text of the source rather
+      than on its behaviour, or the stop names the case and the control that fail it, so that the owner can send the
+      preparation back.
+    steps_to_reproduce:
+      - "Run `npm run campagne -- npm` with a real model until the prepared suite holds a case that reads the source of `src/agenda.ts` and bounds its length or shape (the content depends on the model)."
+      - "Read the `mutation` evidence of the candidate: its stdout names the case as the one failing in the initial test run, while the `unit` evidence of the same candidate reports it passing."
+    root_cause: >
+      The qualification of a preparation runs the prepared cases on the reference under the test control alone; nothing
+      observes them under the other frozen controls that run the same suite on a rewritten source, and nothing tells a
+      case on the shape of the code from a case on its behaviour.
+    evidence: >
+      Observed in the acceptance run of the story e38s06 at 09c64fa8, campaign `~/.495/campagnes/npm-20261009T204022`,
+      change chg_mv1fjc9h276f49f039: evidence evd_mv1fo87kc003e8c7fc and evd_mv1fopfb8b9cbfa1a7, raw Stryker stdout
+      sha256:21cb4f5a…; two identical candidates, then `stagnation`. The same frozen case reaches main, whose single
+      preparation also covers every requirement; the branch makes it likelier by running a second preparation for a
+      mandatory requirement without a case. The stop is safe: nothing is accepted. Neighbour of BUG-2026-10-05T103037.
+    risk_level: low
+    follow_ups: >
+      Run the adopted preparation of a stack whose mutation control executes the test suite once in Stryker's sandbox
+      on the reference, or name in the stagnation decision the protected case the mutation run reports failing; with its
+      own test where a prepared case reads the source of the module under test.
     status: open

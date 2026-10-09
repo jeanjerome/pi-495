@@ -61,6 +61,49 @@ describe("the JUnit reader counts from the test cases of the report", () => {
 		assert.deepEqual(report.failures, ["S.crashes", "S.breaks"]);
 	});
 
+	it("given a passing, an erroring, a failing and a skipped case, then each executed case is reported with its outcome, a failure as an assertion and an error otherwise", () => {
+		const document =
+			'<testsuite name="S"><testcase name="r1_passes" classname="S"/>' +
+			'<testcase name="r2_crashes" classname="S"><error type="java.lang.IllegalStateException">trace</error></testcase>' +
+			'<testcase name="r3_breaks" classname="S"><failure message="boom" type="java.lang.AssertionError">trace</failure></testcase>' +
+			'<testcase name="r4_later" classname="S"><skipped/></testcase></testsuite>';
+		assert.deepEqual(summarizeJUnit([document]).cases, [
+			{ name: "S.r1_passes", outcome: "passed" },
+			{ name: "S.r2_crashes", outcome: "failed_otherwise" },
+			{ name: "S.r3_breaks", outcome: "failed_assertion" },
+		]);
+	});
+
+	it("given vitest and mocha failures thrown before the assertion or by a file that does not load, then each is a failure otherwise, and only one whose error is an assertion is a failed assertion", () => {
+		const vitest =
+			'<testsuites><testsuite name="test/R1.test.js">' +
+			'<testcase classname="test/R1.test.js" name="R1 shout upper-cases"><failure message="shout is not a function" type="TypeError">TypeError: shout is not a function</failure></testcase>' +
+			'<testcase classname="test/R2.test.js" name="R2 whisper lower-cases"><failure message="expected &apos;x&apos; to be &apos;X&apos;" type="AssertionError">AssertionError: expected</failure></testcase>' +
+			'<testcase classname="test/R3.test.js" name="test/R3.test.js"><failure message="Cannot find module" type="Error">Error: Cannot find module</failure></testcase>' +
+			"</testsuite></testsuites>";
+		// Mocha's xunit reporter writes no type: the message, then the stack its error opens with its name.
+		const mocha =
+			'<testsuite name="Mocha Tests"><testcase classname="Greeting" name="R4 shout upper-cases"><failure>shout is not a function\n' +
+			"TypeError: shout is not a function\n    at Context.&lt;anonymous&gt; (test/greeting.test.js:4:12)</failure></testcase>" +
+			'<testcase classname="Greeting" name="R5 whisper lower-cases"><failure>Expected values to be strictly equal:\n\n1 !== 2\n\n' +
+			"AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 2\n\n    at Context.&lt;anonymous&gt; (test/greeting.test.js:8:12)</failure></testcase></testsuite>";
+		assert.deepEqual(summarizeJUnit([vitest, mocha]).cases, [
+			{ name: "test/R1.test.js.R1 shout upper-cases", outcome: "failed_otherwise" },
+			{ name: "test/R2.test.js.R2 whisper lower-cases", outcome: "failed_assertion" },
+			{ name: "test/R3.test.js.test/R3.test.js", outcome: "failed_otherwise" },
+			{ name: "Greeting.R4 shout upper-cases", outcome: "failed_otherwise" },
+			{ name: "Greeting.R5 whisper lower-cases", outcome: "failed_assertion" },
+		]);
+		const recordedFailures = ["vitest-5.0.0-failing.xml", "surefire-3.5.2-red.xml", "mocha-12.0.2-red.xml"];
+		for (const file of recordedFailures)
+			assert.deepEqual(
+				summarizeJUnit([recorded(file)])
+					.cases.filter((c) => c.outcome !== "passed")
+					.map((c) => c.outcome),
+				["failed_assertion"],
+				file,
+			);
+	});
 	it("given recorded vitest, Surefire and mocha reports, then the counts and the failed case names are those the regular-expression reader gave", () => {
 		const cases: { file: string; exit: number; verdict: string; tests: number; failed: string[] }[] = [
 			{ file: "vitest-5.0.0-green.xml", exit: 0, verdict: "PASS", tests: 1, failed: [] },

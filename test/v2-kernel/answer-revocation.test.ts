@@ -487,10 +487,10 @@ const BINDS_Q1_TO_SHOUT = specReport({
 	answers: [{ question_id: Q1.id, observable: true, requirement_ids: [SHOUT.requirement_id] }],
 	requirements: [SHOUT],
 });
-/** A preparation that writes the discriminant test of shout, qualified on the bare reference. */
+/** A preparation that writes the discriminant test of shout, named after its requirement, qualified on the bare reference. */
 const PREPARES_SHOUT = {
 	steps: [
-		{ kind: "write" as const, path: "test/shout.test.js", content: SHOUT_TEST },
+		{ kind: "write" as const, path: "test/shout.test.js", content: SHOUT_TEST.replace("R1 shout", "R-SHOUT shout") },
 		{
 			kind: "complete" as const,
 			output: { summary: "done", changed_paths: ["test/shout.test.js"], tests_claimed: false, notes: [] },

@@ -76,7 +76,13 @@ export function evaluateG5(
 			retained.push(e.evidence_id);
 			verdicts.push(e.findings_blocking > 0 && e.verdict === "PASS" ? "FAIL" : e.verdict);
 		}
-		const outcome = combine(verdicts, o.combination === "any_pass" ? "any" : "all");
+		const controlsOutcome = combine(verdicts, o.combination === "any_pass" ? "any" : "all");
+		const unseen = o.oracle ? unseenCases(o.oracle, latestByControl) : [];
+		if (o.oracle && unseen.length > 0)
+			reasons.push(`requirement ${rid}: ${o.oracle.control_id} did not observe passing ${unseen.join(", ")}`);
+		const outcome = o.oracle
+			? combine([controlsOutcome, oracleVerdict(o.oracle, unseen, latestByControl)], "all")
+			: controlsOutcome;
 		if (outcome === "PASS") continue;
 		if (!o.mandatory) {
 			reasons.push(`optional requirement ${rid}: ${outcome}`);
@@ -174,6 +180,27 @@ export function evaluateG5(
 		indeterminate_requirements: indeterminateList,
 		next_action: next,
 	};
+}
+
+/** The cases of the binding the run of its control did not observe passing. */
+function unseenCases(oracle: { control_id: string; cases: string[] }, latest: Map<string, EvidenceEntry>): string[] {
+	const passed = latest.get(oracle.control_id)?.passed_cases ?? [];
+	return oracle.cases.filter((c) => !passed.includes(c));
+}
+
+/**
+ * What the binding of a requirement says on the candidate, whatever the other controls answered: PASS
+ * only when the run of its control observed each of its cases passing.
+ */
+function oracleVerdict(
+	oracle: { control_id: string },
+	unseen: readonly string[],
+	latest: Map<string, EvidenceEntry>,
+): Verdict {
+	const evidence = latest.get(oracle.control_id);
+	if (!evidence) return "NOT_RUN";
+	if (unseen.length === 0) return "PASS";
+	return evidence.verdict === "FAIL" ? "FAIL" : "INDETERMINATE";
 }
 
 function describe(controlIds: string[], latest: Map<string, EvidenceEntry>): string {

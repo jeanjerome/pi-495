@@ -1099,6 +1099,7 @@ class Ctx {
 				environment_digest: e.environment_digest,
 				verdict: e.verdict,
 				findings_blocking: e.findings_blocking,
+				...(e.passed_cases ? { passed_cases: e.passed_cases } : {}),
 			});
 		}
 		return ok(this.events);

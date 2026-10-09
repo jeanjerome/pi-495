@@ -13,7 +13,10 @@ export interface G2Result {
 /**
  * G2 — verifiability. Every mandatory obligation is covered by a qualified control or an assigned
  * human decision; the protocol environment matches the current environment. The product may still
- * fail the controls: only the sensors are judged here (RM-014, RM-015, PRE-03).
+ * fail the controls: only the sensors are judged here (RM-014, RM-015, PRE-03). A requirement the
+ * diagnosis leaves without an oracle of its own is not covered by controls that would answer the same
+ * whether the change delivers it or not, unless the owner was assigned its decision; a survey judges
+ * the reference as it stands and asks no such oracle.
  */
 export function evaluateG2(state: ChangeState, protocol: Protocol, policy: ActivePolicy): G2Result {
 	const reasons: string[] = [];
@@ -24,6 +27,9 @@ export function evaluateG2(state: ChangeState, protocol: Protocol, policy: Activ
 	if (state.environment_digest && protocol.environment_digest !== state.environment_digest)
 		reasons.push("protocol environment digest differs from the current environment");
 	const obligated = new Set<string>();
+	const withoutOracle = new Set(
+		surveysTheProject(state) ? [] : protocol.capability_diagnosis.undiscriminated_requirements,
+	);
 	for (const o of protocol.obligations) {
 		const rid = o.requirement.requirement_id;
 		obligated.add(rid);
@@ -45,6 +51,10 @@ export function evaluateG2(state: ChangeState, protocol: Protocol, policy: Activ
 			uncovered.push(rid);
 			reasons.push(`requirement ${rid} has no control and no assigned human decision (RM-011)`);
 			continue;
+		}
+		if (o.mandatory && withoutOracle.has(rid)) {
+			uncovered.push(rid);
+			reasons.push(`requirement ${rid} has no oracle of its own and no assigned human decision`);
 		}
 		for (const cid of o.control_ids) {
 			const control = controls.get(cid);

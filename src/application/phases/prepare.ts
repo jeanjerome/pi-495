@@ -2,11 +2,17 @@
  * Preparing: a bounded intervention writes the tests no existing control can replace, and the kernel
  * judges them on the bare reference before adopting any of them.
  */
-import type { AdoptedComplement } from "../../contracts/v1/protocol.ts";
+import type { AdoptedComplement, RequirementOracle, RequirementsDocument } from "../../contracts/v1/protocol.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { preparationObjective } from "../context.ts";
-import { preparedFilesFrom, samePreparationPaths } from "../preparation.ts";
+import {
+	oracleNote,
+	preparedFilesFrom,
+	provesNewBehaviour,
+	requirementOracles,
+	samePreparationPaths,
+} from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
@@ -103,6 +109,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		// on the producer's tree: a feature it wrote beside its tests would make them pass there.
 		let onReference: PreparationRecord["on_reference"] = "NOT_RUN";
 		let loadable = false;
+		let oracles: RequirementOracle[] = [];
 		const sensor = detected.controls[0];
 		if (files.length > 0 && sensor) {
 			const bare = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
@@ -118,16 +125,25 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 				onReference = judged.on_reference;
 				loadable = judged.loadable;
 				notes.push(...judged.notes);
+				oracles = requirementOracles(
+					await mandatedRequirements(ctx, unit, mandate.requirement_ids),
+					sensor.control_id,
+					judged.cases,
+				);
 			} finally {
 				await ctx.workspace.closeWorkspace(bare.workspace_id, "delete");
 			}
 		}
-		const discriminant = onReference === "FAIL";
+		// Each requirement is judged on its own cases: the red of one case proves the requirement it names
+		// and no other, and a suite red as a whole proves none.
+		const discriminant = provesNewBehaviour(oracles);
 		if (!discriminant && onReference === "PASS")
 			notes.push(
 				"prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)",
 			);
-		const qualified = refused.length === 0 && files.length > 0 && loadable && discriminant;
+		for (const o of oracles) if (o.qualification !== "proved") notes.push(oracleNote(o));
+		const proves = oracles.some((o) => o.qualification === "proved");
+		const qualified = refused.length === 0 && files.length > 0 && loadable && proves;
 		const record: PreparationRecord = {
 			preparation_id: ctx.id("prep"),
 			objective: mandate.objective,
@@ -139,6 +155,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			loadable,
 			qualified,
 			notes,
+			requirements: oracles,
 		};
 		const ref = await ctx.artifacts.store(
 			"preparation",
@@ -167,4 +184,15 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	} finally {
 		await ctx.workspace.closeWorkspace(handle.workspace_id, "delete");
 	}
+}
+
+/** The requirements the mandate names, as the specification states them. */
+async function mandatedRequirements(
+	ctx: PhaseContext,
+	unit: Unit,
+	ids: readonly string[],
+): Promise<RequirementsDocument["requirements"]> {
+	const requirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements");
+	if (!requirements) throw new DomainError("EVIDENCE_MISSING", "requirements missing");
+	return requirements.content.requirements.filter((r) => ids.includes(r.requirement_id));
 }
