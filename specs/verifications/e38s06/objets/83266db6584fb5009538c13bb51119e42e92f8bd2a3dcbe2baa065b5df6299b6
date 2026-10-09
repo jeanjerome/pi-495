@@ -1,0 +1,83 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un incident ne tient pas lieu de rouge métier",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 186,
+    "constat": "Le lecteur JUnit classe tout `<failure>` en `failed_assertion`. Or vitest et le reporter xunit de mocha écrivent tout échec en `<failure>`, y compris une exception levée avant l'assertion et l'échec de chargement d'un fichier. Sur un projet vitest, un cas « R1 … » qui lève `TypeError: shout is not a function` avant son assertion, ou un fichier `test/R3.test.js` dont l'import échoue, devient donc une preuve discriminante (`proved`) de R1 ou de R3. Je l'ai observé par une vraie exécution de vitest 5 (`<failure type=\"TypeError\">`, et `<failure type=\"Error\">` sur le cas synthétique nommé d'après le fichier), puis en passant ce rapport à `summarizeJUnit` et à `requirementOracles` : on obtient `[[\"R1\",\"proved\"],[\"R3\",\"proved\"]]`. Le lecteur TAP de node:test, lui, tient la promesse (sonde sur une vraie sortie : R1 qui lève avant l'assertion et R3 en échec d'import donnent `incident`). Surefire aussi, puisqu'il range une exception hors assertion dans `<error>`.",
+    "mutation": "Mutation sans objet : le défaut est dans le code et non dans un test. Il a été établi par une sonde jetable sur un rapport vitest réel. Le test existant `junit-reader.test.ts` n'exerce qu'un rapport de forme Surefire (`<error>` pour une exception)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — un lecteur incapable de localiser un cas déclare cette limite",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 379,
+    "constat": "Aucun test ne tient le câblage qui transforme l'absence de cas d'un lecteur (jest, exit-code) en `null`, et donc en exigences `unlocatable`. Si on le remplace par `[]`, chaque exigence devient `no_case` : la limite du lecteur n'est plus déclarée, et une exigence `satisfied_by_reference` retombe sur la non-régression, c'est-à-dire sur le compteur global. Le test v0 n'appelle `requirementOracles(…, null)` que directement.",
+    "mutation": "`cases: check(ObservedCases, cases) ? cases : null` remplacé par `… : []` : requirement-verification, requirement-preparation, requirement-evidence-gates et preparation.test.ts restent tous verts (24/24)."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Sécurité — la couverture n'est jamais inventée à partir du compteur global",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 206,
+    "constat": "Une exigence `satisfied_by_reference` dont aucune préparation n'a de cas (`no_case`), ou pour laquelle aucune préparation n'est ouverte, reste décidée par la non-régression dès que `executed > 0`, donc par le nombre de cas exécutés de toute la suite. La branche garde ce repli explicitement dans `undecidedRequirements`. C'est conforme au scénario 2 tel qu'il est donné (un test contradictoire existe et la contradiction est retenue), mais la phrase de sécurité et le §1 de la story (« ni parce que quelques tests existants sont exécutés ») peuvent se lire comme l'excluant."
+   }
+  ],
+  "resume": "Le scénario 1 (le rouge de R1 ne prouve pas R2), le scénario 2 (une caractérisation contredite est nommée et le reste même quand une préparation suivante retire le cas) et le scénario 4 (le contrôle des liens configurés est qualifié séparément du FAIL de l'état des lieux, grâce à l'exemption de survey dans G2) sont tenus par le code et par des tests. Toutes les mutations essayées sur ces chemins font échouer un test : contrôle sans oracle retiré de G2, liaison par nom toujours vraie, oracle quelconque traité comme décisif, caractérisation contredite prise pour prouvée, contradictions antérieures oubliées, exemption de survey retirée, oracle non attaché à l'obligation, verdict d'oracle G5 forcé à PASS. Le scénario 3 tient sous node:test : une sonde sur une vraie sortie TAP donne `incident` pour un import en échec et pour une exception levée avant l'assertion. Il ne tient pas sous vitest ni sous mocha. Ces deux runners écrivent tout échec en `<failure>`, et le nouveau lecteur JUnit en fait un rouge par assertion : une TypeError avant l'assertion, ou un fichier R3.test.js en échec d'import, prouve R1 ou R3. Je l'ai vérifié sur un rapport vitest réel (bloquant, introduit). Par ailleurs, aucun test ne tient le passage d'un lecteur sans cas à `unlocatable` dans `judgePreparedSuite` (à corriger, introduit). Le repli sur la non-régression pour une caractérisation sans cas est à peser."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un incident ne tient pas lieu de rouge métier",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/parsers.ts",
+    "ligne": 186,
+    "constat": "Le lecteur JUnit compte tout élément <failure> comme un échec d'assertion. Or le rapport junit de vitest 5.0.0 et le rapport xunit de mocha 12.0.2, observés réellement sur un cas qui lève `TypeError: shout is not a function` avant son assertion, écrivent tous deux <failure> (vitest avec type=\"TypeError\", mocha sans aucun type). Ce cas devient donc `failed_assertion`, et `requirementOracles` qualifie R1 de `proved` : sur un projet vitest ou mocha, un incident tient lieu de rouge métier et passe pour une preuve discriminante. Seul node:test, qui distingue ERR_ASSERTION, tient cette promesse.",
+    "mutation": "Aucune : vérifié par une sonde jetable. J'ai fait tourner vitest 5.0.0 et mocha 12.0.2 sur un cas « R1 … » qui lève une TypeError, passé chaque rapport à summarizeJUnit puis à requirementOracles, et obtenu outcome failed_assertion et qualification proved. Les tests de junit-reader ne couvrent que des rapports de type Surefire, où <failure> signifie une assertion et <error> tout autre échec."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — un lecteur incapable de localiser un cas déclare cette limite ; la couverture n'est jamais inventée à partir du compteur global",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 379,
+    "constat": "Le branchement qui rend `cases` null quand le lecteur ne nomme aucun cas (jest-json, exit-code) n'est tenu par aucun test. Si on le remplace par `[]`, les exigences deviennent `no_case` au lieu de `unlocatable`. La limite n'est alors plus déclarée, et une exigence satisfied_by_reference retombe sur la non-régression, jugée au compteur de cas exécutés. Tous les tests restent verts : seul `requirementOracles(…, null)` est testé, en v0.",
+    "mutation": "`cases: check(ObservedCases, cases) ? cases : null` → `… : []` : requirement-verification, requirement-preparation, requirement-evidence-gates, control-runner et junit-reader restent tous verts (48/48)."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une affirmation sur l'existant est éprouvée sans confirmation humaine de substitution (et Sécurité : le producteur ne choisit pas quels échecs retirer)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 191,
+    "constat": "Un oracle `proved` dans la préparation adoptée l'emporte sur une caractérisation qu'une préparation antérieure a vue contredite. Une préparation ultérieure peut donc réécrire le cas contredit « R3 greet says hi » en « R3 greet says hello », qui passe sur la référence. R3 redevient alors décidée et la contradiction disparaît des notes. Le cas où le producteur retire le cas est couvert, pas celui où il réécrit l'assertion. Dire s'il s'agit d'un échec retiré ou d'une nouvelle caractérisation revient à juger la pertinence de la liaison, ce que les promesses n'énoncent pas.",
+    "mutation": "Aucune : sonde jetable. Avec diagnoseControlCapability, refuted R3 contredite et une préparation adoptée R3 proved : undiscriminated_requirements=[] et notes=[]."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Le rouge de R1 ne prouve pas R2",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/prepare.ts",
+    "ligne": 206,
+    "constat": "Le drapeau `qualified` de la préparation peut repasser à `onReference === \"FAIL\"` sans qu'aucun test ne rougisse. La promesse reste tenue, puisque le diagnostic lit les oracles par exigence et non ce drapeau. Mais une préparation dont aucune exigence n'est prouvée serait alors adoptée sans que rien ne le remarque.",
+    "mutation": "`const proves = oracles.some(… === \"proved\")` → `const proves = onReference === \"FAIL\"` : les quatre tests de la story restent verts."
+   }
+  ],
+  "resume": "Le code et les tests tiennent trois des quatre scénarios. Scénario 1 : trois mutations sur quatre sont prises. Retirer l'oracle par exigence dans le diagnostic, qualifier de prouvé un nouveau comportement qui passe, ou vider le contrôle G2 « sans oracle propre » fait échouer requirement-verification, requirement-preparation ou requirement-evidence-gates. La quatrième (B1-4) ne touche que le drapeau `qualified` de la préparation, que le diagnostic ne lit plus. Côté G5, les mutations sur l'oracle, sur l'obligation et sur passed_cases sont toutes prises. Scénario 2 : la caractérisation contredite et sa mémoire à travers les préparations sont tenues par les mutations M2a à M2c. Scénario 4 : sans l'exemption de l'état des lieux dans G2, quatre tests d'état des lieux échouent, dont ceux des liens configurés. Le scénario 3 n'est pas tenu (B1-1, bloquant, introduit). Le nouveau classement JUnit compte tout <failure> comme une assertion, alors que vitest et mocha, observés pour de vrai, écrivent <failure> pour une TypeError levée avant l'assertion. Sur ces deux runners, un incident prouve donc une exigence nouvelle. node:test et Surefire distinguent bien les deux cas. Aucun test ne tient le passage d'un lecteur sans cas (jest, exit-code) à « unlocatable » dans la préparation réelle (B1-2, à corriger). B1-3 et B1-4 sont à peser. Arbre laissé propre, aucun commit."
+ }
+]

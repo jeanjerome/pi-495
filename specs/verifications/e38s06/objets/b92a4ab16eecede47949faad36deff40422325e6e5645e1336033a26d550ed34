@@ -1,0 +1,69 @@
+TAP version 13
+# Subtest: the preparation observes the oracle of each requirement on the reference
+    # Subtest: le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+    ok 1 - le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+      ---
+      duration_ms: 480.331625
+      type: 'test'
+      ...
+    # Subtest: une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+    ok 2 - une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+      ---
+      duration_ms: 424.96525
+      type: 'test'
+      ...
+    # Subtest: une caractérisation contredite reste nommée à G2 à côté de l’incident quand une préparation suivante la réécrit en un cas qui échoue sans assertion
+    not ok 3 - une caractérisation contredite reste nommée à G2 à côté de l’incident quand une préparation suivante la réécrit en un cas qui échoue sans assertion
+      ---
+      duration_ms: 429.660166
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-qgxjKu/test/v2-kernel/requirement-preparation.test.ts:177:2'
+      failureType: 'testCodeFailure'
+      error: 'the IH-04 decision names the contradiction of R2 by the case a later preparation rewrote'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'no test file under the test roots of this node target | prepared suite adopted: 1 file(s) | R2: its cases fail on the reference without an assertion, which proves nothing about it: "R2 greet says hello" failed otherwise | recommended coverage complement, not adopted: node --experimental-test-coverage 24.21.0 (established 2026-09-30, source nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage); in package.json, add --experimental-test-coverage to scripts.test | recommended mutation complement, not adopted: @stryker-mutator/core 10.0.0 (established 2026-09-30, source stryker-mutator.io/docs/stryker-js/getting-started/); install @stryker-mutator/core as a devDependency | risk: without a control able to judge R2, no measurement tells whether the change delivers it, and a candidate that does not is not detected by any check'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-qgxjKu/test/v2-kernel/requirement-preparation.test.ts:240:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a case named as a method, its hyphens written as underscores, proves the hyphenated requirement and its preparation is adopted
+    ok 4 - a case named as a method, its hyphens written as underscores, proves the hyphenated requirement and its preparation is adopted
+      ---
+      duration_ms: 785.236875
+      type: 'test'
+      ...
+    # Subtest: a preparation whose every case fails before its assertion proves no requirement and is not adopted
+    ok 5 - a preparation whose every case fails before its assertion proves no requirement and is not adopted
+      ---
+      duration_ms: 409.51825
+      type: 'test'
+      ...
+    # Subtest: a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+    ok 6 - a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+      ---
+      duration_ms: 405.130458
+      type: 'test'
+      ...
+    1..6
+not ok 1 - the preparation observes the oracle of each requirement on the reference
+  ---
+  duration_ms: 2935.536583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-qgxjKu/test/v2-kernel/requirement-preparation.test.ts:67:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3195.774

@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: G2 and G5 consume the binding of each requirement to its observations
+    # Subtest: seules les observations des liaisons adoptées satisfont les obligations correspondantes
+    ok 1 - seules les observations des liaisons adoptées satisfont les obligations correspondantes
+      ---
+      duration_ms: 709.149958
+      type: 'test'
+      ...
+    1..1
+ok 1 - G2 and G5 consume the binding of each requirement to its observations
+  ---
+  duration_ms: 709.629333
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 968.221375

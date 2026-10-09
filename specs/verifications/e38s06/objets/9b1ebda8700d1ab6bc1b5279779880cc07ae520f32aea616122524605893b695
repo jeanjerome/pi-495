@@ -1,0 +1,101 @@
+TAP version 13
+# Subtest: the binding of each requirement to its own observations
+    # Subtest: R1 et R2 gardent des observations distinctes et un ancien dossier reste lisible sans être surqualifié
+    ok 1 - R1 et R2 gardent des observations distinctes et un ancien dossier reste lisible sans être surqualifié
+      ---
+      duration_ms: 1.447083
+      type: 'test'
+      ...
+    1..1
+ok 1 - the binding of each requirement to its own observations
+  ---
+  duration_ms: 1.820416
+  type: 'suite'
+  ...
+# Subtest: an incident is not a red on the behaviour
+    # Subtest: a case failing on an import or before its assertion proves no requirement, and a reader naming no case leaves every requirement unlocatable
+    ok 1 - a case failing on an import or before its assertion proves no requirement, and a reader naming no case leaves every requirement unlocatable
+      ---
+      duration_ms: 0.409208
+      type: 'test'
+      ...
+    1..1
+ok 2 - an incident is not a red on the behaviour
+  ---
+  duration_ms: 0.455709
+  type: 'suite'
+  ...
+# Subtest: a case bound by the method name a JUnit report carries
+    # Subtest: un cas Surefire nommé r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser, en échec par assertion sur la référence, prouve l’exigence r-update-refuse-nom-pris
+    not ok 1 - un cas Surefire nommé r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser, en échec par assertion sur la référence, prouve l’exigence r-update-refuse-nom-pris
+      ---
+      duration_ms: 1.410125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jgwUcV/test/v0-pure/requirement-verification.test.ts:152:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the case names r-update-refuse-nom-pris with its hyphens written as underscores, and its red on an assertion proves it
+        + actual - expected
+        
+          [
+            [
+              'r-update-refuse-nom-pris',
+        +     [],
+        +     'no_case'
+        -     [
+        -       [
+        -         'com.example.UserServiceTest.r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser',
+        -         'failed_assertion'
+        -       ]
+        -     ],
+        -     'proved'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'r-update-refuse-nom-pris'
+          1:
+            0:
+              0: 'com.example.UserServiceTest.r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser'
+              1: 'failed_assertion'
+          2: 'proved'
+      actual:
+        0:
+          0: 'r-update-refuse-nom-pris'
+          1:
+          2: 'no_case'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jgwUcV/test/v0-pure/requirement-verification.test.ts:162:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 3 - a case bound by the method name a JUnit report carries
+  ---
+  duration_ms: 1.478667
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-jgwUcV/test/v0-pure/requirement-verification.test.ts:151:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 3
+# suites 3
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 146.82075

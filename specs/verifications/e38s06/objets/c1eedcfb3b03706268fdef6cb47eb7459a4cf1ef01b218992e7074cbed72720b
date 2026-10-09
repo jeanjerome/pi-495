@@ -1,0 +1,93 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une caractérisation contredite réécrite en un cas qui échoue sans assertion reste nommée à côté de l’incident",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 231,
+    "constat": "Le code tient la promesse. `failedOracles` renvoie le dernier oracle en échec (incident ou unlocatable) suivi de la contradiction reportée, et `undecidedRequirements` écrit une note pour chacun. Le test v2 « …réécrit en un cas qui échoue sans assertion » vérifie les deux notes de IH-04 et l’absence de G2. Le test v0 « …beside a later reader that names no case » couvre la variante du lecteur qui ne nomme aucun cas. Les trois mutations font échouer ces deux tests, chaque fois.",
+    "mutation": "M1 : `return latest ? [latest] : [refutation]` (retour à l’ancien comportement). M2 : `notes.push(oracleNote(failed[0]!))`. M3 : `return [refutation]` (l’incident n’est plus nommé)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une caractérisation contredite réécrite pour passer reste nommée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 231,
+    "constat": "La réécriture de `failedOracle` en `failedOracles` garde ce comportement : sans dernier oracle en échec, la contradiction reportée est encore renvoyée. Le test v2 de la tâche 6 et le test « le rouge de R1 ne couvre pas R2… » tiennent cette promesse.",
+    "mutation": "M4 : `return latest ? [latest, refutation] : []`. Les deux tests v2 échouent."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le rouge de R1 ne prouve pas R2",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 204,
+    "constat": "Le code tient la promesse et des tests la tiennent : le test v0 « R1 et R2 gardent des observations distinctes… » et le test v2 « le rouge de R1 ne couvre pas R2… ». La branche ne fait que factoriser `provesNewBehaviour`, à comportement constant.",
+    "mutation": "M9 : retrait de `undiscriminated.push` pour une exigence absente de la référence. M11 : `if (oracle) continue`. Le test v0 échoue dans les deux cas, et M9 fait aussi échouer un test v2."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Une affirmation sur l’existant est éprouvée sans confirmation humaine de substitution",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 296,
+    "constat": "La promesse est tenue : une caractérisation en échec par assertion est `contradicted`, nommée dans IH-04, et G2 n’est pas gelé.",
+    "mutation": "M10 : une caractérisation en échec par assertion est lue `proved`. Quatre tests échouent, dont « le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel »."
+   },
+   {
+    "id": "A1-5",
+    "scenario": "Un incident ne tient pas lieu de rouge métier",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 298,
+    "constat": "La promesse est tenue. Un cas qui échoue autrement que par assertion qualifie l’exigence `incident`, et un lecteur qui ne nomme aucun cas la qualifie `unlocatable`, jamais `proved`. Le test v0 « a case failing on an import or before its assertion proves no requirement… » tient cette promesse.",
+    "mutation": "M6 : priorité inversée entre incident et assertion pour new_behaviour. M7 : incident de caractérisation lu `proved`. M8 : `unlocatable` retiré. Chaque mutation fait échouer au moins un test."
+   },
+   {
+    "id": "A1-6",
+    "scenario": "Un cas JUnit nommé par sa méthode prouve l’exigence dont l’identifiant porte un tiret",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 280,
+    "constat": "La promesse est tenue : un tiret de l’identifiant peut s’écrire en tiret bas dans le nom du cas. Le test v0 sur `r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser` et le test v2 d’adoption échouent quand on retire cette lecture.",
+    "mutation": "M5 : retrait de `.replaceAll(\"-\", \"[-_]\")`. Les deux tests échouent."
+   },
+   {
+    "id": "A1-7",
+    "scenario": "Un contrôleur fiable juge une référence non conforme",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "test/v2-kernel/architecture-map-configured-links.test.ts",
+    "ligne": 46,
+    "constat": "La branche ne touche pas ce scénario. J’ai vérifié par lecture et exécution que le test vérifie le contrôle des liens `qualified` sur ses témoins et une mesure en `FAIL` sur la référence : il passe et n’est pas sauté. Je n’ai fait aucune mutation sur ce chemin."
+   }
+  ],
+  "resume": "J’ai relu `git diff 4d43150c...3281e052`. La branche fait trois choses : `failedOracle` devient `failedOracles`, une note est écrite par observation, et `provesNewBehaviour` est factorisée. J’ai muté 11 lignes du code qui tient les sept promesses (M1 à M11), en restaurant le fichier après chacune. Chaque mutation fait échouer au moins un test qui vérifie la promesse dans les termes de la story. Le scénario nouveau, avec sa variante du lecteur qui ne nomme aucun cas, est tenu par le code et par deux tests. Je ne relève aucun constat bloquant ni à corriger. L’arbre est revenu propre : rien n’est modifié ni commité."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un incident ne tient pas lieu de rouge métier",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/phases/prepare.ts",
+    "ligne": 139,
+    "constat": "The `discriminant` field of the preparation record is not asserted by any test, and nothing under src/ reads it. If it is set to true for a preparation whose cases all fail without an assertion, every test stays green. Adoption (`proves`) and the G2 diagnosis (`provesNewBehaviour` in `diagnoseControlCapability`) still refuse such a preparation, and their tests fail under the matching mutations. So the promise holds; only the dossier's informational flag is unguarded. The branch changed this line as a refactor with no change in behaviour.",
+    "mutation": "`const discriminant = provesNewBehaviour(oracles);` → `const discriminant = oracles.length > 0;`: 11/11 green in requirement-verification, requirement-preparation and requirement-evidence-gates."
+   }
+  ],
+  "resume": "The diff under review (4d43150c...3281e052) changes behaviour in one place: `failedOracles`, which replaces `failedOracle` in src/application/preparation.ts, plus the call that emits one note per failed observation. It also factors out `provesNewBehaviour` (shared by prepare.ts and the diagnosis) and rewraps a comment in parsers.ts. The code keeps the new scenario: a contradiction seen earlier is named next to an `incident` or `unlocatable` latest oracle, and on its own when the latest oracle is `proved` or `no_case`. The v2 test checks this all the way to the IH-04 decision (\"R2 greet says hi\" and the incident of \"R2 greet says hello\"), with G2 not frozen and the second preparation adopted. The v0 test covers the reader that names no case.\n\nEach mutation was undone with git checkout, and the worktree is clean. Mutations caught by tests:\n- Going back to one observation per requirement (M1), dropping the refutation beside the latest oracle (M2), and keeping one note per requirement (M3): each fails both new tests.\n- `oracle` instead of `proved` in undecidedRequirements fails \"R1 et R2 gardent des observations distinctes\" (scenario 1).\n- Incident read as proved fails the v0 and v2 incident tests (scenario 3).\n- Removing the hyphen-to-underscore rule fails both tests of scenario 5.\n- Dropping the refutation when the latest oracle is proved fails \"le rouge de R1…\" and the test of the case rewritten to pass (scenarios 2 and 6).\n- Mutating `provesNewBehaviour` fails the v0 incident test.\n\nScenario 4 (configured links: a qualified control next to a FAIL of the project) depends on code the branch does not touch. Its test asserts both `qualified` and `verdict FAIL`.\n\nOne survivor, not counted against the verdict: naming both contradictions when the latest oracle is itself a contradiction leaves the tests green. That still keeps the promises; the out-of-scope section only fixes the count at one. The only finding is minor and predates the branch: the `discriminant` field of the preparation record is unguarded and read by nothing. No blocking or must-fix finding is introduced or made reachable by the branch."
+ }
+]

@@ -2,7 +2,7 @@
 
 Story : e38s06
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : pi-495 — préparation, G2 et obligations G5
 Dépendances : e38s05

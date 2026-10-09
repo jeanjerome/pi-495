@@ -1,0 +1,63 @@
+TAP version 13
+# Subtest: the preparation observes the oracle of each requirement on the reference
+    # Subtest: le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+    ok 1 - le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+      ---
+      duration_ms: 466.3895
+      type: 'test'
+      ...
+    # Subtest: une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+    not ok 2 - une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+      ---
+      duration_ms: 950.825833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TpNbTc/test/v2-kernel/requirement-preparation.test.ts:116:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        scoping -> specification/ready | specification -> qualification/ready | qualification -> preparing/ready | preparing -> qualification/ready | qualification -> preparing/ready | preparing -> qualification/ready | qualification -> design/ready | design -> implementation/ready | implementation -> verifying/ready | verifying -> deciding/ready | deciding -> implementation/ready | implementation -> verifying/ready | verifying -> deciding/ready | deciding -> deciding/blocked
+        + actual - expected
+        
+        + 'blocked'
+        - 'decision_required'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'decision_required'
+      actual: 'blocked'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TpNbTc/test/v2-kernel/requirement-preparation.test.ts:162:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a preparation whose every case fails before its assertion proves no requirement and is not adopted
+    ok 3 - a preparation whose every case fails before its assertion proves no requirement and is not adopted
+      ---
+      duration_ms: 411.125
+      type: 'test'
+      ...
+    # Subtest: a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+    ok 4 - a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+      ---
+      duration_ms: 415.758708
+      type: 'test'
+      ...
+    1..4
+not ok 1 - the preparation observes the oracle of each requirement on the reference
+  ---
+  duration_ms: 2244.716166
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-TpNbTc/test/v2-kernel/requirement-preparation.test.ts:67:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2514.160208

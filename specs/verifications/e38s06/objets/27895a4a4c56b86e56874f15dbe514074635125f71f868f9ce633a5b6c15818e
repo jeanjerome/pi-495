@@ -1,0 +1,89 @@
+TAP version 13
+# Subtest: the preparation observes the oracle of each requirement on the reference
+    # Subtest: le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+    not ok 1 - le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+      ---
+      duration_ms: 483.181584
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YuYOWK/test/v2-kernel/requirement-preparation.test.ts:51:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the red of R1 proves R1 alone, and the characterization of R3 is contradicted on the reference
+        + actual - expected
+        
+        + undefined
+        - [
+        -   [
+        -     'R1',
+        -     'new_behaviour',
+        -     [
+        -       'R1 shout upper-cases the greeting: failed_assertion'
+        -     ],
+        -     'proved'
+        -   ],
+        -   [
+        -     'R2',
+        -     'new_behaviour',
+        -     [
+        -       'R2 whisper keeps the greeting: passed'
+        -     ],
+        -     'contradicted'
+        -   ],
+        -   [
+        -     'R3',
+        -     'characterization',
+        -     [
+        -       'R3 greet says hi: failed_assertion'
+        -     ],
+        -     'contradicted'
+        -   ]
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'R1'
+          1: 'new_behaviour'
+          2:
+            0: 'R1 shout upper-cases the greeting: failed_assertion'
+          3: 'proved'
+        1:
+          0: 'R2'
+          1: 'new_behaviour'
+          2:
+            0: 'R2 whisper keeps the greeting: passed'
+          3: 'contradicted'
+        2:
+          0: 'R3'
+          1: 'characterization'
+          2:
+            0: 'R3 greet says hi: failed_assertion'
+          3: 'contradicted'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YuYOWK/test/v2-kernel/requirement-preparation.test.ts:79:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the preparation observes the oracle of each requirement on the reference
+  ---
+  duration_ms: 483.892584
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-YuYOWK/test/v2-kernel/requirement-preparation.test.ts:50:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 747.750583

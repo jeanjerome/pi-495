@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: the preparation observes the oracle of each requirement on the reference
+    # Subtest: le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+    ok 1 - le rouge de R1 ne couvre pas R2 et une caractérisation fausse est signalée avant gel
+      ---
+      duration_ms: 458.313708
+      type: 'test'
+      ...
+    # Subtest: une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+    ok 2 - une caractérisation contredite reste nommée à G2 et n’est pas gelée comme couverte quand une préparation suivante la réécrit pour qu’elle passe
+      ---
+      duration_ms: 435.25225
+      type: 'test'
+      ...
+    # Subtest: une caractérisation contredite reste nommée à G2 à côté de l’incident quand une préparation suivante la réécrit en un cas qui échoue sans assertion
+    ok 3 - une caractérisation contredite reste nommée à G2 à côté de l’incident quand une préparation suivante la réécrit en un cas qui échoue sans assertion
+      ---
+      duration_ms: 441.278458
+      type: 'test'
+      ...
+    # Subtest: a case named as a method, its hyphens written as underscores, proves the hyphenated requirement and its preparation is adopted
+    ok 4 - a case named as a method, its hyphens written as underscores, proves the hyphenated requirement and its preparation is adopted
+      ---
+      duration_ms: 817.324
+      type: 'test'
+      ...
+    # Subtest: a preparation whose every case fails before its assertion proves no requirement and is not adopted
+    ok 5 - a preparation whose every case fails before its assertion proves no requirement and is not adopted
+      ---
+      duration_ms: 436.05275
+      type: 'test'
+      ...
+    # Subtest: a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+    ok 6 - a reader that names no case leaves every requirement of the preparation unlocatable rather than without a case
+      ---
+      duration_ms: 426.487709
+      type: 'test'
+      ...
+    1..6
+ok 1 - the preparation observes the oracle of each requirement on the reference
+  ---
+  duration_ms: 3015.484083
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3279.089208

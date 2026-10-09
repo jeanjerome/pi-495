@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Relecteur A, tour 1, e38s06 (diff 3a22a414...8369e451). La branche porte les scénarios 5 et 6 ; les scénarios 1 à 4 étaient déjà sur main avant elle et ont été revérifiés.\n\nS5 (cas JUnit nommé par sa méthode) : `namesRequirement` traduit chaque tiret de l'identifiant en `[-_]` (preparation.ts:253). Le cas `com.example.UserServiceTest.r_update_refuse_nom_pris_rejectsNameHeldByAnotherUser`, lu par `summarizeJUnit` en `failed_assertion`, est lié à r-update-refuse-nom-pris et qualifié `proved`. `prepare` adopte la préparation, puisque `qualified` dépend de `proves`, et le diagnostic rend `discriminating`. Mutation : retrait de `.replaceAll(\"-\", \"[-_]\")`, le test v0 « un cas Surefire nommé … » échoue.\n\nS6 (caractérisation contredite réécrite) : `failedOracle` rend la réfutation antérieure même quand le dernier oracle est `proved`. Le test `continue` sur `proved` passe désormais après ce contrôle. `refutedCharacterizations` lit les préparations des exigences en vigueur. Le test v2 vérifie trois choses : la réécriture « hi » → « hello », l'arrêt sur `decision_required`, un G2 non gelé, et une IH-04 qui nomme « R2 greet says hi ». Trois mutations le font échouer : `failedOracle` qui laisse un oracle prouvé effacer la réfutation, le `continue` sur `proved` remis avant `failedOracle`, et `refutedCharacterizations` qui rend une liste vide (deux tests échouent).\n\nS1 à S3 : tenus par le code et par les tests v0/v2. Trois mutations les font échouer : branche `!satisfied_by_reference` neutralisée, caractérisation contredite qualifiée `proved`, incident qualifié comme une preuve.\n\nS4 : la branche ne touche pas ce chemin. Le test architecture-map-configured-links vérifie à la fois `qualified` et un verdict FAIL ; aucune mutation n'a été essayée pour ce scénario.\n\nAucun constat. L'arbre a été remis propre après chaque mutation."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une caractérisation contredite réécrite pour passer reste nommée (clause de sécurité « reste nommée à G2 »)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/preparation.ts",
+    "ligne": 225,
+    "constat": "Une préparation suivante peut réécrire le cas contredit de R2 en un cas qui échoue sans assertion (`incident`). Dans ce cas, `failedOracle` rend l'oracle `incident` à la place de la contradiction carriée. R2 reste bien non discriminée et G2 ne gèle pas, mais la note de G2 nomme « R2 greet says hello failed otherwise » et ne nomme plus la contradiction par « R2 greet says hi ». Une sonde jetable sur `diagnoseControlCapability` le confirme. Le comportement est le même avant la branche, et la clause ne cite que le retrait et la réécriture qui passe.",
+    "mutation": "aucune (sonde jetable : refuted = R2 contredite par « R2 greet says hi », oracle adopté = R2 incident par « R2 greet says hello »)"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un cas JUnit nommé par sa méthode prouve l’exigence dont l’identifiant porte un tiret",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v0-pure/requirement-verification.test.ts",
+    "ligne": 152,
+    "constat": "Le test de la promesse vérifie la liaison et la qualification `proved` (sur `summarizeJUnit` puis `requirementOracles`) et le niveau `discriminating` du diagnostic. Il ne passe pas par la phase `prepare` : l'adoption (`qualified`, `adopted_ref`) en découle sans être vérifiée sur ce cas. Retirer le `[-_]` le fait bien échouer, et le calcul de `qualified` est tenu par les tests v2 existants.",
+    "mutation": "retrait de `.replaceAll(\"-\", \"[-_]\")` dans `namesRequirement` → le test échoue"
+   }
+  ],
+  "resume": "Le verdict est pass : aucun constat introduit ou rendu atteignable n'est bloquant ou à corriger. Deux points sont à peser.\n\nJ'ai lu le diff entre 3a22a414 et 8369e451 (`namesRequirement`, `failedOracle`, l'ordre des tests dans `undecidedRequirements`) et le chemin complet : `refutedCharacterizations`, puis `diagnose`, puis `needsPreparation` et `freeze`. Les deux fichiers de test visés passent : 7 tests sur 7, plus `requirement-evidence-gates`. Toutes les mutations ont été remises en place et l'arbre est propre.\n\n**Ce que les mutations font échouer, par scénario**\n- **Scénario 5 (cas JUnit nommé par sa méthode)** : retirer `.replaceAll(\"-\", \"[-_]\")` fait échouer le test v0 Surefire.\n- **Scénario 6 (caractérisation réécrite pour passer)** :\n  - court-circuiter `failedOracle` quand l'oracle est `proved` fait échouer le test v2 de la réécriture ;\n  - rendre `refutation` conditionnel à un oracle non prouvé le fait échouer aussi ;\n  - remplacer `refutedCharacterizations` par une liste vide fait échouer le test de la réécriture et « le rouge de R1 ne couvre pas R2 ».\n\n  Si le propriétaire prend R2 à sa charge, l'obligation devient `human_decision`, sans le cas réécrit.\n- **Scénarios 1 à 3** (code antérieur à la branche) :\n  - forcer `namesRequirement` à vrai fait échouer 5 tests ;\n  - qualifier `proved` une caractérisation en échec par assertion fait échouer 2 tests ;\n  - qualifier `proved` un échec sans assertion fait échouer 2 tests.\n- **Scénario 4** : la branche n'y touche pas, et `test/v2-kernel/architecture-map-configured-links.test.ts` le tient (contrôle qualifié, puis mesure en FAIL).\n\n**Points à peser**\n- **B1-1 (antérieur)** : une réécriture en cas qui échoue sans assertion laisse R2 bloquée, mais la note de G2 ne nomme plus la contradiction d'origine.\n- **B1-2 (introduit)** : l'adoption de la préparation du scénario 5 se déduit du diagnostic ; aucun test ne passe pour ce cas par la phase `prepare`."
+ }
+]
