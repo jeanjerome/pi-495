@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the request of each step of a migration carries the target and its transition
+    # Subtest: la demande du changement de E1 porte A2 comme cible avec sa nature et sa description, puis le contrat de transition, la frontière de coexistence, la stratégie de compatibilité et le retour arrière de E1
+    ok 1 - la demande du changement de E1 porte A2 comme cible avec sa nature et sa description, puis le contrat de transition, la frontière de coexistence, la stratégie de compatibilité et le retour arrière de E1
+      ---
+      duration_ms: 1069.660625
+      type: 'test'
+      ...
+    # Subtest: E1 intégré, la demande du changement de E2 porte la même cible, les quatre textes de E2 et l'écart part app may not depend on part infra avec ses 2 violations à l'état des lieux
+    ok 2 - E1 intégré, la demande du changement de E2 porte la même cible, les quatre textes de E2 et l'écart part app may not depend on part infra avec ses 2 violations à l'état des lieux
+      ---
+      duration_ms: 1653.645584
+      type: 'test'
+      ...
+    1..2
+ok 1 - the request of each step of a migration carries the target and its transition
+  ---
+  duration_ms: 2723.915291
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2990.334167

@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité (« L'état des lieux cité doit être celui du même projet, accepté par le propriétaire »), hors scénario",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/migration.ts",
+    "ligne": 67,
+    "constat": "Le code appelle bien acceptedChange : un changement inexistant, une survey non acceptée ou celle d'un autre projet sont refusés. Mais aucun test de migration ne tient cette garantie. Retirer l'appel laisse les neuf tests de la story verts, et les tests de baselineOf ne couvrent que la fonction partagée, pas son appel par migrationOf.",
+    "mutation": "`const change = acceptedChange(cited, projectPath, MIGRATION_START);` remplacé par `const change = cited.change!;` : 0 échec sur les trois fichiers de la story"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une migration est adoptée sur la cible choisie et les violations de la carte",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/migration.ts",
+    "ligne": 35,
+    "constat": "Le code ne compte que les findings des contrôles qui portent la carte d'architecture, comme la story le promet. Mais la fixture n'a aucune finding hors du contrôle d'architecture. Compter les findings de tous les contrôles ne fait donc échouer aucun test, alors que la Sécurité dit que les écarts viennent du seul contrôle d'architecture.",
+    "mutation": "`if (controlIds.includes(control.control_id))` remplacé par `if (true)` : 0 échec"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Une étape à laquelle il manque sa transition n'est pas adoptée ; Une migration est adoptée… (la session y est liée)",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/application/harness.ts",
+    "ligne": 626,
+    "constat": "Le refus d'une étape sans transition n'est testé qu'au niveau v0 (readTrajectory lève). « Aucun programme ni changement, session sans liaison » tient seulement parce que readTrajectory est la première ligne de adopt, et la liaison de session vient du chemin générique de /495 adopt. Les tests de test/v3-pi/program-entry.test.ts tiennent ce chemin, mais aucun ne le fait avec un document de migration.",
+    "mutation": ""
+   }
+  ],
+  "resume": "J'ai relu les huit scénarios d'e11s06 sur le diff 09a37d69...8ffe4714. Le code tient chacun d'eux. Sur 29 mutations essayées sur src/, une seule par exécution des trois fichiers de test de la story, toutes remises ensuite (arbre propre) : 26 font échouer le test qui porte la promesse. Ces 26 portent sur le digest, la description de la cible, le nombre de violations, la raison de l'exception, la prise en charge par exception, la règle supprimée inconnue, la vérification de l'exception, les lignes du statut sous E2, l'exception et la règle écartée, la cible et la transition dans la demande de E1, l'écart et la cible dans la demande de E2, la règle non mesurée au jalon final, le statut non clos, le choix en suspens, la recommandation qui ne tient pas, la carte en angle mort, le contrôle qui n'a rien mesuré, et les textes manquants d'une étape. Trois mutations survivent : la vérification d'un état des lieux accepté et du même projet (A1-1), le filtre des findings sur le seul contrôle d'architecture (A1-2), et la ligne de cible du statut, qu'aucun Then ne promet. Il reste trois constats à peser, et aucun constat bloquant ni à corriger."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une étape à laquelle il manque sa transition n'est pas adoptée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v0-pure/trajectory-migration.test.ts",
+    "ligne": 27,
+    "constat": "Un seul test tient le refus, et il porte sur readTrajectory, en v0 : il vérifie que le message nomme l'étape et le texte qui manque. Qu'aucun programme ni changement ne soit créé et que la session reste sans liaison tient à l'ordre du code, readTrajectory étant la première ligne de Harness.adopt. Aucun test ne passe par adopt ni par /495 adopt avec une transition incomplète.",
+    "mutation": "`lacking.length > 0` remplacé par `> 99` dans migrationSteps : le test v0 échoue. Le seuil est remis."
+   }
+  ],
+  "resume": "Le code tient les huit scénarios, et pour chacun un test échoue sous mutation. J'ai relu adopt, startNext, migrationOf, readTrajectory, checkMigration et unmeasuredRules, ainsi que la vue et le texte du statut. Les 9 tests de la story passent. Sur 30 mutations, 27 ont fait échouer le test qui assert le Then dans les mots de la story :\n- la règle « recommandation présentée » (check.holds) et le choix laissé en suspens ;\n- l'absence de carte adoptée et l'appel à checkMeasured ;\n- checkNamed, pour une décision de périmètre comme pour une exception ;\n- le décompte des violations, le digest de l'arbre et la nature et la raison inscrites ;\n- checkRemovedRules, checkException, le filtre `unhandled` et son throw ;\n- le terme `m.final && gap.exception` et l'appel à unmeasuredRules ;\n- l'événement trajectory.adopt qui porte la migration ;\n- le refus d'une transition incomplète, les textes de transition, la ligne Cible et la liste des règles supprimées dans la demande ;\n- les lignes de statut : sous E2, l'exception, la règle écartée, la vue `removes` ;\n- les défauts de propriétaire et d'échéance du bloc migration.\n\nTrois mutations survivent, aucune sur une promesse :\n- `trim()` sur un texte de transition : aucun scénario ne parle d'un texte fait de seuls espaces.\n- `program.migration !== null` dans formatStatus : le programme du scénario a de toute façon deux étapes et un jalon.\n- Ma première version de la mutation du throw `unhandled` a touché la copie de checkGaps ; une fois visé checkMigration, le test échoue.\n\nUn seul constat, à peser : le scénario 3 n'est testé qu'au niveau de readTrajectory. Rien de bloquant ni à corriger n'est introduit ou rendu atteignable, d'où le verdict pass. L'arbre est propre ; la sonde jetable est supprimée."
+ }
+]

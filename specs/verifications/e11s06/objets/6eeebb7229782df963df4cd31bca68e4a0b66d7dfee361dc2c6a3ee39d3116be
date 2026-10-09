@@ -1,0 +1,128 @@
+TAP version 13
+# Subtest: a migration is adopted on the chosen target and the violations of the map
+    # Subtest: adopter une migration qui cite l'état des lieux accepté du réacteur, où le propriétaire a choisi A2, inscrit au programme l'état des lieux, le digest de l'arbre mesuré, A2 avec sa nature et sa description, les écarts part app may not depend on part infra 2 et every main source belongs to a part 1, l'exception avec son propriétaire et son échéance, et le statut liste sous E2 l'écart qu'elle supprime avec ses 2 violations
+    not ok 1 - adopter une migration qui cite l'état des lieux accepté du réacteur, où le propriétaire a choisi A2, inscrit au programme l'état des lieux, le digest de l'arbre mesuré, A2 avec sa nature et sa description, les écarts part app may not depend on part infra 2 et every main source belongs to a part 1, l'exception avec son propriétaire et son échéance, et le statut liste sous E2 l'écart qu'elle supprime avec ses 2 violations
+      ---
+      duration_ms: 1049.547292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:51:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the program names the cited survey
+        + actual - expected
+        
+        + undefined
+        - 'chg_0003'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'chg_0003'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:61:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une règle enfreinte qu'aucune étape ne supprime ni qu'aucune décision ou exception ne prend en charge, une étape qui supprime no cycle between the parts, ou une exception sans propriétaire ou sans échéance, est refusée avec un message qui la nomme, sans programme créé
+    not ok 2 - une règle enfreinte qu'aucune étape ne supprime ni qu'aucune décision ou exception ne prend en charge, une étape qui supprime no cycle between the parts, ou une exception sans propriétaire ou sans échéance, est refusée avec un message qui la nomme, sans programme créé
+      ---
+      duration_ms: 964.702459
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:104:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected rejection.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      stack: |-
+        async refused (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:32:2)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:109:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a migration is adopted on the chosen target and the violations of the map
+  ---
+  duration_ms: 2014.79925
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:50:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: a survey that gives no target or measured nothing is not the starting point of a migration
+    # Subtest: un état des lieux dont le propriétaire a laissé le choix en suspens, sans recommandation présentée, dont la carte est en angle mort ou dont le contrôle d'architecture n'a rien mesuré est refusé avec un message qui nomme le changement et la raison, sans programme créé
+    not ok 1 - un état des lieux dont le propriétaire a laissé le choix en suspens, sans recommandation présentée, dont la carte est en angle mort ou dont le contrôle d'architecture n'a rien mesuré est refusé avec un message qui nomme le changement et la raison, sans programme créé
+      ---
+      duration_ms: 3411.888041
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:142:2'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected rejection.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      stack: |-
+        async refused (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:32:2)
+        async TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:176:4)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 2 - a survey that gives no target or measured nothing is not the starting point of a migration
+  ---
+  duration_ms: 3412.114292
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:141:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the milestone of a migration does not pass on the closure of its steps alone
+    # Subtest: E1 et E2 intégrés, le jalon final est INDETERMINATE, nomme les deux écarts d'architecture comme non mesurés sur le projet intégré, et le programme n'est pas clos
+    not ok 1 - E1 et E2 intégrés, le jalon final est INDETERMINATE, nomme les deux écarts d'architecture comme non mesurés sur le projet intégré, et le programme n'est pas clos
+      ---
+      duration_ms: 2118.88575
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:186:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'PASS'
+        - 'INDETERMINATE'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'INDETERMINATE'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:204:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..1
+not ok 3 - the milestone of a migration does not pass on the closure of its steps alone
+  ---
+  duration_ms: 2119.073708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6GeMLf/test/v2-kernel/program-architecture-migration.test.ts:185:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 4
+# suites 3
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7807.183209

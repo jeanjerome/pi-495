@@ -1,0 +1,71 @@
+TAP version 13
+# Subtest: the request of each step of a migration carries the target and its transition
+    # Subtest: la demande du changement de E1 porte A2 comme cible avec sa nature et sa description, puis le contrat de transition, la frontière de coexistence, la stratégie de compatibilité et le retour arrière de E1
+    not ok 1 - la demande du changement de E1 porte A2 comme cible avec sa nature et sa description, puis le contrat de transition, la frontière de coexistence, la stratégie de compatibilité et le retour arrière de E1
+      ---
+      duration_ms: 1057.31375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:44:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the request carries « Target: A2 (adjust) — ajouter un port de paiement dans domain, que io.demo.infra implémente »:
+        Add the port of payment
+        
+        Value: Add the port of payment gives the owner one step of the program
+        Closure criterion: Add the port of payment is in place and the suite passes
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        inOrder (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:37:10)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:54:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: E1 intégré, la demande du changement de E2 porte la même cible, les quatre textes de E2 et l'écart part app may not depend on part infra avec ses 2 violations à l'état des lieux
+    not ok 2 - E1 intégré, la demande du changement de E2 porte la même cible, les quatre textes de E2 et l'écart part app may not depend on part infra avec ses 2 violations à l'état des lieux
+      ---
+      duration_ms: 1583.949708
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:59:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the request carries « Target: A2 (adjust) — ajouter un port de paiement dans domain, que io.demo.infra implémente »:
+        Move app behind the port
+        
+        Value: Move app behind the port gives the owner one step of the program
+        Closure criterion: Move app behind the port is in place and the suite passes
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        inOrder (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:37:10)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:73:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the request of each step of a migration carries the target and its transition
+  ---
+  duration_ms: 2641.844667
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-m2H1jZ/test/v2-kernel/program-architecture-migration-request.test.ts:43:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2901.18075
