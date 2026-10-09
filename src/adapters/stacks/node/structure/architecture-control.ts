@@ -4,6 +4,7 @@
  * network closed, and the witness that carries a dependency the map forbids.
  */
 import type { ArchitectureOffer, CapabilityQuestion, WitnessFiles } from "../../../../application/stacks/plugin.ts";
+import type { ProjectView } from "../../../../application/stacks/project-view.ts";
 import { baseControl } from "../../../../application/stacks/stack.ts";
 import {
 	type ArchitectureMap,
@@ -12,7 +13,7 @@ import {
 	RULESET_PLACEHOLDER,
 } from "../../../../contracts/v1/protocol.ts";
 import type { NodeProject } from "../project/node-project.ts";
-import { REPORT_DIRECTORY } from "../shared.ts";
+import { isScriptUnderTest, REPORT_DIRECTORY } from "../shared.ts";
 import { analysersInstalledIn, DEPENDENCIES_ANALYSER, MAP_ANALYSERS, type MapAnalyser } from "./map-analysers.ts";
 import { MAP_VERIFICATION_UNSEEN } from "./map-verification-unseen.ts";
 
@@ -69,9 +70,28 @@ function architectureNegativeWitness(map: ArchitectureMap): WitnessFiles {
 	};
 }
 
+/** A source swc reads under dependency-cruiser 18.5.0, which counts no `.mts` nor `.cts` among the modules. */
+const CRUISED_SOURCE = /\.([cm]?js|jsx|tsx?)$/;
+
+/** Why a map whose folders hold no source dependency-cruiser reads is not verified. */
+export const UNCRUISED =
+	"dependency-cruiser 18.5.0 reads none of the sources of its folders, swc reading no .mts nor .cts source";
+
+/** Whether a folder of the map holds a source dependency-cruiser reads: without one, its rules judge nothing. */
+export function cruisedIn(view: ProjectView, map: ArchitectureMap): boolean {
+	return map.parts.some((part) =>
+		part.roles.some(({ package: folder }) =>
+			view
+				.list(folder)
+				.some((e) => !e.directory && isScriptUnderTest(`${folder}/${e.name}`) && CRUISED_SOURCE.test(e.name)),
+		),
+	);
+}
+
 /**
  * What the adopted map adds to the structure of the package: the architecture control and its witness, once the
- * copy carries dependency-cruiser and swc; why it is not verified when no witness can be written; nothing without
+ * copy carries dependency-cruiser and swc; why it is not verified when dependency-cruiser reads none of its sources
+ * or when no witness can be written; nothing without
  * a map or without the analysers.
  */
 export function architectureVerification({
@@ -84,6 +104,10 @@ export function architectureVerification({
 	| { short_of: string }
 	| null {
 	if (map === undefined || !analysersInstalledIn(view, MAP_ANALYSERS)) return null;
+	if (!cruisedIn(view, map))
+		return {
+			short_of: `the adopted architecture map is not verified: ${UNCRUISED}`,
+		};
 	const witness = architectureNegativeWitness(map);
 	if (Object.keys(witness).length === 0)
 		return {

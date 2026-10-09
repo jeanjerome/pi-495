@@ -6,7 +6,7 @@
  */
 import type { StructureCapability } from "../../../../application/stacks/plugin.ts";
 import type { NodeProject } from "../project/node-project.ts";
-import { architectureVerification, cruiserOffer } from "./architecture-control.ts";
+import { architectureVerification, cruisedIn, cruiserOffer, UNCRUISED } from "./architecture-control.ts";
 import { dependenciesVerification } from "./dependencies-control.ts";
 import { sourceFolders } from "./source-folders.ts";
 
@@ -28,5 +28,8 @@ export const NODE_STRUCTURE: StructureCapability<NodeProject> = {
 		};
 	},
 	packages: ({ view }) => sourceFolders(view),
-	architecture: ({ architecture_map }) => (architecture_map === undefined ? undefined : cruiserOffer()),
+	architecture: ({ view, architecture_map }) => {
+		if (architecture_map === undefined) return undefined;
+		return cruisedIn(view, architecture_map) ? cruiserOffer() : { kind: "not_proposed", note: UNCRUISED };
+	},
 };

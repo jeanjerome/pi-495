@@ -8,7 +8,7 @@
  */
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
-import { cpSync } from "node:fs";
+import { cpSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
@@ -269,5 +269,39 @@ describe("dependency-cruiser checks the adopted map on an npm package that alrea
 			.evidence;
 		assert.equal(suite.verdict, "PASS", suite.limits.notes.join("; "));
 		assert.equal(suite.facts.tests, 1, "the one test of the package, and no rule of the map");
+	});
+
+	it("sur une copie dont toutes les sources sont en .mts, dependency-cruiser ne lit aucune source, et la détection ne donne aucun contrôle d'architecture mais nomme pourquoi", async () => {
+		const root = outputDir("node-architecture-mts-", cleanups);
+		const reference = adoptedCopy(root);
+		const architecture = STACKS_OF_495.recognise(reference, REFS, process.execPath, [], MAP).controls.find(
+			(c) => c.control_id === "architecture",
+		);
+		assert.ok(architecture, "the package of .ts sources gets the architecture control");
+		const mts = join(root, "mts");
+		cpSync(reference, mts, { recursive: true });
+		rmSync(join(mts, "src"), { recursive: true });
+		writeFiles(
+			mts,
+			Object.fromEntries(
+				Object.entries(MIXED)
+					.filter(([path]) => path.startsWith("src/"))
+					.map(([path, text]) => [path.replace(/\.[jt]s$/, ".mts"), text.replaceAll('.ts"', '.mts"')]),
+			),
+		);
+		const pass = (await runnerFor(root).runControl({ ...BASE, control: architecture, workspace_path: mts })).evidence;
+		assert.equal(pass.verdict, "INDETERMINATE", JSON.stringify(pass.facts));
+		assert.match(pass.limits.notes.join("; "), /dependency-cruiser read no source/);
+		const detection = STACKS_OF_495.recognise(mts, REFS, process.execPath, [], MAP);
+		assert.deepEqual(
+			detection.controls.filter((c) => c.control_id === "architecture"),
+			[],
+		);
+		assert.ok(
+			detection.capability_missing.some((m) =>
+				m.includes("dependency-cruiser 18.5.0 reads none of the sources of its folders"),
+			),
+			detection.capability_missing.join("\n"),
+		);
 	});
 });

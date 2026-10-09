@@ -121,6 +121,18 @@ export const NODE_DOMAIN_MAP: ArchitectureMap = {
 	],
 };
 
+const asMts = (text: string) => text.replaceAll('.ts"', '.mts"');
+
+/** The package of the story without `src/legacy`, every source a .mts module, which swc does not read under dependency-cruiser 18.5.0. */
+export const NODE_MTS_SOURCES: Record<string, string> = Object.fromEntries(
+	Object.entries(NODE_DOMAIN_SOURCES)
+		.filter(([path]) => !path.startsWith("src/legacy/"))
+		.map(([path, text]) => [path.replace(/\.ts$/, ".mts"), asMts(text)]),
+);
+
+/** The map of the story, its hints citing the .mts modules. */
+export const NODE_MTS_MAP: ArchitectureMap = JSON.parse(asMts(JSON.stringify(NODE_DOMAIN_MAP)));
+
 /** What npm says when the registry cannot be reached. */
 const UNREACHABLE_REGISTRY =
 	"npm error code ENOTFOUND\nnpm error network request to the registry failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org";
@@ -224,7 +236,8 @@ function cruised(root: string, control: ControlDefinition): string {
 		options: { exclude: { path: string } };
 	};
 	const excluded = new RegExp(rules.options.exclude.path);
-	const sources = filesOf(root).filter((path) => /\.[cm]?[jt]sx?$/.test(path) && !excluded.test(path));
+	// swc reads no .mts nor .cts source under dependency-cruiser 18.5.0, which does not count them among the modules.
+	const sources = filesOf(root).filter((path) => /\.([cm]?js|jsx|tsx?)$/.test(path) && !excluded.test(path));
 	const rule = (name: string) => ({ severity: "error", name });
 	const violations = [
 		...sources.flatMap((from) =>

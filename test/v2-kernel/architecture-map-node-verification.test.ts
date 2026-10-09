@@ -15,6 +15,8 @@ import { answerMap } from "../helpers/architecture-survey.ts";
 import {
 	NODE_DOMAIN_MAP,
 	NODE_DOMAIN_SOURCES,
+	NODE_MTS_MAP,
+	NODE_MTS_SOURCES,
 	nodePackage,
 	nodeSurveyedArchitecture,
 } from "../helpers/node-architecture-survey.ts";
@@ -39,16 +41,20 @@ const INSTALLS = [
 ];
 
 /** The survey of the package carrying `sources`, stopped on the map it proposes. */
-async function proposed(sources: Record<string, string> = NODE_DOMAIN_SOURCES, reachable = true) {
+async function proposed(
+	sources: Record<string, string> = NODE_DOMAIN_SOURCES,
+	reachable = true,
+	map: unknown = NODE_DOMAIN_MAP,
+) {
 	const project = nodePackage(sources);
 	const before = treeDigest(project);
-	const surveyed = await nodeSurveyedArchitecture(project, [NODE_DOMAIN_MAP], reachable);
+	const surveyed = await nodeSurveyedArchitecture(project, [map], reachable);
 	return { ...surveyed, project, before };
 }
 
 /** The survey once the owner adopted the map: the frozen protocol, and what the survey says of ARC-01. */
-async function adopted(sources: Record<string, string>, reachable = true) {
-	const { t, npm, changeId, project, before } = await proposed(sources, reachable);
+async function adopted(sources: Record<string, string>, reachable = true, map: unknown = NODE_DOMAIN_MAP) {
+	const { t, npm, changeId, project, before } = await proposed(sources, reachable, map);
 	answerMap(t, changeId, "adopt_map");
 	const after = await t.harness.advance(changeId, { max_steps: 60 });
 	const state = t.ledger.loadChange(changeId)!.state;
@@ -186,5 +192,28 @@ describe("adopting the architecture map of an npm package adopts its verificatio
 			"the requirement is a blind spot, with the reason npm gave",
 		);
 		assert.deepEqual(architecture.measures, []);
+	});
+
+	it("sur un paquet dont toutes les sources sont en .mts, l'adoption gèle la carte sans contrôle d'architecture, le survey nomme l'exigence comme angle mort parce que dependency-cruiser ne lit aucune de ses sources, et l'état des lieux mesure les tests du projet", async () => {
+		const { after, protocol, survey, architecture } = await adopted(NODE_MTS_SOURCES, true, NODE_MTS_MAP);
+		assert.ok(protocol, `a protocol is frozen: ${after.stopped_because}, ${after.steps.join(" | ")}`);
+		assert.deepEqual(protocol.architecture_map?.map, NODE_MTS_MAP, "the adopted map is frozen all the same");
+		assert.deepEqual(
+			protocol.controls.filter((c) => c.control_id === "architecture"),
+			[],
+			"and no architecture control",
+		);
+		assert.ok(architecture, "the survey carries the architecture requirement");
+		assert.match(
+			architecture.blind_spot ?? "",
+			/dependency-cruiser 18\.5\.0 reads none of the sources of its folders/,
+			"the requirement is a blind spot, with the reason",
+		);
+		assert.deepEqual(architecture.measures, []);
+		assert.equal(
+			survey?.controls.find((c) => c.control_id === "unit")?.verdict,
+			"PASS",
+			"the tests of the project are measured",
+		);
 	});
 });
