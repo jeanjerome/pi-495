@@ -1,0 +1,34 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — aucun fichier du projet ne peut taire un lien ; un fichier qui dépasse la borne est nommé dans les notes, pas sauté en silence",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/configured-links-reader.ts",
+    "ligne": 138,
+    "constat": "Le lecteur écarte tout fichier sous src/main/ qui contient un octet NUL. Ce fichier n'est compté que dans facts.binary_files et n'est nommé dans aucune note. Un fichier de configuration texte qui porte un seul NUL, par exemple repository.properties, ne donne donc plus son lien, et rien ne nomme ce fichier. La tâche 1 dit bien « un fichier binaire n'est pas lu », mais c'est le contenu du fichier qui décide de son propre sort.",
+    "mutation": "Aucune : constat lu dans le code (le filtre `!f.text.includes(\"\\u0000\")`), sans mutation."
+   }
+  ],
+  "resume": "Les quatre scénarios sont tenus par le code, et chacun par un test qui échoue sous mutation. 24 mutations essayées, l'arbre a été remis en état à chaque fois.\n\n- Scénario 1 : retirer la phrase française ou la phrase anglaise de `alongside` (maven-install.ts) fait échouer le test de la décision.\n- Scénario 2 : plusieurs mutations font échouer le test du noyau, et le test v1 quand il est lancé : `network` ouvert, témoin négatif vide ou inoffensif, contrôle absent du protocole, nature du lecteur changée, `located` à false, méthode « reflection » remplacée par « configuration », ligne de la chaîne ou du fichier forcée à 1, verdict toujours PASS, partie d'un fichier de configuration jamais trouvée, relations ajoutées à la carte lue.\n- Scénario 3 : trois mutations font échouer le test PASS : lire src/ au lieu de src/main/ (la source de test devient un lien), lire les fichiers binaires, ignorer les relations de la carte. Lire tout le texte Java au lieu des seules chaînes fait échouer le test v1 du FAIL. L'écart sur le commentaire de la fixture n'est tenu que par le test unitaire java-strings, faute de guillemets dans ce commentaire.\n- Scénario 4 : retirer un point, ou remettre la phrase générale, fait échouer le test de l'état des lieux.\n- Sécurité : retirer les notes du lecteur, ou celles des POM seules, fait échouer le test de la borne de lecture.\n\nDeux mutations sans effet ne cachent aucun trou. `requirement_refs` vidé : le survey rattache une mesure par la nature du lecteur. `configured-links` retiré de `reference_positive` : le lecteur ne lit pas les sources de test, donc le témoin positif partagé ne change rien à sa lecture.\n\nUn seul constat, à peser : un fichier texte qui contient un octet NUL est écarté sans être nommé dans les notes."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un lien que la carte permet, ou qu'elle ne juge pas, n'est pas un constat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/maven/structure/configured-links-reader.ts",
+    "ligne": 156,
+    "constat": "Le code ne juge pas un lien par réflexion ou par configuration entre deux paquets d'une même partie : la condition `from === to` le permet. Aucun test ne tient ce comportement, car aucun réacteur des tests n'écrit de chaîne ni de fichier qui nomme une classe de sa propre partie. Le Given du scénario ne contient pas ce cas, et seul le point « entre deux paquets d'une même partie » du scénario 4 le nomme, raison comprise. D'où « à peser » et non « à corriger ».",
+    "mutation": "`from === to || map.relations.some(...)` réduit à `map.relations.some(...)` : les 6 tests de configured-links-report.test.ts et architecture-map-configured-links.test.ts restent verts"
+   }
+  ],
+  "resume": "Les quatre scénarios sont tenus par le code et par un test que tue au moins une mutation de la ligne qui tient la promesse.\n\nScénario 1 : retirer la phrase française ou la phrase anglaise d'`alongside` (maven-install.ts) fait échouer architecture-map-configured-links-decision.test.ts.\n\nScénario 2 : le test v2 échoue si le contrôle n'est pas déclaré, si son témoin négatif propre est retiré, ou si le témoin nomme une classe non déclarée (perte de qualification). Il échoue aussi si le verdict est forcé à PASS, si la méthode est inversée, si la ligne d'une chaîne ou d'une ligne de configuration est décalée, ou si le réseau est ouvert. Deux mutations survivent mais sont équivalentes :\n- Construire le contrôle avec des `requirement_refs` vides : le survey rattache une mesure à une exigence par la nature du contrôle, pas par ses références.\n- Retirer `configured-links` de `reference_positive` : le contrôle ne compile rien, et les fichiers du témoin positif partagé ne nomment aucune classe interdite.\n\nScénario 3 : chaque cas du Given tue le test PASS, en v1 comme en v2 : lire le texte entier d'une source Java (commentaire), lire `src/` au lieu de `src/main/` (source de test), ignorer les relations de la carte (beans.xml d'app), lire un fichier binaire.\n\nScénario 4 : architecture-map-configured-links-unseen.test.ts échoue si l'on retire un point, une raison ou un mot attendu (« valeur substituée », META-INF/services), ou si l'on remet la phrase générale, en français comme en anglais.\n\nSécurité : retirer les notes des POM ou des fichiers sous `src/main/` fait échouer le test de la borne de lecture. La limite du nombre de fichiers est elle aussi nommée dans les notes (workspace-files.ts). La règle d'appartenance d'un paquet à une partie est la même qu'ArchUnit : nom de paquet exact.\n\nUn seul constat, à peser : un lien à l'intérieur d'une même partie n'est tenu par aucun test, et aucun Given ne le contient. Rien n'a été commité, l'arbre est propre."
+ }
+]

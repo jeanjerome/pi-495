@@ -1,0 +1,32 @@
+
+> pi-495@0.4.1-dev check
+> npm run lint:code && npm run typecheck && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:distribution && npm run lint:story-format && npm run test
+
+
+> pi-495@0.4.1-dev lint:code
+> biome check
+
+Checked 529 files in 182ms. No fixes applied.
+
+> pi-495@0.4.1-dev typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> pi-495@0.4.1-dev lint:layers
+> node scripts/check-layers.ts
+
+layer rules satisfied
+
+> pi-495@0.4.1-dev lint:architecture
+> node scripts/check-architecture.ts
+
+architecture read back: 17 declared components, all claimed; 205 modules, no import cycle
+
+> pi-495@0.4.1-dev lint:exports
+> node scripts/check-exports.ts
+
+exported surface read back: 506 modules, every exported function and constant is read elsewhere
+
+> pi-495@0.4.1-dev lint:distribution
+> node scripts/check-distribution.ts
+

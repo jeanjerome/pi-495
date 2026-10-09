@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the decision on the map of a Maven reactor names the reading of the links established without an import
+    # Subtest: l'issue d'adoption de la carte d'un réacteur Maven dit que 495 relève, sans rien installer, les liens qu'un fichier de configuration ou une chaîne du code établit vers une partie dont la carte ne permet pas de dépendre, en français et en anglais
+    not ok 1 - l'issue d'adoption de la carte d'un réacteur Maven dit que 495 relève, sans rien installer, les liens qu'un fichier de configuration ou une chaîne du code établit vers une partie dont la carte ne permet pas de dépendre, en français et en anglais
+      ---
+      duration_ms: 256.74575
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iVLbY6/test/v2-kernel/architecture-map-configured-links-decision.test.ts:18:2'
+      failureType: 'testCodeFailure'
+      error: "« 495 relève aussi, à chaque exécution et sans rien installer, chaque lien qu'un fichier de configuration ou une chaîne du code établit en nommant en entier une classe d'une partie dont la carte ne permet pas de dépendre » in Adopter la carte et sa vérification (déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout, réseau ouvert pour cette seule étape) — La carte devient l'architecture que le projet déclare : elle est gelée dans le protocole avec la date de cette décision et présentée dans le rapport. 495 déclare com.tngtech.archunit:archunit-junit5 1.5.1 dans une copie du POM et le résout avec Maven, dans le dépôt local que Maven désigne, sans exécuter aucun but ; dans la même étape, il déclare dependency:analyze de org.apache.maven.plugins:maven-dependency-plugin 3.11.0 dans une copie de chaque POM du réacteur, dont il résout le greffon, en ouvrant le réseau pour cette seule étape ; la copie est inspectée et la résolution n'est acceptée que si elle ne modifie aucun fichier autre que les POM qui reçoivent les déclarations ; rien n'est écrit dans le projet. Les règles que 495 écrit depuis la carte sont alors vérifiées, à chaque exécution : le style de chaque partie, les relations permises entre parties, l'absence de cycle et les sources qu'aucune partie ne couvre ; dependency:analyze de org.apache.maven.plugins:maven-dependency-plugin 3.11.0 vérifie aussi, à chaque exécution, que chaque module déclare dans son POM les dépendances que son code utilise, et utilise celles qu'il déclare ; l'état des lieux mesure l'exigence avec lui. Si la résolution échoue, la carte est gelée sans contrôle d'architecture et l'exigence reste un angle mort avec la raison donnée par Maven. La réponse tombe si les exigences sont révisées."
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iVLbY6/test/v2-kernel/architecture-map-configured-links-decision.test.ts:29:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the decision on the map of a Maven reactor names the reading of the links established without an import
+  ---
+  duration_ms: 257.424125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iVLbY6/test/v2-kernel/architecture-map-configured-links-decision.test.ts:17:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 531.691917

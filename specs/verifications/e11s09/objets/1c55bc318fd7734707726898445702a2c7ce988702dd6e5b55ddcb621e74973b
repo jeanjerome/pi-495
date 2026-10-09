@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: the links a Maven reactor establishes by configuration or by reflection are read against the map
+    # Subtest: la chaîne io.demo.infra.UserStore passée à Class.forName dans UserLoader.java de domain donne un constat à sa ligne, marqué par réflexion, et repository.properties de domain un constat à la ligne qui nomme la classe, marqué par configuration, chacun nommant les parties domain et infrastructure
+    ok 1 - la chaîne io.demo.infra.UserStore passée à Class.forName dans UserLoader.java de domain donne un constat à sa ligne, marqué par réflexion, et repository.properties de domain un constat à la ligne qui nomme la classe, marqué par configuration, chacun nommant les parties domain et infrastructure
+      ---
+      duration_ms: 49.323125
+      type: 'test'
+      ...
+    # Subtest: a member or a nested type written after a class designates that class, and a longer name ending with it designates none
+    ok 2 - a member or a nested type written after a class designates that class, and a longer name ending with it designates none
+      ---
+      duration_ms: 41.252584
+      type: 'test'
+      ...
+    # Subtest: a configuration file or a POM past the read bound is named in the notes of the control, not skipped in silence
+    ok 3 - a configuration file or a POM past the read bound is named in the notes of the control, not skipped in silence
+      ---
+      duration_ms: 41.748333
+      type: 'test'
+      ...
+    # Subtest: un octet nul après la ligne de repository.properties qui nomme io.demo.infra.UserStore et un autre dans un commentaire de UserLoader.java de domain font nommer ces deux fichiers dans les notes du contrôle, comme non lus parce qu'ils contiennent un octet nul, et aucun autre fichier de src/main/
+    ok 4 - un octet nul après la ligne de repository.properties qui nomme io.demo.infra.UserStore et un autre dans un commentaire de UserLoader.java de domain font nommer ces deux fichiers dans les notes du contrôle, comme non lus parce qu'ils contiennent un octet nul, et aucun autre fichier de src/main/
+      ---
+      duration_ms: 43.699375
+      type: 'test'
+      ...
+    # Subtest: beans.xml d'app, qui nomme une classe d'une partie dont app peut dépendre, un commentaire de domain et une source de test de domain qui nomment io.demo.infra.UserStore ne donnent aucun constat
+    ok 5 - beans.xml d'app, qui nomme une classe d'une partie dont app peut dépendre, un commentaire de domain et une source de test de domain qui nomment io.demo.infra.UserStore ne donnent aucun constat
+      ---
+      duration_ms: 43.228458
+      type: 'test'
+      ...
+    # Subtest: a string of a source and a configuration file of domain that name a class of another package of domain give no finding, a link inside a part not being judged
+    ok 6 - a string of a source and a configuration file of domain that name a class of another package of domain give no finding, a link inside a part not being judged
+      ---
+      duration_ms: 43.369667
+      type: 'test'
+      ...
+    1..6
+ok 1 - the links a Maven reactor establishes by configuration or by reflection are read against the map
+  ---
+  duration_ms: 263.383542
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 525.942042

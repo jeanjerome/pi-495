@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: what the reading of the links established without an import does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée d'un réacteur Maven ne nomme plus les liens par réflexion, META-INF/services ou configuration d'un framework comme un angle mort entier, et nomme chacun avec sa raison les noms construits à l'exécution, les classes désignées autrement que par leur nom entier, les liens à l'intérieur d'une partie, la configuration hors de src/main/ et les fichiers qu'aucune partie ne revendique seule, en anglais et en français
+    ok 1 - la section état des lieux d'une carte adoptée d'un réacteur Maven ne nomme plus les liens par réflexion, META-INF/services ou configuration d'un framework comme un angle mort entier, et nomme chacun avec sa raison les noms construits à l'exécution, les classes désignées autrement que par leur nom entier, les liens à l'intérieur d'une partie, la configuration hors de src/main/ et les fichiers qu'aucune partie ne revendique seule, en anglais et en français
+      ---
+      duration_ms: 1139.9125
+      type: 'test'
+      ...
+    1..1
+ok 1 - what the reading of the links established without an import does not see is named
+  ---
+  duration_ms: 1140.41225
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1410.241959

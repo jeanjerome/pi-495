@@ -1,0 +1,61 @@
+TAP version 13
+# Subtest: what the reading of the links established without an import does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée d'un réacteur Maven ne nomme plus les liens par réflexion, META-INF/services ou configuration d'un framework comme un angle mort entier, et nomme chacun avec sa raison les noms construits à l'exécution, les classes désignées autrement que par leur nom entier, les liens à l'intérieur d'une partie, la configuration hors de src/main/ et les fichiers qu'aucune partie ne revendique seule, en anglais et en français
+    not ok 1 - la section état des lieux d'une carte adoptée d'un réacteur Maven ne nomme plus les liens par réflexion, META-INF/services ou configuration d'un framework comme un angle mort entier, et nomme chacun avec sa raison les noms construits à l'exécution, les classes désignées autrement que par leur nom entier, les liens à l'intérieur d'une partie, la configuration hors de src/main/ et les fichiers qu'aucune partie ne revendique seule, en anglais et en français
+      ---
+      duration_ms: 1158.961875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XfcqgV/test/v2-kernel/architecture-map-configured-links-unseen.test.ts:64:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: the links established without an import are no longer one whole blind spot:
+              les liens établis sans import ni référence dans les classes compilées (réflexion, META-INF/services, configuration d'un framework) : ArchUnit et dependency:analyze ne lisent que les classes compilées
+              les sources de test : les règles de la carte ne les jugent pas, elles ne portent que sur les sources principales
+              les bibliothèques hors du réacteur : les règles de la carte ne les opposent à aucune partie, qui n'est faite que de modules du réacteur
+              les dépendances déclarées pour la seule exécution (portée runtime) : aucune classe compilée ne les utilise, et 495 les écarte de l'analyse
+              les dépendances dont les classes compilées ne gardent aucune trace (constante recopiée à la compilation, annotation gardée dans la seule source, processeur d'annotations) : dependency:analyze ne les voit pas utilisées, et elles sont données comme inutilisées
+              les agrégats comme junit-jupiter : un agrégat n'apporte aucune classe à lui, il est donné comme inutilisé quand ce qu'il apporte est donné comme utilisé sans être déclaré
+          Recommandation d'architecture, lecture du modèle qui n'est pas un constat et dont aucun verdict ne dépend :
+            le propriétaire n'a pas encore choisi
+            A1 — conserver : keep the architecture as it stands
+              bénéfices : no migration
+              coût en complexité : none added ; coût en migration : none
+              risques : what the survey found stays
+              contraintes : ARC-01: each part of the project keeps to the architecture it is organised in
+            A2 — ajuster : move what crosses the map behind a port
+              bénéfices : the map holds
+              coût en complexité : a port more ; coût en migration : the calls that cross the map move
+              risques : a port nothing else implements
+              contraintes : ARC-01: each part of the project keeps to the architecture it is organised in
+            le modèle recommandait A2 : the map holds once the calls move (ARC-01)
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XfcqgV/test/v2-kernel/architecture-map-configured-links-unseen.test.ts:76:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - what the reading of the links established without an import does not see is named
+  ---
+  duration_ms: 1159.720666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-XfcqgV/test/v2-kernel/architecture-map-configured-links-unseen.test.ts:63:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1440.70725

@@ -1,0 +1,71 @@
+TAP version 13
+# Subtest: the links a Maven reactor establishes by configuration or by reflection are read against the map
+    # Subtest: la chaîne io.demo.infra.UserStore passée à Class.forName dans UserLoader.java de domain donne un constat à sa ligne, marqué par réflexion, et repository.properties de domain un constat à la ligne qui nomme la classe, marqué par configuration, chacun nommant les parties domain et infrastructure
+    not ok 1 - la chaîne io.demo.infra.UserStore passée à Class.forName dans UserLoader.java de domain donne un constat à sa ligne, marqué par réflexion, et repository.properties de domain un constat à la ligne qui nomme la classe, marqué par configuration, chacun nommant les parties domain et infrastructure
+      ---
+      duration_ms: 8.760791
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0r5jIy/test/v1-adapters/configured-links-report.test.ts:52:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser configured-links is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0r5jIy/test/v1-adapters/configured-links-report.test.ts:54:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: beans.xml d'app, qui nomme une classe d'une partie dont app peut dépendre, un commentaire de domain et une source de test de domain qui nomment io.demo.infra.UserStore ne donnent aucun constat
+    not ok 2 - beans.xml d'app, qui nomme une classe d'une partie dont app peut dépendre, un commentaire de domain et une source de test de domain qui nomment io.demo.infra.UserStore ne donnent aucun constat
+      ---
+      duration_ms: 7.554583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0r5jIy/test/v1-adapters/configured-links-report.test.ts:71:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser configured-links is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0r5jIy/test/v1-adapters/configured-links-report.test.ts:73:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the links a Maven reactor establishes by configuration or by reflection are read against the map
+  ---
+  duration_ms: 16.832708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-0r5jIy/test/v1-adapters/configured-links-report.test.ts:51:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 280.968125

@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: adopting the architecture map of a Maven reactor reads the links established by configuration or by reflection
+    # Subtest: l'adoption gèle le contrôle des liens établis par configuration ou par réflexion, qualifié par ses témoins, et le survey mesure l'exigence d'architecture par lui en FAIL, avec le lien de domain vers infrastructure par réflexion à la ligne de la chaîne de UserLoader.java et par configuration à la ligne de repository.properties, que le rapport donne avec leur méthode, sans changer le digest du projet
+    not ok 1 - l'adoption gèle le contrôle des liens établis par configuration ou par réflexion, qualifié par ses témoins, et le survey mesure l'exigence d'architecture par lui en FAIL, avec le lien de domain vers infrastructure par réflexion à la ligne de la chaîne de UserLoader.java et par configuration à la ligne de repository.properties, que le rapport donne avec leur méthode, sans changer le digest du projet
+      ---
+      duration_ms: 1038.101625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-35oiES/test/v2-kernel/architecture-map-configured-links.test.ts:46:2'
+      failureType: 'testCodeFailure'
+      error: 'the protocol carries both controls: maven-test,structure,architecture,dependencies'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-35oiES/test/v2-kernel/architecture-map-configured-links.test.ts:50:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: sur un réacteur où seul beans.xml d'app nomme une classe d'infrastructure, le survey mesure l'exigence par ce contrôle en PASS sans constat
+    not ok 2 - sur un réacteur où seul beans.xml d'app nomme une classe d'infrastructure, le survey mesure l'exigence par ce contrôle en PASS sans constat
+      ---
+      duration_ms: 942.445
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-35oiES/test/v2-kernel/architecture-map-configured-links.test.ts:89:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        null [{"control_id":"architecture","evidence_id":"evr_0041","verdict":"FAIL"},{"control_id":"dependencies","evidence_id":"evr_0042","verdict":"FAIL"}]
+        + actual - expected
+        
+        + undefined
+        - 'PASS'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-35oiES/test/v2-kernel/architecture-map-configured-links.test.ts:93:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - adopting the architecture map of a Maven reactor reads the links established by configuration or by reflection
+  ---
+  duration_ms: 1981.146084
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-35oiES/test/v2-kernel/architecture-map-configured-links.test.ts:45:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2259.4165

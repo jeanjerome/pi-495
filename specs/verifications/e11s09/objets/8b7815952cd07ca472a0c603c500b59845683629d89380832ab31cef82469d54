@@ -1,0 +1,3 @@
+distribution violations:
+dist/ is not what the sources build (run `npm run build`):
+  differing (9): adapters/stacks/maven/project/java-strings.d.ts, adapters/stacks/maven/project/java-strings.js.map, adapters/stacks/maven/structure/configured-links-control.d.ts, adapters/stacks/maven/structure/configured-links-control.js, adapters/stacks/maven/structure/configured-links-control.js.map, adapters/stacks/maven/structure/configured-links-reader.js, adapters/stacks/maven/structure/configured-links-reader.js.map, adapters/stacks/maven/structure/structure-control.js, …
