@@ -2132,3 +2132,31 @@ bugs:
       Declare the dependencies control when the copy carries Knip, whether or not the map is verifiable, or say in
       the adoption that a map of fewer than two folders verifies neither.
     status: open
+  - bug_id: BUG-2026-10-09T034618
+    date: "2026-10-09"
+    title: "In a French status, the project conforming to the adopted map names the control that verifies it in English"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      The French status of a migration whose final milestone passes on a measure that counts no violation reads
+      « Carte adoptée: parties domain, infra, app — contrôle: the rules of the adopted architecture map, checked by
+      ArchUnit ». `mapMeasureOf` (`src/application/migration.ts`) records as `tool` the English `title` of the
+      controls of the frozen protocol that carry the map, and `adoptedMap` (`src/presentation/structured/text.ts`)
+      writes it as it is in both languages.
+    what_expected: >
+      The whole status reads in the language of the change, the control that verifies the map included.
+    steps_to_reproduce:
+      - "In a French session, measure a migration on the accepted survey of the integrated project, under the same map, whose architecture control counts no violation, then run `/495 status`: read the line « Carte adoptée »."
+    root_cause: >
+      The measure keeps the title of the control, a sentence the stack writes once in English, rather than a name the
+      status renders per language; same family as the English destination of the integration decision.
+    evidence: >
+      Seen in the acceptance run of `e11s08` at `55030985` (`~/.495-campagnes/e11s08-logs/measure-conforme.log`);
+      introduced by that branch, it weakens no guarantee of its story: the parts, the tool and each unseen point are
+      named, the tool in English.
+    risk_level: low
+    follow_ups: >
+      Record the control by its identifier and let the status name it in the language of the change, or give the
+      control a title in each language.
+    status: open

@@ -10,10 +10,12 @@ import {
 	type BaselineGap,
 	type GlobalRequirement,
 	type IncrementSpec,
+	type MigrationGap,
 	type ProgramState,
 } from "../../src/domain/program/program.ts";
 import type { CodeAuthorship } from "../../src/domain/survey.ts";
 import { KERNEL, HUMAN, ref, tick } from "../helpers/change-fixture.ts";
+import { APP_TO_INFRA, EXCEPTION, PART_CYCLE, UNMAPPED_SOURCE } from "../helpers/migration.ts";
 
 function inc(id: string, depends_on: string[] = [], over: Partial<IncrementSpec> = {}): IncrementSpec {
 	return {
@@ -700,5 +702,173 @@ describe("écarts de l'état des lieux d'une trajectoire (QLT-03)", () => {
 			);
 		}
 		assert.equal(p.state?.trajectory_revision, 0);
+	});
+});
+
+describe("jalon d'une migration mesuré sur le projet intégré (ARC-05)", () => {
+	const exception = { owner: EXCEPTION.owner, due: EXCEPTION.due, reason: EXCEPTION.reason };
+	const E1 = inc("E1");
+	const E2 = inc("E2", ["E1"], { removes: [APP_TO_INFRA] });
+	const STARTING_GAPS = [
+		{ rule_id: UNMAPPED_SOURCE, violations: 1, scope_decision: null, exception },
+		{ rule_id: APP_TO_INFRA, violations: 2, scope_decision: null },
+	];
+	const migrating = (gaps: MigrationGap[] = STARTING_GAPS) => {
+		const p = new P().create();
+		p.run({
+			type: "trajectory.adopt",
+			at: tick(),
+			actor: HUMAN,
+			increments: [E1, E2],
+			milestones: [
+				{
+					milestone_id: "M1",
+					title: "Migration",
+					increment_ids: ["E1", "E2"],
+					global_requirement_ids: [],
+					final: true,
+				},
+			],
+			global_requirements: [],
+			migration: {
+				change_id: "chg_survey",
+				reference_digest: `sha256:${"b".repeat(64)}`,
+				target: { alternative_id: "A2", nature: "adjust", description: "put the payment behind a port" },
+				gaps,
+			},
+			reason: "init",
+		});
+		for (const id of ["E1", "E2"]) {
+			p.run({ type: "increment.bind", at: tick(), actor: KERNEL, increment_id: id, change_id: `chg_${id}` });
+			p.run({
+				type: "increment.result",
+				at: tick(),
+				actor: KERNEL,
+				increment_id: id,
+				status: "integrated",
+				note: null,
+			});
+		}
+		return p;
+	};
+	const map = {
+		parts: ["domain", "app", "infra"],
+		tool: "the rules of the adopted architecture map, checked by ArchUnit",
+		unseen: [{ en: "a dependency through reflection", fr: "une dépendance par réflexion" }],
+	};
+	const measureBy = (rules: { rule_id: string; violations: number }[], at: string) => ({
+		type: "milestone.evaluate" as const,
+		at,
+		actor: HUMAN,
+		milestone_id: "M1",
+		global_verdicts: {},
+		integrated_digest: `sha256:${"a".repeat(64)}`,
+		map_measure: { change_id: "chg_integrated", rules, map },
+	});
+	const ON_DECEMBER_FIRST = "2026-12-01T09:00:00.000Z";
+	it("E1 et E2 intégrés, une mesure qui compte part app may not depend on part infra 0 et every main source belongs to a part 1 le 2026-12-01 rend le jalon final de la migration PASS, nomme la première supprimée avec 2 et 0, la seconde tolérée par son exception, et clôt le programme", () => {
+		const p = migrating();
+		p.run(measureBy([{ rule_id: UNMAPPED_SOURCE, violations: 1 }], ON_DECEMBER_FIRST));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "PASS", "a measure that no longer counts the removed rule passes the final milestone");
+		assert.equal(final.map_measure?.change_id, "chg_integrated");
+		assert.deepEqual(final.map_measure?.rules, [
+			{
+				rule_id: UNMAPPED_SOURCE,
+				outcome: "tolerated",
+				surveyed: 1,
+				measured: 1,
+				exception: { ...exception, standing: "current" },
+			},
+			{ rule_id: APP_TO_INFRA, outcome: "removed", surveyed: 2, measured: 0 },
+		]);
+		assert.deepEqual(final.map_measure?.map, map);
+		assert.deepEqual(final.indeterminate, []);
+		assert.equal(p.state!.closed, true);
+		assert.equal(p.events.at(-1)?.type, "program.closed");
+		assert.deepEqual(replayProgram(p.events), p.state);
+	});
+	it("une mesure qui compte encore part app may not depend on part infra 1 rend le jalon FAIL en la nommant restante avec 2 et 1, sans clôture", () => {
+		const p = migrating();
+		p.run(
+			measureBy(
+				[
+					{ rule_id: UNMAPPED_SOURCE, violations: 1 },
+					{ rule_id: APP_TO_INFRA, violations: 1 },
+				],
+				ON_DECEMBER_FIRST,
+			),
+		);
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "FAIL", "an old dependency that subsists fails the end of the migration");
+		assert.deepEqual(final.map_measure?.rules.at(-1), {
+			rule_id: APP_TO_INFRA,
+			outcome: "remaining",
+			surveyed: 2,
+			measured: 1,
+		});
+		assert.equal(p.state!.closed, false);
+		assert.equal(
+			p.events.some((e) => e.type === "program.closed"),
+			false,
+		);
+	});
+	it("une mesure qui compte no cycle between the parts 1 rend le jalon FAIL en la nommant apparue", () => {
+		const p = migrating();
+		p.run(measureBy([{ rule_id: PART_CYCLE, violations: 1 }], ON_DECEMBER_FIRST));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "FAIL", "a rule the starting survey did not find broken fails the milestone");
+		assert.deepEqual(final.map_measure?.rules.at(-1), {
+			rule_id: PART_CYCLE,
+			outcome: "appeared",
+			surveyed: 0,
+			measured: 1,
+		});
+		assert.equal(p.state!.closed, false);
+	});
+	it("la même mesure le 2027-01-04 rend le jalon FAIL et nomme l'exception échue avec son propriétaire ; une mesure qui ne compte plus aucune violation nomme l'exception retirée", () => {
+		const late = migrating();
+		late.run(measureBy([{ rule_id: UNMAPPED_SOURCE, violations: 1 }], "2027-01-04T09:00:00.000Z"));
+		const expired = late.state!.milestone_evaluations.at(-1)!;
+		assert.equal(expired.verdict, "FAIL", "an expired exception excuses its rule no longer");
+		assert.deepEqual(expired.map_measure?.rules[0], {
+			rule_id: UNMAPPED_SOURCE,
+			outcome: "remaining",
+			surveyed: 1,
+			measured: 1,
+			exception: { ...exception, standing: "expired" },
+		});
+		assert.equal(late.state!.closed, false);
+		const clean = migrating();
+		clean.run(measureBy([], ON_DECEMBER_FIRST));
+		const conforming = clean.state!.milestone_evaluations.at(-1)!;
+		assert.equal(conforming.verdict, "PASS");
+		assert.deepEqual(conforming.map_measure?.rules[0], {
+			rule_id: UNMAPPED_SOURCE,
+			outcome: "removed",
+			surveyed: 1,
+			measured: 0,
+			exception: { ...exception, standing: "withdrawn" },
+		});
+		assert.equal(clean.state!.closed, true);
+	});
+	it("une règle écartée par une décision de périmètre que la mesure compte encore n'entre pas dans le verdict, mais le projet n'est pas conforme à la carte", () => {
+		const p = migrating([
+			{ rule_id: UNMAPPED_SOURCE, violations: 1, scope_decision: { reason: "the generated sources stay outside" } },
+			{ rule_id: APP_TO_INFRA, violations: 2, scope_decision: null },
+		]);
+		p.run(measureBy([{ rule_id: UNMAPPED_SOURCE, violations: 1 }], ON_DECEMBER_FIRST));
+		const final = p.state!.milestone_evaluations.at(-1)!;
+		assert.equal(final.verdict, "PASS", "a rule set aside stays out of the verdict");
+		assert.deepEqual(final.map_measure?.rules, [
+			{ rule_id: UNMAPPED_SOURCE, outcome: "set_aside", surveyed: 1, measured: 1 },
+			{ rule_id: APP_TO_INFRA, outcome: "removed", surveyed: 2, measured: 0 },
+		]);
+		assert.equal(
+			final.map_measure?.conforms,
+			false,
+			"a rule still broken keeps the project from conforming to the map",
+		);
+		assert.equal(p.state!.closed, true);
 	});
 });

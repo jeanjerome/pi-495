@@ -149,20 +149,41 @@ export interface Measure {
 	perimeter: ControlledPerimeter;
 }
 
+/** What the verification of an adopted map covers: its parts, the control that checks it, and what it does not see. */
+export interface MapPerimeter {
+	parts: string[];
+	tool: string;
+	unseen: { en: string; fr: string }[];
+}
+
+/** The accepted survey of the integrated project a milestone of a migration is judged on, under the same map. */
+export interface MapMeasure {
+	change_id: string;
+	/** The violations its architecture control counts, by rule of the map. */
+	rules: { rule_id: string; violations: number }[];
+	map: MapPerimeter;
+}
+
 export type ExceptionStanding = "current" | "expired" | "withdrawn";
 
 /**
- * A gap as a measure judges it, with its count at the starting survey and on the integrated project:
- * removed when the measure no longer counts it, remaining when it still does, tolerated while a current
- * exception excuses it, appeared when the starting survey did not carry it, set aside when a scope
- * decision leaves it out of the controlled perimeter. Its exception is current until its due date,
- * expired after it, and withdrawn once its gap is gone.
+ * A gap or a violated rule as a measure judges it, with its count at the starting survey and on the
+ * integrated project: removed when the measure no longer counts it, remaining when it still does,
+ * tolerated while a current exception excuses it, appeared when the starting survey did not carry it,
+ * set aside when a scope decision leaves it out of the verdict. Its exception is current until its due
+ * date, expired after it, and withdrawn once its gap is gone.
  */
-export interface JudgedGap extends GapKey {
+interface Judgement {
 	outcome: "removed" | "remaining" | "tolerated" | "appeared" | "set_aside";
 	surveyed: number;
 	measured: number;
 	exception?: GapException & { standing: ExceptionStanding };
+}
+
+export interface JudgedGap extends GapKey, Judgement {}
+
+export interface JudgedRule extends Judgement {
+	rule_id: string;
 }
 
 export interface MilestoneEvaluation {
@@ -176,6 +197,11 @@ export interface MilestoneEvaluation {
 	integrated_digest: string | null;
 	/** The survey the gaps were judged on; absent from an evaluation taken without a measure. */
 	measure?: { change_id: string; gaps: JudgedGap[]; perimeter: ControlledPerimeter };
+	/**
+	 * The survey the violated rules of a migration were judged on, and whether it counts no violation of any rule of
+	 * the map; absent from an evaluation taken without one.
+	 */
+	map_measure?: { change_id: string; rules: JudgedRule[]; map: MapPerimeter; conforms: boolean };
 }
 
 export interface ProgramState {
@@ -265,6 +291,8 @@ export type ProgramCommand =
 			integrated_digest: string | null;
 			/** The accepted survey of the integrated project; without one, no gap is measured. */
 			measure?: Measure;
+			/** The accepted survey of the integrated project under the map of a migration; without one, no rule is measured. */
+			map_measure?: MapMeasure;
 	  })
 	| (Base & { type: "program.close"; reason: string });
 
@@ -688,16 +716,42 @@ export function findCycle(increments: readonly IncrementSpec[]): string[] | null
 }
 
 /**
- * The violated rules of the migration of `state` that milestone `m` cannot pass on: no survey of the integrated
- * project measures the map yet, so a violated rule one of its steps removes, or that the final milestone tolerates,
- * is not verified there.
+ * The violated rules of the migration of `state` milestone `m` judges: those one of its steps removes, those a scope
+ * decision sets aside, and, on the final milestone, those an exception tolerates.
  */
-function unmeasuredRules(state: ProgramState, m: Milestone, removing: readonly IncrementSpec[]): string[] {
-	return (state.migration?.gaps ?? [])
-		.filter(
-			(gap) => !setAside(gap) && ((m.final && gap.exception) || removing.some((i) => i.removes?.includes(gap.rule_id))),
-		)
-		.map((gap) => `rule:${gap.rule_id}: not measured on the integrated project`);
+function rulesOf(state: ProgramState, m: Milestone, removing: readonly IncrementSpec[]): MigrationGap[] {
+	return (state.migration?.gaps ?? []).filter(
+		(gap) => setAside(gap) || (m.final && gap.exception) || removing.some((i) => i.removes?.includes(gap.rule_id)),
+	);
+}
+
+/**
+ * The violated rules of the migration milestone `m` judges, on the map measure of `command`, and whether that measure
+ * counts no violation of any rule of the map; without a measure, the rules it cannot verify on the integrated project.
+ */
+function judgeMigration(
+	state: ProgramState,
+	m: Milestone,
+	removing: readonly IncrementSpec[],
+	command: Extract<ProgramCommand, { type: "milestone.evaluate" }>,
+): { mapMeasure: NonNullable<MilestoneEvaluation["map_measure"]> | null; unmeasured: string[] } {
+	const rules = rulesOf(state, m, removing);
+	if (!command.map_measure)
+		return {
+			mapMeasure: null,
+			unmeasured: rules
+				.filter((gap) => !setAside(gap))
+				.map((gap) => `rule:${gap.rule_id}: not measured on the integrated project`),
+		};
+	return {
+		mapMeasure: {
+			change_id: command.map_measure.change_id,
+			rules: judgeRules(rules, state.migration?.gaps ?? [], command.map_measure, day(command.at)),
+			map: command.map_measure.map,
+			conforms: command.map_measure.rules.every((r) => r.violations === 0),
+		},
+		unmeasured: [],
+	};
 }
 
 /** Milestone verdict is recomputed from global obligations; it is never the sum of child statuses (RM-007, RM-008, PRG-05). */
@@ -744,12 +798,15 @@ function evaluateMilestone(
 		for (const gap of judged)
 			if (!setAside(gap))
 				indeterminate.push(`gap:${gapName(gap)} (${gap.authorship} code): not measured on the integrated project`);
-	indeterminate.push(...unmeasuredRules(state, m, removing));
+	const { mapMeasure, unmeasured } = judgeMigration(state, m, removing, command);
+	indeterminate.push(...unmeasured);
 	if (!command.integrated_digest && m.increment_ids.length > 0) indeterminate.push("integrated_candidate:missing");
 	let verdict: Verdict;
 	if (
 		remaining.some((r) => r.endsWith(":FAIL")) ||
-		measure?.gaps.some((g) => g.outcome === "remaining" || g.outcome === "appeared")
+		[...(measure?.gaps ?? []), ...(mapMeasure?.rules ?? [])].some(
+			(g) => g.outcome === "remaining" || g.outcome === "appeared",
+		)
 	)
 		verdict = "FAIL";
 	else if (remaining.length > 0 || indeterminate.length > 0)
@@ -765,13 +822,27 @@ function evaluateMilestone(
 		evaluated_at: command.at,
 		integrated_digest: command.integrated_digest,
 		...(measure ? { measure } : {}),
+		...(mapMeasure ? { map_measure: mapMeasure } : {}),
 	};
 }
 
 /**
+ * Judges a gap or a violated rule the starting survey counted `gap.violations` times, which the measure taken
+ * on `today` counts `now` times. A gap set aside stays out of the verdict; a gap under an exception is
+ * tolerated until its due date, included.
+ */
+function judgement(gap: BaselineGap | MigrationGap, now: number, today: string): Judgement {
+	const counts = { surveyed: gap.violations, measured: now };
+	if (setAside(gap)) return { outcome: "set_aside", ...counts };
+	if (!gap.exception) return { outcome: now > 0 ? "remaining" : "removed", ...counts };
+	const standing = now === 0 ? "withdrawn" : today <= gap.exception.due ? "current" : "expired";
+	const outcome = standing === "withdrawn" ? "removed" : standing === "current" ? "tolerated" : "remaining";
+	return { outcome, ...counts, exception: { ...gap.exception, standing } };
+}
+
+/**
  * Judges each gap of the milestone on the measure taken on `today`, with its two counts, then names as
- * appeared each gap the measure counts that the starting survey did not carry. A gap set aside stays
- * out of the verdict; a gap under an exception is tolerated until its due date, included.
+ * appeared each gap the measure counts that the starting survey did not carry.
  */
 function judgeGaps(
 	judged: readonly BaselineGap[],
@@ -782,17 +853,28 @@ function judgeGaps(
 	const counted = (gap: GapKey) => measure.gaps.find((g) => sameGap(g, gap))?.violations ?? 0;
 	const key = (g: GapKey): GapKey => ({ rule_id: g.rule_id, module: g.module, authorship: g.authorship });
 	return [
-		...judged.map((gap): JudgedGap => {
-			const now = counted(gap);
-			const counts = { surveyed: gap.violations, measured: now };
-			if (setAside(gap)) return { ...key(gap), outcome: "set_aside", ...counts };
-			if (!gap.exception) return { ...key(gap), outcome: now > 0 ? "remaining" : "removed", ...counts };
-			const standing = now === 0 ? "withdrawn" : today <= gap.exception.due ? "current" : "expired";
-			const outcome = standing === "withdrawn" ? "removed" : standing === "current" ? "tolerated" : "remaining";
-			return { ...key(gap), outcome, ...counts, exception: { ...gap.exception, standing } };
-		}),
+		...judged.map((gap): JudgedGap => ({ ...key(gap), ...judgement(gap, counted(gap), today) })),
 		...measure.gaps
 			.filter((g) => g.violations > 0 && !surveyed.some((b) => sameGap(b, g)))
 			.map((g): JudgedGap => ({ ...key(g), outcome: "appeared", surveyed: 0, measured: g.violations })),
+	];
+}
+
+/**
+ * Judges each violated rule of the migration the milestone judges on the measure taken on `today`, with its two
+ * counts, then names as appeared each rule of the map the measure counts broken that the starting survey did not.
+ */
+function judgeRules(
+	judged: readonly MigrationGap[],
+	surveyed: readonly MigrationGap[],
+	measure: MapMeasure,
+	today: string,
+): JudgedRule[] {
+	const counted = (rule: string) => measure.rules.find((r) => r.rule_id === rule)?.violations ?? 0;
+	return [
+		...judged.map((gap): JudgedRule => ({ rule_id: gap.rule_id, ...judgement(gap, counted(gap.rule_id), today) })),
+		...measure.rules
+			.filter((r) => r.violations > 0 && !surveyed.some((g) => g.rule_id === r.rule_id))
+			.map((r): JudgedRule => ({ rule_id: r.rule_id, outcome: "appeared", surveyed: 0, measured: r.violations })),
 	];
 }

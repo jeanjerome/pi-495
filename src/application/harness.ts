@@ -78,7 +78,7 @@ import { designVerification } from "./phases/verification-design.ts";
 import type { FeedbackSources } from "./context.ts";
 import { engineeringReport, type EngineeringReport } from "./report.ts";
 import { baselineOf, measureOf, type CitedSurvey } from "./baseline.ts";
-import { migrationOf } from "./migration.ts";
+import { mapMeasureOf, migrationOf } from "./migration.ts";
 import { buildDecisionRequest } from "./decisions.ts";
 import { askedOutsideDirectory, runInstall, type InstallRun } from "./installation.ts";
 import type { Clock, IdSource } from "./ids.ts";
@@ -730,21 +730,23 @@ export class Harness {
 	 * Judges each milestone of the program on the accepted survey of the integrated project that the change
 	 * `change_id` took, on the day it is asked. The survey is read from its dossier and nothing is run: it
 	 * must measure the program's project on the tree of its latest integration, under the referential of
-	 * the survey the program starts from. A program that cites no survey, or is closed, is refused.
+	 * the survey the program starts from, or, for a migration, under the map of the survey it starts from.
+	 * A program that cites no survey, or is closed, is refused.
 	 */
 	async measure(args: { program_id: string; change_id: string; actor: ActorRef }): Promise<ProgramState> {
 		const program = this.deps.ledger.loadProgram(args.program_id)?.state;
 		if (!program) throw new DomainError("UNKNOWN_REFERENCE", `program ${args.program_id} does not exist`);
-		if (!program.baseline)
+		const startingPoint = program.baseline ?? program.migration;
+		if (!startingPoint)
 			throw new DomainError("PRECONDITION_FAILED", `program ${program.program_id} cites no survey to measure against`);
 		if (program.closed) throw new DomainError("INVALID_TRANSITION", `program ${program.program_id} is closed`);
 		const integration = this.latestIntegration(program.program_id);
-		const measure = measureOf(
-			await this.citedSurvey(args.change_id),
-			await this.citedSurvey(program.baseline.change_id),
-			program.project_path,
-			integration?.destination_after ?? null,
-		);
+		const cited = await this.citedSurvey(args.change_id);
+		const startingSurvey = await this.citedSurvey(startingPoint.change_id);
+		const integrated = integration?.destination_after ?? null;
+		const measured = program.baseline
+			? { measure: measureOf(cited, startingSurvey, program.project_path, integrated) }
+			: { map_measure: mapMeasureOf(cited, startingSurvey, program.project_path, integrated) };
 		const at = this.now();
 		return this.commitProgram(
 			program.program_id,
@@ -756,7 +758,7 @@ export class Harness {
 					milestone_id: m.milestone_id,
 					global_verdicts: {},
 					integrated_digest: integration?.receipt_digest ?? null,
-					measure,
+					...measured,
 				}),
 			),
 			this.id("cor"),

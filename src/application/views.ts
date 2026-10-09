@@ -7,7 +7,10 @@ import {
 	type ExceptionStanding,
 	type GapException,
 	type JudgedGap,
+	type JudgedRule,
 	type IncrementStatus,
+	type MapPerimeter,
+	type Milestone,
 	type MigrationGap,
 	type MigrationTarget,
 	type ProgramState,
@@ -29,6 +32,18 @@ export interface StatusMeasure {
 	perimeter: ControlledPerimeter | null;
 }
 
+/**
+ * The survey of the integrated project a milestone of a migration was judged on and each violated rule it judged;
+ * once the milestone passed, the rules its steps removed, and the map the whole project conforms to when the survey
+ * counts no violation of any of its rules.
+ */
+export interface StatusMapMeasure {
+	change_id: string;
+	rules: JudgedRule[];
+	target: string[] | null;
+	conformity: MapPerimeter | null;
+}
+
 /** Canonical status projection shared by every Pi entry (AT-07, UX-03). */
 export interface StatusView {
 	schema_version: 1;
@@ -40,15 +55,15 @@ export interface StatusView {
 		baseline: { change_id: string; reference_digest: string } | null;
 		/**
 		 * The survey of the architecture a migration starts from, the tree it measured, the target its owner chose,
-		 * the violated rules a scope decision sets aside with its reason, and those an exception tolerates; null when
-		 * the program cites none.
+		 * the violated rules a scope decision sets aside with its reason, and those an exception tolerates, each with
+		 * the standing the latest measure that judged it gave it, null before any did; null when the program cites none.
 		 */
 		migration: {
 			change_id: string;
 			reference_digest: string;
 			target: MigrationTarget;
 			set_aside: (StatusRule & { reason: string })[];
-			exceptions: (StatusRule & GapException)[];
+			exceptions: (StatusRule & GapException & { standing: ExceptionStanding | null })[];
 		} | null;
 		/** Each increment with the gaps of the survey and the violated rules of the migration it removes. */
 		increments: {
@@ -78,6 +93,8 @@ export interface StatusView {
 				integrated_digest: string | null;
 				/** Null for an evaluation taken without a measure. */
 				measure: StatusMeasure | null;
+				/** Null for an evaluation taken without a measure of the map of a migration. */
+				map_measure: StatusMapMeasure | null;
 			} | null;
 		}[];
 		closed: boolean;
@@ -191,15 +208,22 @@ function statusMigration(program: ProgramState): NonNullable<StatusView["program
 		set_aside: migration.gaps.flatMap((g) =>
 			setAside(g) ? [{ ...statusRule(g), reason: g.scope_decision.reason }] : [],
 		),
-		exceptions: migration.gaps.flatMap((g) => (g.exception ? [{ ...statusRule(g), ...g.exception }] : [])),
+		exceptions: migration.gaps.flatMap((g) => {
+			if (!g.exception) return [];
+			const judged = program.milestone_evaluations
+				.flatMap((e) => e.map_measure?.rules ?? [])
+				.findLast((r) => r.exception && r.rule_id === g.rule_id);
+			return [{ ...statusRule(g), ...g.exception, standing: judged?.exception?.standing ?? null }];
+		}),
 	};
 }
 
 function latestEvaluation(
 	program: ProgramState,
-	milestoneId: string,
+	m: Milestone,
 ): NonNullable<StatusView["program"]>["milestones"][number]["evaluation"] {
-	const e = program.milestone_evaluations.findLast((x) => x.milestone_id === milestoneId);
+	const e = program.milestone_evaluations.findLast((x) => x.milestone_id === m.milestone_id);
+	const passed = e?.verdict === "PASS";
 	return e
 		? {
 				verdict: e.verdict,
@@ -211,7 +235,19 @@ function latestEvaluation(
 					? {
 							change_id: e.measure.change_id,
 							gaps: e.measure.gaps,
-							perimeter: e.verdict === "PASS" ? e.measure.perimeter : null,
+							perimeter: passed ? e.measure.perimeter : null,
+						}
+					: null,
+				map_measure: e.map_measure
+					? {
+							change_id: e.map_measure.change_id,
+							rules: e.map_measure.rules,
+							target: passed
+								? program.increments
+										.filter((i) => m.increment_ids.includes(i.increment_id))
+										.flatMap((i) => i.removes ?? [])
+								: null,
+							conformity: passed && e.map_measure.conforms ? e.map_measure.map : null,
 						}
 					: null,
 			}
@@ -266,7 +302,7 @@ export function statusView(
 						milestone_id: m.milestone_id,
 						title: m.title,
 						final: m.final,
-						evaluation: latestEvaluation(program, m.milestone_id),
+						evaluation: latestEvaluation(program, m),
 					})),
 					closed: program.closed,
 				}

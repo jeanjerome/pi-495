@@ -104,6 +104,7 @@ describe("statut d'un programme", () => {
 					indeterminate: [],
 					integrated_digest: DIGEST,
 					measure: null,
+					map_measure: null,
 				},
 			},
 		]);
@@ -563,5 +564,214 @@ describe("statut d'un programme mesuré sur le projet intégré", () => {
 			"  Jalon M1 (Standards): INDETERMINATE — indéterminé: gap:CyclomaticComplexity in domain (proprietary code): not measured on the integrated project",
 		);
 		assert.ok(!fr.some((l) => l.includes("Exception") || l.includes("conforme")), fr.join("\n"));
+	});
+});
+
+describe("statut d'une migration mesurée sur le projet intégré", () => {
+	const LEGACY = "la source hors carte disparaît avec le module historique";
+	const TOOL = "the rules of the adopted architecture map, checked by ArchUnit";
+	const REFLECTION = {
+		en: "a dependency through reflection: ArchUnit reads the classes, not the names a call builds at run time",
+		fr: "une dépendance par réflexion : ArchUnit lit les classes, pas les noms qu'un appel construit à l'exécution",
+	};
+
+	/**
+	 * E2 removes part app may not depend on part infra; an exception tolerates every main source belongs to a part
+	 * until 2026-12-31; the steps `integrated` integrated, the final milestone is measured on `counts` on the day `at`.
+	 */
+	function migrated(
+		counts: { rule_id: string; violations: number }[],
+		at: string,
+		integrated: string[] = ["E1", "E2"],
+	): ProgramState {
+		let p = run(null, {
+			type: "program.create",
+			at: tick(),
+			actor: HUMAN,
+			program_id: "prg_5",
+			project_path: "/tmp/reactor",
+			objective: ref("obj", "migration"),
+			title: "Put the payment behind a port",
+		});
+		p = run(p, {
+			type: "trajectory.adopt",
+			at: tick(),
+			actor: HUMAN,
+			increments: [
+				increment("E1", "Add the port of payment"),
+				{ ...increment("E2", "Move app behind the port", ["E1"]), removes: ["part app may not depend on part infra"] },
+			],
+			milestones: [
+				{
+					milestone_id: "M1",
+					title: "Migration",
+					increment_ids: ["E1", "E2"],
+					global_requirement_ids: [],
+					final: true,
+				},
+			],
+			global_requirements: [],
+			migration: {
+				change_id: "chg_survey",
+				reference_digest: `sha256:${"b".repeat(64)}`,
+				target: { alternative_id: "A2", nature: "adjust", description: "put the payment behind a port" },
+				gaps: [
+					{
+						rule_id: "every main source belongs to a part",
+						violations: 1,
+						scope_decision: null,
+						exception: { owner: "équipe paiement", due: "2026-12-31", reason: LEGACY },
+					},
+					{ rule_id: "part app may not depend on part infra", violations: 2, scope_decision: null },
+				],
+			},
+			reason: "init",
+		});
+		for (const id of integrated) {
+			p = run(p, { type: "increment.bind", at: tick(), actor: KERNEL, increment_id: id, change_id: `chg_${id}` });
+			p = run(p, {
+				type: "increment.result",
+				at: tick(),
+				actor: KERNEL,
+				increment_id: id,
+				status: "integrated",
+				note: null,
+			});
+		}
+		return run(p, {
+			type: "milestone.evaluate",
+			at,
+			actor: HUMAN,
+			milestone_id: "M1",
+			global_verdicts: {},
+			integrated_digest: DIGEST,
+			map_measure: {
+				change_id: "chg_integrated",
+				rules: counts,
+				map: { parts: ["domain", "app", "infra"], tool: TOOL, unseen: [REFLECTION] },
+			},
+		});
+	}
+	const at = (lines: string[], line: string) => {
+		const index = lines.indexOf(line);
+		assert.ok(index >= 0, `${line}\n---\n${lines.join("\n")}`);
+		return index;
+	};
+	const announcesConformity = (lines: string[]) =>
+		lines.some((l) => /conforme|conforms|Carte adoptée|Adopted map/.test(l));
+
+	it("le statut d'une migration dont le jalon final est PASS avec every main source belongs to a part tolérée dit la cible atteinte sur part app may not depend on part infra, n'annonce pas la conformité à la carte, et nomme la règle tolérée par l'exception en cours d'équipe paiement jusqu'au 2026-12-31, en français et en anglais", () => {
+		const view = statusView(
+			migrated([{ rule_id: "every main source belongs to a part", violations: 1 }], "2026-12-01T09:00:00.000Z"),
+			null,
+		);
+		assert.equal(view.program?.closed, true);
+		assert.deepEqual(
+			view.program?.migration?.exceptions.map((x) => [x.rule_id, x.owner, x.due, x.standing]),
+			[["every main source belongs to a part", "équipe paiement", "2026-12-31", "current"]],
+		);
+
+		const fr = formatStatus(view, "fr").split("\n");
+		const m = at(
+			fr,
+			"  Jalon M1 (Migration): PASS — cible de la migration atteinte sur part app may not depend on part infra",
+		);
+		assert.deepEqual(fr.slice(m + 1, m + 5), [
+			"    Mesure: chg_integrated",
+			"    toléré: every main source belongs to a part: 1 violation à l'état des lieux, 1 sur le projet intégré",
+			"    supprimé: part app may not depend on part infra: 2 violations à l'état des lieux, 0 sur le projet intégré",
+			`  Exception en cours: every main source belongs to a part: 1 violation à l'état des lieux — équipe paiement, échéance 2026-12-31 — ${LEGACY}`,
+		]);
+		assert.ok(!announcesConformity(fr), fr.join("\n"));
+
+		const en = formatStatus(view, "en").split("\n");
+		const e = at(
+			en,
+			"  Milestone M1 (Migration): PASS — migration target reached on part app may not depend on part infra",
+		);
+		assert.deepEqual(en.slice(e + 1, e + 5), [
+			"    Measure: chg_integrated",
+			"    tolerated: every main source belongs to a part: 1 violation at the survey, 1 on the integrated project",
+			"    removed: part app may not depend on part infra: 2 violations at the survey, 0 on the integrated project",
+			`  Current exception: every main source belongs to a part: 1 violation at the survey — équipe paiement, due 2026-12-31 — ${LEGACY}`,
+		]);
+		assert.ok(!announcesConformity(en), en.join("\n"));
+	});
+
+	it("le statut d'une migration dont le jalon final est PASS sans aucune violation annonce le projet conforme à la carte adoptée, nomme les parties domain, app et infra, l'outil qui la vérifie et ce que sa vérification ne voit pas, et dit l'exception retirée", () => {
+		const view = statusView(migrated([], "2026-12-01T09:00:00.000Z"), null);
+		assert.deepEqual(
+			view.program?.migration?.exceptions.map((x) => x.standing),
+			["withdrawn"],
+		);
+
+		const fr = formatStatus(view, "fr").split("\n");
+		const m = at(
+			fr,
+			"  Jalon M1 (Migration): PASS — cible de la migration atteinte sur part app may not depend on part infra — conforme à la carte adoptée dans ce que sa vérification contrôle",
+		);
+		assert.deepEqual(fr.slice(m + 1, m + 7), [
+			"    Mesure: chg_integrated",
+			"    supprimé: every main source belongs to a part: 1 violation à l'état des lieux, 0 sur le projet intégré",
+			"    supprimé: part app may not depend on part infra: 2 violations à l'état des lieux, 0 sur le projet intégré",
+			`    Carte adoptée: parties domain, app, infra — contrôle: ${TOOL}`,
+			`      hors de la vérification: ${REFLECTION.fr}`,
+			`  Exception retirée, sa règle n'est plus enfreinte: every main source belongs to a part: 1 violation à l'état des lieux — équipe paiement, échéance 2026-12-31 — ${LEGACY}`,
+		]);
+		assert.ok(!fr.some((l) => l.startsWith("  Exception en cours")), fr.join("\n"));
+
+		const en = formatStatus(view, "en").split("\n");
+		const e = at(
+			en,
+			"  Milestone M1 (Migration): PASS — migration target reached on part app may not depend on part infra — conforms to the adopted map within what its verification checks",
+		);
+		assert.deepEqual(en.slice(e + 1, e + 7), [
+			"    Measure: chg_integrated",
+			"    removed: every main source belongs to a part: 1 violation at the survey, 0 on the integrated project",
+			"    removed: part app may not depend on part infra: 2 violations at the survey, 0 on the integrated project",
+			`    Adopted map: parts domain, app, infra — control: ${TOOL}`,
+			`      outside the verification: ${REFLECTION.en}`,
+			`  Withdrawn exception, its rule is no longer broken: every main source belongs to a part: 1 violation at the survey — équipe paiement, due 2026-12-31 — ${LEGACY}`,
+		]);
+		assert.ok(!en.some((l) => l.startsWith("  Current exception")), en.join("\n"));
+	});
+
+	it("le statut d'un jalon de migration FAIL nomme la règle restante avec ses deux comptes et n'annonce ni la cible atteinte ni la conformité", () => {
+		const view = statusView(
+			migrated(
+				[
+					{ rule_id: "every main source belongs to a part", violations: 1 },
+					{ rule_id: "part app may not depend on part infra", violations: 1 },
+				],
+				"2026-12-01T09:00:00.000Z",
+			),
+			null,
+		);
+		assert.equal(view.program?.closed, false);
+		const fr = formatStatus(view, "fr").split("\n");
+		const m = at(fr, "  Jalon M1 (Migration): FAIL");
+		assert.deepEqual(fr.slice(m + 1, m + 4), [
+			"    Mesure: chg_integrated",
+			"    toléré: every main source belongs to a part: 1 violation à l'état des lieux, 1 sur le projet intégré",
+			"    reste: part app may not depend on part infra: 2 violations à l'état des lieux, 1 sur le projet intégré",
+		]);
+		assert.ok(!fr.some((l) => l.includes("cible de la migration atteinte")) && !announcesConformity(fr), fr.join("\n"));
+		const en = formatStatus(view, "en").split("\n");
+		at(
+			en,
+			"    remaining: part app may not depend on part infra: 2 violations at the survey, 1 on the integrated project",
+		);
+		assert.ok(!en.some((l) => l.includes("target reached")) && !announcesConformity(en), en.join("\n"));
+	});
+
+	it("le statut d'un jalon de migration NOT_RUN parce que E2 n'est pas intégré, sur une mesure qui ne compte aucune violation, n'annonce pas la conformité à la carte", () => {
+		const view = statusView(migrated([], "2026-12-01T09:00:00.000Z", ["E1"]), null);
+		const evaluation = view.program?.milestones[0]?.evaluation;
+		assert.equal(evaluation?.verdict, "NOT_RUN", JSON.stringify(evaluation));
+		assert.equal(evaluation?.map_measure?.conformity, null);
+		for (const language of ["fr", "en"] as const) {
+			const lines = formatStatus(view, language).split("\n");
+			assert.ok(!announcesConformity(lines), lines.join("\n"));
+		}
 	});
 });

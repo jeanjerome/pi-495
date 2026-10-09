@@ -3,7 +3,14 @@ import type { DecisionRequest } from "../../contracts/v1/decision.ts";
 import type { IncrementStatus, JudgedGap } from "../../domain/program/program.ts";
 import type { CodeAuthorship } from "../../domain/survey.ts";
 import type { EngineeringReport, MechanicalObservation, SurveySection } from "../../application/report.ts";
-import type { Consumption, StatusGap, StatusMeasure, StatusRule, StatusView } from "../../application/views.ts";
+import type {
+	Consumption,
+	StatusGap,
+	StatusMapMeasure,
+	StatusMeasure,
+	StatusRule,
+	StatusView,
+} from "../../application/views.ts";
 import type { AgentContext } from "../../ports/execution.ts";
 import { NATURES, recommendationLines } from "./recommendation-text.ts";
 
@@ -29,6 +36,10 @@ const L = {
 		indeterminate: "indéterminé",
 		conform: "conforme au référentiel dans le périmètre contrôlé",
 		exceptTolerated: ", sauf les écarts tolérés par une exception",
+		targetReached: (rules: string) => `cible de la migration atteinte sur ${rules}`,
+		mapConform: "conforme à la carte adoptée dans ce que sa vérification contrôle",
+		adoptedMap: (parts: string, tool: string) => `Carte adoptée: parties ${parts} — contrôle: ${tool}`,
+		unseen: "hors de la vérification",
 		measure: "Mesure",
 		onIntegrated: "sur le projet intégré",
 		judged: {
@@ -49,6 +60,7 @@ const L = {
 			withdrawn: "Exception retirée, son écart n'est plus mesuré",
 			unjudged: "Exception",
 		},
+		withdrawnRule: "Exception retirée, sa règle n'est plus enfreinte",
 		increments: {
 			planned: "planifié",
 			ready: "prêt",
@@ -80,6 +92,10 @@ const L = {
 		indeterminate: "indeterminate",
 		conform: "conforms to the referential within the controlled perimeter",
 		exceptTolerated: ", except the gaps an exception tolerates",
+		targetReached: (rules: string) => `migration target reached on ${rules}`,
+		mapConform: "conforms to the adopted map within what its verification checks",
+		adoptedMap: (parts: string, tool: string) => `Adopted map: parts ${parts} — control: ${tool}`,
+		unseen: "outside the verification",
 		measure: "Measure",
 		onIntegrated: "on the integrated project",
 		judged: {
@@ -100,6 +116,7 @@ const L = {
 			withdrawn: "Withdrawn exception, its gap is no longer measured",
 			unjudged: "Exception",
 		},
+		withdrawnRule: "Withdrawn exception, its rule is no longer broken",
 		increments: {
 			planned: "planned",
 			ready: "ready",
@@ -406,24 +423,60 @@ function programLines(program: NonNullable<StatusView["program"]>, lang: "fr" | 
 	for (const r of migration?.set_aside ?? []) lines.push(`  ${t.setAside}: ${t.violatedRule(r)} — ${r.reason}`);
 	for (const m of program.milestones) {
 		const e = m.evaluation;
-		// Conformity is announced only for a milestone a survey of the integrated project passed.
-		const tolerated = e?.measure?.gaps.some((g) => g.outcome === "tolerated") ? t.exceptTolerated : "";
-		const conform = e?.verdict === "PASS" && e.measure ? [`${t.conform}${tolerated}`] : [];
-		const left = e
-			? [
-					...(e.remaining.length ? [`${t.remaining}: ${e.remaining.join(", ")}`] : []),
-					...(e.indeterminate.length ? [`${t.indeterminate}: ${e.indeterminate.join(", ")}`] : []),
-				]
-			: [];
 		lines.push(
-			`  ${t.milestone} ${m.milestone_id} (${m.title}): ${[e ? e.verdict : t.notEvaluated, ...conform, ...left].join(" — ")}`,
+			`  ${t.milestone} ${m.milestone_id} (${m.title}): ${(e ? evaluationParts(e, lang) : [t.notEvaluated]).join(" — ")}`,
 		);
 		if (e?.measure) lines.push(...measureLines(e.measure, program.set_aside, lang));
+		if (e?.map_measure) lines.push(...mapMeasureLines(e.map_measure, lang));
 	}
 	for (const x of program.exceptions)
 		lines.push(`  ${t.exception[x.standing ?? "unjudged"]}: ${t.gap(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`);
 	for (const x of migration?.exceptions ?? [])
-		lines.push(`  ${t.exception.unjudged}: ${t.violatedRule(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`);
+		lines.push(
+			`  ${x.standing === "withdrawn" ? t.withdrawnRule : t.exception[x.standing ?? "unjudged"]}: ${t.violatedRule(x)} — ${x.owner}, ${t.due} ${x.due} — ${x.reason}`,
+		);
+	return lines;
+}
+
+type Evaluation = NonNullable<NonNullable<StatusView["program"]>["milestones"][number]["evaluation"]>;
+
+/** The verdict of a milestone, then what its measures let it announce, then what is left to satisfy or to determine. */
+function evaluationParts(e: Evaluation, lang: "fr" | "en"): string[] {
+	const t = L[lang];
+	// Conformity is announced only for a milestone a survey of the integrated project passed.
+	const tolerated = e.measure?.gaps.some((g) => g.outcome === "tolerated") ? t.exceptTolerated : "";
+	const conform = e.verdict === "PASS" && e.measure ? [`${t.conform}${tolerated}`] : [];
+	// A migration reaches its target on the rules its steps remove; the whole project conforms only once the
+	// measure counts no violation of any rule of the map.
+	const target = e.map_measure?.target ?? [];
+	const reached = target.length > 0 ? [t.targetReached(target.join(", "))] : [];
+	const mapConform = e.map_measure?.conformity ? [t.mapConform] : [];
+	return [
+		e.verdict,
+		...conform,
+		...reached,
+		...mapConform,
+		...(e.remaining.length ? [`${t.remaining}: ${e.remaining.join(", ")}`] : []),
+		...(e.indeterminate.length ? [`${t.indeterminate}: ${e.indeterminate.join(", ")}`] : []),
+	];
+}
+
+/**
+ * The survey a milestone of a migration was measured on and each violated rule it judged with its two counts, then,
+ * once the whole project conforms to the map, its parts, the control that verifies it and what that does not see.
+ */
+function mapMeasureLines(measure: StatusMapMeasure, lang: "fr" | "en"): string[] {
+	const t = L[lang];
+	const lines = [`    ${t.measure}: ${measure.change_id}`];
+	for (const r of measure.rules)
+		if (r.outcome !== "set_aside")
+			lines.push(
+				`    ${t.judged[r.outcome]}: ${t.violatedRule({ rule_id: r.rule_id, violations: r.surveyed })}, ${r.measured} ${t.onIntegrated}`,
+			);
+	const map = measure.conformity;
+	if (!map) return lines;
+	lines.push(`    ${t.adoptedMap(map.parts.join(", "), map.tool)}`);
+	for (const u of map.unseen) lines.push(`      ${t.unseen}: ${u[lang]}`);
 	return lines;
 }
 

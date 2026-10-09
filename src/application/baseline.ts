@@ -45,7 +45,7 @@ export interface Citation {
 }
 
 const STARTING_POINT: Citation = { cites: "trajectory cites", isNot: "is not a starting point" };
-const MEASURE: Citation = { cites: "the measure cites", isNot: "does not measure the integrated project" };
+export const MEASURE: Citation = { cites: "the measure cites", isNot: "does not measure the integrated project" };
 
 const AUTHORSHIPS: readonly CodeAuthorship[] = ["proprietary", "generated"];
 
