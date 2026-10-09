@@ -503,7 +503,7 @@ epics:
     stories:
       - { id: e38s01, status: "versée", title: "Chaque promesse de la story nomme sa vérification et les interactions à examiner" }
       - { id: e38s02, status: "versée", title: "Une exploration TLA+ produit un résultat traçable sans confondre interruption et succès" }
-      - { id: e38s03, status: "à faire", title: "Le modèle du changement explore les révisions, les preuves tardives et les reprises" }
+      - { id: e38s03, status: "versée", title: "Le modèle du changement explore les révisions, les preuves tardives et les reprises" }
       - { id: e38s04, status: "à faire", title: "Les traces du modèle deviennent des tests reproductibles du noyau réel" }
       - { id: e38s05, status: "à faire", title: "Le cycle vérifie les interactions retenues avant de lancer l’implémentation" }
       - { id: e38s06, status: "à faire", title: "Une exigence ne franchit la qualification que si son propre oracle a été éprouvé" }
