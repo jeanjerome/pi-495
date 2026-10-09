@@ -30,7 +30,7 @@ import { PREFLIGHT, executeurNonConfine } from "./controls.ts";
 import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
 import { commiter, commitsEntre, revision } from "./git.ts";
-import { Journal, type Pas, racineCycle } from "./journal.ts";
+import { type Evenement, Journal, type Pas, racineCycle } from "./journal.ts";
 import { marquerStoryListee } from "./plan.ts";
 import { reprendre } from "./reprise.ts";
 import { type OptionsSuite, corrigerDefauts, suite } from "./suite.ts";
@@ -53,19 +53,29 @@ function contexte(id: string): Contexte {
 	};
 }
 
+/** What the state adds to the line of an event, after its step and its kind. */
+function precisionDe(e: Evenement): string {
+	switch (e.genre) {
+		case "session":
+			return ` ${e.nom} · ${duree(Number(e.duree_ms))} · ${argent(Number(e.cout_usd))}`;
+		case "controle":
+			return ` ${e.controle} · ${e.verdict}`;
+		case "tour":
+			return ` tour ${e.tour} · porte ${e.porte} · ${e.constats} constat(s)`;
+		case "preparation":
+			return ` ${e.verte ? "verte" : "bloquée"} · ${String(e.empreinte).slice(0, 19)}`;
+		default:
+			return "";
+	}
+}
+
 function etat(ctx: Contexte): void {
 	console.log(`${ctx.story.id} · ${ctx.story.titre} · ${ctx.story.statut}`);
 	console.log(`vérification : ${resumeDeVerification(ctx.story.verification, ctx.root)}`);
 	for (const e of ctx.journal.lire()) {
-		const extra =
-			e.genre === "session"
-				? ` ${e.nom} · ${duree(Number(e.duree_ms))} · ${argent(Number(e.cout_usd))}`
-				: e.genre === "controle"
-					? ` ${e.controle} · ${e.verdict}`
-					: e.genre === "tour"
-						? ` tour ${e.tour} · porte ${e.porte} · ${e.constats} constat(s)`
-						: "";
-		console.log(`  ${new Date(e.at).toLocaleTimeString("fr-FR")}  ${e.pas.padEnd(12)} ${e.genre.padEnd(10)}${extra}`);
+		console.log(
+			`  ${new Date(e.at).toLocaleTimeString("fr-FR")}  ${e.pas.padEnd(12)} ${e.genre.padEnd(10)}${precisionDe(e)}`,
+		);
 	}
 	console.log(`prochain pas : ${ctx.journal.prochainPas() ?? "aucun, la story est versée"}`);
 }

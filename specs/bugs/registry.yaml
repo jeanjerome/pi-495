@@ -2388,3 +2388,36 @@ bugs:
       Withdraw the pending decisions about the candidate when the protocol is revised, with its own test, then remove the
       exclusion from `ReviseProtocol` in `test/support/change-commands.ts`.
     status: open
+  - bug_id: BUG-2026-10-09T210000
+    date: "2026-10-09"
+    title: "A preparation blocked by its environment stays blocked on every relaunch until the companion or the model changes"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `preparer` (`cycle/src/preparation.ts`) reuses the last `preparation` event whenever the fingerprint is the same,
+      whatever its verdict, and the fingerprint covers only the companion, the promises, the security section and the
+      model files. An exploration that ends `error` because `TLA2TOOLS_JAR` is unset (`scripts/check-formal.ts` answers
+      `capability missing`), or `inconclusive` because the run was killed at its timeout, is recorded as a blocked
+      preparation; a relaunch after the jar is set or the machine is freed writes `preparation-retenue` and blocks
+      again on the old record, without exploring.
+    what_expected: >
+      A block whose cause is the environment rather than the model — a missing tool, a run cut before its end — is
+      examined again on the next launch, while a counterexample or a completed exploration stays cited by its
+      fingerprint.
+    steps_to_reproduce:
+      - "Give a story a companion that keeps a state model with its manifest, unset `TLA2TOOLS_JAR`, run `node cycle/src/main.ts <story>` to the red-green: the preparation blocks with `error`, `capability missing`."
+      - "Set `TLA2TOOLS_JAR` to the approved jar and run the conductor again: the journal shows `preparation-retenue` with the same fingerprint, then the same block, and no exploration control."
+    root_cause: >
+      The reuse test is `precedente?.empreinte === empreinte` alone; neither the outcome of the recorded explorations
+      nor the tool that ran them enters the fingerprint.
+    evidence: >
+      Introduced by the branch e38s05, which adds the preparation. Read in `preparer` and `composantesDe`; the
+      acceptance run of e38s05 shows the reuse on a relaunch (`preparation-retenue`, then the same block, no
+      exploration). The defect stops a story rather than letting one through: the only way out is a change to the
+      companion or the model.
+    risk_level: low
+    follow_ups: >
+      Reuse a blocked preparation only when every failed exploration ended on a counterexample, and examine again one
+      that ended `error` or `inconclusive`, with its own test.
+    status: open

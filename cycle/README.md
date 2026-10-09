@@ -92,7 +92,12 @@ A story starts on a branch from `main`, on a green Preflight, and comes back to 
    command that holds it, written red because it names a test that does not exist yet, the test and
    its assertion in the words of the story, and what the code does today that makes it fail. What
    needs a hand is written as such. `scripts/check-story-format.ts` refuses a story that misses this
-   shape.
+   shape. A story that carries a verification companion (`format-de-story.md` § Compagnon de
+   vérification) has a preparation, a sub-step of the story the tool examines before any red-green
+   session: an incomplete companion, an undetermined exploration or a counterexample of an adopted
+   model sends the story back to its preparation, naming the trace, without spending a red-green
+   attempt. A story reopened on an unchanged preparation is a code correction; a changed model or
+   promise withdraws the previous preparation, which is examined again.
 2. **Red-green.** Task by task: the test first, its red seen on the announced assertion, a test-only
    commit, then the code and a green commit. A missing file, an import or type error, or a red
    obtained by setting code aside is not that red. The tool replays each test-only commit of the

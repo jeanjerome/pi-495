@@ -2,7 +2,7 @@
 
 Story : e38s05
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : cycle/ — premier parcours renforcé utilisable
 Dépendances : e38s01, e38s02, e38s03, e38s04

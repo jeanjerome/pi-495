@@ -85,6 +85,18 @@ describe("the entry point of the cycle", () => {
 		assert.match(r.sortie, /^vérification : sans compagnon de vérification$/m);
 	});
 
+	it("prints in the state whether the preparation holds, with the start of its fingerprint", () => {
+		const b = banc();
+		mkdirSync(join(b.racine, "e01s05"), { recursive: true });
+		writeFileSync(
+			join(b.racine, "e01s05", "journal.jsonl"),
+			`${JSON.stringify({ at: "2026-10-04T08:05:09.000Z", pas: "rouge-vert", genre: "preparation", verte: false, empreinte: `sha256:${"b".repeat(64)}` })}\n`,
+		);
+		const r = cycle(["e01s05", "etat"], b);
+		assert.equal(r.code, 0);
+		assert.match(r.sortie, /rouge-vert +preparation bloquée · sha256:bbbbbbbbbbbb$/m);
+	});
+
 	it("prints in the state each promise of the story's verification companion that has no oracle", () => {
 		const b = banc();
 		writeFileSync(

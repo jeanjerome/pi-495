@@ -1,6 +1,6 @@
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { executeurNonConfine } from "../../cycle/src/controls.ts";
+import { type Controle, executeurNonConfine } from "../../cycle/src/controls.ts";
 import type { Contexte } from "../../cycle/src/cycle.ts";
 import { Journal } from "../../cycle/src/journal.ts";
 import { lireStory } from "../../cycle/src/story.ts";
@@ -111,5 +111,108 @@ export function contexte(root: string, claude: string): Contexte {
 		cible: "main",
 		preflight: { id: "preflight", commande: [NODE, "--test"], reseau: "denied", timeout_ms: 60_000 },
 		claude,
+	};
+}
+
+const ORACLE = { tache: 1, cas: "test/shout.test.js", assertion: "the greeting is upper case" };
+
+/** The companion of the test story: its one scenario, held by task 1, with the means `moyens` declares. */
+export function compagnon(moyens: unknown[], oracles: unknown[] = [ORACLE]): string {
+	return `${JSON.stringify(
+		{
+			version: 1,
+			story: "e01s05",
+			promesses: [
+				{
+					id: "P1",
+					scenario: "greet shouts",
+					categorie: "nouveau-comportement",
+					observation: "the greeting upper-cased",
+					oracles,
+					dependances: [],
+					interactions: [],
+					moyens,
+				},
+			],
+		},
+		null,
+		1,
+	)}\n`;
+}
+
+/** A selection that keeps example tests alone, each other means set aside with its reason. */
+export const EXEMPLES_SEULS = [
+	{ moyen: "exemples", retenu: true, raison: "one case shows the greeting" },
+	{ moyen: "proprietes", retenu: false, raison: "one input is enough" },
+	{ moyen: "modele-d-etats", retenu: false, raison: "no state" },
+	{ moyen: "preuve-lean", retenu: false, raison: "no decision rule" },
+];
+
+/** A selection that keeps a state model, explored through the manifest `manifeste`. */
+export function modeleRetenu(manifeste: string): unknown[] {
+	return [
+		{ moyen: "exemples", retenu: true, raison: "one case shows the greeting" },
+		{ moyen: "proprietes", retenu: false, raison: "one input is enough" },
+		{ moyen: "modele-d-etats", retenu: true, proprietes: ["Shouted"], manifestes: [manifeste] },
+		{ moyen: "preuve-lean", retenu: false, raison: "no decision rule" },
+	];
+}
+
+/** Where the test story's model lives, and the manifest that pins it. */
+export const MANIFESTE = "specs/formal/greet/manifest.json";
+
+export const MODELE = "---- MODULE Greet ----\nVARIABLE shouted\nInit == shouted = FALSE\n====\n";
+
+/** The model files of the test story: a module, its configuration, and the manifest pinning both. */
+export function fichiersDuModele(modele = MODELE): Record<string, string> {
+	return {
+		"specs/formal/greet/Greet.tla": modele,
+		"specs/formal/greet/Greet.cfg": "INIT Init\nINVARIANT Shouted\n",
+		[MANIFESTE]: JSON.stringify({ model: "Greet.tla", config: "Greet.cfg", required_properties: ["Shouted"] }),
+	};
+}
+
+/** A repository with the fixture project, the story, its companion and `fichiers`, on main. */
+export function depotAvecCompagnon(texte: string, fichiers: Record<string, string> = {}): string {
+	return depotDe((root) => {
+		fixtureTs(root);
+		mkdirSync(join(root, "specs", "stories", "e01"), { recursive: true });
+		writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.md"), STORY);
+		writeFileSync(join(root, "specs", "stories", "e01", "e01s05-greet-shouts.verification.json"), texte);
+		for (const [rel, contenu] of Object.entries(fichiers)) {
+			mkdirSync(join(root, rel, ".."), { recursive: true });
+			writeFileSync(join(root, rel), contenu);
+		}
+	});
+}
+
+/** The counterexample a stand-in for TLC prints, as `scripts/check-formal.ts` lays it out. */
+export const CONTRE_EXEMPLE =
+	"Greet.tla with Greet.cfg: counterexample — not PASS\n  Invariant Shouted is violated.\ncounterexample to Shouted:\n  1: <Initial predicate>\n     shouted = FALSE\n";
+
+/**
+ * A stand-in for `scripts/check-formal.ts`: each run appends the manifest it was given to a log, prints
+ * `sortie` and exits with `code`, whose meaning is the script's — 0 completed, 1 counterexample, 2
+ * inconclusive, 3 error.
+ */
+export function fausseExploration(
+	code: number,
+	sortie: string,
+): { exploration: (manifeste: string) => Controle; lancements: () => string[] } {
+	const dir = tempDir("495-", cleanups);
+	const log = join(dir, "lancements.log");
+	const script = join(dir, "check-formal.mjs");
+	writeFileSync(
+		script,
+		`import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(log)}, process.argv[2] + "\\n");\nprocess.stdout.write(${JSON.stringify(sortie)});\nprocess.exit(${code});\n`,
+	);
+	return {
+		exploration: (manifeste) => ({
+			id: `exploration-${manifeste}`,
+			commande: [NODE, script, manifeste],
+			reseau: "denied",
+			timeout_ms: 60_000,
+		}),
+		lancements: () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean) : []),
 	};
 }

@@ -214,6 +214,15 @@ export function annonce(texte: string): string {
 	return s("gray", `  ⋯ ${texte}`);
 }
 
+/** The line a preparation shows: each exploration's outcome and, when it blocks, the first lines of why. */
+function lignePreparation(e: Evenement): string {
+	const resultats = (e.resultats as { manifeste: string; issue: string }[] | undefined) ?? [];
+	const explorations = resultats.map((r) => ` · ${r.manifeste} ${r.issue}`).join("");
+	if (e.verte) return s("green", `  ✓ préparation verte${explorations}`);
+	const motif = String(e.motif).split("\n").slice(1, 4).join("\n    ");
+	return s("red", `  ✗ préparation bloquée${explorations}\n    ${motif}`);
+}
+
 /** The line a journal event shows, when it says something the stream of a session does not. */
 export function ligneDuJournal(e: Evenement): string | null {
 	switch (e.genre) {
@@ -231,6 +240,10 @@ export function ligneDuJournal(e: Evenement): string | null {
 				e.rouge ? "green" : "red",
 				`  ${e.rouge ? "✓" : "✗"} rouge rejoué à ${String(e.commit).slice(0, 7)} ${clip(String(e.sujet), 100)}`,
 			);
+		case "preparation":
+			return lignePreparation(e);
+		case "preparation-retenue":
+			return s("gray", `  ↺ préparation retenue, empreinte ${String(e.empreinte).slice(0, 19)}`);
 		case "tour":
 			return s("bold", `  tour ${String(e.tour)} · porte ${String(e.porte)} · ${String(e.constats)} constat(s)`);
 		case "session":

@@ -3,7 +3,7 @@ import { strict as assert } from "node:assert";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { UnconfinedSandbox } from "../../src/adapters/sandbox/backends.ts";
-import { Executeur, controleDeTache, estUnRouge, PREFLIGHT } from "../../cycle/src/controls.ts";
+import { Executeur, controleDeTache, estUnRouge, explorationFormelle, PREFLIGHT } from "../../cycle/src/controls.ts";
 import { revision } from "../../cycle/src/git.ts";
 import { fixtureTs, gitCmd, tempDir, writeFiles, removedAfterEach } from "../helpers/fixtures.ts";
 import { depotDe } from "../helpers/cycle.ts";
@@ -30,6 +30,24 @@ describe("the controls of the cycle", () => {
 		]);
 		assert.deepEqual(controleDeTache(2, ["npm", "run", "check"]).commande, ["npm", "run", "check"]);
 		assert.equal(PREFLIGHT.reseau, "loopback");
+	});
+
+	it("explores a manifest by scripts/check-formal.ts, with no network, passing the jar TLA2TOOLS_JAR names", () => {
+		const avecJar = explorationFormelle("specs/formal/a/manifest.json", { TLA2TOOLS_JAR: "/opt/tla2tools.jar" });
+		assert.equal(avecJar.id, "exploration-specs/formal/a/manifest.json");
+		assert.deepEqual(avecJar.commande, [
+			process.execPath,
+			"scripts/check-formal.ts",
+			"specs/formal/a/manifest.json",
+			"--jar",
+			"/opt/tla2tools.jar",
+		]);
+		assert.equal(avecJar.reseau, "denied");
+		assert.deepEqual(explorationFormelle("specs/formal/a/manifest.json", {}).commande, [
+			process.execPath,
+			"scripts/check-formal.ts",
+			"specs/formal/a/manifest.json",
+		]);
 	});
 
 	it("records a passing task command as PASS with its outputs kept, at the revision it ran on", async () => {

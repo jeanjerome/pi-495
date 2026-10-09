@@ -6,7 +6,14 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import { type Controle, type Executeur, type Preuve, controleDeTache, estUnRouge } from "./controls.ts";
+import {
+	type Controle,
+	type Executeur,
+	type Preuve,
+	controleDeTache,
+	estUnRouge,
+	explorationFormelle,
+} from "./controls.ts";
 import { exporterDossier } from "./export.ts";
 import {
 	arbreDetache,
@@ -22,6 +29,7 @@ import {
 } from "./git.ts";
 import { invite } from "./invite.ts";
 import { contenuLu, dejaVerte, retenirVerte } from "./preflight.ts";
+import { preparer } from "./preparation.ts";
 import type { Journal, Pas } from "./journal.ts";
 import { defautsOuverts } from "./registre.ts";
 import { type Rapport, SCHEMA_RAPPORT, TOURS_MAX, apresDernierTour, trier } from "./relecture.ts";
@@ -36,6 +44,8 @@ export interface Contexte {
 	/** `main`, where the branch forks from and lands. */
 	cible: string;
 	preflight: Controle;
+	/** The control that explores the model a manifest pins; `scripts/check-formal.ts` when unset. */
+	exploration?: (manifeste: string) => Controle;
 	claude?: string;
 	/** Each line a session streams, with the session's name, for whoever watches the story run. */
 	suivi?: (nom: string, ligne: string) => void;
@@ -47,7 +57,8 @@ export type Issue =
 	| { statut: "fini" }
 	// `nonTenues`: the promises the review left unkept, when the review is what asks the owner.
 	| { statut: "proprietaire"; question: string; nonTenues?: string }
-	| { statut: "bloque"; motif: string };
+	// `origine`: the preparation, when the block is a model or a requirement to revise rather than code to write.
+	| { statut: "bloque"; motif: string; origine?: "preparation" };
 
 const FINI: Issue = { statut: "fini" };
 
@@ -156,7 +167,28 @@ function ecartEnCours(ctx: Contexte): string {
 	return `\n\n${origine}, seul objet de ce passage :\n${String(rouvert.motif)}\n`;
 }
 
+/** The preparation of the story as it stands on the branch, its explorations run as controls of the red-green. */
+function preparationDuRougeVert(ctx: Contexte): ReturnType<typeof preparer> {
+	// The story is read again: its companion or its model may have changed since the run began.
+	ctx.story = lireStory(ctx.story.id, ctx.root);
+	return preparer(
+		{
+			root: ctx.root,
+			story: ctx.story,
+			exploration: ctx.exploration ?? explorationFormelle,
+			lancer: (c) => controle(ctx, "rouge-vert", c),
+			lire: async (digest) => {
+				const octets = await ctx.journal.objets.get(digest);
+				return octets ? new TextDecoder().decode(octets) : null;
+			},
+		},
+		ctx.journal,
+	);
+}
+
 async function pasRougeVert(ctx: Contexte): Promise<Issue> {
+	const preparation = await preparationDuRougeVert(ctx);
+	if (!preparation.verte) return { statut: "bloque", motif: preparation.motif, origine: "preparation" };
 	const b = base(ctx);
 	const depuis = revision(ctx.root);
 	const deja = commitsEntre(ctx.root, b)
@@ -168,6 +200,7 @@ async function pasRougeVert(ctx: Contexte): Promise<Issue> {
 			branche: brancheCourante(ctx.root),
 			base: b,
 			deja,
+			preparation: preparation.resume,
 			story: storyMarkdown(ctx),
 		}) + ecartEnCours(ctx);
 	await session(ctx, "rouge-vert", "rouge-vert", texte, {
@@ -544,7 +577,13 @@ export async function conduirePas(ctx: Contexte, pas: Pas): Promise<Issue> {
 		const issue = await PAS_FONCTIONS[pas](ctx);
 		if (issue.statut === "fini" && pas !== "versement") ctx.journal.inscrire(pas, "fini");
 		else if (issue.statut !== "fini")
-			ctx.journal.inscrire(pas, issue.statut, { detail: issue.statut === "bloque" ? issue.motif : issue.question });
+			ctx.journal.inscrire(
+				pas,
+				issue.statut,
+				issue.statut === "bloque"
+					? { detail: issue.motif, ...(issue.origine ? { origine: issue.origine } : {}) }
+					: { detail: issue.question },
+			);
 		return issue;
 	} catch (e) {
 		const motif = e instanceof Blocage ? e.message : `${(e as Error).stack ?? e}`;

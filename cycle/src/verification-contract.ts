@@ -24,6 +24,8 @@ interface MoyenDeclare {
 	raison: string | null;
 	/** What the means checks: required of a selected property test, state model or Lean proof. */
 	proprietes: string[];
+	/** The manifests, by path from the repository root, of the models a selected state model explores. */
+	manifestes: string[];
 }
 
 /**
@@ -111,6 +113,7 @@ function lireMoyens(p: Objet, ou: string, erreur: Erreur): MoyenDeclare[] {
 				retenu: m.retenu,
 				raison: texteNonVide(m.raison) ? m.raison : null,
 				proprietes: liste(m.proprietes).filter(texteNonVide),
+				manifestes: liste(m.manifestes).filter(texteNonVide),
 			});
 	}
 	return lus;

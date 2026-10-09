@@ -67,7 +67,8 @@ ou la raison de ne pas le faire.
 À côté de la story, un fichier JSON de même radical, terminé par `.verification.json`, dit comment
 chaque promesse sera vérifiée. Il est facultatif pour les stories écrites avant lui ; le Markdown
 reste le texte du besoin, et le compagnon ne recopie ni scénario ni tâche : il les cite par le titre
-du scénario et le numéro de la tâche.
+du scénario et le numéro de la tâche. Une story qui porte un compagnon suit le parcours renforcé : sa
+préparation est examinée avant le rouge-vert.
 
 ```json
 {
@@ -85,7 +86,8 @@ du scénario et le numéro de la tâche.
       "moyens": [
         { "moyen": "exemples", "retenu": true, "raison": "un cas montre la question reposée" },
         { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
-        { "moyen": "modele-d-etats", "retenu": true, "proprietes": ["une réponse révoquée n'est jamais relue"] },
+        { "moyen": "modele-d-etats", "retenu": true, "proprietes": ["une réponse révoquée n'est jamais relue"],
+          "manifestes": ["specs/formal/revocation/manifest.json"] },
         { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
       ]
     }
@@ -100,13 +102,27 @@ du scénario et le numéro de la tâche.
 - `interactions` : `revision`, `reprise`, `ordre-des-evenements` ou `effet-externe`, chacune décrite.
   L'outil les rend telles que déclarées ; il ne les détecte pas et n'en déduit aucun moyen.
 - `moyens` : chacun des quatre, `exemples`, `proprietes`, `modele-d-etats` et `preuve-lean`, est
-  retenu ou écarté avec sa raison ; un moyen à propriétés retenu nomme les propriétés qu'il vérifie.
+  retenu ou écarté avec sa raison ; un moyen à propriétés retenu nomme les propriétés qu'il vérifie,
+  et un modèle d'états retenu, dans `manifestes`, le manifeste de `scripts/check-formal.ts` de chaque
+  modèle que TLC explore, par son chemin depuis la racine.
 
 L'outil lit le compagnon avec la story et en tire un diagnostic de préparation : une promesse est
 prête quand une assertion lui est liée et que ses moyens sont choisis ; chaque référence invalide est
 localisée par son chemin dans le JSON, avec ce qui est attendu. `npm run cycle -- <story> etat` le
 rend, et la rédaction de la story suivante le reçoit pour les stories versées de l'epic, en résumé.
 Le compagnon propose des contrôles : il n'en exécute aucun et ne donne aucun droit.
+
+La préparation est une sous-étape de la story, que le conducteur examine au seuil du rouge-vert,
+avant toute session. Elle tient quand le diagnostic est prêt et que chaque modèle retenu, exploré par
+TLC (`TLA2TOOLS_JAR` nomme le jar approuvé), termine `completed`. Sinon la story revient à sa
+préparation sans session de rouge-vert : un compagnon incomplet, un modèle retenu sans manifeste, une
+preuve Lean retenue (le cycle n'a pas de contrôle Lean), une exploration `counterexample`,
+`inconclusive` ou `error` ; le blocage cite la trace gardée. Le dossier inscrit la préparation une
+fois, sous l'empreinte du compagnon, des promesses, de la sécurité et des fichiers des modèles : un
+lancement de même empreinte la cite au lieu de l'explorer à nouveau. Une story rouverte sur la même
+empreinte est une correction de code, et la préparation tient ; une empreinte changée est une
+révision de règle, qui retire la préparation précédente en nommant ce qui a changé. Une story sans
+compagnon suit le cycle d'avant.
 
 ## Exemple
 

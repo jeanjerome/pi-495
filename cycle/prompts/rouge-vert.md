@@ -8,6 +8,11 @@ La branche porte déjà ces commits depuis la base :
 
 {{deja}}
 
+La préparation de la story, examinée avant cette session (les objets se lisent dans le dossier du
+cycle par leur empreinte) :
+
+{{preparation}}
+
 Un commit de tâche parmi eux vient d'un passage interrompu : reprends à la première tâche qu'ils ne
 tiennent pas, et regarde ce que ce passage a laissé hors du dépôt avant de le refaire.
 

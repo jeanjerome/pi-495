@@ -31,6 +31,10 @@ avant et après quand tu renommes. Garde les commentaires existants, sauf ceux q
 Commite sur la branche autant de fois que tu veux : l'outil écrase la branche en un seul commit sur
 `main`. Ne pousse rien.
 
+Une reprise ne touche ni à une promesse, ni à un compagnon de vérification, ni à un modèle de
+`specs/formal/` : changer une règle est une révision, qui passe par une story et une nouvelle
+préparation.
+
 **Si la reprise ne peut pas se faire à comportement constant**, ou si le code la dément (le constat ne
 tient plus, une story l'a déjà traitée), ne la force pas : remets la branche à `{{base}}`
 (`git reset --hard {{base}}`) et rends `ecartee`, avec la raison en une phrase.

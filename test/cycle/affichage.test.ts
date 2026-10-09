@@ -101,4 +101,26 @@ describe("the line a journal event shows", () => {
 			"  ✗ preflight · FAIL à a9a7064 · 1 min 05 s\n    un\n    deux\n    trois\n    quatre\n    cinq",
 		);
 	});
+
+	it("shows a green preparation with each exploration's outcome, and a preparation cited by its fingerprint", () => {
+		const verte = ligneDuJournal({
+			at: "2026-10-04T10:00:00.000Z",
+			pas: "rouge-vert",
+			genre: "preparation",
+			verte: true,
+			empreinte: `sha256:${"a".repeat(64)}`,
+			resultats: [{ manifeste: "specs/formal/a/manifest.json", issue: "completed" }],
+		});
+		assert.equal(
+			stripVTControlCharacters(verte ?? ""),
+			"  ✓ préparation verte · specs/formal/a/manifest.json completed",
+		);
+		const retenue = ligneDuJournal({
+			at: "2026-10-04T10:00:00.000Z",
+			pas: "rouge-vert",
+			genre: "preparation-retenue",
+			empreinte: `sha256:${"a".repeat(64)}`,
+		});
+		assert.equal(stripVTControlCharacters(retenue ?? ""), "  ↺ préparation retenue, empreinte sha256:aaaaaaaaaaaa");
+	});
 });

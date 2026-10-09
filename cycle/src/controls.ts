@@ -47,6 +47,21 @@ export const PREFLIGHT: Controle = {
 	timeout_ms: 900_000,
 };
 
+/**
+ * The exploration of the model `manifeste` pins, by `scripts/check-formal.ts` with the approved TLC that
+ * `TLA2TOOLS_JAR` names. Nothing is installed: without the jar the script answers a missing capability,
+ * which is not a completed exploration.
+ */
+export function explorationFormelle(manifeste: string, env: NodeJS.ProcessEnv = process.env): Controle {
+	const jar = env.TLA2TOOLS_JAR;
+	return {
+		id: `exploration-${manifeste}`,
+		commande: [process.execPath, "scripts/check-formal.ts", manifeste, ...(jar ? ["--jar", jar] : [])],
+		reseau: "denied",
+		timeout_ms: 1_800_000,
+	};
+}
+
 /** `node` by any path, so a test that names the running binary is still read as a node:test run. */
 function estNodeTest(commande: string[]): boolean {
 	return basename(commande[0] ?? "") === "node" && commande.includes("--test");
