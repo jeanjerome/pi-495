@@ -1884,3 +1884,78 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: 4a607ea3
+  - bug_id: BUG-2026-10-08T235100
+    date: "2026-10-08"
+    title: "The architecture control cannot be qualified on a Maven reactor whose witness module does not declare JUnit 5"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s02`. The architecture control is qualified on the positive witness every Maven
+      control shares (`positiveWitness`, `src/adapters/stacks/maven/tests/witnesses.ts`): a JUnit 5 test written
+      under `src/test/java` of a module. The architecture control runs `mvn test` on the reactor, which compiles
+      that test; in a reactor that does not declare JUnit 5, the compilation fails, the positive witness gives
+      INDETERMINATE, and the control is not qualified, so a reactor with no JUnit 5 never has its adopted map
+      verified.
+    what_expected: >
+      The architecture control does not depend on the test framework of the project: its rules run with the
+      ArchUnit engine the profile declares, and its positive witness compiles and passes in a reactor that has no
+      test dependency.
+    steps_to_reproduce:
+      - "Take the reactor of the story (`domain`, `infrastructure`) without any test dependency, and adopt its map."
+      - "Qualify the architecture control by its witnesses: the positive witness gives INDETERMINATE with « package org.junit.jupiter.api does not exist » at `domain/src/test/java/witness495/PositiveWitness495Test.java`."
+    root_cause: >
+      The witnesses of the controls of a Maven target are JUnit 5 tests, written for the test control; the
+      architecture control takes the same positive witness although it compiles the project's test sources
+      without running them.
+    evidence: >
+      Found while writing `test/v4-platform/maven-architecture-offline.test.ts`: with a reactor that declares no
+      JUnit, the qualification gave positive and negative INDETERMINATE on the compilation of the witness; the
+      test declares JUnit 5 in the root POM to reach the defect it holds.
+      At b6f460d0, the positive witness of the architecture control is the reference alone:
+      `test/v4-platform/maven-architecture-offline.test.ts` qualifies it PASS, FAIL on a reactor that declares no test
+      dependency, where the positive witness gave INDETERMINATE « package org.junit.jupiter.api does not exist »
+      before.
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: b6f460d0
+  - bug_id: BUG-2026-10-08T235900
+    date: "2026-10-08"
+    title: "Adopting the architecture map of an npm package whose sources are all .mts blocks the whole survey in capability_missing, where it gave a survey with a blind spot before"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      Introduced by the branch `e11s04`. The positive witness of the architecture control of a Node target is the
+      reference alone (`src/adapters/stacks/node/structure/architecture-control.ts`). swc does not read `.mts` and
+      `.cts` sources under dependency-cruiser 18.5.0, so on a package whose sources are all `.mts` the positive
+      witness reads no source and gives INDETERMINATE (« dependency-cruiser read no source »), the control is not
+      qualified, and the change stops at qualification with `capability_missing`. The owner who adopted the map gets
+      no survey at all, not even the verdict of the project's tests, and has no way to go on.
+    what_expected: >
+      A map whose verification cannot be qualified on the target leaves the architecture requirement as a named
+      blind spot, with the reason that dependency-cruiser reads none of its sources, and the survey goes on with the
+      other controls, as when the installation fails.
+    steps_to_reproduce:
+      - "Take the package of the story with every source renamed to `.mts` (`src/domain/model/user.mts`, ...), an architecture requirement at the survey, and adopt the proposed map."
+      - "Read the protocol: the qualification of `architecture` has positive INDETERMINATE « dependency-cruiser read no source », `qualified: false`; the change is `qualification`, `blocked`, `capability_missing`."
+    root_cause: >
+      The architecture control is added to the frozen protocol as soon as the installation succeeds; nothing checks
+      that its positive witness can read a source of the package before the control joins the controls whose
+      qualification gates the survey.
+    evidence: >
+      Seen in the acceptance run of `e11s04` at `e369746b` (`~/.495-campagnes/e11s04-mts`, read back from
+      `state.sqlite`): qualification `architecture` positive INDETERMINATE, negative FAIL, `qualified: false`, change
+      blocked with `capability_missing`. On `main` the same package gave a survey with the blind spot « no control of
+      the target measures its nature (structure) ». Same family as `BUG-2026-10-08T235100` on Maven.
+      At 12a801b1, the Node technology proposes no verification of a map whose folders hold no source
+      dependency-cruiser reads, and a copy that carries the analysers gets no architecture control: the adoption
+      freezes the map, the survey names ARC-01 a blind spot « dependency-cruiser 18.5.0 reads none of the sources of
+      its folders » and measures the tests of the package
+      (`test/v2-kernel/architecture-map-node-verification.test.ts`); the real dependency-cruiser reads no source of a
+      .mts copy (`test/v4-platform/node-architecture.test.ts`).
+    risk_level: medium
+    follow_ups: "none"
+    status: fixed
+    fixed_in: 12a801b1
