@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { Runner, candidate, evidence, protocol, ref, tick, AGENT, KERNEL } from "../helpers/change-fixture.ts";
 import { unknownCost } from "../../src/domain/change/state.ts";
+import { evaluateG5 } from "../../src/domain/gates/g5.ts";
 
 describe("verifiability G2 (SA-008, SA-009, REQ-03, RM-014)", () => {
 	it("refuses an obligation without control and reports the gap", () => {
@@ -210,6 +211,19 @@ describe("verification and G5 (SA-012, SA-013, SA-014, SA-032, RM-036, VER-03)",
 		});
 		assert.equal(r.s.evidence.length, 0);
 		assert.equal(r.events.filter((e) => e.type === "evidence.rejected").length, 3);
+	});
+	it("G5 ignores evidence that ran under an earlier revision of the frozen protocol", () => {
+		const c = candidate("c1");
+		const r = new Runner().toDeciding(c);
+		const frozen = r.s.protocol!;
+		const revised = { ...frozen, ref: { ...frozen.ref, revision: frozen.ref.revision + 1 } };
+		const g5 = evaluateG5(r.s, revised, c, r.policy);
+		assert.notEqual(g5.verdict, "PASS");
+		assert.deepEqual(g5.retained, []);
+		assert.deepEqual(
+			g5.ignored,
+			r.s.evidence.map((e) => `${e.evidence_id}:other protocol revision`),
+		);
 	});
 	it("a PASS with blocking findings counts as FAIL", () => {
 		const r = new Runner().toImplementing().implement();

@@ -2353,3 +2353,38 @@ bugs:
       Decide whether a revision may stand for a resume (PF-17 is silent), then refuse `artifact.revise` on a paused change
       and on a stop the resume does not lift, or keep the pause and the stop through the rollback.
     status: open
+  - bug_id: BUG-2026-10-09T190000
+    date: "2026-10-09"
+    title: "A protocol revision leaves the IH-10 acceptance request pending about the candidate as it stood, and the owner's answer to the new request leaves the change waiting on it"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      Under a policy that asks a human acceptance, G5 put IH-10 about candidate c1. The protocol was revised before the
+      owner answered: `invalidationFor` revoked the recorded decisions, but the request stayed in `pending_decisions`, and
+      `artifact.revised` set the status to `ready` beside it. Once requalified, a new candidate c2 verified and G5 put a
+      second IH-10, the owner accepted c2: the change stayed `decision_required`, waiting on the request about c1, which no
+      longer names the frozen candidate nor the protocol in force.
+    what_expected: >
+      A revision that revokes the decisions on the candidate also withdraws the requests still waiting for one, as the
+      revocation of a resolution withdraws the pending decisions; the owner's answer to the current request leaves the
+      change ready, as `HumanAnswer` does in specs/formal/change-lifecycle/ChangeLifecycle.tla.
+    steps_to_reproduce:
+      - "Runner with `g5_human_acceptance: true`: `toDeciding(c1).g5()`, then `decision.request` IH-10 about c1."
+      - "`artifact.revise` of the protocol to revision 2: `pending_decisions` still holds the request about c1, status `ready`."
+      - "G2 on revision 2, G3, an implement intervention, `candidate.freeze` of c2, its two controls PASS under revision 2, G5, `decision.request` IH-10 about c2, `decision.answer` accept: status `decision_required`, the request about c1 pending."
+      - "Or replay the change-lifecycle campaign of `test/support/change-commands.ts` with the exclusion of `ReviseProtocol` while a request is pending lifted: ten of thirty seeds of 1000 sequences diverge at the answer."
+    root_cause: >
+      `artifactRevise` (`src/domain/change/decide.ts`) emits `artifact.revised` after `invalidate`, and neither withdraws
+      the pending decisions; `apply` (`src/domain/change/apply.ts`) leaves a change `decision_required` while any decision
+      it waits on is pending. The IH-04 case of BUG-2026-09-29T190000 has the same cause for a requirements revision.
+    evidence: >
+      Found by the fast-check campaign on the kernel, confirmed by the four commands above on the real decider. Older
+      than the branch e38s04, which only replays the kernel. No application path issues a protocol revision today
+      (BUG-2026-10-09T171124), so only a direct kernel command reaches it; G5 still accepts c2 when evaluated, and the stale
+      request shows as pending until then.
+    risk_level: low
+    follow_ups: >
+      Withdraw the pending decisions about the candidate when the protocol is revised, with its own test, then remove the
+      exclusion from `ReviseProtocol` in `test/support/change-commands.ts`.
+    status: open

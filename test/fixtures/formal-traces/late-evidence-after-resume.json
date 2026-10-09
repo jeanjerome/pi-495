@@ -1,0 +1,244 @@
+{
+	"format": 1,
+	"name": "late-evidence-after-resume",
+	"kind": "valid",
+	"property": "FreshAcceptance",
+	"source": "the stale-proof counterexample with the adopted Resume in place of ResumeAdoptingRuns, carried on to acceptance under P2",
+	"human_acceptance": false,
+	"steps": [
+		{
+			"step": 2,
+			"action": "Launch",
+			"args": {
+				"control": "k1"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 3,
+			"action": "Launch",
+			"args": {
+				"control": "k2"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 4,
+			"action": "ReviseProtocol",
+			"args": {},
+			"expect": {
+				"phase": "qualification",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 5,
+			"action": "Requalify",
+			"args": {},
+			"expect": {
+				"phase": "implementation",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 6,
+			"action": "StartAttempt",
+			"args": {},
+			"expect": {
+				"phase": "implementation",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 7,
+			"action": "Freeze",
+			"args": {
+				"cand": 1
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 8,
+			"action": "Pause",
+			"args": {},
+			"expect": {
+				"phase": "verifying",
+				"status": "paused",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 9,
+			"action": "Resume",
+			"args": {},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 10,
+			"action": "Deliver",
+			"args": {
+				"control": "k1",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 11,
+			"action": "Deliver",
+			"args": {
+				"control": "k2",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 12,
+			"action": "Launch",
+			"args": {
+				"control": "k1"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 13,
+			"action": "Launch",
+			"args": {
+				"control": "k2"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 14,
+			"action": "Deliver",
+			"args": {
+				"control": "k1",
+				"cand": 1,
+				"ran": 2,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS"
+				]
+			}
+		},
+		{
+			"step": 15,
+			"action": "Deliver",
+			"args": {
+				"control": "k2",
+				"cand": 1,
+				"ran": 2,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 16,
+			"action": "Complete",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 17,
+			"action": "EvaluateG5",
+			"args": {},
+			"expect": {
+				"phase": "closed",
+				"status": "ready",
+				"outcome": "accepted",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				],
+				"g5": "PASS"
+			}
+		}
+	]
+}

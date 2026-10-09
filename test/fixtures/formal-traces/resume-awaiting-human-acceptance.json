@@ -1,0 +1,171 @@
+{
+	"format": 1,
+	"name": "resume-awaiting-human-acceptance",
+	"kind": "valid",
+	"property": "HumanAcceptance",
+	"source": "the forged-acceptance counterexample with the adopted Resume in place of ResumeRecordingAcceptance, then the human answer",
+	"human_acceptance": true,
+	"steps": [
+		{
+			"step": 2,
+			"action": "Launch",
+			"args": {
+				"control": "k1"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 3,
+			"action": "Launch",
+			"args": {
+				"control": "k2"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 4,
+			"action": "Deliver",
+			"args": {
+				"control": "k1",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS"
+				]
+			}
+		},
+		{
+			"step": 5,
+			"action": "Deliver",
+			"args": {
+				"control": "k2",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 6,
+			"action": "Complete",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 7,
+			"action": "EvaluateG5",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "decision_required",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				],
+				"g5": "INDETERMINATE"
+			}
+		},
+		{
+			"step": 8,
+			"action": "Pause",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "paused",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 9,
+			"action": "Resume",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "decision_required",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 10,
+			"action": "HumanAnswer",
+			"args": {
+				"option": "accept"
+			},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 11,
+			"action": "EvaluateG5",
+			"args": {},
+			"expect": {
+				"phase": "closed",
+				"status": "ready",
+				"outcome": "accepted",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				],
+				"g5": "PASS"
+			}
+		}
+	]
+}

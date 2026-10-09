@@ -1,0 +1,22 @@
+{
+	"format": 1,
+	"defect": "the kernel records a result of an earlier protocol revision",
+	"seed": 495,
+	"path": "193:13",
+	"replay_path": "ABBFACACA/SF:Vl",
+	"versions": {
+		"fast-check": "4.10.2",
+		"node": "v24.21.0",
+		"model": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+		"trace_format": 1
+	},
+	"sequence": [
+		"Launch(k1)",
+		"ReviseProtocol",
+		"Requalify",
+		"StartAttempt",
+		"Freeze(same)",
+		"Deliver(#0 PASS)"
+	],
+	"failure": "step 7 Deliver(#0 PASS): the kernel observes {\"phase\":\"verifying\",\"status\":\"ready\",\"outcome\":\"pending\",\"attempt\":2,\"evidence\":[\"k1:PASS\"]}, the model {\"phase\":\"verifying\",\"status\":\"ready\",\"outcome\":\"pending\",\"attempt\":2,\"evidence\":[]}"
+}

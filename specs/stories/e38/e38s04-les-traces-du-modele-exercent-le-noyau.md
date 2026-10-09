@@ -2,7 +2,7 @@
 
 Story : e38s04
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : Tests de pi-495 — pont modèle/implémentation
 Dépendances : e38s03
@@ -31,9 +31,17 @@ Scenario: Une séquence générée reste reproductible
   When le cas est réduit
   Then le dossier conserve la graine, le chemin de réduction, les versions et la séquence minimale
 
+Scenario: Un écart trouvé sur le noyau laisse son cas réduit dans un fichier
+  Given la campagne de séquences générées rejouée sur un noyau dont `verificationRecord` ne vérifie plus la révision du protocole
+  When elle trouve l’écart et le réduit
+  Then un fichier de cas réduit, nommé par sa graine et son chemin, est écrit sous `test-output/formal-traces/reduced/` et reste après la fin du test
+  And ce fichier porte la graine, le chemin de réduction, le chemin de rejeu, les versions et la séquence minimale
+  And le message d’échec du test nomme ce fichier
+  And rejoué depuis ce fichier, le cas redonne la même séquence minimale et le même message d’échec
+
 ## 3. Sécurité
 
-Les tests écrivent dans des stores temporaires et ne commandent aucun Git réel sans copie jetable. Le mapping d’actions est explicite et fermé. Les assertions portent sur les résultats publics, événements et refus, non sur les champs privés.
+Les tests écrivent dans des stores temporaires et ne commandent aucun Git réel sans copie jetable ; seule une campagne qui trouve un écart écrit hors d’un répertoire temporaire, son cas réduit sous `test-output/formal-traces/reduced/`, ignoré par Git, et rien dans l’arbre suivi du dépôt. Le mapping d’actions est explicite et fermé. Les assertions portent sur les résultats publics, événements et refus, non sur les champs privés.
 
 ## 4. Tâches
 
@@ -69,6 +77,16 @@ Exécuter les traces sur le noyau réel. Sur une copie jetable, retirer la garde
 - Tient : dossier de recette de `e38s04`, observations positives et négatives liées aux promesses et à la révision testée.
 - Rouge : sur le point de départ, le parcours nouveau décrit dans les promesses n’est pas disponible de bout en bout ; établir ce constat avant réalisation, sans compter une erreur d’import ou l’absence d’un fichier de test comme un rouge métier.
 
+### Tâche 5 — Une campagne qui trouve un écart garde son cas réduit
+
+La campagne de séquences générées, celle que le test des 3000 séquences rejoue sur le vrai décideur, écrit le cas réduit d’un écart dans un fichier de `test-output/formal-traces/reduced/` qu’aucun test ne supprime, nommé par sa graine et son chemin, avant d’échouer avec un message qui nomme ce fichier. Le test du défaut injecté passe par ce même chemin, et non par un appel de `persistReducedCase` sur un répertoire temporaire.
+
+- Vérifie : `node --test test/v2-kernel/change-properties.test.ts`
+- Tient : `test/v2-kernel/change-properties.test.ts`, « un écart trouvé sur le noyau laisse son cas réduit dans un fichier que le message d’échec nomme et qui rejoue la même séquence minimale ».
+- Rouge : `runCampaign` (`test/support/change-commands.ts`) rend le cas réduit sans rien écrire ; le test des 3000 séquences ne s’en sert que pour composer le message de son `assert.equal(result.failed, false, …)`, et `persistReducedCase` n’est appelé que par le test du défaut injecté, sur un chemin de `tempDir("495-reduced-", cleanups)` supprimé après chaque test. Une campagne qui échoue sur un décideur sans la garde de révision ne laisse donc aucun fichier, et son message n’en nomme aucun.
+
 ## 5. Hors périmètre
 
 Aucun générateur universel de tests depuis TLA+, aucune preuve de raffinement du TypeScript. Cette story réalise la tranche « séquences du noyau » d’e36, pas tout le fuzzing multistack.
+
+Le cas réduit qu’une campagne garde n’est ni versé sous `test/fixtures/formal-traces/reduced/`, ni commité, ni rejoué automatiquement par un test : l’archiver avec son test de rejeu reste un geste de la main, comme pour `revision-guard-dropped.json`. Les fichiers de `test-output/formal-traces/reduced/` ne sont ni purgés ni tournés. Le rejeu des traces fixes de la tâche 2 n’écrit aucun cas réduit : ses traces sont déjà des fichiers du dépôt.

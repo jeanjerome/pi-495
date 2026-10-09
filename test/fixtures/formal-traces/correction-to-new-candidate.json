@@ -1,0 +1,235 @@
+{
+	"format": 1,
+	"name": "correction-to-new-candidate",
+	"kind": "valid",
+	"property": "AcceptanceNeedsObligations",
+	"source": "the accept-exhausted counterexample whose correction freezes a candidate of a new identity",
+	"human_acceptance": false,
+	"steps": [
+		{
+			"step": 2,
+			"action": "Launch",
+			"args": {
+				"control": "k1"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 3,
+			"action": "Launch",
+			"args": {
+				"control": "k2"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": []
+			}
+		},
+		{
+			"step": 4,
+			"action": "Deliver",
+			"args": {
+				"control": "k1",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS"
+				]
+			}
+		},
+		{
+			"step": 5,
+			"action": "Deliver",
+			"args": {
+				"control": "k2",
+				"cand": 1,
+				"ran": 1,
+				"verdict": "FAIL"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:FAIL"
+				]
+			}
+		},
+		{
+			"step": 6,
+			"action": "Complete",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:FAIL"
+				]
+			}
+		},
+		{
+			"step": 7,
+			"action": "EvaluateG5",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 1,
+				"evidence": [
+					"k1:PASS",
+					"k2:FAIL"
+				],
+				"g5": "FAIL"
+			}
+		},
+		{
+			"step": 8,
+			"action": "Correct",
+			"args": {},
+			"expect": {
+				"phase": "implementation",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:FAIL"
+				]
+			}
+		},
+		{
+			"step": 9,
+			"action": "Freeze",
+			"args": {
+				"cand": 2
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 10,
+			"action": "Launch",
+			"args": {
+				"control": "k1"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 11,
+			"action": "Launch",
+			"args": {
+				"control": "k2"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": []
+			}
+		},
+		{
+			"step": 12,
+			"action": "Deliver",
+			"args": {
+				"control": "k1",
+				"cand": 2,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS"
+				]
+			}
+		},
+		{
+			"step": 13,
+			"action": "Deliver",
+			"args": {
+				"control": "k2",
+				"cand": 2,
+				"ran": 1,
+				"verdict": "PASS"
+			},
+			"expect": {
+				"phase": "verifying",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 14,
+			"action": "Complete",
+			"args": {},
+			"expect": {
+				"phase": "deciding",
+				"status": "ready",
+				"outcome": "pending",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				]
+			}
+		},
+		{
+			"step": 15,
+			"action": "EvaluateG5",
+			"args": {},
+			"expect": {
+				"phase": "closed",
+				"status": "ready",
+				"outcome": "accepted",
+				"attempt": 2,
+				"evidence": [
+					"k1:PASS",
+					"k2:PASS"
+				],
+				"g5": "PASS"
+			}
+		}
+	]
+}
