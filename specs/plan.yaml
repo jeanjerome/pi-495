@@ -468,7 +468,7 @@ epics:
       - { id: e11s04, status: "versée", title: "495 propose la carte d'architecture d'une cible Node, le propriétaire l'adopte et l'état des lieux la vérifie avec dependency-cruiser, chaque violation localisée" }
       - { id: e11s05, status: "versée", title: "La recommandation d'architecture est argumentée par les contraintes du projet, fondée sur une revue de patterns, et arbitrée par le propriétaire" }
       - { id: e11s06, status: "versée", title: "Une migration d'architecture se traduit en étapes avec contrats de transition et retour arrière" }
-      - { id: e11s07, status: "à faire", title: "L'état des lieux d'une cible Node compare les dépendances que package.json déclare à celles que son code utilise, avec Knip, chaque écart localisé" }
+      - { id: e11s07, status: "versée", title: "L'état des lieux d'une cible Node compare les dépendances que package.json déclare à celles que son code utilise, avec Knip, chaque écart localisé" }
 
   - id: e13
     title: "Tests de caractérisation d'un existant"
