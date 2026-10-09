@@ -461,10 +461,12 @@ epics:
       de l'argument, chaque alternative portant bénéfice, coût et risque, chaque conclusion citant une
       contrainte ; le jugement reste au propriétaire (`EXP-02`). La migration s'appuie sur le programme à
       plusieurs incréments que `e10s04` a qualifié. Les stories `e11s09` à `e11s13` reprennent ce que
-      `e11s03` à `e11s08` ont laissé hors périmètre (arbitrage du propriétaire, 2026-10-09). Deux attendent
-      une décision du propriétaire avant d'être écrites : le catalogue des règles qu'un anti-pattern peut
-      devenir (`e11s10`), et la carte qui juge une étape de migration, celle de départ moins les règles
-      tolérées ou celle de la cible (`e11s12`).
+      `e11s03` à `e11s08` ont laissé hors périmètre (arbitrage du propriétaire, 2026-10-09). Le propriétaire a
+      tranché les deux décisions qu'elles attendaient (`D-88`, 2026-10-09) : un anti-pattern ne devient
+      qu'une règle de bibliothèque confinée, seuls les paquets ou dossiers nommés pouvant utiliser telle
+      bibliothèque (`e11s10`) ; le candidat d'une étape est jugé sur ce qu'il ajoute par la carte de la
+      cible quand la migration en a fait adopter une, sinon par la carte de départ, moins les règles
+      tolérées par une exception datée (`e11s12`).
     stories:
       - { id: e11s01, status: "versée", title: "495 propose la carte d'architecture d'une cible Maven, chaque partie avec son style, ses rôles et ses indices, et le propriétaire l'adopte" }
       - { id: e11s02, status: "versée", title: "L'état des lieux vérifie la carte adoptée d'une cible Maven avec ArchUnit, chaque violation localisée" }
