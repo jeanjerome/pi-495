@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the record of a preparation
+    # Subtest: un redémarrage retrouve le blocage et la trace sans réécrire une seconde preuve
+    ok 1 - un redémarrage retrouve le blocage et la trace sans réécrire une seconde preuve
+      ---
+      duration_ms: 241.345959
+      type: 'test'
+      ...
+    # Subtest: la session de rouge-vert reçoit un résumé borné qui cite la préparation par son empreinte et ses objets
+    ok 2 - la session de rouge-vert reçoit un résumé borné qui cite la préparation par son empreinte et ses objets
+      ---
+      duration_ms: 769.596875
+      type: 'test'
+      ...
+    1..2
+ok 1 - the record of a preparation
+  ---
+  duration_ms: 1011.453292
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1138.984416

@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: a reopened story and its preparation
+    # Subtest: une règle modifiée retire la préparation précédente et une simple correction de code la conserve
+    not ok 1 - une règle modifiée retire la préparation précédente et une simple correction de code la conserve
+      ---
+      duration_ms: 1039.93575
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5aqxqO/test/cycle/verification-revision.test.ts:57:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the preparation is kept, and the record names the resumption a code correction
+        + actual - expected
+        
+          [
+            [
+              'preparation-retenue',
+              'sha256:7f1f58395378a35ab5fa18c1b901c4305d1f927aad734500681a95cec97ead50',
+        +     undefined
+        -     'correction-de-code'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'preparation-retenue'
+          1: 'sha256:7f1f58395378a35ab5fa18c1b901c4305d1f927aad734500681a95cec97ead50'
+          2: 'correction-de-code'
+      actual:
+        0:
+          0: 'preparation-retenue'
+          1: 'sha256:7f1f58395378a35ab5fa18c1b901c4305d1f927aad734500681a95cec97ead50'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5aqxqO/test/cycle/verification-revision.test.ts:71:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a reopened story and its preparation
+  ---
+  duration_ms: 1040.583792
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-5aqxqO/test/cycle/verification-revision.test.ts:56:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1171.611459

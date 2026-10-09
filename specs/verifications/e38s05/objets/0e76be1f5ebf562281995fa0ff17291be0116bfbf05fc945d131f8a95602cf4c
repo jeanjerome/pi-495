@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the preparation the conductor checks before the red-green
+    # Subtest: une préparation incomplète empêche le lancement de la session rouge-vert
+    ok 1 - une préparation incomplète empêche le lancement de la session rouge-vert
+      ---
+      duration_ms: 223.401166
+      type: 'test'
+      ...
+    # Subtest: un contre-exemple bloque avant toute implémentation et la trace est proposée à la préparation
+    ok 2 - un contre-exemple bloque avant toute implémentation et la trace est proposée à la préparation
+      ---
+      duration_ms: 256.490167
+      type: 'test'
+      ...
+    # Subtest: le blocage cite les états du contre-exemple après un long en-tête de TLC
+    ok 3 - le blocage cite les états du contre-exemple après un long en-tête de TLC
+      ---
+      duration_ms: 247.58275
+      type: 'test'
+      ...
+    # Subtest: une story simple poursuit les étapes existantes sans lancer TLC ni Lean
+    ok 4 - une story simple poursuit les étapes existantes sans lancer TLC ni Lean
+      ---
+      duration_ms: 727.286375
+      type: 'test'
+      ...
+    1..4
+ok 1 - the preparation the conductor checks before the red-green
+  ---
+  duration_ms: 1455.390041
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1585.671541

@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une correction de règle invalide l'ancienne préparation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/preparation.ts",
+    "ligne": 159,
+    "constat": "Le code fait entrer l'empreinte du compagnon dans l'identité de la préparation. Aucun test ne tient ce point. Le test de révision ne change que le modèle (Greet.tla) et le texte d'une promesse de la story ; une modification du seul compagnon (un oracle ou un moyen, à manifestes retenus inchangés) n'est jamais exercée. La promesse, telle qu'écrite (« modèle ou promesse »), reste tenue par les tests.",
+    "mutation": "Retrait de `compagnon: sha256(cheminDuCompagnon(story.chemin)),` dans composantesDe : les 9 tests de verification-gate, verification-revision et verification-journal restent verts."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une story simple poursuit sans outil formel",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/preparation.ts",
+    "ligne": 76,
+    "constat": "Le code n'explore que les modèles d'états retenus. Aucun test ne tient ce filtre `m.retenu`, car la fixture EXEMPLES_SEULS écarte le modèle d'états sans lui donner de manifeste. Un compagnon qui écarte un modèle d'états tout en nommant son manifeste n'est pas exercé. Le Then (aucun lancement de TLC ni de Lean, une seule session, étape suivante autocontrole) est tenu par d'autres mutations qui échouent : un modèle exigé pour être verte, ou les moyens écartés comptés comme indéterminés.",
+    "mutation": "`if (m.retenu && m.moyen === \"modele-d-etats\")` remplacé par `if (m.moyen === \"modele-d-etats\")` : les 9 tests restent verts."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code, et chacune par au moins un test qu'une mutation fait échouer.\n\n1. Contre-exemple : le blocage est retiré de pasRougeVert, ou le code de sortie 1 est lu comme completed. Dans les deux cas, verification-gate échoue : aucune session, le motif cite la trace et dit que la story revient à la préparation. Si on retire `origine: \"preparation\"`, ou si la trace devient nulle, c'est verification-journal qui échoue. En mode auto, un blocage arrête le run : aucune session de production n'est lancée.\n\n2. Révision de règle : quatre mutations font échouer le test de révision (lancements, préparation retirée puis préparation, nouvelle empreinte, changements nommés) :\n- toujours réutiliser la préparation précédente ;\n- retirer les fichiers du modèle de l'empreinte ;\n- retirer les promesses de l'empreinte ;\n- reprendre l'ancien verdict lors d'une révision.\nRetirer la relecture de la story avant la préparation le fait échouer aussi.\n\n3. Story simple : exiger une exploration pour être verte, ou compter les moyens écartés comme indéterminés, fait échouer « une story simple poursuit… ».\n\nDeux constats à peser, aucun bloquant ni à corriger : la part « compagnon » de l'empreinte (A1-1) et le filtre `retenu` des manifestes (A1-2) ne sont tenus par aucun test. Arbre remis propre après chaque mutation."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une correction de règle invalide l'ancienne préparation",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/preparation.ts",
+    "ligne": 228,
+    "constat": "Le code tient la promesse : un test jetable montre qu'une révision du modèle dont le réexamen trouve un contre-exemple bloque, sans session. Mais aucun test ne tient la seconde moitié du Then, « ne réutilise pas son ancien feu vert ». Le seul test de révision (verification-revision.test.ts) réexamine avec une exploration toujours verte, donc il ne distingue pas le nouveau verdict de l'ancien feu vert. Il faudrait un test où la révision est réexaminée en contre-exemple et doit bloquer.",
+    "mutation": "`return e.verte === true ? …` → `return (precedente ?? e).verte === true ? …`, qui reprend le verdict de l'ancienne préparation après une révision : les 9 tests de verification-gate, verification-journal et verification-revision restent verts. La sonde jetable (préparation verte, puis modèle changé, réexamen en contre-exemple) échoue sous cette mutation."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une correction de règle invalide l'ancienne préparation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/preparation.ts",
+    "ligne": 159,
+    "constat": "Un compagnon changé seul, par exemple un oracle d'une entrée de promesse, change bien l'empreinte : une sonde jetable donne changements = [\"compagnon\"] et une seconde exploration. Mais aucun test ne tient cette composante. Les tests couvrent seulement le modèle (Greet.tla) et le texte de la promesse dans la story.",
+    "mutation": "Suppression de la ligne `compagnon: sha256(cheminDuCompagnon(story.chemin)),` : les 9 tests restent verts. La sonde échoue."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Un contre-exemple bloque avant toute implémentation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 178,
+    "constat": "Tous les tests remplacent l'exploration par `ctx.exploration`, donc aucun ne tient que le vrai conducteur (main.ts ne pose pas `exploration`) lance scripts/check-formal.ts. controls.test.ts ne vérifie que la forme de la commande. J'ai vérifié le chemin réel à la main : preparer, explorationFormelle et executeurNonConfine avec le vrai TLC. Le modèle mutant donne une préparation bloquée qui cite la trace et le contre-exemple à Borne, le modèle valide donne une préparation verte.",
+    "mutation": "`ctx.exploration ?? explorationFormelle` → `ctx.exploration ?? ((m) => ({ ...explorationFormelle(m), commande: [\"true\"] }))`, qui fait passer tout modèle pour exploré : les 160 tests de test/cycle restent verts."
+   }
+  ],
+  "resume": "Le code tient les trois scénarios, mais le verdict est fail : un test manque sur une promesse que la branche introduit (B1-1, à corriger).\n\nScénario 1 (un contre-exemple bloque) : tenu par le code et par les tests. Les mutations qui retirent le blocage, lisent le code de sortie 1 comme une exploration terminée, retirent l'empreinte de la trace, retirent « revient à la préparation » ou retirent l'origine « preparation » du blocage font toutes échouer un test. En mode automatique, un blocage arrête la story sans lancer de session. J'ai aussi lancé une vraie exploration TLC : le modèle mutant bloque en citant la trace et le contre-exemple, le modèle valide passe.\n\nScénario 2 (une révision invalide l'ancienne préparation) : le code réexamine bien sur un changement du modèle, de la promesse ou du compagnon. Un test jetable montre qu'une révision dont le réexamen trouve un contre-exemple bloque sans session. En revanche, aucun test ne tient « ne réutilise pas son ancien feu vert » : la mutation qui reprend le verdict de l'ancienne préparation survit à tous les tests (B1-1, à corriger). Aucun test ne tient non plus la composante compagnon de l'empreinte (B1-2, à peser).\n\nScénario 3 (une story simple poursuit sans outil formel) : tenu par le code et par les tests. Les quatre mutations essayées font échouer le test de la story simple.\n\nSécurité : aucun compagnon n'existe sous specs/, donc les stories existantes gardent l'ancien cycle et rien n'est validé après coup. Aucun test ne tient le branchement par défaut de l'exploration réelle (B1-3, à peser), mais je l'ai vérifié par une vraie exploration TLC.\n\nJe n'ai rien laissé dans l'arbre : le test jetable est supprimé et chaque mutation a été annulée par git checkout."
+ }
+]
