@@ -1,0 +1,167 @@
+TAP version 13
+# Subtest: the verification companion of a story
+    # Subtest: P2 sans oracle reste nommée et une référence inconnue est refusée
+    not ok 1 - P2 sans oracle reste nommée et une référence inconnue est refusée
+      ---
+      duration_ms: 2.112667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:96:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   [
+        -     'P1',
+        -     'Une réponse révoquée est reposée',
+        -     true
+        -   ],
+        -   [
+        -     'P2',
+        -     'Une révocation sans provenance humaine est refusée',
+        -     false
+        -   ]
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'P1'
+          1: 'Une réponse révoquée est reposée'
+          2: true
+        1:
+          0: 'P2'
+          1: 'Une révocation sans provenance humaine est refusée'
+          2: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:101:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: refuses an unknown version, a scenario the story does not hold, a duplicate id and an unknown category
+    not ok 2 - refuses an unknown version, a scenario the story does not hold, a duplicate id and an unknown category
+      ---
+      duration_ms: 1.052583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:128:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /version: .*2.*attendu.*1/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:141:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: names a scenario of the story that the companion does not declare, and an unreadable companion
+    not ok 3 - names a scenario of the story that the companion does not declare, and an unreadable companion
+      ---
+      duration_ms: 0.995
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:149:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   [
+        -     'Une réponse révoquée est reposée',
+        -     true
+        -   ],
+        -   [
+        -     'Une révocation sans provenance humaine est refusée',
+        -     false
+        -   ]
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'Une réponse révoquée est reposée'
+          1: true
+        1:
+          0: 'Une révocation sans provenance humaine est refusée'
+          1: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:154:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: keeps reading a story without a companion, and says it has none
+    not ok 4 - keeps reading a story without a companion, and says it has none
+      ---
+      duration_ms: 0.881125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:167:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - null
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: ~
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:168:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - the verification companion of a story
+  ---
+  duration_ms: 5.479916
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LZxNT7/test/cycle/verification-contract.test.ts:95:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 81.343166

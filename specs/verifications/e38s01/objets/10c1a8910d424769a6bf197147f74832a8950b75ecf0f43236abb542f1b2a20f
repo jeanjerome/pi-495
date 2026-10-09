@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un test d’une autre promesse ne couvre pas la promesse demandée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/main.ts",
+    "ligne": 58,
+    "constat": "The code holds the promise. A throwaway probe of `cycle e01s05 etat` on a companion with P2 lacking an oracle prints « non vérifiée « greet whispers » : sans oracle … » and « incomplète ». But no test runs `etat` on a story that has a companion: the only `etat` test checks a story without one. The diagnostic itself and the drafting context that shows it are held by tests (see the mutations below).",
+    "mutation": "`resumeDeVerification(ctx.story.verification, ctx.root)` → `resumeDeVerification(null, ctx.root)` in `etat`: main, story, verification-contract and verification-profile tests all stay green."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un test d’une autre promesse ne couvre pas la promesse demandée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/verification-contract.ts",
+    "ligne": 153,
+    "constat": "An oracle counts once it names an existing task, a case and an assertion. A P2 entry that cites P1's own assertion is therefore ready: the test fixture `prete` in verification-contract.test.ts does exactly this and is declared « prête ». This fits the Given (« ne lie une assertion qu’à P1 ») and the out-of-scope section (checking what an assertion means belongs to qualification), but the scenario's title says more than that.",
+    "mutation": ""
+   }
+  ],
+  "resume": "I checked the three promises by reading the code paths, running throwaway probes and trying mutations. All three hold, and each has a test that fails when the code is mutated. Verdict: pass, with two findings to weigh and nothing blocking or to fix.\n\n**Promise 1: a test of another promise does not cover P2.** `diagnostiquerScenario` marks P2 « sans oracle » and not ready. These mutations each made the tests fail:\n- `!d?.oracle` → `!d`: the P2-without-oracle test in verification-contract.test.ts and the drafting-context test in story.test.ts failed.\n- `prete: manques.length === 0` → `true`: failed.\n- dropping the « non vérifiée » line from the account: the drafting-context test failed.\n- removing the `etat` print: the main.ts test failed.\n\nWhat no test covers is `etat` showing a companion's diagnostic (A1-1). A probe showed the code does print it.\n\n**Promise 2: a simple fix keeps a simple verification.** Means set aside with a reason are accepted, and no property is asked of an unselected means. Two mutations both failed the « une simple correction n’exige aucun outil formel » test:\n- dropping `m.retenu &&` from the required-properties check.\n- turning `!m.retenu && m.raison === null` into `!m.retenu`.\n\n**Promise 3: unknown scenarios and references are refused.** An absent task and a self-dependency are each located by their JSON path, with what is expected. The probe on `etat` printed `promesses[1].oracles[0].tache … attendu : une des tâches 1` and `promesses[1].dependances[0] … dépend d'elle-même ; attendu …`. Each of these mutations failed the test « P2 sans oracle reste nommée et une référence inconnue est refusée »:\n- removing the self-dependency check.\n- removing `!numeros.includes`.\n- dropping « attendu » from either message.\n\n**Security.** The companion is only read and turned into a diagnostic. Nothing runs and nothing is granted.\n\nAll tests restored and green, 20 out of 20. No probe file is left in the tree."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les scénarios et références inconnus sont refusés",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/verification-contract.ts",
+    "ligne": 146,
+    "constat": "verifierDependances compares the dependency to the promise's own id with strict equality, but checks that the id is known through String(d). A dependency that is not a string goes through the known-id check after coercion and is never refused. Probe with a throwaway script: a promise with id \"1\" and dependances [1] gives erreurs [] and prete true, so this self-dependency is neither refused nor located. The same happens with dependances [[\"P1\"]] on promise P1. The scenario requires an invalid reference to be refused, whichever way the 1 is read: as the promise's own id or as an unknown non-string id.",
+    "mutation": "No mutation: the defect shows on input. Probe: diagnostiquer on { version: 1, story: 'e1s1', promesses: [{ id: '1', scenario: 'S', dependances: [1], oracles: [{ tache: 1, cas: 'c', assertion: 'a' }], moyens complete }] } gives erreurs [] and prete true."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un test d’une autre promesse ne couvre pas la promesse demandée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/main.ts",
+    "ligne": 58,
+    "constat": "In the cycle/ conductor, the diagnostic that names P2 as having no oracle is held by verification-contract.test.ts and by the drafting context in story.test.ts. The line that renders it in `etat` is tested only on a story without a companion. With ctx.story.verification replaced by null, `etat` says \"sans compagnon de vérification\" for every story, and every test in test/cycle stays green.",
+    "mutation": "main.ts: resumeDeVerification(ctx.story.verification, ctx.root) → resumeDeVerification(null, ctx.root). Result: 20 pass, 0 fail."
+   }
+  ],
+  "resume": "Review B, round 1, of e38s01. Verdict: fail, because of one blocking finding introduced by the branch (B1-1).\n\nMutations that failed a test (12 tried in total):\n- Scenario 1, the promise without an oracle: two mutations (oracle check and oracle count) each fail the companion test and the drafting-context test; the two readiness mutations also fail tests.\n- Scenario 2, proportionality: requiring a reason for a means that is selected, or a property for `exemples`, fails the profile test.\n- Scenario 3, invalid references: removing the check on an absent task, on a self-dependency or on an unknown scenario fails the matching test.\n- Reading the companion: removing it from `lireStory` fails five tests.\n\nB1-1 (bloquant): a dependency that is not a string is coerced by String() before the known-id check and never refused, so a self-dependency written as 1 on promise \"1\" makes the companion ready.\n\nB1-2 (à peser): no test runs `etat` on a story that has a companion, so a mutation that hides the diagnostic there survives.\n\nSecurity section: the diff changes none of the five sections and rewrites no landed story; the companion only produces a diagnostic."
+ }
+]

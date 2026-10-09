@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the verification companion of a story
+    # Subtest: P2 sans oracle reste nommée et une référence inconnue est refusée
+    ok 1 - P2 sans oracle reste nommée et une référence inconnue est refusée
+      ---
+      duration_ms: 3.557959
+      type: 'test'
+      ...
+    # Subtest: refuses an unknown version, a scenario the story does not hold, a duplicate id and an unknown category
+    ok 2 - refuses an unknown version, a scenario the story does not hold, a duplicate id and an unknown category
+      ---
+      duration_ms: 1.142375
+      type: 'test'
+      ...
+    # Subtest: names a scenario of the story that the companion does not declare, and an unreadable companion
+    ok 3 - names a scenario of the story that the companion does not declare, and an unreadable companion
+      ---
+      duration_ms: 1.968875
+      type: 'test'
+      ...
+    # Subtest: keeps reading a story without a companion, and says it has none
+    ok 4 - keeps reading a story without a companion, and says it has none
+      ---
+      duration_ms: 0.803291
+      type: 'test'
+      ...
+    1..4
+ok 1 - the verification companion of a story
+  ---
+  duration_ms: 7.975375
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 89.348708
