@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: what the verification of the dependencies of an npm package does not see is named
+    # Subtest: la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les dépendances chargées par un chemin calculé ou par la configuration d'un outil que Knip ne connaît pas, les binaires des scripts de package.json et les paquets que 495 installe dans la copie, en anglais et en français
+    not ok 1 - la section état des lieux d'une carte adoptée d'un paquet npm nomme, sous la carte et chacun avec sa raison, les dépendances chargées par un chemin calculé ou par la configuration d'un outil que Knip ne connaît pas, les binaires des scripts de package.json et les paquets que 495 installe dans la copie, en anglais et en français
+      ---
+      duration_ms: 909.506958
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KOaq45/test/v2-kernel/architecture-map-node-dependencies-unseen.test.ts:55:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        fr: « chargée par un chemin calculé » is named:
+              les sources .mts et .cts : swc ne les lit pas sous dependency-cruiser 18.5.0, qui ne les compte pas parmi les modules
+              les liens établis sans import ni require d'un chemin écrit en toutes lettres (chemin calculé, injection, configuration d'un framework) : dependency-cruiser ne suit que les chemins que les sources écrivent
+              les sources de test : les règles de la carte ne les jugent pas, elles ne portent que sur les sources principales
+              les paquets installés sous node_modules : les règles de la carte ne les opposent à aucune partie, qui n'est faite que de dossiers des sources
+          Recommandation d'architecture, lecture du modèle qui n'est pas un constat et dont aucun verdict ne dépend :
+            le propriétaire n'a pas encore choisi
+            A1 — conserver : keep the architecture as it stands
+              bénéfices : no migration
+              coût en complexité : none added ; coût en migration : none
+              risques : what the survey found stays
+              contraintes : ARC-01: each part of the project keeps to the architecture it is organised in
+            A2 — ajuster : move what crosses the map behind a port
+              bénéfices : the map holds
+              coût en complexité : a port more ; coût en migration : the calls that cross the map move
+              risques : a port nothing else implements
+              contraintes : ARC-01: each part of the project keeps to the architecture it is organised in
+            le modèle recommandait A2 : the map holds once the calls move (ARC-01)
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KOaq45/test/v2-kernel/architecture-map-node-dependencies-unseen.test.ts:72:12)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - what the verification of the dependencies of an npm package does not see is named
+  ---
+  duration_ms: 910.1755
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KOaq45/test/v2-kernel/architecture-map-node-dependencies-unseen.test.ts:54:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1175.084167

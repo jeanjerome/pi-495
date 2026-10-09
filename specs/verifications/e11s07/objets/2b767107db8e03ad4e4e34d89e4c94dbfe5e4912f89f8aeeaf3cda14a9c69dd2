@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: no configuration of Knip the package carries silences a gap
+    # Subtest: une clé knip de package.json qui fait ignorer lodash et src/adapters/** laisse le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de pg et la déclaration inutilisée de lodash
+    not ok 1 - une clé knip de package.json qui fait ignorer lodash et src/adapters/** laisse le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de pg et la déclaration inutilisée de lodash
+      ---
+      duration_ms: 3727.264541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-S1796I/test/v4-platform/node-dependencies-configuration.test.ts:21:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+        -   'the package declares in package.json the dependencies its code uses | src/adapters/db/sql-user-repository.ts:2',
+            'the package uses the dependencies it declares in package.json | package.json:9'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'the package declares in package.json the dependencies its code uses | src/adapters/db/sql-user-repository.ts:2'
+        1: 'the package uses the dependencies it declares in package.json | package.json:9'
+      actual:
+        0: 'the package uses the dependencies it declares in package.json | package.json:9'
+      operator: 'deepStrictEqual'
+      stack: |-
+        assertStoryGaps (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-S1796I/test/helpers/node-dependencies-copy.ts:152:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-S1796I/test/v4-platform/node-dependencies-configuration.test.ts:27:3)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - no configuration of Knip the package carries silences a gap
+  ---
+  duration_ms: 3728.018208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-S1796I/test/v4-platform/node-dependencies-configuration.test.ts:18:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3992.110875

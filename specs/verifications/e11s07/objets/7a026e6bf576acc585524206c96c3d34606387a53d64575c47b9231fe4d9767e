@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: no configuration of Knip the package carries silences a gap
+    # Subtest: une clé knip de package.json qui fait ignorer lodash et src/adapters/** laisse le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de pg et la déclaration inutilisée de lodash
+    ok 1 - une clé knip de package.json qui fait ignorer lodash et src/adapters/** laisse le contrôle des dépendances qualifié et la passe de référence rapporte l'usage de pg et la déclaration inutilisée de lodash
+      ---
+      duration_ms: 3596.137875
+      type: 'test'
+      ...
+    # Subtest: un .gitignore qui liste src/adapters/ laisse le contrôle qualifié et la passe de référence rapporte l'usage de pg
+    ok 2 - un .gitignore qui liste src/adapters/ laisse le contrôle qualifié et la passe de référence rapporte l'usage de pg
+      ---
+      duration_ms: 3658.041792
+      type: 'test'
+      ...
+    1..2
+ok 1 - no configuration of Knip the package carries silences a gap
+  ---
+  duration_ms: 7254.816833
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7527.350542

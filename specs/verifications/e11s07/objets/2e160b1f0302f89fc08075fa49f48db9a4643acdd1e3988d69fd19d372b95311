@@ -1,0 +1,113 @@
+TAP version 13
+# Subtest: Knip compares the dependencies an npm package declares to those its code uses
+    # Subtest: sur le paquet users sous TypeScript 7.0.2, sans main ni exports, le contrôle des dépendances est qualifié par ses témoins bien que le paquet enfreigne la règle, et la passe de référence rapporte l'usage de pg à la ligne de son import dans src/adapters/db/sql-user-repository.ts et la déclaration inutilisée de lodash à sa ligne de package.json, sans constat sur dependency-cruiser, @swc/core ni Knip
+    not ok 1 - sur le paquet users sous TypeScript 7.0.2, sans main ni exports, le contrôle des dépendances est qualifié par ses témoins bien que le paquet enfreigne la règle, et la passe de référence rapporte l'usage de pg à la ligne de son import dans src/adapters/db/sql-user-repository.ts et la déclaration inutilisée de lodash à sa ligne de package.json, sans constat sur dependency-cruiser, @swc/core ni Knip
+      ---
+      duration_ms: 1033.22175
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:176:2'
+      failureType: 'testCodeFailure'
+      error: 'the copy that carries Knip gets the dependencies control: unit, architecture; the coverage of the introduced lines is not measured on this target: scripts.test does not ask node:test for coverage (--experimental-test-coverage); the mutation of the introduced lines is not measured on this target: @stryker-mutator/core is not installed; the quality of the code is not measured on this target: no lint script is declared and no quality referential is adopted in this copy (QLT-01)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        qualifiedAndPassed (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:118:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:179:49)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+      ...
+    # Subtest: une dépendance que seule src/legacy/old-users.js charge n'est pas donnée comme inutilisée
+    not ok 2 - une dépendance que seule src/legacy/old-users.js charge n'est pas donnée comme inutilisée
+      ---
+      duration_ms: 1039.245667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:200:2'
+      failureType: 'testCodeFailure'
+      error: 'the copy that carries Knip gets the dependencies control: unit, architecture; the coverage of the introduced lines is not measured on this target: scripts.test does not ask node:test for coverage (--experimental-test-coverage); the mutation of the introduced lines is not measured on this target: @stryker-mutator/core is not installed; the quality of the code is not measured on this target: no lint script is declared and no quality referential is adopted in this copy (QLT-01)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        qualifiedAndPassed (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:118:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:202:26)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: un knip.json et un knip.ts du projet qui font ignorer lodash et pg laissent le contrôle qualifié, la passe de référence rapporte les deux écarts et le fichier que knip.ts écrirait n'existe pas
+    not ok 3 - un knip.json et un knip.ts du projet qui font ignorer lodash et pg laissent le contrôle qualifié, la passe de référence rapporte les deux écarts et le fichier que knip.ts écrirait n'existe pas
+      ---
+      duration_ms: 1032.135834
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:210:2'
+      failureType: 'testCodeFailure'
+      error: 'the copy that carries Knip gets the dependencies control: unit, architecture; the coverage of the introduced lines is not measured on this target: scripts.test does not ask node:test for coverage (--experimental-test-coverage); the mutation of the introduced lines is not measured on this target: @stryker-mutator/core is not installed; the quality of the code is not measured on this target: no lint script is declared and no quality referential is adopted in this copy (QLT-01)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        qualifiedAndPassed (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:118:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:213:64)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: sur ce paquet, le contrôle des tests du projet rend PASS
+    not ok 4 - sur ce paquet, le contrôle des tests du projet rend PASS
+      ---
+      duration_ms: 1022.848458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:220:2'
+      failureType: 'testCodeFailure'
+      error: 'the copy that carries Knip gets the dependencies control: unit, architecture; the coverage of the introduced lines is not measured on this target: scripts.test does not ask node:test for coverage (--experimental-test-coverage); the mutation of the introduced lines is not measured on this target: @stryker-mutator/core is not installed; the quality of the code is not measured on this target: no lint script is declared and no quality referential is adopted in this copy (QLT-01)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        qualifiedAndPassed (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:118:9)
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:223:39)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 1 - Knip compares the dependencies an npm package declares to those its code uses
+  ---
+  duration_ms: 4128.077
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-V4uIel/test/v4-platform/node-dependencies.test.ts:173:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4395.210791

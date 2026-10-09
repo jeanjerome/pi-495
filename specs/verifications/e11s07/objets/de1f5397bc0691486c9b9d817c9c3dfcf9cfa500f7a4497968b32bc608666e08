@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les fichiers de configuration de Knip du projet ne font taire aucun écart et ne s'exécutent pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/structure/dependencies-control.ts",
+    "ligne": 52,
+    "constat": "La promesse tient : un .gitignore qui liste src/adapters/ ne fait pas taire l'usage de pg. Mais aucun test ne dépend du drapeau --no-gitignore. Sous la configuration de 495, qui pose `entry` sur chaque source, Knip 6.40.0 ne retire pas du paquet `users` les sources listées par .gitignore, avec ou sans le drapeau. J'ai sondé les deux cas, la copie hors dépôt git et la copie après `git init` : pg est rapporté dans les quatre combinaisons. Le test du .gitignore ne peut donc pas voir le retrait du drapeau que la tâche 3 désigne comme le correctif.",
+    "mutation": "retrait de \"--no-gitignore\" de la commande : node-dependencies-configuration.test.ts reste vert (2/2)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La décision dit ce qu'adopter la carte d'une cible Node fait vérifier des dépendances, et par quoi",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/structure/architecture-control.ts",
+    "ligne": 45,
+    "constat": "L'issue d'adoption nomme Knip 6.40.0, installé dans la même étape, ainsi que sa règle, comme promis. Mais Knip entre dans brought_with, donc dans la liste des noms qu'utilise la phrase générique de decisions.ts. L'effet dit alors « dependency-cruiser 18.5.0, @swc/core 1.16.13, knip 6.40.0 vérifient alors, à chaque exécution, les règles que 495 écrit depuis la carte », ce qui compte Knip parmi les outils qui vérifient les règles de la carte. La phrase anglaise dit la même chose.",
+    "mutation": "retrait de `alongside` en français, puis en anglais, et retrait de Knip de brought_with : le test de la décision échoue à chaque fois (tenu)"
+   }
+  ],
+  "resume": "J'ai relu les neuf scénarios de la story e11s07 contre le code et les tests de la branche. Le code tient chaque promesse et un test tient chacune : 14 mutations, et toutes sauf une font échouer le test attendu.\n\n- Décision (scénario 1) : retirer la phrase `alongside` (en français ou en anglais) ou retirer Knip de brought_with fait échouer le test v2 de la décision.\n- FAIL localisé, rapport, digest (scénario 2) et PASS (scénario 3) : retirer le contrôle des dépendances de NODE_STRUCTURE fait échouer les tests v2. J'ai aussi sondé le cas PASS avec le vrai Knip : qualifié, PASS, aucun constat.\n- Toutes les sources lues (scénario 4) : `entry: []` fait échouer le test v4 de src/legacy/old-users.js.\n- Paquets installés par 495 (scénario 5) : `ignoreDependencies: []` fait échouer les tests v4.\n- Qualification (scénario 6) : trois mutations font échouer le test v4. Un témoin qui importe un module intégré (`node:fs`), le lecteur déclaré non localisé (`located: false`), ou `unlisted` retiré de la liste des écarts comparés.\n- Fichiers de configuration du projet (scénario 7) : retirer `--config` fait échouer les tests de knip.json et de knip.ts, avec le fichier témoin absent.\n- Clé `knip` de package.json (scénario 8) : retirer `ignore: []` fait échouer le test de la clé.\n- Ce que la vérification ne voit pas (scénario 9) : retirer un des points fait échouer le test v2, en anglais comme en français.\n- Réseau : ouvrir le réseau du contrôle fait échouer les tests v4.\n\nDeux constats à peser, aucun bloquant ni à corriger :\n\n- A1-1 : retirer `--no-gitignore` laisse le test du .gitignore vert. Sous la configuration de 495, Knip ne suit pas ce .gitignore, même dans un dépôt git, donc la promesse tient sans le drapeau.\n- A1-2 : la phrase générique de la décision compte Knip parmi les outils qui vérifient les règles de la carte.\n\nJe n'ai rien commité ; les fichiers modifiés par les mutations ont été remis, et les sondes jetables et répertoires temporaires supprimés."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les fichiers de configuration de Knip du projet ne font taire aucun écart et ne s'exécutent pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/node-dependencies.test.ts",
+    "ligne": 33,
+    "constat": "La fixture place `knip.json` et `knip.ts` ensemble. Knip 6.40.0 lit `knip.json` avant `knip.ts` : sans `--config`, `knip.ts` n'est pas chargé non plus (sondé à la main, aucun fichier témoin écrit). L'assertion « le fichier que knip.ts écrirait n'existe pas » ne peut donc échouer sous aucune mutation de 495. La promesse reste tenue par la même mutation, qui fait échouer le test sur les écarts que `knip.json` fait taire. En revanche, qu'un `knip.ts` seul ne soit pas exécuté n'est porté par aucune assertion qui puisse échouer.",
+    "mutation": "Retrait de `--config` et de `RULESET_PLACEHOLDER` dans dependencies-control.ts : le test échoue sur les deux écarts que `knip.json` fait taire, pas sur l'existence du fichier témoin. Sonde : sans `--config`, avec `knip.json` et `knip.ts`, aucun fichier témoin ; avec `knip.ts` seul, le fichier témoin est écrit."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Les fichiers de configuration de Knip du projet ne font taire aucun écart et ne s'exécutent pas",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/stacks/node/structure/dependencies-control.ts",
+    "ligne": 52,
+    "constat": "Retirer `--no-gitignore` laisse vert le test du `.gitignore` qui liste `src/adapters/`. Ce mutant est équivalent pour la promesse : Knip 6.40.0 liste toujours les entrées avec `gitignore: false` (`dist/graph/build.js:270`), et 495 fait de chaque source une entrée. Un `.gitignore` ne fait donc taire aucun écart de dépendance, avec ou sans le drapeau. C'est `entry: EVERY_SOURCE` qui tient la promesse, et une mutation de cette ligne est prise par les tests. Le drapeau lui-même n'est tenu par aucun test.",
+    "mutation": "Suppression de la ligne `\"--no-gitignore\",` : node-dependencies-configuration.test.ts reste à 2/2 vert. Sonde directe sur le vrai Knip, avec et sans le drapeau : sortie identique, pg et lodash rapportés."
+   }
+  ],
+  "resume": "Les neuf scénarios sont tenus par le code, et chacun l'est par un test qui échoue sous mutation. Aucun constat ne bloque ni n'est à corriger, d'où le verdict pass.\n\nMutations prises par un test :\n- **Décision** : Knip retiré de `brought_with`, phrase `alongside` neutralisée.\n- **Gel du contrôle** : contrôle des dépendances retiré de `NODE_STRUCTURE`.\n- **Constats** : ligne donnée par Knip ignorée, verdict forcé à PASS puis à FAIL, message de règle inversé.\n- **Sources lues** : `entry` réduit à `src/index.ts`.\n- **Paquets installés par 495** : `ignoreDependencies` vidé.\n- **Témoin** : lecteur non localisé, témoin qui importe `lodash`, un paquet déclaré.\n- **Configuration de Knip** : `--config` retiré, clés `ignore` et `workspaces` retirées.\n- **Points non vus** : chacun des trois points ou sa raison retiré, en anglais comme en français.\n\nUne sonde sur le vrai Knip 6.40.0 confirme le PASS du scénario 3 : `pg` déclaré, `lodash` retiré, sortie `{\"issues\":[]}`, code de sortie 0.\n\nDeux constats à peser :\n- **B1-1** : l'assertion sur le fichier que `knip.ts` écrirait ne peut pas échouer, car `knip.json` passe avant `knip.ts`.\n- **B1-2** : `--no-gitignore` est un mutant équivalent, car Knip ne suit jamais `.gitignore` pour les entrées.\n\nL'arbre est revenu propre ; rien n'a été commité."
+ }
+]

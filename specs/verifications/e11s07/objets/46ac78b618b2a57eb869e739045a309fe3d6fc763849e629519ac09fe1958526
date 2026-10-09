@@ -1,0 +1,93 @@
+TAP version 13
+# Subtest: the output of Knip is read gap by gap
+    # Subtest: la sortie de Knip donne un constat pour l'usage de pg sans déclaration, à src/adapters/db/sql-user-repository.ts et à la ligne de l'import, et un pour la déclaration inutilisée de lodash, à sa ligne de package.json
+    not ok 1 - la sortie de Knip donne un constat pour l'usage de pg sans déclaration, à src/adapters/db/sql-user-repository.ts et à la ligne de l'import, et un pour la déclaration inutilisée de lodash, à sa ligne de package.json
+      ---
+      duration_ms: 4.389542
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:105:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser knip-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:114:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une déclaration dont Knip ne donne pas la ligne est localisée à sa ligne de package.json
+    not ok 2 - une déclaration dont Knip ne donne pas la ligne est localisée à sa ligne de package.json
+      ---
+      duration_ms: 2.415791
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:127:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        parser knip-json is not qualified
+        + actual - expected
+        
+        + 'INDETERMINATE'
+        - 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'INDETERMINATE'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:137:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: une sortie absente ou illisible rend INDETERMINATE
+    not ok 3 - une sortie absente ou illisible rend INDETERMINATE
+      ---
+      duration_ms: 2.144667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:150:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /no output of Knip/. Input:
+        
+        'parser knip-json is not qualified'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'parser knip-json is not qualified'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:153:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the output of Knip is read gap by gap
+  ---
+  duration_ms: 9.4915
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-VsHQde/test/v1-adapters/knip-report.test.ts:104:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 262.005875
