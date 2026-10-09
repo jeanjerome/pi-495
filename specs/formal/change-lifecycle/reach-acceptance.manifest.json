@@ -1,0 +1,22 @@
+{
+  "model": "ChangeLifecycle.tla",
+  "config": "reach/Acceptance.cfg",
+  "files": {
+    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "reach/Acceptance.cfg": "sha256:80100be637b56aebdd2f79aaeabae42ecb897b3df3fa5e478fa48cb06e0d9c62"
+  },
+  "required_properties": [
+    "AcceptanceIsUnreachable"
+  ],
+  "tool": {
+    "name": "TLC",
+    "version": "2.19 of 08 August 2024 (rev: 5a47802)",
+    "jar_sha256": "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+  },
+  "budget": {
+    "timeout_ms": 120000,
+    "max_output_bytes": 4194304,
+    "workers": 1,
+    "heap_mb": 512
+  }
+}

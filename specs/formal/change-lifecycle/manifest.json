@@ -1,0 +1,199 @@
+{
+  "model": "ChangeLifecycle.tla",
+  "config": "ChangeLifecycle.cfg",
+  "files": {
+    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.cfg": "sha256:1f6e401c82ee2520ca5e62b7ef30144d1d520d89ea0133e3e93e3346c61206ce"
+  },
+  "required_properties": [
+    "FreshAcceptance",
+    "AcceptanceNeedsObligations",
+    "AttemptBudget",
+    "HumanAcceptance",
+    "CountersNeverReset",
+    "StopIsFinal",
+    "Progress",
+    "HumanProvenance"
+  ],
+  "tool": {
+    "name": "TLC",
+    "version": "2.19 of 08 August 2024 (rev: 5a47802)",
+    "jar_sha256": "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+  },
+  "budget": {
+    "timeout_ms": 120000,
+    "max_output_bytes": 4194304,
+    "workers": 1,
+    "heap_mb": 512
+  },
+  "invariants": {
+    "FreshAcceptance": {
+      "rules": [
+        "RM-018",
+        "RM-070",
+        "SA-034"
+      ],
+      "actions": [
+        "Deliver",
+        "EvaluateG5",
+        "ReviseProtocol",
+        "Freeze",
+        "Resume"
+      ]
+    },
+    "AcceptanceNeedsObligations": {
+      "rules": [
+        "RM-036",
+        "RM-019",
+        "RM-032"
+      ],
+      "actions": [
+        "EvaluateG5",
+        "ExhaustOnCorrection"
+      ]
+    },
+    "AttemptBudget": {
+      "rules": [
+        "RM-032"
+      ],
+      "actions": [
+        "Correct",
+        "ExhaustOnCorrection",
+        "StartAttempt",
+        "ExhaustOnStart"
+      ]
+    },
+    "HumanAcceptance": {
+      "rules": [
+        "RM-040",
+        "RM-037",
+        "SA-031"
+      ],
+      "actions": [
+        "HumanAnswer",
+        "EvaluateG5",
+        "Correct",
+        "ReviseProtocol"
+      ]
+    },
+    "HumanProvenance": {
+      "rules": [
+        "SA-030",
+        "RM-040"
+      ],
+      "actions": [
+        "HumanAnswer",
+        "Resume",
+        "Correct",
+        "ReviseProtocol"
+      ]
+    }
+  },
+  "actions": {
+    "Launch": {
+      "command": "verification.start",
+      "code": [
+        "src/domain/change/decide.ts#verificationStart"
+      ],
+      "abstracts": "the verification operation opened, then one control run by the executor on the frozen candidate"
+    },
+    "Deliver": {
+      "command": "verification.record",
+      "code": [
+        "src/domain/change/decide.ts#verificationRecord",
+        "src/domain/change/apply.ts#apply"
+      ],
+      "abstracts": "evidence.recorded for the frozen candidate under the frozen revision, evidence.rejected otherwise"
+    },
+    "Complete": {
+      "command": "verification.complete",
+      "code": [
+        "src/domain/change/decide.ts#verificationComplete"
+      ],
+      "abstracts": "the verification closed and the change in deciding, no review being required"
+    },
+    "EvaluateG5": {
+      "command": "gate.evaluate",
+      "code": [
+        "src/domain/change/decide.ts#gateG5",
+        "src/domain/gates/g5.ts#evaluateG5"
+      ],
+      "abstracts": "G5 and, when it asks for one, the IH-10 request that puts the change in decision_required"
+    },
+    "HumanAnswer": {
+      "command": "decision.answer",
+      "code": [
+        "src/domain/change/decide.ts#decisionAnswer"
+      ],
+      "abstracts": "an IH-10 answer of qualified human provenance, accept or reject"
+    },
+    "Correct": {
+      "command": "correction.authorize",
+      "code": [
+        "src/domain/change/decide.ts#correctionAuthorize",
+        "src/domain/invalidation.ts#invalidationFor"
+      ],
+      "abstracts": "a new attempt opened, the decisions on the candidate revoked (candidate_replaced)"
+    },
+    "ExhaustOnCorrection": {
+      "command": "correction.authorize",
+      "code": [
+        "src/domain/change/decide.ts#correctionAuthorize"
+      ],
+      "abstracts": "the block on attempts_exhausted when no attempt remains"
+    },
+    "StartAttempt": {
+      "command": "intervention.start",
+      "code": [
+        "src/domain/change/decide.ts#interventionStart"
+      ],
+      "abstracts": "an implement intervention that opens a new attempt"
+    },
+    "ExhaustOnStart": {
+      "command": "intervention.start",
+      "code": [
+        "src/domain/change/decide.ts#interventionStart"
+      ],
+      "abstracts": "the block on attempts_exhausted when an implement intervention finds no attempt left"
+    },
+    "Freeze": {
+      "command": "candidate.freeze",
+      "code": [
+        "src/domain/change/decide.ts#candidateFreeze",
+        "src/domain/change/apply.ts#apply"
+      ],
+      "abstracts": "the candidate of the open attempt frozen and G4 passed"
+    },
+    "ReviseProtocol": {
+      "command": "artifact.revise",
+      "code": [
+        "src/domain/change/decide.ts#artifactRevise",
+        "src/domain/invalidation.ts#invalidationFor",
+        "src/domain/change/apply.ts#apply"
+      ],
+      "abstracts": "the protocol revised: rollback to qualification, evidence invalidated, candidate decisions revoked"
+    },
+    "Requalify": {
+      "command": "gate.evaluate",
+      "code": [
+        "src/domain/change/decide.ts#gateG2",
+        "src/domain/change/decide.ts#gate"
+      ],
+      "abstracts": "G2 freezing the revised protocol, then G3, back to implementation"
+    },
+    "Pause": {
+      "command": "change.pause",
+      "code": [
+        "src/domain/change/decide.ts#changePause"
+      ],
+      "abstracts": "the resume point saved and the change paused, controls in flight left to answer"
+    },
+    "Resume": {
+      "command": "change.resume",
+      "code": [
+        "src/domain/change/decide.ts#changeResume"
+      ],
+      "abstracts": "the status of the resume point restored"
+    }
+  }
+}

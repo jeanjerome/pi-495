@@ -2319,3 +2319,37 @@ bugs:
       Rename the field to the mode (`mode: "breadth-first" | "depth-first" | "simulation"`) or print
       `breadth-first, not finished` when the outcome is not `completed`.
     status: open
+  - bug_id: BUG-2026-10-09T171124
+    date: "2026-10-09"
+    title: "The kernel accepts artifact.revise on a paused or stopped change and hands it back ready, lifting the pause without a resume and a stop the resume would not lift"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `artifactRevise` (`src/domain/change/decide.ts`) requires only an active change (`requireActive`, which refuses a
+      closed, cancelled or completed change), and the `artifact.revised` event (`src/domain/change/apply.ts`) sets the
+      status to `ready` and clears `stop_reason` and `stop_detail`. A paused change leaves its pause without
+      `change.resume`, its resume point abandoned; a blocked change leaves its stop whatever its cause, including one
+      `resumeLiftsStop` refuses to lift. A change stopped on its exhausted attempt budget stops again once implementation
+      would start, without being accepted, as the change-lifecycle model shows.
+    what_expected: >
+      A revision on a paused change is refused, naming the resume, or keeps the pause; a revision on a stopped change is
+      refused, or lifts only the stops a resume would lift.
+    steps_to_reproduce:
+      - "Read `artifactRevise` in `src/domain/change/decide.ts`: no check on `paused` or `blocked`, unlike `requireNotBlocked` used by other commands."
+      - "Read the `artifact.revised` case in `src/domain/change/apply.ts`: `status = \"ready\"`, `stop_reason = null`."
+      - "In `specs/formal/change-lifecycle/ChangeLifecycle.tla`, `ReviseProtocol` follows the kernel: TLC reaches a state paused, then revised, then ready with no `Resume` step."
+    root_cause: >
+      The revision reuses the active-change precondition and resets the status as a rollback, with no rule for a change
+      that waits for a resume or is stopped.
+    evidence: >
+      Older than the branch e38s03, which writes the change-lifecycle model and records the pause case among its findings
+      to arbitrate (`specs/formal/change-lifecycle/README.md`). Noted by its acceptance run for the stopped case; confirmed
+      at the arbitration by reading the two functions and by a TLC probe of the model. Read in the code, not reproduced on a
+      journal: the only application caller, `reviseRequirements` (`src/application/phases/requirements-revision.ts`),
+      runs during the verification design of an active change, and no application path issues a protocol revision.
+    risk_level: low
+    follow_ups: >
+      Decide whether a revision may stand for a resume (PF-17 is silent), then refuse `artifact.revise` on a paused change
+      and on a stop the resume does not lift, or keep the pause and the stop through the rollback.
+    status: open

@@ -1,0 +1,23 @@
+{
+  "model": "assumptions/KernelAndResume.tla",
+  "config": "assumptions/KernelAndResume.cfg",
+  "files": {
+    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "assumptions/KernelAndResume.tla": "sha256:ba953b7722402d81118228052fc329f7d2a1eb075d7c17974e779aa20617860b",
+    "assumptions/KernelAndResume.cfg": "sha256:fed0922e5ece714158ffcac53f7b7460d2011efe83c5888558504c188e34acad"
+  },
+  "required_properties": [
+    "Settles"
+  ],
+  "tool": {
+    "name": "TLC",
+    "version": "2.19 of 08 August 2024 (rev: 5a47802)",
+    "jar_sha256": "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+  },
+  "budget": {
+    "timeout_ms": 120000,
+    "max_output_bytes": 4194304,
+    "workers": 1,
+    "heap_mb": 512
+  }
+}

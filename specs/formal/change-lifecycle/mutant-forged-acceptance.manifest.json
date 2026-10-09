@@ -1,0 +1,23 @@
+{
+  "model": "mutants/ForgedAcceptance.tla",
+  "config": "mutants/ForgedAcceptance.cfg",
+  "files": {
+    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "mutants/ForgedAcceptance.tla": "sha256:4afb0baa455cdec0416c75d1778dbcb733be7f642aac049bbbd491dc42fc6eaf",
+    "mutants/ForgedAcceptance.cfg": "sha256:346f4ed49cb237e6c6ef5f986b28ac07cbd4457b50157ec86573f0d6c31e2339"
+  },
+  "required_properties": [
+    "HumanProvenance"
+  ],
+  "tool": {
+    "name": "TLC",
+    "version": "2.19 of 08 August 2024 (rev: 5a47802)",
+    "jar_sha256": "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+  },
+  "budget": {
+    "timeout_ms": 120000,
+    "max_output_bytes": 4194304,
+    "workers": 1,
+    "heap_mb": 512
+  }
+}

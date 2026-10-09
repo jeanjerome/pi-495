@@ -2,7 +2,7 @@
 
 Story : e38s03
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : Spécification commune du noyau et vérification locale
 Dépendances : e38s02

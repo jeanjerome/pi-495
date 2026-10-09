@@ -1,0 +1,68 @@
+{
+  "mutant": "mutants/AcceptExhausted.tla",
+  "manifest": "mutant-accept-exhausted.manifest.json",
+  "property": "AcceptanceNeedsObligations",
+  "tool": "TLC 2.19 of 08 August 2024 (rev: 5a47802)",
+  "trace": [
+    {
+      "step": 1,
+      "action": "Initial predicate",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = {}\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 2,
+      "action": "Launch",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = {[cand |-> 1, rev |-> 1, control |-> k1, ran |-> 1]}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = {}\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 3,
+      "action": "Launch",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = { [cand |-> 1, rev |-> 1, control |-> k1, ran |-> 1],\n  [cand |-> 1, rev |-> 1, control |-> k2, ran |-> 1] }\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = {}\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 4,
+      "action": "Deliver",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = {[cand |-> 1, rev |-> 1, control |-> k2, ran |-> 1]}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 5,
+      "action": "Deliver",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 6,
+      "action": "Complete",
+      "state": "/\\ phase = \"deciding\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 7,
+      "action": "EvaluateG5",
+      "state": "/\\ phase = \"deciding\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"FAIL\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 1"
+    },
+    {
+      "step": 8,
+      "action": "Correct",
+      "state": "/\\ phase = \"implementation\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = TRUE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 2"
+    },
+    {
+      "step": 9,
+      "action": "Freeze",
+      "state": "/\\ phase = \"verifying\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 2"
+    },
+    {
+      "step": 10,
+      "action": "Complete",
+      "state": "/\\ phase = \"deciding\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"none\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 2"
+    },
+    {
+      "step": 11,
+      "action": "EvaluateG5",
+      "state": "/\\ phase = \"deciding\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = {}\n/\\ humanPolicy = FALSE\n/\\ outcome = \"pending\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"FAIL\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 2"
+    },
+    {
+      "step": 12,
+      "action": "AcceptWhenExhausted",
+      "state": "/\\ phase = \"closed\"\n/\\ runs = {}\n/\\ cand = 1\n/\\ retained = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ humanPolicy = FALSE\n/\\ outcome = \"accepted\"\n/\\ interruptions = 0\n/\\ open = FALSE\n/\\ g5 = \"FAIL\"\n/\\ rev = 1\n/\\ decisions = {}\n/\\ evidence = { [ cand |-> 1,\n    rev |-> 1,\n    control |-> k1,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"PASS\" ],\n  [ cand |-> 1,\n    rev |-> 1,\n    control |-> k2,\n    ran |-> 1,\n    valid |-> TRUE,\n    verdict |-> \"FAIL\" ] }\n/\\ status = \"ready\"\n/\\ saved = \"ready\"\n/\\ attempt = 2"
+    }
+  ]
+}
