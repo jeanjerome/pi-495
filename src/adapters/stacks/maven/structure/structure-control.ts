@@ -180,8 +180,9 @@ export const MAVEN_STRUCTURE: StructureCapability<MavenProject> = {
 				...(dependencies ? { dependencies: dependenciesNegativeWitness(model.reactor) } : {}),
 			},
 			// The shared positive witness imports the API of JUnit, which a module that declares the aggregate
-			// `junit-jupiter` uses without declaring: the positive witness of the dependencies is the reference alone.
-			...(dependencies ? { reference_positive: ["dependencies"] } : {}),
+			// `junit-jupiter` uses without declaring, and which a reactor with no test dependency does not compile:
+			// the positive witness of the architecture and of the dependencies is the reference alone.
+			...(verified ? { reference_positive: ["architecture", ...(dependencies ? ["dependencies"] : [])] } : {}),
 			...(shortOf.length > 0 ? { short_of: shortOf.join("; ") } : {}),
 		};
 	},

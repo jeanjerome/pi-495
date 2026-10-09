@@ -15,7 +15,7 @@ import { selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { DEFAULT_WORKSPACE_POLICY, GitWorkspace } from "../../src/adapters/workspace/git-workspace.ts";
 import { editedFile } from "../../src/application/complement.ts";
 import { askedOutsideDirectory, bringInstalls, runInstall } from "../../src/application/installation.ts";
-import { qualifyControl } from "../../src/application/qualification.ts";
+import { qualifyControl, witnessFilesOf } from "../../src/application/qualification.ts";
 import type { ControlDefinition } from "../../src/contracts/v1/protocol.ts";
 import { DOMAIN_MAP, DOMAIN_SOURCES } from "../helpers/architecture-survey.ts";
 import { invocationBase } from "../helpers/execution-fixture.ts";
@@ -36,8 +36,13 @@ ${dependsOn.map((d) => `    <dependency><groupId>io.demo</groupId><artifactId>${
 </project>
 `;
 
-/** The reactor of `domain` and `infrastructure`, which declares JUnit 5 and has no test yet: its build never loads the runner of JUnit tests. */
-const REACTOR: Record<string, string> = {
+const JUNIT_5 = `  <dependencies>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>
+  </dependencies>
+`;
+
+/** The reactor of `domain` and `infrastructure`, with no test yet: its build never loads the runner of JUnit tests. */
+const reactor = (testDependencies: string): Record<string, string> => ({
 	"pom.xml": `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
@@ -48,10 +53,7 @@ const REACTOR: Record<string, string> = {
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-  <dependencies>
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>
-  </dependencies>
-  <build>
+${testDependencies}  <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -65,21 +67,23 @@ const REACTOR: Record<string, string> = {
 	"domain/pom.xml": pom("domain", []),
 	"infrastructure/pom.xml": pom("infrastructure", ["domain"]),
 	...DOMAIN_SOURCES,
-};
+});
 
 describe("ArchUnit offline on a local Maven repository the build of the project and the adoption alone filled", {
 	skip: !mavenAvailable && "mvn is not on PATH",
 }, () => {
 	const cleanups = removedAfterEach();
-	it("sur un dépôt local de Maven que seuls le build du projet et l'adoption de la carte ont rempli, la résolution est resolved et le contrôle d'architecture est qualifié par ses témoins le réseau fermé", async () => {
+
+	/** What the qualification of the architecture control gives on the reactor, its witnesses written as the protocol writes them. */
+	async function qualifiedOn(files: Record<string, string>) {
 		const root = outputDir("maven-architecture-offline-", cleanups);
 		const repository = join(root, "m2");
 		mkdirSync(repository);
 		const project = join(root, "project");
-		writeFiles(project, REACTOR);
+		writeFiles(project, files);
 		const offer = STACKS_OF_495.recognise(project, REFS, process.execPath, [], DOMAIN_MAP).architecture_verification;
 		assert.equal(offer?.kind, "proposed");
-		if (offer?.kind !== "proposed") return;
+		if (offer?.kind !== "proposed") throw new Error("no ArchUnit offer");
 		const { edit, install } = offer.recommendation;
 		assert.ok(edit && install, "the recommendation declares and resolves ArchUnit");
 
@@ -119,16 +123,26 @@ describe("ArchUnit offline on a local Maven repository the build of the project 
 			writeFileSync(join(reference, edit.path), editedFile(project, edit) ?? "");
 			const detection = STACKS_OF_495.recognise(reference, REFS, process.execPath, [], DOMAIN_MAP);
 			const control = detection.controls.find((c) => c.control_id === "architecture");
-			const own = detection.own_negative_witness.architecture;
-			assert.ok(control && own, "the copy that declares ArchUnit gets the architecture control and its own witness");
+			assert.ok(
+				control && detection.own_negative_witness.architecture,
+				"the copy that declares ArchUnit gets the architecture control and its own witness",
+			);
 			assert.equal(control.network, "denied", "the architecture control runs with the network closed");
+			const witnesses = witnessFilesOf(
+				{
+					positive: detection.positive_witness,
+					negative: detection.negative_witness,
+					own_negative: detection.own_negative_witness,
+					reference_positive: detection.reference_positive ?? [],
+				},
+				"architecture",
+			);
 			const positive = join(root, "architecture-positive");
 			const negative = join(root, "architecture-negative");
-			for (const workspacePath of [positive, negative]) {
-				cpSync(reference, workspacePath, { recursive: true });
-				writeFiles(workspacePath, detection.positive_witness);
-			}
-			writeFiles(negative, own);
+			cpSync(reference, positive, { recursive: true });
+			writeFiles(positive, witnesses.positive);
+			cpSync(reference, negative, { recursive: true });
+			writeFiles(negative, witnesses.negative);
 			const withRepository: ControlDefinition = {
 				...control,
 				env_allowlist: [...control.env_allowlist, "MAVEN_ARGS"],
@@ -139,21 +153,30 @@ describe("ArchUnit offline on a local Maven repository the build of the project 
 				READERS_OF_495,
 				{ workspace_of: (workspacePath) => STACKS_OF_495.workspaceOf(workspacePath) },
 			);
-			const q = await qualifyControl(
+			return await qualifyControl(
 				runner,
 				withRepository,
 				{
 					positive_path: positive,
 					negative_path: negative,
-					positive_files: detection.positive_witness,
-					negative_files: { ...detection.positive_witness, ...own },
+					positive_files: witnesses.positive,
+					negative_files: witnesses.negative,
 				},
 				invocationBase(),
 			);
-			assert.deepEqual([q.positive, q.negative, q.qualified], ["PASS", "FAIL", true], JSON.stringify(q.notes));
 		} finally {
 			if (previous === undefined) delete process.env.MAVEN_ARGS;
 			else process.env.MAVEN_ARGS = previous;
 		}
+	}
+
+	it("sur un dépôt local de Maven que seuls le build du projet et l'adoption de la carte ont rempli, la résolution est resolved et le contrôle d'architecture est qualifié par ses témoins le réseau fermé", async () => {
+		const q = await qualifiedOn(reactor(JUNIT_5));
+		assert.deepEqual([q.positive, q.negative, q.qualified], ["PASS", "FAIL", true], JSON.stringify(q.notes));
+	});
+
+	it("sur un réacteur qui ne déclare aucune dépendance de test, le contrôle d'architecture est qualifié par ses témoins", async () => {
+		const q = await qualifiedOn(reactor(""));
+		assert.deepEqual([q.positive, q.negative, q.qualified], ["PASS", "FAIL", true], JSON.stringify(q.notes));
 	});
 });
