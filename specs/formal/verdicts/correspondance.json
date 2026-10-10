@@ -1,0 +1,59 @@
+{
+	"typescript": {
+		"file": "src/domain/gates/g5.ts",
+		"function": "combine",
+		"observed_through": "evaluateG5"
+	},
+	"lean": {
+		"definitions": "Verdicts/Defs.lean",
+		"statements": "Verdicts/Statements.lean",
+		"combine": "Verdicts.combine"
+	},
+	"rules": [
+		{
+			"rule": "all_pass",
+			"typescript": "combine(verdicts, \"all\") for an obligation declared all_pass: FAIL before INDETERMINATE before NOT_RUN, PASS only when nothing else remains",
+			"statements": ["AllPassRejectsBlocking", "AllPassNeedsEveryPass"],
+			"cases": [
+				{ "mode": "all", "verdicts": ["PASS"], "combined": "PASS" },
+				{ "mode": "all", "verdicts": ["PASS", "PASS"], "combined": "PASS" },
+				{ "mode": "all", "verdicts": ["PASS", "FAIL"], "combined": "FAIL" },
+				{ "mode": "all", "verdicts": ["PASS", "INDETERMINATE"], "combined": "INDETERMINATE" },
+				{ "mode": "all", "verdicts": ["PASS", "NOT_RUN"], "combined": "NOT_RUN" },
+				{ "mode": "all", "verdicts": ["NOT_RUN", "INDETERMINATE", "FAIL"], "combined": "FAIL" }
+			]
+		},
+		{
+			"rule": "any_pass",
+			"typescript": "combine(verdicts, \"any\") for an obligation declared any_pass: one PASS suffices, else FAIL before INDETERMINATE before NOT_RUN",
+			"statements": ["AnyPassKeepsPass"],
+			"cases": [
+				{ "mode": "any", "verdicts": ["PASS", "FAIL"], "combined": "PASS" },
+				{ "mode": "any", "verdicts": ["FAIL", "INDETERMINATE"], "combined": "FAIL" },
+				{ "mode": "any", "verdicts": ["INDETERMINATE", "NOT_RUN"], "combined": "INDETERMINATE" },
+				{ "mode": "any", "verdicts": ["NOT_RUN"], "combined": "NOT_RUN" }
+			]
+		},
+		{
+			"rule": "vide",
+			"typescript": "an obligation with no control: combine([]) is NOT_RUN, which G5 holds indeterminate",
+			"statements": ["EmptyIsNotRun", "PassNeedsAPass"],
+			"cases": [
+				{ "mode": "all", "verdicts": [], "combined": "NOT_RUN" },
+				{ "mode": "any", "verdicts": [], "combined": "NOT_RUN" }
+			]
+		},
+		{
+			"rule": "NOT_APPLICABLE",
+			"typescript": "NOT_APPLICABLE is filtered out before either rule; verdicts that are all NOT_APPLICABLE combine to NOT_APPLICABLE",
+			"statements": ["OnlyNotApplicable", "NotApplicableIsNeutral"],
+			"cases": [
+				{ "mode": "all", "verdicts": ["NOT_APPLICABLE"], "combined": "NOT_APPLICABLE" },
+				{ "mode": "any", "verdicts": ["NOT_APPLICABLE", "NOT_APPLICABLE"], "combined": "NOT_APPLICABLE" },
+				{ "mode": "all", "verdicts": ["NOT_APPLICABLE", "PASS"], "combined": "PASS" },
+				{ "mode": "all", "verdicts": ["NOT_APPLICABLE", "FAIL"], "combined": "FAIL" },
+				{ "mode": "any", "verdicts": ["NOT_APPLICABLE", "FAIL", "PASS"], "combined": "PASS" }
+			]
+		}
+	]
+}

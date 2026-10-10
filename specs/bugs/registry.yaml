@@ -3364,3 +3364,28 @@ bugs:
     follow_ups: >
       Journal the stop and its motif where `apresIssue` returns `arret`, and hold it with a test of an arbitration that stops.
     status: open
+  - bug_id: BUG-2026-10-10T190000
+    date: "2026-10-10"
+    title: "No test holds that the Lean check copies a link among the compiled modules as the file it points to"
+    severity: low
+    priority: p3
+    scope: scripts
+    what_happened: >
+      `copyCompiled` (`scripts/check-lean.ts`) sets aside the `.olean` of each module with `dereference: true`, so a link
+      the build of the proofs writes is copied as the file it designates. With `dereference: false`, the twelve tests of
+      `test/v4-platform/lean-verdict-proof.test.ts` still pass: the copied link would point into the writable copy, and
+      the kernel replay could read a file other than the one set aside. At the head the option is `true`, so no bypass
+      is reachable; the guarantee rests on the option alone.
+    what_expected: >
+      A test fails when a link among the compiled modules is set aside as a link rather than as the file it points to.
+    steps_to_reproduce:
+      - "Change `dereference: true` to `dereference: false` in `copyCompiled` (`scripts/check-lean.ts`); run `node --test test/v4-platform/lean-verdict-proof.test.ts`: all twelve tests pass."
+    root_cause: >
+      No proof test builds a project whose compiled output holds a link, so the copy of a link is never exercised.
+    evidence: >
+      Introduced by the branch of the story e38s11. Found by a reviewer of the first round through the mutation above.
+    risk_level: low
+    follow_ups: >
+      Add a proof test where an `.olean` the build leaves is a link to a file that changes after the set-aside, and
+      assert that the check reads the content copied at the set-aside.
+    status: open

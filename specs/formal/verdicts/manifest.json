@@ -1,0 +1,26 @@
+{
+	"toolchain": {
+		"name": "leanprover/lean4:v4.34.1",
+		"version": "4.34.1",
+		"commit": "5045d0056413266e57c625dcd7c365b10e377c52"
+	},
+	"protected": {
+		"lean-toolchain": "sha256:d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b",
+		"lakefile.toml": "sha256:331c66cd9d650b58bdb966842656d639ec6ae909e7226290de7802dfe5e07992",
+		"lake-manifest.json": "sha256:b80296892b9f38a05ebfb111a959c5e9bd2bd95dc088e2b16043b02b8de6406c",
+		"Verdicts/Defs.lean": "sha256:d3e308d9a9247a56dac1128e60da36e268f22bcf784317e49ef19210001c7a8b",
+		"Verdicts/Statements.lean": "sha256:459e6dbf20b0bcc2a41e79ecb4f3f8fe7ca40d1a4a5850f2e902ee1fa65d08c2"
+	},
+	"module": "Verdicts",
+	"theorems": [
+		{ "theorem": "Verdicts.allPassRejectsBlocking", "statement": "Verdicts.AllPassRejectsBlocking" },
+		{ "theorem": "Verdicts.allPassNeedsEveryPass", "statement": "Verdicts.AllPassNeedsEveryPass" },
+		{ "theorem": "Verdicts.anyPassKeepsPass", "statement": "Verdicts.AnyPassKeepsPass" },
+		{ "theorem": "Verdicts.emptyIsNotRun", "statement": "Verdicts.EmptyIsNotRun" },
+		{ "theorem": "Verdicts.passNeedsAPass", "statement": "Verdicts.PassNeedsAPass" },
+		{ "theorem": "Verdicts.onlyNotApplicable", "statement": "Verdicts.OnlyNotApplicable" },
+		{ "theorem": "Verdicts.notApplicableIsNeutral", "statement": "Verdicts.NotApplicableIsNeutral" }
+	],
+	"allowed_axioms": ["propext", "Classical.choice", "Quot.sound"],
+	"budget": { "timeout_ms": 300000, "max_output_bytes": 4194304 }
+}

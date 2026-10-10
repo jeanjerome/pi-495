@@ -299,7 +299,7 @@ export class UnconfinedSandbox implements SandboxPort {
  * `qualified` flag is false and the caller must refuse the operation (capability_missing).
  */
 export function selectSandbox(
-	options: { allow_unconfined: boolean; denied_read_paths?: string[] },
+	options: { allow_unconfined: boolean } & Partial<BackendOptions>,
 	platform: NodeJS.Platform = process.platform,
 ): SandboxSelection {
 	const probe: SandboxProfile = {
@@ -314,9 +314,8 @@ export function selectSandbox(
 		const b = new UnconfinedSandbox();
 		return { backend: b, qualification: b.qualify(probe) };
 	}
+	const { allow_unconfined: _, ...backendOptions } = options;
 	const b: SandboxPort =
-		platform === "darwin"
-			? new SeatbeltSandbox({ denied_read_paths: options.denied_read_paths ?? [] })
-			: new BubblewrapSandbox({ denied_read_paths: options.denied_read_paths ?? [] });
+		platform === "darwin" ? new SeatbeltSandbox(backendOptions) : new BubblewrapSandbox(backendOptions);
 	return { backend: b, qualification: b.qualify(probe) };
 }
