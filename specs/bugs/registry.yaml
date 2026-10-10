@@ -2687,7 +2687,7 @@ bugs:
       Decide whether G2 refuses a recipe whose network is not `denied` and whose `external_data` is empty, and carry the
       declared external data into the facts of the run, with a v0 test of the refusal and a v1 test of the facts.
     status: open
-  - bug_id: BUG-2026-10-10T090000
+  - bug_id: BUG-2026-10-10T090200
     date: "2026-10-10"
     title: "The report ticks a requirement under what was asked when every control bearing on it passed, although G5 left it undecided for a missing replay or oracle case"
     severity: low
@@ -2931,36 +2931,6 @@ bugs:
       In `recette-campagnes.test.ts`, leave an uncommitted change in the working tree that the campaign command would
       see (a file it reads, or a fake campaign that fails on it) and assert the campaign is played on the committed head;
       the mutation removing `tete` must make it fail.
-    status: open
-  - bug_id: BUG-2026-10-10T234000
-    date: "2026-10-10"
-    title: "The story e39s03 cites a precision of D-89 that the decision record does not carry"
-    severity: low
-    priority: p3
-    scope: specs
-    what_happened: >
-      The security section of `specs/stories/e39/e39s03-l-accord-exige-les-campagnes-de-reference.md` leaves out a
-      session forging the journal or the git configuration behind the tool's back while the cycle's sessions run
-      unconfined, and cites for it "`D-89`, précision du 2026-10-10". `specs/adr/D-89-…md` holds no such text: nothing
-      under `specs/adr/` records that the attack of a security section leaves out a session forging what the tool reads
-      back. The narrowing is carried only by the story, the reviewer prompt (`cycle/prompts/relecteur.md`) and the cycle
-      README, changed by hand by the owner.
-    what_expected: >
-      A product decision is written in its record: the precision the story cites is stated in `D-89`, or the story cites
-      the record that does carry it.
-    steps_to_reproduce:
-      - "Read section 3 of the story e39s03: it cites a precision of `D-89` dated 2026-10-10."
-      - "Run `grep -n -i 'falsif\\|forg\\|confinement' specs/adr/D-89-*.md`: no match."
-    root_cause: >
-      The owner narrowed the security attack between two launches of the review by editing the reviewer prompt and the
-      story; the decision record was not amended in the same change.
-    evidence: >
-      Introduced by the branch of the story e39s03. Found by a reviewer of its first review round; the last round leaves
-      it to the registry. A product decision is written by hand by the owner, so the session does not amend `D-89` itself.
-    risk_level: low
-    follow_ups: >
-      Add to `D-89` the precision that a session forging the journal, the git configuration or a later write behind the
-      tool's back stays outside the guarantees of a security section while the cycle's sessions run unconfined.
     status: open
   - bug_id: BUG-2026-10-10T235000
     date: "2026-10-10"
